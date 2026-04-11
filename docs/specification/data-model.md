@@ -17,6 +17,7 @@ A note is the fundamental entity in Manifesto.
 | `archived`  | `boolean`        | Yes      | Whether the note is archived             |
 | `trashed`   | `boolean`        | Yes      | Whether the note is in trash             |
 | `trashedAt` | `string \| null` | Yes      | ISO 8601 timestamp when trashed, `null` if not trashed |
+| `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
 | `updatedAt` | `string`         | Yes      | ISO 8601 last modification timestamp     |
@@ -65,6 +66,7 @@ unlocked | content-locked | fully-locked
   "content": "## Groceries\n- [x] Milk\n- [ ] Eggs\n- [ ] Bread\n\nDon't forget **coupons**!",
   "color": "yellow",
   "lock": "unlocked",
+  "position": 1024,
   "pinned": true,
   "archived": false,
   "trashed": false,

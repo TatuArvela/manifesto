@@ -30,6 +30,18 @@ Notes can be assigned a color from a predefined set (see `NoteColor` in [Data Mo
 
 Toggling the pin icon sets `pinned: true/false`. Pinned notes appear in a separate section at the top of the grid, labeled "Pinned." Unpinned notes appear below under "Others" (label only shown when pinned notes exist).
 
+## Ordering
+
+Notes can be sorted in three modes, selectable from the header:
+
+- **Default** — Manual drag-and-drop ordering. New notes are placed in creation order. The user can rearrange notes freely by dragging. The custom position is stored in the `position` field (see [Data Model](../data-model.md)).
+- **Updated** — Last updated first.
+- **Created** — Most recently created first.
+
+Pinned and unpinned sections each maintain their own order independently. In default mode, each section has its own drag-and-drop sequence.
+
+In server mode, manual ordering is per-user — each user has their own arrangement.
+
 ## Grid and List Views
 
 - **Grid view** (default) — Responsive masonry-like grid. Notes have varying heights based on content (capped with overflow).
