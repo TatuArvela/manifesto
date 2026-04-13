@@ -88,6 +88,21 @@ export const noteColorMap: Record<NoteColor, ColorClasses> = {
   },
 };
 
+/** Hex edge colors for the note stack base gradient */
+export const noteEdgeColors: Record<NoteColor, { light: string; dark: string }> = {
+  [NoteColor.Default]: { light: "#d1d5db", dark: "#4b5563" },
+  [NoteColor.Red]: { light: "#fca5a5", dark: "#991b1b" },
+  [NoteColor.Orange]: { light: "#fdba74", dark: "#9a3412" },
+  [NoteColor.Yellow]: { light: "#fde047", dark: "#854d0e" },
+  [NoteColor.Green]: { light: "#86efac", dark: "#166534" },
+  [NoteColor.Teal]: { light: "#5eead4", dark: "#115e59" },
+  [NoteColor.Blue]: { light: "#93c5fd", dark: "#1e40af" },
+  [NoteColor.Purple]: { light: "#c4b5fd", dark: "#5b21b6" },
+  [NoteColor.Pink]: { light: "#f9a8d4", dark: "#9d174d" },
+  [NoteColor.Brown]: { light: "#d97706", dark: "#78350f" },
+  [NoteColor.Gray]: { light: "#9ca3af", dark: "#374151" },
+};
+
 export const colorPickerColors: {
   value: NoteColor;
   label: string;

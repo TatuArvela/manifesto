@@ -9,6 +9,8 @@ export type ViewMode = "grid" | "list";
 export type NoteSize = "fit" | "square";
 export type Filter = "active" | "archived" | "trash";
 export type SortMode = "default" | "updated" | "created";
+export type ThemeMode = "system" | "light" | "dark";
+export type DefaultNoteColor = "plain" | "random";
 
 // --- Storage ---
 
@@ -24,6 +26,8 @@ function loadPrefs(): {
   viewMode: ViewMode;
   sortMode: SortMode;
   noteSize: NoteSize;
+  theme: ThemeMode;
+  defaultNoteColor: DefaultNoteColor;
 } {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
@@ -33,12 +37,20 @@ function loadPrefs(): {
         viewMode: parsed.viewMode ?? "grid",
         sortMode: parsed.sortMode ?? "default",
         noteSize: parsed.noteSize ?? "fit",
+        theme: parsed.theme ?? "system",
+        defaultNoteColor: parsed.defaultNoteColor ?? "plain",
       };
     }
   } catch {
     // ignore
   }
-  return { viewMode: "grid", sortMode: "default", noteSize: "fit" };
+  return {
+    viewMode: "grid",
+    sortMode: "default",
+    noteSize: "fit",
+    theme: "system",
+    defaultNoteColor: "plain",
+  };
 }
 
 function savePrefs() {
@@ -48,6 +60,8 @@ function savePrefs() {
       viewMode: viewMode.value,
       sortMode: sortMode.value,
       noteSize: noteSize.value,
+      theme: theme.value,
+      defaultNoteColor: defaultNoteColor.value,
     }),
   );
 }
@@ -64,11 +78,36 @@ export const sortMode = signal<SortMode>(prefs.sortMode);
 export const editingNoteId = signal<string | null>(null);
 export const mobileSidebarOpen = signal(false);
 export const showSettings = signal(false);
+export const theme = signal<ThemeMode>(prefs.theme);
+export const defaultNoteColor = signal<DefaultNoteColor>(
+  prefs.defaultNoteColor,
+);
 
 // Persist preferences when they change
 viewMode.subscribe(() => savePrefs());
 sortMode.subscribe(() => savePrefs());
 noteSize.subscribe(() => savePrefs());
+theme.subscribe(() => savePrefs());
+defaultNoteColor.subscribe(() => savePrefs());
+
+// --- Theme ---
+
+function applyTheme(mode: ThemeMode) {
+  const isDark =
+    mode === "dark" ||
+    (mode === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("dark", isDark);
+}
+
+applyTheme(theme.value);
+theme.subscribe((mode) => applyTheme(mode));
+
+window
+  .matchMedia("(prefers-color-scheme: dark)")
+  .addEventListener("change", () => {
+    if (theme.value === "system") applyTheme("system");
+  });
 
 // --- Derived ---
 
@@ -154,6 +193,17 @@ export const editingNote = computed(() =>
     : null,
 );
 
+// --- Helpers ---
+
+const noteColors = Object.values(NoteColor).filter((c) => c !== NoteColor.Default);
+
+export function pickDefaultColor(): NoteColor {
+  if (defaultNoteColor.value === "random") {
+    return noteColors[Math.floor(Math.random() * noteColors.length)];
+  }
+  return NoteColor.Default;
+}
+
 // --- Actions ---
 
 export async function loadNotes() {
@@ -165,7 +215,7 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
   const noteCreate: NoteCreate = {
     title: input.title ?? "",
     content: input.content ?? "",
-    color: input.color ?? NoteColor.Default,
+    color: input.color ?? pickDefaultColor(),
     pinned: input.pinned ?? false,
     archived: input.archived ?? false,
     trashed: input.trashed ?? false,

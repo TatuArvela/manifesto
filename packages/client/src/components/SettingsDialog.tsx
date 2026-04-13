@@ -1,7 +1,28 @@
 import type { Note } from "@manifesto/shared";
-import { Download, Trash2, Upload } from "lucide-preact";
+import {
+  Dices,
+  Download,
+  Monitor,
+  Moon,
+  Square,
+  Sun,
+  Trash2,
+  Upload,
+} from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { deleteAllNotes, exportNotes, importNotes, showSettings } from "../state/index.js";
+import {
+  type DefaultNoteColor,
+  defaultNoteColor,
+  deleteAllNotes,
+  exportNotes,
+  importNotes,
+  showSettings,
+  type ThemeMode,
+  theme,
+} from "../state/index.js";
+import { ThreeWayToggle, ToggleSwitch } from "./ToggleSwitch.js";
+
+const themeModes: ThemeMode[] = ["system", "light", "dark"];
 
 export function SettingsDialog() {
   const [dataStatus, setDataStatus] = useState("");
@@ -35,7 +56,9 @@ export function SettingsDialog() {
       const data: Note[] = JSON.parse(text);
       if (!Array.isArray(data)) throw new Error("Invalid format");
       await importNotes(data);
-      setDataStatus(`Imported ${data.length} note${data.length === 1 ? "" : "s"}`);
+      setDataStatus(
+        `Imported ${data.length} note${data.length === 1 ? "" : "s"}`,
+      );
     } catch {
       setDataStatus("Import failed — invalid file");
     }
@@ -58,8 +81,43 @@ export function SettingsDialog() {
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6">
         <h2 class="text-lg font-semibold mb-4">Settings</h2>
 
+        {/* Theme */}
+        <div class="pb-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400">
+            Theme
+          </h3>
+          <ThreeWayToggle
+            value={themeModes.indexOf(theme.value)}
+            onChange={(i) => {
+              theme.value = themeModes[i];
+            }}
+            options={[
+              { icon: <Monitor class="w-4 h-4" />, label: "System" },
+              { icon: <Sun class="w-4 h-4" />, label: "Light" },
+              { icon: <Moon class="w-4 h-4" />, label: "Dark" },
+            ]}
+          />
+        </div>
+
+        {/* Default note color */}
+        <div class="pt-4 pb-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400">
+            Default Note Color
+          </h3>
+          <ToggleSwitch
+            checked={defaultNoteColor.value === "random"}
+            onChange={(checked) => {
+              defaultNoteColor.value = checked ? "random" : "plain";
+            }}
+            iconOff={<Square class="w-4 h-4" />}
+            iconOn={<Dices class="w-4 h-4" />}
+            labelOff="Plain"
+            labelOn="Random"
+          />
+        </div>
+
         {/* Import / Export */}
-        <div class="pb-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="pt-4 pb-4 border-b border-gray-200 dark:border-gray-700">
           <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
             Data
           </h3>
@@ -70,7 +128,7 @@ export function SettingsDialog() {
               onClick={handleImport}
             >
               <Download class="w-4 h-4" />
-              Import notes
+              Import Notes
             </button>
             <button
               type="button"
@@ -78,7 +136,7 @@ export function SettingsDialog() {
               onClick={handleExport}
             >
               <Upload class="w-4 h-4" />
-              Export notes
+              Export Notes
             </button>
             <input
               ref={fileInputRef}
@@ -98,7 +156,7 @@ export function SettingsDialog() {
         {/* Danger zone */}
         <div class="pt-4">
           <h3 class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">
-            Danger zone
+            Danger Zone
           </h3>
           {showDeleteConfirm ? (
             <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
@@ -130,7 +188,7 @@ export function SettingsDialog() {
               onClick={() => setShowDeleteConfirm(true)}
             >
               <Trash2 class="w-4 h-4" />
-              Delete my data
+              Delete My Data
             </button>
           )}
           {deleteStatus && (

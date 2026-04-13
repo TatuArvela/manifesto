@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --breakpoint-3xl: 1920px;
 }
@@ -45,11 +47,9 @@ body {
   z-index: 50;
 }
 
-@media (prefers-color-scheme: dark) {
-  .tooltip[popover] {
-    background-color: #e5e7eb;
-    color: #111827;
-  }
+.dark .tooltip[popover] {
+  background-color: #e5e7eb;
+  color: #111827;
 }
 
 /* Sticky note stack */
@@ -61,8 +61,6 @@ body {
 /* Top note — the interactive peeling sheet */
 .note-stack-top {
   position: relative;
-  background: white;
-  border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transform-origin: center top;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -107,68 +105,48 @@ body {
 .note-stack-next {
   position: absolute;
   inset: 0;
-  background: white;
-  border: 1px solid #e5e7eb;
-}
-
-@media (prefers-color-scheme: dark) {
-  .note-stack-next {
-    background: #1f2937;
-    border-color: #374151;
-  }
 }
 
 /* Stack base — visible thickness showing stacked pages */
 .note-stack-base {
-  height: 8px;
+  height: 6px;
   background: linear-gradient(
     to bottom,
     #d1d5db 0px,
     #d1d5db 1px,
-    #f9fafb 1px,
-    #f9fafb 2px,
+    #f3f4f6 1px,
+    #f3f4f6 2px,
     #d1d5db 2px,
     #d1d5db 3px,
     #f3f4f6 3px,
     #f3f4f6 4px,
-    #c0c4ca 4px,
-    #c0c4ca 5px,
-    #e5e7eb 5px,
-    #e5e7eb 6px,
-    #b0b5bc 6px,
-    #b0b5bc 7px,
-    #a1a7af 7px
+    #d1d5db 4px,
+    #d1d5db 5px,
+    #e5e7eb 5px
   );
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-@media (prefers-color-scheme: dark) {
-  .note-stack-top {
-    background: #1f2937;
-    border-color: #374151;
-  }
 
-  .note-stack-base {
-    background: linear-gradient(
-      to bottom,
-      #4b5563 0px,
-      #4b5563 1px,
-      #1f2937 1px,
-      #1f2937 2px,
-      #4b5563 2px,
-      #4b5563 3px,
-      #283141 3px,
-      #283141 4px,
-      #3f4a5a 4px,
-      #3f4a5a 5px,
-      #1a2332 5px,
-      #1a2332 6px,
-      #374151 6px,
-      #374151 7px,
-      #2d3748 7px
-    );
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-  }
+.dark .note-stack-base {
+  background: linear-gradient(
+    to bottom,
+    #4b5563 0px,
+    #4b5563 1px,
+    #1f2937 1px,
+    #1f2937 2px,
+    #4b5563 2px,
+    #4b5563 3px,
+    #283141 3px,
+    #283141 4px,
+    #3f4a5a 4px,
+    #3f4a5a 5px,
+    #1a2332 5px,
+    #1a2332 6px,
+    #374151 6px,
+    #374151 7px,
+    #2d3748 7px
+  );
+  box-shadow: none;
 }
 
 /* Prose heading styles for markdown content */
@@ -260,11 +238,9 @@ body {
   color: #6b7280;
 }
 
-@media (prefers-color-scheme: dark) {
-  .prose blockquote {
-    border-left-color: #4b5563;
-    color: #9ca3af;
-  }
+.dark .prose blockquote {
+  border-left-color: #4b5563;
+  color: #9ca3af;
 }
 
 /* Code */
@@ -275,10 +251,8 @@ body {
   border-radius: 0.25em;
 }
 
-@media (prefers-color-scheme: dark) {
-  .prose code {
-    background-color: #374151;
-  }
+.dark .prose code {
+  background-color: #374151;
 }
 
 .prose pre {
@@ -311,10 +285,8 @@ body {
   margin-bottom: 0.75em;
 }
 
-@media (prefers-color-scheme: dark) {
-  .prose hr {
-    border-top-color: #4b5563;
-  }
+.dark .prose hr {
+  border-top-color: #4b5563;
 }
 
 /* Strong and emphasis */
@@ -328,8 +300,6 @@ body {
   text-decoration: underline;
 }
 
-@media (prefers-color-scheme: dark) {
-  .prose a {
-    color: #60a5fa;
-  }
+.dark .prose a {
+  color: #60a5fa;
 }

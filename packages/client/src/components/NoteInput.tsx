@@ -1,7 +1,7 @@
-import type { NoteColor } from "@manifesto/shared";
-import { NoteColor as NoteColorEnum } from "@manifesto/shared";
+import { type NoteColor, NoteColor as NoteColorEnum } from "@manifesto/shared";
 import { useCallback, useState } from "preact/hooks";
-import { createNote, filter } from "../state/index.js";
+import { noteColorMap, noteEdgeColors } from "../colors.js";
+import { createNote, defaultNoteColor, filter, pickDefaultColor } from "../state/index.js";
 import { NoteEditor } from "./NoteEditor.js";
 
 const ctaMessages = [
@@ -28,7 +28,8 @@ export function NoteInput() {
   const [expanded, setExpanded] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [color, setColor] = useState<NoteColor>(NoteColorEnum.Default);
+  const [color, setColor] = useState<NoteColor>(() => pickDefaultColor());
+  const [nextColor, setNextColor] = useState<NoteColor>(() => pickDefaultColor());
   const [pinned, setPinned] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [closing, setClosing] = useState(false);
@@ -41,7 +42,8 @@ export function NoteInput() {
   const reset = () => {
     setTitle("");
     setContent("");
-    setColor(NoteColorEnum.Default);
+    setColor(nextColor);
+    setNextColor(pickDefaultColor());
     setPinned(false);
     setTags([]);
   };
@@ -86,6 +88,25 @@ export function NoteInput() {
     }, 150);
   };
 
+  const isDark = document.documentElement.classList.contains("dark");
+  const edgeKey = isDark ? "dark" : "light";
+  const rainbowEdges: NoteColor[] = [
+    NoteColorEnum.Red,
+    NoteColorEnum.Yellow,
+    NoteColorEnum.Blue,
+  ];
+  const spacer = isDark ? "#1f2937" : "#f3f4f6";
+  const end = isDark ? "#374151" : "#e5e7eb";
+  const rainbowGradientStyle = {
+    background: `linear-gradient(to bottom, ${rainbowEdges
+      .flatMap((c, i) => {
+        const edge = noteEdgeColors[c][edgeKey];
+        const y = i * 2;
+        return [`${edge} ${y}px`, `${edge} ${y + 1}px`, `${spacer} ${y + 1}px`];
+      })
+      .join(", ")}, ${end} 5px)`,
+  };
+
   const topNoteHidden = lifting || (expanded && !closing) || closing;
   const topNoteClass = lifting
     ? "note-stack-top note-lift-off"
@@ -106,19 +127,22 @@ export function NoteInput() {
       >
         {/* Notes area — top note + next note behind it */}
         <div class="relative">
-          <div class="note-stack-next">
+          <div class={`note-stack-next border ${noteColorMap[nextColor].bg} ${noteColorMap[nextColor].border}`}>
             <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-500">
               {nextCta}
             </div>
           </div>
-          <div class={topNoteClass}>
+          <div class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}>
             <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-500">
               {topCta}
             </div>
           </div>
         </div>
         {/* Stack base — visible thickness at bottom */}
-        <div class="note-stack-base" />
+        <div
+          class="note-stack-base"
+          style={defaultNoteColor.value === "random" ? rainbowGradientStyle : undefined}
+        />
       </div>
 
       {expanded && (

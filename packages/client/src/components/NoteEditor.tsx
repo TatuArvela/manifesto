@@ -175,14 +175,14 @@ export function NoteEditor({
               />
               <div class="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
                 {colorPickerColors.map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    class={`w-6 h-6 rounded-full ${c.swatch} ${color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                    onClick={() => onColorChange(c.value)}
-                    aria-label={c.label}
-                    title={c.label}
-                  />
+                  <Tooltip key={c.value} label={c.label}>
+                    <button
+                      type="button"
+                      class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                      onClick={() => onColorChange(c.value)}
+                      aria-label={c.label}
+                    />
+                  </Tooltip>
                 ))}
               </div>
             </>
