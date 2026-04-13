@@ -71,6 +71,18 @@ export class RestApiAdapter implements StorageAdapter {
     await Promise.all(notes.map((n) => this.delete(n.id)));
   }
 
+  async importAll(imported: Note[]): Promise<void> {
+    const existing = await this.getAll();
+    const existingIds = new Set(existing.map((n) => n.id));
+    for (const note of imported) {
+      if (existingIds.has(note.id)) {
+        await this.update(note.id, note);
+      } else {
+        await this.create(note);
+      }
+    }
+  }
+
   async search(query: string): Promise<Note[]> {
     const res = await fetch(
       `${this.baseUrl}/api/search?q=${encodeURIComponent(query)}`,

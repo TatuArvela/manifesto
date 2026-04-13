@@ -77,6 +77,15 @@ export class LocalStorageAdapter implements StorageAdapter {
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  async importAll(imported: Note[]): Promise<void> {
+    const existing = loadNotes();
+    const existingById = new Map(existing.map((n) => [n.id, n]));
+    for (const note of imported) {
+      existingById.set(note.id, note);
+    }
+    saveNotes([...existingById.values()]);
+  }
+
   async search(query: string): Promise<Note[]> {
     const q = query.toLowerCase();
     return loadNotes().filter(

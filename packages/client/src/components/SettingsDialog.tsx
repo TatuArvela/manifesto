@@ -1,19 +1,51 @@
-import { signal } from "@preact/signals";
-import { useState } from "preact/hooks";
-import { deleteAllNotes } from "../state/index.js";
-
-export const showSettings = signal(false);
+import type { Note } from "@manifesto/shared";
+import { Download, Trash2, Upload } from "lucide-preact";
+import { useRef, useState } from "preact/hooks";
+import { deleteAllNotes, exportNotes, importNotes, showSettings } from "../state/index.js";
 
 export function SettingsDialog() {
-  const [status, setStatus] = useState("");
+  const [dataStatus, setDataStatus] = useState("");
+  const [deleteStatus, setDeleteStatus] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!showSettings.value) return null;
+
+  const handleExport = () => {
+    const json = exportNotes();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `manifesto-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setDataStatus("Notes exported");
+  };
+
+  const handleImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data: Note[] = JSON.parse(text);
+      if (!Array.isArray(data)) throw new Error("Invalid format");
+      await importNotes(data);
+      setDataStatus(`Imported ${data.length} note${data.length === 1 ? "" : "s"}`);
+    } catch {
+      setDataStatus("Import failed — invalid file");
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleDeleteAll = async () => {
     await deleteAllNotes();
     setShowDeleteConfirm(false);
-    setStatus("All notes deleted");
+    setDeleteStatus("All notes deleted");
   };
 
   return (
@@ -26,28 +58,65 @@ export function SettingsDialog() {
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6">
         <h2 class="text-lg font-semibold mb-4">Settings</h2>
 
+        {/* Import / Export */}
+        <div class="pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
+            Data
+          </h3>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="flex-1 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 inline-flex items-center justify-center gap-1.5"
+              onClick={handleImport}
+            >
+              <Download class="w-4 h-4" />
+              Import notes
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 inline-flex items-center justify-center gap-1.5"
+              onClick={handleExport}
+            >
+              <Upload class="w-4 h-4" />
+              Export notes
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              class="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+          {dataStatus && (
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              {dataStatus}
+            </p>
+          )}
+        </div>
+
         {/* Danger zone */}
-        <div class="pt-2">
+        <div class="pt-4">
           <h3 class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">
             Danger zone
           </h3>
           {showDeleteConfirm ? (
-            <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <p class="text-sm text-red-700 dark:text-red-300 mb-3">
+            <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
                 This will permanently delete all your notes. This action cannot
                 be undone.
               </p>
               <div class="flex gap-2">
                 <button
                   type="button"
-                  class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
+                  class="flex-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
                   onClick={handleDeleteAll}
                 >
                   Yes, delete everything
                 </button>
                 <button
                   type="button"
-                  class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-500"
+                  class="flex-1 px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-600 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-500"
                   onClick={() => setShowDeleteConfirm(false)}
                 >
                   Cancel
@@ -57,19 +126,19 @@ export function SettingsDialog() {
           ) : (
             <button
               type="button"
-              class="w-full px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg font-medium hover:bg-red-200 dark:hover:bg-red-900/50"
+              class="w-full px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg font-medium hover:bg-red-200 dark:hover:bg-red-900/50 inline-flex items-center justify-center gap-1.5"
               onClick={() => setShowDeleteConfirm(true)}
             >
+              <Trash2 class="w-4 h-4" />
               Delete my data
             </button>
           )}
+          {deleteStatus && (
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              {deleteStatus}
+            </p>
+          )}
         </div>
-
-        {status && (
-          <p class="mt-3 text-sm text-green-600 dark:text-green-400">
-            {status}
-          </p>
-        )}
 
         <div class="mt-4 flex justify-end">
           <button

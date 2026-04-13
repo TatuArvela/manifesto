@@ -63,6 +63,7 @@ export const activeTag = signal<string | null>(null);
 export const sortMode = signal<SortMode>(prefs.sortMode);
 export const editingNoteId = signal<string | null>(null);
 export const mobileSidebarOpen = signal(false);
+export const showSettings = signal(false);
 
 // Persist preferences when they change
 viewMode.subscribe(() => savePrefs());
@@ -234,6 +235,15 @@ export async function toggleCheckbox(id: string, lineIndex: number) {
     lines[lineIndex] = line.replace(/^\[x\] /i, "[ ] ");
   }
   await updateNote(id, { content: lines.join("\n") });
+}
+
+export function exportNotes(): string {
+  return JSON.stringify(notes.value, null, 2);
+}
+
+export async function importNotes(imported: Note[]) {
+  await storage.importAll(imported);
+  notes.value = await storage.getAll();
 }
 
 async function expireTrash() {

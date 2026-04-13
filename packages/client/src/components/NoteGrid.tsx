@@ -11,7 +11,7 @@ export function NoteGrid() {
       <div class="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
         <StickyNote class="w-12 h-12 mb-4" />
         <p class="text-lg">No notes yet</p>
-        <p class="text-sm">Click "Take a note..." to get started</p>
+        <p class="text-sm">Time to jot something down!</p>
       </div>
     );
   }

@@ -8,4 +8,5 @@ export interface StorageAdapter {
   delete(id: string): Promise<void>;
   deleteAll(): Promise<void>;
   search(query: string): Promise<Note[]>;
+  importAll(notes: Note[]): Promise<void>;
 }

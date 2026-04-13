@@ -20,9 +20,7 @@ const ctaMessages = [
 ];
 
 function randomCta(exclude?: string): string {
-  const pool = exclude
-    ? ctaMessages.filter((m) => m !== exclude)
-    : ctaMessages;
+  const pool = exclude ? ctaMessages.filter((m) => m !== exclude) : ctaMessages;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 

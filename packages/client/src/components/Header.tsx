@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Menu,
   RectangleHorizontal,
-  RefreshCw,
   Search,
   Settings,
   Square,
@@ -12,15 +11,14 @@ import {
 import { useState } from "preact/hooks";
 import {
   filter,
-  loadNotes,
   mobileSidebarOpen,
   noteSize,
   type SortMode,
   searchQuery,
+  showSettings,
   sortMode,
   viewMode,
 } from "../state/index.js";
-import { showSettings } from "./SettingsDialog.js";
 import { Tooltip } from "./Tooltip.js";
 
 const sortOptions: { value: SortMode; label: string }[] = [
@@ -76,17 +74,6 @@ export function Header() {
 
       {/* Right: controls */}
       <div class="flex items-center gap-0.5 shrink-0 z-10">
-        <Tooltip label="Refresh">
-          <button
-            type="button"
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-            onClick={() => loadNotes()}
-            aria-label="Refresh notes"
-          >
-            <RefreshCw class="w-5 h-5" />
-          </button>
-        </Tooltip>
-
         {/* Sort button with dropdown */}
         <div class="relative">
           <Tooltip label="Sort">
