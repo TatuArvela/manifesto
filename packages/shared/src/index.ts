@@ -8,4 +8,4 @@ export type {
   WebSocketEvent,
 } from "./api.js";
 export type { Note, NoteCreate, NoteUpdate } from "./note.js";
-export { LockLevel, NoteColor } from "./note.js";
+export { NoteColor } from "./note.js";

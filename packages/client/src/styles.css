@@ -10,16 +10,16 @@
 }
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
 }
 
 .animate-fade-in {
-  animation: fade-in 150ms ease-out;
+  animation: fade-in 100ms ease-out;
 }
 
 .animate-scale-in {
-  animation: scale-in 150ms ease-out;
+  animation: scale-in 100ms ease-out;
 }
 
 html,
@@ -70,19 +70,20 @@ body {
 }
 
 .note-stack:hover .note-stack-top:not(.note-lift-off):not(.note-hidden):not(.note-land) {
-  transform: rotateX(14deg);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  transform: rotateX(22deg);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
 }
 
-/* Lift-off: note flies up and fades out */
+/* Lift-off: note peels up with dramatic 3D tilt and flies away */
 @keyframes note-lift-off {
-  0% { opacity: 1; transform: rotateX(0deg) translateY(0); }
-  40% { opacity: 1; transform: rotateX(20deg) translateY(-8px); }
-  100% { opacity: 0; transform: rotateX(30deg) translateY(-40px); }
+  0% { opacity: 1; transform: rotateX(0deg) translateY(0) scale(1); }
+  30% { opacity: 1; transform: rotateX(35deg) translateY(-6px) scale(1.02); }
+  60% { opacity: 0.8; transform: rotateX(50deg) translateY(-20px) scale(1.01); }
+  100% { opacity: 0; transform: rotateX(60deg) translateY(-50px) scale(0.98); }
 }
 
 .note-lift-off {
-  animation: note-lift-off 0.3s ease-in forwards;
+  animation: note-lift-off 0.4s ease-in forwards;
   pointer-events: none;
 }
 

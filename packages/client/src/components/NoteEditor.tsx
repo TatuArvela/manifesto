@@ -1,5 +1,4 @@
 import type { NoteColor } from "@manifesto/shared";
-import { LockLevel } from "@manifesto/shared";
 import {
   Archive,
   ArchiveRestore,
@@ -7,8 +6,6 @@ import {
   Code,
   Copy,
   Eye,
-  Lock,
-  LockOpen,
   Palette,
   Pin,
   PinOff,
@@ -21,34 +18,12 @@ import { useRef, useState } from "preact/hooks";
 import { colorPickerColors, noteColorMap } from "../colors.js";
 import { allTags } from "../state/index.js";
 import { SegmentedContentEditor } from "./SegmentedContentEditor.js";
-import { ThreeWayToggle } from "./ToggleSwitch.js";
 import { Tooltip } from "./Tooltip.js";
 
 const iconBtnClass =
   "p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
 
-const lockSteps = [
-  LockLevel.Unlocked,
-  LockLevel.ContentLocked,
-  LockLevel.FullyLocked,
-] as const;
-
-const lockOptions = [
-  {
-    icon: <LockOpen class="w-4 h-4" />,
-    label: "Unlocked",
-  },
-  {
-    icon: <Lock class="w-4 h-4" />,
-    label: "Content locked",
-  },
-  {
-    icon: <Lock class="w-4 h-4" strokeWidth={3} />,
-    label: "Fully locked",
-  },
-];
-
-export { iconBtnClass, lockOptions, lockSteps };
+export { iconBtnClass };
 
 interface NoteEditorProps {
   title: string;
@@ -59,8 +34,6 @@ interface NoteEditorProps {
   onColorChange: (color: NoteColor) => void;
   pinned: boolean;
   onPinToggle: () => void;
-  lock: LockLevel;
-  onLockChange: (lock: LockLevel) => void;
   tags: string[];
   onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
@@ -84,8 +57,6 @@ export function NoteEditor({
   onColorChange,
   pinned,
   onPinToggle,
-  lock,
-  onLockChange,
   tags,
   onAddTag,
   onRemoveTag,
@@ -106,7 +77,6 @@ export function NoteEditor({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const colors = noteColorMap[color];
-  const isLocked = lock !== LockLevel.Unlocked;
 
   const handleAddTag = (tag: string) => {
     const trimmed = tag.trim().toLowerCase();
@@ -121,7 +91,7 @@ export function NoteEditor({
       ref={containerRef}
       class={`${colors.bg} ${colors.border} border shadow-lg relative z-10`}
     >
-      {/* Top-right: pin + lock toggle */}
+      {/* Top-right: pin */}
       <div class="absolute top-2 right-2 flex items-center gap-0.5">
         <Tooltip label={pinned ? "Unpin" : "Pin"}>
           <button
@@ -134,12 +104,6 @@ export function NoteEditor({
             {pinned ? <PinOff class="w-4 h-4" /> : <Pin class="w-4 h-4" />}
           </button>
         </Tooltip>
-        <ThreeWayToggle
-          value={lockSteps.indexOf(lock)}
-          onChange={(i) => onLockChange(lockSteps[i])}
-          options={lockOptions}
-          trackClass={colors.toggleTrack}
-        />
       </div>
 
       {/* Content area */}
@@ -172,16 +136,14 @@ export function NoteEditor({
                 class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-gray-200/60 dark:bg-gray-700/60"
               >
                 #{tag}
-                {!isLocked && (
-                  <button
-                    type="button"
-                    class="hover:text-red-500 cursor-pointer"
-                    onClick={() => onRemoveTag(tag)}
-                    aria-label={`Remove tag ${tag}`}
-                  >
-                    ×
-                  </button>
-                )}
+                <button
+                  type="button"
+                  class="hover:text-red-500 cursor-pointer"
+                  onClick={() => onRemoveTag(tag)}
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  ×
+                </button>
               </span>
             ))}
           </div>
@@ -238,7 +200,6 @@ export function NoteEditor({
                 setShowColorPicker(false);
               }}
               aria-label="Tags"
-              disabled={isLocked}
             >
               <Tag class="w-4 h-4" />
             </button>
@@ -301,7 +262,6 @@ export function NoteEditor({
               class={iconBtnClass}
               onClick={onArchive}
               aria-label={archived ? "Unarchive" : "Archive"}
-              disabled={isLocked}
             >
               {archived ? (
                 <ArchiveRestore class="w-4 h-4" />
@@ -346,7 +306,6 @@ export function NoteEditor({
                 class="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30"
                 onClick={onDelete}
                 aria-label={deleteLabel ?? "Delete"}
-                disabled={isLocked}
               >
                 {deleteLabel ? (
                   <X class="w-4 h-4" />

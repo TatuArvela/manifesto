@@ -1,5 +1,4 @@
 import {
-  LockLevel,
   type Note,
   NoteColor,
   type NoteCreate,
@@ -41,7 +40,6 @@ export class LocalStorageAdapter implements StorageAdapter {
       title: input.title ?? "",
       content: input.content ?? "",
       color: input.color ?? NoteColor.Default,
-      lock: input.lock ?? LockLevel.Unlocked,
       pinned: input.pinned ?? false,
       archived: input.archived ?? false,
       trashed: input.trashed ?? false,

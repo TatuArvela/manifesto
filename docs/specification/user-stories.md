@@ -39,7 +39,6 @@ As a user, I want to use notes as interactive checklists for things like shoppin
 - I can toggle checkboxes directly from the note card in the grid view, without opening the editor
 - Toggling a checkbox updates the note content in real time
 - Checklists and freeform markdown coexist in the same note
-- Checklist interaction works on content-locked notes (see [Locking](features/locking.md))
 
 ## Connecting to a Server (Open Mode)
 
@@ -70,16 +69,6 @@ As an organization administrator, I want to deploy Manifesto as a managed servic
 - Users must authenticate to use the app
 - There is no local-only mode — the server is the source of truth
 - I can manage users and their access
-
-## Note Locking
-
-As a user, I want to lock notes to prevent accidental edits.
-
-- I can set a note to unlocked, content-locked, or fully-locked (see [Locking](features/locking.md))
-- The lock level is set from the note's toolbar or context menu
-- A lock icon on the note card indicates the current lock state
-- Trashing a locked note requires unlocking it first
-- In server mode, lock state is synced across all users
 
 ## Archiving
 

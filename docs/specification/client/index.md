@@ -55,7 +55,7 @@ App
 │   ├── MarkdownEditor
 │   ├── ColorPicker
 │   ├── TagPicker
-│   └── Toolbar (pin, archive, delete, lock)
+│   └── Toolbar (pin, archive, delete)
 └── SettingsDialog
     └── StorageConfig
 ```

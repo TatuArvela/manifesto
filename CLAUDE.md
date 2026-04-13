@@ -24,7 +24,7 @@ Run for a single package with `pnpm --filter @manifesto/<client|server|shared> <
 
 pnpm monorepo with three packages:
 
-- **`packages/shared`** — TypeScript types and enums (`Note`, `NoteColor`, `LockLevel`, API types). Imported by both client and server. No runtime dependencies — types only.
+- **`packages/shared`** — TypeScript types and enums (`Note`, `NoteColor`, API types). Imported by both client and server. No runtime dependencies — types only.
 - **`packages/client`** — Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind CSS for styling, Vitest for tests.
 - **`packages/server`** — Node.js + TypeScript, Hono, better-sqlite3. Optional — the client works standalone with localStorage.
 
@@ -35,17 +35,19 @@ pnpm monorepo with three packages:
 - **Storage adapters**: Client abstracts data access behind `StorageAdapter` interface — `LocalStorageAdapter` (default) or `RestApiAdapter` (server-connected).
 - **ULIDs** for note IDs (not UUIDs) — lexicographically sortable, timestamp-prefixed.
 - **NoteColor** uses named enums (not hex) so themes can map colors differently for light/dark mode.
-- **LockLevel** enum: `unlocked | content-locked | fully-locked`. Content-locked notes still allow checklist toggling.
-
 ### API Contract
 
 - REST: `/api/notes`, `/api/search`, `/api/auth/*`
 - WebSocket: `ws(s)://server/api/ws` for real-time collaborative editing
 - All timestamps are ISO 8601 UTC strings
-- Note schema has 13 fields — see `docs/specification/data-model.md`
+- Note schema has 12 fields — see `docs/specification/data-model.md`
 
 ## Code Style
 
 - Biome for linting and formatting (not ESLint/Prettier)
 - TypeScript strict mode in all packages
 - `type: "module"` (ESM) throughout
+
+## Rules
+
+- Never use `git stash` for any purpose

@@ -12,7 +12,7 @@ A note is the fundamental entity in Manifesto.
 | `title`     | `string`         | Yes      | Note title (can be empty string)         |
 | `content`   | `string`         | Yes      | Markdown content (can be empty string)   |
 | `color`     | `NoteColor`      | Yes      | Color theme for the note                 |
-| `lock`      | `LockLevel`      | Yes      | Lock state of the note                   |
+
 | `pinned`    | `boolean`        | Yes      | Whether the note is pinned to the top    |
 | `archived`  | `boolean`        | Yes      | Whether the note is archived             |
 | `trashed`   | `boolean`        | Yes      | Whether the note is in trash             |
@@ -49,14 +49,6 @@ default | red | orange | yellow | green | teal | blue | purple | pink | brown | 
 
 The `default` color means no specific color — the note uses the base card background.
 
-## LockLevel
-
-An enum controlling what can be changed on a note. See [Locking](features/locking.md) for behavioral details.
-
-```
-unlocked | content-locked | fully-locked
-```
-
 ## Example
 
 ```json
@@ -65,7 +57,6 @@ unlocked | content-locked | fully-locked
   "title": "Shopping list",
   "content": "## Groceries\n- [x] Milk\n- [ ] Eggs\n- [ ] Bread\n\nDon't forget **coupons**!",
   "color": "yellow",
-  "lock": "unlocked",
   "position": 1024,
   "pinned": true,
   "archived": false,

@@ -1,14 +1,11 @@
 import type { Note, NoteColor } from "@manifesto/shared";
-import { LockLevel } from "@manifesto/shared";
 import clsx from "clsx";
 import DOMPurify from "dompurify";
 import {
   Archive,
   ArchiveRestore,
   Copy,
-  Lock,
   Palette,
-  Pencil,
   Pin,
   PinOff,
   Trash2,
@@ -67,8 +64,6 @@ function renderContentPreview(
   if (!note.content) return null;
 
   const lines = note.content.split("\n");
-  const checkboxEnabled = note.lock !== LockLevel.FullyLocked;
-
   // Group lines into segments: { type: "checklist" | "text", startIndex, lines }
   const segments: {
     type: "checklist" | "text";
@@ -113,12 +108,8 @@ function renderContentPreview(
               {seg.lines.map((line, j) => {
                 const lineIndex = seg.startIndex + j;
                 const indent = line.match(/^(\s*)/)?.[1].length ?? 0;
-                const unchecked = line.match(
-                  /^\s*(?:- )?\[ \] (.*)$/,
-                );
-                const checked = line.match(
-                  /^\s*(?:- )?\[x\] (.*)$/i,
-                );
+                const unchecked = line.match(/^\s*(?:- )?\[ \] (.*)$/);
+                const checked = line.match(/^\s*(?:- )?\[x\] (.*)$/i);
                 if (unchecked) {
                   return (
                     <div
@@ -130,7 +121,6 @@ function renderContentPreview(
                         type="checkbox"
                         class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-400 dark:border-gray-500 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
                         checked={false}
-                        disabled={!checkboxEnabled}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => onCheckboxToggle(lineIndex)}
                       />
@@ -149,7 +139,6 @@ function renderContentPreview(
                         type="checkbox"
                         class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-400 dark:border-gray-500 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
                         checked={true}
-                        disabled={!checkboxEnabled}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => onCheckboxToggle(lineIndex)}
                       />
@@ -188,7 +177,6 @@ export function NoteCard({ note }: { note: Note }) {
   const colors = noteColorMap[note.color];
   const isTrashView = filter.value === "trash";
   const isArchiveView = filter.value === "archived";
-  const isLocked = note.lock !== LockLevel.Unlocked;
   // Show modal when editing starts
   useEffect(() => {
     if (isEditing) {
@@ -207,12 +195,6 @@ export function NoteCard({ note }: { note: Note }) {
   };
 
   const handleClick = () => {
-    if (!isTrashView && !isEditing && !isLocked) {
-      editingNoteId.value = note.id;
-    }
-  };
-
-  const handleLockClick = () => {
     if (!isTrashView && !isEditing) {
       editingNoteId.value = note.id;
     }
@@ -225,8 +207,8 @@ export function NoteCard({ note }: { note: Note }) {
           colors.bg,
           colors.border,
           "border p-4 transition-shadow duration-150 group relative select-none overflow-hidden flex flex-col",
-          !isLocked && !isTrashView && "pb-2",
-          !isLocked && "hover:shadow-md",
+          !isTrashView && "pb-2",
+          "hover:shadow-md",
           isEditing && !closing && "opacity-20",
           noteSize.value === "square" &&
             viewMode.value === "list" &&
@@ -240,7 +222,7 @@ export function NoteCard({ note }: { note: Note }) {
           if (e.key === "Enter") handleClick();
         }}
       >
-        {/* Top-right corner: pin button + lock icon */}
+        {/* Top-right corner: pin button */}
         <div
           class="absolute top-2 right-2 flex items-center gap-0.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200"
           onClick={(e) => e.stopPropagation()}
@@ -261,21 +243,6 @@ export function NoteCard({ note }: { note: Note }) {
                 ) : (
                   <Pin class="w-4 h-4" />
                 )}
-              </button>
-            </Tooltip>
-          )}
-          {isLocked && (
-            <Tooltip label="Edit">
-              <button
-                type="button"
-                class={`${iconBtnClass} transition-opacity group/lock`}
-                onClick={handleLockClick}
-                aria-label="Open locked note"
-              >
-                <span class="relative block w-4 h-4">
-                  <Lock class="w-4 h-4 absolute inset-0 transition-opacity duration-200 group-hover/lock:opacity-0" />
-                  <Pencil class="w-4 h-4 absolute inset-0 transition-opacity duration-200 opacity-0 group-hover/lock:opacity-100" />
-                </span>
               </button>
             </Tooltip>
           )}
@@ -332,100 +299,98 @@ export function NoteCard({ note }: { note: Note }) {
               </Tooltip>
             </>
           ) : (
-            note.lock === LockLevel.Unlocked && (
-              <>
-                {/* Color picker */}
-                <div class="relative flex">
-                  <Tooltip label="Color">
-                    <button
-                      type="button"
-                      class={iconBtnClass}
-                      onClick={() => setShowColorPicker(!showColorPicker)}
-                      aria-label="Change color"
-                    >
-                      <Palette class="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                  {showColorPicker && (
-                    <>
-                      <div
-                        class="fixed inset-0 z-10"
-                        onClick={() => setShowColorPicker(false)}
-                      />
-                      <div class="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
-                        {colorPickerColors.map((c) => (
-                          <button
-                            key={c.value}
-                            type="button"
-                            class={`w-6 h-6 rounded-full ${c.swatch} ${note.color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                            onClick={() =>
-                              updateNote(note.id, {
-                                color: c.value as NoteColor,
-                              })
-                            }
-                            aria-label={c.label}
-                            title={c.label}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Duplicate */}
-                <Tooltip label="Duplicate">
+            <>
+              {/* Color picker */}
+              <div class="relative flex">
+                <Tooltip label="Color">
                   <button
                     type="button"
                     class={iconBtnClass}
-                    onClick={() =>
-                      createNote({
-                        title: note.title,
-                        content: note.content,
-                        color: note.color,
-                        tags: [...note.tags],
-                      })
-                    }
-                    aria-label="Duplicate note"
+                    onClick={() => setShowColorPicker(!showColorPicker)}
+                    aria-label="Change color"
                   >
-                    <Copy class="w-4 h-4" />
+                    <Palette class="w-4 h-4" />
                   </button>
                 </Tooltip>
-
-                {isArchiveView ? (
-                  <Tooltip label="Unarchive">
-                    <button
-                      type="button"
-                      class={iconBtnClass}
-                      onClick={() => unarchiveNote(note.id)}
-                      aria-label="Unarchive"
-                    >
-                      <ArchiveRestore class="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                ) : (
-                  <Tooltip label="Archive">
-                    <button
-                      type="button"
-                      class={iconBtnClass}
-                      onClick={() => archiveNote(note.id)}
-                      aria-label="Archive"
-                    >
-                      <Archive class="w-4 h-4" />
-                    </button>
-                  </Tooltip>
+                {showColorPicker && (
+                  <>
+                    <div
+                      class="fixed inset-0 z-10"
+                      onClick={() => setShowColorPicker(false)}
+                    />
+                    <div class="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
+                      {colorPickerColors.map((c) => (
+                        <button
+                          key={c.value}
+                          type="button"
+                          class={`w-6 h-6 rounded-full ${c.swatch} ${note.color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                          onClick={() =>
+                            updateNote(note.id, {
+                              color: c.value as NoteColor,
+                            })
+                          }
+                          aria-label={c.label}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
-                <Tooltip label="Delete">
+              </div>
+
+              {/* Duplicate */}
+              <Tooltip label="Duplicate">
+                <button
+                  type="button"
+                  class={iconBtnClass}
+                  onClick={() =>
+                    createNote({
+                      title: note.title,
+                      content: note.content,
+                      color: note.color,
+                      tags: [...note.tags],
+                    })
+                  }
+                  aria-label="Duplicate note"
+                >
+                  <Copy class="w-4 h-4" />
+                </button>
+              </Tooltip>
+
+              {isArchiveView ? (
+                <Tooltip label="Unarchive">
                   <button
                     type="button"
                     class={iconBtnClass}
-                    onClick={() => trashNote(note.id)}
-                    aria-label="Delete"
+                    onClick={() => unarchiveNote(note.id)}
+                    aria-label="Unarchive"
                   >
-                    <Trash2 class="w-4 h-4" />
+                    <ArchiveRestore class="w-4 h-4" />
                   </button>
                 </Tooltip>
-              </>
-            )
+              ) : (
+                <Tooltip label="Archive">
+                  <button
+                    type="button"
+                    class={iconBtnClass}
+                    onClick={() => archiveNote(note.id)}
+                    aria-label="Archive"
+                  >
+                    <Archive class="w-4 h-4" />
+                  </button>
+                </Tooltip>
+              )}
+              <Tooltip label="Delete">
+                <button
+                  type="button"
+                  class={iconBtnClass}
+                  onClick={() => trashNote(note.id)}
+                  aria-label="Delete"
+                >
+                  <Trash2 class="w-4 h-4" />
+                </button>
+              </Tooltip>
+            </>
           )}
         </div>
 
@@ -473,8 +438,6 @@ function NoteCardEditor({
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const isLocked = note.lock !== LockLevel.Unlocked;
 
   const savedRef = useRef(false);
 
@@ -548,8 +511,6 @@ function NoteCardEditor({
       }
       pinned={note.pinned}
       onPinToggle={() => togglePin(note.id)}
-      lock={note.lock}
-      onLockChange={(lock) => updateNote(note.id, { lock })}
       tags={note.tags}
       onAddTag={(tag) => {
         if (!note.tags.includes(tag)) {
@@ -560,8 +521,6 @@ function NoteCardEditor({
         updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) })
       }
       onDone={saveAndClose}
-      disabled={note.lock === LockLevel.FullyLocked}
-      contentLocked={note.lock === LockLevel.ContentLocked}
       metadata={
         <div class="flex gap-3 mt-3 text-xs text-black/40 dark:text-white/40">
           <span>Created {formatDateTime(note.createdAt)}</span>
@@ -587,10 +546,8 @@ function NoteCardEditor({
       }}
       archived={note.archived || isArchiveView}
       onDelete={() => {
-        if (note.lock === LockLevel.Unlocked) {
-          trashNote(note.id);
-          onClose();
-        }
+        trashNote(note.id);
+        onClose();
       }}
     />
   );

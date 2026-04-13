@@ -12,18 +12,11 @@ export enum NoteColor {
   Gray = "gray",
 }
 
-export enum LockLevel {
-  Unlocked = "unlocked",
-  ContentLocked = "content-locked",
-  FullyLocked = "fully-locked",
-}
-
 export interface Note {
   id: string;
   title: string;
   content: string;
   color: NoteColor;
-  lock: LockLevel;
   pinned: boolean;
   archived: boolean;
   trashed: boolean;

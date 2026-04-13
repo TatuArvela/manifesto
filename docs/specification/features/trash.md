@@ -10,4 +10,4 @@ Deleting a note is a soft delete — it moves the note to trash rather than perm
 - A trashed note can be restored to its previous state (active or archived)
 - A trashed note can be permanently deleted from the Trash view
 - Notes in trash auto-expire after 30 days (checked on app initialization)
-- Trashing a locked note requires unlocking it first (see [Locking](locking.md))
+

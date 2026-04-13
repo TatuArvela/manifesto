@@ -1,8 +1,30 @@
 import type { NoteColor } from "@manifesto/shared";
-import { LockLevel, NoteColor as NoteColorEnum } from "@manifesto/shared";
-import { useState } from "preact/hooks";
+import { NoteColor as NoteColorEnum } from "@manifesto/shared";
+import { useCallback, useState } from "preact/hooks";
 import { createNote, filter } from "../state/index.js";
 import { NoteEditor } from "./NoteEditor.js";
+
+const ctaMessages = [
+  "What's on your mind? ✏️",
+  "Jot something down! 📝",
+  "Got an idea? Drop it here! 💡",
+  "Take a note... 🗒️",
+  "Capture a thought! 🦋",
+  "Don't forget this! 📌",
+  "Quick, write it down! ⚡",
+  "Your next big idea starts here ✨",
+  "Scribble something! 🖊️",
+  "What are you thinking about? 🤔",
+  "Note to self... 💭",
+  "Pin this thought! 📍",
+];
+
+function randomCta(exclude?: string): string {
+  const pool = exclude
+    ? ctaMessages.filter((m) => m !== exclude)
+    : ctaMessages;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 export function NoteInput() {
   const [expanded, setExpanded] = useState(false);
@@ -10,11 +32,11 @@ export function NoteInput() {
   const [content, setContent] = useState("");
   const [color, setColor] = useState<NoteColor>(NoteColorEnum.Default);
   const [pinned, setPinned] = useState(false);
-  const [lock, setLock] = useState<LockLevel>(LockLevel.Unlocked);
   const [tags, setTags] = useState<string[]>([]);
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
-  const [landing, setLanding] = useState(false);
+  const [topCta, setTopCta] = useState(() => randomCta());
+  const [nextCta, setNextCta] = useState(() => randomCta(topCta));
 
   if (filter.value !== "active") return null;
 
@@ -23,16 +45,18 @@ export function NoteInput() {
     setContent("");
     setColor(NoteColorEnum.Default);
     setPinned(false);
-    setLock(LockLevel.Unlocked);
     setTags([]);
   };
 
+  const cycleCta = useCallback(() => {
+    setTopCta(nextCta);
+    setNextCta(randomCta(nextCta));
+  }, [nextCta]);
+
   const openModal = () => {
     setLifting(true);
-    setTimeout(() => {
-      setLifting(false);
-      setExpanded(true);
-    }, 300);
+    setExpanded(true);
+    setTimeout(() => setLifting(false), 400);
   };
 
   const closeModal = () => {
@@ -44,15 +68,13 @@ export function NoteInput() {
           content: content.trim(),
           color,
           pinned,
-          lock,
           tags,
         });
       }
       reset();
       setClosing(false);
       setExpanded(false);
-      setLanding(true);
-      setTimeout(() => setLanding(false), 300);
+      cycleCta();
     }, 150);
   };
 
@@ -62,19 +84,16 @@ export function NoteInput() {
       reset();
       setClosing(false);
       setExpanded(false);
-      setLanding(true);
-      setTimeout(() => setLanding(false), 300);
+      cycleCta();
     }, 150);
   };
 
-  const topNoteHidden = lifting || (expanded && !closing) || (closing);
+  const topNoteHidden = lifting || (expanded && !closing) || closing;
   const topNoteClass = lifting
     ? "note-stack-top note-lift-off"
-    : landing
-      ? "note-stack-top note-land"
-      : topNoteHidden
-        ? "note-stack-top note-hidden"
-        : "note-stack-top";
+    : topNoteHidden
+      ? "note-stack-top note-hidden"
+      : "note-stack-top";
 
   return (
     <>
@@ -89,10 +108,14 @@ export function NoteInput() {
       >
         {/* Notes area — top note + next note behind it */}
         <div class="relative">
-          <div class="note-stack-next" />
+          <div class="note-stack-next">
+            <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-500">
+              {nextCta}
+            </div>
+          </div>
           <div class={topNoteClass}>
             <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-500">
-              Take a note...
+              {topCta}
             </div>
           </div>
         </div>
@@ -119,8 +142,6 @@ export function NoteInput() {
                 onColorChange={setColor}
                 pinned={pinned}
                 onPinToggle={() => setPinned(!pinned)}
-                lock={lock}
-                onLockChange={setLock}
                 tags={tags}
                 onAddTag={(tag) => {
                   if (!tags.includes(tag)) {

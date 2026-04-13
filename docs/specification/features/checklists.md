@@ -19,14 +19,6 @@ Checklists are represented as [GFM task lists](https://github.github.com/gfm/#ta
 
 Checkboxes can be toggled directly from the note card in the grid/list view, without opening the editor. This is essential for quick-use scenarios like shopping lists.
 
-## Interaction with Locking
-
-- **Unlocked** — Checkboxes are interactive, content is editable
-- **Content-locked** — Checkboxes are still interactive (toggling them is not considered a content edit). The editor does not open.
-- **Fully-locked** — Checkboxes are not interactive. View only.
-
-See [Locking](locking.md) for full details.
-
 ## Interaction with Collaborative Editing
 
 In server mode, checkbox toggles are broadcast to other users in real time. See [Collaborative Editing](collaborative-editing.md).

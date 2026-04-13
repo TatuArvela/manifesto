@@ -32,7 +32,7 @@ The name references three things:
 
 - [Notes](features/notes.md) — Core CRUD, colors, pinning
 - [Checklists](features/checklists.md) — Interactive task lists
-- [Locking](features/locking.md) — Lock levels and behavior
+
 - [Search](features/search.md) — Full-text search
 - [Tags](features/tags.md) — Organizing notes with tags
 - [Archiving](features/archiving.md) — Keeping notes out of the main view

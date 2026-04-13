@@ -1,5 +1,5 @@
 import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
-import { LockLevel, NoteColor } from "@manifesto/shared";
+import { NoteColor } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
 import { LocalStorageAdapter } from "../storage/LocalStorageAdapter.js";
 
@@ -165,7 +165,6 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
     title: input.title ?? "",
     content: input.content ?? "",
     color: input.color ?? NoteColor.Default,
-    lock: input.lock ?? LockLevel.Unlocked,
     pinned: input.pinned ?? false,
     archived: input.archived ?? false,
     trashed: input.trashed ?? false,
