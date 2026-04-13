@@ -1,0 +1,334 @@
+@import "tailwindcss";
+
+@theme {
+  --breakpoint-3xl: 1920px;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fade-in 150ms ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 150ms ease-out;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+.tooltip[popover] {
+  position: fixed;
+  inset: auto;
+  position-area: block-end;
+  width: max-content;
+  max-width: 200px;
+  margin: 0;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background-color: #1f2937;
+  color: #f9fafb;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  pointer-events: none;
+  z-index: 50;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tooltip[popover] {
+    background-color: #e5e7eb;
+    color: #111827;
+  }
+}
+
+/* Sticky note stack */
+.note-stack {
+  position: relative;
+  perspective: 800px;
+}
+
+/* Top note — the interactive peeling sheet */
+.note-stack-top {
+  position: relative;
+  background: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transform-origin: center top;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1;
+}
+
+.note-stack:hover .note-stack-top:not(.note-lift-off):not(.note-hidden):not(.note-land) {
+  transform: rotateX(14deg);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Lift-off: note flies up and fades out */
+@keyframes note-lift-off {
+  0% { opacity: 1; transform: rotateX(0deg) translateY(0); }
+  40% { opacity: 1; transform: rotateX(20deg) translateY(-8px); }
+  100% { opacity: 0; transform: rotateX(30deg) translateY(-40px); }
+}
+
+.note-lift-off {
+  animation: note-lift-off 0.3s ease-in forwards;
+  pointer-events: none;
+}
+
+/* Hidden while modal is open */
+.note-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Land: note fades in from the stack surface */
+@keyframes note-land {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.note-land {
+  animation: note-land 0.35s ease-out forwards;
+}
+
+/* Next note in stack — full-size note behind the top note */
+.note-stack-next {
+  position: absolute;
+  inset: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  .note-stack-next {
+    background: #1f2937;
+    border-color: #374151;
+  }
+}
+
+/* Stack base — visible thickness showing stacked pages */
+.note-stack-base {
+  height: 8px;
+  background: linear-gradient(
+    to bottom,
+    #d1d5db 0px,
+    #d1d5db 1px,
+    #f9fafb 1px,
+    #f9fafb 2px,
+    #d1d5db 2px,
+    #d1d5db 3px,
+    #f3f4f6 3px,
+    #f3f4f6 4px,
+    #c0c4ca 4px,
+    #c0c4ca 5px,
+    #e5e7eb 5px,
+    #e5e7eb 6px,
+    #b0b5bc 6px,
+    #b0b5bc 7px,
+    #a1a7af 7px
+  );
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  .note-stack-top {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .note-stack-base {
+    background: linear-gradient(
+      to bottom,
+      #4b5563 0px,
+      #4b5563 1px,
+      #1f2937 1px,
+      #1f2937 2px,
+      #4b5563 2px,
+      #4b5563 3px,
+      #283141 3px,
+      #283141 4px,
+      #3f4a5a 4px,
+      #3f4a5a 5px,
+      #1a2332 5px,
+      #1a2332 6px,
+      #374151 6px,
+      #374151 7px,
+      #2d3748 7px
+    );
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Prose heading styles for markdown content */
+.prose h1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.3;
+}
+
+.prose h2 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.3;
+}
+
+.prose h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+}
+
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-size: 1em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+}
+
+/* GFM task list checkboxes rendered by marked */
+.prose ul {
+  list-style: disc;
+  padding-left: 1.5em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose li {
+  margin-top: 0.125em;
+  margin-bottom: 0.125em;
+}
+
+/* Task list items — remove bullet and align checkbox */
+.prose .task-list-item {
+  list-style: none;
+  margin-left: -1.5em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.prose .task-list-item input[type="checkbox"] {
+  margin: 0;
+  position: relative;
+  top: 1px;
+}
+
+/* Custom checkbox checkmark */
+.checkbox-custom:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Blockquotes */
+.prose blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 0.75em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  color: #6b7280;
+}
+
+@media (prefers-color-scheme: dark) {
+  .prose blockquote {
+    border-left-color: #4b5563;
+    color: #9ca3af;
+  }
+}
+
+/* Code */
+.prose code {
+  font-size: 0.875em;
+  background-color: #f3f4f6;
+  padding: 0.125em 0.25em;
+  border-radius: 0.25em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .prose code {
+    background-color: #374151;
+  }
+}
+
+.prose pre {
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 0.75em 1em;
+  border-radius: 0.375em;
+  overflow-x: auto;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+/* Paragraph spacing */
+.prose p {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Horizontal rule */
+.prose hr {
+  border: none;
+  border-top: 1px solid #d1d5db;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .prose hr {
+    border-top-color: #4b5563;
+  }
+}
+
+/* Strong and emphasis */
+.prose strong {
+  font-weight: 600;
+}
+
+/* Links */
+.prose a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+  .prose a {
+    color: #60a5fa;
+  }
+}

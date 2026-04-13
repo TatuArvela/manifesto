@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Manifesto is a free, open-source note-taking app with a sticky note interface (think Google Keep). It's MIT licensed. The full spec lives in `docs/specification/`.
+Manifesto is a free, open-source note-taking app with a sticky note interface. It's MIT licensed. The full spec lives in `docs/specification/`.
 
 ## Commands
 
