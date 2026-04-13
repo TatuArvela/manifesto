@@ -90,7 +90,7 @@ function renderContentPreview(
 
   return (
     <div
-      class={`${hasTitle ? "mt-2" : ""} text-sm text-gray-600 dark:text-gray-400 line-clamp-12`}
+      class={`${hasTitle ? "mt-2" : ""} text-sm text-gray-600 dark:text-gray-300 line-clamp-12`}
     >
       {segments.map((seg, segIdx) => {
         // Add top margin if this segment had a blank line before it
@@ -119,7 +119,7 @@ function renderContentPreview(
                     >
                       <input
                         type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-400 dark:border-gray-500 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
+                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
                         checked={false}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => onCheckboxToggle(lineIndex)}
@@ -137,7 +137,7 @@ function renderContentPreview(
                     >
                       <input
                         type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-400 dark:border-gray-500 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
+                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
                         checked={true}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => onCheckboxToggle(lineIndex)}
@@ -404,7 +404,7 @@ export function NoteCard({ note }: { note: Note }) {
       {showModal && (
         <>
           <div
-            class={`fixed inset-0 bg-black/30 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
+            class={`fixed inset-0 bg-black/50 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
             onClick={closeModal}
           />
           <div

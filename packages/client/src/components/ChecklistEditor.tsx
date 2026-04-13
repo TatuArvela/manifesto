@@ -289,7 +289,7 @@ export function ChecklistEditor({
             </div>
             <input
               type="checkbox"
-              class="w-4 h-4 rounded appearance-none border-2 border-gray-400 dark:border-gray-500 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
+              class="w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
               checked={item.checked}
               disabled={disabled}
               onChange={() => updateItem(idx, { checked: !item.checked })}

@@ -280,13 +280,13 @@ body {
 /* Horizontal rule */
 .prose hr {
   border: none;
-  border-top: 1px solid #d1d5db;
+  border-top: 1px solid #9ca3af;
   margin-top: 0.75em;
   margin-bottom: 0.75em;
 }
 
 .dark .prose hr {
-  border-top-color: #4b5563;
+  border-top-color: #9ca3af;
 }
 
 /* Strong and emphasis */

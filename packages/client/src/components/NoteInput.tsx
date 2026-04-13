@@ -1,7 +1,7 @@
 import { type NoteColor, NoteColor as NoteColorEnum } from "@manifesto/shared";
-import { useCallback, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { noteColorMap, noteEdgeColors } from "../colors.js";
-import { createNote, defaultNoteColor, filter, pickDefaultColor } from "../state/index.js";
+import { createNote, defaultNoteColor, filter, pickDefaultColor, theme } from "../state/index.js";
 import { NoteEditor } from "./NoteEditor.js";
 
 const ctaMessages = [
@@ -36,6 +36,13 @@ export function NoteInput() {
   const [lifting, setLifting] = useState(false);
   const [topCta, setTopCta] = useState(() => randomCta());
   const [nextCta, setNextCta] = useState(() => randomCta(topCta));
+
+  // Re-pick colors when the default note color setting changes
+  const colorSetting = defaultNoteColor.value;
+  useEffect(() => {
+    setColor(pickDefaultColor());
+    setNextColor(pickDefaultColor());
+  }, [colorSetting]);
 
   if (filter.value !== "active") return null;
 
@@ -88,7 +95,9 @@ export function NoteInput() {
     }, 150);
   };
 
-  const isDark = document.documentElement.classList.contains("dark");
+  const isDark =
+    theme.value === "dark" ||
+    (theme.value === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const edgeKey = isDark ? "dark" : "light";
   const rainbowEdges: NoteColor[] = [
     NoteColorEnum.Red,
@@ -128,12 +137,12 @@ export function NoteInput() {
         {/* Notes area — top note + next note behind it */}
         <div class="relative">
           <div class={`note-stack-next border ${noteColorMap[nextColor].bg} ${noteColorMap[nextColor].border}`}>
-            <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-500">
+            <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-300">
               {nextCta}
             </div>
           </div>
           <div class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}>
-            <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-500">
+            <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-300">
               {topCta}
             </div>
           </div>
@@ -148,7 +157,7 @@ export function NoteInput() {
       {expanded && (
         <>
           <div
-            class={`fixed inset-0 bg-black/30 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
+            class={`fixed inset-0 bg-black/50 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
             onClick={closeModal}
           />
           <div

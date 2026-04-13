@@ -124,7 +124,7 @@ export function Sidebar() {
       {/* Mobile overlay backdrop */}
       {isMobileOpen && (
         <div
-          class="fixed inset-0 bg-black/30 z-20 lg:hidden"
+          class="fixed inset-0 bg-black/50 z-20 lg:hidden"
           onClick={() => {
             mobileSidebarOpen.value = false;
           }}

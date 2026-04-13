@@ -192,11 +192,11 @@ export function SegmentedContentEditor({
     }
   };
 
-  const hasContent = segments.length > 0;
+  const hasContent = content.length > 0;
 
   return (
     <div class="overflow-auto min-h-[80px] max-h-[50vh]">
-      {segments.map((seg, segIdx) => {
+      {hasContent && segments.map((seg, segIdx) => {
         if (seg.type === "checklist") {
           return (
             <ChecklistEditor
