@@ -46,6 +46,9 @@ export function ChecklistEditor({
   editorRef,
   onNavigateUp,
   onNavigateDown,
+  onItemDragStart,
+  onItemDropExternal,
+  wasDroppedExternally,
 }: {
   lines: string[];
   onChange: (newLines: string[]) => void;
@@ -55,6 +58,12 @@ export function ChecklistEditor({
   editorRef?: Ref<ChecklistEditorHandle>;
   onNavigateUp?: () => void;
   onNavigateDown?: () => void;
+  /** Called when a drag starts, so the parent can track cross-segment drags */
+  onItemDragStart?: (lineIndex: number) => void;
+  /** Called when an item from another checklist is dropped here */
+  onItemDropExternal?: (targetIndex: number) => void;
+  /** Called on drag end so the parent can check if a cross-drop occurred */
+  wasDroppedExternally?: () => boolean;
 }) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -202,6 +211,7 @@ export function ChecklistEditor({
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", "");
     }
+    onItemDragStart?.(idx);
   };
 
   const handleDrag = (e: DragEvent) => {
@@ -215,10 +225,23 @@ export function ChecklistEditor({
     setDragIndentDelta(newIndent - dragOriginalIndent.current);
   };
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const handleDragOver = (e: DragEvent, idx: number) => {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
     setDragOverIndex(idx);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    // Clear indicator when drag leaves this checklist entirely
+    if (
+      containerRef.current &&
+      e.relatedTarget instanceof Node &&
+      !containerRef.current.contains(e.relatedTarget)
+    ) {
+      setDragOverIndex(null);
+    }
   };
 
   const applyDrop = (dropIdx: number) => {
@@ -243,14 +266,23 @@ export function ChecklistEditor({
 
   const handleDrop = (e: DragEvent, dropIdx: number) => {
     e.preventDefault();
-    applyDrop(dropIdx);
+    if (dragIndex === null) {
+      // Drop came from another checklist
+      onItemDropExternal?.(dropIdx);
+    } else {
+      applyDrop(dropIdx);
+    }
     setDragIndex(null);
     setDragOverIndex(null);
     setDragIndentDelta(0);
   };
 
   const handleDragEnd = () => {
-    if (dragIndex !== null && dragIndentDelta !== 0) {
+    if (
+      dragIndex !== null &&
+      dragIndentDelta !== 0 &&
+      !wasDroppedExternally?.()
+    ) {
       applyDrop(dragIndex);
     }
     setDragIndex(null);
@@ -261,8 +293,15 @@ export function ChecklistEditor({
   // Reset refs array size
   inputRefs.current.length = items.length;
 
+  const isAfterLastDragOver =
+    dragOverIndex === items.length && dragIndex !== items.length;
+
   return (
-    <div class="flex flex-col">
+    <div
+      class="flex flex-col pt-2"
+      ref={containerRef}
+      onDragLeave={handleDragLeave}
+    >
       {items.map((item, idx) => {
         const isDragging = dragIndex === idx;
         const isDragOver = dragOverIndex === idx && dragIndex !== idx;
@@ -312,6 +351,12 @@ export function ChecklistEditor({
           </div>
         );
       })}
+      {/* Drop zone after the last item */}
+      <div
+        class={`h-2 ${isAfterLastDragOver ? "border-b-blue-400 border-b-2" : ""}`}
+        onDragOver={(e) => handleDragOver(e, items.length)}
+        onDrop={(e) => handleDrop(e, items.length)}
+      />
     </div>
   );
 }

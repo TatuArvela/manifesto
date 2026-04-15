@@ -1,4 +1,5 @@
 import type { Note } from "@manifesto/shared";
+import { NoteFont } from "@manifesto/shared";
 import {
   Dices,
   Download,
@@ -11,11 +12,13 @@ import {
 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
 import {
-  type DefaultNoteColor,
+  type DefaultNoteFont,
   defaultNoteColor,
+  defaultNoteFont,
   deleteAllNotes,
   exportNotes,
   importNotes,
+  noteFontFamilies,
   showSettings,
   type ThemeMode,
   theme,
@@ -23,6 +26,13 @@ import {
 import { ThreeWayToggle, ToggleSwitch } from "./ToggleSwitch.js";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
+
+const fontOptions: { value: DefaultNoteFont; label: string }[] = [
+  { value: NoteFont.Default, label: "Default" },
+  { value: NoteFont.PermanentMarker, label: "Permanent Marker" },
+  { value: NoteFont.ComicRelief, label: "Comic Relief" },
+  { value: "random", label: "Random" },
+];
 
 export function SettingsDialog() {
   const [dataStatus, setDataStatus] = useState("");
@@ -114,6 +124,37 @@ export function SettingsDialog() {
             labelOff="Plain"
             labelOn="Random"
           />
+        </div>
+
+        {/* Default note font */}
+        <div class="pt-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
+            Default Note Font
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            {fontOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                class={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
+                  defaultNoteFont.value === opt.value
+                    ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
+                    : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                }`}
+                style={{
+                  fontFamily:
+                    opt.value !== "random"
+                      ? noteFontFamilies[opt.value] || "inherit"
+                      : "inherit",
+                }}
+                onClick={() => {
+                  defaultNoteFont.value = opt.value;
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Import / Export */}

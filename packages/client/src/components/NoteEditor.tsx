@@ -1,23 +1,31 @@
-import type { NoteColor } from "@manifesto/shared";
+import { type NoteColor, NoteFont } from "@manifesto/shared";
 import {
   Archive,
   ArchiveRestore,
   Check,
   Code,
   Copy,
+  EllipsisVertical,
   Eye,
   Palette,
+  PenLine,
   Pin,
   PinOff,
+  Redo,
   Tag,
   Trash2,
+  Undo,
+  Undo2,
   X,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { colorPickerColors, noteColorMap } from "../colors.js";
-import { allTags } from "../state/index.js";
-import { SegmentedContentEditor } from "./SegmentedContentEditor.js";
+import { allTags, noteFontFamilies } from "../state/index.js";
+import {
+  SegmentedContentEditor,
+  type SegmentedContentEditorHandle,
+} from "./SegmentedContentEditor.js";
 import { Tooltip } from "./Tooltip.js";
 
 const iconBtnClass =
@@ -32,18 +40,25 @@ interface NoteEditorProps {
   onContentChange: (value: string) => void;
   color: NoteColor;
   onColorChange: (color: NoteColor) => void;
+  font: NoteFont;
+  onFontChange: (font: NoteFont) => void;
   pinned: boolean;
   onPinToggle: () => void;
   tags: string[];
   onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
   onDone: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   disabled?: boolean;
   contentLocked?: boolean;
   metadata?: ComponentChildren;
   onDuplicate?: () => void;
   onArchive?: () => void;
   archived?: boolean;
+  trashed?: boolean;
   onDelete?: () => void;
   deleteLabel?: string;
 }
@@ -55,26 +70,55 @@ export function NoteEditor({
   onContentChange,
   color,
   onColorChange,
+  font,
+  onFontChange,
   pinned,
   onPinToggle,
   tags,
   onAddTag,
   onRemoveTag,
   onDone,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
   disabled,
   contentLocked,
   metadata,
   onDuplicate,
   onArchive,
   archived,
+  trashed,
   onDelete,
   deleteLabel,
 }: NoteEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showFontPicker, setShowFontPicker] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [rawMode, setRawMode] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<SegmentedContentEditorHandle>(null);
+
+  // Ctrl/Cmd+Z for undo, Ctrl/Cmd+Shift+Z for redo
+  useEffect(() => {
+    if (!onUndo && !onRedo) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) return;
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        onUndo?.();
+      } else if (mod && e.key === "z" && e.shiftKey) {
+        e.preventDefault();
+        onRedo?.();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onUndo, onRedo]);
 
   const colors = noteColorMap[color];
 
@@ -109,22 +153,34 @@ export function NoteEditor({
       {/* Content area */}
       <div class="p-4">
         <input
+          ref={titleRef}
           type="text"
           class="w-full bg-transparent outline-none font-medium text-base mb-2 placeholder:text-gray-400 pr-32"
           placeholder="Title"
           value={title}
           onInput={(e) => onTitleChange((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              contentRef.current?.focusFirst();
+            }
+          }}
           disabled={disabled}
+          style={{ fontFamily: noteFontFamilies[font] || undefined }}
         />
 
-        <SegmentedContentEditor
-          content={content}
-          onChange={onContentChange}
-          disabled={disabled}
-          contentLocked={contentLocked}
-          rawMode={rawMode}
-          autoFocus
-        />
+        <div style={{ fontFamily: noteFontFamilies[font] || undefined }}>
+          <SegmentedContentEditor
+            content={content}
+            onChange={onContentChange}
+            disabled={disabled}
+            contentLocked={contentLocked}
+            rawMode={rawMode}
+            autoFocus
+            editorRef={contentRef}
+            onNavigateUp={() => titleRef.current?.focus()}
+          />
+        </div>
 
         {metadata}
 
@@ -151,7 +207,7 @@ export function NoteEditor({
       </div>
 
       {/* Toolbar */}
-      <div class="px-3 pt-1.5 pb-2 flex items-center gap-0.5 flex-wrap">
+      <div class="px-3 pt-1.5 pb-2 flex items-center gap-0.5">
         {/* Color picker */}
         <div class="relative flex">
           <Tooltip label="Color">
@@ -160,7 +216,7 @@ export function NoteEditor({
               class={iconBtnClass}
               onClick={() => {
                 setShowColorPicker(!showColorPicker);
-                setShowTagPicker(false);
+                setShowMenu(false);
               }}
               aria-label="Change color"
             >
@@ -189,88 +245,184 @@ export function NoteEditor({
           )}
         </div>
 
-        {/* Tag picker */}
+        {/* Font picker */}
         <div class="relative flex">
-          <Tooltip label="Tags">
+          <Tooltip label="Font">
             <button
               type="button"
               class={iconBtnClass}
               onClick={() => {
-                setShowTagPicker(!showTagPicker);
+                setShowFontPicker(!showFontPicker);
                 setShowColorPicker(false);
+                setShowMenu(false);
               }}
-              aria-label="Tags"
+              aria-label="Change font"
             >
-              <Tag class="w-4 h-4" />
+              <PenLine class="w-4 h-4" />
             </button>
           </Tooltip>
-          {showTagPicker && (
+          {showFontPicker && (
             <>
               <div
                 class="fixed inset-0 z-10"
-                onClick={() => setShowTagPicker(false)}
+                onClick={() => setShowFontPicker(false)}
               />
-              <div class="absolute bottom-full left-0 mb-2 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 z-20">
-                <input
-                  type="text"
-                  class="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none mb-2"
-                  placeholder="Add tag..."
-                  value={newTag}
-                  onInput={(e) =>
-                    setNewTag((e.target as HTMLInputElement).value)
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddTag(newTag);
-                  }}
-                />
-                {allTags.value
-                  .filter((t) => !tags.includes(t))
-                  .map((tag) => (
+              <div class="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
+                {Object.values(NoteFont).map((f) => (
+                  <Tooltip
+                    key={f}
+                    label={
+                      f === NoteFont.Default
+                        ? "Default"
+                        : f === NoteFont.PermanentMarker
+                          ? "Permanent Marker"
+                          : "Comic Relief"
+                    }
+                  >
                     <button
-                      key={tag}
                       type="button"
-                      class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                      onClick={() => handleAddTag(tag)}
+                      class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+                      style={{
+                        fontFamily: noteFontFamilies[f] || undefined,
+                      }}
+                      onClick={() => onFontChange(f)}
+                      aria-label={f}
                     >
-                      #{tag}
+                      Aa
                     </button>
-                  ))}
+                  </Tooltip>
+                ))}
               </div>
             </>
           )}
         </div>
 
-        {/* Duplicate */}
-        {onDuplicate && (
-          <Tooltip label="Duplicate">
+        {/* Kebab menu */}
+        <div class="relative flex">
+          <Tooltip label="More">
             <button
               type="button"
               class={iconBtnClass}
-              onClick={onDuplicate}
-              aria-label="Duplicate note"
+              onClick={() => {
+                setShowMenu(!showMenu);
+                setShowColorPicker(false);
+                setShowFontPicker(false);
+                setShowTagPicker(false);
+              }}
+              aria-label="More options"
             >
-              <Copy class="w-4 h-4" />
+              <EllipsisVertical class="w-4 h-4" />
             </button>
           </Tooltip>
-        )}
+          {showMenu && (
+            <>
+              <div
+                class="fixed inset-0 z-10"
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowTagPicker(false);
+                }}
+              />
+              <div class="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 z-20 py-1">
+                {/* Tags */}
+                <div class="relative">
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => setShowTagPicker(!showTagPicker)}
+                  >
+                    <Tag class="w-4 h-4" />
+                    Tags
+                  </button>
+                  {showTagPicker && (
+                    <div class="px-3 pb-2">
+                      <input
+                        type="text"
+                        class="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none mb-1"
+                        placeholder="Add tag..."
+                        value={newTag}
+                        onInput={(e) =>
+                          setNewTag((e.target as HTMLInputElement).value)
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAddTag(newTag);
+                        }}
+                      />
+                      {allTags.value
+                        .filter((t) => !tags.includes(t))
+                        .map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                            onClick={() => handleAddTag(tag)}
+                          >
+                            #{tag}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
 
-        {/* Archive */}
-        {onArchive && (
-          <Tooltip label={archived ? "Unarchive" : "Archive"}>
-            <button
-              type="button"
-              class={iconBtnClass}
-              onClick={onArchive}
-              aria-label={archived ? "Unarchive" : "Archive"}
-            >
-              {archived ? (
-                <ArchiveRestore class="w-4 h-4" />
-              ) : (
-                <Archive class="w-4 h-4" />
-              )}
-            </button>
-          </Tooltip>
-        )}
+                {/* Duplicate */}
+                {onDuplicate && (
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => {
+                      onDuplicate();
+                      setShowMenu(false);
+                    }}
+                  >
+                    <Copy class="w-4 h-4" />
+                    Duplicate
+                  </button>
+                )}
+
+                {/* Archive */}
+                {onArchive && (
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => {
+                      onArchive();
+                      setShowMenu(false);
+                    }}
+                  >
+                    {archived ? (
+                      <ArchiveRestore class="w-4 h-4" />
+                    ) : (
+                      <Archive class="w-4 h-4" />
+                    )}
+                    {archived ? "Unarchive" : "Archive"}
+                  </button>
+                )}
+
+                {/* Delete / Undelete (edit mode only — not shown when deleteLabel is set) */}
+                {onDelete && !deleteLabel && (
+                  <>
+                    <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+                    <button
+                      type="button"
+                      class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      onClick={() => {
+                        onDelete();
+                        setShowMenu(false);
+                      }}
+                    >
+                      {trashed ? (
+                        <Undo2 class="w-4 h-4" />
+                      ) : (
+                        <Trash2 class="w-4 h-4" />
+                      )}
+                      {trashed ? "Undelete" : "Delete"}
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Normal / Raw mode toggle */}
         <Tooltip label={rawMode ? "Normal mode" : "Raw mode"}>
@@ -284,6 +436,50 @@ export function NoteEditor({
           </button>
         </Tooltip>
 
+        {/* Undo / Redo */}
+        {onUndo && (
+          <Tooltip label="Undo">
+            <button
+              type="button"
+              class={`${iconBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
+              onClick={onUndo}
+              aria-label="Undo"
+              disabled={!canUndo}
+            >
+              <Undo class="w-4 h-4" />
+            </button>
+          </Tooltip>
+        )}
+        {onRedo && (
+          <Tooltip label="Redo">
+            <button
+              type="button"
+              class={`${iconBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
+              onClick={onRedo}
+              aria-label="Redo"
+              disabled={!canRedo}
+            >
+              <Redo class="w-4 h-4" />
+            </button>
+          </Tooltip>
+        )}
+
+        <div class="flex-1" />
+
+        {/* Discard (new note mode) */}
+        {onDelete && deleteLabel && (
+          <Tooltip label={deleteLabel}>
+            <button
+              type="button"
+              class={iconBtnClass}
+              onClick={onDelete}
+              aria-label={deleteLabel}
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </Tooltip>
+        )}
+
         {/* Done */}
         <Tooltip label="Done">
           <button
@@ -295,27 +491,6 @@ export function NoteEditor({
             <Check class="w-4 h-4" />
           </button>
         </Tooltip>
-
-        {/* Delete */}
-        {onDelete && (
-          <>
-            <div class="flex-1" />
-            <Tooltip label={deleteLabel ?? "Delete"}>
-              <button
-                type="button"
-                class="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30"
-                onClick={onDelete}
-                aria-label={deleteLabel ?? "Delete"}
-              >
-                {deleteLabel ? (
-                  <X class="w-4 h-4" />
-                ) : (
-                  <Trash2 class="w-4 h-4" />
-                )}
-              </button>
-            </Tooltip>
-          </>
-        )}
       </div>
     </article>
   );

@@ -2,6 +2,7 @@ import {
   type Note,
   NoteColor,
   type NoteCreate,
+  NoteFont,
   type NoteUpdate,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
@@ -13,7 +14,8 @@ function loadNotes(): Note[] {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as Note[];
+    const notes = JSON.parse(raw) as Note[];
+    return notes.map((n) => (n.font ? n : { ...n, font: NoteFont.Default }));
   } catch {
     return [];
   }
@@ -40,6 +42,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       title: input.title ?? "",
       content: input.content ?? "",
       color: input.color ?? NoteColor.Default,
+      font: input.font ?? NoteFont.Default,
       pinned: input.pinned ?? false,
       archived: input.archived ?? false,
       trashed: input.trashed ?? false,

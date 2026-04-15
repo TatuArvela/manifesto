@@ -1,5 +1,5 @@
 import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
-import { NoteColor } from "@manifesto/shared";
+import { NoteColor, NoteFont } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
 import { LocalStorageAdapter } from "../storage/LocalStorageAdapter.js";
 
@@ -7,10 +7,11 @@ import { LocalStorageAdapter } from "../storage/LocalStorageAdapter.js";
 
 export type ViewMode = "grid" | "list";
 export type NoteSize = "fit" | "square";
-export type Filter = "active" | "archived" | "trash";
+export type Filter = "active" | "tags" | "archived" | "trash";
 export type SortMode = "default" | "updated" | "created";
 export type ThemeMode = "system" | "light" | "dark";
 export type DefaultNoteColor = "plain" | "random";
+export type DefaultNoteFont = NoteFont | "random";
 
 // --- Storage ---
 
@@ -28,6 +29,7 @@ function loadPrefs(): {
   noteSize: NoteSize;
   theme: ThemeMode;
   defaultNoteColor: DefaultNoteColor;
+  defaultNoteFont: DefaultNoteFont;
 } {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
@@ -39,6 +41,8 @@ function loadPrefs(): {
         noteSize: parsed.noteSize ?? "fit",
         theme: parsed.theme ?? "system",
         defaultNoteColor: parsed.defaultNoteColor ?? "plain",
+        defaultNoteFont:
+          parsed.defaultNoteFont ?? parsed.noteFont ?? NoteFont.Default,
       };
     }
   } catch {
@@ -50,6 +54,7 @@ function loadPrefs(): {
     noteSize: "fit",
     theme: "system",
     defaultNoteColor: "plain",
+    defaultNoteFont: NoteFont.Default,
   };
 }
 
@@ -62,6 +67,7 @@ function savePrefs() {
       noteSize: noteSize.value,
       theme: theme.value,
       defaultNoteColor: defaultNoteColor.value,
+      defaultNoteFont: defaultNoteFont.value,
     }),
   );
 }
@@ -74,6 +80,10 @@ export const viewMode = signal<ViewMode>(prefs.viewMode);
 export const noteSize = signal<NoteSize>(prefs.noteSize);
 export const filter = signal<Filter>("active");
 export const activeTag = signal<string | null>(null);
+export const tagsShowArchived = signal(false);
+export const tagsShowTrashed = signal(false);
+export const tagsSelectMode = signal(false);
+export const tagsSelectedNotes = signal<Set<string>>(new Set());
 export const sortMode = signal<SortMode>(prefs.sortMode);
 export const editingNoteId = signal<string | null>(null);
 export const mobileSidebarOpen = signal(false);
@@ -82,6 +92,7 @@ export const theme = signal<ThemeMode>(prefs.theme);
 export const defaultNoteColor = signal<DefaultNoteColor>(
   prefs.defaultNoteColor,
 );
+export const defaultNoteFont = signal<DefaultNoteFont>(prefs.defaultNoteFont);
 
 // Persist preferences when they change
 viewMode.subscribe(() => savePrefs());
@@ -89,6 +100,7 @@ sortMode.subscribe(() => savePrefs());
 noteSize.subscribe(() => savePrefs());
 theme.subscribe(() => savePrefs());
 defaultNoteColor.subscribe(() => savePrefs());
+defaultNoteFont.subscribe(() => savePrefs());
 
 // --- Theme ---
 
@@ -109,6 +121,14 @@ window
     if (theme.value === "system") applyTheme("system");
   });
 
+// --- Note font ---
+
+export const noteFontFamilies: Record<NoteFont, string> = {
+  [NoteFont.Default]: "",
+  [NoteFont.PermanentMarker]: '"Permanent Marker", cursive',
+  [NoteFont.ComicRelief]: '"Comic Relief", cursive',
+};
+
 // --- Derived ---
 
 export const filteredNotes = computed(() => {
@@ -119,17 +139,23 @@ export const filteredNotes = computed(() => {
     case "active":
       result = result.filter((n) => !n.archived && !n.trashed);
       break;
+    case "tags":
+      result = result.filter((n) => {
+        if (n.trashed && !tagsShowTrashed.value) return false;
+        if (n.archived && !tagsShowArchived.value) return false;
+        if (n.trashed && n.archived) return tagsShowTrashed.value;
+        return true;
+      });
+      if (activeTag.value) {
+        result = result.filter((n) => n.tags.includes(activeTag.value!));
+      }
+      break;
     case "archived":
       result = result.filter((n) => n.archived && !n.trashed);
       break;
     case "trash":
       result = result.filter((n) => n.trashed);
       break;
-  }
-
-  // Filter by tag
-  if (activeTag.value) {
-    result = result.filter((n) => n.tags.includes(activeTag.value!));
   }
 
   // Filter by search
@@ -195,13 +221,24 @@ export const editingNote = computed(() =>
 
 // --- Helpers ---
 
-const noteColors = Object.values(NoteColor).filter((c) => c !== NoteColor.Default);
+const noteColors = Object.values(NoteColor).filter(
+  (c) => c !== NoteColor.Default,
+);
 
 export function pickDefaultColor(): NoteColor {
   if (defaultNoteColor.value === "random") {
     return noteColors[Math.floor(Math.random() * noteColors.length)];
   }
   return NoteColor.Default;
+}
+
+const noteFonts = Object.values(NoteFont).filter((f) => f !== NoteFont.Default);
+
+export function pickDefaultFont(): NoteFont {
+  if (defaultNoteFont.value === "random") {
+    return noteFonts[Math.floor(Math.random() * noteFonts.length)];
+  }
+  return defaultNoteFont.value;
 }
 
 // --- Actions ---
@@ -216,6 +253,7 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
     title: input.title ?? "",
     content: input.content ?? "",
     color: input.color ?? pickDefaultColor(),
+    font: input.font ?? pickDefaultFont(),
     pinned: input.pinned ?? false,
     archived: input.archived ?? false,
     trashed: input.trashed ?? false,
@@ -267,6 +305,25 @@ export async function unarchiveNote(id: string) {
 export async function togglePin(id: string) {
   const note = notes.value.find((n) => n.id === id);
   if (note) await updateNote(id, { pinned: !note.pinned });
+}
+
+export async function deleteTag(tag: string) {
+  const affected = notes.value.filter((n) => n.tags.includes(tag));
+  for (const note of affected) {
+    await updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) });
+  }
+  if (activeTag.value === tag) {
+    activeTag.value = null;
+  }
+}
+
+export async function addTagToNotes(tag: string, noteIds: Set<string>) {
+  for (const id of noteIds) {
+    const note = notes.value.find((n) => n.id === id);
+    if (note && !note.tags.includes(tag)) {
+      await updateNote(id, { tags: [...note.tags, tag] });
+    }
+  }
 }
 
 export async function toggleCheckbox(id: string, lineIndex: number) {

@@ -1,7 +1,20 @@
-import { type NoteColor, NoteColor as NoteColorEnum } from "@manifesto/shared";
+import {
+  type NoteColor,
+  NoteColor as NoteColorEnum,
+  type NoteFont,
+} from "@manifesto/shared";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { noteColorMap, noteEdgeColors } from "../colors.js";
-import { createNote, defaultNoteColor, filter, pickDefaultColor, theme } from "../state/index.js";
+import { useUndoRedo } from "../hooks/useUndoRedo.js";
+import {
+  createNote,
+  defaultNoteColor,
+  defaultNoteFont,
+  filter,
+  pickDefaultColor,
+  pickDefaultFont,
+  theme,
+} from "../state/index.js";
 import { NoteEditor } from "./NoteEditor.js";
 
 const ctaMessages = [
@@ -26,14 +39,27 @@ function randomCta(exclude?: string): string {
 
 export function NoteInput() {
   const [expanded, setExpanded] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const {
+    title,
+    content,
+    setTitle,
+    setContent,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    reset: resetUndoRedo,
+  } = useUndoRedo("", "");
   const [color, setColor] = useState<NoteColor>(() => pickDefaultColor());
-  const [nextColor, setNextColor] = useState<NoteColor>(() => pickDefaultColor());
+  const [nextColor, setNextColor] = useState<NoteColor>(() =>
+    pickDefaultColor(),
+  );
+  const [font, setFont] = useState<NoteFont>(() => pickDefaultFont());
   const [pinned, setPinned] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
+  const [liftRotation, setLiftRotation] = useState(0);
   const [topCta, setTopCta] = useState(() => randomCta());
   const [nextCta, setNextCta] = useState(() => randomCta(topCta));
 
@@ -44,13 +70,19 @@ export function NoteInput() {
     setNextColor(pickDefaultColor());
   }, [colorSetting]);
 
+  // Re-pick font when the default note font setting changes
+  const fontSetting = defaultNoteFont.value;
+  useEffect(() => {
+    setFont(pickDefaultFont());
+  }, [fontSetting]);
+
   if (filter.value !== "active") return null;
 
   const reset = () => {
-    setTitle("");
-    setContent("");
+    resetUndoRedo("", "");
     setColor(nextColor);
     setNextColor(pickDefaultColor());
+    setFont(pickDefaultFont());
     setPinned(false);
     setTags([]);
   };
@@ -61,6 +93,7 @@ export function NoteInput() {
   }, [nextCta]);
 
   const openModal = () => {
+    setLiftRotation(Math.random() * 16 - 8);
     setLifting(true);
     setExpanded(true);
     setTimeout(() => setLifting(false), 400);
@@ -74,6 +107,7 @@ export function NoteInput() {
           title: title.trim(),
           content: content.trim(),
           color,
+          font,
           pinned,
           tags,
         });
@@ -97,7 +131,8 @@ export function NoteInput() {
 
   const isDark =
     theme.value === "dark" ||
-    (theme.value === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    (theme.value === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
   const edgeKey = isDark ? "dark" : "light";
   const rainbowEdges: NoteColor[] = [
     NoteColorEnum.Red,
@@ -136,12 +171,24 @@ export function NoteInput() {
       >
         {/* Notes area — top note + next note behind it */}
         <div class="relative">
-          <div class={`note-stack-next border ${noteColorMap[nextColor].bg} ${noteColorMap[nextColor].border}`}>
+          <div
+            class={`note-stack-next border ${noteColorMap[nextColor].bg} ${noteColorMap[nextColor].border}`}
+          >
             <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-300">
               {nextCta}
             </div>
           </div>
-          <div class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}>
+          <div
+            class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}
+            style={
+              lifting
+                ? {
+                    "--lift-rotate": `${liftRotation}deg`,
+                    "--lift-translate": `${-liftRotation * 2}px`,
+                  }
+                : undefined
+            }
+          >
             <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-300">
               {topCta}
             </div>
@@ -150,7 +197,11 @@ export function NoteInput() {
         {/* Stack base — visible thickness at bottom */}
         <div
           class="note-stack-base"
-          style={defaultNoteColor.value === "random" ? rainbowGradientStyle : undefined}
+          style={
+            defaultNoteColor.value === "random"
+              ? rainbowGradientStyle
+              : undefined
+          }
         />
       </div>
 
@@ -171,6 +222,8 @@ export function NoteInput() {
                 onContentChange={setContent}
                 color={color}
                 onColorChange={setColor}
+                font={font}
+                onFontChange={setFont}
                 pinned={pinned}
                 onPinToggle={() => setPinned(!pinned)}
                 tags={tags}
@@ -181,6 +234,10 @@ export function NoteInput() {
                 }}
                 onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
                 onDone={closeModal}
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={canUndo}
+                canRedo={canRedo}
                 onDelete={discardNote}
                 deleteLabel="Discard"
               />

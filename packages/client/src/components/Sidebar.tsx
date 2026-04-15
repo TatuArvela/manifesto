@@ -2,10 +2,11 @@ import type { LucideIcon } from "lucide-preact";
 import { Archive, Hash, StickyNote, Trash2 } from "lucide-preact";
 import {
   activeTag,
-  allTags,
   type Filter,
   filter,
   mobileSidebarOpen,
+  tagsSelectedNotes,
+  tagsSelectMode,
 } from "../state/index.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -23,7 +24,20 @@ function NavItem({
   filterValue: Filter;
   collapsed?: boolean;
 }) {
-  const isActive = filter.value === filterValue && !activeTag.value;
+  const isActive = filter.value === filterValue;
+
+  const handleClick = () => {
+    filter.value = filterValue;
+    if (filterValue !== "tags") {
+      activeTag.value = null;
+    }
+    // Exit tag select mode when navigating away
+    if (tagsSelectMode.value) {
+      tagsSelectMode.value = false;
+      tagsSelectedNotes.value = new Set();
+    }
+    mobileSidebarOpen.value = false;
+  };
 
   if (collapsed) {
     return (
@@ -35,10 +49,7 @@ function NavItem({
               ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
               : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
           }`}
-          onClick={() => {
-            filter.value = filterValue;
-            activeTag.value = null;
-          }}
+          onClick={handleClick}
           aria-label={label}
         >
           <Icon class="w-5 h-5" />
@@ -55,11 +66,7 @@ function NavItem({
           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium"
           : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
       }`}
-      onClick={() => {
-        filter.value = filterValue;
-        activeTag.value = null;
-        mobileSidebarOpen.value = false;
-      }}
+      onClick={handleClick}
     >
       <Icon class="w-5 h-5 shrink-0" />
       <span class="text-sm">{label}</span>
@@ -67,56 +74,7 @@ function NavItem({
   );
 }
 
-function TagItem({ tag, collapsed }: { tag: string; collapsed?: boolean }) {
-  const isActive = activeTag.value === tag;
-
-  const handleClick = () => {
-    if (activeTag.value === tag) {
-      activeTag.value = null;
-    } else {
-      activeTag.value = tag;
-      filter.value = "active";
-    }
-    mobileSidebarOpen.value = false;
-  };
-
-  if (collapsed) {
-    return (
-      <Tooltip label={`#${tag}`}>
-        <button
-          type="button"
-          class={`flex items-center justify-center w-10 h-10 rounded-lg mx-auto transition-colors cursor-pointer ${
-            isActive
-              ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-              : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-          }`}
-          onClick={handleClick}
-          aria-label={`#${tag}`}
-        >
-          <Hash class="w-5 h-5" />
-        </button>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      class={`flex items-center gap-4 w-full pl-4 pr-3 py-2.5 transition-colors whitespace-nowrap cursor-pointer ${
-        isActive
-          ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium"
-          : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-      }`}
-      onClick={handleClick}
-    >
-      <Hash class="w-5 h-5 shrink-0" />
-      <span class="text-sm truncate">{tag}</span>
-    </button>
-  );
-}
-
 export function Sidebar() {
-  const tags = allTags.value;
   const isMobileOpen = mobileSidebarOpen.value;
 
   return (
@@ -144,6 +102,7 @@ export function Sidebar() {
             filterValue="active"
             collapsed
           />
+          <NavItem label="Tags" icon={Hash} filterValue="tags" collapsed />
           <NavItem
             label="Archive"
             icon={Archive}
@@ -151,13 +110,6 @@ export function Sidebar() {
             collapsed
           />
           <NavItem label="Trash" icon={Trash2} filterValue="trash" collapsed />
-          {tags.length > 0 && (
-            <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 w-10 flex flex-col items-center gap-1">
-              {tags.map((tag) => (
-                <TagItem key={tag} tag={tag} collapsed />
-              ))}
-            </div>
-          )}
         </nav>
       </div>
 
@@ -172,18 +124,9 @@ export function Sidebar() {
         </div>
         <div class="pt-2">
           <NavItem label="Notes" icon={StickyNote} filterValue="active" />
+          <NavItem label="Tags" icon={Hash} filterValue="tags" />
           <NavItem label="Archive" icon={Archive} filterValue="archived" />
           <NavItem label="Trash" icon={Trash2} filterValue="trash" />
-          {tags.length > 0 && (
-            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 overflow-y-auto">
-              <h3 class="pl-4 pr-3 py-1 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
-                Tags
-              </h3>
-              {tags.map((tag) => (
-                <TagItem key={tag} tag={tag} />
-              ))}
-            </div>
-          )}
         </div>
       </nav>
     </>

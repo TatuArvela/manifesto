@@ -29,6 +29,7 @@ body {
   overscroll-behavior: none;
 }
 
+
 .tooltip[popover] {
   position: fixed;
   inset: auto;
@@ -72,12 +73,12 @@ body {
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
 }
 
-/* Lift-off: note peels up with dramatic 3D tilt and flies away */
+/* Lift-off: note peels down and flies away with slight rotation via --lift-rotate */
 @keyframes note-lift-off {
-  0% { opacity: 1; transform: rotateX(0deg) translateY(0) scale(1); }
-  30% { opacity: 1; transform: rotateX(35deg) translateY(-6px) scale(1.02); }
-  60% { opacity: 0.8; transform: rotateX(50deg) translateY(-20px) scale(1.01); }
-  100% { opacity: 0; transform: rotateX(60deg) translateY(-50px) scale(0.98); }
+  0% { opacity: 1; transform: rotateX(0deg) rotateZ(0deg) translateX(0) translateY(0) scale(1); }
+  30% { opacity: 1; transform: rotateX(15deg) rotateZ(0deg) translateX(calc(var(--lift-translate, -4px) * 0.3)) translateY(6px) scale(1.02); }
+  60% { opacity: 0.8; transform: rotateX(25deg) rotateZ(calc(var(--lift-rotate, 3deg) * 0.5)) translateX(calc(var(--lift-translate, -4px) * 0.7)) translateY(20px) scale(1.01); }
+  100% { opacity: 0; transform: rotateX(30deg) rotateZ(var(--lift-rotate, 3deg)) translateX(var(--lift-translate, -4px)) translateY(50px) scale(0.98); }
 }
 
 .note-lift-off {

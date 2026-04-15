@@ -1,10 +1,28 @@
 import { StickyNote } from "lucide-preact";
-import { pinnedNotes, unpinnedNotes, viewMode } from "../state/index.js";
+import {
+  pinnedNotes,
+  tagsSelectedNotes,
+  tagsSelectMode,
+  unpinnedNotes,
+  viewMode,
+} from "../state/index.js";
 import { NoteCard } from "./NoteCard.js";
 
 export function NoteGrid() {
   const pinned = pinnedNotes.value;
   const unpinned = unpinnedNotes.value;
+  const selectMode = tagsSelectMode.value;
+  const selectedSet = tagsSelectedNotes.value;
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedSet);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    tagsSelectedNotes.value = next;
+  };
 
   if (pinned.length === 0 && unpinned.length === 0) {
     return (
@@ -31,7 +49,13 @@ export function NoteGrid() {
           <h2 class={headingClass}>Pinned</h2>
           <div class={gridClass}>
             {pinned.map((note) => (
-              <NoteCard key={note.id} note={note} />
+              <NoteCard
+                key={note.id}
+                note={note}
+                selectable={selectMode}
+                selected={selectedSet.has(note.id)}
+                onToggleSelect={() => toggleSelect(note.id)}
+              />
             ))}
           </div>
         </section>
@@ -45,7 +69,13 @@ export function NoteGrid() {
         <section>
           <div class={gridClass}>
             {unpinned.map((note) => (
-              <NoteCard key={note.id} note={note} />
+              <NoteCard
+                key={note.id}
+                note={note}
+                selectable={selectMode}
+                selected={selectedSet.has(note.id)}
+                onToggleSelect={() => toggleSelect(note.id)}
+              />
             ))}
           </div>
         </section>

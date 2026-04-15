@@ -12,11 +12,18 @@ export enum NoteColor {
   Gray = "gray",
 }
 
+export enum NoteFont {
+  Default = "default",
+  PermanentMarker = "permanent-marker",
+  ComicRelief = "comic-relief",
+}
+
 export interface Note {
   id: string;
   title: string;
   content: string;
   color: NoteColor;
+  font: NoteFont;
   pinned: boolean;
   archived: boolean;
   trashed: boolean;

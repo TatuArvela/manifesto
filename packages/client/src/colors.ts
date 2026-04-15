@@ -89,7 +89,10 @@ export const noteColorMap: Record<NoteColor, ColorClasses> = {
 };
 
 /** Hex edge colors for the note stack base gradient */
-export const noteEdgeColors: Record<NoteColor, { light: string; dark: string }> = {
+export const noteEdgeColors: Record<
+  NoteColor,
+  { light: string; dark: string }
+> = {
   [NoteColor.Default]: { light: "#d1d5db", dark: "#4b5563" },
   [NoteColor.Red]: { light: "#fca5a5", dark: "#991b1b" },
   [NoteColor.Orange]: { light: "#fdba74", dark: "#9a3412" },
