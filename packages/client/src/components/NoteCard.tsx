@@ -1,4 +1,4 @@
-import type { Note, NoteColor, NoteFont } from "@manifesto/shared";
+import type { Note, NoteColor } from "@manifesto/shared";
 import clsx from "clsx";
 import DOMPurify from "dompurify";
 import {
@@ -41,7 +41,6 @@ import {
   updateNote,
   viewMode,
 } from "../state/index.js";
-import { isChecklistLine } from "./ChecklistEditor.js";
 import { iconBtnClass, NoteEditor } from "./NoteEditor.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -106,11 +105,6 @@ function formatDateTime(iso: string): string {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-/** Normalize shorthand `[] text` / `[x] text` to GFM `- [ ] text` / `- [x] text` */
-function normalizeChecklists(text: string): string {
-  return text.replace(/^(\s*)(\[[ x]\] )/gim, "$1- $2");
 }
 
 /**
@@ -294,7 +288,14 @@ export function NoteCard({
 
   return (
     <>
-      <div class="relative group">
+      <div
+        class={clsx(
+          "relative group",
+          noteSize.value === "square" &&
+            viewMode.value === "list" &&
+            "w-full max-w-sm mx-auto",
+        )}
+      >
         {/* Selection checkbox — positioned over the top-left corner */}
         {!isTrashView && (
           <div
@@ -346,7 +347,7 @@ export function NoteCard({
             isEditing && !closing && "opacity-20",
             noteSize.value === "square" &&
               viewMode.value === "list" &&
-              "w-full max-w-sm mx-auto",
+              "w-full",
             draggable && "note-draggable",
           )}
           style={{

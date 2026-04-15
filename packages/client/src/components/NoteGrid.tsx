@@ -224,7 +224,7 @@ export function NoteGrid() {
     ? "flex flex-col gap-3"
     : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-x-4 items-start";
   const gridStyle = isList ? undefined : { gridAutoRows: "1px" };
-  const wrapperClass = isList ? "max-w-xl mx-auto" : "";
+  const wrapperClass = "";
   const headingClass =
     "text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-2 px-1";
 
@@ -243,6 +243,7 @@ export function NoteGrid() {
           <h2 class={headingClass}>Pinned</h2>
           <div
             ref={pinnedGridRef}
+            role="list"
             class={gridClass}
             style={gridStyle}
             onDragOver={(e) => handleGridDragOver(e, "pinned")}
@@ -271,6 +272,7 @@ export function NoteGrid() {
         <section>
           <div
             ref={unpinnedGridRef}
+            role="list"
             class={gridClass}
             style={gridStyle}
             onDragOver={(e) => handleGridDragOver(e, "unpinned")}

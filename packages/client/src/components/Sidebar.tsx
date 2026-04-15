@@ -82,9 +82,11 @@ export function Sidebar() {
       {isMobileOpen && (
         <div
           class="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          role="presentation"
           onClick={() => {
             mobileSidebarOpen.value = false;
           }}
+          onKeyDown={() => {}}
         />
       )}
 
@@ -94,7 +96,7 @@ export function Sidebar() {
         style={{ width: `${COLLAPSED_W}px` }}
       >
         {/* Collapsed icon buttons */}
-        <nav class="flex flex-col items-center gap-1 pt-2">
+        <nav class="flex flex-col items-center gap-1 pt-6">
           <NavItem label="Notes" icon={StickyNote} view="active" collapsed />
           <NavItem label="Tags" icon={Hash} view="tags" collapsed />
           <NavItem label="Archive" icon={Archive} view="archived" collapsed />

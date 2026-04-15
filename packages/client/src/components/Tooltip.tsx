@@ -30,6 +30,7 @@ export function Tooltip({
   return (
     <span
       class="inline-flex items-center"
+      role="group"
       style={{ anchorName: idRef.current }}
       onMouseEnter={show}
       onMouseLeave={hide}

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isChecklistLine } from "./ChecklistEditor.js";
-import {
-  type ContentSegment,
-  segmentContent,
-} from "./SegmentedContentEditor.js";
+import { segmentContent } from "./SegmentedContentEditor.js";
 
 describe("isChecklistLine", () => {
   it("matches standard checklist syntax", () => {
@@ -152,7 +149,7 @@ describe("checklist merge scenarios", () => {
     // Since they typed at position 1 in a 4-item checklist, neither first nor last is perfect.
     // The behavior is: lineInSeg=1 !== 0, so "last".
     expect(result).not.toBeNull();
-    expect(result!.segIndex).toBe(0);
+    expect(result?.segIndex).toBe(0);
   });
 
   it("typing checklist syntax above a checklist (no checklist above) — focus first", () => {

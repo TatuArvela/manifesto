@@ -3,7 +3,7 @@ import {
   NoteColor as NoteColorEnum,
   type NoteFont,
 } from "@manifesto/shared";
-import { useCallback, useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteEdgeColors } from "../colors.js";
 import { useUndoRedo } from "../hooks/useUndoRedo.js";
 import {
@@ -11,9 +11,11 @@ import {
   createNote,
   defaultNoteColor,
   defaultNoteFont,
+  noteSize,
   pickDefaultColor,
   pickDefaultFont,
   theme,
+  viewMode,
 } from "../state/index.js";
 import { NoteEditor } from "./NoteEditor.js";
 
@@ -158,58 +160,92 @@ export function NoteInput() {
       ? "note-stack-top note-hidden"
       : "note-stack-top";
 
+  const isList = viewMode.value === "list";
+  const rulerRef = useRef<HTMLDivElement>(null);
+  const [colWidth, setColWidth] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (isList) return;
+    const ruler = rulerRef.current;
+    if (!ruler) return;
+    const cell = ruler.firstElementChild as HTMLElement;
+    if (!cell) return;
+    const measure = () => setColWidth(cell.getBoundingClientRect().width);
+    measure();
+    const obs = new ResizeObserver(measure);
+    obs.observe(ruler);
+    return () => obs.disconnect();
+  }, [isList]);
+
   return (
     <>
+      {/* Hidden ruler to measure one grid column width */}
+      {!isList && (
+        <div
+          ref={rulerRef}
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-x-4 h-0 overflow-hidden pointer-events-none"
+          aria-hidden="true"
+        >
+          <div />
+        </div>
+      )}
       <div
-        class="note-stack max-w-md mx-auto mb-12 cursor-pointer"
-        onClick={() => !expanded && openModal()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !expanded) openModal();
-        }}
+        class={isList ? (noteSize.value === "square" ? "max-w-sm mx-auto mb-12" : "mb-12") : "mx-auto mb-12"}
+        style={!isList && colWidth ? { width: `${colWidth}px` } : undefined}
       >
-        {/* Notes area — top note + next note behind it */}
-        <div class="relative">
-          <div
-            class={`note-stack-next border ${noteColorMap[nextColor].bg} ${noteColorMap[nextColor].border}`}
-          >
-            <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-300">
-              {nextCta}
+        <div
+          class="note-stack cursor-pointer"
+          onClick={() => !expanded && openModal()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !expanded) openModal();
+          }}
+        >
+          {/* Notes area — top note + next note behind it */}
+          <div class="relative">
+            <div
+              class={`note-stack-next border ${noteColorMap[nextColor].bg} ${noteColorMap[nextColor].border}`}
+            >
+              <div class="px-5 pt-12 pb-4 text-sm text-gray-400 dark:text-gray-300">
+                {nextCta}
+              </div>
+            </div>
+            <div
+              class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}
+              style={
+                lifting
+                  ? {
+                      "--lift-rotate": `${liftRotation}deg`,
+                      "--lift-translate": `${-liftRotation * 2}px`,
+                    }
+                  : undefined
+              }
+            >
+              <div class="px-5 pt-12 pb-4 text-sm text-gray-400 dark:text-gray-300">
+                {topCta}
+              </div>
             </div>
           </div>
+          {/* Stack base — visible thickness at bottom */}
           <div
-            class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}
+            class="note-stack-base"
             style={
-              lifting
-                ? {
-                    "--lift-rotate": `${liftRotation}deg`,
-                    "--lift-translate": `${-liftRotation * 2}px`,
-                  }
+              defaultNoteColor.value === "random"
+                ? rainbowGradientStyle
                 : undefined
             }
-          >
-            <div class="px-5 py-5 text-sm text-gray-400 dark:text-gray-300">
-              {topCta}
-            </div>
-          </div>
+          />
         </div>
-        {/* Stack base — visible thickness at bottom */}
-        <div
-          class="note-stack-base"
-          style={
-            defaultNoteColor.value === "random"
-              ? rainbowGradientStyle
-              : undefined
-          }
-        />
       </div>
 
       {expanded && (
         <>
           <div
             class={`fixed inset-0 bg-black/50 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
+            role="presentation"
             onClick={closeModal}
+            onKeyDown={() => {}}
           />
           <div
             class={`fixed inset-0 z-30 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}

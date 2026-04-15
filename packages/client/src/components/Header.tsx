@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
+import logoUrl from "../assets/logo.svg";
 import { colorPickerColors } from "../colors.js";
 import {
   activeView,
@@ -36,7 +37,6 @@ import {
   sortMode,
   viewMode,
 } from "../state/index.js";
-import logoUrl from "../assets/logo.svg";
 import { Tooltip } from "./Tooltip.js";
 
 const sortOptions: { value: SortMode; label: string }[] = [
@@ -54,7 +54,7 @@ function SelectionToolbar() {
   const [newTag, setNewTag] = useState("");
 
   return (
-    <header class="relative flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
+    <header class="relative z-10 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
       {/* Left: close + count */}
       <div class="flex items-center gap-2 shrink-0">
         <button
@@ -102,10 +102,12 @@ function SelectionToolbar() {
             <>
               <div
                 class="fixed inset-0 z-10"
+                role="presentation"
                 onClick={() => {
                   setShowTagPicker(false);
                   setNewTag("");
                 }}
+                onKeyDown={() => {}}
               />
               <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[180px] text-gray-900 dark:text-gray-100">
                 <div class="px-3 py-2">
@@ -183,7 +185,9 @@ function SelectionToolbar() {
             <>
               <div
                 class="fixed inset-0 z-10"
+                role="presentation"
                 onClick={() => setShowColorPicker(false)}
+                onKeyDown={() => {}}
               />
               <div class="absolute right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
                 {colorPickerColors.map((c) => (
@@ -228,7 +232,7 @@ export function Header() {
   }
 
   return (
-    <header class="relative flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0">
+    <header class="relative z-10 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-white dark:bg-gray-900">
       {/* Left: hamburger (mobile only) + title */}
       <div class="flex items-center gap-1 shrink-0 z-10">
         <button
@@ -292,7 +296,9 @@ export function Header() {
             <>
               <div
                 class="fixed inset-0 z-10"
+                role="presentation"
                 onClick={() => setShowSortMenu(false)}
+                onKeyDown={() => {}}
               />
               <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[140px]">
                 {sortOptions.map((opt) => (
@@ -333,7 +339,9 @@ export function Header() {
             <>
               <div
                 class="fixed inset-0 z-10"
+                role="presentation"
                 onClick={() => setShowViewMenu(false)}
+                onKeyDown={() => {}}
               />
               <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[160px]">
                 <button

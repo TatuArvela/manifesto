@@ -84,9 +84,11 @@ export function SettingsDialog() {
   return (
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) showSettings.value = false;
       }}
+      onKeyDown={() => {}}
     >
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6">
         <h2 class="text-lg font-semibold mb-4">Settings</h2>
