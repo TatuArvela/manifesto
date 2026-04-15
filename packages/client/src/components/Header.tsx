@@ -36,6 +36,7 @@ import {
   sortMode,
   viewMode,
 } from "../state/index.js";
+import logoUrl from "../assets/logo.svg";
 import { Tooltip } from "./Tooltip.js";
 
 const sortOptions: { value: SortMode; label: string }[] = [
@@ -241,8 +242,13 @@ export function Header() {
           <Menu class="w-5 h-5" />
         </button>
 
-        <h1 class="text-lg font-semibold whitespace-nowrap hidden sm:block lg:ml-2 select-none">
-          {activeView.value === "active" && "Manifesto"}
+        <h1 class="text-lg font-semibold whitespace-nowrap hidden sm:flex items-center gap-2 lg:ml-2 select-none">
+          {activeView.value === "active" && (
+            <>
+              <img src={logoUrl} alt="" class="h-6 w-6 dark:invert" />
+              Manifesto
+            </>
+          )}
           {activeView.value === "tags" && "Tags"}
           {activeView.value === "archived" && "Archive"}
           {activeView.value === "trash" && "Trash"}
