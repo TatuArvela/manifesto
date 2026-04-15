@@ -1,20 +1,37 @@
+import type { NoteColor } from "@manifesto/shared";
 import {
+  Archive,
   ArrowDownUp,
   LayoutDashboard,
   Menu,
+  Palette,
+  Pin,
   RectangleHorizontal,
   Search,
   Settings,
   Square,
   StretchHorizontal,
+  Tag,
+  Trash2,
+  X,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
+import { colorPickerColors } from "../colors.js";
 import {
   activeView,
+  allTags,
+  bulkAddTag,
+  bulkArchive,
+  bulkPin,
+  bulkSetColor,
+  bulkTrash,
+  exitSelectMode,
   mobileSidebarOpen,
   noteSize,
   type SortMode,
   searchQuery,
+  selectedNotes,
+  selectMode,
   showSettings,
   sortMode,
   viewMode,
@@ -27,9 +44,187 @@ const sortOptions: { value: SortMode; label: string }[] = [
   { value: "created", label: "Newest first" },
 ];
 
+const selToolbarBtnClass = "p-2 rounded-lg hover:bg-white/10 transition-colors";
+
+function SelectionToolbar() {
+  const count = selectedNotes.value.size;
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showTagPicker, setShowTagPicker] = useState(false);
+  const [newTag, setNewTag] = useState("");
+
+  return (
+    <header class="relative flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
+      {/* Left: close + count */}
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          class="p-2 rounded-lg hover:bg-white/10"
+          onClick={() => exitSelectMode()}
+          aria-label="Cancel selection"
+        >
+          <X class="w-5 h-5" />
+        </button>
+        <span class="text-sm font-medium select-none">{count} selected</span>
+      </div>
+
+      <div class="flex-1" />
+
+      {/* Right: actions */}
+      <div class="flex items-center gap-0.5 shrink-0">
+        <Tooltip label="Pin">
+          <button
+            type="button"
+            class={selToolbarBtnClass}
+            onClick={() => bulkPin()}
+            aria-label="Pin selected"
+          >
+            <Pin class="w-5 h-5" />
+          </button>
+        </Tooltip>
+
+        {/* Tag picker */}
+        <div class="relative">
+          <Tooltip label="Add tag">
+            <button
+              type="button"
+              class={selToolbarBtnClass}
+              onClick={() => {
+                setShowTagPicker(!showTagPicker);
+                setShowColorPicker(false);
+              }}
+              aria-label="Tag selected"
+            >
+              <Tag class="w-5 h-5" />
+            </button>
+          </Tooltip>
+          {showTagPicker && (
+            <>
+              <div
+                class="fixed inset-0 z-10"
+                onClick={() => {
+                  setShowTagPicker(false);
+                  setNewTag("");
+                }}
+              />
+              <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[180px] text-gray-900 dark:text-gray-100">
+                <div class="px-3 py-2">
+                  <input
+                    type="text"
+                    class="w-full px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none"
+                    placeholder="Add tag..."
+                    value={newTag}
+                    onInput={(e) =>
+                      setNewTag((e.target as HTMLInputElement).value)
+                    }
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") {
+                        const trimmed = newTag.trim().toLowerCase();
+                        if (trimmed) {
+                          bulkAddTag(trimmed);
+                          setShowTagPicker(false);
+                          setNewTag("");
+                        }
+                      }
+                      if (e.key === "Escape") {
+                        setShowTagPicker(false);
+                        setNewTag("");
+                      }
+                    }}
+                  />
+                </div>
+                {allTags.value.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => {
+                      bulkAddTag(tag);
+                      setShowTagPicker(false);
+                      setNewTag("");
+                    }}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <Tooltip label="Archive">
+          <button
+            type="button"
+            class={selToolbarBtnClass}
+            onClick={() => bulkArchive()}
+            aria-label="Archive selected"
+          >
+            <Archive class="w-5 h-5" />
+          </button>
+        </Tooltip>
+
+        {/* Color picker */}
+        <div class="relative">
+          <Tooltip label="Color">
+            <button
+              type="button"
+              class={selToolbarBtnClass}
+              onClick={() => {
+                setShowColorPicker(!showColorPicker);
+                setShowTagPicker(false);
+              }}
+              aria-label="Change color"
+            >
+              <Palette class="w-5 h-5" />
+            </button>
+          </Tooltip>
+          {showColorPicker && (
+            <>
+              <div
+                class="fixed inset-0 z-10"
+                onClick={() => setShowColorPicker(false)}
+              />
+              <div class="absolute right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
+                {colorPickerColors.map((c) => (
+                  <Tooltip key={c.value} label={c.label}>
+                    <button
+                      type="button"
+                      class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch}`}
+                      onClick={() => {
+                        bulkSetColor(c.value as NoteColor);
+                        setShowColorPicker(false);
+                      }}
+                      aria-label={c.label}
+                    />
+                  </Tooltip>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <Tooltip label="Delete">
+          <button
+            type="button"
+            class={selToolbarBtnClass}
+            onClick={() => bulkTrash()}
+            aria-label="Delete selected"
+          >
+            <Trash2 class="w-5 h-5" />
+          </button>
+        </Tooltip>
+      </div>
+    </header>
+  );
+}
+
 export function Header() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showViewMenu, setShowViewMenu] = useState(false);
+
+  if (selectMode.value) {
+    return <SelectionToolbar />;
+  }
 
   return (
     <header class="relative flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0">

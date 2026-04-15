@@ -5,8 +5,6 @@ import {
   noteSize,
   pinnedNotes,
   reorderNotes,
-  tagsSelectedNotes,
-  tagsSelectMode,
   unpinnedNotes,
   viewMode,
 } from "../state/index.js";
@@ -28,7 +26,8 @@ function applyMasonrySpans(container: HTMLElement | null, isSquare: boolean) {
     return child.getBoundingClientRect().height;
   });
   for (let i = 0; i < children.length; i++) {
-    children[i].style.gridRowEnd = `span ${Math.ceil(heights[i] + MASONRY_GAP)}`;
+    children[i].style.gridRowEnd =
+      `span ${Math.ceil(heights[i] + MASONRY_GAP)}`;
   }
 }
 
@@ -65,16 +64,12 @@ function findNearestGap(
 
   // Before or after the nearest card, based on horizontal position
   const rect = children[nearestIdx].getBoundingClientRect();
-  return e.clientX < rect.left + rect.width / 2
-    ? nearestIdx
-    : nearestIdx + 1;
+  return e.clientX < rect.left + rect.width / 2 ? nearestIdx : nearestIdx + 1;
 }
 
 export function NoteGrid() {
   const pinned = pinnedNotes.value;
   const unpinned = unpinnedNotes.value;
-  const selectMode = tagsSelectMode.value;
-  const selectedSet = tagsSelectedNotes.value;
   const reorderable = canReorder.value;
   const isSquare = noteSize.value === "square";
   const isList = viewMode.value === "list";
@@ -126,16 +121,6 @@ export function NoteGrid() {
     return () => observer.disconnect();
   }, [isList, isSquare]);
 
-  const toggleSelect = (id: string) => {
-    const next = new Set(selectedSet);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    tagsSelectedNotes.value = next;
-  };
-
   const getSourceIndex = (section: "pinned" | "unpinned") => {
     const list = section === "pinned" ? pinned : unpinned;
     return list.findIndex((n) => n.id === dragSourceId.current);
@@ -165,10 +150,7 @@ export function NoteGrid() {
     setDropSection(null);
   };
 
-  const handleGridDragOver = (
-    e: DragEvent,
-    section: "pinned" | "unpinned",
-  ) => {
+  const handleGridDragOver = (e: DragEvent, section: "pinned" | "unpinned") => {
     if (!reorderable || dragSection.current !== section) return;
     e.preventDefault();
     if (e.dataTransfer) {
@@ -271,9 +253,6 @@ export function NoteGrid() {
               <NoteCard
                 key={note.id}
                 note={note}
-                selectable={selectMode}
-                selected={selectedSet.has(note.id)}
-                onToggleSelect={() => toggleSelect(note.id)}
                 draggable={reorderable}
                 onDragStart={(e) => handleDragStart(e, note.id, "pinned")}
                 onDragEnd={handleDragEnd}
@@ -302,9 +281,6 @@ export function NoteGrid() {
               <NoteCard
                 key={note.id}
                 note={note}
-                selectable={selectMode}
-                selected={selectedSet.has(note.id)}
-                onToggleSelect={() => toggleSelect(note.id)}
                 draggable={reorderable}
                 onDragStart={(e) => handleDragStart(e, note.id, "unpinned")}
                 onDragEnd={handleDragEnd}

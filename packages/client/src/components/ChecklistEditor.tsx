@@ -1,4 +1,4 @@
-import { GripVertical } from "lucide-preact";
+import { GripVertical, X } from "lucide-preact";
 import type { Ref } from "preact";
 import { useEffect, useImperativeHandle, useRef, useState } from "preact/hooks";
 
@@ -65,6 +65,7 @@ export function ChecklistEditor({
   /** Called on drag end so the parent can check if a cross-drop occurred */
   wasDroppedExternally?: () => boolean;
 }) {
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragStartX = useRef(0);
@@ -312,7 +313,7 @@ export function ChecklistEditor({
         return (
           <div
             key={idx}
-            class={`flex items-center gap-1 py-1.5 ${isDragging ? "opacity-50" : ""}`}
+            class={`group/row flex items-center gap-1 py-1.5 ${isDragging ? "opacity-50" : ""}`}
             style={{
               paddingLeft: `${Math.max(0, indentPx)}px`,
               boxShadow: isDragOver ? "inset 0 2px 0 0 #60a5fa" : undefined,
@@ -350,7 +351,39 @@ export function ChecklistEditor({
                 })
               }
               onKeyDown={(e) => handleKeyDown(e, idx)}
+              onFocus={() => setFocusedIndex(idx)}
+              onBlur={(e) => {
+                // Don't clear if clicking the delete button
+                if (
+                  e.relatedTarget instanceof HTMLElement &&
+                  e.relatedTarget.dataset.checklistDelete
+                ) {
+                  return;
+                }
+                setFocusedIndex(null);
+              }}
             />
+            {!disabled && !checkboxOnly && (
+              <button
+                type="button"
+                data-checklist-delete="true"
+                class={`shrink-0 p-0.5 rounded text-black/30 dark:text-white/30 hover:text-black/60 dark:hover:text-white/60 transition-opacity ${focusedIndex === idx ? "opacity-100" : "opacity-0 group-hover/row:opacity-100"}`}
+                tabIndex={-1}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  const newLines = [...lines];
+                  newLines.splice(idx, 1);
+                  if (newLines.length === 0) {
+                    newLines.push("");
+                  }
+                  onChange(newLines);
+                  setFocusedIndex(null);
+                }}
+                aria-label="Remove item"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            )}
           </div>
         );
       })}

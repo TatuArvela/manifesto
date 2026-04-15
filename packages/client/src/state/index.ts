@@ -82,8 +82,8 @@ export const activeView = signal<AppView>("active");
 export const activeTag = signal<string | null>(null);
 export const tagsShowArchived = signal(false);
 export const tagsShowTrashed = signal(false);
-export const tagsSelectMode = signal(false);
-export const tagsSelectedNotes = signal<Set<string>>(new Set());
+export const selectMode = signal(false);
+export const selectedNotes = signal<Set<string>>(new Set());
 export const sortMode = signal<SortMode>(prefs.sortMode);
 export const editingNoteId = signal<string | null>(null);
 export const mobileSidebarOpen = signal(false);
@@ -333,6 +333,75 @@ export async function addTagToNotes(tag: string, noteIds: Set<string>) {
       await updateNote(id, { tags: [...note.tags, tag] });
     }
   }
+}
+
+// --- Selection ---
+
+export function enterSelectMode(noteId?: string) {
+  selectMode.value = true;
+  selectedNotes.value = noteId ? new Set([noteId]) : new Set();
+}
+
+export function exitSelectMode() {
+  selectMode.value = false;
+  selectedNotes.value = new Set();
+}
+
+export function toggleSelectNote(id: string) {
+  const next = new Set(selectedNotes.value);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
+  selectedNotes.value = next;
+  if (next.size === 0) {
+    selectMode.value = false;
+  }
+}
+
+export async function bulkPin() {
+  const ids = selectedNotes.value;
+  const allPinned = [...ids].every(
+    (id) => notes.value.find((n) => n.id === id)?.pinned,
+  );
+  for (const id of ids) {
+    await updateNote(id, { pinned: !allPinned });
+  }
+  exitSelectMode();
+}
+
+export async function bulkArchive() {
+  for (const id of selectedNotes.value) {
+    await archiveNote(id);
+  }
+  exitSelectMode();
+}
+
+export async function bulkTrash() {
+  for (const id of selectedNotes.value) {
+    await trashNote(id);
+  }
+  exitSelectMode();
+}
+
+export async function bulkDelete() {
+  for (const id of selectedNotes.value) {
+    await deleteNote(id);
+  }
+  exitSelectMode();
+}
+
+export async function bulkSetColor(color: NoteColor) {
+  for (const id of selectedNotes.value) {
+    await updateNote(id, { color });
+  }
+  exitSelectMode();
+}
+
+export async function bulkAddTag(tag: string) {
+  await addTagToNotes(tag, selectedNotes.value);
+  exitSelectMode();
 }
 
 export async function reorderNotes(

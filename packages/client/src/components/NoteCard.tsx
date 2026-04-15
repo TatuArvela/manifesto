@@ -15,7 +15,9 @@ import {
   X,
 } from "lucide-preact";
 import { Marked } from "marked";
-import { useEffect, useRef, useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
+import { createPortal } from "preact/compat";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { colorPickerColors, noteColorMap } from "../colors.js";
 import { useUndoRedo } from "../hooks/useUndoRedo.js";
 import {
@@ -25,11 +27,15 @@ import {
   createNote,
   deleteNote,
   editingNoteId,
+  enterSelectMode,
   noteFontFamilies,
   noteSize,
   restoreNote,
+  selectedNotes,
+  selectMode,
   toggleCheckbox,
   togglePin,
+  toggleSelectNote,
   trashNote,
   unarchiveNote,
   updateNote,
@@ -38,6 +44,56 @@ import {
 import { isChecklistLine } from "./ChecklistEditor.js";
 import { iconBtnClass, NoteEditor } from "./NoteEditor.js";
 import { Tooltip } from "./Tooltip.js";
+
+/** Renders children in a fixed-position portal above the anchor button. */
+function CardPopover({
+  anchorRef,
+  onClose,
+  children,
+}: {
+  anchorRef: preact.RefObject<HTMLElement | null>;
+  onClose: () => void;
+  children: ComponentChildren;
+}) {
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    setPos({ top: rect.top, left: rect.left });
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return createPortal(
+    <>
+      <div class="fixed inset-0 z-40" onClick={onClose} />
+      {pos && (
+        <div
+          ref={popoverRef}
+          class="fixed z-50"
+          style={{
+            top: `${pos.top}px`,
+            left: `${pos.left}px`,
+            transform: "translateY(-100%) translateY(-4px)",
+          }}
+        >
+          {children}
+        </div>
+      )}
+    </>,
+    document.body,
+  );
+}
 
 const marked = new Marked();
 
@@ -176,30 +232,28 @@ function renderContentPreview(
 
 export function NoteCard({
   note,
-  selectable,
-  selected,
-  onToggleSelect,
   draggable,
   onDragStart,
   onDragEnd,
   dropSide,
 }: {
   note: Note;
-  selectable?: boolean;
-  selected?: boolean;
-  onToggleSelect?: () => void;
   draggable?: boolean;
   onDragStart?: (e: DragEvent) => void;
   onDragEnd?: (e: DragEvent) => void;
   dropSide?: "before" | "after";
 }) {
   const isEditing = editingNoteId.value === note.id;
+  const isSelectMode = selectMode.value;
+  const isSelected = selectedNotes.value.has(note.id);
   const [showModal, setShowModal] = useState(false);
   const [closing, setClosing] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showCardMenu, setShowCardMenu] = useState(false);
   const [showCardTagPicker, setShowCardTagPicker] = useState(false);
   const [cardNewTag, setCardNewTag] = useState("");
+  const colorBtnRef = useRef<HTMLButtonElement>(null);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
   const colors = noteColorMap[note.color];
   const isTrashView = activeView.value === "trash";
   // Show modal when editing starts
@@ -220,8 +274,8 @@ export function NoteCard({
   };
 
   const handleClick = () => {
-    if (selectable) {
-      onToggleSelect?.();
+    if (isSelectMode) {
+      toggleSelectNote(note.id);
       return;
     }
     if (!isTrashView && !isEditing) {
@@ -229,102 +283,146 @@ export function NoteCard({
     }
   };
 
+  const handleSelectClick = (e: Event) => {
+    e.stopPropagation();
+    if (isSelectMode) {
+      toggleSelectNote(note.id);
+    } else {
+      enterSelectMode(note.id);
+    }
+  };
+
   return (
     <>
-      <article
-        class={clsx(
-          colors.bg,
-          colors.border,
-          "border p-4 transition-shadow duration-150 group relative select-none overflow-hidden flex flex-col",
-          !isTrashView && "pb-2",
-          "hover:shadow-md",
-          isEditing && !closing && "opacity-20",
-          noteSize.value === "square" &&
-            viewMode.value === "list" &&
-            "w-full max-w-sm mx-auto",
-          draggable && "note-draggable",
+      <div class="relative group">
+        {/* Selection checkbox — positioned over the top-left corner */}
+        {!isTrashView && (
+          <div
+            class={clsx(
+              "absolute -top-2.5 -left-2.5 z-10",
+              isSelectMode || isSelected
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100",
+              "transition-opacity duration-200",
+            )}
+          >
+            <button
+              type="button"
+              class={clsx(
+                "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
+                isSelected
+                  ? "bg-blue-500 text-white hover:bg-blue-600"
+                  : "bg-white dark:bg-gray-200 text-gray-400 hover:bg-gray-100 dark:hover:bg-white hover:scale-110 border border-gray-300",
+              )}
+              onClick={handleSelectClick}
+              aria-label={isSelected ? "Deselect" : "Select"}
+            >
+              {isSelected && (
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </button>
+          </div>
         )}
-        style={{
-          aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
-        }}
-        draggable={draggable}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        data-drop-side={dropSide}
-        onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleClick();
-        }}
-      >
-        {/* Top-right corner */}
-        <div
-          class="absolute top-2 right-2 flex items-center gap-0.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {selectable ? (
-            <input
-              type="checkbox"
-              class="w-5 h-5 rounded appearance-none border-2 border-gray-400 dark:border-gray-500 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
-              checked={selected}
-              onChange={() => onToggleSelect?.()}
-            />
-          ) : (
-            <>
-              {!isTrashView && (
-                <Tooltip label={note.pinned ? "Unpin" : "Pin"}>
-                  <button
-                    type="button"
-                    class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
-                    onClick={() => togglePin(note.id)}
-                    aria-label={note.pinned ? "Unpin" : "Pin"}
-                  >
-                    {note.pinned ? (
-                      <span class="relative block w-4 h-4">
-                        <Pin class="w-4 h-4 absolute inset-0 transition-opacity duration-200 group-hover/pin:opacity-0" />
-                        <PinOff class="w-4 h-4 absolute inset-0 transition-opacity duration-200 opacity-0 group-hover/pin:opacity-100" />
-                      </span>
-                    ) : (
-                      <Pin class="w-4 h-4" />
-                    )}
-                  </button>
-                </Tooltip>
-              )}
-              {note.archived && (
-                <Tooltip label="Archived">
-                  <span class="p-1.5 opacity-60">
-                    <Archive class="w-4 h-4" />
-                  </span>
-                </Tooltip>
-              )}
-              {note.trashed && (
-                <Tooltip label="Trashed">
-                  <span class="p-1.5 opacity-60">
-                    <Trash2 class="w-4 h-4" />
-                  </span>
-                </Tooltip>
-              )}
-            </>
-          )}
-        </div>
 
-        <div
+        <article
           class={clsx(
+            colors.bg,
+            isSelected
+              ? "ring-2 ring-blue-500 border-transparent"
+              : colors.border,
+            "border p-4 transition-all duration-150 relative select-none overflow-hidden flex flex-col",
+            !isTrashView && "pb-2",
+            "group-hover:shadow-md",
+            isEditing && !closing && "opacity-20",
             noteSize.value === "square" &&
-              "flex-1 min-h-0 overflow-hidden note-content-fade",
+              viewMode.value === "list" &&
+              "w-full max-w-sm mx-auto",
+            draggable && "note-draggable",
           )}
-          style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
+          style={{
+            aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
+          }}
+          draggable={draggable}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          data-drop-side={dropSide}
+          onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleClick();
+          }}
         >
-          {note.title && (
-            <h3 class="font-medium text-base leading-snug pr-6">
-              {note.title}
-            </h3>
-          )}
+          {/* Top-right corner */}
+          <div
+            class={clsx(
+              "absolute top-2 right-2 flex items-center gap-0.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200",
+              isSelectMode && "invisible",
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!isTrashView && (
+              <Tooltip label={note.pinned ? "Unpin" : "Pin"}>
+                <button
+                  type="button"
+                  class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+                  onClick={() => togglePin(note.id)}
+                  aria-label={note.pinned ? "Unpin" : "Pin"}
+                >
+                  {note.pinned ? (
+                    <span class="relative block w-4 h-4">
+                      <Pin class="w-4 h-4 absolute inset-0 transition-opacity duration-200 group-hover/pin:opacity-0" />
+                      <PinOff class="w-4 h-4 absolute inset-0 transition-opacity duration-200 opacity-0 group-hover/pin:opacity-100" />
+                    </span>
+                  ) : (
+                    <Pin class="w-4 h-4" />
+                  )}
+                </button>
+              </Tooltip>
+            )}
+            {note.archived && (
+              <Tooltip label="Archived">
+                <span class="p-1.5 opacity-60">
+                  <Archive class="w-4 h-4" />
+                </span>
+              </Tooltip>
+            )}
+            {note.trashed && (
+              <Tooltip label="Trashed">
+                <span class="p-1.5 opacity-60">
+                  <Trash2 class="w-4 h-4" />
+                </span>
+              </Tooltip>
+            )}
+          </div>
 
-          {renderContentPreview(
-            note,
-            (lineIndex) => toggleCheckbox(note.id, lineIndex),
-            !!note.title,
-          )}
+          <div
+            class={clsx(
+              noteSize.value === "square" &&
+                "flex-1 min-h-0 overflow-hidden note-content-fade",
+            )}
+            style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
+          >
+            {note.title && (
+              <h3 class="font-medium text-base leading-snug pr-6">
+                {note.title}
+              </h3>
+            )}
+
+            {renderContentPreview(
+              note,
+              (lineIndex) => toggleCheckbox(note.id, lineIndex),
+              !!note.title,
+            )}
+          </div>
 
           {note.tags.length > 0 && (
             <div class="mt-3 flex flex-wrap gap-1">
@@ -338,11 +436,12 @@ export function NoteCard({
               ))}
             </div>
           )}
-        </div>
 
-        {!selectable && (
           <div
-            class="mt-auto pt-3 -ml-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            class={clsx(
+              "mt-auto pt-3 -ml-1.5 flex items-center gap-1 transition-opacity",
+              isSelectMode ? "invisible" : "opacity-0 group-hover:opacity-100",
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             {isTrashView ? (
@@ -370,208 +469,199 @@ export function NoteCard({
               </>
             ) : (
               <>
-                {/* Color picker */}
-                <div class="relative flex">
-                  <Tooltip label="Color">
-                    <button
-                      type="button"
-                      class={iconBtnClass}
-                      onClick={() => {
-                        setShowColorPicker(!showColorPicker);
-                        setShowCardMenu(false);
-                      }}
-                      aria-label="Change color"
-                    >
-                      <Palette class="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                  {showColorPicker && (
-                    <>
-                      <div
-                        class="fixed inset-0 z-10"
-                        onClick={() => setShowColorPicker(false)}
-                      />
-                      <div class="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
-                        {colorPickerColors.map((c) => (
-                          <Tooltip key={c.value} label={c.label}>
-                            <button
-                              type="button"
-                              class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${note.color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                              onClick={() =>
-                                updateNote(note.id, {
-                                  color: c.value as NoteColor,
-                                })
-                              }
-                              aria-label={c.label}
-                            />
-                          </Tooltip>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+                {/* Color picker trigger */}
+                <Tooltip label="Color">
+                  <button
+                    ref={colorBtnRef}
+                    type="button"
+                    class={iconBtnClass}
+                    onClick={() => {
+                      setShowCardMenu(false);
+                      setShowColorPicker(!showColorPicker);
+                    }}
+                    aria-label="Change color"
+                  >
+                    <Palette class="w-4 h-4" />
+                  </button>
+                </Tooltip>
 
-                {/* Kebab menu */}
-                <div class="relative flex">
-                  <Tooltip label="More">
-                    <button
-                      type="button"
-                      class={iconBtnClass}
-                      onClick={() => {
-                        setShowCardMenu(!showCardMenu);
-                        setShowColorPicker(false);
-                      }}
-                      aria-label="More options"
-                    >
-                      <EllipsisVertical class="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                  {showCardMenu && (
-                    <>
-                      <div
-                        class="fixed inset-0 z-10"
-                        onClick={() => {
-                          setShowCardMenu(false);
-                          setShowCardTagPicker(false);
-                        }}
-                      />
-                      <div class="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 z-20 py-1">
-                        {/* Tags */}
-                        <div class="relative">
-                          <button
-                            type="button"
-                            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                            onClick={() =>
-                              setShowCardTagPicker(!showCardTagPicker)
-                            }
-                          >
-                            <Tag class="w-4 h-4" />
-                            Tags
-                          </button>
-                          {showCardTagPicker && (
-                            <div class="px-3 pb-2">
-                              <input
-                                type="text"
-                                class="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none mb-1"
-                                placeholder="Add tag..."
-                                value={cardNewTag}
-                                onInput={(e) =>
-                                  setCardNewTag(
-                                    (e.target as HTMLInputElement).value,
-                                  )
-                                }
-                                onKeyDown={(e) => {
-                                  e.stopPropagation();
-                                  if (e.key === "Enter") {
-                                    const trimmed = cardNewTag
-                                      .trim()
-                                      .toLowerCase();
-                                    if (
-                                      trimmed &&
-                                      !note.tags.includes(trimmed)
-                                    ) {
-                                      updateNote(note.id, {
-                                        tags: [...note.tags, trimmed],
-                                      });
-                                    }
-                                    setCardNewTag("");
-                                  }
-                                }}
-                              />
-                              {allTags.value
-                                .filter((t) => !note.tags.includes(t))
-                                .map((tag) => (
-                                  <button
-                                    key={tag}
-                                    type="button"
-                                    class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                                    onClick={() => {
-                                      if (!note.tags.includes(tag)) {
-                                        updateNote(note.id, {
-                                          tags: [...note.tags, tag],
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    #{tag}
-                                  </button>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Duplicate */}
-                        <button
-                          type="button"
-                          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => {
-                            createNote({
-                              title: note.title,
-                              content: note.content,
-                              color: note.color,
-                              font: note.font,
-                              tags: [...note.tags],
-                            });
-                            setShowCardMenu(false);
-                          }}
-                        >
-                          <Copy class="w-4 h-4" />
-                          Duplicate
-                        </button>
-                        <button
-                          type="button"
-                          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => {
-                            if (note.archived) {
-                              unarchiveNote(note.id);
-                            } else {
-                              archiveNote(note.id);
-                            }
-                            setShowCardMenu(false);
-                          }}
-                        >
-                          {note.archived ? (
-                            <ArchiveRestore class="w-4 h-4" />
-                          ) : (
-                            <Archive class="w-4 h-4" />
-                          )}
-                          {note.archived ? "Unarchive" : "Archive"}
-                        </button>
-                        <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
-                        <button
-                          type="button"
-                          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => {
-                            if (note.trashed) {
-                              restoreNote(note.id);
-                            } else {
-                              trashNote(note.id);
-                            }
-                            setShowCardMenu(false);
-                          }}
-                        >
-                          {note.trashed ? (
-                            <Undo2 class="w-4 h-4" />
-                          ) : (
-                            <Trash2 class="w-4 h-4" />
-                          )}
-                          {note.trashed ? "Undelete" : "Delete"}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                {/* Kebab menu trigger */}
+                <Tooltip label="More">
+                  <button
+                    ref={menuBtnRef}
+                    type="button"
+                    class={iconBtnClass}
+                    onClick={() => {
+                      setShowColorPicker(false);
+                      setShowCardTagPicker(false);
+                      setShowCardMenu(!showCardMenu);
+                    }}
+                    aria-label="More options"
+                  >
+                    <EllipsisVertical class="w-4 h-4" />
+                  </button>
+                </Tooltip>
               </>
             )}
           </div>
+
+          {isTrashView && note.trashedAt && (
+            <p class="mt-2 text-xs text-gray-400">
+              Trashed {new Date(note.trashedAt).toLocaleDateString()}
+            </p>
+          )}
+        </article>
+
+        {/* Color picker — rendered outside article to avoid overflow clip */}
+        {showColorPicker && (
+          <CardPopover
+            anchorRef={colorBtnRef}
+            onClose={() => setShowColorPicker(false)}
+          >
+            <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1">
+              {colorPickerColors.map((c) => (
+                <Tooltip key={c.value} label={c.label}>
+                  <button
+                    type="button"
+                    class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${note.color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                    onClick={() => {
+                      updateNote(note.id, { color: c.value as NoteColor });
+                      setShowColorPicker(false);
+                    }}
+                    aria-label={c.label}
+                  />
+                </Tooltip>
+              ))}
+            </div>
+          </CardPopover>
         )}
 
-        {isTrashView && note.trashedAt && (
-          <p class="mt-2 text-xs text-gray-400">
-            Trashed {new Date(note.trashedAt).toLocaleDateString()}
-          </p>
+        {/* Kebab menu — rendered outside article to avoid overflow clip */}
+        {showCardMenu && (
+          <CardPopover
+            anchorRef={menuBtnRef}
+            onClose={() => {
+              setShowCardMenu(false);
+              setShowCardTagPicker(false);
+            }}
+          >
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 py-1">
+              {/* Tags */}
+              <div class="relative">
+                <button
+                  type="button"
+                  class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  onClick={() => setShowCardTagPicker(!showCardTagPicker)}
+                >
+                  <Tag class="w-4 h-4" />
+                  Tags
+                </button>
+                {showCardTagPicker && (
+                  <div class="px-3 pb-2">
+                    <input
+                      type="text"
+                      class="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none mb-1"
+                      placeholder="Add tag..."
+                      value={cardNewTag}
+                      onInput={(e) =>
+                        setCardNewTag((e.target as HTMLInputElement).value)
+                      }
+                      onKeyDown={(e) => {
+                        e.stopPropagation();
+                        if (e.key === "Enter") {
+                          const trimmed = cardNewTag.trim().toLowerCase();
+                          if (trimmed && !note.tags.includes(trimmed)) {
+                            updateNote(note.id, {
+                              tags: [...note.tags, trimmed],
+                            });
+                          }
+                          setCardNewTag("");
+                        }
+                      }}
+                    />
+                    {allTags.value
+                      .filter((t) => !note.tags.includes(t))
+                      .map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                          onClick={() => {
+                            if (!note.tags.includes(tag)) {
+                              updateNote(note.id, {
+                                tags: [...note.tags, tag],
+                              });
+                            }
+                          }}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Duplicate */}
+              <button
+                type="button"
+                class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                onClick={() => {
+                  createNote({
+                    title: note.title,
+                    content: note.content,
+                    color: note.color,
+                    font: note.font,
+                    tags: [...note.tags],
+                  });
+                  setShowCardMenu(false);
+                }}
+              >
+                <Copy class="w-4 h-4" />
+                Duplicate
+              </button>
+              <button
+                type="button"
+                class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                onClick={() => {
+                  if (note.archived) {
+                    unarchiveNote(note.id);
+                  } else {
+                    archiveNote(note.id);
+                  }
+                  setShowCardMenu(false);
+                }}
+              >
+                {note.archived ? (
+                  <ArchiveRestore class="w-4 h-4" />
+                ) : (
+                  <Archive class="w-4 h-4" />
+                )}
+                {note.archived ? "Unarchive" : "Archive"}
+              </button>
+              <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+              <button
+                type="button"
+                class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                onClick={() => {
+                  if (note.trashed) {
+                    restoreNote(note.id);
+                  } else {
+                    trashNote(note.id);
+                  }
+                  setShowCardMenu(false);
+                }}
+              >
+                {note.trashed ? (
+                  <Undo2 class="w-4 h-4" />
+                ) : (
+                  <Trash2 class="w-4 h-4" />
+                )}
+                {note.trashed ? "Undelete" : "Delete"}
+              </button>
+            </div>
+          </CardPopover>
         )}
-      </article>
+      </div>
 
       {showModal && (
         <>

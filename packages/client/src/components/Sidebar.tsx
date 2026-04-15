@@ -4,9 +4,9 @@ import {
   type AppView,
   activeTag,
   activeView,
+  exitSelectMode,
   mobileSidebarOpen,
-  tagsSelectedNotes,
-  tagsSelectMode,
+  selectMode,
 } from "../state/index.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -31,10 +31,9 @@ function NavItem({
     if (view !== "tags") {
       activeTag.value = null;
     }
-    // Exit tag select mode when navigating away
-    if (tagsSelectMode.value) {
-      tagsSelectMode.value = false;
-      tagsSelectedNotes.value = new Set();
+    // Exit select mode when navigating away
+    if (selectMode.value) {
+      exitSelectMode();
     }
     mobileSidebarOpen.value = false;
   };
