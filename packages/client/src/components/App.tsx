@@ -1,5 +1,5 @@
 import { useEffect } from "preact/hooks";
-import { filter, loadNotes } from "../state/index.js";
+import { activeView, loadNotes } from "../state/index.js";
 import { Header } from "./Header.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
@@ -12,7 +12,7 @@ export function App() {
     loadNotes();
   }, []);
 
-  const isTagsView = filter.value === "tags";
+  const isTagsView = activeView.value === "tags";
 
   return (
     <div class="flex flex-col h-screen overflow-hidden">

@@ -19,12 +19,12 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { colorPickerColors, noteColorMap } from "../colors.js";
 import { useUndoRedo } from "../hooks/useUndoRedo.js";
 import {
+  activeView,
   allTags,
   archiveNote,
   createNote,
   deleteNote,
   editingNoteId,
-  filter,
   noteFontFamilies,
   noteSize,
   restoreNote,
@@ -193,7 +193,7 @@ export function NoteCard({
   const [showCardTagPicker, setShowCardTagPicker] = useState(false);
   const [cardNewTag, setCardNewTag] = useState("");
   const colors = noteColorMap[note.color];
-  const isTrashView = filter.value === "trash";
+  const isTrashView = activeView.value === "trash";
   // Show modal when editing starts
   useEffect(() => {
     if (isEditing) {

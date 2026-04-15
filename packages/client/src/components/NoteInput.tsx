@@ -7,10 +7,10 @@ import { useCallback, useEffect, useState } from "preact/hooks";
 import { noteColorMap, noteEdgeColors } from "../colors.js";
 import { useUndoRedo } from "../hooks/useUndoRedo.js";
 import {
+  activeView,
   createNote,
   defaultNoteColor,
   defaultNoteFont,
-  filter,
   pickDefaultColor,
   pickDefaultFont,
   theme,
@@ -76,7 +76,7 @@ export function NoteInput() {
     setFont(pickDefaultFont());
   }, [fontSetting]);
 
-  if (filter.value !== "active") return null;
+  if (activeView.value !== "active") return null;
 
   const reset = () => {
     resetUndoRedo("", "");

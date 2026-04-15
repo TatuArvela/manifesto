@@ -7,7 +7,7 @@ import { LocalStorageAdapter } from "../storage/LocalStorageAdapter.js";
 
 export type ViewMode = "grid" | "list";
 export type NoteSize = "fit" | "square";
-export type Filter = "active" | "tags" | "archived" | "trash";
+export type AppView = "active" | "tags" | "archived" | "trash";
 export type SortMode = "default" | "updated" | "created";
 export type ThemeMode = "system" | "light" | "dark";
 export type DefaultNoteColor = "plain" | "random";
@@ -78,7 +78,7 @@ export const notes = signal<Note[]>([]);
 export const searchQuery = signal("");
 export const viewMode = signal<ViewMode>(prefs.viewMode);
 export const noteSize = signal<NoteSize>(prefs.noteSize);
-export const filter = signal<Filter>("active");
+export const activeView = signal<AppView>("active");
 export const activeTag = signal<string | null>(null);
 export const tagsShowArchived = signal(false);
 export const tagsShowTrashed = signal(false);
@@ -135,7 +135,7 @@ export const filteredNotes = computed(() => {
   let result = notes.value;
 
   // Filter by view
-  switch (filter.value) {
+  switch (activeView.value) {
     case "active":
       result = result.filter((n) => !n.archived && !n.trashed);
       break;

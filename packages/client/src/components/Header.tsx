@@ -10,7 +10,7 @@ import {
 } from "lucide-preact";
 import { useState } from "preact/hooks";
 import {
-  filter,
+  activeView,
   mobileSidebarOpen,
   noteSize,
   type SortMode,
@@ -47,9 +47,10 @@ export function Header() {
         </button>
 
         <h1 class="text-lg font-semibold whitespace-nowrap hidden sm:block lg:ml-2 select-none">
-          {filter.value === "active" && "Manifesto"}
-          {filter.value === "archived" && "Archive"}
-          {filter.value === "trash" && "Trash"}
+          {activeView.value === "active" && "Manifesto"}
+          {activeView.value === "tags" && "Tags"}
+          {activeView.value === "archived" && "Archive"}
+          {activeView.value === "trash" && "Trash"}
         </h1>
       </div>
 

@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-preact";
 import { Archive, Hash, StickyNote, Trash2 } from "lucide-preact";
 import {
+  type AppView,
   activeTag,
-  type Filter,
-  filter,
+  activeView,
   mobileSidebarOpen,
   tagsSelectedNotes,
   tagsSelectMode,
@@ -16,19 +16,19 @@ const COLLAPSED_W = 56;
 function NavItem({
   label,
   icon: Icon,
-  filterValue,
+  view,
   collapsed,
 }: {
   label: string;
   icon: LucideIcon;
-  filterValue: Filter;
+  view: AppView;
   collapsed?: boolean;
 }) {
-  const isActive = filter.value === filterValue;
+  const isActive = activeView.value === view;
 
   const handleClick = () => {
-    filter.value = filterValue;
-    if (filterValue !== "tags") {
+    activeView.value = view;
+    if (view !== "tags") {
       activeTag.value = null;
     }
     // Exit tag select mode when navigating away
@@ -96,20 +96,10 @@ export function Sidebar() {
       >
         {/* Collapsed icon buttons */}
         <nav class="flex flex-col items-center gap-1 pt-2">
-          <NavItem
-            label="Notes"
-            icon={StickyNote}
-            filterValue="active"
-            collapsed
-          />
-          <NavItem label="Tags" icon={Hash} filterValue="tags" collapsed />
-          <NavItem
-            label="Archive"
-            icon={Archive}
-            filterValue="archived"
-            collapsed
-          />
-          <NavItem label="Trash" icon={Trash2} filterValue="trash" collapsed />
+          <NavItem label="Notes" icon={StickyNote} view="active" collapsed />
+          <NavItem label="Tags" icon={Hash} view="tags" collapsed />
+          <NavItem label="Archive" icon={Archive} view="archived" collapsed />
+          <NavItem label="Trash" icon={Trash2} view="trash" collapsed />
         </nav>
       </div>
 
@@ -123,10 +113,10 @@ export function Sidebar() {
           <h2 class="text-lg font-semibold select-none">Manifesto</h2>
         </div>
         <div class="pt-2">
-          <NavItem label="Notes" icon={StickyNote} filterValue="active" />
-          <NavItem label="Tags" icon={Hash} filterValue="tags" />
-          <NavItem label="Archive" icon={Archive} filterValue="archived" />
-          <NavItem label="Trash" icon={Trash2} filterValue="trash" />
+          <NavItem label="Notes" icon={StickyNote} view="active" />
+          <NavItem label="Tags" icon={Hash} view="tags" />
+          <NavItem label="Archive" icon={Archive} view="archived" />
+          <NavItem label="Trash" icon={Trash2} view="trash" />
         </div>
       </nav>
     </>
