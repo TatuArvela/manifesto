@@ -179,11 +179,19 @@ export function NoteCard({
   selectable,
   selected,
   onToggleSelect,
+  draggable,
+  onDragStart,
+  onDragEnd,
+  dropSide,
 }: {
   note: Note;
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: DragEvent) => void;
+  onDragEnd?: (e: DragEvent) => void;
+  dropSide?: "before" | "after";
 }) {
   const isEditing = editingNoteId.value === note.id;
   const [showModal, setShowModal] = useState(false);
@@ -234,10 +242,15 @@ export function NoteCard({
           noteSize.value === "square" &&
             viewMode.value === "list" &&
             "w-full max-w-sm mx-auto",
+          draggable && "note-draggable",
         )}
         style={{
           aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
         }}
+        draggable={draggable}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        data-drop-side={dropSide}
         onClick={handleClick}
         onKeyDown={(e) => {
           if (e.key === "Enter") handleClick();
@@ -294,7 +307,13 @@ export function NoteCard({
           )}
         </div>
 
-        <div style={{ fontFamily: noteFontFamilies[note.font] || undefined }}>
+        <div
+          class={clsx(
+            noteSize.value === "square" &&
+              "flex-1 min-h-0 overflow-hidden note-content-fade",
+          )}
+          style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
+        >
           {note.title && (
             <h3 class="font-medium text-base leading-snug pr-6">
               {note.title}
@@ -306,20 +325,20 @@ export function NoteCard({
             (lineIndex) => toggleCheckbox(note.id, lineIndex),
             !!note.title,
           )}
-        </div>
 
-        {note.tags.length > 0 && (
-          <div class="mt-3 flex flex-wrap gap-1">
-            {note.tags.map((tag) => (
-              <span
-                key={tag}
-                class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-200/60 dark:bg-gray-700/60"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
+          {note.tags.length > 0 && (
+            <div class="mt-3 flex flex-wrap gap-1">
+              {note.tags.map((tag) => (
+                <span
+                  key={tag}
+                  class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-200/60 dark:bg-gray-700/60"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
 
         {!selectable && (
           <div

@@ -219,6 +219,15 @@ export const editingNote = computed(() =>
     : null,
 );
 
+/** Drag-and-drop reorder is only available in the Notes view, unfiltered, manual order, no modal open */
+export const canReorder = computed(
+  () =>
+    activeView.value === "active" &&
+    sortMode.value === "default" &&
+    !searchQuery.value &&
+    !editingNoteId.value,
+);
+
 // --- Helpers ---
 
 const noteColors = Object.values(NoteColor).filter(
@@ -323,6 +332,21 @@ export async function addTagToNotes(tag: string, noteIds: Set<string>) {
     if (note && !note.tags.includes(tag)) {
       await updateNote(id, { tags: [...note.tags, tag] });
     }
+  }
+}
+
+export async function reorderNotes(
+  noteIds: string[],
+  fromIndex: number,
+  toIndex: number,
+) {
+  if (fromIndex === toIndex) return;
+  const reordered = [...noteIds];
+  const [moved] = reordered.splice(fromIndex, 1);
+  reordered.splice(toIndex, 0, moved);
+  // Assign new positions based on array order
+  for (let i = 0; i < reordered.length; i++) {
+    await updateNote(reordered[i], { position: i });
   }
 }
 

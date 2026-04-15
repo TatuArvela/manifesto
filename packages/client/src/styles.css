@@ -150,6 +150,69 @@ body {
   box-shadow: none;
 }
 
+/* Fade-out for overflowing content in square notes */
+.note-content-fade {
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+}
+
+/* Drag-and-drop reorder */
+.note-dragging {
+  opacity: 0.3;
+}
+
+/* Drop indicators using pseudo-elements — no layout shift, no box-shadow conflict */
+.note-draggable[data-drop-side] {
+  position: relative;
+  overflow: visible !important;
+}
+
+.note-draggable[data-drop-side]::after {
+  content: "";
+  position: absolute;
+  background: #3b82f6;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Grid (gap-4 = 16px): vertical bars centered in the gap */
+.note-draggable[data-drop-side="before"]::after {
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 1.5px;
+}
+
+.note-draggable[data-drop-side="after"]::after {
+  right: -10px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 1.5px;
+}
+
+/* List view (gap-3 = 12px): horizontal bars centered in the gap */
+.flex-col > .note-draggable[data-drop-side="before"]::after {
+  left: 0;
+  right: 0;
+  top: -7.5px;
+  bottom: auto;
+  width: auto;
+  height: 3px;
+  border-radius: 1.5px;
+}
+
+.flex-col > .note-draggable[data-drop-side="after"]::after {
+  left: 0;
+  right: 0;
+  top: auto;
+  bottom: -7.5px;
+  width: auto;
+  height: 3px;
+  border-radius: 1.5px;
+}
+
 /* Prose heading styles for markdown content */
 .prose h1 {
   font-size: 1.5em;

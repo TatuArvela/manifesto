@@ -312,10 +312,13 @@ export function ChecklistEditor({
         return (
           <div
             key={idx}
-            class={`flex items-center gap-1 py-1.5 ${isDragOver ? "border-t-blue-400 border-t-2" : ""} ${isDragging ? "opacity-50" : ""}`}
+            class={`flex items-center gap-1 py-1.5 ${isDragging ? "opacity-50" : ""}`}
+            style={{
+              paddingLeft: `${Math.max(0, indentPx)}px`,
+              boxShadow: isDragOver ? "inset 0 2px 0 0 #60a5fa" : undefined,
+            }}
             onDragOver={(e) => handleDragOver(e, idx)}
             onDrop={(e) => handleDrop(e, idx)}
-            style={{ paddingLeft: `${Math.max(0, indentPx)}px` }}
           >
             <div
               class={`shrink-0 ${disabled || checkboxOnly ? "text-black/20 dark:text-white/20" : "text-black/40 dark:text-white/40 cursor-grab active:cursor-grabbing"}`}
@@ -353,7 +356,12 @@ export function ChecklistEditor({
       })}
       {/* Drop zone after the last item */}
       <div
-        class={`h-2 ${isAfterLastDragOver ? "border-b-blue-400 border-b-2" : ""}`}
+        class="h-2"
+        style={{
+          boxShadow: isAfterLastDragOver
+            ? "inset 0 -2px 0 0 #60a5fa"
+            : undefined,
+        }}
         onDragOver={(e) => handleDragOver(e, items.length)}
         onDrop={(e) => handleDrop(e, items.length)}
       />
