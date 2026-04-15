@@ -28,6 +28,7 @@ export function ToggleSwitch({
       style={{ width: `${totalW}px`, height: "32px" }}
       role="switch"
       aria-checked={checked}
+      tabIndex={0}
     >
       <span
         class="absolute top-0.5 rounded-full bg-white dark:bg-gray-300 shadow transition-all duration-200"
