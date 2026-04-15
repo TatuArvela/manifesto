@@ -75,6 +75,8 @@ function CardPopover({
 
   return createPortal(
     <>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
       <div class="fixed inset-0 z-40" onClick={onClose} />
       {pos && (
         <div
@@ -152,7 +154,9 @@ function renderContentPreview(
         // (trailing blank of previous segment or leading blank of this one)
         const prev = segIdx > 0 ? segments[segIdx - 1] : null;
         const gapAbove =
-          segIdx > 0 && (hasTrailingBlank(prev!) || hasLeadingBlank(seg));
+          segIdx > 0 &&
+          prev &&
+          (hasTrailingBlank(prev) || hasLeadingBlank(seg));
 
         if (seg.type === "checklist") {
           return (
@@ -327,6 +331,7 @@ export function NoteCard({
                   stroke-width="3"
                   stroke-linecap="round"
                   stroke-linejoin="round"
+                  aria-hidden="true"
                 >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
@@ -362,7 +367,8 @@ export function NoteCard({
             if (e.key === "Enter") handleClick();
           }}
         >
-          {/* Top-right corner */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: event stop container */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
           <div
             class={clsx(
               "absolute top-2 right-2 flex items-center gap-0.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200",
@@ -438,6 +444,8 @@ export function NoteCard({
             </div>
           )}
 
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: event stop container */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
           <div
             class={clsx(
               "mt-auto pt-3 -ml-1.5 flex items-center gap-1 transition-opacity",
@@ -666,6 +674,8 @@ export function NoteCard({
 
       {showModal && (
         <>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
           <div
             class={`fixed inset-0 bg-black/50 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
             onClick={closeModal}

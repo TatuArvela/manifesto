@@ -241,6 +241,7 @@ export function NoteGrid() {
       {pinned.length > 0 && (
         <section>
           <h2 class={headingClass}>Pinned</h2>
+          {/* biome-ignore lint/a11y/useSemanticElements: grid layout requires div */}
           <div
             ref={pinnedGridRef}
             role="list"
@@ -270,6 +271,7 @@ export function NoteGrid() {
 
       {unpinned.length > 0 && (
         <section>
+          {/* biome-ignore lint/a11y/useSemanticElements: grid layout requires div */}
           <div
             ref={unpinnedGridRef}
             role="list"

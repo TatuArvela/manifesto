@@ -80,6 +80,7 @@ export function Sidebar() {
     <>
       {/* Mobile overlay backdrop */}
       {isMobileOpen && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
         <div
           class="fixed inset-0 bg-black/50 z-20 lg:hidden"
           role="presentation"

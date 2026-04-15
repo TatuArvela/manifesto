@@ -147,7 +147,8 @@ export const filteredNotes = computed(() => {
         return true;
       });
       if (activeTag.value) {
-        result = result.filter((n) => n.tags.includes(activeTag.value!));
+        const tag = activeTag.value;
+        result = result.filter((n) => n.tags.includes(tag));
       }
       break;
     case "archived":

@@ -190,9 +190,16 @@ export function NoteInput() {
         </div>
       )}
       <div
-        class={isList ? (noteSize.value === "square" ? "max-w-sm mx-auto mb-12" : "mb-12") : "mx-auto mb-12"}
+        class={
+          isList
+            ? noteSize.value === "square"
+              ? "max-w-sm mx-auto mb-12"
+              : "mb-12"
+            : "mx-auto mb-12"
+        }
         style={!isList && colWidth ? { width: `${colWidth}px` } : undefined}
       >
+        {/* biome-ignore lint/a11y/useSemanticElements: styled card element */}
         <div
           class="note-stack cursor-pointer"
           onClick={() => !expanded && openModal()}
@@ -241,6 +248,7 @@ export function NoteInput() {
 
       {expanded && (
         <>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
           <div
             class={`fixed inset-0 bg-black/50 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
             role="presentation"

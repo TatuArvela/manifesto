@@ -82,6 +82,7 @@ export function SettingsDialog() {
   };
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       role="presentation"

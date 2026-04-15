@@ -298,6 +298,7 @@ export function ChecklistEditor({
     dragOverIndex === items.length && dragIndex !== items.length;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop container
     <div
       class="flex flex-col pt-2"
       ref={containerRef}
@@ -311,6 +312,7 @@ export function ChecklistEditor({
           : item.indent * (30 / INDENT_STEP);
 
         return (
+          // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target
           <div
             key={idx}
             class={`group/row flex items-center gap-1 py-1.5 ${isDragging ? "opacity-50" : ""}`}
@@ -321,6 +323,7 @@ export function ChecklistEditor({
             onDragOver={(e) => handleDragOver(e, idx)}
             onDrop={(e) => handleDrop(e, idx)}
           >
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: drag handle */}
             <div
               class={`shrink-0 ${disabled || checkboxOnly ? "text-black/20 dark:text-white/20" : "text-black/40 dark:text-white/40 cursor-grab active:cursor-grabbing"}`}
               draggable={!disabled && !checkboxOnly}
@@ -387,7 +390,7 @@ export function ChecklistEditor({
           </div>
         );
       })}
-      {/* Drop zone after the last item */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: drop zone after the last item */}
       <div
         class="h-2"
         style={{

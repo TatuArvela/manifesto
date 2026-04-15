@@ -100,6 +100,7 @@ function SelectionToolbar() {
           </Tooltip>
           {showTagPicker && (
             <>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
               <div
                 class="fixed inset-0 z-10"
                 role="presentation"
@@ -183,6 +184,7 @@ function SelectionToolbar() {
           </Tooltip>
           {showColorPicker && (
             <>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
               <div
                 class="fixed inset-0 z-10"
                 role="presentation"
@@ -294,6 +296,7 @@ export function Header() {
           </Tooltip>
           {showSortMenu && (
             <>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
               <div
                 class="fixed inset-0 z-10"
                 role="presentation"
@@ -337,6 +340,7 @@ export function Header() {
           </Tooltip>
           {showViewMenu && (
             <>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
               <div
                 class="fixed inset-0 z-10"
                 role="presentation"

@@ -225,6 +225,8 @@ export function NoteEditor({
           </Tooltip>
           {showColorPicker && (
             <>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
               <div
                 class="fixed inset-0 z-10"
                 onClick={() => setShowColorPicker(false)}
@@ -263,6 +265,8 @@ export function NoteEditor({
           </Tooltip>
           {showFontPicker && (
             <>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
               <div
                 class="fixed inset-0 z-10"
                 onClick={() => setShowFontPicker(false)}
@@ -316,6 +320,8 @@ export function NoteEditor({
           </Tooltip>
           {showMenu && (
             <>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
               <div
                 class="fixed inset-0 z-10"
                 onClick={() => {

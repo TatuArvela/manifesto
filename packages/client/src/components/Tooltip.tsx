@@ -28,6 +28,7 @@ export function Tooltip({
   };
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: tooltip wrapper needs span
     <span
       class="inline-flex items-center"
       role="group"
