@@ -6,7 +6,6 @@ A search bar in the header allows full-text search across all notes.
 
 - Input is debounced
 - Filters notes by substring match on `title` and `content` (case-insensitive)
-- Matching terms are highlighted in results using `<mark>` elements
 - Search applies to the current view (active notes, archive, or trash)
 
 ## Implementation

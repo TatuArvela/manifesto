@@ -5,8 +5,8 @@ The client builds to a static site that can be served by anything.
 ## Build
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm build
 # Produces dist/ with index.html + assets
 ```
 
@@ -28,7 +28,7 @@ The client's mode is set at build time via environment variables:
 
 ### Open Mode (Default)
 
-Local-first. All features available. The user can optionally connect to any compatible server via the settings UI.
+Local-first. All features available. If `MANIFESTO_SERVER` is set at build time, the client connects to that server.
 
 ### Managed Mode
 

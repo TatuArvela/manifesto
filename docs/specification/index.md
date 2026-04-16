@@ -26,7 +26,7 @@ The name references three things:
 ### Shared Contract
 
 - [Data Model](data-model.md) — Note schema, enums, identifiers
-- [API](api.md) — REST and WebSocket interface between client and server
+- [API](api.md) — REST interface (and planned WebSocket) between client and server
 
 ### Features
 
@@ -38,7 +38,9 @@ The name references three things:
 - [Archiving](features/archiving.md) — Keeping notes out of the main view
 - [Trash](features/trash.md) — Soft delete and auto-expiry
 - [Export/Import](features/export-import.md) — Data portability
-- [Collaborative Editing](features/collaborative-editing.md) — Live multi-user editing
+- [Sharing](features/sharing.md) — Share notes via URL
+- [Version History](features/version-history.md) — Browse and restore previous versions of notes
+- [Collaborative Editing](features/collaborative-editing.md) — Live multi-user editing (planned)
 
 ### Client
 

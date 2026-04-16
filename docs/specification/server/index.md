@@ -7,7 +7,7 @@ The Manifesto server is a separate, optional application that provides persisten
 | Technology      | Purpose                    |
 |-----------------|----------------------------|
 | Node.js         | Runtime                    |
-| Express or Hono | HTTP framework             |
+| Hono            | HTTP framework             |
 | better-sqlite3  | SQLite database            |
 | TypeScript      | Language (strict mode)     |
 
@@ -24,9 +24,9 @@ The Manifesto server is a separate, optional application that provides persisten
 
 Implements the endpoints defined in [API](../api.md). Handles CRUD for notes, search, and authentication.
 
-### WebSocket
+### WebSocket (Planned)
 
-Provides real-time updates for [Collaborative Editing](../features/collaborative-editing.md). Broadcasts note changes and presence events to connected clients.
+> **Not yet implemented.** Will provide real-time updates for [Collaborative Editing](../features/collaborative-editing.md), broadcasting note changes and presence events to connected clients.
 
 ### Authentication
 
@@ -39,7 +39,7 @@ Provides real-time updates for [Collaborative Editing](../features/collaborative
 
 - Each user has their own notes, isolated by user ID
 - Tags are per-user (each user has their own tag namespace)
-- Collaborative editing allows multiple users to edit the same note in real time
+- Collaborative editing is planned (see [Collaborative Editing](../features/collaborative-editing.md))
 
 ### Database
 

@@ -13,6 +13,8 @@ The Manifesto client is a static single-page application built with Preact and T
 | Tailwind CSS      | Styling                    | Purged     |
 | marked            | Markdown rendering (GFM)   | ~23 KB     |
 | ulid              | Note ID generation         | ~0.4 KB    |
+| lz-string         | Compression (sharing, versions) | ~4 KB  |
+| lucide-preact     | Icon library               | Tree-shaken|
 | Vitest            | Testing                    | —          |
 | vite-plugin-pwa   | PWA / service worker        | —          |
 
@@ -44,20 +46,26 @@ App
 │   ├── NavItem (Notes)
 │   ├── NavItem (Archive)
 │   ├── NavItem (Trash)
-│   └── TagList
+│   └── TagsView
 ├── NoteInput ("Take a note..." bar)
 ├── NoteGrid
 │   ├── PinnedSection
 │   │   └── NoteCard[]
 │   └── UnpinnedSection
 │       └── NoteCard[]
-├── NoteEditor (modal overlay)
-│   ├── MarkdownEditor
-│   ├── ColorPicker
-│   ├── TagPicker
-│   └── Toolbar (pin, archive, delete)
-└── SettingsDialog
-    └── StorageConfig
+├── NoteCardEditor (modal overlay)
+│   ├── NoteEditor
+│   │   ├── ContentPreview (rendered markdown)
+│   │   ├── Dropdown (color picker, font picker, kebab menu)
+│   │   └── TagPicker
+│   ├── VersionHistory
+│   └── Toolbar (pin, archive, delete, share)
+├── SharedNoteDialog (share link preview)
+├── SettingsDialog
+│   ├── Theme toggle
+│   ├── Default note color / font
+│   └── Import / Export / Delete All
+└── Toast
 ```
 
 ### State Management
@@ -77,12 +85,11 @@ Action functions (`createNote`, `updateNote`, `deleteNote`, etc.) call the stora
 The client interacts with data through a `StorageAdapter` interface (see [API](../api.md) and [Data Model](../data-model.md)).
 
 - **LocalStorageAdapter** — Default. Stores notes as JSON in `window.localStorage`. Zero configuration. Limited to ~5-10 MB and single device.
-- **RestApiAdapter** — Connects to a Manifesto server via the REST API. Configured via settings UI or `MANIFESTO_SERVER` env var.
+- **RestApiAdapter** — Connects to a Manifesto server via the REST API. Configured via `MANIFESTO_SERVER` env var.
 
 Adapter resolution at startup:
-1. If managed mode — use `RestApiAdapter` with the configured server
-2. If open mode with a saved server URL — use `RestApiAdapter`
-3. Otherwise — use `LocalStorageAdapter`
+1. If `MANIFESTO_SERVER` is set — use `RestApiAdapter` with that server
+2. Otherwise — use `LocalStorageAdapter`
 
 ## Theming
 

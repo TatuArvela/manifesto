@@ -12,6 +12,7 @@ A note is the fundamental entity in Manifesto.
 | `title`     | `string`         | Yes      | Note title (can be empty string)         |
 | `content`   | `string`         | Yes      | Markdown content (can be empty string)   |
 | `color`     | `NoteColor`      | Yes      | Color theme for the note                 |
+| `font`      | `NoteFont`       | Yes      | Font style for the note                  |
 
 | `pinned`    | `boolean`        | Yes      | Whether the note is pinned to the top    |
 | `archived`  | `boolean`        | Yes      | Whether the note is archived             |
@@ -49,6 +50,27 @@ default | red | orange | yellow | green | teal | blue | purple | pink | brown | 
 
 The `default` color means no specific color — the note uses the base card background.
 
+## NoteFont
+
+An enum of font styles available for notes.
+
+```
+default | permanent-marker | comic-relief
+```
+
+The `default` font uses the base application font. `permanent-marker` and `comic-relief` are decorative web fonts loaded on demand.
+
+## NoteVersion
+
+A snapshot of a note's title and content at a point in time, used for [Version History](features/version-history.md).
+
+| Field       | Type     | Required | Description                              |
+|-------------|----------|----------|------------------------------------------|
+| `noteId`    | `string` | Yes      | ULID of the note this version belongs to |
+| `timestamp` | `string` | Yes      | ISO 8601 timestamp when the version was captured |
+| `title`     | `string` | Yes      | Note title at this point in time         |
+| `content`   | `string` | Yes      | Note content at this point in time       |
+
 ## Example
 
 ```json
@@ -57,6 +79,7 @@ The `default` color means no specific color — the note uses the base card back
   "title": "Shopping list",
   "content": "## Groceries\n- [x] Milk\n- [ ] Eggs\n- [ ] Bread\n\nDon't forget **coupons**!",
   "color": "yellow",
+  "font": "default",
   "position": 1024,
   "pinned": true,
   "archived": false,

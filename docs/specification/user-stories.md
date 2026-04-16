@@ -15,10 +15,8 @@ As a user, I want to open Manifesto in my browser and start taking notes immedia
 
 As a user, I want to move my data in and out of Manifesto freely.
 
-- I can export a single note as a JSON file
-- I can export all my notes as a single JSON file
-- I can import a single note from a JSON file
-- I can import a full dataset from a JSON file, choosing to merge with or replace existing notes
+- I can export all my notes as a single JSON file from the Settings dialog
+- I can import notes from a JSON file, merging them into my existing notes
 - Exported files are human-readable and follow a documented format
 
 ## PWA
@@ -40,7 +38,30 @@ As a user, I want to use notes as interactive checklists for things like shoppin
 - Toggling a checkbox updates the note content in real time
 - Checklists and freeform markdown coexist in the same note
 
-## Connecting to a Server (Open Mode)
+## Sharing
+
+As a user, I want to share a note with someone without requiring them to have an account.
+
+- I can generate a share link from any note via the kebab menu
+- The link encodes the note data in the URL hash fragment (no server required)
+- The recipient sees a read-only preview of the shared note
+- The recipient can save the note to their own storage or discard it
+- Sharing works with any static host (e.g., GitHub Pages)
+
+## Version History
+
+As a user, I want to review and restore previous versions of my notes.
+
+- When I edit a note, the previous version is automatically saved
+- I can browse the version history from the note editor's kebab menu
+- Each version shows the timestamp when it was captured
+- I can restore a previous version, replacing the current content
+- Versions are stored locally and capped at 50 per note
+- Versions older than 90 days are automatically pruned
+
+## Connecting to a Server (Open Mode) — Planned
+
+> **Not yet implemented.**
 
 As a user, I want to optionally connect my client to a server for persistent storage and multi-device access.
 
@@ -50,7 +71,9 @@ As a user, I want to optionally connect my client to a server for persistent sto
 - I can disconnect and return to local-only mode at any time
 - I can connect to any server that implements the Manifesto API
 
-## Live Collaborative Editing (Server Mode)
+## Live Collaborative Editing (Server Mode) — Planned
+
+> **Not yet implemented.**
 
 As a user connected to a server, I want to edit notes simultaneously with other users in real time.
 
@@ -61,7 +84,9 @@ As a user connected to a server, I want to edit notes simultaneously with other 
 - Checkbox toggles from other users appear in real time
 - The experience degrades gracefully on poor connections (changes queue and sync when reconnected)
 
-## Managed Deployment
+## Managed Deployment — Planned
+
+> **Not yet implemented.**
 
 As an organization administrator, I want to deploy Manifesto as a managed service for my team.
 

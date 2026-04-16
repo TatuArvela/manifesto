@@ -40,9 +40,11 @@ All `/api/notes` and `/api/search` endpoints require authentication. Requests in
 - Single note endpoints return `{ "note": Note }`
 - Errors return `{ "error": string }`
 
-## WebSocket API
+## WebSocket API (Planned)
 
-Used for [Collaborative Editing](features/collaborative-editing.md). The client connects to the server via WebSocket for real-time updates.
+> **Not yet implemented.** This section describes the planned WebSocket API for [Collaborative Editing](features/collaborative-editing.md).
+
+The client will connect to the server via WebSocket for real-time updates.
 
 ### Connection
 

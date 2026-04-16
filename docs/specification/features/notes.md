@@ -6,7 +6,7 @@ Notes are the core entity in Manifesto. A note is a card with a title, markdown 
 
 A persistent "Take a note..." input bar sits at the top of the note grid. On focus, it expands to reveal separate title and content fields. Pressing away or clicking a close button creates the note if either field has content.
 
-New notes default to: color `default`, not pinned, not archived, not trashed, no tags.
+New notes default to: color `default` (or random, per user preference), font `default` (or user's chosen default), not pinned, not archived, not trashed, no tags.
 
 ## Editing a Note
 
@@ -16,8 +16,10 @@ Clicking a NoteCard opens the NoteEditor as a modal overlay. The editor provides
 - Content field (plain textarea for editing markdown)
 - Preview toggle to see rendered markdown
 - Color picker
+- Font picker (Default, Permanent Marker, Comic Relief)
 - Tag picker
-- Toolbar with pin, archive, and delete actions
+- Kebab menu with version history, sharing, and delete
+- Toolbar with pin, archive, and undo/redo actions
 
 Changes are saved on close (or debounced while editing).
 
