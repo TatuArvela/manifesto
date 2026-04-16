@@ -6,6 +6,7 @@ import { NoteInput } from "./NoteInput.js";
 import { SettingsDialog } from "./SettingsDialog.js";
 import { Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
+import { Toasts } from "./Toast.js";
 
 export function App() {
   useEffect(() => {
@@ -43,6 +44,7 @@ export function App() {
         </main>
       </div>
       <SettingsDialog />
+      <Toasts />
     </div>
   );
 }

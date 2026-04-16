@@ -20,7 +20,6 @@ import logoUrl from "../assets/logo.svg";
 import { colorPickerColors } from "../colors.js";
 import {
   activeView,
-  allTags,
   bulkAddTag,
   bulkArchive,
   bulkPin,
@@ -37,6 +36,8 @@ import {
   sortMode,
   viewMode,
 } from "../state/index.js";
+import { Dropdown } from "./Dropdown.js";
+import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 const sortOptions: { value: SortMode; label: string }[] = [
@@ -51,7 +52,6 @@ function SelectionToolbar() {
   const count = selectedNotes.value.size;
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
-  const [newTag, setNewTag] = useState("");
 
   return (
     <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
@@ -84,77 +84,34 @@ function SelectionToolbar() {
         </Tooltip>
 
         {/* Tag picker */}
-        <div class="relative">
-          <Tooltip label="Add tag">
-            <button
-              type="button"
-              class={selToolbarBtnClass}
-              onClick={() => {
-                setShowTagPicker(!showTagPicker);
-                setShowColorPicker(false);
-              }}
-              aria-label="Tag selected"
-            >
-              <Tag class="w-5 h-5" />
-            </button>
-          </Tooltip>
-          {showTagPicker && (
-            <>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-              <div
-                class="fixed inset-0 z-10"
-                role="presentation"
+        <Dropdown
+          open={showTagPicker}
+          onClose={() => setShowTagPicker(false)}
+          trigger={
+            <Tooltip label="Add tag">
+              <button
+                type="button"
+                class={selToolbarBtnClass}
                 onClick={() => {
-                  setShowTagPicker(false);
-                  setNewTag("");
+                  setShowTagPicker(!showTagPicker);
+                  setShowColorPicker(false);
                 }}
-                onKeyDown={() => {}}
-              />
-              <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[180px] text-gray-900 dark:text-gray-100">
-                <div class="px-3 py-2">
-                  <input
-                    type="text"
-                    class="w-full px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none"
-                    placeholder="Add tag..."
-                    value={newTag}
-                    onInput={(e) =>
-                      setNewTag((e.target as HTMLInputElement).value)
-                    }
-                    onKeyDown={(e) => {
-                      e.stopPropagation();
-                      if (e.key === "Enter") {
-                        const trimmed = newTag.trim().toLowerCase();
-                        if (trimmed) {
-                          bulkAddTag(trimmed);
-                          setShowTagPicker(false);
-                          setNewTag("");
-                        }
-                      }
-                      if (e.key === "Escape") {
-                        setShowTagPicker(false);
-                        setNewTag("");
-                      }
-                    }}
-                  />
-                </div>
-                {allTags.value.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={() => {
-                      bulkAddTag(tag);
-                      setShowTagPicker(false);
-                      setNewTag("");
-                    }}
-                  >
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+                aria-label="Tag selected"
+              >
+                <Tag class="w-5 h-5" />
+              </button>
+            </Tooltip>
+          }
+          panelClass="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[180px] text-gray-900 dark:text-gray-100"
+        >
+          <TagPicker
+            tags={[]}
+            onAddTag={(tag) => {
+              bulkAddTag(tag);
+              setShowTagPicker(false);
+            }}
+          />
+        </Dropdown>
 
         <Tooltip label="Archive">
           <button
@@ -168,47 +125,40 @@ function SelectionToolbar() {
         </Tooltip>
 
         {/* Color picker */}
-        <div class="relative">
-          <Tooltip label="Color">
-            <button
-              type="button"
-              class={selToolbarBtnClass}
-              onClick={() => {
-                setShowColorPicker(!showColorPicker);
-                setShowTagPicker(false);
-              }}
-              aria-label="Change color"
-            >
-              <Palette class="w-5 h-5" />
-            </button>
-          </Tooltip>
-          {showColorPicker && (
-            <>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-              <div
-                class="fixed inset-0 z-10"
-                role="presentation"
-                onClick={() => setShowColorPicker(false)}
-                onKeyDown={() => {}}
+        <Dropdown
+          open={showColorPicker}
+          onClose={() => setShowColorPicker(false)}
+          trigger={
+            <Tooltip label="Color">
+              <button
+                type="button"
+                class={selToolbarBtnClass}
+                onClick={() => {
+                  setShowColorPicker(!showColorPicker);
+                  setShowTagPicker(false);
+                }}
+                aria-label="Change color"
+              >
+                <Palette class="w-5 h-5" />
+              </button>
+            </Tooltip>
+          }
+          panelClass="absolute right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
+        >
+          {colorPickerColors.map((c) => (
+            <Tooltip key={c.value} label={c.label}>
+              <button
+                type="button"
+                class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch}`}
+                onClick={() => {
+                  bulkSetColor(c.value as NoteColor);
+                  setShowColorPicker(false);
+                }}
+                aria-label={c.label}
               />
-              <div class="absolute right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
-                {colorPickerColors.map((c) => (
-                  <Tooltip key={c.value} label={c.label}>
-                    <button
-                      type="button"
-                      class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch}`}
-                      onClick={() => {
-                        bulkSetColor(c.value as NoteColor);
-                        setShowColorPicker(false);
-                      }}
-                      aria-label={c.label}
-                    />
-                  </Tooltip>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+            </Tooltip>
+          ))}
+        </Dropdown>
 
         <Tooltip label="Delete">
           <button
@@ -283,132 +233,118 @@ export function Header() {
       {/* Right: controls */}
       <div class="flex items-center gap-0.5 shrink-0 z-10">
         {/* Sort button with dropdown */}
-        <div class="relative flex">
-          <Tooltip label="Sort">
+        <Dropdown
+          open={showSortMenu}
+          onClose={() => setShowSortMenu(false)}
+          trigger={
+            <Tooltip label="Sort">
+              <button
+                type="button"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                aria-label="Sort notes"
+              >
+                <ArrowDownUp class="w-5 h-5" />
+              </button>
+            </Tooltip>
+          }
+          panelClass="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[140px]"
+        >
+          {sortOptions.map((opt) => (
             <button
+              key={opt.value}
               type="button"
-              class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={() => setShowSortMenu(!showSortMenu)}
-              aria-label="Sort notes"
+              class={`block w-full text-left px-4 py-2 text-sm ${
+                sortMode.value === opt.value
+                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+              onClick={() => {
+                sortMode.value = opt.value;
+                setShowSortMenu(false);
+              }}
             >
-              <ArrowDownUp class="w-5 h-5" />
+              {opt.label}
             </button>
-          </Tooltip>
-          {showSortMenu && (
-            <>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-              <div
-                class="fixed inset-0 z-10"
-                role="presentation"
-                onClick={() => setShowSortMenu(false)}
-                onKeyDown={() => {}}
-              />
-              <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[140px]">
-                {sortOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    class={`block w-full text-left px-4 py-2 text-sm ${
-                      sortMode.value === opt.value
-                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`}
-                    onClick={() => {
-                      sortMode.value = opt.value;
-                      setShowSortMenu(false);
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+          ))}
+        </Dropdown>
 
         {/* View menu with dropdown */}
-        <div class="relative flex">
-          <Tooltip label="View">
-            <button
-              type="button"
-              class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={() => setShowViewMenu(!showViewMenu)}
-              aria-label="View options"
-            >
-              <LayoutDashboard class="w-5 h-5" />
-            </button>
-          </Tooltip>
-          {showViewMenu && (
-            <>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-              <div
-                class="fixed inset-0 z-10"
-                role="presentation"
-                onClick={() => setShowViewMenu(false)}
-                onKeyDown={() => {}}
-              />
-              <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[160px]">
-                <button
-                  type="button"
-                  class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
-                    viewMode.value === "grid"
-                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
-                  onClick={() => {
-                    viewMode.value = "grid";
-                  }}
-                >
-                  <LayoutDashboard class="w-4 h-4" />
-                  Grid view
-                </button>
-                <button
-                  type="button"
-                  class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
-                    viewMode.value === "list"
-                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
-                  onClick={() => {
-                    viewMode.value = "list";
-                  }}
-                >
-                  <StretchHorizontal class="w-4 h-4" />
-                  List view
-                </button>
-                <div class="border-t border-gray-200 dark:border-gray-700 my-1" />
-                <button
-                  type="button"
-                  class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
-                    noteSize.value === "square"
-                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
-                  onClick={() => {
-                    noteSize.value = "square";
-                  }}
-                >
-                  <Square class="w-4 h-4" />
-                  Square notes
-                </button>
-                <button
-                  type="button"
-                  class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
-                    noteSize.value === "fit"
-                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
-                  onClick={() => {
-                    noteSize.value = "fit";
-                  }}
-                >
-                  <RectangleHorizontal class="w-4 h-4" />
-                  Fit notes
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <Dropdown
+          open={showViewMenu}
+          onClose={() => setShowViewMenu(false)}
+          trigger={
+            <Tooltip label="View">
+              <button
+                type="button"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                onClick={() => setShowViewMenu(!showViewMenu)}
+                aria-label="View options"
+              >
+                <LayoutDashboard class="w-5 h-5" />
+              </button>
+            </Tooltip>
+          }
+          panelClass="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[160px]"
+        >
+          <button
+            type="button"
+            class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
+              viewMode.value === "grid"
+                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+            }`}
+            onClick={() => {
+              viewMode.value = "grid";
+            }}
+          >
+            <LayoutDashboard class="w-4 h-4" />
+            Grid view
+          </button>
+          <button
+            type="button"
+            class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
+              viewMode.value === "list"
+                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+            }`}
+            onClick={() => {
+              viewMode.value = "list";
+            }}
+          >
+            <StretchHorizontal class="w-4 h-4" />
+            List view
+          </button>
+          <div class="border-t border-gray-200 dark:border-gray-700 my-1" />
+          <button
+            type="button"
+            class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
+              noteSize.value === "square"
+                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+            }`}
+            onClick={() => {
+              noteSize.value = "square";
+            }}
+          >
+            <Square class="w-4 h-4" />
+            Square notes
+          </button>
+          <button
+            type="button"
+            class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
+              noteSize.value === "fit"
+                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+            }`}
+            onClick={() => {
+              noteSize.value = "fit";
+            }}
+          >
+            <RectangleHorizontal class="w-4 h-4" />
+            Fit notes
+          </button>
+        </Dropdown>
 
         <Tooltip label="Settings">
           <button

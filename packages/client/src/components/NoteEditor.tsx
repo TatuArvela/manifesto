@@ -20,12 +20,17 @@ import {
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { colorPickerColors, noteColorMap } from "../colors.js";
-import { allTags, noteFontFamilies } from "../state/index.js";
+import {
+  colorPickerColors,
+  noteColorMap,
+  noteFontFamilies,
+} from "../colors.js";
+import { Dropdown } from "./Dropdown.js";
 import {
   SegmentedContentEditor,
   type SegmentedContentEditorHandle,
 } from "./SegmentedContentEditor.js";
+import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 const iconBtnClass =
@@ -96,7 +101,6 @@ export function NoteEditor({
   const [showFontPicker, setShowFontPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
-  const [newTag, setNewTag] = useState("");
   const [rawMode, setRawMode] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -127,7 +131,13 @@ export function NoteEditor({
     if (trimmed) {
       onAddTag(trimmed);
     }
-    setNewTag("");
+  };
+
+  const closeAllMenus = () => {
+    setShowColorPicker(false);
+    setShowFontPicker(false);
+    setShowMenu(false);
+    setShowTagPicker(false);
   };
 
   return (
@@ -209,226 +219,182 @@ export function NoteEditor({
       {/* Toolbar */}
       <div class="px-3 pt-1.5 pb-2 flex items-center gap-0.5">
         {/* Color picker */}
-        <div class="relative flex">
-          <Tooltip label="Color">
-            <button
-              type="button"
-              class={iconBtnClass}
-              onClick={() => {
-                setShowColorPicker(!showColorPicker);
-                setShowMenu(false);
-              }}
-              aria-label="Change color"
-            >
-              <Palette class="w-4 h-4" />
-            </button>
-          </Tooltip>
-          {showColorPicker && (
-            <>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-              {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-              <div
-                class="fixed inset-0 z-10"
-                onClick={() => setShowColorPicker(false)}
+        <Dropdown
+          open={showColorPicker}
+          onClose={() => setShowColorPicker(false)}
+          trigger={
+            <Tooltip label="Color">
+              <button
+                type="button"
+                class={iconBtnClass}
+                onClick={() => {
+                  setShowColorPicker(!showColorPicker);
+                  setShowMenu(false);
+                  setShowFontPicker(false);
+                }}
+                aria-label="Change color"
+              >
+                <Palette class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          }
+          panelClass="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
+        >
+          {colorPickerColors.map((c) => (
+            <Tooltip key={c.value} label={c.label}>
+              <button
+                type="button"
+                class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                onClick={() => onColorChange(c.value)}
+                aria-label={c.label}
               />
-              <div class="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
-                {colorPickerColors.map((c) => (
-                  <Tooltip key={c.value} label={c.label}>
-                    <button
-                      type="button"
-                      class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                      onClick={() => onColorChange(c.value)}
-                      aria-label={c.label}
-                    />
-                  </Tooltip>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+            </Tooltip>
+          ))}
+        </Dropdown>
 
         {/* Font picker */}
-        <div class="relative flex">
-          <Tooltip label="Font">
-            <button
-              type="button"
-              class={iconBtnClass}
-              onClick={() => {
-                setShowFontPicker(!showFontPicker);
-                setShowColorPicker(false);
-                setShowMenu(false);
-              }}
-              aria-label="Change font"
+        <Dropdown
+          open={showFontPicker}
+          onClose={() => setShowFontPicker(false)}
+          trigger={
+            <Tooltip label="Font">
+              <button
+                type="button"
+                class={iconBtnClass}
+                onClick={() => {
+                  setShowFontPicker(!showFontPicker);
+                  setShowColorPicker(false);
+                  setShowMenu(false);
+                }}
+                aria-label="Change font"
+              >
+                <PenLine class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          }
+          panelClass="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
+        >
+          {Object.values(NoteFont).map((f) => (
+            <Tooltip
+              key={f}
+              label={
+                f === NoteFont.Default
+                  ? "Default"
+                  : f === NoteFont.PermanentMarker
+                    ? "Permanent Marker"
+                    : "Comic Relief"
+              }
             >
-              <PenLine class="w-4 h-4" />
-            </button>
-          </Tooltip>
-          {showFontPicker && (
-            <>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-              {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-              <div
-                class="fixed inset-0 z-10"
-                onClick={() => setShowFontPicker(false)}
-              />
-              <div class="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20">
-                {Object.values(NoteFont).map((f) => (
-                  <Tooltip
-                    key={f}
-                    label={
-                      f === NoteFont.Default
-                        ? "Default"
-                        : f === NoteFont.PermanentMarker
-                          ? "Permanent Marker"
-                          : "Comic Relief"
-                    }
-                  >
-                    <button
-                      type="button"
-                      class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                      style={{
-                        fontFamily: noteFontFamilies[f] || undefined,
-                      }}
-                      onClick={() => onFontChange(f)}
-                      aria-label={f}
-                    >
-                      Aa
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+              <button
+                type="button"
+                class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+                style={{
+                  fontFamily: noteFontFamilies[f] || undefined,
+                }}
+                onClick={() => onFontChange(f)}
+                aria-label={f}
+              >
+                Aa
+              </button>
+            </Tooltip>
+          ))}
+        </Dropdown>
 
         {/* Kebab menu */}
-        <div class="relative flex">
-          <Tooltip label="More">
-            <button
-              type="button"
-              class={iconBtnClass}
-              onClick={() => {
-                setShowMenu(!showMenu);
-                setShowColorPicker(false);
-                setShowFontPicker(false);
-                setShowTagPicker(false);
-              }}
-              aria-label="More options"
-            >
-              <EllipsisVertical class="w-4 h-4" />
-            </button>
-          </Tooltip>
-          {showMenu && (
-            <>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-              {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-              <div
-                class="fixed inset-0 z-10"
+        <Dropdown
+          open={showMenu}
+          onClose={() => {
+            setShowMenu(false);
+            setShowTagPicker(false);
+          }}
+          trigger={
+            <Tooltip label="More">
+              <button
+                type="button"
+                class={iconBtnClass}
                 onClick={() => {
-                  setShowMenu(false);
+                  setShowMenu(!showMenu);
+                  setShowColorPicker(false);
+                  setShowFontPicker(false);
                   setShowTagPicker(false);
                 }}
-              />
-              <div class="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 z-20 py-1">
-                {/* Tags */}
-                <div class="relative">
-                  <button
-                    type="button"
-                    class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={() => setShowTagPicker(!showTagPicker)}
-                  >
-                    <Tag class="w-4 h-4" />
-                    Tags
-                  </button>
-                  {showTagPicker && (
-                    <div class="px-3 pb-2">
-                      <input
-                        type="text"
-                        class="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none mb-1"
-                        placeholder="Add tag..."
-                        value={newTag}
-                        onInput={(e) =>
-                          setNewTag((e.target as HTMLInputElement).value)
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleAddTag(newTag);
-                        }}
-                      />
-                      {allTags.value
-                        .filter((t) => !tags.includes(t))
-                        .map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                            onClick={() => handleAddTag(tag)}
-                          >
-                            #{tag}
-                          </button>
-                        ))}
-                    </div>
-                  )}
-                </div>
+                aria-label="More options"
+              >
+                <EllipsisVertical class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          }
+          panelClass="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 z-20 py-1"
+        >
+          {/* Tags */}
+          <div class="relative">
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => setShowTagPicker(!showTagPicker)}
+            >
+              <Tag class="w-4 h-4" />
+              Tags
+            </button>
+            {showTagPicker && <TagPicker tags={tags} onAddTag={handleAddTag} />}
+          </div>
 
-                {/* Duplicate */}
-                {onDuplicate && (
-                  <button
-                    type="button"
-                    class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={() => {
-                      onDuplicate();
-                      setShowMenu(false);
-                    }}
-                  >
-                    <Copy class="w-4 h-4" />
-                    Duplicate
-                  </button>
-                )}
+          {/* Duplicate */}
+          {onDuplicate && (
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                onDuplicate();
+                closeAllMenus();
+              }}
+            >
+              <Copy class="w-4 h-4" />
+              Duplicate
+            </button>
+          )}
 
-                {/* Archive */}
-                {onArchive && (
-                  <button
-                    type="button"
-                    class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={() => {
-                      onArchive();
-                      setShowMenu(false);
-                    }}
-                  >
-                    {archived ? (
-                      <ArchiveRestore class="w-4 h-4" />
-                    ) : (
-                      <Archive class="w-4 h-4" />
-                    )}
-                    {archived ? "Unarchive" : "Archive"}
-                  </button>
-                )}
+          {/* Archive */}
+          {onArchive && (
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                onArchive();
+                closeAllMenus();
+              }}
+            >
+              {archived ? (
+                <ArchiveRestore class="w-4 h-4" />
+              ) : (
+                <Archive class="w-4 h-4" />
+              )}
+              {archived ? "Unarchive" : "Archive"}
+            </button>
+          )}
 
-                {/* Delete / Undelete (edit mode only — not shown when deleteLabel is set) */}
-                {onDelete && !deleteLabel && (
-                  <>
-                    <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
-                    <button
-                      type="button"
-                      class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                      onClick={() => {
-                        onDelete();
-                        setShowMenu(false);
-                      }}
-                    >
-                      {trashed ? (
-                        <Undo2 class="w-4 h-4" />
-                      ) : (
-                        <Trash2 class="w-4 h-4" />
-                      )}
-                      {trashed ? "Undelete" : "Delete"}
-                    </button>
-                  </>
+          {/* Delete / Undelete (edit mode only — not shown when deleteLabel is set) */}
+          {onDelete && !deleteLabel && (
+            <>
+              <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+              <button
+                type="button"
+                class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                onClick={() => {
+                  onDelete();
+                  closeAllMenus();
+                }}
+              >
+                {trashed ? (
+                  <Undo2 class="w-4 h-4" />
+                ) : (
+                  <Trash2 class="w-4 h-4" />
                 )}
-              </div>
+                {trashed ? "Undelete" : "Delete"}
+              </button>
             </>
           )}
-        </div>
+        </Dropdown>
 
         {/* Normal / Raw mode toggle */}
         <Tooltip label={rawMode ? "Normal mode" : "Raw mode"}>

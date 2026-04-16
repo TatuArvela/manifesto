@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { noteFontFamilies } from "../colors.js";
 import {
   type DefaultNoteFont,
   defaultNoteColor,
@@ -19,7 +20,6 @@ import {
   deleteAllNotes,
   exportNotes,
   importNotes,
-  noteFontFamilies,
   showSettings,
   type ThemeMode,
   theme,
@@ -89,9 +89,24 @@ export function SettingsDialog() {
     if (!file) return;
     try {
       const text = await file.text();
-      const data: Note[] = JSON.parse(text);
+      const data = JSON.parse(text);
       if (!Array.isArray(data)) throw new Error("Invalid format");
-      await importNotes(data);
+      // Validate each note has the required fields and correct types
+      for (const item of data) {
+        if (
+          typeof item !== "object" ||
+          item === null ||
+          typeof item.id !== "string" ||
+          typeof item.title !== "string" ||
+          typeof item.content !== "string" ||
+          typeof item.createdAt !== "string" ||
+          typeof item.updatedAt !== "string" ||
+          !Array.isArray(item.tags)
+        ) {
+          throw new Error("Invalid note schema");
+        }
+      }
+      await importNotes(data as Note[]);
       setDataStatus(
         `Imported ${data.length} note${data.length === 1 ? "" : "s"}`,
       );

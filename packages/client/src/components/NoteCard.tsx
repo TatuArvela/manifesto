@@ -1,6 +1,5 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import clsx from "clsx";
-import DOMPurify from "dompurify";
 import {
   Archive,
   ArchiveRestore,
@@ -14,22 +13,20 @@ import {
   Undo2,
   X,
 } from "lucide-preact";
-import { Marked } from "marked";
-import type { ComponentChildren } from "preact";
-import { createPortal } from "preact/compat";
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { colorPickerColors, noteColorMap } from "../colors.js";
-import { useUndoRedo } from "../hooks/useUndoRedo.js";
+import { useEffect, useRef, useState } from "preact/hooks";
+import {
+  colorPickerColors,
+  noteColorMap,
+  noteFontFamilies,
+} from "../colors.js";
 import {
   activeView,
-  allTags,
   archiveNote,
   createNote,
-  deleteNote,
   editingNoteId,
   enterSelectMode,
-  noteFontFamilies,
   noteSize,
+  permanentlyDeleteNote,
   restoreNote,
   selectedNotes,
   selectMode,
@@ -41,192 +38,232 @@ import {
   updateNote,
   viewMode,
 } from "../state/index.js";
-import { iconBtnClass, NoteEditor } from "./NoteEditor.js";
+import { ContentPreview } from "./ContentPreview.js";
+import { NoteCardEditor } from "./NoteCardEditor.js";
+import { iconBtnClass } from "./NoteEditor.js";
+import { CardPopover } from "./Popover.js";
+import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
-/** Renders children in a fixed-position portal above the anchor button. */
-function CardPopover({
+// --- Sub-components ---
+
+function CardColorPicker({
+  note,
   anchorRef,
   onClose,
-  children,
 }: {
-  anchorRef: preact.RefObject<HTMLElement | null>;
+  note: Note;
+  anchorRef: preact.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
-  children: ComponentChildren;
 }) {
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-
-  useLayoutEffect(() => {
-    const anchor = anchorRef.current;
-    if (!anchor) return;
-    const rect = anchor.getBoundingClientRect();
-    setPos({ top: rect.top, left: rect.left });
-  }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  return createPortal(
-    <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div class="fixed inset-0 z-40" onClick={onClose} />
-      {pos && (
-        <div
-          ref={popoverRef}
-          class="fixed z-50"
-          style={{
-            top: `${pos.top}px`,
-            left: `${pos.left}px`,
-            transform: "translateY(-100%) translateY(-4px)",
-          }}
-        >
-          {children}
-        </div>
-      )}
-    </>,
-    document.body,
+  return (
+    <CardPopover anchorRef={anchorRef} onClose={onClose}>
+      <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1">
+        {colorPickerColors.map((c) => (
+          <Tooltip key={c.value} label={c.label}>
+            <button
+              type="button"
+              class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${note.color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                updateNote(note.id, { color: c.value as NoteColor });
+                onClose();
+              }}
+              aria-label={c.label}
+            />
+          </Tooltip>
+        ))}
+      </div>
+    </CardPopover>
   );
 }
 
-const marked = new Marked();
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-/**
- * Groups consecutive lines into segments: either a block of checklist items
- * or a block of regular lines (rendered as markdown).
- */
-function renderContentPreview(
-  note: Note,
-  onCheckboxToggle: (lineIndex: number) => void,
-  hasTitle: boolean,
-) {
-  if (!note.content) return null;
-
-  const lines = note.content.split("\n");
-  // Group lines into segments: { type: "checklist" | "text", startIndex, lines }
-  const segments: {
-    type: "checklist" | "text";
-    startIndex: number;
-    lines: string[];
-  }[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const isCheckbox = /^\s*(?:- )?\[[x ]\] /i.test(lines[i]);
-    const type = isCheckbox ? "checklist" : "text";
-    const last = segments[segments.length - 1];
-    if (last && last.type === type) {
-      last.lines.push(lines[i]);
-    } else {
-      segments.push({ type, startIndex: i, lines: [lines[i]] });
-    }
-  }
-
-  // Count leading/trailing empty lines per segment for spacing
-  const hasLeadingBlank = (seg: (typeof segments)[number]) =>
-    seg.lines.length > 0 && seg.lines[0].trim() === "";
-  const hasTrailingBlank = (seg: (typeof segments)[number]) =>
-    seg.lines.length > 0 && seg.lines[seg.lines.length - 1].trim() === "";
+function CardMenu({
+  note,
+  anchorRef,
+  onClose,
+}: {
+  note: Note;
+  anchorRef: preact.RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+}) {
+  const [showTagPicker, setShowTagPicker] = useState(false);
 
   return (
-    <div
-      class={`${hasTitle ? "mt-2" : ""} text-sm text-gray-600 dark:text-gray-300 line-clamp-12`}
+    <CardPopover
+      anchorRef={anchorRef}
+      onClose={() => {
+        setShowTagPicker(false);
+        onClose();
+      }}
     >
-      {segments.map((seg, segIdx) => {
-        // Add top margin if this segment had a blank line before it
-        // (trailing blank of previous segment or leading blank of this one)
-        const prev = segIdx > 0 ? segments[segIdx - 1] : null;
-        const gapAbove =
-          segIdx > 0 &&
-          prev &&
-          (hasTrailingBlank(prev) || hasLeadingBlank(seg));
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 py-1">
+        {/* Tags */}
+        <div class="relative">
+          <button
+            type="button"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            onClick={() => setShowTagPicker(!showTagPicker)}
+          >
+            <Tag class="w-4 h-4" />
+            Tags
+          </button>
+          {showTagPicker && (
+            <TagPicker
+              tags={note.tags}
+              onAddTag={(tag) => {
+                if (!note.tags.includes(tag)) {
+                  updateNote(note.id, {
+                    tags: [...note.tags, tag],
+                  });
+                }
+              }}
+            />
+          )}
+        </div>
 
-        if (seg.type === "checklist") {
-          return (
-            <div
-              key={seg.startIndex}
-              class={`flex flex-col items-start space-y-1.5 ${gapAbove ? "mt-3" : segIdx > 0 ? "mt-1" : ""}`}
+        {/* Duplicate */}
+        <button
+          type="button"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          onClick={() => {
+            createNote({
+              title: note.title,
+              content: note.content,
+              color: note.color,
+              font: note.font,
+              tags: [...note.tags],
+            });
+            onClose();
+          }}
+        >
+          <Copy class="w-4 h-4" />
+          Duplicate
+        </button>
+        <button
+          type="button"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          onClick={() => {
+            if (note.archived) {
+              unarchiveNote(note.id);
+            } else {
+              archiveNote(note.id);
+            }
+            onClose();
+          }}
+        >
+          {note.archived ? (
+            <ArchiveRestore class="w-4 h-4" />
+          ) : (
+            <Archive class="w-4 h-4" />
+          )}
+          {note.archived ? "Unarchive" : "Archive"}
+        </button>
+        <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+        <button
+          type="button"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          onClick={() => {
+            if (note.trashed) {
+              restoreNote(note.id);
+            } else {
+              trashNote(note.id);
+            }
+            onClose();
+          }}
+        >
+          {note.trashed ? (
+            <Undo2 class="w-4 h-4" />
+          ) : (
+            <Trash2 class="w-4 h-4" />
+          )}
+          {note.trashed ? "Undelete" : "Delete"}
+        </button>
+      </div>
+    </CardPopover>
+  );
+}
+
+function CardActions({
+  note,
+  isTrashView,
+  isSelectMode,
+  colorBtnRef,
+  menuBtnRef,
+  onToggleColorPicker,
+  onToggleMenu,
+}: {
+  note: Note;
+  isTrashView: boolean;
+  isSelectMode: boolean;
+  colorBtnRef: preact.Ref<HTMLButtonElement>;
+  menuBtnRef: preact.Ref<HTMLButtonElement>;
+  onToggleColorPicker: () => void;
+  onToggleMenu: () => void;
+}) {
+  return (
+    /* biome-ignore lint/a11y/noStaticElementInteractions: event stop container */
+    /* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */
+    <div
+      class={clsx(
+        "mt-auto pt-3 -ml-1.5 flex items-center gap-1 transition-opacity",
+        isSelectMode ? "invisible" : "opacity-0 group-hover:opacity-100",
+      )}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {isTrashView ? (
+        <>
+          <Tooltip label="Restore">
+            <button
+              type="button"
+              class={iconBtnClass}
+              onClick={() => restoreNote(note.id)}
+              aria-label="Restore note"
             >
-              {seg.lines.map((line, j) => {
-                const lineIndex = seg.startIndex + j;
-                const indent = line.match(/^(\s*)/)?.[1].length ?? 0;
-                const unchecked = line.match(/^\s*(?:- )?\[ \] (.*)$/);
-                const checked = line.match(/^\s*(?:- )?\[x\] (.*)$/i);
-                if (unchecked) {
-                  return (
-                    <div
-                      key={lineIndex}
-                      class="inline-flex items-start gap-2"
-                      style={{ paddingLeft: `${indent * 7.5}px` }}
-                    >
-                      <input
-                        type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
-                        checked={false}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={() => onCheckboxToggle(lineIndex)}
-                      />
-                      <span>{unchecked[1]}</span>
-                    </div>
-                  );
-                }
-                if (checked) {
-                  return (
-                    <div
-                      key={lineIndex}
-                      class="inline-flex items-start gap-2"
-                      style={{ paddingLeft: `${indent * 7.5}px` }}
-                    >
-                      <input
-                        type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
-                        checked={true}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={() => onCheckboxToggle(lineIndex)}
-                      />
-                      <span class="line-through opacity-60">{checked[1]}</span>
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          );
-        }
-        // Render text block as markdown
-        const text = seg.lines.join("\n");
-        if (!text.trim()) return null;
-        const html = DOMPurify.sanitize(
-          marked.parse(text, { breaks: true }) as string,
-        );
-        return (
-          <div
-            key={seg.startIndex}
-            class={`prose prose-sm dark:prose-invert max-w-none ${gapAbove ? "mt-3" : segIdx > 0 ? "mt-1" : ""}`}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        );
-      })}
+              <Undo2 class="w-4 h-4" />
+            </button>
+          </Tooltip>
+          <Tooltip label="Delete permanently">
+            <button
+              type="button"
+              class={iconBtnClass}
+              onClick={() => permanentlyDeleteNote(note.id)}
+              aria-label="Delete permanently"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </Tooltip>
+        </>
+      ) : (
+        <>
+          <Tooltip label="Color">
+            <button
+              ref={colorBtnRef}
+              type="button"
+              class={iconBtnClass}
+              onClick={onToggleColorPicker}
+              aria-label="Change color"
+            >
+              <Palette class="w-4 h-4" />
+            </button>
+          </Tooltip>
+          <Tooltip label="More">
+            <button
+              ref={menuBtnRef}
+              type="button"
+              class={iconBtnClass}
+              onClick={onToggleMenu}
+              aria-label="More options"
+            >
+              <EllipsisVertical class="w-4 h-4" />
+            </button>
+          </Tooltip>
+        </>
+      )}
     </div>
   );
 }
+
+// --- Main component ---
 
 export function NoteCard({
   note,
@@ -246,14 +283,12 @@ export function NoteCard({
   const isSelected = selectedNotes.value.has(note.id);
   const [showModal, setShowModal] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showCardMenu, setShowCardMenu] = useState(false);
-  const [showCardTagPicker, setShowCardTagPicker] = useState(false);
-  const [cardNewTag, setCardNewTag] = useState("");
+  const [openPopover, setOpenPopover] = useState<"color" | "menu" | null>(null);
   const colorBtnRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const colors = noteColorMap[note.color];
   const isTrashView = activeView.value === "trash";
+
   // Show modal when editing starts
   useEffect(() => {
     if (isEditing) {
@@ -300,7 +335,7 @@ export function NoteCard({
             "w-full max-w-sm mx-auto",
         )}
       >
-        {/* Selection checkbox — positioned over the top-left corner */}
+        {/* Selection checkbox */}
         {!isTrashView && (
           <div
             class={clsx(
@@ -424,11 +459,13 @@ export function NoteCard({
               </h3>
             )}
 
-            {renderContentPreview(
-              note,
-              (lineIndex) => toggleCheckbox(note.id, lineIndex),
-              !!note.title,
-            )}
+            <ContentPreview
+              note={note}
+              onCheckboxToggle={(lineIndex) =>
+                toggleCheckbox(note.id, lineIndex)
+              }
+              hasTitle={!!note.title}
+            />
           </div>
 
           {note.tags.length > 0 && (
@@ -444,75 +481,19 @@ export function NoteCard({
             </div>
           )}
 
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: event stop container */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
-          <div
-            class={clsx(
-              "mt-auto pt-3 -ml-1.5 flex items-center gap-1 transition-opacity",
-              isSelectMode ? "invisible" : "opacity-0 group-hover:opacity-100",
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {isTrashView ? (
-              <>
-                <Tooltip label="Restore">
-                  <button
-                    type="button"
-                    class={iconBtnClass}
-                    onClick={() => restoreNote(note.id)}
-                    aria-label="Restore note"
-                  >
-                    <Undo2 class="w-4 h-4" />
-                  </button>
-                </Tooltip>
-                <Tooltip label="Delete permanently">
-                  <button
-                    type="button"
-                    class={iconBtnClass}
-                    onClick={() => deleteNote(note.id)}
-                    aria-label="Delete permanently"
-                  >
-                    <X class="w-4 h-4" />
-                  </button>
-                </Tooltip>
-              </>
-            ) : (
-              <>
-                {/* Color picker trigger */}
-                <Tooltip label="Color">
-                  <button
-                    ref={colorBtnRef}
-                    type="button"
-                    class={iconBtnClass}
-                    onClick={() => {
-                      setShowCardMenu(false);
-                      setShowColorPicker(!showColorPicker);
-                    }}
-                    aria-label="Change color"
-                  >
-                    <Palette class="w-4 h-4" />
-                  </button>
-                </Tooltip>
-
-                {/* Kebab menu trigger */}
-                <Tooltip label="More">
-                  <button
-                    ref={menuBtnRef}
-                    type="button"
-                    class={iconBtnClass}
-                    onClick={() => {
-                      setShowColorPicker(false);
-                      setShowCardTagPicker(false);
-                      setShowCardMenu(!showCardMenu);
-                    }}
-                    aria-label="More options"
-                  >
-                    <EllipsisVertical class="w-4 h-4" />
-                  </button>
-                </Tooltip>
-              </>
-            )}
-          </div>
+          <CardActions
+            note={note}
+            isTrashView={isTrashView}
+            isSelectMode={isSelectMode}
+            colorBtnRef={colorBtnRef}
+            menuBtnRef={menuBtnRef}
+            onToggleColorPicker={() =>
+              setOpenPopover(openPopover === "color" ? null : "color")
+            }
+            onToggleMenu={() =>
+              setOpenPopover(openPopover === "menu" ? null : "menu")
+            }
+          />
 
           {isTrashView && note.trashedAt && (
             <p class="mt-2 text-xs text-gray-400">
@@ -521,154 +502,20 @@ export function NoteCard({
           )}
         </article>
 
-        {/* Color picker — rendered outside article to avoid overflow clip */}
-        {showColorPicker && (
-          <CardPopover
+        {openPopover === "color" && (
+          <CardColorPicker
+            note={note}
             anchorRef={colorBtnRef}
-            onClose={() => setShowColorPicker(false)}
-          >
-            <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1">
-              {colorPickerColors.map((c) => (
-                <Tooltip key={c.value} label={c.label}>
-                  <button
-                    type="button"
-                    class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${note.color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                    onClick={() => {
-                      updateNote(note.id, { color: c.value as NoteColor });
-                      setShowColorPicker(false);
-                    }}
-                    aria-label={c.label}
-                  />
-                </Tooltip>
-              ))}
-            </div>
-          </CardPopover>
+            onClose={() => setOpenPopover(null)}
+          />
         )}
 
-        {/* Kebab menu — rendered outside article to avoid overflow clip */}
-        {showCardMenu && (
-          <CardPopover
+        {openPopover === "menu" && (
+          <CardMenu
+            note={note}
             anchorRef={menuBtnRef}
-            onClose={() => {
-              setShowCardMenu(false);
-              setShowCardTagPicker(false);
-            }}
-          >
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 py-1">
-              {/* Tags */}
-              <div class="relative">
-                <button
-                  type="button"
-                  class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                  onClick={() => setShowCardTagPicker(!showCardTagPicker)}
-                >
-                  <Tag class="w-4 h-4" />
-                  Tags
-                </button>
-                {showCardTagPicker && (
-                  <div class="px-3 pb-2">
-                    <input
-                      type="text"
-                      class="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none mb-1"
-                      placeholder="Add tag..."
-                      value={cardNewTag}
-                      onInput={(e) =>
-                        setCardNewTag((e.target as HTMLInputElement).value)
-                      }
-                      onKeyDown={(e) => {
-                        e.stopPropagation();
-                        if (e.key === "Enter") {
-                          const trimmed = cardNewTag.trim().toLowerCase();
-                          if (trimmed && !note.tags.includes(trimmed)) {
-                            updateNote(note.id, {
-                              tags: [...note.tags, trimmed],
-                            });
-                          }
-                          setCardNewTag("");
-                        }
-                      }}
-                    />
-                    {allTags.value
-                      .filter((t) => !note.tags.includes(t))
-                      .map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => {
-                            if (!note.tags.includes(tag)) {
-                              updateNote(note.id, {
-                                tags: [...note.tags, tag],
-                              });
-                            }
-                          }}
-                        >
-                          #{tag}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Duplicate */}
-              <button
-                type="button"
-                class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                onClick={() => {
-                  createNote({
-                    title: note.title,
-                    content: note.content,
-                    color: note.color,
-                    font: note.font,
-                    tags: [...note.tags],
-                  });
-                  setShowCardMenu(false);
-                }}
-              >
-                <Copy class="w-4 h-4" />
-                Duplicate
-              </button>
-              <button
-                type="button"
-                class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                onClick={() => {
-                  if (note.archived) {
-                    unarchiveNote(note.id);
-                  } else {
-                    archiveNote(note.id);
-                  }
-                  setShowCardMenu(false);
-                }}
-              >
-                {note.archived ? (
-                  <ArchiveRestore class="w-4 h-4" />
-                ) : (
-                  <Archive class="w-4 h-4" />
-                )}
-                {note.archived ? "Unarchive" : "Archive"}
-              </button>
-              <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
-              <button
-                type="button"
-                class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                onClick={() => {
-                  if (note.trashed) {
-                    restoreNote(note.id);
-                  } else {
-                    trashNote(note.id);
-                  }
-                  setShowCardMenu(false);
-                }}
-              >
-                {note.trashed ? (
-                  <Undo2 class="w-4 h-4" />
-                ) : (
-                  <Trash2 class="w-4 h-4" />
-                )}
-                {note.trashed ? "Undelete" : "Delete"}
-              </button>
-            </div>
-          </CardPopover>
+            onClose={() => setOpenPopover(null)}
+          />
         )}
       </div>
 
@@ -690,136 +537,5 @@ export function NoteCard({
         </>
       )}
     </>
-  );
-}
-
-// --- Modal editor ---
-
-function NoteCardEditor({
-  note,
-  onClose,
-}: {
-  note: Note;
-  onClose: () => void;
-}) {
-  const { title, content, setTitle, setContent, undo, redo, canUndo, canRedo } =
-    useUndoRedo(note.title, note.content);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const savedRef = useRef(false);
-
-  const saveAndClose = () => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    if (title !== note.title || content !== note.content) {
-      updateNote(note.id, { title, content });
-    }
-    savedRef.current = true;
-    onClose();
-  };
-
-  // Save pending changes on unmount (e.g. backdrop click)
-  const titleRef = useRef(title);
-  const contentRef = useRef(content);
-  titleRef.current = title;
-  contentRef.current = content;
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      if (savedRef.current) return;
-      if (
-        titleRef.current !== note.title ||
-        contentRef.current !== note.content
-      ) {
-        updateNote(note.id, {
-          title: titleRef.current,
-          content: contentRef.current,
-        });
-      }
-    };
-  }, []);
-
-  // Escape to close
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") saveAndClose();
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [title, content]);
-
-  // Auto-save on any title/content change (typing, undo, redo)
-  useEffect(() => {
-    if (title === note.title && content === note.content) return;
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      updateNote(note.id, { title, content });
-    }, 500);
-  }, [title, content]);
-
-  return (
-    <NoteEditor
-      title={title}
-      onTitleChange={setTitle}
-      content={content}
-      onContentChange={setContent}
-      color={note.color}
-      onColorChange={(color) =>
-        updateNote(note.id, { color: color as NoteColor })
-      }
-      font={note.font}
-      onFontChange={(font) => updateNote(note.id, { font })}
-      pinned={note.pinned}
-      onPinToggle={() => togglePin(note.id)}
-      tags={note.tags}
-      onAddTag={(tag) => {
-        if (!note.tags.includes(tag)) {
-          updateNote(note.id, { tags: [...note.tags, tag] });
-        }
-      }}
-      onRemoveTag={(tag) =>
-        updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) })
-      }
-      onDone={saveAndClose}
-      onUndo={undo}
-      onRedo={redo}
-      canUndo={canUndo}
-      canRedo={canRedo}
-      metadata={
-        <div class="flex gap-3 mt-3 text-xs text-black/40 dark:text-white/40">
-          <span>Created {formatDateTime(note.createdAt)}</span>
-          {note.updatedAt !== note.createdAt && (
-            <span>Edited {formatDateTime(note.updatedAt)}</span>
-          )}
-        </div>
-      }
-      onDuplicate={() =>
-        createNote({
-          title: note.title,
-          content: note.content,
-          color: note.color,
-          font: note.font,
-          tags: [...note.tags],
-        })
-      }
-      onArchive={() => {
-        if (note.archived) {
-          unarchiveNote(note.id);
-        } else {
-          archiveNote(note.id);
-        }
-      }}
-      archived={note.archived}
-      trashed={note.trashed}
-      onDelete={() => {
-        if (note.trashed) {
-          restoreNote(note.id);
-        } else {
-          trashNote(note.id);
-        }
-        onClose();
-      }}
-    />
   );
 }

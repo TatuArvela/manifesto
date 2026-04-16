@@ -1,4 +1,4 @@
-import { NoteColor } from "@manifesto/shared";
+import { NoteColor, NoteFont } from "@manifesto/shared";
 
 export interface ColorClasses {
   bg: string;
@@ -104,6 +104,12 @@ export const noteEdgeColors: Record<
   [NoteColor.Pink]: { light: "#f9a8d4", dark: "#9d174d" },
   [NoteColor.Brown]: { light: "#d97706", dark: "#78350f" },
   [NoteColor.Gray]: { light: "#9ca3af", dark: "#374151" },
+};
+
+export const noteFontFamilies: Record<NoteFont, string> = {
+  [NoteFont.Default]: "",
+  [NoteFont.PermanentMarker]: '"Permanent Marker", cursive',
+  [NoteFont.ComicRelief]: '"Comic Relief", cursive',
 };
 
 export const colorPickerColors: {
