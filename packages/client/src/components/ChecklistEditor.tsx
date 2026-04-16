@@ -361,7 +361,19 @@ export function ChecklistEditor({
               class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
               checked={item.checked}
               disabled={disabled}
-              onChange={() => updateItem(idx, { checked: !item.checked })}
+              onChange={() => {
+                const newChecked = !item.checked;
+                const subtreeSize = getSubtreeSize(lines, idx);
+                const newLines = [...lines];
+                for (let i = idx; i < idx + subtreeSize; i++) {
+                  const parsed = parseLine(newLines[i]);
+                  if (parsed) {
+                    parsed.checked = newChecked;
+                    newLines[i] = serializeLine(parsed);
+                  }
+                }
+                onChange(newLines);
+              }}
             />
             <input
               ref={(el) => {
@@ -397,8 +409,9 @@ export function ChecklistEditor({
                 tabIndex={-1}
                 onMouseDown={(e) => {
                   e.preventDefault();
+                  const subtreeSize = getSubtreeSize(lines, idx);
                   const newLines = [...lines];
-                  newLines.splice(idx, 1);
+                  newLines.splice(idx, subtreeSize);
                   if (newLines.length === 0) {
                     newLines.push("");
                   }
