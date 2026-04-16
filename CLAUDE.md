@@ -20,11 +20,13 @@ pnpm test             # Run all tests (Vitest)
 
 Run for a single package with `pnpm --filter @manifesto/<client|server|shared> <script>`.
 
+Run a single test file: `pnpm --filter @manifesto/client vitest run src/path/to/file.test.ts`.
+
 ## Architecture
 
 pnpm monorepo with three packages:
 
-- **`packages/shared`** — TypeScript types and enums (`Note`, `NoteColor`, API types). Imported by both client and server. No runtime dependencies — types only.
+- **`packages/shared`** — TypeScript types and enums (`Note`, `NoteColor`, `NoteVersion`, API types). Imported by both client and server. No runtime dependencies — types only.
 - **`packages/client`** — Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind CSS for styling, Vitest for tests.
 - **`packages/server`** — Node.js + TypeScript, Hono, better-sqlite3. Optional — the client works standalone with localStorage.
 
@@ -32,15 +34,41 @@ pnpm monorepo with three packages:
 
 - **Local-first**: Client works fully offline using localStorage (open mode). Server connection is opt-in.
 - **Managed mode**: Organizations can deploy as server-only (no local storage, auth required).
-- **Storage adapters**: Client abstracts data access behind `StorageAdapter` interface — `LocalStorageAdapter` (default) or `RestApiAdapter` (server-connected).
+- **Storage adapters**: Client abstracts data access behind `StorageAdapter` interface — `LocalStorageAdapter` (default) or `RestApiAdapter` (server-connected). Factory in `storage/index.ts`.
 - **ULIDs** for note IDs (not UUIDs) — lexicographically sortable, timestamp-prefixed.
 - **NoteColor** uses named enums (not hex) so themes can map colors differently for light/dark mode.
+
+### Client State Management
+
+State lives in `packages/client/src/state/` using @preact/signals:
+
+- **`actions.ts`** — Core signals (`notes`, computed `filteredNotes`/`sortedNotes`/`allTags`), and async action functions (`createNote`, `updateNote`, `trashNote`, `bulkArchive`, etc.). Actions modify both signals and the storage adapter.
+- **`ui.ts`** — UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
+- **`prefs.ts`** — User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
+
+### Version History
+
+Notes have persistent version history stored LZ-String compressed in `localStorage` key `manifesto:versions`. Versions are saved automatically when the editor closes with changes (capturing the pre-edit state). Capped at 50 per note, pruned after 90 days. Storage module: `storage/VersionStorage.ts`. UI: `components/VersionHistory.tsx`, accessed via kebab menu in the note editor.
+
+### Component Patterns
+
+- **NoteEditor** is fully prop-driven (title, content, color, font, callbacks). Parent components (`NoteCardEditor`, `NoteInput`) own the state.
+- **NoteCardEditor** wraps NoteEditor for editing existing notes — manages auto-save (500ms debounce), undo/redo via `useUndoRedo` hook, and version history.
+- **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) — `open`/`onClose`/`trigger`/`children` props.
+
 ### API Contract
 
 - REST: `/api/notes`, `/api/search`, `/api/auth/*`
 - WebSocket: `ws(s)://server/api/ws` for real-time collaborative editing
 - All timestamps are ISO 8601 UTC strings
 - Note schema has 12 fields — see `docs/specification/data-model.md`
+
+## Testing
+
+- Vitest with `@testing-library/preact`, browser mode via Playwright (Chromium, headless)
+- Test files are colocated with source (e.g., `actions.test.ts` next to `actions.ts`)
+- Tests use real `localStorage` — clear in `beforeEach`/`afterEach`
+- Signal state is set directly in tests (e.g., `notes.value = []`)
 
 ## Code Style
 
