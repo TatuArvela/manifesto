@@ -32,6 +32,19 @@ function serializeLine(item: ChecklistLine): string {
   return `${pad}- [${mark}] ${item.text}`;
 }
 
+/** Returns the number of lines in the subtree rooted at `idx` (1 = just the item itself). */
+function getSubtreeSize(lines: string[], idx: number): number {
+  const parent = parseLine(lines[idx]);
+  if (!parent) return 1;
+  let count = 1;
+  for (let i = idx + 1; i < lines.length; i++) {
+    const child = parseLine(lines[i]);
+    if (!child || child.indent <= parent.indent) break;
+    count++;
+  }
+  return count;
+}
+
 /**
  * Renders checklist lines as interactive rows with drag handles.
  * `lines` is the raw checklist text lines for this segment.
@@ -59,7 +72,7 @@ export function ChecklistEditor({
   onNavigateUp?: () => void;
   onNavigateDown?: () => void;
   /** Called when a drag starts, so the parent can track cross-segment drags */
-  onItemDragStart?: (lineIndex: number) => void;
+  onItemDragStart?: (lineIndex: number, lineCount: number) => void;
   /** Called when an item from another checklist is dropped here */
   onItemDropExternal?: (targetIndex: number) => void;
   /** Called on drag end so the parent can check if a cross-drop occurred */
@@ -212,7 +225,8 @@ export function ChecklistEditor({
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", "");
     }
-    onItemDragStart?.(idx);
+    const subtreeSize = getSubtreeSize(lines, idx);
+    onItemDragStart?.(idx, subtreeSize);
   };
 
   const handleDrag = (e: DragEvent) => {
@@ -248,18 +262,24 @@ export function ChecklistEditor({
   const applyDrop = (dropIdx: number) => {
     if (dragIndex === null) return;
 
+    const subtreeSize = getSubtreeSize(lines, dragIndex);
     const newLines = [...lines];
-    const parsed = parseLine(newLines[dragIndex]);
-    if (!parsed) return;
-    parsed.indent = Math.max(0, parsed.indent + dragIndentDelta);
-    const serialized = serializeLine(parsed);
+
+    // Apply indent delta to all lines in the subtree
+    const subtree = newLines.splice(dragIndex, subtreeSize);
+    for (let i = 0; i < subtree.length; i++) {
+      const parsed = parseLine(subtree[i]);
+      if (parsed) {
+        parsed.indent = Math.max(0, parsed.indent + dragIndentDelta);
+        subtree[i] = serializeLine(parsed);
+      }
+    }
 
     if (dragIndex !== dropIdx) {
-      newLines.splice(dragIndex, 1);
-      const adjustedTo = dropIdx > dragIndex ? dropIdx - 1 : dropIdx;
-      newLines.splice(adjustedTo, 0, serialized);
+      const adjustedTo = dropIdx > dragIndex ? dropIdx - subtreeSize : dropIdx;
+      newLines.splice(adjustedTo, 0, ...subtree);
     } else {
-      newLines[dragIndex] = serialized;
+      newLines.splice(dragIndex, 0, ...subtree);
     }
 
     onChange(newLines);
@@ -305,8 +325,11 @@ export function ChecklistEditor({
       onDragLeave={handleDragLeave}
     >
       {items.map((item, idx) => {
-        const isDragging = dragIndex === idx;
-        const isDragOver = dragOverIndex === idx && dragIndex !== idx;
+        const isDragging =
+          dragIndex !== null &&
+          idx >= dragIndex &&
+          idx < dragIndex + getSubtreeSize(lines, dragIndex);
+        const isDragOver = dragOverIndex === idx && !isDragging;
         const indentPx = isDragging
           ? (item.indent + dragIndentDelta) * (15 / INDENT_STEP)
           : item.indent * (15 / INDENT_STEP);

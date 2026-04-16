@@ -91,6 +91,7 @@ export function SegmentedContentEditor({
   const crossDragRef = useRef<{
     segStartLine: number;
     lineIndex: number;
+    lineCount: number;
     dropped: boolean;
   } | null>(null);
 
@@ -297,10 +298,11 @@ export function SegmentedContentEditor({
                 }}
                 onNavigateUp={() => focusPrevSegment(segIdx)}
                 onNavigateDown={() => focusNextSegment(segIdx)}
-                onItemDragStart={(lineIndex) => {
+                onItemDragStart={(lineIndex, lineCount) => {
                   crossDragRef.current = {
                     segStartLine: seg.startLine,
                     lineIndex,
+                    lineCount,
                     dropped: false,
                   };
                 }}
@@ -308,15 +310,18 @@ export function SegmentedContentEditor({
                   const source = crossDragRef.current;
                   if (!source || source.segStartLine === seg.startLine) return;
                   const newAllLines = [...allLines];
-                  // Remove from source segment
+                  // Remove subtree from source segment
                   const sourceAbsLine = source.segStartLine + source.lineIndex;
-                  const [movedLine] = newAllLines.splice(sourceAbsLine, 1);
+                  const movedLines = newAllLines.splice(
+                    sourceAbsLine,
+                    source.lineCount,
+                  );
                   // Compute target absolute line, adjusting if source was before target
                   let targetAbsLine = seg.startLine + targetIndex;
                   if (sourceAbsLine < targetAbsLine) {
-                    targetAbsLine--;
+                    targetAbsLine -= source.lineCount;
                   }
-                  newAllLines.splice(targetAbsLine, 0, movedLine);
+                  newAllLines.splice(targetAbsLine, 0, ...movedLines);
                   source.dropped = true;
                   onChange(newAllLines.join("\n"));
                 }}
