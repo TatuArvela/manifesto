@@ -7,6 +7,7 @@ import {
   Copy,
   EllipsisVertical,
   Eye,
+  History,
   Palette,
   PenLine,
   Pin,
@@ -60,6 +61,7 @@ interface NoteEditorProps {
   disabled?: boolean;
   contentLocked?: boolean;
   metadata?: ComponentChildren;
+  onShowVersions?: () => void;
   onDuplicate?: () => void;
   onArchive?: () => void;
   archived?: boolean;
@@ -90,6 +92,7 @@ export function NoteEditor({
   disabled,
   contentLocked,
   metadata,
+  onShowVersions,
   onDuplicate,
   onArchive,
   archived,
@@ -338,6 +341,21 @@ export function NoteEditor({
             </button>
             {showTagPicker && <TagPicker tags={tags} onAddTag={handleAddTag} />}
           </div>
+
+          {/* Version history */}
+          {onShowVersions && (
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                onShowVersions();
+                closeAllMenus();
+              }}
+            >
+              <History class="w-4 h-4" />
+              Version history
+            </button>
+          )}
 
           {/* Duplicate */}
           {onDuplicate && (

@@ -1,5 +1,5 @@
 import type { Note, NoteColor } from "@manifesto/shared";
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { useUndoRedo } from "../hooks/useUndoRedo.js";
 import {
   archiveNote,
@@ -10,7 +10,9 @@ import {
   unarchiveNote,
   updateNote,
 } from "../state/index.js";
+import { saveVersion } from "../storage/VersionStorage.js";
 import { NoteEditor } from "./NoteEditor.js";
+import { VersionHistory } from "./VersionHistory.js";
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -33,14 +35,33 @@ export function NoteCardEditor({
   const { title, content, setTitle, setContent, undo, redo, canUndo, canRedo } =
     useUndoRedo(note.title, note.content);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const [showVersions, setShowVersions] = useState(false);
+
+  // Capture original state for version history (set once on mount)
+  const originalTitleRef = useRef(note.title);
+  const originalContentRef = useRef(note.content);
 
   const savedRef = useRef(false);
+
+  const maybeSaveVersion = () => {
+    if (
+      title !== originalTitleRef.current ||
+      content !== originalContentRef.current
+    ) {
+      saveVersion(
+        note.id,
+        originalTitleRef.current,
+        originalContentRef.current,
+      );
+    }
+  };
 
   const saveAndClose = () => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     if (title !== note.title || content !== note.content) {
       updateNote(note.id, { title, content });
     }
+    maybeSaveVersion();
     savedRef.current = true;
     onClose();
   };
@@ -62,6 +83,17 @@ export function NoteCardEditor({
           title: titleRef.current,
           content: contentRef.current,
         });
+      }
+      // Save version if content changed during this editing session
+      if (
+        titleRef.current !== originalTitleRef.current ||
+        contentRef.current !== originalContentRef.current
+      ) {
+        saveVersion(
+          note.id,
+          originalTitleRef.current,
+          originalContentRef.current,
+        );
       }
     };
   }, []);
@@ -86,6 +118,25 @@ export function NoteCardEditor({
     }, 500);
   }, [title, content]);
 
+  if (showVersions) {
+    return (
+      <VersionHistory
+        noteId={note.id}
+        color={note.color}
+        onRestore={(restoredTitle, restoredContent) => {
+          setTitle(restoredTitle);
+          setContent(restoredContent);
+          updateNote(note.id, {
+            title: restoredTitle,
+            content: restoredContent,
+          });
+          setShowVersions(false);
+        }}
+        onClose={() => setShowVersions(false)}
+      />
+    );
+  }
+
   return (
     <NoteEditor
       title={title}
@@ -109,6 +160,7 @@ export function NoteCardEditor({
       onRemoveTag={(tag) =>
         updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) })
       }
+      onShowVersions={() => setShowVersions(true)}
       onDone={saveAndClose}
       onUndo={undo}
       onRedo={redo}

@@ -2,6 +2,7 @@ import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
 import { createStorage } from "../storage/index.js";
+import { deleteVersions } from "../storage/VersionStorage.js";
 import { defaultNoteColor, defaultNoteFont, sortMode } from "./prefs.js";
 import {
   activeTag,
@@ -197,6 +198,7 @@ export async function permanentlyDeleteNote(id: string) {
   try {
     await storage.delete(id);
     notes.value = notes.value.filter((n) => n.id !== id);
+    deleteVersions(id);
   } catch (err) {
     console.error(`Failed to delete note ${id}:`, err);
     showError("Failed to delete note.");

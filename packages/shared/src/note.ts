@@ -39,3 +39,11 @@ export type NoteCreate = Omit<Note, "id" | "createdAt" | "updatedAt">;
 
 /** Partial update — only the fields being changed. */
 export type NoteUpdate = Partial<Omit<Note, "id" | "createdAt">>;
+
+/** A snapshot of a note's title and content at a point in time. */
+export interface NoteVersion {
+  noteId: string;
+  timestamp: string;
+  title: string;
+  content: string;
+}
