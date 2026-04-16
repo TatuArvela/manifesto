@@ -1,6 +1,7 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useUndoRedo } from "../hooks/useUndoRedo.js";
+import { buildShareUrl } from "../sharing.js";
 import {
   archiveNote,
   createNote,
@@ -10,6 +11,7 @@ import {
   unarchiveNote,
   updateNote,
 } from "../state/index.js";
+import { showSuccess } from "../state/ui.js";
 import { saveVersion } from "../storage/VersionStorage.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { VersionHistory } from "./VersionHistory.js";
@@ -161,6 +163,17 @@ export function NoteCardEditor({
         updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) })
       }
       onShowVersions={() => setShowVersions(true)}
+      onShare={() => {
+        const url = buildShareUrl({
+          title: note.title,
+          content: note.content,
+          color: note.color,
+          font: note.font,
+          tags: [...note.tags],
+        });
+        navigator.clipboard.writeText(url);
+        showSuccess("Link copied to clipboard");
+      }}
       onDone={saveAndClose}
       onUndo={undo}
       onRedo={redo}

@@ -8,6 +8,7 @@ import {
   EllipsisVertical,
   Eye,
   History,
+  Link,
   Palette,
   PenLine,
   Pin,
@@ -62,6 +63,7 @@ interface NoteEditorProps {
   contentLocked?: boolean;
   metadata?: ComponentChildren;
   onShowVersions?: () => void;
+  onShare?: () => void;
   onDuplicate?: () => void;
   onArchive?: () => void;
   archived?: boolean;
@@ -93,6 +95,7 @@ export function NoteEditor({
   contentLocked,
   metadata,
   onShowVersions,
+  onShare,
   onDuplicate,
   onArchive,
   archived,
@@ -354,6 +357,21 @@ export function NoteEditor({
             >
               <History class="w-4 h-4" />
               Version history
+            </button>
+          )}
+
+          {/* Share link */}
+          {onShare && (
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                onShare();
+                closeAllMenus();
+              }}
+            >
+              <Link class="w-4 h-4" />
+              Share link
             </button>
           )}
 

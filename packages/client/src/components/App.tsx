@@ -1,16 +1,22 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
+import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
 import { activeView, loadNotes, viewMode } from "../state/index.js";
 import { Header } from "./Header.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
 import { SettingsDialog } from "./SettingsDialog.js";
+import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 
 export function App() {
+  const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
+
   useEffect(() => {
     loadNotes();
+    const payload = decodeShareFromHash(window.location.hash);
+    if (payload) setSharedNote(payload);
   }, []);
 
   const isTagsView = activeView.value === "tags";
@@ -45,6 +51,12 @@ export function App() {
       </div>
       <SettingsDialog />
       <Toasts />
+      {sharedNote && (
+        <SharedNoteDialog
+          payload={sharedNote}
+          onDone={() => setSharedNote(null)}
+        />
+      )}
     </div>
   );
 }

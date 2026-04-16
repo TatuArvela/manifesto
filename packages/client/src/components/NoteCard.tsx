@@ -5,6 +5,7 @@ import {
   ArchiveRestore,
   Copy,
   EllipsisVertical,
+  Link,
   Palette,
   Pin,
   PinOff,
@@ -19,6 +20,7 @@ import {
   noteColorMap,
   noteFontFamilies,
 } from "../colors.js";
+import { buildShareUrl } from "../sharing.js";
 import {
   activeView,
   archiveNote,
@@ -38,6 +40,7 @@ import {
   updateNote,
   viewMode,
 } from "../state/index.js";
+import { showSuccess } from "../state/ui.js";
 import { ContentPreview } from "./ContentPreview.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
@@ -138,6 +141,27 @@ function CardMenu({
         >
           <Copy class="w-4 h-4" />
           Duplicate
+        </button>
+
+        {/* Share link */}
+        <button
+          type="button"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          onClick={() => {
+            const url = buildShareUrl({
+              title: note.title,
+              content: note.content,
+              color: note.color,
+              font: note.font,
+              tags: [...note.tags],
+            });
+            navigator.clipboard.writeText(url);
+            showSuccess("Link copied to clipboard");
+            onClose();
+          }}
+        >
+          <Link class="w-4 h-4" />
+          Share link
         </button>
         <button
           type="button"
