@@ -20,6 +20,7 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @manifesto/client exec playwright install --with-deps chromium
 
       - run: pnpm lint
       - run: pnpm typecheck
