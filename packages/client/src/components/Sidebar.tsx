@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-preact";
 import { Archive, Hash, StickyNote, Trash2 } from "lucide-preact";
+import logoUrl from "../assets/logo.svg";
 import {
   type AppView,
   activeTag,
@@ -93,11 +94,11 @@ export function Sidebar() {
 
       {/* Desktop: collapsed sidebar in flow (reserves space) */}
       <div
-        class="hidden lg:block shrink-0"
+        class="hidden lg:block shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.08)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.3)] z-[5]"
         style={{ width: `${COLLAPSED_W}px` }}
       >
         {/* Collapsed icon buttons */}
-        <nav class="flex flex-col items-center gap-1 pt-6">
+        <nav class="flex flex-col items-center gap-1 pt-3">
           <NavItem label="Notes" icon={StickyNote} view="active" collapsed />
           <NavItem label="Tags" icon={Hash} view="tags" collapsed />
           <NavItem label="Archive" icon={Archive} view="archived" collapsed />
@@ -107,11 +108,12 @@ export function Sidebar() {
 
       {/* Mobile sidebar: overlay drawer */}
       <nav
-        class={`fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col pt-2 overflow-hidden transition-transform duration-200 ease-in-out lg:hidden ${
+        class={`fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-[2px_0_8px_rgba(0,0,0,0.08)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.3)] flex flex-col pt-2 overflow-hidden transition-transform duration-200 ease-in-out lg:hidden ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div class="h-14 flex items-center px-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="h-14 flex items-center gap-3 px-5 border-b border-gray-200 dark:border-gray-700">
+          <img src={logoUrl} alt="" class="h-6 w-6 dark:invert" />
           <h2 class="text-lg font-semibold select-none">Manifesto</h2>
         </div>
         <div class="pt-2">

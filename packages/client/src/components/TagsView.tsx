@@ -51,7 +51,7 @@ export function TagsView() {
   };
 
   return (
-    <div class="mb-6">
+    <div class="mt-4 mb-6">
       <div class="flex items-center gap-2 flex-wrap">
         <button
           type="button"

@@ -308,14 +308,14 @@ export function ChecklistEditor({
         const isDragging = dragIndex === idx;
         const isDragOver = dragOverIndex === idx && dragIndex !== idx;
         const indentPx = isDragging
-          ? (item.indent + dragIndentDelta) * (30 / INDENT_STEP)
-          : item.indent * (30 / INDENT_STEP);
+          ? (item.indent + dragIndentDelta) * (15 / INDENT_STEP)
+          : item.indent * (15 / INDENT_STEP);
 
         return (
           // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target
           <div
             key={idx}
-            class={`group/row flex items-center gap-1 py-1.5 ${isDragging ? "opacity-50" : ""}`}
+            class={`group/row flex items-center gap-2 py-1.5 ${isDragging ? "opacity-50" : ""}`}
             style={{
               paddingLeft: `${Math.max(0, indentPx)}px`,
               boxShadow: isDragOver ? "inset 0 2px 0 0 #60a5fa" : undefined,
@@ -335,7 +335,7 @@ export function ChecklistEditor({
             </div>
             <input
               type="checkbox"
-              class="w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
+              class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
               checked={item.checked}
               disabled={disabled}
               onChange={() => updateItem(idx, { checked: !item.checked })}

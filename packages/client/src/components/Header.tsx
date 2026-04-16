@@ -54,7 +54,7 @@ function SelectionToolbar() {
   const [newTag, setNewTag] = useState("");
 
   return (
-    <header class="relative z-10 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
+    <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
       {/* Left: close + count */}
       <div class="flex items-center gap-2 shrink-0">
         <button
@@ -234,7 +234,7 @@ export function Header() {
   }
 
   return (
-    <header class="relative z-10 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-white dark:bg-gray-900">
+    <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-white dark:bg-gray-900">
       {/* Left: hamburger (mobile only) + title */}
       <div class="flex items-center gap-1 shrink-0 z-10">
         <button
@@ -283,7 +283,7 @@ export function Header() {
       {/* Right: controls */}
       <div class="flex items-center gap-0.5 shrink-0 z-10">
         {/* Sort button with dropdown */}
-        <div class="relative">
+        <div class="relative flex">
           <Tooltip label="Sort">
             <button
               type="button"
@@ -327,7 +327,7 @@ export function Header() {
         </div>
 
         {/* View menu with dropdown */}
-        <div class="relative">
+        <div class="relative flex">
           <Tooltip label="View">
             <button
               type="button"

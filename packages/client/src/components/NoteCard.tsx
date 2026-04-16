@@ -174,7 +174,7 @@ function renderContentPreview(
                     <div
                       key={lineIndex}
                       class="inline-flex items-start gap-2"
-                      style={{ paddingLeft: `${indent * 0.75}em` }}
+                      style={{ paddingLeft: `${indent * 7.5}px` }}
                     >
                       <input
                         type="checkbox"
@@ -192,7 +192,7 @@ function renderContentPreview(
                     <div
                       key={lineIndex}
                       class="inline-flex items-start gap-2"
-                      style={{ paddingLeft: `${indent * 0.75}em` }}
+                      style={{ paddingLeft: `${indent * 7.5}px` }}
                     >
                       <input
                         type="checkbox"
@@ -348,7 +348,7 @@ export function NoteCard({
               : colors.border,
             "border p-4 transition-all duration-150 relative select-none overflow-hidden flex flex-col",
             !isTrashView && "pb-2",
-            "group-hover:shadow-md",
+            "shadow-sm group-hover:shadow-lg",
             isEditing && !closing && "opacity-20",
             noteSize.value === "square" &&
               viewMode.value === "list" &&

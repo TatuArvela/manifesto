@@ -13,16 +13,22 @@ export function App() {
   }, []);
 
   const isTagsView = activeView.value === "tags";
+  const isActive = activeView.value === "active";
   const isList = viewMode.value === "list";
 
   return (
     <div class="flex flex-col h-screen overflow-hidden">
       <Header />
-      <div class="flex flex-1 overflow-hidden -mt-4 relative">
+      <div class="flex flex-1 overflow-hidden relative z-0">
         <Sidebar />
-        <main class="flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6">
+        <main
+          class={`flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 ${isActive ? "-mt-4" : "pt-2"}`}
+        >
           {isTagsView ? (
-            <TagsView />
+            <>
+              <TagsView />
+              <NoteGrid />
+            </>
           ) : isList ? (
             <div class="max-w-xl mx-auto">
               <NoteInput />
