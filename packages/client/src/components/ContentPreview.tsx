@@ -5,6 +5,57 @@ import { segmentContent } from "./SegmentedContentEditor.js";
 
 const marked = new Marked();
 
+/** Only allow safe HTML elements and attributes in rendered markdown. */
+const PURIFY_CONFIG = {
+  ALLOWED_TAGS: [
+    // Markdown standard
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "p",
+    "br",
+    "hr",
+    "strong",
+    "b",
+    "em",
+    "i",
+    "del",
+    "s",
+    "blockquote",
+    "pre",
+    "code",
+    "ul",
+    "ol",
+    "li",
+    "a",
+    "img",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    // Formatting toolbar additions
+    "u",
+    "sub",
+    "sup",
+    // Inline spans for styling
+    "span",
+  ],
+  ALLOWED_ATTR: [
+    "href",
+    "target",
+    "rel", // links
+    "src",
+    "alt",
+    "title", // images
+    "class", // styling
+  ],
+};
+
 /**
  * Renders note content as a read-only preview with interactive checkboxes.
  * Reuses segmentContent to split into checklist and markdown blocks.
@@ -96,7 +147,8 @@ export function ContentPreview({
         if (!text.trim()) return null;
         const html = DOMPurify.sanitize(
           marked.parse(text, { breaks: true }) as string,
-        );
+          PURIFY_CONFIG,
+        ) as string;
         return (
           <div
             key={seg.startLine}

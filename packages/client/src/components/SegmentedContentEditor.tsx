@@ -5,9 +5,16 @@ import {
   type ChecklistEditorHandle,
   isChecklistLine,
 } from "./ChecklistEditor.js";
+import {
+  type ActiveFormats,
+  applyFormatting,
+  detectActiveFormats,
+  type FormatType,
+} from "./FormattingToolbar.js";
 
 export interface SegmentedContentEditorHandle {
   focusFirst: () => void;
+  applyFormat: (type: FormatType, arg?: string) => void;
 }
 
 export interface ContentSegment {
@@ -68,6 +75,7 @@ export function SegmentedContentEditor({
   autoFocus,
   editorRef,
   onNavigateUp,
+  onActiveFormatsChange,
 }: {
   content: string;
   onChange: (value: string) => void;
@@ -77,11 +85,17 @@ export function SegmentedContentEditor({
   autoFocus?: boolean;
   editorRef?: Ref<SegmentedContentEditorHandle>;
   onNavigateUp?: () => void;
+  onActiveFormatsChange?: (formats: ActiveFormats) => void;
 }) {
   const textareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
   const checklistRefs = useRef<Record<number, ChecklistEditorHandle | null>>(
     {},
   );
+  const activeTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const pendingCursorRef = useRef<{
+    start: number;
+    end: number;
+  } | null>(null);
   const [pendingFocus, setPendingFocus] = useState<{
     segIndex: number;
     position: "first" | "last";
@@ -95,7 +109,7 @@ export function SegmentedContentEditor({
     dropped: boolean;
   } | null>(null);
 
-  // Expose focus methods
+  // Expose focus and formatting methods
   useImperativeHandle(editorRef ?? null, () => ({
     focusFirst: () => {
       const segments = segmentContent(content);
@@ -115,6 +129,25 @@ export function SegmentedContentEditor({
           el.selectionEnd = 0;
         }
       }
+    },
+    applyFormat: (type: FormatType, arg?: string) => {
+      const el = activeTextareaRef.current;
+      if (!el) return;
+
+      const text = el.value;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+
+      const result = applyFormatting(type, text, start, end, arg);
+
+      // Update the textarea value and trigger input event
+      el.value = result.text;
+      el.selectionStart = result.start;
+      el.selectionEnd = result.end;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+
+      // Store cursor position for restoration after re-render
+      pendingCursorRef.current = { start: result.start, end: result.end };
     },
   }));
 
@@ -152,6 +185,34 @@ export function SegmentedContentEditor({
     setPendingFocus(null);
   }, [pendingFocus, content]);
 
+  // Restore cursor position after formatting-triggered re-render
+  useEffect(() => {
+    if (!pendingCursorRef.current || !activeTextareaRef.current) return;
+    const el = activeTextareaRef.current;
+    const { start, end } = pendingCursorRef.current;
+    el.selectionStart = start;
+    el.selectionEnd = end;
+    pendingCursorRef.current = null;
+  });
+
+  // Report active formats when the selection/cursor changes
+  useEffect(() => {
+    if (!onActiveFormatsChange) return;
+    const handleSelectionChange = () => {
+      const el = activeTextareaRef.current;
+      if (!el || document.activeElement !== el) return;
+      const formats = detectActiveFormats(
+        el.value,
+        el.selectionStart,
+        el.selectionEnd,
+      );
+      onActiveFormatsChange(formats);
+    };
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () =>
+      document.removeEventListener("selectionchange", handleSelectionChange);
+  }, [onActiveFormatsChange]);
+
   // Focus first editable area on mount or when content becomes empty
   const didAutoFocus = useRef(false);
   const prevHadContent = useRef(content.length > 0);
@@ -184,6 +245,9 @@ export function SegmentedContentEditor({
           class="w-full bg-transparent outline-none text-sm font-mono"
           placeholder="Take a note..."
           value={content}
+          onFocus={(e) => {
+            activeTextareaRef.current = e.target as HTMLTextAreaElement;
+          }}
           onInput={(e) => onChange((e.target as HTMLTextAreaElement).value)}
           onKeyDown={(e) => {
             const el = e.target as HTMLTextAreaElement;
@@ -339,6 +403,9 @@ export function SegmentedContentEditor({
               ref={(el) => {
                 textareaRefs.current[seg.startLine] = el;
               }}
+              onFocus={(e) => {
+                activeTextareaRef.current = e.target as HTMLTextAreaElement;
+              }}
               class="w-full bg-transparent outline-none text-sm block"
               placeholder={!hasContent ? "Take a note..." : undefined}
               value={text}
@@ -423,6 +490,9 @@ export function SegmentedContentEditor({
         <textarea
           ref={(el) => {
             textareaRefs.current[-1] = el;
+          }}
+          onFocus={(e) => {
+            activeTextareaRef.current = e.target as HTMLTextAreaElement;
           }}
           class="w-full bg-transparent outline-none text-sm"
           placeholder="Take a note..."

@@ -29,6 +29,11 @@ import {
 } from "../colors.js";
 import { Dropdown } from "./Dropdown.js";
 import {
+  type ActiveFormats,
+  emptyFormats,
+  FormattingToolbar,
+} from "./FormattingToolbar.js";
+import {
   SegmentedContentEditor,
   type SegmentedContentEditorHandle,
 } from "./SegmentedContentEditor.js";
@@ -108,6 +113,8 @@ export function NoteEditor({
   const [showMenu, setShowMenu] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [rawMode, setRawMode] = useState(false);
+  const [activeFormats, setActiveFormats] =
+    useState<ActiveFormats>(emptyFormats);
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<SegmentedContentEditorHandle>(null);
@@ -185,6 +192,14 @@ export function NoteEditor({
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
         />
 
+        {!disabled && !contentLocked && (
+          <FormattingToolbar
+            onFormat={(type, arg) => contentRef.current?.applyFormat(type, arg)}
+            activeFormats={activeFormats}
+            disabled={disabled}
+          />
+        )}
+
         <div style={{ fontFamily: noteFontFamilies[font] || undefined }}>
           <SegmentedContentEditor
             content={content}
@@ -195,6 +210,7 @@ export function NoteEditor({
             autoFocus
             editorRef={contentRef}
             onNavigateUp={() => titleRef.current?.focus()}
+            onActiveFormatsChange={setActiveFormats}
           />
         </div>
 
