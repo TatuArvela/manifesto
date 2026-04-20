@@ -1,9 +1,19 @@
-import { nodeViewCtx } from "@milkdown/kit/core";
+import { nodeViewCtx, prosePluginsCtx } from "@milkdown/kit/core";
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import type { Node as ProseNode } from "@milkdown/kit/prose/model";
 import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
-import { TextSelection } from "@milkdown/kit/prose/state";
-import type { EditorView, NodeViewConstructor } from "@milkdown/kit/prose/view";
+import {
+  type EditorState,
+  Plugin,
+  PluginKey,
+  TextSelection,
+} from "@milkdown/kit/prose/state";
+import {
+  Decoration,
+  DecorationSet,
+  type EditorView,
+  type NodeViewConstructor,
+} from "@milkdown/kit/prose/view";
 
 const INDENT_PX = 24;
 const DRAG_THRESHOLD_PX = 4;
@@ -327,6 +337,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
   const checkboxStyler = document.createElement("span");
   const checkbox = document.createElement("input");
   const content = document.createElement("div");
+  const deleteButton = document.createElement("button");
   content.className = "task-item-content";
 
   const setItemAttrs = (n: ProseNode) => {
@@ -444,11 +455,40 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
   setItemAttrs(node);
   checkbox.checked = node.attrs.checked === true;
 
+  deleteButton.type = "button";
+  deleteButton.contentEditable = "false";
+  deleteButton.className = "task-item-delete text-black/40 dark:text-white/40";
+  deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  deleteButton.setAttribute("aria-label", "Remove item");
+  deleteButton.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  deleteButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!view.editable) return;
+    if (typeof getPos !== "function") return;
+    const position = getPos();
+    if (typeof position !== "number") return;
+    const current = view.state.doc.nodeAt(position);
+    if (!current || !isTaskItem(current)) return;
+    const delRange = getDeletionRange(
+      view.state.doc,
+      position,
+      current.nodeSize,
+    );
+    view.dispatch(view.state.tr.delete(delRange.from, delRange.to));
+    view.focus();
+  });
+
   checkboxWrapper.append(checkbox, checkboxStyler);
-  listItem.append(handleWrapper, checkboxWrapper, content);
+  listItem.append(handleWrapper, checkboxWrapper, content, deleteButton);
 
   const syncHandleVisibility = () => {
-    handleWrapper.style.display = view.editable ? "" : "none";
+    const display = view.editable ? "" : "none";
+    handleWrapper.style.display = display;
+    deleteButton.style.display = display;
   };
   syncHandleVisibility();
 
@@ -459,6 +499,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
       const target = event.target as HTMLElement;
       if (handleWrapper.contains(target)) return true;
       if (checkboxWrapper.contains(target)) return true;
+      if (deleteButton.contains(target)) return true;
       return false;
     },
     ignoreMutation: (mutation) => {
@@ -469,6 +510,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
       const target = mutation.target as Node;
       if (handleWrapper.contains(target)) return true;
       if (checkboxWrapper.contains(target)) return true;
+      if (deleteButton.contains(target)) return true;
       return false;
     },
     update: (updatedNode) => {
@@ -530,9 +572,44 @@ const listItemView: NodeViewConstructor = (
   };
 };
 
+const activeTaskItemKey = new PluginKey("manifestoActiveTaskItem");
+
+function buildActiveTaskItemDecorations(state: EditorState): DecorationSet {
+  const { $from } = state.selection;
+  for (let d = $from.depth; d > 0; d--) {
+    const node = $from.node(d);
+    if (isTaskItem(node)) {
+      const pos = $from.before(d);
+      return DecorationSet.create(state.doc, [
+        Decoration.node(pos, pos + node.nodeSize, {
+          class: "task-item-active",
+        }),
+      ]);
+    }
+  }
+  return DecorationSet.empty;
+}
+
+const activeTaskItemPlugin = new Plugin({
+  key: activeTaskItemKey,
+  state: {
+    init: (_config, state) => buildActiveTaskItemDecorations(state),
+    apply: (tr, old, _oldState, newState) => {
+      if (!tr.docChanged && !tr.selectionSet) return old;
+      return buildActiveTaskItemDecorations(newState);
+    },
+  },
+  props: {
+    decorations(state) {
+      return activeTaskItemKey.getState(state);
+    },
+  },
+});
+
 export const taskItemDraggable: MilkdownPlugin = (ctx) => () => {
   ctx.update(nodeViewCtx, (views) => [
     ...views,
     ["list_item", listItemView] as [string, NodeViewConstructor],
   ]);
+  ctx.update(prosePluginsCtx, (plugins) => [...plugins, activeTaskItemPlugin]);
 };

@@ -32,10 +32,17 @@ export function App() {
           class={`flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 ${isActive ? "-mt-4" : "pt-2"}`}
         >
           {isTagsView ? (
-            <>
-              <TagsView />
-              <NoteGrid />
-            </>
+            isList ? (
+              <div class="max-w-xl mx-auto">
+                <TagsView />
+                <NoteGrid />
+              </div>
+            ) : (
+              <>
+                <TagsView />
+                <NoteGrid />
+              </>
+            )
           ) : isList ? (
             <div class="max-w-xl mx-auto">
               <NoteInput />

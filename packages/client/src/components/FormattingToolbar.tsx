@@ -32,7 +32,7 @@ import {
   Underline,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import {
   toggleSubscriptCommand,
   toggleSuperscriptCommand,
@@ -171,19 +171,6 @@ function applyFormat(editor: Editor, type: FormatType, arg?: string): void {
     case "checklist":
       toggleChecklist(editor);
       break;
-    case "link": {
-      const state = editor.action((ctx) => ctx.get(editorStateCtx));
-      const linkMark = state.schema.marks.link;
-      if (linkMark && isMarkActive(state, linkMark)) {
-        editor.action(callCommand(toggleLinkCommand.key, {}));
-      } else {
-        const url = prompt("Enter URL:");
-        if (url) {
-          editor.action(callCommand(updateLinkCommand.key, { href: url }));
-        }
-      }
-      break;
-    }
     case "underline":
       editor.action(callCommand(toggleUnderlineCommand.key));
       break;
@@ -249,11 +236,41 @@ export function FormattingToolbar({
 }: FormattingToolbarProps) {
   const [showHeadingMenu, setShowHeadingMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showLinkMenu, setShowLinkMenu] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const linkInputRef = useRef<HTMLInputElement | null>(null);
   const [af, setAf] = useState<ActiveFormats>(emptyFormats);
 
   useEffect(() => {
     setAf(getActiveFormats(editor));
   }, [editor, tick]);
+
+  useEffect(() => {
+    if (showLinkMenu) linkInputRef.current?.focus();
+  }, [showLinkMenu]);
+
+  const closeLinkMenu = () => {
+    setShowLinkMenu(false);
+    setLinkUrl("");
+  };
+
+  const onLinkClick = () => {
+    if (af.link) {
+      editor.action(callCommand(toggleLinkCommand.key, {}));
+      return;
+    }
+    setLinkUrl("");
+    setShowLinkMenu(true);
+  };
+
+  const applyLink = () => {
+    const url = linkUrl.trim();
+    if (url) {
+      editor.action(callCommand(updateLinkCommand.key, { href: url }));
+    }
+    closeLinkMenu();
+    editor.action((ctx) => ctx.get(editorViewCtx).focus());
+  };
 
   const preventFocus = (e: MouseEvent) => e.preventDefault();
   const onFormat = (type: FormatType, arg?: string) =>
@@ -327,7 +344,51 @@ export function FormattingToolbar({
       {fmtBtn("italic", "Italic", <Italic class="w-4 h-4" />)}
       {fmtBtn("quote", "Quote", <Quote class="w-4 h-4" />)}
       {fmtBtn("code", "Code", <Code class="w-4 h-4" />)}
-      {fmtBtn("link", "Link", <Link class="w-4 h-4" />)}
+
+      <Dropdown
+        open={showLinkMenu}
+        onClose={closeLinkMenu}
+        trigger={
+          <Tooltip label="Link">
+            <button
+              type="button"
+              class={af.link ? btnActive : btnInactive}
+              onMouseDown={preventFocus}
+              onClick={onLinkClick}
+              aria-label="Link"
+              disabled={disabled}
+            >
+              <Link class="w-4 h-4" />
+            </button>
+          </Tooltip>
+        }
+        panelClass="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1.5 z-20"
+      >
+        <form
+          class="flex items-center gap-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            applyLink();
+          }}
+        >
+          <input
+            ref={linkInputRef}
+            type="url"
+            value={linkUrl}
+            onInput={(e) =>
+              setLinkUrl((e.target as HTMLInputElement).value)
+            }
+            placeholder="https://..."
+            class="px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 w-56"
+          />
+          <button
+            type="submit"
+            class="px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          >
+            Add
+          </button>
+        </form>
+      </Dropdown>
 
       <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 

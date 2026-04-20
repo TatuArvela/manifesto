@@ -530,6 +530,52 @@ body {
   opacity: 0.4;
 }
 
+/* Delete button — absolute-positioned at the right edge, only visible on
+   hover or when the cursor is within the item. */
+.milkdown-editor li[data-item-type="task"] > .task-item-delete {
+  position: absolute;
+  right: 0;
+  top: 0.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2em;
+  height: 1.2em;
+  padding: 0;
+  border: none;
+  border-radius: 0.25em;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
+}
+
+.milkdown-editor li[data-item-type="task"] > .task-item-delete:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .milkdown-editor li[data-item-type="task"] > .task-item-delete:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Only show the X on the innermost hovered/active item so nested levels
+   don't stack delete buttons at the same right edge. The `.task-item-active`
+   class is applied via a ProseMirror decoration on the task item containing
+   the selection — a plain `:focus-within` would match every ancestor, since
+   ProseMirror keeps focus on the root contenteditable. */
+.milkdown-editor
+  li[data-item-type="task"]:hover:not(:has(li[data-item-type="task"]:hover))
+  > .task-item-delete,
+.milkdown-editor
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-delete {
+  opacity: 1;
+}
+
 /* Floating drop indicator — positioned in document body during drag */
 .task-item-drop-indicator {
   position: fixed;
