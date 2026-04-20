@@ -27,8 +27,8 @@ Run a single test file: `pnpm --filter @manifesto/client vitest run src/path/to/
 pnpm monorepo with three packages:
 
 - **`packages/shared`** — TypeScript types and enums (`Note`, `NoteColor`, `NoteVersion`, API types). Imported by both client and server. No runtime dependencies — types only.
-- **`packages/client`** — Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind CSS for styling, Vitest for tests.
-- **`packages/server`** — Node.js + TypeScript, Hono, better-sqlite3. Optional — the client works standalone with localStorage.
+- **`packages/client`** — Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
+- **`packages/server`** — Node.js + TypeScript, Hono, better-sqlite3. Currently a placeholder (`src/` is empty); the client works standalone with localStorage.
 
 ### Key Design Decisions
 
@@ -50,18 +50,26 @@ State lives in `packages/client/src/state/` using @preact/signals:
 
 Notes have persistent version history stored LZ-String compressed in `localStorage` key `manifesto:versions`. Versions are saved automatically when the editor closes with changes (capturing the pre-edit state). Capped at 50 per note, pruned after 90 days. Storage module: `storage/VersionStorage.ts`. UI: `components/VersionHistory.tsx`, accessed via kebab menu in the note editor.
 
+### Editor
+
+Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor instance is wired up in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (called via `callCommand(undoCommand)` / `redoCommand`) — there is no separate undo/redo hook. Custom ProseMirror behavior lives in `packages/client/src/extensions/` (`manifestoInlineMarks` for inline marks, `taskItemDraggable` for drag-and-drop checklist items). Read-only previews are rendered by `utils/remarkRenderer.ts` (remark → rehype → sanitized HTML via DOMPurify).
+
+`MilkdownEditor` reads markdown via `getMarkdown()` and post-processes it (`unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with our preview.
+
 ### Component Patterns
 
 - **NoteEditor** is fully prop-driven (title, content, color, font, callbacks). Parent components (`NoteCardEditor`, `NoteInput`) own the state.
-- **NoteCardEditor** wraps NoteEditor for editing existing notes — manages auto-save (500ms debounce), undo/redo via `useUndoRedo` hook, and version history.
+- **NoteCardEditor** wraps NoteEditor for editing existing notes — manages auto-save (500ms debounce) and version history. Undo/redo is delegated to Milkdown.
 - **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) — `open`/`onClose`/`trigger`/`children` props.
 
 ### API Contract
 
+The server is unimplemented today, but `packages/shared/src/api.ts` already declares the wire types and `docs/specification/api.md` is the source of truth.
+
 - REST: `/api/notes`, `/api/search`, `/api/auth/*`
 - WebSocket: `ws(s)://server/api/ws` for real-time collaborative editing
 - All timestamps are ISO 8601 UTC strings
-- Note schema has 12 fields — see `docs/specification/data-model.md`
+- Note schema — see `docs/specification/data-model.md`
 
 ## Testing
 
