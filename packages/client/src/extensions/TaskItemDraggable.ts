@@ -1,7 +1,9 @@
-import { type Editor, getRenderedAttributes } from "@tiptap/core";
-import TaskItem from "@tiptap/extension-task-item";
-import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { TextSelection } from "@tiptap/pm/state";
+import { nodeViewCtx } from "@milkdown/kit/core";
+import type { MilkdownPlugin } from "@milkdown/kit/ctx";
+import type { Node as ProseNode } from "@milkdown/kit/prose/model";
+import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
+import { TextSelection } from "@milkdown/kit/prose/state";
+import type { EditorView, NodeViewConstructor } from "@milkdown/kit/prose/view";
 
 const INDENT_PX = 24;
 const DRAG_THRESHOLD_PX = 4;
@@ -17,7 +19,7 @@ type TaskItemInfo = {
 };
 
 type DragState = {
-  editor: Editor;
+  view: EditorView;
   sourcePos: number;
   sourceNodeSize: number;
   sourceLevel: number;
@@ -35,48 +37,53 @@ type DragState = {
   onUp: (e: PointerEvent) => void;
   onCancel: (e: PointerEvent) => void;
   onKeyDown: (e: KeyboardEvent) => void;
-  onEditorDestroy: () => void;
 };
 
 let dragState: DragState | null = null;
 
+function isTaskItem(node: ProseNode): boolean {
+  return node.type.name === "list_item" && node.attrs.checked != null;
+}
+
 function toggleSubtreeChecked(
-  editor: Editor,
+  view: EditorView,
   pos: number,
   checked: boolean,
 ): void {
-  const { tr } = editor.state;
+  const { tr } = view.state;
   const node = tr.doc.nodeAt(pos);
-  if (!node || node.type.name !== "taskItem") return;
+  if (!node || !isTaskItem(node)) return;
 
   tr.setNodeMarkup(pos, undefined, { ...node.attrs, checked });
 
   node.descendants((child, childPos) => {
-    if (child.type.name === "taskItem") {
-      const absPos = pos + 1 + childPos;
-      tr.setNodeMarkup(absPos, undefined, { ...child.attrs, checked });
+    if (isTaskItem(child)) {
+      tr.setNodeMarkup(pos + 1 + childPos, undefined, {
+        ...child.attrs,
+        checked,
+      });
     }
   });
 
-  editor.view.dispatch(tr);
+  view.dispatch(tr);
 }
 
-function getItemLevel(doc: ProseMirrorNode, pos: number): number {
+function getItemLevel(doc: ProseNode, pos: number): number {
   const $pos = doc.resolve(pos);
   let level = 0;
   for (let d = 0; d <= $pos.depth; d++) {
-    if ($pos.node(d).type.name === "taskList") level++;
+    const name = $pos.node(d).type.name;
+    if (name === "bullet_list" || name === "ordered_list") level++;
   }
   return level;
 }
 
-function collectTaskItems(editor: Editor): TaskItemInfo[] {
+function collectTaskItems(view: EditorView): TaskItemInfo[] {
   const items: TaskItemInfo[] = [];
-  const { doc } = editor.state;
-  doc.descendants((node, pos) => {
-    if (node.type.name !== "taskItem") return;
-    const level = getItemLevel(doc, pos);
-    const dom = editor.view.nodeDOM(pos);
+  view.state.doc.descendants((node, pos) => {
+    if (!isTaskItem(node)) return;
+    const level = getItemLevel(view.state.doc, pos);
+    const dom = view.nodeDOM(pos);
     if (!(dom instanceof HTMLElement)) return;
     const label = dom.querySelector(":scope > label");
     if (!(label instanceof HTMLElement)) return;
@@ -123,7 +130,7 @@ function computeTargetLevel(
 }
 
 function levelXFor(
-  editor: Editor,
+  view: EditorView,
   items: TaskItemInfo[],
   level: number,
 ): number {
@@ -131,7 +138,7 @@ function levelXFor(
   if (sameLevel) return sameLevel.labelX;
   const lev1 = items.find((i) => i.level === 1);
   const lev2 = items.find((i) => i.level === 2);
-  const editorRect = editor.view.dom.getBoundingClientRect();
+  const editorRect = view.dom.getBoundingClientRect();
   if (lev1 && lev2) {
     const delta = lev2.labelX - lev1.labelX;
     return lev1.labelX + (level - 1) * delta;
@@ -151,16 +158,13 @@ function slotY(items: TaskItemInfo[], slot: number): number {
       last.dom.getBoundingClientRect().bottom,
     );
   }
-  // Pin the indicator to the top of the item it will land before — this reads
-  // clearly as "drop above this item" rather than floating in a midpoint
-  // between rows (which can visually overlap the next item's row).
   return items[slot].label.getBoundingClientRect().top;
 }
 
-function positionIndicator(state: DragState, editor: Editor) {
+function positionIndicator(state: DragState) {
   const y = slotY(state.items, state.slot);
-  const x = levelXFor(editor, state.items, state.targetLevel);
-  const editorRect = editor.view.dom.getBoundingClientRect();
+  const x = levelXFor(state.view, state.items, state.targetLevel);
+  const editorRect = state.view.dom.getBoundingClientRect();
   state.indicator.style.top = `${y - INDICATOR_HEIGHT_PX / 2}px`;
   state.indicator.style.left = `${x}px`;
   state.indicator.style.width = `${Math.max(editorRect.right - x - 4, 40)}px`;
@@ -173,7 +177,7 @@ function createIndicator(): HTMLElement {
 }
 
 function getDeletionRange(
-  doc: ProseMirrorNode,
+  doc: ProseNode,
   pos: number,
   nodeSize: number,
 ): { from: number; to: number } {
@@ -182,7 +186,11 @@ function getDeletionRange(
   const $pos = doc.resolve(pos);
   for (let depth = $pos.depth; depth >= 1; depth--) {
     const parent = $pos.node(depth);
-    if (parent.type.name !== "taskList") break;
+    if (
+      parent.type.name !== "bullet_list" &&
+      parent.type.name !== "ordered_list"
+    )
+      break;
     if (parent.childCount !== 1) break;
     from = $pos.before(depth);
     to = $pos.after(depth);
@@ -192,7 +200,7 @@ function getDeletionRange(
 
 function applyDrop(state: DragState) {
   const {
-    editor,
+    view,
     sourcePos,
     sourceNodeSize,
     sourceLevel,
@@ -201,19 +209,19 @@ function applyDrop(state: DragState) {
     slot,
     targetLevel,
   } = state;
-  const { doc } = editor.state;
+  const doc = view.state.doc;
 
   const sourceNode = doc.nodeAt(sourcePos);
-  if (!sourceNode || sourceNode.type.name !== "taskItem") return;
+  if (!sourceNode || !isTaskItem(sourceNode)) return;
 
   const isNoMove = slot === sourceIdx || slot === sourceIdx + 1;
   let startLevel: number;
 
   if (isNoMove) {
     startLevel = sourceLevel;
-    const tr = editor.state.tr;
+    const tr = view.state.tr;
     tr.setSelection(TextSelection.near(tr.doc.resolve(sourcePos + 1)));
-    editor.view.dispatch(tr);
+    view.dispatch(tr);
   } else {
     let insertAt: number;
     if (slot < items.length) {
@@ -221,12 +229,13 @@ function applyDrop(state: DragState) {
       insertAt = next.pos;
       startLevel = next.level;
     } else {
-      // Insert at end of the outermost taskList containing the last item.
       const last = items[items.length - 1];
       const $last = doc.resolve(last.pos);
       let outerListDepth = -1;
       for (let depth = $last.depth; depth >= 1; depth--) {
-        if ($last.node(depth).type.name === "taskList") outerListDepth = depth;
+        const name = $last.node(depth).type.name;
+        if (name === "bullet_list" || name === "ordered_list")
+          outerListDepth = depth;
       }
       if (outerListDepth < 0) return;
       insertAt = $last.end(outerListDepth);
@@ -239,7 +248,7 @@ function applyDrop(state: DragState) {
     ).content;
     const delRange = getDeletionRange(doc, sourcePos, sourceNodeSize);
 
-    const tr = editor.state.tr;
+    const tr = view.state.tr;
     let movedPos: number;
 
     if (delRange.from < insertAt) {
@@ -253,13 +262,16 @@ function applyDrop(state: DragState) {
     }
 
     tr.setSelection(TextSelection.near(tr.doc.resolve(movedPos + 1)));
-    editor.view.dispatch(tr);
+    view.dispatch(tr);
   }
 
   const steps = targetLevel - startLevel;
+  const listItemType = view.state.schema.nodes.list_item;
+  if (!listItemType) return;
   for (let i = 0; i < Math.abs(steps); i++) {
-    if (steps > 0) editor.commands.sinkListItem("taskItem");
-    else editor.commands.liftListItem("taskItem");
+    const cmd =
+      steps > 0 ? sinkListItem(listItemType) : liftListItem(listItemType);
+    cmd(view.state, view.dispatch);
   }
 }
 
@@ -274,239 +286,15 @@ function endDrag(commit: boolean) {
   document.removeEventListener("pointerup", state.onUp, true);
   document.removeEventListener("pointercancel", state.onCancel, true);
   document.removeEventListener("keydown", state.onKeyDown, true);
-  state.editor.off("destroy", state.onEditorDestroy);
 
   if (commit && state.active) {
     try {
       applyDrop(state);
     } catch {
-      // Editor may have been torn down mid-drop; swallow to keep cleanup clean.
+      // View may have been torn down mid-drop; swallow to keep cleanup clean.
     }
   }
 }
-
-export const TaskItemDraggable = TaskItem.extend({
-  addNodeView() {
-    return ({ node, HTMLAttributes, getPos, editor }) => {
-      const listItem = document.createElement("li");
-      const handleWrapper = document.createElement("div");
-      const checkboxWrapper = document.createElement("label");
-      const checkboxStyler = document.createElement("span");
-      const checkbox = document.createElement("input");
-      const content = document.createElement("div");
-      content.className = "task-item-content";
-
-      handleWrapper.contentEditable = "false";
-      handleWrapper.className =
-        "task-item-drag-handle text-black/40 dark:text-white/40 cursor-grab active:cursor-grabbing";
-      handleWrapper.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>`;
-      handleWrapper.setAttribute("aria-label", "Drag to reorder");
-
-      checkboxWrapper.contentEditable = "false";
-      checkbox.type = "checkbox";
-      checkbox.addEventListener("mousedown", (event) => event.preventDefault());
-      checkbox.addEventListener("change", (event) => {
-        if (!editor.isEditable && !this.options.onReadOnlyChecked) {
-          checkbox.checked = !checkbox.checked;
-          return;
-        }
-
-        const { checked } = event.target as HTMLInputElement;
-
-        if (editor.isEditable && typeof getPos === "function") {
-          const position = getPos();
-          if (typeof position !== "number") return;
-          toggleSubtreeChecked(editor, position, checked);
-        }
-        if (!editor.isEditable && this.options.onReadOnlyChecked) {
-          if (
-            !this.options.onReadOnlyChecked(node, checked) ||
-            typeof getPos !== "function"
-          ) {
-            checkbox.checked = !checkbox.checked;
-            return;
-          }
-          const position = getPos();
-          if (typeof position !== "number") return;
-          toggleSubtreeChecked(editor, position, checked);
-        }
-      });
-
-      handleWrapper.addEventListener("pointerdown", (e: PointerEvent) => {
-        if (!editor.isEditable) return;
-        if (e.button !== 0) return;
-        const pos = typeof getPos === "function" ? (getPos() ?? -1) : -1;
-        if (pos < 0) return;
-
-        e.stopPropagation();
-        e.preventDefault();
-
-        const allItems = collectTaskItems(editor);
-        const sourceRaw = allItems.find((i) => i.pos === pos);
-        if (!sourceRaw) return;
-        // Drop targets exclude source's descendants — they move with source.
-        const items = allItems.filter(
-          (i) =>
-            i.pos === sourceRaw.pos ||
-            i.pos < sourceRaw.pos ||
-            i.pos >= sourceRaw.pos + sourceRaw.nodeSize,
-        );
-        const sourceIdx = items.findIndex((i) => i.pos === pos);
-        if (sourceIdx < 0) return;
-        const source = items[sourceIdx];
-
-        const indicator = createIndicator();
-        document.body.appendChild(indicator);
-
-        const onMove = (ev: PointerEvent) => onPointerMove(ev);
-        const onUp = (ev: PointerEvent) => {
-          if (!dragState || ev.pointerId !== dragState.pointerId) return;
-          endDrag(true);
-        };
-        const onCancel = (ev: PointerEvent) => {
-          if (!dragState || ev.pointerId !== dragState.pointerId) return;
-          endDrag(false);
-        };
-        const onKeyDown = (ev: KeyboardEvent) => {
-          if (ev.key === "Escape") endDrag(false);
-        };
-        const onEditorDestroy = () => endDrag(false);
-
-        dragState = {
-          editor,
-          sourcePos: source.pos,
-          sourceNodeSize: source.nodeSize,
-          sourceLevel: source.level,
-          sourceIdx,
-          sourceDom: listItem,
-          startX: e.clientX,
-          startY: e.clientY,
-          pointerId: e.pointerId,
-          active: false,
-          items,
-          slot: sourceIdx,
-          targetLevel: source.level,
-          indicator,
-          onMove,
-          onUp,
-          onCancel,
-          onKeyDown,
-          onEditorDestroy,
-        };
-
-        document.addEventListener("pointermove", onMove, true);
-        document.addEventListener("pointerup", onUp, true);
-        document.addEventListener("pointercancel", onCancel, true);
-        document.addEventListener("keydown", onKeyDown, true);
-        editor.on("destroy", onEditorDestroy);
-
-        try {
-          handleWrapper.setPointerCapture(e.pointerId);
-        } catch {
-          // setPointerCapture is best-effort; document-level listeners are the
-          // actual source of pointermove/up events during the drag.
-        }
-      });
-
-      // Suppress the native HTML5 drag that a draggable ancestor (e.g. the note
-      // card) would otherwise start when the user mousedowns on the handle.
-      handleWrapper.addEventListener("mousedown", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-      });
-      handleWrapper.addEventListener("dragstart", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      });
-
-      Object.entries(this.options.HTMLAttributes).forEach(([key, value]) => {
-        listItem.setAttribute(key, value);
-      });
-
-      listItem.dataset.checked = node.attrs.checked;
-      checkbox.checked = node.attrs.checked;
-
-      checkboxWrapper.append(checkbox, checkboxStyler);
-      listItem.append(handleWrapper, checkboxWrapper, content);
-
-      Object.entries(HTMLAttributes).forEach(([key, value]) => {
-        listItem.setAttribute(key, value);
-      });
-
-      let prevRenderedAttributeKeys = new Set(Object.keys(HTMLAttributes));
-
-      const syncHandleVisibility = () => {
-        handleWrapper.style.display = editor.isEditable ? "" : "none";
-      };
-      syncHandleVisibility();
-
-      return {
-        dom: listItem,
-        contentDOM: content,
-        stopEvent: (event: Event) => {
-          const target = event.target as HTMLElement;
-          if (handleWrapper.contains(target)) return true;
-          if (checkboxWrapper.contains(target)) return true;
-          return false;
-        },
-        ignoreMutation: (mutation) => {
-          // We mutate listItem's class (task-item-dragging) during drag and
-          // mutate handle/checkbox subtrees as pure UI chrome. Let ProseMirror
-          // ignore these so it doesn't tear down and rebuild the node view
-          // mid-drag (which would detach sourceDom and kill the drag).
-          if (mutation.type === "selection") return false;
-          if (mutation.target === listItem && mutation.type === "attributes") {
-            return true;
-          }
-          const target = mutation.target as Node;
-          if (handleWrapper.contains(target)) return true;
-          if (checkboxWrapper.contains(target)) return true;
-          return false;
-        },
-        update: (updatedNode) => {
-          if (updatedNode.type !== this.type) return false;
-
-          listItem.dataset.checked = updatedNode.attrs.checked;
-          checkbox.checked = updatedNode.attrs.checked;
-          syncHandleVisibility();
-
-          const extensionAttributes = editor.extensionManager.attributes;
-          const newHTMLAttributes = getRenderedAttributes(
-            updatedNode,
-            extensionAttributes,
-          );
-          const newKeys = new Set(Object.keys(newHTMLAttributes));
-          const staticAttrs = this.options.HTMLAttributes;
-
-          prevRenderedAttributeKeys.forEach((key) => {
-            if (!newKeys.has(key)) {
-              if (key in staticAttrs) {
-                listItem.setAttribute(key, staticAttrs[key]);
-              } else {
-                listItem.removeAttribute(key);
-              }
-            }
-          });
-
-          Object.entries(newHTMLAttributes).forEach(([key, value]) => {
-            if (value === null || value === undefined) {
-              if (key in staticAttrs) {
-                listItem.setAttribute(key, staticAttrs[key]);
-              } else {
-                listItem.removeAttribute(key);
-              }
-            } else {
-              listItem.setAttribute(key, value);
-            }
-          });
-
-          prevRenderedAttributeKeys = newKeys;
-          return true;
-        },
-      };
-    };
-  },
-});
 
 function onPointerMove(e: PointerEvent) {
   if (!dragState || e.pointerId !== dragState.pointerId) return;
@@ -529,5 +317,222 @@ function onPointerMove(e: PointerEvent) {
     dragState.sourceLevel,
     e.clientX - dragState.startX,
   );
-  positionIndicator(dragState, dragState.editor);
+  positionIndicator(dragState);
 }
+
+const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
+  const listItem = document.createElement("li");
+  const handleWrapper = document.createElement("div");
+  const checkboxWrapper = document.createElement("label");
+  const checkboxStyler = document.createElement("span");
+  const checkbox = document.createElement("input");
+  const content = document.createElement("div");
+  content.className = "task-item-content";
+
+  const setItemAttrs = (n: ProseNode) => {
+    listItem.dataset.itemType = "task";
+    listItem.dataset.checked = String(n.attrs.checked);
+    if (n.attrs.label != null) listItem.dataset.label = String(n.attrs.label);
+    if (n.attrs.listType != null)
+      listItem.dataset.listType = String(n.attrs.listType);
+    if (n.attrs.spread != null)
+      listItem.dataset.spread = String(n.attrs.spread);
+  };
+
+  handleWrapper.contentEditable = "false";
+  handleWrapper.className =
+    "task-item-drag-handle text-black/40 dark:text-white/40 cursor-grab active:cursor-grabbing";
+  handleWrapper.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>`;
+  handleWrapper.setAttribute("aria-label", "Drag to reorder");
+
+  checkboxWrapper.contentEditable = "false";
+  checkbox.type = "checkbox";
+  checkbox.addEventListener("mousedown", (event) => event.preventDefault());
+  checkbox.addEventListener("change", (event) => {
+    if (!view.editable) {
+      checkbox.checked = !checkbox.checked;
+      return;
+    }
+    const { checked } = event.target as HTMLInputElement;
+    if (typeof getPos !== "function") return;
+    const position = getPos();
+    if (typeof position !== "number") return;
+    toggleSubtreeChecked(view, position, checked);
+  });
+
+  handleWrapper.addEventListener("pointerdown", (e: PointerEvent) => {
+    if (!view.editable) return;
+    if (e.button !== 0) return;
+    const pos = typeof getPos === "function" ? (getPos() ?? -1) : -1;
+    if (pos < 0) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    const allItems = collectTaskItems(view);
+    const sourceRaw = allItems.find((i) => i.pos === pos);
+    if (!sourceRaw) return;
+    const items = allItems.filter(
+      (i) =>
+        i.pos === sourceRaw.pos ||
+        i.pos < sourceRaw.pos ||
+        i.pos >= sourceRaw.pos + sourceRaw.nodeSize,
+    );
+    const sourceIdx = items.findIndex((i) => i.pos === pos);
+    if (sourceIdx < 0) return;
+    const source = items[sourceIdx];
+
+    const indicator = createIndicator();
+    document.body.appendChild(indicator);
+
+    const onMove = (ev: PointerEvent) => onPointerMove(ev);
+    const onUp = (ev: PointerEvent) => {
+      if (!dragState || ev.pointerId !== dragState.pointerId) return;
+      endDrag(true);
+    };
+    const onCancel = (ev: PointerEvent) => {
+      if (!dragState || ev.pointerId !== dragState.pointerId) return;
+      endDrag(false);
+    };
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") endDrag(false);
+    };
+
+    dragState = {
+      view,
+      sourcePos: source.pos,
+      sourceNodeSize: source.nodeSize,
+      sourceLevel: source.level,
+      sourceIdx,
+      sourceDom: listItem,
+      startX: e.clientX,
+      startY: e.clientY,
+      pointerId: e.pointerId,
+      active: false,
+      items,
+      slot: sourceIdx,
+      targetLevel: source.level,
+      indicator,
+      onMove,
+      onUp,
+      onCancel,
+      onKeyDown,
+    };
+
+    document.addEventListener("pointermove", onMove, true);
+    document.addEventListener("pointerup", onUp, true);
+    document.addEventListener("pointercancel", onCancel, true);
+    document.addEventListener("keydown", onKeyDown, true);
+
+    try {
+      handleWrapper.setPointerCapture(e.pointerId);
+    } catch {
+      // setPointerCapture is best-effort; document-level listeners drive the drag.
+    }
+  });
+
+  // Suppress the native HTML5 drag from a draggable ancestor (e.g. the note card).
+  handleWrapper.addEventListener("mousedown", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  });
+  handleWrapper.addEventListener("dragstart", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  setItemAttrs(node);
+  checkbox.checked = node.attrs.checked === true;
+
+  checkboxWrapper.append(checkbox, checkboxStyler);
+  listItem.append(handleWrapper, checkboxWrapper, content);
+
+  const syncHandleVisibility = () => {
+    handleWrapper.style.display = view.editable ? "" : "none";
+  };
+  syncHandleVisibility();
+
+  return {
+    dom: listItem,
+    contentDOM: content,
+    stopEvent: (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (handleWrapper.contains(target)) return true;
+      if (checkboxWrapper.contains(target)) return true;
+      return false;
+    },
+    ignoreMutation: (mutation) => {
+      if (mutation.type === "selection") return false;
+      if (mutation.target === listItem && mutation.type === "attributes") {
+        return true;
+      }
+      const target = mutation.target as Node;
+      if (handleWrapper.contains(target)) return true;
+      if (checkboxWrapper.contains(target)) return true;
+      return false;
+    },
+    update: (updatedNode) => {
+      if (updatedNode.type !== node.type) return false;
+      if (!isTaskItem(updatedNode)) return false;
+      setItemAttrs(updatedNode);
+      checkbox.checked = updatedNode.attrs.checked === true;
+      syncHandleVisibility();
+      return true;
+    },
+    destroy: () => {
+      if (dragState && dragState.sourceDom === listItem) endDrag(false);
+    },
+  };
+};
+
+/**
+ * Wraps task list items (list_item with checked != null) in a NodeView that
+ * renders a drag handle, a styled checkbox, and supports pointer-based drag
+ * reorder with indent/outdent across the task subtree. Plain list_items
+ * (checked == null) fall back to default rendering.
+ */
+const listItemView: NodeViewConstructor = (
+  node,
+  view,
+  getPos,
+  decorations,
+  innerDecorations,
+) => {
+  if (isTaskItem(node)) {
+    return createTaskItemView(
+      node,
+      view,
+      getPos,
+      decorations,
+      innerDecorations,
+    );
+  }
+  // Plain list items: defer to default-style rendering with mirrored data attrs.
+  const li = document.createElement("li");
+  const contentEl = document.createElement("div");
+  li.appendChild(contentEl);
+  const syncAttrs = (n: ProseNode) => {
+    if (n.attrs.label != null) li.dataset.label = String(n.attrs.label);
+    if (n.attrs.listType != null)
+      li.dataset.listType = String(n.attrs.listType);
+    if (n.attrs.spread != null) li.dataset.spread = String(n.attrs.spread);
+  };
+  syncAttrs(node);
+  return {
+    dom: li,
+    contentDOM: contentEl,
+    update: (updated) => {
+      if (updated.type !== node.type) return false;
+      if (updated.attrs.checked != null) return false;
+      syncAttrs(updated);
+      return true;
+    },
+  };
+};
+
+export const taskItemDraggable: MilkdownPlugin = (ctx) => () => {
+  ctx.update(nodeViewCtx, (views) => [
+    ...views,
+    ["list_item", listItemView] as [string, NodeViewConstructor],
+  ]);
+};

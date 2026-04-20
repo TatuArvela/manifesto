@@ -1,9 +1,7 @@
 import type { Note } from "@manifesto/shared";
 import DOMPurify from "dompurify";
-import { Marked } from "marked";
 import { segmentContent } from "../utils/markdown.js";
-
-const marked = new Marked();
+import { renderMarkdown } from "../utils/remarkRenderer.js";
 
 /** Only allow safe HTML elements and attributes in rendered markdown. */
 const PURIFY_CONFIG = {
@@ -44,6 +42,8 @@ const PURIFY_CONFIG = {
     "sup",
     // Inline spans for styling
     "span",
+    // GFM task-list checkboxes (rendered by remark-gfm)
+    "input",
   ],
   ALLOWED_ATTR: [
     "href",
@@ -53,6 +53,9 @@ const PURIFY_CONFIG = {
     "alt",
     "title", // images
     "class", // styling
+    "type",
+    "checked",
+    "disabled", // task-list checkboxes
   ],
 };
 
@@ -71,7 +74,17 @@ export function ContentPreview({
 }) {
   if (!note.content) return null;
 
-  const segments = segmentContent(note.content);
+  // Drop empty text segments sandwiched between two checklist segments —
+  // they come from mdast's "spread" list serialization and would otherwise
+  // render as a full-line gap between items that visually belong together.
+  const rawSegments = segmentContent(note.content);
+  const segments = rawSegments.filter((seg, i) => {
+    if (seg.type !== "text") return true;
+    if (seg.lines.some((l) => l.trim() !== "")) return true;
+    const prev = rawSegments[i - 1];
+    const next = rawSegments[i + 1];
+    return !(prev?.type === "checklist" && next?.type === "checklist");
+  });
 
   // Count leading/trailing empty lines per segment for spacing
   const hasLeadingBlank = (seg: (typeof segments)[number]) =>
@@ -99,8 +112,8 @@ export function ContentPreview({
               {seg.lines.map((line, j) => {
                 const lineIndex = seg.startLine + j;
                 const indent = line.match(/^(\s*)/)?.[1].length ?? 0;
-                const unchecked = line.match(/^\s*(?:- )?\[ \] (.*)$/);
-                const checked = line.match(/^\s*(?:- )?\[x\] (.*)$/i);
+                const unchecked = line.match(/^\s*(?:[-*+] )?\[ \] (.*)$/);
+                const checked = line.match(/^\s*(?:[-*+] )?\[x\] (.*)$/i);
                 if (unchecked) {
                   return (
                     <div
@@ -156,7 +169,7 @@ export function ContentPreview({
           );
         }
         const html = DOMPurify.sanitize(
-          marked.parse(text, { breaks: true }) as string,
+          renderMarkdown(text),
           PURIFY_CONFIG,
         ) as string;
         return (

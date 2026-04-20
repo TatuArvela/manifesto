@@ -361,16 +361,11 @@ export async function toggleCheckbox(id: string, lineIndex: number) {
   if (!note) return;
   const lines = note.content.split("\n");
   const line = lines[lineIndex];
-  // Support both "- [ ] text" and "[] text" formats
-  if (/^- \[ \] /.test(line)) {
-    lines[lineIndex] = line.replace("- [ ] ", "- [x] ");
-  } else if (/^- \[x\] /i.test(line)) {
-    lines[lineIndex] = line.replace(/^- \[x\] /i, "- [ ] ");
-  } else if (/^\[ \] /.test(line)) {
-    lines[lineIndex] = line.replace("[ ] ", "[x] ");
-  } else if (/^\[x\] /i.test(line)) {
-    lines[lineIndex] = line.replace(/^\[x\] /i, "[ ] ");
-  }
+  const m = line.match(/^(\s*(?:[-*+] )?)\[([ xX])\] (.*)$/);
+  if (!m) return;
+  const [, prefix, marker, rest] = m;
+  const next = marker === " " ? "x" : " ";
+  lines[lineIndex] = `${prefix}[${next}] ${rest}`;
   await updateNote(id, { content: lines.join("\n") });
 }
 

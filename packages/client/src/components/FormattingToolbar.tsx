@@ -1,4 +1,19 @@
-import type { Editor } from "@tiptap/core";
+import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
+import {
+  toggleEmphasisCommand,
+  toggleInlineCodeCommand,
+  toggleLinkCommand,
+  toggleStrongCommand,
+  updateLinkCommand,
+  wrapInBlockquoteCommand,
+  wrapInBulletListCommand,
+  wrapInHeadingCommand,
+  wrapInOrderedListCommand,
+} from "@milkdown/kit/preset/commonmark";
+import { toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
+import type { MarkType, NodeType } from "@milkdown/kit/prose/model";
+import type { EditorState } from "@milkdown/kit/prose/state";
+import { callCommand } from "@milkdown/kit/utils";
 import {
   Bold,
   ChevronDown,
@@ -18,6 +33,11 @@ import {
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
+import {
+  toggleSubscriptCommand,
+  toggleSuperscriptCommand,
+  toggleUnderlineCommand,
+} from "../extensions/manifestoInlineMarks.js";
 import { Dropdown } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -68,90 +88,152 @@ export const emptyFormats: ActiveFormats = {
   superscript: false,
 };
 
-function getActiveFormats(editor: Editor): ActiveFormats {
-  return {
-    heading: editor.isActive("heading")
-      ? (editor.getAttributes("heading").level as number)
-      : false,
-    bold: editor.isActive("bold"),
-    italic: editor.isActive("italic"),
-    quote: editor.isActive("blockquote"),
-    code: editor.isActive("code"),
-    link: editor.isActive("link"),
-    numberedList: editor.isActive("orderedList"),
-    unorderedList: editor.isActive("bulletList"),
-    checklist: editor.isActive("taskList"),
-    strikethrough: editor.isActive("strike"),
-    underline: editor.isActive("underline"),
-    subscript: editor.isActive("subscript"),
-    superscript: editor.isActive("superscript"),
-  };
+function isMarkActive(state: EditorState, mark: MarkType | undefined): boolean {
+  if (!mark) return false;
+  const { from, $from, to, empty } = state.selection;
+  if (empty) return !!mark.isInSet(state.storedMarks || $from.marks());
+  return state.doc.rangeHasMark(from, to, mark);
 }
 
-function applyTiptapFormat(
-  editor: Editor,
-  type: FormatType,
-  arg?: string,
-): void {
-  const chain = editor.chain().focus();
+function findNodeAncestor(
+  state: EditorState,
+  type: NodeType | undefined,
+): { depth: number; attrs: Record<string, unknown> } | null {
+  if (!type) return null;
+  const { $from } = state.selection;
+  for (let depth = $from.depth; depth > 0; depth--) {
+    const node = $from.node(depth);
+    if (node.type === type) {
+      return { depth, attrs: node.attrs };
+    }
+  }
+  return null;
+}
 
+function getActiveFormats(editor: Editor): ActiveFormats {
+  return editor.action((ctx) => {
+    const state = ctx.get(editorStateCtx);
+    const { marks, nodes } = state.schema;
+
+    const headingNode = findNodeAncestor(state, nodes.heading);
+    const listItem = findNodeAncestor(state, nodes.list_item);
+
+    return {
+      heading: headingNode
+        ? (headingNode.attrs.level as number) || false
+        : false,
+      bold: isMarkActive(state, marks.strong),
+      italic: isMarkActive(state, marks.emphasis),
+      quote: !!findNodeAncestor(state, nodes.blockquote),
+      code: isMarkActive(state, marks.inlineCode),
+      link: isMarkActive(state, marks.link),
+      numberedList: !!findNodeAncestor(state, nodes.ordered_list),
+      unorderedList:
+        !!findNodeAncestor(state, nodes.bullet_list) &&
+        !(listItem && listItem.attrs.checked != null),
+      checklist: !!(listItem && listItem.attrs.checked != null),
+      strikethrough: isMarkActive(state, marks.strike_through),
+      underline: isMarkActive(state, marks.underline),
+      subscript: isMarkActive(state, marks.subscript),
+      superscript: isMarkActive(state, marks.superscript),
+    };
+  });
+}
+
+function applyFormat(editor: Editor, type: FormatType, arg?: string): void {
   switch (type) {
     case "bold":
-      chain.toggleBold().run();
+      editor.action(callCommand(toggleStrongCommand.key));
       break;
     case "italic":
-      chain.toggleItalic().run();
+      editor.action(callCommand(toggleEmphasisCommand.key));
       break;
     case "code":
-      chain.toggleCode().run();
+      editor.action(callCommand(toggleInlineCodeCommand.key));
       break;
     case "strikethrough":
-      chain.toggleStrike().run();
-      break;
-    case "underline":
-      chain.toggleUnderline().run();
-      break;
-    case "subscript":
-      chain.toggleSubscript().run();
-      break;
-    case "superscript":
-      chain.toggleSuperscript().run();
+      editor.action(callCommand(toggleStrikethroughCommand.key));
       break;
     case "heading": {
-      const level = (Number.parseInt(arg || "1", 10) || 1) as 1 | 2 | 3 | 4;
-      chain.toggleHeading({ level }).run();
+      const level = Number.parseInt(arg || "1", 10) || 1;
+      editor.action(callCommand(wrapInHeadingCommand.key, level));
       break;
     }
     case "quote":
-      chain.toggleBlockquote().run();
+      editor.action(callCommand(wrapInBlockquoteCommand.key));
       break;
     case "numberedList":
-      chain.toggleOrderedList().run();
+      editor.action(callCommand(wrapInOrderedListCommand.key));
       break;
     case "unorderedList":
-      chain.toggleBulletList().run();
+      editor.action(callCommand(wrapInBulletListCommand.key));
       break;
     case "checklist":
-      chain.toggleTaskList().run();
+      toggleChecklist(editor);
       break;
     case "link": {
-      if (editor.isActive("link")) {
-        chain.unsetLink().run();
+      const state = editor.action((ctx) => ctx.get(editorStateCtx));
+      const linkMark = state.schema.marks.link;
+      if (linkMark && isMarkActive(state, linkMark)) {
+        editor.action(callCommand(toggleLinkCommand.key, {}));
       } else {
         const url = prompt("Enter URL:");
         if (url) {
-          chain.setLink({ href: url }).run();
+          editor.action(callCommand(updateLinkCommand.key, { href: url }));
         }
       }
       break;
     }
+    case "underline":
+      editor.action(callCommand(toggleUnderlineCommand.key));
+      break;
+    case "subscript":
+      editor.action(callCommand(toggleSubscriptCommand.key));
+      break;
+    case "superscript":
+      editor.action(callCommand(toggleSuperscriptCommand.key));
+      break;
   }
 }
 
-// ── Toolbar component ──────────────────────────────────────────────
+/**
+ * Toggle list items between plain bullets and task items. If not already in
+ * a list, wrap first. Then flip `checked` between `null` (plain) and `false`
+ * (task, unchecked) on every list item in the selection.
+ */
+function toggleChecklist(editor: Editor): void {
+  const pre = editor.action((ctx) => ctx.get(editorStateCtx));
+  const listItemType = pre.schema.nodes.list_item;
+  if (!listItemType) return;
+
+  if (!findNodeAncestor(pre, listItemType)) {
+    editor.action(callCommand(wrapInBulletListCommand.key));
+  }
+
+  editor.action((ctx) => {
+    const state = ctx.get(editorStateCtx);
+    const view = ctx.get(editorViewCtx);
+    const current = findNodeAncestor(state, listItemType);
+    const isTaskItem = !!(current && current.attrs.checked != null);
+
+    const { from, to } = state.selection;
+    const tr = state.tr;
+    state.doc.nodesBetween(from, to, (node, pos) => {
+      if (node.type === listItemType) {
+        tr.setNodeMarkup(pos, undefined, {
+          ...node.attrs,
+          checked: isTaskItem ? null : false,
+        });
+      }
+      return true;
+    });
+    if (tr.docChanged) view.dispatch(tr);
+  });
+}
 
 interface FormattingToolbarProps {
   editor: Editor;
+  tick: number;
   disabled?: boolean;
 }
 
@@ -162,24 +244,20 @@ const btnActive = `${btnBase} bg-black/10 dark:bg-white/15`;
 
 export function FormattingToolbar({
   editor,
+  tick,
   disabled,
 }: FormattingToolbarProps) {
   const [showHeadingMenu, setShowHeadingMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
-  // Force re-render on every editor transaction so active format detection stays current
-  const [, setTxCount] = useState(0);
-  useEffect(() => {
-    const handler = () => setTxCount((c) => c + 1);
-    editor.on("transaction", handler);
-    return () => {
-      editor.off("transaction", handler);
-    };
-  }, [editor]);
+  const [af, setAf] = useState<ActiveFormats>(emptyFormats);
 
-  const af = getActiveFormats(editor);
+  useEffect(() => {
+    setAf(getActiveFormats(editor));
+  }, [editor, tick]);
+
   const preventFocus = (e: MouseEvent) => e.preventDefault();
   const onFormat = (type: FormatType, arg?: string) =>
-    applyTiptapFormat(editor, type, arg);
+    applyFormat(editor, type, arg);
 
   const isActive = (type: FormatType): boolean => {
     const v = af[type as keyof ActiveFormats];
@@ -208,7 +286,6 @@ export function FormattingToolbar({
 
   return (
     <div class="flex items-center gap-0.5 py-0.5 mb-2 border-b border-black/5 dark:border-white/5">
-      {/* Heading dropdown */}
       <Dropdown
         open={showHeadingMenu}
         onClose={() => setShowHeadingMenu(false)}
@@ -260,7 +337,6 @@ export function FormattingToolbar({
 
       <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
-      {/* More dropdown */}
       <Dropdown
         open={showMoreMenu}
         onClose={() => setShowMoreMenu(false)}
@@ -280,54 +356,32 @@ export function FormattingToolbar({
         }
         panelClass="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
       >
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-          onMouseDown={preventFocus}
-          onClick={() => {
-            onFormat("strikethrough");
-            setShowMoreMenu(false);
-          }}
-        >
-          <Strikethrough class="w-4 h-4" />
-          Strikethrough
-        </button>
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-          onMouseDown={preventFocus}
-          onClick={() => {
-            onFormat("underline");
-            setShowMoreMenu(false);
-          }}
-        >
-          <Underline class="w-4 h-4" />
-          Underline
-        </button>
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-          onMouseDown={preventFocus}
-          onClick={() => {
-            onFormat("subscript");
-            setShowMoreMenu(false);
-          }}
-        >
-          <Subscript class="w-4 h-4" />
-          Subscript
-        </button>
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-          onMouseDown={preventFocus}
-          onClick={() => {
-            onFormat("superscript");
-            setShowMoreMenu(false);
-          }}
-        >
-          <Superscript class="w-4 h-4" />
-          Superscript
-        </button>
+        {(
+          [
+            [
+              "strikethrough",
+              "Strikethrough",
+              <Strikethrough class="w-4 h-4" />,
+            ],
+            ["underline", "Underline", <Underline class="w-4 h-4" />],
+            ["subscript", "Subscript", <Subscript class="w-4 h-4" />],
+            ["superscript", "Superscript", <Superscript class="w-4 h-4" />],
+          ] as [FormatType, string, ComponentChildren][]
+        ).map(([type, label, icon]) => (
+          <button
+            key={type}
+            type="button"
+            class={`flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ${isActive(type) ? "bg-black/10 dark:bg-white/15" : ""}`}
+            onMouseDown={preventFocus}
+            onClick={() => {
+              onFormat(type);
+              setShowMoreMenu(false);
+            }}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
       </Dropdown>
     </div>
   );

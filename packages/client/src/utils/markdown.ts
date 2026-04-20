@@ -1,4 +1,4 @@
-const CHECKBOX_RE = /^(\s*)(?:- )?\[([ x])\] (.*)$/i;
+const CHECKBOX_RE = /^(\s*)(?:[-*+] )?\[([ x])\] (.*)$/i;
 
 export interface ContentSegment {
   type: "text" | "checklist";

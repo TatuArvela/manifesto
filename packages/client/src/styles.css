@@ -291,17 +291,14 @@ body {
   margin-bottom: 0.125em;
 }
 
-/* Task list items — remove bullet and align checkbox */
+/* Task list items — remove bullet; keep nested lists flowing below */
 .prose .task-list-item {
   list-style: none;
   margin-left: -1.5em;
-  display: flex;
-  align-items: baseline;
-  gap: 0.5em;
 }
 
-.prose .task-list-item input[type="checkbox"] {
-  margin: 0;
+.prose .task-list-item > input[type="checkbox"] {
+  margin-right: 0.4em;
   position: relative;
   top: 1px;
 }
@@ -391,37 +388,38 @@ body {
   color: #60a5fa;
 }
 
-/* ── Tiptap editor styles ──────────────────────────────────────────── */
+/* ── Milkdown editor styles ──────────────────────────────────────────── */
 
-.tiptap-editor .ProseMirror {
+.milkdown-editor .ProseMirror {
   outline: none;
 }
 
 /* Headings */
-.tiptap-editor h1 { font-size: 1.5em; font-weight: 700; line-height: 1.3; margin-top: 0.5em; margin-bottom: 0.25em; }
-.tiptap-editor h2 { font-size: 1.25em; font-weight: 600; line-height: 1.3; margin-top: 0.5em; margin-bottom: 0.25em; }
-.tiptap-editor h3 { font-size: 1.1em; font-weight: 600; line-height: 1.4; margin-top: 0.5em; margin-bottom: 0.25em; }
-.tiptap-editor h4 { font-size: 1em; font-weight: 600; line-height: 1.4; margin-top: 0.5em; margin-bottom: 0.25em; }
+.milkdown-editor h1 { font-size: 1.5em; font-weight: 700; line-height: 1.3; margin-top: 0.5em; margin-bottom: 0.25em; }
+.milkdown-editor h2 { font-size: 1.25em; font-weight: 600; line-height: 1.3; margin-top: 0.5em; margin-bottom: 0.25em; }
+.milkdown-editor h3 { font-size: 1.1em; font-weight: 600; line-height: 1.4; margin-top: 0.5em; margin-bottom: 0.25em; }
+.milkdown-editor h4 { font-size: 1em; font-weight: 600; line-height: 1.4; margin-top: 0.5em; margin-bottom: 0.25em; }
 
 /* Paragraphs */
-.tiptap-editor p { margin-top: 0.25em; margin-bottom: 0.25em; }
+.milkdown-editor p { margin-top: 0.25em; margin-bottom: 0.25em; }
 
 /* Lists */
-.tiptap-editor ul { list-style: disc; padding-left: 1.5em; margin-top: 0.25em; margin-bottom: 0.25em; }
-.tiptap-editor ol { list-style: decimal; padding-left: 1.5em; margin-top: 0.25em; margin-bottom: 0.25em; }
-.tiptap-editor li { margin-top: 0.125em; margin-bottom: 0.125em; }
-.tiptap-editor li p { margin: 0; }
+.milkdown-editor ul { list-style: disc; padding-left: 1.5em; margin-top: 0.25em; margin-bottom: 0.25em; }
+.milkdown-editor ol { list-style: decimal; padding-left: 1.5em; margin-top: 0.25em; margin-bottom: 0.25em; }
+.milkdown-editor li { margin-top: 0.125em; margin-bottom: 0.125em; }
+.milkdown-editor li p { margin: 0; }
 
-/* Task lists — no extra padding so checklists align with normal lists.
-   The drag handle hangs into the editor's p-4 gutter (see `left: -1.1em`). */
-.tiptap-editor ul[data-type="taskList"] {
+/* Task lists — Milkdown renders task items as `<li data-item-type="task"
+   data-checked="true|false">` inside a regular `<ul>`. The NodeView in
+   taskItemDraggable.ts provides the drag handle + real checkbox + content DOM. */
+.milkdown-editor ul:has(> li[data-item-type="task"]) {
   list-style: none;
   padding-left: 0;
   margin-top: 0.25em;
   margin-bottom: 0.25em;
 }
 
-.tiptap-editor ul[data-type="taskList"] li {
+.milkdown-editor li[data-item-type="task"] {
   position: relative;
   display: flex;
   align-items: flex-start;
@@ -430,40 +428,50 @@ body {
   margin-bottom: 0;
 }
 
-.tiptap-editor ul[data-type="taskList"] li > label {
+.milkdown-editor li[data-item-type="task"] > label {
   flex-shrink: 0;
   margin-top: 0.2em;
 }
 
-.tiptap-editor ul[data-type="taskList"] li > .task-item-content {
+.milkdown-editor li[data-item-type="task"] > .task-item-content {
   flex: 1;
   min-width: 0;
 }
 
-.tiptap-editor ul[data-type="taskList"] li > label input[type="checkbox"] {
+.milkdown-editor li[data-item-type="task"] > label input[type="checkbox"] {
   width: 1rem;
   height: 1rem;
   border-radius: 0.25rem;
   appearance: none;
   border: 2px solid #6b7280;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
   display: block;
+  margin: 0;
 }
 
-.tiptap-editor ul[data-type="taskList"] li > label input[type="checkbox"]:hover {
+.milkdown-editor li[data-item-type="task"] > label input[type="checkbox"]:hover {
   border-color: #4b5563;
 }
 
-.dark .tiptap-editor ul[data-type="taskList"] li > label input[type="checkbox"] {
+.dark .milkdown-editor li[data-item-type="task"] > label input[type="checkbox"] {
   border-color: #9ca3af;
 }
 
-.dark .tiptap-editor ul[data-type="taskList"] li > label input[type="checkbox"]:hover {
+.dark
+  .milkdown-editor
+  li[data-item-type="task"]
+  > label
+  input[type="checkbox"]:hover {
   border-color: #d1d5db;
 }
 
-.tiptap-editor ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+.milkdown-editor
+  li[data-item-type="task"]
+  > label
+  input[type="checkbox"]:checked {
   background-color: #3b82f6;
   border-color: #3b82f6;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
@@ -472,15 +480,22 @@ body {
   background-repeat: no-repeat;
 }
 
-.tiptap-editor ul[data-type="taskList"] li[data-checked="true"] > .task-item-content {
+.milkdown-editor
+  li[data-item-type="task"][data-checked="true"]
+  > .task-item-content {
   text-decoration: line-through;
-  opacity: 0.6;
+  color: #9ca3af;
 }
 
-/* Drag handle — absolute-positioned in the gutter, only visible on hover.
-   left/width kept small so it fits inside the editor wrapper's p-4 padding
-   now that the root taskList no longer carries its own padding-left. */
-.tiptap-editor ul[data-type="taskList"] li > .task-item-drag-handle {
+.dark
+  .milkdown-editor
+  li[data-item-type="task"][data-checked="true"]
+  > .task-item-content {
+  color: #6b7280;
+}
+
+/* Drag handle — absolute-positioned in the gutter, only visible on hover. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle {
   position: absolute;
   left: -1.1em;
   top: 0.2em;
@@ -491,22 +506,27 @@ body {
   height: 1em;
   border-radius: 0.25em;
   opacity: 0;
-  transition: opacity 0.15s, background-color 0.15s;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
 }
 
-.tiptap-editor ul[data-type="taskList"] li > .task-item-drag-handle:hover {
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-.dark .tiptap-editor ul[data-type="taskList"] li > .task-item-drag-handle:hover {
+.dark
+  .milkdown-editor
+  li[data-item-type="task"]
+  > .task-item-drag-handle:hover {
   background-color: rgba(255, 255, 255, 0.08);
 }
 
-.tiptap-editor ul[data-type="taskList"] li:hover > .task-item-drag-handle {
+.milkdown-editor li[data-item-type="task"]:hover > .task-item-drag-handle {
   opacity: 1;
 }
 
-.tiptap-editor ul[data-type="taskList"] li.task-item-dragging {
+.milkdown-editor li[data-item-type="task"].task-item-dragging {
   opacity: 0.4;
 }
 
@@ -537,14 +557,16 @@ body {
 /* Nested task lists — no extra padding (parent's checkbox+gap already
    shifts content right) and no vertical margin so nesting depth doesn't
    add cumulative top/bottom space. */
-.tiptap-editor ul[data-type="taskList"] ul[data-type="taskList"] {
+.milkdown-editor
+  ul:has(> li[data-item-type="task"])
+  ul:has(> li[data-item-type="task"]) {
   padding-left: 0;
   margin-top: 0;
   margin-bottom: 0;
 }
 
 /* Blockquotes */
-.tiptap-editor blockquote {
+.milkdown-editor blockquote {
   border-left: 3px solid #d1d5db;
   padding-left: 0.75em;
   margin-top: 0.5em;
@@ -552,24 +574,24 @@ body {
   color: #6b7280;
 }
 
-.dark .tiptap-editor blockquote {
+.dark .milkdown-editor blockquote {
   border-left-color: #4b5563;
   color: #9ca3af;
 }
 
 /* Code */
-.tiptap-editor code {
+.milkdown-editor code {
   font-size: 0.875em;
   background-color: #f3f4f6;
   padding: 0.125em 0.25em;
   border-radius: 0.25em;
 }
 
-.dark .tiptap-editor code {
+.dark .milkdown-editor code {
   background-color: #374151;
 }
 
-.tiptap-editor pre {
+.milkdown-editor pre {
   background-color: #1f2937;
   color: #f9fafb;
   padding: 0.75em 1em;
@@ -579,38 +601,38 @@ body {
   margin-bottom: 0.5em;
 }
 
-.tiptap-editor pre code {
+.milkdown-editor pre code {
   background: none;
   padding: 0;
   font-size: 0.85em;
 }
 
 /* Strong, emphasis, links */
-.tiptap-editor strong { font-weight: 600; }
+.milkdown-editor strong { font-weight: 600; }
 
-.tiptap-editor a {
+.milkdown-editor a {
   color: #2563eb;
   text-decoration: underline;
 }
 
-.dark .tiptap-editor a {
+.dark .milkdown-editor a {
   color: #60a5fa;
 }
 
 /* Horizontal rule */
-.tiptap-editor hr {
+.milkdown-editor hr {
   border: none;
   border-top: 1px solid #9ca3af;
   margin-top: 0.75em;
   margin-bottom: 0.75em;
 }
 
-.dark .tiptap-editor hr {
+.dark .milkdown-editor hr {
   border-top-color: #9ca3af;
 }
 
 /* Placeholder (empty editor) */
-.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+.milkdown-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: #9ca3af;
   pointer-events: none;

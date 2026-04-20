@@ -1,13 +1,11 @@
 import DOMPurify from "dompurify";
-import { Marked } from "marked";
 import { useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import type { SharedNotePayload } from "../sharing.js";
 import { clearShareHash } from "../sharing.js";
 import { createNote } from "../state/actions.js";
 import { showError, showSuccess } from "../state/ui.js";
-
-const marked = new Marked();
+import { renderMarkdown } from "../utils/remarkRenderer.js";
 
 export function SharedNoteDialog({
   payload,
@@ -45,9 +43,7 @@ export function SharedNoteDialog({
   };
 
   const contentHtml = payload.content
-    ? DOMPurify.sanitize(
-        marked.parse(payload.content, { breaks: true }) as string,
-      )
+    ? DOMPurify.sanitize(renderMarkdown(payload.content))
     : "";
 
   return (

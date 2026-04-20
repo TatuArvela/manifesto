@@ -1,5 +1,9 @@
 import { type NoteColor, NoteFont } from "@manifesto/shared";
-import type { Editor } from "@tiptap/core";
+import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
+import { redoCommand, undoCommand } from "@milkdown/kit/plugin/history";
+import { redoDepth, undoDepth } from "@milkdown/kit/prose/history";
+import { TextSelection } from "@milkdown/kit/prose/state";
+import { callCommand } from "@milkdown/kit/utils";
 import {
   Archive,
   ArchiveRestore,
@@ -30,8 +34,8 @@ import {
 } from "../colors.js";
 import { Dropdown } from "./Dropdown.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
+import { MilkdownEditor } from "./MilkdownEditor.js";
 import { TagPicker } from "./TagPicker.js";
-import { TiptapEditor } from "./TiptapEditor.js";
 import { Tooltip } from "./Tooltip.js";
 
 const iconBtnClass =
@@ -100,17 +104,32 @@ export function NoteEditor({
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [rawMode, setRawMode] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
-  // Counter to force re-renders on editor transactions (for undo/redo button state, toolbar active formats)
-  const [, setTxCount] = useState(0);
+  // Counter bumped on every editor transaction — drives undo/redo button
+  // state and toolbar active-format refresh.
+  const [txCount, setTxCount] = useState(0);
   const titleRef = useRef<HTMLInputElement>(null);
 
-  // Re-render on every editor transaction
   useEffect(() => {
     if (!editor) return;
-    const handler = () => setTxCount((c) => c + 1);
-    editor.on("transaction", handler);
+    let cancelled = false;
+    const dispatchRef: { prev: ((tr: unknown) => void) | null } = {
+      prev: null,
+    };
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const prev =
+        view.props.dispatchTransaction?.bind(view) ??
+        view.updateState.bind(view);
+      dispatchRef.prev = prev as (tr: unknown) => void;
+      view.setProps({
+        dispatchTransaction(tr) {
+          view.updateState(view.state.apply(tr));
+          if (!cancelled) setTxCount((c) => c + 1);
+        },
+      });
+    });
     return () => {
-      editor.off("transaction", handler);
+      cancelled = true;
     };
   }, [editor]);
 
@@ -130,8 +149,14 @@ export function NoteEditor({
     setShowTagPicker(false);
   };
 
-  const canUndo = editor?.can().undo() ?? false;
-  const canRedo = editor?.can().redo() ?? false;
+  const canUndo = editor
+    ? editor.action((ctx) => undoDepth(ctx.get(editorStateCtx)) > 0)
+    : false;
+  const canRedo = editor
+    ? editor.action((ctx) => redoDepth(ctx.get(editorStateCtx)) > 0)
+    : false;
+  // Reference txCount so the memo recomputes on each transaction.
+  void txCount;
 
   return (
     <article
@@ -164,7 +189,15 @@ export function NoteEditor({
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              editor?.commands.focus("start");
+              editor?.action((ctx) => {
+                const view = ctx.get(editorViewCtx);
+                view.focus();
+                view.dispatch(
+                  view.state.tr.setSelection(
+                    TextSelection.atStart(view.state.doc),
+                  ),
+                );
+              });
             }
           }}
           disabled={disabled}
@@ -172,11 +205,15 @@ export function NoteEditor({
         />
 
         {!disabled && !contentLocked && editor && (
-          <FormattingToolbar editor={editor} disabled={disabled} />
+          <FormattingToolbar
+            editor={editor}
+            tick={txCount}
+            disabled={disabled}
+          />
         )}
 
         <div style={{ fontFamily: noteFontFamilies[font] || undefined }}>
-          <TiptapEditor
+          <MilkdownEditor
             content={content}
             onChange={onContentChange}
             disabled={disabled}
@@ -438,7 +475,7 @@ export function NoteEditor({
           <button
             type="button"
             class={`${iconBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
-            onClick={() => editor?.commands.undo()}
+            onClick={() => editor?.action(callCommand(undoCommand.key))}
             aria-label="Undo"
             disabled={!canUndo}
           >
@@ -449,7 +486,7 @@ export function NoteEditor({
           <button
             type="button"
             class={`${iconBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
-            onClick={() => editor?.commands.redo()}
+            onClick={() => editor?.action(callCommand(redoCommand.key))}
             aria-label="Redo"
             disabled={!canRedo}
           >
