@@ -13,6 +13,7 @@ import {
   EllipsisVertical,
   Eye,
   History,
+  Image as ImageIcon,
   Link,
   Palette,
   PenLine,
@@ -34,6 +35,7 @@ import {
 } from "../colors.js";
 import { Dropdown } from "./Dropdown.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
+import { ImageGallery } from "./ImageGallery.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
@@ -52,6 +54,9 @@ interface NoteEditorProps {
   onColorChange: (color: NoteColor) => void;
   font: NoteFont;
   onFontChange: (font: NoteFont) => void;
+  images: string[];
+  onAddImages: (dataUrls: string[]) => void;
+  onRemoveImage: (index: number) => void;
   pinned: boolean;
   onPinToggle: () => void;
   tags: string[];
@@ -80,6 +85,9 @@ export function NoteEditor({
   onColorChange,
   font,
   onFontChange,
+  images,
+  onAddImages,
+  onRemoveImage,
   pinned,
   onPinToggle,
   tags,
@@ -108,6 +116,51 @@ export function NoteEditor({
   // state and toolbar active-format refresh.
   const [txCount, setTxCount] = useState(0);
   const titleRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const readFilesAsDataUrls = async (files: File[]): Promise<string[]> => {
+    const results = await Promise.all(
+      files.map(
+        (file) =>
+          new Promise<string | null>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    return results.filter((r): r is string => r !== null);
+  };
+
+  const handleFilesSelected = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const imageFiles = [...files].filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) return;
+    const urls = await readFilesAsDataUrls(imageFiles);
+    if (urls.length > 0) onAddImages(urls);
+  };
+
+  useEffect(() => {
+    if (disabled) return;
+    const handlePaste = async (e: ClipboardEvent) => {
+      if (!e.clipboardData) return;
+      const items = [...e.clipboardData.items].filter((it) =>
+        it.type.startsWith("image/"),
+      );
+      if (items.length === 0) return;
+      const files = items
+        .map((it) => it.getAsFile())
+        .filter((f): f is File => f !== null);
+      if (files.length === 0) return;
+      e.preventDefault();
+      const urls = await readFilesAsDataUrls(files);
+      if (urls.length > 0) onAddImages(urls);
+    };
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [disabled, onAddImages]);
 
   useEffect(() => {
     if (!editor) return;
@@ -176,6 +229,10 @@ export function NoteEditor({
           </button>
         </Tooltip>
       </div>
+
+      {images.length > 0 && (
+        <ImageGallery images={images} onDelete={onRemoveImage} />
+      )}
 
       {/* Content area */}
       <div class="p-4">
@@ -331,6 +388,31 @@ export function NoteEditor({
             </Tooltip>
           ))}
         </Dropdown>
+
+        {/* Add image */}
+        <Tooltip label="Add image">
+          <button
+            type="button"
+            class={iconBtnClass}
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Add image"
+            disabled={disabled}
+          >
+            <ImageIcon class="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          class="hidden"
+          onChange={(e) => {
+            const input = e.target as HTMLInputElement;
+            handleFilesSelected(input.files);
+            input.value = "";
+          }}
+        />
 
         {/* Kebab menu */}
         <Dropdown

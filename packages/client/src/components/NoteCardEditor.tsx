@@ -150,6 +150,15 @@ export function NoteCardEditor({
       }
       font={note.font}
       onFontChange={(font) => updateNote(note.id, { font })}
+      images={note.images}
+      onAddImages={(urls) =>
+        updateNote(note.id, { images: [...note.images, ...urls] })
+      }
+      onRemoveImage={(index) =>
+        updateNote(note.id, {
+          images: note.images.filter((_, i) => i !== index),
+        })
+      }
       pinned={note.pinned}
       onPinToggle={() => togglePin(note.id)}
       tags={note.tags}

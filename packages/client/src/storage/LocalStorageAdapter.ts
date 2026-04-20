@@ -15,7 +15,11 @@ function loadNotes(): Note[] {
   if (!raw) return [];
   try {
     const notes = JSON.parse(raw) as Note[];
-    return notes.map((n) => (n.font ? n : { ...n, font: NoteFont.Default }));
+    return notes.map((n) => ({
+      ...n,
+      font: n.font ?? NoteFont.Default,
+      images: n.images ?? [],
+    }));
   } catch {
     return [];
   }
@@ -49,6 +53,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       trashedAt: input.trashedAt ?? null,
       position: input.position ?? Date.now(),
       tags: input.tags ?? [],
+      images: input.images ?? [],
       createdAt: now,
       updatedAt: now,
     };

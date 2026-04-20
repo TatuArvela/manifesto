@@ -375,9 +375,7 @@ export function FormattingToolbar({
             ref={linkInputRef}
             type="url"
             value={linkUrl}
-            onInput={(e) =>
-              setLinkUrl((e.target as HTMLInputElement).value)
-            }
+            onInput={(e) => setLinkUrl((e.target as HTMLInputElement).value)}
             placeholder="https://..."
             class="px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 w-56"
           />

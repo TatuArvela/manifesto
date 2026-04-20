@@ -49,6 +49,7 @@ export function NoteInput() {
   const [font, setFont] = useState<NoteFont>(() => pickDefaultFont());
   const [pinned, setPinned] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
   const [liftRotation, setLiftRotation] = useState(0);
@@ -78,6 +79,7 @@ export function NoteInput() {
     setFont(pickDefaultFont());
     setPinned(false);
     setTags([]);
+    setImages([]);
   };
 
   const cycleCta = useCallback(() => {
@@ -95,7 +97,7 @@ export function NoteInput() {
   const closeModal = () => {
     setClosing(true);
     setTimeout(() => {
-      if (title.trim() || content.trim()) {
+      if (title.trim() || content.trim() || images.length > 0) {
         createNote({
           title: title.trim(),
           content: content.trim(),
@@ -103,6 +105,7 @@ export function NoteInput() {
           font,
           pinned,
           tags,
+          images,
         });
       }
       reset();
@@ -259,6 +262,11 @@ export function NoteInput() {
                 onColorChange={setColor}
                 font={font}
                 onFontChange={setFont}
+                images={images}
+                onAddImages={(urls) => setImages([...images, ...urls])}
+                onRemoveImage={(index) =>
+                  setImages(images.filter((_, i) => i !== index))
+                }
                 pinned={pinned}
                 onPinToggle={() => setPinned(!pinned)}
                 tags={tags}

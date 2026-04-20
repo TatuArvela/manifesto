@@ -30,6 +30,7 @@ export interface Note {
   trashedAt: string | null;
   position: number;
   tags: string[];
+  images: string[];
   createdAt: string;
   updatedAt: string;
 }

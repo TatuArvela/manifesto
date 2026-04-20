@@ -42,6 +42,7 @@ import {
 } from "../state/index.js";
 import { showSuccess } from "../state/ui.js";
 import { ContentPreview } from "./ContentPreview.js";
+import { ImageGallery } from "./ImageGallery.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
 import { CardPopover } from "./Popover.js";
@@ -211,6 +212,7 @@ function CardActions({
   note,
   isTrashView,
   isSelectMode,
+  overlay,
   colorBtnRef,
   menuBtnRef,
   onToggleColorPicker,
@@ -219,6 +221,7 @@ function CardActions({
   note: Note;
   isTrashView: boolean;
   isSelectMode: boolean;
+  overlay?: boolean;
   colorBtnRef: preact.Ref<HTMLButtonElement>;
   menuBtnRef: preact.Ref<HTMLButtonElement>;
   onToggleColorPicker: () => void;
@@ -229,10 +232,15 @@ function CardActions({
     /* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */
     <div
       class={clsx(
-        "mt-auto pt-3 -ml-1.5 flex items-center gap-1 transition-opacity",
+        "flex items-center gap-1 transition-opacity",
+        overlay
+          ? "absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-gradient-to-t from-black/60 to-transparent text-white"
+          : "mt-auto pt-3 -ml-1.5",
         isSelectMode ? "invisible" : "opacity-0 group-hover:opacity-100",
       )}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        if (e.target !== e.currentTarget) e.stopPropagation();
+      }}
     >
       {isTrashView ? (
         <>
@@ -312,6 +320,8 @@ export function NoteCard({
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const colors = noteColorMap[note.color];
   const isTrashView = activeView.value === "trash";
+  const hasImages = note.images.length > 0;
+  const isImageOnly = hasImages && !note.title && !note.content;
 
   // Show modal when editing starts
   useEffect(() => {
@@ -405,8 +415,8 @@ export function NoteCard({
             isSelected
               ? "ring-2 ring-blue-500 border-transparent"
               : colors.border,
-            "border p-4 transition-all duration-150 relative select-none overflow-hidden flex flex-col",
-            !isTrashView && "pb-2",
+            "border transition-all duration-150 relative select-none overflow-hidden flex flex-col",
+            isImageOnly ? "p-0" : !isTrashView ? "p-4 pb-2" : "p-4",
             "shadow-sm group-hover:shadow-lg",
             isEditing && !closing && "opacity-20",
             noteSize.value === "square" &&
@@ -470,6 +480,12 @@ export function NoteCard({
             )}
           </div>
 
+          {hasImages && (
+            <div class={isImageOnly ? "" : "-mx-4 -mt-4 mb-3"}>
+              <ImageGallery images={note.images} />
+            </div>
+          )}
+
           <div
             class={clsx(
               noteSize.value === "square" &&
@@ -509,6 +525,7 @@ export function NoteCard({
             note={note}
             isTrashView={isTrashView}
             isSelectMode={isSelectMode}
+            overlay={isImageOnly}
             colorBtnRef={colorBtnRef}
             menuBtnRef={menuBtnRef}
             onToggleColorPicker={() =>

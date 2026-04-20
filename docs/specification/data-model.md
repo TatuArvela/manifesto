@@ -20,6 +20,7 @@ A note is the fundamental entity in Manifesto.
 | `trashedAt` | `string \| null` | Yes      | ISO 8601 timestamp when trashed, `null` if not trashed |
 | `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
+| `images`    | `string[]`       | Yes      | Attached images as data URLs             |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
 | `updatedAt` | `string`         | Yes      | ISO 8601 last modification timestamp     |
 
@@ -86,6 +87,7 @@ A snapshot of a note's title and content at a point in time, used for [Version H
   "trashed": false,
   "trashedAt": null,
   "tags": ["personal"],
+  "images": [],
   "createdAt": "2026-04-10T10:30:00.000Z",
   "updatedAt": "2026-04-10T14:22:00.000Z"
 }
