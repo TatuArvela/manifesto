@@ -90,6 +90,38 @@ describe("Tiptap markdown round-trip", () => {
     expect(roundTrip("<sup>superscript</sup>")).toBe("<sup>superscript</sup>");
   });
 
+  it("preserves empty task items", () => {
+    const md = "- [ ] \n- [ ] Tes";
+    // Round-trips identically (no spurious bullet items spawned).
+    expect(roundTrip(md)).toBe(md);
+  });
+
+  it("preserves a standalone empty task item", () => {
+    // A single empty task item is a valid, common starting state.
+    expect(roundTrip("- [ ] ")).toBe("- [ ] ");
+  });
+
+  it("parses empty task items without trailing space", () => {
+    // After markdown-it strips trailing whitespace, parser still recognizes it.
+    const result = roundTrip("- [ ]\n- [ ] Tes");
+    expect(result).toBe("- [ ] \n- [ ] Tes");
+  });
+
+  it("treats blank lines between task items as list breaks", () => {
+    // CommonMark would merge these into one loose list; we split them so
+    // each item becomes its own checklist (matching VS Code's behavior).
+    const result = roundTrip("- [ ] a\n\n- [ ] b");
+    expect(result).toBe("- [ ] a\n\n- [ ] b");
+    // And it must stay stable on a second pass.
+    expect(roundTrip(result)).toBe(result);
+  });
+
+  it("keeps tight task lists tight", () => {
+    // No blank line → single list, no splitting.
+    const md = "- [ ] a\n- [ ] b";
+    expect(roundTrip(md)).toBe(md);
+  });
+
   it("preserves mixed content", () => {
     const md = [
       "# Title",

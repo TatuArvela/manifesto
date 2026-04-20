@@ -144,7 +144,17 @@ export function ContentPreview({
         }
         // Render text block as markdown
         const text = seg.lines.join("\n");
-        if (!text.trim()) return null;
+        if (!text.trim()) {
+          // Empty text segment between checklists — render a spacer that
+          // mirrors the editor's empty <p><br></p> so spacing matches.
+          return (
+            <div
+              key={seg.startLine}
+              aria-hidden="true"
+              style={{ height: `${seg.lines.length * 1.25}em` }}
+            />
+          );
+        }
         const html = DOMPurify.sanitize(
           marked.parse(text, { breaks: true }) as string,
           PURIFY_CONFIG,

@@ -395,7 +395,6 @@ body {
 
 .tiptap-editor .ProseMirror {
   outline: none;
-  min-height: 80px;
 }
 
 /* Headings */

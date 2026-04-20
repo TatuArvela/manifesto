@@ -1,11 +1,11 @@
 import { type Editor, Extension } from "@tiptap/core";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
-import TaskList from "@tiptap/extension-task-list";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import { TaskItemDraggable } from "../extensions/TaskItemDraggable.js";
+import { TaskListMarkdown } from "../extensions/TaskListMarkdown.js";
 import { useTiptapEditor } from "../hooks/useTiptapEditor.js";
 
 export function getMarkdown(editor: Editor): string {
@@ -52,7 +52,7 @@ export const tiptapExtensions = [
   }),
   Subscript,
   Superscript,
-  TaskList,
+  TaskListMarkdown,
   TaskItemDraggable.configure({
     nested: true,
     onReadOnlyChecked: () => true,
@@ -150,7 +150,7 @@ export function TiptapEditor({
       />
       <div
         ref={mountRef}
-        class="tiptap-editor w-full min-h-20 outline-none text-sm"
+        class="tiptap-editor w-full outline-none text-sm"
         style={{ display: rawMode ? "none" : "" }}
       />
     </>
