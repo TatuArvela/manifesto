@@ -1,4 +1,5 @@
 import { type NoteColor, NoteFont } from "@manifesto/shared";
+import type { Editor } from "@tiptap/core";
 import {
   Archive,
   ArchiveRestore,
@@ -28,16 +29,9 @@ import {
   noteFontFamilies,
 } from "../colors.js";
 import { Dropdown } from "./Dropdown.js";
-import {
-  type ActiveFormats,
-  emptyFormats,
-  FormattingToolbar,
-} from "./FormattingToolbar.js";
-import {
-  SegmentedContentEditor,
-  type SegmentedContentEditorHandle,
-} from "./SegmentedContentEditor.js";
+import { FormattingToolbar } from "./FormattingToolbar.js";
 import { TagPicker } from "./TagPicker.js";
+import { TiptapEditor } from "./TiptapEditor.js";
 import { Tooltip } from "./Tooltip.js";
 
 const iconBtnClass =
@@ -60,10 +54,6 @@ interface NoteEditorProps {
   onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
   onDone: () => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
   disabled?: boolean;
   contentLocked?: boolean;
   metadata?: ComponentChildren;
@@ -92,10 +82,6 @@ export function NoteEditor({
   onAddTag,
   onRemoveTag,
   onDone,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
   disabled,
   contentLocked,
   metadata,
@@ -113,29 +99,20 @@ export function NoteEditor({
   const [showMenu, setShowMenu] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [rawMode, setRawMode] = useState(false);
-  const [activeFormats, setActiveFormats] =
-    useState<ActiveFormats>(emptyFormats);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  // Counter to force re-renders on editor transactions (for undo/redo button state, toolbar active formats)
+  const [, setTxCount] = useState(0);
   const titleRef = useRef<HTMLInputElement>(null);
-  const contentRef = useRef<SegmentedContentEditorHandle>(null);
 
-  // Ctrl/Cmd+Z for undo, Ctrl/Cmd+Shift+Z for redo
+  // Re-render on every editor transaction
   useEffect(() => {
-    if (!onUndo && !onRedo) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) return;
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        onUndo?.();
-      } else if (mod && e.key === "z" && e.shiftKey) {
-        e.preventDefault();
-        onRedo?.();
-      }
+    if (!editor) return;
+    const handler = () => setTxCount((c) => c + 1);
+    editor.on("transaction", handler);
+    return () => {
+      editor.off("transaction", handler);
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onUndo, onRedo]);
+  }, [editor]);
 
   const colors = noteColorMap[color];
 
@@ -153,9 +130,11 @@ export function NoteEditor({
     setShowTagPicker(false);
   };
 
+  const canUndo = editor?.can().undo() ?? false;
+  const canRedo = editor?.can().redo() ?? false;
+
   return (
     <article
-      ref={containerRef}
       class={`${colors.bg} ${colors.border} border shadow-lg relative z-10`}
     >
       {/* Top-right: pin */}
@@ -185,32 +164,26 @@ export function NoteEditor({
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              contentRef.current?.focusFirst();
+              editor?.commands.focus("start");
             }
           }}
           disabled={disabled}
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
         />
 
-        {!disabled && !contentLocked && (
-          <FormattingToolbar
-            onFormat={(type, arg) => contentRef.current?.applyFormat(type, arg)}
-            activeFormats={activeFormats}
-            disabled={disabled}
-          />
+        {!disabled && !contentLocked && editor && (
+          <FormattingToolbar editor={editor} disabled={disabled} />
         )}
 
         <div style={{ fontFamily: noteFontFamilies[font] || undefined }}>
-          <SegmentedContentEditor
+          <TiptapEditor
             content={content}
             onChange={onContentChange}
             disabled={disabled}
             contentLocked={contentLocked}
             rawMode={rawMode}
             autoFocus
-            editorRef={contentRef}
-            onNavigateUp={() => titleRef.current?.focus()}
-            onActiveFormatsChange={setActiveFormats}
+            onEditorReady={setEditor}
           />
         </div>
 
@@ -461,32 +434,28 @@ export function NoteEditor({
         </Tooltip>
 
         {/* Undo / Redo */}
-        {onUndo && (
-          <Tooltip label="Undo">
-            <button
-              type="button"
-              class={`${iconBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
-              onClick={onUndo}
-              aria-label="Undo"
-              disabled={!canUndo}
-            >
-              <Undo class="w-4 h-4" />
-            </button>
-          </Tooltip>
-        )}
-        {onRedo && (
-          <Tooltip label="Redo">
-            <button
-              type="button"
-              class={`${iconBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
-              onClick={onRedo}
-              aria-label="Redo"
-              disabled={!canRedo}
-            >
-              <Redo class="w-4 h-4" />
-            </button>
-          </Tooltip>
-        )}
+        <Tooltip label="Undo">
+          <button
+            type="button"
+            class={`${iconBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
+            onClick={() => editor?.commands.undo()}
+            aria-label="Undo"
+            disabled={!canUndo}
+          >
+            <Undo class="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <Tooltip label="Redo">
+          <button
+            type="button"
+            class={`${iconBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
+            onClick={() => editor?.commands.redo()}
+            aria-label="Redo"
+            disabled={!canRedo}
+          >
+            <Redo class="w-4 h-4" />
+          </button>
+        </Tooltip>
 
         <div class="flex-1" />
 

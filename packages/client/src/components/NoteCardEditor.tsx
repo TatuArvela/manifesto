@@ -1,6 +1,5 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useUndoRedo } from "../hooks/useUndoRedo.js";
 import { buildShareUrl } from "../sharing.js";
 import {
   archiveNote,
@@ -34,8 +33,8 @@ export function NoteCardEditor({
   note: Note;
   onClose: () => void;
 }) {
-  const { title, content, setTitle, setContent, undo, redo, canUndo, canRedo } =
-    useUndoRedo(note.title, note.content);
+  const [title, setTitle] = useState(note.title);
+  const [content, setContent] = useState(note.content);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const [showVersions, setShowVersions] = useState(false);
 
@@ -111,7 +110,7 @@ export function NoteCardEditor({
     };
   }, [title, content]);
 
-  // Auto-save on any title/content change (typing, undo, redo)
+  // Auto-save on any title/content change
   useEffect(() => {
     if (title === note.title && content === note.content) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -175,10 +174,6 @@ export function NoteCardEditor({
         showSuccess("Link copied to clipboard");
       }}
       onDone={saveAndClose}
-      onUndo={undo}
-      onRedo={redo}
-      canUndo={canUndo}
-      canRedo={canRedo}
       metadata={
         <div class="flex gap-3 mt-3 text-xs text-black/40 dark:text-white/40">
           <span>Created {formatDateTime(note.createdAt)}</span>

@@ -1,7 +1,7 @@
 import type { Note } from "@manifesto/shared";
 import DOMPurify from "dompurify";
 import { Marked } from "marked";
-import { segmentContent } from "./SegmentedContentEditor.js";
+import { segmentContent } from "../utils/markdown.js";
 
 const marked = new Marked();
 

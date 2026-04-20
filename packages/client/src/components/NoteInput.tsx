@@ -5,7 +5,6 @@ import {
 } from "@manifesto/shared";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteEdgeColors } from "../colors.js";
-import { useUndoRedo } from "../hooks/useUndoRedo.js";
 import {
   activeView,
   createNote,
@@ -41,17 +40,8 @@ function randomCta(exclude?: string): string {
 
 export function NoteInput() {
   const [expanded, setExpanded] = useState(false);
-  const {
-    title,
-    content,
-    setTitle,
-    setContent,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    reset: resetUndoRedo,
-  } = useUndoRedo("", "");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [color, setColor] = useState<NoteColor>(() => pickDefaultColor());
   const [nextColor, setNextColor] = useState<NoteColor>(() =>
     pickDefaultColor(),
@@ -81,7 +71,8 @@ export function NoteInput() {
   if (activeView.value !== "active") return null;
 
   const reset = () => {
-    resetUndoRedo("", "");
+    setTitle("");
+    setContent("");
     setColor(nextColor);
     setNextColor(pickDefaultColor());
     setFont(pickDefaultFont());
@@ -278,10 +269,6 @@ export function NoteInput() {
                 }}
                 onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
                 onDone={closeModal}
-                onUndo={undo}
-                onRedo={redo}
-                canUndo={canUndo}
-                canRedo={canRedo}
                 onDelete={discardNote}
                 deleteLabel="Discard"
               />

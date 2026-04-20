@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isChecklistLine } from "./ChecklistEditor.js";
-import { segmentContent } from "./SegmentedContentEditor.js";
+import { isChecklistLine, segmentContent } from "./markdown.js";
 
 describe("isChecklistLine", () => {
   it("matches standard checklist syntax", () => {
