@@ -1,6 +1,6 @@
 import { signal } from "@preact/signals";
 
-export type AppView = "active" | "tags" | "archived" | "trash";
+export type AppView = "active" | "tags" | "reminders" | "archived" | "trash";
 
 export const activeView = signal<AppView>("active");
 export const activeTag = signal<string | null>(null);

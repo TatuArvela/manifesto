@@ -20,6 +20,7 @@ function loadNotes(): Note[] {
       font: n.font ?? NoteFont.Default,
       images: n.images ?? [],
       linkPreviews: n.linkPreviews ?? [],
+      reminder: n.reminder ?? null,
     }));
   } catch {
     return [];
@@ -56,6 +57,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       tags: input.tags ?? [],
       images: input.images ?? [],
       linkPreviews: input.linkPreviews ?? [],
+      reminder: input.reminder ?? null,
       createdAt: now,
       updatedAt: now,
     };

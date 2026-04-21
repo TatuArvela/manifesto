@@ -3,6 +3,7 @@ import clsx from "clsx";
 import {
   Archive,
   ArchiveRestore,
+  Bell,
   Copy,
   EllipsisVertical,
   Link,
@@ -46,6 +47,8 @@ import { LinkPreviewList } from "./LinkPreviewList.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
 import { CardPopover } from "./Popover.js";
+import { ReminderChip } from "./ReminderChip.js";
+import { ReminderPickerPanel } from "./ReminderPicker.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -92,12 +95,14 @@ function CardMenu({
   onClose: () => void;
 }) {
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   return (
     <CardPopover
       anchorRef={anchorRef}
       onClose={() => {
         setShowTagPicker(false);
+        setShowReminderPicker(false);
         onClose();
       }}
     >
@@ -123,6 +128,30 @@ function CardMenu({
                 }
               }}
             />
+          )}
+        </div>
+
+        {/* Reminder */}
+        <div class="relative">
+          <button
+            type="button"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            onClick={() => setShowReminderPicker(!showReminderPicker)}
+          >
+            <Bell class="w-4 h-4" />
+            {t("noteCard.menu.reminder")}
+          </button>
+          {showReminderPicker && (
+            <div class="px-3 py-2">
+              <ReminderPickerPanel
+                reminder={note.reminder}
+                onChange={(reminder) => updateNote(note.id, { reminder })}
+                onDone={() => {
+                  setShowReminderPicker(false);
+                  onClose();
+                }}
+              />
+            </div>
           )}
         </div>
 
@@ -337,9 +366,12 @@ export function NoteCard({
   const isSelected = selectedNotes.value.has(note.id);
   const [showModal, setShowModal] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [openPopover, setOpenPopover] = useState<"color" | "menu" | null>(null);
+  const [openPopover, setOpenPopover] = useState<
+    "color" | "menu" | "reminder" | null
+  >(null);
   const colorBtnRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const reminderChipRef = useRef<HTMLButtonElement>(null);
   const colors = noteColorMap[note.color];
   const isTrashView = activeView.value === "trash";
   const hasImages = note.images.length > 0;
@@ -570,8 +602,20 @@ export function NoteCard({
                 </div>
               )}
 
-              {note.tags.length > 0 && (
-                <div class="mt-3 flex flex-wrap gap-1">
+              {(note.tags.length > 0 || note.reminder) && (
+                <div class="mt-3 flex flex-wrap gap-1 items-center">
+                  {note.reminder && (
+                    <ReminderChip
+                      reminder={note.reminder}
+                      anchorRef={reminderChipRef}
+                      onClick={() =>
+                        setOpenPopover(
+                          openPopover === "reminder" ? null : "reminder",
+                        )
+                      }
+                      onClear={() => updateNote(note.id, { reminder: null })}
+                    />
+                  )}
                   {note.tags.map((tag) => (
                     <span
                       key={tag}
@@ -621,6 +665,21 @@ export function NoteCard({
             anchorRef={menuBtnRef}
             onClose={() => setOpenPopover(null)}
           />
+        )}
+
+        {openPopover === "reminder" && (
+          <CardPopover
+            anchorRef={reminderChipRef}
+            onClose={() => setOpenPopover(null)}
+          >
+            <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-72">
+              <ReminderPickerPanel
+                reminder={note.reminder}
+                onChange={(reminder) => updateNote(note.id, { reminder })}
+                onDone={() => setOpenPopover(null)}
+              />
+            </div>
+          </CardPopover>
         )}
       </div>
 

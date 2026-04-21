@@ -176,6 +176,8 @@ export function NoteCardEditor({
       onRemoveTag={(tag) =>
         updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) })
       }
+      reminder={note.reminder}
+      onReminderChange={(reminder) => updateNote(note.id, { reminder })}
       onShowVersions={() => setShowVersions(true)}
       onShare={() => {
         const url = buildShareUrl({

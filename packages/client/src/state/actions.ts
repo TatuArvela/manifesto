@@ -47,6 +47,9 @@ export const filteredNotes = computed(() => {
         result = result.filter((n) => n.tags.includes(tag));
       }
       break;
+    case "reminders":
+      result = result.filter((n) => n.reminder && !n.trashed);
+      break;
     case "archived":
       result = result.filter((n) => n.archived && !n.trashed);
       break;
@@ -70,6 +73,12 @@ export const filteredNotes = computed(() => {
 
 export const sortedNotes = computed(() => {
   const result = [...filteredNotes.value];
+  if (activeView.value === "reminders") {
+    result.sort((a, b) =>
+      (a.reminder?.time ?? "").localeCompare(b.reminder?.time ?? ""),
+    );
+    return result;
+  }
   switch (sortMode.value) {
     case "updated":
       result.sort(
@@ -173,6 +182,7 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
     tags: input.tags ?? [],
     images: input.images ?? [],
     linkPreviews: input.linkPreviews ?? [],
+    reminder: input.reminder ?? null,
   };
   try {
     const note = await storage.create(noteCreate);

@@ -29,6 +29,7 @@ describe("LocalStorageAdapter", () => {
     tags: ["test"],
     images: [],
     linkPreviews: [],
+    reminder: null,
   };
 
   it("creates and retrieves a note", async () => {
@@ -121,6 +122,7 @@ describe("LocalStorageAdapter", () => {
       tags: [],
       images: [],
       linkPreviews: [],
+      reminder: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

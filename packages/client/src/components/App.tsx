@@ -1,9 +1,19 @@
+import { effect } from "@preact/signals";
 import { useEffect, useState } from "preact/hooks";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
-import { activeView, loadNotes, viewMode } from "../state/index.js";
+import {
+  activeView,
+  editingNoteId,
+  loadNotes,
+  notes,
+  updateNote,
+  viewMode,
+} from "../state/index.js";
+import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { Header } from "./Header.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
+import { ReminderBanner } from "./ReminderBanner.js";
 import { SettingsDialog } from "./SettingsDialog.js";
 import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { Sidebar } from "./Sidebar.js";
@@ -15,8 +25,23 @@ export function App() {
 
   useEffect(() => {
     loadNotes();
+    initReminderScheduler({
+      notes: () => notes.value,
+      subscribe: (listener) => effect(() => listener(notes.value)),
+      updateNote: (id, changes) => {
+        void updateNote(id, changes);
+      },
+    });
+    const openHandler = (event: Event) => {
+      const detail = (event as CustomEvent<{ noteId: string }>).detail;
+      if (detail?.noteId) editingNoteId.value = detail.noteId;
+    };
+    window.addEventListener("reminder:open-note", openHandler);
     const payload = decodeShareFromHash(window.location.hash);
     if (payload) setSharedNote(payload);
+    return () => {
+      window.removeEventListener("reminder:open-note", openHandler);
+    };
   }, []);
 
   const isTagsView = activeView.value === "tags";
@@ -57,6 +82,7 @@ export function App() {
         </main>
       </div>
       <SettingsDialog />
+      <ReminderBanner />
       <Toasts />
       {sharedNote && (
         <SharedNoteDialog

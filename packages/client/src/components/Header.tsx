@@ -209,6 +209,7 @@ export function Header() {
             </>
           )}
           {activeView.value === "tags" && t("nav.tags")}
+          {activeView.value === "reminders" && t("nav.reminders")}
           {activeView.value === "archived" && t("nav.archive")}
           {activeView.value === "trash" && t("nav.trash")}
         </h1>

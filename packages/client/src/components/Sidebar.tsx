@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-preact";
-import { Archive, Hash, StickyNote, Trash2 } from "lucide-preact";
+import { Archive, Bell, Hash, StickyNote, Trash2 } from "lucide-preact";
 import logoUrl from "../assets/logo.svg";
 import { t } from "../i18n/index.js";
 import {
@@ -108,6 +108,12 @@ export function Sidebar() {
           />
           <NavItem label={t("nav.tags")} icon={Hash} view="tags" collapsed />
           <NavItem
+            label={t("nav.reminders")}
+            icon={Bell}
+            view="reminders"
+            collapsed
+          />
+          <NavItem
             label={t("nav.archive")}
             icon={Archive}
             view="archived"
@@ -135,6 +141,7 @@ export function Sidebar() {
         <div class="pt-2">
           <NavItem label={t("nav.notes")} icon={StickyNote} view="active" />
           <NavItem label={t("nav.tags")} icon={Hash} view="tags" />
+          <NavItem label={t("nav.reminders")} icon={Bell} view="reminders" />
           <NavItem label={t("nav.archive")} icon={Archive} view="archived" />
           <NavItem label={t("nav.trash")} icon={Trash2} view="trash" />
         </div>

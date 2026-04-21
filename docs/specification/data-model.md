@@ -22,6 +22,7 @@ A note is the fundamental entity in Manifesto.
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
 | `images`    | `string[]`       | Yes      | Attached images as data URLs             |
 | `linkPreviews` | `LinkPreview[]` | Yes    | Link preview cards attached to the note  |
+| `reminder`  | `NoteReminder \| null` | Yes | Scheduled reminder, or `null` when not set |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
 | `updatedAt` | `string`         | Yes      | ISO 8601 last modification timestamp     |
 
@@ -77,6 +78,17 @@ A preview card attached to a note for a URL. Created only when a link is inserte
 
 Metadata is fetched from a configurable endpoint (defaults to microlink.io). If fetching fails, a minimal preview with just `url`, `title = url`, and `domain` is stored so the link is still represented.
 
+## NoteReminder
+
+A scheduled reminder attached to a note. See [Reminders](features/reminders.md) for the delivery model.
+
+| Field         | Type                  | Required | Description                                 |
+|---------------|-----------------------|----------|---------------------------------------------|
+| `time`        | `string`              | Yes      | ISO 8601 local-wall-clock datetime when the reminder next fires |
+| `recurrence`  | `ReminderRecurrence`  | Yes      | `none` \| `daily` \| `weekly` \| `monthly` \| `yearly` |
+| `timezone`    | `string`              | Yes      | IANA timezone captured at creation          |
+| `lastFiredAt` | `string`              | No       | ISO 8601 of the last actual fire, used for cross-tab / service-worker dedupe |
+
 ## NoteVersion
 
 A snapshot of a note's title and content at a point in time, used for [Version History](features/version-history.md).
@@ -105,6 +117,7 @@ A snapshot of a note's title and content at a point in time, used for [Version H
   "tags": ["personal"],
   "images": [],
   "linkPreviews": [],
+  "reminder": null,
   "createdAt": "2026-04-10T10:30:00.000Z",
   "updatedAt": "2026-04-10T14:22:00.000Z"
 }

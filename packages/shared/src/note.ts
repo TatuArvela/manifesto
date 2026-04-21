@@ -27,6 +27,23 @@ export interface LinkPreview {
   domain: string;
 }
 
+export type ReminderRecurrence =
+  | "none"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "yearly";
+
+export interface NoteReminder {
+  /** ISO 8601 local-wall-clock datetime when the reminder next fires. */
+  time: string;
+  recurrence: ReminderRecurrence;
+  /** IANA timezone captured at creation so DST/travel behaves predictably. */
+  timezone: string;
+  /** ISO of the last real fire; used for cross-tab / service-worker dedupe. */
+  lastFiredAt?: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -41,6 +58,7 @@ export interface Note {
   tags: string[];
   images: string[];
   linkPreviews: LinkPreview[];
+  reminder: NoteReminder | null;
   createdAt: string;
   updatedAt: string;
 }

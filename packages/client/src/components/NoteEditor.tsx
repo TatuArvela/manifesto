@@ -1,4 +1,4 @@
-import type { LinkPreview } from "@manifesto/shared";
+import type { LinkPreview, NoteReminder } from "@manifesto/shared";
 import { type NoteColor, NoteFont } from "@manifesto/shared";
 import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
 import { redoCommand, undoCommand } from "@milkdown/kit/plugin/history";
@@ -37,6 +37,9 @@ import { FormattingToolbar } from "./FormattingToolbar.js";
 import { ImageGallery } from "./ImageGallery.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
+import { CardPopover } from "./Popover.js";
+import { ReminderChip } from "./ReminderChip.js";
+import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -65,6 +68,8 @@ interface NoteEditorProps {
   tags: string[];
   onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
+  reminder?: NoteReminder | null;
+  onReminderChange?: (reminder: NoteReminder | null) => void;
   onDone: () => void;
   disabled?: boolean;
   contentLocked?: boolean;
@@ -99,6 +104,8 @@ export function NoteEditor({
   tags,
   onAddTag,
   onRemoveTag,
+  reminder,
+  onReminderChange,
   onDone,
   disabled,
   contentLocked,
@@ -116,6 +123,7 @@ export function NoteEditor({
   const [showFontPicker, setShowFontPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
   const [rawMode, setRawMode] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
   // Counter bumped on every editor transaction — drives undo/redo button
@@ -123,6 +131,7 @@ export function NoteEditor({
   const [txCount, setTxCount] = useState(0);
   const titleRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const reminderChipRef = useRef<HTMLButtonElement>(null);
 
   const readFilesAsDataUrls = async (files: File[]): Promise<string[]> => {
     const results = await Promise.all(
@@ -308,8 +317,8 @@ export function NoteEditor({
           </div>
         )}
 
-        {tags.length > 0 && (
-          <div class="flex flex-wrap gap-1 mt-2">
+        {(tags.length > 0 || reminder) && (
+          <div class="flex flex-wrap gap-1 mt-2 items-center">
             {tags.map((tag) => (
               <span
                 key={tag}
@@ -326,6 +335,34 @@ export function NoteEditor({
                 </button>
               </span>
             ))}
+            {reminder && (
+              <span class="relative">
+                <ReminderChip
+                  reminder={reminder}
+                  anchorRef={reminderChipRef}
+                  onClick={() =>
+                    setShowReminderChipPicker(!showReminderChipPicker)
+                  }
+                  onClear={
+                    onReminderChange ? () => onReminderChange(null) : undefined
+                  }
+                />
+                {showReminderChipPicker && onReminderChange && (
+                  <CardPopover
+                    anchorRef={reminderChipRef}
+                    onClose={() => setShowReminderChipPicker(false)}
+                  >
+                    <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-72">
+                      <ReminderPickerPanel
+                        reminder={reminder}
+                        onChange={onReminderChange}
+                        onDone={() => setShowReminderChipPicker(false)}
+                      />
+                    </div>
+                  </CardPopover>
+                )}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -407,6 +444,15 @@ export function NoteEditor({
             );
           })}
         </Dropdown>
+
+        {/* Reminder */}
+        {onReminderChange && (
+          <ReminderPicker
+            reminder={reminder ?? null}
+            onChange={onReminderChange}
+            triggerClass={iconBtnClass}
+          />
+        )}
 
         {/* Add image */}
         <Tooltip label={t("editor.addImage")}>
