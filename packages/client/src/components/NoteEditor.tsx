@@ -1,3 +1,4 @@
+import type { LinkPreview } from "@manifesto/shared";
 import { type NoteColor, NoteFont } from "@manifesto/shared";
 import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
 import { redoCommand, undoCommand } from "@milkdown/kit/plugin/history";
@@ -33,9 +34,11 @@ import {
   noteColorMap,
   noteFontFamilies,
 } from "../colors.js";
+import { extractUrls } from "../utils/linkPreview.js";
 import { Dropdown } from "./Dropdown.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { ImageGallery } from "./ImageGallery.js";
+import { LinkPreviewList } from "./LinkPreviewList.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
@@ -57,6 +60,9 @@ interface NoteEditorProps {
   images: string[];
   onAddImages: (dataUrls: string[]) => void;
   onRemoveImage: (index: number) => void;
+  linkPreviews: LinkPreview[];
+  onAddLinkPreview: (url: string) => void;
+  onRemoveLinkPreview: (index: number) => void;
   pinned: boolean;
   onPinToggle: () => void;
   tags: string[];
@@ -88,6 +94,9 @@ export function NoteEditor({
   images,
   onAddImages,
   onRemoveImage,
+  linkPreviews,
+  onAddLinkPreview,
+  onRemoveLinkPreview,
   pinned,
   onPinToggle,
   tags,
@@ -146,21 +155,28 @@ export function NoteEditor({
     if (disabled) return;
     const handlePaste = async (e: ClipboardEvent) => {
       if (!e.clipboardData) return;
-      const items = [...e.clipboardData.items].filter((it) =>
+      const imageItems = [...e.clipboardData.items].filter((it) =>
         it.type.startsWith("image/"),
       );
-      if (items.length === 0) return;
-      const files = items
-        .map((it) => it.getAsFile())
-        .filter((f): f is File => f !== null);
-      if (files.length === 0) return;
-      e.preventDefault();
-      const urls = await readFilesAsDataUrls(files);
-      if (urls.length > 0) onAddImages(urls);
+      if (imageItems.length > 0) {
+        const files = imageItems
+          .map((it) => it.getAsFile())
+          .filter((f): f is File => f !== null);
+        if (files.length > 0) {
+          e.preventDefault();
+          const urls = await readFilesAsDataUrls(files);
+          if (urls.length > 0) onAddImages(urls);
+          return;
+        }
+      }
+      const text = e.clipboardData.getData("text");
+      if (text) {
+        for (const url of extractUrls(text)) onAddLinkPreview(url);
+      }
     };
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
-  }, [disabled, onAddImages]);
+  }, [disabled, onAddImages, onAddLinkPreview]);
 
   useEffect(() => {
     if (!editor) return;
@@ -266,6 +282,7 @@ export function NoteEditor({
             editor={editor}
             tick={txCount}
             disabled={disabled}
+            onAddLink={onAddLinkPreview}
           />
         )}
 
@@ -282,6 +299,16 @@ export function NoteEditor({
         </div>
 
         {metadata}
+
+        {linkPreviews.length > 0 && (
+          <div class="mt-3">
+            <LinkPreviewList
+              previews={linkPreviews}
+              variant="editor"
+              onRemove={onRemoveLinkPreview}
+            />
+          </div>
+        )}
 
         {tags.length > 0 && (
           <div class="flex flex-wrap gap-1 mt-2">

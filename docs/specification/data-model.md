@@ -21,6 +21,7 @@ A note is the fundamental entity in Manifesto.
 | `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
 | `images`    | `string[]`       | Yes      | Attached images as data URLs             |
+| `linkPreviews` | `LinkPreview[]` | Yes    | Link preview cards attached to the note  |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
 | `updatedAt` | `string`         | Yes      | ISO 8601 last modification timestamp     |
 
@@ -61,6 +62,21 @@ default | permanent-marker | comic-relief
 
 The `default` font uses the base application font. `permanent-marker` and `comic-relief` are decorative web fonts loaded on demand.
 
+## LinkPreview
+
+A preview card attached to a note for a URL. Created only when a link is inserted via the editor toolbar or when a URL is pasted — never regenerated on save.
+
+| Field         | Type     | Required | Description                                |
+|---------------|----------|----------|--------------------------------------------|
+| `url`         | `string` | Yes      | Original URL                               |
+| `title`       | `string` | Yes      | Page title (falls back to the URL)         |
+| `description` | `string` | No       | Short page description                     |
+| `image`       | `string` | No       | Thumbnail image URL (og:image / twitter:image) |
+| `favicon`     | `string` | No       | Site favicon URL                           |
+| `domain`      | `string` | Yes      | Host portion of the URL, e.g. `www.k-ruoka.fi` |
+
+Metadata is fetched from a configurable endpoint (defaults to microlink.io). If fetching fails, a minimal preview with just `url`, `title = url`, and `domain` is stored so the link is still represented.
+
 ## NoteVersion
 
 A snapshot of a note's title and content at a point in time, used for [Version History](features/version-history.md).
@@ -88,6 +104,7 @@ A snapshot of a note's title and content at a point in time, used for [Version H
   "trashedAt": null,
   "tags": ["personal"],
   "images": [],
+  "linkPreviews": [],
   "createdAt": "2026-04-10T10:30:00.000Z",
   "updatedAt": "2026-04-10T14:22:00.000Z"
 }

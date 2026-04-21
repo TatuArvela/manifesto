@@ -4,6 +4,7 @@ import { buildShareUrl } from "../sharing.js";
 import {
   archiveNote,
   createNote,
+  notes,
   restoreNote,
   togglePin,
   trashNote,
@@ -12,6 +13,7 @@ import {
 } from "../state/index.js";
 import { showSuccess } from "../state/ui.js";
 import { saveVersion } from "../storage/VersionStorage.js";
+import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { VersionHistory } from "./VersionHistory.js";
 
@@ -157,6 +159,20 @@ export function NoteCardEditor({
       onRemoveImage={(index) =>
         updateNote(note.id, {
           images: note.images.filter((_, i) => i !== index),
+        })
+      }
+      linkPreviews={note.linkPreviews}
+      onAddLinkPreview={(url) => {
+        const current = notes.value.find((n) => n.id === note.id);
+        if (!current) return;
+        if (current.linkPreviews.some((p) => p.url === url)) return;
+        updateNote(note.id, {
+          linkPreviews: [...current.linkPreviews, makeStubPreview(url)],
+        });
+      }}
+      onRemoveLinkPreview={(index) =>
+        updateNote(note.id, {
+          linkPreviews: note.linkPreviews.filter((_, i) => i !== index),
         })
       }
       pinned={note.pinned}

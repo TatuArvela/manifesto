@@ -222,6 +222,7 @@ interface FormattingToolbarProps {
   editor: Editor;
   tick: number;
   disabled?: boolean;
+  onAddLink?: (url: string) => void;
 }
 
 const btnBase =
@@ -233,6 +234,7 @@ export function FormattingToolbar({
   editor,
   tick,
   disabled,
+  onAddLink,
 }: FormattingToolbarProps) {
   const [showHeadingMenu, setShowHeadingMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -267,6 +269,7 @@ export function FormattingToolbar({
     const url = linkUrl.trim();
     if (url) {
       editor.action(callCommand(updateLinkCommand.key, { href: url }));
+      if (onAddLink && /^https?:\/\//i.test(url)) onAddLink(url);
     }
     closeLinkMenu();
     editor.action((ctx) => ctx.get(editorViewCtx).focus());

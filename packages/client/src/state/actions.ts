@@ -171,6 +171,7 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
     position: input.position ?? Date.now(),
     tags: input.tags ?? [],
     images: input.images ?? [],
+    linkPreviews: input.linkPreviews ?? [],
   };
   try {
     const note = await storage.create(noteCreate);

@@ -18,6 +18,15 @@ export enum NoteFont {
   ComicRelief = "comic-relief",
 }
 
+export interface LinkPreview {
+  url: string;
+  title: string;
+  description?: string;
+  image?: string;
+  favicon?: string;
+  domain: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -31,6 +40,7 @@ export interface Note {
   position: number;
   tags: string[];
   images: string[];
+  linkPreviews: LinkPreview[];
   createdAt: string;
   updatedAt: string;
 }

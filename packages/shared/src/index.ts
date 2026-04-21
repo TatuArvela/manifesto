@@ -7,5 +7,11 @@ export type {
   WebSocketClientEvent,
   WebSocketEvent,
 } from "./api.js";
-export type { Note, NoteCreate, NoteUpdate, NoteVersion } from "./note.js";
+export type {
+  LinkPreview,
+  Note,
+  NoteCreate,
+  NoteUpdate,
+  NoteVersion,
+} from "./note.js";
 export { NoteColor, NoteFont } from "./note.js";

@@ -1,4 +1,5 @@
 import {
+  type LinkPreview,
   type NoteColor,
   NoteColor as NoteColorEnum,
   type NoteFont,
@@ -16,6 +17,7 @@ import {
   theme,
   viewMode,
 } from "../state/index.js";
+import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
 
 const ctaMessages = [
@@ -50,6 +52,7 @@ export function NoteInput() {
   const [pinned, setPinned] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
+  const [linkPreviews, setLinkPreviews] = useState<LinkPreview[]>([]);
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
   const [liftRotation, setLiftRotation] = useState(0);
@@ -80,6 +83,7 @@ export function NoteInput() {
     setPinned(false);
     setTags([]);
     setImages([]);
+    setLinkPreviews([]);
   };
 
   const cycleCta = useCallback(() => {
@@ -97,7 +101,12 @@ export function NoteInput() {
   const closeModal = () => {
     setClosing(true);
     setTimeout(() => {
-      if (title.trim() || content.trim() || images.length > 0) {
+      if (
+        title.trim() ||
+        content.trim() ||
+        images.length > 0 ||
+        linkPreviews.length > 0
+      ) {
         createNote({
           title: title.trim(),
           content: content.trim(),
@@ -106,6 +115,7 @@ export function NoteInput() {
           pinned,
           tags,
           images,
+          linkPreviews,
         });
       }
       reset();
@@ -266,6 +276,16 @@ export function NoteInput() {
                 onAddImages={(urls) => setImages([...images, ...urls])}
                 onRemoveImage={(index) =>
                   setImages(images.filter((_, i) => i !== index))
+                }
+                linkPreviews={linkPreviews}
+                onAddLinkPreview={(url) => {
+                  setLinkPreviews((prev) => {
+                    if (prev.some((p) => p.url === url)) return prev;
+                    return [...prev, makeStubPreview(url)];
+                  });
+                }}
+                onRemoveLinkPreview={(index) =>
+                  setLinkPreviews(linkPreviews.filter((_, i) => i !== index))
                 }
                 pinned={pinned}
                 onPinToggle={() => setPinned(!pinned)}

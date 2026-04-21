@@ -1,4 +1,4 @@
-import type { Note, NoteColor } from "@manifesto/shared";
+import type { LinkPreview, Note, NoteColor } from "@manifesto/shared";
 import clsx from "clsx";
 import {
   Archive,
@@ -41,8 +41,11 @@ import {
   viewMode,
 } from "../state/index.js";
 import { showSuccess } from "../state/ui.js";
+import { extractUrls } from "../utils/linkPreview.js";
 import { ContentPreview } from "./ContentPreview.js";
 import { ImageGallery } from "./ImageGallery.js";
+import { LinkPreviewHero } from "./LinkPreviewHero.js";
+import { LinkPreviewList } from "./LinkPreviewList.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
 import { CardPopover } from "./Popover.js";
@@ -295,6 +298,23 @@ function CardActions({
   );
 }
 
+function contentIsOnlyPreviewUrls(
+  content: string,
+  previews: LinkPreview[],
+): boolean {
+  const trimmed = content.trim();
+  if (!trimmed) return false;
+  const contentUrls = extractUrls(trimmed);
+  if (contentUrls.length === 0) return false;
+  const previewUrls = new Set(previews.map((p) => p.url));
+  if (!contentUrls.every((u) => previewUrls.has(u))) return false;
+  // Strip URLs and any surrounding markdown syntax (autolinks, link wrappers) —
+  // if nothing meaningful remains, treat it as link-only.
+  let remaining = trimmed;
+  for (const u of contentUrls) remaining = remaining.split(u).join("");
+  return remaining.replace(/[<>[\]()\s`*_]/g, "") === "";
+}
+
 // --- Main component ---
 
 export function NoteCard({
@@ -322,6 +342,13 @@ export function NoteCard({
   const isTrashView = activeView.value === "trash";
   const hasImages = note.images.length > 0;
   const isImageOnly = hasImages && !note.title && !note.content;
+  const hasLinkPreviews = note.linkPreviews.length > 0;
+  const isLinkOnly =
+    hasLinkPreviews &&
+    !note.title &&
+    !hasImages &&
+    (!note.content.trim() ||
+      contentIsOnlyPreviewUrls(note.content, note.linkPreviews));
 
   // Show modal when editing starts
   useEffect(() => {
@@ -416,7 +443,11 @@ export function NoteCard({
               ? "ring-2 ring-blue-500 border-transparent"
               : colors.border,
             "border transition-all duration-150 relative select-none overflow-hidden flex flex-col",
-            isImageOnly ? "p-0" : !isTrashView ? "p-4 pb-2" : "p-4",
+            isImageOnly || isLinkOnly
+              ? "p-0"
+              : !isTrashView
+                ? "p-4 pb-2"
+                : "p-4",
             "shadow-sm group-hover:shadow-lg",
             isEditing && !closing && "opacity-20",
             noteSize.value === "square" &&
@@ -486,46 +517,71 @@ export function NoteCard({
             </div>
           )}
 
-          <div
-            class={clsx(
-              noteSize.value === "square" &&
-                "flex-1 min-h-0 overflow-hidden note-content-fade",
-            )}
-            style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
-          >
-            {note.title && (
-              <h3 class="font-medium text-base leading-snug pr-6">
-                {note.title}
-              </h3>
-            )}
+          {isLinkOnly ? (
+            <>
+              <LinkPreviewHero preview={note.linkPreviews[0]} />
+              {note.linkPreviews.length > 1 && (
+                <div class="p-3">
+                  <LinkPreviewList
+                    previews={note.linkPreviews.slice(1)}
+                    variant="card"
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div
+                class={clsx(
+                  noteSize.value === "square" &&
+                    "flex-1 min-h-0 overflow-hidden note-content-fade",
+                )}
+                style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
+              >
+                {note.title && (
+                  <h3 class="font-medium text-base leading-snug pr-6">
+                    {note.title}
+                  </h3>
+                )}
 
-            <ContentPreview
-              note={note}
-              onCheckboxToggle={(lineIndex) =>
-                toggleCheckbox(note.id, lineIndex)
-              }
-              hasTitle={!!note.title}
-            />
-          </div>
+                <ContentPreview
+                  note={note}
+                  onCheckboxToggle={(lineIndex) =>
+                    toggleCheckbox(note.id, lineIndex)
+                  }
+                  hasTitle={!!note.title}
+                />
+              </div>
 
-          {note.tags.length > 0 && (
-            <div class="mt-3 flex flex-wrap gap-1">
-              {note.tags.map((tag) => (
-                <span
-                  key={tag}
-                  class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-200/60 dark:bg-gray-700/60"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
+              {hasLinkPreviews && (
+                <div class="mt-3">
+                  <LinkPreviewList
+                    previews={note.linkPreviews}
+                    variant="card"
+                  />
+                </div>
+              )}
+
+              {note.tags.length > 0 && (
+                <div class="mt-3 flex flex-wrap gap-1">
+                  {note.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-200/60 dark:bg-gray-700/60"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           <CardActions
             note={note}
             isTrashView={isTrashView}
             isSelectMode={isSelectMode}
-            overlay={isImageOnly}
+            overlay={isImageOnly || isLinkOnly}
             colorBtnRef={colorBtnRef}
             menuBtnRef={menuBtnRef}
             onToggleColorPicker={() =>
