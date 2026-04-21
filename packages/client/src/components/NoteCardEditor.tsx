@@ -14,6 +14,10 @@ import {
 } from "../state/index.js";
 import { showSuccess } from "../state/ui.js";
 import { saveVersion } from "../storage/VersionStorage.js";
+import {
+  downloadNoteAsJson,
+  downloadNoteAsMarkdown,
+} from "../utils/importExport.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { VersionHistory } from "./VersionHistory.js";
@@ -216,6 +220,8 @@ export function NoteCardEditor({
           tags: [...note.tags],
         })
       }
+      onExportMarkdown={() => downloadNoteAsMarkdown({ title, content })}
+      onExportJson={() => downloadNoteAsJson({ ...note, title, content })}
       onArchive={() => {
         if (note.archived) {
           unarchiveNote(note.id);

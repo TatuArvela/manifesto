@@ -84,6 +84,8 @@ export const fi: Messages = {
   "editor.menu.versionHistory": "Versiohistoria",
   "editor.menu.shareLink": "Jaa linkkinä",
   "editor.menu.duplicate": "Monista",
+  "editor.menu.exportMarkdown": "Lataa Markdownina",
+  "editor.menu.exportJson": "Lataa JSON-tiedostona",
   "editor.menu.archive": "Arkistoi",
   "editor.menu.unarchive": "Palauta arkistosta",
   "editor.menu.delete": "Poista",
@@ -177,7 +179,10 @@ export const fi: Messages = {
     other: "Tuotiin {count} muistiinpanoa",
   },
   "settings.data.importFailed": "Tuonti epäonnistui — virheellinen tiedosto",
+  "settings.data.importedSingle": "Muistiinpano tuotu",
   "settings.data.deleted": "Kaikki muistiinpanot poistettu",
+  "dropZone.title": "Pudota tuodaksesi",
+  "dropZone.hint": "Markdown- tai JSON-tiedostoja",
 
   // Toasts / errors
   "toast.dismiss": "Sulje",

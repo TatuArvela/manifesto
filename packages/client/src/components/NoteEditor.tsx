@@ -8,11 +8,13 @@ import { callCommand } from "@milkdown/kit/utils";
 import {
   Archive,
   ArchiveRestore,
+  Braces,
   Check,
   Code,
   Copy,
   EllipsisVertical,
   Eye,
+  FileText,
   History,
   Image as ImageIcon,
   Link,
@@ -77,6 +79,8 @@ interface NoteEditorProps {
   onShowVersions?: () => void;
   onShare?: () => void;
   onDuplicate?: () => void;
+  onExportMarkdown?: () => void;
+  onExportJson?: () => void;
   onArchive?: () => void;
   archived?: boolean;
   trashed?: boolean;
@@ -113,6 +117,8 @@ export function NoteEditor({
   onShowVersions,
   onShare,
   onDuplicate,
+  onExportMarkdown,
+  onExportJson,
   onArchive,
   archived,
   trashed,
@@ -503,7 +509,7 @@ export function NoteEditor({
               </button>
             </Tooltip>
           }
-          panelClass="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 z-20 py-1"
+          panelClass="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-48 w-max z-20 py-1"
         >
           {/* Tags */}
           <div class="relative">
@@ -560,6 +566,36 @@ export function NoteEditor({
             >
               <Copy class="w-4 h-4" />
               {t("editor.menu.duplicate")}
+            </button>
+          )}
+
+          {/* Export as Markdown */}
+          {onExportMarkdown && (
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                onExportMarkdown();
+                closeAllMenus();
+              }}
+            >
+              <FileText class="w-4 h-4" />
+              {t("editor.menu.exportMarkdown")}
+            </button>
+          )}
+
+          {/* Export as JSON */}
+          {onExportJson && (
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                onExportJson();
+                closeAllMenus();
+              }}
+            >
+              <Braces class="w-4 h-4" />
+              {t("editor.menu.exportJson")}
             </button>
           )}
 

@@ -369,16 +369,29 @@ export async function reorderNotes(
   }
 }
 
+const CHECKBOX_LINE_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\] (.*)$/;
+
 export async function toggleCheckbox(id: string, lineIndex: number) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
   const lines = note.content.split("\n");
-  const line = lines[lineIndex];
-  const m = line.match(/^(\s*(?:[-*+] )?)\[([ xX])\] (.*)$/);
+  const m = lines[lineIndex].match(CHECKBOX_LINE_RE);
   if (!m) return;
-  const [, prefix, marker, rest] = m;
+  const [, indent, bullet, marker, rest] = m;
   const next = marker === " " ? "x" : " ";
-  lines[lineIndex] = `${prefix}[${next}] ${rest}`;
+  lines[lineIndex] = `${indent}${bullet}[${next}] ${rest}`;
+
+  // Cascade to descendants — subsequent contiguous checkbox lines with
+  // greater indent. Matches the editor's subtree toggle behavior.
+  const parentIndent = indent.length;
+  for (let i = lineIndex + 1; i < lines.length; i++) {
+    const childMatch = lines[i].match(CHECKBOX_LINE_RE);
+    if (!childMatch) break;
+    const [, childIndent, childBullet, , childRest] = childMatch;
+    if (childIndent.length <= parentIndent) break;
+    lines[i] = `${childIndent}${childBullet}[${next}] ${childRest}`;
+  }
+
   await updateNote(id, { content: lines.join("\n") });
 }
 

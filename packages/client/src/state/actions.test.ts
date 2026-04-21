@@ -95,6 +95,31 @@ describe("state actions", () => {
     expect(notes.value[0].content).toBe("- [x] A\n- [ ] B");
   });
 
+  it("toggleCheckbox cascades to nested descendants", async () => {
+    const note = await createNote({
+      content:
+        "- [ ] Parent\n  - [ ] Child\n    - [ ] Grandchild\n  - [x] Child2\n- [ ] Sibling",
+    });
+    await toggleCheckbox(note.id, 0);
+    expect(notes.value[0].content).toBe(
+      "- [x] Parent\n  - [x] Child\n    - [x] Grandchild\n  - [x] Child2\n- [ ] Sibling",
+    );
+    await toggleCheckbox(note.id, 0);
+    expect(notes.value[0].content).toBe(
+      "- [ ] Parent\n  - [ ] Child\n    - [ ] Grandchild\n  - [ ] Child2\n- [ ] Sibling",
+    );
+  });
+
+  it("toggleCheckbox on leaf does not touch siblings", async () => {
+    const note = await createNote({
+      content: "- [ ] Parent\n  - [ ] Child1\n  - [ ] Child2",
+    });
+    await toggleCheckbox(note.id, 1);
+    expect(notes.value[0].content).toBe(
+      "- [ ] Parent\n  - [x] Child1\n  - [ ] Child2",
+    );
+  });
+
   it("loadNotes reads from storage", async () => {
     await createNote({ title: "Persisted" });
     notes.value = [];

@@ -1,4 +1,3 @@
-import type { Note } from "@manifesto/shared";
 import { NoteFont } from "@manifesto/shared";
 import {
   Dices,
@@ -17,6 +16,7 @@ import { detectBrowserLocale } from "../i18n/detect.js";
 import { getFontLabel, plural, t } from "../i18n/index.js";
 import { SUPPORTED_LOCALES } from "../i18n/locales.js";
 import {
+  createNote,
   type DefaultNoteFont,
   defaultNoteColor,
   defaultNoteFont,
@@ -28,6 +28,7 @@ import {
   type ThemeMode,
   theme,
 } from "../state/index.js";
+import { importFiles } from "../utils/importExport.js";
 import { ThreeWayToggle, ToggleSwitch } from "./ToggleSwitch.js";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
@@ -111,30 +112,21 @@ export function SettingsDialog() {
   };
 
   const handleFileChange = async (e: Event) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!Array.isArray(data)) throw new Error("Invalid format");
-      // Validate each note has the required fields and correct types
-      for (const item of data) {
-        if (
-          typeof item !== "object" ||
-          item === null ||
-          typeof item.id !== "string" ||
-          typeof item.title !== "string" ||
-          typeof item.content !== "string" ||
-          typeof item.createdAt !== "string" ||
-          typeof item.updatedAt !== "string" ||
-          !Array.isArray(item.tags)
-        ) {
-          throw new Error("Invalid note schema");
-        }
-      }
-      await importNotes(data as Note[]);
-      setDataStatus(plural("settings.data.importedCount", data.length));
-    } catch {
+    const files = (e.target as HTMLInputElement).files;
+    if (!files || files.length === 0) return;
+    const summary = await importFiles([...files], {
+      createNote: (input) => createNote(input),
+      importBulk: (notes) => importNotes(notes),
+    });
+    if (summary.bulkCount > 0) {
+      setDataStatus(plural("settings.data.importedCount", summary.bulkCount));
+    } else if (summary.singleCount > 0) {
+      setDataStatus(
+        summary.singleCount === 1
+          ? t("settings.data.importedSingle")
+          : plural("settings.data.importedCount", summary.singleCount),
+      );
+    } else {
       setDataStatus(t("settings.data.importFailed"));
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -353,7 +345,8 @@ export function SettingsDialog() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".json"
+                accept=".json,.md,.markdown"
+                multiple
                 class="hidden"
                 onChange={handleFileChange}
               />

@@ -82,6 +82,8 @@ export const en = {
   "editor.menu.versionHistory": "Version history",
   "editor.menu.shareLink": "Share link",
   "editor.menu.duplicate": "Duplicate",
+  "editor.menu.exportMarkdown": "Download as Markdown",
+  "editor.menu.exportJson": "Download as JSON",
   "editor.menu.archive": "Archive",
   "editor.menu.unarchive": "Unarchive",
   "editor.menu.delete": "Delete",
@@ -174,7 +176,10 @@ export const en = {
     other: "Imported {count} notes",
   },
   "settings.data.importFailed": "Import failed — invalid file",
+  "settings.data.importedSingle": "Imported note",
   "settings.data.deleted": "All notes deleted",
+  "dropZone.title": "Drop to import",
+  "dropZone.hint": "Markdown or JSON files",
 
   // Toasts / errors
   "toast.dismiss": "Dismiss",
