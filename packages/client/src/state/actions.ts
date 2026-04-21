@@ -371,6 +371,40 @@ export async function reorderNotes(
 
 const CHECKBOX_LINE_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\] (.*)$/;
 
+export function hasCheckedItems(content: string): boolean {
+  return content.split("\n").some((line) => {
+    const m = line.match(CHECKBOX_LINE_RE);
+    return !!m && m[3].toLowerCase() === "x";
+  });
+}
+
+export async function deleteCheckedItems(id: string) {
+  const note = notes.value.find((n) => n.id === id);
+  if (!note) return;
+  const lines = note.content.split("\n");
+  const toRemove = new Set<number>();
+
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(CHECKBOX_LINE_RE);
+    if (!m) continue;
+    const [, indent, , marker] = m;
+    if (marker.toLowerCase() !== "x") continue;
+    toRemove.add(i);
+    // Sweep up indented descendants so subtrees go with their parent.
+    const parentIndent = indent.length;
+    for (let j = i + 1; j < lines.length; j++) {
+      const childMatch = lines[j].match(CHECKBOX_LINE_RE);
+      if (!childMatch) break;
+      if (childMatch[1].length <= parentIndent) break;
+      toRemove.add(j);
+    }
+  }
+
+  if (toRemove.size === 0) return;
+  const next = lines.filter((_, i) => !toRemove.has(i)).join("\n");
+  await updateNote(id, { content: next });
+}
+
 export async function toggleCheckbox(id: string, lineIndex: number) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;

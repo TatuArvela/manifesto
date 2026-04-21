@@ -18,6 +18,7 @@ import {
   History,
   Image as ImageIcon,
   Link,
+  ListX,
   Palette,
   PenLine,
   Pin,
@@ -32,6 +33,7 @@ import {
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
+import { getDeletionRange } from "../extensions/taskItemDraggable.js";
 import { getColorPickerColors, getFontLabel, t } from "../i18n/index.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { Dropdown } from "./Dropdown.js";
@@ -237,8 +239,49 @@ export function NoteEditor({
   const canRedo = editor
     ? editor.action((ctx) => redoDepth(ctx.get(editorStateCtx)) > 0)
     : false;
+  const hasCheckedItems = editor
+    ? editor.action((ctx) => {
+        const state = ctx.get(editorStateCtx);
+        let found = false;
+        state.doc.descendants((node) => {
+          if (found) return false;
+          if (node.type.name === "list_item" && node.attrs.checked === true) {
+            found = true;
+            return false;
+          }
+        });
+        return found;
+      })
+    : false;
   // Reference txCount so the memo recomputes on each transaction.
   void txCount;
+
+  const deleteCheckedItems = () => {
+    if (!editor) return;
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      // Delete one checked item at a time so getDeletionRange re-evaluates
+      // ancestor lists after each removal (emptied single-child lists get
+      // pruned on the next pass).
+      while (true) {
+        const { doc } = view.state;
+        let targetPos = -1;
+        let targetSize = 0;
+        doc.descendants((node, pos) => {
+          if (targetPos >= 0) return false;
+          if (node.type.name === "list_item" && node.attrs.checked === true) {
+            targetPos = pos;
+            targetSize = node.nodeSize;
+            return false;
+          }
+        });
+        if (targetPos < 0) break;
+        const range = getDeletionRange(doc, targetPos, targetSize);
+        view.dispatch(view.state.tr.delete(range.from, range.to));
+      }
+      view.focus();
+    });
+  };
 
   return (
     <article
@@ -618,26 +661,40 @@ export function NoteEditor({
             </button>
           )}
 
+          {/* Destructive actions — checked items / delete */}
+          {((hasCheckedItems && !disabled && !contentLocked) ||
+            (onDelete && !deleteLabel)) && (
+            <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+          )}
+
+          {/* Delete checked items */}
+          {hasCheckedItems && !disabled && !contentLocked && (
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                deleteCheckedItems();
+                closeAllMenus();
+              }}
+            >
+              <ListX class="w-4 h-4" />
+              {t("editor.menu.deleteChecked")}
+            </button>
+          )}
+
           {/* Delete / Undelete (edit mode only — not shown when deleteLabel is set) */}
           {onDelete && !deleteLabel && (
-            <>
-              <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
-              <button
-                type="button"
-                class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                onClick={() => {
-                  onDelete();
-                  closeAllMenus();
-                }}
-              >
-                {trashed ? (
-                  <Undo2 class="w-4 h-4" />
-                ) : (
-                  <Trash2 class="w-4 h-4" />
-                )}
-                {trashed ? t("editor.menu.undelete") : t("editor.menu.delete")}
-              </button>
-            </>
+            <button
+              type="button"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => {
+                onDelete();
+                closeAllMenus();
+              }}
+            >
+              {trashed ? <Undo2 class="w-4 h-4" /> : <Trash2 class="w-4 h-4" />}
+              {trashed ? t("editor.menu.undelete") : t("editor.menu.delete")}
+            </button>
           )}
         </Dropdown>
 

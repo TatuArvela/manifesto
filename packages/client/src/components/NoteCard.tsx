@@ -4,9 +4,12 @@ import {
   Archive,
   ArchiveRestore,
   Bell,
+  Braces,
   Copy,
   EllipsisVertical,
+  FileText,
   Link,
+  ListX,
   Palette,
   Pin,
   PinOff,
@@ -23,8 +26,10 @@ import {
   activeView,
   archiveNote,
   createNote,
+  deleteCheckedItems,
   editingNoteId,
   enterSelectMode,
+  hasCheckedItems,
   noteSize,
   permanentlyDeleteNote,
   restoreNote,
@@ -39,6 +44,10 @@ import {
   viewMode,
 } from "../state/index.js";
 import { showSuccess } from "../state/ui.js";
+import {
+  downloadNoteAsJson,
+  downloadNoteAsMarkdown,
+} from "../utils/importExport.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { ContentPreview } from "./ContentPreview.js";
 import { ImageGallery } from "./ImageGallery.js";
@@ -106,7 +115,7 @@ function CardMenu({
         onClose();
       }}
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-48 py-1">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-48 w-max py-1">
         {/* Tags */}
         <div class="relative">
           <button
@@ -180,6 +189,32 @@ function CardMenu({
           <Link class="w-4 h-4" />
           {t("noteCard.menu.shareLink")}
         </button>
+        {/* Export as Markdown */}
+        <button
+          type="button"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          onClick={() => {
+            downloadNoteAsMarkdown(note);
+            onClose();
+          }}
+        >
+          <FileText class="w-4 h-4" />
+          {t("editor.menu.exportMarkdown")}
+        </button>
+
+        {/* Export as JSON */}
+        <button
+          type="button"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          onClick={() => {
+            downloadNoteAsJson(note);
+            onClose();
+          }}
+        >
+          <Braces class="w-4 h-4" />
+          {t("editor.menu.exportJson")}
+        </button>
+
         <button
           type="button"
           class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
@@ -202,6 +237,19 @@ function CardMenu({
             : t("noteCard.menu.archive")}
         </button>
         <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+        {hasCheckedItems(note.content) && (
+          <button
+            type="button"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            onClick={() => {
+              deleteCheckedItems(note.id);
+              onClose();
+            }}
+          >
+            <ListX class="w-4 h-4" />
+            {t("noteCard.menu.deleteChecked")}
+          </button>
+        )}
         <button
           type="button"
           class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"

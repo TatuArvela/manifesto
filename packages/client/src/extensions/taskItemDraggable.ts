@@ -186,7 +186,7 @@ function createIndicator(): HTMLElement {
   return el;
 }
 
-function getDeletionRange(
+export function getDeletionRange(
   doc: ProseNode,
   pos: number,
   nodeSize: number,

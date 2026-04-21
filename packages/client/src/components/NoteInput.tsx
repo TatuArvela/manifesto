@@ -1,10 +1,12 @@
 import {
   type LinkPreview,
+  type Note,
   type NoteColor,
   NoteColor as NoteColorEnum,
   type NoteFont,
 } from "@manifesto/shared";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { ulid } from "ulid";
 import { noteColorMap, noteEdgeColors } from "../colors.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
@@ -18,6 +20,10 @@ import {
   theme,
   viewMode,
 } from "../state/index.js";
+import {
+  downloadNoteAsJson,
+  downloadNoteAsMarkdown,
+} from "../utils/importExport.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
 
@@ -298,6 +304,31 @@ export function NoteInput() {
                   }
                 }}
                 onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
+                onExportMarkdown={() =>
+                  downloadNoteAsMarkdown({ title, content })
+                }
+                onExportJson={() => {
+                  const now = new Date().toISOString();
+                  const draft: Note = {
+                    id: ulid(),
+                    title,
+                    content,
+                    color,
+                    font,
+                    pinned,
+                    archived: false,
+                    trashed: false,
+                    trashedAt: null,
+                    position: 0,
+                    tags,
+                    images,
+                    linkPreviews,
+                    reminder: null,
+                    createdAt: now,
+                    updatedAt: now,
+                  };
+                  downloadNoteAsJson(draft);
+                }}
                 onDone={closeModal}
                 onDelete={discardNote}
                 deleteLabel={t("editor.discard")}
