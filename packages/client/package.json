@@ -29,7 +29,10 @@
     "tailwindcss": "^4.2.2",
     "ulid": "^3.0.2",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.1.0"
+    "unist-util-visit": "^5.1.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "workbox-precaching": "^7.4.0",
+    "workbox-routing": "^7.4.0"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.9.0",

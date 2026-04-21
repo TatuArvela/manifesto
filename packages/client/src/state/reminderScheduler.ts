@@ -1,7 +1,16 @@
-import type { Note, NoteReminder, ReminderRecurrence } from "@manifesto/shared";
+import type { Note, NoteReminder } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
+import { nextOccurrence, parseLocalISO, snapToFuture } from "./reminderTime.js";
 import { showError } from "./ui.js";
+
+export {
+  currentTimezone,
+  formatLocalISO,
+  nextOccurrence,
+  parseLocalISO,
+  snapToFuture,
+} from "./reminderTime.js";
 
 // --- Public signals ---
 
@@ -25,101 +34,6 @@ let updateNoteFn:
 // Back-reference to current notes list.
 let getNotesFn: (() => Note[]) | null = null;
 
-// --- Date utilities ---
-
-/** Get the current local IANA timezone. */
-export function currentTimezone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-/** Parse a local-wall-clock ISO string (`YYYY-MM-DDTHH:mm:ss`) into a Date. */
-export function parseLocalISO(iso: string): Date {
-  const m = iso.match(
-    /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?$/,
-  );
-  if (!m) return new Date(iso);
-  const [, y, mo, d, h = "0", mi = "0", s = "0"] = m;
-  return new Date(
-    Number(y),
-    Number(mo) - 1,
-    Number(d),
-    Number(h),
-    Number(mi),
-    Number(s),
-  );
-}
-
-/** Format a Date as `YYYY-MM-DDTHH:mm:ss` in local wall-clock (no TZ suffix). */
-export function formatLocalISO(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-  );
-}
-
-/**
- * Advance a reminder time by its recurrence, preserving local wall-clock
- * components (so 08:00 stays 08:00 across DST and short months clamp to
- * their last day). Returns `null` for `"none"`.
- */
-export function nextOccurrence(
-  time: string,
-  recurrence: ReminderRecurrence,
-): string | null {
-  if (recurrence === "none") return null;
-  const src = parseLocalISO(time);
-  const y = src.getFullYear();
-  const mo = src.getMonth();
-  const d = src.getDate();
-  const h = src.getHours();
-  const mi = src.getMinutes();
-  const s = src.getSeconds();
-  let next: Date;
-  switch (recurrence) {
-    case "daily":
-      next = new Date(y, mo, d + 1, h, mi, s);
-      break;
-    case "weekly":
-      next = new Date(y, mo, d + 7, h, mi, s);
-      break;
-    case "monthly": {
-      const targetMonth = mo + 1;
-      // setDate clamps to the last day of the target month.
-      const lastDay = new Date(y, targetMonth + 1, 0).getDate();
-      next = new Date(y, targetMonth, Math.min(d, lastDay), h, mi, s);
-      break;
-    }
-    case "yearly": {
-      // Feb 29 on non-leap years → Feb 28.
-      const lastDay = new Date(y + 1, mo + 1, 0).getDate();
-      next = new Date(y + 1, mo, Math.min(d, lastDay), h, mi, s);
-      break;
-    }
-  }
-  return formatLocalISO(next);
-}
-
-/**
- * Snap a reminder time into the future for a recurring reminder that was
- * set with a past date. Returns the input unchanged if already in the future
- * or if `"none"`.
- */
-export function snapToFuture(
-  time: string,
-  recurrence: ReminderRecurrence,
-  now: Date = new Date(),
-): string {
-  if (recurrence === "none") return time;
-  let current = time;
-  while (parseLocalISO(current).getTime() <= now.getTime()) {
-    const advanced = nextOccurrence(current, recurrence);
-    if (!advanced) return current;
-    current = advanced;
-  }
-  return current;
-}
-
 // --- Permission ---
 
 let permissionToastShown = false;
@@ -129,9 +43,34 @@ export async function ensureNotificationPermission(): Promise<NotificationPermis
   if (Notification.permission === "granted") return "granted";
   if (Notification.permission === "denied") return "denied";
   try {
-    return await Notification.requestPermission();
+    const result = await Notification.requestPermission();
+    if (result === "granted") void registerPeriodicSync();
+    return result;
   } catch {
     return "denied";
+  }
+}
+
+async function registerPeriodicSync(): Promise<void> {
+  if (typeof navigator === "undefined") return;
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const reg = (await navigator.serviceWorker
+      .ready) as ServiceWorkerRegistration & {
+      periodicSync?: {
+        register: (
+          tag: string,
+          options: { minInterval: number },
+        ) => Promise<void>;
+      };
+    };
+    if (!reg.periodicSync) return;
+    await reg.periodicSync.register("check-reminders", {
+      minInterval: 15 * 60_000,
+    });
+  } catch {
+    // periodicSync requires a permission grant on Chromium and isn't available
+    // elsewhere — fall back to the in-SW polling loop.
   }
 }
 
@@ -235,6 +174,34 @@ function reschedule(all: Note[]) {
   for (const note of all) {
     if (note.reminder && !note.trashed) scheduleForNote(note);
   }
+  syncToServiceWorker(all);
+}
+
+// --- Service-worker sync ---
+
+let lastSyncSerialized = "";
+
+function syncToServiceWorker(all: Note[]) {
+  if (typeof navigator === "undefined") return;
+  const sw = navigator.serviceWorker;
+  if (!sw?.controller) return;
+  const payload = all.flatMap((n) => {
+    if (!n.reminder || n.trashed) return [];
+    return [
+      {
+        noteId: n.id,
+        time: n.reminder.time,
+        recurrence: n.reminder.recurrence,
+        title: n.title.trim() || t("reminder.untitled"),
+        body: n.content.replace(/\s+/g, " ").trim().slice(0, 140),
+        lastFiredAt: n.reminder.lastFiredAt ?? null,
+      },
+    ];
+  });
+  const serialized = JSON.stringify(payload);
+  if (serialized === lastSyncSerialized) return;
+  lastSyncSerialized = serialized;
+  sw.controller.postMessage({ type: "sync-reminders", reminders: payload });
 }
 
 // --- Public init ---
