@@ -31,22 +31,17 @@ export function ReminderChip({
   const label = formatLocalDateTime(reminder.time);
 
   const cls = [
-    "inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs rounded-full border",
+    "inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs rounded-full border border-gray-400/50",
     onClick ? "cursor-pointer hover:bg-black/5 dark:hover:bg-white/10" : "",
     isPast
-      ? "border-amber-500 text-amber-700 dark:text-amber-300"
-      : "border-gray-400/50 text-gray-700 dark:text-gray-300",
+      ? "text-gray-500/70 dark:text-gray-400/60"
+      : "text-gray-700 dark:text-gray-300",
   ].join(" ");
 
   const content = (
     <>
       <Bell class="w-3 h-3" aria-hidden="true" />
       <span>{label}</span>
-      {isPast && (
-        <span class="ml-1 text-[10px] uppercase tracking-wide">
-          {t("reminder.past")}
-        </span>
-      )}
       {onClear && (
         <button
           type="button"

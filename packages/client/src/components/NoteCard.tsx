@@ -89,20 +89,20 @@ function CardMenu({
   note,
   anchorRef,
   onClose,
+  onOpenReminder,
 }: {
   note: Note;
   anchorRef: preact.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
+  onOpenReminder: () => void;
 }) {
   const [showTagPicker, setShowTagPicker] = useState(false);
-  const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   return (
     <CardPopover
       anchorRef={anchorRef}
       onClose={() => {
         setShowTagPicker(false);
-        setShowReminderPicker(false);
         onClose();
       }}
     >
@@ -132,28 +132,14 @@ function CardMenu({
         </div>
 
         {/* Reminder */}
-        <div class="relative">
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-            onClick={() => setShowReminderPicker(!showReminderPicker)}
-          >
-            <Bell class="w-4 h-4" />
-            {t("noteCard.menu.reminder")}
-          </button>
-          {showReminderPicker && (
-            <div class="px-3 py-2">
-              <ReminderPickerPanel
-                reminder={note.reminder}
-                onChange={(reminder) => updateNote(note.id, { reminder })}
-                onDone={() => {
-                  setShowReminderPicker(false);
-                  onClose();
-                }}
-              />
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          onClick={() => onOpenReminder()}
+        >
+          <Bell class="w-4 h-4" />
+          {t("noteCard.menu.reminder")}
+        </button>
 
         {/* Duplicate */}
         <button
@@ -664,12 +650,13 @@ export function NoteCard({
             note={note}
             anchorRef={menuBtnRef}
             onClose={() => setOpenPopover(null)}
+            onOpenReminder={() => setOpenPopover("reminder")}
           />
         )}
 
         {openPopover === "reminder" && (
           <CardPopover
-            anchorRef={reminderChipRef}
+            anchorRef={note.reminder ? reminderChipRef : menuBtnRef}
             onClose={() => setOpenPopover(null)}
           >
             <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-72">
