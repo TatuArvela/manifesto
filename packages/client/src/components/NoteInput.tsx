@@ -7,7 +7,7 @@ import {
 } from "@manifesto/shared";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
-import { noteColorMap, noteEdgeColors } from "../colors.js";
+import { noteColorMap } from "../colors.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   activeView,
@@ -63,7 +63,6 @@ export function NoteInput() {
   const [linkPreviews, setLinkPreviews] = useState<LinkPreview[]>([]);
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
-  const [liftRotation, setLiftRotation] = useState(0);
   const [topCta, setTopCta] = useState(() => randomCta());
   const [nextCta, setNextCta] = useState(() => randomCta(topCta));
 
@@ -100,7 +99,6 @@ export function NoteInput() {
   }, [nextCta]);
 
   const openModal = () => {
-    setLiftRotation(Math.random() * 16 - 8);
     setLifting(true);
     setExpanded(true);
     setTimeout(() => setLifting(false), 400);
@@ -141,28 +139,6 @@ export function NoteInput() {
       setExpanded(false);
       cycleCta();
     }, 150);
-  };
-
-  const isDark =
-    theme.value === "dark" ||
-    (theme.value === "system" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches);
-  const edgeKey = isDark ? "dark" : "light";
-  const rainbowEdges: NoteColor[] = [
-    NoteColorEnum.Red,
-    NoteColorEnum.Yellow,
-    NoteColorEnum.Blue,
-  ];
-  const spacer = isDark ? "#1f2937" : "#f3f4f6";
-  const end = isDark ? "#374151" : "#e5e7eb";
-  const rainbowGradientStyle = {
-    background: `linear-gradient(to bottom, ${rainbowEdges
-      .flatMap((c, i) => {
-        const edge = noteEdgeColors[c][edgeKey];
-        const y = i * 2;
-        return [`${edge} ${y}px`, `${edge} ${y + 1}px`, `${spacer} ${y + 1}px`];
-      })
-      .join(", ")}, ${end} 5px)`,
   };
 
   const topNoteHidden = lifting || (expanded && !closing) || closing;
@@ -232,14 +208,6 @@ export function NoteInput() {
             </div>
             <div
               class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}
-              style={
-                lifting
-                  ? {
-                      "--lift-rotate": `${liftRotation}deg`,
-                      "--lift-translate": `${-liftRotation * 2}px`,
-                    }
-                  : undefined
-              }
             >
               <div class="px-5 pt-12 pb-4 text-sm text-gray-400 dark:text-gray-300">
                 {topCta}
@@ -248,12 +216,7 @@ export function NoteInput() {
           </div>
           {/* Stack base — visible thickness at bottom */}
           <div
-            class="note-stack-base"
-            style={
-              defaultNoteColor.value === "random"
-                ? rainbowGradientStyle
-                : undefined
-            }
+            class={`note-stack-base ${noteColorMap[nextColor].bg}`}
           />
         </div>
       </div>
