@@ -1,4 +1,5 @@
 import { X } from "lucide-preact";
+import { t } from "../i18n/index.js";
 
 interface ImageGalleryProps {
   images: string[];
@@ -28,7 +29,7 @@ export function ImageGallery({ images, onDelete }: ImageGalleryProps) {
                 e.stopPropagation();
                 onDelete(i);
               }}
-              aria-label="Delete image"
+              aria-label={t("editor.imageAlt")}
             >
               <X class="w-4 h-4" />
             </button>

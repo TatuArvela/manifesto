@@ -2,20 +2,10 @@ import type { NoteColor, NoteVersion } from "@manifesto/shared";
 import { ArrowLeft, RotateCcw } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { noteColorMap } from "../colors.js";
+import { formatDateTime, t } from "../i18n/index.js";
 import { getVersions } from "../storage/VersionStorage.js";
 import { iconBtnClass } from "./NoteEditor.js";
 import { Tooltip } from "./Tooltip.js";
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
@@ -52,16 +42,16 @@ export function VersionHistory({
             <h3 class="font-medium text-base mb-2">{selected.title}</h3>
           )}
           <pre class="whitespace-pre-wrap text-sm max-h-80 overflow-y-auto">
-            {selected.content || "(empty)"}
+            {selected.content || t("versions.emptyContent")}
           </pre>
         </div>
         <div class="px-3 pt-1.5 pb-2 flex items-center gap-0.5">
-          <Tooltip label="Back to list">
+          <Tooltip label={t("versions.backToList")}>
             <button
               type="button"
               class={iconBtnClass}
               onClick={() => setSelected(null)}
-              aria-label="Back to list"
+              aria-label={t("versions.backToList")}
             >
               <ArrowLeft class="w-4 h-4" />
             </button>
@@ -73,7 +63,7 @@ export function VersionHistory({
             onClick={() => onRestore(selected.title, selected.content)}
           >
             <RotateCcw class="w-3.5 h-3.5" />
-            Restore
+            {t("versions.restore")}
           </button>
         </div>
       </article>
@@ -83,10 +73,10 @@ export function VersionHistory({
   return (
     <article class={`${colors.bg} ${colors.border} border shadow-lg`}>
       <div class="p-4">
-        <h3 class="font-medium text-base mb-3">Version history</h3>
+        <h3 class="font-medium text-base mb-3">{t("versions.title")}</h3>
         {versions.length === 0 ? (
           <p class="text-sm text-black/40 dark:text-white/40">
-            No previous versions
+            {t("versions.empty")}
           </p>
         ) : (
           <div class="flex flex-col gap-1 max-h-80 overflow-y-auto">
@@ -116,12 +106,12 @@ export function VersionHistory({
         )}
       </div>
       <div class="px-3 pt-1.5 pb-2 flex items-center">
-        <Tooltip label="Back to editor">
+        <Tooltip label={t("versions.backToEditor")}>
           <button
             type="button"
             class={iconBtnClass}
             onClick={onClose}
-            aria-label="Back to editor"
+            aria-label={t("versions.backToEditor")}
           >
             <ArrowLeft class="w-4 h-4" />
           </button>

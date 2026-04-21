@@ -112,61 +112,20 @@ export const noteFontFamilies: Record<NoteFont, string> = {
   [NoteFont.ComicRelief]: '"Comic Relief", cursive',
 };
 
-export const colorPickerColors: {
-  value: NoteColor;
-  label: string;
-  swatch: string;
-}[] = [
+export const colorPickerSwatches: { value: NoteColor; swatch: string }[] = [
   {
     value: NoteColor.Default,
-    label: "Default",
     swatch:
       "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600",
   },
-  { value: NoteColor.Red, label: "Red", swatch: "bg-red-400 dark:bg-red-600" },
-  {
-    value: NoteColor.Orange,
-    label: "Orange",
-    swatch: "bg-orange-400 dark:bg-orange-600",
-  },
-  {
-    value: NoteColor.Yellow,
-    label: "Yellow",
-    swatch: "bg-yellow-400 dark:bg-yellow-600",
-  },
-  {
-    value: NoteColor.Green,
-    label: "Green",
-    swatch: "bg-green-400 dark:bg-green-600",
-  },
-  {
-    value: NoteColor.Teal,
-    label: "Teal",
-    swatch: "bg-teal-400 dark:bg-teal-600",
-  },
-  {
-    value: NoteColor.Blue,
-    label: "Blue",
-    swatch: "bg-blue-400 dark:bg-blue-600",
-  },
-  {
-    value: NoteColor.Purple,
-    label: "Purple",
-    swatch: "bg-purple-400 dark:bg-purple-600",
-  },
-  {
-    value: NoteColor.Pink,
-    label: "Pink",
-    swatch: "bg-pink-400 dark:bg-pink-600",
-  },
-  {
-    value: NoteColor.Brown,
-    label: "Brown",
-    swatch: "bg-amber-600 dark:bg-amber-700",
-  },
-  {
-    value: NoteColor.Gray,
-    label: "Gray",
-    swatch: "bg-gray-400 dark:bg-gray-500",
-  },
+  { value: NoteColor.Red, swatch: "bg-red-400 dark:bg-red-600" },
+  { value: NoteColor.Orange, swatch: "bg-orange-400 dark:bg-orange-600" },
+  { value: NoteColor.Yellow, swatch: "bg-yellow-400 dark:bg-yellow-600" },
+  { value: NoteColor.Green, swatch: "bg-green-400 dark:bg-green-600" },
+  { value: NoteColor.Teal, swatch: "bg-teal-400 dark:bg-teal-600" },
+  { value: NoteColor.Blue, swatch: "bg-blue-400 dark:bg-blue-600" },
+  { value: NoteColor.Purple, swatch: "bg-purple-400 dark:bg-purple-600" },
+  { value: NoteColor.Pink, swatch: "bg-pink-400 dark:bg-pink-600" },
+  { value: NoteColor.Brown, swatch: "bg-amber-600 dark:bg-amber-700" },
+  { value: NoteColor.Gray, swatch: "bg-gray-400 dark:bg-gray-500" },
 ];

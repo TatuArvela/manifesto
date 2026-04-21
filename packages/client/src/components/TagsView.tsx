@@ -1,5 +1,6 @@
 import { Archive, Trash2 } from "lucide-preact";
 import { useState } from "preact/hooks";
+import { t } from "../i18n/index.js";
 import {
   activeTag,
   allTags,
@@ -65,7 +66,7 @@ export function TagsView() {
             setShowConfirm(false);
           }}
         >
-          All
+          {t("tags.all")}
         </button>
         {tags.map((tag) => (
           <button
@@ -86,12 +87,12 @@ export function TagsView() {
         ))}
 
         {selected && !showConfirm && (
-          <Tooltip label="Delete tag">
+          <Tooltip label={t("tags.delete")}>
             <button
               type="button"
               class="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
               onClick={() => setShowConfirm(true)}
-              aria-label="Delete tag"
+              aria-label={t("tags.delete")}
             >
               <Trash2 class="w-4 h-4" />
             </button>
@@ -101,21 +102,21 @@ export function TagsView() {
         {selected && showConfirm && (
           <div class="flex items-center gap-2">
             <span class="text-sm text-gray-500 dark:text-gray-400">
-              Remove #{selected} from all notes?
+              {t("tags.removeConfirm", { tag: selected })}
             </span>
             <button
               type="button"
               class="px-2 py-1 text-xs bg-red-600 text-white rounded font-medium hover:bg-red-700 cursor-pointer"
               onClick={handleDelete}
             >
-              Delete
+              {t("tags.confirmDelete")}
             </button>
             <button
               type="button"
               class="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 rounded font-medium hover:bg-gray-300 dark:hover:bg-gray-500 cursor-pointer"
               onClick={() => setShowConfirm(false)}
             >
-              Cancel
+              {t("tags.cancel")}
             </button>
           </div>
         )}
@@ -130,8 +131,8 @@ export function TagsView() {
             }}
             label={
               tagsShowArchived.value
-                ? "Hide archived notes"
-                : "Show archived notes"
+                ? t("tags.hideArchived")
+                : t("tags.showArchived")
             }
           >
             <Archive class="w-4 h-4" />
@@ -143,8 +144,8 @@ export function TagsView() {
             }}
             label={
               tagsShowTrashed.value
-                ? "Hide trashed notes"
-                : "Show trashed notes"
+                ? t("tags.hideTrashed")
+                : t("tags.showTrashed")
             }
           >
             <Trash2 class="w-4 h-4" />
@@ -154,7 +155,7 @@ export function TagsView() {
 
       {tags.length === 0 && (
         <p class="mt-4 text-sm text-gray-400 dark:text-gray-500">
-          No tags yet. Add tags to your notes to organize them.
+          {t("tags.empty")}
         </p>
       )}
     </div>

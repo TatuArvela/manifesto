@@ -17,7 +17,7 @@ import {
 } from "lucide-preact";
 import { useState } from "preact/hooks";
 import logoUrl from "../assets/logo.svg";
-import { colorPickerColors } from "../colors.js";
+import { getColorPickerColors, plural, t } from "../i18n/index.js";
 import {
   activeView,
   bulkAddTag,
@@ -40,18 +40,13 @@ import { Dropdown } from "./Dropdown.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
-const sortOptions: { value: SortMode; label: string }[] = [
-  { value: "default", label: "Manual order" },
-  { value: "updated", label: "Recently updated" },
-  { value: "created", label: "Newest first" },
-];
-
 const selToolbarBtnClass = "p-2 rounded-lg hover:bg-white/10 transition-colors";
 
 function SelectionToolbar() {
   const count = selectedNotes.value.size;
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const colors = getColorPickerColors();
 
   return (
     <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
@@ -61,23 +56,25 @@ function SelectionToolbar() {
           type="button"
           class="p-2 rounded-lg hover:bg-white/10"
           onClick={() => exitSelectMode()}
-          aria-label="Cancel selection"
+          aria-label={t("selection.cancel")}
         >
           <X class="w-5 h-5" />
         </button>
-        <span class="text-sm font-medium select-none">{count} selected</span>
+        <span class="text-sm font-medium select-none">
+          {plural("selection.count", count)}
+        </span>
       </div>
 
       <div class="flex-1" />
 
       {/* Right: actions */}
       <div class="flex items-center gap-0.5 shrink-0">
-        <Tooltip label="Pin">
+        <Tooltip label={t("selection.pin")}>
           <button
             type="button"
             class={selToolbarBtnClass}
             onClick={() => bulkPin()}
-            aria-label="Pin selected"
+            aria-label={t("selection.pinSelected")}
           >
             <Pin class="w-5 h-5" />
           </button>
@@ -88,7 +85,7 @@ function SelectionToolbar() {
           open={showTagPicker}
           onClose={() => setShowTagPicker(false)}
           trigger={
-            <Tooltip label="Add tag">
+            <Tooltip label={t("selection.addTag")}>
               <button
                 type="button"
                 class={selToolbarBtnClass}
@@ -96,7 +93,7 @@ function SelectionToolbar() {
                   setShowTagPicker(!showTagPicker);
                   setShowColorPicker(false);
                 }}
-                aria-label="Tag selected"
+                aria-label={t("selection.tagSelected")}
               >
                 <Tag class="w-5 h-5" />
               </button>
@@ -113,12 +110,12 @@ function SelectionToolbar() {
           />
         </Dropdown>
 
-        <Tooltip label="Archive">
+        <Tooltip label={t("selection.archive")}>
           <button
             type="button"
             class={selToolbarBtnClass}
             onClick={() => bulkArchive()}
-            aria-label="Archive selected"
+            aria-label={t("selection.archiveSelected")}
           >
             <Archive class="w-5 h-5" />
           </button>
@@ -129,7 +126,7 @@ function SelectionToolbar() {
           open={showColorPicker}
           onClose={() => setShowColorPicker(false)}
           trigger={
-            <Tooltip label="Color">
+            <Tooltip label={t("selection.color")}>
               <button
                 type="button"
                 class={selToolbarBtnClass}
@@ -137,7 +134,7 @@ function SelectionToolbar() {
                   setShowColorPicker(!showColorPicker);
                   setShowTagPicker(false);
                 }}
-                aria-label="Change color"
+                aria-label={t("selection.changeColor")}
               >
                 <Palette class="w-5 h-5" />
               </button>
@@ -145,7 +142,7 @@ function SelectionToolbar() {
           }
           panelClass="absolute right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
         >
-          {colorPickerColors.map((c) => (
+          {colors.map((c) => (
             <Tooltip key={c.value} label={c.label}>
               <button
                 type="button"
@@ -160,12 +157,12 @@ function SelectionToolbar() {
           ))}
         </Dropdown>
 
-        <Tooltip label="Delete">
+        <Tooltip label={t("selection.delete")}>
           <button
             type="button"
             class={selToolbarBtnClass}
             onClick={() => bulkTrash()}
-            aria-label="Delete selected"
+            aria-label={t("selection.deleteSelected")}
           >
             <Trash2 class="w-5 h-5" />
           </button>
@@ -183,6 +180,12 @@ export function Header() {
     return <SelectionToolbar />;
   }
 
+  const sortOptions: { value: SortMode; label: string }[] = [
+    { value: "default", label: t("header.sort.manual") },
+    { value: "updated", label: t("header.sort.updated") },
+    { value: "created", label: t("header.sort.created") },
+  ];
+
   return (
     <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-white dark:bg-gray-900">
       {/* Left: hamburger (mobile only) + title */}
@@ -193,7 +196,7 @@ export function Header() {
           onClick={() => {
             mobileSidebarOpen.value = !mobileSidebarOpen.value;
           }}
-          aria-label="Toggle sidebar"
+          aria-label={t("nav.toggleSidebar")}
         >
           <Menu class="w-5 h-5" />
         </button>
@@ -202,12 +205,12 @@ export function Header() {
           {activeView.value === "active" && (
             <>
               <img src={logoUrl} alt="" class="h-6 w-6 dark:invert" />
-              Manifesto
+              {t("app.name")}
             </>
           )}
-          {activeView.value === "tags" && "Tags"}
-          {activeView.value === "archived" && "Archive"}
-          {activeView.value === "trash" && "Trash"}
+          {activeView.value === "tags" && t("nav.tags")}
+          {activeView.value === "archived" && t("nav.archive")}
+          {activeView.value === "trash" && t("nav.trash")}
         </h1>
       </div>
 
@@ -217,7 +220,7 @@ export function Header() {
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="search"
-            placeholder="Search notes..."
+            placeholder={t("header.searchPlaceholder")}
             class="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition text-sm"
             value={searchQuery.value}
             onInput={(e) => {
@@ -237,12 +240,12 @@ export function Header() {
           open={showSortMenu}
           onClose={() => setShowSortMenu(false)}
           trigger={
-            <Tooltip label="Sort">
+            <Tooltip label={t("header.sort")}>
               <button
                 type="button"
                 class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setShowSortMenu(!showSortMenu)}
-                aria-label="Sort notes"
+                aria-label={t("header.sortNotes")}
               >
                 <ArrowDownUp class="w-5 h-5" />
               </button>
@@ -274,12 +277,12 @@ export function Header() {
           open={showViewMenu}
           onClose={() => setShowViewMenu(false)}
           trigger={
-            <Tooltip label="View">
+            <Tooltip label={t("header.view")}>
               <button
                 type="button"
                 class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => setShowViewMenu(!showViewMenu)}
-                aria-label="View options"
+                aria-label={t("header.viewOptions")}
               >
                 <LayoutDashboard class="w-5 h-5" />
               </button>
@@ -299,7 +302,7 @@ export function Header() {
             }}
           >
             <LayoutDashboard class="w-4 h-4" />
-            Grid view
+            {t("header.view.grid")}
           </button>
           <button
             type="button"
@@ -313,7 +316,7 @@ export function Header() {
             }}
           >
             <StretchHorizontal class="w-4 h-4" />
-            List view
+            {t("header.view.list")}
           </button>
           <div class="border-t border-gray-200 dark:border-gray-700 my-1" />
           <button
@@ -328,7 +331,7 @@ export function Header() {
             }}
           >
             <Square class="w-4 h-4" />
-            Square notes
+            {t("header.view.square")}
           </button>
           <button
             type="button"
@@ -342,18 +345,18 @@ export function Header() {
             }}
           >
             <RectangleHorizontal class="w-4 h-4" />
-            Fit notes
+            {t("header.view.fit")}
           </button>
         </Dropdown>
 
-        <Tooltip label="Settings">
+        <Tooltip label={t("header.settings")}>
           <button
             type="button"
             class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
             onClick={() => {
               showSettings.value = true;
             }}
-            aria-label="Settings"
+            aria-label={t("header.settings")}
           >
             <Settings class="w-5 h-5" />
           </button>

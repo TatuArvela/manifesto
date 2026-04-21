@@ -1,4 +1,5 @@
 import { X } from "lucide-preact";
+import { t } from "../i18n/index.js";
 import { dismissToast, toasts } from "../state/ui.js";
 
 export function Toasts() {
@@ -18,7 +19,7 @@ export function Toasts() {
             type="button"
             class="p-0.5 rounded hover:bg-white/20 shrink-0 cursor-pointer"
             onClick={() => dismissToast(toast.id)}
-            aria-label="Dismiss"
+            aria-label={t("toast.dismiss")}
           >
             <X class="w-4 h-4" />
           </button>

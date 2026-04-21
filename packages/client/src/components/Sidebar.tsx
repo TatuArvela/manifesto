@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-preact";
 import { Archive, Hash, StickyNote, Trash2 } from "lucide-preact";
 import logoUrl from "../assets/logo.svg";
+import { t } from "../i18n/index.js";
 import {
   type AppView,
   activeTag,
@@ -99,10 +100,25 @@ export function Sidebar() {
       >
         {/* Collapsed icon buttons */}
         <nav class="flex flex-col items-center gap-1 pt-3">
-          <NavItem label="Notes" icon={StickyNote} view="active" collapsed />
-          <NavItem label="Tags" icon={Hash} view="tags" collapsed />
-          <NavItem label="Archive" icon={Archive} view="archived" collapsed />
-          <NavItem label="Trash" icon={Trash2} view="trash" collapsed />
+          <NavItem
+            label={t("nav.notes")}
+            icon={StickyNote}
+            view="active"
+            collapsed
+          />
+          <NavItem label={t("nav.tags")} icon={Hash} view="tags" collapsed />
+          <NavItem
+            label={t("nav.archive")}
+            icon={Archive}
+            view="archived"
+            collapsed
+          />
+          <NavItem
+            label={t("nav.trash")}
+            icon={Trash2}
+            view="trash"
+            collapsed
+          />
         </nav>
       </div>
 
@@ -114,13 +130,13 @@ export function Sidebar() {
       >
         <div class="h-14 flex items-center gap-3 px-5 border-b border-gray-200 dark:border-gray-700">
           <img src={logoUrl} alt="" class="h-6 w-6 dark:invert" />
-          <h2 class="text-lg font-semibold select-none">Manifesto</h2>
+          <h2 class="text-lg font-semibold select-none">{t("app.name")}</h2>
         </div>
         <div class="pt-2">
-          <NavItem label="Notes" icon={StickyNote} view="active" />
-          <NavItem label="Tags" icon={Hash} view="tags" />
-          <NavItem label="Archive" icon={Archive} view="archived" />
-          <NavItem label="Trash" icon={Trash2} view="trash" />
+          <NavItem label={t("nav.notes")} icon={StickyNote} view="active" />
+          <NavItem label={t("nav.tags")} icon={Hash} view="tags" />
+          <NavItem label={t("nav.archive")} icon={Archive} view="archived" />
+          <NavItem label={t("nav.trash")} icon={Trash2} view="trash" />
         </div>
       </nav>
     </>

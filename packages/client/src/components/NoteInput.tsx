@@ -6,6 +6,7 @@ import {
 } from "@manifesto/shared";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteEdgeColors } from "../colors.js";
+import { type MessageKey, t } from "../i18n/index.js";
 import {
   activeView,
   createNote,
@@ -20,23 +21,24 @@ import {
 import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
 
-const ctaMessages = [
-  "What's on your mind? ✏️",
-  "Jot something down! 📝",
-  "Got an idea? Drop it here! 💡",
-  "Take a note... 🗒️",
-  "Capture a thought! 🦋",
-  "Don't forget this! 📌",
-  "Quick, write it down! ⚡",
-  "Your next big idea starts here ✨",
-  "Scribble something! 🖊️",
-  "What are you thinking about? 🤔",
-  "Note to self... 💭",
-  "Pin this thought! 📍",
+const ctaKeys: MessageKey[] = [
+  "cta.0",
+  "cta.1",
+  "cta.2",
+  "cta.3",
+  "cta.4",
+  "cta.5",
+  "cta.6",
+  "cta.7",
+  "cta.8",
+  "cta.9",
+  "cta.10",
+  "cta.11",
 ];
 
 function randomCta(exclude?: string): string {
-  const pool = exclude ? ctaMessages.filter((m) => m !== exclude) : ctaMessages;
+  const all = ctaKeys.map((k) => t(k));
+  const pool = exclude ? all.filter((m) => m !== exclude) : all;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -298,7 +300,7 @@ export function NoteInput() {
                 onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
                 onDone={closeModal}
                 onDelete={discardNote}
-                deleteLabel="Discard"
+                deleteLabel={t("editor.discard")}
               />
             </div>
           </div>

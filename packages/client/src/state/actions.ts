@@ -1,6 +1,7 @@
 import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
+import { t } from "../i18n/index.js";
 import { createStorage } from "../storage/index.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
 import { defaultNoteColor, defaultNoteFont, sortMode } from "./prefs.js";
@@ -154,7 +155,7 @@ export async function loadNotes() {
     await expireTrash();
   } catch (err) {
     console.error("Failed to load notes:", err);
-    showError("Failed to load notes. Please refresh the page.");
+    showError(t("error.loadFailed"));
   }
 }
 
@@ -179,7 +180,7 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
     return note;
   } catch (err) {
     console.error("Failed to create note:", err);
-    showError("Failed to create note.");
+    showError(t("error.createFailed"));
     throw err;
   }
 }
@@ -191,7 +192,7 @@ export async function updateNote(id: string, changes: NoteUpdate) {
     return note;
   } catch (err) {
     console.error(`Failed to update note ${id}:`, err);
-    showError("Failed to save changes.");
+    showError(t("error.saveFailed"));
     throw err;
   }
 }
@@ -203,7 +204,7 @@ export async function permanentlyDeleteNote(id: string) {
     deleteVersions(id);
   } catch (err) {
     console.error(`Failed to delete note ${id}:`, err);
-    showError("Failed to delete note.");
+    showError(t("error.deleteFailed"));
     throw err;
   }
 }
@@ -381,7 +382,7 @@ export async function importNotes(imported: Note[]) {
     notes.value = await storage.getAll();
   } catch (err) {
     console.error("Failed to import notes:", err);
-    showError("Failed to import notes.");
+    showError(t("error.importFailed"));
     throw err;
   }
 }

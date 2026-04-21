@@ -38,6 +38,7 @@ import {
   toggleSuperscriptCommand,
   toggleUnderlineCommand,
 } from "../extensions/manifestoInlineMarks.js";
+import { t } from "../i18n/index.js";
 import { Dropdown } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -310,13 +311,13 @@ export function FormattingToolbar({
         open={showHeadingMenu}
         onClose={() => setShowHeadingMenu(false)}
         trigger={
-          <Tooltip label="Heading">
+          <Tooltip label={t("format.heading")}>
             <button
               type="button"
               class={`${af.heading ? btnActive : btnInactive} flex items-center gap-0.5`}
               onMouseDown={preventFocus}
               onClick={() => setShowHeadingMenu(!showHeadingMenu)}
-              aria-label="Heading"
+              aria-label={t("format.heading")}
               disabled={disabled}
             >
               <Heading class="w-4 h-4" />
@@ -338,27 +339,29 @@ export function FormattingToolbar({
             }}
           >
             <span class="font-semibold">H{level}</span>
-            <span class="text-gray-400 text-xs">Heading {level}</span>
+            <span class="text-gray-400 text-xs">
+              {t("format.headingLevel", { level })}
+            </span>
           </button>
         ))}
       </Dropdown>
 
-      {fmtBtn("bold", "Bold", <Bold class="w-4 h-4" />)}
-      {fmtBtn("italic", "Italic", <Italic class="w-4 h-4" />)}
-      {fmtBtn("quote", "Quote", <Quote class="w-4 h-4" />)}
-      {fmtBtn("code", "Code", <Code class="w-4 h-4" />)}
+      {fmtBtn("bold", t("format.bold"), <Bold class="w-4 h-4" />)}
+      {fmtBtn("italic", t("format.italic"), <Italic class="w-4 h-4" />)}
+      {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
+      {fmtBtn("code", t("format.code"), <Code class="w-4 h-4" />)}
 
       <Dropdown
         open={showLinkMenu}
         onClose={closeLinkMenu}
         trigger={
-          <Tooltip label="Link">
+          <Tooltip label={t("format.link")}>
             <button
               type="button"
               class={af.link ? btnActive : btnInactive}
               onMouseDown={preventFocus}
               onClick={onLinkClick}
-              aria-label="Link"
+              aria-label={t("format.link")}
               disabled={disabled}
             >
               <Link class="w-4 h-4" />
@@ -379,23 +382,35 @@ export function FormattingToolbar({
             type="url"
             value={linkUrl}
             onInput={(e) => setLinkUrl((e.target as HTMLInputElement).value)}
-            placeholder="https://..."
+            placeholder={t("format.linkPlaceholder")}
             class="px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 w-56"
           />
           <button
             type="submit"
             class="px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
           >
-            Add
+            {t("format.linkAdd")}
           </button>
         </form>
       </Dropdown>
 
       <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
-      {fmtBtn("numberedList", "Numbered list", <ListOrdered class="w-4 h-4" />)}
-      {fmtBtn("unorderedList", "Bullet list", <List class="w-4 h-4" />)}
-      {fmtBtn("checklist", "Checklist", <ListChecks class="w-4 h-4" />)}
+      {fmtBtn(
+        "numberedList",
+        t("format.numberedList"),
+        <ListOrdered class="w-4 h-4" />,
+      )}
+      {fmtBtn(
+        "unorderedList",
+        t("format.bulletList"),
+        <List class="w-4 h-4" />,
+      )}
+      {fmtBtn(
+        "checklist",
+        t("format.checklist"),
+        <ListChecks class="w-4 h-4" />,
+      )}
 
       <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
@@ -403,13 +418,13 @@ export function FormattingToolbar({
         open={showMoreMenu}
         onClose={() => setShowMoreMenu(false)}
         trigger={
-          <Tooltip label="More formatting">
+          <Tooltip label={t("format.moreFormatting")}>
             <button
               type="button"
               class={btnInactive}
               onMouseDown={preventFocus}
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              aria-label="More formatting"
+              aria-label={t("format.moreFormatting")}
               disabled={disabled}
             >
               <MoreHorizontal class="w-4 h-4" />
@@ -422,12 +437,16 @@ export function FormattingToolbar({
           [
             [
               "strikethrough",
-              "Strikethrough",
+              t("format.strikethrough"),
               <Strikethrough class="w-4 h-4" />,
             ],
-            ["underline", "Underline", <Underline class="w-4 h-4" />],
-            ["subscript", "Subscript", <Subscript class="w-4 h-4" />],
-            ["superscript", "Superscript", <Superscript class="w-4 h-4" />],
+            ["underline", t("format.underline"), <Underline class="w-4 h-4" />],
+            ["subscript", t("format.subscript"), <Subscript class="w-4 h-4" />],
+            [
+              "superscript",
+              t("format.superscript"),
+              <Superscript class="w-4 h-4" />,
+            ],
           ] as [FormatType, string, ComponentChildren][]
         ).map(([type, label, icon]) => (
           <button

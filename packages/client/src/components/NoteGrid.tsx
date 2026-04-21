@@ -1,5 +1,6 @@
 import { StickyNote } from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { t } from "../i18n/index.js";
 import {
   canReorder,
   noteSize,
@@ -214,8 +215,8 @@ export function NoteGrid() {
     return (
       <div class="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
         <StickyNote class="w-12 h-12 mb-4" />
-        <p class="text-lg">No notes yet</p>
-        <p class="text-sm">Time to jot something down!</p>
+        <p class="text-lg">{t("noteGrid.empty")}</p>
+        <p class="text-sm">{t("noteGrid.emptyHint")}</p>
       </div>
     );
   }
@@ -239,7 +240,7 @@ export function NoteGrid() {
     <div class="mt-4">
       {pinned.length > 0 && (
         <section>
-          <h2 class={headingClass}>Pinned</h2>
+          <h2 class={headingClass}>{t("noteGrid.pinned")}</h2>
           {/* biome-ignore lint/a11y/useSemanticElements: grid layout requires div */}
           <div
             ref={pinnedGridRef}
@@ -265,7 +266,7 @@ export function NoteGrid() {
       )}
 
       {pinned.length > 0 && unpinned.length > 0 && (
-        <h2 class={`${headingClass} mt-6`}>Others</h2>
+        <h2 class={`${headingClass} mt-6`}>{t("noteGrid.others")}</h2>
       )}
 
       {unpinned.length > 0 && (

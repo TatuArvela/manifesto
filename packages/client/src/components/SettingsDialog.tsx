@@ -13,6 +13,9 @@ import {
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
+import { detectBrowserLocale } from "../i18n/detect.js";
+import { getFontLabel, plural, t } from "../i18n/index.js";
+import { SUPPORTED_LOCALES } from "../i18n/locales.js";
 import {
   type DefaultNoteFont,
   defaultNoteColor,
@@ -20,6 +23,7 @@ import {
   deleteAllNotes,
   exportNotes,
   importNotes,
+  locale,
   showSettings,
   type ThemeMode,
   theme,
@@ -28,21 +32,43 @@ import { ThreeWayToggle, ToggleSwitch } from "./ToggleSwitch.js";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
 
-const fontOptions: { value: DefaultNoteFont; label: string }[] = [
-  { value: NoteFont.Default, label: "Default" },
-  { value: NoteFont.PermanentMarker, label: "Permanent Marker" },
-  { value: NoteFont.ComicRelief, label: "Comic Relief" },
-  { value: "random", label: "Random" },
-];
+// Endonyms never translate — each language's name is rendered in that language.
+const LOCALE_ENDONYMS: Record<string, string> = {
+  en: "English",
+  fi: "Suomi",
+};
+
+type LanguageOption = "system" | (typeof SUPPORTED_LOCALES)[number];
 
 export function SettingsDialog() {
   const [dataStatus, setDataStatus] = useState("");
   const [deleteStatus, setDeleteStatus] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showFontMenu, setShowFontMenu] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
+
+  const fontOptions: { value: DefaultNoteFont; label: string }[] = [
+    { value: NoteFont.Default, label: getFontLabel(NoteFont.Default) },
+    {
+      value: NoteFont.PermanentMarker,
+      label: getFontLabel(NoteFont.PermanentMarker),
+    },
+    { value: NoteFont.ComicRelief, label: getFontLabel(NoteFont.ComicRelief) },
+    { value: "random", label: getFontLabel("random") },
+  ];
+
+  const languageOptions: { value: LanguageOption; label: string }[] = [
+    { value: "system", label: t("settings.language.system") },
+    ...SUPPORTED_LOCALES.map((l) => ({
+      value: l as LanguageOption,
+      label: LOCALE_ENDONYMS[l] ?? l,
+    })),
+  ];
+  const currentLanguageLabel =
+    LOCALE_ENDONYMS[locale.value] ?? String(locale.value);
 
   const isOpen = showSettings.value;
 
@@ -77,7 +103,7 @@ export function SettingsDialog() {
     a.download = `manifesto-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    setDataStatus("Notes exported");
+    setDataStatus(t("settings.data.exported"));
   };
 
   const handleImport = () => {
@@ -107,11 +133,9 @@ export function SettingsDialog() {
         }
       }
       await importNotes(data as Note[]);
-      setDataStatus(
-        `Imported ${data.length} note${data.length === 1 ? "" : "s"}`,
-      );
+      setDataStatus(plural("settings.data.importedCount", data.length));
     } catch {
-      setDataStatus("Import failed — invalid file");
+      setDataStatus(t("settings.data.importFailed"));
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -119,7 +143,7 @@ export function SettingsDialog() {
   const handleDeleteAll = async () => {
     await deleteAllNotes();
     setShowDeleteConfirm(false);
-    setDeleteStatus("All notes deleted");
+    setDeleteStatus(t("settings.data.deleted"));
   };
 
   return (
@@ -140,12 +164,12 @@ export function SettingsDialog() {
         onAnimationEnd={handleAnimationEnd}
       >
         <div class="flex items-center justify-between px-6 h-14 border-b border-gray-200 dark:border-gray-700 shrink-0">
-          <h2 class="text-lg font-semibold">Settings</h2>
+          <h2 class="text-lg font-semibold">{t("settings.title")}</h2>
           <button
             type="button"
             class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
             onClick={handleClose}
-            aria-label="Close settings"
+            aria-label={t("settings.close")}
           >
             <X class="w-5 h-5" />
           </button>
@@ -154,24 +178,84 @@ export function SettingsDialog() {
         <div class="flex-1 overflow-y-auto px-6 py-4">
           {/* Theme */}
           <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-gray-600 dark:text-gray-400">Theme</h3>
+            <h3 class="text-sm text-gray-600 dark:text-gray-400">
+              {t("settings.theme")}
+            </h3>
             <ThreeWayToggle
               value={themeModes.indexOf(theme.value)}
               onChange={(i) => {
                 theme.value = themeModes[i];
               }}
               options={[
-                { icon: <Monitor class="w-4 h-4" />, label: "System" },
-                { icon: <Sun class="w-4 h-4" />, label: "Light" },
-                { icon: <Moon class="w-4 h-4" />, label: "Dark" },
+                {
+                  icon: <Monitor class="w-4 h-4" />,
+                  label: t("settings.theme.system"),
+                },
+                {
+                  icon: <Sun class="w-4 h-4" />,
+                  label: t("settings.theme.light"),
+                },
+                {
+                  icon: <Moon class="w-4 h-4" />,
+                  label: t("settings.theme.dark"),
+                },
               ]}
             />
+          </div>
+
+          {/* Language */}
+          <div class="pb-4 flex items-center justify-between">
+            <h3 class="text-sm text-gray-600 dark:text-gray-400">
+              {t("settings.language")}
+            </h3>
+            <div class="relative">
+              <button
+                type="button"
+                class="px-3 py-1.5 text-sm rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+              >
+                {currentLanguageLabel}
+              </button>
+              {showLanguageMenu && (
+                <>
+                  {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
+                  <div
+                    class="fixed inset-0 z-10"
+                    role="presentation"
+                    onClick={() => setShowLanguageMenu(false)}
+                    onKeyDown={() => {}}
+                  />
+                  <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[160px]">
+                    {languageOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        class={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${
+                          opt.value !== "system" && locale.value === opt.value
+                            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                        onClick={() => {
+                          locale.value =
+                            opt.value === "system"
+                              ? detectBrowserLocale()
+                              : opt.value;
+                          setShowLanguageMenu(false);
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Default note color */}
           <div class="pb-4 flex items-center justify-between">
             <h3 class="text-sm text-gray-600 dark:text-gray-400">
-              Default Note Color
+              {t("settings.defaultColor")}
             </h3>
             <ToggleSwitch
               checked={defaultNoteColor.value === "random"}
@@ -180,15 +264,15 @@ export function SettingsDialog() {
               }}
               iconOff={<Square class="w-4 h-4" />}
               iconOn={<Dices class="w-4 h-4" />}
-              labelOff="Plain"
-              labelOn="Random"
+              labelOff={t("settings.defaultColor.plain")}
+              labelOn={t("settings.defaultColor.random")}
             />
           </div>
 
           {/* Default note font */}
           <div class="pb-4 flex items-center justify-between">
             <h3 class="text-sm text-gray-600 dark:text-gray-400">
-              Default Note Font
+              {t("settings.defaultFont")}
             </h3>
             <div class="relative">
               <button
@@ -203,7 +287,7 @@ export function SettingsDialog() {
                 onClick={() => setShowFontMenu(!showFontMenu)}
               >
                 {fontOptions.find((o) => o.value === defaultNoteFont.value)
-                  ?.label ?? "Default"}
+                  ?.label ?? getFontLabel(NoteFont.Default)}
               </button>
               {showFontMenu && (
                 <>
@@ -246,7 +330,9 @@ export function SettingsDialog() {
 
           {/* Import / Export */}
           <div class="pb-4">
-            <h3 class="text-sm text-gray-600 dark:text-gray-400 mb-2">Data</h3>
+            <h3 class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              {t("settings.data")}
+            </h3>
             <div class="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -254,7 +340,7 @@ export function SettingsDialog() {
                 onClick={handleImport}
               >
                 <Download class="w-4 h-4" />
-                Import Notes
+                {t("settings.data.import")}
               </button>
               <button
                 type="button"
@@ -262,7 +348,7 @@ export function SettingsDialog() {
                 onClick={handleExport}
               >
                 <Upload class="w-4 h-4" />
-                Export Notes
+                {t("settings.data.export")}
               </button>
               <input
                 ref={fileInputRef}
@@ -274,8 +360,7 @@ export function SettingsDialog() {
               {showDeleteConfirm ? (
                 <div class="col-span-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
                   <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                    This will permanently delete all your notes. This action
-                    cannot be undone.
+                    {t("settings.data.deleteConfirm")}
                   </p>
                   <div class="flex gap-2">
                     <button
@@ -283,14 +368,14 @@ export function SettingsDialog() {
                       class="flex-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
                       onClick={handleDeleteAll}
                     >
-                      Yes, delete everything
+                      {t("settings.data.deleteYes")}
                     </button>
                     <button
                       type="button"
                       class="flex-1 px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-600 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-500"
                       onClick={() => setShowDeleteConfirm(false)}
                     >
-                      Cancel
+                      {t("settings.data.cancel")}
                     </button>
                   </div>
                 </div>
@@ -301,7 +386,7 @@ export function SettingsDialog() {
                   onClick={() => setShowDeleteConfirm(true)}
                 >
                   <Trash2 class="w-4 h-4" />
-                  Delete All
+                  {t("settings.data.deleteAll")}
                 </button>
               )}
             </div>

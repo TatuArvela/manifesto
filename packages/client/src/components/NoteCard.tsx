@@ -15,11 +15,8 @@ import {
   X,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import {
-  colorPickerColors,
-  noteColorMap,
-  noteFontFamilies,
-} from "../colors.js";
+import { noteColorMap, noteFontFamilies } from "../colors.js";
+import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
 import {
   activeView,
@@ -63,10 +60,11 @@ function CardColorPicker({
   anchorRef: preact.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
 }) {
+  const pickerColors = getColorPickerColors();
   return (
     <CardPopover anchorRef={anchorRef} onClose={onClose}>
       <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1">
-        {colorPickerColors.map((c) => (
+        {pickerColors.map((c) => (
           <Tooltip key={c.value} label={c.label}>
             <button
               type="button"
@@ -112,7 +110,7 @@ function CardMenu({
             onClick={() => setShowTagPicker(!showTagPicker)}
           >
             <Tag class="w-4 h-4" />
-            Tags
+            {t("noteCard.menu.tags")}
           </button>
           {showTagPicker && (
             <TagPicker
@@ -144,7 +142,7 @@ function CardMenu({
           }}
         >
           <Copy class="w-4 h-4" />
-          Duplicate
+          {t("noteCard.menu.duplicate")}
         </button>
 
         {/* Share link */}
@@ -160,12 +158,12 @@ function CardMenu({
               tags: [...note.tags],
             });
             navigator.clipboard.writeText(url);
-            showSuccess("Link copied to clipboard");
+            showSuccess(t("noteCard.linkCopied"));
             onClose();
           }}
         >
           <Link class="w-4 h-4" />
-          Share link
+          {t("noteCard.menu.shareLink")}
         </button>
         <button
           type="button"
@@ -184,7 +182,9 @@ function CardMenu({
           ) : (
             <Archive class="w-4 h-4" />
           )}
-          {note.archived ? "Unarchive" : "Archive"}
+          {note.archived
+            ? t("noteCard.menu.unarchive")
+            : t("noteCard.menu.archive")}
         </button>
         <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
         <button
@@ -204,7 +204,9 @@ function CardMenu({
           ) : (
             <Trash2 class="w-4 h-4" />
           )}
-          {note.trashed ? "Undelete" : "Delete"}
+          {note.trashed
+            ? t("noteCard.menu.undelete")
+            : t("noteCard.menu.delete")}
         </button>
       </div>
     </CardPopover>
@@ -247,22 +249,22 @@ function CardActions({
     >
       {isTrashView ? (
         <>
-          <Tooltip label="Restore">
+          <Tooltip label={t("noteCard.restore")}>
             <button
               type="button"
               class={iconBtnClass}
               onClick={() => restoreNote(note.id)}
-              aria-label="Restore note"
+              aria-label={t("noteCard.restoreNote")}
             >
               <Undo2 class="w-4 h-4" />
             </button>
           </Tooltip>
-          <Tooltip label="Delete permanently">
+          <Tooltip label={t("noteCard.deletePermanently")}>
             <button
               type="button"
               class={iconBtnClass}
               onClick={() => permanentlyDeleteNote(note.id)}
-              aria-label="Delete permanently"
+              aria-label={t("noteCard.deletePermanently")}
             >
               <X class="w-4 h-4" />
             </button>
@@ -270,24 +272,24 @@ function CardActions({
         </>
       ) : (
         <>
-          <Tooltip label="Color">
+          <Tooltip label={t("noteCard.color")}>
             <button
               ref={colorBtnRef}
               type="button"
               class={iconBtnClass}
               onClick={onToggleColorPicker}
-              aria-label="Change color"
+              aria-label={t("noteCard.changeColor")}
             >
               <Palette class="w-4 h-4" />
             </button>
           </Tooltip>
-          <Tooltip label="More">
+          <Tooltip label={t("noteCard.more")}>
             <button
               ref={menuBtnRef}
               type="button"
               class={iconBtnClass}
               onClick={onToggleMenu}
-              aria-label="More options"
+              aria-label={t("noteCard.moreOptions")}
             >
               <EllipsisVertical class="w-4 h-4" />
             </button>
@@ -416,7 +418,9 @@ export function NoteCard({
                   : "bg-white dark:bg-gray-200 text-gray-400 hover:bg-gray-100 dark:hover:bg-white hover:scale-110 border border-gray-300",
               )}
               onClick={handleSelectClick}
-              aria-label={isSelected ? "Deselect" : "Select"}
+              aria-label={
+                isSelected ? t("noteCard.deselect") : t("noteCard.select")
+              }
             >
               {isSelected && (
                 <svg
@@ -477,12 +481,16 @@ export function NoteCard({
             onClick={(e) => e.stopPropagation()}
           >
             {!isTrashView && (
-              <Tooltip label={note.pinned ? "Unpin" : "Pin"}>
+              <Tooltip
+                label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
+              >
                 <button
                   type="button"
                   class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
                   onClick={() => togglePin(note.id)}
-                  aria-label={note.pinned ? "Unpin" : "Pin"}
+                  aria-label={
+                    note.pinned ? t("noteCard.unpin") : t("noteCard.pin")
+                  }
                 >
                   {note.pinned ? (
                     <span class="relative block w-4 h-4">
@@ -496,14 +504,14 @@ export function NoteCard({
               </Tooltip>
             )}
             {note.archived && (
-              <Tooltip label="Archived">
+              <Tooltip label={t("noteCard.archived")}>
                 <span class="p-1.5 opacity-60">
                   <Archive class="w-4 h-4" />
                 </span>
               </Tooltip>
             )}
             {note.trashed && (
-              <Tooltip label="Trashed">
+              <Tooltip label={t("noteCard.trashed")}>
                 <span class="p-1.5 opacity-60">
                   <Trash2 class="w-4 h-4" />
                 </span>
@@ -594,7 +602,7 @@ export function NoteCard({
 
           {isTrashView && note.trashedAt && (
             <p class="mt-2 text-xs text-gray-400">
-              Trashed {new Date(note.trashedAt).toLocaleDateString()}
+              {t("noteCard.trashedAt", { date: formatDate(note.trashedAt) })}
             </p>
           )}
         </article>

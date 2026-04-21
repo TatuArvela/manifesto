@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import { t } from "../i18n/index.js";
 import { allTags } from "../state/index.js";
 
 /**
@@ -29,7 +30,7 @@ export function TagPicker({
       <input
         type="text"
         class="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none mb-1"
-        placeholder="Add tag..."
+        placeholder={t("tagPicker.placeholder")}
         value={newTag}
         onInput={(e) => setNewTag((e.target as HTMLInputElement).value)}
         onKeyDown={(e) => {
@@ -39,7 +40,7 @@ export function TagPicker({
         }}
       />
       {allTags.value
-        .filter((t) => !tags.includes(t))
+        .filter((existing) => !tags.includes(existing))
         .map((tag) => (
           <button
             key={tag}

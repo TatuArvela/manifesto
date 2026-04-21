@@ -1,5 +1,7 @@
 import { NoteFont } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
+import { detectBrowserLocale } from "../i18n/detect.js";
+import { isLocale, type Locale } from "../i18n/locales.js";
 
 // --- Types ---
 
@@ -21,11 +23,14 @@ function loadPrefs(): {
   theme: ThemeMode;
   defaultNoteColor: DefaultNoteColor;
   defaultNoteFont: DefaultNoteFont;
+  locale: Locale;
 } {
+  let persistedLocale: Locale | undefined;
   try {
     const raw = localStorage.getItem(PREFS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      if (isLocale(parsed.locale)) persistedLocale = parsed.locale;
       return {
         viewMode: parsed.viewMode ?? "grid",
         sortMode: parsed.sortMode ?? "default",
@@ -34,6 +39,7 @@ function loadPrefs(): {
         defaultNoteColor: parsed.defaultNoteColor ?? "plain",
         defaultNoteFont:
           parsed.defaultNoteFont ?? parsed.noteFont ?? NoteFont.Default,
+        locale: persistedLocale ?? detectBrowserLocale(),
       };
     }
   } catch {
@@ -46,6 +52,7 @@ function loadPrefs(): {
     theme: "system",
     defaultNoteColor: "plain",
     defaultNoteFont: NoteFont.Default,
+    locale: detectBrowserLocale(),
   };
 }
 
@@ -59,6 +66,7 @@ function savePrefs() {
       theme: theme.value,
       defaultNoteColor: defaultNoteColor.value,
       defaultNoteFont: defaultNoteFont.value,
+      locale: locale.value,
     }),
   );
 }
@@ -73,6 +81,7 @@ export const defaultNoteColor = signal<DefaultNoteColor>(
   prefs.defaultNoteColor,
 );
 export const defaultNoteFont = signal<DefaultNoteFont>(prefs.defaultNoteFont);
+export const locale = signal<Locale>(prefs.locale);
 
 // Persist preferences when any pref signal changes (debounced)
 let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -84,6 +93,7 @@ effect(() => {
   theme.value;
   defaultNoteColor.value;
   defaultNoteFont.value;
+  locale.value;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(savePrefs, 50);
 });

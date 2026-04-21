@@ -1,5 +1,6 @@
 import type { LinkPreview } from "@manifesto/shared";
 import { Link as LinkIcon, X } from "lucide-preact";
+import { t } from "../i18n/index.js";
 
 interface LinkPreviewListProps {
   previews: LinkPreview[];
@@ -66,7 +67,7 @@ function LinkPreviewRow({
             e.preventDefault();
             onRemove();
           }}
-          aria-label="Remove link preview"
+          aria-label={t("linkPreview.remove")}
         >
           <X class="w-3.5 h-3.5" />
         </button>

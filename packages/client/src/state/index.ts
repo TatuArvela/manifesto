@@ -43,6 +43,7 @@ export {
   type DefaultNoteFont,
   defaultNoteColor,
   defaultNoteFont,
+  locale,
   type NoteSize,
   noteSize,
   type SortMode,

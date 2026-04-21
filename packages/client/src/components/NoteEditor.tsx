@@ -29,11 +29,8 @@ import {
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import {
-  colorPickerColors,
-  noteColorMap,
-  noteFontFamilies,
-} from "../colors.js";
+import { noteColorMap, noteFontFamilies } from "../colors.js";
+import { getColorPickerColors, getFontLabel, t } from "../i18n/index.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { Dropdown } from "./Dropdown.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
@@ -203,6 +200,7 @@ export function NoteEditor({
   }, [editor]);
 
   const colors = noteColorMap[color];
+  const pickerColors = getColorPickerColors();
 
   const handleAddTag = (tag: string) => {
     const trimmed = tag.trim().toLowerCase();
@@ -233,12 +231,12 @@ export function NoteEditor({
     >
       {/* Top-right: pin */}
       <div class="absolute top-2 right-2 flex items-center gap-0.5">
-        <Tooltip label={pinned ? "Unpin" : "Pin"}>
+        <Tooltip label={pinned ? t("noteCard.unpin") : t("noteCard.pin")}>
           <button
             type="button"
             class={`${iconBtnClass} transition-opacity`}
             onClick={onPinToggle}
-            aria-label={pinned ? "Unpin" : "Pin"}
+            aria-label={pinned ? t("noteCard.unpin") : t("noteCard.pin")}
             disabled={disabled}
           >
             {pinned ? <PinOff class="w-4 h-4" /> : <Pin class="w-4 h-4" />}
@@ -256,7 +254,7 @@ export function NoteEditor({
           ref={titleRef}
           type="text"
           class="w-full bg-transparent outline-none font-medium text-base mb-2 placeholder:text-gray-400 pr-32"
-          placeholder="Title"
+          placeholder={t("editor.titlePlaceholder")}
           value={title}
           onInput={(e) => onTitleChange((e.target as HTMLInputElement).value)}
           onKeyDown={(e) => {
@@ -322,7 +320,7 @@ export function NoteEditor({
                   type="button"
                   class="hover:text-red-500 cursor-pointer"
                   onClick={() => onRemoveTag(tag)}
-                  aria-label={`Remove tag ${tag}`}
+                  aria-label={t("editor.removeTag", { tag })}
                 >
                   ×
                 </button>
@@ -339,7 +337,7 @@ export function NoteEditor({
           open={showColorPicker}
           onClose={() => setShowColorPicker(false)}
           trigger={
-            <Tooltip label="Color">
+            <Tooltip label={t("editor.color")}>
               <button
                 type="button"
                 class={iconBtnClass}
@@ -348,7 +346,7 @@ export function NoteEditor({
                   setShowMenu(false);
                   setShowFontPicker(false);
                 }}
-                aria-label="Change color"
+                aria-label={t("editor.changeColor")}
               >
                 <Palette class="w-4 h-4" />
               </button>
@@ -356,7 +354,7 @@ export function NoteEditor({
           }
           panelClass="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
         >
-          {colorPickerColors.map((c) => (
+          {pickerColors.map((c) => (
             <Tooltip key={c.value} label={c.label}>
               <button
                 type="button"
@@ -373,7 +371,7 @@ export function NoteEditor({
           open={showFontPicker}
           onClose={() => setShowFontPicker(false)}
           trigger={
-            <Tooltip label="Font">
+            <Tooltip label={t("editor.font")}>
               <button
                 type="button"
                 class={iconBtnClass}
@@ -382,7 +380,7 @@ export function NoteEditor({
                   setShowColorPicker(false);
                   setShowMenu(false);
                 }}
-                aria-label="Change font"
+                aria-label={t("editor.changeFont")}
               >
                 <PenLine class="w-4 h-4" />
               </button>
@@ -390,39 +388,33 @@ export function NoteEditor({
           }
           panelClass="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
         >
-          {Object.values(NoteFont).map((f) => (
-            <Tooltip
-              key={f}
-              label={
-                f === NoteFont.Default
-                  ? "Default"
-                  : f === NoteFont.PermanentMarker
-                    ? "Permanent Marker"
-                    : "Comic Relief"
-              }
-            >
-              <button
-                type="button"
-                class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                style={{
-                  fontFamily: noteFontFamilies[f] || undefined,
-                }}
-                onClick={() => onFontChange(f)}
-                aria-label={f}
-              >
-                Aa
-              </button>
-            </Tooltip>
-          ))}
+          {Object.values(NoteFont).map((f) => {
+            const label = getFontLabel(f);
+            return (
+              <Tooltip key={f} label={label}>
+                <button
+                  type="button"
+                  class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+                  style={{
+                    fontFamily: noteFontFamilies[f] || undefined,
+                  }}
+                  onClick={() => onFontChange(f)}
+                  aria-label={label}
+                >
+                  Aa
+                </button>
+              </Tooltip>
+            );
+          })}
         </Dropdown>
 
         {/* Add image */}
-        <Tooltip label="Add image">
+        <Tooltip label={t("editor.addImage")}>
           <button
             type="button"
             class={iconBtnClass}
             onClick={() => fileInputRef.current?.click()}
-            aria-label="Add image"
+            aria-label={t("editor.addImage")}
             disabled={disabled}
           >
             <ImageIcon class="w-4 h-4" />
@@ -449,7 +441,7 @@ export function NoteEditor({
             setShowTagPicker(false);
           }}
           trigger={
-            <Tooltip label="More">
+            <Tooltip label={t("editor.more")}>
               <button
                 type="button"
                 class={iconBtnClass}
@@ -459,7 +451,7 @@ export function NoteEditor({
                   setShowFontPicker(false);
                   setShowTagPicker(false);
                 }}
-                aria-label="More options"
+                aria-label={t("editor.moreOptions")}
               >
                 <EllipsisVertical class="w-4 h-4" />
               </button>
@@ -475,7 +467,7 @@ export function NoteEditor({
               onClick={() => setShowTagPicker(!showTagPicker)}
             >
               <Tag class="w-4 h-4" />
-              Tags
+              {t("editor.menu.tags")}
             </button>
             {showTagPicker && <TagPicker tags={tags} onAddTag={handleAddTag} />}
           </div>
@@ -491,7 +483,7 @@ export function NoteEditor({
               }}
             >
               <History class="w-4 h-4" />
-              Version history
+              {t("editor.menu.versionHistory")}
             </button>
           )}
 
@@ -506,7 +498,7 @@ export function NoteEditor({
               }}
             >
               <Link class="w-4 h-4" />
-              Share link
+              {t("editor.menu.shareLink")}
             </button>
           )}
 
@@ -521,7 +513,7 @@ export function NoteEditor({
               }}
             >
               <Copy class="w-4 h-4" />
-              Duplicate
+              {t("editor.menu.duplicate")}
             </button>
           )}
 
@@ -540,7 +532,7 @@ export function NoteEditor({
               ) : (
                 <Archive class="w-4 h-4" />
               )}
-              {archived ? "Unarchive" : "Archive"}
+              {archived ? t("editor.menu.unarchive") : t("editor.menu.archive")}
             </button>
           )}
 
@@ -561,42 +553,42 @@ export function NoteEditor({
                 ) : (
                   <Trash2 class="w-4 h-4" />
                 )}
-                {trashed ? "Undelete" : "Delete"}
+                {trashed ? t("editor.menu.undelete") : t("editor.menu.delete")}
               </button>
             </>
           )}
         </Dropdown>
 
         {/* Normal / Raw mode toggle */}
-        <Tooltip label={rawMode ? "Normal mode" : "Raw mode"}>
+        <Tooltip label={rawMode ? t("editor.normalMode") : t("editor.rawMode")}>
           <button
             type="button"
             class={iconBtnClass}
             onClick={() => setRawMode(!rawMode)}
-            aria-label={rawMode ? "Normal mode" : "Raw mode"}
+            aria-label={rawMode ? t("editor.normalMode") : t("editor.rawMode")}
           >
             {rawMode ? <Eye class="w-4 h-4" /> : <Code class="w-4 h-4" />}
           </button>
         </Tooltip>
 
         {/* Undo / Redo */}
-        <Tooltip label="Undo">
+        <Tooltip label={t("editor.undo")}>
           <button
             type="button"
             class={`${iconBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
             onClick={() => editor?.action(callCommand(undoCommand.key))}
-            aria-label="Undo"
+            aria-label={t("editor.undo")}
             disabled={!canUndo}
           >
             <Undo class="w-4 h-4" />
           </button>
         </Tooltip>
-        <Tooltip label="Redo">
+        <Tooltip label={t("editor.redo")}>
           <button
             type="button"
             class={`${iconBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
             onClick={() => editor?.action(callCommand(redoCommand.key))}
-            aria-label="Redo"
+            aria-label={t("editor.redo")}
             disabled={!canRedo}
           >
             <Redo class="w-4 h-4" />
@@ -620,12 +612,12 @@ export function NoteEditor({
         )}
 
         {/* Done */}
-        <Tooltip label="Done">
+        <Tooltip label={t("editor.done")}>
           <button
             type="button"
             class={iconBtnClass}
             onClick={onDone}
-            aria-label="Done"
+            aria-label={t("editor.done")}
           >
             <Check class="w-4 h-4" />
           </button>

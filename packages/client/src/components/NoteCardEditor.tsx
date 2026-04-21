@@ -1,5 +1,6 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { formatDateTime, t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
 import {
   archiveNote,
@@ -16,17 +17,6 @@ import { saveVersion } from "../storage/VersionStorage.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { VersionHistory } from "./VersionHistory.js";
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export function NoteCardEditor({
   note,
@@ -196,14 +186,22 @@ export function NoteCardEditor({
           tags: [...note.tags],
         });
         navigator.clipboard.writeText(url);
-        showSuccess("Link copied to clipboard");
+        showSuccess(t("noteCard.linkCopied"));
       }}
       onDone={saveAndClose}
       metadata={
         <div class="flex gap-3 mt-3 text-xs text-black/40 dark:text-white/40">
-          <span>Created {formatDateTime(note.createdAt)}</span>
+          <span>
+            {t("editor.metadata.created", {
+              date: formatDateTime(note.createdAt),
+            })}
+          </span>
           {note.updatedAt !== note.createdAt && (
-            <span>Edited {formatDateTime(note.updatedAt)}</span>
+            <span>
+              {t("editor.metadata.edited", {
+                date: formatDateTime(note.updatedAt),
+              })}
+            </span>
           )}
         </div>
       }
