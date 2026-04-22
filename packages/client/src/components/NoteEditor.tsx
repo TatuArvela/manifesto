@@ -552,7 +552,7 @@ export function NoteEditor({
             </Tooltip>
           }
           placement="top-start"
-          panelClass="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-48 w-max py-1"
+          panelClass="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-48 w-max py-1"
         >
           {/* Tags */}
           <div class="relative">
