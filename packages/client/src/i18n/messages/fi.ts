@@ -11,7 +11,8 @@ export const fi: Messages = {
   "nav.archive": "Arkisto",
   "nav.trash": "Roskakori",
   "nav.search": "Haku",
-  "nav.toggleSidebar": "Näytä sivupalkki",
+  "nav.primary": "Päänavigointi",
+  "nav.newNote": "Uusi muistiinpano",
 
   // Search view
   "search.filterByType": "Tyyppi",

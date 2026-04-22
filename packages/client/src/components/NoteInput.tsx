@@ -5,6 +5,7 @@ import {
   NoteColor as NoteColorEnum,
   type NoteFont,
 } from "@manifesto/shared";
+import { Plus } from "lucide-preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
@@ -180,9 +181,9 @@ export function NoteInput() {
         class={
           isList
             ? noteSize.value === "square"
-              ? "max-w-sm mx-auto mb-12"
-              : "mb-12"
-            : "mx-auto mb-12"
+              ? "max-w-sm mx-auto mb-12 hidden lg:block"
+              : "mb-12 hidden lg:block"
+            : "mx-auto mb-12 hidden lg:block"
         }
         style={!isList && colWidth ? { width: `${colWidth}px` } : undefined}
       >
@@ -217,6 +218,19 @@ export function NoteInput() {
           <div class={`note-stack-base ${noteColorMap[stackColor].bg}`} />
         </div>
       </div>
+
+      {/* Mobile FAB — opens the same create-note modal as the stack */}
+      {!expanded && (
+        <button
+          type="button"
+          class="lg:hidden fixed bottom-5 right-5 z-10 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg flex items-center justify-center transition-colors"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          onClick={openModal}
+          aria-label={t("nav.newNote")}
+        >
+          <Plus class="w-7 h-7" />
+        </button>
+      )}
 
       {expanded && (
         <>

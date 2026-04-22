@@ -9,7 +9,8 @@ export const en = {
   "nav.archive": "Archive",
   "nav.trash": "Trash",
   "nav.search": "Search",
-  "nav.toggleSidebar": "Toggle sidebar",
+  "nav.primary": "Primary navigation",
+  "nav.newNote": "New note",
 
   // Search view
   "search.filterByType": "Type",

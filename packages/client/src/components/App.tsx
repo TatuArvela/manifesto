@@ -25,7 +25,7 @@ import { ReminderBanner } from "./ReminderBanner.js";
 import { SearchView } from "./SearchView.js";
 import { SettingsDialog } from "./SettingsDialog.js";
 import { SharedNoteDialog } from "./SharedNoteDialog.js";
-import { Sidebar } from "./Sidebar.js";
+import { MobileNav, Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 
@@ -126,10 +126,11 @@ export function App() {
   return (
     <div class="flex flex-col h-screen overflow-hidden">
       <Header />
+      <MobileNav />
       <div class="flex flex-1 overflow-hidden relative z-0">
         <Sidebar />
         <main
-          class={`flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 ${isActive ? "-mt-4" : "pt-2"}`}
+          class={`flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 ${isActive ? "pt-4 lg:pt-0 lg:-mt-4" : "pt-2"}`}
         >
           {isSearchView ? (
             isList ? (

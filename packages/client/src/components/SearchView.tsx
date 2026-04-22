@@ -6,6 +6,7 @@ import {
   Image,
   Link2,
   ListChecks,
+  Search,
   StickyNote,
   Trash2,
   X,
@@ -151,6 +152,20 @@ export function SearchView() {
 
   return (
     <div class="mt-4 mb-6 flex flex-col gap-3">
+      {/* Mobile-only search input (desktop uses the header's input). */}
+      <div class="relative lg:hidden">
+        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="search"
+          placeholder={t("header.searchPlaceholder")}
+          class="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition text-sm"
+          value={searchQuery.value}
+          onInput={(e) => {
+            searchQuery.value = (e.target as HTMLInputElement).value;
+          }}
+        />
+      </div>
+
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
           {t("search.filterByType")}

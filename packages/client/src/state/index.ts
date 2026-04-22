@@ -76,7 +76,6 @@ export {
   dismissToast,
   editingNoteId,
   errors,
-  mobileSidebarOpen,
   previousView,
   type SearchLocation,
   type SearchType,

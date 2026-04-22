@@ -3,7 +3,6 @@ import {
   Archive,
   ArrowDownUp,
   LayoutDashboard,
-  Menu,
   Palette,
   Pin,
   RectangleHorizontal,
@@ -27,7 +26,6 @@ import {
   bulkTrash,
   clearSearchFilters,
   exitSelectMode,
-  mobileSidebarOpen,
   noteSize,
   previousView,
   type SortMode,
@@ -190,26 +188,14 @@ export function Header() {
 
   return (
     <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-white dark:bg-gray-900">
-      {/* Left: hamburger (mobile only) + title */}
-      <div class="flex items-center gap-1 shrink-0 z-10">
-        <button
-          type="button"
-          class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
-          onClick={() => {
-            mobileSidebarOpen.value = !mobileSidebarOpen.value;
-          }}
-          aria-label={t("nav.toggleSidebar")}
-        >
-          <Menu class="w-5 h-5" />
-        </button>
-
-        <h1 class="text-lg font-semibold whitespace-nowrap hidden sm:flex items-center gap-2 lg:ml-2 select-none">
-          {activeView.value === "active" && (
-            <>
-              <img src={logoUrl} alt="" class="h-6 w-6 dark:invert" />
-              {t("app.name")}
-            </>
-          )}
+      {/* Left: logo + title. Logo shows only on the active (main) view,
+          matching desktop. */}
+      <div class="flex items-center gap-2 shrink-0 z-10 pl-1 lg:pl-2">
+        {activeView.value === "active" && (
+          <img src={logoUrl} alt="" class="h-6 w-6 shrink-0 dark:invert" />
+        )}
+        <h1 class="text-lg font-semibold whitespace-nowrap select-none">
+          {activeView.value === "active" && t("app.name")}
           {activeView.value === "tags" && t("nav.tags")}
           {activeView.value === "reminders" && t("nav.reminders")}
           {activeView.value === "archived" && t("nav.archive")}
@@ -218,8 +204,9 @@ export function Header() {
         </h1>
       </div>
 
-      {/* Center: search bar — absolutely positioned for true centering */}
-      <div class="absolute inset-0 flex items-center justify-center pointer-events-none px-40 sm:px-48">
+      {/* Center: search bar — absolutely positioned for true centering
+          (desktop only; on mobile the search icon button is used instead) */}
+      <div class="absolute inset-0 hidden lg:flex items-center justify-center pointer-events-none px-48">
         <div class="relative w-full max-w-xl pointer-events-auto">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -266,6 +253,32 @@ export function Header() {
 
       {/* Right: controls */}
       <div class="flex items-center gap-0.5 shrink-0 z-10">
+        {/* Mobile search button — opens search view */}
+        <Tooltip label={t("nav.search")}>
+          <button
+            type="button"
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
+            onClick={() => {
+              if (activeView.value === "search") {
+                clearSearchFilters();
+                activeView.value =
+                  previousView.value === "search"
+                    ? "active"
+                    : previousView.value;
+              } else {
+                activeView.value = "search";
+              }
+            }}
+            aria-label={t("nav.search")}
+            aria-pressed={activeView.value === "search"}
+          >
+            {activeView.value === "search" ? (
+              <X class="w-5 h-5" />
+            ) : (
+              <Search class="w-5 h-5" />
+            )}
+          </button>
+        </Tooltip>
         {/* Sort button with dropdown */}
         <Dropdown
           open={showSortMenu}

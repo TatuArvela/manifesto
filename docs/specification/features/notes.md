@@ -59,4 +59,4 @@ A collapsible navigation panel on the left with links to:
 - Trash
 - Tag list for filtering
 
-On mobile, the sidebar is a slide-out drawer.
+On mobile, the sidebar is replaced by a horizontal icon bar directly under the header.

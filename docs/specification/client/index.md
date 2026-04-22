@@ -64,7 +64,7 @@ App
 │   ├── View toggle (grid/list)
 │   ├── Sort menu (default / updated / created)
 │   └── Settings button
-├── Sidebar (desktop rail + mobile drawer)
+├── Sidebar (desktop rail + MobileNav horizontal bar)
 │   ├── Notes
 │   ├── Tags (→ TagsView)
 │   ├── Reminders
@@ -98,7 +98,7 @@ Shared primitives: `Dropdown`, `Popover`, `Tooltip`, `ToggleSwitch`.
 State lives in `packages/client/src/state/` and is reactive via `@preact/signals`.
 
 - **`actions.ts`** — core `notes` signal; computed `filteredNotes` / `sortedNotes` / `pinnedNotes` / `unpinnedNotes` / `allTags`; async action functions (`createNote`, `updateNote`, `trashNote`, `bulkArchive`, `reorderNotes`, `importNotes`, `exportNotes`, …). Actions update both signals and the storage adapter.
-- **`ui.ts`** — transient UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`, `selectMode`, `selectedNotes`, `mobileSidebarOpen`, `showSettings`, plus the toast queue (`toasts`, `showError`, `showSuccess`, `dismissToast`).
+- **`ui.ts`** — transient UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`, `selectMode`, `selectedNotes`, `showSettings`, plus the toast queue (`toasts`, `showError`, `showSuccess`, `dismissToast`).
 - **`prefs.ts`** — user preferences persisted to `localStorage` under `manifesto:prefs` via a debounced `effect()`. Covers `viewMode`, `noteSize`, `sortMode`, `theme`, `defaultNoteColor`, `defaultNoteFont`, and `locale`. Also owns theme application (toggles `dark` class on `<html>` and listens for system preference changes).
 - **`reminderScheduler.ts`** — timer loop that fires `reminder:open-note` events when a reminder is due.
 - **`router.ts`** — two-way sync between `activeView` / `activeTag` and the URL hash (see [Routing](#routing)).
@@ -181,9 +181,8 @@ Three-way preference — `system`, `light`, or `dark` — stored in `prefs.ts`. 
 
 ## Responsive Design
 
-- **Desktop** (> 1024 px) — Full sidebar visible, multi-column grid
-- **Tablet** (768–1024 px) — Collapsible sidebar, fewer grid columns
-- **Mobile** (< 768 px) — Slide-out sidebar drawer (`mobileSidebarOpen` signal), single or two-column grid, touch-optimized targets
+- **Desktop** (≥ 1024 px) — Collapsed icon-only sidebar rail on the left, centered search bar in the header, multi-column grid.
+- **Mobile** (< 1024 px) — Sidebar is replaced by a horizontal nav bar under the header. The header shows the logo, a search icon button (opens the search view with an inline input), and the view/sort/settings controls. A floating `+` button at the bottom-right opens the new-note modal. Touch targets are sized for thumbs; pinch-zoom is disabled via the viewport meta.
 
 ## Accessibility
 

@@ -20,7 +20,6 @@ export const tagsShowTrashed = signal(false);
 export const selectMode = signal(false);
 export const selectedNotes = signal<Set<string>>(new Set());
 export const editingNoteId = signal<string | null>(null);
-export const mobileSidebarOpen = signal(false);
 export const showSettings = signal(false);
 export const searchQuery = signal("");
 export const searchTypes = signal<Set<SearchType>>(new Set());
