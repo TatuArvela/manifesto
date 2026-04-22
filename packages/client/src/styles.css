@@ -168,6 +168,9 @@ body {
 .note-stack-next {
   position: absolute;
   inset: 0;
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease;
 }
 
 /* Stack base — visible thickness showing stacked pages */

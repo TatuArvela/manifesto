@@ -53,9 +53,7 @@ export function NoteInput() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [color, setColor] = useState<NoteColor>(() => pickDefaultColor());
-  const [nextColor, setNextColor] = useState<NoteColor>(() =>
-    pickDefaultColor(),
-  );
+  const [stackColor, setStackColor] = useState<NoteColor>(color);
   const [font, setFont] = useState<NoteFont>(() => pickDefaultFont());
   const [pinned, setPinned] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
@@ -69,8 +67,9 @@ export function NoteInput() {
   // Re-pick colors when the default note color setting changes
   const colorSetting = defaultNoteColor.value;
   useEffect(() => {
-    setColor(pickDefaultColor());
-    setNextColor(pickDefaultColor());
+    const c = pickDefaultColor();
+    setColor(c);
+    setStackColor(c);
   }, [colorSetting]);
 
   // Re-pick font when the default note font setting changes
@@ -84,8 +83,7 @@ export function NoteInput() {
   const reset = () => {
     setTitle("");
     setContent("");
-    setColor(nextColor);
-    setNextColor(pickDefaultColor());
+    setColor(stackColor);
     setFont(pickDefaultFont());
     setPinned(false);
     setTags([]);
@@ -101,6 +99,7 @@ export function NoteInput() {
   const openModal = () => {
     setLifting(true);
     setExpanded(true);
+    setStackColor(pickDefaultColor());
     setTimeout(() => setLifting(false), 400);
   };
 
@@ -200,7 +199,7 @@ export function NoteInput() {
           {/* Notes area — top note + next note behind it */}
           <div class="relative">
             <div
-              class={`note-stack-next border ${noteColorMap[nextColor].bg} ${noteColorMap[nextColor].border}`}
+              class={`note-stack-next border ${noteColorMap[stackColor].bg} ${noteColorMap[stackColor].border}`}
             >
               <div class="px-5 pt-12 pb-4 text-sm text-gray-400 dark:text-gray-300">
                 {nextCta}
@@ -215,9 +214,7 @@ export function NoteInput() {
             </div>
           </div>
           {/* Stack base — visible thickness at bottom */}
-          <div
-            class={`note-stack-base ${noteColorMap[nextColor].bg}`}
-          />
+          <div class={`note-stack-base ${noteColorMap[stackColor].bg}`} />
         </div>
       </div>
 
