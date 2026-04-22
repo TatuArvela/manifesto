@@ -6,6 +6,7 @@ import {
   type NoteFont,
 } from "@manifesto/shared";
 import { Plus } from "lucide-preact";
+import { createPortal } from "preact/compat";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
@@ -232,85 +233,87 @@ export function NoteInput() {
         </button>
       )}
 
-      {expanded && (
-        <>
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-          <div
-            class={`fixed inset-0 bg-black/50 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
-            role="presentation"
-            onClick={closeModal}
-            onKeyDown={() => {}}
-          />
-          <div
-            class={`fixed inset-0 z-30 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
-          >
-            <div class="pointer-events-auto w-full max-w-2xl">
-              <NoteEditor
-                title={title}
-                onTitleChange={setTitle}
-                content={content}
-                onContentChange={setContent}
-                color={color}
-                onColorChange={setColor}
-                font={font}
-                onFontChange={setFont}
-                images={images}
-                onAddImages={(urls) => setImages([...images, ...urls])}
-                onRemoveImage={(index) =>
-                  setImages(images.filter((_, i) => i !== index))
-                }
-                linkPreviews={linkPreviews}
-                onAddLinkPreview={(url) => {
-                  setLinkPreviews((prev) => {
-                    if (prev.some((p) => p.url === url)) return prev;
-                    return [...prev, makeStubPreview(url)];
-                  });
-                }}
-                onRemoveLinkPreview={(index) =>
-                  setLinkPreviews(linkPreviews.filter((_, i) => i !== index))
-                }
-                pinned={pinned}
-                onPinToggle={() => setPinned(!pinned)}
-                tags={tags}
-                onAddTag={(tag) => {
-                  if (!tags.includes(tag)) {
-                    setTags([...tags, tag]);
+      {expanded &&
+        createPortal(
+          <>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
+            <div
+              class={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
+              role="presentation"
+              onClick={closeModal}
+              onKeyDown={() => {}}
+            />
+            <div
+              class={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
+            >
+              <div class="pointer-events-auto w-full max-w-2xl max-h-full overflow-y-auto overscroll-contain">
+                <NoteEditor
+                  title={title}
+                  onTitleChange={setTitle}
+                  content={content}
+                  onContentChange={setContent}
+                  color={color}
+                  onColorChange={setColor}
+                  font={font}
+                  onFontChange={setFont}
+                  images={images}
+                  onAddImages={(urls) => setImages([...images, ...urls])}
+                  onRemoveImage={(index) =>
+                    setImages(images.filter((_, i) => i !== index))
                   }
-                }}
-                onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
-                onExportMarkdown={() =>
-                  downloadNoteAsMarkdown({ title, content })
-                }
-                onExportJson={() => {
-                  const now = new Date().toISOString();
-                  const draft: Note = {
-                    id: ulid(),
-                    title,
-                    content,
-                    color,
-                    font,
-                    pinned,
-                    archived: false,
-                    trashed: false,
-                    trashedAt: null,
-                    position: 0,
-                    tags,
-                    images,
-                    linkPreviews,
-                    reminder: null,
-                    createdAt: now,
-                    updatedAt: now,
-                  };
-                  downloadNoteAsJson(draft);
-                }}
-                onDone={closeModal}
-                onDelete={discardNote}
-                deleteLabel={t("editor.discard")}
-              />
+                  linkPreviews={linkPreviews}
+                  onAddLinkPreview={(url) => {
+                    setLinkPreviews((prev) => {
+                      if (prev.some((p) => p.url === url)) return prev;
+                      return [...prev, makeStubPreview(url)];
+                    });
+                  }}
+                  onRemoveLinkPreview={(index) =>
+                    setLinkPreviews(linkPreviews.filter((_, i) => i !== index))
+                  }
+                  pinned={pinned}
+                  onPinToggle={() => setPinned(!pinned)}
+                  tags={tags}
+                  onAddTag={(tag) => {
+                    if (!tags.includes(tag)) {
+                      setTags([...tags, tag]);
+                    }
+                  }}
+                  onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
+                  onExportMarkdown={() =>
+                    downloadNoteAsMarkdown({ title, content })
+                  }
+                  onExportJson={() => {
+                    const now = new Date().toISOString();
+                    const draft: Note = {
+                      id: ulid(),
+                      title,
+                      content,
+                      color,
+                      font,
+                      pinned,
+                      archived: false,
+                      trashed: false,
+                      trashedAt: null,
+                      position: 0,
+                      tags,
+                      images,
+                      linkPreviews,
+                      reminder: null,
+                      createdAt: now,
+                      updatedAt: now,
+                    };
+                    downloadNoteAsJson(draft);
+                  }}
+                  onDone={closeModal}
+                  onDelete={discardNote}
+                  deleteLabel={t("editor.discard")}
+                />
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
     </>
   );
 }

@@ -60,7 +60,7 @@ export function SharedNoteDialog({
       <div
         class={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
       >
-        <div class="pointer-events-auto w-full max-w-lg">
+        <div class="pointer-events-auto w-full max-w-lg max-h-full overflow-y-auto overscroll-contain">
           <div
             class={`${colors.bg} ${colors.border} border rounded-lg shadow-xl overflow-hidden`}
           >

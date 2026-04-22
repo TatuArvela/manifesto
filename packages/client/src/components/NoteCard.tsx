@@ -18,6 +18,7 @@ import {
   Undo2,
   X,
 } from "lucide-preact";
+import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
@@ -731,23 +732,25 @@ export function NoteCard({
         )}
       </div>
 
-      {showModal && (
-        <>
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-          <div
-            class={`fixed inset-0 bg-black/50 z-20 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
-            onClick={closeModal}
-          />
-          <div
-            class={`fixed inset-0 z-30 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
-          >
-            <div class="pointer-events-auto w-full max-w-2xl">
-              <NoteCardEditor note={note} onClose={closeModal} />
+      {showModal &&
+        createPortal(
+          <>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
+            <div
+              class={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
+              onClick={closeModal}
+            />
+            <div
+              class={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
+            >
+              <div class="pointer-events-auto w-full max-w-2xl max-h-full overflow-y-auto overscroll-contain">
+                <NoteCardEditor note={note} onClose={closeModal} />
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
     </>
   );
 }
