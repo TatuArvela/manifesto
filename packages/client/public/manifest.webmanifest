@@ -2,20 +2,14 @@
   "name": "Manifesto",
   "short_name": "Manifesto",
   "description": "Sticky-note style note-taking app.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-1024.png",
+      "src": "./icon-1024.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
