@@ -116,6 +116,14 @@ export const sortedNotes = computed(() => {
     );
     return result;
   }
+  if (activeView.value === "trash") {
+    result.sort(
+      (a, b) =>
+        new Date(b.trashedAt ?? 0).getTime() -
+        new Date(a.trashedAt ?? 0).getTime(),
+    );
+    return result;
+  }
   switch (sortMode.value) {
     case "updated":
       result.sort(
@@ -324,6 +332,23 @@ export function exitSelectMode() {
   selectedNotes.value = new Set();
 }
 
+export function selectAllVisible() {
+  const ids = sortedNotes.value.map((n) => n.id);
+  const current = selectedNotes.value;
+  const allSelected = ids.length > 0 && ids.every((id) => current.has(id));
+  if (allSelected) {
+    const next = new Set(current);
+    for (const id of ids) next.delete(id);
+    selectedNotes.value = next;
+    if (next.size === 0) selectMode.value = false;
+  } else {
+    const next = new Set(current);
+    for (const id of ids) next.add(id);
+    selectedNotes.value = next;
+    if (next.size > 0) selectMode.value = true;
+  }
+}
+
 export function toggleSelectNote(id: string) {
   const next = new Set(selectedNotes.value);
   if (next.has(id)) {
@@ -372,6 +397,15 @@ export async function bulkDelete() {
   for (const id of [...selectedNotes.value]) {
     if (notes.value.some((n) => n.id === id)) {
       await permanentlyDeleteNote(id).catch(() => {});
+    }
+  }
+  exitSelectMode();
+}
+
+export async function bulkRestore() {
+  for (const id of [...selectedNotes.value]) {
+    if (notes.value.some((n) => n.id === id)) {
+      await restoreNote(id).catch(() => {});
     }
   }
   exitSelectMode();

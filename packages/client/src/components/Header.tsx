@@ -2,6 +2,7 @@ import type { NoteColor } from "@manifesto/shared";
 import {
   Archive,
   ArrowDownUp,
+  CheckSquare,
   LayoutDashboard,
   Palette,
   Pin,
@@ -12,6 +13,7 @@ import {
   StretchHorizontal,
   Tag,
   Trash2,
+  Undo2,
   X,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
@@ -21,9 +23,13 @@ import {
   activeView,
   bulkAddTag,
   bulkArchive,
+  bulkDelete,
   bulkPin,
+  bulkRestore,
   bulkSetColor,
   bulkTrash,
+  selectAllVisible,
+  sortedNotes,
   clearSearchFilters,
   exitSelectMode,
   noteSize,
@@ -47,10 +53,15 @@ function SelectionToolbar() {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const colors = getColorPickerColors();
+  const isTrashView = activeView.value === "trash";
+  const visibleIds = sortedNotes.value.map((n) => n.id);
+  const allSelected =
+    visibleIds.length > 0 &&
+    visibleIds.every((id) => selectedNotes.value.has(id));
 
   return (
     <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
-      {/* Left: close + count */}
+      {/* Left: close + count + select all */}
       <div class="flex items-center gap-2 shrink-0">
         <button
           type="button"
@@ -63,112 +74,159 @@ function SelectionToolbar() {
         <span class="text-sm font-medium select-none">
           {plural("selection.count", count)}
         </span>
+        <Tooltip
+          label={
+            allSelected ? t("selection.deselectAll") : t("selection.selectAll")
+          }
+        >
+          <button
+            type="button"
+            class={selToolbarBtnClass}
+            onClick={() => selectAllVisible()}
+            aria-label={
+              allSelected
+                ? t("selection.deselectAll")
+                : t("selection.selectAll")
+            }
+            aria-pressed={allSelected}
+          >
+            <CheckSquare class="w-5 h-5" />
+          </button>
+        </Tooltip>
       </div>
 
       <div class="flex-1" />
 
       {/* Right: actions */}
       <div class="flex items-center gap-0.5 shrink-0">
-        <Tooltip label={t("selection.pin")}>
-          <button
-            type="button"
-            class={selToolbarBtnClass}
-            onClick={() => bulkPin()}
-            aria-label={t("selection.pinSelected")}
-          >
-            <Pin class="w-5 h-5" />
-          </button>
-        </Tooltip>
-
-        {/* Tag picker */}
-        <Dropdown
-          open={showTagPicker}
-          onClose={() => setShowTagPicker(false)}
-          trigger={
-            <Tooltip label={t("selection.addTag")}>
+        {isTrashView ? (
+          <>
+            <Tooltip label={t("selection.restore")}>
               <button
                 type="button"
                 class={selToolbarBtnClass}
-                onClick={() => {
-                  setShowTagPicker(!showTagPicker);
-                  setShowColorPicker(false);
-                }}
-                aria-label={t("selection.tagSelected")}
+                onClick={() => bulkRestore()}
+                aria-label={t("selection.restoreSelected")}
               >
-                <Tag class="w-5 h-5" />
+                <Undo2 class="w-5 h-5" />
               </button>
             </Tooltip>
-          }
-          placement="bottom-end"
-          panelClass="py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[180px] text-gray-900 dark:text-gray-100"
-        >
-          <TagPicker
-            tags={[]}
-            onAddTag={(tag) => {
-              bulkAddTag(tag);
-              setShowTagPicker(false);
-            }}
-          />
-        </Dropdown>
 
-        <Tooltip label={t("selection.archive")}>
-          <button
-            type="button"
-            class={selToolbarBtnClass}
-            onClick={() => bulkArchive()}
-            aria-label={t("selection.archiveSelected")}
-          >
-            <Archive class="w-5 h-5" />
-          </button>
-        </Tooltip>
-
-        {/* Color picker */}
-        <Dropdown
-          open={showColorPicker}
-          onClose={() => setShowColorPicker(false)}
-          trigger={
-            <Tooltip label={t("selection.color")}>
+            <Tooltip label={t("selection.deletePermanently")}>
               <button
                 type="button"
                 class={selToolbarBtnClass}
-                onClick={() => {
-                  setShowColorPicker(!showColorPicker);
+                onClick={() => bulkDelete()}
+                aria-label={t("selection.deleteSelectedPermanently")}
+              >
+                <Trash2 class="w-5 h-5" />
+              </button>
+            </Tooltip>
+          </>
+        ) : (
+          <>
+            <Tooltip label={t("selection.pin")}>
+              <button
+                type="button"
+                class={selToolbarBtnClass}
+                onClick={() => bulkPin()}
+                aria-label={t("selection.pinSelected")}
+              >
+                <Pin class="w-5 h-5" />
+              </button>
+            </Tooltip>
+
+            {/* Tag picker */}
+            <Dropdown
+              open={showTagPicker}
+              onClose={() => setShowTagPicker(false)}
+              trigger={
+                <Tooltip label={t("selection.addTag")}>
+                  <button
+                    type="button"
+                    class={selToolbarBtnClass}
+                    onClick={() => {
+                      setShowTagPicker(!showTagPicker);
+                      setShowColorPicker(false);
+                    }}
+                    aria-label={t("selection.tagSelected")}
+                  >
+                    <Tag class="w-5 h-5" />
+                  </button>
+                </Tooltip>
+              }
+              placement="bottom-end"
+              panelClass="py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[180px] text-gray-900 dark:text-gray-100"
+            >
+              <TagPicker
+                tags={[]}
+                onAddTag={(tag) => {
+                  bulkAddTag(tag);
                   setShowTagPicker(false);
                 }}
-                aria-label={t("selection.changeColor")}
-              >
-                <Palette class="w-5 h-5" />
-              </button>
-            </Tooltip>
-          }
-          placement="bottom-end"
-          panelClass="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1"
-        >
-          {colors.map((c) => (
-            <Tooltip key={c.value} label={c.label}>
+              />
+            </Dropdown>
+
+            <Tooltip label={t("selection.archive")}>
               <button
                 type="button"
-                class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch}`}
-                onClick={() => {
-                  bulkSetColor(c.value as NoteColor);
-                  setShowColorPicker(false);
-                }}
-                aria-label={c.label}
-              />
+                class={selToolbarBtnClass}
+                onClick={() => bulkArchive()}
+                aria-label={t("selection.archiveSelected")}
+              >
+                <Archive class="w-5 h-5" />
+              </button>
             </Tooltip>
-          ))}
-        </Dropdown>
 
-        <Tooltip label={t("selection.delete")}>
-          <button
-            type="button"
-            class={selToolbarBtnClass}
-            onClick={() => bulkTrash()}
-            aria-label={t("selection.deleteSelected")}
-          >
-            <Trash2 class="w-5 h-5" />
-          </button>
-        </Tooltip>
+            {/* Color picker */}
+            <Dropdown
+              open={showColorPicker}
+              onClose={() => setShowColorPicker(false)}
+              trigger={
+                <Tooltip label={t("selection.color")}>
+                  <button
+                    type="button"
+                    class={selToolbarBtnClass}
+                    onClick={() => {
+                      setShowColorPicker(!showColorPicker);
+                      setShowTagPicker(false);
+                    }}
+                    aria-label={t("selection.changeColor")}
+                  >
+                    <Palette class="w-5 h-5" />
+                  </button>
+                </Tooltip>
+              }
+              placement="bottom-end"
+              panelClass="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1"
+            >
+              {colors.map((c) => (
+                <Tooltip key={c.value} label={c.label}>
+                  <button
+                    type="button"
+                    class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch}`}
+                    onClick={() => {
+                      bulkSetColor(c.value as NoteColor);
+                      setShowColorPicker(false);
+                    }}
+                    aria-label={c.label}
+                  />
+                </Tooltip>
+              ))}
+            </Dropdown>
+
+            <Tooltip label={t("selection.delete")}>
+              <button
+                type="button"
+                class={selToolbarBtnClass}
+                onClick={() => bulkTrash()}
+                aria-label={t("selection.deleteSelected")}
+              >
+                <Trash2 class="w-5 h-5" />
+              </button>
+            </Tooltip>
+          </>
+        )}
       </div>
     </header>
   );
@@ -281,43 +339,46 @@ export function Header() {
             )}
           </button>
         </Tooltip>
-        {/* Sort button with dropdown */}
-        <Dropdown
-          open={showSortMenu}
-          onClose={() => setShowSortMenu(false)}
-          trigger={
-            <Tooltip label={t("header.sort")}>
-              <button
-                type="button"
-                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={() => setShowSortMenu(!showSortMenu)}
-                aria-label={t("header.sortNotes")}
-              >
-                <ArrowDownUp class="w-5 h-5" />
-              </button>
-            </Tooltip>
-          }
-          placement="bottom-end"
-          panelClass="py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[140px]"
-        >
-          {sortOptions.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              class={`block w-full text-left px-4 py-2 text-sm ${
-                sortMode.value === opt.value
-                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
-              }`}
-              onClick={() => {
-                sortMode.value = opt.value;
-                setShowSortMenu(false);
-              }}
+        {/* Sort button with dropdown — hidden in views with a fixed sort order */}
+        {activeView.value !== "trash" &&
+          activeView.value !== "reminders" && (
+            <Dropdown
+              open={showSortMenu}
+              onClose={() => setShowSortMenu(false)}
+              trigger={
+                <Tooltip label={t("header.sort")}>
+                  <button
+                    type="button"
+                    class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                    onClick={() => setShowSortMenu(!showSortMenu)}
+                    aria-label={t("header.sortNotes")}
+                  >
+                    <ArrowDownUp class="w-5 h-5" />
+                  </button>
+                </Tooltip>
+              }
+              placement="bottom-end"
+              panelClass="py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[140px]"
             >
-              {opt.label}
-            </button>
-          ))}
-        </Dropdown>
+              {sortOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  class={`block w-full text-left px-4 py-2 text-sm ${
+                    sortMode.value === opt.value
+                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+                  onClick={() => {
+                    sortMode.value = opt.value;
+                    setShowSortMenu(false);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </Dropdown>
+          )}
 
         {/* View menu with dropdown */}
         <Dropdown
@@ -336,7 +397,7 @@ export function Header() {
             </Tooltip>
           }
           placement="bottom-end"
-          panelClass="py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[160px]"
+          panelClass="py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[160px]"
         >
           <button
             type="button"

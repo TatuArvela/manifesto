@@ -477,46 +477,44 @@ export function NoteCard({
         )}
       >
         {/* Selection checkbox */}
-        {!isTrashView && (
-          <div
+        <div
+          class={clsx(
+            "absolute -top-2.5 -left-2.5 z-10",
+            isSelectMode || isSelected
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100",
+            "transition-opacity duration-200",
+          )}
+        >
+          <button
+            type="button"
             class={clsx(
-              "absolute -top-2.5 -left-2.5 z-10",
-              isSelectMode || isSelected
-                ? "opacity-100"
-                : "opacity-0 group-hover:opacity-100",
-              "transition-opacity duration-200",
+              "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
+              isSelected
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-white dark:bg-gray-200 text-gray-400 hover:bg-gray-100 dark:hover:bg-white hover:scale-110 border border-gray-300",
             )}
+            onClick={handleSelectClick}
+            aria-label={
+              isSelected ? t("noteCard.deselect") : t("noteCard.select")
+            }
           >
-            <button
-              type="button"
-              class={clsx(
-                "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
-                isSelected
-                  ? "bg-blue-500 text-white hover:bg-blue-600"
-                  : "bg-white dark:bg-gray-200 text-gray-400 hover:bg-gray-100 dark:hover:bg-white hover:scale-110 border border-gray-300",
-              )}
-              onClick={handleSelectClick}
-              aria-label={
-                isSelected ? t("noteCard.deselect") : t("noteCard.select")
-              }
-            >
-              {isSelected && (
-                <svg
-                  class="w-3 h-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              )}
-            </button>
-          </div>
-        )}
+            {isSelected && (
+              <svg
+                class="w-3 h-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          </button>
+        </div>
 
         <article
           class={clsx(

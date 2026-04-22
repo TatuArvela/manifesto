@@ -54,6 +54,8 @@ export const en = {
     other: "{count} selected",
   },
   "selection.cancel": "Cancel selection",
+  "selection.selectAll": "Select all",
+  "selection.deselectAll": "Deselect all",
   "selection.pin": "Pin",
   "selection.pinSelected": "Pin selected",
   "selection.addTag": "Add tag",
@@ -64,6 +66,10 @@ export const en = {
   "selection.changeColor": "Change color",
   "selection.delete": "Delete",
   "selection.deleteSelected": "Delete selected",
+  "selection.restore": "Restore",
+  "selection.restoreSelected": "Restore selected",
+  "selection.deletePermanently": "Delete permanently",
+  "selection.deleteSelectedPermanently": "Delete selected permanently",
 
   // Note card — tooltips, actions, menu
   "noteCard.pin": "Pin",

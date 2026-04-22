@@ -56,6 +56,8 @@ export const fi: Messages = {
     other: "{count} valittu",
   },
   "selection.cancel": "Peru valinta",
+  "selection.selectAll": "Valitse kaikki",
+  "selection.deselectAll": "Poista valinnat",
   "selection.pin": "Kiinnitä",
   "selection.pinSelected": "Kiinnitä valitut",
   "selection.addTag": "Lisää tunniste",
@@ -66,6 +68,10 @@ export const fi: Messages = {
   "selection.changeColor": "Vaihda väriä",
   "selection.delete": "Poista",
   "selection.deleteSelected": "Poista valitut",
+  "selection.restore": "Palauta",
+  "selection.restoreSelected": "Palauta valitut",
+  "selection.deletePermanently": "Poista pysyvästi",
+  "selection.deleteSelectedPermanently": "Poista valitut pysyvästi",
 
   // Note card — tooltips, actions, menu
   "noteCard.pin": "Kiinnitä",
