@@ -190,7 +190,7 @@ export function Header() {
     <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-white dark:bg-gray-900">
       {/* Left: logo + title. Logo shows only on the active (main) view,
           matching desktop. */}
-      <div class="flex items-center gap-2 shrink-0 z-10 pl-1 lg:pl-2">
+      <div class="flex items-center gap-2 shrink-0 z-10 pl-1 md:pl-2">
         {activeView.value === "active" && (
           <img src={logoUrl} alt="" class="h-6 w-6 shrink-0 dark:invert" />
         )}
@@ -206,7 +206,7 @@ export function Header() {
 
       {/* Center: search bar — absolutely positioned for true centering
           (desktop only; on mobile the search icon button is used instead) */}
-      <div class="absolute inset-0 hidden lg:flex items-center justify-center pointer-events-none px-48">
+      <div class="absolute inset-0 hidden md:flex items-center justify-center pointer-events-none px-48">
         <div class="relative w-full max-w-xl pointer-events-auto">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -257,7 +257,7 @@ export function Header() {
         <Tooltip label={t("nav.search")}>
           <button
             type="button"
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden"
             onClick={() => {
               if (activeView.value === "search") {
                 clearSearchFilters();

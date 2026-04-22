@@ -153,7 +153,7 @@ export function SearchView() {
   return (
     <div class="mt-4 mb-6 flex flex-col gap-3">
       {/* Mobile-only search input (desktop uses the header's input). */}
-      <div class="relative lg:hidden">
+      <div class="relative md:hidden">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="search"

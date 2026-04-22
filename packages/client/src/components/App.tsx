@@ -130,7 +130,7 @@ export function App() {
       <div class="flex flex-1 overflow-hidden relative z-0">
         <Sidebar />
         <main
-          class={`flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 ${isActive ? "pt-4 lg:pt-0 lg:-mt-4" : "pt-2"}`}
+          class={`flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
         >
           {isSearchView ? (
             isList ? (

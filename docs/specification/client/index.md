@@ -181,8 +181,8 @@ Three-way preference — `system`, `light`, or `dark` — stored in `prefs.ts`. 
 
 ## Responsive Design
 
-- **Desktop** (≥ 1024 px) — Collapsed icon-only sidebar rail on the left, centered search bar in the header, multi-column grid.
-- **Mobile** (< 1024 px) — Sidebar is replaced by a horizontal nav bar under the header. The header shows the logo, a search icon button (opens the search view with an inline input), and the view/sort/settings controls. A floating `+` button at the bottom-right opens the new-note modal. Touch targets are sized for thumbs; pinch-zoom is disabled via the viewport meta.
+- **Desktop / tablet** (≥ 768 px) — Collapsed icon-only sidebar rail on the left, centered search bar in the header, multi-column grid.
+- **Mobile** (< 768 px) — Sidebar is replaced by a horizontal nav bar under the header. The header shows a search icon button (opens the search view with an inline input) and the view/sort/settings controls. A floating `+` button at the bottom-right opens the new-note modal. Touch targets are sized for thumbs; pinch-zoom is disabled via the viewport meta.
 
 ## Accessibility
 

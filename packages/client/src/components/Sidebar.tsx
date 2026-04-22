@@ -66,7 +66,7 @@ function MobileNavItem({
   return (
     <button
       type="button"
-      class={`flex items-center justify-center w-11 h-11 rounded-full transition-colors cursor-pointer shrink-0 ${
+      class={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer shrink-0 ${
         isActive
           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
           : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
@@ -83,7 +83,7 @@ function MobileNavItem({
 export function Sidebar() {
   return (
     <div
-      class="hidden lg:block shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.08)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.3)] z-[5]"
+      class="hidden md:block shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.08)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.3)] z-[5]"
       style={{ width: `${COLLAPSED_W}px` }}
     >
       <nav class="flex flex-col items-center gap-1 pt-3">
@@ -112,7 +112,7 @@ export function Sidebar() {
 export function MobileNav() {
   return (
     <nav
-      class="lg:hidden flex items-center justify-around gap-1 px-2 h-12 shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm z-[5]"
+      class="md:hidden flex items-center justify-around gap-1 px-2 h-12 shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm z-[5]"
       aria-label={t("nav.primary")}
     >
       <MobileNavItem label={t("nav.notes")} icon={StickyNote} view="active" />
