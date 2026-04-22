@@ -8,6 +8,7 @@ import {
   createNote,
   editingNoteId,
   importNotes,
+  initRouter,
   loadNotes,
   notes,
   showError,
@@ -32,6 +33,7 @@ export function App() {
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
+    initRouter();
     loadNotes();
     initReminderScheduler({
       notes: () => notes.value,

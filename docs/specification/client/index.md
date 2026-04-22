@@ -101,6 +101,7 @@ State lives in `packages/client/src/state/` and is reactive via `@preact/signals
 - **`ui.ts`** — transient UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`, `selectMode`, `selectedNotes`, `mobileSidebarOpen`, `showSettings`, plus the toast queue (`toasts`, `showError`, `showSuccess`, `dismissToast`).
 - **`prefs.ts`** — user preferences persisted to `localStorage` under `manifesto:prefs` via a debounced `effect()`. Covers `viewMode`, `noteSize`, `sortMode`, `theme`, `defaultNoteColor`, `defaultNoteFont`, and `locale`. Also owns theme application (toggles `dark` class on `<html>` and listens for system preference changes).
 - **`reminderScheduler.ts`** — timer loop that fires `reminder:open-note` events when a reminder is due.
+- **`router.ts`** — two-way sync between `activeView` / `activeTag` and the URL hash (see [Routing](#routing)).
 - **`index.ts`** — barrel export of the public state API.
 
 ### Storage Adapters
@@ -132,6 +133,23 @@ Notes have persistent version history stored LZ-String compressed in `localStora
 ### Reminders
 
 Each note has an optional `reminder` timestamp set via `ReminderPicker` (with `MiniCalendar`). `state/reminderScheduler.ts` subscribes to the `notes` signal and uses timers to fire at the scheduled time; when one fires it shows `ReminderBanner` and dispatches a `reminder:open-note` window event that `App` listens for to open the relevant note.
+
+### Routing
+
+View navigation is backed by `location.pathname` so views are bookmarkable and the browser's back / forward buttons work. `state/router.ts` keeps `activeView` and `activeTag` in sync with the URL, base-prefixed with Vite's `BASE_URL` (`/` in dev, `/manifesto/` on GitHub Pages):
+
+| Path (under base)          | View                   |
+|----------------------------|------------------------|
+| `/`                        | Notes (active)         |
+| `/tags`                    | Tags — all             |
+| `/tags/<encoded-tag>`      | Tags — filtered by tag |
+| `/reminders`               | Reminders              |
+| `/archived`                | Archive                |
+| `/trash`                   | Trash                  |
+
+`initRouter()` is called once from `App` on mount. It hydrates the signals from the current URL, then installs a signals → URL effect (`history.pushState`) and a `popstate` → signals listener. Share hashes (`#share=…`) ride on top of the path and are consumed separately by `SharedNoteDialog`.
+
+Because GitHub Pages is a static host, deep-link refreshes would return 404. The `githubPagesSpaFallback` plugin in `vite.config.ts` copies the built `index.html` to `404.html` after each build — GitHub Pages serves that for any unknown path, so the SPA loads and the router picks up `location.pathname`.
 
 ### Sharing
 

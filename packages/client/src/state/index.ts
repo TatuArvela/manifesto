@@ -60,6 +60,13 @@ export {
   viewMode,
 } from "./prefs.js";
 export {
+  buildPath as buildRoutePath,
+  initRouter,
+  parsePath as parseRoutePath,
+  type Route,
+  stopRouter,
+} from "./router.js";
+export {
   type AppView,
   activeTag,
   activeView,
