@@ -57,7 +57,7 @@ export function TagsView() {
   return (
     <div class="mt-4 mb-6 flex flex-col gap-3">
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+        <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
           {t("nav.tags")}
         </span>
         <Chip
@@ -119,7 +119,7 @@ export function TagsView() {
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+        <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
           {t("search.filterByLocation")}
         </span>
         <Chip
@@ -128,8 +128,9 @@ export function TagsView() {
             tagsShowActive.value = !tagsShowActive.value;
           }}
           icon={StickyNote}
+          ariaLabel={t("search.location.active")}
         >
-          {t("search.location.active")}
+          <span class="hidden md:inline">{t("search.location.active")}</span>
         </Chip>
         <Chip
           selected={tagsShowArchived.value}
@@ -143,7 +144,7 @@ export function TagsView() {
               : t("tags.showArchived")
           }
         >
-          {t("search.location.archived")}
+          <span class="hidden md:inline">{t("search.location.archived")}</span>
         </Chip>
         <Chip
           selected={tagsShowTrashed.value}
@@ -157,7 +158,7 @@ export function TagsView() {
               : t("tags.showTrashed")
           }
         >
-          {t("search.location.trashed")}
+          <span class="hidden md:inline">{t("search.location.trashed")}</span>
         </Chip>
       </div>
 

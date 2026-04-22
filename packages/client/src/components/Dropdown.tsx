@@ -1,10 +1,22 @@
 import type { ComponentChildren } from "preact";
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
+
+let nextId = 0;
+
+export type DropdownPlacement =
+  | "bottom-start"
+  | "bottom-end"
+  | "top-start"
+  | "top-end";
 
 /**
- * A generic dropdown with a fixed backdrop for dismiss.
- * Renders the trigger inline and the panel absolutely positioned.
- * Closes on Escape key and backdrop click.
+ * Generic dropdown built on the Popover API + CSS anchor positioning, so the
+ * panel renders in the top layer and is not clipped by ancestor
+ * `overflow: hidden`. Uses `popover="auto"` so the browser light-dismisses
+ * on outside taps and Escape. Before opening, any other open dropdown panel
+ * is hidden explicitly — neither the browser's auto-popover stack mutex nor a
+ * module-level tracker proved reliable across the modal portal, so we query
+ * the DOM for currently-open panels and close them.
  */
 export function Dropdown({
   open,
@@ -12,44 +24,62 @@ export function Dropdown({
   trigger,
   children,
   panelClass,
+  placement = "bottom-start",
 }: {
   open: boolean;
   onClose: () => void;
   trigger: ComponentChildren;
   children: ComponentChildren;
   panelClass?: string;
+  placement?: DropdownPlacement;
 }) {
+  const idRef = useRef("");
+  if (!idRef.current) idRef.current = `--dd-${++nextId}`;
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    if (!open) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const el = panelRef.current;
+    if (!el) return;
+    const handleToggle = (e: Event) => {
+      const newState = (e as unknown as { newState: string }).newState;
+      if (newState === "closed") onCloseRef.current();
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+    el.addEventListener("toggle", handleToggle);
+    return () => el.removeEventListener("toggle", handleToggle);
+  }, []);
+
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const isOpen = el.matches(":popover-open");
+    if (open && !isOpen) {
+      // Explicitly hide any other open dropdown panel before opening this one.
+      document
+        .querySelectorAll<HTMLElement>(".dropdown-panel:popover-open")
+        .forEach((other) => {
+          if (other !== el) other.hidePopover();
+        });
+      el.showPopover();
+    } else if (!open && isOpen) {
+      el.hidePopover();
+    }
+  }, [open]);
 
   return (
-    <div class="relative flex">
+    <div class="relative flex" style={{ anchorName: idRef.current }}>
       {trigger}
-      {open && (
-        <>
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-          <div
-            class="fixed inset-0 z-10"
-            role="presentation"
-            onClick={onClose}
-            onKeyDown={() => {}}
-          />
-          <div
-            class={
-              panelClass ??
-              "absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20"
-            }
-          >
-            {children}
-          </div>
-        </>
-      )}
+      <div
+        ref={panelRef}
+        popover="auto"
+        data-placement={placement}
+        data-open={open ? "true" : undefined}
+        class={`dropdown-panel ${panelClass ?? ""}`}
+        style={{ positionAnchor: idRef.current }}
+      >
+        {children}
+      </div>
     </div>
   );
 }

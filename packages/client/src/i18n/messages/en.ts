@@ -23,6 +23,7 @@ export const en = {
   "search.location.active": "Notes",
   "search.location.archived": "Archived",
   "search.location.trashed": "Trash",
+  "search.advanced": "Filters",
   "search.clear": "Clear",
   "search.close": "Close search",
   "search.empty": "Type a query or pick a filter",

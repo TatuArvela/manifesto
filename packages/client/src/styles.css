@@ -96,6 +96,40 @@ body {
   color: #111827;
 }
 
+/* Dropdown panel — rendered in the top layer via Popover API, anchor-positioned
+   to its trigger so it is never clipped by ancestor `overflow: hidden`. We hide
+   closed panels via `:not([data-open="true"])` so the panelClass utilities
+   (display, padding, border) can take effect when open — a plain
+   `display: block` default would override `flex` in panelClass. `data-open` is
+   mirrored from the component's `open` prop as a guard against browsers where
+   the UA `[popover]:not(:popover-open)` hide rule doesn't apply. */
+.dropdown-panel {
+  inset: auto;
+  margin: 0;
+}
+.dropdown-panel:not([data-open="true"]) {
+  display: none;
+}
+
+@supports (position-area: block-end) {
+  .dropdown-panel[popover][data-placement="bottom-start"] {
+    position-area: block-end span-inline-end;
+    margin-top: 0.25rem;
+  }
+  .dropdown-panel[popover][data-placement="bottom-end"] {
+    position-area: block-end span-inline-start;
+    margin-top: 0.25rem;
+  }
+  .dropdown-panel[popover][data-placement="top-start"] {
+    position-area: block-start span-inline-end;
+    margin-bottom: 0.25rem;
+  }
+  .dropdown-panel[popover][data-placement="top-end"] {
+    position-area: block-start span-inline-start;
+    margin-bottom: 0.25rem;
+  }
+}
+
 /* Sticky note stack */
 .note-stack {
   position: relative;

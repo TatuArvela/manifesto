@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-preact";
 import {
   Archive,
   Bell,
+  ChevronDown,
   Image,
   Link2,
   ListChecks,
@@ -11,6 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-preact";
+import { useEffect, useRef, useState } from "preact/hooks";
 import {
   getColorLabel,
   getColorPickerColors,
@@ -79,9 +81,11 @@ function TypeChip({
       }`}
       onClick={() => toggleSearchType(type)}
       aria-pressed={selected}
+      aria-label={label}
+      title={label}
     >
       <Icon class="w-4 h-4" />
-      {label}
+      <span class="hidden md:inline">{label}</span>
     </button>
   );
 }
@@ -106,9 +110,11 @@ function LocationChip({
       }`}
       onClick={() => toggleSearchLocation(location)}
       aria-pressed={selected}
+      aria-label={label}
+      title={label}
     >
       <Icon class="w-4 h-4" />
-      {label}
+      <span class="hidden md:inline">{label}</span>
     </button>
   );
 }
@@ -150,12 +156,20 @@ export function SearchView() {
   const resultCount = sortedNotes.value.length;
   const colors = getColorPickerColors();
 
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(filtersActive);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
   return (
     <div class="mt-4 mb-6 flex flex-col gap-3">
       {/* Mobile-only search input (desktop uses the header's input). */}
       <div class="relative md:hidden">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
+          ref={inputRef}
           type="search"
           placeholder={t("header.searchPlaceholder")}
           class="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition text-sm"
@@ -166,41 +180,58 @@ export function SearchView() {
         />
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
-          {t("search.filterByType")}
-        </span>
-        {TYPE_META.map(({ key, icon, labelKey }) => (
-          <TypeChip key={key} type={key} icon={icon} label={t(labelKey)} />
-        ))}
-      </div>
+      {/* Mobile-only toggle for the filter section. Desktop always shows filters. */}
+      <button
+        type="button"
+        class="md:hidden flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+        onClick={() => setAdvancedOpen(!advancedOpen)}
+        aria-expanded={advancedOpen}
+      >
+        <span class="font-medium">{t("search.advanced")}</span>
+        <ChevronDown
+          class={`w-4 h-4 transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+        />
+      </button>
 
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
-          {t("search.filterByColor")}
-        </span>
-        {colors.map((c) => (
-          <ColorChip
-            key={c.value}
-            color={c.value as NoteColor}
-            swatch={c.swatch}
-            label={getColorLabel(c.value as NoteColor)}
-          />
-        ))}
-      </div>
+      <div
+        class={`flex flex-col gap-3 ${advancedOpen ? "" : "hidden md:flex"}`}
+      >
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+            {t("search.filterByType")}
+          </span>
+          {TYPE_META.map(({ key, icon, labelKey }) => (
+            <TypeChip key={key} type={key} icon={icon} label={t(labelKey)} />
+          ))}
+        </div>
 
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
-          {t("search.filterByLocation")}
-        </span>
-        {LOCATION_META.map(({ key, icon, labelKey }) => (
-          <LocationChip
-            key={key}
-            location={key}
-            icon={icon}
-            label={t(labelKey)}
-          />
-        ))}
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+            {t("search.filterByColor")}
+          </span>
+          {colors.map((c) => (
+            <ColorChip
+              key={c.value}
+              color={c.value as NoteColor}
+              swatch={c.swatch}
+              label={getColorLabel(c.value as NoteColor)}
+            />
+          ))}
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+            {t("search.filterByLocation")}
+          </span>
+          {LOCATION_META.map(({ key, icon, labelKey }) => (
+            <LocationChip
+              key={key}
+              location={key}
+              icon={icon}
+              label={t(labelKey)}
+            />
+          ))}
+        </div>
       </div>
 
       {filtersActive && (

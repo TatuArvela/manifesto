@@ -25,6 +25,7 @@ export const fi: Messages = {
   "search.location.active": "Muistiinpanot",
   "search.location.archived": "Arkisto",
   "search.location.trashed": "Roskakori",
+  "search.advanced": "Suodattimet",
   "search.clear": "Tyhjennä",
   "search.close": "Sulje haku",
   "search.empty": "Kirjoita hakusana tai valitse suodatin",

@@ -349,10 +349,8 @@ export function ReminderPicker({
 }: ReminderPickerProps) {
   const [open, setOpen] = useState(false);
 
-  const panelClass = [
-    "absolute bottom-full mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-30 w-72",
-    align === "right" ? "right-0" : "left-0",
-  ].join(" ");
+  const panelClass =
+    "p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-72";
 
   const label = reminder ? t("reminder.edit") : t("reminder.set");
 
@@ -360,6 +358,7 @@ export function ReminderPicker({
     <Dropdown
       open={open}
       onClose={() => setOpen(false)}
+      placement={align === "right" ? "top-end" : "top-start"}
       panelClass={panelClass}
       trigger={
         <Tooltip label={label}>

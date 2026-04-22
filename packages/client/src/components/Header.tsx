@@ -99,7 +99,8 @@ function SelectionToolbar() {
               </button>
             </Tooltip>
           }
-          panelClass="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[180px] text-gray-900 dark:text-gray-100"
+          placement="bottom-end"
+          panelClass="py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[180px] text-gray-900 dark:text-gray-100"
         >
           <TagPicker
             tags={[]}
@@ -140,7 +141,8 @@ function SelectionToolbar() {
               </button>
             </Tooltip>
           }
-          panelClass="absolute right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
+          placement="bottom-end"
+          panelClass="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1"
         >
           {colors.map((c) => (
             <Tooltip key={c.value} label={c.label}>
@@ -295,7 +297,8 @@ export function Header() {
               </button>
             </Tooltip>
           }
-          panelClass="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[140px]"
+          placement="bottom-end"
+          panelClass="py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[140px]"
         >
           {sortOptions.map((opt) => (
             <button
@@ -332,7 +335,8 @@ export function Header() {
               </button>
             </Tooltip>
           }
-          panelClass="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[160px]"
+          placement="bottom-end"
+          panelClass="py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[160px]"
         >
           <button
             type="button"

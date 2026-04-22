@@ -3,6 +3,27 @@ import { useRef } from "preact/hooks";
 
 let nextId = 0;
 
+// Only show focus-triggered tooltips when the user is actually navigating
+// with a keyboard. Otherwise a tap on a button would focus it and leave the
+// tooltip stuck open (no mouseleave follows a tap on iOS).
+let lastInputKeyboard = false;
+if (typeof window !== "undefined") {
+  window.addEventListener(
+    "keydown",
+    () => {
+      lastInputKeyboard = true;
+    },
+    true,
+  );
+  window.addEventListener(
+    "pointerdown",
+    () => {
+      lastInputKeyboard = false;
+    },
+    true,
+  );
+}
+
 export function Tooltip({
   label,
   children,
@@ -33,9 +54,15 @@ export function Tooltip({
       class="inline-flex items-center"
       role="group"
       style={{ anchorName: idRef.current }}
-      onMouseEnter={show}
-      onMouseLeave={hide}
-      onFocusCapture={show}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") show();
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") hide();
+      }}
+      onFocusCapture={() => {
+        if (lastInputKeyboard) show();
+      }}
       onBlurCapture={hide}
     >
       {children}

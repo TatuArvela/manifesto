@@ -435,7 +435,8 @@ export function NoteEditor({
               </button>
             </Tooltip>
           }
-          panelClass="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
+          placement="top-start"
+          panelClass="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1"
         >
           {pickerColors.map((c) => (
             <Tooltip key={c.value} label={c.label}>
@@ -469,7 +470,8 @@ export function NoteEditor({
               </button>
             </Tooltip>
           }
-          panelClass="absolute bottom-full left-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1 z-20"
+          placement="top-start"
+          panelClass="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1"
         >
           {Object.values(NoteFont).map((f) => {
             const label = getFontLabel(f);
@@ -549,7 +551,8 @@ export function NoteEditor({
               </button>
             </Tooltip>
           }
-          panelClass="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-48 w-max z-20 py-1"
+          placement="top-start"
+          panelClass="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-48 w-max py-1"
         >
           {/* Tags */}
           <div class="relative">

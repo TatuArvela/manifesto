@@ -325,7 +325,7 @@ export function FormattingToolbar({
             </button>
           </Tooltip>
         }
-        panelClass="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
+        panelClass="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1"
       >
         {[1, 2, 3, 4].map((level) => (
           <button
@@ -368,7 +368,7 @@ export function FormattingToolbar({
             </button>
           </Tooltip>
         }
-        panelClass="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1.5 z-20"
+        panelClass="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1.5"
       >
         <form
           class="flex items-center gap-1"
@@ -431,7 +431,7 @@ export function FormattingToolbar({
             </button>
           </Tooltip>
         }
-        panelClass="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
+        panelClass="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1"
       >
         {(
           [

@@ -1,10 +1,4 @@
-import {
-  type LinkPreview,
-  type Note,
-  type NoteColor,
-  NoteColor as NoteColorEnum,
-  type NoteFont,
-} from "@manifesto/shared";
+import type { LinkPreview, Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { Plus } from "lucide-preact";
 import { createPortal } from "preact/compat";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
@@ -19,7 +13,6 @@ import {
   noteSize,
   pickDefaultColor,
   pickDefaultFont,
-  theme,
   viewMode,
 } from "../state/index.js";
 import {
@@ -224,8 +217,8 @@ export function NoteInput() {
       {!expanded && (
         <button
           type="button"
-          class="md:hidden fixed bottom-5 right-5 z-10 w-14 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg flex items-center justify-center transition-colors"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          class="md:hidden fixed right-5 z-10 w-14 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg flex items-center justify-center transition-colors"
+          style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
           onClick={openModal}
           aria-label={t("nav.newNote")}
         >
