@@ -11,6 +11,20 @@ export type SortMode = "default" | "updated" | "created";
 export type ThemeMode = "system" | "light" | "dark";
 export type DefaultNoteColor = "plain" | "random";
 export type DefaultNoteFont = NoteFont | "random";
+export type DecimalSeparator = "auto" | "." | ",";
+
+const DECIMAL_SEPARATOR_VALUES: readonly DecimalSeparator[] = [
+  "auto",
+  ".",
+  ",",
+];
+
+function parseDecimalSeparator(value: unknown): DecimalSeparator {
+  return typeof value === "string" &&
+    (DECIMAL_SEPARATOR_VALUES as readonly string[]).includes(value)
+    ? (value as DecimalSeparator)
+    : "auto";
+}
 
 // --- Persisted preferences ---
 
@@ -24,6 +38,8 @@ export interface LoadedPrefs {
   defaultNoteColor: DefaultNoteColor;
   defaultNoteFont: DefaultNoteFont;
   locale: Locale;
+  inlineCalculations: boolean;
+  decimalSeparator: DecimalSeparator;
 }
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
@@ -41,6 +57,11 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
         defaultNoteFont:
           parsed.defaultNoteFont ?? parsed.noteFont ?? NoteFont.Default,
         locale: persistedLocale ?? detectBrowserLocale(),
+        inlineCalculations:
+          typeof parsed.inlineCalculations === "boolean"
+            ? parsed.inlineCalculations
+            : true,
+        decimalSeparator: parseDecimalSeparator(parsed.decimalSeparator),
       };
     } catch {
       // ignore
@@ -54,6 +75,8 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     defaultNoteColor: "plain",
     defaultNoteFont: NoteFont.Default,
     locale: detectBrowserLocale(),
+    inlineCalculations: true,
+    decimalSeparator: "auto",
   };
 }
 
@@ -76,6 +99,8 @@ function savePrefs() {
       defaultNoteColor: defaultNoteColor.value,
       defaultNoteFont: defaultNoteFont.value,
       locale: locale.value,
+      inlineCalculations: inlineCalculations.value,
+      decimalSeparator: decimalSeparator.value,
     }),
   );
 }
@@ -91,6 +116,16 @@ export const defaultNoteColor = signal<DefaultNoteColor>(
 );
 export const defaultNoteFont = signal<DefaultNoteFont>(prefs.defaultNoteFont);
 export const locale = signal<Locale>(prefs.locale);
+export const inlineCalculations = signal<boolean>(prefs.inlineCalculations);
+export const decimalSeparator = signal<DecimalSeparator>(
+  prefs.decimalSeparator,
+);
+
+/** Returns the concrete decimal separator, resolving "auto" via current locale. */
+export function resolvedDecimalSeparator(): "." | "," {
+  if (decimalSeparator.value !== "auto") return decimalSeparator.value;
+  return locale.value === "fi" ? "," : ".";
+}
 
 // Persist preferences when any pref signal changes (debounced)
 let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -103,6 +138,8 @@ effect(() => {
   defaultNoteColor.value;
   defaultNoteFont.value;
   locale.value;
+  inlineCalculations.value;
+  decimalSeparator.value;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(savePrefs, 50);
 });

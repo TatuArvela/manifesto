@@ -14,6 +14,7 @@ import { gfm } from "@milkdown/kit/preset/gfm";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { getMarkdown, replaceAll } from "@milkdown/kit/utils";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
 import { taskItemDraggable } from "../extensions/taskItemDraggable.js";
 import { useMilkdownEditor } from "../hooks/useMilkdownEditor.js";
@@ -109,7 +110,8 @@ export function MilkdownEditor({
       .use(listener)
       .use(clipboard)
       .use(manifestoInlineMarks)
-      .use(taskItemDraggable);
+      .use(taskItemDraggable)
+      .use(inlineCalculationsPlugin);
   }, []);
 
   const { editor, mountRef } = useMilkdownEditor(build);

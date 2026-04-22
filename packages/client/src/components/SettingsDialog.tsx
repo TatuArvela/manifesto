@@ -1,5 +1,6 @@
 import { NoteFont } from "@manifesto/shared";
 import {
+  Calculator,
   Dices,
   Download,
   Monitor,
@@ -17,12 +18,15 @@ import { getFontLabel, plural, t } from "../i18n/index.js";
 import { SUPPORTED_LOCALES } from "../i18n/locales.js";
 import {
   createNote,
+  type DecimalSeparator,
   type DefaultNoteFont,
+  decimalSeparator,
   defaultNoteColor,
   defaultNoteFont,
   deleteAllNotes,
   exportNotes,
   importNotes,
+  inlineCalculations,
   locale,
   showSettings,
   type ThemeMode,
@@ -32,6 +36,7 @@ import { importFiles } from "../utils/importExport.js";
 import { ThreeWayToggle, ToggleSwitch } from "./ToggleSwitch.js";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
+const decimalSeparators: DecimalSeparator[] = ["auto", ".", ","];
 
 // Endonyms never translate — each language's name is rendered in that language.
 const LOCALE_ENDONYMS: Record<string, string> = {
@@ -319,6 +324,52 @@ export function SettingsDialog() {
               )}
             </div>
           </div>
+
+          {/* Inline calculations */}
+          <div class="pb-4 flex items-center justify-between">
+            <h3 class="text-sm text-gray-600 dark:text-gray-400">
+              {t("settings.inlineCalculations")}
+            </h3>
+            <ToggleSwitch
+              checked={inlineCalculations.value}
+              onChange={(checked) => {
+                inlineCalculations.value = checked;
+              }}
+              iconOff={<Calculator class="w-4 h-4" />}
+              iconOn={<Calculator class="w-4 h-4" />}
+              labelOff={t("settings.inlineCalculations.off")}
+              labelOn={t("settings.inlineCalculations.on")}
+            />
+          </div>
+
+          {/* Decimal separator (only relevant while inline calculations are on) */}
+          {inlineCalculations.value && (
+            <div class="pb-4 flex items-center justify-between">
+              <h3 class="text-sm text-gray-600 dark:text-gray-400">
+                {t("settings.decimalSeparator")}
+              </h3>
+              <ThreeWayToggle
+                value={decimalSeparators.indexOf(decimalSeparator.value)}
+                onChange={(i) => {
+                  decimalSeparator.value = decimalSeparators[i];
+                }}
+                options={[
+                  {
+                    icon: <span class="text-xs font-semibold">A</span>,
+                    label: t("settings.decimalSeparator.auto"),
+                  },
+                  {
+                    icon: <span class="text-base leading-none">.</span>,
+                    label: t("settings.decimalSeparator.dot"),
+                  },
+                  {
+                    icon: <span class="text-base leading-none">,</span>,
+                    label: t("settings.decimalSeparator.comma"),
+                  },
+                ]}
+              />
+            </div>
+          )}
 
           {/* Import / Export */}
           <div class="pb-4">

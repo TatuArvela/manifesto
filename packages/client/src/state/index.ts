@@ -41,13 +41,17 @@ export {
   updateNote,
 } from "./actions.js";
 export {
+  type DecimalSeparator,
   type DefaultNoteColor,
   type DefaultNoteFont,
+  decimalSeparator,
   defaultNoteColor,
   defaultNoteFont,
+  inlineCalculations,
   locale,
   type NoteSize,
   noteSize,
+  resolvedDecimalSeparator,
   type SortMode,
   sortMode,
   type ThemeMode,

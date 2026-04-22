@@ -751,3 +751,18 @@ body {
   float: left;
   height: 0;
 }
+
+/* Inline calculation preview (rendered as a ProseMirror widget decoration
+   immediately after the cursor when an `expression=` pattern is detected). */
+.inline-calc-preview {
+  display: inline;
+  opacity: 0.45;
+  user-select: none;
+  pointer-events: none;
+}
+/* ProseMirror inserts a trailing <br> at the end of a paragraph that ends
+   with our widget; it renders as an extra visual line. Hide it — the
+   real paragraph content ("2+2=") already provides the line height. */
+.milkdown-editor p:has(.inline-calc-preview) > br {
+  display: none;
+}
