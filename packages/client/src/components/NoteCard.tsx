@@ -619,8 +619,10 @@ export function NoteCard({
             <>
               <div
                 class={clsx(
-                  noteSize.value === "square" &&
-                    "flex-1 min-h-0 overflow-hidden note-content-fade",
+                  "overflow-hidden note-content-fade",
+                  noteSize.value === "square"
+                    ? "flex-1 min-h-0"
+                    : "max-h-80",
                 )}
                 style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
               >
