@@ -21,10 +21,12 @@ pnpm build
 
 The client's mode is set at build time via environment variables:
 
-| Variable             | Default  | Description                                      |
-|----------------------|----------|--------------------------------------------------|
-| `MANIFESTO_MODE`     | `open`   | `open` or `managed`                              |
+| Variable             | Default  | Description                                                  |
+|----------------------|----------|--------------------------------------------------------------|
+| `MANIFESTO_MODE`     | `open`   | `open` or `managed`                                          |
 | `MANIFESTO_SERVER`   | —        | Server URL (required in managed mode, optional in open mode) |
+
+> Status: the build currently ships in open mode with the local storage adapter. `RestApiAdapter` exists in the codebase but is not yet selected by `createStorage()`; wiring these environment variables up is the next step toward managed mode.
 
 ### Open Mode (Default)
 
