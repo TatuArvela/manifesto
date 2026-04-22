@@ -426,9 +426,20 @@ export function NoteCard({
     }
   }, [isEditing]);
 
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    },
+    [],
+  );
+
   const closeModal = () => {
     setClosing(true);
-    setTimeout(() => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
       setShowModal(false);
       setClosing(false);
       editingNoteId.value = null;
@@ -704,7 +715,9 @@ export function NoteCard({
 
         {openPopover === "reminder" && (
           <CardPopover
-            anchorRef={note.reminder ? reminderChipRef : menuBtnRef}
+            anchorRef={
+              note.reminder && !isLinkOnly ? reminderChipRef : menuBtnRef
+            }
             onClose={() => setOpenPopover(null)}
           >
             <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-72">

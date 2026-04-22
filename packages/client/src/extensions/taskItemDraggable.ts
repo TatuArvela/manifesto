@@ -662,9 +662,7 @@ const listItemView: NodeViewConstructor = (
 };
 
 function isListNode(node: ProseNode): boolean {
-  return (
-    node.type.name === "bullet_list" || node.type.name === "ordered_list"
-  );
+  return node.type.name === "bullet_list" || node.type.name === "ordered_list";
 }
 
 /**
@@ -686,10 +684,7 @@ const deleteEmptyParagraphBeforeList: Command = (state, dispatch) => {
   const next = container.child(paraIndex + 1);
   if (!isListNode(next)) return false;
   if (dispatch) {
-    const tr = state.tr.delete(
-      $from.before(paraDepth),
-      $from.after(paraDepth),
-    );
+    const tr = state.tr.delete($from.before(paraDepth), $from.after(paraDepth));
     dispatch(tr.scrollIntoView());
   }
   return true;

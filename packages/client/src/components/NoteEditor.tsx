@@ -195,18 +195,15 @@ export function NoteEditor({
   useEffect(() => {
     if (!editor) return;
     let cancelled = false;
-    const dispatchRef: { prev: ((tr: unknown) => void) | null } = {
-      prev: null,
-    };
     editor.action((ctx) => {
       const view = ctx.get(editorViewCtx);
       const prev =
         view.props.dispatchTransaction?.bind(view) ??
-        view.updateState.bind(view);
-      dispatchRef.prev = prev as (tr: unknown) => void;
+        ((tr: Parameters<typeof view.state.apply>[0]) =>
+          view.updateState(view.state.apply(tr)));
       view.setProps({
         dispatchTransaction(tr) {
-          view.updateState(view.state.apply(tr));
+          prev(tr);
           if (!cancelled) setTxCount((c) => c + 1);
         },
       });

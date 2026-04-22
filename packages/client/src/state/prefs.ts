@@ -16,7 +16,7 @@ export type DefaultNoteFont = NoteFont | "random";
 
 const PREFS_KEY = "manifesto:prefs";
 
-function loadPrefs(): {
+export interface LoadedPrefs {
   viewMode: ViewMode;
   sortMode: SortMode;
   noteSize: NoteSize;
@@ -24,11 +24,12 @@ function loadPrefs(): {
   defaultNoteColor: DefaultNoteColor;
   defaultNoteFont: DefaultNoteFont;
   locale: Locale;
-} {
+}
+
+export function parsePrefs(raw: string | null): LoadedPrefs {
   let persistedLocale: Locale | undefined;
-  try {
-    const raw = localStorage.getItem(PREFS_KEY);
-    if (raw) {
+  if (raw) {
+    try {
       const parsed = JSON.parse(raw);
       if (isLocale(parsed.locale)) persistedLocale = parsed.locale;
       return {
@@ -41,9 +42,9 @@ function loadPrefs(): {
           parsed.defaultNoteFont ?? parsed.noteFont ?? NoteFont.Default,
         locale: persistedLocale ?? detectBrowserLocale(),
       };
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
   }
   return {
     viewMode: "grid",
@@ -54,6 +55,14 @@ function loadPrefs(): {
     defaultNoteFont: NoteFont.Default,
     locale: detectBrowserLocale(),
   };
+}
+
+function loadPrefs(): LoadedPrefs {
+  try {
+    return parsePrefs(localStorage.getItem(PREFS_KEY));
+  } catch {
+    return parsePrefs(null);
+  }
 }
 
 function savePrefs() {

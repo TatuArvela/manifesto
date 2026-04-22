@@ -53,7 +53,13 @@ export function NoteCardEditor({
     }
   };
 
-  const saveAndClose = () => {
+  const titleRef = useRef(title);
+  const contentRef = useRef(content);
+  titleRef.current = title;
+  contentRef.current = content;
+
+  const saveAndCloseRef = useRef<() => void>(() => {});
+  saveAndCloseRef.current = () => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     if (title !== note.title || content !== note.content) {
       updateNote(note.id, { title, content });
@@ -62,12 +68,9 @@ export function NoteCardEditor({
     savedRef.current = true;
     onClose();
   };
+  const saveAndClose = () => saveAndCloseRef.current();
 
   // Save pending changes on unmount (e.g. backdrop click)
-  const titleRef = useRef(title);
-  const contentRef = useRef(content);
-  titleRef.current = title;
-  contentRef.current = content;
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -98,13 +101,13 @@ export function NoteCardEditor({
   // Escape to close
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") saveAndClose();
+      if (e.key === "Escape") saveAndCloseRef.current();
     };
     document.addEventListener("keydown", handleEscape);
     return () => {
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [title, content]);
+  }, []);
 
   // Auto-save on any title/content change
   useEffect(() => {
