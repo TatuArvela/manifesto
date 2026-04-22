@@ -26,6 +26,29 @@ function githubPagesSpaFallback(): Plugin {
   };
 }
 
+/**
+ * iOS Safari does not reliably resolve relative paths in `manifest.webmanifest`
+ * (start_url/scope/icons), so we rewrite `./` → base URL at build time.
+ */
+function rewriteManifestBase(): Plugin {
+  let outDir = "dist";
+  let base = "/";
+  return {
+    name: "rewrite-manifest-base",
+    apply: "build",
+    configResolved(config) {
+      outDir = config.build.outDir;
+      base = config.base;
+    },
+    closeBundle() {
+      const file = path.resolve(outDir, "manifest.webmanifest");
+      if (!fs.existsSync(file)) return;
+      const src = fs.readFileSync(file, "utf-8");
+      fs.writeFileSync(file, src.replaceAll('"./', `"${base}`));
+    },
+  };
+}
+
 export default defineConfig({
   base: process.env.GITHUB_ACTIONS ? "/manifesto/" : "/",
   plugins: [
@@ -48,6 +71,7 @@ export default defineConfig({
       },
     }),
     githubPagesSpaFallback(),
+    rewriteManifestBase(),
   ],
   test: {
     browser: {
