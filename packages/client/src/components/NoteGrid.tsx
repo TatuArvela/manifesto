@@ -1,7 +1,8 @@
-import { StickyNote } from "lucide-preact";
+import { Search, StickyNote } from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
 import {
+  activeView,
   canReorder,
   noteSize,
   pinnedNotes,
@@ -212,11 +213,20 @@ export function NoteGrid() {
   };
 
   if (pinned.length === 0 && unpinned.length === 0) {
+    const isSearch = activeView.value === "search";
     return (
       <div class="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
-        <StickyNote class="w-12 h-12 mb-4" />
-        <p class="text-lg">{t("noteGrid.empty")}</p>
-        <p class="text-sm">{t("noteGrid.emptyHint")}</p>
+        {isSearch ? (
+          <Search class="w-12 h-12 mb-4" />
+        ) : (
+          <StickyNote class="w-12 h-12 mb-4" />
+        )}
+        <p class="text-lg">
+          {isSearch ? t("search.empty") : t("noteGrid.empty")}
+        </p>
+        <p class="text-sm">
+          {isSearch ? t("search.emptyHint") : t("noteGrid.emptyHint")}
+        </p>
       </div>
     );
   }

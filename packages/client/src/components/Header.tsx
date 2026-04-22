@@ -25,9 +25,11 @@ import {
   bulkPin,
   bulkSetColor,
   bulkTrash,
+  clearSearchFilters,
   exitSelectMode,
   mobileSidebarOpen,
   noteSize,
+  previousView,
   type SortMode,
   searchQuery,
   selectedNotes,
@@ -212,6 +214,7 @@ export function Header() {
           {activeView.value === "reminders" && t("nav.reminders")}
           {activeView.value === "archived" && t("nav.archive")}
           {activeView.value === "trash" && t("nav.trash")}
+          {activeView.value === "search" && t("nav.search")}
         </h1>
       </div>
 
@@ -222,12 +225,39 @@ export function Header() {
           <input
             type="search"
             placeholder={t("header.searchPlaceholder")}
-            class="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition text-sm"
+            class="w-full pl-10 pr-10 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition text-sm"
             value={searchQuery.value}
+            onFocus={() => {
+              if (activeView.value !== "search") {
+                activeView.value = "search";
+              }
+            }}
             onInput={(e) => {
-              searchQuery.value = (e.target as HTMLInputElement).value;
+              const value = (e.target as HTMLInputElement).value;
+              searchQuery.value = value;
+              if (value && activeView.value !== "search") {
+                activeView.value = "search";
+              }
             }}
           />
+          {activeView.value === "search" && (
+            <Tooltip label={t("search.close")}>
+              <button
+                type="button"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+                onClick={() => {
+                  clearSearchFilters();
+                  activeView.value =
+                    previousView.value === "search"
+                      ? "active"
+                      : previousView.value;
+                }}
+                aria-label={t("search.close")}
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          )}
         </div>
       </div>
 

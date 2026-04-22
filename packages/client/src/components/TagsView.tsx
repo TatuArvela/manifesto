@@ -1,42 +1,45 @@
-import { Archive, Trash2 } from "lucide-preact";
+import type { LucideIcon } from "lucide-preact";
+import { Archive, StickyNote, Trash2 } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
 import {
   activeTag,
   allTags,
   deleteTag,
+  tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
 } from "../state/index.js";
 import { Tooltip } from "./Tooltip.js";
 
-function MiniToggle({
-  checked,
-  onChange,
-  label,
+function Chip({
+  selected,
+  onClick,
+  icon: Icon,
   children,
+  ariaLabel,
 }: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  label: string;
+  selected: boolean;
+  onClick: () => void;
+  icon?: LucideIcon;
   children: preact.ComponentChildren;
+  ariaLabel?: string;
 }) {
   return (
-    <Tooltip label={label}>
-      <button
-        type="button"
-        class={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-          checked
-            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
-            : "text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-        }`}
-        onClick={() => onChange(!checked)}
-        aria-label={label}
-        aria-pressed={checked}
-      >
-        {children}
-      </button>
-    </Tooltip>
+    <button
+      type="button"
+      class={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors ${
+        selected
+          ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
+          : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+      }`}
+      onClick={onClick}
+      aria-pressed={selected}
+      aria-label={ariaLabel}
+    >
+      {Icon && <Icon class="w-4 h-4" />}
+      {children}
+    </button>
   );
 }
 
@@ -52,38 +55,31 @@ export function TagsView() {
   };
 
   return (
-    <div class="mt-4 mb-6">
+    <div class="mt-4 mb-6 flex flex-col gap-3">
       <div class="flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          class={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
-            !selected
-              ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
-              : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-          }`}
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+          {t("nav.tags")}
+        </span>
+        <Chip
+          selected={!selected}
           onClick={() => {
             activeTag.value = null;
             setShowConfirm(false);
           }}
         >
           {t("tags.all")}
-        </button>
+        </Chip>
         {tags.map((tag) => (
-          <button
+          <Chip
             key={tag}
-            type="button"
-            class={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
-              selected === tag
-                ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
-                : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-            }`}
+            selected={selected === tag}
             onClick={() => {
               activeTag.value = tag;
               setShowConfirm(false);
             }}
           >
             #{tag}
-          </button>
+          </Chip>
         ))}
 
         {selected && !showConfirm && (
@@ -120,41 +116,53 @@ export function TagsView() {
             </button>
           </div>
         )}
+      </div>
 
-        <div class="flex-1" />
-
-        <div class="flex items-center gap-1">
-          <MiniToggle
-            checked={tagsShowArchived.value}
-            onChange={(v) => {
-              tagsShowArchived.value = v;
-            }}
-            label={
-              tagsShowArchived.value
-                ? t("tags.hideArchived")
-                : t("tags.showArchived")
-            }
-          >
-            <Archive class="w-4 h-4" />
-          </MiniToggle>
-          <MiniToggle
-            checked={tagsShowTrashed.value}
-            onChange={(v) => {
-              tagsShowTrashed.value = v;
-            }}
-            label={
-              tagsShowTrashed.value
-                ? t("tags.hideTrashed")
-                : t("tags.showTrashed")
-            }
-          >
-            <Trash2 class="w-4 h-4" />
-          </MiniToggle>
-        </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+          {t("search.filterByLocation")}
+        </span>
+        <Chip
+          selected={tagsShowActive.value}
+          onClick={() => {
+            tagsShowActive.value = !tagsShowActive.value;
+          }}
+          icon={StickyNote}
+        >
+          {t("search.location.active")}
+        </Chip>
+        <Chip
+          selected={tagsShowArchived.value}
+          onClick={() => {
+            tagsShowArchived.value = !tagsShowArchived.value;
+          }}
+          icon={Archive}
+          ariaLabel={
+            tagsShowArchived.value
+              ? t("tags.hideArchived")
+              : t("tags.showArchived")
+          }
+        >
+          {t("search.location.archived")}
+        </Chip>
+        <Chip
+          selected={tagsShowTrashed.value}
+          onClick={() => {
+            tagsShowTrashed.value = !tagsShowTrashed.value;
+          }}
+          icon={Trash2}
+          ariaLabel={
+            tagsShowTrashed.value
+              ? t("tags.hideTrashed")
+              : t("tags.showTrashed")
+          }
+        >
+          {t("search.location.trashed")}
+        </Chip>
       </div>
 
       {tags.length === 0 && (
-        <p class="mt-4 text-sm text-gray-400 dark:text-gray-500">
+        <p class="text-sm text-gray-400 dark:text-gray-500">
           {t("tags.empty")}
         </p>
       )}

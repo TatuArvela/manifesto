@@ -16,6 +16,7 @@ describe("parsePath", () => {
     expect(parsePath("/reminders")).toEqual({ view: "reminders", tag: null });
     expect(parsePath("/archived")).toEqual({ view: "archived", tag: null });
     expect(parsePath("/trash")).toEqual({ view: "trash", tag: null });
+    expect(parsePath("/search")).toEqual({ view: "search", tag: null });
   });
 
   it("parses a tag sub-route", () => {

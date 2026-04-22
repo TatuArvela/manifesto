@@ -15,6 +15,7 @@ const VIEW_PATHS: Record<AppView, string> = {
   reminders: "/reminders",
   archived: "/archived",
   trash: "/trash",
+  search: "/search",
 };
 
 const PATH_TO_VIEW: Record<string, AppView> = {
@@ -23,6 +24,7 @@ const PATH_TO_VIEW: Record<string, AppView> = {
   "/reminders": "reminders",
   "/archived": "archived",
   "/trash": "trash",
+  "/search": "search",
 };
 
 function stripBase(pathname: string): string {

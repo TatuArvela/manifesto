@@ -22,6 +22,7 @@ import { Header } from "./Header.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
 import { ReminderBanner } from "./ReminderBanner.js";
+import { SearchView } from "./SearchView.js";
 import { SettingsDialog } from "./SettingsDialog.js";
 import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { Sidebar } from "./Sidebar.js";
@@ -118,6 +119,7 @@ export function App() {
   }, []);
 
   const isTagsView = activeView.value === "tags";
+  const isSearchView = activeView.value === "search";
   const isActive = activeView.value === "active";
   const isList = viewMode.value === "list";
 
@@ -129,7 +131,19 @@ export function App() {
         <main
           class={`flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 ${isActive ? "-mt-4" : "pt-2"}`}
         >
-          {isTagsView ? (
+          {isSearchView ? (
+            isList ? (
+              <div class="max-w-xl mx-auto">
+                <SearchView />
+                <NoteGrid />
+              </div>
+            ) : (
+              <>
+                <SearchView />
+                <NoteGrid />
+              </>
+            )
+          ) : isTagsView ? (
             isList ? (
               <div class="max-w-xl mx-auto">
                 <TagsView />

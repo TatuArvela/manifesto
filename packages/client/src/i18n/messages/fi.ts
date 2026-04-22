@@ -10,7 +10,28 @@ export const fi: Messages = {
   "nav.reminders": "Muistutukset",
   "nav.archive": "Arkisto",
   "nav.trash": "Roskakori",
+  "nav.search": "Haku",
   "nav.toggleSidebar": "Näytä sivupalkki",
+
+  // Search view
+  "search.filterByType": "Tyyppi",
+  "search.filterByColor": "Väri",
+  "search.filterByLocation": "Sijainti",
+  "search.type.reminders": "Muistutukset",
+  "search.type.checklists": "Tarkistuslistat",
+  "search.type.images": "Kuvat",
+  "search.type.urls": "Linkit",
+  "search.location.active": "Muistiinpanot",
+  "search.location.archived": "Arkisto",
+  "search.location.trashed": "Roskakori",
+  "search.clear": "Tyhjennä",
+  "search.close": "Sulje haku",
+  "search.empty": "Kirjoita hakusana tai valitse suodatin",
+  "search.emptyHint": "Hakutulokset näkyvät täällä",
+  "search.resultCount": {
+    one: "{count} osuma",
+    other: "{count} osumaa",
+  },
 
   // Header — search & controls
   "header.searchPlaceholder": "Hae muistiinpanoja...",

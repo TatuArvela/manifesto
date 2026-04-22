@@ -9,10 +9,14 @@ import {
   activeTag,
   activeView,
   editingNoteId,
+  searchColors,
+  searchLocations,
   searchQuery,
+  searchTypes,
   selectedNotes,
   selectMode,
   showError,
+  tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
 } from "./ui.js";
@@ -27,6 +31,12 @@ export const notes = signal<Note[]>([]);
 
 // --- Derived ---
 
+const CHECKBOX_LINE_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\] (.*)$/;
+
+export function noteHasChecklist(content: string): boolean {
+  return content.split("\n").some((line) => CHECKBOX_LINE_RE.test(line));
+}
+
 export const filteredNotes = computed(() => {
   let result = notes.value;
 
@@ -37,10 +47,9 @@ export const filteredNotes = computed(() => {
       break;
     case "tags":
       result = result.filter((n) => {
-        if (n.trashed && !tagsShowTrashed.value) return false;
-        if (n.archived && !tagsShowArchived.value) return false;
-        if (n.trashed && n.archived) return tagsShowTrashed.value;
-        return true;
+        if (n.trashed) return tagsShowTrashed.value;
+        if (n.archived) return tagsShowArchived.value;
+        return tagsShowActive.value;
       });
       if (activeTag.value) {
         const tag = activeTag.value;
@@ -56,9 +65,37 @@ export const filteredNotes = computed(() => {
     case "trash":
       result = result.filter((n) => n.trashed);
       break;
+    case "search": {
+      const types = searchTypes.value;
+      const colors = searchColors.value;
+      if (!searchQuery.value && types.size === 0 && colors.size === 0) {
+        result = [];
+        break;
+      }
+      const locations = searchLocations.value;
+      result = result.filter((n) => {
+        if (n.trashed) return locations.has("trashed");
+        if (n.archived) return locations.has("archived");
+        return locations.has("active");
+      });
+      if (types.size > 0) {
+        result = result.filter((n) => {
+          if (types.has("reminders") && n.reminder) return true;
+          if (types.has("images") && n.images.length > 0) return true;
+          if (types.has("urls") && n.linkPreviews.length > 0) return true;
+          if (types.has("checklists") && noteHasChecklist(n.content))
+            return true;
+          return false;
+        });
+      }
+      if (colors.size > 0) {
+        result = result.filter((n) => colors.has(n.color));
+      }
+      break;
+    }
   }
 
-  // Filter by search
+  // Filter by search query
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase();
     result = result.filter(
@@ -368,8 +405,6 @@ export async function reorderNotes(
     await updateNote(reordered[i], { position: i });
   }
 }
-
-const CHECKBOX_LINE_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\] (.*)$/;
 
 export function hasCheckedItems(content: string): boolean {
   return content.split("\n").some((line) => {

@@ -8,7 +8,28 @@ export const en = {
   "nav.reminders": "Reminders",
   "nav.archive": "Archive",
   "nav.trash": "Trash",
+  "nav.search": "Search",
   "nav.toggleSidebar": "Toggle sidebar",
+
+  // Search view
+  "search.filterByType": "Type",
+  "search.filterByColor": "Color",
+  "search.filterByLocation": "Location",
+  "search.type.reminders": "Reminders",
+  "search.type.checklists": "Checklists",
+  "search.type.images": "Images",
+  "search.type.urls": "Links",
+  "search.location.active": "Notes",
+  "search.location.archived": "Archived",
+  "search.location.trashed": "Trash",
+  "search.clear": "Clear",
+  "search.close": "Close search",
+  "search.empty": "Type a query or pick a filter",
+  "search.emptyHint": "Your results will appear here",
+  "search.resultCount": {
+    one: "{count} match",
+    other: "{count} matches",
+  },
 
   // Header — search & controls
   "header.searchPlaceholder": "Search notes...",
