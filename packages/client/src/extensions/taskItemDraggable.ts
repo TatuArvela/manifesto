@@ -23,6 +23,7 @@ type TaskItemInfo = {
   pos: number;
   nodeSize: number;
   level: number;
+  outerListPos: number;
   dom: HTMLElement;
   label: HTMLElement;
   labelX: number;
@@ -41,6 +42,7 @@ type DragState = {
   active: boolean;
   items: TaskItemInfo[];
   slot: number;
+  atListEnd: boolean;
   targetLevel: number;
   indicator: HTMLElement;
   onMove: (e: PointerEvent) => void;
@@ -88,6 +90,20 @@ function getItemLevel(doc: ProseNode, pos: number): number {
   return level;
 }
 
+function getOuterListPos(doc: ProseNode, pos: number): number {
+  const $pos = doc.resolve(pos);
+  for (let depth = 1; depth <= $pos.depth; depth++) {
+    const parent = $pos.node(depth);
+    if (
+      parent.type.name === "bullet_list" ||
+      parent.type.name === "ordered_list"
+    ) {
+      return $pos.before(depth);
+    }
+  }
+  return -1;
+}
+
 function collectTaskItems(view: EditorView): TaskItemInfo[] {
   const items: TaskItemInfo[] = [];
   view.state.doc.descendants((node, pos) => {
@@ -102,6 +118,7 @@ function collectTaskItems(view: EditorView): TaskItemInfo[] {
       pos,
       nodeSize: node.nodeSize,
       level,
+      outerListPos: getOuterListPos(view.state.doc, pos),
       dom,
       label,
       labelX: labelRect.left,
@@ -118,20 +135,52 @@ function findSlot(items: TaskItemInfo[], y: number): number {
   return items.length;
 }
 
+function effectiveNeighborIdx(
+  slot: number,
+  sourceIdx: number,
+  side: "above" | "below",
+): number {
+  if (side === "above") {
+    let idx = slot - 1;
+    if (idx === sourceIdx) idx--;
+    return idx;
+  }
+  let idx = slot;
+  if (idx === sourceIdx) idx++;
+  return idx;
+}
+
+function computeAtListEnd(
+  items: TaskItemInfo[],
+  slot: number,
+  sourceIdx: number,
+  clientY: number,
+): boolean {
+  const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
+  const belowIdx = effectiveNeighborIdx(slot, sourceIdx, "below");
+  if (aboveIdx < 0 || belowIdx >= items.length) return false;
+  const above = items[aboveIdx];
+  const below = items[belowIdx];
+  if (above.outerListPos < 0 || below.outerListPos < 0) return false;
+  if (above.outerListPos === below.outerListPos) return false;
+  const aboveBottom = above.dom.getBoundingClientRect().bottom;
+  const belowTop = below.label.getBoundingClientRect().top;
+  return clientY < (aboveBottom + belowTop) / 2;
+}
+
 function computeTargetLevel(
   items: TaskItemInfo[],
   slot: number,
   sourceIdx: number,
   sourceLevel: number,
   deltaX: number,
+  atListEnd: boolean,
 ): number {
-  let aboveIdx = slot - 1;
-  if (aboveIdx === sourceIdx) aboveIdx--;
+  const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
   const above = aboveIdx >= 0 ? items[aboveIdx] : null;
 
-  let belowIdx = slot;
-  if (belowIdx === sourceIdx) belowIdx++;
-  const below = belowIdx < items.length ? items[belowIdx] : null;
+  const belowIdx = effectiveNeighborIdx(slot, sourceIdx, "below");
+  const below = !atListEnd && belowIdx < items.length ? items[belowIdx] : null;
 
   const maxLevel = above ? above.level + 1 : 1;
   const minLevel = below ? below.level : 1;
@@ -159,8 +208,22 @@ function levelXFor(
   return editorRect.left + (level - 1) * INDENT_PX;
 }
 
-function slotY(items: TaskItemInfo[], slot: number): number {
+function slotY(
+  items: TaskItemInfo[],
+  slot: number,
+  sourceIdx: number,
+  atListEnd: boolean,
+): number {
   if (items.length === 0) return 0;
+  if (atListEnd) {
+    const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
+    const ref = items[aboveIdx];
+    if (ref)
+      return Math.max(
+        ref.label.getBoundingClientRect().bottom,
+        ref.dom.getBoundingClientRect().bottom,
+      );
+  }
   if (slot >= items.length) {
     const last = items[items.length - 1];
     return Math.max(
@@ -172,7 +235,7 @@ function slotY(items: TaskItemInfo[], slot: number): number {
 }
 
 function positionIndicator(state: DragState) {
-  const y = slotY(state.items, state.slot);
+  const y = slotY(state.items, state.slot, state.sourceIdx, state.atListEnd);
   const x = levelXFor(state.view, state.items, state.targetLevel);
   const editorRect = state.view.dom.getBoundingClientRect();
   state.indicator.style.top = `${y - INDICATOR_HEIGHT_PX / 2}px`;
@@ -208,6 +271,18 @@ export function getDeletionRange(
   return { from, to };
 }
 
+function endOfOuterList(doc: ProseNode, pos: number): number {
+  const $pos = doc.resolve(pos);
+  let outerListDepth = -1;
+  for (let depth = $pos.depth; depth >= 1; depth--) {
+    const name = $pos.node(depth).type.name;
+    if (name === "bullet_list" || name === "ordered_list")
+      outerListDepth = depth;
+  }
+  if (outerListDepth < 0) return -1;
+  return $pos.end(outerListDepth);
+}
+
 function applyDrop(state: DragState) {
   const {
     view,
@@ -217,6 +292,7 @@ function applyDrop(state: DragState) {
     sourceIdx,
     items,
     slot,
+    atListEnd,
     targetLevel,
   } = state;
   const doc = view.state.doc;
@@ -224,8 +300,30 @@ function applyDrop(state: DragState) {
   const sourceNode = doc.nodeAt(sourcePos);
   if (!sourceNode || !isTaskItem(sourceNode)) return;
 
-  const isNoMove = slot === sourceIdx || slot === sourceIdx + 1;
+  let insertAt: number;
   let startLevel: number;
+  if (atListEnd) {
+    const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
+    const above = aboveIdx >= 0 ? items[aboveIdx] : null;
+    if (!above) return;
+    const end = endOfOuterList(doc, above.pos);
+    if (end < 0) return;
+    insertAt = end;
+    startLevel = 1;
+  } else if (slot < items.length) {
+    const next = items[slot];
+    insertAt = next.pos;
+    startLevel = next.level;
+  } else {
+    const last = items[items.length - 1];
+    const end = endOfOuterList(doc, last.pos);
+    if (end < 0) return;
+    insertAt = end;
+    startLevel = 1;
+  }
+
+  const isNoMove =
+    insertAt === sourcePos || insertAt === sourcePos + sourceNodeSize;
 
   if (isNoMove) {
     startLevel = sourceLevel;
@@ -233,25 +331,6 @@ function applyDrop(state: DragState) {
     tr.setSelection(TextSelection.near(tr.doc.resolve(sourcePos + 1)));
     view.dispatch(tr);
   } else {
-    let insertAt: number;
-    if (slot < items.length) {
-      const next = items[slot];
-      insertAt = next.pos;
-      startLevel = next.level;
-    } else {
-      const last = items[items.length - 1];
-      const $last = doc.resolve(last.pos);
-      let outerListDepth = -1;
-      for (let depth = $last.depth; depth >= 1; depth--) {
-        const name = $last.node(depth).type.name;
-        if (name === "bullet_list" || name === "ordered_list")
-          outerListDepth = depth;
-      }
-      if (outerListDepth < 0) return;
-      insertAt = $last.end(outerListDepth);
-      startLevel = 1;
-    }
-
     const sliceContent = doc.slice(
       sourcePos,
       sourcePos + sourceNodeSize,
@@ -320,12 +399,19 @@ function onPointerMove(e: PointerEvent) {
   }
 
   dragState.slot = findSlot(dragState.items, e.clientY);
+  dragState.atListEnd = computeAtListEnd(
+    dragState.items,
+    dragState.slot,
+    dragState.sourceIdx,
+    e.clientY,
+  );
   dragState.targetLevel = computeTargetLevel(
     dragState.items,
     dragState.slot,
     dragState.sourceIdx,
     dragState.sourceLevel,
     e.clientX - dragState.startX,
+    dragState.atListEnd,
   );
   positionIndicator(dragState);
 }
@@ -422,6 +508,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
       active: false,
       items,
       slot: sourceIdx,
+      atListEnd: false,
       targetLevel: source.level,
       indicator,
       onMove,
