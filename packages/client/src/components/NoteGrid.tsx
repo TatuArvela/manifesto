@@ -37,12 +37,12 @@ function applyMasonrySpans(container: HTMLElement | null, isSquare: boolean) {
 function findNearestGap(
   e: DragEvent,
   container: HTMLElement,
-  isList: boolean,
+  isVertical: boolean,
 ): number {
   const children = Array.from(container.children) as HTMLElement[];
   if (children.length === 0) return 0;
 
-  if (isList) {
+  if (isVertical) {
     for (let i = 0; i < children.length; i++) {
       const rect = children[i].getBoundingClientRect();
       if (e.clientY < rect.top + rect.height / 2) return i;
@@ -80,10 +80,27 @@ export function NoteGrid() {
   const [dropSection, setDropSection] = useState<"pinned" | "unpinned" | null>(
     null,
   );
+  const [dragVertical, setDragVertical] = useState(false);
   const dragSourceId = useRef<string | null>(null);
   const dragSection = useRef<"pinned" | "unpinned" | null>(null);
   const pinnedGridRef = useRef<HTMLDivElement>(null);
   const unpinnedGridRef = useRef<HTMLDivElement>(null);
+
+  const isContainerVertical = (el: HTMLElement): boolean => {
+    const style = getComputedStyle(el);
+    if (style.display.startsWith("flex")) return true;
+    const cols = style.gridTemplateColumns.trim();
+    if (!cols || cols === "none") return true;
+    return cols.split(/\s+/).length === 1;
+  };
+
+  const measureVerticalGap = (el: HTMLElement): number => {
+    const children = Array.from(el.children) as HTMLElement[];
+    if (children.length < 2) return 16;
+    const r1 = children[0].getBoundingClientRect();
+    const r2 = children[1].getBoundingClientRect();
+    return Math.max(0, r2.top - r1.bottom);
+  };
 
   // Apply masonry layout (runs before paint)
   useLayoutEffect(() => {
@@ -136,11 +153,38 @@ export function NoteGrid() {
     if (!reorderable) return;
     dragSourceId.current = id;
     dragSection.current = section;
+    const target = e.currentTarget as HTMLElement;
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = "move";
+      const rect = target.getBoundingClientRect();
+      // Use an off-screen clone so the ghost is the full card, not clipped
+      // to the element's visible portion (Safari/iOS behavior).
+      const clone = target.cloneNode(true) as HTMLElement;
+      clone.style.position = "fixed";
+      clone.style.top = "-10000px";
+      clone.style.left = "-10000px";
+      clone.style.width = `${rect.width}px`;
+      clone.style.height = `${rect.height}px`;
+      clone.style.pointerEvents = "none";
+      clone.classList.remove("note-dragging");
+      document.body.appendChild(clone);
+      e.dataTransfer.setDragImage(
+        clone,
+        e.clientX - rect.left,
+        e.clientY - rect.top,
+      );
+      setTimeout(() => clone.remove(), 0);
+    }
+    const container =
+      section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
+    if (container) {
+      setDragVertical(isContainerVertical(container));
+      container.style.setProperty(
+        "--drop-gap",
+        `${measureVerticalGap(container)}px`,
+      );
     }
     document.body.classList.add("note-drag-active");
-    const target = e.currentTarget as HTMLElement;
     requestAnimationFrame(() => target.classList.add("note-dragging"));
   };
 
@@ -150,6 +194,7 @@ export function NoteGrid() {
     document.body.classList.remove("note-drag-active");
     dragSourceId.current = null;
     dragSection.current = null;
+    setDragVertical(false);
     setDropGap(null);
     setDropSection(null);
   };
@@ -165,7 +210,7 @@ export function NoteGrid() {
       section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
     if (!container) return;
 
-    const gap = findNearestGap(e, container, isList);
+    const gap = findNearestGap(e, container, dragVertical);
 
     const srcIdx = getSourceIndex(section);
     if (srcIdx !== -1 && (gap === srcIdx || gap === srcIdx + 1)) {
@@ -257,7 +302,7 @@ export function NoteGrid() {
           <div
             ref={pinnedGridRef}
             role="list"
-            class={gridClass}
+            class={`${gridClass}${dragVertical && dropSection === "pinned" ? " note-grid-vertical" : ""}`}
             style={gridStyle}
             onDragOver={(e) => handleGridDragOver(e, "pinned")}
             onDragLeave={(e) => handleGridDragLeave(e, "pinned")}
@@ -287,7 +332,7 @@ export function NoteGrid() {
           <div
             ref={unpinnedGridRef}
             role="list"
-            class={gridClass}
+            class={`${gridClass}${dragVertical && dropSection === "unpinned" ? " note-grid-vertical" : ""}`}
             style={gridStyle}
             onDragOver={(e) => handleGridDragOver(e, "unpinned")}
             onDragLeave={(e) => handleGridDragLeave(e, "unpinned")}

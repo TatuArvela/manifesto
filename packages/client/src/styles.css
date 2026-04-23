@@ -247,13 +247,10 @@ body.note-drag-active .note-select {
   pointer-events: none;
 }
 
-/* Drop indicators using pseudo-elements — no layout shift, no box-shadow conflict */
-.note-draggable[data-drop-side] {
-  position: relative;
-  overflow: visible !important;
-}
-
-.note-draggable[data-drop-side]::after {
+/* Drop indicators using pseudo-elements — no layout shift, no box-shadow conflict.
+   Placed on the borderless wrapper so the pseudo's padding-box coincides with the
+   card's border-box (no per-card border-width offset to compensate for). */
+.note-draggable-wrapper[data-drop-side]::after {
   content: "";
   position: absolute;
   background: #3b82f6;
@@ -262,7 +259,7 @@ body.note-drag-active .note-select {
 }
 
 /* Grid (gap-4 = 16px): vertical bars centered in the gap */
-.note-draggable[data-drop-side="before"]::after {
+.note-draggable-wrapper[data-drop-side="before"]::after {
   left: -10px;
   top: 0;
   bottom: 0;
@@ -270,7 +267,7 @@ body.note-drag-active .note-select {
   border-radius: 1.5px;
 }
 
-.note-draggable[data-drop-side="after"]::after {
+.note-draggable-wrapper[data-drop-side="after"]::after {
   right: -10px;
   top: 0;
   bottom: 0;
@@ -278,25 +275,24 @@ body.note-drag-active .note-select {
   border-radius: 1.5px;
 }
 
-/* List view (gap-3 = 12px): horizontal bars centered in the gap */
-.flex-col > .note-draggable[data-drop-side="before"]::after {
+/* Vertical layouts (list view or single-column grid): horizontal bars centered in the gap.
+   The grid container sets --drop-gap to its measured vertical gap at dragstart. */
+.note-grid-vertical .note-draggable-wrapper[data-drop-side="before"]::after,
+.note-grid-vertical .note-draggable-wrapper[data-drop-side="after"]::after {
   left: 0;
   right: 0;
-  top: -7.5px;
-  bottom: auto;
   width: auto;
   height: 3px;
   border-radius: 1.5px;
 }
 
-.flex-col > .note-draggable[data-drop-side="after"]::after {
-  left: 0;
-  right: 0;
+.note-grid-vertical .note-draggable-wrapper[data-drop-side="before"]::after {
+  top: calc(-1 * var(--drop-gap, 16px) / 2 - 0.5px);
+  bottom: auto;
+}
+.note-grid-vertical .note-draggable-wrapper[data-drop-side="after"]::after {
   top: auto;
-  bottom: -7.5px;
-  width: auto;
-  height: 3px;
-  border-radius: 1.5px;
+  bottom: calc(-1 * var(--drop-gap, 16px) / 2 - 0.5px);
 }
 
 /* Prose heading styles for markdown content */

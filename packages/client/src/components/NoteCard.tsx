@@ -528,11 +528,12 @@ export function NoteCard({
     <>
       <div
         class={clsx(
-          "relative group",
+          "relative group note-draggable-wrapper",
           noteSize.value === "square" &&
             viewMode.value === "list" &&
             "w-full max-w-sm mx-auto",
         )}
+        data-drop-side={dropSide}
       >
         {/* Selection checkbox */}
         <div
@@ -614,7 +615,6 @@ export function NoteCard({
             document.body.classList.remove("note-drag-active");
             onDragEnd?.(e);
           }}
-          data-drop-side={dropSide}
           onClick={handleClick}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleClick();
