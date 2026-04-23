@@ -246,22 +246,44 @@ export function Header() {
     { value: "created", label: t("header.sort.created") },
   ];
 
+  const viewTitle = (() => {
+    switch (activeView.value) {
+      case "active":
+        return t("app.name");
+      case "tags":
+        return t("nav.tags");
+      case "reminders":
+        return t("nav.reminders");
+      case "autoNotes":
+        return t("nav.autoNotes");
+      case "archived":
+        return t("nav.archive");
+      case "trash":
+        return t("nav.trash");
+      case "search":
+        return t("nav.search");
+      default:
+        return "";
+    }
+  })();
+
   return (
     <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-white dark:bg-gray-900">
       {/* Left: logo + title. Logo shows only on the active (main) view,
-          matching desktop. */}
-      <div class="flex items-center gap-2 shrink-0 z-10 pl-1 md:pl-2">
+          matching desktop. Title truncates on md+ so long translations don't
+          overlap the centered search bar — which is absolutely centered with
+          a max width of 36rem, so the title gets (50vw − 19rem) to grow into
+          on wide viewports, or 11rem on narrow md widths where the search
+          bar fills the padded area. */}
+      <div class="flex items-center gap-2 z-10 pl-1 md:pl-2 min-w-0 md:max-w-[max(11rem,calc(50vw-19rem))]">
         {activeView.value === "active" && (
           <img src={logoUrl} alt="" class="h-6 w-6 shrink-0 dark:invert" />
         )}
-        <h1 class="text-lg font-semibold whitespace-nowrap select-none">
-          {activeView.value === "active" && t("app.name")}
-          {activeView.value === "tags" && t("nav.tags")}
-          {activeView.value === "reminders" && t("nav.reminders")}
-          {activeView.value === "autoNotes" && t("nav.autoNotes")}
-          {activeView.value === "archived" && t("nav.archive")}
-          {activeView.value === "trash" && t("nav.trash")}
-          {activeView.value === "search" && t("nav.search")}
+        <h1
+          class="text-lg font-semibold truncate select-none"
+          title={viewTitle}
+        >
+          {viewTitle}
         </h1>
       </div>
 

@@ -277,11 +277,8 @@ export function AutoNotesView() {
 
   return (
     <div class="mt-4 mb-6 flex flex-col gap-4">
-      <div class="flex items-center justify-between gap-2 flex-wrap">
-        <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-          {t("nav.autoNotes")}
-        </span>
-        {addMode === null && (
+      {addMode === null && (
+        <div class="flex justify-end">
           <button
             type="button"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
@@ -290,8 +287,8 @@ export function AutoNotesView() {
             <Plus class="w-4 h-4" />
             {t("settings.autoNotes.add")}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {list.length === 0 && addMode === null && (
         <p class="text-sm text-gray-500 dark:text-gray-400">
