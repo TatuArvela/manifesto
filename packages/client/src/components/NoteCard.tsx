@@ -81,7 +81,7 @@ function CardColorPicker({
   const pickerColors = getColorPickerColors();
   return (
     <CardPopover anchorRef={anchorRef} onClose={onClose}>
-      <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1">
+      <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1">
         {pickerColors.map((c) => (
           <Tooltip key={c.value} label={c.label}>
             <button
@@ -121,12 +121,12 @@ function CardMenu({
         onClose();
       }}
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-48 w-max py-1">
+      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-48 w-max py-1">
         {/* Tags */}
         <div class="relative">
           <button
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => setShowTagPicker(!showTagPicker)}
           >
             <Tag class="w-4 h-4" />
@@ -149,7 +149,7 @@ function CardMenu({
         {/* Reminder */}
         <button
           type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
           onClick={() => onOpenReminder()}
         >
           <Bell class="w-4 h-4" />
@@ -159,7 +159,7 @@ function CardMenu({
         {/* Duplicate */}
         <button
           type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
           onClick={() => {
             createNote({
               title: note.title,
@@ -178,7 +178,7 @@ function CardMenu({
         {/* Share link */}
         <button
           type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
           onClick={() => {
             const url = buildShareUrl({
               title: note.title,
@@ -198,7 +198,7 @@ function CardMenu({
         {/* Export as Markdown */}
         <button
           type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
           onClick={() => {
             downloadNoteAsMarkdown(note);
             onClose();
@@ -211,7 +211,7 @@ function CardMenu({
         {/* Export as JSON */}
         <button
           type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
           onClick={() => {
             // Strip auto-note markers so the export is a static, portable note.
             const { readonly: _r, source: _s, ...plain } = note;
@@ -225,7 +225,7 @@ function CardMenu({
 
         <button
           type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
           onClick={() => {
             if (note.archived) {
               unarchiveNote(note.id);
@@ -244,11 +244,11 @@ function CardMenu({
             ? t("noteCard.menu.unarchive")
             : t("noteCard.menu.archive")}
         </button>
-        <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+        <div class="my-1 border-t border-neutral-200 dark:border-neutral-700" />
         {hasCheckedItems(note.content) && (
           <button
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => {
               deleteCheckedItems(note.id);
               onClose();
@@ -260,7 +260,7 @@ function CardMenu({
         )}
         <button
           type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
           onClick={() => {
             if (note.trashed) {
               restoreNote(note.id);
@@ -552,7 +552,7 @@ export function NoteCard({
                 "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
                 isSelected
                   ? "bg-blue-500 text-white hover:bg-blue-600"
-                  : "bg-white dark:bg-gray-200 text-gray-400 hover:bg-gray-100 dark:hover:bg-white hover:scale-110 border border-gray-300",
+                  : "bg-white dark:bg-neutral-200 text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white hover:scale-110 border border-neutral-300",
               )}
               onClick={handleSelectClick}
               aria-label={
@@ -616,7 +616,7 @@ export function NoteCard({
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
           <div
             class={clsx(
-              "absolute top-2 right-2 z-10 flex items-center gap-0.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200",
+              "absolute top-2 right-2 z-10 flex items-center gap-0.5 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 transition-colors duration-200",
               isSelectMode && "invisible",
             )}
             onClick={(e) => e.stopPropagation()}
@@ -730,7 +730,7 @@ export function NoteCard({
                   {note.tags.map((tag) => (
                     <span
                       key={tag}
-                      class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-200/60 dark:bg-gray-700/60"
+                      class="inline-block px-2 py-0.5 text-xs rounded-full bg-neutral-200/60 dark:bg-neutral-700/60"
                     >
                       #{tag}
                     </span>
@@ -756,7 +756,7 @@ export function NoteCard({
           />
 
           {isTrashView && note.trashedAt && (
-            <p class="mt-2 text-xs text-gray-400">
+            <p class="mt-2 text-xs text-neutral-400">
               {t("noteCard.trashedAt", { date: formatDate(note.trashedAt) })}
             </p>
           )}
@@ -786,7 +786,7 @@ export function NoteCard({
             }
             onClose={() => setOpenPopover(null)}
           >
-            <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-72">
+            <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 w-72">
               <ReminderPickerPanel
                 reminder={note.reminder}
                 onChange={(reminder) => updateNote(note.id, { reminder })}

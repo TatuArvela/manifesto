@@ -60,7 +60,7 @@ function SelectionToolbar() {
     visibleIds.every((id) => selectedNotes.value.has(id));
 
   return (
-    <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
+    <header class="relative z-20 shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
       {/* Left: close + count + select all */}
       <div class="flex items-center gap-2 shrink-0">
         <button
@@ -156,7 +156,7 @@ function SelectionToolbar() {
                 </Tooltip>
               }
               placement="bottom-end"
-              panelClass="py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[180px] text-gray-900 dark:text-gray-100"
+              panelClass="py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[180px] text-neutral-900 dark:text-neutral-100"
             >
               <TagPicker
                 tags={[]}
@@ -198,7 +198,7 @@ function SelectionToolbar() {
                 </Tooltip>
               }
               placement="bottom-end"
-              panelClass="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1"
+              panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
             >
               {colors.map((c) => (
                 <Tooltip key={c.value} label={c.label}>
@@ -268,7 +268,7 @@ export function Header() {
   })();
 
   return (
-    <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-white dark:bg-gray-900">
+    <header class="relative z-20 shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-white dark:bg-neutral-900">
       {/* Left: logo + title. Logo shows only on the active (main) view,
           matching desktop. Title truncates on md+ so long translations don't
           overlap the centered search bar — which is absolutely centered with
@@ -291,11 +291,11 @@ export function Header() {
           (desktop only; on mobile the search icon button is used instead) */}
       <div class="absolute inset-0 hidden md:flex items-center justify-center pointer-events-none px-48">
         <div class="relative w-full max-w-xl pointer-events-auto">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
             type="search"
             placeholder={t("header.searchPlaceholder")}
-            class="w-full pl-10 pr-10 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition text-sm"
+            class="w-full pl-10 pr-10 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-neutral-900 outline-none transition text-sm"
             value={searchQuery.value}
             onFocus={() => {
               if (activeView.value !== "search") {
@@ -314,7 +314,7 @@ export function Header() {
             <Tooltip label={t("search.close")}>
               <button
                 type="button"
-                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer"
                 onClick={() => {
                   clearSearchFilters();
                   activeView.value =
@@ -340,7 +340,7 @@ export function Header() {
         <Tooltip label={t("nav.search")}>
           <button
             type="button"
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden"
+            class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 md:hidden"
             onClick={() => {
               if (activeView.value === "search") {
                 clearSearchFilters();
@@ -371,7 +371,7 @@ export function Header() {
               <Tooltip label={t("header.sort")}>
                 <button
                   type="button"
-                  class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                  class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
                   onClick={() => setShowSortMenu(!showSortMenu)}
                   aria-label={t("header.sortNotes")}
                 >
@@ -380,7 +380,7 @@ export function Header() {
               </Tooltip>
             }
             placement="bottom-end"
-            panelClass="py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[140px]"
+            panelClass="py-1 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[140px]"
           >
             {sortOptions.map((opt) => (
               <button
@@ -389,7 +389,7 @@ export function Header() {
                 class={`block w-full text-left px-4 py-2 text-sm ${
                   sortMode.value === opt.value
                     ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                    : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 }`}
                 onClick={() => {
                   sortMode.value = opt.value;
@@ -410,7 +410,7 @@ export function Header() {
             <Tooltip label={t("header.view")}>
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 onClick={() => setShowViewMenu(!showViewMenu)}
                 aria-label={t("header.viewOptions")}
               >
@@ -419,14 +419,14 @@ export function Header() {
             </Tooltip>
           }
           placement="bottom-end"
-          panelClass="py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[160px]"
+          panelClass="py-1 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[160px]"
         >
           <button
             type="button"
             class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
               viewMode.value === "grid"
                 ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
             onClick={() => {
               viewMode.value = "grid";
@@ -440,7 +440,7 @@ export function Header() {
             class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
               viewMode.value === "list"
                 ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
             onClick={() => {
               viewMode.value = "list";
@@ -449,13 +449,13 @@ export function Header() {
             <StretchHorizontal class="w-4 h-4" />
             {t("header.view.list")}
           </button>
-          <div class="border-t border-gray-200 dark:border-gray-700 my-1" />
+          <div class="border-t border-neutral-200 dark:border-neutral-700 my-1" />
           <button
             type="button"
             class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
               noteSize.value === "square"
                 ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
             onClick={() => {
               noteSize.value = "square";
@@ -469,7 +469,7 @@ export function Header() {
             class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
               noteSize.value === "fit"
                 ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
             onClick={() => {
               noteSize.value = "fit";
@@ -483,7 +483,7 @@ export function Header() {
         <Tooltip label={t("header.settings")}>
           <button
             type="button"
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
             onClick={() => {
               showSettings.value = true;
             }}

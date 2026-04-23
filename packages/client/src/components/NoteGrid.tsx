@@ -215,7 +215,7 @@ export function NoteGrid() {
   if (pinned.length === 0 && unpinned.length === 0) {
     const isSearch = activeView.value === "search";
     return (
-      <div class="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
+      <div class="flex flex-col items-center justify-center py-20 text-neutral-400 dark:text-neutral-600">
         {isSearch ? (
           <Search class="w-12 h-12 mb-4" />
         ) : (
@@ -236,7 +236,7 @@ export function NoteGrid() {
     : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-x-4 items-start";
   const gridStyle = isList ? undefined : { gridAutoRows: "1px" };
   const headingClass =
-    "text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-2 px-1";
+    "text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 mb-2 px-1";
 
   const getDropSide = (idx: number, section: "pinned" | "unpinned") => {
     if (dropSection !== section || dropGap === null) return undefined;

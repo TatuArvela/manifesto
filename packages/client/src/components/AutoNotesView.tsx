@@ -281,7 +281,7 @@ export function AutoNotesView() {
         <div class="flex justify-end">
           <button
             type="button"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
             onClick={() => setAddMode("inline")}
           >
             <Plus class="w-4 h-4" />
@@ -291,7 +291,7 @@ export function AutoNotesView() {
       )}
 
       {list.length === 0 && addMode === null && (
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">
           {t("settings.autoNotes.empty")}
         </p>
       )}
@@ -302,18 +302,18 @@ export function AutoNotesView() {
         );
         return (
           <section key={plugin.id} class="flex flex-col gap-3">
-            <div class="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col gap-1">
+            <div class="px-3 py-2 bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-700 rounded-lg flex flex-col gap-1">
               <div class="flex items-center gap-2">
                 <span
                   class={`flex-1 min-w-0 text-sm font-medium truncate ${
                     plugin.name
                       ? ""
-                      : "italic text-gray-400 dark:text-gray-500 font-normal"
+                      : "italic text-neutral-400 dark:text-neutral-500 font-normal"
                   }`}
                 >
                   {plugin.name || t("settings.autoNotes.untitled")}
                 </span>
-                <span class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <span class="text-[10px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                   {plugin.origin.kind === "url"
                     ? t("settings.autoNotes.origin.url")
                     : t("settings.autoNotes.origin.inline")}
@@ -329,7 +329,7 @@ export function AutoNotesView() {
                 {plugin.origin.kind === "url" && (
                   <button
                     type="button"
-                    class="p-1 rounded text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+                    class="p-1 rounded text-neutral-600 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
                     onClick={() => handleRefetch(plugin.id)}
                     aria-label={t("settings.autoNotes.refetch")}
                     title={t("settings.autoNotes.refetch")}
@@ -339,7 +339,7 @@ export function AutoNotesView() {
                 )}
                 <button
                   type="button"
-                  class="p-1 rounded text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+                  class="p-1 rounded text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
                   onClick={() => removePlugin(plugin.id)}
                   aria-label={t("settings.autoNotes.remove")}
                   title={t("settings.autoNotes.remove")}
@@ -350,7 +350,7 @@ export function AutoNotesView() {
 
               {plugin.origin.kind === "url" && (
                 <p
-                  class="text-[11px] text-gray-500 dark:text-gray-400 truncate"
+                  class="text-[11px] text-neutral-500 dark:text-neutral-400 truncate"
                   title={plugin.origin.url}
                 >
                   {plugin.origin.url}
@@ -395,7 +395,7 @@ export function AutoNotesView() {
       })}
 
       {addMode !== null && (
-        <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 space-y-2">
+        <div class="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600 space-y-2">
           <div class="flex items-center justify-between">
             <div class="flex gap-1 text-xs">
               <button
@@ -403,7 +403,7 @@ export function AutoNotesView() {
                 class={`px-2 py-1 rounded cursor-pointer ${
                   addMode === "inline"
                     ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
-                    : "hover:bg-gray-200 dark:hover:bg-gray-600"
+                    : "hover:bg-neutral-200 dark:hover:bg-neutral-600"
                 }`}
                 onClick={() => setAddMode("inline")}
               >
@@ -414,7 +414,7 @@ export function AutoNotesView() {
                 class={`px-2 py-1 rounded cursor-pointer ${
                   addMode === "url"
                     ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
-                    : "hover:bg-gray-200 dark:hover:bg-gray-600"
+                    : "hover:bg-neutral-200 dark:hover:bg-neutral-600"
                 }`}
                 onClick={() => setAddMode("url")}
               >
@@ -423,7 +423,7 @@ export function AutoNotesView() {
             </div>
             <button
               type="button"
-              class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+              class="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
               onClick={resetForm}
               aria-label={t("settings.data.cancel")}
             >
@@ -434,7 +434,7 @@ export function AutoNotesView() {
           {addMode === "inline" ? (
             <>
               <textarea
-                class="w-full px-2 py-1.5 text-xs font-mono bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded min-h-[8rem]"
+                class="w-full px-2 py-1.5 text-xs font-mono bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded min-h-[8rem]"
                 placeholder={t("settings.autoNotes.sourcePlaceholder")}
                 value={pasteSource}
                 onInput={(e) =>
@@ -449,7 +449,7 @@ export function AutoNotesView() {
               <div class="flex justify-end gap-2">
                 <button
                   type="button"
-                  class="px-3 py-1 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+                  class="px-3 py-1 text-sm rounded hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
                   onClick={resetForm}
                 >
                   {t("settings.data.cancel")}
@@ -468,7 +468,7 @@ export function AutoNotesView() {
             <>
               <input
                 type="url"
-                class="w-full px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+                class="w-full px-2 py-1.5 text-sm bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded"
                 placeholder="https://..."
                 value={urlValue}
                 onInput={(e) =>
@@ -481,7 +481,7 @@ export function AutoNotesView() {
               <div class="flex justify-end gap-2">
                 <button
                   type="button"
-                  class="px-3 py-1 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+                  class="px-3 py-1 text-sm rounded hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
                   onClick={resetForm}
                 >
                   {t("settings.data.cancel")}

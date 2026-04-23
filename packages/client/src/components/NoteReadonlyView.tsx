@@ -165,7 +165,7 @@ export function NoteReadonlyView({
           </h2>
         )}
         <div
-          class="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-200"
+          class="prose prose-sm dark:prose-invert max-w-none text-neutral-700 dark:text-neutral-200"
           style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
           dangerouslySetInnerHTML={{ __html: html }}
         />
@@ -174,7 +174,7 @@ export function NoteReadonlyView({
             {note.tags.map((tag) => (
               <span
                 key={tag}
-                class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-gray-200/60 dark:bg-gray-700/60"
+                class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-neutral-200/60 dark:bg-neutral-700/60"
               >
                 #{tag}
                 <button
@@ -206,7 +206,7 @@ export function NoteReadonlyView({
                     anchorRef={reminderChipRef}
                     onClose={() => setShowReminderChipPicker(false)}
                   >
-                    <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-72">
+                    <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 w-72">
                       <ReminderPickerPanel
                         reminder={note.reminder}
                         onChange={(reminder) =>
@@ -277,7 +277,7 @@ export function NoteReadonlyView({
             </Tooltip>
           }
           placement="top-start"
-          panelClass="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex gap-1"
+          panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
         >
           {pickerColors.map((c) => (
             <Tooltip key={c.value} label={c.label}>
@@ -325,13 +325,13 @@ export function NoteReadonlyView({
             </Tooltip>
           }
           placement="top-start"
-          panelClass="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-48 w-max py-1"
+          panelClass="bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-48 w-max py-1"
         >
           {/* Tags */}
           <div class="relative">
             <button
               type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
               onClick={() => setShowTagPicker(!showTagPicker)}
             >
               <Tag class="w-4 h-4" />
@@ -353,7 +353,7 @@ export function NoteReadonlyView({
           {/* Share link */}
           <button
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => {
               const url = buildShareUrl({
                 title: note.title,
@@ -374,7 +374,7 @@ export function NoteReadonlyView({
           {/* Duplicate — strips auto-note markers so the copy is a plain note */}
           <button
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => {
               createNote({
                 title: note.title,
@@ -392,7 +392,7 @@ export function NoteReadonlyView({
 
           <button
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => {
               downloadNoteAsMarkdown(note);
               closeAllMenus();
@@ -404,7 +404,7 @@ export function NoteReadonlyView({
 
           <button
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => {
               const { readonly: _r, source: _s, ...plain } = note;
               downloadNoteAsJson(plain as Note);
@@ -417,7 +417,7 @@ export function NoteReadonlyView({
 
           <button
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => {
               if (note.archived) {
                 unarchiveNote(note.id);
@@ -437,11 +437,11 @@ export function NoteReadonlyView({
               : t("editor.menu.archive")}
           </button>
 
-          <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+          <div class="my-1 border-t border-neutral-200 dark:border-neutral-700" />
 
           <button
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => {
               if (note.trashed) {
                 restoreNote(note.id);

@@ -17,7 +17,7 @@ export function LinkPreviewHero({ preview }: { preview: LinkPreview }) {
           class="absolute inset-0 w-full h-full object-cover"
         />
       ) : (
-        <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800">
+        <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-600 to-neutral-800">
           <LinkIcon class="w-10 h-10 opacity-70" />
         </div>
       )}

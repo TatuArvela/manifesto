@@ -29,7 +29,7 @@ export function TagPicker({
     <div class="px-3 py-2">
       <input
         type="text"
-        class="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded outline-none mb-1"
+        class="w-full px-2 py-1 text-sm bg-neutral-100 dark:bg-neutral-700 rounded outline-none mb-1"
         placeholder={t("tagPicker.placeholder")}
         value={newTag}
         onInput={(e) => setNewTag((e.target as HTMLInputElement).value)}
@@ -45,7 +45,7 @@ export function TagPicker({
           <button
             key={tag}
             type="button"
-            class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onClick={() => handleAdd(tag)}
           >
             #{tag}

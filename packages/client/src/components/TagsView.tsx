@@ -31,7 +31,7 @@ function Chip({
       class={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors ${
         selected
           ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
-          : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+          : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
       }`}
       onClick={onClick}
       aria-pressed={selected}
@@ -57,7 +57,7 @@ export function TagsView() {
   return (
     <div class="mt-4 mb-6 flex flex-col gap-3">
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+        <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
           {t("nav.tags")}
         </span>
         <Chip
@@ -86,7 +86,7 @@ export function TagsView() {
           <Tooltip label={t("tags.delete")}>
             <button
               type="button"
-              class="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
+              class="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-neutral-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
               onClick={() => setShowConfirm(true)}
               aria-label={t("tags.delete")}
             >
@@ -97,7 +97,7 @@ export function TagsView() {
 
         {selected && showConfirm && (
           <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-500 dark:text-gray-400">
+            <span class="text-sm text-neutral-500 dark:text-neutral-400">
               {t("tags.removeConfirm", { tag: selected })}
             </span>
             <button
@@ -109,7 +109,7 @@ export function TagsView() {
             </button>
             <button
               type="button"
-              class="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 rounded font-medium hover:bg-gray-300 dark:hover:bg-gray-500 cursor-pointer"
+              class="px-2 py-1 text-xs bg-neutral-200 dark:bg-neutral-600 rounded font-medium hover:bg-neutral-300 dark:hover:bg-neutral-500 cursor-pointer"
               onClick={() => setShowConfirm(false)}
             >
               {t("tags.cancel")}
@@ -119,7 +119,7 @@ export function TagsView() {
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+        <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
           {t("search.filterByLocation")}
         </span>
         <Chip
@@ -163,7 +163,7 @@ export function TagsView() {
       </div>
 
       {tags.length === 0 && (
-        <p class="text-sm text-gray-400 dark:text-gray-500">
+        <p class="text-sm text-neutral-400 dark:text-neutral-500">
           {t("tags.empty")}
         </p>
       )}

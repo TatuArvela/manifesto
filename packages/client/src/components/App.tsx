@@ -193,10 +193,10 @@ export function App() {
       )}
       {dragActive && (
         <div class="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center bg-blue-500/10 backdrop-blur-[2px]">
-          <div class="m-6 px-8 py-6 rounded-2xl border-2 border-dashed border-blue-500 bg-white/90 dark:bg-gray-800/90 shadow-xl flex flex-col items-center gap-2 text-center">
+          <div class="m-6 px-8 py-6 rounded-2xl border-2 border-dashed border-blue-500 bg-white/90 dark:bg-neutral-800/90 shadow-xl flex flex-col items-center gap-2 text-center">
             <Upload class="w-8 h-8 text-blue-600 dark:text-blue-400" />
             <p class="text-lg font-semibold">{t("dropZone.title")}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-300">
+            <p class="text-sm text-neutral-600 dark:text-neutral-300">
               {t("dropZone.hint")}
             </p>
           </div>

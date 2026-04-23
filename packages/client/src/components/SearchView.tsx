@@ -77,7 +77,7 @@ function TypeChip({
       class={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors ${
         selected
           ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
-          : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+          : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
       }`}
       onClick={() => toggleSearchType(type)}
       aria-pressed={selected}
@@ -106,7 +106,7 @@ function LocationChip({
       class={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors ${
         selected
           ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
-          : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+          : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
       }`}
       onClick={() => toggleSearchLocation(location)}
       aria-pressed={selected}
@@ -134,7 +134,7 @@ function ColorChip({
       type="button"
       class={`relative w-7 h-7 rounded-full cursor-pointer transition ${swatch} ${
         selected
-          ? "ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-blue-500"
+          ? "ring-2 ring-offset-2 ring-offset-white dark:ring-offset-neutral-900 ring-blue-500"
           : "hover:scale-110"
       }`}
       onClick={() => toggleSearchColor(color)}
@@ -167,12 +167,12 @@ export function SearchView() {
     <div class="mt-4 mb-6 flex flex-col gap-3">
       {/* Mobile-only search input (desktop uses the header's input). */}
       <div class="relative md:hidden">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
         <input
           ref={inputRef}
           type="search"
           placeholder={t("header.searchPlaceholder")}
-          class="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition text-sm"
+          class="w-full pl-10 pr-3 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-neutral-900 outline-none transition text-sm"
           value={searchQuery.value}
           onInput={(e) => {
             searchQuery.value = (e.target as HTMLInputElement).value;
@@ -183,7 +183,7 @@ export function SearchView() {
       {/* Mobile-only toggle for the filter section. Desktop always shows filters. */}
       <button
         type="button"
-        class="md:hidden flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+        class="md:hidden flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer"
         onClick={() => setAdvancedOpen(!advancedOpen)}
         aria-expanded={advancedOpen}
       >
@@ -197,7 +197,7 @@ export function SearchView() {
         class={`flex flex-col gap-3 ${advancedOpen ? "" : "hidden md:flex"}`}
       >
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+          <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
             {t("search.filterByType")}
           </span>
           {TYPE_META.map(({ key, icon, labelKey }) => (
@@ -206,7 +206,7 @@ export function SearchView() {
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+          <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
             {t("search.filterByColor")}
           </span>
           {colors.map((c) => (
@@ -220,7 +220,7 @@ export function SearchView() {
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="hidden md:inline text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">
+          <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
             {t("search.filterByLocation")}
           </span>
           {LOCATION_META.map(({ key, icon, labelKey }) => (
@@ -235,11 +235,11 @@ export function SearchView() {
       </div>
 
       {filtersActive && (
-        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+        <div class="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
           <span>{plural("search.resultCount", resultCount)}</span>
           <button
             type="button"
-            class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+            class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
             onClick={() => clearSearchFilters()}
           >
             <X class="w-3 h-3" />

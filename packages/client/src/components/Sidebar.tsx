@@ -48,7 +48,7 @@ function DesktopNavItem({
         class={`flex items-center justify-center w-10 h-10 rounded-lg mx-auto transition-colors cursor-pointer ${
           isActive
             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-            : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+            : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
         }`}
         onClick={() => activateView(view)}
         aria-label={label}
@@ -76,7 +76,7 @@ function MobileNavItem({
       class={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer shrink-0 ${
         isActive
           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-          : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
+          : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
       }`}
       onClick={() => activateView(view)}
       aria-label={label}
@@ -124,7 +124,7 @@ export function Sidebar() {
 export function MobileNav() {
   return (
     <nav
-      class="md:hidden flex items-center justify-around gap-1 px-2 h-12 shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm z-[5]"
+      class="md:hidden flex items-center justify-around gap-1 px-2 h-12 shrink-0 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-sm z-[5]"
       aria-label={t("nav.primary")}
     >
       <MobileNavItem label={t("nav.notes")} icon={StickyNote} view="active" />

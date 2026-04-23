@@ -24,14 +24,14 @@ export function ToggleSwitch({
 
   return (
     <div
-      class="relative inline-flex items-center rounded-full bg-gray-200 dark:bg-gray-700"
+      class="relative inline-flex items-center rounded-full bg-neutral-200 dark:bg-neutral-700"
       style={{ width: `${totalW}px`, height: "32px" }}
       role="switch"
       aria-checked={checked}
       tabIndex={0}
     >
       <span
-        class="absolute top-0.5 rounded-full bg-white dark:bg-gray-300 shadow transition-all duration-200"
+        class="absolute top-0.5 rounded-full bg-white dark:bg-neutral-300 shadow transition-all duration-200"
         style={{
           width: `${slotW - gap}px`,
           height: "28px",
@@ -43,8 +43,8 @@ export function ToggleSwitch({
           type="button"
           class={`relative z-10 flex items-center justify-center cursor-pointer transition-colors duration-200 ${
             !checked
-              ? "text-gray-800 dark:text-gray-900"
-              : "text-gray-400 dark:text-gray-500"
+              ? "text-neutral-800 dark:text-neutral-900"
+              : "text-neutral-400 dark:text-neutral-500"
           }`}
           style={{ width: `${slotW}px`, height: "32px" }}
           onClick={() => onChange(false)}
@@ -58,8 +58,8 @@ export function ToggleSwitch({
           type="button"
           class={`relative z-10 flex items-center justify-center cursor-pointer transition-colors duration-200 ${
             checked
-              ? "text-gray-800 dark:text-gray-900"
-              : "text-gray-400 dark:text-gray-500"
+              ? "text-neutral-800 dark:text-neutral-900"
+              : "text-neutral-400 dark:text-neutral-500"
           }`}
           style={{ width: `${slotW}px`, height: "32px" }}
           onClick={() => onChange(true)}
@@ -92,11 +92,11 @@ export function ThreeWayToggle({
 
   return (
     <div
-      class={`relative inline-flex items-center rounded-full ${trackClass ?? "bg-gray-100 dark:bg-gray-700"}`}
+      class={`relative inline-flex items-center rounded-full ${trackClass ?? "bg-neutral-100 dark:bg-neutral-700"}`}
       style={{ width: `${totalW}px`, height: "32px" }}
     >
       <span
-        class="absolute top-0.5 rounded-full bg-white dark:bg-gray-300 shadow transition-all duration-200"
+        class="absolute top-0.5 rounded-full bg-white dark:bg-neutral-300 shadow transition-all duration-200"
         style={{
           width: `${slotW - gap}px`,
           height: "28px",
@@ -109,7 +109,7 @@ export function ThreeWayToggle({
             type="button"
             class={`relative z-10 flex items-center justify-center cursor-pointer transition-all duration-200 ${
               value === i
-                ? "text-gray-800 dark:text-gray-900"
+                ? "text-neutral-800 dark:text-neutral-900"
                 : "text-black dark:text-white opacity-40"
             }`}
             style={{ width: `${slotW}px`, height: "32px" }}

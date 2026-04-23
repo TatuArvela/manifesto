@@ -175,7 +175,7 @@ export function ReminderPickerPanel({
         </div>
         <button type="button" class={rowClass} onClick={saveTomorrow}>
           <span>{t("reminder.tomorrow")}</span>
-          <span class="text-gray-500 dark:text-gray-400 text-xs">
+          <span class="text-neutral-500 dark:text-neutral-400 text-xs">
             {t("reminder.tomorrowAt", {
               time: formatTime(tomorrow.hour, tomorrow.minute),
             })}
@@ -183,7 +183,7 @@ export function ReminderPickerPanel({
         </button>
         <button type="button" class={rowClass} onClick={saveNextWeek}>
           <span>{t("reminder.nextWeek")}</span>
-          <span class="text-gray-500 dark:text-gray-400 text-xs">
+          <span class="text-neutral-500 dark:text-neutral-400 text-xs">
             {t("reminder.nextWeekAt", {
               time: formatTime(nextWeek.hour, nextWeek.minute),
             })}
@@ -199,7 +199,7 @@ export function ReminderPickerPanel({
         </button>
         {reminder && (
           <>
-            <div class="my-1 border-t border-gray-200 dark:border-gray-700" />
+            <div class="my-1 border-t border-neutral-200 dark:border-neutral-700" />
             <button
               type="button"
               class={`${rowClass} text-red-600 dark:text-red-400`}
@@ -290,7 +290,7 @@ export function ReminderPickerPanel({
               onClick={() => setRepeatOpen(false)}
               onKeyDown={() => {}}
             />
-            <div class="absolute left-full top-0 ml-2 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-40">
+            <div class="absolute left-full top-0 ml-2 py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-20 min-w-40">
               {RECURRENCE_KEYS.map((r) => (
                 <button
                   key={r.value}
@@ -331,7 +331,7 @@ export function ReminderPickerPanel({
         )}
         <button
           type="button"
-          class="px-4 py-2 text-sm font-medium rounded cursor-pointer bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600"
+          class="px-4 py-2 text-sm font-medium rounded cursor-pointer bg-neutral-100 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-600"
           onClick={saveCustom}
         >
           {t("reminder.save")}
@@ -350,7 +350,7 @@ export function ReminderPicker({
   const [open, setOpen] = useState(false);
 
   const panelClass =
-    "p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-72";
+    "p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 w-72";
 
   const label = reminder ? t("reminder.edit") : t("reminder.set");
 

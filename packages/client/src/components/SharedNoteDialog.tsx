@@ -66,7 +66,7 @@ export function SharedNoteDialog({
           >
             {/* Header */}
             <div class="px-5 pt-5 pb-3">
-              <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-3">
                 Someone shared a note with you
               </p>
 
@@ -85,7 +85,7 @@ export function SharedNoteDialog({
 
                 {contentHtml && (
                   <div
-                    class="prose prose-sm dark:prose-invert max-w-none text-sm text-gray-600 dark:text-gray-300"
+                    class="prose prose-sm dark:prose-invert max-w-none text-sm text-neutral-600 dark:text-neutral-300"
                     style={{
                       fontFamily: noteFontFamilies[payload.font] || undefined,
                     }}
@@ -98,7 +98,7 @@ export function SharedNoteDialog({
                     {payload.tags.map((tag) => (
                       <span
                         key={tag}
-                        class="inline-block px-2 py-0.5 text-xs rounded-full bg-gray-200/60 dark:bg-gray-700/60"
+                        class="inline-block px-2 py-0.5 text-xs rounded-full bg-neutral-200/60 dark:bg-neutral-700/60"
                       >
                         #{tag}
                       </span>
@@ -109,7 +109,7 @@ export function SharedNoteDialog({
             </div>
 
             {/* Actions */}
-            <div class="px-5 py-3 flex justify-end gap-2 border-t border-gray-200/50 dark:border-gray-700/50">
+            <div class="px-5 py-3 flex justify-end gap-2 border-t border-neutral-200/50 dark:border-neutral-700/50">
               <button
                 type="button"
                 class="px-4 py-2 text-sm rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"

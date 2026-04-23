@@ -31,11 +31,11 @@ export function ReminderChip({
   const label = formatLocalDateTime(reminder.time);
 
   const cls = [
-    "inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs rounded-full border border-gray-400/50",
+    "inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs rounded-full border border-neutral-400/50",
     onClick ? "cursor-pointer hover:bg-black/5 dark:hover:bg-white/10" : "",
     isPast
-      ? "text-gray-500/70 dark:text-gray-400/60"
-      : "text-gray-700 dark:text-gray-300",
+      ? "text-neutral-500/70 dark:text-neutral-400/60"
+      : "text-neutral-700 dark:text-neutral-300",
   ].join(" ");
 
   const content = (

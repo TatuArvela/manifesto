@@ -325,13 +325,13 @@ export function FormattingToolbar({
             </button>
           </Tooltip>
         }
-        panelClass="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1"
+        panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
       >
         {[1, 2, 3, 4].map((level) => (
           <button
             key={level}
             type="button"
-            class="flex items-center gap-2 w-full px-3 py-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="flex items-center gap-2 w-full px-3 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             onMouseDown={preventFocus}
             onClick={() => {
               onFormat("heading", String(level));
@@ -339,7 +339,7 @@ export function FormattingToolbar({
             }}
           >
             <span class="font-semibold">H{level}</span>
-            <span class="text-gray-400 text-xs">
+            <span class="text-neutral-400 text-xs">
               {t("format.headingLevel", { level })}
             </span>
           </button>
@@ -368,7 +368,7 @@ export function FormattingToolbar({
             </button>
           </Tooltip>
         }
-        panelClass="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1.5"
+        panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5"
       >
         <form
           class="flex items-center gap-1"
@@ -383,11 +383,11 @@ export function FormattingToolbar({
             value={linkUrl}
             onInput={(e) => setLinkUrl((e.target as HTMLInputElement).value)}
             placeholder={t("format.linkPlaceholder")}
-            class="px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 w-56"
+            class="px-2 py-1 text-sm bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded focus:outline-none focus:border-blue-500 w-56"
           />
           <button
             type="submit"
-            class="px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            class="px-2 py-1 text-sm rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
           >
             {t("format.linkAdd")}
           </button>
@@ -431,7 +431,7 @@ export function FormattingToolbar({
             </button>
           </Tooltip>
         }
-        panelClass="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1"
+        panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
       >
         {(
           [
@@ -452,7 +452,7 @@ export function FormattingToolbar({
           <button
             key={type}
             type="button"
-            class={`flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ${isActive(type) ? "bg-black/10 dark:bg-white/15" : ""}`}
+            class={`flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer ${isActive(type) ? "bg-black/10 dark:bg-white/15" : ""}`}
             onMouseDown={preventFocus}
             onClick={() => {
               onFormat(type);

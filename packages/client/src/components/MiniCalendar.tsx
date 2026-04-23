@@ -118,7 +118,7 @@ export function MiniCalendar({ value, onChange }: MiniCalendarProps) {
           <ChevronRight class="w-4 h-4" />
         </button>
       </div>
-      <div class="grid grid-cols-7 text-center text-xs text-gray-500 dark:text-gray-400 mb-1">
+      <div class="grid grid-cols-7 text-center text-xs text-neutral-500 dark:text-neutral-400 mb-1">
         {weekdayLabels.map((w) => (
           <div key={w} class="py-1">
             {w}
@@ -133,8 +133,8 @@ export function MiniCalendar({ value, onChange }: MiniCalendarProps) {
           const cls = [
             "h-8 rounded text-center cursor-pointer transition-colors",
             c.current
-              ? "text-gray-900 dark:text-gray-100"
-              : "text-gray-400 dark:text-gray-500",
+              ? "text-neutral-900 dark:text-neutral-100"
+              : "text-neutral-400 dark:text-neutral-500",
             isSelected
               ? "bg-blue-600 text-white hover:bg-blue-600"
               : "hover:bg-black/5 dark:hover:bg-white/10",

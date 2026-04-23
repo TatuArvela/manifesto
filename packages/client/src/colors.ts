@@ -10,11 +10,11 @@ export interface ColorClasses {
 
 export const noteColorMap: Record<NoteColor, ColorClasses> = {
   [NoteColor.Default]: {
-    bg: "bg-white dark:bg-gray-800",
-    hover: "hover:bg-gray-50 dark:hover:bg-gray-750",
-    border: "border-gray-200 dark:border-gray-700",
-    ring: "ring-gray-300 dark:ring-gray-600",
-    toggleTrack: "bg-gray-100 dark:bg-gray-700",
+    bg: "bg-white dark:bg-neutral-800",
+    hover: "hover:bg-neutral-50 dark:hover:bg-neutral-750",
+    border: "border-neutral-200 dark:border-neutral-700",
+    ring: "ring-neutral-300 dark:ring-neutral-600",
+    toggleTrack: "bg-neutral-100 dark:bg-neutral-700",
   },
   [NoteColor.Red]: {
     bg: "bg-red-100 dark:bg-red-900",
@@ -80,11 +80,11 @@ export const noteColorMap: Record<NoteColor, ColorClasses> = {
     toggleTrack: "bg-amber-200 dark:bg-amber-800",
   },
   [NoteColor.Gray]: {
-    bg: "bg-gray-200 dark:bg-gray-700",
-    hover: "hover:bg-gray-300 dark:hover:bg-gray-600",
+    bg: "bg-neutral-200 dark:bg-neutral-700",
+    hover: "hover:bg-neutral-300 dark:hover:bg-neutral-600",
     border: "border-transparent",
-    ring: "ring-gray-400 dark:ring-gray-500",
-    toggleTrack: "bg-gray-300 dark:bg-gray-600",
+    ring: "ring-neutral-400 dark:ring-neutral-500",
+    toggleTrack: "bg-neutral-300 dark:bg-neutral-600",
   },
 };
 
@@ -97,48 +97,48 @@ export const autoNoteColorMap: Record<
   Pick<ColorClasses, "bg" | "border">
 > = {
   [NoteColor.Default]: {
-    bg: "bg-white dark:bg-gray-900",
-    border: "border-4 border-gray-200 dark:border-gray-700",
+    bg: "bg-white dark:bg-neutral-900",
+    border: "border-4 border-neutral-200 dark:border-neutral-700",
   },
   [NoteColor.Red]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-red-200 dark:border-red-800",
   },
   [NoteColor.Orange]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-orange-200 dark:border-orange-800",
   },
   [NoteColor.Yellow]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-yellow-200 dark:border-yellow-800",
   },
   [NoteColor.Green]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-green-200 dark:border-green-800",
   },
   [NoteColor.Teal]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-teal-200 dark:border-teal-800",
   },
   [NoteColor.Blue]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-blue-200 dark:border-blue-800",
   },
   [NoteColor.Purple]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-purple-200 dark:border-purple-800",
   },
   [NoteColor.Pink]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-pink-200 dark:border-pink-800",
   },
   [NoteColor.Brown]: {
-    bg: "bg-white dark:bg-gray-900",
+    bg: "bg-white dark:bg-neutral-900",
     border: "border-4 border-amber-200 dark:border-amber-800",
   },
   [NoteColor.Gray]: {
-    bg: "bg-white dark:bg-gray-900",
-    border: "border-4 border-gray-300 dark:border-gray-600",
+    bg: "bg-white dark:bg-neutral-900",
+    border: "border-4 border-neutral-300 dark:border-neutral-600",
   },
 };
 
@@ -152,7 +152,7 @@ export const colorPickerSwatches: { value: NoteColor; swatch: string }[] = [
   {
     value: NoteColor.Default,
     swatch:
-      "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600",
+      "bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600",
   },
   { value: NoteColor.Red, swatch: "bg-red-400 dark:bg-red-600" },
   { value: NoteColor.Orange, swatch: "bg-orange-400 dark:bg-orange-600" },
@@ -163,5 +163,5 @@ export const colorPickerSwatches: { value: NoteColor; swatch: string }[] = [
   { value: NoteColor.Purple, swatch: "bg-purple-400 dark:bg-purple-600" },
   { value: NoteColor.Pink, swatch: "bg-pink-400 dark:bg-pink-600" },
   { value: NoteColor.Brown, swatch: "bg-amber-600 dark:bg-amber-700" },
-  { value: NoteColor.Gray, swatch: "bg-gray-400 dark:bg-gray-500" },
+  { value: NoteColor.Gray, swatch: "bg-neutral-400 dark:bg-neutral-500" },
 ];

@@ -196,14 +196,14 @@ export function NoteInput() {
             <div
               class={`note-stack-next border ${noteColorMap[stackColor].bg} ${noteColorMap[stackColor].border}`}
             >
-              <div class="px-5 pt-12 pb-4 text-sm text-gray-400 dark:text-gray-300">
+              <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
                 {nextCta}
               </div>
             </div>
             <div
               class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}
             >
-              <div class="px-5 pt-12 pb-4 text-sm text-gray-400 dark:text-gray-300">
+              <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
                 {topCta}
               </div>
             </div>

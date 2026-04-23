@@ -157,14 +157,14 @@ export function SettingsDialog() {
 
       {/* Side panel */}
       <div
-        class={`fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white dark:bg-gray-800 shadow-2xl flex flex-col ${closing ? "animate-slide-out-right" : "animate-slide-in-right"}`}
+        class={`fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white dark:bg-neutral-800 shadow-2xl flex flex-col ${closing ? "animate-slide-out-right" : "animate-slide-in-right"}`}
         onAnimationEnd={handleAnimationEnd}
       >
-        <div class="flex items-center justify-between px-6 h-14 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <div class="flex items-center justify-between px-6 h-14 border-b border-neutral-200 dark:border-neutral-700 shrink-0">
           <h2 class="text-lg font-semibold">{t("settings.title")}</h2>
           <button
             type="button"
-            class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
             onClick={handleClose}
             aria-label={t("settings.close")}
           >
@@ -175,7 +175,7 @@ export function SettingsDialog() {
         <div class="flex-1 overflow-y-auto px-6 py-4">
           {/* Theme */}
           <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-gray-600 dark:text-gray-400">
+            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.theme")}
             </h3>
             <ThreeWayToggle
@@ -202,13 +202,13 @@ export function SettingsDialog() {
 
           {/* Language */}
           <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-gray-600 dark:text-gray-400">
+            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.language")}
             </h3>
             <div class="relative">
               <button
                 type="button"
-                class="px-3 py-1.5 text-sm rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                class="px-3 py-1.5 text-sm rounded-lg cursor-pointer bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
                 onClick={() => setShowLanguageMenu(!showLanguageMenu)}
               >
                 {currentLanguageLabel}
@@ -222,7 +222,7 @@ export function SettingsDialog() {
                     onClick={() => setShowLanguageMenu(false)}
                     onKeyDown={() => {}}
                   />
-                  <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[160px]">
+                  <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-20 min-w-[160px]">
                     {languageOptions.map((opt) => (
                       <button
                         key={opt.value}
@@ -230,7 +230,7 @@ export function SettingsDialog() {
                         class={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${
                           opt.value !== "system" && locale.value === opt.value
                             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                            : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
                         }`}
                         onClick={() => {
                           locale.value =
@@ -251,7 +251,7 @@ export function SettingsDialog() {
 
           {/* Default note color */}
           <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-gray-600 dark:text-gray-400">
+            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.defaultColor")}
             </h3>
             <ToggleSwitch
@@ -268,13 +268,13 @@ export function SettingsDialog() {
 
           {/* Default note font */}
           <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-gray-600 dark:text-gray-400">
+            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.defaultFont")}
             </h3>
             <div class="relative">
               <button
                 type="button"
-                class="px-3 py-1.5 text-sm rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                class="px-3 py-1.5 text-sm rounded-lg cursor-pointer bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
                 style={{
                   fontFamily:
                     defaultNoteFont.value !== "random"
@@ -295,7 +295,7 @@ export function SettingsDialog() {
                     onClick={() => setShowFontMenu(false)}
                     onKeyDown={() => {}}
                   />
-                  <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[160px]">
+                  <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-20 min-w-[160px]">
                     {fontOptions.map((opt) => (
                       <button
                         key={opt.value}
@@ -303,7 +303,7 @@ export function SettingsDialog() {
                         class={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${
                           defaultNoteFont.value === opt.value
                             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                            : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
                         }`}
                         style={{
                           fontFamily:
@@ -327,7 +327,7 @@ export function SettingsDialog() {
 
           {/* Inline calculations */}
           <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-gray-600 dark:text-gray-400">
+            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.inlineCalculations")}
             </h3>
             <ToggleSwitch
@@ -345,7 +345,7 @@ export function SettingsDialog() {
           {/* Decimal separator (only relevant while inline calculations are on) */}
           {inlineCalculations.value && (
             <div class="pb-4 flex items-center justify-between">
-              <h3 class="text-sm text-gray-600 dark:text-gray-400">
+              <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
                 {t("settings.decimalSeparator")}
               </h3>
               <ThreeWayToggle
@@ -373,13 +373,13 @@ export function SettingsDialog() {
 
           {/* Import / Export */}
           <div class="pb-4">
-            <h3 class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <h3 class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
               {t("settings.data")}
             </h3>
             <div class="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 inline-flex items-center justify-center gap-1.5"
+                class="px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5"
                 onClick={handleImport}
               >
                 <Download class="w-4 h-4" />
@@ -387,7 +387,7 @@ export function SettingsDialog() {
               </button>
               <button
                 type="button"
-                class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 inline-flex items-center justify-center gap-1.5"
+                class="px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5"
                 onClick={handleExport}
               >
                 <Upload class="w-4 h-4" />
@@ -402,8 +402,8 @@ export function SettingsDialog() {
                 onChange={handleFileChange}
               />
               {showDeleteConfirm ? (
-                <div class="col-span-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
-                  <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                <div class="col-span-2 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600">
+                  <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-3">
                     {t("settings.data.deleteConfirm")}
                   </p>
                   <div class="flex gap-2">
@@ -416,7 +416,7 @@ export function SettingsDialog() {
                     </button>
                     <button
                       type="button"
-                      class="flex-1 px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-600 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-500"
+                      class="flex-1 px-3 py-1.5 text-sm bg-neutral-200 dark:bg-neutral-600 rounded-lg font-medium hover:bg-neutral-300 dark:hover:bg-neutral-500"
                       onClick={() => setShowDeleteConfirm(false)}
                     >
                       {t("settings.data.cancel")}
@@ -435,7 +435,7 @@ export function SettingsDialog() {
               )}
             </div>
             {(dataStatus || deleteStatus) && (
-              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <p class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
                 {dataStatus || deleteStatus}
               </p>
             )}

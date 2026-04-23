@@ -94,7 +94,7 @@ export function ContentPreview({
 
   return (
     <div
-      class={`${hasTitle ? "mt-2" : ""} text-sm text-gray-600 dark:text-gray-300 line-clamp-12`}
+      class={`${hasTitle ? "mt-2" : ""} text-sm text-neutral-600 dark:text-neutral-300 line-clamp-12`}
     >
       {segments.map((seg, segIdx) => {
         const prev = segIdx > 0 ? segments[segIdx - 1] : null;
@@ -123,7 +123,7 @@ export function ContentPreview({
                     >
                       <input
                         type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
+                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 shrink-0 cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300 transition-colors checkbox-custom"
                         checked={false}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => onCheckboxToggle(lineIndex)}
@@ -141,7 +141,7 @@ export function ContentPreview({
                     >
                       <input
                         type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-gray-500 dark:border-gray-400 shrink-0 cursor-pointer hover:border-gray-600 dark:hover:border-gray-300 transition-colors checkbox-custom"
+                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 shrink-0 cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300 transition-colors checkbox-custom"
                         checked={true}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => onCheckboxToggle(lineIndex)}

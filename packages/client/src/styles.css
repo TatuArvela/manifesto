@@ -77,8 +77,8 @@ body {
   padding: 4px 8px;
   border: none;
   border-radius: 4px;
-  background-color: #1f2937;
-  color: #f9fafb;
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-50);
   font-size: 0.75rem;
   line-height: 1rem;
   pointer-events: none;
@@ -94,8 +94,8 @@ body {
 }
 
 .dark .tooltip[popover] {
-  background-color: #e5e7eb;
-  color: #111827;
+  background-color: var(--color-neutral-200);
+  color: var(--color-neutral-900);
 }
 
 /* Dropdown panel — rendered in the top layer via Popover API, anchor-positioned
@@ -369,33 +369,33 @@ body {
 
 /* Blockquotes */
 .prose blockquote {
-  border-left: 3px solid #d1d5db;
+  border-left: 3px solid var(--color-neutral-300);
   padding-left: 0.75em;
   margin-top: 0.5em;
   margin-bottom: 0.5em;
-  color: #6b7280;
+  color: var(--color-neutral-500);
 }
 
 .dark .prose blockquote {
-  border-left-color: #4b5563;
-  color: #9ca3af;
+  border-left-color: var(--color-neutral-600);
+  color: var(--color-neutral-400);
 }
 
 /* Code */
 .prose code {
   font-size: 0.875em;
-  background-color: #f3f4f6;
+  background-color: var(--color-neutral-100);
   padding: 0.125em 0.25em;
   border-radius: 0.25em;
 }
 
 .dark .prose code {
-  background-color: #374151;
+  background-color: var(--color-neutral-700);
 }
 
 .prose pre {
-  background-color: #1f2937;
-  color: #f9fafb;
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-50);
   padding: 0.75em 1em;
   border-radius: 0.375em;
   overflow-x: auto;
@@ -418,13 +418,13 @@ body {
 /* Horizontal rule */
 .prose hr {
   border: none;
-  border-top: 1px solid #9ca3af;
+  border-top: 1px solid var(--color-neutral-400);
   margin-top: 0.75em;
   margin-bottom: 0.75em;
 }
 
 .dark .prose hr {
-  border-top-color: #9ca3af;
+  border-top-color: var(--color-neutral-400);
 }
 
 /* Strong and emphasis */
@@ -539,7 +539,7 @@ body {
   height: 1rem;
   border-radius: 0.25rem;
   appearance: none;
-  border: 2px solid #6b7280;
+  border: 2px solid var(--color-neutral-500);
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -552,7 +552,7 @@ body {
   li[data-item-type="task"]
   > label
   input[type="checkbox"]:hover {
-  border-color: #4b5563;
+  border-color: var(--color-neutral-600);
 }
 
 .dark
@@ -560,7 +560,7 @@ body {
   li[data-item-type="task"]
   > label
   input[type="checkbox"] {
-  border-color: #9ca3af;
+  border-color: var(--color-neutral-400);
 }
 
 .dark
@@ -568,7 +568,7 @@ body {
   li[data-item-type="task"]
   > label
   input[type="checkbox"]:hover {
-  border-color: #d1d5db;
+  border-color: var(--color-neutral-300);
 }
 
 .milkdown-editor
@@ -587,14 +587,14 @@ body {
   li[data-item-type="task"][data-checked="true"]
   > .task-item-content {
   text-decoration: line-through;
-  color: #9ca3af;
+  color: var(--color-neutral-400);
 }
 
 .dark
   .milkdown-editor
   li[data-item-type="task"][data-checked="true"]
   > .task-item-content {
-  color: #6b7280;
+  color: var(--color-neutral-500);
 }
 
 /* Drag handle — absolute-positioned in the gutter, only visible on hover. */
@@ -716,33 +716,33 @@ body {
 
 /* Blockquotes */
 .milkdown-editor blockquote {
-  border-left: 3px solid #d1d5db;
+  border-left: 3px solid var(--color-neutral-300);
   padding-left: 0.75em;
   margin-top: 0.5em;
   margin-bottom: 0.5em;
-  color: #6b7280;
+  color: var(--color-neutral-500);
 }
 
 .dark .milkdown-editor blockquote {
-  border-left-color: #4b5563;
-  color: #9ca3af;
+  border-left-color: var(--color-neutral-600);
+  color: var(--color-neutral-400);
 }
 
 /* Code */
 .milkdown-editor code {
   font-size: 0.875em;
-  background-color: #f3f4f6;
+  background-color: var(--color-neutral-100);
   padding: 0.125em 0.25em;
   border-radius: 0.25em;
 }
 
 .dark .milkdown-editor code {
-  background-color: #374151;
+  background-color: var(--color-neutral-700);
 }
 
 .milkdown-editor pre {
-  background-color: #1f2937;
-  color: #f9fafb;
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-50);
   padding: 0.75em 1em;
   border-radius: 0.375em;
   overflow-x: auto;
@@ -773,19 +773,19 @@ body {
 /* Horizontal rule */
 .milkdown-editor hr {
   border: none;
-  border-top: 1px solid #9ca3af;
+  border-top: 1px solid var(--color-neutral-400);
   margin-top: 0.75em;
   margin-bottom: 0.75em;
 }
 
 .dark .milkdown-editor hr {
-  border-top-color: #9ca3af;
+  border-top-color: var(--color-neutral-400);
 }
 
 /* Placeholder (empty editor) */
 .milkdown-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  color: #9ca3af;
+  color: var(--color-neutral-400);
   pointer-events: none;
   float: left;
   height: 0;
