@@ -85,9 +85,11 @@ body {
   z-index: 50;
 }
 
-@supports (position-area: block-end) {
+@supports (position-area: bottom) {
   .tooltip[popover] {
-    position-area: block-end;
+    position-area: bottom;
+    justify-self: anchor-center;
+    margin-top: 4px;
   }
 }
 

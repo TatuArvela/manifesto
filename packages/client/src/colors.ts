@@ -88,6 +88,60 @@ export const noteColorMap: Record<NoteColor, ColorClasses> = {
   },
 };
 
+/**
+ * Auto-note variant: lighter background with a thick colored border so
+ * generated notes are visually distinct from user notes at a glance.
+ */
+export const autoNoteColorMap: Record<
+  NoteColor,
+  Pick<ColorClasses, "bg" | "border">
+> = {
+  [NoteColor.Default]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-gray-200 dark:border-gray-700",
+  },
+  [NoteColor.Red]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-red-200 dark:border-red-800",
+  },
+  [NoteColor.Orange]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-orange-200 dark:border-orange-800",
+  },
+  [NoteColor.Yellow]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-yellow-200 dark:border-yellow-800",
+  },
+  [NoteColor.Green]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-green-200 dark:border-green-800",
+  },
+  [NoteColor.Teal]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-teal-200 dark:border-teal-800",
+  },
+  [NoteColor.Blue]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-blue-200 dark:border-blue-800",
+  },
+  [NoteColor.Purple]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-purple-200 dark:border-purple-800",
+  },
+  [NoteColor.Pink]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-pink-200 dark:border-pink-800",
+  },
+  [NoteColor.Brown]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-amber-200 dark:border-amber-800",
+  },
+  [NoteColor.Gray]: {
+    bg: "bg-white dark:bg-gray-900",
+    border: "border-4 border-gray-300 dark:border-gray-600",
+  },
+};
+
 export const noteFontFamilies: Record<NoteFont, string> = {
   [NoteFont.Default]: "",
   [NoteFont.PermanentMarker]: '"Permanent Marker", cursive',

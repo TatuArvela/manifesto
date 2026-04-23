@@ -1,5 +1,12 @@
 import type { LucideIcon } from "lucide-preact";
-import { Archive, Bell, Hash, StickyNote, Trash2 } from "lucide-preact";
+import {
+  Archive,
+  Bell,
+  Hash,
+  Sparkles,
+  StickyNote,
+  Trash2,
+} from "lucide-preact";
 import { t } from "../i18n/index.js";
 import {
   type AppView,
@@ -99,6 +106,11 @@ export function Sidebar() {
           view="reminders"
         />
         <DesktopNavItem
+          label={t("nav.autoNotes")}
+          icon={Sparkles}
+          view="autoNotes"
+        />
+        <DesktopNavItem
           label={t("nav.archive")}
           icon={Archive}
           view="archived"
@@ -118,6 +130,11 @@ export function MobileNav() {
       <MobileNavItem label={t("nav.notes")} icon={StickyNote} view="active" />
       <MobileNavItem label={t("nav.tags")} icon={Hash} view="tags" />
       <MobileNavItem label={t("nav.reminders")} icon={Bell} view="reminders" />
+      <MobileNavItem
+        label={t("nav.autoNotes")}
+        icon={Sparkles}
+        view="autoNotes"
+      />
       <MobileNavItem label={t("nav.archive")} icon={Archive} view="archived" />
       <MobileNavItem label={t("nav.trash")} icon={Trash2} view="trash" />
     </nav>

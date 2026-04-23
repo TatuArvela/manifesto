@@ -13,6 +13,8 @@ import {
   Palette,
   Pin,
   PinOff,
+  RefreshCw,
+  Sparkles,
   Tag,
   Trash2,
   Undo2,
@@ -20,9 +22,11 @@ import {
 } from "lucide-preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "../colors.js";
+import { plugins } from "../autoNotes/registry.js";
+import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
 import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
+import { refreshAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
   archiveNote,
@@ -56,6 +60,7 @@ import { LinkPreviewHero } from "./LinkPreviewHero.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
+import { NoteReadonlyView } from "./NoteReadonlyView.js";
 import { CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPickerPanel } from "./ReminderPicker.js";
@@ -208,7 +213,9 @@ function CardMenu({
           type="button"
           class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
           onClick={() => {
-            downloadNoteAsJson(note);
+            // Strip auto-note markers so the export is a static, portable note.
+            const { readonly: _r, source: _s, ...plain } = note;
+            downloadNoteAsJson(plain as Note);
             onClose();
           }}
         >
@@ -336,6 +343,37 @@ function CardActions({
         </>
       ) : (
         <>
+          {note.readonly && (
+            <>
+              <Tooltip
+                label={t("autoNotes.generatedBy", {
+                  name:
+                    plugins.value.find((p) => p.id === note.source?.pluginId)
+                      ?.name ??
+                    note.source?.pluginId ??
+                    "",
+                })}
+              >
+                <span
+                  class="p-1.5 opacity-60"
+                  role="img"
+                  aria-label="Auto-generated"
+                >
+                  <Sparkles class="w-4 h-4" />
+                </span>
+              </Tooltip>
+              <Tooltip label={t("autoNotes.refresh")}>
+                <button
+                  type="button"
+                  class={iconBtnClass}
+                  onClick={() => refreshAutoNotes()}
+                  aria-label={t("autoNotes.refresh")}
+                >
+                  <RefreshCw class="w-4 h-4" />
+                </button>
+              </Tooltip>
+            </>
+          )}
           <Tooltip label={t("noteCard.color")}>
             <button
               ref={colorBtnRef}
@@ -407,7 +445,13 @@ export function NoteCard({
   const colorBtnRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
-  const colors = noteColorMap[note.color];
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [contentClipped, setContentClipped] = useState(false);
+  const baseColors = noteColorMap[note.color];
+  const autoColors = autoNoteColorMap[note.color];
+  const colors = note.readonly
+    ? { ...baseColors, bg: autoColors.bg, border: autoColors.border }
+    : baseColors;
   const isTrashView = activeView.value === "trash";
   const hasImages = note.images.length > 0;
   const isImageOnly = hasImages && !note.title && !note.content;
@@ -426,6 +470,20 @@ export function NoteCard({
       setClosing(false);
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) {
+      setContentClipped(false);
+      return;
+    }
+    const update = () => setContentClipped(el.scrollHeight > el.clientHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    for (const child of Array.from(el.children)) ro.observe(child);
+    return () => ro.disconnect();
+  }, [note.title, note.content, note.images.length, note.linkPreviews.length]);
 
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -459,6 +517,7 @@ export function NoteCard({
 
   const handleSelectClick = (e: Event) => {
     e.stopPropagation();
+    if (note.readonly) return;
     if (isSelectMode) {
       toggleSelectNote(note.id);
     } else {
@@ -477,52 +536,58 @@ export function NoteCard({
         )}
       >
         {/* Selection checkbox */}
-        <div
-          class={clsx(
-            "absolute -top-2.5 -left-2.5 z-10",
-            isSelectMode || isSelected
-              ? "opacity-100"
-              : "opacity-0 group-hover:opacity-100",
-            "transition-opacity duration-200",
-          )}
-        >
-          <button
-            type="button"
+        {!note.readonly && (
+          <div
             class={clsx(
-              "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
-              isSelected
-                ? "bg-blue-500 text-white hover:bg-blue-600"
-                : "bg-white dark:bg-gray-200 text-gray-400 hover:bg-gray-100 dark:hover:bg-white hover:scale-110 border border-gray-300",
+              "absolute -top-2.5 -left-2.5 z-10",
+              isSelectMode || isSelected
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100",
+              "transition-opacity duration-200",
             )}
-            onClick={handleSelectClick}
-            aria-label={
-              isSelected ? t("noteCard.deselect") : t("noteCard.select")
-            }
           >
-            {isSelected && (
-              <svg
-                class="w-3 h-3"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            )}
-          </button>
-        </div>
+            <button
+              type="button"
+              class={clsx(
+                "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
+                isSelected
+                  ? "bg-blue-500 text-white hover:bg-blue-600"
+                  : "bg-white dark:bg-gray-200 text-gray-400 hover:bg-gray-100 dark:hover:bg-white hover:scale-110 border border-gray-300",
+              )}
+              onClick={handleSelectClick}
+              aria-label={
+                isSelected ? t("noteCard.deselect") : t("noteCard.select")
+              }
+            >
+              {isSelected && (
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </button>
+          </div>
+        )}
 
         <article
           class={clsx(
             colors.bg,
             isSelected
-              ? "ring-2 ring-blue-500 border-transparent"
+              ? clsx(
+                  "ring-2 ring-blue-500 border-transparent",
+                  note.readonly ? "border-4" : "border-2",
+                )
               : colors.border,
-            "border transition-all duration-150 relative select-none overflow-hidden flex flex-col",
+            !note.readonly && "border",
+            "transition-all duration-150 relative select-none overflow-hidden flex flex-col",
             isImageOnly || isLinkOnly
               ? "p-0"
               : !isTrashView
@@ -551,7 +616,7 @@ export function NoteCard({
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
           <div
             class={clsx(
-              "absolute top-2 right-2 flex items-center gap-0.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200",
+              "absolute top-2 right-2 z-10 flex items-center gap-0.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200",
               isSelectMode && "invisible",
             )}
             onClick={(e) => e.stopPropagation()}
@@ -616,11 +681,11 @@ export function NoteCard({
           ) : (
             <>
               <div
+                ref={contentRef}
                 class={clsx(
-                  "overflow-hidden note-content-fade",
-                  noteSize.value === "square"
-                    ? "flex-1 min-h-0"
-                    : "max-h-80",
+                  "overflow-hidden",
+                  contentClipped && "note-content-fade",
+                  noteSize.value === "square" ? "flex-1 min-h-0" : "max-h-80",
                 )}
                 style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
               >
@@ -745,7 +810,11 @@ export function NoteCard({
               class={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
             >
               <div class="pointer-events-auto w-full max-w-2xl max-h-full overflow-y-auto overscroll-contain">
-                <NoteCardEditor note={note} onClose={closeModal} />
+                {note.readonly ? (
+                  <NoteReadonlyView note={note} onClose={closeModal} />
+                ) : (
+                  <NoteCardEditor note={note} onClose={closeModal} />
+                )}
               </div>
             </div>
           </>,

@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; connect-src 'none'"
+    />
+    <title>Manifesto auto-notes sandbox</title>
+  </head>
+  <body>
+    <script>
+      (function () {
+        let stdlibRaw = null;
+
+        function bindLocale(raw, locale, approxLabels) {
+          const bound = {};
+          for (const k of Object.keys(raw)) {
+            const fn = raw[k];
+            bound[k] = function () {
+              const args = Array.prototype.slice.call(arguments);
+              if (
+                k === "formatDate" ||
+                k === "formatDateTime" ||
+                k === "relativeDays"
+              ) {
+                args.push(locale);
+              } else if (k === "approxUntil") {
+                args.push(locale);
+                args.push(approxLabels);
+              }
+              return fn.apply(null, args);
+            };
+          }
+          return Object.freeze(bound);
+        }
+
+        function toResults(value) {
+          const arr = Array.isArray(value) ? value : [value];
+          return arr.map(function (note) {
+            if (!note || typeof note !== "object") {
+              throw new Error("plugin returned a non-object note");
+            }
+            if (
+              typeof note.title !== "string" ||
+              typeof note.content !== "string"
+            ) {
+              throw new Error("note must have string title and content");
+            }
+            const out = { title: note.title, content: note.content };
+            if (typeof note.color === "string") out.color = note.color;
+            if (typeof note.font === "string") out.font = note.font;
+            if (typeof note.pinned === "boolean") out.pinned = note.pinned;
+            if (Array.isArray(note.tags)) {
+              out.tags = note.tags.filter(function (t) {
+                return typeof t === "string";
+              });
+            }
+            if (typeof note.position === "number") out.position = note.position;
+            if (typeof note.key === "string") out.key = note.key;
+            return out;
+          });
+        }
+
+        function runInvocation(msg) {
+          const stdlib = bindLocale(stdlibRaw, msg.locale, msg.approxLabels);
+          const ctx = Object.freeze({
+            today: msg.today,
+            locale: msg.locale,
+            stdlib: stdlib,
+          });
+          const wrapped =
+            "var _exports={};var _default;" +
+            "var module={exports:_exports};" +
+            "var exports=_exports;" +
+            msg.pluginSrc +
+            "\n;return (typeof _default!=='undefined')?_default:" +
+            "(module.exports&&(module.exports.default||module.exports));";
+          const userFn = new Function("ctx", "stdlib", wrapped);
+          const exported = userFn(ctx, stdlib);
+          const fns = Array.isArray(exported) ? exported : [exported];
+          const out = [];
+          for (let i = 0; i < fns.length; i++) {
+            const fn = fns[i];
+            if (typeof fn !== "function") {
+              throw new Error(
+                "plugin default export must be a function or array of functions",
+              );
+            }
+            const result = fn(ctx);
+            const results = toResults(result);
+            for (let j = 0; j < results.length; j++) out.push(results[j]);
+          }
+          return out;
+        }
+
+        window.addEventListener("message", function (event) {
+          const msg = event.data;
+          if (!msg || typeof msg !== "object") return;
+          const source = event.source;
+
+          if (msg.type === "init" && typeof msg.prelude === "string") {
+            try {
+              const fn = new Function(msg.prelude + "\nreturn __stdlibRaw;");
+              stdlibRaw = fn();
+              source.postMessage({ type: "init-ok", id: msg.id }, "*");
+            } catch (err) {
+              const message =
+                err && err.message ? String(err.message) : String(err);
+              source.postMessage(
+                { type: "init-err", id: msg.id, error: message },
+                "*",
+              );
+            }
+            return;
+          }
+
+          if (msg.type === "run" && typeof msg.id === "number") {
+            if (!stdlibRaw) {
+              source.postMessage(
+                {
+                  type: "run-err",
+                  id: msg.id,
+                  error: "sandbox not initialized",
+                },
+                "*",
+              );
+              return;
+            }
+            try {
+              const notes = runInvocation(msg);
+              source.postMessage(
+                { type: "run-ok", id: msg.id, notes: notes },
+                "*",
+              );
+            } catch (err) {
+              const message =
+                err && err.message ? String(err.message) : String(err);
+              source.postMessage(
+                { type: "run-err", id: msg.id, error: message },
+                "*",
+              );
+            }
+          }
+        });
+
+        // Signal readiness to host via a pre-arranged message. Host waits for
+        // iframe `load` and then for this, before sending `init`.
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "sandbox-booted" }, "*");
+        }
+      })();
+    </script>
+  </body>
+</html>

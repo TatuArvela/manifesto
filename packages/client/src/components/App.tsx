@@ -3,6 +3,7 @@ import { Upload } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { plural, t } from "../i18n/index.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
+import { initAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
   createNote,
@@ -18,6 +19,7 @@ import {
 } from "../state/index.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
+import { AutoNotesView } from "./AutoNotesView.js";
 import { Header } from "./Header.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
@@ -36,6 +38,7 @@ export function App() {
   useEffect(() => {
     initRouter();
     loadNotes();
+    const stopAutoNotes = initAutoNotes();
     initReminderScheduler({
       notes: () => notes.value,
       subscribe: (listener) => effect(() => listener(notes.value)),
@@ -52,6 +55,7 @@ export function App() {
     if (payload) setSharedNote(payload);
     return () => {
       window.removeEventListener("reminder:open-note", openHandler);
+      stopAutoNotes();
     };
   }, []);
 
@@ -120,17 +124,18 @@ export function App() {
 
   const isTagsView = activeView.value === "tags";
   const isSearchView = activeView.value === "search";
+  const isAutoNotesView = activeView.value === "autoNotes";
   const isActive = activeView.value === "active";
   const isList = viewMode.value === "list";
 
   return (
-    <div class="flex flex-col h-screen overflow-hidden">
+    <div class="flex flex-col h-dvh overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <Header />
       <MobileNav />
       <div class="flex flex-1 overflow-hidden relative z-0">
         <Sidebar />
         <main
-          class={`flex-1 overflow-y-auto px-4 md:px-6 pb-4 md:pb-6 ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
+          class={`flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
         >
           {isSearchView ? (
             isList ? (
@@ -155,6 +160,14 @@ export function App() {
                 <TagsView />
                 <NoteGrid />
               </>
+            )
+          ) : isAutoNotesView ? (
+            isList ? (
+              <div class="max-w-xl mx-auto">
+                <AutoNotesView />
+              </div>
+            ) : (
+              <AutoNotesView />
             )
           ) : isList ? (
             <div class="max-w-xl mx-auto">

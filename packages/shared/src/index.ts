@@ -8,6 +8,7 @@ export type {
   WebSocketEvent,
 } from "./api.js";
 export type {
+  AutoNoteSource,
   LinkPreview,
   Note,
   NoteCreate,

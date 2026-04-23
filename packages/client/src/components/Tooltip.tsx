@@ -72,7 +72,12 @@ export function Tooltip({
         class="tooltip"
         style={{ positionAnchor: idRef.current }}
       >
-        {label}
+        {label.split("\n").map((line, i, arr) => (
+          <span key={`${i}:${line}`}>
+            {line}
+            {i < arr.length - 1 && <br />}
+          </span>
+        ))}
       </div>
     </span>
   );

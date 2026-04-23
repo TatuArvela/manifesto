@@ -5,6 +5,7 @@ export type AppView =
   | "active"
   | "tags"
   | "reminders"
+  | "autoNotes"
   | "archived"
   | "trash"
   | "search";

@@ -4,6 +4,11 @@ import { computed, signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import { createStorage } from "../storage/index.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
+import {
+  clearAutoNoteOverride,
+  updateAutoNoteOverride,
+} from "./autoNoteOverrides.js";
+import { generatedNotes } from "./autoNotes.js";
 import { defaultNoteColor, defaultNoteFont, sortMode } from "./prefs.js";
 import {
   activeTag,
@@ -29,6 +34,17 @@ const storage = createStorage();
 
 export const notes = signal<Note[]>([]);
 
+/**
+ * All notes visible to the UI — user notes plus plugin-generated read-only
+ * notes. Generated notes' metadata (pin/color/tags/archive/trash/reminder)
+ * can be overridden by the user; the override sidecar is merged into the
+ * rendered note inside `autoNotes.toNote`.
+ */
+export const allNotes = computed<Note[]>(() => [
+  ...notes.value,
+  ...generatedNotes.value,
+]);
+
 // --- Derived ---
 
 const CHECKBOX_LINE_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\] (.*)$/;
@@ -38,7 +54,7 @@ export function noteHasChecklist(content: string): boolean {
 }
 
 export const filteredNotes = computed(() => {
-  let result = notes.value;
+  let result: Note[] = allNotes.value;
 
   // Filter by view
   switch (activeView.value) {
@@ -58,6 +74,9 @@ export const filteredNotes = computed(() => {
       break;
     case "reminders":
       result = result.filter((n) => n.reminder && !n.trashed);
+      break;
+    case "autoNotes":
+      result = result.filter((n) => n.readonly && !n.archived && !n.trashed);
       break;
     case "archived":
       result = result.filter((n) => n.archived && !n.trashed);
@@ -154,7 +173,7 @@ export const unpinnedNotes = computed(() =>
 
 export const allTags = computed(() => {
   const tagSet = new Set<string>();
-  for (const note of notes.value) {
+  for (const note of allNotes.value) {
     if (!note.trashed && !note.archived) {
       for (const tag of note.tags) {
         tagSet.add(tag);
@@ -166,14 +185,14 @@ export const allTags = computed(() => {
 
 export const editingNote = computed(() =>
   editingNoteId.value
-    ? (notes.value.find((n) => n.id === editingNoteId.value) ?? null)
+    ? (allNotes.value.find((n) => n.id === editingNoteId.value) ?? null)
     : null,
 );
 
-/** Drag-and-drop reorder is only available in the Notes view, unfiltered, manual order, no modal open */
+/** Drag-and-drop reorder is available in the Notes and Auto-notes views, unfiltered, manual order, no modal open */
 export const canReorder = computed(
   () =>
-    activeView.value === "active" &&
+    (activeView.value === "active" || activeView.value === "autoNotes") &&
     sortMode.value === "default" &&
     !searchQuery.value &&
     !editingNoteId.value,
@@ -241,6 +260,31 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
 }
 
 export async function updateNote(id: string, changes: NoteUpdate) {
+  // Generated notes have readonly title/content but mutable metadata. Route
+  // the allowed fields to the per-note override sidecar.
+  if (id.startsWith("generated:")) {
+    const {
+      pinned,
+      color,
+      tags,
+      archived,
+      trashed,
+      trashedAt,
+      reminder,
+      position,
+    } = changes;
+    updateAutoNoteOverride(id, {
+      ...(pinned !== undefined && { pinned }),
+      ...(color !== undefined && { color }),
+      ...(tags !== undefined && { tags }),
+      ...(archived !== undefined && { archived }),
+      ...(trashed !== undefined && { trashed }),
+      ...(trashedAt !== undefined && { trashedAt }),
+      ...(reminder !== undefined && { reminder }),
+      ...(position !== undefined && { position }),
+    });
+    return null;
+  }
   try {
     const note = await storage.update(id, changes);
     notes.value = notes.value.map((n) => (n.id === id ? note : n));
@@ -253,6 +297,13 @@ export async function updateNote(id: string, changes: NoteUpdate) {
 }
 
 export async function permanentlyDeleteNote(id: string) {
+  // "Permanent delete" on an auto-note clears the override — the note will
+  // reappear on the next render in its default state. (The plugin still owns
+  // the source of truth; deletion is never truly permanent for auto-notes.)
+  if (id.startsWith("generated:")) {
+    clearAutoNoteOverride(id);
+    return;
+  }
   try {
     await storage.delete(id);
     notes.value = notes.value.filter((n) => n.id !== id);
@@ -290,7 +341,7 @@ export async function unarchiveNote(id: string) {
 }
 
 export async function togglePin(id: string) {
-  const note = notes.value.find((n) => n.id === id);
+  const note = allNotes.value.find((n) => n.id === id);
   if (note) await updateNote(id, { pinned: !note.pinned });
 }
 
@@ -333,7 +384,7 @@ export function exitSelectMode() {
 }
 
 export function selectAllVisible() {
-  const ids = sortedNotes.value.map((n) => n.id);
+  const ids = sortedNotes.value.filter((n) => !n.readonly).map((n) => n.id);
   const current = selectedNotes.value;
   const allSelected = ids.length > 0 && ids.every((id) => current.has(id));
   if (allSelected) {

@@ -44,6 +44,14 @@ export interface NoteReminder {
   lastFiredAt?: string;
 }
 
+/** Identifies a note that wasn't authored by the user but produced by a plugin. */
+export interface AutoNoteSource {
+  kind: "auto-note";
+  pluginId: string;
+  /** Stable sub-id when a plugin returns multiple notes; defaults to "" */
+  noteKey: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -61,6 +69,10 @@ export interface Note {
   reminder: NoteReminder | null;
   createdAt: string;
   updatedAt: string;
+  /** Generated, non-editable notes produced by a plugin. */
+  readonly?: boolean;
+  /** Origin of a generated note. */
+  source?: AutoNoteSource;
 }
 
 /** Fields accepted when creating a note (server assigns id and timestamps). */

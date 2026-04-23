@@ -28,17 +28,17 @@ import {
   bulkRestore,
   bulkSetColor,
   bulkTrash,
-  selectAllVisible,
-  sortedNotes,
   clearSearchFilters,
   exitSelectMode,
   noteSize,
   previousView,
   type SortMode,
   searchQuery,
+  selectAllVisible,
   selectedNotes,
   selectMode,
   showSettings,
+  sortedNotes,
   sortMode,
   viewMode,
 } from "../state/index.js";
@@ -60,7 +60,7 @@ function SelectionToolbar() {
     visibleIds.every((id) => selectedNotes.value.has(id));
 
   return (
-    <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
+    <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
       {/* Left: close + count + select all */}
       <div class="flex items-center gap-2 shrink-0">
         <button
@@ -247,7 +247,7 @@ export function Header() {
   ];
 
   return (
-    <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 h-14 shrink-0 bg-white dark:bg-gray-900">
+    <header class="relative z-20 shadow-md flex items-center border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-white dark:bg-gray-900">
       {/* Left: logo + title. Logo shows only on the active (main) view,
           matching desktop. */}
       <div class="flex items-center gap-2 shrink-0 z-10 pl-1 md:pl-2">
@@ -258,6 +258,7 @@ export function Header() {
           {activeView.value === "active" && t("app.name")}
           {activeView.value === "tags" && t("nav.tags")}
           {activeView.value === "reminders" && t("nav.reminders")}
+          {activeView.value === "autoNotes" && t("nav.autoNotes")}
           {activeView.value === "archived" && t("nav.archive")}
           {activeView.value === "trash" && t("nav.trash")}
           {activeView.value === "search" && t("nav.search")}
@@ -340,45 +341,44 @@ export function Header() {
           </button>
         </Tooltip>
         {/* Sort button with dropdown — hidden in views with a fixed sort order */}
-        {activeView.value !== "trash" &&
-          activeView.value !== "reminders" && (
-            <Dropdown
-              open={showSortMenu}
-              onClose={() => setShowSortMenu(false)}
-              trigger={
-                <Tooltip label={t("header.sort")}>
-                  <button
-                    type="button"
-                    class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => setShowSortMenu(!showSortMenu)}
-                    aria-label={t("header.sortNotes")}
-                  >
-                    <ArrowDownUp class="w-5 h-5" />
-                  </button>
-                </Tooltip>
-              }
-              placement="bottom-end"
-              panelClass="py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[140px]"
-            >
-              {sortOptions.map((opt) => (
+        {activeView.value !== "trash" && activeView.value !== "reminders" && (
+          <Dropdown
+            open={showSortMenu}
+            onClose={() => setShowSortMenu(false)}
+            trigger={
+              <Tooltip label={t("header.sort")}>
                 <button
-                  key={opt.value}
                   type="button"
-                  class={`block w-full text-left px-4 py-2 text-sm ${
-                    sortMode.value === opt.value
-                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
-                  onClick={() => {
-                    sortMode.value = opt.value;
-                    setShowSortMenu(false);
-                  }}
+                  class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                  onClick={() => setShowSortMenu(!showSortMenu)}
+                  aria-label={t("header.sortNotes")}
                 >
-                  {opt.label}
+                  <ArrowDownUp class="w-5 h-5" />
                 </button>
-              ))}
-            </Dropdown>
-          )}
+              </Tooltip>
+            }
+            placement="bottom-end"
+            panelClass="py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[140px]"
+          >
+            {sortOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                class={`block w-full text-left px-4 py-2 text-sm ${
+                  sortMode.value === opt.value
+                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+                onClick={() => {
+                  sortMode.value = opt.value;
+                  setShowSortMenu(false);
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </Dropdown>
+        )}
 
         {/* View menu with dropdown */}
         <Dropdown
