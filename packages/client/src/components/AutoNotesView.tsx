@@ -201,6 +201,7 @@ export function AutoNotesView() {
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = "move";
     }
+    document.body.classList.add("note-drag-active");
     const target = e.currentTarget as HTMLElement;
     requestAnimationFrame(() => target.classList.add("note-dragging"));
   };
@@ -208,6 +209,7 @@ export function AutoNotesView() {
   const handleDragEnd = (e: DragEvent) => {
     const target = e.currentTarget as HTMLElement;
     target.classList.remove("note-dragging");
+    document.body.classList.remove("note-drag-active");
     dragSourceId.current = null;
     dragPluginId.current = null;
     setDropGap(null);

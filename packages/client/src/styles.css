@@ -238,6 +238,15 @@ body {
   opacity: 0.3;
 }
 
+/* Hide selection checkboxes on all cards while any drag is in progress.
+   We toggle `note-drag-active` on <body> synchronously in dragstart so the
+   drag-ghost snapshot already has the checkbox hidden (the `.note-dragging`
+   class is applied via rAF and arrives too late for the ghost). */
+body.note-drag-active .note-select {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
 /* Drop indicators using pseudo-elements — no layout shift, no box-shadow conflict */
 .note-draggable[data-drop-side] {
   position: relative;

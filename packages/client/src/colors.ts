@@ -101,43 +101,43 @@ export const autoNoteColorMap: Record<
     border: "border-4 border-neutral-200 dark:border-neutral-700",
   },
   [NoteColor.Red]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-red-50 dark:bg-red-950",
     border: "border-4 border-red-200 dark:border-red-800",
   },
   [NoteColor.Orange]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-orange-50 dark:bg-orange-950",
     border: "border-4 border-orange-200 dark:border-orange-800",
   },
   [NoteColor.Yellow]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-yellow-50 dark:bg-yellow-950",
     border: "border-4 border-yellow-200 dark:border-yellow-800",
   },
   [NoteColor.Green]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-green-50 dark:bg-green-950",
     border: "border-4 border-green-200 dark:border-green-800",
   },
   [NoteColor.Teal]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-teal-50 dark:bg-teal-950",
     border: "border-4 border-teal-200 dark:border-teal-800",
   },
   [NoteColor.Blue]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-blue-50 dark:bg-blue-950",
     border: "border-4 border-blue-200 dark:border-blue-800",
   },
   [NoteColor.Purple]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-purple-50 dark:bg-purple-950",
     border: "border-4 border-purple-200 dark:border-purple-800",
   },
   [NoteColor.Pink]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-pink-50 dark:bg-pink-950",
     border: "border-4 border-pink-200 dark:border-pink-800",
   },
   [NoteColor.Brown]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-amber-50 dark:bg-amber-950",
     border: "border-4 border-amber-200 dark:border-amber-800",
   },
   [NoteColor.Gray]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-neutral-100 dark:bg-neutral-800",
     border: "border-4 border-neutral-300 dark:border-neutral-600",
   },
 };
