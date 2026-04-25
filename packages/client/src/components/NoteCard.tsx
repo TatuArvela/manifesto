@@ -24,6 +24,7 @@ import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
+import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
 import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
@@ -428,12 +429,18 @@ export function NoteCard({
   draggable,
   onDragStart,
   onDragEnd,
+  onTouchDragStart,
+  onTouchDragMove,
+  onTouchDragEnd,
   dropSide,
 }: {
   note: Note;
   draggable?: boolean;
   onDragStart?: (e: DragEvent) => void;
   onDragEnd?: (e: DragEvent) => void;
+  onTouchDragStart?: (e: PointerEvent) => void;
+  onTouchDragMove?: (e: PointerEvent) => void;
+  onTouchDragEnd?: (e: PointerEvent, didDrag: boolean) => void;
   dropSide?: "before" | "after";
 }) {
   const isEditing = editingNoteId.value === note.id;
@@ -526,6 +533,26 @@ export function NoteCard({
     }
   };
 
+  const isTouch = useIsTouch();
+  const { onPointerDown: touchPointerDown } = useTouchGesture({
+    enabled: isTouch && !isTrashView && !isEditing,
+    onLongPress: () => {
+      if (selectMode.value) {
+        toggleSelectNote(note.id);
+      } else {
+        enterSelectMode(note.id);
+      }
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(10);
+        } catch {}
+      }
+    },
+    onDragStart: draggable ? onTouchDragStart : undefined,
+    onDragMove: draggable ? onTouchDragMove : undefined,
+    onDragEnd: draggable ? onTouchDragEnd : undefined,
+  });
+
   return (
     <>
       <div
@@ -603,18 +630,26 @@ export function NoteCard({
           style={{
             aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
           }}
-          draggable={draggable}
-          onPointerDown={
-            draggable
-              ? () => document.body.classList.add("note-drag-active")
-              : undefined
-          }
-          onPointerUp={() => document.body.classList.remove("note-drag-active")}
-          onDragStart={onDragStart}
-          onDragEnd={(e) => {
-            document.body.classList.remove("note-drag-active");
-            onDragEnd?.(e);
+          draggable={!isTouch && draggable}
+          onPointerDown={(e) => {
+            if (isTouch) {
+              touchPointerDown(e);
+            } else if (draggable) {
+              document.body.classList.add("note-drag-active");
+            }
           }}
+          onPointerUp={() => {
+            if (!isTouch) document.body.classList.remove("note-drag-active");
+          }}
+          onDragStart={isTouch ? undefined : onDragStart}
+          onDragEnd={
+            isTouch
+              ? undefined
+              : (e) => {
+                  document.body.classList.remove("note-drag-active");
+                  onDragEnd?.(e);
+                }
+          }
           onClick={handleClick}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleClick();

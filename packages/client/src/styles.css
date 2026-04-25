@@ -239,6 +239,16 @@ body {
   opacity: 0.3;
 }
 
+/* On touch devices, draggable cards must opt out of browser-driven scrolling
+   so pointer-based drag gestures aren't cancelled the moment the finger moves.
+   The trade-off is that scrolling cannot start by touching a draggable card —
+   users scroll via headers, sidebar, or gaps between cards. */
+@media (hover: none) {
+  .note-draggable {
+    touch-action: none;
+  }
+}
+
 /* Hide selection checkboxes on all cards while any drag is in progress.
    We toggle `note-drag-active` on <body> synchronously in dragstart so the
    drag-ghost snapshot already has the checkbox hidden (the `.note-dragging`

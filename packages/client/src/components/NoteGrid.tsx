@@ -35,7 +35,7 @@ function applyMasonrySpans(container: HTMLElement | null, isSquare: boolean) {
 
 /** Find the nearest gap index for a drag event in a 2D grid or 1D list. */
 function findNearestGap(
-  e: DragEvent,
+  coords: { clientX: number; clientY: number },
   container: HTMLElement,
   isVertical: boolean,
 ): number {
@@ -45,7 +45,7 @@ function findNearestGap(
   if (isVertical) {
     for (let i = 0; i < children.length; i++) {
       const rect = children[i].getBoundingClientRect();
-      if (e.clientY < rect.top + rect.height / 2) return i;
+      if (coords.clientY < rect.top + rect.height / 2) return i;
     }
     return children.length;
   }
@@ -57,7 +57,7 @@ function findNearestGap(
     const rect = children[i].getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+    const dist = Math.hypot(coords.clientX - cx, coords.clientY - cy);
     if (dist < nearestDist) {
       nearestDist = dist;
       nearestIdx = i;
@@ -66,7 +66,9 @@ function findNearestGap(
 
   // Before or after the nearest card, based on horizontal position
   const rect = children[nearestIdx].getBoundingClientRect();
-  return e.clientX < rect.left + rect.width / 2 ? nearestIdx : nearestIdx + 1;
+  return coords.clientX < rect.left + rect.width / 2
+    ? nearestIdx
+    : nearestIdx + 1;
 }
 
 export function NoteGrid() {
@@ -199,6 +201,95 @@ export function NoteGrid() {
     setDropSection(null);
   };
 
+  // --- Touch drag path (pointer-event-driven, mirrors the native HTML5 path) ---
+
+  const touchDragElRef = useRef<HTMLElement | null>(null);
+
+  const handleTouchDragStart = (
+    e: PointerEvent,
+    id: string,
+    section: "pinned" | "unpinned",
+  ) => {
+    if (!reorderable) return;
+    const target = e.currentTarget as HTMLElement;
+    touchDragElRef.current = target;
+    dragSourceId.current = id;
+    dragSection.current = section;
+    const container =
+      section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
+    if (container) {
+      setDragVertical(isContainerVertical(container));
+      container.style.setProperty(
+        "--drop-gap",
+        `${measureVerticalGap(container)}px`,
+      );
+    }
+    document.body.classList.add("note-drag-active");
+    target.classList.add("note-dragging");
+  };
+
+  const handleTouchDragMove = (e: PointerEvent) => {
+    const section = dragSection.current;
+    if (!section) return;
+    const container =
+      section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
+    if (!container) return;
+
+    const gap = findNearestGap(
+      { clientX: e.clientX, clientY: e.clientY },
+      container,
+      dragVertical,
+    );
+
+    const list = section === "pinned" ? pinned : unpinned;
+    const srcIdx = list.findIndex((n) => n.id === dragSourceId.current);
+    if (srcIdx !== -1 && (gap === srcIdx || gap === srcIdx + 1)) {
+      setDropGap(null);
+      setDropSection(null);
+      return;
+    }
+
+    setDropGap(gap);
+    setDropSection(section);
+  };
+
+  const handleTouchDragEnd = (_e: PointerEvent, didDrag: boolean) => {
+    const section = dragSection.current;
+    const sourceId = dragSourceId.current;
+    const gap = dropGap;
+    const dropSec = dropSection;
+
+    if (touchDragElRef.current) {
+      touchDragElRef.current.classList.remove("note-dragging");
+      touchDragElRef.current = null;
+    }
+    document.body.classList.remove("note-drag-active");
+    dragSourceId.current = null;
+    dragSection.current = null;
+    setDragVertical(false);
+    setDropGap(null);
+    setDropSection(null);
+
+    if (
+      !didDrag ||
+      !sourceId ||
+      !section ||
+      gap === null ||
+      dropSec !== section
+    )
+      return;
+
+    const list = section === "pinned" ? pinned : unpinned;
+    const ids = list.map((n) => n.id);
+    const fromIndex = ids.indexOf(sourceId);
+    if (fromIndex === -1) return;
+
+    const toIndex = gap > fromIndex ? gap - 1 : gap;
+    if (toIndex !== fromIndex) {
+      reorderNotes(ids, fromIndex, toIndex);
+    }
+  };
+
   const handleGridDragOver = (e: DragEvent, section: "pinned" | "unpinned") => {
     if (!reorderable || dragSection.current !== section) return;
     e.preventDefault();
@@ -210,7 +301,11 @@ export function NoteGrid() {
       section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
     if (!container) return;
 
-    const gap = findNearestGap(e, container, dragVertical);
+    const gap = findNearestGap(
+      { clientX: e.clientX, clientY: e.clientY },
+      container,
+      dragVertical,
+    );
 
     const srcIdx = getSourceIndex(section);
     if (srcIdx !== -1 && (gap === srcIdx || gap === srcIdx + 1)) {
@@ -315,6 +410,11 @@ export function NoteGrid() {
                 draggable={reorderable}
                 onDragStart={(e) => handleDragStart(e, note.id, "pinned")}
                 onDragEnd={handleDragEnd}
+                onTouchDragStart={(e) =>
+                  handleTouchDragStart(e, note.id, "pinned")
+                }
+                onTouchDragMove={handleTouchDragMove}
+                onTouchDragEnd={handleTouchDragEnd}
                 dropSide={getDropSide(idx, "pinned")}
               />
             ))}
@@ -345,6 +445,11 @@ export function NoteGrid() {
                 draggable={reorderable}
                 onDragStart={(e) => handleDragStart(e, note.id, "unpinned")}
                 onDragEnd={handleDragEnd}
+                onTouchDragStart={(e) =>
+                  handleTouchDragStart(e, note.id, "unpinned")
+                }
+                onTouchDragMove={handleTouchDragMove}
+                onTouchDragEnd={handleTouchDragEnd}
                 dropSide={getDropSide(idx, "unpinned")}
               />
             ))}
