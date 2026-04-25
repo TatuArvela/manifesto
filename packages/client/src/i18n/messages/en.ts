@@ -144,6 +144,7 @@ export const en = {
   "editor.undo": "Undo",
   "editor.redo": "Redo",
   "editor.done": "Done",
+  "editor.back": "Back",
   "editor.discard": "Discard",
   "editor.metadata.created": "Created {date}",
   "editor.metadata.edited": "Edited {date}",

@@ -3,6 +3,7 @@ import DOMPurify from "dompurify";
 import {
   Archive,
   ArchiveRestore,
+  ArrowLeft,
   Braces,
   Copy,
   EllipsisVertical,
@@ -140,25 +141,45 @@ export function NoteReadonlyView({
 
   return (
     <article
-      class={`${colors.bg} ${colors.border} border shadow-lg relative z-10`}
+      class={`${colors.bg} ${colors.border} relative z-10 sm:border sm:shadow-lg max-sm:h-full max-sm:flex max-sm:flex-col max-sm:pt-[env(safe-area-inset-top)] max-sm:pb-[env(safe-area-inset-bottom)]`}
     >
-      <div class="absolute top-2 right-2 flex items-center gap-0.5">
-        <Tooltip label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}>
+      {/* Top bar: back (mobile only) + pin. On desktop, pin floats absolute
+          top-right; on mobile, this is a flex row above the title. */}
+      <div class="max-sm:flex max-sm:items-center max-sm:justify-between max-sm:px-2.5 max-sm:pt-2">
+        <div class="sm:hidden">
           <button
             type="button"
             class={iconBtnClass}
-            onClick={() => togglePin(note.id)}
-            aria-label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
+            onClick={onClose}
+            aria-label={t("editor.back")}
           >
-            {note.pinned ? <PinOff class="w-4 h-4" /> : <Pin class="w-4 h-4" />}
+            <ArrowLeft class="w-5 h-5" />
           </button>
-        </Tooltip>
+        </div>
+        <div class="sm:absolute sm:top-2 sm:right-2 flex items-center gap-0.5">
+          <Tooltip
+            label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
+          >
+            <button
+              type="button"
+              class={iconBtnClass}
+              onClick={() => togglePin(note.id)}
+              aria-label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
+            >
+              {note.pinned ? (
+                <PinOff class="w-4 h-4" />
+              ) : (
+                <Pin class="w-4 h-4" />
+              )}
+            </button>
+          </Tooltip>
+        </div>
       </div>
 
-      <div class="p-4 text-sm">
+      <div class="p-4 max-sm:px-4 max-sm:pt-2 text-sm max-sm:flex-1 max-sm:overflow-y-auto max-sm:min-h-0 max-sm:flex max-sm:flex-col">
         {note.title && (
           <h2
-            class="font-medium text-base mb-2 pr-12"
+            class="font-medium text-base mb-2 sm:pr-12"
             style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
           >
             {note.title}

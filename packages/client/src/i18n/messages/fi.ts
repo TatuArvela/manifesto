@@ -146,6 +146,7 @@ export const fi: Messages = {
   "editor.undo": "Kumoa",
   "editor.redo": "Tee uudelleen",
   "editor.done": "Valmis",
+  "editor.back": "Takaisin",
   "editor.discard": "Hylkää",
   "editor.metadata.created": "Luotu {date}",
   "editor.metadata.edited": "Muokattu {date}",

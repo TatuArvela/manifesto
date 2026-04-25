@@ -26,11 +26,11 @@
   }
 }
 
-.animate-fade-in {
+@utility animate-fade-in {
   animation: fade-in 100ms ease-out;
 }
 
-.animate-scale-in {
+@utility animate-scale-in {
   animation: scale-in 100ms ease-out;
 }
 

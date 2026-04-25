@@ -231,15 +231,15 @@ export function NoteInput() {
           <>
             {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
             <div
-              class={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
+              class={`fixed inset-0 bg-black/50 z-40 max-sm:hidden transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
               role="presentation"
               onClick={closeModal}
               onKeyDown={() => {}}
             />
             <div
-              class={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
+              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
-              <div class="pointer-events-auto w-full max-w-2xl max-h-full overflow-y-auto overscroll-contain">
+              <div class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden">
                 <NoteEditor
                   title={title}
                   onTitleChange={setTitle}
