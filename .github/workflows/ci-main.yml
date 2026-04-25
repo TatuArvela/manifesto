@@ -30,7 +30,20 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: npx playwright install --with-deps chromium
+
+      - id: playwright-version
+        run: echo "version=$(ls node_modules/.pnpm/ | grep -E '^playwright@[0-9]' | head -1 | sed 's/playwright@//')" >> "$GITHUB_OUTPUT"
+
+      - id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - run: pnpm lint
       - run: pnpm typecheck
