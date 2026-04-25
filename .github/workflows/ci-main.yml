@@ -1,12 +1,11 @@
-name: Deploy to GitHub Pages
+name: CI (main)
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
     branches: [main]
 
 permissions:
+  contents: read
   pages: write
   id-token: write
 
@@ -15,8 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  ci:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -32,6 +30,11 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
+
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
 
       - run: pnpm --filter @manifesto/client build
 
