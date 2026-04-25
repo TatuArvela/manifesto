@@ -88,7 +88,7 @@ function ImageLightbox({
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  });
+  }, [onClose, hasMultiple, index, images.length]);
 
   return createPortal(
     <>

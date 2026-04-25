@@ -33,6 +33,31 @@ interface StoredReminder {
   lastFiredAt: string | null;
 }
 
+const VALID_RECURRENCES: ReminderRecurrence[] = [
+  "none",
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+];
+
+function isValidStoredReminder(v: unknown): v is StoredReminder {
+  if (!v || typeof v !== "object") return false;
+  const r = v as Record<string, unknown>;
+  if (typeof r.noteId !== "string" || !r.noteId) return false;
+  if (typeof r.time !== "string") return false;
+  if (Number.isNaN(new Date(r.time).getTime())) return false;
+  if (
+    typeof r.recurrence !== "string" ||
+    !VALID_RECURRENCES.includes(r.recurrence as ReminderRecurrence)
+  )
+    return false;
+  if (typeof r.title !== "string") return false;
+  if (typeof r.body !== "string") return false;
+  if (r.lastFiredAt !== null && typeof r.lastFiredAt !== "string") return false;
+  return true;
+}
+
 const DB_NAME = "manifesto-reminders";
 const STORE = "reminders";
 const PERIODIC_TAG = "check-reminders";
@@ -174,14 +199,25 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event: ExtendableMessageEvent) => {
+  // Only accept messages from same-origin clients of this service worker. The
+  // postMessage handler runs in a privileged context — replaceAll wipes the
+  // entire reminder store, so we type-check every payload.
   const data = event.data as
-    | { type: "sync-reminders"; reminders: StoredReminder[] }
-    | { type: "delete-reminder"; noteId: string }
+    | { type: "sync-reminders"; reminders: unknown }
+    | { type: "delete-reminder"; noteId: unknown }
     | undefined;
-  if (!data) return;
+  if (!data || typeof data !== "object") return;
   if (data.type === "sync-reminders") {
-    event.waitUntil(replaceAll(data.reminders).then(() => fireDue()));
+    if (!Array.isArray(data.reminders)) return;
+    const valid = data.reminders.filter(isValidStoredReminder);
+    if (valid.length !== data.reminders.length) {
+      console.warn(
+        `Ignoring ${data.reminders.length - valid.length} malformed reminder(s)`,
+      );
+    }
+    event.waitUntil(replaceAll(valid).then(() => fireDue()));
   } else if (data.type === "delete-reminder") {
+    if (typeof data.noteId !== "string" || !data.noteId) return;
     event.waitUntil(deleteOne(data.noteId));
   }
 });

@@ -21,6 +21,32 @@ export interface AutoNoteOverride {
 
 const STORAGE_KEY = "manifesto:auto-note-overrides";
 
+function isValidOverride(v: unknown): v is AutoNoteOverride {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  if (o.pinned !== undefined && typeof o.pinned !== "boolean") return false;
+  if (o.color !== undefined && typeof o.color !== "string") return false;
+  if (o.archived !== undefined && typeof o.archived !== "boolean") return false;
+  if (o.trashed !== undefined && typeof o.trashed !== "boolean") return false;
+  if (
+    o.trashedAt !== undefined &&
+    o.trashedAt !== null &&
+    typeof o.trashedAt !== "string"
+  )
+    return false;
+  if (o.position !== undefined && typeof o.position !== "number") return false;
+  if (o.tags !== undefined) {
+    if (!Array.isArray(o.tags)) return false;
+    if (!o.tags.every((t) => typeof t === "string")) return false;
+  }
+  if (o.reminder !== undefined && o.reminder !== null) {
+    if (typeof o.reminder !== "object") return false;
+    const r = o.reminder as Record<string, unknown>;
+    if (typeof r.time !== "string") return false;
+  }
+  return true;
+}
+
 function load(): Record<string, AutoNoteOverride> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -29,7 +55,11 @@ function load(): Record<string, AutoNoteOverride> {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return {};
     }
-    return parsed as Record<string, AutoNoteOverride>;
+    const out: Record<string, AutoNoteOverride> = {};
+    for (const [id, val] of Object.entries(parsed as Record<string, unknown>)) {
+      if (isValidOverride(val)) out[id] = val;
+    }
+    return out;
   } catch {
     return {};
   }

@@ -29,6 +29,17 @@ export function ToggleSwitch({
       role="switch"
       aria-checked={checked}
       tabIndex={0}
+      onKeyDown={(e) => {
+        // Only handle activation when the container itself has focus. The
+        // inner buttons handle their own Space/Enter via the browser's button
+        // default click — bubbling here would double-toggle and produce the
+        // wrong value when focus is on a button.
+        if (e.target !== e.currentTarget) return;
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          onChange(!checked);
+        }
+      }}
     >
       <span
         class="absolute top-0.5 rounded-full bg-white dark:bg-neutral-300 shadow transition-all duration-200"

@@ -95,19 +95,24 @@
         }
 
         window.addEventListener("message", function (event) {
+          // Only honor messages from our parent window. Without this, any
+          // window holding a reference to this sandbox could drive it.
+          if (event.source !== window.parent) return;
           const msg = event.data;
           if (!msg || typeof msg !== "object") return;
-          const source = event.source;
 
           if (msg.type === "init" && typeof msg.prelude === "string") {
             try {
               const fn = new Function(msg.prelude + "\nreturn __stdlibRaw;");
               stdlibRaw = fn();
-              source.postMessage({ type: "init-ok", id: msg.id }, "*");
+              window.parent.postMessage(
+                { type: "init-ok", id: msg.id },
+                "*",
+              );
             } catch (err) {
               const message =
                 err && err.message ? String(err.message) : String(err);
-              source.postMessage(
+              window.parent.postMessage(
                 { type: "init-err", id: msg.id, error: message },
                 "*",
               );
@@ -117,7 +122,7 @@
 
           if (msg.type === "run" && typeof msg.id === "number") {
             if (!stdlibRaw) {
-              source.postMessage(
+              window.parent.postMessage(
                 {
                   type: "run-err",
                   id: msg.id,
@@ -129,14 +134,14 @@
             }
             try {
               const notes = runInvocation(msg);
-              source.postMessage(
+              window.parent.postMessage(
                 { type: "run-ok", id: msg.id, notes: notes },
                 "*",
               );
             } catch (err) {
               const message =
                 err && err.message ? String(err.message) : String(err);
-              source.postMessage(
+              window.parent.postMessage(
                 { type: "run-err", id: msg.id, error: message },
                 "*",
               );

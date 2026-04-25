@@ -232,6 +232,12 @@ export async function loadNotes() {
   }
 }
 
+// Reorder writes spaced positions so a future tweak (insert-between, etc.)
+// doesn't have to renumber the whole list. Date.now() in createNote is always
+// larger than these spaced positions, so new notes consistently sort to the
+// end of the manual-order list — same as the pre-reorder behavior.
+const POSITION_STEP = 1000;
+
 export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
   const noteCreate: NoteCreate = {
     title: input.title ?? "",
@@ -316,8 +322,17 @@ export async function permanentlyDeleteNote(id: string) {
 }
 
 export async function deleteAllNotes() {
-  await storage.deleteAll();
-  notes.value = [];
+  try {
+    await storage.deleteAll();
+    // Re-read instead of assuming []. RestApiAdapter deletes one-by-one and a
+    // partial failure (caught above) would otherwise leave the signal lying.
+    notes.value = await storage.getAll();
+  } catch (err) {
+    console.error("Failed to delete all notes:", err);
+    showError(t("error.deleteFailed"));
+    notes.value = await storage.getAll().catch(() => notes.value);
+    throw err;
+  }
 }
 
 export async function trashNote(id: string) {
@@ -485,9 +500,10 @@ export async function reorderNotes(
   const reordered = [...noteIds];
   const [moved] = reordered.splice(fromIndex, 1);
   reordered.splice(toIndex, 0, moved);
-  // Assign new positions based on array order
+  // Spaced positions so new notes can slot above without colliding with the
+  // existing range. See nextCreatePosition.
   for (let i = 0; i < reordered.length; i++) {
-    await updateNote(reordered[i], { position: i });
+    await updateNote(reordered[i], { position: (i + 1) * POSITION_STEP });
   }
 }
 

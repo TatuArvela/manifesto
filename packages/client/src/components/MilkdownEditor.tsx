@@ -86,6 +86,8 @@ export function MilkdownEditor({
   const initialContentRef = useRef(content);
 
   const [rawContent, setRawContent] = useState(content);
+  const rawContentRef = useRef(rawContent);
+  rawContentRef.current = rawContent;
 
   const build = useCallback((root: HTMLElement) => {
     return Editor.make()
@@ -146,12 +148,18 @@ export function MilkdownEditor({
   useEffect(() => {
     if (!editor) return;
     if (rawMode) {
-      setRawContent(getEditorMarkdown(editor));
+      const md = getEditorMarkdown(editor);
+      setRawContent(md);
+      rawContentRef.current = md;
     } else {
-      editor.action(replaceAll(rawContent));
-      onChangeRef.current(rawContent);
+      // Read the latest textarea value, not whatever was captured when the
+      // toggle effect was first scheduled — otherwise edits made in raw mode
+      // are silently dropped on the way back to WYSIWYG.
+      const latest = rawContentRef.current;
+      editor.action(replaceAll(latest));
+      onChangeRef.current(latest);
     }
-  }, [rawMode]);
+  }, [rawMode, editor]);
 
   const rawRows = Math.max(5, rawContent.split("\n").length);
 

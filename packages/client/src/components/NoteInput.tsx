@@ -106,25 +106,30 @@ export function NoteInput() {
   };
 
   const closeModal = () => {
+    // Snapshot at call time. The 150ms close animation creates a window where
+    // a final Milkdown markdownUpdated (fired on blur) can land after this,
+    // and reading the closure-captured state inside the timeout would drop
+    // that last edit. Save synchronously now, animate the unmount after.
+    const snap = {
+      title: title.trim(),
+      content: content.trim(),
+      color,
+      font,
+      pinned,
+      tags,
+      images,
+      linkPreviews,
+    };
+    if (
+      snap.title ||
+      snap.content ||
+      snap.images.length > 0 ||
+      snap.linkPreviews.length > 0
+    ) {
+      createNote(snap);
+    }
     setClosing(true);
     setTimeout(() => {
-      if (
-        title.trim() ||
-        content.trim() ||
-        images.length > 0 ||
-        linkPreviews.length > 0
-      ) {
-        createNote({
-          title: title.trim(),
-          content: content.trim(),
-          color,
-          font,
-          pinned,
-          tags,
-          images,
-          linkPreviews,
-        });
-      }
       reset();
       setClosing(false);
       setExpanded(false);

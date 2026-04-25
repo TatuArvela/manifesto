@@ -160,7 +160,13 @@ export function SearchView() {
   const [advancedOpen, setAdvancedOpen] = useState(filtersActive);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    // Only autofocus on desktop — on mobile this would raise the soft keyboard
+    // on every search-view mount (incl. back-navigation and deep-link restore).
+    // The mobile input is `md:hidden`; desktop uses the header input anyway,
+    // so this effectively only fires when the desktop input is rendered.
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      inputRef.current?.focus();
+    }
   }, []);
 
   return (

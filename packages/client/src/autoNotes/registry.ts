@@ -81,14 +81,30 @@ export function setPluginError(id: string, error: string | undefined) {
   );
 }
 
-export async function refetchPlugin(id: string): Promise<void> {
-  const plugin = plugins.value.find((p) => p.id === id);
-  if (!plugin || plugin.origin.kind !== "url") return;
-  const res = await fetch(plugin.origin.url);
+// Caps unaudited remote code so a compromised plugin host can't ship a
+// multi-megabyte payload that gets eval'd inside the sandbox on next refetch.
+const MAX_PLUGIN_SOURCE_BYTES = 256 * 1024;
+
+async function fetchPluginText(url: string): Promise<string> {
+  const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} ${res.statusText}`);
   }
+  const len = Number(res.headers.get("content-length"));
+  if (Number.isFinite(len) && len > MAX_PLUGIN_SOURCE_BYTES) {
+    throw new Error(`Plugin source exceeds ${MAX_PLUGIN_SOURCE_BYTES} bytes`);
+  }
   const source = await res.text();
+  if (source.length > MAX_PLUGIN_SOURCE_BYTES) {
+    throw new Error(`Plugin source exceeds ${MAX_PLUGIN_SOURCE_BYTES} bytes`);
+  }
+  return source;
+}
+
+export async function refetchPlugin(id: string): Promise<void> {
+  const plugin = plugins.value.find((p) => p.id === id);
+  if (!plugin || plugin.origin.kind !== "url") return;
+  const source = await fetchPluginText(plugin.origin.url);
   const name = extractPluginTitle(source);
   plugins.value = plugins.value.map((p) =>
     p.id === id && p.origin.kind === "url"
@@ -106,9 +122,5 @@ export async function refetchPlugin(id: string): Promise<void> {
 }
 
 export async function fetchPluginSource(url: string): Promise<string> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  }
-  return res.text();
+  return fetchPluginText(url);
 }

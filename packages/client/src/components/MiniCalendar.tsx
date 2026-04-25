@@ -86,6 +86,10 @@ export function MiniCalendar({ value, onChange }: MiniCalendarProps) {
     today.getMonth(),
     today.getDate(),
   );
+  const fullDateFmt = useMemo(
+    () => new Intl.DateTimeFormat(loc, { dateStyle: "long" }),
+    [loc],
+  );
 
   const goto = (delta: number) => {
     setCursor((prev) => {
@@ -146,6 +150,9 @@ export function MiniCalendar({ value, onChange }: MiniCalendarProps) {
               type="button"
               class={cls}
               onClick={() => onChange(iso)}
+              aria-label={fullDateFmt.format(new Date(c.y, c.m, c.d))}
+              aria-current={isToday ? "date" : undefined}
+              aria-pressed={isSelected}
             >
               {c.d}
             </button>

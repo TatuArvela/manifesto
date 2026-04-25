@@ -8,6 +8,9 @@ export type ImportResult =
 const MARKDOWN_EXTS = [".md", ".markdown"];
 const JSON_EXTS = [".json"];
 
+// Guard against a multi-GB drop locking the tab in JSON.parse.
+const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+
 function sanitizeFilename(name: string): string {
   const cleaned = name
     .trim()
@@ -154,6 +157,9 @@ export function isImportableFile(file: File): boolean {
 }
 
 export async function parseImportFile(file: File): Promise<ImportResult> {
+  if (file.size > MAX_IMPORT_BYTES) {
+    throw new Error(`File exceeds ${MAX_IMPORT_BYTES} bytes`);
+  }
   const text = await file.text();
   const ext = fileExtension(file.name);
   if (MARKDOWN_EXTS.includes(ext) || file.type.startsWith("text/markdown")) {

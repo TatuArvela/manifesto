@@ -9,8 +9,8 @@ const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkBreaks)
-  .use(remarkRehype, { allowDangerousHtml: true })
-  .use(rehypeStringify, { allowDangerousHtml: true });
+  .use(remarkRehype)
+  .use(rehypeStringify);
 
 export function renderMarkdown(md: string): string {
   return String(processor.processSync(md));

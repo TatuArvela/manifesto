@@ -1,5 +1,5 @@
 import DOMPurify from "dompurify";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import type { SharedNotePayload } from "../sharing.js";
 import { clearShareHash } from "../sharing.js";
@@ -24,6 +24,14 @@ export function SharedNoteDialog({
       onDone();
     }, 150);
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismiss();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   const handleSave = async () => {
     try {
@@ -58,6 +66,9 @@ export function SharedNoteDialog({
 
       {/* Dialog */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shared-note-dialog-title"
         class={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
       >
         <div class="pointer-events-auto w-full max-w-lg max-h-full overflow-y-auto overscroll-contain">
@@ -66,7 +77,10 @@ export function SharedNoteDialog({
           >
             {/* Header */}
             <div class="px-5 pt-5 pb-3">
-              <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-3">
+              <p
+                id="shared-note-dialog-title"
+                class="text-sm text-neutral-500 dark:text-neutral-400 mb-3"
+              >
                 Someone shared a note with you
               </p>
 

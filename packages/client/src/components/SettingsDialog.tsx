@@ -91,6 +91,15 @@ export function SettingsDialog() {
     showSettings.value = false;
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen]);
+
   const handleAnimationEnd = () => {
     if (closing) {
       setVisible(false);
@@ -157,11 +166,16 @@ export function SettingsDialog() {
 
       {/* Side panel */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-dialog-title"
         class={`fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white dark:bg-neutral-800 shadow-2xl flex flex-col ${closing ? "animate-slide-out-right" : "animate-slide-in-right"}`}
         onAnimationEnd={handleAnimationEnd}
       >
         <div class="flex items-center justify-between px-6 h-14 border-b border-neutral-200 dark:border-neutral-700 shrink-0">
-          <h2 class="text-lg font-semibold">{t("settings.title")}</h2>
+          <h2 id="settings-dialog-title" class="text-lg font-semibold">
+            {t("settings.title")}
+          </h2>
           <button
             type="button"
             class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer"

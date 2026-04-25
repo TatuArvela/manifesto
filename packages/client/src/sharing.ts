@@ -1,8 +1,11 @@
-import type { NoteColor, NoteFont } from "@manifesto/shared";
+import { NoteColor, NoteFont } from "@manifesto/shared";
 import {
   compressToEncodedURIComponent,
   decompressFromEncodedURIComponent,
 } from "lz-string";
+
+const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
+const NOTE_FONTS = new Set<string>(Object.values(NoteFont));
 
 /** The subset of note fields that are shared via URL. */
 export interface SharedNotePayload {
@@ -59,7 +62,9 @@ function isValidPayload(value: unknown): value is SharedNotePayload {
     typeof obj.title === "string" &&
     typeof obj.content === "string" &&
     typeof obj.color === "string" &&
+    NOTE_COLORS.has(obj.color) &&
     typeof obj.font === "string" &&
+    NOTE_FONTS.has(obj.font) &&
     Array.isArray(obj.tags) &&
     obj.tags.every((t: unknown) => typeof t === "string")
   );

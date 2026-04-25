@@ -77,6 +77,9 @@ export function lastOccurrence(
   intervalDays: number,
   nowIso: string,
 ): string {
+  if (!Number.isFinite(intervalDays) || intervalDays <= 0) {
+    throw new RangeError("intervalDays must be a positive finite number");
+  }
   const MS = 24 * 60 * 60 * 1000;
   const start = new Date(startIso).setUTCHours(0, 0, 0, 0);
   const now = new Date(nowIso).setUTCHours(0, 0, 0, 0);

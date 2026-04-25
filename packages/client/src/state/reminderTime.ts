@@ -70,9 +70,12 @@ export function snapToFuture(
 ): string {
   if (recurrence === "none") return time;
   let current = time;
-  while (parseLocalISO(current).getTime() <= now.getTime()) {
+  // Cap iterations defensively so a non-advancing nextOccurrence (e.g. an edge
+  // case in the monthly clamp) can never lock the tab.
+  for (let i = 0; i < 1000; i++) {
+    if (parseLocalISO(current).getTime() > now.getTime()) return current;
     const advanced = nextOccurrence(current, recurrence);
-    if (!advanced) return current;
+    if (!advanced || advanced === current) return current;
     current = advanced;
   }
   return current;
