@@ -58,6 +58,7 @@ export function NoteInput() {
   const [lifting, setLifting] = useState(false);
   const [topCta, setTopCta] = useState(() => randomCta());
   const [nextCta, setNextCta] = useState(() => randomCta(topCta));
+  const focusCatcherRef = useRef<HTMLInputElement>(null);
 
   // Re-pick colors when the default note color setting changes
   const colorSetting = defaultNoteColor.value;
@@ -92,6 +93,12 @@ export function NoteInput() {
   }, [nextCta]);
 
   const openModal = () => {
+    // iOS Safari only opens the soft keyboard when .focus() runs synchronously
+    // inside a user gesture. MilkdownEditor's autoFocus runs in a useEffect
+    // after editor.create() resolves, well after the gesture ends — too late
+    // for iOS. Pre-focus a hidden input now; iOS opens the keyboard, and the
+    // later focus transfer to the editor keeps it up.
+    focusCatcherRef.current?.focus();
     setLifting(true);
     setExpanded(true);
     setStackColor(pickDefaultColor());
@@ -161,6 +168,14 @@ export function NoteInput() {
 
   return (
     <>
+      {/* iOS Safari keyboard primer — see openModal() */}
+      <input
+        ref={focusCatcherRef}
+        type="text"
+        tabIndex={-1}
+        aria-hidden="true"
+        class="fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none"
+      />
       {/* Hidden ruler to measure one grid column width */}
       {!isList && (
         <div
