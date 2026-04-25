@@ -312,7 +312,9 @@ function CardActions({
         overlay
           ? "absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-gradient-to-t from-black/60 to-transparent text-white"
           : "mt-auto pt-3 -ml-1.5",
-        isSelectMode ? "invisible" : "opacity-0 group-hover:opacity-100",
+        isSelectMode
+          ? "invisible"
+          : "opacity-0 group-hover:opacity-100 touch:opacity-100",
       )}
       onClick={(e) => {
         if (e.target !== e.currentTarget) e.stopPropagation();
@@ -622,7 +624,7 @@ export function NoteCard({
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
           <div
             class={clsx(
-              "absolute top-2 right-2 z-10 flex items-center gap-0.5 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 transition-colors duration-200",
+              "absolute top-2 right-2 z-10 flex items-center gap-0.5 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200 transition-colors duration-200",
               isSelectMode && "invisible",
             )}
             onClick={(e) => e.stopPropagation()}
@@ -633,7 +635,7 @@ export function NoteCard({
               >
                 <button
                   type="button"
-                  class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+                  class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 touch:opacity-100"} transition-opacity`}
                   onClick={() => togglePin(note.id)}
                   aria-label={
                     note.pinned ? t("noteCard.unpin") : t("noteCard.pin")

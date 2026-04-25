@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant touch (@media (hover: none));
 
 @theme {
   --breakpoint-3xl: 1920px;
