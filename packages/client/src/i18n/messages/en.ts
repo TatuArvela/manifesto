@@ -149,6 +149,10 @@ export const en = {
   "editor.metadata.created": "Created {date}",
   "editor.metadata.edited": "Edited {date}",
   "editor.imageAlt": "Delete image",
+  "editor.openImage": "Open image",
+  "editor.closeImage": "Close image",
+  "editor.previousImage": "Previous image",
+  "editor.nextImage": "Next image",
 
   // Formatting toolbar
   "format.heading": "Heading",

@@ -151,6 +151,10 @@ export const fi: Messages = {
   "editor.metadata.created": "Luotu {date}",
   "editor.metadata.edited": "Muokattu {date}",
   "editor.imageAlt": "Poista kuva",
+  "editor.openImage": "Avaa kuva",
+  "editor.closeImage": "Sulje kuva",
+  "editor.previousImage": "Edellinen kuva",
+  "editor.nextImage": "Seuraava kuva",
 
   // Formatting toolbar
   "format.heading": "Otsikko",
