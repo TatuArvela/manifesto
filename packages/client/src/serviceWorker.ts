@@ -37,9 +37,10 @@ export function registerServiceWorker(): void {
   void (async () => {
     try {
       const isDev = import.meta.env.DEV;
+      const base = import.meta.env.BASE_URL;
       await navigator.serviceWorker.register(
-        isDev ? "/dev-sw.js?dev-sw" : "/sw.mjs",
-        { type: "module", scope: "/" },
+        isDev ? `${base}dev-sw.js?dev-sw` : `${base}sw.js`,
+        { type: "module", scope: base },
       );
     } catch (err) {
       console.warn("Service worker registration failed:", err);

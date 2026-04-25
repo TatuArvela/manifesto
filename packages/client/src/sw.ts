@@ -1,5 +1,7 @@
 /// <reference lib="webworker" />
 import type { ReminderRecurrence } from "@manifesto/shared";
+import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
+import { NavigationRoute, registerRoute } from "workbox-routing";
 import { nextOccurrence, parseLocalISO } from "./state/reminderTime.js";
 
 declare const self: ServiceWorkerGlobalScope & {
@@ -12,7 +14,15 @@ declare const self: ServiceWorkerGlobalScope & {
       getTags?: () => Promise<string[]>;
     };
   };
+  __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
 };
+
+precacheAndRoute(self.__WB_MANIFEST);
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL("index.html"), {
+    denylist: [/^\/api\//, /\.[^/]+$/],
+  }),
+);
 
 interface StoredReminder {
   noteId: string;

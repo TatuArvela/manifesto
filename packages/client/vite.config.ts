@@ -61,9 +61,6 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectRegister: false,
       manifest: false,
-      injectManifest: {
-        injectionPoint: undefined,
-      },
       devOptions: {
         enabled: true,
         type: "module",
