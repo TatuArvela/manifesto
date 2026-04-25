@@ -29,7 +29,7 @@ export function TagPicker({
     <div class="px-3 py-2">
       <input
         type="text"
-        class="w-full px-2 py-1 text-sm bg-neutral-100 dark:bg-neutral-700 rounded outline-none mb-1"
+        class="w-full px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base bg-neutral-100 dark:bg-neutral-700 rounded outline-none mb-1"
         placeholder={t("tagPicker.placeholder")}
         value={newTag}
         onInput={(e) => setNewTag((e.target as HTMLInputElement).value)}

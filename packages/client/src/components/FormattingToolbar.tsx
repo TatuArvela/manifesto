@@ -228,7 +228,7 @@ interface FormattingToolbarProps {
 }
 
 const btnBase =
-  "p-1.5 rounded cursor-pointer disabled:opacity-30 disabled:cursor-default";
+  "p-1.5 max-sm:p-2.5 rounded cursor-pointer disabled:opacity-30 disabled:cursor-default";
 const btnInactive = `${btnBase} hover:bg-black/5 dark:hover:bg-white/5`;
 const btnActive = `${btnBase} bg-black/10 dark:bg-white/15`;
 
@@ -388,11 +388,11 @@ export function FormattingToolbar({
               value={linkUrl}
               onInput={(e) => setLinkUrl((e.target as HTMLInputElement).value)}
               placeholder={t("format.linkPlaceholder")}
-              class="px-2 py-1 text-sm bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded focus:outline-none focus:border-blue-500 w-56"
+              class="px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded focus:outline-none focus:border-blue-500 w-56"
             />
             <button
               type="submit"
-              class="px-2 py-1 text-sm rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
+              class="px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
             >
               {t("format.linkAdd")}
             </button>

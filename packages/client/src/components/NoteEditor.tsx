@@ -49,7 +49,7 @@ import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 const iconBtnClass =
-  "p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
+  "p-1.5 max-sm:p-2.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
 
 export { iconBtnClass };
 
@@ -322,7 +322,7 @@ export function NoteEditor({
         <input
           ref={titleRef}
           type="text"
-          class="w-full bg-transparent outline-none font-medium text-base mb-2 placeholder:text-neutral-400 sm:pr-32"
+          class="w-full bg-transparent outline-none font-medium text-base max-sm:text-lg mb-2 placeholder:text-neutral-400 sm:pr-32"
           placeholder={t("editor.titlePlaceholder")}
           value={title}
           onInput={(e) => onTitleChange((e.target as HTMLInputElement).value)}
