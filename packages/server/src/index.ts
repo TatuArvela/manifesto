@@ -4,6 +4,7 @@ import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { openDatabase } from "./db/index.js";
 import { logger } from "./lib/logger.js";
+import { startTrashCleanup } from "./lib/trashCleanup.js";
 import { attachAppSocket } from "./ws/appSocket.js";
 import { attachYjsSocket } from "./ws/yjsSocket.js";
 
@@ -29,3 +30,4 @@ const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
 
 ws.injectWebSocket(server);
 attachYjsSocket({ httpServer: server, db, sessionsRepo, notesRepo, cfg });
+startTrashCleanup(db, broadcaster);

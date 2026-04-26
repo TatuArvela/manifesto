@@ -16,6 +16,7 @@ import {
   createAuthMiddleware,
 } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 import { authCredentialsSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 
@@ -68,8 +69,15 @@ async function issueSession(
 export function createAuthRoutes(deps: AuthDeps) {
   const auth = new Hono<{ Variables: { auth: AuthContext } }>();
 
+  // Tight per-IP throttling on the unauthenticated endpoints — slows down
+  // password-spraying attacks. Tests can override the window by mounting
+  // these routes after stubbing the limiter, but the production defaults
+  // are 10 requests / 15 minutes per IP.
+  const authThrottle = rateLimit({ limit: 10, windowMs: 15 * 60 * 1000 });
+
   auth.post(
     "/register",
+    authThrottle,
     zValidator("json", authCredentialsSchema, validatorHook),
     async (c) => {
       const { username, password } = c.req.valid("json");
@@ -94,6 +102,7 @@ export function createAuthRoutes(deps: AuthDeps) {
 
   auth.post(
     "/login",
+    authThrottle,
     zValidator("json", authCredentialsSchema, validatorHook),
     async (c) => {
       const { username, password } = c.req.valid("json");

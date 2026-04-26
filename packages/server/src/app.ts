@@ -1,9 +1,11 @@
 import { Hono } from "hono";
+import { logger as honoLogger } from "hono/logger";
 import type { ServerConfig } from "./config.js";
 import type { DB } from "./db/index.js";
 import { createNotesRepo } from "./db/repositories/notes.js";
 import { createSessionsRepo } from "./db/repositories/sessions.js";
 import { createUsersRepo } from "./db/repositories/users.js";
+import { logger } from "./lib/logger.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { onError } from "./middleware/error.js";
 import { createAuthRoutes } from "./routes/auth.js";
@@ -25,6 +27,12 @@ export function createApp(deps: AppDeps) {
 
   const app = new Hono();
   app.use("*", corsMiddleware(deps.cfg));
+  if (process.env.NODE_ENV !== "test") {
+    app.use(
+      "*",
+      honoLogger((message) => logger.info(message)),
+    );
+  }
   app.onError(onError);
 
   app.get("/api/health", (c) => c.json({ ok: true }));
