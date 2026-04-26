@@ -80,4 +80,4 @@ REST is the authoritative write path; the server fans out `note:*` events from R
 
 ### Collaboration socket — `/api/yjs/notes/<id>`
 
-A Hocuspocus-backed Yjs channel for per-note collaborative editing. The server verifies that the authenticated user owns the note before upgrading the connection. Persisted Y.Doc state lives in the active storage driver (today: SQLite).
+A Hocuspocus-backed Yjs channel for per-note collaborative editing. The server verifies that the authenticated user owns the note before upgrading the connection. Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres).

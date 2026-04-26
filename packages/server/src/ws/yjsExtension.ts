@@ -5,7 +5,6 @@ import type {
 } from "@hocuspocus/server";
 import * as Y from "yjs";
 import { logger } from "../lib/logger.js";
-import { nowIso } from "../lib/time.js";
 import type { YjsStore } from "../storage/types.js";
 
 export interface YjsAuthContext {
@@ -50,7 +49,6 @@ export class YjsPersistenceExtension implements Extension {
       ctx.userId,
       Buffer.from(state),
       Buffer.from(vector),
-      nowIso(),
     );
   }
 }

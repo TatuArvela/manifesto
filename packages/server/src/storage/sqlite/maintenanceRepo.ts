@@ -7,24 +7,21 @@ interface ExpiredRow {
 }
 
 export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
-  const findExpiredStmt = db.prepare(
-    `SELECT id, user_id FROM notes
+  // Atomic delete-and-return so a note un-trashed between SELECT and DELETE
+  // can't be hard-deleted out from under the user. Requires SQLite ≥ 3.35.
+  const cleanupStmt = db.prepare(
+    `DELETE FROM notes
        WHERE trashed = 1
          AND trashed_at IS NOT NULL
-         AND trashed_at < ?`,
+         AND trashed_at < ?
+     RETURNING id, user_id`,
   );
-  const deleteOneStmt = db.prepare(`DELETE FROM notes WHERE id = ?`);
 
   return {
     async cleanupTrashedBefore(
       cutoffIso: string,
     ): Promise<ExpiredTrashedNote[]> {
-      const rows = findExpiredStmt.all(cutoffIso) as ExpiredRow[];
-      if (rows.length === 0) return [];
-      const tx = db.transaction((batch: ExpiredRow[]) => {
-        for (const row of batch) deleteOneStmt.run(row.id);
-      });
-      tx(rows);
+      const rows = cleanupStmt.all(cutoffIso) as ExpiredRow[];
       return rows.map((row) => ({ id: row.id, userId: row.user_id }));
     },
   };

@@ -108,4 +108,25 @@ describe("search route", () => {
     });
     expect(((await res.json()) as { notes: Note[] }).notes).toEqual([]);
   });
+
+  it("treats LIKE wildcards in the query as literal — `%` does not match all", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    await seedNote(rig, token, { title: "Plain note", content: "" });
+    await seedNote(rig, token, { title: "100% done", content: "" });
+
+    const wildcardOnly = await rig.request("/api/search?q=%25", {
+      headers: authHeaders(token),
+    });
+    // `%` alone is sanitized to an empty query → no matches (rather than all).
+    expect(
+      ((await wildcardOnly.json()) as { notes: Note[] }).notes,
+    ).toHaveLength(0);
+
+    const underscoreOnly = await rig.request("/api/search?q=_", {
+      headers: authHeaders(token),
+    });
+    expect(
+      ((await underscoreOnly.json()) as { notes: Note[] }).notes,
+    ).toHaveLength(0);
+  });
 });

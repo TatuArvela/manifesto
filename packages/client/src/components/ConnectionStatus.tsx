@@ -1,4 +1,5 @@
 import { CloudOff } from "lucide-preact";
+import { t } from "../i18n/index.js";
 import { connectionStatus } from "../realtime/appSocket.js";
 import { isServerMode } from "../state/auth.js";
 
@@ -21,8 +22,8 @@ export function ConnectionStatus() {
       <CloudOff class="w-3.5 h-3.5" />
       <span>
         {connectionStatus.value === "connecting"
-          ? "Reconnecting…"
-          : "Disconnected"}
+          ? t("connection.reconnecting")
+          : t("connection.disconnected")}
       </span>
     </div>
   );

@@ -13,7 +13,7 @@ import { rateLimit } from "../../middleware/rateLimit.js";
 import type { StorageDriver, User } from "../../storage/types.js";
 import { authCredentialsSchema } from "../../validation/schemas.js";
 import { validatorHook } from "../../validation/zValidator.js";
-import { issueSession } from "../session.js";
+import { issueSession, revokeSession } from "../session.js";
 import type {
   AuthProvider,
   AuthProviderRouter,
@@ -62,7 +62,11 @@ export function createLocalAuthRouter(
   // Tight per-IP throttling on the unauthenticated endpoints — slows down
   // password-spraying attacks. Production defaults are 10 requests / 15 minutes
   // per IP.
-  const authThrottle = rateLimit({ limit: 10, windowMs: 15 * 60 * 1000 });
+  const authThrottle = rateLimit({
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+    trustProxy: deps.cfg.trustProxy,
+  });
 
   auth.post(
     "/register",
@@ -113,7 +117,7 @@ export function createLocalAuthRouter(
 
   auth.post("/logout", createAuthMiddleware(deps.authProvider), async (c) => {
     const { token } = c.get("auth");
-    await deps.storage.sessions.deleteByToken(token);
+    await revokeSession(deps.storage, token);
     return c.body(null, 204);
   });
 

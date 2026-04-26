@@ -8,6 +8,10 @@ export interface RateLimitOptions {
   windowMs: number;
   /** Build a string key from the request — usually the source IP. */
   keyFor?: (c: Parameters<MiddlewareHandler>[0]) => string;
+  /** Honor `X-Forwarded-For` (set this when behind a trusted reverse proxy).
+   * Defaults to false — without it, an attacker can rotate the header to
+   * bypass per-IP throttling. */
+  trustProxy?: boolean;
 }
 
 interface Bucket {
@@ -15,13 +19,22 @@ interface Bucket {
   resetAt: number;
 }
 
-function defaultKey(c: Parameters<MiddlewareHandler>[0]): string {
-  const fwd = c.req.header("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
+function socketAddress(c: Parameters<MiddlewareHandler>[0]): string {
   // Hono on Node — fall back to the underlying socket peer address.
   // biome-ignore lint/suspicious/noExplicitAny: env shape is platform-specific
   const incoming = (c.env as any)?.incoming;
   return incoming?.socket?.remoteAddress ?? "anon";
+}
+
+function makeDefaultKey(
+  trustProxy: boolean,
+): (c: Parameters<MiddlewareHandler>[0]) => string {
+  if (!trustProxy) return socketAddress;
+  return (c) => {
+    const fwd = c.req.header("x-forwarded-for");
+    if (fwd) return fwd.split(",")[0].trim();
+    return socketAddress(c);
+  };
 }
 
 /**
@@ -30,7 +43,7 @@ function defaultKey(c: Parameters<MiddlewareHandler>[0]): string {
  */
 export function rateLimit(opts: RateLimitOptions): MiddlewareHandler {
   const buckets = new Map<string, Bucket>();
-  const keyFor = opts.keyFor ?? defaultKey;
+  const keyFor = opts.keyFor ?? makeDefaultKey(opts.trustProxy ?? false);
   return async (c, next) => {
     const now = Date.now();
     const key = keyFor(c);

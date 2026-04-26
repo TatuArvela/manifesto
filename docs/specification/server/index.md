@@ -48,7 +48,7 @@ Adding another driver means implementing these five interfaces and registering t
 Authentication is abstracted as an `AuthProvider`. The provider:
 
 - Implements `authenticate(token)` — turns a bearer token into an identity (used by HTTP middleware and both WebSocket handshakes).
-- Owns its own router, mounted under `/api/auth`. The local provider mounts `/register`, `/login`, `/logout`. An OIDC provider (planned) would mount `/login` (redirect), `/callback`, `/logout`.
+- Owns its own router, mounted under `/api/auth`. The local provider mounts `/register`, `/login`, `/logout`. The OIDC provider mounts `/login` (302 to the IdP), `/callback`, and `/logout`.
 
 Two implementations ship today:
 

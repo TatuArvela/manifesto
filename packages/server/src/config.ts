@@ -27,9 +27,22 @@ export interface ServerConfig {
   authProvider: AuthProviderName;
   oidc: OidcConfig | null;
   postgres: PostgresConfig | null;
+  /** When true, the rate limiter (and any future IP-aware logic) honors
+   * `X-Forwarded-For`. Set this only when running behind a trusted reverse
+   * proxy that overwrites the header — otherwise an attacker can rotate the
+   * value to defeat per-IP throttling. */
+  trustProxy: boolean;
 }
 
 const DEFAULT_DATA_DIR = "./data";
+
+function envBool(name: string, fallback: boolean): boolean {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  if (/^(1|true|yes|on)$/i.test(raw)) return true;
+  if (/^(0|false|no|off)$/i.test(raw)) return false;
+  throw new Error(`Invalid boolean for env var ${name}: ${raw}`);
+}
 
 function envInt(name: string, fallback: number): number {
   const raw = process.env[name];
@@ -88,8 +101,12 @@ function loadPostgresConfig(): PostgresConfig {
 
 function loadOidcConfig(): OidcConfig {
   const scopes = envList("OIDC_SCOPES", ["openid", "profile", "email"]);
+  // Normalize the issuer URL once at boot. The issuer is part of the user
+  // provider key (`oidc:<issuer>`); changing it via trailing slash, scheme
+  // case, or default port silently orphans every existing OIDC user.
+  const issuer = envRequired("OIDC_ISSUER").replace(/\/+$/, "");
   return {
-    issuer: envRequired("OIDC_ISSUER"),
+    issuer,
     clientId: envRequired("OIDC_CLIENT_ID"),
     clientSecret: envRequired("OIDC_CLIENT_SECRET"),
     redirectUri: envRequired("OIDC_REDIRECT_URI"),
@@ -115,5 +132,6 @@ export function loadConfig(): ServerConfig {
     authProvider,
     oidc: authProvider === "oidc" ? loadOidcConfig() : null,
     postgres: storageDriver === "postgres" ? loadPostgresConfig() : null,
+    trustProxy: envBool("TRUST_PROXY", false),
   };
 }

@@ -21,13 +21,15 @@ export function createPostgresYjsStore(pool: PgPool): YjsStore {
       userId: string,
       state: Buffer,
       stateVector: Buffer,
-      updatedAt: string,
     ): Promise<void> {
+      // Intentionally does NOT touch `updated_at` — REST optimistic
+      // concurrency tracks that field and Yjs writes shouldn't invalidate
+      // concurrent `If-Match` tokens held by REST clients.
       await pool.query(
         `UPDATE notes
-           SET yjs_state = $1, yjs_state_vector = $2, updated_at = $3
-         WHERE id = $4 AND user_id = $5`,
-        [state, stateVector, updatedAt, noteId, userId],
+           SET yjs_state = $1, yjs_state_vector = $2
+         WHERE id = $3 AND user_id = $4`,
+        [state, stateVector, noteId, userId],
       );
     },
   };

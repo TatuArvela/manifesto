@@ -46,5 +46,10 @@ COPY --from=builder /repo/packages/shared ./node_modules/@manifesto/shared
 VOLUME ["/app/data"]
 EXPOSE 3001
 
+# Probe the public health endpoint so orchestrators (Compose, K8s, ECS) can
+# tell the difference between "container started" and "HTTP listener up".
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
 USER manifesto
 CMD ["node", "dist/index.js"]

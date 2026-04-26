@@ -223,6 +223,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       userId: string,
       changes: NoteUpdate,
       updatedAt: string,
+      expectedUpdatedAt?: string,
     ): Promise<Note | null> {
       const setClauses: string[] = [];
       const values: Array<string | number | boolean | null> = [];
@@ -239,8 +240,15 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       const idParam = nextParam++;
       const userParam = nextParam++;
       values.push(id, userId);
-      const sql = `UPDATE notes SET ${setClauses.join(", ")}
-                   WHERE id = $${idParam} AND user_id = $${userParam}`;
+      // Compare-and-set on `updated_at` when the caller passed `If-Match` —
+      // collapses the prior read-then-write race into a single atomic write.
+      let where = `WHERE id = $${idParam} AND user_id = $${userParam}`;
+      if (expectedUpdatedAt !== undefined) {
+        const expectedParam = nextParam++;
+        where += ` AND updated_at = $${expectedParam}`;
+        values.push(expectedUpdatedAt);
+      }
+      const sql = `UPDATE notes SET ${setClauses.join(", ")} ${where}`;
       const result = await pool.query(sql, values);
       if ((result.rowCount ?? 0) === 0) return null;
       return await repo.getById(id, userId);
@@ -255,7 +263,13 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     },
 
     async search(userId: string, query: string): Promise<Note[]> {
-      const like = `%${query}%`;
+      // Strip LIKE wildcards from user input — without this, a search for
+      // `%` matches every note. SQL `ESCAPE` is intentionally not used so
+      // both drivers share a single sanitization model and so pg-mem (in
+      // tests) parses the query.
+      const sanitized = query.replace(/[%_]/g, "");
+      if (sanitized.length === 0) return [];
+      const like = `%${sanitized}%`;
       const result = await pool.query<NoteRow>(
         `SELECT * FROM notes
          WHERE user_id = $1

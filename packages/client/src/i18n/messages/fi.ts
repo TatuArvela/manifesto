@@ -359,4 +359,8 @@ export const fi: Messages = {
     "Palvelimeen ei saatu yhteyttä. Tarkista verkkoyhteys ja yritä uudelleen.",
   "login.oidcHint": "Kirjaudu organisaatiosi tunnuksilla.",
   "login.oidcSubmit": "Jatka kertakirjautumisella",
+
+  // Connection status banner
+  "connection.reconnecting": "Yhdistetään uudelleen…",
+  "connection.disconnected": "Yhteys katkesi",
 };

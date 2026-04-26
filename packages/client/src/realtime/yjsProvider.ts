@@ -40,10 +40,13 @@ function wsBaseUrl(): string | null {
  */
 export function useNoteYDoc(noteId: string | null): NoteYDoc {
   const [state, setState] = useState<NoteYDoc>(IDLE);
+  // Read the token via the value to make the dep array meaningful — token
+  // rotation (login swap, server-forced logout) tears down the provider and
+  // re-establishes the connection with the new credentials.
+  const token = authToken.value;
 
   useEffect(() => {
     const wsBase = wsBaseUrl();
-    const token = authToken.value;
     if (!noteId || !isServerMode || !wsBase || !token) {
       setState(IDLE);
       return;
@@ -98,7 +101,7 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
       ydoc.destroy();
       setState(IDLE);
     };
-  }, [noteId]);
+  }, [noteId, token]);
 
   return state;
 }

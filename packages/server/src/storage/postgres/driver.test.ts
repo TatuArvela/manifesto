@@ -337,7 +337,7 @@ describe("postgres storage driver (pg-mem)", () => {
     it("round-trips Yjs state bytes via bytea", async () => {
       const state = Buffer.from([1, 2, 3, 4, 5]);
       const vector = Buffer.from([9, 8, 7]);
-      await storage.yjs.store("n1", "u1", state, vector, NOW);
+      await storage.yjs.store("n1", "u1", state, vector);
       const loaded = await storage.yjs.load("n1", "u1");
       expect(loaded).toBeInstanceOf(Buffer);
       expect(Array.from(loaded ?? Buffer.alloc(0))).toEqual([1, 2, 3, 4, 5]);

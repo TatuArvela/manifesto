@@ -232,6 +232,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       userId: string,
       changes: NoteUpdate,
       updatedAt: string,
+      expectedUpdatedAt?: string,
     ): Promise<Note | null> {
       const setClauses: string[] = [];
       const params: Record<string, string | number | null | Buffer> = {
@@ -247,8 +248,14 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       }
       setClauses.push(`updated_at = @updatedAt`);
       params.updatedAt = updatedAt;
-      const sql = `UPDATE notes SET ${setClauses.join(", ")}
-                   WHERE id = @id AND user_id = @userId`;
+      // Compare-and-set on `updated_at` when the caller passed `If-Match` —
+      // collapses the prior read-then-write race into a single atomic write.
+      let where = `WHERE id = @id AND user_id = @userId`;
+      if (expectedUpdatedAt !== undefined) {
+        where += ` AND updated_at = @expectedUpdatedAt`;
+        params.expectedUpdatedAt = expectedUpdatedAt;
+      }
+      const sql = `UPDATE notes SET ${setClauses.join(", ")} ${where}`;
       const stmt = db.prepare(sql);
       const info = stmt.run(params);
       if (info.changes === 0) return null;
@@ -261,7 +268,13 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     },
 
     async search(userId: string, query: string): Promise<Note[]> {
-      const like = `%${query}%`;
+      // Strip LIKE wildcards from user input — without this, a search for
+      // `%` matches every note. We don't use SQL `ESCAPE` since pg-mem
+      // (used by the parallel postgres test suite) doesn't parse it, and
+      // we want both drivers to share a sanitization model.
+      const sanitized = query.replace(/[%_]/g, "");
+      if (sanitized.length === 0) return [];
+      const like = `%${sanitized}%`;
       const rows = searchStmt.all(userId, like, like) as NoteRow[];
       return rows.map(rowToNote);
     },

@@ -3,14 +3,14 @@ import * as openid from "openid-client";
 import type { OidcConfig, ServerConfig } from "../../config.js";
 import { logger } from "../../lib/logger.js";
 import { nowIso } from "../../lib/time.js";
-import { newId } from "../../lib/ulid.js";
+import { newId, newShortSuffix } from "../../lib/ulid.js";
 import {
   type AuthContext,
   createAuthMiddleware,
 } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
 import type { CreateUserInput, StorageDriver } from "../../storage/types.js";
-import { issueSession } from "../session.js";
+import { issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
 import type { OidcDiscoveryClient } from "./provider.js";
 
@@ -49,7 +49,9 @@ function pickAvatarColor(): string {
 }
 
 function providerKey(issuer: string): string {
-  return `oidc:${issuer}`;
+  // Issuer is normalized at config-load time, but be defensive: trailing
+  // slashes have caused account-orphaning bugs in other OIDC clients.
+  return `oidc:${issuer.replace(/\/+$/, "")}`;
 }
 
 function pickUsernameSeed(claims: openid.IDToken): string {
@@ -90,14 +92,16 @@ async function provisionUser(
     createdAt: nowIso(),
   };
 
-  // Try the seed first, then fall back to seeded suffixes on collision. The
-  // (provider, external_id) lookup is the source of truth — username is just
-  // the display handle, so collisions resolve by appending a short tag.
+  // Try the seed first, then fall back to ULID-derived suffixes on collision.
+  // The (provider, external_id) lookup is the source of truth — username is
+  // just the display handle, so collisions resolve by appending a short tag.
+  // We avoid the raw `sub` as a candidate because it's often an email or UUID
+  // (PII leak into the username column).
   const candidates = [
     seed,
-    `${seed}-${Math.random().toString(36).slice(2, 6)}`,
-    `${seed}-${Math.random().toString(36).slice(2, 6)}`,
-    externalId,
+    `${seed}-${newShortSuffix()}`,
+    `${seed}-${newShortSuffix()}`,
+    `${seed}-${newShortSuffix()}`,
   ];
   for (const username of candidates) {
     try {
@@ -108,17 +112,27 @@ async function provisionUser(
       });
       return user.id;
     } catch (err) {
-      // Treat any error here as a likely UNIQUE collision on username and
-      // try the next candidate. SQLite raises a SqliteError; Postgres will
-      // raise its own. We deliberately do not narrow on driver-specific
-      // error types since that knowledge belongs in the driver.
-      logger.warn("OIDC user provisioning collision, retrying", {
+      // Only retry on UNIQUE-constraint collisions on username. Any other
+      // error (disk full, broken schema, network) propagates so it lands in
+      // the operator's logs as a genuine failure rather than being masked
+      // as a "username taken".
+      if (!isUsernameUniqueViolation(err)) throw err;
+      logger.warn("OIDC user provisioning username collision, retrying", {
         username,
-        error: err instanceof Error ? err.message : String(err),
       });
     }
   }
   throw new HttpError(500, "Could not provision user from IdP claims");
+}
+
+function isUsernameUniqueViolation(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  // SQLite: "UNIQUE constraint failed: users.username"
+  // Postgres: "duplicate key value violates unique constraint" + index name
+  return (
+    /UNIQUE constraint failed: users\.username/i.test(message) ||
+    /duplicate key.*users_username/i.test(message)
+  );
 }
 
 export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
@@ -187,7 +201,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     }
 
     const claims = tokens.claims();
-    if (!claims || !claims.sub) {
+    if (!claims?.sub) {
       throw new HttpError(401, "OIDC ID token missing subject");
     }
 
@@ -203,7 +217,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
 
   auth.post("/logout", createAuthMiddleware(deps.authProvider), async (c) => {
     const { token } = c.get("auth");
-    await deps.storage.sessions.deleteByToken(token);
+    await revokeSession(deps.storage, token);
     return c.body(null, 204);
   });
 

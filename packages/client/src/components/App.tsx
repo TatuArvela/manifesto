@@ -35,24 +35,30 @@ import { MobileNav, Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 
+// True only on the *very first render* of a page that landed with `#token=`
+// in the URL. The OIDC consumer runs once (in useEffect, after this render
+// commits) — without this gate, LoginScreen would flash on top of the
+// callback page before `consumeOidcRedirect` resolves.
+const oidcInFlight =
+  typeof window !== "undefined" &&
+  isServerMode &&
+  window.location.hash.includes("token=");
+
 export function App() {
-  // Synchronously kick off the OIDC fragment consumer on the very first render
-  // before any LoginScreen / MainApp gating, so a server redirect of the form
-  // `https://app/#token=...` populates the auth signals (and clears the hash)
-  // without first flashing the login screen.
-  useOidcRedirectOnce();
+  const ready = useOidcRedirectOnce(oidcInFlight);
+  if (!ready) return null;
   if (isServerMode && authToken.value === null) {
     return <LoginScreen />;
   }
   return <MainApp />;
 }
 
-function useOidcRedirectOnce() {
-  const [done, setDone] = useState(false);
+function useOidcRedirectOnce(blockUntilDone: boolean): boolean {
+  const [done, setDone] = useState(!blockUntilDone);
   useEffect(() => {
-    if (done) return;
     void consumeOidcRedirect().finally(() => setDone(true));
-  }, [done]);
+  }, []);
+  return done;
 }
 
 function MainApp() {

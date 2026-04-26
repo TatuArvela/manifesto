@@ -10,11 +10,13 @@ export function createSqliteYjsStore(db: SqliteDB): YjsStore {
     `SELECT yjs_state FROM notes
      WHERE id = ? AND user_id = ?`,
   );
+  // Intentionally does NOT touch `updated_at` — REST optimistic concurrency
+  // tracks that field and Yjs writes shouldn't invalidate concurrent
+  // `If-Match` tokens held by REST clients.
   const storeStmt = db.prepare(
     `UPDATE notes
        SET yjs_state = @state,
-           yjs_state_vector = @stateVector,
-           updated_at = @updatedAt
+           yjs_state_vector = @stateVector
      WHERE id = @id AND user_id = @userId`,
   );
 
@@ -29,14 +31,12 @@ export function createSqliteYjsStore(db: SqliteDB): YjsStore {
       userId: string,
       state: Buffer,
       stateVector: Buffer,
-      updatedAt: string,
     ): Promise<void> {
       storeStmt.run({
         id: noteId,
         userId,
         state,
         stateVector,
-        updatedAt,
       });
     },
   };

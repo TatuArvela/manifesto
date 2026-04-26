@@ -65,6 +65,16 @@ describe("mergeNoteUpdate", () => {
     expect(merged.map((p) => p.url)).toEqual(["https://a"]);
   });
 
+  it("propagates the user's edits to existing link preview metadata", () => {
+    const existing = { url: "https://a", title: "Old title", domain: "a" };
+    const updated = { url: "https://a", title: "New title", domain: "a" };
+    const base = makeNote({ linkPreviews: [existing] });
+    const desired = { linkPreviews: [updated] };
+    const current = makeNote({ linkPreviews: [existing] });
+    const merged = mergeNoteUpdate(base, desired, current).linkPreviews ?? [];
+    expect(merged).toEqual([updated]);
+  });
+
   it("leaves untouched fields out of the merge result", () => {
     const base = makeNote({ tags: ["x"] });
     const desired = { tags: ["x", "y"] };

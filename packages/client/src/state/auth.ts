@@ -82,6 +82,34 @@ effect(() => {
   }, 50);
 });
 
+// Cross-tab sync: when another tab logs in, logs out, or has its session
+// invalidated, mirror that change here so the user sees a consistent view
+// across tabs. Without this, Tab B keeps issuing requests with a revoked
+// token until the next 401 round-trip.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key !== STORAGE_KEY) return;
+    if (!event.newValue) {
+      authToken.value = null;
+      currentUser.value = null;
+      return;
+    }
+    try {
+      const parsed = JSON.parse(event.newValue);
+      if (
+        parsed &&
+        typeof parsed.token === "string" &&
+        isCurrentUser(parsed.user)
+      ) {
+        authToken.value = parsed.token;
+        currentUser.value = parsed.user;
+      }
+    } catch {
+      // ignore corrupt payloads from other tabs
+    }
+  });
+}
+
 async function authRequest(
   path: string,
   body: unknown,

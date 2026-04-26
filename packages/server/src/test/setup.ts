@@ -20,6 +20,7 @@ export const TEST_CONFIG: ServerConfig = {
   authProvider: "local",
   oidc: null,
   postgres: null,
+  trustProxy: false,
 };
 
 export interface TestRig {

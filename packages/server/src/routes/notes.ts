@@ -68,24 +68,30 @@ export function createNotesRoutes(deps: NotesDeps) {
       const id = c.req.param("id") as string;
       const changes = c.req.valid("json");
       const ifMatch = c.req.header("If-Match");
-      if (ifMatch !== undefined) {
-        const current = await deps.storage.notes.getById(id, userId);
-        if (!current) {
-          throw new HttpError(404, "Note not found");
-        }
-        if (current.updatedAt !== ifMatch) {
-          // 412 carries the current note so the client can run a 3-way
-          // merge and retry without re-fetching.
-          return c.json({ error: "Note has changed", note: current }, 412);
-        }
-      }
+      // Atomic compare-and-set: storage.notes.update with an
+      // `expectedUpdatedAt` only touches the row if its current
+      // updated_at still matches. A null result means one of:
+      //   (a) the note doesn't exist or doesn't belong to this user (404)
+      //   (b) the note exists but updated_at moved on (412 + current note)
       const updated = await deps.storage.notes.update(
         id,
         userId,
         changes,
         nowIso(),
+        ifMatch,
       );
       if (!updated) {
+        const current = await deps.storage.notes.getById(id, userId);
+        if (!current) {
+          throw new HttpError(404, "Note not found");
+        }
+        if (ifMatch !== undefined && current.updatedAt !== ifMatch) {
+          // 412 carries the current note so the client can run a 3-way
+          // merge and retry without re-fetching.
+          return c.json({ error: "Note has changed", note: current }, 412);
+        }
+        // Note exists and matched — but UPDATE found nothing. This shouldn't
+        // happen in practice; treat as 404 so the client retries cleanly.
         throw new HttpError(404, "Note not found");
       }
       deps.broadcaster.emit(userId, { type: "note:updated", note: updated });

@@ -1,12 +1,14 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 export function newSessionToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-export function constantTimeEqual(a: string, b: string): boolean {
-  const aBuf = Buffer.from(a, "utf8");
-  const bBuf = Buffer.from(b, "utf8");
-  if (aBuf.length !== bBuf.length) return false;
-  return timingSafeEqual(aBuf, bBuf);
+/**
+ * Hash a bearer token for at-rest storage. The session row in the DB stores
+ * `sha256(token)`; the raw token is only ever held by the client. A leaked
+ * DB backup therefore cannot be replayed against the live server.
+ */
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token, "utf8").digest("hex");
 }

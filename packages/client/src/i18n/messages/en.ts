@@ -355,4 +355,8 @@ export const en = {
     "Could not reach the server. Check your connection and try again.",
   "login.oidcHint": "Sign in with your organization account.",
   "login.oidcSubmit": "Continue with single sign-on",
+
+  // Connection status banner
+  "connection.reconnecting": "Reconnecting…",
+  "connection.disconnected": "Disconnected",
 } as const;

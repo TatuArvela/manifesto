@@ -133,10 +133,12 @@ function connect(token: string) {
     }
     if (authToken.value) {
       backoffMs = Math.min(MAX_BACKOFF, backoffMs * 2);
-      reconnectTimer = setTimeout(
-        () => connect(authToken.value as string),
-        backoffMs,
-      );
+      reconnectTimer = setTimeout(() => {
+        // Re-read the token at fire time — the user could have logged out
+        // (or had a token swap) between scheduling and this callback.
+        const current = authToken.value;
+        if (current) connect(current);
+      }, backoffMs);
     }
   };
 
