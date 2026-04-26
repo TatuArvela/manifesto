@@ -334,4 +334,20 @@ export const en = {
   "cta.9": "What are you thinking about? 🤔",
   "cta.10": "Note to self... 💭",
   "cta.11": "Pin this thought! 📍",
+
+  // Login screen
+  "login.title": "Sign in to Manifesto",
+  "login.tabSignIn": "Sign in",
+  "login.tabRegister": "Create account",
+  "login.username": "Username",
+  "login.password": "Password",
+  "login.submitSignIn": "Sign in",
+  "login.submitRegister": "Create account",
+  "login.submitting": "Working…",
+  "login.serverLabel": "Server",
+  "login.usernameRequired": "Username is required",
+  "login.passwordRequired": "Password is required",
+  "login.passwordTooShort": "Password must be at least 8 characters",
+  "login.errorGeneric": "Could not sign in. Please try again.",
+  "login.signOut": "Sign out",
 } as const;

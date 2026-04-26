@@ -338,4 +338,20 @@ export const fi: Messages = {
   "cta.9": "Mitä mietit? 🤔",
   "cta.10": "Muistio itselleni... 💭",
   "cta.11": "Kiinnitä tämä ajatus! 📍",
+
+  // Login screen
+  "login.title": "Kirjaudu Manifestoon",
+  "login.tabSignIn": "Kirjaudu",
+  "login.tabRegister": "Luo tili",
+  "login.username": "Käyttäjätunnus",
+  "login.password": "Salasana",
+  "login.submitSignIn": "Kirjaudu",
+  "login.submitRegister": "Luo tili",
+  "login.submitting": "Käsitellään…",
+  "login.serverLabel": "Palvelin",
+  "login.usernameRequired": "Käyttäjätunnus vaaditaan",
+  "login.passwordRequired": "Salasana vaaditaan",
+  "login.passwordTooShort": "Salasanan tulee olla vähintään 8 merkkiä",
+  "login.errorGeneric": "Kirjautuminen epäonnistui. Yritä uudelleen.",
+  "login.signOut": "Kirjaudu ulos",
 };

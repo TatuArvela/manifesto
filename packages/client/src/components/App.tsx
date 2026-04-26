@@ -3,6 +3,7 @@ import { Upload } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { plural, t } from "../i18n/index.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
+import { authToken, isServerMode } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
@@ -21,6 +22,7 @@ import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
 import { AutoNotesView } from "./AutoNotesView.js";
 import { Header } from "./Header.js";
+import { LoginScreen } from "./LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
 import { ReminderBanner } from "./ReminderBanner.js";
@@ -32,6 +34,13 @@ import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 
 export function App() {
+  if (isServerMode && authToken.value === null) {
+    return <LoginScreen />;
+  }
+  return <MainApp />;
+}
+
+function MainApp() {
   const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
   const [dragActive, setDragActive] = useState(false);
 

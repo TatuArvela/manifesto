@@ -3,6 +3,7 @@ import {
   Calculator,
   Dices,
   Download,
+  LogOut,
   Monitor,
   Moon,
   Square,
@@ -16,6 +17,7 @@ import { noteFontFamilies } from "../colors.js";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { getFontLabel, plural, t } from "../i18n/index.js";
 import { SUPPORTED_LOCALES } from "../i18n/locales.js";
+import { currentUser, isServerMode, logout } from "../state/auth.js";
 import {
   createNote,
   type DecimalSeparator,
@@ -454,6 +456,25 @@ export function SettingsDialog() {
               </p>
             )}
           </div>
+
+          {isServerMode && currentUser.value && (
+            <div>
+              <h3 class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+                {currentUser.value.username}
+              </h3>
+              <button
+                type="button"
+                class="px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5"
+                onClick={() => {
+                  void logout();
+                  handleClose();
+                }}
+              >
+                <LogOut class="w-4 h-4" />
+                {t("login.signOut")}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

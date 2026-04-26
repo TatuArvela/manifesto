@@ -257,6 +257,54 @@ describe("RestApiAdapter", () => {
     });
   });
 
+  describe("error envelope + 401 handling", () => {
+    it("surfaces the server's error envelope when present", async () => {
+      fetchMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Username is already taken" }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+      await expect(adapter.create({} as never)).rejects.toThrow(
+        "Username is already taken",
+      );
+    });
+
+    it("falls back to the generic message when the body is not JSON", async () => {
+      fetchMock.mockResolvedValueOnce(new Response("nope", { status: 500 }));
+      await expect(adapter.getAll()).rejects.toThrow("Failed to fetch notes");
+    });
+
+    it("invokes onUnauthorized exactly once when the server returns 401", async () => {
+      const onUnauthorized = vi.fn();
+      const adapter401 = new RestApiAdapter(
+        "https://api.example.com",
+        "token-abc",
+        { onUnauthorized },
+      );
+      fetchMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Session expired" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+      await expect(adapter401.getAll()).rejects.toThrow("Session expired");
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not invoke onUnauthorized for non-401 errors", async () => {
+      const onUnauthorized = vi.fn();
+      const adapter500 = new RestApiAdapter(
+        "https://api.example.com",
+        "token-abc",
+        { onUnauthorized },
+      );
+      fetchMock.mockResolvedValueOnce(new Response("", { status: 500 }));
+      await expect(adapter500.getAll()).rejects.toThrow();
+      expect(onUnauthorized).not.toHaveBeenCalled();
+    });
+  });
+
   describe("search", () => {
     it("URL-encodes the query parameter", async () => {
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
