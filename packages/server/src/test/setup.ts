@@ -18,6 +18,7 @@ export const TEST_CONFIG: ServerConfig = {
   argon2Parallelism: 1,
   storageDriver: "sqlite",
   authProvider: "local",
+  oidc: null,
 };
 
 export interface TestRig {

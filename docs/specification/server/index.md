@@ -49,9 +49,12 @@ Authentication is abstracted as an `AuthProvider`. The provider:
 - Implements `authenticate(token)` — turns a bearer token into an identity (used by HTTP middleware and both WebSocket handshakes).
 - Owns its own router, mounted under `/api/auth`. The local provider mounts `/register`, `/login`, `/logout`. An OIDC provider (planned) would mount `/login` (redirect), `/callback`, `/logout`.
 
-The currently shipped implementation is **local** (`AUTH_PROVIDER=local`, the default): username + argon2-hashed password, sessions stored server-side. Future providers (OIDC, SAML) will plug in alongside without changes to the rest of the server.
+Two implementations ship today:
 
-The `users` schema is already SSO-ready: `password_hash` is nullable, and `provider` + `external_id` columns identify users provisioned via an external IdP. Local and SSO users coexist in the same table; account linking across providers is not supported.
+- **`local`** (default) — username + argon2-hashed password, sessions stored server-side. Mounts `/register`, `/login`, `/logout`.
+- **`oidc`** — OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, etc.). Mounts `/login` (redirect to IdP), `/callback` (code exchange + JIT user provisioning + session mint), `/logout`. The IdP is contacted only at login time; once a session is minted, `authenticate(token)` is identical to the local provider — pure session lookup, no IdP round-trip per request.
+
+The `users` schema supports both modes: `password_hash` is nullable, and `(provider, external_id)` is the IdP-stable identity. Local and SSO users coexist in the same table; account linking across providers is not supported in v1.
 
 ### REST API
 

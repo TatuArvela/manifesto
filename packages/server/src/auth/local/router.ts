@@ -2,8 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import type { ServerConfig } from "../../config.js";
 import { hashPassword, verifyPassword } from "../../lib/password.js";
-import { isoPlusDays, nowIso } from "../../lib/time.js";
-import { newSessionToken } from "../../lib/token.js";
+import { nowIso } from "../../lib/time.js";
 import { newId } from "../../lib/ulid.js";
 import {
   type AuthContext,
@@ -14,6 +13,7 @@ import { rateLimit } from "../../middleware/rateLimit.js";
 import type { StorageDriver, User } from "../../storage/types.js";
 import { authCredentialsSchema } from "../../validation/schemas.js";
 import { validatorHook } from "../../validation/zValidator.js";
+import { issueSession } from "../session.js";
 import type {
   AuthProvider,
   AuthProviderRouter,
@@ -54,23 +54,6 @@ function toPublicUser(user: User): PublicUser {
   };
 }
 
-async function issueSession(
-  deps: LocalRouterDeps,
-  userId: string,
-): Promise<{ token: string; expiresAt: string }> {
-  const token = newSessionToken();
-  const now = nowIso();
-  const expiresAt = isoPlusDays(deps.cfg.sessionTtlDays);
-  await deps.storage.sessions.create({
-    token,
-    userId,
-    createdAt: now,
-    expiresAt,
-    lastSeenAt: now,
-  });
-  return { token, expiresAt };
-}
-
 export function createLocalAuthRouter(
   deps: LocalRouterDeps,
 ): AuthProviderRouter {
@@ -102,7 +85,7 @@ export function createLocalAuthRouter(
         passwordHash,
         createdAt: nowIso(),
       });
-      const { token } = await issueSession(deps, user.id);
+      const { token } = await issueSession(deps.storage, deps.cfg, user.id);
       const body: AuthSuccess = { token, user: toPublicUser(user) };
       return c.json(body, 201);
     },
@@ -122,7 +105,7 @@ export function createLocalAuthRouter(
       if (!ok) {
         throw new HttpError(401, "Invalid username or password");
       }
-      const { token } = await issueSession(deps, user.id);
+      const { token } = await issueSession(deps.storage, deps.cfg, user.id);
       const body: AuthSuccess = { token, user: toPublicUser(user) };
       return c.json(body, 200);
     },

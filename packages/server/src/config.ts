@@ -1,5 +1,14 @@
 export type StorageDriverName = "sqlite";
-export type AuthProviderName = "local";
+export type AuthProviderName = "local" | "oidc";
+
+export interface OidcConfig {
+  issuer: string;
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  postLoginRedirect: string;
+  scopes: string[];
+}
 
 export interface ServerConfig {
   port: number;
@@ -12,6 +21,7 @@ export interface ServerConfig {
   argon2Parallelism: number;
   storageDriver: StorageDriverName;
   authProvider: AuthProviderName;
+  oidc: OidcConfig | null;
 }
 
 const DEFAULT_DATA_DIR = "./data";
@@ -48,13 +58,37 @@ function envEnum<T extends string>(
   );
 }
 
+function envRequired(name: string): string {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") {
+    throw new Error(`Missing required env var ${name}`);
+  }
+  return raw;
+}
+
 const STORAGE_DRIVERS = [
   "sqlite",
 ] as const satisfies readonly StorageDriverName[];
-const AUTH_PROVIDERS = ["local"] as const satisfies readonly AuthProviderName[];
+const AUTH_PROVIDERS = [
+  "local",
+  "oidc",
+] as const satisfies readonly AuthProviderName[];
+
+function loadOidcConfig(): OidcConfig {
+  const scopes = envList("OIDC_SCOPES", ["openid", "profile", "email"]);
+  return {
+    issuer: envRequired("OIDC_ISSUER"),
+    clientId: envRequired("OIDC_CLIENT_ID"),
+    clientSecret: envRequired("OIDC_CLIENT_SECRET"),
+    redirectUri: envRequired("OIDC_REDIRECT_URI"),
+    postLoginRedirect: envRequired("OIDC_POST_LOGIN_REDIRECT"),
+    scopes,
+  };
+}
 
 export function loadConfig(): ServerConfig {
   const dataDir = process.env.DATA_DIR ?? DEFAULT_DATA_DIR;
+  const authProvider = envEnum("AUTH_PROVIDER", AUTH_PROVIDERS, "local");
   return {
     port: envInt("PORT", 3001),
     dataDir,
@@ -65,6 +99,7 @@ export function loadConfig(): ServerConfig {
     argon2TimeCost: envInt("ARGON2_TIME_COST", 2),
     argon2Parallelism: envInt("ARGON2_PARALLELISM", 1),
     storageDriver: envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite"),
-    authProvider: envEnum("AUTH_PROVIDER", AUTH_PROVIDERS, "local"),
+    authProvider,
+    oidc: authProvider === "oidc" ? loadOidcConfig() : null,
   };
 }

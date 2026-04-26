@@ -1,6 +1,6 @@
 import type { ServerConfig } from "../../config.js";
-import { isoPlusDays, nowIso } from "../../lib/time.js";
 import type { StorageDriver } from "../../storage/types.js";
+import { authenticateBySession } from "../session.js";
 import type {
   AuthIdentity,
   AuthProvider,
@@ -20,24 +20,7 @@ export function createLocalAuthProvider(
 
   const provider: AuthProvider = {
     async authenticate(token: string): Promise<AuthIdentity | null> {
-      if (!token) return null;
-      const session = await storage.sessions.findByToken(token);
-      if (!session) return null;
-      const now = nowIso();
-      if (session.expiresAt < now) {
-        await storage.sessions.deleteByToken(token);
-        return null;
-      }
-      const user = await storage.users.findById(session.userId);
-      if (!user) return null;
-      await storage.sessions.touch(token, now, isoPlusDays(cfg.sessionTtlDays));
-      return {
-        userId: user.id,
-        token,
-        username: user.username,
-        displayName: user.displayName || user.username,
-        avatarColor: user.avatarColor,
-      };
+      return authenticateBySession(storage, cfg, token);
     },
 
     router(): AuthProviderRouter {

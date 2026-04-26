@@ -19,6 +19,7 @@
     "argon2": "^0.41.0",
     "better-sqlite3": "^11.9.0",
     "hono": "^4.7.0",
+    "openid-client": "^6.8.3",
     "ulid": "^2.3.0",
     "ws": "^8.20.0",
     "y-protocols": "^1.0.7",

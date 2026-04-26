@@ -22,13 +22,23 @@ The API is the contract between the Manifesto client and server. Any server impl
 
 ### Authentication
 
-Endpoints under `/api/auth/*` are owned by the configured auth provider. The shape below is what the **local** provider exposes — the server's only built-in provider today. A different provider (e.g. OIDC) will mount a different set of routes under the same prefix.
+Endpoints under `/api/auth/*` are owned by the configured auth provider. Two providers ship today:
+
+**Local** (`AUTH_PROVIDER=local`):
 
 | Method   | Path                  | Description          |
 |----------|-----------------------|----------------------|
 | `POST`   | `/api/auth/register`  | Create account       |
 | `POST`   | `/api/auth/login`     | Log in               |
 | `POST`   | `/api/auth/logout`    | Log out              |
+
+**OIDC** (`AUTH_PROVIDER=oidc`):
+
+| Method   | Path                  | Description                                                              |
+|----------|-----------------------|--------------------------------------------------------------------------|
+| `GET`    | `/api/auth/login`     | 302 to the IdP's authorization endpoint (Authorization Code Flow + PKCE) |
+| `GET`    | `/api/auth/callback`  | IdP redirects here; server exchanges code, mints session, 302 to client  |
+| `POST`   | `/api/auth/logout`    | Log out                                                                  |
 
 All `/api/notes` and `/api/search` endpoints require authentication. Requests include a session token in the `Authorization: Bearer <token>` header. The token format and the way it is issued depend on the auth provider; clients treat it as opaque.
 

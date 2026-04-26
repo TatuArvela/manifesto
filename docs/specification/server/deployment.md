@@ -54,6 +54,42 @@ See `packages/server/.env.example` for the full list and defaults.
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.
 
+### OIDC variables (when `AUTH_PROVIDER=oidc`)
+
+All of these are required and validated at boot. The server only reads them when the OIDC provider is selected.
+
+| Variable                    | Description                                                                 |
+|-----------------------------|-----------------------------------------------------------------------------|
+| `OIDC_ISSUER`               | Issuer URL (used for OIDC discovery — e.g. `https://idp.example.com`)       |
+| `OIDC_CLIENT_ID`            | Client ID registered with the IdP                                           |
+| `OIDC_CLIENT_SECRET`        | Client secret registered with the IdP                                       |
+| `OIDC_REDIRECT_URI`         | Server callback URL — must end in `/api/auth/callback`                      |
+| `OIDC_POST_LOGIN_REDIRECT`  | Client-side URL to redirect to after successful login (token in fragment)   |
+| `OIDC_SCOPES`               | Comma-separated scopes (default `openid,profile,email`)                     |
+
+The login flow:
+
+1. Client navigates to `<server>/api/auth/login`. The server stores PKCE state server-side and redirects to the IdP authorization endpoint.
+2. After the user consents, the IdP redirects to `OIDC_REDIRECT_URI` with `code` and `state`.
+3. The server verifies state, exchanges the code (PKCE), reads ID-token claims, just-in-time provisions a user (keyed by `(provider, sub)`), and mints a Manifesto session token.
+4. The server redirects to `OIDC_POST_LOGIN_REDIRECT#token=<sessionToken>`. The client reads the fragment, stores the token, and removes it from the URL.
+
+The session token is then sent as `Authorization: Bearer <token>` against the rest of the API, identical to the local provider. Logout (`POST /api/auth/logout`) invalidates the local session; it does not perform IdP-side logout (RP-initiated logout is not implemented in v1).
+
+#### Worked example: Authentik
+
+```text
+OIDC_ISSUER=https://auth.example.com/application/o/manifesto/
+OIDC_CLIENT_ID=manifesto
+OIDC_CLIENT_SECRET=<from Authentik provider page>
+OIDC_REDIRECT_URI=https://server.example.com/api/auth/callback
+OIDC_POST_LOGIN_REDIRECT=https://notes.example.com/auth-callback
+OIDC_SCOPES=openid,profile,email
+AUTH_PROVIDER=oidc
+```
+
+In Authentik, configure the application's redirect URI to match `OIDC_REDIRECT_URI` exactly. Other IdPs (Keycloak, Google, Okta, Auth0, Authelia) work the same way — only the `OIDC_ISSUER` differs.
+
 ## Reverse Proxy
 
 For production use behind a reverse proxy (nginx, Caddy, Traefik):
