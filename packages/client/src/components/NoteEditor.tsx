@@ -89,6 +89,11 @@ interface NoteEditorProps {
   trashed?: boolean;
   onDelete?: () => void;
   deleteLabel?: string;
+  collab?: {
+    ydoc: import("yjs").Doc;
+    fragmentName?: string;
+    awareness?: import("y-protocols/awareness").Awareness;
+  };
 }
 
 export function NoteEditor({
@@ -127,6 +132,7 @@ export function NoteEditor({
   trashed,
   onDelete,
   deleteLabel,
+  collab,
 }: NoteEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontPicker, setShowFontPicker] = useState(false);
@@ -375,6 +381,7 @@ export function NoteEditor({
             rawMode={rawMode}
             autoFocus
             onEditorReady={setEditor}
+            collab={collab}
           />
         </div>
 

@@ -3,5 +3,10 @@ dist
 *.tsbuildinfo
 .vite
 *.db
+*.db-shm
+*.db-wal
+data/
 .vitest-attachments
 __screenshots__
+.env
+.env.local

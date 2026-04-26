@@ -41,7 +41,7 @@ Notes can be sorted in three modes, selectable from the header:
 
 Pinned and unpinned sections each maintain their own order independently. In default mode, each section has its own drag-and-drop sequence.
 
-In server mode, manual ordering is per-user — each user has their own arrangement.
+In connected mode, manual ordering is per-user — each user has their own arrangement.
 
 ## Grid and List Views
 

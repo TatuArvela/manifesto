@@ -338,4 +338,29 @@ export const fi: Messages = {
   "cta.9": "Mitä mietit? 🤔",
   "cta.10": "Muistio itselleni... 💭",
   "cta.11": "Kiinnitä tämä ajatus! 📍",
+
+  // Login screen
+  "login.title": "Kirjaudu Manifestoon",
+  "login.tabSignIn": "Kirjaudu",
+  "login.tabRegister": "Luo tili",
+  "login.username": "Käyttäjätunnus",
+  "login.password": "Salasana",
+  "login.submitSignIn": "Kirjaudu",
+  "login.submitRegister": "Luo tili",
+  "login.submitting": "Käsitellään…",
+  "login.serverLabel": "Palvelin",
+  "login.usernameRequired": "Käyttäjätunnus vaaditaan",
+  "login.passwordRequired": "Salasana vaaditaan",
+  "login.passwordTooShort": "Salasanan tulee olla vähintään 8 merkkiä",
+  "login.errorGeneric": "Kirjautuminen epäonnistui. Yritä uudelleen.",
+  "login.signOut": "Kirjaudu ulos",
+  "login.loading": "Yhdistetään palvelimeen…",
+  "login.serverUnavailable":
+    "Palvelimeen ei saatu yhteyttä. Tarkista verkkoyhteys ja yritä uudelleen.",
+  "login.oidcHint": "Kirjaudu organisaatiosi tunnuksilla.",
+  "login.oidcSubmit": "Jatka kertakirjautumisella",
+
+  // Connection status banner
+  "connection.reconnecting": "Yhdistetään uudelleen…",
+  "connection.disconnected": "Yhteys katkesi",
 };

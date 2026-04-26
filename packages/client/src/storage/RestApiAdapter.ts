@@ -1,13 +1,36 @@
 import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
 import type { StorageAdapter } from "./StorageAdapter.js";
 
+export interface RestApiAdapterOptions {
+  /** Invoked when the server returns 401, before the error is thrown. */
+  onUnauthorized?: () => void;
+}
+
+/**
+ * Thrown when an update collides with a newer server-side version. The
+ * caller can use `currentNote` to run a 3-way merge and retry with a
+ * fresh `If-Match`.
+ */
+export class NoteConflictError extends Error {
+  constructor(public currentNote: Note) {
+    super("Note has changed");
+    this.name = "NoteConflictError";
+  }
+}
+
 export class RestApiAdapter implements StorageAdapter {
   private baseUrl: string;
   private token: string;
+  private onUnauthorized: (() => void) | undefined;
 
-  constructor(baseUrl: string, token: string) {
+  constructor(
+    baseUrl: string,
+    token: string,
+    options: RestApiAdapterOptions = {},
+  ) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.token = token;
+    this.onUnauthorized = options.onUnauthorized;
   }
 
   private headers(): HeadersInit {
@@ -17,11 +40,25 @@ export class RestApiAdapter implements StorageAdapter {
     };
   }
 
+  private async fail(res: Response, fallback: string): Promise<never> {
+    if (res.status === 401) this.onUnauthorized?.();
+    let message = fallback;
+    try {
+      const data = (await res.json()) as { error?: unknown };
+      if (typeof data.error === "string" && data.error.length > 0) {
+        message = data.error;
+      }
+    } catch {
+      // body was not JSON; keep the fallback message
+    }
+    throw new Error(message);
+  }
+
   async getAll(): Promise<Note[]> {
     const res = await fetch(`${this.baseUrl}/api/notes`, {
       headers: this.headers(),
     });
-    if (!res.ok) throw new Error("Failed to fetch notes");
+    if (!res.ok) await this.fail(res, "Failed to fetch notes");
     const data = await res.json();
     return data.notes;
   }
@@ -31,7 +68,7 @@ export class RestApiAdapter implements StorageAdapter {
       headers: this.headers(),
     });
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error("Failed to fetch note");
+    if (!res.ok) await this.fail(res, "Failed to fetch note");
     const data = await res.json();
     return data.note;
   }
@@ -42,18 +79,31 @@ export class RestApiAdapter implements StorageAdapter {
       headers: this.headers(),
       body: JSON.stringify(note),
     });
-    if (!res.ok) throw new Error("Failed to create note");
+    if (!res.ok) await this.fail(res, "Failed to create note");
     const data = await res.json();
     return data.note;
   }
 
-  async update(id: string, changes: NoteUpdate): Promise<Note> {
+  async update(
+    id: string,
+    changes: NoteUpdate,
+    options: { ifMatch?: string } = {},
+  ): Promise<Note> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.token}`,
+    };
+    if (options.ifMatch !== undefined) headers["If-Match"] = options.ifMatch;
     const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
       method: "PUT",
-      headers: this.headers(),
+      headers,
       body: JSON.stringify(changes),
     });
-    if (!res.ok) throw new Error("Failed to update note");
+    if (res.status === 412) {
+      const data = (await res.json()) as { note?: Note };
+      if (data?.note) throw new NoteConflictError(data.note);
+    }
+    if (!res.ok) await this.fail(res, "Failed to update note");
     const data = await res.json();
     return data.note;
   }
@@ -63,7 +113,7 @@ export class RestApiAdapter implements StorageAdapter {
       method: "DELETE",
       headers: this.headers(),
     });
-    if (!res.ok) throw new Error("Failed to delete note");
+    if (!res.ok) await this.fail(res, "Failed to delete note");
   }
 
   async deleteAll(): Promise<void> {
@@ -88,7 +138,7 @@ export class RestApiAdapter implements StorageAdapter {
       `${this.baseUrl}/api/search?q=${encodeURIComponent(query)}`,
       { headers: this.headers() },
     );
-    if (!res.ok) throw new Error("Failed to search notes");
+    if (!res.ok) await this.fail(res, "Failed to search notes");
     const data = await res.json();
     return data.notes;
   }

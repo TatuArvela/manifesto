@@ -2,7 +2,9 @@ import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { plural, t } from "../i18n/index.js";
+import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
+import { authToken, consumeOidcRedirect, isServerMode } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
@@ -20,7 +22,9 @@ import {
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
 import { AutoNotesView } from "./AutoNotesView.js";
+import { ConnectionStatus } from "./ConnectionStatus.js";
 import { Header } from "./Header.js";
+import { LoginScreen } from "./LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
 import { ReminderBanner } from "./ReminderBanner.js";
@@ -31,12 +35,39 @@ import { MobileNav, Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 
+// True only on the *very first render* of a page that landed with `#token=`
+// in the URL. The OIDC consumer runs once (in useEffect, after this render
+// commits) — without this gate, LoginScreen would flash on top of the
+// callback page before `consumeOidcRedirect` resolves.
+const oidcInFlight =
+  typeof window !== "undefined" &&
+  isServerMode &&
+  window.location.hash.includes("token=");
+
 export function App() {
+  const ready = useOidcRedirectOnce(oidcInFlight);
+  if (!ready) return null;
+  if (isServerMode && authToken.value === null) {
+    return <LoginScreen />;
+  }
+  return <MainApp />;
+}
+
+function useOidcRedirectOnce(blockUntilDone: boolean): boolean {
+  const [done, setDone] = useState(!blockUntilDone);
+  useEffect(() => {
+    void consumeOidcRedirect().finally(() => setDone(true));
+  }, []);
+  return done;
+}
+
+function MainApp() {
   const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     initRouter();
+    startAppSocket();
     loadNotes();
     const stopAutoNotes = initAutoNotes();
     initReminderScheduler({
@@ -184,6 +215,7 @@ export function App() {
       </div>
       <SettingsDialog />
       <ReminderBanner />
+      <ConnectionStatus />
       <Toasts />
       {sharedNote && (
         <SharedNoteDialog

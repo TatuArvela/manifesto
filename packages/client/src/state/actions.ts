@@ -3,12 +3,14 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import { createStorage } from "../storage/index.js";
+import { NoteConflictError } from "../storage/RestApiAdapter.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
 import {
   clearAutoNoteOverride,
   updateAutoNoteOverride,
 } from "./autoNoteOverrides.js";
 import { generatedNotes } from "./autoNotes.js";
+import { mergeNoteUpdate } from "./mergeNote.js";
 import { defaultNoteColor, defaultNoteFont, sortMode } from "./prefs.js";
 import {
   activeTag,
@@ -291,11 +293,33 @@ export async function updateNote(id: string, changes: NoteUpdate) {
     });
     return null;
   }
+  const base = notes.value.find((n) => n.id === id) ?? null;
   try {
-    const note = await storage.update(id, changes);
+    const note = await storage.update(
+      id,
+      changes,
+      base ? { ifMatch: base.updatedAt } : undefined,
+    );
     notes.value = notes.value.map((n) => (n.id === id ? note : n));
     return note;
   } catch (err) {
+    if (err instanceof NoteConflictError && base) {
+      // Lost the optimistic-concurrency race against a concurrent writer
+      // (another tab / device of the same user). 3-way merge against the
+      // server's current state and retry exactly once.
+      const merged = mergeNoteUpdate(base, changes, err.currentNote);
+      try {
+        const note = await storage.update(id, merged, {
+          ifMatch: err.currentNote.updatedAt,
+        });
+        notes.value = notes.value.map((n) => (n.id === id ? note : n));
+        return note;
+      } catch (retryErr) {
+        console.error(`Conflict retry failed for note ${id}:`, retryErr);
+        showError(t("error.saveFailed"));
+        throw retryErr;
+      }
+    }
     console.error(`Failed to update note ${id}:`, err);
     showError(t("error.saveFailed"));
     throw err;
