@@ -55,7 +55,7 @@ function applyServerEvent(event: WebSocketEvent) {
       notes.value = notes.value.filter((n) => n.id !== event.id);
       break;
     case "presence:join":
-      recordPresenceJoin(event.noteId, event.userId);
+      recordPresenceJoin(event.noteId, event.user);
       break;
     case "presence:leave":
       recordPresenceLeave(event.noteId, event.userId);

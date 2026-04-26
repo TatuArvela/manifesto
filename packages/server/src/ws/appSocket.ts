@@ -1,8 +1,13 @@
 import type { NodeWebSocket } from "@hono/node-ws";
-import type { WebSocketClientEvent, WebSocketEvent } from "@manifesto/shared";
+import type {
+  PresenceUser,
+  WebSocketClientEvent,
+  WebSocketEvent,
+} from "@manifesto/shared";
 import type { Hono } from "hono";
 import type { ServerConfig } from "../config.js";
 import type { SessionsRepo } from "../db/repositories/sessions.js";
+import type { UsersRepo } from "../db/repositories/users.js";
 import { logger } from "../lib/logger.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
 import type { Broadcaster } from "./broadcaster.js";
@@ -12,6 +17,7 @@ export const SUBPROTOCOL = "manifesto-session";
 interface Connection {
   id: string;
   userId: string;
+  user: PresenceUser;
   send: (data: string) => void;
   viewedNoteId: string | null;
 }
@@ -20,12 +26,13 @@ interface AppSocketDeps {
   app: Hono;
   ws: NodeWebSocket;
   sessionsRepo: SessionsRepo;
+  usersRepo: UsersRepo;
   broadcaster: Broadcaster;
   cfg: ServerConfig;
 }
 
 export function attachAppSocket(deps: AppSocketDeps): void {
-  const { app, ws, sessionsRepo, broadcaster, cfg } = deps;
+  const { app, ws, sessionsRepo, usersRepo, broadcaster, cfg } = deps;
 
   // Negotiate the subprotocol so browsers don't reject the handshake when they
   // sent `Sec-WebSocket-Protocol: manifesto-session, <token>`.
@@ -34,10 +41,11 @@ export function attachAppSocket(deps: AppSocketDeps): void {
   };
 
   const connectionsByUser = new Map<string, Set<Connection>>();
-  const presenceByUser = new Map<
-    string,
-    Map<string /* noteId */, Set<string /* userId */>>
-  >();
+  // For each user, count how many of their connections are viewing each note.
+  // We send presence:join when the count goes 0 -> 1 and presence:leave when
+  // it goes 1 -> 0, so a user with three tabs on the same note shows up
+  // exactly once in the avatar stack.
+  const viewCountByUser = new Map<string, Map<string, number>>();
   let nextId = 0;
 
   function register(conn: Connection) {
@@ -56,20 +64,27 @@ export function attachAppSocket(deps: AppSocketDeps): void {
     if (set.size === 0) connectionsByUser.delete(conn.userId);
   }
 
-  function sendTo(userId: string, event: WebSocketEvent) {
+  function sendToOthers(
+    userId: string,
+    event: WebSocketEvent,
+    exclude?: Connection,
+  ) {
     const set = connectionsByUser.get(userId);
     if (!set) return;
     const payload = JSON.stringify(event);
-    for (const conn of set) conn.send(payload);
+    for (const conn of set) {
+      if (conn === exclude) continue;
+      conn.send(payload);
+    }
   }
 
-  broadcaster.subscribe((userId, event) => sendTo(userId, event));
+  broadcaster.subscribe((userId, event) => sendToOthers(userId, event));
 
-  function presenceMap(userId: string): Map<string, Set<string>> {
-    let m = presenceByUser.get(userId);
+  function viewCounts(userId: string): Map<string, number> {
+    let m = viewCountByUser.get(userId);
     if (!m) {
       m = new Map();
-      presenceByUser.set(userId, m);
+      viewCountByUser.set(userId, m);
     }
     return m;
   }
@@ -77,33 +92,31 @@ export function attachAppSocket(deps: AppSocketDeps): void {
   function setViewedNote(conn: Connection, noteId: string | null) {
     const previous = conn.viewedNoteId;
     if (previous === noteId) return;
+    const counts = viewCounts(conn.userId);
     if (previous !== null) {
-      const m = presenceMap(conn.userId);
-      const viewers = m.get(previous);
-      if (viewers) {
-        viewers.delete(conn.id);
-        if (viewers.size === 0) m.delete(previous);
+      const next = (counts.get(previous) ?? 1) - 1;
+      if (next <= 0) {
+        counts.delete(previous);
+        sendToOthers(
+          conn.userId,
+          { type: "presence:leave", noteId: previous, userId: conn.userId },
+          conn,
+        );
+      } else {
+        counts.set(previous, next);
       }
-      sendTo(conn.userId, {
-        type: "presence:leave",
-        noteId: previous,
-        userId: conn.id,
-      });
     }
     conn.viewedNoteId = noteId;
     if (noteId !== null) {
-      const m = presenceMap(conn.userId);
-      let viewers = m.get(noteId);
-      if (!viewers) {
-        viewers = new Set();
-        m.set(noteId, viewers);
+      const next = (counts.get(noteId) ?? 0) + 1;
+      counts.set(noteId, next);
+      if (next === 1) {
+        sendToOthers(
+          conn.userId,
+          { type: "presence:join", noteId, user: conn.user },
+          conn,
+        );
       }
-      viewers.add(conn.id);
-      sendTo(conn.userId, {
-        type: "presence:join",
-        noteId,
-        userId: conn.id,
-      });
     }
   }
 
@@ -152,6 +165,11 @@ export function attachAppSocket(deps: AppSocketDeps): void {
             socket.close(4401, "Session expired");
             return;
           }
+          const user = await usersRepo.findById(session.user_id);
+          if (!user) {
+            socket.close(4401, "User not found");
+            return;
+          }
           await sessionsRepo.touch(
             token,
             nowIso(),
@@ -160,6 +178,11 @@ export function attachAppSocket(deps: AppSocketDeps): void {
           conn = {
             id: `c${++nextId}`,
             userId: session.user_id,
+            user: {
+              id: user.id,
+              displayName: user.display_name || user.username,
+              avatarColor: user.avatar_color,
+            },
             send: (data) => socket.send(data),
             viewedNoteId: null,
           };

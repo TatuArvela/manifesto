@@ -19,9 +19,9 @@ interface Rig {
 async function bootRig(): Promise<Rig> {
   const db = openDatabase(":memory:");
   const cfg = { ...TEST_CONFIG, port: 0 };
-  const { app, sessionsRepo, broadcaster } = createApp({ db, cfg });
+  const { app, usersRepo, sessionsRepo, broadcaster } = createApp({ db, cfg });
   const ws = createNodeWebSocket({ app });
-  attachAppSocket({ app, ws, sessionsRepo, broadcaster, cfg });
+  attachAppSocket({ app, ws, sessionsRepo, usersRepo, broadcaster, cfg });
   const server = serve({ fetch: app.fetch, port: 0 });
   ws.injectWebSocket(server);
   await new Promise<void>((resolve) =>
@@ -185,13 +185,18 @@ describe("application WebSocket /api/ws", () => {
     aliceSock.ws.close();
   });
 
-  it("emits presence:join when the client sends presence:update", async () => {
+  it("emits presence:join with the originating user's profile", async () => {
     const token = await register(rig, "alice");
     // tab A, will receive the broadcast
     const a = openSocket(rig.wsUrl, token);
     // tab B, will originate the presence change
     const b = openSocket(rig.wsUrl, token);
     await Promise.all([waitOpen(a.ws), waitOpen(b.ws)]);
+
+    let bReceivedSelf = false;
+    b.ws.on("message", () => {
+      bReceivedSelf = true;
+    });
 
     const aReceived = new Promise<string>((resolve) => {
       a.ws.once("message", (data) => resolve(data.toString()));
@@ -202,8 +207,43 @@ describe("application WebSocket /api/ws", () => {
     const parsed = JSON.parse(raw);
     expect(parsed.type).toBe("presence:join");
     expect(parsed.noteId).toBe("note-X");
+    expect(parsed.user.displayName).toBe("alice");
+    expect(typeof parsed.user.avatarColor).toBe("string");
+    expect(parsed.user.id).toMatch(/^[0-9A-Z]{26}$/);
+
+    // The originator should not see its own presence echoed back.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(bReceivedSelf).toBe(false);
 
     a.ws.close();
     b.ws.close();
+  });
+
+  it("only emits one presence:join when the same user opens the note in multiple tabs", async () => {
+    const token = await register(rig, "alice");
+    const observer = openSocket(rig.wsUrl, token);
+    const tabA = openSocket(rig.wsUrl, token);
+    const tabB = openSocket(rig.wsUrl, token);
+    await Promise.all([
+      waitOpen(observer.ws),
+      waitOpen(tabA.ws),
+      waitOpen(tabB.ws),
+    ]);
+
+    const events: string[] = [];
+    observer.ws.on("message", (data) => events.push(data.toString()));
+
+    tabA.ws.send(JSON.stringify({ type: "presence:update", noteId: "note-Y" }));
+    tabB.ws.send(JSON.stringify({ type: "presence:update", noteId: "note-Y" }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    const joins = events
+      .map((raw) => JSON.parse(raw))
+      .filter((e) => e.type === "presence:join" && e.noteId === "note-Y");
+    expect(joins).toHaveLength(1);
+
+    observer.ws.close();
+    tabA.ws.close();
+    tabB.ws.close();
   });
 });

@@ -70,7 +70,11 @@ interface MilkdownEditorProps {
   rawMode?: boolean;
   autoFocus?: boolean;
   onEditorReady?: (editor: Editor) => void;
-  collab?: { ydoc: Y.Doc; fragmentName?: string };
+  collab?: {
+    ydoc: Y.Doc;
+    fragmentName?: string;
+    awareness?: import("y-protocols/awareness").Awareness;
+  };
 }
 
 export function MilkdownEditor({

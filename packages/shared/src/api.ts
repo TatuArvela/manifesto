@@ -29,11 +29,17 @@ export interface AuthCredentials {
 
 // --- WebSocket events (server → client) ---
 
+export interface PresenceUser {
+  id: string;
+  displayName: string;
+  avatarColor: string;
+}
+
 export type WebSocketEvent =
   | { type: "note:updated"; note: Note }
   | { type: "note:created"; note: Note }
   | { type: "note:deleted"; id: string }
-  | { type: "presence:join"; noteId: string; userId: string }
+  | { type: "presence:join"; noteId: string; user: PresenceUser }
   | { type: "presence:leave"; noteId: string; userId: string };
 
 // --- WebSocket events (client → server) ---

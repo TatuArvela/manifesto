@@ -63,6 +63,7 @@ import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
 import { NoteReadonlyView } from "./NoteReadonlyView.js";
 import { CardPopover } from "./Popover.js";
+import { PresenceAvatars } from "./PresenceAvatars.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPickerPanel } from "./ReminderPicker.js";
 import { TagPicker } from "./TagPicker.js";
@@ -701,6 +702,7 @@ export function NoteCard({
                 </span>
               </Tooltip>
             )}
+            <PresenceAvatars noteId={note.id} />
           </div>
 
           {hasImages && (

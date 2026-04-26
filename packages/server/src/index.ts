@@ -9,10 +9,13 @@ import { attachYjsSocket } from "./ws/yjsSocket.js";
 
 const cfg = loadConfig();
 const db = openDatabase(cfg.dbPath);
-const { app, sessionsRepo, notesRepo, broadcaster } = createApp({ db, cfg });
+const { app, usersRepo, sessionsRepo, notesRepo, broadcaster } = createApp({
+  db,
+  cfg,
+});
 
 const ws = createNodeWebSocket({ app });
-attachAppSocket({ app, ws, sessionsRepo, broadcaster, cfg });
+attachAppSocket({ app, ws, sessionsRepo, usersRepo, broadcaster, cfg });
 
 import type { Server as HttpServer } from "node:http";
 

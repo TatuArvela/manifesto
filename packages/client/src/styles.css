@@ -821,3 +821,34 @@ body.note-drag-active .note-select {
 .milkdown-editor p:has(.inline-calc-preview) > br {
   display: none;
 }
+
+/* y-prosemirror remote-cursor decorations.
+   The user's color is set inline by yCursorPlugin via the local awareness
+   state; the styles below give the caret a thin tinted body and put a
+   floating name label above. */
+.milkdown-editor .ProseMirror-yjs-cursor {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid;
+  border-right: 0;
+  word-break: normal;
+  pointer-events: none;
+}
+.milkdown-editor .ProseMirror-yjs-cursor > div {
+  position: absolute;
+  top: -1.4em;
+  left: -2px;
+  font-size: 11px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  line-height: normal;
+  user-select: none;
+  color: white;
+  padding: 1px 4px;
+  white-space: nowrap;
+  border-radius: 4px 4px 4px 0;
+}
+.milkdown-editor ::selection {
+  background-color: rgba(99, 102, 241, 0.18);
+}

@@ -3,7 +3,12 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import type { Awareness } from "y-protocols/awareness";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
-import { authToken, isServerMode, SERVER_URL } from "../state/auth.js";
+import {
+  authToken,
+  currentUser,
+  isServerMode,
+  SERVER_URL,
+} from "../state/auth.js";
 
 const SUBPROTOCOL = "manifesto-session";
 
@@ -55,6 +60,19 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
       },
     );
 
+    const user = currentUser.value;
+    if (user) {
+      provider.awareness.setLocalStateField("user", {
+        id: user.id,
+        name: user.displayName,
+        color: user.avatarColor,
+      });
+    }
+    const onPageHide = () => {
+      provider.awareness.setLocalState(null);
+    };
+    window.addEventListener("pagehide", onPageHide);
+
     setState({ ydoc, awareness: provider.awareness, status: "connecting" });
 
     const onStatus = (event: { status: string }) => {
@@ -71,7 +89,9 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
     provider.on("status", onStatus);
 
     return () => {
+      window.removeEventListener("pagehide", onPageHide);
       provider.off("status", onStatus);
+      provider.awareness.setLocalState(null);
       provider.disconnect();
       provider.destroy();
       idb.destroy();

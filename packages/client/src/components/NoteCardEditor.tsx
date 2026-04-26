@@ -33,8 +33,8 @@ export function NoteCardEditor({
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const { ydoc } = useNoteYDoc(note.id);
-  const collab = ydoc ? { ydoc } : undefined;
+  const { ydoc, awareness } = useNoteYDoc(note.id);
+  const collab = ydoc ? { ydoc, awareness: awareness ?? undefined } : undefined;
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const [showVersions, setShowVersions] = useState(false);
   const [versionsClosing, setVersionsClosing] = useState(false);

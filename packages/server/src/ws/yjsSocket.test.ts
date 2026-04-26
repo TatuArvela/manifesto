@@ -45,6 +45,7 @@ async function bootRig(): Promise<Rig> {
     app: result.app,
     ws,
     sessionsRepo: result.sessionsRepo,
+    usersRepo: result.usersRepo,
     broadcaster: result.broadcaster,
     cfg,
   });

@@ -22,6 +22,7 @@ import {
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
 import { AutoNotesView } from "./AutoNotesView.js";
+import { ConnectionStatus } from "./ConnectionStatus.js";
 import { Header } from "./Header.js";
 import { LoginScreen } from "./LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
@@ -195,6 +196,7 @@ function MainApp() {
       </div>
       <SettingsDialog />
       <ReminderBanner />
+      <ConnectionStatus />
       <Toasts />
       {sharedNote && (
         <SharedNoteDialog

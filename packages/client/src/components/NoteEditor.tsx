@@ -89,7 +89,11 @@ interface NoteEditorProps {
   trashed?: boolean;
   onDelete?: () => void;
   deleteLabel?: string;
-  collab?: { ydoc: import("yjs").Doc; fragmentName?: string };
+  collab?: {
+    ydoc: import("yjs").Doc;
+    fragmentName?: string;
+    awareness?: import("y-protocols/awareness").Awareness;
+  };
 }
 
 export function NoteEditor({

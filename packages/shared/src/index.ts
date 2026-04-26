@@ -3,6 +3,7 @@ export type {
   ErrorResponse,
   NoteResponse,
   NotesResponse,
+  PresenceUser,
   SearchParams,
   WebSocketClientEvent,
   WebSocketEvent,

@@ -49,3 +49,5 @@ export function createApp(deps: AppDeps) {
 
   return { app, usersRepo, sessionsRepo, notesRepo, broadcaster };
 }
+
+export type AppHandle = ReturnType<typeof createApp>;
