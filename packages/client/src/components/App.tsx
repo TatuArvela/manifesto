@@ -2,6 +2,7 @@ import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { plural, t } from "../i18n/index.js";
+import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
 import { authToken, isServerMode } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
@@ -46,6 +47,7 @@ function MainApp() {
 
   useEffect(() => {
     initRouter();
+    startAppSocket();
     loadNotes();
     const stopAutoNotes = initAutoNotes();
     initReminderScheduler({
