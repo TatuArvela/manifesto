@@ -44,8 +44,21 @@ function makeDefaultKey(
 export function rateLimit(opts: RateLimitOptions): MiddlewareHandler {
   const buckets = new Map<string, Bucket>();
   const keyFor = opts.keyFor ?? makeDefaultKey(opts.trustProxy ?? false);
+  // Drop expired buckets periodically so a stream of unique IPs (a distributed
+  // attack, or just real internet traffic) can't grow the map without bound.
+  let sinceSweep = 0;
+  const SWEEP_EVERY = 1024;
+  const sweep = (now: number) => {
+    for (const [key, bucket] of buckets) {
+      if (bucket.resetAt <= now) buckets.delete(key);
+    }
+  };
   return async (c, next) => {
     const now = Date.now();
+    if (++sinceSweep >= SWEEP_EVERY) {
+      sinceSweep = 0;
+      sweep(now);
+    }
     const key = keyFor(c);
     let bucket = buckets.get(key);
     if (!bucket || bucket.resetAt <= now) {

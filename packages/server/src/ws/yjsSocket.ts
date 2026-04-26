@@ -110,6 +110,11 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
   return {
     hocuspocus,
     destroy: async () => {
+      // Hocuspocus debounces persistence (2s, 10s max). Drain pending writes
+      // and close active connections before tearing down the WebSocket server
+      // so in-flight Yjs updates aren't lost on shutdown.
+      hocuspocus.flushPendingStores();
+      hocuspocus.closeConnections();
       wss.close();
     },
   };

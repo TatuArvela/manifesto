@@ -58,7 +58,10 @@ export function attachAppSocket(deps: AppSocketDeps): void {
     const set = connectionsByUser.get(conn.userId);
     if (!set) return;
     set.delete(conn);
-    if (set.size === 0) connectionsByUser.delete(conn.userId);
+    if (set.size === 0) {
+      connectionsByUser.delete(conn.userId);
+      viewCountByUser.delete(conn.userId);
+    }
   }
 
   function sendToOthers(
@@ -124,7 +127,11 @@ export function attachAppSocket(deps: AppSocketDeps): void {
       return typeof v.noteId === "string" || v.noteId === null;
     }
     if (v.type === "note:edit") {
-      return typeof v.id === "string" && typeof v.changes === "object";
+      return (
+        typeof v.id === "string" &&
+        typeof v.changes === "object" &&
+        v.changes !== null
+      );
     }
     return false;
   }
@@ -187,10 +194,7 @@ export function attachAppSocket(deps: AppSocketDeps): void {
             // only to the same user's tabs, so a malformed id can't leak
             // across users. If notes ever become shareable, gate this on
             // `storage.notes.getById(parsed.noteId, conn.userId)`.
-            setViewedNote(
-              conn,
-              parsed.noteId === undefined ? null : parsed.noteId,
-            );
+            setViewedNote(conn, parsed.noteId);
           }
           // `note:edit` from clients is not handled in Phase 3 — REST is the
           // authoritative write path; the server fans out updates from REST.

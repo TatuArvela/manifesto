@@ -108,7 +108,7 @@ function connect(token: string) {
     connectionStatus.value = "open";
     backoffMs = 1000;
     if (lastViewedNoteId !== undefined) {
-      send({ type: "presence:update", noteId: lastViewedNoteId ?? "" });
+      send({ type: "presence:update", noteId: lastViewedNoteId });
     }
   };
 
@@ -164,7 +164,7 @@ export function startAppSocket(): void {
     const id = editingNoteId.value ?? null;
     lastViewedNoteId = id;
     if (socket && socket.readyState === WebSocket.OPEN) {
-      send({ type: "presence:update", noteId: id ?? "" });
+      send({ type: "presence:update", noteId: id });
     }
   });
 }

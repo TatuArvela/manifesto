@@ -137,6 +137,14 @@ function isUsernameUniqueViolation(err: unknown): boolean {
 
 export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
   const auth = new Hono<{ Variables: { auth: AuthContext } }>();
+  // Pending flows live in process memory. That's fine for a single-node
+  // deployment, but behind a load balancer the callback may hit a different
+  // instance than the one that issued the state — and the user will see
+  // "Unknown or expired login state". Loudly warn operators at boot so they
+  // either pin sessions to a node or move this to shared storage.
+  logger.info(
+    "OIDC pending-flow state is in-process; sticky sessions are required for multi-instance deployments",
+  );
   const pending = new Map<string, PendingFlow>();
 
   function rememberFlow(state: string, codeVerifier: string): void {

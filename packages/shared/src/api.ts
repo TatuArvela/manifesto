@@ -68,4 +68,4 @@ export type WebSocketEvent =
 
 export type WebSocketClientEvent =
   | { type: "note:edit"; id: string; changes: Partial<Note> }
-  | { type: "presence:update"; noteId: string };
+  | { type: "presence:update"; noteId: string | null };

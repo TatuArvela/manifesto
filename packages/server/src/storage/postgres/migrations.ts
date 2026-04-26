@@ -58,5 +58,18 @@ CREATE INDEX IF NOT EXISTS notes_trashed_expiry
 `;
 
 export async function runMigrations(pool: PgPool): Promise<void> {
-  await pool.query(INIT_SQL);
+  // Run inside a transaction so a partial failure can't leave the schema in an
+  // inconsistent state — most importantly, missing the unique LOWER(username)
+  // index, which would let duplicate usernames slip past `findByUsername`.
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(INIT_SQL);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 }
