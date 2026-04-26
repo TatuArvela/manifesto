@@ -67,6 +67,18 @@ export function createNotesRoutes(deps: NotesDeps) {
       const { userId } = c.get("auth");
       const id = c.req.param("id") as string;
       const changes = c.req.valid("json");
+      const ifMatch = c.req.header("If-Match");
+      if (ifMatch !== undefined) {
+        const current = await deps.notesRepo.getById(id, userId);
+        if (!current) {
+          throw new HttpError(404, "Note not found");
+        }
+        if (current.updatedAt !== ifMatch) {
+          // 412 carries the current note so the client can run a 3-way
+          // merge and retry without re-fetching.
+          return c.json({ error: "Note has changed", note: current }, 412);
+        }
+      }
       const updated = await deps.notesRepo.update(
         id,
         userId,

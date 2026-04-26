@@ -1,7 +1,7 @@
 import type { Note } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RestApiAdapter } from "./RestApiAdapter.js";
+import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
 
 type FetchMock = ReturnType<typeof vi.fn<typeof fetch>>;
 
@@ -254,6 +254,43 @@ describe("RestApiAdapter", () => {
         "https://api.example.com/api/notes",
       );
       expect(lastCallInit(fetchMock, 2).method).toBe("POST");
+    });
+  });
+
+  describe("If-Match + conflict handling", () => {
+    it("sends If-Match when ifMatch is supplied", async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ note: makeNote() }));
+      await adapter.update("X", { title: "y" }, { ifMatch: "stamp-1" });
+      const headers = lastCallInit(fetchMock).headers as Record<string, string>;
+      expect(headers["If-Match"]).toBe("stamp-1");
+    });
+
+    it("does not send If-Match when ifMatch is omitted", async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ note: makeNote() }));
+      await adapter.update("X", { title: "y" });
+      const headers = lastCallInit(fetchMock).headers as Record<string, string>;
+      expect(headers["If-Match"]).toBeUndefined();
+    });
+
+    it("throws NoteConflictError carrying the current note on 412", async () => {
+      const current = makeNote({ id: "X", title: "server-side" });
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(
+          { error: "Note has changed", note: current },
+          {
+            status: 412,
+          },
+        ),
+      );
+      try {
+        await adapter.update("X", { title: "y" }, { ifMatch: "stale" });
+        expect.fail("expected NoteConflictError");
+      } catch (err) {
+        expect(err).toBeInstanceOf(NoteConflictError);
+        expect((err as NoteConflictError).currentNote.title).toBe(
+          "server-side",
+        );
+      }
     });
   });
 

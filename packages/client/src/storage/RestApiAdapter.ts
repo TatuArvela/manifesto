@@ -6,6 +6,18 @@ export interface RestApiAdapterOptions {
   onUnauthorized?: () => void;
 }
 
+/**
+ * Thrown when an update collides with a newer server-side version. The
+ * caller can use `currentNote` to run a 3-way merge and retry with a
+ * fresh `If-Match`.
+ */
+export class NoteConflictError extends Error {
+  constructor(public currentNote: Note) {
+    super("Note has changed");
+    this.name = "NoteConflictError";
+  }
+}
+
 export class RestApiAdapter implements StorageAdapter {
   private baseUrl: string;
   private token: string;
@@ -72,12 +84,25 @@ export class RestApiAdapter implements StorageAdapter {
     return data.note;
   }
 
-  async update(id: string, changes: NoteUpdate): Promise<Note> {
+  async update(
+    id: string,
+    changes: NoteUpdate,
+    options: { ifMatch?: string } = {},
+  ): Promise<Note> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.token}`,
+    };
+    if (options.ifMatch !== undefined) headers["If-Match"] = options.ifMatch;
     const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
       method: "PUT",
-      headers: this.headers(),
+      headers,
       body: JSON.stringify(changes),
     });
+    if (res.status === 412) {
+      const data = (await res.json()) as { note?: Note };
+      if (data?.note) throw new NoteConflictError(data.note);
+    }
     if (!res.ok) await this.fail(res, "Failed to update note");
     const data = await res.json();
     return data.note;

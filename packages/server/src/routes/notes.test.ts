@@ -165,4 +165,38 @@ describe("notes routes", () => {
     });
     expect(res.status).toBe(422);
   });
+
+  it("PUT with matching If-Match succeeds", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token, { title: "Old" });
+    const res = await rig.request(`/api/notes/${note.id}`, {
+      method: "PUT",
+      headers: { ...authHeaders(token), "If-Match": note.updatedAt },
+      body: JSON.stringify({ title: "New" }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("PUT with stale If-Match returns 412 and the current note", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token, { title: "Original" });
+
+    // Simulate a concurrent edit that bumps updatedAt.
+    await rig.request(`/api/notes/${note.id}`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify({ tags: ["concurrent"] }),
+    });
+
+    const res = await rig.request(`/api/notes/${note.id}`, {
+      method: "PUT",
+      headers: { ...authHeaders(token), "If-Match": note.updatedAt },
+      body: JSON.stringify({ title: "Renamed" }),
+    });
+    expect(res.status).toBe(412);
+    const body = (await res.json()) as { error: string; note: Note };
+    expect(body.error).toMatch(/changed/i);
+    expect(body.note.title).toBe("Original");
+    expect(body.note.tags).toEqual(["concurrent"]);
+  });
 });

@@ -30,7 +30,8 @@ export function createStorage(): StorageAdapter {
     getAll: () => currentStorage.value.getAll(),
     get: (id) => currentStorage.value.get(id),
     create: (note) => currentStorage.value.create(note),
-    update: (id, changes) => currentStorage.value.update(id, changes),
+    update: (id, changes, options) =>
+      currentStorage.value.update(id, changes, options),
     delete: (id) => currentStorage.value.delete(id),
     deleteAll: () => currentStorage.value.deleteAll(),
     search: (query) => currentStorage.value.search(query),
