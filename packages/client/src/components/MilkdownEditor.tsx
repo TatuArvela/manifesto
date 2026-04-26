@@ -14,9 +14,11 @@ import { gfm } from "@milkdown/kit/preset/gfm";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { getMarkdown, replaceAll } from "@milkdown/kit/utils";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import type * as Y from "yjs";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
 import { taskItemDraggable } from "../extensions/taskItemDraggable.js";
+import { yjsCollab } from "../extensions/yjsCollab.js";
 import { useMilkdownEditor } from "../hooks/useMilkdownEditor.js";
 
 /** prosemirror-markdown escapes `[` `]` per CommonMark; our content uses literal
@@ -68,6 +70,7 @@ interface MilkdownEditorProps {
   rawMode?: boolean;
   autoFocus?: boolean;
   onEditorReady?: (editor: Editor) => void;
+  collab?: { ydoc: Y.Doc; fragmentName?: string };
 }
 
 export function MilkdownEditor({
@@ -78,6 +81,7 @@ export function MilkdownEditor({
   rawMode,
   autoFocus,
   onEditorReady,
+  collab,
 }: MilkdownEditorProps) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -89,8 +93,11 @@ export function MilkdownEditor({
   const rawContentRef = useRef(rawContent);
   rawContentRef.current = rawContent;
 
+  const collabRef = useRef(collab);
+  collabRef.current = collab;
+
   const build = useCallback((root: HTMLElement) => {
-    return Editor.make()
+    const editor = Editor.make()
       .config((ctx) => {
         ctx.set(rootCtx, root);
         ctx.set(defaultValueCtx, initialContentRef.current);
@@ -108,12 +115,19 @@ export function MilkdownEditor({
       })
       .use(commonmark)
       .use(gfm)
-      .use(history)
       .use(listener)
       .use(clipboard)
       .use(manifestoInlineMarks)
       .use(taskItemDraggable)
       .use(inlineCalculationsPlugin);
+    if (collabRef.current) {
+      // y-prosemirror's yUndoPlugin replaces the standard history plugin —
+      // mixing the two double-applies undo on remote operations.
+      editor.use(yjsCollab(collabRef.current));
+    } else {
+      editor.use(history);
+    }
+    return editor;
   }, []);
 
   const { editor, mountRef } = useMilkdownEditor(build);

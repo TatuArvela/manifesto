@@ -2,6 +2,7 @@ import type { Note, NoteColor } from "@manifesto/shared";
 import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { formatDateTime, t } from "../i18n/index.js";
+import { useNoteYDoc } from "../realtime/yjsProvider.js";
 import { buildShareUrl } from "../sharing.js";
 import {
   archiveNote,
@@ -32,6 +33,8 @@ export function NoteCardEditor({
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
+  const { ydoc } = useNoteYDoc(note.id);
+  const collab = ydoc ? { ydoc } : undefined;
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const [showVersions, setShowVersions] = useState(false);
   const [versionsClosing, setVersionsClosing] = useState(false);
@@ -272,6 +275,7 @@ export function NoteCardEditor({
           }
           onClose();
         }}
+        collab={collab}
       />
     </>
   );
