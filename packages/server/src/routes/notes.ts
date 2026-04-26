@@ -1,0 +1,96 @@
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import type { ServerConfig } from "../config.js";
+import type { NotesRepo } from "../db/repositories/notes.js";
+import type { SessionsRepo } from "../db/repositories/sessions.js";
+import { nowIso } from "../lib/time.js";
+import { newId } from "../lib/ulid.js";
+import {
+  type AuthContext,
+  createAuthMiddleware,
+} from "../middleware/authBearer.js";
+import { HttpError } from "../middleware/error.js";
+import { noteCreateSchema, noteUpdateSchema } from "../validation/schemas.js";
+import { validatorHook } from "../validation/zValidator.js";
+import type { Broadcaster } from "../ws/broadcaster.js";
+
+interface NotesDeps {
+  notesRepo: NotesRepo;
+  sessionsRepo: SessionsRepo;
+  cfg: ServerConfig;
+  broadcaster: Broadcaster;
+}
+
+export function createNotesRoutes(deps: NotesDeps) {
+  const notes = new Hono<{ Variables: { auth: AuthContext } }>();
+  notes.use("*", createAuthMiddleware(deps.sessionsRepo, deps.cfg));
+
+  notes.get("/", async (c) => {
+    const { userId } = c.get("auth");
+    const list = await deps.notesRepo.listByUser(userId);
+    return c.json({ notes: list });
+  });
+
+  notes.get("/:id", async (c) => {
+    const { userId } = c.get("auth");
+    const id = c.req.param("id") as string;
+    const note = await deps.notesRepo.getById(id, userId);
+    if (!note) {
+      throw new HttpError(404, "Note not found");
+    }
+    return c.json({ note });
+  });
+
+  notes.post(
+    "/",
+    zValidator("json", noteCreateSchema, validatorHook),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const data = c.req.valid("json");
+      const now = nowIso();
+      const note = await deps.notesRepo.insert({
+        id: newId(),
+        userId,
+        data,
+        createdAt: now,
+        updatedAt: now,
+      });
+      deps.broadcaster.emit(userId, { type: "note:created", note });
+      return c.json({ note }, 201);
+    },
+  );
+
+  notes.put(
+    "/:id",
+    zValidator("json", noteUpdateSchema, validatorHook),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const id = c.req.param("id") as string;
+      const changes = c.req.valid("json");
+      const updated = await deps.notesRepo.update(
+        id,
+        userId,
+        changes,
+        nowIso(),
+      );
+      if (!updated) {
+        throw new HttpError(404, "Note not found");
+      }
+      deps.broadcaster.emit(userId, { type: "note:updated", note: updated });
+      return c.json({ note: updated });
+    },
+  );
+
+  notes.delete("/:id", async (c) => {
+    const { userId } = c.get("auth");
+    const id = c.req.param("id") as string;
+    const deleted = await deps.notesRepo.delete(id, userId);
+    if (!deleted) {
+      throw new HttpError(404, "Note not found");
+    }
+    deps.broadcaster.emit(userId, { type: "note:deleted", id });
+    return c.body(null, 204);
+  });
+
+  return notes;
+}
