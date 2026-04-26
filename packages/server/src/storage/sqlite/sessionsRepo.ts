@@ -1,6 +1,7 @@
-import type { DB } from "../index.js";
+import type { CreateSessionInput, Session, SessionsRepo } from "../types.js";
+import type { SqliteDB } from "./database.js";
 
-export interface SessionRow {
+interface SessionRow {
   token: string;
   user_id: string;
   created_at: string;
@@ -8,15 +9,17 @@ export interface SessionRow {
   last_seen_at: string;
 }
 
-export interface CreateSessionInput {
-  token: string;
-  userId: string;
-  createdAt: string;
-  expiresAt: string;
-  lastSeenAt: string;
+function rowToSession(row: SessionRow): Session {
+  return {
+    token: row.token,
+    userId: row.user_id,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+    lastSeenAt: row.last_seen_at,
+  };
 }
 
-export function createSessionsRepo(db: DB) {
+export function createSqliteSessionsRepo(db: SqliteDB): SessionsRepo {
   const insertStmt = db.prepare(
     `INSERT INTO sessions (token, user_id, created_at, expires_at, last_seen_at)
      VALUES (@token, @userId, @createdAt, @expiresAt, @lastSeenAt)`,
@@ -32,14 +35,14 @@ export function createSessionsRepo(db: DB) {
   );
 
   return {
-    async create(input: CreateSessionInput): Promise<SessionRow> {
+    async create(input: CreateSessionInput): Promise<Session> {
       insertStmt.run(input);
-      return findStmt.get(input.token) as SessionRow;
+      return rowToSession(findStmt.get(input.token) as SessionRow);
     },
 
-    async findByToken(token: string): Promise<SessionRow | null> {
+    async findByToken(token: string): Promise<Session | null> {
       const row = findStmt.get(token) as SessionRow | undefined;
-      return row ?? null;
+      return row ? rowToSession(row) : null;
     },
 
     async deleteByToken(token: string): Promise<void> {
@@ -60,5 +63,3 @@ export function createSessionsRepo(db: DB) {
     },
   };
 }
-
-export type SessionsRepo = ReturnType<typeof createSessionsRepo>;

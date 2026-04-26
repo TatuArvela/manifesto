@@ -7,13 +7,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import * as Y from "yjs";
 import { createApp } from "../app.js";
-import { type DB, openDatabase } from "../db/index.js";
+import { createAuthProvider } from "../auth/index.js";
+import type { SqliteStorageDriver } from "../storage/sqlite/driver.js";
+import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import { TEST_CONFIG } from "../test/setup.js";
 import { attachAppSocket, SUBPROTOCOL } from "./appSocket.js";
 import { attachYjsSocket, type YjsSocket } from "./yjsSocket.js";
 
 interface Rig {
-  db: DB;
+  storage: SqliteStorageDriver;
   server: ReturnType<typeof serve>;
   yjs: YjsSocket;
   baseUrl: string;
@@ -37,32 +39,25 @@ const baseNote: NoteCreate = {
 };
 
 async function bootRig(): Promise<Rig> {
-  const db = openDatabase(":memory:");
   const cfg = { ...TEST_CONFIG, port: 0 };
-  const result = createApp({ db, cfg });
-  const ws = createNodeWebSocket({ app: result.app });
-  attachAppSocket({
-    app: result.app,
-    ws,
-    sessionsRepo: result.sessionsRepo,
-    usersRepo: result.usersRepo,
-    broadcaster: result.broadcaster,
-    cfg,
-  });
+  const storage = createSqliteStorage(cfg);
+  const authProvider = createAuthProvider(cfg, storage);
+  const { app, broadcaster } = createApp({ cfg, storage, authProvider });
+  const ws = createNodeWebSocket({ app });
+  attachAppSocket({ app, ws, authProvider, broadcaster, cfg });
   // biome-ignore lint/suspicious/noExplicitAny: cast around hono-node-server's union return type
-  const server = serve({ fetch: result.app.fetch, port: 0 }) as any;
+  const server = serve({ fetch: app.fetch, port: 0 }) as any;
   await new Promise<void>((resolve) => server.once("listening", resolve));
   ws.injectWebSocket(server);
   const yjs = attachYjsSocket({
     httpServer: server,
-    db,
-    sessionsRepo: result.sessionsRepo,
-    notesRepo: result.notesRepo,
+    storage,
+    authProvider,
     cfg,
   });
   const port = (server.address() as AddressInfo).port;
   return {
-    db,
+    storage,
     server,
     yjs,
     baseUrl: `http://127.0.0.1:${port}`,
@@ -73,7 +68,7 @@ async function bootRig(): Promise<Rig> {
 async function close(rig: Rig): Promise<void> {
   await rig.yjs.destroy();
   await new Promise<void>((resolve) => rig.server.close(() => resolve()));
-  rig.db.close();
+  await rig.storage.close();
 }
 
 async function register(
@@ -186,7 +181,7 @@ describe("Yjs collaboration socket /api/yjs/notes/:id", () => {
     ws.close();
   });
 
-  it("persists Y.Doc updates to SQLite via the SqliteYjsStore extension", async () => {
+  it("persists Y.Doc updates to SQLite via the YjsPersistenceExtension", async () => {
     const { token, userId } = await register(rig, "alice");
     const noteId = await createNote(rig, token, { content: "" });
 
@@ -200,13 +195,11 @@ describe("Yjs collaboration socket /api/yjs/notes/:id", () => {
     await rig.yjs.hocuspocus.flushPendingStores();
     await conn.disconnect();
 
-    const row = rig.db
-      .prepare(`SELECT yjs_state FROM notes WHERE id = ? AND user_id = ?`)
-      .get(noteId, userId) as { yjs_state: Buffer | null } | undefined;
-    expect(row?.yjs_state).toBeInstanceOf(Buffer);
+    const persisted = await rig.storage.yjs.load(noteId, userId);
+    expect(persisted).toBeInstanceOf(Buffer);
 
     const restored = new Y.Doc();
-    Y.applyUpdate(restored, new Uint8Array(row?.yjs_state ?? Buffer.alloc(0)));
+    Y.applyUpdate(restored, new Uint8Array(persisted ?? Buffer.alloc(0)));
     expect(restored.getText("scratch").toString()).toBe("Hello, world.");
   });
 
@@ -225,7 +218,7 @@ describe("Yjs collaboration socket /api/yjs/notes/:id", () => {
     await first.disconnect();
 
     // Force the document out of Hocuspocus's in-memory cache so the next
-    // openDirectConnection reads from SQLite via SqliteYjsStore.onLoadDocument.
+    // openDirectConnection reads from storage via YjsPersistenceExtension.onLoadDocument.
     rig.yjs.hocuspocus.closeConnections(noteId);
 
     const second = await rig.yjs.hocuspocus.openDirectConnection(noteId, {

@@ -1,32 +1,33 @@
 import { Hono } from "hono";
 import { logger as honoLogger } from "hono/logger";
+import type { AuthProvider } from "./auth/types.js";
 import type { ServerConfig } from "./config.js";
-import type { DB } from "./db/index.js";
-import { createNotesRepo } from "./db/repositories/notes.js";
-import { createSessionsRepo } from "./db/repositories/sessions.js";
-import { createUsersRepo } from "./db/repositories/users.js";
 import { logger } from "./lib/logger.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { onError } from "./middleware/error.js";
-import { createAuthRoutes } from "./routes/auth.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
+import type { StorageDriver } from "./storage/types.js";
 import { type Broadcaster, createBroadcaster } from "./ws/broadcaster.js";
 
 export interface AppDeps {
-  db: DB;
   cfg: ServerConfig;
+  storage: StorageDriver;
+  authProvider: AuthProvider;
   broadcaster?: Broadcaster;
 }
 
-export function createApp(deps: AppDeps) {
-  const usersRepo = createUsersRepo(deps.db);
-  const sessionsRepo = createSessionsRepo(deps.db);
-  const notesRepo = createNotesRepo(deps.db);
+export interface AppHandle {
+  app: Hono;
+  broadcaster: Broadcaster;
+}
+
+export function createApp(deps: AppDeps): AppHandle {
+  const { cfg, storage, authProvider } = deps;
   const broadcaster = deps.broadcaster ?? createBroadcaster();
 
   const app = new Hono();
-  app.use("*", corsMiddleware(deps.cfg));
+  app.use("*", corsMiddleware(cfg));
   if (process.env.NODE_ENV !== "test") {
     app.use(
       "*",
@@ -37,25 +38,12 @@ export function createApp(deps: AppDeps) {
 
   app.get("/api/health", (c) => c.json({ ok: true }));
 
-  app.route(
-    "/api/auth",
-    createAuthRoutes({ usersRepo, sessionsRepo, cfg: deps.cfg }),
-  );
+  app.route("/api/auth", authProvider.router());
   app.route(
     "/api/notes",
-    createNotesRoutes({
-      notesRepo,
-      sessionsRepo,
-      cfg: deps.cfg,
-      broadcaster,
-    }),
+    createNotesRoutes({ storage, authProvider, cfg, broadcaster }),
   );
-  app.route(
-    "/api/search",
-    createSearchRoutes({ notesRepo, sessionsRepo, cfg: deps.cfg }),
-  );
+  app.route("/api/search", createSearchRoutes({ storage, authProvider, cfg }));
 
-  return { app, usersRepo, sessionsRepo, notesRepo, broadcaster };
+  return { app, broadcaster };
 }
-
-export type AppHandle = ReturnType<typeof createApp>;

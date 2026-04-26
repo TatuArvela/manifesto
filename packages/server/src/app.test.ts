@@ -26,8 +26,8 @@ describe("end-to-end smoke", () => {
     rig = bootTestApp();
   });
 
-  afterEach(() => {
-    rig.db.close();
+  afterEach(async () => {
+    await rig.close();
   });
 
   it("walks the full register -> CRUD -> search -> logout cycle", async () => {

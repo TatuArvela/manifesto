@@ -46,8 +46,8 @@ describe("notes routes", () => {
     rig = bootTestApp();
   });
 
-  afterEach(() => {
-    rig.db.close();
+  afterEach(async () => {
+    await rig.close();
   });
 
   it("returns 401 when no token is supplied", async () => {

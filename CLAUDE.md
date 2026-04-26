@@ -28,7 +28,7 @@ pnpm monorepo with three packages:
 
 - **`packages/shared`** — TypeScript types and enums (`Note`, `NoteColor`, `NoteVersion`, API types). Imported by both client and server. No runtime dependencies — types only.
 - **`packages/client`** — Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
-- **`packages/server`** — Node.js + TypeScript, Hono, better-sqlite3. Currently a placeholder (`src/` is empty); the client works standalone with localStorage.
+- **`packages/server`** — Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Default driver is SQLite (`better-sqlite3`); default provider is local (argon2 + sessions). The client also works standalone with localStorage in open mode, so the server is optional.
 
 ### Key Design Decisions
 
@@ -69,12 +69,21 @@ Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM p
 
 ### API Contract
 
-The server is unimplemented today, but `packages/shared/src/api.ts` already declares the wire types and `docs/specification/api.md` is the source of truth.
+`packages/shared/src/api.ts` declares the wire types and `docs/specification/api.md` is the source of truth.
 
-- REST: `/api/notes`, `/api/search`, `/api/auth/*`
-- WebSocket: `ws(s)://server/api/ws` for real-time collaborative editing
+- REST: `/api/notes`, `/api/search`, `/api/auth/*` (auth routes are owned by the active auth provider)
+- WebSockets: `/api/ws` (application events, presence) and `/api/yjs/notes/<id>` (Hocuspocus collaboration). Both authenticate via `Sec-WebSocket-Protocol`.
 - All timestamps are ISO 8601 UTC strings
 - Note schema — see `docs/specification/data-model.md`
+
+### Server Architecture
+
+Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUTH_PROVIDER`):
+
+- **`src/storage/`** — `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `yjs`, `maintenance` repos. SQLite implementation lives in `src/storage/sqlite/`. Add new drivers by implementing the interface and registering in `src/storage/index.ts`. Repository methods are `async` regardless of whether the underlying driver is sync (better-sqlite3 is sync; Postgres will be async).
+- **`src/auth/`** — `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. The local provider lives in `src/auth/local/`. The `users` schema includes nullable `password_hash`, plus `provider` and `external_id` columns so SSO providers can JIT-provision users without schema changes.
+- **`src/app.ts` / `src/index.ts`** — composition root. Constructs storage, auth provider, broadcaster, then wires the Hono app, the `/api/ws` socket (`ws/appSocket.ts`), and the Yjs collaboration socket (`ws/yjsSocket.ts` + the generic `ws/yjsExtension.ts` Hocuspocus extension that delegates to `storage.yjs`).
+- **Background work**: `lib/trashCleanup.ts` runs hourly and goes through `storage.maintenance.cleanupTrashedBefore()` rather than touching the DB directly, so it works for any storage driver.
 
 ## Testing
 

@@ -5,23 +5,26 @@ import type { Note } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createApp } from "../app.js";
-import { type DB, openDatabase } from "../db/index.js";
+import { createAuthProvider } from "../auth/index.js";
+import { createStorage } from "../storage/index.js";
+import type { StorageDriver } from "../storage/types.js";
 import { TEST_CONFIG } from "../test/setup.js";
 import { attachAppSocket, SUBPROTOCOL } from "./appSocket.js";
 
 interface Rig {
-  db: DB;
+  storage: StorageDriver;
   server: ReturnType<typeof serve>;
   baseUrl: string;
   wsUrl: string;
 }
 
 async function bootRig(): Promise<Rig> {
-  const db = openDatabase(":memory:");
   const cfg = { ...TEST_CONFIG, port: 0 };
-  const { app, usersRepo, sessionsRepo, broadcaster } = createApp({ db, cfg });
+  const storage = createStorage(cfg);
+  const authProvider = createAuthProvider(cfg, storage);
+  const { app, broadcaster } = createApp({ cfg, storage, authProvider });
   const ws = createNodeWebSocket({ app });
-  attachAppSocket({ app, ws, sessionsRepo, usersRepo, broadcaster, cfg });
+  attachAppSocket({ app, ws, authProvider, broadcaster, cfg });
   const server = serve({ fetch: app.fetch, port: 0 });
   ws.injectWebSocket(server);
   await new Promise<void>((resolve) =>
@@ -29,7 +32,7 @@ async function bootRig(): Promise<Rig> {
   );
   const port = (server.address() as AddressInfo).port;
   return {
-    db,
+    storage,
     server,
     baseUrl: `http://127.0.0.1:${port}`,
     wsUrl: `ws://127.0.0.1:${port}/api/ws`,
@@ -40,7 +43,7 @@ async function close(rig: Rig): Promise<void> {
   await new Promise<void>((resolve) => {
     rig.server.close(() => resolve());
   });
-  rig.db.close();
+  await rig.storage.close();
 }
 
 async function register(rig: Rig, username: string): Promise<string> {

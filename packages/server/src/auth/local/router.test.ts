@@ -1,15 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { bootTestApp, registerTestUser, type TestRig } from "../test/setup.js";
+import {
+  bootTestApp,
+  registerTestUser,
+  type TestRig,
+} from "../../test/setup.js";
 
-describe("auth routes", () => {
+describe("local auth router", () => {
   let rig: TestRig;
 
   beforeEach(() => {
     rig = bootTestApp();
   });
 
-  afterEach(() => {
-    rig.db.close();
+  afterEach(async () => {
+    await rig.close();
   });
 
   it("registers a user and returns a session token", async () => {
@@ -85,6 +89,25 @@ describe("auth routes", () => {
     expect(await res.json()).toEqual({
       error: "Invalid username or password",
     });
+  });
+
+  it("rejects login for SSO-only accounts (no password set)", async () => {
+    await rig.storage.users.create({
+      id: "sso-1",
+      username: "sso-user",
+      passwordHash: null,
+      displayName: "",
+      avatarColor: "",
+      provider: "oidc:example",
+      externalId: "sub-1",
+      createdAt: new Date().toISOString(),
+    });
+    const res = await rig.request("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "sso-user", password: "anything-12" }),
+    });
+    expect(res.status).toBe(401);
   });
 
   it("logs out and invalidates the session token", async () => {

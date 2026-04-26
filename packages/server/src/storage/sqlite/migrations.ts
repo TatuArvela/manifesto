@@ -3,12 +3,16 @@ import type Database from "better-sqlite3";
 const INIT_SQL = `
 CREATE TABLE IF NOT EXISTS users (
   id            TEXT PRIMARY KEY,
-  username      TEXT UNIQUE NOT NULL COLLATE NOCASE,
-  password_hash TEXT NOT NULL,
+  username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT,
   display_name  TEXT NOT NULL DEFAULT '',
   avatar_color  TEXT NOT NULL DEFAULT '',
+  provider      TEXT NOT NULL DEFAULT 'local',
+  external_id   TEXT,
   created_at    TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS users_provider_external
+  ON users(provider, external_id) WHERE external_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS sessions (
   token        TEXT PRIMARY KEY,

@@ -2,22 +2,22 @@ import type { Server as HttpServer, IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { Hocuspocus } from "@hocuspocus/server";
 import { WebSocketServer } from "ws";
+import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
-import type { DB } from "../db/index.js";
-import type { NotesRepo } from "../db/repositories/notes.js";
-import type { SessionsRepo } from "../db/repositories/sessions.js";
 import { logger } from "../lib/logger.js";
-import { isoPlusDays, nowIso } from "../lib/time.js";
+import type { StorageDriver } from "../storage/types.js";
 import { SUBPROTOCOL } from "./appSocket.js";
-import { SqliteYjsStore, type YjsAuthContext } from "./sqliteYjsStore.js";
+import {
+  type YjsAuthContext,
+  YjsPersistenceExtension,
+} from "./yjsExtension.js";
 
 export const YJS_PATH_PREFIX = "/api/yjs/notes/";
 
 interface AttachOptions {
   httpServer: HttpServer;
-  db: DB;
-  sessionsRepo: SessionsRepo;
-  notesRepo: NotesRepo;
+  storage: StorageDriver;
+  authProvider: AuthProvider;
   cfg: ServerConfig;
 }
 
@@ -27,13 +27,13 @@ export interface YjsSocket {
 }
 
 export function attachYjsSocket(opts: AttachOptions): YjsSocket {
-  const { httpServer, db, sessionsRepo, notesRepo, cfg } = opts;
+  const { httpServer, storage, authProvider } = opts;
 
   const hocuspocus = new Hocuspocus<YjsAuthContext>();
   hocuspocus.configure({
     name: "manifesto-yjs",
     quiet: true,
-    extensions: [new SqliteYjsStore(db)],
+    extensions: [new YjsPersistenceExtension(storage.yjs)],
     debounce: 2000,
     maxDebounce: 10_000,
   });
@@ -87,24 +87,15 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     }
 
     try {
-      const session = await sessionsRepo.findByToken(token);
-      if (!session) return reject(socket, 401, "Invalid session");
-      if (session.expires_at < nowIso()) {
-        await sessionsRepo.deleteByToken(token);
-        return reject(socket, 401, "Session expired");
-      }
-      const note = await notesRepo.getById(noteId, session.user_id);
+      const identity = await authProvider.authenticate(token);
+      if (!identity) return reject(socket, 401, "Invalid or expired session");
+      const note = await storage.notes.getById(noteId, identity.userId);
       if (!note) return reject(socket, 403, "Forbidden");
-      await sessionsRepo.touch(
-        token,
-        nowIso(),
-        isoPlusDays(cfg.sessionTtlDays),
-      );
 
       wss.handleUpgrade(request, socket, head, (ws) => {
         const webRequest = nodeToWebRequest(request);
         hocuspocus.handleConnection(ws, webRequest, {
-          userId: session.user_id,
+          userId: identity.userId,
           noteId,
         });
       });

@@ -1,8 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type DB, openDatabase } from "../db/index.js";
-import { createNotesRepo } from "../db/repositories/notes.js";
-import { createUsersRepo } from "../db/repositories/users.js";
+import { createSqliteStorage } from "../storage/sqlite/driver.js";
+import type { StorageDriver } from "../storage/types.js";
 import { type Broadcaster, createBroadcaster } from "../ws/broadcaster.js";
 import { startTrashCleanup } from "./trashCleanup.js";
 
@@ -23,43 +22,43 @@ const baseNote = {
 };
 
 describe("startTrashCleanup", () => {
-  let db: DB;
+  let storage: StorageDriver;
   let broadcaster: Broadcaster;
   let stop: () => void;
 
   beforeEach(async () => {
-    db = openDatabase(":memory:");
-    const users = createUsersRepo(db);
-    await users.create({
+    storage = createSqliteStorage({ dbPath: ":memory:" });
+    await storage.users.create({
       id: "u1",
       username: "alice",
       passwordHash: "h",
       displayName: "",
       avatarColor: "",
+      provider: "local",
+      externalId: null,
       createdAt: new Date().toISOString(),
     });
     broadcaster = createBroadcaster();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     stop?.();
-    db.close();
+    await storage.close();
   });
 
   it("hard-deletes trashed notes older than 30 days and broadcasts note:deleted", async () => {
-    const notes = createNotesRepo(db);
     const longAgo = new Date(
       Date.now() - 31 * 24 * 60 * 60 * 1000,
     ).toISOString();
     const recent = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
-    await notes.insert({
+    await storage.notes.insert({
       id: "expired",
       userId: "u1",
       data: { ...baseNote, trashed: true, trashedAt: longAgo },
       createdAt: longAgo,
       updatedAt: longAgo,
     });
-    await notes.insert({
+    await storage.notes.insert({
       id: "fresh",
       userId: "u1",
       data: { ...baseNote, trashed: true, trashedAt: recent },
@@ -72,10 +71,13 @@ describe("startTrashCleanup", () => {
       if (event.type === "note:deleted") events.push(event.id);
     });
 
-    stop = startTrashCleanup(db, broadcaster, 1_000_000);
+    stop = startTrashCleanup(storage, broadcaster, 1_000_000);
 
-    expect(await notes.getById("expired", "u1")).toBeNull();
-    expect(await notes.getById("fresh", "u1")).not.toBeNull();
+    // The cleanup runs asynchronously on startup; give it a tick.
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(await storage.notes.getById("expired", "u1")).toBeNull();
+    expect(await storage.notes.getById("fresh", "u1")).not.toBeNull();
     expect(events).toEqual(["expired"]);
   });
 
@@ -84,24 +86,24 @@ describe("startTrashCleanup", () => {
     broadcaster.subscribe((_uid, event) => {
       if (event.type === "note:deleted") events.push(event.id);
     });
-    stop = startTrashCleanup(db, broadcaster, 1_000_000);
+    stop = startTrashCleanup(storage, broadcaster, 1_000_000);
+    await new Promise((r) => setTimeout(r, 10));
     expect(events).toEqual([]);
   });
 
   it("re-runs on the configured interval", async () => {
     vi.useFakeTimers();
-    const notes = createNotesRepo(db);
     const events: string[] = [];
     broadcaster.subscribe((_uid, event) => {
       if (event.type === "note:deleted") events.push(event.id);
     });
 
-    stop = startTrashCleanup(db, broadcaster, 1000);
+    stop = startTrashCleanup(storage, broadcaster, 1000);
 
     const longAgo = new Date(
       Date.now() - 31 * 24 * 60 * 60 * 1000,
     ).toISOString();
-    await notes.insert({
+    await storage.notes.insert({
       id: "later",
       userId: "u1",
       data: { ...baseNote, trashed: true, trashedAt: longAgo },
@@ -110,7 +112,7 @@ describe("startTrashCleanup", () => {
     });
     expect(events).toEqual([]);
 
-    vi.advanceTimersByTime(1100);
+    await vi.advanceTimersByTimeAsync(1100);
     expect(events).toEqual(["later"]);
     vi.useRealTimers();
   });

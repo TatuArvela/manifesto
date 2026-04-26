@@ -3,9 +3,9 @@ import { dirname } from "node:path";
 import Database from "better-sqlite3";
 import { runMigrations } from "./migrations.js";
 
-export type DB = Database.Database;
+export type SqliteDB = Database.Database;
 
-export function openDatabase(path: string): DB {
+export function openDatabase(path: string): SqliteDB {
   if (path !== ":memory:") {
     mkdirSync(dirname(path), { recursive: true });
   }

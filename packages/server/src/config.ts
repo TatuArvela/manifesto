@@ -1,3 +1,6 @@
+export type StorageDriverName = "sqlite";
+export type AuthProviderName = "local";
+
 export interface ServerConfig {
   port: number;
   dataDir: string;
@@ -7,6 +10,8 @@ export interface ServerConfig {
   argon2MemoryKib: number;
   argon2TimeCost: number;
   argon2Parallelism: number;
+  storageDriver: StorageDriverName;
+  authProvider: AuthProviderName;
 }
 
 const DEFAULT_DATA_DIR = "./data";
@@ -30,6 +35,24 @@ function envList(name: string, fallback: string[]): string[] {
     .filter((s) => s.length > 0);
 }
 
+function envEnum<T extends string>(
+  name: string,
+  allowed: readonly T[],
+  fallback: T,
+): T {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  if ((allowed as readonly string[]).includes(raw)) return raw as T;
+  throw new Error(
+    `Invalid value for env var ${name}: ${raw} (expected one of ${allowed.join(", ")})`,
+  );
+}
+
+const STORAGE_DRIVERS = [
+  "sqlite",
+] as const satisfies readonly StorageDriverName[];
+const AUTH_PROVIDERS = ["local"] as const satisfies readonly AuthProviderName[];
+
 export function loadConfig(): ServerConfig {
   const dataDir = process.env.DATA_DIR ?? DEFAULT_DATA_DIR;
   return {
@@ -41,5 +64,7 @@ export function loadConfig(): ServerConfig {
     argon2MemoryKib: envInt("ARGON2_MEMORY_KIB", 19456),
     argon2TimeCost: envInt("ARGON2_TIME_COST", 2),
     argon2Parallelism: envInt("ARGON2_PARALLELISM", 1),
+    storageDriver: envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite"),
+    authProvider: envEnum("AUTH_PROVIDER", AUTH_PROVIDERS, "local"),
   };
 }

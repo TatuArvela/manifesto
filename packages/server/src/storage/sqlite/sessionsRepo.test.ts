@@ -1,24 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { type DB, openDatabase } from "../index.js";
-import { createSessionsRepo, type SessionsRepo } from "./sessions.js";
-import { createUsersRepo } from "./users.js";
+import type { SessionsRepo } from "../types.js";
+import { openDatabase, type SqliteDB } from "./database.js";
+import { createSqliteSessionsRepo } from "./sessionsRepo.js";
+import { createSqliteUsersRepo } from "./usersRepo.js";
 
-describe("sessionsRepo", () => {
-  let db: DB;
+describe("sqlite sessionsRepo", () => {
+  let db: SqliteDB;
   let repo: SessionsRepo;
 
   beforeEach(async () => {
     db = openDatabase(":memory:");
-    const users = createUsersRepo(db);
+    const users = createSqliteUsersRepo(db);
     await users.create({
       id: "u1",
       username: "alice",
       passwordHash: "h",
       displayName: "",
       avatarColor: "",
+      provider: "local",
+      externalId: null,
       createdAt: "2026-04-01T00:00:00Z",
     });
-    repo = createSessionsRepo(db);
+    repo = createSqliteSessionsRepo(db);
   });
 
   afterEach(() => {
@@ -34,7 +37,7 @@ describe("sessionsRepo", () => {
       lastSeenAt: "2026-04-01T00:00:00Z",
     });
     expect(created.token).toBe("tok");
-    expect(await repo.findByToken("tok")).toMatchObject({ user_id: "u1" });
+    expect(await repo.findByToken("tok")).toMatchObject({ userId: "u1" });
 
     await repo.deleteByToken("tok");
     expect(await repo.findByToken("tok")).toBeNull();
@@ -50,8 +53,8 @@ describe("sessionsRepo", () => {
     });
     await repo.touch("tok", "2026-04-05T00:00:00Z", "2026-05-05T00:00:00Z");
     const after = await repo.findByToken("tok");
-    expect(after?.expires_at).toBe("2026-05-05T00:00:00Z");
-    expect(after?.last_seen_at).toBe("2026-04-05T00:00:00Z");
+    expect(after?.expiresAt).toBe("2026-05-05T00:00:00Z");
+    expect(after?.lastSeenAt).toBe("2026-04-05T00:00:00Z");
   });
 
   it("deletes expired sessions", async () => {

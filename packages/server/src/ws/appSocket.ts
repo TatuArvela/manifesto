@@ -5,11 +5,9 @@ import type {
   WebSocketEvent,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
+import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
-import type { SessionsRepo } from "../db/repositories/sessions.js";
-import type { UsersRepo } from "../db/repositories/users.js";
 import { logger } from "../lib/logger.js";
-import { isoPlusDays, nowIso } from "../lib/time.js";
 import type { Broadcaster } from "./broadcaster.js";
 
 export const SUBPROTOCOL = "manifesto-session";
@@ -25,14 +23,13 @@ interface Connection {
 interface AppSocketDeps {
   app: Hono;
   ws: NodeWebSocket;
-  sessionsRepo: SessionsRepo;
-  usersRepo: UsersRepo;
+  authProvider: AuthProvider;
   broadcaster: Broadcaster;
   cfg: ServerConfig;
 }
 
 export function attachAppSocket(deps: AppSocketDeps): void {
-  const { app, ws, sessionsRepo, usersRepo, broadcaster, cfg } = deps;
+  const { app, ws, authProvider, broadcaster } = deps;
 
   // Negotiate the subprotocol so browsers don't reject the handshake when they
   // sent `Sec-WebSocket-Protocol: manifesto-session, <token>`.
@@ -155,33 +152,18 @@ export function attachAppSocket(deps: AppSocketDeps): void {
 
       return {
         async onOpen(_evt, socket) {
-          const session = await sessionsRepo.findByToken(token);
-          if (!session) {
-            socket.close(4401, "Invalid session");
+          const identity = await authProvider.authenticate(token);
+          if (!identity) {
+            socket.close(4401, "Invalid or expired session");
             return;
           }
-          if (session.expires_at < nowIso()) {
-            await sessionsRepo.deleteByToken(token);
-            socket.close(4401, "Session expired");
-            return;
-          }
-          const user = await usersRepo.findById(session.user_id);
-          if (!user) {
-            socket.close(4401, "User not found");
-            return;
-          }
-          await sessionsRepo.touch(
-            token,
-            nowIso(),
-            isoPlusDays(cfg.sessionTtlDays),
-          );
           conn = {
             id: `c${++nextId}`,
-            userId: session.user_id,
+            userId: identity.userId,
             user: {
-              id: user.id,
-              displayName: user.display_name || user.username,
-              avatarColor: user.avatar_color,
+              id: identity.userId,
+              displayName: identity.displayName,
+              avatarColor: identity.avatarColor,
             },
             send: (data) => socket.send(data),
             viewedNoteId: null,

@@ -84,34 +84,34 @@ function rewriteManifestBase(): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   return {
-  base: process.env.GITHUB_ACTIONS ? "/manifesto/" : "/",
-  plugins: [
-    preact(),
-    tailwindcss(),
-    cspForServer(env.VITE_MANIFESTO_SERVER),
-    VitePWA({
-      strategies: "injectManifest",
-      srcDir: "src",
-      filename: "sw.ts",
-      registerType: "autoUpdate",
-      injectRegister: false,
-      manifest: false,
-      devOptions: {
+    base: process.env.GITHUB_ACTIONS ? "/manifesto/" : "/",
+    plugins: [
+      preact(),
+      tailwindcss(),
+      cspForServer(env.VITE_MANIFESTO_SERVER),
+      VitePWA({
+        strategies: "injectManifest",
+        srcDir: "src",
+        filename: "sw.ts",
+        registerType: "autoUpdate",
+        injectRegister: false,
+        manifest: false,
+        devOptions: {
+          enabled: true,
+          type: "module",
+          navigateFallback: "index.html",
+        },
+      }),
+      githubPagesSpaFallback(),
+      rewriteManifestBase(),
+    ],
+    test: {
+      browser: {
         enabled: true,
-        type: "module",
-        navigateFallback: "index.html",
+        provider: playwright(),
+        headless: true,
+        instances: [{ browser: "chromium" }],
       },
-    }),
-    githubPagesSpaFallback(),
-    rewriteManifestBase(),
-  ],
-  test: {
-    browser: {
-      enabled: true,
-      provider: playwright(),
-      headless: true,
-      instances: [{ browser: "chromium" }],
     },
-  },
   };
 });

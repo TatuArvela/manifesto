@@ -44,8 +44,8 @@ describe("search route", () => {
     rig = bootTestApp();
   });
 
-  afterEach(() => {
-    rig.db.close();
+  afterEach(async () => {
+    await rig.close();
   });
 
   it("returns notes matching a substring on title or content", async () => {

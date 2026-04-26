@@ -1,7 +1,11 @@
 import type { Hono } from "hono";
-import { type AppDeps, createApp } from "../app.js";
+import { createApp } from "../app.js";
+import { createAuthProvider } from "../auth/index.js";
+import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
-import { type DB, openDatabase } from "../db/index.js";
+import { createStorage } from "../storage/index.js";
+import type { StorageDriver } from "../storage/types.js";
+import type { Broadcaster } from "../ws/broadcaster.js";
 
 export const TEST_CONFIG: ServerConfig = {
   port: 0,
@@ -12,24 +16,34 @@ export const TEST_CONFIG: ServerConfig = {
   argon2MemoryKib: 8192,
   argon2TimeCost: 2,
   argon2Parallelism: 1,
+  storageDriver: "sqlite",
+  authProvider: "local",
 };
 
 export interface TestRig {
-  db: DB;
   cfg: ServerConfig;
+  storage: StorageDriver;
+  authProvider: AuthProvider;
+  broadcaster: Broadcaster;
   app: Hono;
-  deps: AppDeps;
   request: (input: string, init?: RequestInit) => Promise<Response>;
+  close: () => Promise<void>;
 }
 
 export function bootTestApp(): TestRig {
-  const db = openDatabase(":memory:");
   const cfg = TEST_CONFIG;
-  const result = createApp({ db, cfg });
-  const app = result.app;
-  const request = async (input: string, init?: RequestInit) =>
-    app.request(input, init);
-  return { db, cfg, app, deps: { db, cfg }, request };
+  const storage = createStorage(cfg);
+  const authProvider = createAuthProvider(cfg, storage);
+  const { app, broadcaster } = createApp({ cfg, storage, authProvider });
+  return {
+    cfg,
+    storage,
+    authProvider,
+    broadcaster,
+    app,
+    request: async (input, init) => app.request(input, init),
+    close: async () => storage.close(),
+  };
 }
 
 export async function registerTestUser(

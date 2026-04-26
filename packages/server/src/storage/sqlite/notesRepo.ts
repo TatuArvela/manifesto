@@ -2,12 +2,12 @@ import type {
   AutoNoteSource,
   LinkPreview,
   Note,
-  NoteCreate,
   NoteReminder,
   NoteUpdate,
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import type { DB } from "../index.js";
+import type { InsertNoteInput, NotesRepo } from "../types.js";
+import type { SqliteDB } from "./database.js";
 
 interface NoteRow {
   id: string;
@@ -74,14 +74,6 @@ function rowToNote(row: NoteRow): Note {
   const source = parseJson<AutoNoteSource | null>(row.source, null);
   if (source) note.source = source;
   return note;
-}
-
-export interface InsertNoteInput {
-  id: string;
-  userId: string;
-  data: NoteCreate;
-  createdAt: string;
-  updatedAt: string;
 }
 
 type UpdatableField =
@@ -168,7 +160,7 @@ function fieldToColumnValue(
   }
 }
 
-export function createNotesRepo(db: DB) {
+export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
   const listStmt = db.prepare(
     `SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC`,
   );
@@ -196,7 +188,7 @@ export function createNotesRepo(db: DB) {
      ORDER BY updated_at DESC`,
   );
 
-  return {
+  const repo: NotesRepo = {
     async listByUser(userId: string): Promise<Note[]> {
       const rows = listStmt.all(userId) as NoteRow[];
       return rows.map(rowToNote);
@@ -230,7 +222,7 @@ export function createNotesRepo(db: DB) {
         createdAt,
         updatedAt,
       });
-      const note = await this.getById(id, userId);
+      const note = await repo.getById(id, userId);
       if (!note) throw new Error(`Failed to retrieve inserted note ${id}`);
       return note;
     },
@@ -260,7 +252,7 @@ export function createNotesRepo(db: DB) {
       const stmt = db.prepare(sql);
       const info = stmt.run(params);
       if (info.changes === 0) return null;
-      return await this.getById(id, userId);
+      return await repo.getById(id, userId);
     },
 
     async delete(id: string, userId: string): Promise<boolean> {
@@ -274,7 +266,6 @@ export function createNotesRepo(db: DB) {
       return rows.map(rowToNote);
     },
   };
-}
 
-export type NotesRepo = ReturnType<typeof createNotesRepo>;
-export { rowToNote };
+  return repo;
+}

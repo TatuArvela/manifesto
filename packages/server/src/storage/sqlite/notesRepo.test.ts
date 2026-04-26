@@ -1,8 +1,9 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { type DB, openDatabase } from "../index.js";
-import { createNotesRepo, type NotesRepo } from "./notes.js";
-import { createUsersRepo } from "./users.js";
+import type { NotesRepo } from "../types.js";
+import { openDatabase, type SqliteDB } from "./database.js";
+import { createSqliteNotesRepo } from "./notesRepo.js";
+import { createSqliteUsersRepo } from "./usersRepo.js";
 
 const NOW = "2026-04-01T00:00:00.000Z";
 
@@ -22,19 +23,21 @@ const baseNoteData = {
   reminder: null,
 };
 
-describe("notesRepo", () => {
-  let db: DB;
+describe("sqlite notesRepo", () => {
+  let db: SqliteDB;
   let repo: NotesRepo;
 
   beforeEach(async () => {
     db = openDatabase(":memory:");
-    const users = createUsersRepo(db);
+    const users = createSqliteUsersRepo(db);
     await users.create({
       id: "u1",
       username: "alice",
       passwordHash: "h",
       displayName: "",
       avatarColor: "",
+      provider: "local",
+      externalId: null,
       createdAt: NOW,
     });
     await users.create({
@@ -43,9 +46,11 @@ describe("notesRepo", () => {
       passwordHash: "h",
       displayName: "",
       avatarColor: "",
+      provider: "local",
+      externalId: null,
       createdAt: NOW,
     });
-    repo = createNotesRepo(db);
+    repo = createSqliteNotesRepo(db);
   });
 
   afterEach(() => {

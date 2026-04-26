@@ -1,28 +1,29 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import type { ServerConfig } from "../config.js";
-import type { SessionsRepo } from "../db/repositories/sessions.js";
-import {
-  type PublicUser,
-  publicUserFromRow,
-  type UsersRepo,
-} from "../db/repositories/users.js";
-import { hashPassword, verifyPassword } from "../lib/password.js";
-import { isoPlusDays, nowIso } from "../lib/time.js";
-import { newSessionToken } from "../lib/token.js";
-import { newId } from "../lib/ulid.js";
+import type { ServerConfig } from "../../config.js";
+import { hashPassword, verifyPassword } from "../../lib/password.js";
+import { isoPlusDays, nowIso } from "../../lib/time.js";
+import { newSessionToken } from "../../lib/token.js";
+import { newId } from "../../lib/ulid.js";
 import {
   type AuthContext,
   createAuthMiddleware,
-} from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import { rateLimit } from "../middleware/rateLimit.js";
-import { authCredentialsSchema } from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+} from "../../middleware/authBearer.js";
+import { HttpError } from "../../middleware/error.js";
+import { rateLimit } from "../../middleware/rateLimit.js";
+import type { StorageDriver, User } from "../../storage/types.js";
+import { authCredentialsSchema } from "../../validation/schemas.js";
+import { validatorHook } from "../../validation/zValidator.js";
+import type {
+  AuthProvider,
+  AuthProviderRouter,
+  AuthSuccess,
+  PublicUser,
+} from "../types.js";
 
-interface AuthDeps {
-  usersRepo: UsersRepo;
-  sessionsRepo: SessionsRepo;
+interface LocalRouterDeps {
+  storage: StorageDriver;
+  authProvider: AuthProvider;
   cfg: ServerConfig;
 }
 
@@ -44,19 +45,23 @@ function pickAvatarColor(): string {
   ] as string;
 }
 
-interface AuthSuccess {
-  token: string;
-  user: PublicUser;
+function toPublicUser(user: User): PublicUser {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    avatarColor: user.avatarColor,
+  };
 }
 
 async function issueSession(
-  deps: AuthDeps,
+  deps: LocalRouterDeps,
   userId: string,
 ): Promise<{ token: string; expiresAt: string }> {
   const token = newSessionToken();
   const now = nowIso();
   const expiresAt = isoPlusDays(deps.cfg.sessionTtlDays);
-  await deps.sessionsRepo.create({
+  await deps.storage.sessions.create({
     token,
     userId,
     createdAt: now,
@@ -66,13 +71,14 @@ async function issueSession(
   return { token, expiresAt };
 }
 
-export function createAuthRoutes(deps: AuthDeps) {
+export function createLocalAuthRouter(
+  deps: LocalRouterDeps,
+): AuthProviderRouter {
   const auth = new Hono<{ Variables: { auth: AuthContext } }>();
 
   // Tight per-IP throttling on the unauthenticated endpoints — slows down
-  // password-spraying attacks. Tests can override the window by mounting
-  // these routes after stubbing the limiter, but the production defaults
-  // are 10 requests / 15 minutes per IP.
+  // password-spraying attacks. Production defaults are 10 requests / 15 minutes
+  // per IP.
   const authThrottle = rateLimit({ limit: 10, windowMs: 15 * 60 * 1000 });
 
   auth.post(
@@ -81,21 +87,23 @@ export function createAuthRoutes(deps: AuthDeps) {
     zValidator("json", authCredentialsSchema, validatorHook),
     async (c) => {
       const { username, password } = c.req.valid("json");
-      const existing = await deps.usersRepo.findByUsername(username);
+      const existing = await deps.storage.users.findByUsername(username);
       if (existing) {
         throw new HttpError(409, "Username is already taken");
       }
       const passwordHash = await hashPassword(password, deps.cfg);
-      const user = await deps.usersRepo.create({
+      const user = await deps.storage.users.create({
         id: newId(),
         username,
-        passwordHash,
         displayName: username,
         avatarColor: pickAvatarColor(),
+        provider: "local",
+        externalId: null,
+        passwordHash,
         createdAt: nowIso(),
       });
       const { token } = await issueSession(deps, user.id);
-      const body: AuthSuccess = { token, user: publicUserFromRow(user) };
+      const body: AuthSuccess = { token, user: toPublicUser(user) };
       return c.json(body, 201);
     },
   );
@@ -106,29 +114,25 @@ export function createAuthRoutes(deps: AuthDeps) {
     zValidator("json", authCredentialsSchema, validatorHook),
     async (c) => {
       const { username, password } = c.req.valid("json");
-      const user = await deps.usersRepo.findByUsername(username);
-      if (!user) {
+      const user = await deps.storage.users.findByUsername(username);
+      if (!user || user.passwordHash === null) {
         throw new HttpError(401, "Invalid username or password");
       }
-      const ok = await verifyPassword(user.password_hash, password);
+      const ok = await verifyPassword(user.passwordHash, password);
       if (!ok) {
         throw new HttpError(401, "Invalid username or password");
       }
       const { token } = await issueSession(deps, user.id);
-      const body: AuthSuccess = { token, user: publicUserFromRow(user) };
+      const body: AuthSuccess = { token, user: toPublicUser(user) };
       return c.json(body, 200);
     },
   );
 
-  auth.post(
-    "/logout",
-    createAuthMiddleware(deps.sessionsRepo, deps.cfg),
-    async (c) => {
-      const { token } = c.get("auth");
-      await deps.sessionsRepo.deleteByToken(token);
-      return c.body(null, 204);
-    },
-  );
+  auth.post("/logout", createAuthMiddleware(deps.authProvider), async (c) => {
+    const { token } = c.get("auth");
+    await deps.storage.sessions.deleteByToken(token);
+    return c.body(null, 204);
+  });
 
   return auth;
 }
