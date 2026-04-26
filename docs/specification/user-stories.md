@@ -59,21 +59,20 @@ As a user, I want to review and restore previous versions of my notes.
 - Versions are stored locally and capped at 50 per note
 - Versions older than 90 days are automatically pruned
 
-## Connecting to a Server (Open Mode) — Planned
+## Sync Across Devices (Connected Mode)
 
-> **Not yet implemented.**
+As a user with multiple devices, I want my notes to follow me wherever I sign in.
 
-As a user, I want to optionally connect my client to a server for persistent storage and multi-device access.
+- A connected-mode client (built with `VITE_MANIFESTO_SERVER` pointing at my server) prompts me to log in before showing any notes
+- I authenticate with username + password, or with single sign-on if the server is configured for OIDC
+- My notes live on the server; every device that signs in sees the same data
+- Changes I make on one device appear on my other open devices via WebSocket fan-out
+- Tags and manual ordering are scoped to my account
+- See [Operating Modes](operating-modes.md) for the full mode comparison and migration path between open and connected mode
 
-- I can enter a server URL in settings to connect
-- I authenticate with the server (login/register)
-- My notes are stored on the server and accessible from any device
-- I can disconnect and return to local-only mode at any time
-- I can connect to any server that implements the Manifesto API
+## Live Collaborative Editing (Connected Mode) — Planned
 
-## Live Collaborative Editing (Server Mode) — Planned
-
-> **Not yet implemented.**
+> **Transport implemented, editor wiring planned.** The Yjs/Hocuspocus channel at `/api/yjs/notes/<id>` is in place; the editor does not yet bind to it.
 
 As a user connected to a server, I want to edit notes simultaneously with other users in real time.
 
@@ -84,16 +83,15 @@ As a user connected to a server, I want to edit notes simultaneously with other 
 - Checkbox toggles from other users appear in real time
 - The experience degrades gracefully on poor connections (changes queue and sync when reconnected)
 
-## Managed Deployment — Planned
-
-> **Not yet implemented.**
+## Managed Deployment
 
 As an organization administrator, I want to deploy Manifesto as a managed service for my team.
 
-- I can configure the app to only work with my server (managed mode)
-- Users must authenticate to use the app
-- There is no local-only mode — the server is the source of truth
-- I can manage users and their access
+- I build the client once with `VITE_MANIFESTO_SERVER` pointing at our server, so it is locked to that backend with no local-only fallback
+- Users must authenticate before seeing any UI; there is no anonymous use
+- I can choose `STORAGE_DRIVER=postgres` so the server runs against our managed database
+- I can choose `AUTH_PROVIDER=oidc` so users sign in with our existing IdP (Authentik, Keycloak, Google, Auth0, Okta, …)
+- The server is the source of truth — backups, retention, and access control happen there
 
 ## Archiving
 
@@ -125,4 +123,4 @@ As a user, I want to organize my notes with tags.
 - Tags are shown on the note card
 - I can manage (rename, delete) tags
 - Tags are created inline when added to a note (no predefined tag list required)
-- In server mode, tags are per-user (each user has their own tag namespace)
+- In connected mode, tags are per-user (each user has their own tag namespace)

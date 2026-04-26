@@ -2,7 +2,7 @@
 
 > **Not yet implemented.** This feature is planned for a future release.
 
-In server mode, multiple users will be able to view and edit notes simultaneously with changes appearing in real time.
+In connected mode, multiple users will be able to view and edit notes simultaneously with changes appearing in real time.
 
 ## Planned Behavior
 
