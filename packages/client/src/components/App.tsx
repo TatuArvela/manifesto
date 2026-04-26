@@ -4,7 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
-import { authToken, isServerMode } from "../state/auth.js";
+import { authToken, consumeOidcRedirect, isServerMode } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
@@ -36,10 +36,23 @@ import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 
 export function App() {
+  // Synchronously kick off the OIDC fragment consumer on the very first render
+  // before any LoginScreen / MainApp gating, so a server redirect of the form
+  // `https://app/#token=...` populates the auth signals (and clears the hash)
+  // without first flashing the login screen.
+  useOidcRedirectOnce();
   if (isServerMode && authToken.value === null) {
     return <LoginScreen />;
   }
   return <MainApp />;
+}
+
+function useOidcRedirectOnce() {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (done) return;
+    void consumeOidcRedirect().finally(() => setDone(true));
+  }, [done]);
 }
 
 function MainApp() {

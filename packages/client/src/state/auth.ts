@@ -1,3 +1,9 @@
+import type {
+  AuthMeResponse,
+  AuthMethodsResponse,
+  AuthProviderName,
+  AuthSuccessResponse,
+} from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
 
 export interface CurrentUser {
@@ -76,12 +82,10 @@ effect(() => {
   }, 50);
 });
 
-interface AuthSuccess {
-  token: string;
-  user: CurrentUser;
-}
-
-async function authRequest(path: string, body: unknown): Promise<AuthSuccess> {
+async function authRequest(
+  path: string,
+  body: unknown,
+): Promise<AuthSuccessResponse> {
   if (!SERVER_URL) {
     throw new Error("Server is not configured");
   }
@@ -100,7 +104,7 @@ async function authRequest(path: string, body: unknown): Promise<AuthSuccess> {
     }
     throw new Error(message);
   }
-  return (await res.json()) as AuthSuccess;
+  return (await res.json()) as AuthSuccessResponse;
 }
 
 export async function login(username: string, password: string): Promise<void> {
@@ -141,3 +145,60 @@ export function clearAuthLocal(): void {
   authToken.value = null;
   currentUser.value = null;
 }
+
+export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
+  if (!SERVER_URL) return null;
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/methods`);
+    if (!res.ok) return null;
+    return (await res.json()) as AuthMethodsResponse;
+  } catch {
+    return null;
+  }
+}
+
+export function buildOidcLoginUrl(): string | null {
+  if (!SERVER_URL) return null;
+  return `${SERVER_URL}/api/auth/login`;
+}
+
+export const oidcLoginUrl = buildOidcLoginUrl();
+
+/**
+ * After an OIDC callback the server redirects to the client with the session
+ * token in the URL fragment (`#token=...`). Picks it up, fetches the current
+ * user via /api/auth/me, populates the auth signals, and clears the fragment
+ * from the address bar so refreshes don't re-trigger the flow.
+ */
+export async function consumeOidcRedirect(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (!SERVER_URL) return false;
+  const hash = window.location.hash;
+  if (!hash || !hash.includes("token=")) return false;
+  const params = new URLSearchParams(hash.replace(/^#/, ""));
+  const token = params.get("token");
+  if (!token) return false;
+
+  // Wipe the hash before any await so a slow /me round-trip doesn't leave the
+  // token sitting in the address bar.
+  history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return false;
+    const body = (await res.json()) as AuthMeResponse;
+    authToken.value = token;
+    currentUser.value = body.user;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export type { AuthProviderName };

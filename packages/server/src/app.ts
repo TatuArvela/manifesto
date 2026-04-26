@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { logger as honoLogger } from "hono/logger";
+import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import type { ServerConfig } from "./config.js";
 import { logger } from "./lib/logger.js";
@@ -38,6 +39,12 @@ export function createApp(deps: AppDeps): AppHandle {
 
   app.get("/api/health", (c) => c.json({ ok: true }));
 
+  // Provider-agnostic auth routes (/methods, /me) must be registered BEFORE
+  // the provider's own router so Hono's longest-prefix matching reaches them.
+  app.route(
+    "/api/auth",
+    createAuthSharedRoutes({ cfg, storage, authProvider }),
+  );
   app.route("/api/auth", authProvider.router());
   app.route(
     "/api/notes",

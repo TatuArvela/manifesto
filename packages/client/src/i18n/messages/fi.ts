@@ -354,4 +354,9 @@ export const fi: Messages = {
   "login.passwordTooShort": "Salasanan tulee olla vähintään 8 merkkiä",
   "login.errorGeneric": "Kirjautuminen epäonnistui. Yritä uudelleen.",
   "login.signOut": "Kirjaudu ulos",
+  "login.loading": "Yhdistetään palvelimeen…",
+  "login.serverUnavailable":
+    "Palvelimeen ei saatu yhteyttä. Tarkista verkkoyhteys ja yritä uudelleen.",
+  "login.oidcHint": "Kirjaudu organisaatiosi tunnuksilla.",
+  "login.oidcSubmit": "Jatka kertakirjautumisella",
 };

@@ -55,6 +55,8 @@ Two implementations ship today:
 - **`local`** (default) — username + argon2-hashed password, sessions stored server-side. Mounts `/register`, `/login`, `/logout`.
 - **`oidc`** — OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, etc.). Mounts `/login` (redirect to IdP), `/callback` (code exchange + JIT user provisioning + session mint), `/logout`. The IdP is contacted only at login time; once a session is minted, `authenticate(token)` is identical to the local provider — pure session lookup, no IdP round-trip per request.
 
+The server also exposes two provider-agnostic auth endpoints used by the client: `GET /api/auth/methods` (public, returns the active provider name so the client can pick the right login UI) and `GET /api/auth/me` (bearer-protected, returns the current user — used after an OIDC callback when the client only has a token in the URL fragment).
+
 The `users` schema supports both modes: `password_hash` is nullable, and `(provider, external_id)` is the IdP-stable identity. Local and SSO users coexist in the same table; account linking across providers is not supported in v1.
 
 ### REST API

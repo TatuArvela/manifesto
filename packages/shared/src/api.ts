@@ -27,6 +27,28 @@ export interface AuthCredentials {
   password: string;
 }
 
+export type AuthProviderName = "local" | "oidc";
+
+export interface AuthMethodsResponse {
+  provider: AuthProviderName;
+}
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarColor: string;
+}
+
+export interface AuthMeResponse {
+  user: AuthUser;
+}
+
+export interface AuthSuccessResponse {
+  token: string;
+  user: AuthUser;
+}
+
 // --- WebSocket events (server → client) ---
 
 export interface PresenceUser {

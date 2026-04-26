@@ -40,6 +40,13 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 | `GET`    | `/api/auth/callback`  | IdP redirects here; server exchanges code, mints session, 302 to client  |
 | `POST`   | `/api/auth/logout`    | Log out                                                                  |
 
+**Provider-agnostic** (always available):
+
+| Method   | Path                  | Description                                                              |
+|----------|-----------------------|--------------------------------------------------------------------------|
+| `GET`    | `/api/auth/methods`   | Public — `{ provider: "local" \| "oidc" }`. Used by the client to pick the login UI. |
+| `GET`    | `/api/auth/me`        | Bearer-protected — `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment). |
+
 All `/api/notes` and `/api/search` endpoints require authentication. Requests include a session token in the `Authorization: Bearer <token>` header. The token format and the way it is issued depend on the auth provider; clients treat it as opaque.
 
 ### Request and Response Format

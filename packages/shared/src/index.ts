@@ -1,5 +1,10 @@
 export type {
   AuthCredentials,
+  AuthMeResponse,
+  AuthMethodsResponse,
+  AuthProviderName,
+  AuthSuccessResponse,
+  AuthUser,
   ErrorResponse,
   NoteResponse,
   NotesResponse,

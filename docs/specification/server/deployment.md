@@ -70,12 +70,16 @@ All of these are required and validated at boot. The server only reads them when
 
 The login flow:
 
-1. Client navigates to `<server>/api/auth/login`. The server stores PKCE state server-side and redirects to the IdP authorization endpoint.
-2. After the user consents, the IdP redirects to `OIDC_REDIRECT_URI` with `code` and `state`.
-3. The server verifies state, exchanges the code (PKCE), reads ID-token claims, just-in-time provisions a user (keyed by `(provider, sub)`), and mints a Manifesto session token.
-4. The server redirects to `OIDC_POST_LOGIN_REDIRECT#token=<sessionToken>`. The client reads the fragment, stores the token, and removes it from the URL.
+1. The client fetches `GET /api/auth/methods` and renders a "Continue with single sign-on" button when the response is `{ provider: "oidc" }`.
+2. The user clicks the button, navigating to `<server>/api/auth/login`. The server stores PKCE state server-side and redirects to the IdP authorization endpoint.
+3. After the user consents, the IdP redirects to `OIDC_REDIRECT_URI` with `code` and `state`.
+4. The server verifies state, exchanges the code (PKCE), reads ID-token claims, just-in-time provisions a user (keyed by `(provider, sub)`), and mints a Manifesto session token.
+5. The server redirects to `OIDC_POST_LOGIN_REDIRECT#token=<sessionToken>`.
+6. The client picks up the fragment on first paint, calls `GET /api/auth/me` with the bearer token to fetch the user record, populates its auth signals, and clears the fragment from the address bar.
 
 The session token is then sent as `Authorization: Bearer <token>` against the rest of the API, identical to the local provider. Logout (`POST /api/auth/logout`) invalidates the local session; it does not perform IdP-side logout (RP-initiated logout is not implemented in v1).
+
+Set `OIDC_POST_LOGIN_REDIRECT` to the deployed client URL (e.g. `https://notes.example.com/`). The client app handles the `#token=...` fragment automatically — no extra route is needed on the client side.
 
 #### Worked example: Authentik
 

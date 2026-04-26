@@ -350,4 +350,9 @@ export const en = {
   "login.passwordTooShort": "Password must be at least 8 characters",
   "login.errorGeneric": "Could not sign in. Please try again.",
   "login.signOut": "Sign out",
+  "login.loading": "Connecting to server…",
+  "login.serverUnavailable":
+    "Could not reach the server. Check your connection and try again.",
+  "login.oidcHint": "Sign in with your organization account.",
+  "login.oidcSubmit": "Continue with single sign-on",
 } as const;
