@@ -20,7 +20,7 @@ interface Rig {
 
 async function bootRig(): Promise<Rig> {
   const cfg = { ...TEST_CONFIG, port: 0 };
-  const storage = createStorage(cfg);
+  const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
   const { app, broadcaster } = createApp({ cfg, storage, authProvider });
   const ws = createNodeWebSocket({ app });

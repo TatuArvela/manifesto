@@ -42,8 +42,8 @@ async function createNote(
 describe("notes routes", () => {
   let rig: TestRig;
 
-  beforeEach(() => {
-    rig = bootTestApp();
+  beforeEach(async () => {
+    rig = await bootTestApp();
   });
 
   afterEach(async () => {

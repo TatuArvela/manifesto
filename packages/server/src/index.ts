@@ -11,7 +11,7 @@ import { attachAppSocket } from "./ws/appSocket.js";
 import { attachYjsSocket } from "./ws/yjsSocket.js";
 
 const cfg = loadConfig();
-const storage = createStorage(cfg);
+const storage = await createStorage(cfg);
 const authProvider = createAuthProvider(cfg, storage);
 const { app, broadcaster } = createApp({ cfg, storage, authProvider });
 

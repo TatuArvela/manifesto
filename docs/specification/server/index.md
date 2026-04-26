@@ -19,7 +19,12 @@ The server is split into two pluggable layers behind narrow interfaces. Both are
 
 ### Storage drivers
 
-Storage is abstracted as a `StorageDriver`. The currently shipped implementation is **SQLite** (`better-sqlite3`), selected with `STORAGE_DRIVER=sqlite` (the default).
+Storage is abstracted as a `StorageDriver`. Two implementations ship today:
+
+- **SQLite** (`better-sqlite3`, `STORAGE_DRIVER=sqlite`, the default) — single file, zero config, ideal for self-hosted single-server deployments.
+- **Postgres** (`pg`, `STORAGE_DRIVER=postgres`) — managed database, suitable for scale-out and team deployments.
+
+Both drivers implement the same interface; the rest of the server is identical regardless of which one is selected.
 
 The driver bundles five repositories:
 
@@ -31,16 +36,12 @@ The driver bundles five repositories:
 | `yjs`           | Persisted Y.Doc state for collaborative editing                  |
 | `maintenance`   | Background jobs (e.g. trash cleanup) that need bulk DB access    |
 
-Adding another driver — Postgres is the obvious next candidate — means implementing these five interfaces and registering the driver in `src/storage/index.ts`. No other module needs to change.
+Adding another driver means implementing these five interfaces and registering the driver in `src/storage/index.ts`. No other module needs to change.
 
-#### Why SQLite is the default
+#### Driver tradeoffs
 
-- Zero-configuration — a single file, no external database service
-- Perfect for self-hosted, single-server deployments
-- Fast enough for a notes app
-- Easy to back up (copy the file)
-
-For larger deployments or scale-out, swap the driver at boot via `STORAGE_DRIVER`.
+- **SQLite** — zero-configuration, a single file you can back up by copying. Fast and ideal for one-server deployments. Pure synchronous writes (better-sqlite3) keep latencies tiny on a notes workload.
+- **Postgres** — required for any deployment that wants to scale beyond one app server, share state with other services, or use managed-database backups. The schema mirrors SQLite's; `yjs_state` lives in `BYTEA`.
 
 ### Authentication providers
 

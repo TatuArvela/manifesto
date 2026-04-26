@@ -1,4 +1,4 @@
-export type StorageDriverName = "sqlite";
+export type StorageDriverName = "sqlite" | "postgres";
 export type AuthProviderName = "local" | "oidc";
 
 export interface OidcConfig {
@@ -8,6 +8,10 @@ export interface OidcConfig {
   redirectUri: string;
   postLoginRedirect: string;
   scopes: string[];
+}
+
+export interface PostgresConfig {
+  connectionString: string;
 }
 
 export interface ServerConfig {
@@ -22,6 +26,7 @@ export interface ServerConfig {
   storageDriver: StorageDriverName;
   authProvider: AuthProviderName;
   oidc: OidcConfig | null;
+  postgres: PostgresConfig | null;
 }
 
 const DEFAULT_DATA_DIR = "./data";
@@ -68,11 +73,18 @@ function envRequired(name: string): string {
 
 const STORAGE_DRIVERS = [
   "sqlite",
+  "postgres",
 ] as const satisfies readonly StorageDriverName[];
 const AUTH_PROVIDERS = [
   "local",
   "oidc",
 ] as const satisfies readonly AuthProviderName[];
+
+function loadPostgresConfig(): PostgresConfig {
+  return {
+    connectionString: envRequired("DATABASE_URL"),
+  };
+}
 
 function loadOidcConfig(): OidcConfig {
   const scopes = envList("OIDC_SCOPES", ["openid", "profile", "email"]);
@@ -89,6 +101,7 @@ function loadOidcConfig(): OidcConfig {
 export function loadConfig(): ServerConfig {
   const dataDir = process.env.DATA_DIR ?? DEFAULT_DATA_DIR;
   const authProvider = envEnum("AUTH_PROVIDER", AUTH_PROVIDERS, "local");
+  const storageDriver = envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite");
   return {
     port: envInt("PORT", 3001),
     dataDir,
@@ -98,8 +111,9 @@ export function loadConfig(): ServerConfig {
     argon2MemoryKib: envInt("ARGON2_MEMORY_KIB", 19456),
     argon2TimeCost: envInt("ARGON2_TIME_COST", 2),
     argon2Parallelism: envInt("ARGON2_PARALLELISM", 1),
-    storageDriver: envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite"),
+    storageDriver,
     authProvider,
     oidc: authProvider === "oidc" ? loadOidcConfig() : null,
+    postgres: storageDriver === "postgres" ? loadPostgresConfig() : null,
   };
 }

@@ -22,8 +22,8 @@ const baseNote: NoteCreate = {
 describe("end-to-end smoke", () => {
   let rig: TestRig;
 
-  beforeEach(() => {
-    rig = bootTestApp();
+  beforeEach(async () => {
+    rig = await bootTestApp();
   });
 
   afterEach(async () => {

@@ -8,8 +8,8 @@ import {
 describe("local auth router", () => {
   let rig: TestRig;
 
-  beforeEach(() => {
-    rig = bootTestApp();
+  beforeEach(async () => {
+    rig = await bootTestApp();
   });
 
   afterEach(async () => {

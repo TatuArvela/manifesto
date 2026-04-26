@@ -19,6 +19,7 @@ export const TEST_CONFIG: ServerConfig = {
   storageDriver: "sqlite",
   authProvider: "local",
   oidc: null,
+  postgres: null,
 };
 
 export interface TestRig {
@@ -31,9 +32,9 @@ export interface TestRig {
   close: () => Promise<void>;
 }
 
-export function bootTestApp(): TestRig {
+export async function bootTestApp(): Promise<TestRig> {
   const cfg = TEST_CONFIG;
-  const storage = createStorage(cfg);
+  const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
   const { app, broadcaster } = createApp({ cfg, storage, authProvider });
   return {

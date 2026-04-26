@@ -41,10 +41,11 @@ See `packages/server/.env.example` for the full list and defaults.
 | Variable           | Default                    | Description                              |
 |--------------------|----------------------------|------------------------------------------|
 | `PORT`             | `3001`                     | Server port                              |
-| `STORAGE_DRIVER`   | `sqlite`                   | Storage driver. Currently `sqlite` only. |
-| `AUTH_PROVIDER`    | `local`                    | Auth provider. Currently `local` only.   |
+| `STORAGE_DRIVER`   | `sqlite`                   | Storage driver: `sqlite` or `postgres`.  |
+| `AUTH_PROVIDER`    | `local`                    | Auth provider: `local` or `oidc`.        |
 | `DATA_DIR`         | `./data`                   | Directory for the SQLite database        |
 | `MANIFESTO_DB`     | `${DATA_DIR}/manifesto.db` | Override the SQLite path explicitly      |
+| `DATABASE_URL`     | _(required for postgres)_  | Postgres connection string               |
 | `CORS_ORIGINS`     | `http://localhost:5173`    | Comma-separated allowed client origins   |
 | `SESSION_TTL_DAYS` | `30`                       | Session inactivity timeout in days       |
 | `LOG_LEVEL`        | `info`                     | One of debug / info / warn / error       |
@@ -89,6 +90,37 @@ AUTH_PROVIDER=oidc
 ```
 
 In Authentik, configure the application's redirect URI to match `OIDC_REDIRECT_URI` exactly. Other IdPs (Keycloak, Google, Okta, Auth0, Authelia) work the same way — only the `OIDC_ISSUER` differs.
+
+## Postgres deployment
+
+For larger or scale-out deployments, set `STORAGE_DRIVER=postgres` and `DATABASE_URL=...`. The schema is created on first boot.
+
+```yaml
+services:
+  manifesto-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: manifesto
+      POSTGRES_USER: manifesto
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - manifesto-pg:/var/lib/postgresql/data
+  manifesto-server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    depends_on: [manifesto-db]
+    environment:
+      STORAGE_DRIVER: postgres
+      DATABASE_URL: postgres://manifesto:${POSTGRES_PASSWORD}@manifesto-db:5432/manifesto
+      CORS_ORIGINS: https://notes.example.com
+    ports:
+      - "3001:3001"
+volumes:
+  manifesto-pg:
+```
+
+Yjs document state lives in a `BYTEA` column on `notes`. For very high collaborative-editing throughput, consider terminating Hocuspocus persistence in Redis and treating Postgres as the cold store — but for typical note-taking workloads the single-table model is fine.
 
 ## Reverse Proxy
 
