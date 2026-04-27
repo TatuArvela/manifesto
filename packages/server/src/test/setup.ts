@@ -21,7 +21,26 @@ export const TEST_CONFIG: ServerConfig = {
   oidc: null,
   postgres: null,
   trustProxy: false,
+  registrationEnabled: true,
 };
+
+export async function bootTestAppWith(
+  overrides: Partial<ServerConfig>,
+): Promise<TestRig> {
+  const cfg: ServerConfig = { ...TEST_CONFIG, ...overrides };
+  const storage = await createStorage(cfg);
+  const authProvider = createAuthProvider(cfg, storage);
+  const { app, broadcaster } = createApp({ cfg, storage, authProvider });
+  return {
+    cfg,
+    storage,
+    authProvider,
+    broadcaster,
+    app,
+    request: async (input, init) => app.request(input, init),
+    close: async () => storage.close(),
+  };
+}
 
 export interface TestRig {
   cfg: ServerConfig;

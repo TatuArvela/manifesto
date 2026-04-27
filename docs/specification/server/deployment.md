@@ -52,6 +52,8 @@ See `packages/server/.env.example` for the full list and defaults.
 | `ARGON2_MEMORY_KIB` | `19456`                   | argon2id memory cost (local auth only)   |
 | `ARGON2_TIME_COST`  | `2`                       | argon2id time cost (local auth only)     |
 | `ARGON2_PARALLELISM` | `1`                      | argon2id parallelism (local auth only)   |
+| `REGISTRATION_ENABLED` | `true`                  | Allow public POST `/api/auth/register`. Set `false` for managed-mode deployments where accounts are provisioned out-of-band. |
+| `TRUST_PROXY`      | `false`                    | Honor `X-Forwarded-For` for IP-aware rate limiting. Set `true` only behind a trusted reverse proxy. |
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.
 

@@ -73,6 +73,9 @@ export function createLocalAuthRouter(
     authThrottle,
     zValidator("json", authCredentialsSchema, validatorHook),
     async (c) => {
+      if (!deps.cfg.registrationEnabled) {
+        throw new HttpError(403, "Registration is disabled");
+      }
       const { username, password } = c.req.valid("json");
       const existing = await deps.storage.users.findByUsername(username);
       if (existing) {

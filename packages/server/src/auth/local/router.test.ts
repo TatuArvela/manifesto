@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   bootTestApp,
+  bootTestAppWith,
   registerTestUser,
   type TestRig,
 } from "../../test/setup.js";
@@ -127,5 +128,21 @@ describe("local auth router", () => {
   it("rejects logout without a token", async () => {
     const res = await rig.request("/api/auth/logout", { method: "POST" });
     expect(res.status).toBe(401);
+  });
+
+  it("returns 403 from /register when REGISTRATION_ENABLED is false", async () => {
+    const closedRig = await bootTestAppWith({ registrationEnabled: false });
+    try {
+      const res = await closedRig.request("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
+      });
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ error: "Registration is disabled" });
+      expect(await closedRig.storage.users.findByUsername("alice")).toBeNull();
+    } finally {
+      await closedRig.close();
+    }
   });
 });

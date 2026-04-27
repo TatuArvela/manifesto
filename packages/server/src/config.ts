@@ -32,6 +32,10 @@ export interface ServerConfig {
    * proxy that overwrites the header — otherwise an attacker can rotate the
    * value to defeat per-IP throttling. */
   trustProxy: boolean;
+  /** When false, POST /api/auth/register returns 403. Defaults to true to
+   * preserve open-signup behavior; set to false for managed-mode deployments
+   * where accounts are provisioned out-of-band. */
+  registrationEnabled: boolean;
 }
 
 const DEFAULT_DATA_DIR = "./data";
@@ -133,5 +137,6 @@ export function loadConfig(): ServerConfig {
     oidc: authProvider === "oidc" ? loadOidcConfig() : null,
     postgres: storageDriver === "postgres" ? loadPostgresConfig() : null,
     trustProxy: envBool("TRUST_PROXY", false),
+    registrationEnabled: envBool("REGISTRATION_ENABLED", true),
   };
 }
