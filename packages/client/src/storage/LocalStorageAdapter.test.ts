@@ -1,6 +1,8 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toasts } from "../state/ui.js";
 import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
+import { _resetQuotaReporter } from "./quotaReporter.js";
 
 const STORAGE_KEY = "manifesto:notes";
 
@@ -157,5 +159,30 @@ describe("LocalStorageAdapter", () => {
     const freshAdapter = new LocalStorageAdapter();
     const notes = await freshAdapter.getAll();
     expect(notes).toEqual([]);
+  });
+
+  it("surfaces a toast and does not throw when localStorage is full", async () => {
+    toasts.value = [];
+    _resetQuotaReporter();
+    const setItem = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new DOMException(
+          "Quota exceeded",
+          "QuotaExceededError",
+        );
+      });
+    try {
+      // Must not throw — caller's try/catch isn't responsible for storage failure.
+      await expect(adapter.create(sampleNote)).resolves.toBeDefined();
+      // Toast queued for the user.
+      expect(
+        toasts.value.some((t) => t.type === "error"),
+        "expected an error toast to be visible",
+      ).toBe(true);
+    } finally {
+      setItem.mockRestore();
+      toasts.value = [];
+    }
   });
 });

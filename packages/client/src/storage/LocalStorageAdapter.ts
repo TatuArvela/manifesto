@@ -6,6 +6,7 @@ import {
   type NoteUpdate,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
+import { reportStorageQuotaExceeded } from "./quotaReporter.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
 
 const STORAGE_KEY = "manifesto:notes";
@@ -27,8 +28,28 @@ function loadNotes(): Note[] {
   }
 }
 
+function isQuotaError(err: unknown): boolean {
+  return (
+    err instanceof DOMException &&
+    (err.name === "QuotaExceededError" ||
+      err.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      err.code === 22)
+  );
+}
+
 function saveNotes(notes: Note[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  } catch (err) {
+    if (isQuotaError(err)) {
+      // Surface a toast so the user knows their edit didn't persist; the
+      // in-memory signal still reflects the change so the session keeps
+      // working.
+      reportStorageQuotaExceeded();
+      return;
+    }
+    throw err;
+  }
 }
 
 export class LocalStorageAdapter implements StorageAdapter {
