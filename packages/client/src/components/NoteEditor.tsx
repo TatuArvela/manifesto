@@ -359,6 +359,8 @@ export function NoteEditor({
           />
         )}
 
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: padding-area focus forward; inner contentEditable is the real target */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard users tab into the inner contentEditable directly */}
         <div
           class="max-sm:flex-1 max-sm:min-h-0 max-sm:cursor-text"
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
