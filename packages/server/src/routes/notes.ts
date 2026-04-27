@@ -4,6 +4,7 @@ import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
+import type { MiddlewareHandler } from "hono";
 import {
   type AuthContext,
   createAuthMiddleware,
@@ -19,11 +20,16 @@ interface NotesDeps {
   authProvider: AuthProvider;
   cfg: ServerConfig;
   broadcaster: Broadcaster;
+  /** Optional per-user limiter — mounted after auth. Defined in app.ts so
+   * it shares state with /api/search rather than maintaining a per-router
+   * bucket map. */
+  rateLimit?: MiddlewareHandler;
 }
 
 export function createNotesRoutes(deps: NotesDeps) {
   const notes = new Hono<{ Variables: { auth: AuthContext } }>();
   notes.use("*", createAuthMiddleware(deps.authProvider));
+  if (deps.rateLimit) notes.use("*", deps.rateLimit);
 
   notes.get("/", async (c) => {
     const { userId } = c.get("auth");

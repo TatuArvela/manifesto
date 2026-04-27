@@ -7,6 +7,7 @@ import type { ServerConfig } from "./config.js";
 import { logger } from "./lib/logger.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
+import { perUserApiRateLimit } from "./middleware/rateLimit.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
 import type { StorageDriver } from "./storage/types.js";
@@ -56,6 +57,11 @@ export function createApp(deps: AppDeps): AppHandle {
 
   app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));
 
+  // Single shared per-user rate limiter for the data-plane endpoints. Sharing
+  // one instance across both routers means a user spamming a mix of
+  // /api/notes and /api/search can't dodge throttling by alternating.
+  const apiRateLimit = perUserApiRateLimit();
+
   // Provider-agnostic auth routes (/methods, /me) must be registered BEFORE
   // the provider's own router so Hono's longest-prefix matching reaches them.
   app.route(
@@ -65,9 +71,18 @@ export function createApp(deps: AppDeps): AppHandle {
   app.route("/api/auth", authProvider.router());
   app.route(
     "/api/notes",
-    createNotesRoutes({ storage, authProvider, cfg, broadcaster }),
+    createNotesRoutes({
+      storage,
+      authProvider,
+      cfg,
+      broadcaster,
+      rateLimit: apiRateLimit,
+    }),
   );
-  app.route("/api/search", createSearchRoutes({ storage, authProvider, cfg }));
+  app.route(
+    "/api/search",
+    createSearchRoutes({ storage, authProvider, cfg, rateLimit: apiRateLimit }),
+  );
 
   return { app, broadcaster };
 }

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { onError } from "./error.js";
-import { rateLimit } from "./rateLimit.js";
+import { perUserApiRateLimit, rateLimit } from "./rateLimit.js";
 
 function buildApp(limit: number, windowMs: number, key = "x") {
   const app = new Hono();
@@ -50,5 +50,34 @@ describe("rateLimit", () => {
     expect((await app.request("/")).status).toBe(429);
     n = 2;
     expect((await app.request("/")).status).toBe(200);
+  });
+
+  it("perUserApiRateLimit keys by authenticated userId", async () => {
+    const app = new Hono<{ Variables: { auth: { userId: string } } }>();
+    app.onError(onError);
+    // Stub auth from a header so each test request can vary the user.
+    app.use("*", async (c, next) => {
+      const userId = c.req.header("x-test-user") ?? "anon";
+      c.set("auth", { userId });
+      await next();
+    });
+    app.use("*", perUserApiRateLimit());
+    app.get("/", (c) => c.json({ ok: true }));
+
+    // Same user hammers the endpoint — gets blocked at 301.
+    for (let i = 0; i < 300; i++) {
+      const res = await app.request("/", {
+        headers: { "x-test-user": "alice" },
+      });
+      expect(res.status, `request ${i + 1} for alice`).toBe(200);
+    }
+    const blocked = await app.request("/", {
+      headers: { "x-test-user": "alice" },
+    });
+    expect(blocked.status).toBe(429);
+
+    // A different user has its own bucket and is not affected.
+    const ok = await app.request("/", { headers: { "x-test-user": "bob" } });
+    expect(ok.status).toBe(200);
   });
 });
