@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import {
@@ -11,11 +11,13 @@ interface SearchDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
   cfg: ServerConfig;
+  rateLimit?: MiddlewareHandler;
 }
 
 export function createSearchRoutes(deps: SearchDeps) {
   const search = new Hono<{ Variables: { auth: AuthContext } }>();
   search.use("*", createAuthMiddleware(deps.authProvider));
+  if (deps.rateLimit) search.use("*", deps.rateLimit);
 
   search.get("/", async (c) => {
     const { userId } = c.get("auth");

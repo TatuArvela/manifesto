@@ -38,6 +38,22 @@ function makeDefaultKey(
 }
 
 /**
+ * Per-authenticated-user limiter for /api/notes and /api/search. The bucket
+ * key is the userId set by `createAuthMiddleware`, so this MUST be mounted
+ * AFTER auth. 300 requests/minute is generous for normal use and catches
+ * runaway clients / misuse without paging legitimate users.
+ */
+export function perUserApiRateLimit(): MiddlewareHandler<{
+  Variables: { auth: { userId: string } };
+}> {
+  return rateLimit({
+    limit: 300,
+    windowMs: 60 * 1000,
+    keyFor: (c) => `user:${c.get("auth").userId}`,
+  });
+}
+
+/**
  * Tiny in-memory rate limiter. Single-process only — when this app outgrows
  * one node, swap the buckets for a Redis-backed implementation.
  */
