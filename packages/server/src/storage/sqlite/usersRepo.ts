@@ -1,4 +1,9 @@
-import type { CreateUserInput, User, UsersRepo } from "../types.js";
+import {
+  type CreateUserInput,
+  UsernameTakenError,
+  type User,
+  type UsersRepo,
+} from "../types.js";
 import type { SqliteDB } from "./database.js";
 
 interface UserRow {
@@ -10,6 +15,24 @@ interface UserRow {
   provider: string;
   external_id: string | null;
   created_at: string;
+}
+
+interface SqliteError {
+  code?: string;
+  message?: string;
+}
+
+/**
+ * better-sqlite3 surfaces uniqueness violations with `code = SQLITE_CONSTRAINT_UNIQUE`
+ * and a message that includes the constraint origin (`users.username`). We
+ * verify both so a future addition of another unique index doesn't get
+ * misclassified.
+ */
+function isSqliteUniqueViolation(err: unknown, column: string): boolean {
+  if (!(err instanceof Error)) return false;
+  const sqliteErr = err as SqliteError;
+  if (sqliteErr.code !== "SQLITE_CONSTRAINT_UNIQUE") return false;
+  return (sqliteErr.message ?? "").toLowerCase().includes(`.${column}`);
 }
 
 function rowToUser(row: UserRow): User {
@@ -45,7 +68,14 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
 
   return {
     async create(input: CreateUserInput): Promise<User> {
-      insertStmt.run(input);
+      try {
+        insertStmt.run(input);
+      } catch (err) {
+        if (isSqliteUniqueViolation(err, "username")) {
+          throw new UsernameTakenError(input.username);
+        }
+        throw err;
+      }
       const row = findByIdStmt.get(input.id) as UserRow;
       return rowToUser(row);
     },

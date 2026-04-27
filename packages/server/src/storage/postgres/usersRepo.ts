@@ -1,4 +1,9 @@
-import type { CreateUserInput, User, UsersRepo } from "../types.js";
+import {
+  type CreateUserInput,
+  UsernameTakenError,
+  type User,
+  type UsersRepo,
+} from "../types.js";
 import type { PgPool } from "./database.js";
 
 interface UserRow {
@@ -10,6 +15,27 @@ interface UserRow {
   provider: string;
   external_id: string | null;
   created_at: string;
+}
+
+interface PgError {
+  code?: string;
+  constraint?: string;
+  message?: string;
+}
+
+/**
+ * Postgres signals unique-constraint violations with SQLSTATE 23505. Real
+ * `pg` populates `error.constraint` with the index name; pg-mem (used in
+ * tests) leaves it undefined and only embeds the index name in the message.
+ * Match either path so the same code works in tests and production.
+ */
+function isPgUniqueViolation(err: unknown, columnHint: string): boolean {
+  if (!(err instanceof Error)) return false;
+  const pgErr = err as PgError;
+  if (pgErr.code !== "23505") return false;
+  const haystack =
+    `${pgErr.constraint ?? ""} ${pgErr.message ?? ""}`.toLowerCase();
+  return haystack.includes(columnHint);
 }
 
 function rowToUser(row: UserRow): User {
@@ -28,22 +54,29 @@ function rowToUser(row: UserRow): User {
 export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
   return {
     async create(input: CreateUserInput): Promise<User> {
-      await pool.query(
-        `INSERT INTO users (
-          id, username, password_hash, display_name, avatar_color,
-          provider, external_id, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          input.id,
-          input.username,
-          input.passwordHash,
-          input.displayName,
-          input.avatarColor,
-          input.provider,
-          input.externalId,
-          input.createdAt,
-        ],
-      );
+      try {
+        await pool.query(
+          `INSERT INTO users (
+            id, username, password_hash, display_name, avatar_color,
+            provider, external_id, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            input.id,
+            input.username,
+            input.passwordHash,
+            input.displayName,
+            input.avatarColor,
+            input.provider,
+            input.externalId,
+            input.createdAt,
+          ],
+        );
+      } catch (err) {
+        if (isPgUniqueViolation(err, "username")) {
+          throw new UsernameTakenError(input.username);
+        }
+        throw err;
+      }
       const result = await pool.query<UserRow>(
         `SELECT * FROM users WHERE id = $1`,
         [input.id],

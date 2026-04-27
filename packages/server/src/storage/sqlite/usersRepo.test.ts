@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { UsersRepo } from "../types.js";
+import { UsernameTakenError, type UsersRepo } from "../types.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
 
@@ -50,7 +50,7 @@ describe("sqlite usersRepo", () => {
     expect(await repo.findByUsername("ALICE")).not.toBeNull();
   });
 
-  it("rejects duplicate usernames at the DB layer", async () => {
+  it("rejects duplicate usernames with UsernameTakenError", async () => {
     await repo.create({
       id: "user-1",
       username: "alice",
@@ -72,7 +72,7 @@ describe("sqlite usersRepo", () => {
         externalId: null,
         createdAt: "2026-04-01T00:00:00Z",
       }),
-    ).rejects.toThrow();
+    ).rejects.toBeInstanceOf(UsernameTakenError);
   });
 
   it("returns null for missing users", async () => {
