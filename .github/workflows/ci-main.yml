@@ -49,6 +49,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
+      - run: pnpm --filter @manifesto/server build
       - run: pnpm --filter @manifesto/client build
 
       - uses: actions/configure-pages@v5
