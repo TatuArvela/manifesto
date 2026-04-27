@@ -10,6 +10,7 @@ import { HttpError, onError } from "./middleware/error.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
 import type { StorageDriver } from "./storage/types.js";
+import { VERSION } from "./version.js";
 import { type Broadcaster, createBroadcaster } from "./ws/broadcaster.js";
 
 export interface AppDeps {
@@ -53,7 +54,7 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
 
-  app.get("/api/health", (c) => c.json({ ok: true }));
+  app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));
 
   // Provider-agnostic auth routes (/methods, /me) must be registered BEFORE
   // the provider's own router so Hono's longest-prefix matching reaches them.

@@ -26,6 +26,7 @@ The full specification lives in [docs/specification/](docs/specification/index.m
 - [Data Model](docs/specification/data-model.md) and [API](docs/specification/api.md) — Wire contract
 - [Client](docs/specification/client/index.md) and [Server](docs/specification/server/index.md) — Architecture
 - [Features](docs/specification/index.md#features) — Notes, checklists, search, tags, sharing, version history, …
+- [Releasing](docs/development/releasing.md) — How releases are cut
 
 ## License
 

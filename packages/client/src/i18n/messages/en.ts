@@ -258,6 +258,9 @@ export const en = {
   "settings.autoNotes.untitled": "(Untitled)",
   "settings.autoNotes.origin.inline": "Pasted",
   "settings.autoNotes.origin.url": "URL",
+  "settings.about.version": "Manifesto",
+  "settings.about.repo": "GitHub",
+  "settings.about.license": "MIT licensed",
   "dropZone.title": "Drop to import",
   "dropZone.hint": "Markdown or JSON files",
 

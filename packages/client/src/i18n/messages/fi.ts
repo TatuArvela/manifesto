@@ -261,6 +261,9 @@ export const fi: Messages = {
   "settings.autoNotes.untitled": "(Nimetön)",
   "settings.autoNotes.origin.inline": "Liitetty",
   "settings.autoNotes.origin.url": "URL",
+  "settings.about.version": "Manifesto",
+  "settings.about.repo": "GitHub",
+  "settings.about.license": "MIT-lisenssillä",
   "dropZone.title": "Pudota tuodaksesi",
   "dropZone.hint": "Markdown- tai JSON-tiedostoja",
 

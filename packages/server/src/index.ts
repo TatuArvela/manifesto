@@ -7,6 +7,7 @@ import { loadConfig } from "./config.js";
 import { logger } from "./lib/logger.js";
 import { startTrashCleanup } from "./lib/trashCleanup.js";
 import { createStorage } from "./storage/index.js";
+import { VERSION } from "./version.js";
 import { attachAppSocket } from "./ws/appSocket.js";
 import { attachYjsSocket } from "./ws/yjsSocket.js";
 
@@ -20,6 +21,7 @@ attachAppSocket({ app, ws, authProvider, broadcaster, cfg });
 
 const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
   logger.info("Server listening", {
+    version: VERSION,
     port: info.port,
     storageDriver: cfg.storageDriver,
     authProvider: cfg.authProvider,
