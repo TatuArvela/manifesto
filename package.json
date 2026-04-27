@@ -1,6 +1,12 @@
 {
   "name": "manifesto",
   "private": true,
+  "license": "MIT",
+  "author": "Tatu Arvela",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TatuArvela/manifesto.git"
+  },
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
     "@biomejs/biome": "^2.0.0"

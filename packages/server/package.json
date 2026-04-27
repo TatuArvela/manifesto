@@ -2,6 +2,8 @@
   "name": "@manifesto/server",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
+  "author": "Tatu Arvela",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
