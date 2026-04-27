@@ -202,7 +202,7 @@ export async function consumeOidcRedirect(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (!SERVER_URL) return false;
   const hash = window.location.hash;
-  if (!hash || !hash.includes("token=")) return false;
+  if (!hash?.includes("token=")) return false;
   const params = new URLSearchParams(hash.replace(/^#/, ""));
   const token = params.get("token");
   if (!token) return false;
