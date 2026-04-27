@@ -118,17 +118,37 @@ export class RestApiAdapter implements StorageAdapter {
 
   async deleteAll(): Promise<void> {
     const notes = await this.getAll();
-    await Promise.all(notes.map((n) => this.delete(n.id)));
+    // Use allSettled so a single failed DELETE (e.g. 404 because another tab
+    // already removed it) doesn't leave the rest of the notes intact. The
+    // caller in actions.ts re-reads from the server after this resolves so
+    // the signal converges regardless of how the delete shook out.
+    const results = await Promise.allSettled(
+      notes.map((n) => this.delete(n.id)),
+    );
+    const failures = results
+      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+      .map((r) => r.reason);
+    if (failures.length > 0) {
+      throw new AggregateError(failures, "Failed to delete some notes");
+    }
   }
 
   async importAll(imported: Note[]): Promise<void> {
     const existing = await this.getAll();
     const existingIds = new Set(existing.map((n) => n.id));
     for (const note of imported) {
+      // Strip server-assigned fields. The server's noteUpdateSchema strips
+      // them anyway, but sending them is misleading and bloats the payload.
+      const {
+        id: _id,
+        createdAt: _createdAt,
+        updatedAt: _updatedAt,
+        ...payload
+      } = note;
       if (existingIds.has(note.id)) {
-        await this.update(note.id, note);
+        await this.update(note.id, payload);
       } else {
-        await this.create(note);
+        await this.create(payload);
       }
     }
   }
