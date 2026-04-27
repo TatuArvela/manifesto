@@ -166,6 +166,58 @@ describe("notes routes", () => {
     expect(res.status).toBe(422);
   });
 
+  it("rejects oversized content with 422", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const res = await rig.request("/api/notes", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ ...baseNote, content: "x".repeat(100_001) }),
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it("rejects non-http image URLs with 422", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const cases = [
+      "javascript:alert(1)",
+      "data:image/png;base64,iVBOR",
+      "file:///etc/passwd",
+      "not a url",
+    ];
+    for (const url of cases) {
+      const res = await rig.request("/api/notes", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({ ...baseNote, images: [url] }),
+      });
+      expect(res.status, `expected 422 for image url ${url}`).toBe(422);
+    }
+  });
+
+  it("accepts http(s) image URLs", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token, {
+      images: ["https://example.com/cat.png", "http://example.com/dog.jpg"],
+    });
+    expect(note.images).toEqual([
+      "https://example.com/cat.png",
+      "http://example.com/dog.jpg",
+    ]);
+  });
+
+  it("rejects too many tags with 422", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const res = await rig.request("/api/notes", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        ...baseNote,
+        tags: Array.from({ length: 51 }, (_, i) => `tag-${i}`),
+      }),
+    });
+    expect(res.status).toBe(422);
+  });
+
   it("PUT with matching If-Match succeeds", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token, { title: "Old" });
