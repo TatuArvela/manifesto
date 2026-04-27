@@ -9,7 +9,11 @@ import {
   createAuthMiddleware,
 } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
-import type { CreateUserInput, StorageDriver } from "../../storage/types.js";
+import {
+  type CreateUserInput,
+  type StorageDriver,
+  UsernameTakenError,
+} from "../../storage/types.js";
 import { issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
 import type { OidcDiscoveryClient } from "./provider.js";
@@ -116,23 +120,13 @@ async function provisionUser(
       // error (disk full, broken schema, network) propagates so it lands in
       // the operator's logs as a genuine failure rather than being masked
       // as a "username taken".
-      if (!isUsernameUniqueViolation(err)) throw err;
+      if (!(err instanceof UsernameTakenError)) throw err;
       logger.warn("OIDC user provisioning username collision, retrying", {
         username,
       });
     }
   }
   throw new HttpError(500, "Could not provision user from IdP claims");
-}
-
-function isUsernameUniqueViolation(err: unknown): boolean {
-  const message = err instanceof Error ? err.message : String(err);
-  // SQLite: "UNIQUE constraint failed: users.username"
-  // Postgres: "duplicate key value violates unique constraint" + index name
-  return (
-    /UNIQUE constraint failed: users\.username/i.test(message) ||
-    /duplicate key.*users_username/i.test(message)
-  );
 }
 
 export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {

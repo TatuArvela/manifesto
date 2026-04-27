@@ -1,6 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { newDb } from "pg-mem";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { UsernameTakenError } from "../types.js";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.js";
 
 async function bootStorage(): Promise<PostgresStorageDriver> {
@@ -80,7 +81,7 @@ describe("postgres storage driver (pg-mem)", () => {
       ).toBe("u-sso");
     });
 
-    it("rejects duplicate usernames at the DB layer (case-insensitive)", async () => {
+    it("rejects duplicate usernames with UsernameTakenError (case-insensitive)", async () => {
       await storage.users.create({
         id: "u1",
         username: "alice",
@@ -102,7 +103,7 @@ describe("postgres storage driver (pg-mem)", () => {
           externalId: null,
           createdAt: NOW,
         }),
-      ).rejects.toThrow();
+      ).rejects.toBeInstanceOf(UsernameTakenError);
     });
   });
 

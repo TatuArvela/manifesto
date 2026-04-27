@@ -29,6 +29,19 @@ export interface UsersRepo {
   findByExternalId(provider: string, externalId: string): Promise<User | null>;
 }
 
+/**
+ * Thrown by `UsersRepo.create` when the username unique constraint is hit.
+ * Provider drivers map their native error code (SQLite
+ * `SQLITE_CONSTRAINT_UNIQUE` / Postgres SQLSTATE `23505`) to this class so
+ * callers don't have to grep error messages for index names.
+ */
+export class UsernameTakenError extends Error {
+  constructor(public readonly username: string) {
+    super(`Username already taken: ${username}`);
+    this.name = "UsernameTakenError";
+  }
+}
+
 export interface Session {
   token: string;
   userId: string;
