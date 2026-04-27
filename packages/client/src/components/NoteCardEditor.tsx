@@ -57,6 +57,15 @@ export function NoteCardEditor({
   const originalTitleRef = useRef(note.title);
   const originalContentRef = useRef(note.content);
 
+  // Track what we've actually persisted, NOT the mount-time prop snapshot. If
+  // a WS `note:updated` event arrives mid-edit, `note.title` becomes the new
+  // server value and a naive `title !== note.title` guard would fire a no-op
+  // (or stale-overwriting) save. Comparing against savedRef instead means
+  // we only ever write when the local state diverges from what we ourselves
+  // last sent.
+  const savedTitleRef = useRef(note.title);
+  const savedContentRef = useRef(note.content);
+
   const savedRef = useRef(false);
 
   const maybeSaveVersion = () => {
@@ -80,7 +89,12 @@ export function NoteCardEditor({
   const saveAndCloseRef = useRef<() => void>(() => {});
   saveAndCloseRef.current = () => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    if (title !== note.title || content !== note.content) {
+    if (
+      title !== savedTitleRef.current ||
+      content !== savedContentRef.current
+    ) {
+      savedTitleRef.current = title;
+      savedContentRef.current = content;
       updateNote(note.id, { title, content });
     }
     maybeSaveVersion();
@@ -95,9 +109,11 @@ export function NoteCardEditor({
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       if (savedRef.current) return;
       if (
-        titleRef.current !== note.title ||
-        contentRef.current !== note.content
+        titleRef.current !== savedTitleRef.current ||
+        contentRef.current !== savedContentRef.current
       ) {
+        savedTitleRef.current = titleRef.current;
+        savedContentRef.current = contentRef.current;
         updateNote(note.id, {
           title: titleRef.current,
           content: contentRef.current,
@@ -130,9 +146,15 @@ export function NoteCardEditor({
 
   // Auto-save on any title/content change
   useEffect(() => {
-    if (title === note.title && content === note.content) return;
+    if (
+      title === savedTitleRef.current &&
+      content === savedContentRef.current
+    )
+      return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
+      savedTitleRef.current = title;
+      savedContentRef.current = content;
       updateNote(note.id, { title, content });
     }, 500);
   }, [title, content]);
@@ -158,6 +180,8 @@ export function NoteCardEditor({
                   onRestore={(restoredTitle, restoredContent) => {
                     setTitle(restoredTitle);
                     setContent(restoredContent);
+                    savedTitleRef.current = restoredTitle;
+                    savedContentRef.current = restoredContent;
                     updateNote(note.id, {
                       title: restoredTitle,
                       content: restoredContent,
