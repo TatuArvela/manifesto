@@ -230,6 +230,28 @@ describe("RestApiAdapter", () => {
       await adapter.deleteAll();
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
+
+    it("continues past individual failures and aggregates them", async () => {
+      const notes = [
+        makeNote({ id: "A" }),
+        makeNote({ id: "B" }),
+        makeNote({ id: "C" }),
+      ];
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse({ notes }))
+        // A: success
+        .mockResolvedValueOnce(new Response(null, { status: 204 }))
+        // B: 500 — but the loop must continue
+        .mockResolvedValueOnce(new Response("err", { status: 500 }))
+        // C: success
+        .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+      await expect(adapter.deleteAll()).rejects.toThrow(
+        "Failed to delete some notes",
+      );
+      // 1 list + 3 deletes — confirms B's failure didn't short-circuit C.
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+    });
   });
 
   describe("importAll", () => {
@@ -254,6 +276,22 @@ describe("RestApiAdapter", () => {
         "https://api.example.com/api/notes",
       );
       expect(lastCallInit(fetchMock, 2).method).toBe("POST");
+    });
+
+    it("strips server-assigned fields from the payload", async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
+      const incoming = makeNote({ id: "fresh", title: "Hi" });
+      fetchMock.mockResolvedValueOnce(jsonResponse({ note: incoming }));
+
+      await adapter.importAll([incoming]);
+
+      const createBody = JSON.parse(
+        lastCallInit(fetchMock, 1).body as string,
+      ) as Record<string, unknown>;
+      expect(createBody.id).toBeUndefined();
+      expect(createBody.createdAt).toBeUndefined();
+      expect(createBody.updatedAt).toBeUndefined();
+      expect(createBody.title).toBe("Hi");
     });
   });
 
