@@ -29,6 +29,11 @@
     "indentWidth": 2
   },
   "files": {
-    "includes": ["packages/**/*.ts", "packages/**/*.tsx"]
+    "includes": [
+      "packages/**/*.ts",
+      "packages/**/*.tsx",
+      "!packages/**/dist/**",
+      "!packages/**/node_modules/**"
+    ]
   }
 }
