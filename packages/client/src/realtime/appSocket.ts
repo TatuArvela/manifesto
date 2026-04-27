@@ -4,7 +4,7 @@ import type {
   WebSocketEvent,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { notes } from "../state/actions.js";
+import { loadNotes, notes } from "../state/actions.js";
 import { authToken, clearAuthLocal, SERVER_URL } from "../state/auth.js";
 import {
   clearPresence,
@@ -24,6 +24,11 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let backoffMs = 1000;
 const MAX_BACKOFF = 30_000;
 let lastViewedNoteId: string | null | undefined;
+// True after the first successful connection for the current auth token. A
+// fresh login starts at false; the first onopen flips it. Subsequent opens
+// (after onclose triggers a reconnect) trigger a notes re-fetch so any writes
+// that happened on another device while we were offline aren't missed.
+let hasOpenedOnce = false;
 
 function wsBaseUrl(): string | null {
   if (!SERVER_URL) return null;
@@ -95,6 +100,10 @@ function disconnect() {
   connectionStatus.value = "closed";
   clearPresence();
   lastViewedNoteId = undefined;
+  // Reset the "has opened once" flag — a token change (logout, re-login as a
+  // different user) starts a fresh session that should NOT trigger the
+  // reconnect-refetch on its first open.
+  hasOpenedOnce = false;
 }
 
 function connect(token: string) {
@@ -109,6 +118,18 @@ function connect(token: string) {
     backoffMs = 1000;
     if (lastViewedNoteId !== undefined) {
       send({ type: "presence:update", noteId: lastViewedNoteId });
+    }
+    if (hasOpenedOnce) {
+      // Reconnect path — only WS-bound state caught up via fan-out events. We
+      // missed everything that happened while offline, so refetch the full
+      // notes list. The signal-merge in upsertNote handles any racing events
+      // that arrive between this fire and the response.
+      loadNotes().catch(() => {
+        // Network blip during the catch-up fetch is fine — the next user
+        // action or full reload will retry.
+      });
+    } else {
+      hasOpenedOnce = true;
     }
   };
 
