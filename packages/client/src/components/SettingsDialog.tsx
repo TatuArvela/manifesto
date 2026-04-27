@@ -458,7 +458,7 @@ export function SettingsDialog() {
           </div>
 
           {isServerMode && currentUser.value && (
-            <div>
+            <div class="pb-4">
               <h3 class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
                 {currentUser.value.username}
               </h3>
@@ -475,6 +475,24 @@ export function SettingsDialog() {
               </button>
             </div>
           )}
+
+          <div class="pt-2 border-t border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 space-y-1">
+            <p>
+              {t("settings.about.version")} v{__APP_VERSION__}
+            </p>
+            <p>
+              <a
+                class="underline hover:text-neutral-700 dark:hover:text-neutral-300"
+                href="https://github.com/TatuArvela/manifesto"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                {t("settings.about.repo")}
+              </a>
+              {" · "}
+              {t("settings.about.license")}
+            </p>
+          </div>
         </div>
       </div>
     </>

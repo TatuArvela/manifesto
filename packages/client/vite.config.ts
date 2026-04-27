@@ -6,6 +6,10 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const pkg = JSON.parse(
+  fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
+) as { version: string };
+
 /**
  * GitHub Pages serves `404.html` for any unknown path, so we copy the built
  * `index.html` under that name to give the SPA a clean-URL fallback.
@@ -84,7 +88,12 @@ function rewriteManifestBase(): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   return {
-    base: process.env.GITHUB_ACTIONS ? "/manifesto/" : "/",
+    base:
+      process.env.MANIFESTO_BASE_URL ??
+      (process.env.GITHUB_ACTIONS ? "/manifesto/" : "/"),
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     plugins: [
       preact(),
       tailwindcss(),
