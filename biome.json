@@ -32,8 +32,8 @@
     "includes": [
       "packages/**/*.ts",
       "packages/**/*.tsx",
-      "!packages/**/dist/**",
-      "!packages/**/node_modules/**"
+      "!packages/**/dist",
+      "!packages/**/node_modules"
     ]
   }
 }
