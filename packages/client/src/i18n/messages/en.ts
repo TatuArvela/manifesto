@@ -261,6 +261,8 @@ export const en = {
   "settings.about.version": "Manifesto",
   "settings.about.repo": "GitHub",
   "settings.about.license": "MIT licensed",
+  "storage.quotaExceeded":
+    "Browser storage is full. Some changes may not be saved until you free up space.",
   "dropZone.title": "Drop to import",
   "dropZone.hint": "Markdown or JSON files",
 

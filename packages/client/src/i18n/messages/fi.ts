@@ -264,6 +264,8 @@ export const fi: Messages = {
   "settings.about.version": "Manifesto",
   "settings.about.repo": "GitHub",
   "settings.about.license": "MIT-lisenssillä",
+  "storage.quotaExceeded":
+    "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",
   "dropZone.hint": "Markdown- tai JSON-tiedostoja",
 
