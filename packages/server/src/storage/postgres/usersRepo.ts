@@ -1,7 +1,7 @@
 import {
   type CreateUserInput,
-  UsernameTakenError,
   type User,
+  UsernameTakenError,
   type UsersRepo,
 } from "../types.js";
 import type { PgPool } from "./database.js";

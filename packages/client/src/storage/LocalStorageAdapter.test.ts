@@ -167,10 +167,7 @@ describe("LocalStorageAdapter", () => {
     const setItem = vi
       .spyOn(Storage.prototype, "setItem")
       .mockImplementation(() => {
-        throw new DOMException(
-          "Quota exceeded",
-          "QuotaExceededError",
-        );
+        throw new DOMException("Quota exceeded", "QuotaExceededError");
       });
     try {
       // Must not throw — caller's try/catch isn't responsible for storage failure.

@@ -1,10 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
+import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
-import type { MiddlewareHandler } from "hono";
 import {
   type AuthContext,
   createAuthMiddleware,

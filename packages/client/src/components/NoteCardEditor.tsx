@@ -146,10 +146,7 @@ export function NoteCardEditor({
 
   // Auto-save on any title/content change
   useEffect(() => {
-    if (
-      title === savedTitleRef.current &&
-      content === savedContentRef.current
-    )
+    if (title === savedTitleRef.current && content === savedContentRef.current)
       return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
