@@ -29,9 +29,9 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
 
       - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: pnpm --filter @manifesto/client exec playwright install --with-deps chromium
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: pnpm --filter @manifesto/client exec playwright install-deps chromium
 
       - run: pnpm lint
       - run: pnpm typecheck
