@@ -10,7 +10,6 @@
   "packages": {
     ".": {
       "package-name": "manifesto",
-      "release-as": "0.1.0",
       "extra-files": [
         { "type": "json", "path": "packages/client/package.json", "jsonpath": "$.version" },
         { "type": "json", "path": "packages/server/package.json", "jsonpath": "$.version" },
