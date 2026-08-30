@@ -1,6 +1,6 @@
 {
   "name": "manifesto",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "license": "MIT",
   "author": "Tatu Arvela",
@@ -13,11 +13,7 @@
     "@biomejs/biome": "^2.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "argon2",
-      "better-sqlite3",
-      "esbuild"
-    ]
+    "onlyBuiltDependencies": ["argon2", "better-sqlite3", "esbuild"]
   },
   "scripts": {
     "build": "pnpm -r build",
