@@ -7,6 +7,10 @@ WORKDIR /repo
 # pnpm via corepack — pinned to whatever the workspace expects.
 RUN corepack enable
 
+# The --prod dev-dependency trim below purges the modules directory; pnpm 10
+# refuses to remove it without a TTY, which a buildx step doesn't have.
+ENV npm_config_confirm_modules_purge=false
+
 # Install build toolchain for better-sqlite3 / argon2 native bindings.
 RUN apk add --no-cache python3 make g++
 
