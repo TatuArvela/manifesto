@@ -1,0 +1,142 @@
+name: Publish server image
+
+# Builds the multi-arch server image on native runners (amd64 on x64, arm64 on
+# an arm64 runner) and merges the per-arch images into one manifest. Building
+# each arch natively avoids QEMU emulation, which hangs on `pnpm deploy`.
+#
+# Reused by release.yml for tagged releases, and dispatchable by hand to
+# rebuild/republish an image for any ref (recovery, or validating a build).
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build from
+        required: true
+        type: string
+      version:
+        description: Image tag to push (e.g. 0.1.2)
+        required: true
+        type: string
+      push_latest:
+        description: Also move the :latest tag
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to build from (branch, tag, or SHA)
+        default: main
+        type: string
+      version:
+        description: Image tag to push (e.g. 0.1.1, or ci-test for a throwaway)
+        required: true
+        type: string
+      push_latest:
+        description: Also move the :latest tag
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/tatuarvela/manifesto-server
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Name the platform pair
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: echo "PLATFORM_PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/server/Dockerfile
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ inputs.version }}
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.revision=${{ github.sha }}
+          # Push each arch as an untagged, digest-only image; the merge job
+          # stitches them into the final tag(s).
+          outputs: type=image,name=ghcr.io/tatuarvela/manifesto-server,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          touch "${{ runner.temp }}/digests/${DIGEST#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push the manifest list
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          VERSION: ${{ inputs.version }}
+          PUSH_LATEST: ${{ inputs.push_latest }}
+        run: |
+          tags=(-t "${IMAGE}:${VERSION}")
+          if [ "$PUSH_LATEST" = "true" ]; then
+            tags+=(-t "${IMAGE}:latest")
+          fi
+          sources=()
+          for digest in *; do
+            sources+=("${IMAGE}@sha256:${digest}")
+          done
+          docker buildx imagetools create "${tags[@]}" "${sources[@]}"
+
+      - name: Inspect
+        env:
+          VERSION: ${{ inputs.version }}
+        run: docker buildx imagetools inspect "${IMAGE}:${VERSION}"
