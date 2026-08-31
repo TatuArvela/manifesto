@@ -7,9 +7,8 @@ WORKDIR /repo
 # pnpm via corepack — pinned to whatever the workspace expects.
 RUN corepack enable
 
-# The --prod dev-dependency trim below purges the modules directory; pnpm 10
-# refuses to remove it without a TTY (a buildx step has none). CI=true is
-# pnpm's own recommended way to allow that purge non-interactively.
+# pnpm may prompt before removing a modules directory; a buildx step has no
+# TTY, so tell pnpm it's running in CI to proceed non-interactively.
 ENV CI=true
 
 # Install build toolchain for better-sqlite3 / argon2 native bindings.
@@ -23,14 +22,17 @@ COPY packages/server/package.json packages/server/
 
 RUN pnpm install --filter ...@manifesto/server --frozen-lockfile
 
-# Copy sources and build.
+# Copy sources and build. Build shared first — the server imports its compiled
+# output (@manifesto/shared resolves to dist/index.js at runtime).
 COPY packages/shared packages/shared
 COPY packages/server packages/server
-RUN pnpm --filter @manifesto/server build
+RUN pnpm --filter @manifesto/shared build \
+  && pnpm --filter @manifesto/server build
 
-# Trim devDependencies for the runtime image.
-RUN pnpm install --filter ...@manifesto/server --prod --frozen-lockfile --ignore-scripts \
-  && pnpm rebuild --filter @manifesto/server
+# Produce a self-contained production bundle. `pnpm deploy` writes a real,
+# fully-resolved node_modules (no symlinks into the workspace .pnpm store) plus
+# the package's own files, so the runtime stage can copy it verbatim.
+RUN pnpm --filter @manifesto/server deploy --prod --legacy /prod
 
 # ── Runtime stage ───────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
@@ -43,10 +45,13 @@ ENV NODE_ENV=production \
     PORT=3001 \
     DATA_DIR=/app/data
 
-COPY --from=builder /repo/packages/server/dist ./dist
-COPY --from=builder /repo/packages/server/package.json ./package.json
-COPY --from=builder /repo/packages/server/node_modules ./node_modules
-COPY --from=builder /repo/packages/shared ./node_modules/@manifesto/shared
+COPY --from=builder /prod/dist ./dist
+COPY --from=builder /prod/package.json ./package.json
+COPY --from=builder /prod/node_modules ./node_modules
+
+# Create the data dir up front and hand it to the runtime user, so the SQLite
+# driver can write even when /app/data is backed by an anonymous volume.
+RUN mkdir -p /app/data && chown -R manifesto:manifesto /app/data
 
 VOLUME ["/app/data"]
 EXPOSE 3001
