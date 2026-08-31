@@ -1,0 +1,8 @@
+# Keep the build context lean and reproducible. The image installs deps and
+# builds dist inside the builder stage, so local copies must never leak in —
+# they'd mask missing-dependency bugs (local build != CI build).
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.git
+**/*.log
