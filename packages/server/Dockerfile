@@ -20,7 +20,9 @@ COPY tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/server/package.json packages/server/
 
-RUN pnpm install --filter ...@manifesto/server --frozen-lockfile
+# Select both packages directly so shared's devDependencies (typescript) are
+# installed too — the builder compiles shared, not just server.
+RUN pnpm install --filter @manifesto/server --filter @manifesto/shared --frozen-lockfile
 
 # Copy sources and build. Build shared first — the server imports its compiled
 # output (@manifesto/shared resolves to dist/index.js at runtime).
