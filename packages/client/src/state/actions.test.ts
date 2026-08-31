@@ -14,6 +14,7 @@ import {
   trashNote,
   unarchiveNote,
   updateNote,
+  upsertById,
 } from "./actions.js";
 import { sortMode } from "./prefs.js";
 import { activeView, searchQuery } from "./ui.js";
@@ -36,6 +37,23 @@ describe("state actions", () => {
     expect(note.title).toBe("Hello");
     expect(notes.value).toHaveLength(1);
     expect(notes.value[0].id).toBe(note.id);
+  });
+
+  it("createNote does not duplicate a note already added by a WS echo", async () => {
+    // In server mode the backend can broadcast note:created (which upserts into
+    // the list) before our own create() resolves. Simulate that echo landing
+    // first, then let createNote's optimistic insert run.
+    const note = await createNote({ title: "Echoed" });
+    notes.value = upsertById(notes.value, note); // second, racing insert
+    expect(notes.value.filter((n) => n.id === note.id)).toHaveLength(1);
+    expect(notes.value).toHaveLength(1);
+  });
+
+  it("upsertById replaces an existing note in place", async () => {
+    const note = await createNote({ title: "First" });
+    notes.value = upsertById(notes.value, { ...note, title: "Edited" });
+    expect(notes.value).toHaveLength(1);
+    expect(notes.value[0].title).toBe("Edited");
   });
 
   it("updateNote modifies a note", async () => {

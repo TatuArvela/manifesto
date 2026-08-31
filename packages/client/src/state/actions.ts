@@ -47,6 +47,21 @@ export const allNotes = computed<Note[]>(() => [
   ...generatedNotes.value,
 ]);
 
+/**
+ * Insert or replace a note by id. Optimistic local writes and WebSocket
+ * fan-out events race — in server mode the backend broadcasts `note:created`
+ * before our own POST resolves — so every local insert must be idempotent by
+ * id, otherwise the same note lands in the list twice (a duplicate card that
+ * only clears on refetch).
+ */
+export function upsertById(list: Note[], note: Note): Note[] {
+  const idx = list.findIndex((n) => n.id === note.id);
+  if (idx === -1) return [...list, note];
+  const next = list.slice();
+  next[idx] = note;
+  return next;
+}
+
 // --- Derived ---
 
 const CHECKBOX_LINE_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\] (.*)$/;
@@ -258,7 +273,7 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
   };
   try {
     const note = await storage.create(noteCreate);
-    notes.value = [...notes.value, note];
+    notes.value = upsertById(notes.value, note);
     return note;
   } catch (err) {
     console.error("Failed to create note:", err);

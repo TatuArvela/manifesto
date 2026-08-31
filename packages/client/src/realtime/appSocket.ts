@@ -1,10 +1,6 @@
-import type {
-  Note,
-  WebSocketClientEvent,
-  WebSocketEvent,
-} from "@manifesto/shared";
+import type { WebSocketClientEvent, WebSocketEvent } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { loadNotes, notes } from "../state/actions.js";
+import { loadNotes, notes, upsertById } from "../state/actions.js";
 import { authToken, clearAuthLocal, SERVER_URL } from "../state/auth.js";
 import {
   clearPresence,
@@ -51,10 +47,10 @@ function isServerEvent(value: unknown): value is WebSocketEvent {
 function applyServerEvent(event: WebSocketEvent) {
   switch (event.type) {
     case "note:created":
-      notes.value = upsertNote(notes.value, event.note);
+      notes.value = upsertById(notes.value, event.note);
       break;
     case "note:updated":
-      notes.value = upsertNote(notes.value, event.note);
+      notes.value = upsertById(notes.value, event.note);
       break;
     case "note:deleted":
       notes.value = notes.value.filter((n) => n.id !== event.id);
@@ -66,14 +62,6 @@ function applyServerEvent(event: WebSocketEvent) {
       recordPresenceLeave(event.noteId, event.userId);
       break;
   }
-}
-
-function upsertNote(list: Note[], note: Note): Note[] {
-  const idx = list.findIndex((n) => n.id === note.id);
-  if (idx === -1) return [...list, note];
-  const next = list.slice();
-  next[idx] = note;
-  return next;
 }
 
 function send(event: WebSocketClientEvent) {
@@ -122,7 +110,7 @@ function connect(token: string) {
     if (hasOpenedOnce) {
       // Reconnect path — only WS-bound state caught up via fan-out events. We
       // missed everything that happened while offline, so refetch the full
-      // notes list. The signal-merge in upsertNote handles any racing events
+      // notes list. The signal-merge in upsertById handles any racing events
       // that arrive between this fire and the response.
       loadNotes().catch(() => {
         // Network blip during the catch-up fetch is fine — the next user
