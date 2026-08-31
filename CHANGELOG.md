@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/TatuArvela/manifesto/compare/v0.1.0...v0.1.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **server:** produce a working runtime image via pnpm deploy ([#7](https://github.com/TatuArvela/manifesto/issues/7)) ([29b67b1](https://github.com/TatuArvela/manifesto/commit/29b67b1f12f14b885a67db3d15e74a79cbe04f0a))
+
 ## 0.1.0 (2026-08-30)
 
 
