@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/TatuArvela/manifesto/compare/v0.1.1...v0.1.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **client:** dedupe optimistic note insert to stop duplicate cards ([#9](https://github.com/TatuArvela/manifesto/issues/9)) ([b32dde3](https://github.com/TatuArvela/manifesto/commit/b32dde33253808f12c69b893bb5443d41acd170c))
+* **server:** build @manifesto/shared and pin the Docker build context ([#11](https://github.com/TatuArvela/manifesto/issues/11)) ([266866e](https://github.com/TatuArvela/manifesto/commit/266866ee138f933cd2dc33a4afa3a40519376b8a))
+
 ## [0.1.1](https://github.com/TatuArvela/manifesto/compare/v0.1.0...v0.1.1) (2026-08-31)
 
 
