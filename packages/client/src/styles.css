@@ -176,6 +176,27 @@ body {
   }
 }
 
+/* Motion preference (Settings > Animations), toggled on <html> by
+   state/prefs.ts and defaulting to the OS `prefers-reduced-motion` setting.
+
+   Durations collapse to a near-zero value rather than `animation: none`,
+   because several components finish their work on `animationend` — the
+   settings panel only unmounts when its slide-out fires one. Killing the
+   animation outright would mean that event never arrives and the panel would
+   stay on screen forever. A 0.01ms animation still fires it on the next
+   frame. */
+:root.no-motion,
+:root.no-motion *,
+:root.no-motion *::before,
+:root.no-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* Note corner style — a user preference (Settings > Note Corners). Every note
    surface reads this one variable: the cards, the create-note stack, and the
    editor. `.notes-rounded` is toggled on <html> by state/prefs.ts. */

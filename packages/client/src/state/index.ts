@@ -44,6 +44,7 @@ export {
   updateNote,
 } from "./actions.js";
 export {
+  animations,
   type DecimalSeparator,
   type DefaultNoteColor,
   type DefaultNoteFont,

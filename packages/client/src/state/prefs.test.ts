@@ -1,6 +1,7 @@
 import { NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  animations,
   defaultNoteColor,
   defaultNoteFont,
   locale,
@@ -169,6 +170,30 @@ describe("noteCorners", () => {
     );
     noteCorners.value = "straight";
     expect(document.documentElement.classList.contains("notes-rounded")).toBe(
+      false,
+    );
+  });
+});
+
+describe("animations", () => {
+  it("honours an explicitly persisted choice", () => {
+    expect(parsePrefs('{"animations":false}').animations).toBe(false);
+    expect(parsePrefs('{"animations":true}').animations).toBe(true);
+  });
+
+  it("falls back to the OS motion setting when nothing is persisted", () => {
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    expect(parsePrefs(null).animations).toBe(!reduced);
+    expect(parsePrefs("{}").animations).toBe(!reduced);
+  });
+
+  it("toggles the html class that collapses motion", () => {
+    animations.value = false;
+    expect(document.documentElement.classList.contains("no-motion")).toBe(true);
+    animations.value = true;
+    expect(document.documentElement.classList.contains("no-motion")).toBe(
       false,
     );
   });
