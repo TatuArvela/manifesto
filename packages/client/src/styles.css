@@ -347,25 +347,19 @@ body {
   pointer-events: none;
 }
 
-/* Land: the counterpart to the lift-off. The next sheet comes back up from
-   where the editor was and settles onto the pad.
+/* Land: the next sheet becoming visible once the editor closes.
 
-   Applied to a wrapper around the sheet rather than the sheet itself. The
-   sheet's own transform belongs to the hover tilt and the peel, and an
-   animation on the same property beats both, then reverts the instant the
-   class comes off — which snapped the sheet to the hover angle in one frame
-   the moment the landing finished. */
+   A fade and nothing else. Sliding it up into place looked like the pad
+   dropping and springing back: the sheet behind it and the base below it
+   both stay put, so the only thing moving is the arriving sheet, and the eye
+   reads that as the stack itself lurching. Leaving transform alone also keeps
+   this clear of the hover tilt, which owns the sheet's transform. */
 @keyframes note-land {
   0% {
     opacity: 0;
-    transform: translateY(16px) scale(0.99);
-  }
-  60% {
-    opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 

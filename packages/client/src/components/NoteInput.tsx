@@ -189,7 +189,9 @@ export function NoteInput() {
     ? "note-stack-top note-lift-off"
     : topNoteHidden
       ? "note-stack-top note-hidden"
-      : "note-stack-top";
+      : landing
+        ? "note-stack-top note-land"
+        : "note-stack-top";
   // While peeling, the sheet still shows the colour being edited; the pad
   // underneath has already been re-picked. Everywhere else the sheet is the
   // pad, so it must not wait for `reset()` to catch the new colour up.
@@ -261,17 +263,11 @@ export function NoteInput() {
                 {nextCta}
               </div>
             </div>
-            {/* The landing animation sits on a wrapper, not on the sheet:
-                the sheet's own transform is owned by the hover tilt and the
-                peel, and an animation on the same property overrides them,
-                then snaps back the instant it is removed. */}
-            <div class={landing ? "note-land" : undefined}>
-              <div
-                class={`${topNoteClass} border ${noteColorMap[topSheetColor].bg} ${noteColorMap[topSheetColor].border}`}
-              >
-                <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
-                  {topCta}
-                </div>
+            <div
+              class={`${topNoteClass} border ${noteColorMap[topSheetColor].bg} ${noteColorMap[topSheetColor].border}`}
+            >
+              <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
+                {topCta}
               </div>
             </div>
           </div>
