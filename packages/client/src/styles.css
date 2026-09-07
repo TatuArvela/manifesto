@@ -347,26 +347,6 @@ body {
   pointer-events: none;
 }
 
-/* Land: the next sheet becoming visible once the editor closes.
-
-   A fade and nothing else. Sliding it up into place looked like the pad
-   dropping and springing back: the sheet behind it and the base below it
-   both stay put, so the only thing moving is the arriving sheet, and the eye
-   reads that as the stack itself lurching. Leaving transform alone also keeps
-   this clear of the hover tilt, which owns the sheet's transform. */
-@keyframes note-land {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.note-land {
-  animation: note-land 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
 /* Next note in stack — full-size note behind the top note. `z-index: 0` gives
    it a stacking context of its own so its grain pseudo-element stays behind
    its text instead of escaping behind the sheet entirely. */
