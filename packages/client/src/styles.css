@@ -234,12 +234,55 @@ body {
   border-radius: var(--note-radius);
 }
 
-/* Sticky note stack */
+/* Sticky note stack.
+
+   The stack is a pad of paper: two full sheets (`-next` behind `-top`) sitting
+   on a visible block of page edges (`-base`). The paper look comes from a
+   tiled grain applied to the sheets and banding on the base, both drawn in
+   pseudo-elements so the colour classes on the elements themselves are
+   untouched. */
+
+/* Tiled fractal noise, used as paper grain. One rasterised tile, repeated. */
+:root {
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
 .note-stack {
   position: relative;
   perspective: 600px;
   border-radius: var(--note-radius);
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+  /* Layered rather than a single blur: a tight contact shadow to seat the pad
+     on the page, and a wider soft one for its bulk. */
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.07),
+    0 5px 14px -4px rgba(0, 0, 0, 0.12);
+}
+
+/* Paper grain over both sheets. Behind the note's text (negative z-index
+   within the sheet's own stacking context) so it never tints the type. */
+.note-stack-top::before,
+.note-stack-next::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: var(--paper-grain);
+  /* Multiply at a very low opacity: it has to darken slightly to register on a
+     white sheet at all — soft-light and overlay both leave pure white
+     untouched, and the default note colour is white. */
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+/* On a dark sheet, multiplying grain just muddies it — lighten instead, and
+   more faintly, since dark paper shows less tooth. */
+.dark .note-stack-top::before,
+.dark .note-stack-next::before {
+  /* A dark sheet needs lightening rather than darkening to show any tooth. */
+  opacity: 0.07;
+  mix-blend-mode: screen;
 }
 
 /* Top note — the interactive peeling sheet */
@@ -307,24 +350,62 @@ body {
   animation: note-land 0.35s ease-out forwards;
 }
 
-/* Next note in stack — full-size note behind the top note */
+/* Next note in stack — full-size note behind the top note. `z-index: 0` gives
+   it a stacking context of its own so its grain pseudo-element stays behind
+   its text instead of escaping behind the sheet entirely. */
 .note-stack-next {
   position: absolute;
   inset: 0;
+  z-index: 0;
   border-radius: var(--note-radius) var(--note-radius) 0 0;
   transition:
     background-color 0.4s ease,
     border-color 0.4s ease;
 }
 
-/* Stack base — visible thickness showing stacked pages. Carries the bottom
-   corners so the sheets above it can keep square bottoms and the whole stack
-   reads as one rounded block. */
+/* Stack base — the pad's visible thickness. Carries the bottom corners so the
+   sheets above it can keep square bottoms and the whole stack reads as one
+   block. */
 .note-stack-base {
-  height: 12px;
+  position: relative;
+  height: 14px;
   border-radius: 0 0 var(--note-radius) var(--note-radius);
-  filter: brightness(70%);
+  overflow: hidden;
+  filter: brightness(88%);
   transition: background-color 0.4s ease;
+}
+
+/* The edges of the individual sheets making up the pad: fine horizontal
+   banding, tightening towards the bottom so the block reads as compressed
+   paper rather than a solid slab. A slight darkening towards the foot seats
+   it against the page. */
+.note-stack-base::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.06) 0px,
+      rgba(0, 0, 0, 0.06) 0.5px,
+      rgba(255, 255, 255, 0.13) 0.5px,
+      rgba(255, 255, 255, 0.13) 2px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.13));
+}
+
+.dark .note-stack-base {
+  filter: brightness(78%);
+}
+
+.dark .note-stack-base::before {
+  background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.2) 0px,
+      rgba(0, 0, 0, 0.2) 0.5px,
+      rgba(255, 255, 255, 0.05) 0.5px,
+      rgba(255, 255, 255, 0.05) 2px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.24));
 }
 
 /* Fade-out for overflowing content in square notes */
