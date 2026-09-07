@@ -176,16 +176,33 @@ body {
   }
 }
 
+/* Note corner style — a user preference (Settings > Note Corners). Every note
+   surface reads this one variable: the cards, the create-note stack, and the
+   editor. `.notes-rounded` is toggled on <html> by state/prefs.ts. */
+:root {
+  --note-radius: 0px;
+}
+
+:root.notes-rounded {
+  --note-radius: 0.5rem;
+}
+
+.note-surface {
+  border-radius: var(--note-radius);
+}
+
 /* Sticky note stack */
 .note-stack {
   position: relative;
   perspective: 600px;
+  border-radius: var(--note-radius);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* Top note — the interactive peeling sheet */
 .note-stack-top {
   position: relative;
+  border-radius: var(--note-radius) var(--note-radius) 0 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transform-origin: center top;
   transition:
@@ -251,14 +268,18 @@ body {
 .note-stack-next {
   position: absolute;
   inset: 0;
+  border-radius: var(--note-radius) var(--note-radius) 0 0;
   transition:
     background-color 0.4s ease,
     border-color 0.4s ease;
 }
 
-/* Stack base — visible thickness showing stacked pages */
+/* Stack base — visible thickness showing stacked pages. Carries the bottom
+   corners so the sheets above it can keep square bottoms and the whole stack
+   reads as one rounded block. */
 .note-stack-base {
   height: 12px;
+  border-radius: 0 0 var(--note-radius) var(--note-radius);
   filter: brightness(70%);
   transition: background-color 0.4s ease;
 }

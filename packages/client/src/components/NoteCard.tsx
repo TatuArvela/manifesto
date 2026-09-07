@@ -608,6 +608,7 @@ export function NoteCard({
         <article
           class={clsx(
             colors.bg,
+            "note-surface",
             // Selection is an outline, never a border-width or ring change:
             // cards are auto-height and the masonry grid spans rows from the
             // measured height, so growing the border by 1px reflows the whole

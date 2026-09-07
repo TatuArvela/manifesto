@@ -12,6 +12,7 @@ export type ThemeMode = "system" | "light" | "dark";
 export type DefaultNoteColor = "plain" | "random";
 export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
+export type NoteCorners = "straight" | "rounded";
 
 const DECIMAL_SEPARATOR_VALUES: readonly DecimalSeparator[] = [
   "auto",
@@ -40,6 +41,7 @@ export interface LoadedPrefs {
   locale: Locale;
   inlineCalculations: boolean;
   decimalSeparator: DecimalSeparator;
+  noteCorners: NoteCorners;
 }
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
@@ -62,6 +64,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
             ? parsed.inlineCalculations
             : true,
         decimalSeparator: parseDecimalSeparator(parsed.decimalSeparator),
+        noteCorners: parsed.noteCorners === "rounded" ? "rounded" : "straight",
       };
     } catch {
       // ignore
@@ -77,6 +80,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     locale: detectBrowserLocale(),
     inlineCalculations: true,
     decimalSeparator: "auto",
+    noteCorners: "straight",
   };
 }
 
@@ -101,6 +105,7 @@ function savePrefs() {
       locale: locale.value,
       inlineCalculations: inlineCalculations.value,
       decimalSeparator: decimalSeparator.value,
+      noteCorners: noteCorners.value,
     }),
   );
 }
@@ -120,6 +125,7 @@ export const inlineCalculations = signal<boolean>(prefs.inlineCalculations);
 export const decimalSeparator = signal<DecimalSeparator>(
   prefs.decimalSeparator,
 );
+export const noteCorners = signal<NoteCorners>(prefs.noteCorners);
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
 export function resolvedDecimalSeparator(): "." | "," {
@@ -140,8 +146,21 @@ effect(() => {
   locale.value;
   inlineCalculations.value;
   decimalSeparator.value;
+  noteCorners.value;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(savePrefs, 50);
+});
+
+// --- Note corners ---
+
+// Exposed as a class on <html> rather than threaded through every note
+// surface as a prop: the note card, the create-note stack and the editor all
+// read the same `--note-radius` from CSS.
+effect(() => {
+  document.documentElement.classList.toggle(
+    "notes-rounded",
+    noteCorners.value === "rounded",
+  );
 });
 
 // --- Theme ---
