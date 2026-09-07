@@ -44,9 +44,6 @@ const LIFT_MS = 400;
 const HANDOFF_MS = 160;
 /** Editor fade-out. */
 const CLOSE_MS = 150;
-/** The next sheet dropping onto the pad. */
-const LAND_MS = 350;
-
 function randomCta(exclude?: string): string {
   const all = ctaKeys.map((k) => t(k));
   const pool = exclude ? all.filter((m) => m !== exclude) : all;
@@ -66,7 +63,6 @@ export function NoteInput() {
   const [linkPreviews, setLinkPreviews] = useState<LinkPreview[]>([]);
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
-  const [landing, setLanding] = useState(false);
   const [topCta, setTopCta] = useState(() => randomCta());
   const [nextCta, setNextCta] = useState(() => randomCta(topCta));
   const focusCatcherRef = useRef<HTMLInputElement>(null);
@@ -137,21 +133,20 @@ export function NoteInput() {
     after(LIFT_MS, () => setLifting(false));
   };
 
-  /** Fades the editor out while the next sheet lands on the pad. */
+  /** Fades the editor out and hands the pad back to the stack. */
   const finishClose = () => {
     setClosing(true);
-    // Both at once. Landing only after the editor had gone left the pad empty
-    // for the whole fade-out and then faded a sheet in from nothing, which is
-    // what read as a stutter. The CTA is cycled now, while the arriving sheet
-    // is still transparent, so the text is settled before it can be seen.
+    // The sheet is revealed opaque, in the same tick the CTA cycles onto it.
+    // The sheet behind the peeled one has been showing that very CTA all along
+    // and sits in exactly the same place, so the top sheet taking over is
+    // invisible. Fading it in instead made the sheet behind it, which by then
+    // carries a different CTA, ghost through the transparent one.
     cycleCta();
-    setLanding(true);
     after(CLOSE_MS, () => {
       reset();
       setClosing(false);
       setExpanded(false);
     });
-    after(LAND_MS, () => setLanding(false));
   };
 
   const closeModal = () => {
@@ -189,9 +184,7 @@ export function NoteInput() {
     ? "note-stack-top note-lift-off"
     : topNoteHidden
       ? "note-stack-top note-hidden"
-      : landing
-        ? "note-stack-top note-land"
-        : "note-stack-top";
+      : "note-stack-top";
   // While peeling, the sheet still shows the colour being edited; the pad
   // underneath has already been re-picked. Everywhere else the sheet is the
   // pad, so it must not wait for `reset()` to catch the new colour up.
