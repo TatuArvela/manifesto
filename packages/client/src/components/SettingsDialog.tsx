@@ -1,6 +1,7 @@
 import { NoteFont } from "@manifesto/shared";
 import {
   Calculator,
+  ChevronDown,
   Dices,
   Download,
   LogOut,
@@ -12,11 +13,12 @@ import {
   Upload,
   X,
 } from "lucide-preact";
+import type { JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { getFontLabel, plural, t } from "../i18n/index.js";
-import { SUPPORTED_LOCALES } from "../i18n/locales.js";
+import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
 import { currentUser, isServerMode, logout } from "../state/auth.js";
 import {
   createNote,
@@ -35,6 +37,7 @@ import {
   theme,
 } from "../state/index.js";
 import { importFiles } from "../utils/importExport.js";
+import { Dropdown } from "./Dropdown.js";
 import { ThreeWayToggle, ToggleSwitch } from "./ToggleSwitch.js";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
@@ -46,14 +49,78 @@ const LOCALE_ENDONYMS: Record<string, string> = {
   fi: "Suomi",
 };
 
+/**
+ * A select-style field for a settings row: a labelled trigger with a chevron,
+ * with its menu on the shared Dropdown. That puts the panel in the top layer,
+ * so it is no longer clipped by the settings panel's scroll container, and
+ * brings light-dismiss and Escape with it instead of the hand-rolled
+ * full-screen backdrop each of these used to render.
+ */
+function SettingsSelect<T extends string>({
+  value,
+  options,
+  onChange,
+  styleFor,
+  label,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  styleFor?: (value: T) => JSX.CSSProperties | undefined;
+  label: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = options.find((o) => o.value === value);
+  return (
+    <Dropdown
+      open={open}
+      onClose={() => setOpen(false)}
+      placement="bottom-end"
+      panelClass="py-1 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[160px]"
+      trigger={
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 text-sm rounded-lg cursor-pointer border transition-colors bg-neutral-100 dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 hover:bg-neutral-200 dark:hover:bg-neutral-600"
+          onClick={() => setOpen(!open)}
+          aria-label={label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+        >
+          <span style={styleFor?.(value)}>{current?.label ?? value}</span>
+          <ChevronDown
+            class={`w-4 h-4 shrink-0 text-neutral-500 dark:text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+      }
+    >
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          class={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${
+            value === opt.value
+              ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+              : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
+          }`}
+          style={styleFor?.(opt.value)}
+          onClick={() => {
+            onChange(opt.value);
+            setOpen(false);
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </Dropdown>
+  );
+}
+
 type LanguageOption = "system" | (typeof SUPPORTED_LOCALES)[number];
 
 export function SettingsDialog() {
   const [dataStatus, setDataStatus] = useState("");
   const [deleteStatus, setDeleteStatus] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showFontMenu, setShowFontMenu] = useState(false);
-  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -75,9 +142,6 @@ export function SettingsDialog() {
       label: LOCALE_ENDONYMS[l] ?? l,
     })),
   ];
-  const currentLanguageLabel =
-    LOCALE_ENDONYMS[locale.value] ?? String(locale.value);
-
   const isOpen = showSettings.value;
 
   useEffect(() => {
@@ -96,7 +160,11 @@ export function SettingsDialog() {
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
+      if (e.key !== "Escape") return;
+      // A select menu inside the panel is a popover that light-dismisses on
+      // Escape itself; let it close alone rather than taking the panel with it.
+      if (document.querySelector(":popover-open")) return;
+      handleClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -225,48 +293,15 @@ export function SettingsDialog() {
             <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.language")}
             </h3>
-            <div class="relative">
-              <button
-                type="button"
-                class="px-3 py-1.5 text-sm rounded-lg cursor-pointer bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
-                onClick={() => setShowLanguageMenu(!showLanguageMenu)}
-              >
-                {currentLanguageLabel}
-              </button>
-              {showLanguageMenu && (
-                <>
-                  {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-                  <div
-                    class="fixed inset-0 z-10"
-                    role="presentation"
-                    onClick={() => setShowLanguageMenu(false)}
-                    onKeyDown={() => {}}
-                  />
-                  <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-20 min-w-[160px]">
-                    {languageOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        class={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${
-                          opt.value !== "system" && locale.value === opt.value
-                            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                            : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                        }`}
-                        onClick={() => {
-                          locale.value =
-                            opt.value === "system"
-                              ? detectBrowserLocale()
-                              : opt.value;
-                          setShowLanguageMenu(false);
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+            <SettingsSelect
+              label={t("settings.language")}
+              value={locale.value as LanguageOption}
+              options={languageOptions}
+              onChange={(next) => {
+                locale.value =
+                  next === "system" ? detectBrowserLocale() : (next as Locale);
+              }}
+            />
           </div>
 
           {/* Default note color */}
@@ -291,58 +326,18 @@ export function SettingsDialog() {
             <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.defaultFont")}
             </h3>
-            <div class="relative">
-              <button
-                type="button"
-                class="px-3 py-1.5 text-sm rounded-lg cursor-pointer bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
-                style={{
-                  fontFamily:
-                    defaultNoteFont.value !== "random"
-                      ? noteFontFamilies[defaultNoteFont.value] || "inherit"
-                      : "inherit",
-                }}
-                onClick={() => setShowFontMenu(!showFontMenu)}
-              >
-                {fontOptions.find((o) => o.value === defaultNoteFont.value)
-                  ?.label ?? getFontLabel(NoteFont.Default)}
-              </button>
-              {showFontMenu && (
-                <>
-                  {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-                  <div
-                    class="fixed inset-0 z-10"
-                    role="presentation"
-                    onClick={() => setShowFontMenu(false)}
-                    onKeyDown={() => {}}
-                  />
-                  <div class="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-20 min-w-[160px]">
-                    {fontOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        class={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${
-                          defaultNoteFont.value === opt.value
-                            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                            : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                        }`}
-                        style={{
-                          fontFamily:
-                            opt.value !== "random"
-                              ? noteFontFamilies[opt.value] || "inherit"
-                              : "inherit",
-                        }}
-                        onClick={() => {
-                          defaultNoteFont.value = opt.value;
-                          setShowFontMenu(false);
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+            <SettingsSelect
+              label={t("settings.defaultFont")}
+              value={defaultNoteFont.value}
+              options={fontOptions}
+              onChange={(next) => {
+                defaultNoteFont.value = next;
+              }}
+              styleFor={(v) => ({
+                fontFamily:
+                  v !== "random" ? noteFontFamilies[v] || "inherit" : "inherit",
+              })}
+            />
           </div>
 
           {/* Inline calculations */}
