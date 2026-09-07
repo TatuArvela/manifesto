@@ -13,6 +13,12 @@ import { hideAllTooltips } from "./Tooltip.js";
  * the menu of any card near the top of the page over the header and off the
  * screen.
  */
+/** True while a CardPopover is open. It closes itself on Escape, so anything
+ *  else listening for Escape has to stand aside. */
+export function hasOpenCardPopover(): boolean {
+  return document.querySelector(".card-popover") !== null;
+}
+
 export function CardPopover({
   anchorRef,
   onClose,
@@ -81,7 +87,7 @@ export function CardPopover({
           has been placed — otherwise it would flash at the top-left corner. */}
       <div
         ref={popoverRef}
-        class="fixed z-50"
+        class="card-popover fixed z-50"
         style={{
           top: `${pos?.top ?? 0}px`,
           left: `${pos?.left ?? 0}px`,
