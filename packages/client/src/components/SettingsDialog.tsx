@@ -10,7 +10,7 @@ import {
   Upload,
   X,
 } from "lucide-preact";
-import type { JSX } from "preact";
+import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
 import { detectBrowserLocale } from "../i18n/detect.js";
@@ -20,9 +20,12 @@ import { currentUser, isServerMode, logout } from "../state/auth.js";
 import {
   animations,
   createNote,
+  DARK_HUES,
+  type DarkHue,
   type DecimalSeparator,
   type DefaultNoteColor,
   type DefaultNoteFont,
+  darkHue,
   decimalSeparator,
   defaultNoteColor,
   defaultNoteFont,
@@ -32,6 +35,7 @@ import {
   inlineCalculations,
   locale,
   noteCorners,
+  noteQuips,
   showSettings,
   type ThemeMode,
   theme,
@@ -49,6 +53,40 @@ const LOCALE_ENDONYMS: Record<string, string> = {
   fi: "Suomi",
 };
 
+/** A titled group of settings rows — Appearance, Defaults, Features, Data. */
+function SettingsSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ComponentChildren;
+}) {
+  return (
+    <section class="mb-6">
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 pb-1.5 mb-3 border-b border-neutral-200 dark:border-neutral-700">
+        {title}
+      </h3>
+      <div class="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+/** One labelled setting: name on the left, its control on the right. */
+function SettingsRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: ComponentChildren;
+}) {
+  return (
+    <div class="flex items-center justify-between gap-4">
+      <h4 class="text-sm text-neutral-600 dark:text-neutral-400">{label}</h4>
+      {children}
+    </div>
+  );
+}
+
 /**
  * A select-style field for a settings row: a labelled trigger with a chevron,
  * with its menu on the shared Dropdown. That puts the panel in the top layer,
@@ -61,12 +99,15 @@ function SettingsSelect<T extends string>({
   options,
   onChange,
   styleFor,
+  swatchFor,
   label,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
   styleFor?: (value: T) => JSX.CSSProperties | undefined;
+  /** Renders a small preview dot ahead of the label, e.g. for colour options. */
+  swatchFor?: (value: T) => JSX.Element;
   label: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -86,6 +127,7 @@ function SettingsSelect<T extends string>({
           aria-haspopup="menu"
           aria-expanded={open}
         >
+          {swatchFor?.(value)}
           <span style={styleFor?.(value)}>{current?.label ?? value}</span>
           <ChevronDown
             class={`w-4 h-4 shrink-0 text-neutral-500 dark:text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
@@ -97,18 +139,18 @@ function SettingsSelect<T extends string>({
         <button
           key={opt.value}
           type="button"
-          class={`block w-full text-left px-4 py-2 text-sm cursor-pointer ${
+          class={`flex w-full items-center gap-2 text-left px-4 py-2 text-sm cursor-pointer ${
             value === opt.value
               ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
               : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
           }`}
-          style={styleFor?.(opt.value)}
           onClick={() => {
             onChange(opt.value);
             setOpen(false);
           }}
         >
-          {opt.label}
+          {swatchFor?.(opt.value)}
+          <span style={styleFor?.(opt.value)}>{opt.label}</span>
         </button>
       ))}
     </Dropdown>
@@ -139,6 +181,10 @@ export function SettingsDialog() {
     { value: "plain", label: t("settings.defaultColor.plain") },
     { value: "random", label: t("settings.defaultColor.random") },
   ];
+
+  const hueOptions: { value: DarkHue; label: string }[] = DARK_HUES.map(
+    (hue) => ({ value: hue, label: t(`settings.darkHue.${hue}`) }),
+  );
 
   const languageOptions: { value: LanguageOption; label: string }[] = [
     { value: "system", label: t("settings.language.system") },
@@ -266,159 +312,161 @@ export function SettingsDialog() {
         </div>
 
         <div class="flex-1 overflow-y-auto px-6 py-4">
-          {/* Theme */}
-          <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
-              {t("settings.theme")}
-            </h3>
-            <ThreeWayToggle
-              value={themeModes.indexOf(theme.value)}
-              onChange={(i) => {
-                theme.value = themeModes[i];
-              }}
-              options={[
-                {
-                  icon: <Monitor class="w-4 h-4" />,
-                  label: t("settings.theme.system"),
-                },
-                {
-                  icon: <Sun class="w-4 h-4" />,
-                  label: t("settings.theme.light"),
-                },
-                {
-                  icon: <Moon class="w-4 h-4" />,
-                  label: t("settings.theme.dark"),
-                },
-              ]}
-            />
-          </div>
+          <SettingsSection title={t("settings.group.appearance")}>
+            <SettingsRow label={t("settings.language")}>
+              <SettingsSelect
+                label={t("settings.language")}
+                value={locale.value as LanguageOption}
+                options={languageOptions}
+                onChange={(next) => {
+                  locale.value =
+                    next === "system"
+                      ? detectBrowserLocale()
+                      : (next as Locale);
+                }}
+              />
+            </SettingsRow>
 
-          {/* Language */}
-          <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
-              {t("settings.language")}
-            </h3>
-            <SettingsSelect
-              label={t("settings.language")}
-              value={locale.value as LanguageOption}
-              options={languageOptions}
-              onChange={(next) => {
-                locale.value =
-                  next === "system" ? detectBrowserLocale() : (next as Locale);
-              }}
-            />
-          </div>
-
-          {/* Default note color */}
-          <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
-              {t("settings.defaultColor")}
-            </h3>
-            <SettingsSelect
-              label={t("settings.defaultColor")}
-              value={defaultNoteColor.value}
-              options={colorOptions}
-              onChange={(next) => {
-                defaultNoteColor.value = next;
-              }}
-            />
-          </div>
-
-          {/* Default note font */}
-          <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
-              {t("settings.defaultFont")}
-            </h3>
-            <SettingsSelect
-              label={t("settings.defaultFont")}
-              value={defaultNoteFont.value}
-              options={fontOptions}
-              onChange={(next) => {
-                defaultNoteFont.value = next;
-              }}
-              styleFor={(v) => ({
-                fontFamily:
-                  v !== "random" ? noteFontFamilies[v] || "inherit" : "inherit",
-              })}
-            />
-          </div>
-
-          {/* Note corners */}
-          <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
-              {t("settings.noteCorners")}
-            </h3>
-            <Switch
-              checked={noteCorners.value === "rounded"}
-              onChange={(checked) => {
-                noteCorners.value = checked ? "rounded" : "straight";
-              }}
-              label={t("settings.noteCorners")}
-            />
-          </div>
-
-          {/* Animations */}
-          <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
-              {t("settings.animations")}
-            </h3>
-            <Switch
-              checked={animations.value}
-              onChange={(checked) => {
-                animations.value = checked;
-              }}
-              label={t("settings.animations")}
-            />
-          </div>
-
-          {/* Inline calculations */}
-          <div class="pb-4 flex items-center justify-between">
-            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
-              {t("settings.inlineCalculations")}
-            </h3>
-            <Switch
-              checked={inlineCalculations.value}
-              onChange={(checked) => {
-                inlineCalculations.value = checked;
-              }}
-              label={t("settings.inlineCalculations")}
-            />
-          </div>
-
-          {/* Decimal separator (only relevant while inline calculations are on) */}
-          {inlineCalculations.value && (
-            <div class="pb-4 flex items-center justify-between">
-              <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
-                {t("settings.decimalSeparator")}
-              </h3>
+            <SettingsRow label={t("settings.theme")}>
               <ThreeWayToggle
-                value={decimalSeparators.indexOf(decimalSeparator.value)}
+                value={themeModes.indexOf(theme.value)}
                 onChange={(i) => {
-                  decimalSeparator.value = decimalSeparators[i];
+                  theme.value = themeModes[i];
                 }}
                 options={[
                   {
-                    icon: <span class="text-xs font-semibold">A</span>,
-                    label: t("settings.decimalSeparator.auto"),
+                    icon: <Monitor class="w-4 h-4" />,
+                    label: t("settings.theme.system"),
                   },
                   {
-                    icon: <span class="text-base leading-none">.</span>,
-                    label: t("settings.decimalSeparator.dot"),
+                    icon: <Sun class="w-4 h-4" />,
+                    label: t("settings.theme.light"),
                   },
                   {
-                    icon: <span class="text-base leading-none">,</span>,
-                    label: t("settings.decimalSeparator.comma"),
+                    icon: <Moon class="w-4 h-4" />,
+                    label: t("settings.theme.dark"),
                   },
                 ]}
               />
-            </div>
-          )}
+            </SettingsRow>
 
-          {/* Import / Export */}
-          <div class="pb-4">
-            <h3 class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
-              {t("settings.data")}
-            </h3>
+            <SettingsRow label={t("settings.darkHue")}>
+              <SettingsSelect
+                label={t("settings.darkHue")}
+                value={darkHue.value}
+                options={hueOptions}
+                onChange={(next) => {
+                  darkHue.value = next;
+                }}
+                swatchFor={(hue) => (
+                  <span
+                    data-dark-hue={hue}
+                    class="dark-hue-swatch w-9 h-5 shrink-0 rounded ring-1 ring-inset ring-black/10 dark:ring-white/15"
+                  />
+                )}
+              />
+            </SettingsRow>
+
+            <SettingsRow label={t("settings.noteCorners")}>
+              <Switch
+                checked={noteCorners.value === "rounded"}
+                onChange={(checked) => {
+                  noteCorners.value = checked ? "rounded" : "straight";
+                }}
+                label={t("settings.noteCorners")}
+              />
+            </SettingsRow>
+
+            <SettingsRow label={t("settings.animations")}>
+              <Switch
+                checked={animations.value}
+                onChange={(checked) => {
+                  animations.value = checked;
+                }}
+                label={t("settings.animations")}
+              />
+            </SettingsRow>
+          </SettingsSection>
+
+          <SettingsSection title={t("settings.group.defaults")}>
+            <SettingsRow label={t("settings.defaultColor")}>
+              <SettingsSelect
+                label={t("settings.defaultColor")}
+                value={defaultNoteColor.value}
+                options={colorOptions}
+                onChange={(next) => {
+                  defaultNoteColor.value = next;
+                }}
+              />
+            </SettingsRow>
+
+            <SettingsRow label={t("settings.defaultFont")}>
+              <SettingsSelect
+                label={t("settings.defaultFont")}
+                value={defaultNoteFont.value}
+                options={fontOptions}
+                onChange={(next) => {
+                  defaultNoteFont.value = next;
+                }}
+                styleFor={(v) => ({
+                  fontFamily:
+                    v !== "random"
+                      ? noteFontFamilies[v] || "inherit"
+                      : "inherit",
+                })}
+              />
+            </SettingsRow>
+
+            <SettingsRow label={t("settings.noteQuips")}>
+              <Switch
+                checked={noteQuips.value}
+                onChange={(checked) => {
+                  noteQuips.value = checked;
+                }}
+                label={t("settings.noteQuips")}
+              />
+            </SettingsRow>
+          </SettingsSection>
+
+          <SettingsSection title={t("settings.group.features")}>
+            <SettingsRow label={t("settings.inlineCalculations")}>
+              <Switch
+                checked={inlineCalculations.value}
+                onChange={(checked) => {
+                  inlineCalculations.value = checked;
+                }}
+                label={t("settings.inlineCalculations")}
+              />
+            </SettingsRow>
+
+            {/* Only relevant while inline calculations are on */}
+            {inlineCalculations.value && (
+              <SettingsRow label={t("settings.decimalSeparator")}>
+                <ThreeWayToggle
+                  value={decimalSeparators.indexOf(decimalSeparator.value)}
+                  onChange={(i) => {
+                    decimalSeparator.value = decimalSeparators[i];
+                  }}
+                  options={[
+                    {
+                      icon: <span class="text-xs font-semibold">A</span>,
+                      label: t("settings.decimalSeparator.auto"),
+                    },
+                    {
+                      icon: <span class="text-base leading-none">.</span>,
+                      label: t("settings.decimalSeparator.dot"),
+                    },
+                    {
+                      icon: <span class="text-base leading-none">,</span>,
+                      label: t("settings.decimalSeparator.comma"),
+                    },
+                  ]}
+                />
+              </SettingsRow>
+            )}
+          </SettingsSection>
+
+          <SettingsSection title={t("settings.group.data")}>
             <div class="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -478,29 +526,28 @@ export function SettingsDialog() {
               )}
             </div>
             {(dataStatus || deleteStatus) && (
-              <p class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+              <p class="text-xs text-neutral-500 dark:text-neutral-400">
                 {dataStatus || deleteStatus}
               </p>
             )}
-          </div>
+          </SettingsSection>
 
           {isServerMode && currentUser.value && (
-            <div class="pb-4">
-              <h3 class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
-                {currentUser.value.username}
-              </h3>
-              <button
-                type="button"
-                class="px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5"
-                onClick={() => {
-                  void logout();
-                  handleClose();
-                }}
-              >
-                <LogOut class="w-4 h-4" />
-                {t("login.signOut")}
-              </button>
-            </div>
+            <SettingsSection title={t("settings.group.account")}>
+              <SettingsRow label={currentUser.value.username}>
+                <button
+                  type="button"
+                  class="px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5"
+                  onClick={() => {
+                    void logout();
+                    handleClose();
+                  }}
+                >
+                  <LogOut class="w-4 h-4" />
+                  {t("login.signOut")}
+                </button>
+              </SettingsRow>
+            </SettingsSection>
           )}
 
           <div class="pt-2 border-t border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 space-y-1">
