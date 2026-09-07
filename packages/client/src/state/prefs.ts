@@ -20,6 +20,19 @@ const DECIMAL_SEPARATOR_VALUES: readonly DecimalSeparator[] = [
   ",",
 ];
 
+/**
+ * First-run default for the animations preference: follow the OS accessibility
+ * setting. Once the user flips the toggle their choice is persisted and wins,
+ * so a later OS change does not override it.
+ */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 function parseDecimalSeparator(value: unknown): DecimalSeparator {
   return typeof value === "string" &&
     (DECIMAL_SEPARATOR_VALUES as readonly string[]).includes(value)
@@ -42,6 +55,7 @@ export interface LoadedPrefs {
   inlineCalculations: boolean;
   decimalSeparator: DecimalSeparator;
   noteCorners: NoteCorners;
+  animations: boolean;
 }
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
@@ -65,6 +79,10 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
             : true,
         decimalSeparator: parseDecimalSeparator(parsed.decimalSeparator),
         noteCorners: parsed.noteCorners === "rounded" ? "rounded" : "straight",
+        animations:
+          typeof parsed.animations === "boolean"
+            ? parsed.animations
+            : !prefersReducedMotion(),
       };
     } catch {
       // ignore
@@ -81,6 +99,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     inlineCalculations: true,
     decimalSeparator: "auto",
     noteCorners: "straight",
+    animations: !prefersReducedMotion(),
   };
 }
 
@@ -106,6 +125,7 @@ function savePrefs() {
       inlineCalculations: inlineCalculations.value,
       decimalSeparator: decimalSeparator.value,
       noteCorners: noteCorners.value,
+      animations: animations.value,
     }),
   );
 }
@@ -126,6 +146,7 @@ export const decimalSeparator = signal<DecimalSeparator>(
   prefs.decimalSeparator,
 );
 export const noteCorners = signal<NoteCorners>(prefs.noteCorners);
+export const animations = signal<boolean>(prefs.animations);
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
 export function resolvedDecimalSeparator(): "." | "," {
@@ -147,6 +168,7 @@ effect(() => {
   inlineCalculations.value;
   decimalSeparator.value;
   noteCorners.value;
+  animations.value;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(savePrefs, 50);
 });
@@ -161,6 +183,12 @@ effect(() => {
     "notes-rounded",
     noteCorners.value === "rounded",
   );
+});
+
+// --- Motion ---
+
+effect(() => {
+  document.documentElement.classList.toggle("no-motion", !animations.value);
 });
 
 // --- Theme ---

@@ -13,6 +13,8 @@ import {
   Trash2,
   Upload,
   X,
+  Zap,
+  ZapOff,
 } from "lucide-preact";
 import type { JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -22,6 +24,7 @@ import { getFontLabel, plural, t } from "../i18n/index.js";
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
 import { currentUser, isServerMode, logout } from "../state/auth.js";
 import {
+  animations,
   createNote,
   type DecimalSeparator,
   type DefaultNoteFont,
@@ -356,6 +359,23 @@ export function SettingsDialog() {
               iconOn={<SquareRoundCorner class="w-4 h-4" />}
               labelOff={t("settings.noteCorners.straight")}
               labelOn={t("settings.noteCorners.rounded")}
+            />
+          </div>
+
+          {/* Animations */}
+          <div class="pb-4 flex items-center justify-between">
+            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
+              {t("settings.animations")}
+            </h3>
+            <ToggleSwitch
+              checked={animations.value}
+              onChange={(checked) => {
+                animations.value = checked;
+              }}
+              iconOff={<ZapOff class="w-4 h-4" />}
+              iconOn={<Zap class="w-4 h-4" />}
+              labelOff={t("settings.animations.off")}
+              labelOn={t("settings.animations.on")}
             />
           </div>
 
