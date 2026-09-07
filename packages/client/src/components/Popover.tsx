@@ -1,6 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { hideAllTooltips } from "./Tooltip.js";
 
 /** Renders children in a fixed-position portal above the anchor button. */
 export function CardPopover({
@@ -30,6 +31,10 @@ export function CardPopover({
       window.removeEventListener("resize", updatePos);
     };
   }, [anchorRef]);
+
+  // The trigger's tooltip would otherwise stay up underneath this panel —
+  // the pointer never leaves the trigger, so no `pointerleave` arrives.
+  useEffect(hideAllTooltips, []);
 
   // Close on Escape
   useEffect(() => {

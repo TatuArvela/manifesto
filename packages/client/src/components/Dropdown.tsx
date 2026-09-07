@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef } from "preact/hooks";
+import { hideAllTooltips } from "./Tooltip.js";
 
 let nextId = 0;
 
@@ -55,6 +56,10 @@ export function Dropdown({
     if (!el) return;
     const isOpen = el.matches(":popover-open");
     if (open && !isOpen) {
+      // The trigger's own tooltip would otherwise sit on top of the panel we
+      // are about to open — the pointer never leaves the trigger, so nothing
+      // hides it.
+      hideAllTooltips();
       // Explicitly hide any other open dropdown panel before opening this one.
       document
         .querySelectorAll<HTMLElement>(".dropdown-panel:popover-open")

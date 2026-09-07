@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { useRef } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 
 let nextId = 0;
 
@@ -7,6 +7,10 @@ let nextId = 0;
 // with a keyboard. Otherwise a tap on a button would focus it and leave the
 // tooltip stuck open (no mouseleave follows a tap on iOS).
 let lastInputKeyboard = false;
+
+/** Show-timers still counting down, so `hideAllTooltips` can cancel them. */
+const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
+
 if (typeof window !== "undefined") {
   window.addEventListener(
     "keydown",
@@ -24,6 +28,22 @@ if (typeof window !== "undefined") {
   );
 }
 
+/**
+ * Tooltips are shown on a delay, so a click that opens a panel under the
+ * cursor can leave one stranded on top of that panel — the pointer never
+ * leaves the trigger, so no `pointerleave` arrives to hide it. Anything that
+ * opens over its own trigger calls this first.
+ */
+export function hideAllTooltips() {
+  for (const timer of pendingTimers) clearTimeout(timer);
+  pendingTimers.clear();
+  for (const el of document.querySelectorAll<HTMLElement>(
+    ".tooltip:popover-open",
+  )) {
+    el.hidePopover();
+  }
+}
+
 export function Tooltip({
   label,
   children,
@@ -36,17 +56,30 @@ export function Tooltip({
   const popoverRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
+  const cancelPending = () => {
+    if (timeoutRef.current === undefined) return;
+    clearTimeout(timeoutRef.current);
+    pendingTimers.delete(timeoutRef.current);
+    timeoutRef.current = undefined;
+  };
+
   const show = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
+    cancelPending();
+    const timer = setTimeout(() => {
+      pendingTimers.delete(timer);
+      timeoutRef.current = undefined;
       popoverRef.current?.showPopover();
     }, 200);
+    timeoutRef.current = timer;
+    pendingTimers.add(timer);
   };
 
   const hide = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    cancelPending();
     popoverRef.current?.hidePopover();
   };
+
+  useEffect(() => cancelPending, []);
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: tooltip wrapper needs span
