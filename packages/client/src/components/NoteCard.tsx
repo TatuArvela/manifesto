@@ -628,7 +628,14 @@ export function NoteCard({
             // part in layout, so the card stays exactly where it was.
             colors.border,
             !note.readonly && "border",
-            isSelected && "outline-2 outline-blue-500",
+            // The outline is always present at the same width and only its
+            // colour and offset change, so the ring can animate in (it draws
+            // from slightly outside the card and tightens onto it) under the
+            // `transition-all` below without ever affecting layout.
+            "outline-2",
+            isSelected
+              ? "outline-blue-500 outline-offset-0"
+              : "outline-transparent outline-offset-4",
             "transition-all duration-150 relative select-none overflow-hidden flex flex-col",
             isImageOnly || isLinkOnly
               ? "p-0"

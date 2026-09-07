@@ -299,30 +299,27 @@ body {
   }
 }
 
-/* Lift-off: the sheet is torn off the pad — it keeps folding down over its own
-   top edge (`transform-origin: center top` plus the container's perspective)
-   and falls away.
+/* Lift-off: the sheet is pulled off the pad and carried down into the editor
+   that is opening below it. It starts at the same 22deg the hover state holds
+   — so clicking a hovered stack continues the peel rather than snapping flat
+   first — then flattens out and grows a little as it descends, handing off to
+   the modal rather than folding away on the spot.
 
-   It starts at the same 22deg the hover state holds, so clicking a hovered
-   stack continues the peel instead of snapping flat first. Activating by
-   keyboard, where there is no hover, begins with a small jump to that angle —
-   the far less common path, and it is immediately carried on by the fold. */
+   Activating by keyboard, where there is no hover, begins with a small jump to
+   that angle: the far less common path, and the descent carries it straight
+   on. */
 @keyframes note-lift-off {
   0% {
     opacity: 1;
-    transform: rotateX(22deg) translateY(0);
+    transform: rotateX(22deg) translateY(0) scale(1);
   }
-  35% {
-    opacity: 1;
-    transform: rotateX(54deg) translateY(10px);
-  }
-  70% {
-    opacity: 0.5;
-    transform: rotateX(80deg) translateY(26px);
+  40% {
+    opacity: 0.85;
+    transform: rotateX(9deg) translateY(26px) scale(1.02);
   }
   100% {
     opacity: 0;
-    transform: rotateX(96deg) translateY(46px);
+    transform: rotateX(0deg) translateY(84px) scale(1.06);
   }
 }
 
@@ -337,19 +334,19 @@ body {
   pointer-events: none;
 }
 
-/* Land: the next sheet drops onto the top of the pad once the editor closes —
-   the counterpart to the lift-off, tilted back rather than forward. */
+/* Land: the counterpart to the lift-off. The next sheet comes back up from
+   where the editor was and settles onto the pad. */
 @keyframes note-land {
   0% {
     opacity: 0;
-    transform: rotateX(-16deg) translateY(-6px);
+    transform: translateY(16px) scale(0.99);
   }
   60% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: rotateX(0deg) translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
