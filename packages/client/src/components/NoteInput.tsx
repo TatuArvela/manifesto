@@ -56,9 +56,18 @@ export function NoteInput() {
   const [linkPreviews, setLinkPreviews] = useState<LinkPreview[]>([]);
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
+  const [landing, setLanding] = useState(false);
   const [topCta, setTopCta] = useState(() => randomCta());
   const [nextCta, setNextCta] = useState(() => randomCta(topCta));
   const focusCatcherRef = useRef<HTMLInputElement>(null);
+  const landTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (landTimerRef.current) clearTimeout(landTimerRef.current);
+    },
+    [],
+  );
 
   // Re-pick colors when the default note color setting changes
   const colorSetting = defaultNoteColor.value;
@@ -105,6 +114,23 @@ export function NoteInput() {
     setTimeout(() => setLifting(false), 400);
   };
 
+  /** Runs the 150ms editor close, then lands a fresh sheet on the pad. */
+  const finishClose = () => {
+    setClosing(true);
+    setTimeout(() => {
+      reset();
+      setClosing(false);
+      setExpanded(false);
+      cycleCta();
+      setLanding(true);
+      if (landTimerRef.current) clearTimeout(landTimerRef.current);
+      landTimerRef.current = setTimeout(() => {
+        landTimerRef.current = null;
+        setLanding(false);
+      }, 350);
+    }, 150);
+  };
+
   const closeModal = () => {
     // Snapshot at call time. The 150ms close animation creates a window where
     // a final Milkdown markdownUpdated (fired on blur) can land after this,
@@ -128,23 +154,11 @@ export function NoteInput() {
     ) {
       createNote(snap);
     }
-    setClosing(true);
-    setTimeout(() => {
-      reset();
-      setClosing(false);
-      setExpanded(false);
-      cycleCta();
-    }, 150);
+    finishClose();
   };
 
   const discardNote = () => {
-    setClosing(true);
-    setTimeout(() => {
-      reset();
-      setClosing(false);
-      setExpanded(false);
-      cycleCta();
-    }, 150);
+    finishClose();
   };
 
   const topNoteHidden = lifting || (expanded && !closing) || closing;
@@ -152,7 +166,9 @@ export function NoteInput() {
     ? "note-stack-top note-lift-off"
     : topNoteHidden
       ? "note-stack-top note-hidden"
-      : "note-stack-top";
+      : landing
+        ? "note-stack-top note-land"
+        : "note-stack-top";
 
   const isList = viewMode.value === "list";
   const rulerRef = useRef<HTMLDivElement>(null);
