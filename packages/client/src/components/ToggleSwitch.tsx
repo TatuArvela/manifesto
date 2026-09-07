@@ -83,6 +83,48 @@ export function ToggleSwitch({
   );
 }
 
+/**
+ * Plain on/off switch for a boolean setting — no icon per state. Use this
+ * wherever the setting really is just on or off; `ToggleSwitch` is for the
+ * cases where the two states are genuinely different choices worth naming.
+ */
+export function Switch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+}) {
+  const trackW = 44;
+  const knob = 20;
+  const gap = 2;
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      class={`relative inline-flex shrink-0 items-center rounded-full cursor-pointer transition-colors duration-200 ${
+        checked ? "bg-blue-500" : "bg-neutral-300 dark:bg-neutral-600"
+      }`}
+      style={{ width: `${trackW}px`, height: `${knob + gap * 2}px` }}
+      onClick={() => onChange(!checked)}
+    >
+      <span
+        class="absolute rounded-full bg-white shadow transition-transform duration-200"
+        style={{
+          width: `${knob}px`,
+          height: `${knob}px`,
+          transform: `translateX(${checked ? trackW - knob - gap : gap}px)`,
+        }}
+      />
+    </button>
+  );
+}
+
 /** Three-state toggle switch with icon slots and tooltips */
 export function ThreeWayToggle({
   value,

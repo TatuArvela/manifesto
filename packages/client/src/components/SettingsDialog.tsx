@@ -1,20 +1,14 @@
 import { NoteFont } from "@manifesto/shared";
 import {
-  Calculator,
   ChevronDown,
-  Dices,
   Download,
   LogOut,
   Monitor,
   Moon,
-  Square,
-  SquareRoundCorner,
   Sun,
   Trash2,
   Upload,
   X,
-  Zap,
-  ZapOff,
 } from "lucide-preact";
 import type { JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -27,6 +21,7 @@ import {
   animations,
   createNote,
   type DecimalSeparator,
+  type DefaultNoteColor,
   type DefaultNoteFont,
   decimalSeparator,
   defaultNoteColor,
@@ -43,7 +38,7 @@ import {
 } from "../state/index.js";
 import { importFiles } from "../utils/importExport.js";
 import { Dropdown, hasOpenAutoPopover } from "./Dropdown.js";
-import { ThreeWayToggle, ToggleSwitch } from "./ToggleSwitch.js";
+import { Switch, ThreeWayToggle } from "./ToggleSwitch.js";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
 const decimalSeparators: DecimalSeparator[] = ["auto", ".", ","];
@@ -138,6 +133,11 @@ export function SettingsDialog() {
     },
     { value: NoteFont.ComicRelief, label: getFontLabel(NoteFont.ComicRelief) },
     { value: "random", label: getFontLabel("random") },
+  ];
+
+  const colorOptions: { value: DefaultNoteColor; label: string }[] = [
+    { value: "plain", label: t("settings.defaultColor.plain") },
+    { value: "random", label: t("settings.defaultColor.random") },
   ];
 
   const languageOptions: { value: LanguageOption; label: string }[] = [
@@ -314,15 +314,13 @@ export function SettingsDialog() {
             <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.defaultColor")}
             </h3>
-            <ToggleSwitch
-              checked={defaultNoteColor.value === "random"}
-              onChange={(checked) => {
-                defaultNoteColor.value = checked ? "random" : "plain";
+            <SettingsSelect
+              label={t("settings.defaultColor")}
+              value={defaultNoteColor.value}
+              options={colorOptions}
+              onChange={(next) => {
+                defaultNoteColor.value = next;
               }}
-              iconOff={<Square class="w-4 h-4" />}
-              iconOn={<Dices class="w-4 h-4" />}
-              labelOff={t("settings.defaultColor.plain")}
-              labelOn={t("settings.defaultColor.random")}
             />
           </div>
 
@@ -350,15 +348,12 @@ export function SettingsDialog() {
             <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.noteCorners")}
             </h3>
-            <ToggleSwitch
+            <Switch
               checked={noteCorners.value === "rounded"}
               onChange={(checked) => {
                 noteCorners.value = checked ? "rounded" : "straight";
               }}
-              iconOff={<Square class="w-4 h-4" />}
-              iconOn={<SquareRoundCorner class="w-4 h-4" />}
-              labelOff={t("settings.noteCorners.straight")}
-              labelOn={t("settings.noteCorners.rounded")}
+              label={t("settings.noteCorners")}
             />
           </div>
 
@@ -367,15 +362,12 @@ export function SettingsDialog() {
             <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.animations")}
             </h3>
-            <ToggleSwitch
+            <Switch
               checked={animations.value}
               onChange={(checked) => {
                 animations.value = checked;
               }}
-              iconOff={<ZapOff class="w-4 h-4" />}
-              iconOn={<Zap class="w-4 h-4" />}
-              labelOff={t("settings.animations.off")}
-              labelOn={t("settings.animations.on")}
+              label={t("settings.animations")}
             />
           </div>
 
@@ -384,15 +376,12 @@ export function SettingsDialog() {
             <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
               {t("settings.inlineCalculations")}
             </h3>
-            <ToggleSwitch
+            <Switch
               checked={inlineCalculations.value}
               onChange={(checked) => {
                 inlineCalculations.value = checked;
               }}
-              iconOff={<Calculator class="w-4 h-4" />}
-              iconOn={<Calculator class="w-4 h-4" />}
-              labelOff={t("settings.inlineCalculations.off")}
-              labelOn={t("settings.inlineCalculations.on")}
+              label={t("settings.inlineCalculations")}
             />
           </div>
 
