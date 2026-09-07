@@ -42,11 +42,6 @@ import {
   viewMode,
 } from "../state/index.js";
 import { Dropdown } from "./Dropdown.js";
-import {
-  clearBtnClass,
-  searchFieldClass,
-  searchIconClass,
-} from "./SearchView.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -295,10 +290,11 @@ export function Header() {
           (desktop only; on mobile the search icon button is used instead) */}
       <div class="absolute inset-0 hidden md:flex items-center justify-center pointer-events-none px-48">
         <div class="relative w-full max-w-xl pointer-events-auto">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
             type="search"
             placeholder={t("header.searchPlaceholder")}
-            class={searchFieldClass}
+            class="w-full pl-10 pr-10 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-neutral-900 outline-none transition text-sm"
             value={searchQuery.value}
             onFocus={() => {
               if (activeView.value !== "search") {
@@ -313,12 +309,11 @@ export function Header() {
               }
             }}
           />
-          <Search class={searchIconClass} />
           {activeView.value === "search" && (
             <Tooltip label={t("search.close")}>
               <button
                 type="button"
-                class={clearBtnClass}
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer"
                 onClick={exitSearch}
                 aria-label={t("search.close")}
               >
