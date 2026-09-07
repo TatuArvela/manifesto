@@ -305,7 +305,7 @@ body {
 }
 
 .note-stack:hover {
-  .note-stack-top:not(.note-lift-off):not(.note-hidden):not(.note-land) {
+  .note-stack-top:not(.note-lift-off):not(.note-hidden) {
     position: relative;
     transform: rotateX(22deg);
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
@@ -348,7 +348,13 @@ body {
 }
 
 /* Land: the counterpart to the lift-off. The next sheet comes back up from
-   where the editor was and settles onto the pad. */
+   where the editor was and settles onto the pad.
+
+   Applied to a wrapper around the sheet rather than the sheet itself. The
+   sheet's own transform belongs to the hover tilt and the peel, and an
+   animation on the same property beats both, then reverts the instant the
+   class comes off — which snapped the sheet to the hover angle in one frame
+   the moment the landing finished. */
 @keyframes note-land {
   0% {
     opacity: 0;

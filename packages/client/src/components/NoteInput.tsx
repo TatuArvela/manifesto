@@ -7,6 +7,7 @@ import { noteColorMap } from "../colors.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   activeView,
+  animations,
   createNote,
   defaultNoteColor,
   defaultNoteFont,
@@ -37,6 +38,15 @@ const ctaKeys: MessageKey[] = [
   "cta.11",
 ];
 
+/** Peel duration; the sheet is fully gone by the end of it. */
+const LIFT_MS = 400;
+/** How long the peel runs on its own before the editor arrives over it. */
+const HANDOFF_MS = 160;
+/** Editor fade-out. */
+const CLOSE_MS = 150;
+/** The next sheet dropping onto the pad. */
+const LAND_MS = 350;
+
 function randomCta(exclude?: string): string {
   const all = ctaKeys.map((k) => t(k));
   const pool = exclude ? all.filter((m) => m !== exclude) : all;
@@ -60,11 +70,16 @@ export function NoteInput() {
   const [topCta, setTopCta] = useState(() => randomCta());
   const [nextCta, setNextCta] = useState(() => randomCta(topCta));
   const focusCatcherRef = useRef<HTMLInputElement>(null);
-  const landTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const after = (ms: number, fn: () => void) => {
+    timersRef.current.push(setTimeout(fn, ms));
+  };
 
   useEffect(
     () => () => {
-      if (landTimerRef.current) clearTimeout(landTimerRef.current);
+      for (const t of timersRef.current) clearTimeout(t);
+      timersRef.current = [];
     },
     [],
   );
@@ -109,26 +124,34 @@ export function NoteInput() {
     // later focus transfer to the editor keeps it up.
     focusCatcherRef.current?.focus();
     setLifting(true);
-    setExpanded(true);
     setStackColor(pickDefaultColor());
-    setTimeout(() => setLifting(false), 400);
+    // Give the peel a moment on its own before the editor opens over it,
+    // so the note reads as being pulled off the pad and handed across rather
+    // than the editor simply appearing on top of it. With motion off there is
+    // nothing to wait for.
+    if (animations.value) {
+      after(HANDOFF_MS, () => setExpanded(true));
+    } else {
+      setExpanded(true);
+    }
+    after(LIFT_MS, () => setLifting(false));
   };
 
-  /** Runs the 150ms editor close, then lands a fresh sheet on the pad. */
+  /** Fades the editor out while the next sheet lands on the pad. */
   const finishClose = () => {
     setClosing(true);
-    setTimeout(() => {
+    // Both at once. Landing only after the editor had gone left the pad empty
+    // for the whole fade-out and then faded a sheet in from nothing, which is
+    // what read as a stutter. The CTA is cycled now, while the arriving sheet
+    // is still transparent, so the text is settled before it can be seen.
+    cycleCta();
+    setLanding(true);
+    after(CLOSE_MS, () => {
       reset();
       setClosing(false);
       setExpanded(false);
-      cycleCta();
-      setLanding(true);
-      if (landTimerRef.current) clearTimeout(landTimerRef.current);
-      landTimerRef.current = setTimeout(() => {
-        landTimerRef.current = null;
-        setLanding(false);
-      }, 350);
-    }, 150);
+    });
+    after(LAND_MS, () => setLanding(false));
   };
 
   const closeModal = () => {
@@ -161,14 +184,16 @@ export function NoteInput() {
     finishClose();
   };
 
-  const topNoteHidden = lifting || (expanded && !closing) || closing;
+  const topNoteHidden = lifting || (expanded && !closing);
   const topNoteClass = lifting
     ? "note-stack-top note-lift-off"
     : topNoteHidden
       ? "note-stack-top note-hidden"
-      : landing
-        ? "note-stack-top note-land"
-        : "note-stack-top";
+      : "note-stack-top";
+  // While peeling, the sheet still shows the colour being edited; the pad
+  // underneath has already been re-picked. Everywhere else the sheet is the
+  // pad, so it must not wait for `reset()` to catch the new colour up.
+  const topSheetColor = lifting ? color : stackColor;
 
   const isList = viewMode.value === "list";
   const rulerRef = useRef<HTMLDivElement>(null);
@@ -220,11 +245,11 @@ export function NoteInput() {
         {/* biome-ignore lint/a11y/useSemanticElements: styled card element */}
         <div
           class="note-stack cursor-pointer"
-          onClick={() => !expanded && openModal()}
+          onClick={() => !expanded && !lifting && openModal()}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !expanded) openModal();
+            if (e.key === "Enter" && !expanded && !lifting) openModal();
           }}
         >
           {/* Notes area — top note + next note behind it */}
@@ -236,11 +261,17 @@ export function NoteInput() {
                 {nextCta}
               </div>
             </div>
-            <div
-              class={`${topNoteClass} border ${noteColorMap[color].bg} ${noteColorMap[color].border}`}
-            >
-              <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
-                {topCta}
+            {/* The landing animation sits on a wrapper, not on the sheet:
+                the sheet's own transform is owned by the hover tilt and the
+                peel, and an animation on the same property overrides them,
+                then snaps back the instant it is removed. */}
+            <div class={landing ? "note-land" : undefined}>
+              <div
+                class={`${topNoteClass} border ${noteColorMap[topSheetColor].bg} ${noteColorMap[topSheetColor].border}`}
+              >
+                <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
+                  {topCta}
+                </div>
               </div>
             </div>
           </div>
