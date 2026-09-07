@@ -305,28 +305,35 @@ body {
   }
 }
 
-/* Lift-off: note peels down and flies away with slight rotation via --lift-rotate */
+/* Lift-off: the sheet is torn off the pad — it keeps folding down over its own
+   top edge (`transform-origin: center top` plus the container's perspective)
+   and falls away.
+
+   It starts at the same 22deg the hover state holds, so clicking a hovered
+   stack continues the peel instead of snapping flat first. Activating by
+   keyboard, where there is no hover, begins with a small jump to that angle —
+   the far less common path, and it is immediately carried on by the fold. */
 @keyframes note-lift-off {
   0% {
     opacity: 1;
-    transform: translateX(0) translateY(0) scale(1);
+    transform: rotateX(22deg) translateY(0);
   }
-  30% {
+  35% {
     opacity: 1;
-    transform: translateX(calc(-4px * 0.3)) translateY(6px) scale(1.02);
+    transform: rotateX(54deg) translateY(10px);
   }
-  60% {
-    opacity: 0.8;
-    transform: translateX(calc(-4px * 0.7)) translateY(20px) scale(1.01);
+  70% {
+    opacity: 0.5;
+    transform: rotateX(80deg) translateY(26px);
   }
   100% {
     opacity: 0;
-    transform: translateX(-4px) translateY(50px) scale(0.98);
+    transform: rotateX(96deg) translateY(46px);
   }
 }
 
 .note-lift-off {
-  animation: note-lift-off 0.4s ease-in forwards;
+  animation: note-lift-off 0.4s cubic-bezier(0.4, 0, 0.7, 1) forwards;
   pointer-events: none;
 }
 
@@ -336,18 +343,24 @@ body {
   pointer-events: none;
 }
 
-/* Land: note fades in from the stack surface */
+/* Land: the next sheet drops onto the top of the pad once the editor closes —
+   the counterpart to the lift-off, tilted back rather than forward. */
 @keyframes note-land {
   0% {
     opacity: 0;
+    transform: rotateX(-16deg) translateY(-6px);
+  }
+  60% {
+    opacity: 1;
   }
   100% {
     opacity: 1;
+    transform: rotateX(0deg) translateY(0);
   }
 }
 
 .note-land {
-  animation: note-land 0.35s ease-out forwards;
+  animation: note-land 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Next note in stack — full-size note behind the top note. `z-index: 0` gives
