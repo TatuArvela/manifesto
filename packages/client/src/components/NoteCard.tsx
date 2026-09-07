@@ -608,13 +608,14 @@ export function NoteCard({
         <article
           class={clsx(
             colors.bg,
-            isSelected
-              ? clsx(
-                  "ring-2 ring-blue-500 border-transparent",
-                  note.readonly ? "border-4" : "border-2",
-                )
-              : colors.border,
+            // Selection is an outline, never a border-width or ring change:
+            // cards are auto-height and the masonry grid spans rows from the
+            // measured height, so growing the border by 1px reflows the whole
+            // column. Outlines are painted outside the border box and take no
+            // part in layout, so the card stays exactly where it was.
+            colors.border,
             !note.readonly && "border",
+            isSelected && "outline-2 outline-blue-500",
             "transition-all duration-150 relative select-none overflow-hidden flex flex-col",
             isImageOnly || isLinkOnly
               ? "p-0"
