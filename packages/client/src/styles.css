@@ -133,7 +133,11 @@ body {
   .tooltip[popover] {
     position-area: bottom;
     justify-self: anchor-center;
-    margin-top: 4px;
+    margin-block: 4px;
+    /* Flip above the trigger near the bottom edge, and slide along the inline
+       axis rather than overflowing at the left or right edge. */
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    position-visibility: anchors-visible;
   }
 }
 
@@ -158,21 +162,39 @@ body {
 }
 
 @supports (position-area: block-end) {
+  .dropdown-panel[popover] {
+    /* Margin on both block edges, not just the requested side: a panel that
+       flips keeps its gap from the trigger either way. */
+    margin-block: 0.25rem;
+    /* Flip to the opposite side of the trigger rather than running off the
+       viewport — a `bottom-end` menu near the foot of the window opens
+       upwards instead of being cut off. */
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    /* Don't leave the panel floating over the page once its trigger has been
+       scrolled out of sight. */
+    position-visibility: anchors-visible;
+  }
   .dropdown-panel[popover][data-placement="bottom-start"] {
     position-area: block-end span-inline-end;
-    margin-top: 0.25rem;
   }
   .dropdown-panel[popover][data-placement="bottom-end"] {
     position-area: block-end span-inline-start;
-    margin-top: 0.25rem;
   }
   .dropdown-panel[popover][data-placement="top-start"] {
     position-area: block-start span-inline-end;
-    margin-bottom: 0.25rem;
   }
   .dropdown-panel[popover][data-placement="top-end"] {
     position-area: block-start span-inline-start;
-    margin-bottom: 0.25rem;
+  }
+}
+
+/* Without anchor positioning the panel is placed by script (see Dropdown.tsx),
+   which writes `left`/`top` directly. */
+@supports not (position-area: block-end) {
+  .dropdown-panel[popover] {
+    position: fixed;
+    max-height: calc(100dvh - 8px);
+    overflow-y: auto;
   }
 }
 
