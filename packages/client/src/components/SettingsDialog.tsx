@@ -8,6 +8,7 @@ import {
   Monitor,
   Moon,
   Square,
+  SquareRoundCorner,
   Sun,
   Trash2,
   Upload,
@@ -32,6 +33,7 @@ import {
   importNotes,
   inlineCalculations,
   locale,
+  noteCorners,
   showSettings,
   type ThemeMode,
   theme,
@@ -337,6 +339,23 @@ export function SettingsDialog() {
                 fontFamily:
                   v !== "random" ? noteFontFamilies[v] || "inherit" : "inherit",
               })}
+            />
+          </div>
+
+          {/* Note corners */}
+          <div class="pb-4 flex items-center justify-between">
+            <h3 class="text-sm text-neutral-600 dark:text-neutral-400">
+              {t("settings.noteCorners")}
+            </h3>
+            <ToggleSwitch
+              checked={noteCorners.value === "rounded"}
+              onChange={(checked) => {
+                noteCorners.value = checked ? "rounded" : "straight";
+              }}
+              iconOff={<Square class="w-4 h-4" />}
+              iconOn={<SquareRoundCorner class="w-4 h-4" />}
+              labelOff={t("settings.noteCorners.straight")}
+              labelOn={t("settings.noteCorners.rounded")}
             />
           </div>
 

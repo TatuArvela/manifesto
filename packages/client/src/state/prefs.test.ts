@@ -4,6 +4,7 @@ import {
   defaultNoteColor,
   defaultNoteFont,
   locale,
+  noteCorners,
   noteSize,
   parsePrefs,
   sortMode,
@@ -142,5 +143,33 @@ describe("prefs signal persistence", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     const parsed = JSON.parse(localStorage.getItem(PREFS_KEY) as string);
     expect(parsed.viewMode).toBe("list");
+  });
+});
+
+describe("noteCorners", () => {
+  it("defaults to straight, preserving the original square note look", () => {
+    expect(parsePrefs(null).noteCorners).toBe("straight");
+    expect(parsePrefs("{}").noteCorners).toBe("straight");
+  });
+
+  it("round-trips a persisted value", () => {
+    expect(parsePrefs('{"noteCorners":"rounded"}').noteCorners).toBe("rounded");
+  });
+
+  it("falls back to straight for an unrecognised value", () => {
+    expect(parsePrefs('{"noteCorners":"bevelled"}').noteCorners).toBe(
+      "straight",
+    );
+  });
+
+  it("toggles the html class the note surfaces read their radius from", () => {
+    noteCorners.value = "rounded";
+    expect(document.documentElement.classList.contains("notes-rounded")).toBe(
+      true,
+    );
+    noteCorners.value = "straight";
+    expect(document.documentElement.classList.contains("notes-rounded")).toBe(
+      false,
+    );
   });
 });
