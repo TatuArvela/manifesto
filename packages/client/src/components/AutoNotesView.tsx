@@ -5,6 +5,7 @@ import {
   RefreshCw,
   Slash,
   Trash2,
+  Wand2,
   X,
 } from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
@@ -293,9 +294,26 @@ export function AutoNotesView() {
       )}
 
       {list.length === 0 && addMode === null && (
-        <p class="text-sm text-neutral-500 dark:text-neutral-400">
-          {t("settings.autoNotes.empty")}
-        </p>
+        <div class="max-w-prose flex flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300">
+          <div class="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+            <Wand2 class="w-5 h-5 shrink-0 text-blue-600 dark:text-blue-400" />
+            <h2 class="text-base font-semibold">
+              {t("settings.autoNotes.empty.title")}
+            </h2>
+          </div>
+          <p>{t("settings.autoNotes.empty.intro")}</p>
+          <div>
+            <p>{t("settings.autoNotes.empty.uses")}</p>
+            <ul class="mt-1 list-disc pl-5 space-y-1">
+              <li>{t("settings.autoNotes.empty.use.countdown")}</li>
+              <li>{t("settings.autoNotes.empty.use.rota")}</li>
+              <li>{t("settings.autoNotes.empty.use.recurring")}</li>
+            </ul>
+          </div>
+          <p class="text-neutral-500 dark:text-neutral-400">
+            {t("settings.autoNotes.empty.outro")}
+          </p>
+        </div>
       )}
 
       {list.map((plugin) => {

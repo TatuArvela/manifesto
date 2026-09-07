@@ -245,8 +245,18 @@ export const fi: Messages = {
   "settings.data.importedSingle": "Muistiinpano tuotu",
   "settings.data.deleted": "Kaikki muistiinpanot poistettu",
   "settings.autoNotes": "Automaattiset muistiinpanot",
-  "settings.autoNotes.empty":
-    "Ei vielä laajennuksia. Lisää laajennus luodaksesi muistiinpanoja hallitsemastasi koodista.",
+  "settings.autoNotes.empty.title": "Muistiinpanot, jotka kirjoittavat itsensä",
+  "settings.autoNotes.empty.intro":
+    "Automaattisen muistiinpanon luo pieni JavaScript-laajennus, jonka kirjoitat tai liität itse. Laajennus suoritetaan hiekkalaatikossa selaimessasi aina kun Manifesto käynnistyy, ja sen palauttama sisältö ilmestyy tähän muistiinpanona.",
+  "settings.autoNotes.empty.uses": "Kätevä esimerkiksi näihin:",
+  "settings.autoNotes.empty.use.countdown":
+    "Laskuri tärkeään päivään: syntymäpäivään, määräaikaan tai matkaan",
+  "settings.autoNotes.empty.use.rota":
+    "Kenen vuoro on tällä viikolla, laskettuna kiertävästä listasta",
+  "settings.autoNotes.empty.use.recurring":
+    "Tarkistuslista, joka palaa säännöllisin väliajoin",
+  "settings.autoNotes.empty.outro":
+    "Automaattiset muistiinpanot kirjoitetaan uusiksi joka ajolla, joten niihin tehdyt muokkaukset eivät jää voimaan. Lisää laajennus yllä olevasta painikkeesta tai osoita Manifesto URL-osoitteeseen, jolloin se pysyy ajan tasalla.",
   "settings.autoNotes.add": "Lisää laajennus",
   "settings.autoNotes.add.paste": "Liitä koodi",
   "settings.autoNotes.add.url": "URL-osoitteesta",
