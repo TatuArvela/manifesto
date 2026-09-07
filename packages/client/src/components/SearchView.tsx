@@ -35,6 +35,7 @@ import {
   toggleSearchLocation,
   toggleSearchType,
 } from "../state/index.js";
+import { hasOpenAutoPopover } from "./Dropdown.js";
 
 const TYPE_META: {
   key: SearchType;
@@ -204,7 +205,7 @@ export function SearchView() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (editingNoteId.value !== null || showSettings.value) return;
-      if (document.querySelector(":popover-open")) return;
+      if (hasOpenAutoPopover()) return;
       exitSearch();
     };
     document.addEventListener("keydown", onKey);

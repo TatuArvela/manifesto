@@ -42,7 +42,7 @@ import {
   theme,
 } from "../state/index.js";
 import { importFiles } from "../utils/importExport.js";
-import { Dropdown } from "./Dropdown.js";
+import { Dropdown, hasOpenAutoPopover } from "./Dropdown.js";
 import { ThreeWayToggle, ToggleSwitch } from "./ToggleSwitch.js";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
@@ -168,7 +168,7 @@ export function SettingsDialog() {
       if (e.key !== "Escape") return;
       // A select menu inside the panel is a popover that light-dismisses on
       // Escape itself; let it close alone rather than taking the panel with it.
-      if (document.querySelector(":popover-open")) return;
+      if (hasOpenAutoPopover()) return;
       handleClose();
     };
     document.addEventListener("keydown", onKey);

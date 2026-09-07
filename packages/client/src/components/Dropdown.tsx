@@ -19,6 +19,18 @@ export type DropdownPlacement =
  * module-level tracker proved reliable across the modal portal, so we query
  * the DOM for currently-open panels and close them.
  */
+/**
+ * True while a light-dismissing popover is open. Views that bind Escape
+ * globally use this to stand aside and let the popover close alone.
+ *
+ * Deliberately narrower than `:popover-open`: tooltips are `popover="manual"`
+ * and are never dismissed by Escape, so treating one as "something else will
+ * handle this" swallows the key press entirely.
+ */
+export function hasOpenAutoPopover(): boolean {
+  return document.querySelector('[popover="auto"]:popover-open') !== null;
+}
+
 export function Dropdown({
   open,
   onClose,
