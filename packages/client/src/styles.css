@@ -435,6 +435,32 @@ body {
   );
 }
 
+/* Pinning.
+
+   Pinning moves a card between the pinned and unpinned grids, so it unmounts
+   and remounts somewhere else entirely — with nothing to soften it, the card
+   just teleports. The arriving card plays a short settle instead: it lands
+   slightly large and a touch askew, then straightens, as though it had been
+   pressed onto the board. */
+@keyframes note-pin-settle {
+  0% {
+    opacity: 0.4;
+    transform: scale(1.045) rotate(-0.9deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.995) rotate(0.25deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.note-pin-settle {
+  animation: note-pin-settle 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* Drag-and-drop reorder */
 .note-dragging {
   opacity: 0.3;

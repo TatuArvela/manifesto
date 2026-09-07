@@ -394,9 +394,25 @@ export async function unarchiveNote(id: string) {
   await updateNote(id, { archived: false });
 }
 
+/**
+ * The note most recently pinned or unpinned, for the brief moment after the
+ * toggle. Pinning moves a card between the pinned and unpinned grids, which
+ * unmounts and remounts it — otherwise it simply teleports. NoteCard reads
+ * this on mount to play a short settle animation instead.
+ */
+export const recentlyPinned = signal<string | null>(null);
+
+let pinSettleTimer: ReturnType<typeof setTimeout> | undefined;
+
 export async function togglePin(id: string) {
   const note = allNotes.value.find((n) => n.id === id);
-  if (note) await updateNote(id, { pinned: !note.pinned });
+  if (!note) return;
+  recentlyPinned.value = id;
+  clearTimeout(pinSettleTimer);
+  pinSettleTimer = setTimeout(() => {
+    recentlyPinned.value = null;
+  }, 500);
+  await updateNote(id, { pinned: !note.pinned });
 }
 
 export async function deleteTag(tag: string) {

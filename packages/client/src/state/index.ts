@@ -31,6 +31,7 @@ export {
   pickDefaultColor,
   pickDefaultFont,
   pinnedNotes,
+  recentlyPinned,
   reorderNotes,
   restoreNote,
   selectAllVisible,

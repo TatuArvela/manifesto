@@ -38,6 +38,7 @@ import {
   hasCheckedItems,
   noteSize,
   permanentlyDeleteNote,
+  recentlyPinned,
   restoreNote,
   selectedNotes,
   selectMode,
@@ -447,6 +448,13 @@ export function NoteCard({
   const isEditing = editingNoteId.value === note.id;
   const isSelectMode = selectMode.value;
   const isSelected = selectedNotes.value.has(note.id);
+  // Read once at mount: this card was remounted into the other grid by a pin
+  // toggle, so it should settle in rather than appear from nowhere. Reading it
+  // during render would also re-trigger on unrelated re-renders in the window
+  // before the signal clears.
+  const [pinSettling, setPinSettling] = useState(
+    () => recentlyPinned.peek() === note.id,
+  );
   const [showModal, setShowModal] = useState(false);
   const [closing, setClosing] = useState(false);
   const [openPopover, setOpenPopover] = useState<
@@ -559,11 +567,15 @@ export function NoteCard({
       <div
         class={clsx(
           "relative group note-draggable-wrapper",
+          pinSettling && "note-pin-settle",
           noteSize.value === "square" &&
             viewMode.value === "list" &&
             "w-full max-w-sm mx-auto",
         )}
         data-drop-side={dropSide}
+        onAnimationEnd={(e) => {
+          if (e.target === e.currentTarget) setPinSettling(false);
+        }}
       >
         {/* Selection checkbox */}
         <div
