@@ -149,30 +149,6 @@ function ColorChip({
   );
 }
 
-/**
- * Shared by the header's search bar and the mobile search input below, so the
- * two can't drift apart. The input is placed before its icons in the DOM
- * (they are absolutely positioned anyway) so `peer-focus` can tint them.
- */
-export const searchFieldClass =
-  "peer w-full pl-10 pr-10 py-2 text-sm rounded-full outline-none transition-colors " +
-  "bg-neutral-100 dark:bg-neutral-800 " +
-  "border border-neutral-200 dark:border-neutral-700 " +
-  "placeholder:text-neutral-400 dark:placeholder:text-neutral-500 " +
-  "hover:border-neutral-300 dark:hover:border-neutral-600 " +
-  "focus:bg-white dark:focus:bg-neutral-900 focus:border-blue-500 " +
-  "focus:ring-2 focus:ring-blue-500/25";
-
-export const searchIconClass =
-  "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none " +
-  "text-neutral-400 peer-focus:text-blue-500 transition-colors";
-
-/** The trailing clear/close control inside a search field. */
-export const clearBtnClass =
-  "absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full cursor-pointer " +
-  "text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 " +
-  "hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors";
-
 export function SearchView() {
   const locations = searchLocations.value;
   const locationsAtDefault = locations.size === 1 && locations.has("active");
@@ -216,30 +192,17 @@ export function SearchView() {
     <div class="mt-4 mb-6 flex flex-col gap-3">
       {/* Mobile-only search input (desktop uses the header's input). */}
       <div class="relative md:hidden">
+        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
         <input
           ref={inputRef}
           type="search"
           placeholder={t("header.searchPlaceholder")}
-          class={searchFieldClass}
+          class="w-full pl-10 pr-3 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-neutral-900 outline-none transition text-sm"
           value={searchQuery.value}
           onInput={(e) => {
             searchQuery.value = (e.target as HTMLInputElement).value;
           }}
         />
-        <Search class={searchIconClass} />
-        {searchQuery.value && (
-          <button
-            type="button"
-            class={clearBtnClass}
-            onClick={() => {
-              searchQuery.value = "";
-              inputRef.current?.focus();
-            }}
-            aria-label={t("search.clear")}
-          >
-            <X class="w-4 h-4" />
-          </button>
-        )}
       </div>
 
       {/* Mobile-only toggle for the filter section. Desktop always shows filters. */}
