@@ -78,6 +78,7 @@ export {
   dismissToast,
   editingNoteId,
   errors,
+  exitSearch,
   previousView,
   type SearchLocation,
   type SearchType,

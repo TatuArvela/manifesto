@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { dismissError, errors, showError } from "./ui.js";
+import {
+  activeView,
+  dismissError,
+  errors,
+  exitSearch,
+  previousView,
+  searchColors,
+  searchQuery,
+  searchTypes,
+  showError,
+} from "./ui.js";
 
 describe("error notifications", () => {
   beforeEach(() => {
@@ -49,5 +59,36 @@ describe("error notifications", () => {
     expect(errors.value[0].message).toBe("Error 2");
     vi.advanceTimersByTime(2000); // 5s after Error 2
     expect(errors.value).toHaveLength(0);
+  });
+});
+
+describe("exitSearch", () => {
+  beforeEach(() => {
+    activeView.value = "active";
+    searchQuery.value = "";
+    searchTypes.value = new Set();
+    searchColors.value = new Set();
+  });
+
+  it("returns to the view the user came from and clears the filters", () => {
+    activeView.value = "archived";
+    activeView.value = "search";
+    searchQuery.value = "milk";
+    searchTypes.value = new Set(["images"]);
+
+    exitSearch();
+
+    expect(activeView.value).toBe("archived");
+    expect(searchQuery.value).toBe("");
+    expect(searchTypes.value.size).toBe(0);
+  });
+
+  it("falls back to the active view when search was the entry point", () => {
+    previousView.value = "search";
+    activeView.value = "search";
+
+    exitSearch();
+
+    expect(activeView.value).toBe("active");
   });
 });

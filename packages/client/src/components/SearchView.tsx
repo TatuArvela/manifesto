@@ -21,12 +21,15 @@ import {
 } from "../i18n/index.js";
 import {
   clearSearchFilters,
+  editingNoteId,
+  exitSearch,
   type SearchLocation,
   type SearchType,
   searchColors,
   searchLocations,
   searchQuery,
   searchTypes,
+  showSettings,
   sortedNotes,
   toggleSearchColor,
   toggleSearchLocation,
@@ -167,6 +170,21 @@ export function SearchView() {
     if (window.matchMedia("(min-width: 768px)").matches) {
       inputRef.current?.focus();
     }
+  }, []);
+
+  // Escape leaves the search view. Bound to the document rather than the
+  // input so it works wherever focus happens to be, but it defers to anything
+  // layered on top that owns Escape itself: the note editor, the settings
+  // panel, and any open popover (which the Popover API light-dismisses).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (editingNoteId.value !== null || showSettings.value) return;
+      if (document.querySelector(":popover-open")) return;
+      exitSearch();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   return (
