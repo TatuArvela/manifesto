@@ -285,10 +285,12 @@ body {
   mix-blend-mode: screen;
 }
 
-/* Top note — the interactive peeling sheet */
+/* Top note — the interactive peeling sheet. Rounded on all four corners: it is
+   a sheet of paper in its own right, and its bottom corners sit in full view
+   against the darker base below. */
 .note-stack-top {
   position: relative;
-  border-radius: var(--note-radius) var(--note-radius) 0 0;
+  border-radius: var(--note-radius);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transform-origin: center top;
   transition:
@@ -370,7 +372,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: 0;
-  border-radius: var(--note-radius) var(--note-radius) 0 0;
+  border-radius: var(--note-radius);
   transition:
     background-color 0.4s ease,
     border-color 0.4s ease;
@@ -381,7 +383,15 @@ body {
    block. */
 .note-stack-base {
   position: relative;
-  height: 14px;
+  /* Tucked up behind the sheets by exactly the corner radius, and made that
+     much taller so the stack's overall height is unchanged. Without this the
+     base's square top corners sit beside the top sheet's rounded ones and
+     leave a notch at each side; overlapping puts the base *under* that curve,
+     so the page edges peek around the sheet's corners the way a real pad's do.
+     At zero radius this collapses to the original flush block. */
+  z-index: -1;
+  margin-top: calc(-1 * var(--note-radius));
+  height: calc(14px + var(--note-radius));
   border-radius: 0 0 var(--note-radius) var(--note-radius);
   overflow: hidden;
   filter: brightness(88%);
