@@ -85,7 +85,7 @@ function SettingsSelect<T extends string>({
       trigger={
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 text-sm rounded-lg cursor-pointer border transition-colors bg-neutral-100 dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 hover:bg-neutral-200 dark:hover:bg-neutral-600"
+          class="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 text-sm rounded-lg cursor-pointer transition-colors bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
           onClick={() => setOpen(!open)}
           aria-label={label}
           aria-haspopup="menu"
