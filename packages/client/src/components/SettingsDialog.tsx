@@ -102,7 +102,10 @@ export function SettingsDialog() {
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen]);
 
-  const handleAnimationEnd = () => {
+  // animationend bubbles, so ignore anything a descendant fires — only the
+  // panel's own slide-out marks the close as finished.
+  const handleAnimationEnd = (e: AnimationEvent) => {
+    if (e.target !== e.currentTarget) return;
     if (closing) {
       setVisible(false);
       setClosing(false);
@@ -159,8 +162,8 @@ export function SettingsDialog() {
       {/* Backdrop */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
       <div
-        class={`fixed inset-0 z-40 bg-black/50 transition-opacity ${closing ? "opacity-0" : ""}`}
-        style={closing ? { transitionDuration: "200ms" } : undefined}
+        class="settings-backdrop fixed inset-0 z-40 bg-black/50"
+        data-closing={closing ? "true" : undefined}
         role="presentation"
         onClick={handleClose}
         onKeyDown={() => {}}
@@ -171,7 +174,8 @@ export function SettingsDialog() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-dialog-title"
-        class={`fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white dark:bg-neutral-800 shadow-2xl flex flex-col ${closing ? "animate-slide-out-right" : "animate-slide-in-right"}`}
+        class="settings-panel fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white dark:bg-neutral-800 shadow-2xl flex flex-col"
+        data-closing={closing ? "true" : undefined}
         onAnimationEnd={handleAnimationEnd}
       >
         <div class="flex items-center justify-between px-6 h-14 border-b border-neutral-200 dark:border-neutral-700 shrink-0">
