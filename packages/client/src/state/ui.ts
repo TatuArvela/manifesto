@@ -61,6 +61,17 @@ export function clearSearchFilters() {
   searchLocations.value = new Set(["active"]);
 }
 
+/**
+ * Leave the search view: drop the filters and return the user to wherever
+ * they came from. `previousView` can itself be "search" when search was the
+ * entry point (a reload or deep link on /search), so fall back to "active".
+ */
+export function exitSearch() {
+  clearSearchFilters();
+  activeView.value =
+    previousView.value === "search" ? "active" : previousView.value;
+}
+
 // Track `previousView` so the search close button can return to where the
 // user came from. Updates whenever the active view changes to a non-search view.
 effect(() => {

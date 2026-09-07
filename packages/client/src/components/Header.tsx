@@ -28,10 +28,9 @@ import {
   bulkRestore,
   bulkSetColor,
   bulkTrash,
-  clearSearchFilters,
+  exitSearch,
   exitSelectMode,
   noteSize,
-  previousView,
   type SortMode,
   searchQuery,
   selectAllVisible,
@@ -315,13 +314,7 @@ export function Header() {
               <button
                 type="button"
                 class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer"
-                onClick={() => {
-                  clearSearchFilters();
-                  activeView.value =
-                    previousView.value === "search"
-                      ? "active"
-                      : previousView.value;
-                }}
+                onClick={exitSearch}
                 aria-label={t("search.close")}
               >
                 <X class="w-4 h-4" />
@@ -343,11 +336,7 @@ export function Header() {
             class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 md:hidden"
             onClick={() => {
               if (activeView.value === "search") {
-                clearSearchFilters();
-                activeView.value =
-                  previousView.value === "search"
-                    ? "active"
-                    : previousView.value;
+                exitSearch();
               } else {
                 activeView.value = "search";
               }
