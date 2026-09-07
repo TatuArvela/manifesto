@@ -1,7 +1,13 @@
 import type { LinkPreview, Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { Plus } from "lucide-preact";
 import { createPortal } from "preact/compat";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
 import { type MessageKey, t } from "../i18n/index.js";
@@ -115,6 +121,32 @@ export function NoteInput() {
     setFont(pickDefaultFont());
   }, [fontSetting]);
 
+  const isList = viewMode.value === "list";
+  const rulerRef = useRef<HTMLDivElement>(null);
+  const [colWidth, setColWidth] = useState<number | undefined>(undefined);
+
+  // Layout effect, not an effect: the stack has no width of its own until this
+  // runs, so measuring after paint leaves it stretched across the whole column
+  // area for a frame — very visible on leaving the search view, which remounts
+  // this component with the width unknown again. A zero reading is ignored
+  // rather than applied: the ruler measures nothing while this view is not the
+  // active one, and 0px would collapse the stack when it comes back.
+  useLayoutEffect(() => {
+    if (isList) return;
+    const ruler = rulerRef.current;
+    if (!ruler) return;
+    const cell = ruler.firstElementChild as HTMLElement;
+    if (!cell) return;
+    const measure = () => {
+      const width = cell.getBoundingClientRect().width;
+      if (width > 0) setColWidth(width);
+    };
+    measure();
+    const obs = new ResizeObserver(measure);
+    obs.observe(ruler);
+    return () => obs.disconnect();
+  }, [isList]);
+
   if (activeView.value !== "active") return null;
 
   const reset = () => {
@@ -212,23 +244,6 @@ export function NoteInput() {
   // underneath has already been re-picked. Everywhere else the sheet is the
   // pad, so it must not wait for `reset()` to catch the new colour up.
   const topSheetColor = lifting ? color : stackColor;
-
-  const isList = viewMode.value === "list";
-  const rulerRef = useRef<HTMLDivElement>(null);
-  const [colWidth, setColWidth] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    if (isList) return;
-    const ruler = rulerRef.current;
-    if (!ruler) return;
-    const cell = ruler.firstElementChild as HTMLElement;
-    if (!cell) return;
-    const measure = () => setColWidth(cell.getBoundingClientRect().width);
-    measure();
-    const obs = new ResizeObserver(measure);
-    obs.observe(ruler);
-    return () => obs.disconnect();
-  }, [isList]);
 
   return (
     <>
