@@ -189,7 +189,13 @@ export function SearchView() {
   }, []);
 
   return (
-    <div class="mt-4 mb-6 flex flex-col gap-3">
+    // Centred on its own, rather than relying on the wrapper App puts around
+    // the search view: that wrapper only exists in list mode, so in grid mode
+    // the filters used to sit hard against the left edge while the search
+    // field they belong to was centred in the header. `max-w-xl` matches that
+    // field's width, so the two line up. In list mode the wrapper is already
+    // this width, and this changes nothing.
+    <div class="mt-4 mb-6 flex flex-col gap-3 max-w-xl mx-auto">
       {/* Mobile-only search input (desktop uses the header's input). */}
       <div class="relative md:hidden">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
