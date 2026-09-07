@@ -117,6 +117,128 @@ body {
   text-size-adjust: 100%;
 }
 
+/* --- Dark shade ---------------------------------------------------------
+
+   Tailwind compiles every `neutral` utility to `var(--color-neutral-N)`, so
+   redefining the ramp on `html.dark` re-skins the whole dark theme without a
+   single component knowing about it. These rules are unlayered, which puts
+   them above Tailwind's `@layer theme` defaults regardless of specificity.
+
+   Two knobs drive it. `--dark-tint-c` / `--dark-tint-h` add a cast: each step
+   keeps Tailwind's own lightness and only gains chroma, so contrast ratios are
+   untouched. Chroma tapers off towards the light end, because the dark theme
+   uses those steps for text and tinted text reads as a mistake where a tinted
+   surface reads as a choice. The hues run warm to cool along the violet-blue
+   arc at a chroma low enough that each reads as a grey with a cast rather than
+   a colour — the point is matching the dark mode of the OS or editor beside
+   it, and those sit in a narrow band.
+
+   `--dark-dim` deepens instead of tinting: it is subtracted from the lightness
+   of the dark end, tapering to nothing by the 400 step so text keeps its
+   contrast against a page that has gone all the way to black.
+
+   The `[data-dark-hue]` rules are deliberately not scoped to `html`: the
+   settings swatches set the same attribute on themselves to sample a shade
+   without any of these values having to be restated in JavaScript. */
+:root {
+  --dark-tint-c: 0;
+  --dark-tint-h: 0;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="neutral"] {
+  --dark-tint-c: 0;
+  --dark-tint-h: 0;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="midnight"] {
+  --dark-tint-c: 0;
+  --dark-tint-h: 0;
+  --dark-dim: 8%;
+}
+
+[data-dark-hue="mauve"] {
+  --dark-tint-c: 0.014;
+  --dark-tint-h: 320;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="violet"] {
+  --dark-tint-c: 0.014;
+  --dark-tint-h: 295;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="indigo"] {
+  --dark-tint-c: 0.014;
+  --dark-tint-h: 275;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="slate"] {
+  --dark-tint-c: 0.014;
+  --dark-tint-h: 258;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="steel"] {
+  --dark-tint-c: 0.014;
+  --dark-tint-h: 240;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="ocean"] {
+  --dark-tint-c: 0.014;
+  --dark-tint-h: 228;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="black"] {
+  --dark-tint-c: 0;
+  --dark-tint-h: 0;
+  --dark-dim: 20.5%;
+}
+
+html.dark {
+  --color-neutral-50: oklch(98.5% calc(var(--dark-tint-c) * 0.25) var(--dark-tint-h));
+  --color-neutral-100: oklch(97% calc(var(--dark-tint-c) * 0.3) var(--dark-tint-h));
+  --color-neutral-200: oklch(92.2% calc(var(--dark-tint-c) * 0.4) var(--dark-tint-h));
+  --color-neutral-300: oklch(87% calc(var(--dark-tint-c) * 0.5) var(--dark-tint-h));
+  --color-neutral-400: oklch(70.8% calc(var(--dark-tint-c) * 0.65) var(--dark-tint-h));
+  --color-neutral-500: oklch(
+    calc(55.6% - var(--dark-dim) * 0.2) calc(var(--dark-tint-c) * 0.8)
+      var(--dark-tint-h)
+  );
+  --color-neutral-600: oklch(
+    calc(43.9% - var(--dark-dim) * 0.4) calc(var(--dark-tint-c) * 0.9)
+      var(--dark-tint-h)
+  );
+  --color-neutral-700: oklch(
+    calc(37.1% - var(--dark-dim) * 0.6) var(--dark-tint-c) var(--dark-tint-h)
+  );
+  --color-neutral-800: oklch(
+    calc(26.9% - var(--dark-dim) * 0.85) var(--dark-tint-c) var(--dark-tint-h)
+  );
+  --color-neutral-900: oklch(
+    max(0%, calc(20.5% - var(--dark-dim))) var(--dark-tint-c) var(--dark-tint-h)
+  );
+  --color-neutral-950: oklch(
+    max(0%, calc(14.5% - var(--dark-dim))) var(--dark-tint-c) var(--dark-tint-h)
+  );
+}
+
+/* A literal sample of the theme, not an advertisement for it: the chip is the
+   700 step, the tone the dark theme outlines its cards with — light enough to
+   carry a cast this subtle, and dark enough that the two dimmed shades read as
+   dimmer than the tints. Amplifying the chroma to make the options easier to
+   tell apart would promise a tint the user will not get. */
+.dark-hue-swatch {
+  background-color: oklch(
+    calc(37.1% - var(--dark-dim) * 0.6) var(--dark-tint-c) var(--dark-tint-h)
+  );
+}
+
 .tooltip[popover] {
   position: fixed;
   inset: auto;

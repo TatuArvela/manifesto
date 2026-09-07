@@ -2,10 +2,12 @@ import { NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   animations,
+  darkHue,
   defaultNoteColor,
   defaultNoteFont,
   locale,
   noteCorners,
+  noteQuips,
   noteSize,
   parsePrefs,
   sortMode,
@@ -196,5 +198,50 @@ describe("animations", () => {
     expect(document.documentElement.classList.contains("no-motion")).toBe(
       false,
     );
+  });
+});
+
+describe("darkHue", () => {
+  it("defaults to neutral, reproducing Tailwind's untinted grey", () => {
+    expect(parsePrefs(null).darkHue).toBe("neutral");
+    expect(parsePrefs("{}").darkHue).toBe("neutral");
+  });
+
+  it("round-trips a persisted value", () => {
+    expect(parsePrefs('{"darkHue":"slate"}').darkHue).toBe("slate");
+  });
+
+  it("accepts the dimmed shades alongside the tints", () => {
+    expect(parsePrefs('{"darkHue":"midnight"}').darkHue).toBe("midnight");
+    expect(parsePrefs('{"darkHue":"black"}').darkHue).toBe("black");
+  });
+
+  it("falls back to neutral for an unrecognised value", () => {
+    expect(parsePrefs('{"darkHue":"chartreuse"}').darkHue).toBe("neutral");
+  });
+
+  it("publishes the hue on <html> for the stylesheet to key off", () => {
+    const previous = darkHue.value;
+    darkHue.value = "mauve";
+    expect(document.documentElement.dataset.darkHue).toBe("mauve");
+    darkHue.value = "neutral";
+    expect(document.documentElement.dataset.darkHue).toBe("neutral");
+    darkHue.value = previous;
+  });
+});
+
+describe("noteQuips", () => {
+  it("defaults to on", () => {
+    expect(parsePrefs(null).noteQuips).toBe(true);
+    expect(parsePrefs("{}").noteQuips).toBe(true);
+  });
+
+  it("honours an explicitly persisted choice", () => {
+    expect(parsePrefs('{"noteQuips":false}').noteQuips).toBe(false);
+    expect(parsePrefs('{"noteQuips":true}').noteQuips).toBe(true);
+  });
+
+  it("is exported as a signal so the note stack can read it", () => {
+    expect(typeof noteQuips.value).toBe("boolean");
   });
 });

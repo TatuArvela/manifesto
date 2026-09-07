@@ -46,9 +46,12 @@ export {
 } from "./actions.js";
 export {
   animations,
+  DARK_HUES,
+  type DarkHue,
   type DecimalSeparator,
   type DefaultNoteColor,
   type DefaultNoteFont,
+  darkHue,
   decimalSeparator,
   defaultNoteColor,
   defaultNoteFont,
@@ -57,6 +60,7 @@ export {
   type NoteCorners,
   type NoteSize,
   noteCorners,
+  noteQuips,
   noteSize,
   resolvedDecimalSeparator,
   type SortMode,

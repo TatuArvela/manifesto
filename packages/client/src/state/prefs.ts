@@ -13,11 +13,35 @@ export type DefaultNoteColor = "plain" | "random";
 export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
+export type DarkHue =
+  | "neutral"
+  | "midnight"
+  | "mauve"
+  | "violet"
+  | "indigo"
+  | "slate"
+  | "steel"
+  | "ocean"
+  | "black";
 
 const DECIMAL_SEPARATOR_VALUES: readonly DecimalSeparator[] = [
   "auto",
   ".",
   ",",
+];
+
+// Neutral and the near-black beside it, then the tints warm to cool along
+// the violet-blue arc, with true black at the far end.
+export const DARK_HUES: readonly DarkHue[] = [
+  "neutral",
+  "midnight",
+  "mauve",
+  "violet",
+  "indigo",
+  "slate",
+  "steel",
+  "ocean",
+  "black",
 ];
 
 /**
@@ -31,6 +55,13 @@ function prefersReducedMotion(): boolean {
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
+}
+
+function parseDarkHue(value: unknown): DarkHue {
+  return typeof value === "string" &&
+    (DARK_HUES as readonly string[]).includes(value)
+    ? (value as DarkHue)
+    : "neutral";
 }
 
 function parseDecimalSeparator(value: unknown): DecimalSeparator {
@@ -56,6 +87,8 @@ export interface LoadedPrefs {
   decimalSeparator: DecimalSeparator;
   noteCorners: NoteCorners;
   animations: boolean;
+  darkHue: DarkHue;
+  noteQuips: boolean;
 }
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
@@ -83,6 +116,9 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
           typeof parsed.animations === "boolean"
             ? parsed.animations
             : !prefersReducedMotion(),
+        darkHue: parseDarkHue(parsed.darkHue),
+        noteQuips:
+          typeof parsed.noteQuips === "boolean" ? parsed.noteQuips : true,
       };
     } catch {
       // ignore
@@ -100,6 +136,8 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     decimalSeparator: "auto",
     noteCorners: "straight",
     animations: !prefersReducedMotion(),
+    darkHue: "neutral",
+    noteQuips: true,
   };
 }
 
@@ -126,6 +164,8 @@ function savePrefs() {
       decimalSeparator: decimalSeparator.value,
       noteCorners: noteCorners.value,
       animations: animations.value,
+      darkHue: darkHue.value,
+      noteQuips: noteQuips.value,
     }),
   );
 }
@@ -147,6 +187,8 @@ export const decimalSeparator = signal<DecimalSeparator>(
 );
 export const noteCorners = signal<NoteCorners>(prefs.noteCorners);
 export const animations = signal<boolean>(prefs.animations);
+export const darkHue = signal<DarkHue>(prefs.darkHue);
+export const noteQuips = signal<boolean>(prefs.noteQuips);
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
 export function resolvedDecimalSeparator(): "." | "," {
@@ -169,6 +211,8 @@ effect(() => {
   decimalSeparator.value;
   noteCorners.value;
   animations.value;
+  darkHue.value;
+  noteQuips.value;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(savePrefs, 50);
 });
@@ -189,6 +233,15 @@ effect(() => {
 
 effect(() => {
   document.documentElement.classList.toggle("no-motion", !animations.value);
+});
+
+// --- Dark hue ---
+
+// Published as an attribute on <html> rather than a class so the stylesheet can
+// key one `--dark-tint-*` pair off it; the dark neutral ramp is derived from
+// that pair, so every `neutral` utility in the app re-tints at once.
+effect(() => {
+  document.documentElement.dataset.darkHue = darkHue.value;
 });
 
 // --- Theme ---
