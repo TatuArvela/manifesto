@@ -31,7 +31,7 @@ function save(map: VersionMap): boolean {
     if (isQuotaError(err)) {
       const trimmed: VersionMap = {};
       for (const [id, versions] of Object.entries(map)) {
-        if (versions.length > 1) trimmed[id] = versions.slice(1);
+        trimmed[id] = versions.length > 1 ? versions.slice(1) : versions;
       }
       try {
         localStorage.setItem(
