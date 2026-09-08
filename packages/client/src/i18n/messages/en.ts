@@ -391,4 +391,12 @@ export const en = {
   // Connection status banner
   "connection.reconnecting": "Reconnecting…",
   "connection.disconnected": "Disconnected",
+
+  // Crash fallback (ErrorBoundary)
+  "error.title": "Something went wrong",
+  "error.body":
+    "Manifesto ran into an unexpected error and can't show your notes. They are still saved on this device.",
+  "error.reload": "Reload",
+  "error.backup": "Download a backup",
+  "error.details": "Technical details",
 } as const;

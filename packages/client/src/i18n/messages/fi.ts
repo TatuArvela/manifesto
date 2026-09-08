@@ -395,4 +395,12 @@ export const fi: Messages = {
   // Connection status banner
   "connection.reconnecting": "Yhdistetään uudelleen…",
   "connection.disconnected": "Yhteys katkesi",
+
+  // Crash fallback (ErrorBoundary)
+  "error.title": "Jotain meni pieleen",
+  "error.body":
+    "Manifesto kohtasi odottamattoman virheen eikä voi näyttää muistiinpanojasi. Ne ovat yhä tallessa tällä laitteella.",
+  "error.reload": "Lataa uudelleen",
+  "error.backup": "Lataa varmuuskopio",
+  "error.details": "Tekniset tiedot",
 };
