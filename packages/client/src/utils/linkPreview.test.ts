@@ -62,3 +62,21 @@ describe("makeStubPreview", () => {
     });
   });
 });
+
+describe("extractUrls performance", () => {
+  it("does not backtrack quadratically on a long punctuation run", () => {
+    // An unbounded `+` in TRAILING_PUNCTUATION_RE took ~15s here; this runs in
+    // well under a millisecond. `extractUrls` is called during note-card render,
+    // so a pathological note would otherwise freeze the tab on every paint.
+    const hostile = `http://x${".".repeat(120_000)}a`;
+    const started = performance.now();
+    extractUrls(hostile);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it("still strips a normal run of trailing punctuation", () => {
+    expect(extractUrls("see https://example.com...")).toEqual([
+      "https://example.com",
+    ]);
+  });
+});
