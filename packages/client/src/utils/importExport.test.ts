@@ -233,3 +233,68 @@ describe("importFiles", () => {
     expect(summary.bulkCount).toBe(0);
   });
 });
+
+describe("parseNoteJson bulk normalization", () => {
+  it("replaces unknown color and font with defaults", () => {
+    // A note carrying an unknown color used to reach noteColorMap[...] as
+    // undefined and throw inside NoteCard on every render — permanently, since
+    // the import had already been persisted.
+    const result = parseNoteJson(
+      JSON.stringify([{ ...baseNote, color: "hotpink", font: "wingdings" }]),
+    );
+    expect(result.kind).toBe("bulk");
+    if (result.kind !== "bulk") return;
+    expect(result.notes[0].color).toBe(NoteColor.Default);
+    expect(result.notes[0].font).toBe(NoteFont.Default);
+  });
+
+  it("preserves known colors, fonts and identity fields", () => {
+    const result = parseNoteJson(
+      JSON.stringify([
+        { ...baseNote, color: NoteColor.Teal, font: NoteFont.ComicRelief },
+      ]),
+    );
+    if (result.kind !== "bulk") throw new Error("expected bulk");
+    expect(result.notes[0].color).toBe(NoteColor.Teal);
+    expect(result.notes[0].font).toBe(NoteFont.ComicRelief);
+    expect(result.notes[0].id).toBe(baseNote.id);
+    expect(result.notes[0].createdAt).toBe(baseNote.createdAt);
+  });
+
+  it("coerces malformed scalars and drops malformed collection entries", () => {
+    const result = parseNoteJson(
+      JSON.stringify([
+        {
+          ...baseNote,
+          pinned: "yes",
+          trashedAt: 42,
+          position: "abc",
+          tags: ["ok", 7, null],
+          images: [1, "data:image/png;base64,AAA"],
+          linkPreviews: [{ nourl: true }, { url: "https://a.test" }],
+        },
+      ]),
+    );
+    if (result.kind !== "bulk") throw new Error("expected bulk");
+    const note = result.notes[0];
+    expect(note.pinned).toBe(false);
+    expect(note.trashedAt).toBeNull();
+    expect(Number.isFinite(note.position)).toBe(true);
+    expect(note.tags).toEqual(["ok"]);
+    expect(note.images).toEqual(["data:image/png;base64,AAA"]);
+    expect(note.linkPreviews).toHaveLength(1);
+  });
+
+  it("normalizes an unknown reminder recurrence to none", () => {
+    const result = parseNoteJson(
+      JSON.stringify([
+        {
+          ...baseNote,
+          reminder: { time: "2026-01-01T09:00", recurrence: "hourly" },
+        },
+      ]),
+    );
+    if (result.kind !== "bulk") throw new Error("expected bulk");
+    expect(result.notes[0].reminder?.recurrence).toBe("none");
+  });
+});

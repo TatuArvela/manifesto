@@ -23,4 +23,4 @@ export type {
   NoteVersion,
   ReminderRecurrence,
 } from "./note.js";
-export { NoteColor, NoteFont } from "./note.js";
+export { NoteColor, NoteFont, REMINDER_RECURRENCES } from "./note.js";

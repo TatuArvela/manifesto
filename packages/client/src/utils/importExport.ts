@@ -1,5 +1,10 @@
-import type { Note, NoteCreate } from "@manifesto/shared";
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import type {
+  LinkPreview,
+  Note,
+  NoteCreate,
+  NoteReminder,
+} from "@manifesto/shared";
+import { NoteColor, NoteFont, REMINDER_RECURRENCES } from "@manifesto/shared";
 
 export type ImportResult =
   | { kind: "single"; note: Partial<NoteCreate> }
@@ -72,6 +77,79 @@ export function parseMarkdownToNote(text: string): Partial<NoteCreate> {
 
 const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
 const NOTE_FONTS = new Set<string>(Object.values(NoteFont));
+const RECURRENCES = new Set<string>(REMINDER_RECURRENCES);
+
+function parseReminder(raw: unknown): NoteReminder | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.time !== "string") return null;
+  return {
+    time: r.time,
+    recurrence:
+      typeof r.recurrence === "string" && RECURRENCES.has(r.recurrence)
+        ? (r.recurrence as NoteReminder["recurrence"])
+        : "none",
+    timezone: typeof r.timezone === "string" ? r.timezone : "UTC",
+    ...(typeof r.lastFiredAt === "string"
+      ? { lastFiredAt: r.lastFiredAt }
+      : {}),
+  };
+}
+
+function parseLinkPreviews(raw: unknown): LinkPreview[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (p): p is LinkPreview =>
+      typeof p === "object" &&
+      p !== null &&
+      typeof (p as { url?: unknown }).url === "string",
+  );
+}
+
+function parseStringArray(raw: unknown): string[] {
+  return Array.isArray(raw)
+    ? raw.filter((v): v is string => typeof v === "string")
+    : [];
+}
+
+/**
+ * Coerces a shape-checked import item into a complete, renderable `Note`.
+ *
+ * The bulk path previously handed `data as Note[]` straight to storage, so an
+ * unknown `color` reached `noteColorMap[...]` as `undefined` and threw inside
+ * `NoteCard` — on every load thereafter, since the note had been persisted.
+ * Identity fields are trusted (`isValidNoteShape` has already checked them);
+ * everything else is validated and falls back to a safe default.
+ */
+function normalizeImportedNote(raw: Record<string, unknown>): Note {
+  return {
+    id: raw.id as string,
+    title: raw.title as string,
+    content: raw.content as string,
+    color:
+      typeof raw.color === "string" && NOTE_COLORS.has(raw.color)
+        ? (raw.color as NoteColor)
+        : NoteColor.Default,
+    font:
+      typeof raw.font === "string" && NOTE_FONTS.has(raw.font)
+        ? (raw.font as NoteFont)
+        : NoteFont.Default,
+    pinned: raw.pinned === true,
+    archived: raw.archived === true,
+    trashed: raw.trashed === true,
+    trashedAt: typeof raw.trashedAt === "string" ? raw.trashedAt : null,
+    position:
+      typeof raw.position === "number" && Number.isFinite(raw.position)
+        ? raw.position
+        : Date.now(),
+    tags: parseStringArray(raw.tags),
+    images: parseStringArray(raw.images),
+    linkPreviews: parseLinkPreviews(raw.linkPreviews),
+    reminder: parseReminder(raw.reminder),
+    createdAt: raw.createdAt as string,
+    updatedAt: raw.updatedAt as string,
+  };
+}
 
 function isValidNoteShape(item: unknown): item is Note {
   if (typeof item !== "object" || item === null) return false;
@@ -136,7 +214,12 @@ export function parseNoteJson(text: string): ImportResult {
     for (const item of data) {
       if (!isValidNoteShape(item)) throw new Error("Invalid note schema");
     }
-    return { kind: "bulk", notes: data as Note[] };
+    return {
+      kind: "bulk",
+      notes: data.map((item) =>
+        normalizeImportedNote(item as Record<string, unknown>),
+      ),
+    };
   }
   return { kind: "single", note: parseSingleNoteJson(data) };
 }
