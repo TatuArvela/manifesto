@@ -54,6 +54,13 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
   httpServer.removeAllListeners("upgrade");
 
   httpServer.on("upgrade", async (request, socket, head) => {
+    // Node removes its own socket error listener before emitting `upgrade`, and
+    // `wss.handleUpgrade` is what attaches the next one. Everything between is
+    // unguarded — and we await authentication and a note lookup there, so a peer
+    // that resets the connection mid-await would raise an uncaught exception and
+    // take the process down. Must stay the first statement: all paths below yield.
+    socket.on("error", () => {});
+
     const url = new URL(
       request.url ?? "/",
       `http://${request.headers.host ?? "localhost"}`,
