@@ -1,5 +1,5 @@
 import { compressToUTF16, decompressFromUTF16 } from "lz-string";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { deleteVersions, getVersions, saveVersion } from "./VersionStorage.js";
 
 const STORAGE_KEY = "manifesto:versions";
@@ -109,5 +109,65 @@ describe("VersionStorage", () => {
     // Should still be able to save after corruption
     saveVersion("note1", "A", "A");
     expect(getVersions("note1")).toHaveLength(1);
+  });
+});
+
+describe("VersionStorage quota fallback", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  function seed(map: Record<string, unknown[]>): void {
+    localStorage.setItem(
+      "manifesto:versions",
+      compressToUTF16(JSON.stringify(map)),
+    );
+  }
+
+  function version(noteId: string, title: string) {
+    return {
+      noteId,
+      timestamp: "2026-01-01T00:00:00.000Z",
+      title,
+      content: title,
+    };
+  }
+
+  /** Throws QuotaExceededError once, then behaves normally. */
+  function failFirstSetItem(): void {
+    const real = Storage.prototype.setItem;
+    let thrown = false;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      if (!thrown) {
+        thrown = true;
+        throw new DOMException("full", "QuotaExceededError");
+      }
+      real.call(this, key, value);
+    });
+  }
+
+  it("keeps single-version histories when trimming under quota pressure", () => {
+    seed({
+      solo: [version("solo", "Only")],
+      multi: [version("multi", "First"), version("multi", "Second")],
+    });
+    failFirstSetItem();
+
+    saveVersion("multi", "Third", "Third");
+
+    // The retry drops the oldest version of a multi-version note...
+    expect(getVersions("multi").length).toBeGreaterThan(0);
+    // ...but must not delete a note whose history has exactly one entry.
+    expect(getVersions("solo")).toHaveLength(1);
+    expect(getVersions("solo")[0].title).toBe("Only");
   });
 });
