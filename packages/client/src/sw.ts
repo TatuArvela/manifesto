@@ -2,7 +2,11 @@
 import type { ReminderRecurrence } from "@manifesto/shared";
 import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
-import { nextOccurrence, parseLocalISO } from "./state/reminderTime.js";
+import {
+  nextOccurrence,
+  parseLocalISO,
+  snapToFuture,
+} from "./state/reminderTime.js";
 
 declare const self: ServiceWorkerGlobalScope & {
   registration: ServiceWorkerRegistration & {
@@ -63,6 +67,9 @@ const STORE = "reminders";
 const PERIODIC_TAG = "check-reminders";
 const DEDUPE_WINDOW_MS = 60_000;
 const POLL_INTERVAL_MS = 60_000;
+// Matches reminderScheduler.ts — an occurrence more than an hour stale is not
+// worth surfacing, it is only worth skipping past.
+const CATCHUP_WINDOW_MS = 60 * 60_000;
 
 // --- IndexedDB helpers ---
 
@@ -125,8 +132,29 @@ async function fireDue(): Promise<void> {
   const items = await getAll();
   const now = Date.now();
   for (const item of items) {
+    // A non-recurring reminder fires exactly once. `nextOccurrence` returns null
+    // for it, so its `time` stays in the past forever — and because
+    // DEDUPE_WINDOW_MS equals POLL_INTERVAL_MS, the dedupe check below can never
+    // suppress the *next* poll. Without this guard a dismissed reminder came
+    // back every 60s indefinitely. Mirrors reminderScheduler.ts.
+    if (item.recurrence === "none" && item.lastFiredAt) continue;
+
     const dueMs = parseLocalISO(item.time).getTime() - now;
     if (dueMs > 0) continue;
+
+    // Long absence (device asleep, tab closed for days): advance a recurring
+    // reminder past every missed occurrence silently, rather than replaying them
+    // one per poll. A stale one-shot reminder is simply dropped, as on the client.
+    if (dueMs < -CATCHUP_WINDOW_MS) {
+      if (item.recurrence !== "none") {
+        await putOne({
+          ...item,
+          time: snapToFuture(item.time, item.recurrence),
+        });
+      }
+      continue;
+    }
+
     if (
       item.lastFiredAt &&
       now - new Date(item.lastFiredAt).getTime() < DEDUPE_WINDOW_MS
