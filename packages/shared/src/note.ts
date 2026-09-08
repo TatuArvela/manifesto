@@ -27,12 +27,15 @@ export interface LinkPreview {
   domain: string;
 }
 
-export type ReminderRecurrence =
-  | "none"
-  | "daily"
-  | "weekly"
-  | "monthly"
-  | "yearly";
+export const REMINDER_RECURRENCES = [
+  "none",
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+] as const;
+
+export type ReminderRecurrence = (typeof REMINDER_RECURRENCES)[number];
 
 export interface NoteReminder {
   /** ISO 8601 local-wall-clock datetime when the reminder next fires. */
