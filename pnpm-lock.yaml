@@ -30,8 +30,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       dompurify:
-        specifier: ^3.3.3
-        version: 3.3.3
+        specifier: ^3.4.15
+        version: 3.4.15
       lucide-preact:
         specifier: ^1.8.0
         version: 1.8.0(preact@10.29.1)
@@ -102,12 +102,6 @@ importers:
       '@testing-library/preact':
         specifier: ^3.2.4
         version: 3.2.4(preact@10.29.1)
-      '@types/dompurify':
-        specifier: ^3.2.0
-        version: 3.2.0
-      '@types/lz-string':
-        specifier: ^1.5.0
-        version: 1.5.0
       '@vitest/browser':
         specifier: ^4.1.4
         version: 4.1.4(vite@6.4.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0))(vitest@4.1.4)
@@ -134,13 +128,13 @@ importers:
         version: 4.0.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
       '@hono/node-server':
         specifier: ^1.13.0
-        version: 1.19.14(hono@4.12.12)
+        version: 1.19.14(hono@4.13.7)
       '@hono/node-ws':
         specifier: ^1.3.0
-        version: 1.3.0(@hono/node-server@1.19.14(hono@4.12.12))(hono@4.12.12)
+        version: 1.3.0(@hono/node-server@1.19.14(hono@4.13.7))(hono@4.13.7)
       '@hono/zod-validator':
         specifier: ^0.4.0
-        version: 0.4.3(hono@4.12.12)(zod@3.25.76)
+        version: 0.4.3(hono@4.13.7)(zod@3.25.76)
       '@manifesto/shared':
         specifier: workspace:*
         version: link:../shared
@@ -151,8 +145,8 @@ importers:
         specifier: ^11.9.0
         version: 11.10.0
       hono:
-        specifier: ^4.7.0
-        version: 4.12.12
+        specifier: ^4.13.7
+        version: 4.13.7
       openid-client:
         specifier: ^6.8.3
         version: 6.8.3
@@ -163,8 +157,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       ws:
-        specifier: ^8.20.0
-        version: 8.20.0
+        specifier: ^8.21.3
+        version: 8.21.3
       y-protocols:
         specifier: ^1.0.7
         version: 1.0.7(yjs@13.6.30)
@@ -1669,10 +1663,6 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
-  '@types/dompurify@3.2.0':
-    resolution: {integrity: sha512-Fgg31wv9QbLDA0SpTOXO3MaxySc4DKGLi8sna4/Utjo4r3ZRPdCt4UQee8BWr+Q5z21yifghREPJGYaEOEIACg==}
-    deprecated: This is a stub types definition. dompurify provides its own type definitions, so you do not need this installed.
-
   '@types/estree@0.0.39':
     resolution: {integrity: sha512-EYNwp3bU+98cpU4lAWYYL7Zz+2gryWH1qbdDTidVd6hkiR6weksdbMadyXKXNPEkQFhXM+hVO9ZygomHXp+AIw==}
 
@@ -1687,10 +1677,6 @@ packages:
 
   '@types/lodash@4.17.24':
     resolution: {integrity: sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ==}
-
-  '@types/lz-string@1.5.0':
-    resolution: {integrity: sha512-s84fKOrzqqNCAPljhVyC5TjAo6BH4jKHw9NRNFNiRUY5QSgZCmVm5XILlWbisiKl+0OcS7eWihmKGS5akc2iQw==}
-    deprecated: This is a stub types definition. lz-string provides its own type definitions, so you do not need this installed.
 
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
@@ -2144,8 +2130,8 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
-  dompurify@3.3.3:
-    resolution: {integrity: sha512-Oj6pzI2+RqBfFG+qOaOLbFXLQ90ARpcGG6UePL82bJLtdsa6CYJD7nmiU8MW9nQNOtCHV3lZ/Bzq1X0QYbBZCA==}
+  dompurify@3.4.15:
+    resolution: {integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==}
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
@@ -2401,8 +2387,8 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
 
-  hono@4.12.12:
-    resolution: {integrity: sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q==}
+  hono@4.13.7:
+    resolution: {integrity: sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==}
     engines: {node: '>=16.9.0'}
 
   html-encoding-sniffer@6.0.0:
@@ -3959,6 +3945,18 @@ packages:
       utf-8-validate:
         optional: true
 
+  ws@8.21.3:
+    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   xml-name-validator@5.0.0:
     resolution: {integrity: sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==}
     engines: {node: '>=18'}
@@ -5004,22 +5002,22 @@ snapshots:
     transitivePeerDependencies:
       - srvx
 
-  '@hono/node-server@1.19.14(hono@4.12.12)':
+  '@hono/node-server@1.19.14(hono@4.13.7)':
     dependencies:
-      hono: 4.12.12
+      hono: 4.13.7
 
-  '@hono/node-ws@1.3.0(@hono/node-server@1.19.14(hono@4.12.12))(hono@4.12.12)':
+  '@hono/node-ws@1.3.0(@hono/node-server@1.19.14(hono@4.13.7))(hono@4.13.7)':
     dependencies:
-      '@hono/node-server': 1.19.14(hono@4.12.12)
-      hono: 4.12.12
-      ws: 8.20.0
+      '@hono/node-server': 1.19.14(hono@4.13.7)
+      hono: 4.13.7
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@hono/zod-validator@0.4.3(hono@4.12.12)(zod@3.25.76)':
+  '@hono/zod-validator@0.4.3(hono@4.13.7)(zod@3.25.76)':
     dependencies:
-      hono: 4.12.12
+      hono: 4.13.7
       zod: 3.25.76
 
   '@isaacs/cliui@9.0.0': {}
@@ -5077,7 +5075,7 @@ snapshots:
       '@milkdown/utils': 7.20.0
       '@types/lodash-es': 4.17.12
       clsx: 2.1.1
-      dompurify: 3.3.3
+      dompurify: 3.4.15
       lodash-es: 4.18.1
       nanoid: 5.1.9
       unist-util-visit: 5.1.0
@@ -5583,10 +5581,6 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
-  '@types/dompurify@3.2.0':
-    dependencies:
-      dompurify: 3.3.3
-
   '@types/estree@0.0.39': {}
 
   '@types/estree@1.0.8': {}
@@ -5600,10 +5594,6 @@ snapshots:
       '@types/lodash': 4.17.24
 
   '@types/lodash@4.17.24': {}
-
-  '@types/lz-string@1.5.0':
-    dependencies:
-      lz-string: 1.5.0
 
   '@types/mdast@4.0.4':
     dependencies:
@@ -6148,7 +6138,7 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.3.3:
+  dompurify@3.4.15:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -6509,7 +6499,7 @@ snapshots:
 
   he@1.2.0: {}
 
-  hono@4.12.12: {}
+  hono@4.13.7: {}
 
   html-encoding-sniffer@6.0.0:
     dependencies:
@@ -8440,6 +8430,8 @@ snapshots:
   wrappy@1.0.2: {}
 
   ws@8.20.0: {}
+
+  ws@8.21.3: {}
 
   xml-name-validator@5.0.0:
     optional: true
