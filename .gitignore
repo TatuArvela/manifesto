@@ -20,3 +20,5 @@ __screenshots__
 .claude/plans/
 .claude/settings.local.json
 .claude/worktrees
+
+TODO.md
