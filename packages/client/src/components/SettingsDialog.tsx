@@ -88,6 +88,34 @@ function SettingsRow({
 }
 
 /**
+ * One choice in a {@link SettingsSelect}. Options carry their own preview — a
+ * leading element, a styled label, or neither — so the select stays
+ * presentation-agnostic instead of growing a render hook per kind of setting.
+ */
+type SettingsOption<T extends string> = {
+  value: T;
+  label: string;
+  /** Rendered ahead of the label, e.g. a colour swatch. */
+  preview?: JSX.Element;
+  /** Applied to the label, e.g. to show a font in the font it picks. */
+  labelStyle?: JSX.CSSProperties;
+};
+
+/** The shared innards of the trigger and every menu item. */
+function OptionContent<T extends string>({
+  option,
+}: {
+  option: SettingsOption<T>;
+}) {
+  return (
+    <>
+      {option.preview}
+      <span style={option.labelStyle}>{option.label}</span>
+    </>
+  );
+}
+
+/**
  * A select-style field for a settings row: a labelled trigger with a chevron,
  * with its menu on the shared Dropdown. That puts the panel in the top layer,
  * so it is no longer clipped by the settings panel's scroll container, and
@@ -98,20 +126,18 @@ function SettingsSelect<T extends string>({
   value,
   options,
   onChange,
-  styleFor,
-  swatchFor,
   label,
 }: {
   value: T;
-  options: { value: T; label: string }[];
+  options: SettingsOption<T>[];
   onChange: (value: T) => void;
-  styleFor?: (value: T) => JSX.CSSProperties | undefined;
-  /** Renders a small preview dot ahead of the label, e.g. for colour options. */
-  swatchFor?: (value: T) => JSX.Element;
   label: string;
 }) {
   const [open, setOpen] = useState(false);
-  const current = options.find((o) => o.value === value);
+  const current = options.find((o) => o.value === value) ?? {
+    value,
+    label: value,
+  };
   return (
     <Dropdown
       open={open}
@@ -127,8 +153,7 @@ function SettingsSelect<T extends string>({
           aria-haspopup="menu"
           aria-expanded={open}
         >
-          {swatchFor?.(value)}
-          <span style={styleFor?.(value)}>{current?.label ?? value}</span>
+          <OptionContent option={current} />
           <ChevronDown
             class={`w-4 h-4 shrink-0 text-neutral-500 dark:text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
           />
@@ -149,8 +174,7 @@ function SettingsSelect<T extends string>({
             setOpen(false);
           }}
         >
-          {swatchFor?.(opt.value)}
-          <span style={styleFor?.(opt.value)}>{opt.label}</span>
+          <OptionContent option={opt} />
         </button>
       ))}
     </Dropdown>
@@ -167,26 +191,38 @@ export function SettingsDialog() {
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
 
-  const fontOptions: { value: DefaultNoteFont; label: string }[] = [
-    { value: NoteFont.Default, label: getFontLabel(NoteFont.Default) },
-    {
-      value: NoteFont.PermanentMarker,
-      label: getFontLabel(NoteFont.PermanentMarker),
-    },
-    { value: NoteFont.ComicRelief, label: getFontLabel(NoteFont.ComicRelief) },
-    { value: "random", label: getFontLabel("random") },
-  ];
+  // Each font previews itself; "random" and the default font have none to show.
+  const fontOptions: SettingsOption<DefaultNoteFont>[] = [
+    NoteFont.Default,
+    NoteFont.PermanentMarker,
+    NoteFont.ComicRelief,
+    "random" as const,
+  ].map((font) => {
+    const fontFamily = font === "random" ? "" : noteFontFamilies[font];
+    return {
+      value: font,
+      label: getFontLabel(font),
+      labelStyle: fontFamily ? { fontFamily } : undefined,
+    };
+  });
 
-  const colorOptions: { value: DefaultNoteColor; label: string }[] = [
+  const colorOptions: SettingsOption<DefaultNoteColor>[] = [
     { value: "plain", label: t("settings.defaultColor.plain") },
     { value: "random", label: t("settings.defaultColor.random") },
   ];
 
-  const hueOptions: { value: DarkHue; label: string }[] = DARK_HUES.map(
-    (hue) => ({ value: hue, label: t(`settings.darkHue.${hue}`) }),
-  );
+  const hueOptions: SettingsOption<DarkHue>[] = DARK_HUES.map((hue) => ({
+    value: hue,
+    label: t(`settings.darkHue.${hue}`),
+    preview: (
+      <span
+        data-dark-hue={hue}
+        class="dark-hue-swatch w-9 h-5 shrink-0 rounded ring-1 ring-inset ring-black/10 dark:ring-white/15"
+      />
+    ),
+  }));
 
-  const languageOptions: { value: LanguageOption; label: string }[] = [
+  const languageOptions: SettingsOption<LanguageOption>[] = [
     { value: "system", label: t("settings.language.system") },
     ...SUPPORTED_LOCALES.map((l) => ({
       value: l as LanguageOption,
@@ -358,12 +394,6 @@ export function SettingsDialog() {
                 onChange={(next) => {
                   darkHue.value = next;
                 }}
-                swatchFor={(hue) => (
-                  <span
-                    data-dark-hue={hue}
-                    class="dark-hue-swatch w-9 h-5 shrink-0 rounded ring-1 ring-inset ring-black/10 dark:ring-white/15"
-                  />
-                )}
               />
             </SettingsRow>
 
@@ -408,12 +438,6 @@ export function SettingsDialog() {
                 onChange={(next) => {
                   defaultNoteFont.value = next;
                 }}
-                styleFor={(v) => ({
-                  fontFamily:
-                    v !== "random"
-                      ? noteFontFamilies[v] || "inherit"
-                      : "inherit",
-                })}
               />
             </SettingsRow>
 
