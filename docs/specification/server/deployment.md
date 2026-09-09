@@ -1,5 +1,7 @@
 # Server Deployment
 
+The server carries no branding — it is a JSON + WebSocket API with no HTML, no icons, and no product name in any response. A rebranded deployment runs this image unmodified; see [Custom Instances](../custom-instances.md).
+
 ## Running Directly
 
 ```bash

@@ -22,7 +22,7 @@ PR titles become commit messages on squash-merge, so the PR title is what releas
 
 ## What ships per release
 
-- **Client zip**: `manifesto-client-vX.Y.Z.zip` attached to the GitHub Release. Open-mode build with base path `/`. Drop on any static host.
+- **Client zip**: `manifesto-client-vX.Y.Z.zip` attached to the GitHub Release. Open-mode build with base path `/`. Drop on any static host. It carries the default product name; rebranding it needs no rebuild — see [Rebranding](../specification/client/deployment.md#rebranding).
 - **Server image**: `ghcr.io/tatuarvela/manifesto-server:X.Y.Z` and `:latest`, multi-arch (`linux/amd64`, `linux/arm64`).
 - **GitHub Release**: notes auto-generated from the PR titles since the previous tag.
 

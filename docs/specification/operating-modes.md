@@ -7,7 +7,7 @@ Manifesto runs in one of two modes, selected when the **client** is built. The m
 | **Open**      | Browser localStorage | No             | No           | No         | Always       |
 | **Connected** | Manifesto server     | Yes            | Yes          | Yes        | Read-only via service worker cache |
 
-There is no runtime toggle — a build is one mode or the other. To move data between modes, use [Export / Import](features/export-import.md).
+There is no runtime toggle — a build is one mode or the other. To move data between modes, use [Export / Import](features/export-import.md). To run either mode under your own name and icons, see [Custom Instances](custom-instances.md).
 
 ## Open Mode
 
