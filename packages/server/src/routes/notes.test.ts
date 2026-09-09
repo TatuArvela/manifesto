@@ -218,10 +218,10 @@ describe("notes routes", () => {
     }
   });
 
-  // The error messages quote a source-image size ("1.5 MB" / "1,5 Mt"), but the
-  // schema bounds the encoded data URL. These pin the two together: an image of
-  // exactly the advertised size must be accepted, in every media type, prefix
-  // length included. Rounding the encoded cap by hand fails this by 18 bytes.
+  // The error messages quote MAX_IMAGE_SOURCE_BYTES, but the schema bounds the
+  // encoded data URL. These pin the two together: an image of exactly the
+  // advertised size must be accepted, in every media type, prefix length
+  // included. Rounding the encoded cap by hand fails this by 18 bytes.
   it("accepts an image of exactly the advertised size", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const payload = Buffer.alloc(MAX_IMAGE_SOURCE_BYTES).toString("base64");

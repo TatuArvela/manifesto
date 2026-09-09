@@ -99,6 +99,28 @@ export function formatDate(iso: string): string {
   });
 }
 
+/**
+ * Format a byte count for display in megabytes.
+ *
+ * Both halves come from the platform rather than from each message: the decimal
+ * separator (`1.5` / `1,5`) and the unit abbreviation, which CLDR gives as "MB"
+ * in English and "Mt" in Finnish. A message that spelled the unit out would
+ * need every translator to know the local convention, and would silently go
+ * stale the moment the underlying limit moved.
+ *
+ * Divides by 1024², which is how Windows and most file managers label sizes and
+ * how `MAX_IMAGE_SOURCE_BYTES` — currently the only value rendered here — is
+ * defined. Reads `locale.value`, so the same render-body rule as `t()` applies.
+ */
+export function formatFileSize(bytes: number): string {
+  return new Intl.NumberFormat(locale.value, {
+    style: "unit",
+    unit: "megabyte",
+    unitDisplay: "short",
+    maximumFractionDigits: 1,
+  }).format(bytes / (1024 * 1024));
+}
+
 export function getFontLabel(font: DefaultNoteFont): string {
   switch (font) {
     case NoteFont.Default:
