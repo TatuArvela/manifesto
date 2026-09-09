@@ -19,7 +19,13 @@ export interface ServerConfig {
   dataDir: string;
   dbPath: string;
   corsOrigins: string[];
+  /** Inactivity timeout: a session's expiry slides this far forward on every
+   * authenticated request. */
   sessionTtlDays: number;
+  /** Hard end-of-life measured from when the session was minted. A session in
+   * daily use would otherwise slide forward forever, so a token stolen once
+   * stays valid indefinitely. */
+  sessionAbsoluteTtlDays: number;
   argon2MemoryKib: number;
   argon2TimeCost: number;
   argon2Parallelism: number;
@@ -129,6 +135,7 @@ export function loadConfig(): ServerConfig {
     dbPath: process.env.MANIFESTO_DB ?? `${dataDir}/manifesto.db`,
     corsOrigins: envList("CORS_ORIGINS", ["http://localhost:5173"]),
     sessionTtlDays: envInt("SESSION_TTL_DAYS", 30),
+    sessionAbsoluteTtlDays: envInt("SESSION_ABSOLUTE_TTL_DAYS", 90),
     argon2MemoryKib: envInt("ARGON2_MEMORY_KIB", 19456),
     argon2TimeCost: envInt("ARGON2_TIME_COST", 2),
     argon2Parallelism: envInt("ARGON2_PARALLELISM", 1),
