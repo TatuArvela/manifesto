@@ -20,11 +20,32 @@ A note is the fundamental entity in Manifesto.
 | `trashedAt` | `string \| null` | Yes      | ISO 8601 timestamp when trashed, `null` if not trashed |
 | `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
-| `images`    | `string[]`       | Yes      | Attached images as data URLs             |
+| `images`    | `string[]`       | Yes      | Attached images as `data:` URLs — see [Images](#images) |
 | `linkPreviews` | `LinkPreview[]` | Yes    | Link preview cards attached to the note  |
 | `reminder`  | `NoteReminder \| null` | Yes | Scheduled reminder, or `null` when not set |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
 | `updatedAt` | `string`         | Yes      | ISO 8601 last modification timestamp     |
+
+### Images
+
+Attached images are inlined in the note as base64 `data:` URLs rather than uploaded to a separate endpoint. The note is self-contained: it needs no second request to render, it survives export and re-import as one JSON document, and it works identically in open mode, where there is no server to upload to.
+
+The accepted form is narrow, and the server enforces it on every write:
+
+| Constraint | Value |
+|------------|-------|
+| Scheme | `data:` only. A remote `http(s)` URL in `images` is rejected. |
+| Media type | `image/png`, `image/jpeg`, `image/jpg`, `image/gif`, `image/webp`, `image/avif` |
+| Encoding | `;base64,` followed by base64-alphabet characters, anchored at both ends |
+| Per-image size | 2 MiB measured on the encoded URL — roughly a 1.5 MB source image |
+| Images per note | 20 |
+| Whole request | 12 MiB on `/api/notes`, which is what bounds a note in aggregate |
+
+`image/svg+xml` is **excluded on purpose.** SVG is a document format that happens to have an image media type: it can carry script, so admitting it would let a note ship executable markup into any surface that renders an attachment by URL. The same reasoning excludes every non-image `data:` media type.
+
+The constants are declared once in `@manifesto/shared` (`IMAGE_DATA_URL_PATTERN`, `MAX_IMAGE_DATA_URL_BYTES`, `MAX_IMAGES_PER_NOTE`) and read by the client, the server's validation schemas, and this table.
+
+Over-cap images are refused by the client before they are attached, so the user gets a message naming the file rather than a `422` from a later save.
 
 ### Identifiers
 

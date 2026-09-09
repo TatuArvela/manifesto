@@ -125,6 +125,7 @@ export const en = {
   "editor.font": "Font",
   "editor.changeFont": "Change font",
   "editor.addImage": "Add image",
+  "editor.imageTooLarge": "{name} is too large to attach (max 1.5 MB)",
   "editor.more": "More",
   "editor.moreOptions": "More options",
   "editor.menu.tags": "Tags",

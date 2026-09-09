@@ -1,5 +1,9 @@
 import type { Note, NoteCreate } from "@manifesto/shared";
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import {
+  MAX_IMAGE_DATA_URL_BYTES,
+  NoteColor,
+  NoteFont,
+} from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   authHeaders,
@@ -176,33 +180,54 @@ describe("notes routes", () => {
     expect(res.status).toBe(422);
   });
 
-  it("rejects non-http image URLs with 422", async () => {
+  it("accepts the data URLs the client actually produces", async () => {
     const { token } = await registerTestUser(rig, "alice");
-    const cases = [
-      "javascript:alert(1)",
-      "data:image/png;base64,iVBOR",
-      "file:///etc/passwd",
-      "not a url",
+    const png = `data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`;
+    const jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+    const note = await createNote(rig, token, { images: [png, jpeg] });
+    expect(note.images).toEqual([png, jpeg]);
+  });
+
+  it("rejects image values that are not inert image data URLs", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const cases: Array<[string, string]> = [
+      ["javascript:alert(1)", "javascript scheme"],
+      ["file:///etc/passwd", "file scheme"],
+      ["https://example.com/cat.png", "remote url — images are inlined"],
+      ["not a url", "not a url at all"],
+      // A document format wearing an image content type. Excluded on purpose:
+      // SVG can carry script into anything that renders an attachment by URL.
+      ["data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=", "svg"],
+      ["data:text/html;base64,PHNjcmlwdD48L3NjcmlwdD4=", "html masquerading"],
+      ["data:image/png,notbase64", "missing base64 marker"],
+      ["data:image/png;base64,not base64!", "outside the base64 alphabet"],
+      // The anchors matter: without them a trailing fragment would ride along.
+      [
+        'data:image/png;base64,aGk="><script>alert(1)</script>',
+        "smuggled suffix",
+      ],
     ];
-    for (const url of cases) {
+    for (const [url, why] of cases) {
       const res = await rig.request("/api/notes", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({ ...baseNote, images: [url] }),
       });
-      expect(res.status, `expected 422 for image url ${url}`).toBe(422);
+      expect(res.status, `expected 422 for ${why}`).toBe(422);
     }
   });
 
-  it("accepts http(s) image URLs", async () => {
+  it("rejects an image past the per-image cap with 422", async () => {
     const { token } = await registerTestUser(rig, "alice");
-    const note = await createNote(rig, token, {
-      images: ["https://example.com/cat.png", "http://example.com/dog.jpg"],
+    const prefix = "data:image/png;base64,";
+    const oversized =
+      prefix + "A".repeat(MAX_IMAGE_DATA_URL_BYTES - prefix.length + 1);
+    const res = await rig.request("/api/notes", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ ...baseNote, images: [oversized] }),
     });
-    expect(note.images).toEqual([
-      "https://example.com/cat.png",
-      "http://example.com/dog.jpg",
-    ]);
+    expect(res.status).toBe(422);
   });
 
   it("rejects too many tags with 422", async () => {

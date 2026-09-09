@@ -127,6 +127,8 @@ export const fi: Messages = {
   "editor.font": "Fontti",
   "editor.changeFont": "Vaihda fonttia",
   "editor.addImage": "Lisää kuva",
+  "editor.imageTooLarge":
+    "{name} on liian suuri liitettäväksi (enintään 1,5 Mt)",
   "editor.more": "Lisää",
   "editor.moreOptions": "Lisää toimintoja",
   "editor.menu.tags": "Tunnisteet",

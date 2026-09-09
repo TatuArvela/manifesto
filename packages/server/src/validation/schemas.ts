@@ -1,4 +1,11 @@
-import { NoteColor, NoteFont, REMINDER_RECURRENCES } from "@manifesto/shared";
+import {
+  IMAGE_DATA_URL_PATTERN,
+  MAX_IMAGE_DATA_URL_BYTES,
+  MAX_IMAGES_PER_NOTE,
+  NoteColor,
+  NoteFont,
+  REMINDER_RECURRENCES,
+} from "@manifesto/shared";
 import { z } from "zod";
 
 export const authCredentialsSchema = z.object({
@@ -17,16 +24,36 @@ export const noteColorSchema = z.nativeEnum(NoteColor);
 export const noteFontSchema = z.nativeEnum(NoteFont);
 
 /**
- * Only http(s) URLs are accepted for any user-provided URL field. This blocks
- * `javascript:`, `data:`, `file:`, and arbitrary internal-scheme URLs that
- * could otherwise be used to fingerprint or SSRF-probe a recipient's network
- * when a note is shared via /share/...
+ * Only http(s) URLs are accepted for the link-preview fields — the ones a
+ * renderer will dereference. This blocks `javascript:`, `data:`, `file:`, and
+ * arbitrary internal-scheme URLs that could otherwise be used to fingerprint or
+ * SSRF-probe a recipient's network when a note is shared via /share/...
+ *
+ * `Note.images` is deliberately not one of these; see `imageDataUrlSchema`.
  */
 const httpUrlSchema = z
   .string()
   .url()
   .max(2048)
   .regex(/^https?:\/\//i, "URL must use http(s) scheme");
+
+/**
+ * Attached images are inlined by the client as `data:` URLs, so they cannot go
+ * through `httpUrlSchema` — that schema exists to keep remote-fetching fields
+ * (link previews) from being pointed at internal hosts, a concern a `data:` URL
+ * does not have. What matters here instead is that the payload is inert image
+ * bytes and that one note cannot carry an unbounded write.
+ */
+const imageDataUrlSchema = z
+  .string()
+  .max(
+    MAX_IMAGE_DATA_URL_BYTES,
+    "Image is too large; attach an image under 1.5 MB",
+  )
+  .regex(
+    IMAGE_DATA_URL_PATTERN,
+    "Image must be a PNG, JPEG, GIF, WebP or AVIF data URL",
+  );
 
 const linkPreviewSchema = z.object({
   url: httpUrlSchema,
@@ -67,7 +94,7 @@ const noteFields = {
   trashedAt: z.string().nullable(),
   position: z.number(),
   tags: z.array(z.string().min(1).max(64)).max(50),
-  images: z.array(httpUrlSchema).max(20),
+  images: z.array(imageDataUrlSchema).max(MAX_IMAGES_PER_NOTE),
   linkPreviews: z.array(linkPreviewSchema).max(20),
   reminder: reminderSchema.nullable(),
   readonly: z.boolean().optional(),
