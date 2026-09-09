@@ -94,6 +94,19 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
     },
+    resolve: {
+      alias: {
+        // Read the workspace package from source rather than its build output.
+        // `@manifesto/shared` exports `types: src/index.ts` but `import:
+        // dist/index.js`, so a stale dist resolves to `undefined` at runtime
+        // while the typecheck stays green. Same reasoning as the server's
+        // vitest config.
+        "@manifesto/shared": path.resolve(
+          import.meta.dirname,
+          "../shared/src/index.ts",
+        ),
+      },
+    },
     plugins: [
       preact(),
       tailwindcss(),
