@@ -288,6 +288,18 @@ html.dark {
   display: none;
 }
 
+/* The UA stylesheet gives every `[popover]` `color: CanvasText`, and a
+   declaration beats inheritance, so a panel that doesn't name a text colour
+   renders black — unreadable on the dark panel background in dark mode. Put
+   the default back to inheriting from the page. Layered in `base` so a panel
+   that *does* name one still wins: the header's menus have to, because they
+   are declared inside white-on-blue text. */
+@layer base {
+  .dropdown-panel {
+    color: inherit;
+  }
+}
+
 @supports (position-area: block-end) {
   .dropdown-panel[popover] {
     /* Margin on both block edges, not just the requested side: a panel that
