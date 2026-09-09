@@ -7,6 +7,7 @@ A free, open-source note-taking app with a simple sticky note interface.
 - Markdown and interactive checklists
 - Tags, colors, pinning, archiving, reminders, version history
 - Export and import your data
+- Rebrandable — run it under your own name, description and icons
 - PWA for mobile and offline use
 
 ## Operating Modes
@@ -23,6 +24,7 @@ See [Operating Modes](docs/specification/operating-modes.md) for the full breakd
 The full specification lives in [docs/specification/](docs/specification/index.md):
 
 - [Operating Modes](docs/specification/operating-modes.md) — Open vs connected, storage and auth options
+- [Custom Instances](docs/specification/custom-instances.md) — Running Manifesto under your own name and icons
 - [Data Model](docs/specification/data-model.md) and [API](docs/specification/api.md) — Wire contract
 - [Client](docs/specification/client/index.md) and [Server](docs/specification/server/index.md) — Architecture
 - [Features](docs/specification/index.md#features) — Notes, checklists, search, tags, sharing, version history, …

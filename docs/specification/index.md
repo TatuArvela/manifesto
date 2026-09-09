@@ -14,6 +14,7 @@ The name references three things:
 - **Local-first** — works fully offline against `localStorage`, no server required (open mode)
 - **Self-hostable** — built with `VITE_MANIFESTO_SERVER=<url>` to talk to a Manifesto server for multi-device sync, accounts, and live collaboration (connected mode)
 - **Pluggable backend** — server picks a storage driver (`sqlite` / `postgres`) and an auth provider (`local` / `oidc`) independently, so the same codebase covers personal self-hosts and team deployments
+- **Rebrandable** — the product name, description and icons are deployment parameters, so an organisation can run it as its own app
 - **Simple** — sticky note interface that gets out of your way
 - **Lightweight** — minimal dependencies, fast load times
 
@@ -23,6 +24,7 @@ The name references three things:
 
 - [User Stories](user-stories.md) — Scenarios and acceptance criteria
 - [Operating Modes](operating-modes.md) — Open vs connected, storage and auth options, decision matrix
+- [Custom Instances](custom-instances.md) — Deploying Manifesto under your own name, icons and description
 
 ### Shared Contract
 
