@@ -1,13 +1,12 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import { logger as honoLogger } from "hono/logger";
 import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import type { ServerConfig } from "./config.js";
-import { logger } from "./lib/logger.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
+import { requestLog } from "./middleware/requestLog.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
 import type { StorageDriver } from "./storage/types.js";
@@ -33,10 +32,7 @@ export function createApp(deps: AppDeps): AppHandle {
   const app = new Hono();
   app.use("*", corsMiddleware(cfg));
   if (process.env.NODE_ENV !== "test") {
-    app.use(
-      "*",
-      honoLogger((message) => logger.info(message)),
-    );
+    app.use("*", requestLog());
   }
   app.onError(onError);
 
