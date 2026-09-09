@@ -44,6 +44,22 @@ async function createNote(
   return body.note;
 }
 
+async function putNote(
+  rig: TestRig,
+  token: string,
+  id: string,
+  changes: Record<string, unknown>,
+): Promise<Note> {
+  const res = await rig.request(`/api/notes/${id}`, {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(changes),
+  });
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as { note: Note };
+  return body.note;
+}
+
 describe("notes routes", () => {
   let rig: TestRig;
 
@@ -280,6 +296,56 @@ describe("notes routes", () => {
       }),
     });
     expect(res.status).toBe(422);
+  });
+
+  it("stamps trashedAt from the server clock, ignoring the client's", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    // A client asking for a note that was trashed long enough ago to be
+    // hard-deleted by the next cleanup sweep.
+    const note = await createNote(rig, token, {
+      trashed: true,
+      trashedAt: "2001-01-01T00:00:00.000Z",
+    });
+    expect(note.trashedAt).not.toBe("2001-01-01T00:00:00.000Z");
+    expect(Date.parse(note.trashedAt ?? "")).toBeGreaterThan(
+      Date.now() - 60_000,
+    );
+  });
+
+  it("leaves trashedAt null on a note that is not trashed", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token, {
+      trashedAt: "2001-01-01T00:00:00.000Z",
+    });
+    expect(note.trashedAt).toBeNull();
+  });
+
+  it("stamps on trash and clears on restore", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token);
+
+    const trashed = await putNote(rig, token, note.id, {
+      trashed: true,
+      trashedAt: "2001-01-01T00:00:00.000Z",
+    });
+    expect(Date.parse(trashed.trashedAt ?? "")).toBeGreaterThan(
+      Date.now() - 60_000,
+    );
+
+    const restored = await putNote(rig, token, note.id, { trashed: false });
+    expect(restored.trashedAt).toBeNull();
+  });
+
+  it("leaves an existing stamp alone when a change doesn't mention trashed", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token);
+    const trashed = await putNote(rig, token, note.id, { trashed: true });
+
+    const edited = await putNote(rig, token, note.id, {
+      title: "Renamed in the trash",
+      trashedAt: "2001-01-01T00:00:00.000Z",
+    });
+    expect(edited.trashedAt).toBe(trashed.trashedAt);
   });
 
   it("PUT with matching If-Match succeeds", async () => {

@@ -17,7 +17,7 @@ A note is the fundamental entity in Manifesto.
 | `pinned`    | `boolean`        | Yes      | Whether the note is pinned to the top    |
 | `archived`  | `boolean`        | Yes      | Whether the note is archived             |
 | `trashed`   | `boolean`        | Yes      | Whether the note is in trash             |
-| `trashedAt` | `string \| null` | Yes      | ISO 8601 timestamp when trashed, `null` if not trashed |
+| `trashedAt` | `string \| null` | Yes      | ISO 8601 timestamp when trashed, `null` if not trashed. Server-assigned: it drives hard deletion 30 days later, so `POST`/`PUT` derive it from `trashed` and the server clock and ignore any value a client sends. |
 | `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
 | `images`    | `string[]`       | Yes      | Attached images as `data:` URLs — see [Images](#images) |
