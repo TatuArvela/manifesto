@@ -40,6 +40,15 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 | `GET`    | `/api/auth/callback`  | IdP redirects here; server exchanges code, mints session, 302 to client  |
 | `POST`   | `/api/auth/logout`    | Log out                                                                  |
 
+The login flow is bound to one browser. `GET /api/auth/login` sets a
+`manifesto_oidc_flow` cookie (`HttpOnly`, `SameSite=Lax`, `Path=/api/auth`,
+`Secure` when the redirect URI is https) holding the `state` it issued, and the
+callback rejects any request whose cookie does not match its `state` parameter
+— without that, a callback URL captured from an attacker's own login can be
+replayed at a victim to sign them into the attacker's account. The cookie is
+cleared as soon as a callback is spent, so it is never a long-lived credential.
+Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
+
 **Provider-agnostic** (always available):
 
 | Method   | Path                  | Description                                                              |

@@ -51,8 +51,29 @@ interface OidcRig {
   cfg: ServerConfig;
   storage: StorageDriver;
   authProvider: AuthProvider;
+  /** Requests from one browser: keeps whatever cookies the server sets. */
   request: (input: string, init?: RequestInit) => Promise<Response>;
+  /** Requests from a browser that has never seen this server. */
+  strangerRequest: (input: string, init?: RequestInit) => Promise<Response>;
+  cookies: Map<string, string>;
   close: () => Promise<void>;
+}
+
+/**
+ * Applies `Set-Cookie` to the jar the way a browser would, including the
+ * expiry that `deleteCookie` sends to clear one.
+ */
+function applySetCookie(jar: Map<string, string>, res: Response): void {
+  for (const header of res.headers.getSetCookie()) {
+    const [pair = "", ...attrs] = header.split(";");
+    const eq = pair.indexOf("=");
+    if (eq < 0) continue;
+    const name = pair.slice(0, eq).trim();
+    const value = pair.slice(eq + 1).trim();
+    const cleared = attrs.some((a) => /^\s*max-age=0\s*$/i.test(a));
+    if (cleared) jar.delete(name);
+    else jar.set(name, value);
+  }
 }
 
 function bootOidcRig(): OidcRig {
@@ -69,11 +90,25 @@ function bootOidcRig(): OidcRig {
     discoveryClient: { getConfig: async () => FAKE_DISCOVERY },
   });
   const { app } = createApp({ cfg, storage, authProvider });
+  const cookies = new Map<string, string>();
   return {
     cfg,
     storage,
     authProvider,
-    request: async (input, init) => app.request(input, init),
+    request: async (input, init) => {
+      const headers = new Headers(init?.headers);
+      if (cookies.size > 0 && !headers.has("cookie")) {
+        headers.set(
+          "cookie",
+          [...cookies].map(([k, v]) => `${k}=${v}`).join("; "),
+        );
+      }
+      const res = await app.request(input, { ...init, headers });
+      applySetCookie(cookies, res);
+      return res;
+    },
+    strangerRequest: async (input, init) => app.request(input, init),
+    cookies,
     close: () => storage.close(),
   };
 }
@@ -89,14 +124,17 @@ function makeIdToken(overrides: Partial<openid.IDToken> = {}): openid.IDToken {
   } as openid.IDToken;
 }
 
-function makeTokenResponse(claims: openid.IDToken) {
+/** The subset of a token response these tests exercise. */
+type TokenGrant = Awaited<ReturnType<typeof openid.authorizationCodeGrant>>;
+
+function makeTokenResponse(claims: openid.IDToken): TokenGrant {
   return {
     access_token: "ignored-access-token",
     token_type: "Bearer" as const,
     id_token: "ignored-id-token",
     claims: () => claims,
     expiresIn: () => 3600,
-  };
+  } as unknown as TokenGrant;
 }
 
 describe("oidc auth router", () => {
@@ -140,14 +178,13 @@ describe("oidc auth router", () => {
     await rig.request("/api/auth/login");
 
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
-      // biome-ignore lint/suspicious/noExplicitAny: shape comes from openid-client mock surface
       makeTokenResponse(
         makeIdToken({
           sub: "idp-subject-1",
           // biome-ignore lint/suspicious/noExplicitAny: extra claims
           ...({ preferred_username: "alice", name: "Alice Example" } as any),
         }),
-      ) as any,
+      ),
     );
 
     const callback = await rig.request(
@@ -186,7 +223,7 @@ describe("oidc auth router", () => {
           // biome-ignore lint/suspicious/noExplicitAny: extra claims
           ...({ preferred_username: "alice" } as any),
         }),
-      ) as any,
+      ),
     );
     const first = await rig.request(
       "/api/auth/callback?code=c1&state=test-state-token",
@@ -208,7 +245,7 @@ describe("oidc auth router", () => {
           // biome-ignore lint/suspicious/noExplicitAny: extra claims
           ...({ preferred_username: "alice" } as any),
         }),
-      ) as any,
+      ),
     );
     const second = await rig.request(
       "/api/auth/callback?code=c2&state=second-state-token",
@@ -223,10 +260,81 @@ describe("oidc auth router", () => {
   });
 
   it("rejects callbacks with an unknown state (CSRF / replay)", async () => {
+    // Cookie and query agree, so this gets past the browser binding — what
+    // the server has forgotten is the flow itself.
     const res = await rig.request(
       "/api/auth/callback?code=foo&state=never-issued",
+      { headers: { cookie: "manifesto_oidc_flow=never-issued" } },
     );
     expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "Unknown or expired login state",
+    });
+  });
+
+  it("binds the flow to the browser that started it", async () => {
+    const login = await rig.request("/api/auth/login");
+    const cookie = login.headers.getSetCookie().join("; ");
+    expect(cookie).toContain("manifesto_oidc_flow=test-state-token");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("Secure"); // redirectUri is https in this rig
+    expect(cookie).toContain("Path=/api/auth");
+
+    // The attacker holds a valid, unspent state — but the victim's browser
+    // has no cookie for it, so the callback must not mint them a session on
+    // the attacker's IdP account.
+    const victim = await rig.strangerRequest(
+      "/api/auth/callback?code=auth-code&state=test-state-token",
+    );
+    expect(victim.status).toBe(400);
+    expect(oidcModule.authorizationCodeGrant).not.toHaveBeenCalled();
+
+    // And the rejection didn't spend the flow: the real browser can still
+    // finish its own login.
+    oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
+      makeTokenResponse(makeIdToken({ sub: "still-valid" })),
+    );
+    const owner = await rig.request(
+      "/api/auth/callback?code=auth-code&state=test-state-token",
+    );
+    expect(owner.status).toBe(302);
+  });
+
+  it("clears the flow cookie once a callback has been spent", async () => {
+    await rig.request("/api/auth/login");
+    expect(rig.cookies.get("manifesto_oidc_flow")).toBe("test-state-token");
+
+    oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
+      makeTokenResponse(makeIdToken({ sub: "spent-flow" })),
+    );
+    const first = await rig.request(
+      "/api/auth/callback?code=c&state=test-state-token",
+    );
+    expect(first.status).toBe(302);
+    expect(rig.cookies.has("manifesto_oidc_flow")).toBe(false);
+
+    // Replaying the same callback URL in the same browser gets nothing.
+    const replay = await rig.request(
+      "/api/auth/callback?code=c&state=test-state-token",
+    );
+    expect(replay.status).toBe(400);
+  });
+
+  it("throttles the unauthenticated login and callback endpoints per IP", async () => {
+    // 30 requests / 15 minutes, shared across both endpoints.
+    for (let i = 0; i < 30; i += 1) {
+      const res = await rig.request("/api/auth/login");
+      expect(res.status).toBe(302);
+    }
+    const throttled = await rig.request("/api/auth/login");
+    expect(throttled.status).toBe(429);
+    expect(throttled.headers.get("Retry-After")).toBeTruthy();
+
+    const callback = await rig.request(
+      "/api/auth/callback?code=c&state=test-state-token",
+    );
+    expect(callback.status).toBe(429);
   });
 
   it("rejects callbacks when token exchange fails", async () => {
@@ -249,7 +357,7 @@ describe("oidc auth router", () => {
           // biome-ignore lint/suspicious/noExplicitAny: extra claims
           ...({ email: "carol@example.com" } as any),
         }),
-      ) as any,
+      ),
     );
     await rig.request("/api/auth/callback?code=foo&state=test-state-token");
     const carol = await rig.storage.users.findByExternalId(
@@ -268,7 +376,7 @@ describe("oidc auth router", () => {
           // biome-ignore lint/suspicious/noExplicitAny: extra claims
           ...({ preferred_username: "logoutme" } as any),
         }),
-      ) as any,
+      ),
     );
     const cb = await rig.request(
       "/api/auth/callback?code=c&state=test-state-token",
