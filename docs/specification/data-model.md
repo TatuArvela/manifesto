@@ -37,7 +37,7 @@ The accepted form is narrow, and the server enforces it on every write:
 | Scheme | `data:` only. A remote `http(s)` URL in `images` is rejected. |
 | Media type | `image/png`, `image/jpeg`, `image/jpg`, `image/gif`, `image/webp`, `image/avif` |
 | Encoding | `;base64,` followed by base64-alphabet characters, anchored at both ends |
-| Per-image size | 2 MiB measured on the encoded URL — roughly a 1.5 MB source image |
+| Per-image size | 1.5 MiB of source image. Enforced on the encoded URL, whose cap is derived from it — base64 emits 4 characters per 3 bytes and the `data:image/…;base64,` prefix counts too, so a hand-rounded encoded cap rejects a full-size image 18 bytes short of the advertised number. |
 | Images per note | 20 |
 | Whole request | 12 MiB on `/api/notes`, which is what bounds a note in aggregate |
 
