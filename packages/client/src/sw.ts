@@ -1,5 +1,8 @@
 /// <reference lib="webworker" />
-import type { ReminderRecurrence } from "@manifesto/shared";
+import {
+  REMINDER_RECURRENCES,
+  type ReminderRecurrence,
+} from "@manifesto/shared";
 import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import {
@@ -37,13 +40,7 @@ interface StoredReminder {
   lastFiredAt: string | null;
 }
 
-const VALID_RECURRENCES: ReminderRecurrence[] = [
-  "none",
-  "daily",
-  "weekly",
-  "monthly",
-  "yearly",
-];
+const VALID_RECURRENCES = new Set<string>(REMINDER_RECURRENCES);
 
 function isValidStoredReminder(v: unknown): v is StoredReminder {
   if (!v || typeof v !== "object") return false;
@@ -51,10 +48,7 @@ function isValidStoredReminder(v: unknown): v is StoredReminder {
   if (typeof r.noteId !== "string" || !r.noteId) return false;
   if (typeof r.time !== "string") return false;
   if (Number.isNaN(new Date(r.time).getTime())) return false;
-  if (
-    typeof r.recurrence !== "string" ||
-    !VALID_RECURRENCES.includes(r.recurrence as ReminderRecurrence)
-  )
+  if (typeof r.recurrence !== "string" || !VALID_RECURRENCES.has(r.recurrence))
     return false;
   if (typeof r.title !== "string") return false;
   if (typeof r.body !== "string") return false;

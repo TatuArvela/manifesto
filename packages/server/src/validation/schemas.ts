@@ -1,4 +1,4 @@
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { NoteColor, NoteFont, REMINDER_RECURRENCES } from "@manifesto/shared";
 import { z } from "zod";
 
 export const authCredentialsSchema = z.object({
@@ -37,13 +37,7 @@ const linkPreviewSchema = z.object({
   domain: z.string().max(255),
 });
 
-const reminderRecurrenceSchema = z.enum([
-  "none",
-  "daily",
-  "weekly",
-  "monthly",
-  "yearly",
-]);
+const reminderRecurrenceSchema = z.enum(REMINDER_RECURRENCES);
 
 const reminderSchema = z.object({
   time: z.string(),
