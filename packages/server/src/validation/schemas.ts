@@ -1,6 +1,7 @@
 import {
   IMAGE_DATA_URL_PATTERN,
   MAX_IMAGE_DATA_URL_BYTES,
+  MAX_IMAGE_SOURCE_BYTES,
   MAX_IMAGES_PER_NOTE,
   NoteColor,
   NoteFont,
@@ -48,7 +49,12 @@ const imageDataUrlSchema = z
   .string()
   .max(
     MAX_IMAGE_DATA_URL_BYTES,
-    "Image is too large; attach an image under 1.5 MB",
+    // Derived, so the number a client sees can never drift from the one
+    // enforced. This message is not localized — the client refuses over-cap
+    // images before sending, and localizes its own.
+    `Image is too large; attach an image under ${
+      MAX_IMAGE_SOURCE_BYTES / (1024 * 1024)
+    } MB`,
   )
   .regex(
     IMAGE_DATA_URL_PATTERN,

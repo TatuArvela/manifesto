@@ -1,6 +1,7 @@
 import type { LinkPreview, NoteReminder } from "@manifesto/shared";
 import {
   MAX_IMAGE_DATA_URL_BYTES,
+  MAX_IMAGE_SOURCE_BYTES,
   type NoteColor,
   NoteFont,
 } from "@manifesto/shared";
@@ -39,7 +40,12 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { getDeletionRange } from "../extensions/taskItemDraggable.js";
-import { getColorPickerColors, getFontLabel, t } from "../i18n/index.js";
+import {
+  formatFileSize,
+  getColorPickerColors,
+  getFontLabel,
+  t,
+} from "../i18n/index.js";
 import { showError } from "../state/ui.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { Dropdown } from "./Dropdown.js";
@@ -179,7 +185,12 @@ export function NoteEditor({
     for (const { name, url } of results) {
       if (url === null) continue;
       if (url.length > MAX_IMAGE_DATA_URL_BYTES) {
-        showError(t("editor.imageTooLarge", { name }));
+        showError(
+          t("editor.imageTooLarge", {
+            name,
+            size: formatFileSize(MAX_IMAGE_SOURCE_BYTES),
+          }),
+        );
         continue;
       }
       accepted.push(url);

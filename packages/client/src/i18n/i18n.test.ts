@@ -1,7 +1,14 @@
+import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { beforeEach, describe, expect, test } from "vitest";
 import { locale } from "../state/prefs.js";
 import { detectBrowserLocale } from "./detect.js";
-import { formatDate, formatDateTime, plural, t } from "./index.js";
+import {
+  formatDate,
+  formatDateTime,
+  formatFileSize,
+  plural,
+  t,
+} from "./index.js";
 import { en } from "./messages/en.js";
 import { fi } from "./messages/fi.js";
 
@@ -98,5 +105,27 @@ describe("message shape parity", () => {
         ).toBe("string");
       }
     }
+  });
+});
+
+describe("formatFileSize()", () => {
+  test("renders megabytes with the English unit and separator", () => {
+    expect(formatFileSize(MAX_IMAGE_SOURCE_BYTES)).toBe("1.5 MB");
+  });
+
+  // "Mt" (megatavu) rather than "MB", and a decimal comma. Both come from CLDR
+  // rather than from a hand-written translation, which is the point of routing
+  // the size through Intl instead of spelling it out in each message.
+  test("renders megabytes with the Finnish unit and separator", () => {
+    locale.value = "fi";
+    expect(formatFileSize(MAX_IMAGE_SOURCE_BYTES)).toBe("1,5 Mt");
+  });
+
+  test("the size in the too-large message is the size actually enforced", () => {
+    const message = t("editor.imageTooLarge", {
+      name: "photo.jpg",
+      size: formatFileSize(MAX_IMAGE_SOURCE_BYTES),
+    });
+    expect(message).toBe("photo.jpg is too large to attach (max 1.5 MB)");
   });
 });
