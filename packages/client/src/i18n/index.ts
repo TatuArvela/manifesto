@@ -1,6 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { effect } from "@preact/signals";
 import { colorPickerSwatches } from "../colors.js";
+import { APP_NAME } from "../config.js";
 import type { DefaultNoteFont } from "../state/prefs.js";
 import { locale } from "../state/prefs.js";
 import { DEFAULT_LOCALE, type Locale } from "./locales.js";
@@ -22,10 +23,13 @@ export type { MessageKey } from "./messages/index.js";
 type Vars = Record<string, string | number>;
 
 function interpolate(template: string, vars?: Vars): string {
-  if (!vars) return template;
-  return template.replace(/\{(\w+)\}/g, (match, name) =>
-    name in vars ? String(vars[name]) : match,
-  );
+  return template.replace(/\{(\w+)\}/g, (match, name) => {
+    if (vars && name in vars) return String(vars[name]);
+    // `{appName}` is filled from the build-time branding rather than from the
+    // message catalogue, so translations never hard-code the product name.
+    if (name === "appName") return APP_NAME;
+    return match;
+  });
 }
 
 function lookupRaw(loc: Locale, key: MessageKey): unknown {
@@ -73,6 +77,8 @@ function resolvePlural(key: MessageKey, n: number): string {
  * every call subscribes during render. **Always call inside component render
  * bodies** — not at module scope, or the string will freeze to the load-time
  * locale.
+ *
+ * `{appName}` resolves on its own; every other placeholder comes from `vars`.
  */
 export function t(key: MessageKey, vars?: Vars): string {
   return interpolate(resolveString(key), vars);

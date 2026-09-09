@@ -1,4 +1,5 @@
 import { Component, type ComponentChildren } from "preact";
+import { APP_FILE_SLUG, APP_NAME } from "../config.js";
 import { t } from "../i18n/index.js";
 
 const NOTES_KEY = "manifesto:notes";
@@ -29,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error): void {
-    console.error("Manifesto crashed during render", error);
+    console.error(`${APP_NAME} crashed during render`, error);
   }
 
   private downloadBackup = (): void => {
@@ -45,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
     );
     const a = document.createElement("a");
     a.href = url;
-    a.download = `manifesto-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `${APP_FILE_SLUG}-backup-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();

@@ -8,7 +8,13 @@
          should add `Content-Security-Policy: frame-ancestors 'self'` and
          `X-Frame-Options: SAMEORIGIN` as real HTTP response headers to block
          clickjacking via cross-origin iframes. -->
-    <title>Manifesto</title>
+    <title>%APP_NAME%</title>
+    <!-- Rebranding a prebuilt bundle: change the name here, in <title> above,
+         and in manifest.webmanifest; swap favicon.svg / icon-1024.png /
+         logo.svg beside this file. The app reads its name from the tag below
+         at startup, so no rebuild is needed. -->
+    <meta name="application-name" content="%APP_NAME%" />
+    <meta name="description" content="%APP_DESCRIPTION%" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icon-1024.png" />
     <link rel="manifest" href="/manifest.webmanifest" />

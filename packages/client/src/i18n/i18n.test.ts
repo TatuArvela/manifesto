@@ -1,5 +1,6 @@
 import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { beforeEach, describe, expect, test } from "vitest";
+import { APP_NAME } from "../config.js";
 import { locale } from "../state/prefs.js";
 import { detectBrowserLocale } from "./detect.js";
 import {
@@ -33,6 +34,18 @@ describe("t()", () => {
   test("leaves unknown placeholders untouched", () => {
     const raw = en["editor.removeTag"] as string;
     expect(t("editor.removeTag")).toBe(raw);
+  });
+
+  // The product name is a build-time parameter, so no catalogue spells it out:
+  // messages carry `{appName}` and t() fills it in without being asked.
+  test("fills {appName} from the build-time app name", () => {
+    expect(t("login.title")).toBe(`Sign in to ${APP_NAME}`);
+    expect(t("error.body")).toContain(APP_NAME);
+  });
+
+  test("fills {appName} in translations too", () => {
+    locale.value = "fi";
+    expect(t("login.title")).toBe(`Kirjaudu palveluun ${APP_NAME}`);
   });
 });
 
@@ -88,6 +101,23 @@ describe("detectBrowserLocale()", () => {
 });
 
 describe("message shape parity", () => {
+  // A hard-coded product name would survive a rebrand and read as someone
+  // else's app, so the catalogues must go through `{appName}` instead.
+  test("no catalogue hard-codes the default product name", () => {
+    for (const [key, value] of Object.entries({ en, fi })) {
+      for (const [messageKey, message] of Object.entries(value)) {
+        const text =
+          typeof message === "string"
+            ? message
+            : Object.values(message).join(" ");
+        expect(
+          text,
+          `${key}.${messageKey} hard-codes the app name`,
+        ).not.toContain("Manifesto");
+      }
+    }
+  });
+
   test("every English key exists in Finnish", () => {
     const enKeys = Object.keys(en);
     const fiKeys = new Set(Object.keys(fi));

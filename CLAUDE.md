@@ -48,6 +48,27 @@ State lives in `packages/client/src/state/` using @preact/signals:
 - **`router.ts`** — Two-way sync between `activeView`/`activeTag` and the URL hash. `initRouter()` is called once from `App` on mount.
 - **`auth.ts`** — Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` queries `/api/auth/methods` on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
 
+### Branding
+
+The product name is a deployment parameter, never a literal. `src/config.ts`
+exports `APP_NAME` (plus `APP_FILE_SLUG` for download filenames and
+`APP_LOGO_URL` for the header mark), resolved from the `application-name` meta
+tag in `index.html` if present, else the build-time `__APP_NAME__` that
+`vite.config.ts` derives from `VITE_APP_NAME`. The meta-tag layer is what lets
+someone rebrand a prebuilt release zip without a toolchain, so keep new
+user-facing name usages going through `APP_NAME` rather than `__APP_NAME__`.
+
+Message catalogues use an `{appName}` placeholder, which `t()` fills in
+automatically — a test fails if either catalogue hard-codes "Manifesto".
+Translations must not inflect it (Finnish says "Kirjaudu palveluun {appName}",
+not "Manifestoon").
+
+`VITE_APP_DESCRIPTION` fills `%APP_DESCRIPTION%` in `index.html` and the web
+manifest. `VITE_APP_ICONS_DIR` overlays replacement icons onto the output, which
+is why `logo.svg` lives in `public/` rather than `src/assets/` — brand marks
+must stay plain files at fixed paths. `manifesto:` localStorage keys and the
+`@manifesto/*` package names are internal and stay as they are.
+
 ### Routing
 
 `state/router.ts` syncs `activeView` / `activeTag` with `location.pathname` (base-prefixed from Vite's `BASE_URL`). Paths: `/` → active, `/tags` / `/tags/<tag>` → tags, `/reminders`, `/archived`, `/trash`. The `githubPagesSpaFallback` Vite plugin copies `dist/index.html` to `dist/404.html` so GitHub Pages serves the SPA for any unknown path.

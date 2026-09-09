@@ -62,37 +62,157 @@ function cspForServer(serverUrl: string | undefined): Plugin {
   };
 }
 
+const DEFAULT_APP_NAME = "Manifesto";
+const DEFAULT_APP_DESCRIPTION = "Sticky-note style note-taking app.";
+
 /**
- * iOS Safari does not reliably resolve relative paths in `manifest.webmanifest`
- * (start_url/scope/icons), so we rewrite `./` → base URL at build time.
+ * The product name and tagline shown to users. Resolved once, here, so the
+ * bundle (`__APP_NAME__`), `index.html`, and `manifest.webmanifest` cannot
+ * disagree about what the app is called or what it says it does.
  */
-function rewriteManifestBase(): Plugin {
-  let outDir = "dist";
-  let base = "/";
+function resolveBranding(env: Record<string, string>) {
+  const pick = (configured: string | undefined, fallback: string) => {
+    const trimmed = configured?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : fallback;
+  };
   return {
-    name: "rewrite-manifest-base",
-    apply: "build",
+    appName: pick(env.VITE_APP_NAME, DEFAULT_APP_NAME),
+    appDescription: pick(env.VITE_APP_DESCRIPTION, DEFAULT_APP_DESCRIPTION),
+  };
+}
+
+type Branding = ReturnType<typeof resolveBranding>;
+
+function applyBranding(src: string, { appName, appDescription }: Branding) {
+  return src
+    .replaceAll("%APP_NAME%", appName)
+    .replaceAll("%APP_DESCRIPTION%", appDescription);
+}
+
+/**
+ * Substitutes the `%APP_NAME%` / `%APP_DESCRIPTION%` placeholders in
+ * `index.html`. Runs `pre` so the tokens are gone before Vite's own `%VITE_*%`
+ * env replacement looks at the HTML.
+ */
+function brandingInHtml(branding: Branding): Plugin {
+  return {
+    name: "branding-in-html",
+    transformIndexHtml: {
+      order: "pre",
+      handler: (html) => applyBranding(html, branding),
+    },
+  };
+}
+
+const IMAGE_TYPES: Record<string, string> = {
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".webp": "image/webp",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+};
+
+/**
+ * Overlays `VITE_APP_ICONS_DIR` onto the served/built output, so a custom
+ * instance keeps its brand marks (`favicon.svg`, `icon-1024.png`, `logo.svg`)
+ * in its own folder outside the repository. Editing the checked-in `public/`
+ * files would work too, but then every `git pull` from upstream is a conflict.
+ *
+ * A file only overrides if it is actually there — an icons dir holding just a
+ * `logo.svg` leaves the stock favicon alone.
+ */
+function iconOverlay(dir: string | undefined): Plugin {
+  let root = process.cwd();
+  let outDir = "dist";
+  const resolveDir = () => path.resolve(root, dir as string);
+  return {
+    name: "icon-overlay",
     configResolved(config) {
+      root = config.root;
       outDir = config.build.outDir;
-      base = config.base;
+      if (dir && !fs.existsSync(resolveDir())) {
+        config.logger.warn(
+          `[icon-overlay] VITE_APP_ICONS_DIR points at ${resolveDir()}, which does not exist — using the stock icons.`,
+        );
+      }
+    },
+    configureServer(server) {
+      if (!dir) return;
+      server.middlewares.use((req, res, next) => {
+        const name = path.basename(req.url?.split("?")[0] ?? "");
+        const file = path.join(resolveDir(), name);
+        const type = IMAGE_TYPES[path.extname(name).toLowerCase()];
+        // `path.join` on a basename cannot escape the directory, so a request
+        // path can only ever name a file the operator put there themselves.
+        if (!name || !type || !fs.existsSync(file)) return next();
+        res.setHeader("Content-Type", type);
+        res.end(fs.readFileSync(file));
+      });
     },
     closeBundle() {
-      const file = path.resolve(outDir, "manifest.webmanifest");
+      if (!dir || !fs.existsSync(resolveDir())) return;
+      for (const name of fs.readdirSync(resolveDir())) {
+        const from = path.join(resolveDir(), name);
+        if (!fs.statSync(from).isFile()) continue;
+        fs.copyFileSync(from, path.resolve(outDir, name));
+      }
+    },
+  };
+}
+
+/**
+ * Finishes `manifest.webmanifest`, which ships as a template in `public/`:
+ *
+ * - `%APP_NAME%` / `%APP_DESCRIPTION%` → the configured branding.
+ * - `./` → the base URL, because iOS Safari does not reliably resolve relative
+ *   paths in a manifest (start_url/scope/icons).
+ *
+ * The dev server has no build output to rewrite, so it gets the same treatment
+ * through a middleware — otherwise an app installed from `pnpm dev` would be
+ * called `%APP_NAME%`.
+ */
+function finalizeWebManifest(branding: Branding): Plugin {
+  const FILE = "manifest.webmanifest";
+  let outDir = "dist";
+  let publicDir = "public";
+  let base = "/";
+  const render = (src: string) =>
+    applyBranding(src, branding).replaceAll('"./', `"${base}`);
+  return {
+    name: "finalize-web-manifest",
+    configResolved(config) {
+      outDir = config.build.outDir;
+      publicDir = config.publicDir;
+      base = config.base;
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.split("?")[0]?.endsWith(`/${FILE}`)) return next();
+        const file = path.resolve(publicDir, FILE);
+        if (!fs.existsSync(file)) return next();
+        res.setHeader("Content-Type", "application/manifest+json");
+        res.end(render(fs.readFileSync(file, "utf-8")));
+      });
+    },
+    closeBundle() {
+      const file = path.resolve(outDir, FILE);
       if (!fs.existsSync(file)) return;
-      const src = fs.readFileSync(file, "utf-8");
-      fs.writeFileSync(file, src.replaceAll('"./', `"${base}`));
+      fs.writeFileSync(file, render(fs.readFileSync(file, "utf-8")));
     },
   };
 }
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
+  const branding = resolveBranding(env);
   return {
     base:
       process.env.MANIFESTO_BASE_URL ??
       (process.env.GITHUB_ACTIONS ? "/manifesto/" : "/"),
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
+      __APP_NAME__: JSON.stringify(branding.appName),
     },
     resolve: {
       alias: {
@@ -111,6 +231,7 @@ export default defineConfig(({ mode }) => {
       preact(),
       tailwindcss(),
       cspForServer(env.VITE_MANIFESTO_SERVER),
+      brandingInHtml(branding),
       VitePWA({
         strategies: "injectManifest",
         srcDir: "src",
@@ -125,7 +246,8 @@ export default defineConfig(({ mode }) => {
         },
       }),
       githubPagesSpaFallback(),
-      rewriteManifestBase(),
+      finalizeWebManifest(branding),
+      iconOverlay(env.VITE_APP_ICONS_DIR),
     ],
     test: {
       browser: {
