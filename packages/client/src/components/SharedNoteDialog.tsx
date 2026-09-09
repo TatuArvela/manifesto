@@ -1,4 +1,3 @@
-import DOMPurify from "dompurify";
 import { useEffect, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import type { SharedNotePayload } from "../sharing.js";
@@ -50,9 +49,7 @@ export function SharedNoteDialog({
     }
   };
 
-  const contentHtml = payload.content
-    ? DOMPurify.sanitize(renderMarkdown(payload.content))
-    : "";
+  const contentHtml = payload.content ? renderMarkdown(payload.content) : "";
 
   return (
     <>

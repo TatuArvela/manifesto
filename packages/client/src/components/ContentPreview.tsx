@@ -1,63 +1,6 @@
 import type { Note } from "@manifesto/shared";
-import DOMPurify from "dompurify";
 import { segmentContent } from "../utils/markdown.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
-
-/** Only allow safe HTML elements and attributes in rendered markdown. */
-const PURIFY_CONFIG = {
-  ALLOWED_TAGS: [
-    // Markdown standard
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "p",
-    "br",
-    "hr",
-    "strong",
-    "b",
-    "em",
-    "i",
-    "del",
-    "s",
-    "blockquote",
-    "pre",
-    "code",
-    "ul",
-    "ol",
-    "li",
-    "a",
-    "img",
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
-    // Formatting toolbar additions
-    "u",
-    "sub",
-    "sup",
-    // Inline spans for styling
-    "span",
-    // GFM task-list checkboxes (rendered by remark-gfm)
-    "input",
-  ],
-  ALLOWED_ATTR: [
-    "href",
-    "target",
-    "rel", // links
-    "src",
-    "alt",
-    "title", // images
-    "class", // styling
-    "type",
-    "checked",
-    "disabled", // task-list checkboxes
-  ],
-};
 
 /**
  * Renders note content as a read-only preview with interactive checkboxes.
@@ -168,10 +111,7 @@ export function ContentPreview({
             />
           );
         }
-        const html = DOMPurify.sanitize(
-          renderMarkdown(text),
-          PURIFY_CONFIG,
-        ) as string;
+        const html = renderMarkdown(text);
         return (
           <div
             key={seg.startLine}
