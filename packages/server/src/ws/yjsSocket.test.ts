@@ -1,17 +1,17 @@
 import type { AddressInfo } from "node:net";
+import { HocuspocusProvider } from "@hocuspocus/provider";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { NoteCreate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import WebSocket from "ws";
 import * as Y from "yjs";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import type { SqliteStorageDriver } from "../storage/sqlite/driver.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import { TEST_CONFIG } from "../test/setup.js";
-import { attachAppSocket, SUBPROTOCOL } from "./appSocket.js";
+import { attachAppSocket } from "./appSocket.js";
 import { attachYjsSocket, type YjsSocket } from "./yjsSocket.js";
 
 interface Rig {
@@ -103,40 +103,59 @@ async function createNote(
   return body.note.id;
 }
 
-function rawWs(
-  rig: Rig,
-  noteId: string,
-  token: string | null,
-): { ws: WebSocket; closeCode: Promise<number> } {
-  const protocols = token ? [SUBPROTOCOL, token] : [SUBPROTOCOL];
-  const ws = new WebSocket(`${rig.wsBase}/api/yjs/notes/${noteId}`, protocols);
-  const closeCode = new Promise<number>((resolve) => {
-    ws.once("close", (code) => resolve(code));
-    ws.once("error", () => resolve(-1));
-  });
-  return { ws, closeCode };
+interface Client {
+  provider: HocuspocusProvider;
+  doc: Y.Doc;
+  destroy: () => void;
 }
 
-function waitOpen(ws: WebSocket): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (ws.readyState === WebSocket.OPEN) return resolve();
-    ws.once("open", () => resolve());
-    ws.once("error", (e) => reject(e));
+/**
+ * Drives the real @hocuspocus/provider against the real server over a real
+ * socket. Everything between the HTTP upgrade and document persistence — the
+ * routing key, the Auth handshake, onAuthenticate — is only exercised this way;
+ * openDirectConnection bypasses all of it.
+ */
+function connect(rig: Rig, noteId: string, token: string | null): Client {
+  const doc = new Y.Doc();
+  const provider = new HocuspocusProvider({
+    url: `${rig.wsBase}/api/yjs`,
+    name: noteId,
+    document: doc,
+    token: token ?? "",
   });
+  return {
+    provider,
+    doc,
+    // destroy() tears down the socket too, since the provider created it.
+    destroy: () => {
+      provider.destroy();
+      doc.destroy();
+    },
+  };
 }
 
-async function readUnexpectedHttpStatus(ws: WebSocket): Promise<number | null> {
+function waitSynced(client: Client, ms = 5000): Promise<boolean> {
   return new Promise((resolve) => {
-    ws.once("unexpected-response", (_req, res) => {
-      resolve(res.statusCode ?? null);
-      res.destroy();
+    if (client.provider.isSynced) return resolve(true);
+    const timer = setTimeout(() => resolve(false), ms);
+    client.provider.on("synced", () => {
+      clearTimeout(timer);
+      resolve(true);
     });
-    ws.once("error", () => resolve(null));
-    ws.once("open", () => resolve(null));
   });
 }
 
-describe("Yjs collaboration socket /api/yjs/notes/:id", () => {
+function waitAuthFailed(client: Client, ms = 5000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), ms);
+    client.provider.on("authenticationFailed", () => {
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+}
+
+describe("Yjs collaboration socket /api/yjs", () => {
   let rig: Rig;
 
   beforeEach(async () => {
@@ -147,38 +166,89 @@ describe("Yjs collaboration socket /api/yjs/notes/:id", () => {
     await close(rig);
   });
 
-  it("rejects connections without a token (HTTP 401)", async () => {
+  it("syncs a real provider end to end", async () => {
     const { token } = await register(rig, "alice");
     const noteId = await createNote(rig, token);
-    const { ws } = rawWs(rig, noteId, null);
-    const status = await readUnexpectedHttpStatus(ws);
-    expect(status).toBe(401);
+
+    const client = connect(rig, noteId, token);
+    expect(await waitSynced(client)).toBe(true);
+    client.destroy();
   });
 
-  it("rejects connections with a bogus token (HTTP 401)", async () => {
+  it("propagates edits between two clients on the same note", async () => {
     const { token } = await register(rig, "alice");
     const noteId = await createNote(rig, token);
-    const { ws } = rawWs(rig, noteId, "deadbeef");
-    const status = await readUnexpectedHttpStatus(ws);
-    expect(status).toBe(401);
+
+    const a = connect(rig, noteId, token);
+    const b = connect(rig, noteId, token);
+    expect(await waitSynced(a)).toBe(true);
+    expect(await waitSynced(b)).toBe(true);
+
+    a.doc.getText("scratch").insert(0, "from A");
+
+    const seen = await new Promise<string>((resolve) => {
+      const timer = setTimeout(
+        () => resolve(b.doc.getText("scratch").toString()),
+        3000,
+      );
+      b.doc.getText("scratch").observe(() => {
+        clearTimeout(timer);
+        resolve(b.doc.getText("scratch").toString());
+      });
+    });
+    expect(seen).toBe("from A");
+
+    a.destroy();
+    b.destroy();
   });
 
-  it("rejects access to another user's note (HTTP 403)", async () => {
+  it("rejects a connection with no token", async () => {
+    const { token } = await register(rig, "alice");
+    const noteId = await createNote(rig, token);
+
+    const client = connect(rig, noteId, null);
+    expect(await waitAuthFailed(client)).toBe(true);
+    expect(client.provider.isSynced).toBe(false);
+    client.destroy();
+  });
+
+  it("rejects a connection with a bogus token", async () => {
+    const { token } = await register(rig, "alice");
+    const noteId = await createNote(rig, token);
+
+    const client = connect(rig, noteId, "deadbeef");
+    expect(await waitAuthFailed(client)).toBe(true);
+    client.destroy();
+  });
+
+  it("rejects access to another user's note", async () => {
     const { token: aliceToken } = await register(rig, "alice");
     const noteId = await createNote(rig, aliceToken);
     const { token: bobToken } = await register(rig, "bob");
-    const { ws } = rawWs(rig, noteId, bobToken);
-    const status = await readUnexpectedHttpStatus(ws);
-    expect(status).toBe(403);
+
+    const client = connect(rig, noteId, bobToken);
+    expect(await waitAuthFailed(client)).toBe(true);
+    client.destroy();
   });
 
-  it("upgrades successfully for the note's owner", async () => {
-    const { token } = await register(rig, "alice");
-    const noteId = await createNote(rig, token);
-    const { ws } = rawWs(rig, noteId, token);
-    await waitOpen(ws);
-    expect(ws.protocol).toBe(SUBPROTOCOL);
-    ws.close();
+  it("authorizes the document actually joined, not a note id from the URL", async () => {
+    // Hocuspocus takes the document name from each frame rather than the path,
+    // so the ownership check has to run against that name. Bob asking for
+    // Alice's note by document name must fail even though his own token is
+    // valid and he owns a different note.
+    const { token: aliceToken } = await register(rig, "alice");
+    const aliceNote = await createNote(rig, aliceToken);
+    const { token: bobToken } = await register(rig, "bob");
+    const bobNote = await createNote(rig, bobToken);
+
+    const legitimate = connect(rig, bobNote, bobToken);
+    expect(await waitSynced(legitimate)).toBe(true);
+    legitimate.destroy();
+
+    const crossTenant = connect(rig, aliceNote, bobToken);
+    expect(await waitAuthFailed(crossTenant)).toBe(true);
+    expect(crossTenant.provider.isSynced).toBe(false);
+    crossTenant.destroy();
   });
 
   it("persists Y.Doc updates to SQLite via the YjsPersistenceExtension", async () => {
