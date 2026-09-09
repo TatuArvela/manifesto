@@ -13,6 +13,7 @@ export const TEST_CONFIG: ServerConfig = {
   dbPath: ":memory:",
   corsOrigins: ["http://localhost:5173"],
   sessionTtlDays: 30,
+  sessionAbsoluteTtlDays: 90,
   argon2MemoryKib: 8192,
   argon2TimeCost: 2,
   argon2Parallelism: 1,

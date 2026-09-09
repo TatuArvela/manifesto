@@ -50,6 +50,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `DATABASE_URL`     | _(required for postgres)_  | Postgres connection string               |
 | `CORS_ORIGINS`     | `http://localhost:5173`    | Comma-separated allowed client origins   |
 | `SESSION_TTL_DAYS` | `30`                       | Session inactivity timeout in days       |
+| `SESSION_ABSOLUTE_TTL_DAYS` | `90`              | Hard session lifetime in days, measured from login. A session in constant use still ends here, so a stolen token can't live forever. |
 | `LOG_LEVEL`        | `info`                     | One of debug / info / warn / error       |
 | `ARGON2_MEMORY_KIB` | `19456`                   | argon2id memory cost (local auth only)   |
 | `ARGON2_TIME_COST`  | `2`                       | argon2id time cost (local auth only)     |

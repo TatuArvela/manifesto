@@ -5,6 +5,7 @@ import { createApp } from "./app.js";
 import { createAuthProvider } from "./auth/index.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./lib/logger.js";
+import { startSessionCleanup } from "./lib/sessionCleanup.js";
 import { startTrashCleanup } from "./lib/trashCleanup.js";
 import { createStorage } from "./storage/index.js";
 import { VERSION } from "./version.js";
@@ -33,3 +34,4 @@ const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
 ws.injectWebSocket(server);
 attachYjsSocket({ httpServer: server, storage, authProvider, cfg });
 startTrashCleanup(storage, broadcaster);
+startSessionCleanup(storage);
