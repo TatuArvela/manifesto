@@ -97,7 +97,10 @@ const noteFields = {
   pinned: z.boolean(),
   archived: z.boolean(),
   trashed: z.boolean(),
-  trashedAt: z.string().nullable(),
+  // `trashedAt` is deliberately absent: it drives hard deletion 30 days on,
+  // so a client that could set it could also ask for a note to be destroyed
+  // immediately — or never. The routes stamp it from `trashed` and the
+  // server clock, and zod strips whatever a client sends.
   position: z.number(),
   tags: z.array(z.string().min(1).max(64)).max(50),
   images: z.array(imageDataUrlSchema).max(MAX_IMAGES_PER_NOTE),

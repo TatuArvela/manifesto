@@ -62,7 +62,7 @@ All `/api/notes` and `/api/search` endpoints require authentication. Requests in
 
 - Content type: `application/json`
 - Note objects follow the schema defined in [Data Model](data-model.md)
-- `POST /api/notes` accepts a note without `id`, `createdAt`, or `updatedAt` (server assigns these)
+- `POST /api/notes` accepts a note without `id`, `createdAt`, or `updatedAt` (server assigns these). `trashedAt` is server-assigned too — it is derived from `trashed`, and a value sent by a client is ignored
 - `PUT /api/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
 - List endpoints return `{ "notes": Note[] }`
 - Single note endpoints return `{ "note": Note }`

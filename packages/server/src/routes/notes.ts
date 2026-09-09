@@ -26,6 +26,23 @@ interface NotesDeps {
   rateLimit?: MiddlewareHandler;
 }
 
+/**
+ * The `trashed_at` stamp that goes with a `trashed` flag. Trashing stamps the
+ * server clock, restoring clears it, and a change that doesn't mention
+ * `trashed` leaves the existing stamp alone.
+ *
+ * Re-trashing an already-trashed note restarts its 30 days. That is the safe
+ * direction — it can only delay a hard delete, never bring one forward — and
+ * it costs a read of the current row to do better.
+ */
+function trashStamp(
+  trashed: boolean | undefined,
+  now: string,
+): { trashedAt?: string | null } {
+  if (trashed === undefined) return {};
+  return { trashedAt: trashed ? now : null };
+}
+
 export function createNotesRoutes(deps: NotesDeps) {
   const notes = new Hono<{ Variables: { auth: AuthContext } }>();
   notes.use("*", createAuthMiddleware(deps.authProvider));
@@ -52,12 +69,12 @@ export function createNotesRoutes(deps: NotesDeps) {
     zValidator("json", noteCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      const data = c.req.valid("json");
+      const fields = c.req.valid("json");
       const now = nowIso();
       const note = await deps.storage.notes.insert({
         id: newId(),
         userId,
-        data,
+        data: { ...fields, trashedAt: fields.trashed ? now : null },
         createdAt: now,
         updatedAt: now,
       });
@@ -72,7 +89,9 @@ export function createNotesRoutes(deps: NotesDeps) {
     async (c) => {
       const { userId } = c.get("auth");
       const id = c.req.param("id") as string;
-      const changes = c.req.valid("json");
+      const fields = c.req.valid("json");
+      const now = nowIso();
+      const changes = { ...fields, ...trashStamp(fields.trashed, now) };
       const ifMatch = c.req.header("If-Match");
       // Atomic compare-and-set: storage.notes.update with an
       // `expectedUpdatedAt` only touches the row if its current
@@ -83,7 +102,7 @@ export function createNotesRoutes(deps: NotesDeps) {
         id,
         userId,
         changes,
-        nowIso(),
+        now,
         ifMatch,
       );
       if (!updated) {
