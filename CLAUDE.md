@@ -73,7 +73,7 @@ Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM p
 `packages/shared/src/api.ts` declares the wire types and `docs/specification/api.md` is the source of truth.
 
 - REST: `/api/notes`, `/api/search`, `/api/auth/*` (auth routes are owned by the active auth provider)
-- WebSockets: `/api/ws` (application events, presence) and `/api/yjs/notes/<id>` (Hocuspocus collaboration). Both authenticate via `Sec-WebSocket-Protocol`.
+- WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration — one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes ownership of the joined document in `onAuthenticate`.
 - All timestamps are ISO 8601 UTC strings
 - Note schema — see `docs/specification/data-model.md`
 

@@ -70,9 +70,9 @@ As a user with multiple devices, I want my notes to follow me wherever I sign in
 - Tags and manual ordering are scoped to my account
 - See [Operating Modes](operating-modes.md) for the full mode comparison and migration path between open and connected mode
 
-## Live Collaborative Editing (Connected Mode) — Planned
+## Live Collaborative Editing (Connected Mode) — Scoped to one account
 
-> **Transport implemented, editor wiring planned.** The Yjs/Hocuspocus channel at `/api/yjs/notes/<id>` is in place; the editor does not yet bind to it.
+> **Implemented, but only between sessions of the same user.** The Yjs/Hocuspocus channel at `/api/yjs` and the editor binding are both in place, so a note edits live across every device and tab signed in to one account, with remote cursors and presence avatars. Collaboration *between* users waits on note sharing, which is not in v1 — the server authorizes each join against note ownership.
 
 As a user connected to a server, I want to edit notes simultaneously with other users in real time.
 

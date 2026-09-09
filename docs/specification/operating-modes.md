@@ -51,7 +51,7 @@ The client is built with `VITE_MANIFESTO_SERVER=<url>` and talks to a Manifesto 
 - Notes are stored server-side via the configured [storage driver](#storage-drivers).
 - Users authenticate via the configured [auth provider](#auth-providers); login is mandatory.
 - Writes go through the REST API; the server fans out `note:*` events over the `/api/ws` WebSocket so other devices update live.
-- Per-note collaborative editing runs over a Hocuspocus + Yjs channel at `/api/yjs/notes/<id>`.
+- Per-note collaborative editing runs over a Hocuspocus + Yjs channel at `/api/yjs`, which multiplexes every note over one socket by document name.
 - Tags and manual ordering are scoped per-user.
 
 ### Available features
