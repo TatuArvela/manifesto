@@ -250,12 +250,36 @@ export default defineConfig(({ mode }) => {
       iconOverlay(env.VITE_APP_ICONS_DIR),
     ],
     test: {
-      browser: {
-        enabled: true,
-        provider: playwright(),
-        headless: true,
-        instances: [{ browser: "chromium" }],
-      },
+      // Two projects, chosen by filename. Most of what we test is pure —
+      // parsers, mergers, schedulers, formatters — and running those through
+      // Playwright cost a browser launch per run for nothing. A test that
+      // needs a DOM (real CSS, `localStorage`, history, an iframe, DOMPurify)
+      // says so by being named `*.browser.test.ts`, so a new test lands in
+      // the right project without anyone editing this file.
+      projects: [
+        {
+          extends: true,
+          test: {
+            name: "node",
+            environment: "node",
+            include: ["src/**/*.test.{ts,tsx}"],
+            exclude: ["src/**/*.browser.test.{ts,tsx}"],
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: "browser",
+            include: ["src/**/*.browser.test.{ts,tsx}"],
+            browser: {
+              enabled: true,
+              provider: playwright(),
+              headless: true,
+              instances: [{ browser: "chromium" }],
+            },
+          },
+        },
+      ],
     },
   };
 });
