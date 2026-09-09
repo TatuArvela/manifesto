@@ -376,6 +376,11 @@ export function NoteEditor({
           }}
         >
           <MilkdownEditor
+            // useMilkdownEditor builds once on mount, reading `collab` as it
+            // stands then. The provider always resolves later than the first
+            // render, so without remounting here the collab plugin is never
+            // installed and the editor silently stays solo.
+            key={collab ? "collab" : "solo"}
             content={content}
             onChange={onContentChange}
             disabled={disabled}

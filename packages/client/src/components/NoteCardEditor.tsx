@@ -33,8 +33,11 @@ export function NoteCardEditor({
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const { ydoc, awareness } = useNoteYDoc(note.id);
-  const collab = ydoc ? { ydoc, awareness: awareness ?? undefined } : undefined;
+  const { ydoc, awareness, synced } = useNoteYDoc(note.id);
+  // Withheld until the provider has synced — see NoteYDoc.synced. NoteEditor
+  // keys the editor on this, so it remounts once collaboration is ready.
+  const collab =
+    ydoc && synced ? { ydoc, awareness: awareness ?? undefined } : undefined;
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const [showVersions, setShowVersions] = useState(false);
   const [versionsClosing, setVersionsClosing] = useState(false);
