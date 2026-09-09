@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import * as openid from "openid-client";
 import type { OidcConfig, ServerConfig } from "../../config.js";
 import { logger } from "../../lib/logger.js";
@@ -9,6 +10,7 @@ import {
   createAuthMiddleware,
 } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
+import { rateLimit } from "../../middleware/rateLimit.js";
 import {
   type CreateUserInput,
   type StorageDriver,
@@ -33,6 +35,24 @@ interface PendingFlow {
 }
 
 const FLOW_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Ties a callback to the browser that started the flow. Without it, `state`
+ * alone only proves *someone* started a flow: an attacker can begin a login,
+ * hold on to the resulting callback URL, and lure the victim into visiting it —
+ * the victim's browser then gets a session for the attacker's IdP account, and
+ * everything they write afterwards lands in it.
+ *
+ * Scoped to the auth routes and readable only by the server. `SameSite=Lax`
+ * rather than `Strict` because the IdP sends the user back as a top-level
+ * cross-site GET, which `Strict` would withhold — Lax is exactly the setting
+ * that covers that navigation and nothing else.
+ */
+const FLOW_COOKIE = "manifesto_oidc_flow";
+const FLOW_COOKIE_PATH = "/api/auth";
+
+/** Insertions between sweeps of expired pending flows. */
+const SWEEP_EVERY = 256;
 
 const AVATAR_COLORS = [
   "#ef4444",
@@ -141,10 +161,29 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
   );
   const pending = new Map<string, PendingFlow>();
 
+  // Per-IP budget on the two unauthenticated endpoints. `/login` mints a
+  // pending flow and `/callback` spends discovery and a token exchange, so
+  // without this an anonymous caller sets the memory and outbound-request
+  // cost of the process. Looser than the local provider's 10, which is sized
+  // against password spraying: there is no password here, a single sign-in
+  // costs two requests, and SSO users routinely share an egress IP.
+  const authThrottle = rateLimit({
+    limit: 30,
+    windowMs: 15 * 60 * 1000,
+    trustProxy: deps.cfg.trustProxy,
+  });
+
+  let sinceSweep = 0;
+
   function rememberFlow(state: string, codeVerifier: string): void {
     pending.set(state, { state, codeVerifier, createdAt: Date.now() });
-    // Opportunistic cleanup of expired entries — bounded by the rate of
-    // login attempts, so this can't pile up.
+    // Sweep expired entries every SWEEP_EVERY insertions rather than on each
+    // one: walking the whole map per login made a burst quadratic. Amortized
+    // to O(1) per insert, and at most SWEEP_EVERY stale entries are held
+    // between sweeps. Same idiom as `middleware/rateLimit.ts`, and for the
+    // same reason it is a counter and not a timer — nothing to tear down.
+    if (++sinceSweep < SWEEP_EVERY) return;
+    sinceSweep = 0;
     const cutoff = Date.now() - FLOW_TTL_MS;
     for (const [key, flow] of pending) {
       if (flow.createdAt < cutoff) pending.delete(key);
@@ -159,12 +198,22 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     return flow;
   }
 
-  auth.get("/login", async (c) => {
+  auth.get("/login", authThrottle, async (c) => {
     const config = await deps.discoveryClient.getConfig();
     const codeVerifier = openid.randomPKCECodeVerifier();
     const codeChallenge = await openid.calculatePKCECodeChallenge(codeVerifier);
     const state = openid.randomState();
     rememberFlow(state, codeVerifier);
+    setCookie(c, FLOW_COOKIE, state, {
+      httpOnly: true,
+      sameSite: "Lax",
+      // The callback is whatever scheme the deployment redirects to; marking
+      // the cookie Secure over plain http would mean the browser never sends
+      // it back and every login would fail.
+      secure: deps.oidc.redirectUri.startsWith("https:"),
+      path: FLOW_COOKIE_PATH,
+      maxAge: FLOW_TTL_MS / 1000,
+    });
 
     const authorizationUrl = openid.buildAuthorizationUrl(config, {
       redirect_uri: deps.oidc.redirectUri,
@@ -176,12 +225,24 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     return c.redirect(authorizationUrl.toString(), 302);
   });
 
-  auth.get("/callback", async (c) => {
+  auth.get("/callback", authThrottle, async (c) => {
     const url = new URL(c.req.url);
     const state = url.searchParams.get("state") ?? "";
     if (!state) {
       throw new HttpError(400, "Missing state parameter");
     }
+
+    // Checked before the flow is consumed, so a forged callback can't burn
+    // the pending state of a login someone else has in progress.
+    const boundState = getCookie(c, FLOW_COOKIE);
+    deleteCookie(c, FLOW_COOKIE, { path: FLOW_COOKIE_PATH });
+    if (!boundState || boundState !== state) {
+      logger.warn("OIDC callback rejected: not the browser that began login", {
+        hasCookie: boundState !== undefined,
+      });
+      throw new HttpError(400, "Login state does not match this browser");
+    }
+
     const flow = consumeFlow(state);
     if (!flow) {
       throw new HttpError(400, "Unknown or expired login state");
