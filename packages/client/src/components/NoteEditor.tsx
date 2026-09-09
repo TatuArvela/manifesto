@@ -1,5 +1,9 @@
 import type { LinkPreview, NoteReminder } from "@manifesto/shared";
-import { type NoteColor, NoteFont } from "@manifesto/shared";
+import {
+  MAX_IMAGE_DATA_URL_BYTES,
+  type NoteColor,
+  NoteFont,
+} from "@manifesto/shared";
 import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
 import { redoCommand, undoCommand } from "@milkdown/kit/plugin/history";
 import { redoDepth, undoDepth } from "@milkdown/kit/prose/history";
@@ -36,6 +40,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { getDeletionRange } from "../extensions/taskItemDraggable.js";
 import { getColorPickerColors, getFontLabel, t } from "../i18n/index.js";
+import { showError } from "../state/ui.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { Dropdown } from "./Dropdown.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
@@ -148,20 +153,38 @@ export function NoteEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
 
+  // Measured on the encoded data URL rather than `file.size`, because that is
+  // the value the server bounds and base64 inflates by about a third — a check
+  // against the raw file would let something through that then 422s. Server
+  // mode is the only place the cap is enforced remotely, but rejecting here
+  // too keeps a note's behaviour the same in both modes and turns a bare 422
+  // into a message naming the file.
   const readFilesAsDataUrls = async (files: File[]): Promise<string[]> => {
     const results = await Promise.all(
       files.map(
         (file) =>
-          new Promise<string | null>((resolve) => {
+          new Promise<{ name: string; url: string | null }>((resolve) => {
             const reader = new FileReader();
             reader.onload = () =>
-              resolve(typeof reader.result === "string" ? reader.result : null);
-            reader.onerror = () => resolve(null);
+              resolve({
+                name: file.name,
+                url: typeof reader.result === "string" ? reader.result : null,
+              });
+            reader.onerror = () => resolve({ name: file.name, url: null });
             reader.readAsDataURL(file);
           }),
       ),
     );
-    return results.filter((r): r is string => r !== null);
+    const accepted: string[] = [];
+    for (const { name, url } of results) {
+      if (url === null) continue;
+      if (url.length > MAX_IMAGE_DATA_URL_BYTES) {
+        showError(t("editor.imageTooLarge", { name }));
+        continue;
+      }
+      accepted.push(url);
+    }
+    return accepted;
   };
 
   const handleFilesSelected = async (files: FileList | null) => {
