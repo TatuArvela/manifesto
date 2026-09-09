@@ -1,6 +1,7 @@
 import type { Note, NoteCreate } from "@manifesto/shared";
 import {
   MAX_IMAGE_DATA_URL_BYTES,
+  MAX_IMAGE_SOURCE_BYTES,
   NoteColor,
   NoteFont,
 } from "@manifesto/shared";
@@ -215,6 +216,44 @@ describe("notes routes", () => {
       });
       expect(res.status, `expected 422 for ${why}`).toBe(422);
     }
+  });
+
+  // The error messages quote a source-image size ("1.5 MB" / "1,5 Mt"), but the
+  // schema bounds the encoded data URL. These pin the two together: an image of
+  // exactly the advertised size must be accepted, in every media type, prefix
+  // length included. Rounding the encoded cap by hand fails this by 18 bytes.
+  it("accepts an image of exactly the advertised size", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const payload = Buffer.alloc(MAX_IMAGE_SOURCE_BYTES).toString("base64");
+    for (const mime of ["png", "jpeg", "jpg", "gif", "webp", "avif"]) {
+      const res = await rig.request("/api/notes", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({
+          ...baseNote,
+          images: [`data:image/${mime};base64,${payload}`],
+        }),
+      });
+      expect(res.status, `expected 201 for a full-size image/${mime}`).toBe(
+        201,
+      );
+    }
+  });
+
+  it("rejects an image past the advertised size", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const payload = Buffer.alloc(MAX_IMAGE_SOURCE_BYTES + 1024).toString(
+      "base64",
+    );
+    const res = await rig.request("/api/notes", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        ...baseNote,
+        images: [`data:image/png;base64,${payload}`],
+      }),
+    });
+    expect(res.status).toBe(422);
   });
 
   it("rejects an image past the per-image cap with 422", async () => {

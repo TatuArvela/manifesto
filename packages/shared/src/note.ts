@@ -47,15 +47,33 @@ export const IMAGE_DATA_URL_SUBTYPES = [
 ] as const;
 
 /**
- * Per-image cap, measured on the encoded `data:` URL — the form that actually
- * crosses the wire and sits in the note row. Base64 inflates by about a third,
- * so this admits roughly a 1.5 MB source image.
+ * Largest source image a user may attach. This is the number the error messages
+ * quote — "1.5 MB" in `en.ts`, "1,5 Mt" in `fi.ts` — so the two must move
+ * together.
  *
- * Client, server and specification all read this constant. The whole note is
- * additionally bounded by the request body limit in the server's `app.ts`,
- * which is what stops twenty images at the cap from adding up to a 40 MB write.
+ * 1.5 MiB rather than a round 1,500,000 because the platforms disagree about
+ * what "MB" means and this is the reading that never rejects a file the user
+ * was told would fit: Windows labels MiB as MB, so a file it displays as
+ * "1.50 MB" is exactly this and is accepted, while macOS shows the same file as
+ * 1.57 MB, which merely admits slightly more than advertised.
  */
-export const MAX_IMAGE_DATA_URL_BYTES = 2 * 1024 * 1024;
+export const MAX_IMAGE_SOURCE_BYTES = 1.5 * 1024 * 1024;
+
+/**
+ * The same cap expressed on the encoded `data:` URL, which is the form that
+ * actually crosses the wire and sits in the note row, and therefore the form
+ * worth bounding. Derived rather than written down: base64 emits 4 characters
+ * per 3 bytes, and the `data:image/…;base64,` prefix counts toward the limit
+ * too — at 23 characters for the longest of the accepted media types, which is
+ * enough to push a file of exactly MAX_IMAGE_SOURCE_BYTES over a hand-rounded
+ * cap and reject it 18 bytes short of the advertised number.
+ *
+ * The whole note is additionally bounded by the request body limit in the
+ * server's `app.ts`, which is what stops twenty images each individually under
+ * this cap from adding up to a 40 MB write.
+ */
+export const MAX_IMAGE_DATA_URL_BYTES =
+  Math.ceil(MAX_IMAGE_SOURCE_BYTES / 3) * 4 + 32;
 
 /** Maximum number of images attachable to one note. */
 export const MAX_IMAGES_PER_NOTE = 20;
