@@ -1,7 +1,7 @@
+import { HocuspocusProvider } from "@hocuspocus/provider";
 import { useEffect, useState } from "preact/hooks";
 import { IndexeddbPersistence } from "y-indexeddb";
 import type { Awareness } from "y-protocols/awareness";
-import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 import {
   authToken,
@@ -9,8 +9,6 @@ import {
   isServerMode,
   SERVER_URL,
 } from "../state/auth.js";
-
-const SUBPROTOCOL = "manifesto-session";
 
 export type YjsConnectionStatus =
   | "disabled"
@@ -23,13 +21,25 @@ export interface NoteYDoc {
   ydoc: Y.Doc | null;
   awareness: Awareness | null;
   status: YjsConnectionStatus;
+  /**
+   * True once the server's state has been merged into the local doc. Callers
+   * must not bind an editor before this: `ySyncPlugin` adopts whatever the
+   * shared fragment holds, so binding early shows an empty document and then
+   * writes that emptiness back as the note's content.
+   */
+  synced: boolean;
 }
 
-const IDLE: NoteYDoc = { ydoc: null, awareness: null, status: "disabled" };
+const IDLE: NoteYDoc = {
+  ydoc: null,
+  awareness: null,
+  status: "disabled",
+  synced: false,
+};
 
-function wsBaseUrl(): string | null {
+function wsUrl(): string | null {
   if (!SERVER_URL) return null;
-  return SERVER_URL.replace(/^http/, "ws");
+  return `${SERVER_URL.replace(/^http/, "ws")}/api/yjs`;
 }
 
 /**
@@ -37,6 +47,10 @@ function wsBaseUrl(): string | null {
  * server and IndexedDB persistence for offline buffering. Returns
  * { ydoc: null } when not in server mode or unauthenticated — the caller
  * should fall back to plain (non-collaborative) editing.
+ *
+ * The note id is the Hocuspocus document name, and the server authorizes
+ * against that name rather than against the URL, so it is the one value that
+ * decides which document this connection may touch.
  */
 export function useNoteYDoc(noteId: string | null): NoteYDoc {
   const [state, setState] = useState<NoteYDoc>(IDLE);
@@ -46,56 +60,57 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
   const token = authToken.value;
 
   useEffect(() => {
-    const wsBase = wsBaseUrl();
-    if (!noteId || !isServerMode || !wsBase || !token) {
+    const url = wsUrl();
+    if (!noteId || !isServerMode || !url || !token) {
       setState(IDLE);
       return;
     }
 
     const ydoc = new Y.Doc();
     const idb = new IndexeddbPersistence(`manifesto:yjs:${noteId}`, ydoc);
-    const provider = new WebsocketProvider(
-      wsBase,
-      `api/yjs/notes/${noteId}`,
-      ydoc,
-      {
-        protocols: [SUBPROTOCOL, token],
+    const provider = new HocuspocusProvider({
+      url,
+      name: noteId,
+      document: ydoc,
+      token,
+      onStatus: ({ status }) => {
+        setState((prev) => ({ ...prev, status }));
       },
-    );
+      onSynced: () => {
+        setState((prev) => ({ ...prev, synced: true }));
+      },
+      onAuthenticationFailed: () => {
+        setState((prev) => ({
+          ...prev,
+          status: "disconnected",
+          synced: false,
+        }));
+      },
+    });
 
     const user = currentUser.value;
     if (user) {
-      provider.awareness.setLocalStateField("user", {
+      provider.awareness?.setLocalStateField("user", {
         id: user.id,
         name: user.displayName,
         color: user.avatarColor,
       });
     }
     const onPageHide = () => {
-      provider.awareness.setLocalState(null);
+      provider.awareness?.setLocalState(null);
     };
     window.addEventListener("pagehide", onPageHide);
 
-    setState({ ydoc, awareness: provider.awareness, status: "connecting" });
-
-    const onStatus = (event: { status: string }) => {
-      setState((prev) => ({
-        ...prev,
-        status:
-          event.status === "connected"
-            ? "connected"
-            : event.status === "connecting"
-              ? "connecting"
-              : "disconnected",
-      }));
-    };
-    provider.on("status", onStatus);
+    setState({
+      ydoc,
+      awareness: provider.awareness,
+      status: "connecting",
+      synced: false,
+    });
 
     return () => {
       window.removeEventListener("pagehide", onPageHide);
-      provider.off("status", onStatus);
-      provider.awareness.setLocalState(null);
-      provider.disconnect();
+      provider.awareness?.setLocalState(null);
       provider.destroy();
       idb.destroy();
       ydoc.destroy();
