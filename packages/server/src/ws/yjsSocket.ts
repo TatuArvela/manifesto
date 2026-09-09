@@ -1,18 +1,22 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { Hocuspocus } from "@hocuspocus/server";
+import type { RawData, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
 import type { StorageDriver } from "../storage/types.js";
-import { SUBPROTOCOL } from "./appSocket.js";
 import {
   type YjsAuthContext,
   YjsPersistenceExtension,
 } from "./yjsExtension.js";
 
-export const YJS_PATH_PREFIX = "/api/yjs/notes/";
+/**
+ * Single endpoint for every note. Hocuspocus multiplexes documents over one
+ * socket by name, so the note id travels in the protocol rather than the path.
+ */
+export const YJS_PATH = "/api/yjs";
 
 interface AttachOptions {
   httpServer: HttpServer;
@@ -36,16 +40,39 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     extensions: [new YjsPersistenceExtension(storage.yjs)],
     debounce: 2000,
     maxDebounce: 10_000,
+
+    /**
+     * Authorization must happen here, not at the HTTP upgrade.
+     *
+     * Hocuspocus reads the document name from the first varString of every
+     * incoming frame and keys its process-global document map on that — it
+     * never looks at the URL. Checking a note id parsed from the path would
+     * therefore authorize one document while the client joined another, so a
+     * user cleared for their own note could address frames at someone else's
+     * live Y.Doc. `documentName` here is the value actually used to find the
+     * room, which makes the check binding.
+     *
+     * Throwing rejects the connection with a permission-denied message before
+     * any document is created or joined.
+     */
+    onAuthenticate: async ({ token, documentName }) => {
+      const identity = await authProvider.authenticate(token);
+      if (!identity) throw new Error("Invalid or expired session");
+
+      const note = await storage.notes.getById(documentName, identity.userId);
+      if (!note) throw new Error("Forbidden");
+
+      return {
+        userId: identity.userId,
+        noteId: documentName,
+      } satisfies YjsAuthContext;
+    },
   });
 
-  const wss = new WebSocketServer({
-    noServer: true,
-    handleProtocols: (protocols) =>
-      protocols.has(SUBPROTOCOL) ? SUBPROTOCOL : false,
-  });
+  const wss = new WebSocketServer({ noServer: true });
 
   // Capture and replace existing upgrade listeners so that WS requests targeting
-  // `/api/yjs/notes/<id>` go to Hocuspocus while everything else (including the
+  // `/api/yjs` go to Hocuspocus while everything else (including the
   // application JSON socket at /api/ws) continues to flow through the listeners
   // already registered (e.g. by `@hono/node-ws`).
   const previousListeners = httpServer.listeners("upgrade").slice() as Array<
@@ -53,12 +80,11 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
   >;
   httpServer.removeAllListeners("upgrade");
 
-  httpServer.on("upgrade", async (request, socket, head) => {
+  httpServer.on("upgrade", (request, socket, head) => {
     // Node removes its own socket error listener before emitting `upgrade`, and
-    // `wss.handleUpgrade` is what attaches the next one. Everything between is
-    // unguarded — and we await authentication and a note lookup there, so a peer
-    // that resets the connection mid-await would raise an uncaught exception and
-    // take the process down. Must stay the first statement: all paths below yield.
+    // `wss.handleUpgrade` is what attaches the next one. Anything in between is
+    // unguarded, so a peer that resets the connection there would raise an
+    // uncaught exception and take the process down. Keep this first.
     socket.on("error", () => {});
 
     const url = new URL(
@@ -66,7 +92,7 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       `http://${request.headers.host ?? "localhost"}`,
     );
 
-    if (!url.pathname.startsWith(YJS_PATH_PREFIX)) {
+    if (url.pathname !== YJS_PATH) {
       for (const listener of previousListeners) {
         try {
           listener(request, socket, head);
@@ -79,39 +105,9 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       return;
     }
 
-    const noteId = url.pathname.slice(YJS_PATH_PREFIX.length);
-    if (!noteId) {
-      reject(socket, 400, "Missing note id");
-      return;
-    }
-
-    const protocols = parseProtocols(request.headers["sec-websocket-protocol"]);
-    const tokenIdx = protocols.indexOf(SUBPROTOCOL) + 1;
-    const token = tokenIdx > 0 ? protocols[tokenIdx] : "";
-    if (!token) {
-      reject(socket, 401, "Missing token");
-      return;
-    }
-
-    try {
-      const identity = await authProvider.authenticate(token);
-      if (!identity) return reject(socket, 401, "Invalid or expired session");
-      const note = await storage.notes.getById(noteId, identity.userId);
-      if (!note) return reject(socket, 403, "Forbidden");
-
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        const webRequest = nodeToWebRequest(request);
-        hocuspocus.handleConnection(ws, webRequest, {
-          userId: identity.userId,
-          noteId,
-        });
-      });
-    } catch (err) {
-      logger.error("Yjs upgrade failed", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-      reject(socket, 500, "Server error");
-    }
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      bindConnection(hocuspocus, ws, nodeToWebRequest(request));
+    });
   });
 
   return {
@@ -120,27 +116,54 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       // Hocuspocus debounces persistence (2s, 10s max). Drain pending writes
       // and close active connections before tearing down the WebSocket server
       // so in-flight Yjs updates aren't lost on shutdown.
-      hocuspocus.flushPendingStores();
+      await hocuspocus.flushPendingStores();
       hocuspocus.closeConnections();
       wss.close();
     },
   };
 }
 
-function parseProtocols(header: string | string[] | undefined): string[] {
-  if (!header) return [];
-  const raw = Array.isArray(header) ? header.join(",") : header;
-  return raw
-    .split(",")
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
+/**
+ * Hocuspocus does not read from the socket itself — `WebSocketLike` is only
+ * `send`/`close`/`readyState`, and `handleConnection` hands back a
+ * `ClientConnection` whose `handleMessage` the integrator is expected to feed.
+ * Without this wiring the server accepts the upgrade and then ignores every
+ * frame, so no document is ever created and no hook — including
+ * `onAuthenticate` — ever runs.
+ */
+function bindConnection(
+  hocuspocus: Hocuspocus<YjsAuthContext>,
+  ws: WebSocket,
+  request: Request,
+): void {
+  const connection = hocuspocus.handleConnection(ws, request);
+
+  ws.on("message", (data: RawData, isBinary: boolean) => {
+    if (!isBinary) return;
+    connection.handleMessage(toUint8Array(data));
+  });
+
+  ws.on("close", (code: number, reason: Buffer) => {
+    connection.handleClose({
+      code,
+      reason: reason.toString(),
+    } as CloseEvent);
+  });
+
+  // Post-upgrade socket errors surface as a close; swallow so they do not
+  // reach the process as an unhandled 'error' event.
+  ws.on("error", () => {});
 }
 
-function reject(socket: Duplex, status: number, reason: string) {
-  socket.write(
-    `HTTP/1.1 ${status} ${reason}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
-  );
-  socket.destroy();
+function toUint8Array(data: RawData): Uint8Array {
+  if (Buffer.isBuffer(data)) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  }
+  if (Array.isArray(data)) {
+    const joined = Buffer.concat(data);
+    return new Uint8Array(joined.buffer, joined.byteOffset, joined.byteLength);
+  }
+  return new Uint8Array(data);
 }
 
 function nodeToWebRequest(req: IncomingMessage): Request {

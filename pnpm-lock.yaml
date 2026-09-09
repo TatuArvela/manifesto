@@ -14,6 +14,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@hocuspocus/provider':
+        specifier: ^4.7.0
+        version: 4.7.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
       '@manifesto/shared':
         specifier: workspace:*
         version: link:../shared
@@ -89,9 +92,6 @@ importers:
       y-protocols:
         specifier: ^1.0.7
         version: 1.0.7(yjs@13.6.30)
-      y-websocket:
-        specifier: ^3.0.0
-        version: 3.0.0(yjs@13.6.30)
       yjs:
         specifier: ^13.6.30
         version: 13.6.30
@@ -124,8 +124,8 @@ importers:
   packages/server:
     dependencies:
       '@hocuspocus/server':
-        specifier: ^4.0.0
-        version: 4.0.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
+        specifier: ^4.7.0
+        version: 4.7.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
       '@hono/node-server':
         specifier: ^1.13.0
         version: 1.19.14(hono@4.13.7)
@@ -169,6 +169,9 @@ importers:
         specifier: ^3.23.0
         version: 3.25.76
     devDependencies:
+      '@hocuspocus/provider':
+        specifier: ^4.7.0
+        version: 4.7.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
       '@types/better-sqlite3':
         specifier: ^7.6.0
         version: 7.6.13
@@ -193,9 +196,6 @@ importers:
       vitest:
         specifier: ^3.1.0
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.17)(jiti@2.6.1)(jsdom@29.0.2)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)
-      y-websocket:
-        specifier: ^3.0.0
-        version: 3.0.0(yjs@13.6.30)
 
   packages/shared:
     devDependencies:
@@ -1178,11 +1178,17 @@ packages:
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
-  '@hocuspocus/common@4.0.0':
-    resolution: {integrity: sha512-7BE8TsKBkdiOZO6tfm3ny6bIHPbxkIZb3hsYdVn/X5xbXI8n8w9pnE6pXgEMKQhJm6zsWsa9IDRJIp/c9u+DmA==}
+  '@hocuspocus/common@4.7.0':
+    resolution: {integrity: sha512-KyS6dXoIcWsd+v3gwd6nnZW04M77df5XstPNkOwqoDxwuncygobEN7xsf0x2PmdvlQdQyRaLm2SF4r1GZZGRnA==}
 
-  '@hocuspocus/server@4.0.0':
-    resolution: {integrity: sha512-Pgm+kVtTrVvybIJUVot5XumSzD8rPLQglUV0QAAiN6J64dkYc2wWNdGcMwJz3q3yJPV0dO+eRU9JEck+iVdgzQ==}
+  '@hocuspocus/provider@4.7.0':
+    resolution: {integrity: sha512-BOAqoj6g4EZQ9pTwIiR7bNl1QkMAnrr8EY69jMcdhSLFtTrsKaE8hsDIEncPFnGq+khWRFCAPEJSM7F9HC7fvQ==}
+    peerDependencies:
+      y-protocols: ^1.0.6
+      yjs: ^13.6.8
+
+  '@hocuspocus/server@4.7.0':
+    resolution: {integrity: sha512-rlHSxGXEkYvHgQa9Q8prjMHChIl7daZlXL1pezifS8j+svLHQPKLfevNBxFKc+ZW5pLpUiUJGU++O8eJlSt3Ew==}
     engines: {node: '>=22'}
     peerDependencies:
       y-protocols: ^1.0.6
@@ -1238,6 +1244,9 @@ packages:
 
   '@lezer/lr@1.4.10':
     resolution: {integrity: sha512-rnCpTIBafOx4mRp43xOxDJbFipJm/c0cia/V5TiGlhmMa+wsSdoGmUN3w5Bqrks/09Q/D4tNAmWaT8p6NRi77A==}
+
+  '@lifeomic/attempt@3.1.0':
+    resolution: {integrity: sha512-QZqem4QuAnAyzfz+Gj5/+SLxqwCAw2qmt7732ZXodr6VDWGeYLG6w1i/vYLa55JQM9wRuBKLmXmiZ2P0LtE5rw==}
 
   '@marijn/find-cluster-break@1.0.2':
     resolution: {integrity: sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g==}
@@ -3990,12 +3999,6 @@ packages:
     peerDependencies:
       yjs: ^13.0.0
 
-  y-websocket@3.0.0:
-    resolution: {integrity: sha512-mUHy7AzkOZ834T/7piqtlA8Yk6AchqKqcrCXjKW8J1w2lPtRDjz8W5/CvXz9higKAHgKRKqpI3T33YkRFLkPtg==}
-    engines: {node: '>=16.0.0', npm: '>=8.0.0'}
-    peerDependencies:
-      yjs: ^13.5.6
-
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
@@ -4986,13 +4989,21 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@hocuspocus/common@4.0.0':
+  '@hocuspocus/common@4.7.0':
     dependencies:
       lib0: 0.2.117
 
-  '@hocuspocus/server@4.0.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)':
+  '@hocuspocus/provider@4.7.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)':
     dependencies:
-      '@hocuspocus/common': 4.0.0
+      '@hocuspocus/common': 4.7.0
+      '@lifeomic/attempt': 3.1.0
+      lib0: 0.2.117
+      y-protocols: 1.0.7(yjs@13.6.30)
+      yjs: 13.6.30
+
+  '@hocuspocus/server@4.7.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)':
+    dependencies:
+      '@hocuspocus/common': 4.7.0
       async-mutex: 0.5.0
       crossws: 0.4.5
       kleur: 4.1.5
@@ -5055,6 +5066,8 @@ snapshots:
   '@lezer/lr@1.4.10':
     dependencies:
       '@lezer/common': 1.5.2
+
+  '@lifeomic/attempt@3.1.0': {}
 
   '@marijn/find-cluster-break@1.0.2': {}
 
@@ -8458,12 +8471,6 @@ snapshots:
   y-protocols@1.0.7(yjs@13.6.30):
     dependencies:
       lib0: 0.2.117
-      yjs: 13.6.30
-
-  y-websocket@3.0.0(yjs@13.6.30):
-    dependencies:
-      lib0: 0.2.117
-      y-protocols: 1.0.7(yjs@13.6.30)
       yjs: 13.6.30
 
   yallist@3.1.1: {}
