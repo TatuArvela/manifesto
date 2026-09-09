@@ -1,5 +1,4 @@
 import type { Note, NoteColor } from "@manifesto/shared";
-import DOMPurify from "dompurify";
 import {
   Archive,
   ArchiveRestore,
@@ -48,57 +47,6 @@ import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
-const PURIFY_CONFIG = {
-  ALLOWED_TAGS: [
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "p",
-    "br",
-    "hr",
-    "strong",
-    "b",
-    "em",
-    "i",
-    "del",
-    "s",
-    "blockquote",
-    "pre",
-    "code",
-    "ul",
-    "ol",
-    "li",
-    "a",
-    "img",
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
-    "u",
-    "sub",
-    "sup",
-    "span",
-    "input",
-  ],
-  ALLOWED_ATTR: [
-    "href",
-    "target",
-    "rel",
-    "src",
-    "alt",
-    "title",
-    "class",
-    "type",
-    "checked",
-    "disabled",
-  ],
-};
-
 export function NoteReadonlyView({
   note,
   onClose,
@@ -128,10 +76,7 @@ export function NoteReadonlyView({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
-  const html = DOMPurify.sanitize(
-    renderMarkdown(note.content),
-    PURIFY_CONFIG,
-  ) as string;
+  const html = renderMarkdown(note.content);
 
   const closeAllMenus = () => {
     setShowColorPicker(false);
