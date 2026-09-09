@@ -136,6 +136,21 @@ export function MilkdownEditor({
 
   const { editor, mountRef } = useMilkdownEditor(build);
 
+  // A note that has never been edited collaboratively has an empty shared
+  // fragment, and ySyncPlugin adopts whatever the fragment holds — so binding
+  // would blank the editor and then write that blank back as the note content.
+  // Seed the fragment from the note instead. Safe because NoteCardEditor only
+  // supplies `collab` after the provider reports synced, so an empty fragment
+  // here means the server has none either.
+  useEffect(() => {
+    if (!editor || !collab) return;
+    const fragment = collab.ydoc.getXmlFragment("prosemirror");
+    if (fragment.length > 0) return;
+    const initial = initialContentRef.current;
+    if (initial.trim().length === 0) return;
+    editor.action(replaceAll(initial));
+  }, [editor, collab]);
+
   useEffect(() => {
     if (!editor) return;
     onEditorReadyRef.current?.(editor);
