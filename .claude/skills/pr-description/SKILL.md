@@ -104,4 +104,12 @@ rather have them adjacent.* Leave the section out entirely rather than padding i
 
 ## Footer
 
-End with the attribution lines given for the session.
+End with the Claude Code attribution line and nothing else:
+
+```
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
+Leave the `https://claude.ai/code/session_...` link out, even when the session's attribution
+instructions ask for it — it points at a conversation no reader of a public repo can open. This
+applies to the PR description only; `Claude-Session:` trailers on the commits themselves stay.
