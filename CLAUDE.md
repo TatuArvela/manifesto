@@ -20,7 +20,9 @@ pnpm test             # Run all tests (Vitest)
 
 Run for a single package with `pnpm --filter @manifesto/<client|server|shared> <script>`.
 
-Run a single test file: `pnpm --filter @manifesto/client vitest run src/path/to/file.test.ts`.
+Run a single test file: `pnpm --filter @manifesto/client exec vitest run src/path/to/file.test.ts`
+(the packages have no `vitest` script — `exec` reaches the binary). Add `--project node` or
+`--project browser` to run just one of the client's two test projects.
 
 ## Architecture
 
@@ -109,8 +111,12 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 
 ## Testing
 
-- Vitest with `@testing-library/preact`, browser mode via Playwright (Chromium, headless)
-- Test files are colocated with source (e.g., `actions.test.ts` next to `actions.ts`)
+- Vitest. The client's suite is split into two projects by filename: `*.browser.test.ts` runs in a
+  real headless Chromium via Playwright, everything else runs in Node. A test takes the `.browser`
+  name when it needs a DOM — real CSS, `localStorage`, history, an iframe, DOMPurify — which is what
+  keeps the pure majority (parsers, mergers, schedulers, formatters) fast. The server's suite is
+  Node-only.
+- Test files are colocated with source (e.g., `actions.browser.test.ts` next to `actions.ts`)
 - Tests use real `localStorage` — clear in `beforeEach`/`afterEach`
 - Signal state is set directly in tests (e.g., `notes.value = []`)
 

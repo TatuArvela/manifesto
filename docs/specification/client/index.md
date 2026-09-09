@@ -18,7 +18,7 @@ The Manifesto client is a static single-page application built with Preact and T
 | lz-string                                                          | Compression for sharing + versions     |
 | clsx                                                               | Conditional class name merging         |
 | vite-plugin-pwa + workbox                                          | Service worker / installable PWA       |
-| Vitest (+ `@vitest/browser` on Playwright Chromium)                | Testing                                |
+| Vitest — Node project, plus `@vitest/browser` on Playwright Chromium for `*.browser.test.ts` | Testing        |
 
 ### Why Preact
 

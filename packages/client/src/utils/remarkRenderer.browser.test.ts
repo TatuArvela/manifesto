@@ -42,7 +42,9 @@ describe("renderMarkdown sanitizing", () => {
   });
 
   it("keeps ordinary markdown", () => {
-    const html = renderMarkdown("# Title\n\n**bold** and [a link](https://x.y)");
+    const html = renderMarkdown(
+      "# Title\n\n**bold** and [a link](https://x.y)",
+    );
     expect(html).toContain("<h1>Title</h1>");
     expect(html).toContain("<strong>bold</strong>");
     expect(html).toContain('href="https://x.y"');
