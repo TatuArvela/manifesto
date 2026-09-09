@@ -66,7 +66,7 @@ Implements the endpoints defined in [API](../api.md). The auth provider owns `/a
 ### WebSockets
 
 - `/api/ws` — application JSON socket for `note:*` and `presence:*` events. Authenticates via the active auth provider. Token is passed in the `Sec-WebSocket-Protocol` header.
-- `/api/yjs/notes/<id>` — Hocuspocus-backed Yjs collaboration channel. Authenticates via the active auth provider, then verifies note ownership via the storage driver. Persistence is delegated to `storage.yjs`, so Yjs state lives in whichever store is selected.
+- `/api/yjs` — Hocuspocus-backed Yjs collaboration channel, multiplexing every note over one socket by document name. The `onAuthenticate` hook resolves the token via the active auth provider and then verifies note ownership against the joined document name via the storage driver. Persistence is delegated to `storage.yjs`, so Yjs state lives in whichever store is selected.
 
 ### Multi-User
 

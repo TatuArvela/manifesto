@@ -5,7 +5,7 @@ In connected mode, multiple users can view and edit the same note simultaneously
 ## Behavior
 
 - When a user opens a note that another user is also editing, both see each other's changes live.
-- Text edits, checkbox toggles, list reordering, and other in-document changes propagate over the Yjs WebSocket (`/api/yjs/notes/<id>`, see [API](../api.md)).
+- Text edits, checkbox toggles, list reordering, and other in-document changes propagate over the Yjs WebSocket (`/api/yjs`, see [API](../api.md)). The note id is the Hocuspocus document name.
 - Conflicting edits are resolved by the Yjs CRDT — concurrent insertions and deletions converge without data loss.
 - REST writes (`PUT /api/notes/<id>`) remain the authoritative path for note metadata (color, tags, archived/trashed). Optimistic concurrency on REST is enforced via `If-Match: <updatedAt>` and a 412 + 3-way merge on the client.
 
@@ -23,5 +23,5 @@ In connected mode, multiple users can view and edit the same note simultaneously
 
 ## Authorization
 
-- Both WebSocket endpoints authenticate via the configured `AuthProvider` using the bearer token passed in `Sec-WebSocket-Protocol`.
-- The Yjs channel additionally verifies that the authenticated user owns the note before upgrading the connection. Sharing notes across users is not yet implemented in v1.
+- Both WebSocket endpoints authenticate via the configured `AuthProvider`. The application socket passes the bearer token in `Sec-WebSocket-Protocol`; the Yjs channel passes it in the Hocuspocus `Auth` message.
+- The Yjs channel additionally verifies that the authenticated user owns the note being joined, checked against the document name in the protocol rather than the connection URL. Rejection happens at the `Auth` message, before the document is created or joined. Sharing notes across users is not yet implemented in v1.

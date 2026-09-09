@@ -133,6 +133,6 @@ Yjs document state lives in a `BYTEA` column on `notes`. For very high collabora
 For production use behind a reverse proxy (nginx, Caddy, Traefik):
 
 - Proxy all requests to the Manifesto server port
-- Proxy WebSocket connections at `/api/ws` (application events) and `/api/yjs/notes/*` (collaborative editing)
+- Proxy WebSocket connections at `/api/ws` (application events) and `/api/yjs` (collaborative editing)
 - Set appropriate headers (`X-Forwarded-For`, `X-Forwarded-Proto`)
 - Enable HTTPS via the reverse proxy

@@ -61,7 +61,7 @@ All `/api/notes` and `/api/search` endpoints require authentication. Requests in
 
 ## WebSocket APIs
 
-The server exposes two WebSocket endpoints. Both authenticate by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol.
+The server exposes two WebSocket endpoints. They authenticate differently, because the collaboration socket is a Hocuspocus room rather than a plain JSON stream — see each section below.
 
 ### Application socket — `/api/ws`
 
@@ -78,6 +78,12 @@ A JSON event stream used for fan-out of REST writes and presence tracking.
 
 REST is the authoritative write path; the server fans out `note:*` events from REST handlers. A `note:edit` client→server event is reserved but not currently handled.
 
-### Collaboration socket — `/api/yjs/notes/<id>`
+The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol.
 
-A Hocuspocus-backed Yjs channel for per-note collaborative editing. The server verifies that the authenticated user owns the note before upgrading the connection. Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres).
+### Collaboration socket — `/api/yjs`
+
+A Hocuspocus-backed Yjs channel for per-note collaborative editing. One endpoint serves every note: Hocuspocus multiplexes documents over a single socket by name, so the note id travels in the protocol as the document name rather than in the path.
+
+Authentication uses the Hocuspocus `Auth` message, not `Sec-WebSocket-Protocol` — clients send the bearer token as the provider's `token` option. The server's `onAuthenticate` hook resolves the token to a user and then verifies that the user owns the note named by that document, rejecting with a permission-denied message before the document is created or joined. Checking the document name rather than a path segment is what makes the check binding: Hocuspocus keys its document map on the name in the frame and never reads the URL.
+
+Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres).
