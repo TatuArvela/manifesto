@@ -1,7 +1,7 @@
 {
-  "name": "Manifesto",
-  "short_name": "Manifesto",
-  "description": "Sticky-note style note-taking app.",
+  "name": "%APP_NAME%",
+  "short_name": "%APP_NAME%",
+  "description": "%APP_DESCRIPTION%",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

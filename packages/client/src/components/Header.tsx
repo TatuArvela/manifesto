@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
-import logoUrl from "../assets/logo.svg";
+import { APP_LOGO_URL, APP_NAME } from "../config.js";
 import { getColorPickerColors, plural, t } from "../i18n/index.js";
 import {
   activeView,
@@ -248,7 +248,7 @@ export function Header() {
   const viewTitle = (() => {
     switch (activeView.value) {
       case "active":
-        return t("app.name");
+        return APP_NAME;
       case "tags":
         return t("nav.tags");
       case "reminders":
@@ -276,7 +276,7 @@ export function Header() {
           bar fills the padded area. */}
       <div class="flex items-center gap-2 z-10 pl-1 md:pl-2 min-w-0 md:max-w-[max(11rem,calc(50vw-19rem))]">
         {activeView.value === "active" && (
-          <img src={logoUrl} alt="" class="h-6 w-6 shrink-0 dark:invert" />
+          <img src={APP_LOGO_URL} alt="" class="h-6 w-6 shrink-0 dark:invert" />
         )}
         <h1
           class="text-lg font-semibold truncate select-none"

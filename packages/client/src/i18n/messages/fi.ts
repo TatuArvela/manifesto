@@ -1,9 +1,6 @@
 import type { Messages } from "./index.js";
 
 export const fi: Messages = {
-  // App
-  "app.name": "Manifesto",
-
   // Sidebar / navigation / view titles
   "nav.notes": "Muistiinpanot",
   "nav.tags": "Tunnisteet",
@@ -265,7 +262,7 @@ export const fi: Messages = {
   "settings.autoNotes": "Automaattiset muistiinpanot",
   "settings.autoNotes.empty.title": "Muistiinpanot, jotka kirjoittavat itsensä",
   "settings.autoNotes.empty.intro":
-    "Automaattisen muistiinpanon luo pieni JavaScript-laajennus, jonka kirjoitat tai liität itse. Laajennus suoritetaan hiekkalaatikossa selaimessasi aina kun Manifesto käynnistyy, ja sen palauttama sisältö ilmestyy tähän muistiinpanona.",
+    "Automaattisen muistiinpanon luo pieni JavaScript-laajennus, jonka kirjoitat tai liität itse. Laajennus suoritetaan hiekkalaatikossa selaimessasi aina kun {appName} käynnistyy, ja sen palauttama sisältö ilmestyy tähän muistiinpanona.",
   "settings.autoNotes.empty.uses": "Kätevä esimerkiksi näihin:",
   "settings.autoNotes.empty.use.countdown":
     "Laskuri tärkeään päivään: syntymäpäivään, määräaikaan tai matkaan",
@@ -274,7 +271,7 @@ export const fi: Messages = {
   "settings.autoNotes.empty.use.recurring":
     "Tarkistuslista, joka palaa säännöllisin väliajoin",
   "settings.autoNotes.empty.outro":
-    "Automaattiset muistiinpanot kirjoitetaan uusiksi joka ajolla, joten niihin tehdyt muokkaukset eivät jää voimaan. Lisää laajennus yllä olevasta painikkeesta tai osoita Manifesto URL-osoitteeseen, jolloin se pysyy ajan tasalla.",
+    "Automaattiset muistiinpanot kirjoitetaan uusiksi joka ajolla, joten niihin tehdyt muokkaukset eivät jää voimaan. Lisää laajennus yllä olevasta painikkeesta tai osoita {appName} URL-osoitteeseen, jolloin se pysyy ajan tasalla.",
   "settings.autoNotes.add": "Lisää laajennus",
   "settings.autoNotes.add.paste": "Liitä koodi",
   "settings.autoNotes.add.url": "URL-osoitteesta",
@@ -289,7 +286,6 @@ export const fi: Messages = {
   "settings.autoNotes.untitled": "(Nimetön)",
   "settings.autoNotes.origin.inline": "Liitetty",
   "settings.autoNotes.origin.url": "URL",
-  "settings.about.version": "Manifesto",
   "settings.about.repo": "GitHub",
   "settings.about.license": "MIT-lisenssillä",
   "storage.quotaExceeded":
@@ -374,7 +370,7 @@ export const fi: Messages = {
   "cta.11": "Kiinnitä tämä ajatus! 📍",
 
   // Login screen
-  "login.title": "Kirjaudu Manifestoon",
+  "login.title": "Kirjaudu palveluun {appName}",
   "login.tabSignIn": "Kirjaudu",
   "login.tabRegister": "Luo tili",
   "login.username": "Käyttäjätunnus",
@@ -401,7 +397,7 @@ export const fi: Messages = {
   // Crash fallback (ErrorBoundary)
   "error.title": "Jotain meni pieleen",
   "error.body":
-    "Manifesto kohtasi odottamattoman virheen eikä voi näyttää muistiinpanojasi. Ne ovat yhä tallessa tällä laitteella.",
+    "{appName} kohtasi odottamattoman virheen eikä voi näyttää muistiinpanojasi. Ne ovat yhä tallessa tällä laitteella.",
   "error.reload": "Lataa uudelleen",
   "error.backup": "Lataa varmuuskopio",
   "error.details": "Tekniset tiedot",

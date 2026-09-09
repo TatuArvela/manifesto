@@ -13,6 +13,7 @@ import {
 import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
+import { APP_FILE_SLUG, APP_NAME } from "../config.js";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { getFontLabel, plural, t } from "../i18n/index.js";
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
@@ -275,7 +276,7 @@ export function SettingsDialog() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `manifesto-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `${APP_FILE_SLUG}-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setDataStatus(t("settings.data.exported"));
@@ -576,7 +577,7 @@ export function SettingsDialog() {
 
           <div class="pt-2 border-t border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 space-y-1">
             <p>
-              {t("settings.about.version")} v{__APP_VERSION__}
+              {APP_NAME} v{__APP_VERSION__}
             </p>
             <p>
               <a

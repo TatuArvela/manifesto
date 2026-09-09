@@ -1,5 +1,6 @@
 import type { AuthMethodsResponse } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
+import { APP_NAME } from "../config.js";
 import { t } from "../i18n/index.js";
 import {
   fetchAuthMethods,
@@ -40,7 +41,7 @@ export function LoginScreen() {
     <div class="min-h-dvh flex items-center justify-center px-4 py-8 bg-neutral-50 dark:bg-neutral-900">
       <div class="w-full max-w-sm rounded-2xl bg-white dark:bg-neutral-800 shadow-lg border border-neutral-200 dark:border-neutral-700 p-6">
         <h1 class="text-2xl font-semibold text-center mb-1 text-neutral-900 dark:text-neutral-50">
-          {t("app.name")}
+          {APP_NAME}
         </h1>
         <p class="text-sm text-center text-neutral-500 dark:text-neutral-400 mb-6">
           {t("login.title")}
