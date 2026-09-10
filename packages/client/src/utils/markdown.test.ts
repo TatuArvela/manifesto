@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { isChecklistLine, segmentContent } from "./markdown.js";
+import {
+  isChecklistLine,
+  markFencedLines,
+  parseChecklistLine,
+  segmentContent,
+  setChecklistChecked,
+} from "./markdown.js";
 
 describe("isChecklistLine", () => {
   it("matches standard checklist syntax", () => {
@@ -293,5 +299,115 @@ describe("checklist item removal (backspace on empty item)", () => {
     // Segments: checklist("- [ ] A"), text(""), checklist("- [ ] B")
     // Focus goes to text segment 1, position "last"
     expect(result).toEqual({ segIndex: 1, position: "last" });
+  });
+});
+
+describe("empty checklist items", () => {
+  // Pressing Enter in the editor makes an item with no label yet. Requiring
+  // "`] `" meant it stopped counting as a checklist line the moment it was
+  // created: the box disappeared, the text re-rendered as literal `- [ ]`,
+  // and there was no longer anything to click to get it back.
+  it.each(["- [ ]", "- [x]", "[ ]", "  - [ ]"])("matches %o", (line) => {
+    expect(isChecklistLine(line)).toBe(true);
+  });
+
+  it("parses one with an empty label", () => {
+    expect(parseChecklistLine("  - [ ]")).toEqual({
+      indent: "  ",
+      bullet: "- ",
+      checked: false,
+      label: "",
+    });
+  });
+
+  it("keeps it a checklist line through a toggle", () => {
+    const toggled = setChecklistChecked("- [ ]", true);
+    expect(toggled).toBe("- [x]");
+    expect(isChecklistLine(toggled)).toBe(true);
+  });
+
+  it("does not leave a trailing space when there is no label", () => {
+    // `${indent}${bullet}[x] ${label}` used to write "- [x] " — invisible in
+    // the editor, but the note's content is no longer what it was.
+    expect(setChecklistChecked("- [x]", false)).toBe("- [ ]");
+  });
+});
+
+describe("parseChecklistLine", () => {
+  it("reports the parts a caller needs to rewrite the line", () => {
+    expect(parseChecklistLine("    * [X] Buy **milk**")).toEqual({
+      indent: "    ",
+      bullet: "* ",
+      checked: true,
+      label: "Buy **milk**",
+    });
+  });
+
+  it("returns null for anything else", () => {
+    expect(parseChecklistLine("- plain")).toBe(null);
+    expect(parseChecklistLine("[y] nope")).toBe(null);
+  });
+
+  it("preserves indent and marker when toggling", () => {
+    expect(setChecklistChecked("    * [ ] Deep", true)).toBe("    * [x] Deep");
+  });
+});
+
+describe("fenced code", () => {
+  const fence = "```";
+
+  it("keeps a code block in one text segment", () => {
+    // A note documenting our own checklist syntax used to have its code block
+    // cut in half, with the middle rendered as live checkboxes.
+    const content = [
+      "Syntax:",
+      fence,
+      "- [ ] todo",
+      "- [x] done",
+      fence,
+      "after",
+    ].join("\n");
+
+    expect(segmentContent(content)).toEqual([
+      {
+        type: "text",
+        startLine: 0,
+        lines: ["Syntax:", fence, "- [ ] todo", "- [x] done", fence, "after"],
+      },
+    ]);
+  });
+
+  it("still segments checklists outside the block", () => {
+    const content = ["- [ ] real", fence, "- [ ] fake", fence].join("\n");
+    const segments = segmentContent(content);
+    expect(segments).toHaveLength(2);
+    expect(segments[0]).toEqual({
+      type: "checklist",
+      startLine: 0,
+      lines: ["- [ ] real"],
+    });
+    expect(segments[1].type).toBe("text");
+  });
+
+  it("does not let a tilde fence close a backtick one", () => {
+    const lines = [fence, "~~~", "- [ ] inside", fence, "- [ ] outside"];
+    expect(markFencedLines(lines)).toEqual([true, true, true, true, false]);
+  });
+
+  it("treats an unclosed fence as running to the end", () => {
+    const lines = ["text", fence, "- [ ] inside"];
+    expect(markFencedLines(lines)).toEqual([false, true, true]);
+  });
+
+  it("allows a longer fence to contain a shorter one", () => {
+    const lines = ["````", fence, "code", fence, "````", "out"];
+    expect(markFencedLines(lines)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+    ]);
   });
 });

@@ -65,12 +65,22 @@ const PURIFY_CONFIG = {
   ],
 };
 
+/**
+ * `allowDangerousHtml` is what lets `<u>`, `<sub>` and `<sup>` survive.
+ * Without it `remark-rehype` drops every raw HTML node before DOMPurify is
+ * ever asked, so the three tags our own formatting toolbar writes vanished
+ * from previews while sitting in the allowlist below, apparently permitted.
+ *
+ * The "dangerous" is real and it is `renderMarkdown`'s job to answer: raw HTML
+ * now reaches the sanitizer, which is the boundary that was always meant to
+ * decide this. Nothing outside `ALLOWED_TAGS` / `ALLOWED_ATTR` gets through.
+ */
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkBreaks)
-  .use(remarkRehype)
-  .use(rehypeStringify);
+  .use(remarkRehype, { allowDangerousHtml: true })
+  .use(rehypeStringify, { allowDangerousHtml: true });
 
 /**
  * Markdown to HTML, sanitized. Every caller feeds the result to
@@ -81,4 +91,21 @@ const processor = unified()
  */
 export function renderMarkdown(md: string): string {
   return DOMPurify.sanitize(String(processor.processSync(md)), PURIFY_CONFIG);
+}
+
+/**
+ * The same rendering for a fragment that has to sit inside a line — a
+ * checklist item's label, which lives next to its checkbox. A single wrapping
+ * paragraph is unwrapped; anything block-shaped keeps its markup, since a
+ * label that really does contain a list is better ugly than swallowed.
+ *
+ * Checklist labels used to be printed as plain text, so `**milk**` in an item
+ * showed its asterisks while the same text one line below, outside the list,
+ * rendered bold.
+ */
+export function renderInlineMarkdown(md: string): string {
+  const html = renderMarkdown(md).trim();
+  const single = /^<p>([\s\S]*)<\/p>$/.exec(html);
+  if (!single || single[1].includes("<p>")) return html;
+  return single[1];
 }

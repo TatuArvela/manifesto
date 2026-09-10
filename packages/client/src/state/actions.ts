@@ -11,6 +11,11 @@ import { subscribeToExternalNotes } from "../storage/LocalStorageAdapter.js";
 import { NoteConflictError } from "../storage/RestApiAdapter.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
 import {
+  isChecklistLine,
+  parseChecklistLine,
+  setChecklistChecked,
+} from "../utils/markdown.js";
+import {
   clearAutoNoteOverride,
   updateAutoNoteOverride,
 } from "./autoNoteOverrides.js";
@@ -80,10 +85,8 @@ export function upsertById(list: Note[], note: Note): Note[] {
 
 // --- Derived ---
 
-const CHECKBOX_LINE_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\] (.*)$/;
-
 export function noteHasChecklist(content: string): boolean {
-  return content.split("\n").some((line) => CHECKBOX_LINE_RE.test(line));
+  return content.split("\n").some(isChecklistLine);
 }
 
 export const filteredNotes = computed(() => {
@@ -628,10 +631,9 @@ export async function reorderNotes(
 }
 
 export function hasCheckedItems(content: string): boolean {
-  return content.split("\n").some((line) => {
-    const m = line.match(CHECKBOX_LINE_RE);
-    return !!m && m[3].toLowerCase() === "x";
-  });
+  return content
+    .split("\n")
+    .some((line) => parseChecklistLine(line)?.checked === true);
 }
 
 export async function deleteCheckedItems(id: string) {
@@ -641,17 +643,15 @@ export async function deleteCheckedItems(id: string) {
   const toRemove = new Set<number>();
 
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(CHECKBOX_LINE_RE);
-    if (!m) continue;
-    const [, indent, , marker] = m;
-    if (marker.toLowerCase() !== "x") continue;
+    const item = parseChecklistLine(lines[i]);
+    if (!item?.checked) continue;
     toRemove.add(i);
     // Sweep up indented descendants so subtrees go with their parent.
-    const parentIndent = indent.length;
+    const parentIndent = item.indent.length;
     for (let j = i + 1; j < lines.length; j++) {
-      const childMatch = lines[j].match(CHECKBOX_LINE_RE);
-      if (!childMatch) break;
-      if (childMatch[1].length <= parentIndent) break;
+      const child = parseChecklistLine(lines[j]);
+      if (!child) break;
+      if (child.indent.length <= parentIndent) break;
       toRemove.add(j);
     }
   }
@@ -665,21 +665,19 @@ export async function toggleCheckbox(id: string, lineIndex: number) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
   const lines = note.content.split("\n");
-  const m = lines[lineIndex].match(CHECKBOX_LINE_RE);
-  if (!m) return;
-  const [, indent, bullet, marker, rest] = m;
-  const next = marker === " " ? "x" : " ";
-  lines[lineIndex] = `${indent}${bullet}[${next}] ${rest}`;
+  const item = parseChecklistLine(lines[lineIndex]);
+  if (!item) return;
+  const next = !item.checked;
+  lines[lineIndex] = setChecklistChecked(lines[lineIndex], next);
 
   // Cascade to descendants — subsequent contiguous checkbox lines with
   // greater indent. Matches the editor's subtree toggle behavior.
-  const parentIndent = indent.length;
+  const parentIndent = item.indent.length;
   for (let i = lineIndex + 1; i < lines.length; i++) {
-    const childMatch = lines[i].match(CHECKBOX_LINE_RE);
-    if (!childMatch) break;
-    const [, childIndent, childBullet, , childRest] = childMatch;
-    if (childIndent.length <= parentIndent) break;
-    lines[i] = `${childIndent}${childBullet}[${next}] ${childRest}`;
+    const child = parseChecklistLine(lines[i]);
+    if (!child) break;
+    if (child.indent.length <= parentIndent) break;
+    lines[i] = setChecklistChecked(lines[i], next);
   }
 
   await updateNote(id, { content: lines.join("\n") });
