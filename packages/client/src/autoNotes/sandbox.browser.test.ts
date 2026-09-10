@@ -81,32 +81,71 @@ describe("sandbox", () => {
     );
   });
 
-  it("rebuilds the sandbox after a timeout", async () => {
-    // We simulate a non-responsive plugin by throwing an object whose
-    // `.message` getter itself throws — this makes the sandbox's catch
-    // handler throw before it can postMessage an error back to the host,
-    // so no response ever arrives and the host timeout must fire.
-    // (In browser-testing mode the iframe shares the main thread with the
-    // parent, so a real while(true) would block the host's setTimeout.)
-    const silentSrc = `
-      _default = () => {
-        const evil = {};
-        Object.defineProperty(evil, "message", {
-          get: function() { throw new Error("unreachable") }
-        });
-        throw evil;
-      };
-    `;
-    await expect(runPlugin(silentSrc, CTX, 300)).rejects.toThrow(/timed out/);
+  it("times out a plugin that never returns, and rebuilds", async () => {
+    // The plugin this exists for. Before plugins ran on their own thread
+    // this test could not be written: the loop occupied the thread the host
+    // timer needed, so the tab hung instead of timing out, and the test had
+    // to fake a non-responsive plugin by throwing an object whose `.message`
+    // getter threw.
+    const spinSrc = `_default = () => { while (true) {} };`;
+    await expect(runPlugin(spinSrc, CTX, 300)).rejects.toThrow(/timed out/);
 
-    // A fresh invocation should still work — the sandbox was rebuilt.
+    // A fresh invocation should still work — the sandbox was rebuilt, and
+    // tearing down the frame took its spinning worker with it.
     const okSrc = `_default = () => ({ title: "ok", content: "still here" });`;
     const notes = await runPlugin(okSrc, CTX);
     expect(notes[0].title).toBe("ok");
   }, 10_000);
 
-  it("blocks access to window.parent DOM via opaque origin", async () => {
-    // Reading cross-origin parent properties throws SecurityError.
+  it("leaves the host's event loop running while a plugin spins", async () => {
+    const spinSrc = `_default = () => { while (true) {} };`;
+    const ticks: number[] = [];
+    const ticker = setInterval(() => ticks.push(Date.now()), 20);
+    try {
+      await expect(runPlugin(spinSrc, CTX, 300)).rejects.toThrow(/timed out/);
+    } finally {
+      clearInterval(ticker);
+    }
+    // A blocked main thread would have starved the interval entirely; the
+    // timeout itself is the other half of the same evidence.
+    expect(ticks.length).toBeGreaterThan(3);
+  }, 10_000);
+
+  it("drops a colour the plugin invented", async () => {
+    // The host validates, so `noteColorMap[color]` can't be handed a string
+    // it has no entry for — which threw while a card rendered.
+    const src = `
+      _default = () => ({ title: "t", content: "c", color: "hotpink" });
+    `;
+    const notes = await runPlugin(src, CTX);
+    expect(notes[0].color).toBeUndefined();
+  });
+
+  it("keeps a note whose sibling fields are not serializable", async () => {
+    // JSON on the wire rather than a structured clone: a function-valued
+    // field would make `postMessage` throw a DataCloneError, which would
+    // surface as a sandbox fault rather than as the plugin's own doing.
+    const src = `
+      _default = () => ({ title: "t", content: "c", render: () => 1 });
+    `;
+    const notes = await runPlugin(src, CTX);
+    expect(notes[0].title).toBe("t");
+  });
+
+  it("refuses a run that returns more notes than the cap", async () => {
+    const src = `
+      _default = () => {
+        const out = [];
+        for (let i = 0; i < 500; i++) out.push({ title: "t", content: "c" });
+        return out;
+      };
+    `;
+    await expect(runPlugin(src, CTX)).rejects.toThrow(/the limit is 100/);
+  });
+
+  it("gives a plugin no window to reach the host through", async () => {
+    // A worker has no `window` at all, and the frame that owns it has an
+    // opaque origin, so the fallback path throws SecurityError here instead.
     const src = `
       _default = () => {
         const title = window.parent.document.title;
@@ -117,8 +156,8 @@ describe("sandbox", () => {
   });
 
   it("has no access to host localStorage", async () => {
-    // Opaque-origin iframes can't persist to storage; localStorage.setItem
-    // throws SecurityError.
+    // Unavailable in a worker; and denied to an opaque origin on the
+    // fallback path, where `setItem` throws SecurityError.
     const src = `
       _default = () => {
         localStorage.setItem("pwned", "yes");
