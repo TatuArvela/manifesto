@@ -1,6 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { computePanelPosition, type DropdownPlacement } from "./Dropdown.js";
 import { hideAllTooltips } from "./Tooltip.js";
 
@@ -13,12 +14,6 @@ import { hideAllTooltips } from "./Tooltip.js";
  * the menu of any card near the top of the page over the header and off the
  * screen.
  */
-/** True while a CardPopover is open. It closes itself on Escape, so anything
- *  else listening for Escape has to stand aside. */
-export function hasOpenCardPopover(): boolean {
-  return document.querySelector(".card-popover") !== null;
-}
-
 export function CardPopover({
   anchorRef,
   onClose,
@@ -69,14 +64,9 @@ export function CardPopover({
   // the pointer never leaves the trigger, so no `pointerleave` arrives.
   useEffect(hideAllTooltips, []);
 
-  // Close on Escape
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  // Mounted only while open, so it is always the top of the stack when it is
+  // on screen.
+  useEscapeStack(true, onClose);
 
   return createPortal(
     <>

@@ -18,9 +18,10 @@ import {
   Undo2,
   X,
 } from "lucide-preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { getColorPickerColors, t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
@@ -68,13 +69,7 @@ export function NoteReadonlyView({
   const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
+  useEscapeStack(true, onClose);
 
   const html = renderMarkdown(note.content);
 

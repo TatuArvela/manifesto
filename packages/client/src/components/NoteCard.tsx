@@ -70,6 +70,9 @@ import { ReminderPickerPanel } from "./ReminderPicker.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
+/** How long the modal's fade-out runs — matches its `duration-150` classes. */
+const MODAL_CLOSE_MS = 150;
+
 // --- Sub-components ---
 
 function CardColorPicker({
@@ -481,13 +484,33 @@ export function NoteCard({
     (!note.content.trim() ||
       contentIsOnlyPreviewUrls(note.content, note.linkPreviews));
 
-  // Show modal when editing starts
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // `editingNoteId` is the only thing that decides whether this card's modal is
+  // up, in both directions: setting it opens the modal, clearing it plays the
+  // close animation and takes it down. The effect used to have no `else`, so
+  // anything that moved editing elsewhere without going through `closeModal` —
+  // a reminder banner opening another note, a notification, a `note:updated`
+  // that trashed this one — left the modal on screen over a note nothing was
+  // editing any more, and a second modal could open behind it.
   useEffect(() => {
     if (isEditing) {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
       setShowModal(true);
       setClosing(false);
+      return;
     }
-  }, [isEditing]);
+    if (!showModal || closing) return;
+    setClosing(true);
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
+      setShowModal(false);
+      setClosing(false);
+    }, MODAL_CLOSE_MS);
+  }, [isEditing, showModal, closing]);
 
   useEffect(() => {
     const el = contentRef.current;
@@ -503,8 +526,6 @@ export function NoteCard({
     return () => ro.disconnect();
   }, [note.title, note.content, note.images.length, note.linkPreviews.length]);
 
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(
     () => () => {
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
@@ -512,15 +533,9 @@ export function NoteCard({
     [],
   );
 
+  /** Closing is a request to stop editing; the effect above does the rest. */
   const closeModal = () => {
-    setClosing(true);
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = setTimeout(() => {
-      closeTimerRef.current = null;
-      setShowModal(false);
-      setClosing(false);
-      editingNoteId.value = null;
-    }, 150);
+    editingNoteId.value = null;
   };
 
   const handleClick = () => {

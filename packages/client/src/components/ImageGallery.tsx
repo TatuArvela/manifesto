@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useState } from "preact/hooks";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { t } from "../i18n/index.js";
 
 interface ImageGalleryProps {
@@ -80,15 +81,17 @@ function ImageLightbox({
     onChangeIndex((index - 1 + images.length) % images.length);
   const showNext = () => onChangeIndex((index + 1) % images.length);
 
+  useEscapeStack(true, onClose);
+
   useEffect(() => {
+    if (!hasMultiple) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      else if (hasMultiple && e.key === "ArrowLeft") showPrev();
-      else if (hasMultiple && e.key === "ArrowRight") showNext();
+      if (e.key === "ArrowLeft") showPrev();
+      else if (e.key === "ArrowRight") showNext();
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose, hasMultiple, index, images.length]);
+  }, [hasMultiple, index, images.length]);
 
   return createPortal(
     <>

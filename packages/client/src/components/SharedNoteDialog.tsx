@@ -1,5 +1,6 @@
-import { useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import type { SharedNotePayload } from "../sharing.js";
 import { clearShareHash } from "../sharing.js";
 import { createNote } from "../state/actions.js";
@@ -24,13 +25,7 @@ export function SharedNoteDialog({
     }, 150);
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") dismiss();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  useEscapeStack(true, dismiss);
 
   const handleSave = async () => {
     try {
