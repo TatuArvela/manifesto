@@ -10,6 +10,7 @@ import {
 } from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   activeView,
@@ -27,9 +28,7 @@ import {
   downloadNoteAsMarkdown,
 } from "../utils/importExport.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
-import { hasOpenAutoPopover } from "./Dropdown.js";
 import { NoteEditor } from "./NoteEditor.js";
-import { hasOpenCardPopover } from "./Popover.js";
 
 const ctaKeys: MessageKey[] = [
   "cta.0",
@@ -92,20 +91,9 @@ export function NoteInput() {
   // Escape closes the editor, saving as clicking outside does. Held in a ref
   // because it has to be registered up here with the other hooks, above the
   // early return, while `closeModal` is defined further down with the state it
-  // captures.
-  useEffect(() => {
-    if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // Anything opened from inside the editor gets Escape first: the colour
-      // and font menus light-dismiss themselves, and the reminder picker
-      // closes itself.
-      if (hasOpenAutoPopover() || hasOpenCardPopover()) return;
-      closeModalRef.current();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [expanded]);
+  // captures. Anything opened from inside the editor registers later and takes
+  // the key first.
+  useEscapeStack(expanded, () => closeModalRef.current());
 
   // Re-pick colors when the default note color setting changes
   const colorSetting = defaultNoteColor.value;

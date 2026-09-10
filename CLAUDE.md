@@ -116,6 +116,15 @@ remove is load-bearing:
 - **NoteEditor** is fully prop-driven (title, content, color, font, callbacks). Parent components (`NoteCardEditor`, `NoteInput`) own the state.
 - **NoteCardEditor** wraps NoteEditor for editing existing notes — manages auto-save (500ms debounce) and version history. Undo/redo is delegated to Milkdown.
 - **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) — `open`/`onClose`/`trigger`/`children` props.
+- **Escape** goes through `hooks/useEscapeStack.ts` and nowhere else — never bind a `keydown`
+  listener for it. One document listener hands a press to the layer that became active last, so a
+  new dismissable layer only has to call `useEscapeStack(active, close)`; binding your own brings
+  back the bug where one press closed the picker *and* the editor under it. Ordering is by
+  activation, not nesting (Preact runs a child's effects first), so a layer must not become active
+  in the same render as one it sits inside. `Dropdown` closes its own panel rather than leaving it
+  to the Popover API — Chromium skips the light-dismiss when focus is inside ProseMirror.
+- **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
+  clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
 
 ### API Contract
 

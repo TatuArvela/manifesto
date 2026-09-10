@@ -1,6 +1,7 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { formatDateTime, t } from "../i18n/index.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
 import { buildShareUrl } from "../sharing.js";
@@ -136,16 +137,12 @@ export function NoteCardEditor({
     };
   }, []);
 
-  // Escape to close
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") saveAndCloseRef.current();
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
+  // Escape saves and closes. The version panel and any picker opened from
+  // inside the editor register after this one and take the key first — the
+  // version panel had no Escape handling of its own at all, so a press over it
+  // used to close the editor underneath instead.
+  useEscapeStack(true, () => saveAndCloseRef.current());
+  useEscapeStack(showVersions && !versionsClosing, closeVersions);
 
   // Auto-save on any title/content change
   useEffect(() => {
@@ -288,6 +285,10 @@ export function NoteCardEditor({
           } else {
             archiveNote(note.id);
           }
+          // Both directions move the note out of the view it was opened from,
+          // so leaving the editor up would strand it over a grid the note is
+          // no longer in — the same reason `onDelete` closes.
+          onClose();
         }}
         archived={note.archived}
         trashed={note.trashed}

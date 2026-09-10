@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import {
   getColorLabel,
   getColorPickerColors,
@@ -21,7 +22,6 @@ import {
 } from "../i18n/index.js";
 import {
   clearSearchFilters,
-  editingNoteId,
   exitSearch,
   type SearchLocation,
   type SearchType,
@@ -29,13 +29,11 @@ import {
   searchLocations,
   searchQuery,
   searchTypes,
-  showSettings,
   sortedNotes,
   toggleSearchColor,
   toggleSearchLocation,
   toggleSearchType,
 } from "../state/index.js";
-import { hasOpenAutoPopover } from "./Dropdown.js";
 
 const TYPE_META: {
   key: SearchType;
@@ -173,20 +171,11 @@ export function SearchView() {
     }
   }, []);
 
-  // Escape leaves the search view. Bound to the document rather than the
-  // input so it works wherever focus happens to be, but it defers to anything
-  // layered on top that owns Escape itself: the note editor, the settings
-  // panel, and any open popover (which the Popover API light-dismisses).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (editingNoteId.value !== null || showSettings.value) return;
-      if (hasOpenAutoPopover()) return;
-      exitSearch();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  // Escape leaves the search view, wherever focus happens to be. This view is
+  // the bottom layer while it is up, so anything opened over it — the note
+  // editor, the settings panel, a popover — registers later and takes the key
+  // first.
+  useEscapeStack(true, exitSearch);
 
   return (
     // Centred on its own, rather than relying on the wrapper App puts around

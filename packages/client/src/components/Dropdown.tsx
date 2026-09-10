@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef } from "preact/hooks";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { hideAllTooltips } from "./Tooltip.js";
 
 let nextId = 0;
@@ -9,18 +10,6 @@ export type DropdownPlacement =
   | "bottom-end"
   | "top-start"
   | "top-end";
-
-/**
- * True while a light-dismissing popover is open. Views that bind Escape
- * globally use this to stand aside and let the popover close alone.
- *
- * Deliberately narrower than `:popover-open`: tooltips are `popover="manual"`
- * and are never dismissed by Escape, so treating one as "something else will
- * handle this" swallows the key press entirely.
- */
-export function hasOpenAutoPopover(): boolean {
-  return document.querySelector('[popover="auto"]:popover-open') !== null;
-}
 
 /**
  * Whether the browser can position the panel against its trigger in CSS.
@@ -129,6 +118,14 @@ export function Dropdown({
   const anchorRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  // Closed here rather than left to the Popover API's own Escape handling: with
+  // focus inside the editor's ProseMirror, Chromium does not run the
+  // light-dismiss (measured), so relying on it would make Escape do nothing at
+  // all now that the layer underneath correctly stands aside. `hidePopover` on
+  // an already-hidden panel is a no-op, so the browser is welcome to get there
+  // first; either way the `toggle` listener above reports the close upward.
+  useEscapeStack(open, () => panelRef.current?.hidePopover());
 
   useEffect(() => {
     const el = panelRef.current;

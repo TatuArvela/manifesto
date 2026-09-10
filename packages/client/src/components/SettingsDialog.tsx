@@ -14,6 +14,7 @@ import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
 import { APP_FILE_SLUG, APP_NAME } from "../config.js";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { getFontLabel, plural, t } from "../i18n/index.js";
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
@@ -42,7 +43,7 @@ import {
   theme,
 } from "../state/index.js";
 import { importFiles } from "../utils/importExport.js";
-import { Dropdown, hasOpenAutoPopover } from "./Dropdown.js";
+import { Dropdown } from "./Dropdown.js";
 import { Switch, ThreeWayToggle } from "./ToggleSwitch.js";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
@@ -245,18 +246,8 @@ export function SettingsDialog() {
     showSettings.value = false;
   };
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // A select menu inside the panel is a popover that light-dismisses on
-      // Escape itself; let it close alone rather than taking the panel with it.
-      if (hasOpenAutoPopover()) return;
-      handleClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [isOpen]);
+  // A select menu inside the panel registers after it and closes alone.
+  useEscapeStack(isOpen, handleClose);
 
   // animationend bubbles, so ignore anything a descendant fires — only the
   // panel's own slide-out marks the close as finished.
