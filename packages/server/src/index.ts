@@ -6,6 +6,7 @@ import { createAuthProvider } from "./auth/index.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./lib/logger.js";
 import { startSessionCleanup } from "./lib/sessionCleanup.js";
+import { createShutdown } from "./lib/shutdown.js";
 import { startTrashCleanup } from "./lib/trashCleanup.js";
 import { createStorage } from "./storage/index.js";
 import { VERSION } from "./version.js";
@@ -32,6 +33,25 @@ const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
 }) as unknown as HttpServer;
 
 ws.injectWebSocket(server);
-attachYjsSocket({ httpServer: server, storage, authProvider, cfg });
-startTrashCleanup(storage, broadcaster);
-startSessionCleanup(storage);
+const yjs = attachYjsSocket({ httpServer: server, storage, authProvider, cfg });
+const stopTrashCleanup = startTrashCleanup(storage, broadcaster);
+const stopSessionCleanup = startSessionCleanup(storage);
+
+const shutdown = createShutdown({
+  closeServer: () =>
+    new Promise<void>((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    }),
+  destroyRealtime: () => yjs.destroy(),
+  // `close()` waits for open sockets and a collaboration socket is open by
+  // design, so its callback only arrives once these are gone.
+  dropConnections: () => server.closeAllConnections?.(),
+  stopJobs: [stopTrashCleanup, stopSessionCleanup],
+  closeStorage: () => storage.close(),
+});
+
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, () => {
+    void shutdown().then(() => process.exit(0));
+  });
+}
