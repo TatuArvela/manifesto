@@ -1,3 +1,4 @@
+import { toAutoNoteResults } from "./results.js";
 import type { ApproxLabels } from "./stdlib.js";
 import { buildStdlibPrelude } from "./stdlib.js";
 import type { AutoNoteResult, PluginContextInput } from "./types.js";
@@ -14,11 +15,23 @@ import type { AutoNoteResult, PluginContextInput } from "./types.js";
 // The sandbox attribute is `allow-scripts` (no `allow-same-origin`), giving
 // the iframe an opaque origin — no access to host storage, cookies, or DOM.
 //
+// Inside the frame, the plugin itself runs in a blob Worker, which is what
+// makes the timeout below mean anything: a plugin that never returns occupies
+// only the worker's thread, so this timer still fires and tearing down the
+// iframe takes the worker with it. When the frame runs a plugin on its own
+// thread instead (an engine that refuses a worker at an opaque origin), a
+// `while (true)` blocks the host too and the timeout cannot be enforced —
+// hence the warning on that path.
+//
+// Whatever the plugin returns is JSON on the wire and validated here, in
+// `results.ts`. The frame deliberately checks nothing: a plugin that has
+// subverted it would pass its own checks.
+//
 // Flow:
 //   1. Host creates iframe, awaits `load` event.
 //   2. Iframe posts `sandbox-booted` to parent.
 //   3. Host posts `init` with the stdlib prelude string.
-//   4. Iframe evaluates the prelude, posts `init-ok`.
+//   4. Iframe evaluates the prelude, starts its worker, posts `init-ok`.
 //   5. Host's `ready` promise resolves.
 //   6. Per plugin invocation: host posts `run`, iframe posts `run-ok|run-err`.
 
@@ -34,7 +47,8 @@ interface RunRequest {
 interface RunOkResponse {
   type: "run-ok";
   id: number;
-  notes: AutoNoteResult[];
+  /** `JSON.stringify({ value })` of whatever the plugin's functions returned. */
+  json: string;
 }
 
 interface RunErrResponse {
@@ -84,6 +98,14 @@ function createSandbox(): SandboxHandle {
         return;
       }
       if (data.type === "init-ok" && data.id === initId) {
+        if (data.mode !== "worker") {
+          console.warn(
+            "auto-notes: this browser refused a worker in the sandbox frame, " +
+              "so plugins run on the main thread and a plugin that never " +
+              "returns will hang the tab.",
+            data.workerError,
+          );
+        }
         resolve();
         return;
       }
@@ -149,8 +171,16 @@ export async function runPlugin(
     let timer: ReturnType<typeof setTimeout> | null = null;
     handle.pending.set(id, (res) => {
       if (timer) clearTimeout(timer);
-      if (res.type === "run-err") reject(new Error(res.error));
-      else resolve(res.notes ?? []);
+      if (res.type === "run-err") {
+        reject(new Error(res.error));
+        return;
+      }
+      try {
+        const payload = JSON.parse(res.json) as { value?: unknown };
+        resolve(toAutoNoteResults(payload.value));
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
     timer = setTimeout(() => {
       if (!handle.pending.has(id)) return;
