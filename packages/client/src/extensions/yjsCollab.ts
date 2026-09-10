@@ -4,6 +4,14 @@ import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from "y-prosemirror";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 
+/**
+ * Name of the shared `Y.XmlFragment` the editor binds to. Exported because
+ * `MilkdownEditor` has to look at the same fragment to decide whether it is
+ * empty — checking a different one would seed a document that already has
+ * content, or blank one that does not.
+ */
+export const DEFAULT_FRAGMENT_NAME = "prosemirror";
+
 export interface YjsCollabOptions {
   ydoc: Y.Doc;
   fragmentName?: string;
@@ -19,7 +27,7 @@ export interface YjsCollabOptions {
 export const yjsCollab =
   ({
     ydoc,
-    fragmentName = "prosemirror",
+    fragmentName = DEFAULT_FRAGMENT_NAME,
     awareness,
   }: YjsCollabOptions): MilkdownPlugin =>
   (ctx) => {
