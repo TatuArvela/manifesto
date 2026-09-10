@@ -1,7 +1,6 @@
 import { NoteColor } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  createNote,
   filteredNotes,
   noteHasChecklist,
   notes,

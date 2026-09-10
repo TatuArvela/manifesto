@@ -1,5 +1,5 @@
 import { NoteFont } from "@manifesto/shared";
-import { effect, signal } from "@preact/signals";
+import { batch, effect, signal } from "@preact/signals";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { isLocale, type Locale } from "../i18n/locales.js";
 
@@ -196,6 +196,40 @@ export function resolvedDecimalSeparator(): "." | "," {
   return locale.value === "fi" ? "," : ".";
 }
 
+/**
+ * True while another tab's preferences are being applied. Every pref is
+ * written back as one blob, so a tab that adopts a remote change and then
+ * saves would send the same content around again; worse, a tab that never
+ * adopted it would overwrite the change with its own stale copy on the next
+ * unrelated toggle — change the theme in one tab, switch view mode in
+ * another, and the theme is back.
+ */
+let applyingRemotePrefs = false;
+
+/** Adopts a preferences blob written by another tab. */
+export function applyPrefs(loaded: LoadedPrefs) {
+  applyingRemotePrefs = true;
+  try {
+    batch(() => {
+      viewMode.value = loaded.viewMode;
+      sortMode.value = loaded.sortMode;
+      noteSize.value = loaded.noteSize;
+      theme.value = loaded.theme;
+      defaultNoteColor.value = loaded.defaultNoteColor;
+      defaultNoteFont.value = loaded.defaultNoteFont;
+      locale.value = loaded.locale;
+      inlineCalculations.value = loaded.inlineCalculations;
+      decimalSeparator.value = loaded.decimalSeparator;
+      noteCorners.value = loaded.noteCorners;
+      animations.value = loaded.animations;
+      darkHue.value = loaded.darkHue;
+      noteQuips.value = loaded.noteQuips;
+    });
+  } finally {
+    applyingRemotePrefs = false;
+  }
+}
+
 // Persist preferences when any pref signal changes (debounced)
 let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 effect(() => {
@@ -213,9 +247,18 @@ effect(() => {
   animations.value;
   darkHue.value;
   noteQuips.value;
+  // The reads above stay unconditional: they are what subscribes this effect.
+  if (applyingRemotePrefs) return;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(savePrefs, 50);
 });
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key !== null && event.key !== PREFS_KEY) return;
+    applyPrefs(parsePrefs(event.newValue ?? localStorage.getItem(PREFS_KEY)));
+  });
+}
 
 // --- Note corners ---
 

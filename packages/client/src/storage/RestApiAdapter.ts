@@ -1,4 +1,11 @@
-import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
+import type {
+  ErrorResponse,
+  Note,
+  NoteCreate,
+  NoteResponse,
+  NotesResponse,
+  NoteUpdate,
+} from "@manifesto/shared";
 import type { StorageAdapter } from "./StorageAdapter.js";
 
 export interface RestApiAdapterOptions {
@@ -44,7 +51,7 @@ export class RestApiAdapter implements StorageAdapter {
     if (res.status === 401) this.onUnauthorized?.();
     let message = fallback;
     try {
-      const data = (await res.json()) as { error?: unknown };
+      const data = (await res.json()) as Partial<ErrorResponse>;
       if (typeof data.error === "string" && data.error.length > 0) {
         message = data.error;
       }
@@ -59,7 +66,7 @@ export class RestApiAdapter implements StorageAdapter {
       headers: this.headers(),
     });
     if (!res.ok) await this.fail(res, "Failed to fetch notes");
-    const data = await res.json();
+    const data = (await res.json()) as NotesResponse;
     return data.notes;
   }
 
@@ -69,7 +76,7 @@ export class RestApiAdapter implements StorageAdapter {
     });
     if (res.status === 404) return null;
     if (!res.ok) await this.fail(res, "Failed to fetch note");
-    const data = await res.json();
+    const data = (await res.json()) as NoteResponse;
     return data.note;
   }
 
@@ -80,7 +87,7 @@ export class RestApiAdapter implements StorageAdapter {
       body: JSON.stringify(note),
     });
     if (!res.ok) await this.fail(res, "Failed to create note");
-    const data = await res.json();
+    const data = (await res.json()) as NoteResponse;
     return data.note;
   }
 
@@ -100,11 +107,11 @@ export class RestApiAdapter implements StorageAdapter {
       body: JSON.stringify(changes),
     });
     if (res.status === 412) {
-      const data = (await res.json()) as { note?: Note };
+      const data = (await res.json()) as Partial<NoteResponse>;
       if (data?.note) throw new NoteConflictError(data.note);
     }
     if (!res.ok) await this.fail(res, "Failed to update note");
-    const data = await res.json();
+    const data = (await res.json()) as NoteResponse;
     return data.note;
   }
 
@@ -159,7 +166,7 @@ export class RestApiAdapter implements StorageAdapter {
       { headers: this.headers() },
     );
     if (!res.ok) await this.fail(res, "Failed to search notes");
-    const data = await res.json();
+    const data = (await res.json()) as NotesResponse;
     return data.notes;
   }
 }

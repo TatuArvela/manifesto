@@ -52,6 +52,27 @@ function saveNotes(notes: Note[]): void {
   }
 }
 
+/**
+ * Calls `onChange` when another tab writes the notes key, with the list as it
+ * now stands on disk.
+ *
+ * Every tab holds the whole list in a signal and writes all of it back on any
+ * edit, so without this the last tab to save wins: trash a note in one tab,
+ * change anything at all in another, and the trashed note is back. The event
+ * only fires in tabs other than the writer, so this cannot loop.
+ */
+export function subscribeToExternalNotes(
+  onChange: (notes: Note[]) => void,
+): () => void {
+  const handler = (event: StorageEvent) => {
+    if (event.key !== null && event.key !== STORAGE_KEY) return;
+    // A null key means the whole store was cleared.
+    onChange(loadNotes());
+  };
+  window.addEventListener("storage", handler);
+  return () => window.removeEventListener("storage", handler);
+}
+
 export class LocalStorageAdapter implements StorageAdapter {
   async getAll(): Promise<Note[]> {
     return loadNotes();

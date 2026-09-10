@@ -1,4 +1,8 @@
-import type { WebSocketClientEvent, WebSocketEvent } from "@manifesto/shared";
+import type {
+  PresenceUser,
+  WebSocketClientEvent,
+  WebSocketEvent,
+} from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
 import { loadNotes, notes, upsertById } from "../state/actions.js";
 import { authToken, clearAuthLocal, SERVER_URL } from "../state/auth.js";
@@ -38,10 +42,43 @@ function clearReconnect() {
   }
 }
 
-function isServerEvent(value: unknown): value is WebSocketEvent {
+function isPresenceUser(value: unknown): value is PresenceUser {
   if (!value || typeof value !== "object") return false;
-  const v = value as { type?: unknown };
-  return typeof v.type === "string";
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.id === "string" &&
+    typeof v.displayName === "string" &&
+    typeof v.avatarColor === "string"
+  );
+}
+
+/**
+ * Discriminates on the payload, not just on `type` — the mirror of the
+ * server's `isClientEvent`. Accepting anything with a string `type` narrowed
+ * to the union without checking the fields the branches then read, so a
+ * malformed `note:created` put `undefined` into the notes list and a card
+ * threw during render.
+ */
+export function isServerEvent(value: unknown): value is WebSocketEvent {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  switch (v.type) {
+    case "note:created":
+    case "note:updated":
+      return (
+        typeof v.note === "object" &&
+        v.note !== null &&
+        typeof (v.note as { id?: unknown }).id === "string"
+      );
+    case "note:deleted":
+      return typeof v.id === "string";
+    case "presence:join":
+      return typeof v.noteId === "string" && isPresenceUser(v.user);
+    case "presence:leave":
+      return typeof v.noteId === "string" && typeof v.userId === "string";
+    default:
+      return false;
+  }
 }
 
 function applyServerEvent(event: WebSocketEvent) {

@@ -1,10 +1,29 @@
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toasts } from "../state/ui.js";
-import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
+import {
+  LocalStorageAdapter,
+  subscribeToExternalNotes,
+} from "./LocalStorageAdapter.js";
 import { _resetQuotaReporter } from "./quotaReporter.js";
 
 const STORAGE_KEY = "manifesto:notes";
+
+const sampleNote = {
+  title: "Test",
+  content: "Hello",
+  color: NoteColor.Default,
+  font: NoteFont.Default,
+  pinned: false,
+  archived: false,
+  trashed: false,
+  trashedAt: null,
+  position: 0,
+  tags: ["test"],
+  images: [],
+  linkPreviews: [],
+  reminder: null,
+};
 
 describe("LocalStorageAdapter", () => {
   let adapter: LocalStorageAdapter;
@@ -17,22 +36,6 @@ describe("LocalStorageAdapter", () => {
   afterEach(() => {
     localStorage.clear();
   });
-
-  const sampleNote = {
-    title: "Test",
-    content: "Hello",
-    color: NoteColor.Default,
-    font: NoteFont.Default,
-    pinned: false,
-    archived: false,
-    trashed: false,
-    trashedAt: null,
-    position: 0,
-    tags: ["test"],
-    images: [],
-    linkPreviews: [],
-    reminder: null,
-  };
 
   it("creates and retrieves a note", async () => {
     const note = await adapter.create(sampleNote);
@@ -181,5 +184,88 @@ describe("LocalStorageAdapter", () => {
       setItem.mockRestore();
       toasts.value = [];
     }
+  });
+});
+
+describe("cross-tab note changes", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  /** What the browser delivers to the *other* tabs after a write. */
+  function otherTabWrote(notes: unknown[]) {
+    const value = JSON.stringify(notes);
+    localStorage.setItem(STORAGE_KEY, value);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: STORAGE_KEY,
+        newValue: value,
+        storageArea: localStorage,
+      }),
+    );
+  }
+
+  it("reports the list another tab wrote", async () => {
+    // Every tab holds the whole list and writes all of it back on any edit, so
+    // without hearing this a tab puts its stale copy back: trash a note in one
+    // tab, change anything in another, and the trashed note returns.
+    const adapter = new LocalStorageAdapter();
+    const kept = await adapter.create({ ...sampleNote, title: "Kept" });
+    const trashed = await adapter.create({ ...sampleNote, title: "Trashed" });
+
+    const seen: Note[][] = [];
+    const stop = subscribeToExternalNotes((notes) => seen.push(notes));
+    try {
+      otherTabWrote([{ ...trashed, trashed: true }, kept]);
+    } finally {
+      stop();
+    }
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0].find((n) => n.id === trashed.id)?.trashed).toBe(true);
+  });
+
+  it("reports an empty list when the whole store is cleared", () => {
+    const seen: Note[][] = [];
+    const stop = subscribeToExternalNotes((notes) => seen.push(notes));
+    try {
+      // `localStorage.clear()` in another tab arrives with a null key.
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: null, storageArea: localStorage }),
+      );
+    } finally {
+      stop();
+    }
+
+    expect(seen).toEqual([[]]);
+  });
+
+  it("ignores writes to other keys", () => {
+    const seen: Note[][] = [];
+    const stop = subscribeToExternalNotes((notes) => seen.push(notes));
+    try {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "manifesto:prefs",
+          newValue: "{}",
+          storageArea: localStorage,
+        }),
+      );
+    } finally {
+      stop();
+    }
+
+    expect(seen).toEqual([]);
+  });
+
+  it("stops reporting once unsubscribed", () => {
+    const seen: Note[][] = [];
+    subscribeToExternalNotes((notes) => seen.push(notes))();
+    otherTabWrote([]);
+    expect(seen).toEqual([]);
   });
 });
