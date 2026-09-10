@@ -85,6 +85,16 @@ Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM p
 
 `MilkdownEditor` reads markdown via `getMarkdown()` and post-processes it (`unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with our preview.
 
+**Collaborative binding.** Once `collab` is supplied, the shared `Y.XmlFragment` is the authority
+and the `content` prop must never be written into a fragment that already holds something — doing
+so deletes another session's work on every device at once. Three pieces enforce that, and the
+tests in `MilkdownEditor.browser.test.tsx` / `NoteCardEditor.browser.test.tsx` fail if any one is
+removed: `NoteCardEditor` withholds `collab` until the provider reports `synced`, `NoteEditor` keys
+the editor on `collab` so it rebuilds with the plugin installed, and `MilkdownEditor` seeds the
+fragment from the note *only* when it is empty. Any effect with `editor` in its dep array also runs
+at mount, after `ySyncPlugin` has rendered the shared document — so an effect that pushes local
+content must first establish that it is reacting to a change and not to the editor's arrival.
+
 ### Auto-notes Plugin Sandbox
 
 Auto-notes run user-supplied JavaScript, so it executes at three removes from the app and each

@@ -18,7 +18,7 @@ import type * as Y from "yjs";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
 import { taskItemDraggable } from "../extensions/taskItemDraggable.js";
-import { yjsCollab } from "../extensions/yjsCollab.js";
+import { DEFAULT_FRAGMENT_NAME, yjsCollab } from "../extensions/yjsCollab.js";
 import { useMilkdownEditor } from "../hooks/useMilkdownEditor.js";
 
 /** prosemirror-markdown escapes `[` `]` per CommonMark; our content uses literal
@@ -144,7 +144,9 @@ export function MilkdownEditor({
   // here means the server has none either.
   useEffect(() => {
     if (!editor || !collab) return;
-    const fragment = collab.ydoc.getXmlFragment("prosemirror");
+    const fragment = collab.ydoc.getXmlFragment(
+      collab.fragmentName ?? DEFAULT_FRAGMENT_NAME,
+    );
     if (fragment.length > 0) return;
     const initial = initialContentRef.current;
     if (initial.trim().length === 0) return;
@@ -178,8 +180,22 @@ export function MilkdownEditor({
     });
   }, [editor, disabled, contentLocked]);
 
+  // Carries the raw-mode content across a toggle. `null` until the first
+  // toggle, which is how the effect below tells a real mode change from the
+  // editor simply arriving: this effect's deps include `editor`, so it also
+  // fires on the null → instance transition at mount, and its `else` branch
+  // would then push the `content` prop into a document that was already built
+  // from it. Harmless solo; in collab it overwrites the shared fragment that
+  // ySyncPlugin has just rendered — the note's real content replaced by
+  // whatever this client happened to have, which is the data loss the seeding
+  // effect above exists to avoid.
+  const previousRawModeRef = useRef<boolean | null>(null);
+
   useEffect(() => {
     if (!editor) return;
+    const toggled = previousRawModeRef.current !== null;
+    previousRawModeRef.current = !!rawMode;
+    if (!toggled) return;
     if (rawMode) {
       const md = getEditorMarkdown(editor);
       setRawContent(md);
