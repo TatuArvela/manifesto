@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { t } from "../i18n/index.js";
 import {
   archiveNote,
-  createNote,
   expireTrash,
   filteredNotes,
   loadNotes,

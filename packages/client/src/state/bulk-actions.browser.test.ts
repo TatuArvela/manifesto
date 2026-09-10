@@ -9,7 +9,6 @@ import {
   bulkPin,
   bulkSetColor,
   bulkTrash,
-  createNote,
   deleteTag,
   enterSelectMode,
   exitSelectMode,

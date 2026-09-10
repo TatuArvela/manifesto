@@ -5,7 +5,7 @@ import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import type { SharedNotePayload } from "../sharing.js";
 import { clearShareHash } from "../sharing.js";
 import { createNote } from "../state/actions.js";
-import { showError, showSuccess } from "../state/ui.js";
+import { showSuccess } from "../state/ui.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
 
 export function SharedNoteDialog({

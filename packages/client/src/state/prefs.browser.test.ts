@@ -245,3 +245,75 @@ describe("noteQuips", () => {
     expect(typeof noteQuips.value).toBe("boolean");
   });
 });
+
+describe("cross-tab preferences", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    theme.value = "system";
+    viewMode.value = "grid";
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    theme.value = "system";
+    viewMode.value = "grid";
+  });
+
+  /**
+   * What the browser delivers to the *other* tabs after a write. The event
+   * never fires in the tab that wrote, which is why adopting it cannot loop.
+   */
+  function otherTabWrote(prefs: Record<string, unknown>) {
+    const value = JSON.stringify(prefs);
+    localStorage.setItem(PREFS_KEY, value);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: PREFS_KEY,
+        newValue: value,
+        storageArea: localStorage,
+      }),
+    );
+  }
+
+  it("adopts a preference another tab changed", () => {
+    otherTabWrote({ theme: "dark", viewMode: "grid" });
+    expect(theme.value).toBe("dark");
+  });
+
+  it("does not overwrite it with a stale copy on the next local change", async () => {
+    // The whole blob is written on every change, so a tab that never heard
+    // about the other's edit puts its own old value back: change the theme in
+    // one tab, switch view mode in another, and the theme is light again.
+    otherTabWrote({ theme: "dark", viewMode: "grid" });
+
+    viewMode.value = "list";
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const persisted = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}");
+    expect(persisted.theme).toBe("dark");
+    expect(persisted.viewMode).toBe("list");
+  });
+
+  it("does not write back what it just adopted", async () => {
+    // Let any save this test's own setup queued run first, so what we look
+    // for afterwards can only have come from adopting.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    otherTabWrote({ theme: "dark", viewMode: "grid" });
+    localStorage.removeItem(PREFS_KEY);
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(localStorage.getItem(PREFS_KEY)).toBe(null);
+  });
+
+  it("ignores writes to other keys", () => {
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "manifesto:notes",
+        newValue: "[]",
+        storageArea: localStorage,
+      }),
+    );
+    expect(theme.value).toBe("system");
+  });
+});

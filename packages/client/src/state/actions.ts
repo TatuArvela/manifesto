@@ -2,7 +2,12 @@ import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
 import { type MessageKey, plural, t } from "../i18n/index.js";
-import { createStorage } from "../storage/index.js";
+import {
+  createStorage,
+  currentStorage,
+  LocalStorageAdapter,
+} from "../storage/index.js";
+import { subscribeToExternalNotes } from "../storage/LocalStorageAdapter.js";
 import { NoteConflictError } from "../storage/RestApiAdapter.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
 import {
@@ -31,6 +36,17 @@ import {
 // --- Storage ---
 
 const storage = createStorage();
+
+// Another tab's edits, in open mode. Server mode gets the same news over the
+// WebSocket and never writes this key, so the listener is scoped to the
+// adapter that owns it rather than left to fire against a stale local copy.
+if (typeof window !== "undefined") {
+  subscribeToExternalNotes((next) => {
+    if (currentStorage.value instanceof LocalStorageAdapter) {
+      notes.value = next;
+    }
+  });
+}
 
 // --- Signals ---
 
