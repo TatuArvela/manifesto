@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { t } from "../i18n/index.js";
 import {
   archiveNote,
   createNote,
@@ -17,7 +18,8 @@ import {
   upsertById,
 } from "./actions.js";
 import { sortMode } from "./prefs.js";
-import { activeView, searchQuery } from "./ui.js";
+import { createNoteOrFail } from "./testSupport.js";
+import { activeView, searchQuery, toasts } from "./ui.js";
 
 describe("state actions", () => {
   beforeEach(() => {
@@ -33,7 +35,7 @@ describe("state actions", () => {
   });
 
   it("createNote adds a note to state and storage", async () => {
-    const note = await createNote({ title: "Hello" });
+    const note = await createNoteOrFail({ title: "Hello" });
     expect(note.title).toBe("Hello");
     expect(notes.value).toHaveLength(1);
     expect(notes.value[0].id).toBe(note.id);
@@ -43,37 +45,41 @@ describe("state actions", () => {
     // In server mode the backend can broadcast note:created (which upserts into
     // the list) before our own create() resolves. Simulate that echo landing
     // first, then let createNote's optimistic insert run.
-    const note = await createNote({ title: "Echoed" });
+    const note = await createNoteOrFail({ title: "Echoed" });
     notes.value = upsertById(notes.value, note); // second, racing insert
     expect(notes.value.filter((n) => n.id === note.id)).toHaveLength(1);
     expect(notes.value).toHaveLength(1);
   });
 
   it("upsertById replaces an existing note in place", async () => {
-    const note = await createNote({ title: "First" });
+    const note = await createNoteOrFail({ title: "First" });
     notes.value = upsertById(notes.value, { ...note, title: "Edited" });
     expect(notes.value).toHaveLength(1);
     expect(notes.value[0].title).toBe("Edited");
   });
 
   it("updateNote modifies a note", async () => {
-    const note = await createNote({ title: "Original" });
+    const note = await createNoteOrFail({ title: "Original" });
     await updateNote(note.id, { title: "Updated" });
     expect(notes.value[0].title).toBe("Updated");
   });
 
-  it("updateNote throws for nonexistent note", async () => {
-    await expect(updateNote("fake", { title: "X" })).rejects.toThrow();
+  it("updateNote reports a nonexistent note rather than rejecting", async () => {
+    // The contract at the top of actions.ts: an action tells the user and
+    // resolves. Rejecting instead left every JSX handler — none of which can
+    // hold a `catch` — raising an unhandled rejection the user never saw.
+    await expect(updateNote("fake", { title: "X" })).resolves.toBe(false);
+    expect(toasts.value.at(-1)?.message).toBe(t("error.saveFailed"));
   });
 
   it("permanentlyDeleteNote removes from state", async () => {
-    const note = await createNote({ title: "Delete me" });
+    const note = await createNoteOrFail({ title: "Delete me" });
     await permanentlyDeleteNote(note.id);
     expect(notes.value).toHaveLength(0);
   });
 
   it("trashNote sets trashed flag", async () => {
-    const note = await createNote({ title: "Trash me" });
+    const note = await createNoteOrFail({ title: "Trash me" });
     await trashNote(note.id);
     expect(notes.value[0].trashed).toBe(true);
     expect(notes.value[0].trashedAt).toBeTruthy();
@@ -81,7 +87,7 @@ describe("state actions", () => {
   });
 
   it("restoreNote clears trashed flag", async () => {
-    const note = await createNote({ title: "Restore me" });
+    const note = await createNoteOrFail({ title: "Restore me" });
     await trashNote(note.id);
     await restoreNote(note.id);
     expect(notes.value[0].trashed).toBe(false);
@@ -89,7 +95,7 @@ describe("state actions", () => {
   });
 
   it("archiveNote and unarchiveNote toggle archived", async () => {
-    const note = await createNote({ title: "Archive" });
+    const note = await createNoteOrFail({ title: "Archive" });
     await archiveNote(note.id);
     expect(notes.value[0].archived).toBe(true);
     await unarchiveNote(note.id);
@@ -97,7 +103,7 @@ describe("state actions", () => {
   });
 
   it("togglePin flips the pinned flag", async () => {
-    const note = await createNote({ title: "Pin me" });
+    const note = await createNoteOrFail({ title: "Pin me" });
     expect(notes.value[0].pinned).toBe(false);
     await togglePin(note.id);
     expect(notes.value[0].pinned).toBe(true);
@@ -106,7 +112,7 @@ describe("state actions", () => {
   });
 
   it("toggleCheckbox flips checkbox state", async () => {
-    const note = await createNote({ content: "- [ ] A\n- [x] B" });
+    const note = await createNoteOrFail({ content: "- [ ] A\n- [x] B" });
     await toggleCheckbox(note.id, 0);
     expect(notes.value[0].content).toBe("- [x] A\n- [x] B");
     await toggleCheckbox(note.id, 1);
@@ -114,7 +120,7 @@ describe("state actions", () => {
   });
 
   it("toggleCheckbox cascades to nested descendants", async () => {
-    const note = await createNote({
+    const note = await createNoteOrFail({
       content:
         "- [ ] Parent\n  - [ ] Child\n    - [ ] Grandchild\n  - [x] Child2\n- [ ] Sibling",
     });
@@ -129,7 +135,7 @@ describe("state actions", () => {
   });
 
   it("toggleCheckbox on leaf does not touch siblings", async () => {
-    const note = await createNote({
+    const note = await createNoteOrFail({
       content: "- [ ] Parent\n  - [ ] Child1\n  - [ ] Child2",
     });
     await toggleCheckbox(note.id, 1);
@@ -139,7 +145,7 @@ describe("state actions", () => {
   });
 
   it("loadNotes reads from storage", async () => {
-    await createNote({ title: "Persisted" });
+    await createNoteOrFail({ title: "Persisted" });
     notes.value = [];
     expect(notes.value).toHaveLength(0);
     await loadNotes();
@@ -161,17 +167,17 @@ describe("filteredNotes", () => {
   });
 
   it("active view hides archived and trashed notes", async () => {
-    await createNote({ title: "Active" });
-    await createNote({ title: "Archived", archived: true });
-    await createNote({ title: "Trashed", trashed: true });
+    await createNoteOrFail({ title: "Active" });
+    await createNoteOrFail({ title: "Archived", archived: true });
+    await createNoteOrFail({ title: "Trashed", trashed: true });
     activeView.value = "active";
     expect(filteredNotes.value).toHaveLength(1);
     expect(filteredNotes.value[0].title).toBe("Active");
   });
 
   it("trash view shows only trashed notes", async () => {
-    await createNote({ title: "Active" });
-    const trashed = await createNote({ title: "Trashed" });
+    await createNoteOrFail({ title: "Active" });
+    const trashed = await createNoteOrFail({ title: "Trashed" });
     await trashNote(trashed.id);
     activeView.value = "trash";
     expect(filteredNotes.value).toHaveLength(1);
@@ -179,9 +185,9 @@ describe("filteredNotes", () => {
   });
 
   it("archived view shows only archived (not trashed)", async () => {
-    const n1 = await createNote({ title: "Archived" });
+    const n1 = await createNoteOrFail({ title: "Archived" });
     await archiveNote(n1.id);
-    const n2 = await createNote({ title: "Both" });
+    const n2 = await createNoteOrFail({ title: "Both" });
     await archiveNote(n2.id);
     await trashNote(n2.id);
     activeView.value = "archived";
@@ -190,9 +196,12 @@ describe("filteredNotes", () => {
   });
 
   it("search filters by title and content", async () => {
-    await createNote({ title: "Grocery list" });
-    await createNote({ title: "Code review", content: "check groceries" });
-    await createNote({ title: "Random" });
+    await createNoteOrFail({ title: "Grocery list" });
+    await createNoteOrFail({
+      title: "Code review",
+      content: "check groceries",
+    });
+    await createNoteOrFail({ title: "Random" });
     searchQuery.value = "grocer";
     expect(filteredNotes.value).toHaveLength(2);
   });
@@ -212,17 +221,17 @@ describe("sortedNotes", () => {
   });
 
   it("default sort by position", async () => {
-    await createNote({ title: "C", position: 3 });
-    await createNote({ title: "A", position: 1 });
-    await createNote({ title: "B", position: 2 });
+    await createNoteOrFail({ title: "C", position: 3 });
+    await createNoteOrFail({ title: "A", position: 1 });
+    await createNoteOrFail({ title: "B", position: 2 });
     sortMode.value = "default";
     expect(sortedNotes.value.map((n) => n.title)).toEqual(["A", "B", "C"]);
   });
 
   it("sort by created (newest first)", async () => {
-    await createNote({ title: "First" });
+    await createNoteOrFail({ title: "First" });
     await new Promise((r) => setTimeout(r, 5));
-    await createNote({ title: "Second" });
+    await createNoteOrFail({ title: "Second" });
     sortMode.value = "created";
     expect(sortedNotes.value[0].title).toBe("Second");
   });
@@ -242,13 +251,13 @@ describe("expireTrash", () => {
     const oldDate = new Date(
       Date.now() - 31 * 24 * 60 * 60 * 1000,
     ).toISOString();
-    await createNote({
+    await createNoteOrFail({
       title: "Old trashed",
       trashed: true,
       trashedAt: oldDate,
     });
-    await createNote({ title: "Recent trashed", trashed: true });
-    await createNote({ title: "Active" });
+    await createNoteOrFail({ title: "Recent trashed", trashed: true });
+    await createNoteOrFail({ title: "Active" });
 
     await expireTrash();
     expect(notes.value).toHaveLength(2);
@@ -259,7 +268,7 @@ describe("expireTrash", () => {
   });
 
   it("does not delete recently trashed notes", async () => {
-    await createNote({
+    await createNoteOrFail({
       title: "Recent",
       trashed: true,
       trashedAt: new Date().toISOString(),

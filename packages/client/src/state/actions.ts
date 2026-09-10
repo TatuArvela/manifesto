@@ -1,7 +1,7 @@
 import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
-import { t } from "../i18n/index.js";
+import { type MessageKey, plural, t } from "../i18n/index.js";
 import { createStorage } from "../storage/index.js";
 import { NoteConflictError } from "../storage/RestApiAdapter.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
@@ -239,13 +239,64 @@ export function pickDefaultFont(): NoteFont {
 
 // --- Actions ---
 
-export async function loadNotes() {
+/**
+ * The contract for everything below: an action reports its own failure and
+ * resolves. It never rejects, and it says whether it worked in its return
+ * value — `false`, or `null` where a value was expected.
+ *
+ * Throwing does not survive contact with the call sites, which are JSX
+ * handlers: `onClick={() => updateNote(...)}` has nowhere to put a `catch`, so
+ * a rejection there is an unhandled rejection that the user never sees. The
+ * previous arrangement did both — toast *and* rethrow — which meant every
+ * caller either ignored the rejection or reported the failure a second time.
+ */
+
+interface Batch {
+  failures: number;
+}
+
+let batch: Batch | null = null;
+
+function reportFailure(context: string, err: unknown, message: MessageKey) {
+  console.error(context, err);
+  if (batch) {
+    batch.failures++;
+    return;
+  }
+  showError(t(message));
+}
+
+/**
+ * Runs a group of actions as one operation. Their failures are counted rather
+ * than each raising its own toast — twenty selected notes that all fail used
+ * to mean twenty toasts — and one message names the total at the end. Nested
+ * batches join the outer one, so `bulkAddTag` reports once and not twice.
+ */
+async function asBatch(run: () => Promise<void>): Promise<boolean> {
+  const outer = batch;
+  const current = outer ?? { failures: 0 };
+  batch = current;
+  try {
+    await run();
+  } finally {
+    batch = outer;
+  }
+  if (outer) return current.failures === 0;
+  if (current.failures > 0) {
+    showError(plural("error.bulkFailed", current.failures));
+    return false;
+  }
+  return true;
+}
+
+export async function loadNotes(): Promise<boolean> {
   try {
     notes.value = await storage.getAll();
     await expireTrash();
+    return true;
   } catch (err) {
-    console.error("Failed to load notes:", err);
-    showError(t("error.loadFailed"));
+    reportFailure("Failed to load notes:", err, "error.loadFailed");
+    return false;
   }
 }
 
@@ -255,7 +306,9 @@ export async function loadNotes() {
 // end of the manual-order list — same as the pre-reorder behavior.
 const POSITION_STEP = 1000;
 
-export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
+export async function createNote(
+  input: Partial<NoteCreate>,
+): Promise<Note | null> {
   const noteCreate: NoteCreate = {
     title: input.title ?? "",
     content: input.content ?? "",
@@ -276,13 +329,15 @@ export async function createNote(input: Partial<NoteCreate>): Promise<Note> {
     notes.value = upsertById(notes.value, note);
     return note;
   } catch (err) {
-    console.error("Failed to create note:", err);
-    showError(t("error.createFailed"));
-    throw err;
+    reportFailure("Failed to create note:", err, "error.createFailed");
+    return null;
   }
 }
 
-export async function updateNote(id: string, changes: NoteUpdate) {
+export async function updateNote(
+  id: string,
+  changes: NoteUpdate,
+): Promise<boolean> {
   // Generated notes have readonly title/content but mutable metadata. Route
   // the allowed fields to the per-note override sidecar.
   if (id.startsWith("generated:")) {
@@ -306,7 +361,7 @@ export async function updateNote(id: string, changes: NoteUpdate) {
       ...(reminder !== undefined && { reminder }),
       ...(position !== undefined && { position }),
     });
-    return null;
+    return true;
   }
   const base = notes.value.find((n) => n.id === id) ?? null;
   try {
@@ -316,7 +371,7 @@ export async function updateNote(id: string, changes: NoteUpdate) {
       base ? { ifMatch: base.updatedAt } : undefined,
     );
     notes.value = notes.value.map((n) => (n.id === id ? note : n));
-    return note;
+    return true;
   } catch (err) {
     if (err instanceof NoteConflictError && base) {
       // Lost the optimistic-concurrency race against a concurrent writer
@@ -328,70 +383,72 @@ export async function updateNote(id: string, changes: NoteUpdate) {
           ifMatch: err.currentNote.updatedAt,
         });
         notes.value = notes.value.map((n) => (n.id === id ? note : n));
-        return note;
+        return true;
       } catch (retryErr) {
-        console.error(`Conflict retry failed for note ${id}:`, retryErr);
-        showError(t("error.saveFailed"));
-        throw retryErr;
+        reportFailure(
+          `Conflict retry failed for note ${id}:`,
+          retryErr,
+          "error.saveFailed",
+        );
+        return false;
       }
     }
-    console.error(`Failed to update note ${id}:`, err);
-    showError(t("error.saveFailed"));
-    throw err;
+    reportFailure(`Failed to update note ${id}:`, err, "error.saveFailed");
+    return false;
   }
 }
 
-export async function permanentlyDeleteNote(id: string) {
+export async function permanentlyDeleteNote(id: string): Promise<boolean> {
   // "Permanent delete" on an auto-note clears the override — the note will
   // reappear on the next render in its default state. (The plugin still owns
   // the source of truth; deletion is never truly permanent for auto-notes.)
   if (id.startsWith("generated:")) {
     clearAutoNoteOverride(id);
-    return;
+    return true;
   }
   try {
     await storage.delete(id);
     notes.value = notes.value.filter((n) => n.id !== id);
     deleteVersions(id);
+    return true;
   } catch (err) {
-    console.error(`Failed to delete note ${id}:`, err);
-    showError(t("error.deleteFailed"));
-    throw err;
+    reportFailure(`Failed to delete note ${id}:`, err, "error.deleteFailed");
+    return false;
   }
 }
 
-export async function deleteAllNotes() {
+export async function deleteAllNotes(): Promise<boolean> {
   try {
     await storage.deleteAll();
     // Re-read instead of assuming []. RestApiAdapter deletes one-by-one and a
     // partial failure (caught above) would otherwise leave the signal lying.
     notes.value = await storage.getAll();
+    return true;
   } catch (err) {
-    console.error("Failed to delete all notes:", err);
-    showError(t("error.deleteFailed"));
+    reportFailure("Failed to delete all notes:", err, "error.deleteFailed");
     notes.value = await storage.getAll().catch(() => notes.value);
-    throw err;
+    return false;
   }
 }
 
-export async function trashNote(id: string) {
-  await updateNote(id, {
+export async function trashNote(id: string): Promise<boolean> {
+  return await updateNote(id, {
     trashed: true,
     trashedAt: new Date().toISOString(),
     archived: false,
   });
 }
 
-export async function restoreNote(id: string) {
-  await updateNote(id, { trashed: false, trashedAt: null });
+export async function restoreNote(id: string): Promise<boolean> {
+  return await updateNote(id, { trashed: false, trashedAt: null });
 }
 
-export async function archiveNote(id: string) {
-  await updateNote(id, { archived: true });
+export async function archiveNote(id: string): Promise<boolean> {
+  return await updateNote(id, { archived: true });
 }
 
-export async function unarchiveNote(id: string) {
-  await updateNote(id, { archived: false });
+export async function unarchiveNote(id: string): Promise<boolean> {
+  return await updateNote(id, { archived: false });
 }
 
 /**
@@ -415,30 +472,36 @@ export async function togglePin(id: string) {
   await updateNote(id, { pinned: !note.pinned });
 }
 
-export async function deleteTag(tag: string) {
+export async function deleteTag(tag: string): Promise<boolean> {
   const affectedIds = notes.value
     .filter((n) => n.tags.includes(tag))
     .map((n) => n.id);
-  for (const id of affectedIds) {
-    const note = notes.value.find((n) => n.id === id);
-    if (note) {
-      await updateNote(id, { tags: note.tags.filter((t) => t !== tag) }).catch(
-        () => {},
-      );
+  const ok = await asBatch(async () => {
+    for (const id of affectedIds) {
+      const note = notes.value.find((n) => n.id === id);
+      if (note) {
+        await updateNote(id, { tags: note.tags.filter((t) => t !== tag) });
+      }
     }
-  }
+  });
   if (activeTag.value === tag) {
     activeTag.value = null;
   }
+  return ok;
 }
 
-export async function addTagToNotes(tag: string, noteIds: Set<string>) {
-  for (const id of noteIds) {
-    const note = notes.value.find((n) => n.id === id);
-    if (note && !note.tags.includes(tag)) {
-      await updateNote(id, { tags: [...note.tags, tag] }).catch(() => {});
+export async function addTagToNotes(
+  tag: string,
+  noteIds: Set<string>,
+): Promise<boolean> {
+  return await asBatch(async () => {
+    for (const id of noteIds) {
+      const note = notes.value.find((n) => n.id === id);
+      if (note && !note.tags.includes(tag)) {
+        await updateNote(id, { tags: [...note.tags, tag] });
+      }
     }
-  }
+  });
 }
 
 // --- Selection ---
@@ -483,67 +546,51 @@ export function toggleSelectNote(id: string) {
   }
 }
 
-export async function bulkPin() {
+/** Applies `act` to every selected note that still exists, as one operation. */
+async function bulkApply(
+  act: (id: string) => Promise<unknown>,
+): Promise<boolean> {
   const ids = [...selectedNotes.value];
-  const allPinned = ids.every(
+  const ok = await asBatch(async () => {
+    for (const id of ids) {
+      if (notes.value.some((n) => n.id === id)) await act(id);
+    }
+  });
+  exitSelectMode();
+  return ok;
+}
+
+export async function bulkPin(): Promise<boolean> {
+  const allPinned = [...selectedNotes.value].every(
     (id) => notes.value.find((n) => n.id === id)?.pinned,
   );
-  for (const id of ids) {
-    if (notes.value.some((n) => n.id === id)) {
-      await updateNote(id, { pinned: !allPinned }).catch(() => {});
-    }
-  }
-  exitSelectMode();
+  return await bulkApply((id) => updateNote(id, { pinned: !allPinned }));
 }
 
-export async function bulkArchive() {
-  for (const id of [...selectedNotes.value]) {
-    if (notes.value.some((n) => n.id === id)) {
-      await archiveNote(id).catch(() => {});
-    }
-  }
-  exitSelectMode();
+export async function bulkArchive(): Promise<boolean> {
+  return await bulkApply(archiveNote);
 }
 
-export async function bulkTrash() {
-  for (const id of [...selectedNotes.value]) {
-    if (notes.value.some((n) => n.id === id)) {
-      await trashNote(id).catch(() => {});
-    }
-  }
-  exitSelectMode();
+export async function bulkTrash(): Promise<boolean> {
+  return await bulkApply(trashNote);
 }
 
-export async function bulkDelete() {
-  for (const id of [...selectedNotes.value]) {
-    if (notes.value.some((n) => n.id === id)) {
-      await permanentlyDeleteNote(id).catch(() => {});
-    }
-  }
-  exitSelectMode();
+export async function bulkDelete(): Promise<boolean> {
+  return await bulkApply(permanentlyDeleteNote);
 }
 
-export async function bulkRestore() {
-  for (const id of [...selectedNotes.value]) {
-    if (notes.value.some((n) => n.id === id)) {
-      await restoreNote(id).catch(() => {});
-    }
-  }
-  exitSelectMode();
+export async function bulkRestore(): Promise<boolean> {
+  return await bulkApply(restoreNote);
 }
 
-export async function bulkSetColor(color: NoteColor) {
-  for (const id of [...selectedNotes.value]) {
-    if (notes.value.some((n) => n.id === id)) {
-      await updateNote(id, { color }).catch(() => {});
-    }
-  }
-  exitSelectMode();
+export async function bulkSetColor(color: NoteColor): Promise<boolean> {
+  return await bulkApply((id) => updateNote(id, { color }));
 }
 
-export async function bulkAddTag(tag: string) {
-  await addTagToNotes(tag, selectedNotes.value);
+export async function bulkAddTag(tag: string): Promise<boolean> {
+  const ok = await addTagToNotes(tag, selectedNotes.value);
   exitSelectMode();
+  return ok;
 }
 
 export async function reorderNotes(
@@ -557,9 +604,11 @@ export async function reorderNotes(
   reordered.splice(toIndex, 0, moved);
   // Spaced positions so new notes can slot above without colliding with the
   // existing range. See nextCreatePosition.
-  for (let i = 0; i < reordered.length; i++) {
-    await updateNote(reordered[i], { position: (i + 1) * POSITION_STEP });
-  }
+  await asBatch(async () => {
+    for (let i = 0; i < reordered.length; i++) {
+      await updateNote(reordered[i], { position: (i + 1) * POSITION_STEP });
+    }
+  });
 }
 
 export function hasCheckedItems(content: string): boolean {
@@ -624,14 +673,14 @@ export function exportNotes(): string {
   return JSON.stringify(notes.value, null, 2);
 }
 
-export async function importNotes(imported: Note[]) {
+export async function importNotes(imported: Note[]): Promise<boolean> {
   try {
     await storage.importAll(imported);
     notes.value = await storage.getAll();
+    return true;
   } catch (err) {
-    console.error("Failed to import notes:", err);
-    showError(t("error.importFailed"));
-    throw err;
+    reportFailure("Failed to import notes:", err, "error.importFailed");
+    return false;
   }
 }
 

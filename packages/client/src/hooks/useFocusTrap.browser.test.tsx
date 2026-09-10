@@ -54,6 +54,18 @@ const focusedId = () => document.activeElement?.id ?? null;
 const tab = () => userEvent.keyboard("{Tab}");
 const shiftTab = () => userEvent.keyboard("{Shift>}{Tab}{/Shift}");
 
+/**
+ * Puts focus on a known control by clicking it. A real key press goes to the
+ * *page*, and test files share one — so without first taking focus here, a Tab
+ * meant for this document can land in another file's frame.
+ */
+async function focusOn(id: string) {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`no #${id}`);
+  await userEvent.click(el);
+  expect(focusedId()).toBe(id);
+}
+
 beforeEach(() => {
   host = document.createElement("div");
   document.body.appendChild(host);
@@ -92,9 +104,7 @@ describe("useFocusTrap", () => {
   it("wraps forward from the last stop instead of leaving the modal", async () => {
     render(<Page />, host);
     expect(focusedId()).toBe("first");
-
-    await tab();
-    expect(focusedId()).toBe("last");
+    await focusOn("last");
 
     // Without the trap this is `after`, and Tab walks on through the grid
     // behind the modal — where the cards are focusable and still open notes.
@@ -104,7 +114,7 @@ describe("useFocusTrap", () => {
 
   it("wraps backward from the first stop", async () => {
     render(<Page />, host);
-    expect(focusedId()).toBe("first");
+    await focusOn("first");
 
     await shiftTab();
     expect(focusedId()).toBe("last");
@@ -127,7 +137,7 @@ describe("useFocusTrap", () => {
       </Trapped>,
       host,
     );
-    expect(focusedId()).toBe("a");
+    await focusOn("a");
 
     await tab();
     expect(focusedId()).toBe("b");
@@ -152,7 +162,7 @@ describe("useFocusTrap", () => {
       </Trapped>,
       host,
     );
-    expect(focusedId()).toBe("only");
+    await focusOn("only");
 
     await tab();
     expect(focusedId()).toBe("in-popover");

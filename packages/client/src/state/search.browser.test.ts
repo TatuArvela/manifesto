@@ -8,6 +8,7 @@ import {
   updateNote,
 } from "./actions.js";
 import { sortMode } from "./prefs.js";
+import { createNoteOrFail } from "./testSupport.js";
 import {
   activeView,
   clearSearchFilters,
@@ -50,9 +51,9 @@ describe("search view filtering", () => {
   });
 
   it("shows no notes when no query or filters are set", async () => {
-    await createNote({ title: "Active" });
-    await createNote({ title: "Archived", archived: true });
-    await createNote({
+    await createNoteOrFail({ title: "Active" });
+    await createNoteOrFail({ title: "Archived", archived: true });
+    await createNoteOrFail({
       title: "Trashed",
       trashed: true,
       trashedAt: new Date().toISOString(),
@@ -61,8 +62,8 @@ describe("search view filtering", () => {
   });
 
   it("filters by checklist type", async () => {
-    await createNote({ title: "Plain" });
-    const checklist = await createNote({
+    await createNoteOrFail({ title: "Plain" });
+    const checklist = await createNoteOrFail({
       title: "List",
       content: "- [ ] do thing",
     });
@@ -71,8 +72,8 @@ describe("search view filtering", () => {
   });
 
   it("filters by image type", async () => {
-    await createNote({ title: "No img" });
-    const withImg = await createNote({
+    await createNoteOrFail({ title: "No img" });
+    const withImg = await createNoteOrFail({
       title: "Photo",
       images: ["data:image/png;base64,xxx"],
     });
@@ -81,8 +82,8 @@ describe("search view filtering", () => {
   });
 
   it("filters by url type", async () => {
-    await createNote({ title: "Plain" });
-    const withLink = await createNote({
+    await createNoteOrFail({ title: "Plain" });
+    const withLink = await createNoteOrFail({
       title: "Link",
       linkPreviews: [
         {
@@ -97,8 +98,8 @@ describe("search view filtering", () => {
   });
 
   it("filters by reminder type", async () => {
-    await createNote({ title: "No reminder" });
-    const withReminder = await createNote({
+    await createNoteOrFail({ title: "No reminder" });
+    const withReminder = await createNoteOrFail({
       title: "Reminder",
       reminder: {
         time: new Date().toISOString(),
@@ -111,15 +112,15 @@ describe("search view filtering", () => {
   });
 
   it("combines multiple types with OR semantics", async () => {
-    const image = await createNote({
+    const image = await createNoteOrFail({
       title: "Image",
       images: ["data:image/png;base64,xxx"],
     });
-    const list = await createNote({
+    const list = await createNoteOrFail({
       title: "List",
       content: "- [ ] item",
     });
-    await createNote({ title: "Neither" });
+    await createNoteOrFail({ title: "Neither" });
     toggleSearchType("images");
     toggleSearchType("checklists");
     const ids = filteredNotes.value.map((n) => n.id).sort();
@@ -127,38 +128,38 @@ describe("search view filtering", () => {
   });
 
   it("filters by color", async () => {
-    const red = await createNote({ title: "Red", color: NoteColor.Red });
-    await createNote({ title: "Blue", color: NoteColor.Blue });
+    const red = await createNoteOrFail({ title: "Red", color: NoteColor.Red });
+    await createNoteOrFail({ title: "Blue", color: NoteColor.Blue });
     toggleSearchColor(NoteColor.Red);
     expect(filteredNotes.value.map((n) => n.id)).toEqual([red.id]);
   });
 
   it("combines types and colors with AND between groups", async () => {
-    const redImg = await createNote({
+    const redImg = await createNoteOrFail({
       title: "RedImg",
       color: NoteColor.Red,
       images: ["data:image/png;base64,xxx"],
     });
-    await createNote({
+    await createNoteOrFail({
       title: "BlueImg",
       color: NoteColor.Blue,
       images: ["data:image/png;base64,xxx"],
     });
-    await createNote({ title: "RedPlain", color: NoteColor.Red });
+    await createNoteOrFail({ title: "RedPlain", color: NoteColor.Red });
     toggleSearchType("images");
     toggleSearchColor(NoteColor.Red);
     expect(filteredNotes.value.map((n) => n.id)).toEqual([redImg.id]);
   });
 
   it("narrows by text query", async () => {
-    const hi = await createNote({ title: "Hello world" });
-    await createNote({ title: "Other" });
+    const hi = await createNoteOrFail({ title: "Hello world" });
+    await createNoteOrFail({ title: "Other" });
     searchQuery.value = "hello";
     expect(filteredNotes.value.map((n) => n.id)).toEqual([hi.id]);
   });
 
   it("clearSearchFilters resets query, types, colors, and locations", async () => {
-    await createNote({ title: "x", color: NoteColor.Red });
+    await createNoteOrFail({ title: "x", color: NoteColor.Red });
     searchQuery.value = "nope";
     toggleSearchType("images");
     toggleSearchColor(NoteColor.Red);
@@ -172,7 +173,7 @@ describe("search view filtering", () => {
   });
 
   it("excludes trashed notes by default even with matching filters", async () => {
-    const withImg = await createNote({
+    const withImg = await createNoteOrFail({
       title: "Trashy",
       images: ["data:image/png;base64,xxx"],
     });
@@ -185,8 +186,8 @@ describe("search view filtering", () => {
   });
 
   it("includes trashed notes when the Trash location is toggled on", async () => {
-    const active = await createNote({ title: "Note one" });
-    const trashed = await createNote({ title: "Note two" });
+    const active = await createNoteOrFail({ title: "Note one" });
+    const trashed = await createNoteOrFail({ title: "Note two" });
     await updateNote(trashed.id, {
       trashed: true,
       trashedAt: new Date().toISOString(),
@@ -198,8 +199,11 @@ describe("search view filtering", () => {
   });
 
   it("narrows to only archived when only Archived is selected", async () => {
-    await createNote({ title: "Note one" });
-    const archived = await createNote({ title: "Note two", archived: true });
+    await createNoteOrFail({ title: "Note one" });
+    const archived = await createNoteOrFail({
+      title: "Note two",
+      archived: true,
+    });
     searchQuery.value = "note";
     toggleSearchLocation("active");
     toggleSearchLocation("archived");
@@ -207,8 +211,8 @@ describe("search view filtering", () => {
   });
 
   it("narrows to only trashed when only Trash is selected", async () => {
-    await createNote({ title: "Note one" });
-    const trashed = await createNote({ title: "Note two" });
+    await createNoteOrFail({ title: "Note one" });
+    const trashed = await createNoteOrFail({ title: "Note two" });
     await updateNote(trashed.id, {
       trashed: true,
       trashedAt: new Date().toISOString(),

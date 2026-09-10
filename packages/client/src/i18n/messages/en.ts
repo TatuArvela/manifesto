@@ -297,6 +297,10 @@ export const en = {
   "error.saveFailed": "Failed to save changes.",
   "error.deleteFailed": "Failed to delete note.",
   "error.importFailed": "Failed to import notes.",
+  "error.bulkFailed": {
+    one: "{count} note could not be changed.",
+    other: "{count} notes could not be changed.",
+  },
 
   // Reminders
   "reminder.set": "Set reminder",
