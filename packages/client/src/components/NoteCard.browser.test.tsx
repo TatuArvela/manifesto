@@ -230,8 +230,15 @@ describe("NoteCard editing modal", () => {
 
     const dialog = document.querySelector('[role="dialog"]');
     expect(dialog).toBeTruthy();
-    // Tab from the last control in the dialog must not walk out into the grid,
-    // where the cards are focusable and still open notes.
+    // Click the title field first: a real key press goes to the page, which
+    // test files share, so this is what makes the presses below land in this
+    // document rather than another file's frame. The title is chosen because
+    // clicking it does nothing but focus it.
+    await userEvent.click(
+      dialog?.querySelector('input[type="text"]') as HTMLElement,
+    );
+    // Tab from anywhere in the dialog must never walk out into the grid, where
+    // the cards are focusable and still open notes.
     for (let i = 0; i < 40; i++) await userEvent.keyboard("{Tab}");
     expect(dialog?.contains(document.activeElement)).toBe(true);
 

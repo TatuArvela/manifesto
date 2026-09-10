@@ -45,6 +45,11 @@ pnpm monorepo with three packages:
 State lives in `packages/client/src/state/` using @preact/signals:
 
 - **`actions.ts`** — Core signals (`notes`, computed `filteredNotes`/`sortedNotes`/`allTags`), and async action functions (`createNote`, `updateNote`, `trashNote`, `bulkArchive`, etc.). Actions modify both signals and the storage adapter.
+  **An action reports its own failure and resolves — it never rejects**, and says whether it worked
+  in its return value (`false`, or `null` where a value was expected). The call sites are JSX
+  handlers with nowhere to put a `catch`, so a rejection there is an unhandled rejection the user
+  never sees. Group work goes through `asBatch`, which counts failures instead of letting each one
+  raise its own toast and reports the total once.
 - **`ui.ts`** — UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
 - **`prefs.ts`** — User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
 - **`router.ts`** — Two-way sync between `activeView`/`activeTag` and the URL hash. `initRouter()` is called once from `App` on mount.

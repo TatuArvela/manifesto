@@ -301,9 +301,11 @@ export function SettingsDialog() {
   };
 
   const handleDeleteAll = async () => {
-    await deleteAllNotes();
+    // `deleteAllNotes` reports its own failure; saying "deleted" regardless
+    // would contradict the toast it just raised.
+    const deleted = await deleteAllNotes();
     setShowDeleteConfirm(false);
-    setDeleteStatus(t("settings.data.deleted"));
+    if (deleted) setDeleteStatus(t("settings.data.deleted"));
   };
 
   return (

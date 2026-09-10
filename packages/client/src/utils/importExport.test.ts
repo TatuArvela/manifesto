@@ -166,8 +166,9 @@ describe("importFiles", () => {
       {
         createNote: async (input) => {
           created.push(input);
+          return baseNote;
         },
-        importBulk: async () => {},
+        importBulk: async () => true,
       },
     );
     expect(summary).toEqual({
@@ -190,8 +191,9 @@ describe("importFiles", () => {
       {
         createNote: async (input) => {
           created.push(input);
+          return baseNote;
         },
-        importBulk: async () => {},
+        importBulk: async () => true,
       },
     );
     expect(summary.singleCount).toBe(1);
@@ -207,9 +209,10 @@ describe("importFiles", () => {
         }),
       ],
       {
-        createNote: async () => {},
+        createNote: async () => baseNote,
         importBulk: async (notes) => {
           bulkLength = notes.length;
+          return true;
         },
       },
     );
@@ -224,13 +227,37 @@ describe("importFiles", () => {
         new File(["{not json"], "b.json", { type: "application/json" }),
       ],
       {
-        createNote: async () => {},
-        importBulk: async () => {},
+        createNote: async () => baseNote,
+        importBulk: async () => true,
       },
     );
     expect(summary.failedCount).toBe(2);
     expect(summary.singleCount).toBe(0);
     expect(summary.bulkCount).toBe(0);
+  });
+
+  it("counts a file the handler could not store as a failure", async () => {
+    // The handlers report their own failure and resolve — see the contract on
+    // `state/actions.ts` — so a falsy result is the only signal that a
+    // perfectly readable file did not make it into storage. Counting it as a
+    // success is how an import reported "Imported 1 note" and stored none.
+    const summary = await importFiles(
+      [
+        new File(["# Hi"], "note.md", { type: "text/markdown" }),
+        new File([JSON.stringify([baseNote])], "all.json", {
+          type: "application/json",
+        }),
+      ],
+      {
+        createNote: async () => null,
+        importBulk: async () => false,
+      },
+    );
+    expect(summary).toEqual({
+      singleCount: 0,
+      bulkCount: 0,
+      failedCount: 2,
+    });
   });
 });
 

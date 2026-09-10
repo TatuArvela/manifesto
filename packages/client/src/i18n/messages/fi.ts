@@ -301,6 +301,10 @@ export const fi: Messages = {
   "error.saveFailed": "Muutosten tallennus epäonnistui.",
   "error.deleteFailed": "Muistiinpanon poisto epäonnistui.",
   "error.importFailed": "Muistiinpanojen tuonti epäonnistui.",
+  "error.bulkFailed": {
+    one: "{count} muistiinpanoa ei voitu muuttaa.",
+    other: "{count} muistiinpanoa ei voitu muuttaa.",
+  },
 
   // Reminders
   "reminder.set": "Aseta muistutus",

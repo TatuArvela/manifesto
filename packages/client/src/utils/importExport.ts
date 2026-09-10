@@ -267,8 +267,10 @@ export interface ImportSummary {
 export async function importFiles(
   files: Iterable<File>,
   handlers: {
-    createNote: (input: Partial<NoteCreate>) => Promise<unknown>;
-    importBulk: (notes: Note[]) => Promise<void>;
+    /** Resolves `null` if the note could not be stored. */
+    createNote: (input: Partial<NoteCreate>) => Promise<Note | null>;
+    /** Resolves `false` if the merge could not be stored. */
+    importBulk: (notes: Note[]) => Promise<boolean>;
   },
 ): Promise<ImportSummary> {
   const summary: ImportSummary = {
@@ -283,12 +285,19 @@ export async function importFiles(
     }
     try {
       const result = await parseImportFile(file);
+      // The handlers report their own failure and resolve, so a rejection here
+      // means the *file* was unreadable; a falsy result means it parsed and
+      // could not be stored. Both are one failed file to the user.
       if (result.kind === "single") {
-        await handlers.createNote(result.note);
-        summary.singleCount++;
-      } else {
-        await handlers.importBulk(result.notes);
+        if (await handlers.createNote(result.note)) {
+          summary.singleCount++;
+        } else {
+          summary.failedCount++;
+        }
+      } else if (await handlers.importBulk(result.notes)) {
         summary.bulkCount += result.notes.length;
+      } else {
+        summary.failedCount++;
       }
     } catch {
       summary.failedCount++;

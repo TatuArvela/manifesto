@@ -30,20 +30,19 @@ export function SharedNoteDialog({
   const dialogRef = useFocusTrap<HTMLDivElement>(!closing);
 
   const handleSave = async () => {
-    try {
-      await createNote({
-        title: payload.title,
-        content: payload.content,
-        color: payload.color,
-        font: payload.font,
-        tags: [...payload.tags],
-      });
-      showSuccess("Note saved!");
-      clearShareHash();
-      onDone();
-    } catch {
-      showError("Failed to save shared note.");
-    }
+    // `createNote` has already told the user if this failed — see the contract
+    // on `state/actions.ts`. Reporting again here would say it twice.
+    const saved = await createNote({
+      title: payload.title,
+      content: payload.content,
+      color: payload.color,
+      font: payload.font,
+      tags: [...payload.tags],
+    });
+    if (!saved) return;
+    showSuccess("Note saved!");
+    clearShareHash();
+    onDone();
   };
 
   const contentHtml = payload.content ? renderMarkdown(payload.content) : "";
