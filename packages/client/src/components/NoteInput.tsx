@@ -11,6 +11,7 @@ import {
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
+import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   activeView,
@@ -94,6 +95,7 @@ export function NoteInput() {
   // captures. Anything opened from inside the editor registers later and takes
   // the key first.
   useEscapeStack(expanded, () => closeModalRef.current());
+  const modalRef = useFocusTrap<HTMLDivElement>(expanded && !closing);
 
   // Re-pick colors when the default note color setting changes
   const colorSetting = defaultNoteColor.value;
@@ -319,6 +321,10 @@ export function NoteInput() {
               onKeyDown={() => {}}
             />
             <div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("nav.newNote")}
               class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
               <div class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden">

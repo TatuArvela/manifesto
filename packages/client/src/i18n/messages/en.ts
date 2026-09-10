@@ -148,6 +148,7 @@ export const en = {
   "editor.metadata.edited": "Edited {date}",
   "editor.imageAlt": "Delete image",
   "editor.openImage": "Open image",
+  "editor.imageViewer": "Image viewer",
   "editor.closeImage": "Close image",
   "editor.previousImage": "Previous image",
   "editor.nextImage": "Next image",

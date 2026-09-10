@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
 import { APP_FILE_SLUG, APP_NAME } from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
+import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { getFontLabel, plural, t } from "../i18n/index.js";
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
@@ -248,6 +249,7 @@ export function SettingsDialog() {
 
   // A select menu inside the panel registers after it and closes alone.
   useEscapeStack(isOpen, handleClose);
+  const panelRef = useFocusTrap<HTMLDivElement>(isOpen && !closing);
 
   // animationend bubbles, so ignore anything a descendant fires — only the
   // panel's own slide-out marks the close as finished.
@@ -318,6 +320,7 @@ export function SettingsDialog() {
 
       {/* Side panel */}
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-dialog-title"

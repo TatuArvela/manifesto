@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { escapeStackDepth } from "../hooks/useEscapeStack.js";
 import { t } from "../i18n/index.js";
-import { editingNoteId, notes } from "../state/index.js";
+import { activeView, editingNoteId, notes } from "../state/index.js";
 import { NoteCard } from "./NoteCard.js";
 
 /**
@@ -95,6 +95,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   editingNoteId.value = null;
+  activeView.value = "active";
   await settle();
   render(null, host);
   host.remove();
@@ -181,6 +182,62 @@ describe("NoteCard editing modal", () => {
     expect(document.querySelector(".dropdown-panel:popover-open")).toBe(null);
     expect(modalIsUp()).toBe(true);
     expect(editingNoteId.value).toBe(NOTE_ID);
+  });
+
+  it("opens the note from the keyboard", async () => {
+    // Cards were mouse-only: no tab stop, and an Enter handler on an element
+    // nothing could focus.
+    const note = makeNote(NOTE_ID, "Shopping");
+    storeNote(note);
+    show(note);
+
+    const card = host.querySelector("article");
+    expect(card?.getAttribute("role")).toBe("button");
+    expect(card?.tabIndex).toBe(0);
+
+    card?.focus();
+    expect(document.activeElement).toBe(card);
+    await userEvent.keyboard("{Enter}");
+
+    await vi.waitFor(() => {
+      expect(editingNoteId.value).toBe(NOTE_ID);
+    });
+  });
+
+  it("is not a button in the trash, where pressing it does nothing", () => {
+    const note = makeNote(NOTE_ID, "Shopping");
+    storeNote(note);
+    activeView.value = "trash";
+    show({ ...note, trashed: true });
+
+    const card = host.querySelector("article");
+    expect(card?.getAttribute("role")).toBe(null);
+    expect(card?.tabIndex).toBe(-1);
+  });
+
+  it("keeps Tab inside the editor and gives focus back on close", async () => {
+    const note = makeNote(NOTE_ID, "Shopping");
+    storeNote(note);
+    show(note);
+    const card = host.querySelector("article") as HTMLElement;
+    card.focus();
+
+    editingNoteId.value = note.id;
+    show(note);
+    await vi.waitFor(() => {
+      expect(modalIsUp()).toBe(true);
+    });
+
+    const dialog = document.querySelector('[role="dialog"]');
+    expect(dialog).toBeTruthy();
+    // Tab from the last control in the dialog must not walk out into the grid,
+    // where the cards are focusable and still open notes.
+    for (let i = 0; i < 40; i++) await userEvent.keyboard("{Tab}");
+    expect(dialog?.contains(document.activeElement)).toBe(true);
+
+    editingNoteId.value = null;
+    await settle();
+    expect(document.activeElement).toBe(card);
   });
 
   it("closes the editor on Escape once nothing is layered over it", async () => {
