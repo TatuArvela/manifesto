@@ -1,21 +1,12 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import {
-  Archive,
-  ArchiveRestore,
   ArrowLeft,
-  Braces,
-  Copy,
   EllipsisVertical,
-  FileText,
-  Link,
   Palette,
   Pin,
   PinOff,
   RefreshCw,
   Sparkles,
-  Tag,
-  Trash2,
-  Undo2,
   X,
 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
@@ -23,29 +14,15 @@ import { plugins } from "../autoNotes/registry.js";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { getColorPickerColors, t } from "../i18n/index.js";
-import { buildShareUrl } from "../sharing.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
-import {
-  archiveNote,
-  createNote,
-  restoreNote,
-  togglePin,
-  trashNote,
-  unarchiveNote,
-  updateNote,
-} from "../state/index.js";
-import { showSuccess } from "../state/ui.js";
-import {
-  downloadNoteAsJson,
-  downloadNoteAsMarkdown,
-} from "../utils/importExport.js";
+import { togglePin, updateNote } from "../state/index.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
 import { Dropdown } from "./Dropdown.js";
 import { iconBtnClass } from "./NoteEditor.js";
+import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
-import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 export function NoteReadonlyView({
@@ -65,19 +42,12 @@ export function NoteReadonlyView({
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showTagPicker, setShowTagPicker] = useState(false);
   const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
 
   useEscapeStack(true, onClose);
 
   const html = renderMarkdown(note.content);
-
-  const closeAllMenus = () => {
-    setShowColorPicker(false);
-    setShowMenu(false);
-    setShowTagPicker(false);
-  };
 
   return (
     <article
@@ -265,161 +235,30 @@ export function NoteReadonlyView({
         {/* Kebab menu */}
         <Dropdown
           open={showMenu}
-          onClose={() => {
-            setShowMenu(false);
-            setShowTagPicker(false);
-          }}
+          onClose={() => setShowMenu(false)}
           trigger={
-            <Tooltip label={t("editor.more")}>
+            <Tooltip label={t("noteMenu.more")}>
               <button
                 type="button"
                 class={iconBtnClass}
                 onClick={() => {
                   setShowMenu(!showMenu);
                   setShowColorPicker(false);
-                  setShowTagPicker(false);
                 }}
-                aria-label={t("editor.moreOptions")}
+                aria-label={t("noteMenu.moreOptions")}
               >
                 <EllipsisVertical class="w-4 h-4" />
               </button>
             </Tooltip>
           }
           placement="top-start"
-          panelClass="bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-48 w-max py-1"
+          panelClass={menuPanelClass}
         >
-          {/* Tags */}
-          <div class="relative">
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => setShowTagPicker(!showTagPicker)}
-            >
-              <Tag class="w-4 h-4" />
-              {t("editor.menu.tags")}
-            </button>
-            {showTagPicker && (
-              <TagPicker
-                tags={note.tags}
-                onAddTag={(tag) => {
-                  const trimmed = tag.trim().toLowerCase();
-                  if (trimmed && !note.tags.includes(trimmed)) {
-                    updateNote(note.id, { tags: [...note.tags, trimmed] });
-                  }
-                }}
-              />
-            )}
-          </div>
-
-          {/* Share link */}
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => {
-              const url = buildShareUrl({
-                title: note.title,
-                content: note.content,
-                color: note.color,
-                font: note.font,
-                tags: [...note.tags],
-              });
-              navigator.clipboard.writeText(url);
-              showSuccess(t("noteCard.linkCopied"));
-              closeAllMenus();
-            }}
-          >
-            <Link class="w-4 h-4" />
-            {t("editor.menu.shareLink")}
-          </button>
-
-          {/* Duplicate — strips auto-note markers so the copy is a plain note */}
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => {
-              createNote({
-                title: note.title,
-                content: note.content,
-                color: note.color,
-                font: note.font,
-                tags: [...note.tags],
-              });
-              closeAllMenus();
-            }}
-          >
-            <Copy class="w-4 h-4" />
-            {t("editor.menu.duplicate")}
-          </button>
-
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => {
-              downloadNoteAsMarkdown(note);
-              closeAllMenus();
-            }}
-          >
-            <FileText class="w-4 h-4" />
-            {t("editor.menu.exportMarkdown")}
-          </button>
-
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => {
-              const { readonly: _r, source: _s, ...plain } = note;
-              downloadNoteAsJson(plain as Note);
-              closeAllMenus();
-            }}
-          >
-            <Braces class="w-4 h-4" />
-            {t("editor.menu.exportJson")}
-          </button>
-
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => {
-              if (note.archived) {
-                unarchiveNote(note.id);
-              } else {
-                archiveNote(note.id);
-              }
-              closeAllMenus();
-            }}
-          >
-            {note.archived ? (
-              <ArchiveRestore class="w-4 h-4" />
-            ) : (
-              <Archive class="w-4 h-4" />
-            )}
-            {note.archived
-              ? t("editor.menu.unarchive")
-              : t("editor.menu.archive")}
-          </button>
-
-          <div class="my-1 border-t border-neutral-200 dark:border-neutral-700" />
-
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => {
-              if (note.trashed) {
-                restoreNote(note.id);
-              } else {
-                trashNote(note.id);
-              }
-              closeAllMenus();
-              onClose();
-            }}
-          >
-            {note.trashed ? (
-              <Undo2 class="w-4 h-4" />
-            ) : (
-              <Trash2 class="w-4 h-4" />
-            )}
-            {note.trashed ? t("editor.menu.undelete") : t("editor.menu.delete")}
-          </button>
+          <NoteMenu
+            items={noteMenuItems(note, { onDismiss: onClose })}
+            onClose={() => setShowMenu(false)}
+            open={showMenu}
+          />
         </Dropdown>
 
         <div class="flex-1" />

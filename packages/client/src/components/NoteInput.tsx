@@ -1,5 +1,5 @@
 import type { LinkPreview, Note, NoteColor, NoteFont } from "@manifesto/shared";
-import { Plus } from "lucide-preact";
+import { Braces, FileText, ListX, Plus } from "lucide-preact";
 import { createPortal } from "preact/compat";
 import {
   useCallback,
@@ -138,6 +138,29 @@ export function NoteInput() {
   }, [isList]);
 
   if (activeView.value !== "active") return null;
+
+  /** The unsaved composer contents, shaped as a note for the JSON export. */
+  const draftNote = (): Note => {
+    const now = new Date().toISOString();
+    return {
+      id: ulid(),
+      title,
+      content,
+      color,
+      font,
+      pinned,
+      archived: false,
+      trashed: false,
+      trashedAt: null,
+      position: 0,
+      tags,
+      images,
+      linkPreviews,
+      reminder: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+  };
 
   const reset = () => {
     setTitle("");
@@ -355,37 +378,39 @@ export function NoteInput() {
                   pinned={pinned}
                   onPinToggle={() => setPinned(!pinned)}
                   tags={tags}
-                  onAddTag={(tag) => {
-                    if (!tags.includes(tag)) {
-                      setTags([...tags, tag]);
-                    }
-                  }}
                   onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
-                  onExportMarkdown={() =>
-                    downloadNoteAsMarkdown({ title, content })
-                  }
-                  onExportJson={() => {
-                    const now = new Date().toISOString();
-                    const draft: Note = {
-                      id: ulid(),
-                      title,
-                      content,
-                      color,
-                      font,
-                      pinned,
-                      archived: false,
-                      trashed: false,
-                      trashedAt: null,
-                      position: 0,
+                  menuItems={({ checkedItems }) => [
+                    {
+                      kind: "tags",
+                      id: "tags",
                       tags,
-                      images,
-                      linkPreviews,
-                      reminder: null,
-                      createdAt: now,
-                      updatedAt: now,
-                    };
-                    downloadNoteAsJson(draft);
-                  }}
+                      onAddTag: (tag) => setTags([...tags, tag]),
+                    },
+                    {
+                      id: "export-markdown",
+                      icon: <FileText class="w-4 h-4" />,
+                      label: t("noteMenu.exportMarkdown"),
+                      onSelect: () =>
+                        downloadNoteAsMarkdown({ title, content }),
+                    },
+                    {
+                      id: "export-json",
+                      icon: <Braces class="w-4 h-4" />,
+                      label: t("noteMenu.exportJson"),
+                      onSelect: () => downloadNoteAsJson(draftNote()),
+                    },
+                    { kind: "divider", id: "destructive" },
+                    ...(checkedItems.present
+                      ? [
+                          {
+                            id: "delete-checked",
+                            icon: <ListX class="w-4 h-4" />,
+                            label: t("noteMenu.deleteChecked"),
+                            onSelect: checkedItems.remove,
+                          } as const,
+                        ]
+                      : []),
+                  ]}
                   onDone={closeModal}
                   onDelete={discardNote}
                   deleteLabel={t("editor.discard")}

@@ -146,15 +146,13 @@ describe("NoteCard editing modal", () => {
     const note = makeNote(NOTE_ID, "Shopping");
     await openEditor(note);
 
-    clickByLabel(t("editor.moreOptions"));
+    clickByLabel(t("noteMenu.moreOptions"));
     await vi.waitFor(() => {
       expect(
-        buttons().some((el) =>
-          el.textContent?.includes(t("editor.menu.archive")),
-        ),
+        buttons().some((el) => el.textContent?.includes(t("noteMenu.archive"))),
       ).toBe(true);
     });
-    clickByText(t("editor.menu.archive"));
+    clickByText(t("noteMenu.archive"));
 
     await vi.waitFor(() => {
       expect(editingNoteId.value).toBe(null);

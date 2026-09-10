@@ -2,20 +2,12 @@ import type { LinkPreview, Note, NoteColor } from "@manifesto/shared";
 import clsx from "clsx";
 import {
   Archive,
-  ArchiveRestore,
-  Bell,
-  Braces,
-  Copy,
   EllipsisVertical,
-  FileText,
-  Link,
-  ListX,
   Palette,
   Pin,
   PinOff,
   RefreshCw,
   Sparkles,
-  Tag,
   Trash2,
   Undo2,
   X,
@@ -27,12 +19,9 @@ import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
 import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
-import { buildShareUrl } from "../sharing.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
-  archiveNote,
-  createNote,
   deleteCheckedItems,
   editingNoteId,
   enterSelectMode,
@@ -46,16 +35,9 @@ import {
   toggleCheckbox,
   togglePin,
   toggleSelectNote,
-  trashNote,
-  unarchiveNote,
   updateNote,
   viewMode,
 } from "../state/index.js";
-import { showSuccess } from "../state/ui.js";
-import {
-  downloadNoteAsJson,
-  downloadNoteAsMarkdown,
-} from "../utils/importExport.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { ContentPreview } from "./ContentPreview.js";
 import { ImageGallery } from "./ImageGallery.js";
@@ -63,12 +45,12 @@ import { LinkPreviewHero } from "./LinkPreviewHero.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
+import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { NoteReadonlyView } from "./NoteReadonlyView.js";
 import { CardPopover } from "./Popover.js";
 import { PresenceAvatars } from "./PresenceAvatars.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPickerPanel } from "./ReminderPicker.js";
-import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 /** How long the modal's fade-out runs — matches its `duration-150` classes. */
@@ -118,174 +100,19 @@ function CardMenu({
   onClose: () => void;
   onOpenReminder: () => void;
 }) {
-  const [showTagPicker, setShowTagPicker] = useState(false);
-
   return (
-    <CardPopover
-      anchorRef={anchorRef}
-      onClose={() => {
-        setShowTagPicker(false);
-        onClose();
-      }}
-    >
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-48 w-max py-1">
-        {/* Tags */}
-        <div class="relative">
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => setShowTagPicker(!showTagPicker)}
-          >
-            <Tag class="w-4 h-4" />
-            {t("noteCard.menu.tags")}
-          </button>
-          {showTagPicker && (
-            <TagPicker
-              tags={note.tags}
-              onAddTag={(tag) => {
-                if (!note.tags.includes(tag)) {
-                  updateNote(note.id, {
-                    tags: [...note.tags, tag],
-                  });
-                }
-              }}
-            />
-          )}
-        </div>
-
-        {/* Reminder */}
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-          onClick={() => onOpenReminder()}
-        >
-          <Bell class="w-4 h-4" />
-          {t("noteCard.menu.reminder")}
-        </button>
-
-        {/* Duplicate */}
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-          onClick={() => {
-            createNote({
-              title: note.title,
-              content: note.content,
-              color: note.color,
-              font: note.font,
-              tags: [...note.tags],
-            });
-            onClose();
-          }}
-        >
-          <Copy class="w-4 h-4" />
-          {t("noteCard.menu.duplicate")}
-        </button>
-
-        {/* Share link */}
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-          onClick={() => {
-            const url = buildShareUrl({
-              title: note.title,
-              content: note.content,
-              color: note.color,
-              font: note.font,
-              tags: [...note.tags],
-            });
-            navigator.clipboard.writeText(url);
-            showSuccess(t("noteCard.linkCopied"));
-            onClose();
-          }}
-        >
-          <Link class="w-4 h-4" />
-          {t("noteCard.menu.shareLink")}
-        </button>
-        {/* Export as Markdown */}
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-          onClick={() => {
-            downloadNoteAsMarkdown(note);
-            onClose();
-          }}
-        >
-          <FileText class="w-4 h-4" />
-          {t("editor.menu.exportMarkdown")}
-        </button>
-
-        {/* Export as JSON */}
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-          onClick={() => {
-            // Strip auto-note markers so the export is a static, portable note.
-            const { readonly: _r, source: _s, ...plain } = note;
-            downloadNoteAsJson(plain as Note);
-            onClose();
-          }}
-        >
-          <Braces class="w-4 h-4" />
-          {t("editor.menu.exportJson")}
-        </button>
-
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-          onClick={() => {
-            if (note.archived) {
-              unarchiveNote(note.id);
-            } else {
-              archiveNote(note.id);
-            }
-            onClose();
-          }}
-        >
-          {note.archived ? (
-            <ArchiveRestore class="w-4 h-4" />
-          ) : (
-            <Archive class="w-4 h-4" />
-          )}
-          {note.archived
-            ? t("noteCard.menu.unarchive")
-            : t("noteCard.menu.archive")}
-        </button>
-        <div class="my-1 border-t border-neutral-200 dark:border-neutral-700" />
-        {hasCheckedItems(note.content) && (
-          <button
-            type="button"
-            class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => {
-              deleteCheckedItems(note.id);
-              onClose();
-            }}
-          >
-            <ListX class="w-4 h-4" />
-            {t("noteCard.menu.deleteChecked")}
-          </button>
-        )}
-        <button
-          type="button"
-          class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-          onClick={() => {
-            if (note.trashed) {
-              restoreNote(note.id);
-            } else {
-              trashNote(note.id);
-            }
-            onClose();
-          }}
-        >
-          {note.trashed ? (
-            <Undo2 class="w-4 h-4" />
-          ) : (
-            <Trash2 class="w-4 h-4" />
-          )}
-          {note.trashed
-            ? t("noteCard.menu.undelete")
-            : t("noteCard.menu.delete")}
-        </button>
+    <CardPopover anchorRef={anchorRef} onClose={onClose}>
+      <div class={menuPanelClass}>
+        <NoteMenu
+          items={noteMenuItems(note, {
+            onOpenReminder,
+            checkedItems: {
+              present: hasCheckedItems(note.content),
+              remove: () => deleteCheckedItems(note.id),
+            },
+          })}
+          onClose={onClose}
+        />
       </div>
     </CardPopover>
   );
@@ -394,13 +221,13 @@ function CardActions({
               <Palette class="w-4 h-4" />
             </button>
           </Tooltip>
-          <Tooltip label={t("noteCard.more")}>
+          <Tooltip label={t("noteMenu.more")}>
             <button
               ref={menuBtnRef}
               type="button"
               class={iconBtnClass}
               onClick={onToggleMenu}
-              aria-label={t("noteCard.moreOptions")}
+              aria-label={t("noteMenu.moreOptions")}
             >
               <EllipsisVertical class="w-4 h-4" />
             </button>

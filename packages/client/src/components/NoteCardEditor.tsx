@@ -5,25 +5,11 @@ import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { formatDateTime, t } from "../i18n/index.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
-import { buildShareUrl } from "../sharing.js";
-import {
-  archiveNote,
-  createNote,
-  notes,
-  restoreNote,
-  togglePin,
-  trashNote,
-  unarchiveNote,
-  updateNote,
-} from "../state/index.js";
-import { showSuccess } from "../state/ui.js";
+import { notes, togglePin, updateNote } from "../state/index.js";
 import { saveVersion } from "../storage/VersionStorage.js";
-import {
-  downloadNoteAsJson,
-  downloadNoteAsMarkdown,
-} from "../utils/importExport.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
+import { noteMenuItems } from "./NoteMenu.js";
 import { VersionHistory } from "./VersionHistory.js";
 
 export function NoteCardEditor({
@@ -175,7 +161,7 @@ export function NoteCardEditor({
               ref={versionsRef}
               role="dialog"
               aria-modal="true"
-              aria-label={t("editor.menu.versionHistory")}
+              aria-label={t("noteMenu.versionHistory")}
               class={`fixed inset-0 z-[70] flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${versionsClosing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
               <div class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden">
@@ -237,28 +223,25 @@ export function NoteCardEditor({
         pinned={note.pinned}
         onPinToggle={() => togglePin(note.id)}
         tags={note.tags}
-        onAddTag={(tag) => {
-          if (!note.tags.includes(tag)) {
-            updateNote(note.id, { tags: [...note.tags, tag] });
-          }
-        }}
         onRemoveTag={(tag) =>
           updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) })
         }
         reminder={note.reminder}
         onReminderChange={(reminder) => updateNote(note.id, { reminder })}
-        onShowVersions={() => setShowVersions(true)}
-        onShare={() => {
-          const url = buildShareUrl({
-            title: note.title,
-            content: note.content,
-            color: note.color,
-            font: note.font,
-            tags: [...note.tags],
-          });
-          navigator.clipboard.writeText(url);
-          showSuccess(t("noteCard.linkCopied"));
-        }}
+        menuItems={({ checkedItems }) =>
+          noteMenuItems(note, {
+            // The live buffer, not the stored note: auto-save is debounced, so
+            // duplicating or sharing right after a keystroke used to copy the
+            // text as it was before it.
+            draft: { title, content },
+            onShowVersions: () => setShowVersions(true),
+            checkedItems,
+            // Archiving, trashing and restoring all move the note out of the
+            // view it was opened from, so leaving the editor up would strand
+            // it over a grid the note is no longer in.
+            onDismiss: onClose,
+          })
+        }
         onDone={saveAndClose}
         metadata={
           <div class="flex gap-3 mt-3 text-xs text-black/40 dark:text-white/40">
@@ -276,38 +259,6 @@ export function NoteCardEditor({
             )}
           </div>
         }
-        onDuplicate={() =>
-          createNote({
-            title: note.title,
-            content: note.content,
-            color: note.color,
-            font: note.font,
-            tags: [...note.tags],
-          })
-        }
-        onExportMarkdown={() => downloadNoteAsMarkdown({ title, content })}
-        onExportJson={() => downloadNoteAsJson({ ...note, title, content })}
-        onArchive={() => {
-          if (note.archived) {
-            unarchiveNote(note.id);
-          } else {
-            archiveNote(note.id);
-          }
-          // Both directions move the note out of the view it was opened from,
-          // so leaving the editor up would strand it over a grid the note is
-          // no longer in — the same reason `onDelete` closes.
-          onClose();
-        }}
-        archived={note.archived}
-        trashed={note.trashed}
-        onDelete={() => {
-          if (note.trashed) {
-            restoreNote(note.id);
-          } else {
-            trashNote(note.id);
-          }
-          onClose();
-        }}
         collab={collab}
       />
     </>

@@ -11,29 +11,18 @@ import { redoDepth, undoDepth } from "@milkdown/kit/prose/history";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { callCommand } from "@milkdown/kit/utils";
 import {
-  Archive,
-  ArchiveRestore,
   ArrowLeft,
-  Braces,
   Check,
   Code,
-  Copy,
   EllipsisVertical,
   Eye,
-  FileText,
-  History,
   Image as ImageIcon,
-  Link,
-  ListX,
   Palette,
   PenLine,
   Pin,
   PinOff,
   Redo,
-  Tag,
-  Trash2,
   Undo,
-  Undo2,
   X,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
@@ -53,10 +42,16 @@ import { FormattingToolbar } from "./FormattingToolbar.js";
 import { ImageGallery } from "./ImageGallery.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
+import {
+  menuDividerClass,
+  menuItemClass,
+  menuPanelClass,
+  NoteMenu,
+  type NoteMenuItem,
+} from "./NoteMenu.js";
 import { CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
-import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 const iconBtnClass =
@@ -82,7 +77,6 @@ interface NoteEditorProps {
   pinned: boolean;
   onPinToggle: () => void;
   tags: string[];
-  onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
   reminder?: NoteReminder | null;
   onReminderChange?: (reminder: NoteReminder | null) => void;
@@ -90,14 +84,16 @@ interface NoteEditorProps {
   disabled?: boolean;
   contentLocked?: boolean;
   metadata?: ComponentChildren;
-  onShowVersions?: () => void;
-  onShare?: () => void;
-  onDuplicate?: () => void;
-  onExportMarkdown?: () => void;
-  onExportJson?: () => void;
-  onArchive?: () => void;
-  archived?: boolean;
-  trashed?: boolean;
+  /**
+   * The rows of the kebab menu. Taken as a builder rather than a list because
+   * two of them belong to the document rather than to the note: whether there
+   * are checked items to delete, and how to delete them, are only knowable
+   * here — in collab mode the shared document is the only copy that counts.
+   */
+  menuItems?: (editorActions: {
+    checkedItems: { present: boolean; remove: () => void };
+  }) => NoteMenuItem[];
+  /** Discards an unsaved draft. Shown as a toolbar button, not a menu row. */
   onDelete?: () => void;
   deleteLabel?: string;
   collab?: {
@@ -125,7 +121,6 @@ export function NoteEditor({
   pinned,
   onPinToggle,
   tags,
-  onAddTag,
   onRemoveTag,
   reminder,
   onReminderChange,
@@ -133,14 +128,7 @@ export function NoteEditor({
   disabled,
   contentLocked,
   metadata,
-  onShowVersions,
-  onShare,
-  onDuplicate,
-  onExportMarkdown,
-  onExportJson,
-  onArchive,
-  archived,
-  trashed,
+  menuItems,
   onDelete,
   deleteLabel,
   collab,
@@ -148,7 +136,6 @@ export function NoteEditor({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontPicker, setShowFontPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showTagPicker, setShowTagPicker] = useState(false);
   const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
   const [rawMode, setRawMode] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -257,18 +244,10 @@ export function NoteEditor({
   const colors = noteColorMap[color];
   const pickerColors = getColorPickerColors();
 
-  const handleAddTag = (tag: string) => {
-    const trimmed = tag.trim().toLowerCase();
-    if (trimmed) {
-      onAddTag(trimmed);
-    }
-  };
-
   const closeAllMenus = () => {
     setShowColorPicker(false);
     setShowFontPicker(false);
     setShowMenu(false);
-    setShowTagPicker(false);
   };
 
   const canUndo = editor
@@ -320,6 +299,8 @@ export function NoteEditor({
       view.focus();
     });
   };
+
+  const checkedItems = { present: hasCheckedItems, remove: deleteCheckedItems };
 
   return (
     <article
@@ -607,12 +588,9 @@ export function NoteEditor({
         {/* Kebab menu */}
         <Dropdown
           open={showMenu}
-          onClose={() => {
-            setShowMenu(false);
-            setShowTagPicker(false);
-          }}
+          onClose={() => setShowMenu(false)}
           trigger={
-            <Tooltip label={t("editor.more")}>
+            <Tooltip label={t("noteMenu.more")}>
               <button
                 type="button"
                 class={iconBtnClass}
@@ -620,16 +598,15 @@ export function NoteEditor({
                   setShowMenu(!showMenu);
                   setShowColorPicker(false);
                   setShowFontPicker(false);
-                  setShowTagPicker(false);
                 }}
-                aria-label={t("editor.moreOptions")}
+                aria-label={t("noteMenu.moreOptions")}
               >
                 <EllipsisVertical class="w-4 h-4" />
               </button>
             </Tooltip>
           }
           placement="top-start"
-          panelClass="bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-48 w-max py-1"
+          panelClass={menuPanelClass}
         >
           {/* Font (mobile only) */}
           <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
@@ -656,7 +633,7 @@ export function NoteEditor({
           {/* Raw / Normal mode toggle (mobile only) */}
           <button
             type="button"
-            class="sm:hidden flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
+            class={`sm:hidden ${menuItemClass}`}
             onClick={() => {
               setRawMode(!rawMode);
               closeAllMenus();
@@ -666,150 +643,13 @@ export function NoteEditor({
             {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
           </button>
 
-          <div class="sm:hidden my-1 border-t border-neutral-200 dark:border-neutral-700" />
+          <div class={`sm:hidden ${menuDividerClass}`} />
 
-          {/* Tags */}
-          <div class="relative">
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => setShowTagPicker(!showTagPicker)}
-            >
-              <Tag class="w-4 h-4" />
-              {t("editor.menu.tags")}
-            </button>
-            {showTagPicker && <TagPicker tags={tags} onAddTag={handleAddTag} />}
-          </div>
-
-          {/* Version history */}
-          {onShowVersions && (
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => {
-                onShowVersions();
-                closeAllMenus();
-              }}
-            >
-              <History class="w-4 h-4" />
-              {t("editor.menu.versionHistory")}
-            </button>
-          )}
-
-          {/* Share link */}
-          {onShare && (
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => {
-                onShare();
-                closeAllMenus();
-              }}
-            >
-              <Link class="w-4 h-4" />
-              {t("editor.menu.shareLink")}
-            </button>
-          )}
-
-          {/* Duplicate */}
-          {onDuplicate && (
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => {
-                onDuplicate();
-                closeAllMenus();
-              }}
-            >
-              <Copy class="w-4 h-4" />
-              {t("editor.menu.duplicate")}
-            </button>
-          )}
-
-          {/* Export as Markdown */}
-          {onExportMarkdown && (
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => {
-                onExportMarkdown();
-                closeAllMenus();
-              }}
-            >
-              <FileText class="w-4 h-4" />
-              {t("editor.menu.exportMarkdown")}
-            </button>
-          )}
-
-          {/* Export as JSON */}
-          {onExportJson && (
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => {
-                onExportJson();
-                closeAllMenus();
-              }}
-            >
-              <Braces class="w-4 h-4" />
-              {t("editor.menu.exportJson")}
-            </button>
-          )}
-
-          {/* Archive */}
-          {onArchive && (
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => {
-                onArchive();
-                closeAllMenus();
-              }}
-            >
-              {archived ? (
-                <ArchiveRestore class="w-4 h-4" />
-              ) : (
-                <Archive class="w-4 h-4" />
-              )}
-              {archived ? t("editor.menu.unarchive") : t("editor.menu.archive")}
-            </button>
-          )}
-
-          {/* Destructive actions — checked items / delete */}
-          {((hasCheckedItems && !disabled && !contentLocked) ||
-            (onDelete && !deleteLabel)) && (
-            <div class="my-1 border-t border-neutral-200 dark:border-neutral-700" />
-          )}
-
-          {/* Delete checked items */}
-          {hasCheckedItems && !disabled && !contentLocked && (
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => {
-                deleteCheckedItems();
-                closeAllMenus();
-              }}
-            >
-              <ListX class="w-4 h-4" />
-              {t("editor.menu.deleteChecked")}
-            </button>
-          )}
-
-          {/* Delete / Undelete (edit mode only — not shown when deleteLabel is set) */}
-          {onDelete && !deleteLabel && (
-            <button
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onClick={() => {
-                onDelete();
-                closeAllMenus();
-              }}
-            >
-              {trashed ? <Undo2 class="w-4 h-4" /> : <Trash2 class="w-4 h-4" />}
-              {trashed ? t("editor.menu.undelete") : t("editor.menu.delete")}
-            </button>
-          )}
+          <NoteMenu
+            items={menuItems?.({ checkedItems }) ?? []}
+            onClose={() => setShowMenu(false)}
+            open={showMenu}
+          />
         </Dropdown>
 
         {/* Normal / Raw mode toggle (desktop only — on mobile, lives in the kebab menu) */}
