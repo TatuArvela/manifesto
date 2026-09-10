@@ -19,6 +19,7 @@ import {
   createNote,
   defaultNoteColor,
   defaultNoteFont,
+  noteQuips,
   noteSize,
   pickDefaultColor,
   pickDefaultFont,
@@ -73,6 +74,12 @@ export function NoteInput() {
   const [lifting, setLifting] = useState(false);
   const [topCta, setTopCta] = useState(() => randomCta());
   const [nextCta, setNextCta] = useState(() => randomCta(topCta));
+  // The quips are drawn from the rotation only while the preference is on;
+  // with it off both sheets read the same plain line, so nothing rotates.
+  // Read at render rather than at pick time, so the toggle takes effect on the
+  // stack that is already on screen.
+  const topLine = noteQuips.value ? topCta : t("cta.plain");
+  const nextLine = noteQuips.value ? nextCta : t("cta.plain");
   const focusCatcherRef = useRef<HTMLInputElement>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const closeModalRef = useRef<() => void>(() => {});
@@ -304,14 +311,14 @@ export function NoteInput() {
               class={`note-stack-next border ${noteColorMap[stackColor].bg} ${noteColorMap[stackColor].border}`}
             >
               <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
-                {nextCta}
+                {nextLine}
               </div>
             </div>
             <div
               class={`${topNoteClass} border ${noteColorMap[topSheetColor].bg} ${noteColorMap[topSheetColor].border}`}
             >
               <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
-                {topCta}
+                {topLine}
               </div>
             </div>
           </div>
