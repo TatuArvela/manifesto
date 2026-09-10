@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
+import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
 
 interface ImageGalleryProps {
@@ -82,6 +83,7 @@ function ImageLightbox({
   const showNext = () => onChangeIndex((index + 1) % images.length);
 
   useEscapeStack(true, onClose);
+  const dialogRef = useFocusTrap<HTMLDivElement>(true);
 
   useEffect(() => {
     if (!hasMultiple) return;
@@ -101,7 +103,13 @@ function ImageLightbox({
         class="fixed inset-0 bg-black/90 z-[100] animate-fade-in"
         onClick={onClose}
       />
-      <div class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none animate-fade-in">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("editor.imageViewer")}
+        class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none animate-fade-in"
+      >
         <img
           src={images[index]}
           alt=""

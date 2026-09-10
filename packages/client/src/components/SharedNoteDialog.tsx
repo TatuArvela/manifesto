@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
+import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import type { SharedNotePayload } from "../sharing.js";
 import { clearShareHash } from "../sharing.js";
 import { createNote } from "../state/actions.js";
@@ -26,6 +27,7 @@ export function SharedNoteDialog({
   };
 
   useEscapeStack(true, dismiss);
+  const dialogRef = useFocusTrap<HTMLDivElement>(!closing);
 
   const handleSave = async () => {
     try {
@@ -58,6 +60,7 @@ export function SharedNoteDialog({
 
       {/* Dialog */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="shared-note-dialog-title"

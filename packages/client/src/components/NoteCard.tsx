@@ -24,6 +24,7 @@ import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
+import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
 import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
@@ -460,6 +461,7 @@ export function NoteCard({
   );
   const [showModal, setShowModal] = useState(false);
   const [closing, setClosing] = useState(false);
+  const modalRef = useFocusTrap<HTMLDivElement>(showModal && !closing);
   const [openPopover, setOpenPopover] = useState<
     "color" | "menu" | "reminder" | null
   >(null);
@@ -547,6 +549,16 @@ export function NoteCard({
       editingNoteId.value = note.id;
     }
   };
+
+  // Whether pressing the card does anything. Deliberately not conditioned on
+  // `isEditing`: dropping `tabindex` from the focused element blurs it, so a
+  // card that gave up its tab stop the moment its own editor opened would
+  // leave the editor's focus trap with nothing to hand focus back to on close.
+  // Reopening while already editing is `handleClick`'s guard, not this one's.
+  const cardActivates = isSelectMode || !isTrashView;
+  const cardLabel = isSelectMode
+    ? note.title || t("noteCard.select")
+    : note.title || t("editor.titlePlaceholder");
 
   const handleSelectClick = (e: Event) => {
     e.stopPropagation();
@@ -687,9 +699,21 @@ export function NoteCard({
                   onDragEnd?.(e);
                 }
           }
+          // A card is the primary control of the grid and was reachable only
+          // with a pointer: no tab stop, and an Enter handler on an element
+          // nothing could focus. Trash cards do not open, so they are a plain
+          // article carrying buttons rather than something to activate.
+          tabIndex={cardActivates ? 0 : undefined}
+          role={cardActivates ? "button" : undefined}
+          aria-label={cardActivates ? cardLabel : undefined}
           onClick={handleClick}
           onKeyDown={(e) => {
-            if (e.key === "Enter") handleClick();
+            if (!cardActivates) return;
+            if (e.key !== "Enter" && e.key !== " ") return;
+            // Space scrolls the page by default, and both would otherwise also
+            // reach whatever the click opens.
+            e.preventDefault();
+            handleClick();
           }}
         >
           {/* biome-ignore lint/a11y/noStaticElementInteractions: event stop container */}
@@ -888,6 +912,10 @@ export function NoteCard({
               onClick={closeModal}
             />
             <div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={note.title || t("editor.titlePlaceholder")}
               class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
               <div class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden">
