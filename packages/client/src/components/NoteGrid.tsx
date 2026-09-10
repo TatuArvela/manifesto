@@ -1,358 +1,18 @@
 import { Search, StickyNote } from "lucide-preact";
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
 import {
   activeView,
   canReorder,
-  noteSize,
   pinnedNotes,
   reorderNotes,
   unpinnedNotes,
-  viewMode,
 } from "../state/index.js";
-import { NoteCard } from "./NoteCard.js";
-
-const MASONRY_GAP = 16; // vertical gap between cards (matches gap-x-4)
-
-/** Measure each child's natural height and set grid-row spans for masonry. */
-function applyMasonrySpans(container: HTMLElement | null, isSquare: boolean) {
-  if (!container) return;
-  const children = Array.from(container.children) as HTMLElement[];
-  // Give each card enough room to expand to its natural height
-  for (const child of children) {
-    child.style.gridRowEnd = "span 9999";
-  }
-  // Now measure actual rendered heights and set correct spans
-  const heights = children.map((child) => {
-    if (isSquare) return child.getBoundingClientRect().width;
-    return child.getBoundingClientRect().height;
-  });
-  for (let i = 0; i < children.length; i++) {
-    children[i].style.gridRowEnd =
-      `span ${Math.ceil(heights[i] + MASONRY_GAP)}`;
-  }
-}
-
-/** Find the nearest gap index for a drag event in a 2D grid or 1D list. */
-function findNearestGap(
-  coords: { clientX: number; clientY: number },
-  container: HTMLElement,
-  isVertical: boolean,
-): number {
-  const children = Array.from(container.children) as HTMLElement[];
-  if (children.length === 0) return 0;
-
-  if (isVertical) {
-    for (let i = 0; i < children.length; i++) {
-      const rect = children[i].getBoundingClientRect();
-      if (coords.clientY < rect.top + rect.height / 2) return i;
-    }
-    return children.length;
-  }
-
-  // 2D grid/masonry: find nearest card by distance to center
-  let nearestIdx = 0;
-  let nearestDist = Number.POSITIVE_INFINITY;
-  for (let i = 0; i < children.length; i++) {
-    const rect = children[i].getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dist = Math.hypot(coords.clientX - cx, coords.clientY - cy);
-    if (dist < nearestDist) {
-      nearestDist = dist;
-      nearestIdx = i;
-    }
-  }
-
-  // Before or after the nearest card, based on horizontal position
-  const rect = children[nearestIdx].getBoundingClientRect();
-  return coords.clientX < rect.left + rect.width / 2
-    ? nearestIdx
-    : nearestIdx + 1;
-}
+import { ReorderableGrid } from "./ReorderableGrid.js";
 
 export function NoteGrid() {
   const pinned = pinnedNotes.value;
   const unpinned = unpinnedNotes.value;
   const reorderable = canReorder.value;
-  const isSquare = noteSize.value === "square";
-  const isList = viewMode.value === "list";
-
-  const [dropGap, setDropGap] = useState<number | null>(null);
-  const [dropSection, setDropSection] = useState<"pinned" | "unpinned" | null>(
-    null,
-  );
-  const [dragVertical, setDragVertical] = useState(false);
-  const dragSourceId = useRef<string | null>(null);
-  const dragSection = useRef<"pinned" | "unpinned" | null>(null);
-  const pinnedGridRef = useRef<HTMLDivElement>(null);
-  const unpinnedGridRef = useRef<HTMLDivElement>(null);
-
-  const isContainerVertical = (el: HTMLElement): boolean => {
-    const style = getComputedStyle(el);
-    if (style.display.startsWith("flex")) return true;
-    const cols = style.gridTemplateColumns.trim();
-    if (!cols || cols === "none") return true;
-    return cols.split(/\s+/).length === 1;
-  };
-
-  const measureVerticalGap = (el: HTMLElement): number => {
-    const children = Array.from(el.children) as HTMLElement[];
-    if (children.length < 2) return 16;
-    const r1 = children[0].getBoundingClientRect();
-    const r2 = children[1].getBoundingClientRect();
-    return Math.max(0, r2.top - r1.bottom);
-  };
-
-  // Apply masonry layout (runs before paint)
-  useLayoutEffect(() => {
-    if (isList) return;
-    applyMasonrySpans(pinnedGridRef.current, isSquare);
-    applyMasonrySpans(unpinnedGridRef.current, isSquare);
-  }, [pinned, unpinned, isList, isSquare]);
-
-  // Recalculate masonry when container width changes (window resize, sidebar toggle)
-  useEffect(() => {
-    if (isList) return;
-    const containers = [pinnedGridRef.current, unpinnedGridRef.current].filter(
-      (c): c is HTMLDivElement => c !== null,
-    );
-    if (containers.length === 0) return;
-
-    const widths = new Map<Element, number>();
-    for (const c of containers) widths.set(c, c.clientWidth);
-
-    const observer = new ResizeObserver((entries) => {
-      let changed = false;
-      for (const entry of entries) {
-        const prev = widths.get(entry.target);
-        const now = entry.contentRect.width;
-        if (prev !== now) {
-          widths.set(entry.target, now);
-          changed = true;
-        }
-      }
-      if (changed) {
-        applyMasonrySpans(pinnedGridRef.current, isSquare);
-        applyMasonrySpans(unpinnedGridRef.current, isSquare);
-      }
-    });
-
-    for (const c of containers) observer.observe(c);
-    return () => observer.disconnect();
-  }, [isList, isSquare]);
-
-  const getSourceIndex = (section: "pinned" | "unpinned") => {
-    const list = section === "pinned" ? pinned : unpinned;
-    return list.findIndex((n) => n.id === dragSourceId.current);
-  };
-
-  const handleDragStart = (
-    e: DragEvent,
-    id: string,
-    section: "pinned" | "unpinned",
-  ) => {
-    if (!reorderable) return;
-    dragSourceId.current = id;
-    dragSection.current = section;
-    const target = e.currentTarget as HTMLElement;
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = "move";
-      const rect = target.getBoundingClientRect();
-      // Use an off-screen clone so the ghost is the full card, not clipped
-      // to the element's visible portion (Safari/iOS behavior).
-      const clone = target.cloneNode(true) as HTMLElement;
-      clone.style.position = "fixed";
-      clone.style.top = "-10000px";
-      clone.style.left = "-10000px";
-      clone.style.width = `${rect.width}px`;
-      clone.style.height = `${rect.height}px`;
-      clone.style.pointerEvents = "none";
-      clone.classList.remove("note-dragging");
-      document.body.appendChild(clone);
-      e.dataTransfer.setDragImage(
-        clone,
-        e.clientX - rect.left,
-        e.clientY - rect.top,
-      );
-      setTimeout(() => clone.remove(), 0);
-    }
-    const container =
-      section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
-    if (container) {
-      setDragVertical(isContainerVertical(container));
-      container.style.setProperty(
-        "--drop-gap",
-        `${measureVerticalGap(container)}px`,
-      );
-    }
-    document.body.classList.add("note-drag-active");
-    requestAnimationFrame(() => target.classList.add("note-dragging"));
-  };
-
-  const handleDragEnd = (e: DragEvent) => {
-    const target = e.currentTarget as HTMLElement;
-    target.classList.remove("note-dragging");
-    document.body.classList.remove("note-drag-active");
-    dragSourceId.current = null;
-    dragSection.current = null;
-    setDragVertical(false);
-    setDropGap(null);
-    setDropSection(null);
-  };
-
-  // --- Touch drag path (pointer-event-driven, mirrors the native HTML5 path) ---
-
-  const touchDragElRef = useRef<HTMLElement | null>(null);
-
-  const handleTouchDragStart = (
-    e: PointerEvent,
-    id: string,
-    section: "pinned" | "unpinned",
-  ) => {
-    if (!reorderable) return;
-    const target = e.currentTarget as HTMLElement;
-    touchDragElRef.current = target;
-    dragSourceId.current = id;
-    dragSection.current = section;
-    const container =
-      section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
-    if (container) {
-      setDragVertical(isContainerVertical(container));
-      container.style.setProperty(
-        "--drop-gap",
-        `${measureVerticalGap(container)}px`,
-      );
-    }
-    document.body.classList.add("note-drag-active");
-    target.classList.add("note-dragging");
-  };
-
-  const handleTouchDragMove = (e: PointerEvent) => {
-    const section = dragSection.current;
-    if (!section) return;
-    const container =
-      section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
-    if (!container) return;
-
-    const gap = findNearestGap(
-      { clientX: e.clientX, clientY: e.clientY },
-      container,
-      dragVertical,
-    );
-
-    const list = section === "pinned" ? pinned : unpinned;
-    const srcIdx = list.findIndex((n) => n.id === dragSourceId.current);
-    if (srcIdx !== -1 && (gap === srcIdx || gap === srcIdx + 1)) {
-      setDropGap(null);
-      setDropSection(null);
-      return;
-    }
-
-    setDropGap(gap);
-    setDropSection(section);
-  };
-
-  const handleTouchDragEnd = (_e: PointerEvent, didDrag: boolean) => {
-    const section = dragSection.current;
-    const sourceId = dragSourceId.current;
-    const gap = dropGap;
-    const dropSec = dropSection;
-
-    if (touchDragElRef.current) {
-      touchDragElRef.current.classList.remove("note-dragging");
-      touchDragElRef.current = null;
-    }
-    document.body.classList.remove("note-drag-active");
-    dragSourceId.current = null;
-    dragSection.current = null;
-    setDragVertical(false);
-    setDropGap(null);
-    setDropSection(null);
-
-    if (
-      !didDrag ||
-      !sourceId ||
-      !section ||
-      gap === null ||
-      dropSec !== section
-    )
-      return;
-
-    const list = section === "pinned" ? pinned : unpinned;
-    const ids = list.map((n) => n.id);
-    const fromIndex = ids.indexOf(sourceId);
-    if (fromIndex === -1) return;
-
-    const toIndex = gap > fromIndex ? gap - 1 : gap;
-    if (toIndex !== fromIndex) {
-      reorderNotes(ids, fromIndex, toIndex);
-    }
-  };
-
-  const handleGridDragOver = (e: DragEvent, section: "pinned" | "unpinned") => {
-    if (!reorderable || dragSection.current !== section) return;
-    e.preventDefault();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = "move";
-    }
-
-    const container =
-      section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
-    if (!container) return;
-
-    const gap = findNearestGap(
-      { clientX: e.clientX, clientY: e.clientY },
-      container,
-      dragVertical,
-    );
-
-    const srcIdx = getSourceIndex(section);
-    if (srcIdx !== -1 && (gap === srcIdx || gap === srcIdx + 1)) {
-      setDropGap(null);
-      setDropSection(null);
-      return;
-    }
-
-    setDropGap(gap);
-    setDropSection(section);
-  };
-
-  const handleGridDragLeave = (
-    e: DragEvent,
-    section: "pinned" | "unpinned",
-  ) => {
-    const container =
-      section === "pinned" ? pinnedGridRef.current : unpinnedGridRef.current;
-    if (
-      container &&
-      e.relatedTarget instanceof Node &&
-      container.contains(e.relatedTarget)
-    ) {
-      return;
-    }
-    setDropGap(null);
-    setDropSection(null);
-  };
-
-  const handleDrop = (e: DragEvent, section: "pinned" | "unpinned") => {
-    e.preventDefault();
-    const sourceId = dragSourceId.current;
-    const gap = dropGap;
-    setDropGap(null);
-    setDropSection(null);
-    if (!sourceId || gap === null || dragSection.current !== section) return;
-
-    const list = section === "pinned" ? pinned : unpinned;
-    const ids = list.map((n) => n.id);
-    const fromIndex = ids.indexOf(sourceId);
-    if (fromIndex === -1) return;
-
-    const toIndex = gap > fromIndex ? gap - 1 : gap;
-    if (toIndex !== fromIndex) {
-      reorderNotes(ids, fromIndex, toIndex);
-    }
-  };
 
   if (pinned.length === 0 && unpinned.length === 0) {
     const isSearch = activeView.value === "search";
@@ -373,52 +33,19 @@ export function NoteGrid() {
     );
   }
 
-  const gridClass = isList
-    ? "flex flex-col gap-3"
-    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-x-4 items-start";
-  const gridStyle = isList ? undefined : { gridAutoRows: "1px" };
   const headingClass =
     "text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 mb-2 px-1";
-
-  const getDropSide = (idx: number, section: "pinned" | "unpinned") => {
-    if (dropSection !== section || dropGap === null) return undefined;
-    const list = section === "pinned" ? pinned : unpinned;
-    if (dropGap === list.length && idx === list.length - 1) return "after";
-    if (dropGap === idx) return "before";
-    return undefined;
-  };
 
   return (
     <div class="mt-4">
       {pinned.length > 0 && (
         <section>
           <h2 class={headingClass}>{t("noteGrid.pinned")}</h2>
-          {/* biome-ignore lint/a11y/useSemanticElements: grid layout requires div */}
-          <div
-            ref={pinnedGridRef}
-            role="list"
-            class={`${gridClass}${dragVertical && dropSection === "pinned" ? " note-grid-vertical" : ""}`}
-            style={gridStyle}
-            onDragOver={(e) => handleGridDragOver(e, "pinned")}
-            onDragLeave={(e) => handleGridDragLeave(e, "pinned")}
-            onDrop={(e) => handleDrop(e, "pinned")}
-          >
-            {pinned.map((note, idx) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                draggable={reorderable}
-                onDragStart={(e) => handleDragStart(e, note.id, "pinned")}
-                onDragEnd={handleDragEnd}
-                onTouchDragStart={(e) =>
-                  handleTouchDragStart(e, note.id, "pinned")
-                }
-                onTouchDragMove={handleTouchDragMove}
-                onTouchDragEnd={handleTouchDragEnd}
-                dropSide={getDropSide(idx, "pinned")}
-              />
-            ))}
-          </div>
+          <ReorderableGrid
+            notes={pinned}
+            reorderable={reorderable}
+            onReorder={(ids, from, to) => void reorderNotes(ids, from, to)}
+          />
         </section>
       )}
 
@@ -428,32 +55,11 @@ export function NoteGrid() {
 
       {unpinned.length > 0 && (
         <section>
-          {/* biome-ignore lint/a11y/useSemanticElements: grid layout requires div */}
-          <div
-            ref={unpinnedGridRef}
-            role="list"
-            class={`${gridClass}${dragVertical && dropSection === "unpinned" ? " note-grid-vertical" : ""}`}
-            style={gridStyle}
-            onDragOver={(e) => handleGridDragOver(e, "unpinned")}
-            onDragLeave={(e) => handleGridDragLeave(e, "unpinned")}
-            onDrop={(e) => handleDrop(e, "unpinned")}
-          >
-            {unpinned.map((note, idx) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                draggable={reorderable}
-                onDragStart={(e) => handleDragStart(e, note.id, "unpinned")}
-                onDragEnd={handleDragEnd}
-                onTouchDragStart={(e) =>
-                  handleTouchDragStart(e, note.id, "unpinned")
-                }
-                onTouchDragMove={handleTouchDragMove}
-                onTouchDragEnd={handleTouchDragEnd}
-                dropSide={getDropSide(idx, "unpinned")}
-              />
-            ))}
-          </div>
+          <ReorderableGrid
+            notes={unpinned}
+            reorderable={reorderable}
+            onReorder={(ids, from, to) => void reorderNotes(ids, from, to)}
+          />
         </section>
       )}
     </div>

@@ -8,7 +8,7 @@ import {
   Wand2,
   X,
 } from "lucide-preact";
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import {
   addPlugin,
   fetchPluginSource,
@@ -19,68 +19,11 @@ import {
   togglePlugin,
 } from "../autoNotes/registry.js";
 import { t } from "../i18n/index.js";
-import {
-  canReorder,
-  noteSize,
-  reorderNotes,
-  sortedNotes,
-  viewMode,
-} from "../state/index.js";
-import { NoteCard } from "./NoteCard.js";
+import { canReorder, reorderNotes, sortedNotes } from "../state/index.js";
+import { ReorderableGrid } from "./ReorderableGrid.js";
 import { ToggleSwitch } from "./ToggleSwitch.js";
 
 type AddMode = "inline" | "url" | null;
-
-const MASONRY_GAP = 16;
-
-function applyMasonrySpans(container: HTMLElement | null, isSquare: boolean) {
-  if (!container) return;
-  const children = Array.from(container.children) as HTMLElement[];
-  for (const child of children) {
-    child.style.gridRowEnd = "span 9999";
-  }
-  const heights = children.map((child) => {
-    if (isSquare) return child.getBoundingClientRect().width;
-    return child.getBoundingClientRect().height;
-  });
-  for (let i = 0; i < children.length; i++) {
-    children[i].style.gridRowEnd =
-      `span ${Math.ceil(heights[i] + MASONRY_GAP)}`;
-  }
-}
-
-function findNearestGap(
-  e: DragEvent,
-  container: HTMLElement,
-  isList: boolean,
-): number {
-  const children = Array.from(container.children) as HTMLElement[];
-  if (children.length === 0) return 0;
-
-  if (isList) {
-    for (let i = 0; i < children.length; i++) {
-      const rect = children[i].getBoundingClientRect();
-      if (e.clientY < rect.top + rect.height / 2) return i;
-    }
-    return children.length;
-  }
-
-  let nearestIdx = 0;
-  let nearestDist = Number.POSITIVE_INFINITY;
-  for (let i = 0; i < children.length; i++) {
-    const rect = children[i].getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
-    if (dist < nearestDist) {
-      nearestDist = dist;
-      nearestIdx = i;
-    }
-  }
-
-  const rect = children[nearestIdx].getBoundingClientRect();
-  return e.clientX < rect.left + rect.width / 2 ? nearestIdx : nearestIdx + 1;
-}
 
 export function AutoNotesView() {
   const [addMode, setAddMode] = useState<AddMode>(null);
@@ -92,53 +35,7 @@ export function AutoNotesView() {
 
   const list = plugins.value;
   const allNotes = sortedNotes.value;
-  const isSquare = noteSize.value === "square";
-  const isList = viewMode.value === "list";
   const reorderable = canReorder.value;
-  const gridRefs = useRef(new Map<string, HTMLDivElement | null>());
-
-  const [dropGap, setDropGap] = useState<number | null>(null);
-  const [dropPluginId, setDropPluginId] = useState<string | null>(null);
-  const dragSourceId = useRef<string | null>(null);
-  const dragPluginId = useRef<string | null>(null);
-
-  useLayoutEffect(() => {
-    if (isList) return;
-    for (const [, el] of gridRefs.current) {
-      applyMasonrySpans(el, isSquare);
-    }
-  });
-
-  useEffect(() => {
-    if (isList) return;
-    const containers = [...gridRefs.current.values()].filter(
-      (c): c is HTMLDivElement => c !== null,
-    );
-    if (containers.length === 0) return;
-
-    const widths = new Map<Element, number>();
-    for (const c of containers) widths.set(c, c.clientWidth);
-
-    const observer = new ResizeObserver((entries) => {
-      let changed = false;
-      for (const entry of entries) {
-        const prev = widths.get(entry.target);
-        const now = entry.contentRect.width;
-        if (prev !== now) {
-          widths.set(entry.target, now);
-          changed = true;
-        }
-      }
-      if (changed) {
-        for (const [, el] of gridRefs.current) {
-          applyMasonrySpans(el, isSquare);
-        }
-      }
-    });
-
-    for (const c of containers) observer.observe(c);
-    return () => observer.disconnect();
-  }, [isList, isSquare]);
 
   const resetForm = () => {
     setAddMode(null);
@@ -188,95 +85,6 @@ export function AutoNotesView() {
       setPluginError(id, err instanceof Error ? err.message : String(err));
     }
   };
-
-  const getPluginNotes = (pluginId: string) =>
-    allNotes.filter((n) => n.source?.pluginId === pluginId);
-
-  const getSourceIndex = (pluginId: string) =>
-    getPluginNotes(pluginId).findIndex((n) => n.id === dragSourceId.current);
-
-  const handleDragStart = (e: DragEvent, id: string, pluginId: string) => {
-    if (!reorderable) return;
-    dragSourceId.current = id;
-    dragPluginId.current = pluginId;
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = "move";
-    }
-    document.body.classList.add("note-drag-active");
-    const target = e.currentTarget as HTMLElement;
-    requestAnimationFrame(() => target.classList.add("note-dragging"));
-  };
-
-  const handleDragEnd = (e: DragEvent) => {
-    const target = e.currentTarget as HTMLElement;
-    target.classList.remove("note-dragging");
-    document.body.classList.remove("note-drag-active");
-    dragSourceId.current = null;
-    dragPluginId.current = null;
-    setDropGap(null);
-    setDropPluginId(null);
-  };
-
-  const handleGridDragOver = (e: DragEvent, pluginId: string) => {
-    if (!reorderable || dragPluginId.current !== pluginId) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-
-    const container = gridRefs.current.get(pluginId);
-    if (!container) return;
-
-    const gap = findNearestGap(e, container, isList);
-    const srcIdx = getSourceIndex(pluginId);
-    if (srcIdx !== -1 && (gap === srcIdx || gap === srcIdx + 1)) {
-      setDropGap(null);
-      setDropPluginId(null);
-      return;
-    }
-    setDropGap(gap);
-    setDropPluginId(pluginId);
-  };
-
-  const handleGridDragLeave = (e: DragEvent, pluginId: string) => {
-    const container = gridRefs.current.get(pluginId);
-    if (
-      container &&
-      e.relatedTarget instanceof Node &&
-      container.contains(e.relatedTarget)
-    ) {
-      return;
-    }
-    setDropGap(null);
-    setDropPluginId(null);
-  };
-
-  const handleDrop = (e: DragEvent, pluginId: string) => {
-    e.preventDefault();
-    const sourceId = dragSourceId.current;
-    const gap = dropGap;
-    setDropGap(null);
-    setDropPluginId(null);
-    if (!sourceId || gap === null || dragPluginId.current !== pluginId) return;
-
-    const ids = getPluginNotes(pluginId).map((n) => n.id);
-    const fromIndex = ids.indexOf(sourceId);
-    if (fromIndex === -1) return;
-    const toIndex = gap > fromIndex ? gap - 1 : gap;
-    if (toIndex !== fromIndex) {
-      void reorderNotes(ids, fromIndex, toIndex);
-    }
-  };
-
-  const getDropSide = (idx: number, pluginId: string, total: number) => {
-    if (dropPluginId !== pluginId || dropGap === null) return undefined;
-    if (dropGap === total && idx === total - 1) return "after";
-    if (dropGap === idx) return "before";
-    return undefined;
-  };
-
-  const gridClass = isList
-    ? "flex flex-col gap-3"
-    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-x-4 items-start";
-  const gridStyle = isList ? undefined : { gridAutoRows: "1px" };
 
   return (
     <div class="mt-4 mb-6 flex flex-col gap-4">
@@ -386,29 +194,11 @@ export function AutoNotesView() {
             </div>
 
             {pluginNotes.length > 0 && (
-              // biome-ignore lint/a11y/useSemanticElements: grid layout requires div
-              <div
-                ref={(el) => {
-                  gridRefs.current.set(plugin.id, el);
-                }}
-                role="list"
-                class={gridClass}
-                style={gridStyle}
-                onDragOver={(e) => handleGridDragOver(e, plugin.id)}
-                onDragLeave={(e) => handleGridDragLeave(e, plugin.id)}
-                onDrop={(e) => handleDrop(e, plugin.id)}
-              >
-                {pluginNotes.map((note, idx) => (
-                  <NoteCard
-                    key={note.id}
-                    note={note}
-                    draggable={reorderable}
-                    onDragStart={(e) => handleDragStart(e, note.id, plugin.id)}
-                    onDragEnd={handleDragEnd}
-                    dropSide={getDropSide(idx, plugin.id, pluginNotes.length)}
-                  />
-                ))}
-              </div>
+              <ReorderableGrid
+                notes={pluginNotes}
+                reorderable={reorderable}
+                onReorder={(ids, from, to) => void reorderNotes(ids, from, to)}
+              />
             )}
           </section>
         );
