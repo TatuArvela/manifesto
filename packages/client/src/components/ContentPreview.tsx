@@ -1,6 +1,9 @@
 import type { Note } from "@manifesto/shared";
-import { segmentContent } from "../utils/markdown.js";
-import { renderMarkdown } from "../utils/remarkRenderer.js";
+import { parseChecklistLine, segmentContent } from "../utils/markdown.js";
+import {
+  renderInlineMarkdown,
+  renderMarkdown,
+} from "../utils/remarkRenderer.js";
 
 /**
  * Renders note content as a read-only preview with interactive checkboxes.
@@ -54,46 +57,36 @@ export function ContentPreview({
             >
               {seg.lines.map((line, j) => {
                 const lineIndex = seg.startLine + j;
-                const indent = line.match(/^(\s*)/)?.[1].length ?? 0;
-                const unchecked = line.match(/^\s*(?:[-*+] )?\[ \] (.*)$/);
-                const checked = line.match(/^\s*(?:[-*+] )?\[x\] (.*)$/i);
-                if (unchecked) {
-                  return (
-                    <div
-                      key={lineIndex}
-                      class="inline-flex items-start gap-2"
-                      style={{ paddingLeft: `${indent * 7.5}px` }}
-                    >
-                      <input
-                        type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 shrink-0 cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300 transition-colors checkbox-custom"
-                        checked={false}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={() => onCheckboxToggle(lineIndex)}
-                      />
-                      <span>{unchecked[1]}</span>
-                    </div>
-                  );
-                }
-                if (checked) {
-                  return (
-                    <div
-                      key={lineIndex}
-                      class="inline-flex items-start gap-2"
-                      style={{ paddingLeft: `${indent * 7.5}px` }}
-                    >
-                      <input
-                        type="checkbox"
-                        class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 shrink-0 cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300 transition-colors checkbox-custom"
-                        checked={true}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={() => onCheckboxToggle(lineIndex)}
-                      />
-                      <span class="line-through opacity-60">{checked[1]}</span>
-                    </div>
-                  );
-                }
-                return null;
+                // One parser, shared with the actions that toggle and delete
+                // these items — two patterns used to disagree about what a
+                // checklist line is, so the preview could draw a box for a
+                // line `toggleCheckbox` then refused to touch.
+                const item = parseChecklistLine(line);
+                if (!item) return null;
+                return (
+                  <div
+                    key={lineIndex}
+                    class="inline-flex items-start gap-2"
+                    style={{ paddingLeft: `${item.indent.length * 7.5}px` }}
+                  >
+                    <input
+                      type="checkbox"
+                      class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 shrink-0 cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300 transition-colors checkbox-custom"
+                      checked={item.checked}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={() => onCheckboxToggle(lineIndex)}
+                    />
+                    {/* The label is markdown like any other text: printed
+                        raw, `**milk**` showed its asterisks while the same
+                        words one line below rendered bold. */}
+                    <span
+                      class={item.checked ? "line-through opacity-60" : ""}
+                      dangerouslySetInnerHTML={{
+                        __html: renderInlineMarkdown(item.label),
+                      }}
+                    />
+                  </div>
+                );
               })}
             </div>
           );
