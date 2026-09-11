@@ -6,7 +6,7 @@
 // URL and add it as a URL source.
 //
 // Each plugin receives a `ctx` argument: { today, locale, stdlib }.
-//   - today:   "YYYY-MM-DD" for the current day (re-evaluated every minute)
+//   - today:   ISO 8601 timestamp for the current moment, fixed for the run
 //   - locale:  "en" / "fi" / ...
 //   - stdlib:  date helpers (addDays, lastOccurrence, relativeDays,
 //              approxUntil, formatDate, ...)

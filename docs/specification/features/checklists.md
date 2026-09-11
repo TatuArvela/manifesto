@@ -19,6 +19,6 @@ Checklists are represented as [GFM task lists](https://github.github.com/gfm/#ta
 
 Checkboxes can be toggled directly from the note card in the grid/list view, without opening the editor. This is essential for quick-use scenarios like shopping lists.
 
-## Interaction with Collaborative Editing (Planned)
+## Interaction with Collaborative Editing
 
-When collaborative editing is implemented, checkbox toggles will be broadcast to other users in real time. See [Collaborative Editing](collaborative-editing.md).
+In connected mode, checkbox toggles are broadcast to everyone viewing the note in real time: a toggle is a document edit like any other, so it travels over the Yjs channel rather than as a note write. See [Collaborative Editing](collaborative-editing.md).
