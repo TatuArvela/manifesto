@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Manifesto is a free, open-source note-taking app with a sticky note interface. It's MIT licensed. The full spec lives in `docs/specification/`.
 
+Server env vars are documented in `docs/specification/server/deployment.md` and rebranding in
+`docs/specification/custom-instances.md` — both are the source of truth, so configure from there
+rather than re-deriving from `src/config.ts`.
+
 ## Commands
 
 ```bash
@@ -17,6 +21,10 @@ pnpm lint:fix         # Auto-fix lint/format issues
 pnpm typecheck        # TypeScript check all packages
 pnpm test             # Run all tests (Vitest)
 ```
+
+The client's browser project drives real Chromium, so a fresh clone needs the browser binary
+once: `pnpm --filter @manifesto/client exec playwright install --with-deps chromium`. CI gates
+on exactly `lint`, `typecheck`, `test`, then both builds.
 
 Run for a single package with `pnpm --filter @manifesto/<client|server|shared> <script>`.
 
@@ -33,7 +41,9 @@ pnpm monorepo with three packages:
   JavaScript and is not erasable. It has no npm dependencies of its own. Because the client and
   server resolve it through different export conditions, a value added here must be reachable
   from the build, not just the types — that mismatch once shipped a constant that typechecked
-  green and was `undefined` at runtime.
+  green and was `undefined` at runtime. Both vitest configs alias `@manifesto/shared` to
+  `../shared/src/index.ts`, so tests read the same files the compiler checked — which is why
+  nothing caught it. Only a real build plus run exercises `dist`.
 - **`packages/client`** — Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
 - **`packages/server`** — Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
 
@@ -82,6 +92,19 @@ manifest. `VITE_APP_ICONS_DIR` overlays replacement icons onto the output, which
 is why `logo.svg` lives in `public/` rather than `src/assets/` — brand marks
 must stay plain files at fixed paths. `manifesto:` localStorage keys and the
 `@manifesto/*` package names are internal and stay as they are.
+
+### Internationalization
+
+`src/i18n/` holds two catalogues, `messages/en.ts` and `messages/fi.ts`. English is the source
+of truth for keys — `MessageKey = keyof typeof en` — so a new string lands in `en.ts` first and
+the typecheck then demands it in `fi.ts`; tests enforce key parity, a `.other` form on every
+Finnish plural, and that neither catalogue hard-codes the product name.
+
+`t()` reads the `locale` signal internally, so **call it inside component render bodies**, never
+at module scope, or the string freezes to the load-time locale. `plural()` picks the form via
+`Intl.PluralRules` and defaults `{count}` to `n`. Units and separators come from `Intl` rather
+than from messages (`formatFileSize` renders "MB" / "Mt"), so a translator never has to know the
+local convention.
 
 ### Routing
 
@@ -194,6 +217,12 @@ spans that changed — a pass that changes nothing provokes no further callback,
 it from looping. Content that settles after first paint (images, fonts) has to trigger a re-measure
 or the card keeps the height it was born with.
 
+Drag-to-reorder is gated by the `canReorder` computed: Notes or Auto-notes view, default sort, no
+search, no modal. `reorderNotes` rewrites `position` in `POSITION_STEP` (1000) increments rather
+than 0..n, leaving room to insert between later. `ReorderableGrid` measures the computed style to
+tell a one-column layout from a grid, because masonry collapses to one column when narrow and the
+drop indicator has to change axis.
+
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
 toast queue or the catalogue, so the "tell the user" decision stays in `actions.ts`. A refused
 write is neither retried nor rolled back — the signal keeps the change, so the session continues
@@ -243,7 +272,7 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - **`src/storage/`** — `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional — SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
 - **`src/auth/`** — `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. Two providers ship: `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers — the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. Two provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/methods` (public discovery) and `GET /api/auth/me` (bearer → current user).
 - **`src/app.ts` / `src/index.ts`** — composition root. Constructs storage, auth provider, broadcaster, then wires the Hono app, the `/api/ws` socket (`ws/appSocket.ts`), and the Yjs collaboration socket (`ws/yjsSocket.ts` + the generic `ws/yjsExtension.ts` Hocuspocus extension that delegates to `storage.yjs`).
-- **Background work**: `lib/trashCleanup.ts` runs hourly and goes through `storage.maintenance.cleanupTrashedBefore()` rather than touching the DB directly, so it works for any storage driver.
+- **Background work**: `lib/trashCleanup.ts` and `lib/sessionCleanup.ts` both run on `lib/periodic.ts`'s `startPeriodicJob` — once at startup, then hourly. Each goes through a repo method (`storage.maintenance.cleanupTrashedBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
 
 ## Testing
 
