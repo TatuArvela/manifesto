@@ -199,7 +199,7 @@ function CardActions({
                 <span
                   class="p-1.5 opacity-60"
                   role="img"
-                  aria-label="Auto-generated"
+                  aria-label={t("autoNotes.badge")}
                 >
                   <Sparkles class="w-4 h-4" />
                 </span>

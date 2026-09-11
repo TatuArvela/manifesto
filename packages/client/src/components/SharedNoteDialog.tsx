@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
+import { t } from "../i18n/index.js";
 import type { SharedNotePayload } from "../sharing.js";
 import { clearShareHash } from "../sharing.js";
 import { createNote } from "../state/actions.js";
@@ -40,7 +41,7 @@ export function SharedNoteDialog({
       tags: [...payload.tags],
     });
     if (!saved) return;
-    showSuccess("Note saved!");
+    showSuccess(t("share.saved"));
     clearShareHash();
     onDone();
   };
@@ -72,7 +73,7 @@ export function SharedNoteDialog({
                 id="shared-note-dialog-title"
                 class="text-sm text-neutral-500 dark:text-neutral-400 mb-3"
               >
-                Someone shared a note with you
+                {t("share.received")}
               </p>
 
               <div class="max-h-80 overflow-y-auto">
@@ -118,14 +119,14 @@ export function SharedNoteDialog({
                 class="px-4 py-2 text-sm rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                 onClick={dismiss}
               >
-                Discard
+                {t("share.discard")}
               </button>
               <button
                 type="button"
                 class="px-4 py-2 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
                 onClick={handleSave}
               >
-                Save to my notes
+                {t("share.save")}
               </button>
             </div>
           </div>

@@ -88,6 +88,7 @@ export const fi: Messages = {
   "noteCard.close": "Sulje",
 
   // Auto-notes / plugins
+  "autoNotes.badge": "Automaattisesti luotu",
   "autoNotes.generatedBy": "Automaattinen muistiinpano\nLuonut: {name}",
   "autoNotes.refresh": "Päivitä",
   "autoNotes.approx.today": "Tänään",
@@ -236,7 +237,6 @@ export const fi: Messages = {
   "settings.decimalSeparator.comma": "Pilkku",
   "settings.language": "Kieli",
   "settings.language.system": "Järjestelmän oletus",
-  "settings.data": "Tiedot",
   "settings.data.import": "Tuo muistiinpanot",
   "settings.data.export": "Vie muistiinpanot",
   "settings.data.deleteAll": "Poista kaikki",
@@ -252,7 +252,6 @@ export const fi: Messages = {
   "settings.data.importFailed": "Tuonti epäonnistui — virheellinen tiedosto",
   "settings.data.importedSingle": "Muistiinpano tuotu",
   "settings.data.deleted": "Kaikki muistiinpanot poistettu",
-  "settings.autoNotes": "Automaattiset muistiinpanot",
   "settings.autoNotes.empty.title": "Muistiinpanot, jotka kirjoittavat itsensä",
   "settings.autoNotes.empty.intro":
     "Automaattisen muistiinpanon luo pieni JavaScript-laajennus, jonka kirjoitat tai liität itse. Laajennus suoritetaan hiekkalaatikossa selaimessasi aina kun {appName} käynnistyy, ja sen palauttama sisältö ilmestyy tähän muistiinpanona.",
@@ -310,18 +309,11 @@ export const fi: Messages = {
   "reminder.nextWeek": "Ensi viikolla",
   "reminder.nextWeekAt": "ma klo {time}",
   "reminder.back": "Takaisin",
-  "reminder.time.morning": "Aamu",
-  "reminder.time.afternoon": "Iltapäivä",
-  "reminder.time.evening": "Ilta",
-  "reminder.time.night": "Yö",
-  "reminder.time.custom": "Mukautettu",
-  "reminder.recurrence.label": "Toista",
   "reminder.recurrence.none": "Ei toistu",
   "reminder.recurrence.daily": "Päivittäin",
   "reminder.recurrence.weekly": "Viikoittain",
   "reminder.recurrence.monthly": "Kuukausittain",
   "reminder.recurrence.yearly": "Vuosittain",
-  "reminder.past": "Myöhässä",
   "reminder.pastHelp": "Valitse aika tulevaisuudesta.",
   "reminder.untitled": "Nimetön muistutus",
   "reminder.permissionDenied":
@@ -329,8 +321,12 @@ export const fi: Messages = {
   "reminder.openNote": "Avaa muistiinpano",
   "reminder.dismiss": "Sulje",
   "reminder.chip": "Muistutus: {date}",
-  "reminder.empty":
-    "Ei vielä muistutuksia. Aseta muistutus muistiinpanon valikosta.",
+
+  // Shared-note dialog — shown when the app opens on a #share=... link.
+  "share.received": "Joku jakoi sinulle muistiinpanon",
+  "share.discard": "Hylkää",
+  "share.save": "Tallenna muistiinpanoihini",
+  "share.saved": "Muistiinpano tallennettu!",
 
   // Colors (swatch labels)
   "color.default": "Oletus",
