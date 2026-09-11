@@ -1,11 +1,10 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { toasts } from "../state/ui.js";
 import {
   LocalStorageAdapter,
   subscribeToExternalNotes,
 } from "./LocalStorageAdapter.js";
-import { _resetQuotaReporter } from "./quotaReporter.js";
+import { quotaRefusedAt } from "./quota.js";
 
 const STORAGE_KEY = "manifesto:notes";
 
@@ -164,25 +163,24 @@ describe("LocalStorageAdapter", () => {
     expect(notes).toEqual([]);
   });
 
-  it("surfaces a toast and does not throw when localStorage is full", async () => {
-    toasts.value = [];
-    _resetQuotaReporter();
+  it("reports a refusal and does not throw when localStorage is full", async () => {
+    // The refusal is reported as a fact, not as a toast: this layer has no
+    // message catalogue and no toast queue, and `actions.ts` decides what the
+    // user is told. The message itself is covered in `actions.browser.test.ts`.
+    quotaRefusedAt.value = 0;
     const setItem = vi
       .spyOn(Storage.prototype, "setItem")
       .mockImplementation(() => {
         throw new DOMException("Quota exceeded", "QuotaExceededError");
       });
     try {
-      // Must not throw — caller's try/catch isn't responsible for storage failure.
+      // Must not throw — the caller's try/catch isn't responsible for storage
+      // failure, and the note stays on screen for the rest of the session.
       await expect(adapter.create(sampleNote)).resolves.toBeDefined();
-      // Toast queued for the user.
-      expect(
-        toasts.value.some((t) => t.type === "error"),
-        "expected an error toast to be visible",
-      ).toBe(true);
+      expect(quotaRefusedAt.value).toBeGreaterThan(0);
     } finally {
       setItem.mockRestore();
-      toasts.value = [];
+      quotaRefusedAt.value = 0;
     }
   });
 });

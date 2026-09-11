@@ -1,5 +1,4 @@
-import { computed } from "@preact/signals";
-import { authToken, clearAuthLocal, SERVER_URL } from "../state/auth.js";
+import { computed, signal } from "@preact/signals";
 import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
 import { RestApiAdapter } from "./RestApiAdapter.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
@@ -8,15 +7,35 @@ export { LocalStorageAdapter } from "./LocalStorageAdapter.js";
 export { RestApiAdapter } from "./RestApiAdapter.js";
 export type { StorageAdapter } from "./StorageAdapter.js";
 
+/** What it takes to reach a server, if there is one to reach. */
+export interface StorageConnection {
+  serverUrl: string | null;
+  token: string | null;
+  /** Called when the server rejects the token. */
+  onUnauthorized?: () => void;
+}
+
 /**
- * Reactive adapter — recomputes when auth changes. Reads `currentStorage.value`
- * at call time so actions always hit the right backend after login/logout.
+ * Set by `state/auth.ts`, which is the module that knows about sessions.
+ * Pushed in rather than read out: storage used to import the auth signals
+ * directly, which put the bottom layer of the app above one of its own
+ * callers and meant anything touching a note pulled the login screen's state
+ * in with it.
+ */
+export const storageConnection = signal<StorageConnection>({
+  serverUrl: null,
+  token: null,
+});
+
+/**
+ * Reactive adapter — recomputes when the connection changes. Read
+ * `currentStorage.value` at call time so actions always hit the right backend
+ * after a login or logout.
  */
 export const currentStorage = computed<StorageAdapter>(() => {
-  const url = SERVER_URL;
-  const token = authToken.value;
-  if (url && token) {
-    return new RestApiAdapter(url, token, { onUnauthorized: clearAuthLocal });
+  const { serverUrl, token, onUnauthorized } = storageConnection.value;
+  if (serverUrl && token) {
+    return new RestApiAdapter(serverUrl, token, { onUnauthorized });
   }
   return new LocalStorageAdapter();
 });

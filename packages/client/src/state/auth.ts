@@ -5,6 +5,7 @@ import type {
   AuthSuccessResponse,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
+import { storageConnection } from "../storage/index.js";
 
 export interface CurrentUser {
   id: string;
@@ -173,6 +174,16 @@ export function clearAuthLocal(): void {
   authToken.value = null;
   currentUser.value = null;
 }
+
+// Which backend a note goes to follows the session, so this module tells the
+// storage layer rather than the storage layer reaching in here for the token.
+effect(() => {
+  storageConnection.value = {
+    serverUrl: SERVER_URL,
+    token: authToken.value,
+    onUnauthorized: clearAuthLocal,
+  };
+});
 
 export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
   if (!SERVER_URL) return null;
