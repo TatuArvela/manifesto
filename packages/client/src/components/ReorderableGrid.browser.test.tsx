@@ -272,6 +272,34 @@ describe("ReorderableGrid", () => {
     );
   });
 
+  it("re-spans a card that grows after it was first measured", async () => {
+    // A card's height is not settled when it is first measured: an image
+    // decodes after the frame that added it, and lazy attachments arrive a
+    // whole round trip later. A card left with the span it had while it was
+    // empty is drawn *through* by the card below it — which is what the note
+    // grid did with any note carrying a picture.
+    render(
+      <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
+      host,
+    );
+    const spanOf = (i: number) =>
+      Number(/span (\d+)/.exec(cards()[i].style.gridRowEnd)?.[1] ?? 0);
+    const before = spanOf(0);
+    expect(before).toBeGreaterThan(0);
+
+    const grown = document.createElement("div");
+    grown.style.height = "400px";
+    articleIn(cards()[0]).appendChild(grown);
+
+    await vi.waitFor(() => {
+      expect(spanOf(0)).toBeGreaterThan(before + 300);
+    });
+    // And the card below it moved down rather than being overlapped.
+    expect(cards()[0].getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      cards()[0].getBoundingClientRect().top + spanOf(0),
+    );
+  });
+
   it("lays the list view out without masonry spans", () => {
     viewMode.value = "list";
     render(
