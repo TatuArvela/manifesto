@@ -84,10 +84,6 @@ function merge(
   return { ...(current ?? {}), ...patch };
 }
 
-function isEmpty(o: AutoNoteOverride): boolean {
-  return Object.keys(o).length === 0;
-}
-
 export function updateAutoNoteOverride(id: string, patch: AutoNoteOverride) {
   const current = autoNoteOverrides.value;
   const next = { ...current, [id]: merge(current[id], patch) };
@@ -100,9 +96,4 @@ export function clearAutoNoteOverride(id: string) {
   const next = { ...current };
   delete next[id];
   autoNoteOverrides.value = next;
-}
-
-export function getAutoNoteOverride(id: string): AutoNoteOverride | undefined {
-  const o = autoNoteOverrides.value[id];
-  return o && !isEmpty(o) ? o : undefined;
 }

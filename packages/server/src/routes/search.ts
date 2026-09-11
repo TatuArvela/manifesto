@@ -1,6 +1,5 @@
 import { Hono, type MiddlewareHandler } from "hono";
 import type { AuthProvider } from "../auth/types.js";
-import type { ServerConfig } from "../config.js";
 import {
   type AuthContext,
   createAuthMiddleware,
@@ -11,7 +10,6 @@ import { readPageParams } from "../validation/pageParams.js";
 interface SearchDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
-  cfg: ServerConfig;
   rateLimit?: MiddlewareHandler;
 }
 

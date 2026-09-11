@@ -93,9 +93,6 @@ let nextToastId = 0;
 
 export const toasts = signal<AppToast[]>([]);
 
-/** @deprecated Use `toasts` instead. */
-export const errors = toasts;
-
 export function showError(message: string) {
   showToast("error", message);
 }
@@ -113,6 +110,3 @@ function showToast(type: ToastType, message: string) {
 export function dismissToast(id: number) {
   toasts.value = toasts.value.filter((t) => t.id !== id);
 }
-
-/** @deprecated Use `dismissToast` instead. */
-export const dismissError = dismissToast;
