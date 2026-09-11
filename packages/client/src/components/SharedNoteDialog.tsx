@@ -49,7 +49,6 @@ export function SharedNoteDialog({
 
   return (
     <>
-      {/* Backdrop */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
       <div
@@ -57,7 +56,6 @@ export function SharedNoteDialog({
         onClick={dismiss}
       />
 
-      {/* Dialog */}
       <div
         ref={dialogRef}
         role="dialog"
@@ -69,7 +67,6 @@ export function SharedNoteDialog({
           <div
             class={`${colors.bg} ${colors.border} border rounded-lg shadow-xl overflow-hidden`}
           >
-            {/* Header */}
             <div class="px-5 pt-5 pb-3">
               <p
                 id="shared-note-dialog-title"
@@ -78,7 +75,6 @@ export function SharedNoteDialog({
                 Someone shared a note with you
               </p>
 
-              {/* Note preview */}
               <div class="max-h-80 overflow-y-auto">
                 {payload.title && (
                   <h3
@@ -116,7 +112,6 @@ export function SharedNoteDialog({
               </div>
             </div>
 
-            {/* Actions */}
             <div class="px-5 py-3 flex justify-end gap-2 border-t border-neutral-200/50 dark:border-neutral-700/50">
               <button
                 type="button"

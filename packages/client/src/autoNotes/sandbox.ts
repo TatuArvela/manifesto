@@ -5,8 +5,9 @@ import type { AutoNoteResult, PluginContextInput } from "./types.js";
 
 // Sandbox architecture notes:
 //
-// The sandbox lives in a same-origin static HTML file (public/autonotes-sandbox.html)
-// that we load via `iframe.src`. It *cannot* be a `srcdoc` iframe — srcdoc
+// The sandbox lives in a static HTML file served from our own origin
+// (public/autonotes-sandbox.html) that we load via `iframe.src` — the frame
+// itself gets an opaque origin, see below. It *cannot* be a `srcdoc` iframe — srcdoc
 // iframes inherit the parent's CSP, and our main app pins `script-src 'self'`.
 // An iframe loaded from a real URL gets its own CSP (from its own meta tag),
 // so the sandbox can use `unsafe-inline` + `unsafe-eval` without relaxing the
@@ -28,7 +29,9 @@ import type { AutoNoteResult, PluginContextInput } from "./types.js";
 // subverted it would pass its own checks.
 //
 // Flow:
-//   1. Host creates iframe, awaits `load` event.
+//   1. Host listens for `message`, then sets `iframe.src`. There is no `load`
+//      handshake — an opaque-origin frame tells us nothing useful on load, and
+//      the frame announces itself anyway in step 2.
 //   2. Iframe posts `sandbox-booted` to parent.
 //   3. Host posts `init` with the stdlib prelude string.
 //   4. Iframe evaluates the prelude, starts its worker, posts `init-ok`.

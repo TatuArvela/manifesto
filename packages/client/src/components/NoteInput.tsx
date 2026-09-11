@@ -322,7 +322,6 @@ export function NoteInput() {
               </div>
             </div>
           </div>
-          {/* Stack base — visible thickness at bottom */}
           <div class={`note-stack-base ${noteColorMap[stackColor].bg}`} />
         </div>
       </div>

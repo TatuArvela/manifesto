@@ -60,7 +60,6 @@ function SelectionToolbar() {
 
   return (
     <header class="relative z-20 shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
-      {/* Left: close + count + select all */}
       <div class="flex items-center gap-2 shrink-0">
         <button
           type="button"
@@ -96,7 +95,6 @@ function SelectionToolbar() {
 
       <div class="flex-1" />
 
-      {/* Right: actions */}
       <div class="flex items-center gap-0.5 shrink-0">
         {isTrashView ? (
           <>
@@ -135,7 +133,6 @@ function SelectionToolbar() {
               </button>
             </Tooltip>
 
-            {/* Tag picker */}
             <Dropdown
               open={showTagPicker}
               onClose={() => setShowTagPicker(false)}
@@ -177,7 +174,6 @@ function SelectionToolbar() {
               </button>
             </Tooltip>
 
-            {/* Color picker */}
             <Dropdown
               open={showColorPicker}
               onClose={() => setShowColorPicker(false)}
@@ -324,12 +320,9 @@ export function Header() {
         </div>
       </div>
 
-      {/* Spacer to push right controls to the end */}
       <div class="flex-1" />
 
-      {/* Right: controls */}
       <div class="flex items-center gap-0.5 shrink-0 z-10">
-        {/* Mobile search button — opens search view */}
         <Tooltip label={t("nav.search")}>
           <button
             type="button"
@@ -391,7 +384,6 @@ export function Header() {
           </Dropdown>
         )}
 
-        {/* View menu with dropdown */}
         <Dropdown
           open={showViewMenu}
           onClose={() => setShowViewMenu(false)}

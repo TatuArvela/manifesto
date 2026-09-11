@@ -221,9 +221,10 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event: ExtendableMessageEvent) => {
-  // Only accept messages from same-origin clients of this service worker. The
-  // postMessage handler runs in a privileged context — replaceAll wipes the
-  // entire reminder store, so we type-check every payload.
+  // A service worker only ever receives `message` from the same-origin clients
+  // it controls, so there is no sender to check here. The exposure is the
+  // payload: this handler runs privileged and `replaceAll` wipes the entire
+  // reminder store, so every field is checked before it is believed.
   const data = event.data as
     | { type: "sync-reminders"; reminders: unknown }
     | { type: "delete-reminder"; noteId: unknown }

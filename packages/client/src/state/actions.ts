@@ -684,8 +684,9 @@ export async function reorderNotes(
   const reordered = [...noteIds];
   const [moved] = reordered.splice(fromIndex, 1);
   reordered.splice(toIndex, 0, moved);
-  // Spaced positions so new notes can slot above without colliding with the
-  // existing range. See nextCreatePosition.
+  // Spaced rather than 0..n-1 so a future insert-between doesn't have to
+  // renumber the list. See POSITION_STEP for why the spacing stays clear of
+  // the `Date.now()` a new note gets.
   await asBatch(async () => {
     for (let i = 0; i < reordered.length; i++) {
       await updateNote(reordered[i], { position: (i + 1) * POSITION_STEP });
