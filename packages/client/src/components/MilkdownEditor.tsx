@@ -18,7 +18,11 @@ import type * as Y from "yjs";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
 import { taskItemDraggable } from "../extensions/taskItemDraggable.js";
-import { DEFAULT_FRAGMENT_NAME, yjsCollab } from "../extensions/yjsCollab.js";
+import {
+  DEFAULT_FRAGMENT_NAME,
+  loadYjsCollab,
+  type YjsCollabFactory,
+} from "../extensions/yjsCollab.js";
 import { useMilkdownEditor } from "../hooks/useMilkdownEditor.js";
 import { markFencedLines } from "../utils/markdown.js";
 
@@ -115,6 +119,35 @@ export function MilkdownEditor({
   const collabRef = useRef(collab);
   collabRef.current = collab;
 
+  // The collaborative plugin is fetched on demand, so a collaborative editor
+  // cannot be built until it lands — see `loadYjsCollab` for why it must be in
+  // hand *before* the editor is created rather than awaited inside the plugin.
+  // Held in a ref as well: `build` reads it without taking it as a dependency.
+  const [collabFactory, setCollabFactory] = useState<YjsCollabFactory | null>(
+    null,
+  );
+  const collabFactoryRef = useRef(collabFactory);
+  collabFactoryRef.current = collabFactory;
+
+  useEffect(() => {
+    if (!collab) return;
+    let cancelled = false;
+    loadYjsCollab().then(
+      (factory) => {
+        // setState with a function argument would call it as an updater.
+        if (!cancelled) setCollabFactory(() => factory);
+      },
+      () => {
+        // Leaves the editor unbuilt rather than silently non-collaborative:
+        // binding solo here would let this client's copy overwrite the shared
+        // document on the next save.
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [collab]);
+
   const build = useCallback((root: HTMLElement) => {
     const editor = Editor.make()
       .config((ctx) => {
@@ -139,10 +172,9 @@ export function MilkdownEditor({
       .use(manifestoInlineMarks)
       .use(taskItemDraggable)
       .use(inlineCalculationsPlugin);
-    if (collabRef.current) {
-      // y-prosemirror's yUndoPlugin replaces the standard history plugin —
-      // mixing the two double-applies undo on remote operations.
-      editor.use(yjsCollab(collabRef.current));
+    const collabPlugin = collabFactoryRef.current;
+    if (collabRef.current && collabPlugin) {
+      editor.use(collabPlugin(collabRef.current));
     } else {
       editor.use(history);
     }
@@ -166,7 +198,11 @@ export function MilkdownEditor({
     });
   }, []);
 
-  const { editor, mountRef } = useMilkdownEditor(build, disarmListener);
+  const { editor, mountRef } = useMilkdownEditor(
+    build,
+    disarmListener,
+    !collab || collabFactory !== null,
+  );
 
   // A note that has never been edited collaboratively has an empty shared
   // fragment, and ySyncPlugin adopts whatever the fragment holds — so binding
