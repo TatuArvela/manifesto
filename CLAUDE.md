@@ -133,13 +133,25 @@ disarming there too; teardown is the only moment the context is still intact.
 
 **Collaborative binding.** Once `collab` is supplied, the shared `Y.XmlFragment` is the authority
 and the `content` prop must never be written into a fragment that already holds something — doing
-so deletes another session's work on every device at once. Three pieces enforce that, and the
+so deletes another session's work on every device at once. Four pieces enforce that, and the
 tests in `MilkdownEditor.browser.test.tsx` / `NoteCardEditor.browser.test.tsx` fail if any one is
 removed: `NoteCardEditor` withholds `collab` until the provider reports `synced`, `NoteEditor` keys
-the editor on `collab` so it rebuilds with the plugin installed, and `MilkdownEditor` seeds the
-fragment from the note *only* when it is empty. Any effect with `editor` in its dep array also runs
+the editor on `collab` so it rebuilds with the plugin installed, `MilkdownEditor` seeds the
+fragment from the note *only* when it is empty, and it holds the editor unbuilt until
+`loadYjsCollab()` resolves. Any effect with `editor` in its dep array also runs
 at mount, after `ySyncPlugin` has rendered the shared document — so an effect that pushes local
 content must first establish that it is reacting to a change and not to the editor's arrival.
+
+The collaboration stack is loaded on demand and that is a correctness constraint, not only a size
+one. `realtime/yjsSession.ts` holds every Yjs/Hocuspocus/y-indexeddb import and is reached only
+through `import()` in `useNoteYDoc`; `extensions/yjsCollab.ts` fetches `y-prosemirror` through
+`loadYjsCollab()`. The fetch must finish *before* `Editor.make()`, never inside the plugin's
+runner: Milkdown reads `prosePluginsCtx` to build the view in the same pass, so a runner that
+awaits anything before `ctx.update` installs `ySyncPlugin` after the view exists — the editor then
+shows the local note instead of the shared document and writes that copy over everyone else's on
+the next save. That is why `useMilkdownEditor` takes a `ready` flag. Open mode is the default
+build and can never sync, so keeping these three chunks out of the entry is worth ~130 KB
+minified to every user who will never use them.
 
 ### Auto-notes Plugin Sandbox
 

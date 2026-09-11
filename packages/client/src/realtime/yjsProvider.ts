@@ -1,21 +1,16 @@
-import { HocuspocusProvider } from "@hocuspocus/provider";
 import { useEffect, useState } from "preact/hooks";
-import { IndexeddbPersistence } from "y-indexeddb";
 import type { Awareness } from "y-protocols/awareness";
-import * as Y from "yjs";
+import type * as Y from "yjs";
+import { loadYjsCollab } from "../extensions/yjsCollab.js";
 import {
   authToken,
   currentUser,
   isServerMode,
   SERVER_URL,
 } from "../state/auth.js";
+import type { YjsConnectionStatus, YjsSession } from "./yjsSession.js";
 
-export type YjsConnectionStatus =
-  | "disabled"
-  | "loading"
-  | "connecting"
-  | "connected"
-  | "disconnected";
+export type { YjsConnectionStatus } from "./yjsSession.js";
 
 export interface NoteYDoc {
   ydoc: Y.Doc | null;
@@ -48,9 +43,12 @@ function wsUrl(): string | null {
  * { ydoc: null } when not in server mode or unauthenticated — the caller
  * should fall back to plain (non-collaborative) editing.
  *
- * The note id is the Hocuspocus document name, and the server authorizes
- * against that name rather than against the URL, so it is the one value that
- * decides which document this connection may touch.
+ * The collaboration stack itself is fetched on demand (see `yjsSession`), so
+ * the document appears one microtask-plus-a-network-fetch after the hook first
+ * asks for it. `status` is `loading` for that window, and a chunk that fails to
+ * arrive reports `disconnected` with no document — which lands the caller in
+ * the same non-collaborative fallback as open mode rather than leaving an
+ * editor waiting on a document that will never come.
  */
 export function useNoteYDoc(noteId: string | null): NoteYDoc {
   const [state, setState] = useState<NoteYDoc>(IDLE);
@@ -66,54 +64,58 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
       return;
     }
 
-    const ydoc = new Y.Doc();
-    const idb = new IndexeddbPersistence(`manifesto:yjs:${noteId}`, ydoc);
-    const provider = new HocuspocusProvider({
-      url,
-      name: noteId,
-      document: ydoc,
-      token,
-      onStatus: ({ status }) => {
-        setState((prev) => ({ ...prev, status }));
-      },
-      onSynced: () => {
-        setState((prev) => ({ ...prev, synced: true }));
-      },
-      onAuthenticationFailed: () => {
-        setState((prev) => ({
-          ...prev,
-          status: "disconnected",
-          synced: false,
-        }));
-      },
-    });
-
+    let session: YjsSession | null = null;
+    let cancelled = false;
     const user = currentUser.value;
-    if (user) {
-      provider.awareness?.setLocalStateField("user", {
-        id: user.id,
-        name: user.displayName,
-        color: user.avatarColor,
-      });
-    }
-    const onPageHide = () => {
-      provider.awareness?.setLocalState(null);
-    };
-    window.addEventListener("pagehide", onPageHide);
 
-    setState({
-      ydoc,
-      awareness: provider.awareness,
-      status: "connecting",
-      synced: false,
-    });
+    setState({ ...IDLE, status: "loading" });
+
+    // Fetched alongside the session rather than when the editor asks for it:
+    // the editor asks the instant we report `synced`, and fetching then would
+    // leave the note body blank for a round trip. Fire and forget — the
+    // editor awaits the same memoized promise.
+    void loadYjsCollab().catch(() => {});
+
+    import("./yjsSession.js").then(
+      ({ createYjsSession }) => {
+        if (cancelled) return;
+        session = createYjsSession({
+          url,
+          noteId,
+          token,
+          user: user
+            ? { id: user.id, name: user.displayName, color: user.avatarColor }
+            : null,
+          onStatus: (status) => {
+            setState((prev) => ({ ...prev, status }));
+          },
+          onSynced: () => {
+            setState((prev) => ({ ...prev, synced: true }));
+          },
+          onAuthenticationFailed: () => {
+            setState((prev) => ({
+              ...prev,
+              status: "disconnected",
+              synced: false,
+            }));
+          },
+        });
+        setState({
+          ydoc: session.ydoc,
+          awareness: session.awareness,
+          status: "connecting",
+          synced: false,
+        });
+      },
+      () => {
+        if (cancelled) return;
+        setState({ ...IDLE, status: "disconnected" });
+      },
+    );
 
     return () => {
-      window.removeEventListener("pagehide", onPageHide);
-      provider.awareness?.setLocalState(null);
-      provider.destroy();
-      idb.destroy();
-      ydoc.destroy();
+      cancelled = true;
+      session?.destroy();
       setState(IDLE);
     };
   }, [noteId, token]);

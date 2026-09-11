@@ -10,10 +10,15 @@ import { useEffect, useRef, useState } from "preact/hooks";
  * `beforeDestroy` runs on a created editor while its context is still intact,
  * which is the only moment a plugin holding a pending timer can be disarmed —
  * see the caller for why that matters.
+ *
+ * `ready` defaults to true; pass false while `build` is still missing something
+ * it needs (a lazily fetched plugin, say) and the editor is created on the
+ * render that flips it, instead of being built without it.
  */
 export function useMilkdownEditor(
   build: (root: HTMLElement) => Editor,
   beforeDestroy?: (editor: Editor) => void,
+  ready = true,
 ) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const mountRef = useRef<HTMLDivElement>(null);
@@ -24,7 +29,7 @@ export function useMilkdownEditor(
 
   useEffect(() => {
     const el = mountRef.current;
-    if (!el) return;
+    if (!el || !ready) return;
 
     const instance = buildRef.current(el);
     let destroyed = false;
@@ -58,7 +63,7 @@ export function useMilkdownEditor(
       teardown();
       setEditor(null);
     };
-  }, []);
+  }, [ready]);
 
   return { editor, mountRef };
 }
