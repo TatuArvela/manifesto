@@ -6,7 +6,7 @@ import {
   type NoteUpdate,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
-import { reportStorageQuotaExceeded } from "./quotaReporter.js";
+import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
 
 const STORAGE_KEY = "manifesto:notes";
@@ -28,24 +28,15 @@ function loadNotes(): Note[] {
   }
 }
 
-function isQuotaError(err: unknown): boolean {
-  return (
-    err instanceof DOMException &&
-    (err.name === "QuotaExceededError" ||
-      err.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
-      err.code === 22)
-  );
-}
-
 function saveNotes(notes: Note[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
   } catch (err) {
     if (isQuotaError(err)) {
-      // Surface a toast so the user knows their edit didn't persist; the
-      // in-memory signal still reflects the change so the session keeps
-      // working.
-      reportStorageQuotaExceeded();
+      // Say so and carry on: the in-memory signal still reflects the change,
+      // so the session keeps working. What the user is told about it is
+      // decided in `actions.ts`.
+      reportQuotaRefusal();
       return;
     }
     throw err;

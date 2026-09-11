@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { t } from "../i18n/index.js";
+import { quotaRefusedAt } from "../storage/quota.js";
 import {
   archiveNote,
   expireTrash,
@@ -274,5 +275,52 @@ describe("expireTrash", () => {
     });
     await expireTrash();
     expect(notes.value).toHaveLength(1);
+  });
+});
+
+describe("the storage quota message", () => {
+  // Storage reports a refused write and says nothing about it; this is where
+  // the user-facing half of that lives, so this is where it is tested.
+  //
+  // The throttle below is module state in `actions.ts`, so each test takes a
+  // fresh stretch of the clock rather than reusing `Date.now()` and being
+  // silenced by whatever the test before it reported.
+  let clock = Date.now();
+  const nextMinute = () => {
+    clock += 10 * 60 * 1000;
+    return clock;
+  };
+
+  beforeEach(() => {
+    toasts.value = [];
+    quotaRefusedAt.value = 0;
+  });
+
+  afterEach(() => {
+    toasts.value = [];
+    quotaRefusedAt.value = 0;
+  });
+
+  const quotaToasts = () =>
+    toasts.value.filter(
+      (toast) => toast.message === t("storage.quotaExceeded"),
+    );
+
+  it("tells the user when a write was refused for space", () => {
+    quotaRefusedAt.value = nextMinute();
+    expect(quotaToasts()).toHaveLength(1);
+    expect(quotaToasts()[0].type).toBe("error");
+  });
+
+  it("says it once a minute, not once per refused write", () => {
+    // One editor close writes the note and a version, so a full store refuses
+    // twice in a row and the user should still read one sentence.
+    const at = nextMinute();
+    quotaRefusedAt.value = at;
+    quotaRefusedAt.value = at + 10;
+    expect(quotaToasts()).toHaveLength(1);
+
+    quotaRefusedAt.value = at + 60_001;
+    expect(quotaToasts()).toHaveLength(2);
   });
 });

@@ -1,6 +1,6 @@
 import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { computed, signal } from "@preact/signals";
+import { computed, effect, signal } from "@preact/signals";
 import { type MessageKey, plural, t } from "../i18n/index.js";
 import {
   createStorage,
@@ -8,6 +8,7 @@ import {
   LocalStorageAdapter,
 } from "../storage/index.js";
 import { subscribeToExternalNotes } from "../storage/LocalStorageAdapter.js";
+import { quotaRefusedAt } from "../storage/quota.js";
 import { NoteConflictError } from "../storage/RestApiAdapter.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
 import {
@@ -52,6 +53,23 @@ if (typeof window !== "undefined") {
     }
   });
 }
+
+/**
+ * One user action can exhaust the quota several times over — `NoteCardEditor`
+ * saves the note and a version — so the message is thrown away for a minute
+ * after it is shown, and the user sees one clear sentence rather than a
+ * burst. Storage reports the refusal; the wording and the throttle are here.
+ */
+const QUOTA_MESSAGE_QUIET_MS = 60 * 1000;
+let lastQuotaMessageAt = 0;
+
+effect(() => {
+  const refusedAt = quotaRefusedAt.value;
+  if (refusedAt === 0) return;
+  if (refusedAt - lastQuotaMessageAt < QUOTA_MESSAGE_QUIET_MS) return;
+  lastQuotaMessageAt = refusedAt;
+  showError(t("storage.quotaExceeded"));
+});
 
 // --- Signals ---
 

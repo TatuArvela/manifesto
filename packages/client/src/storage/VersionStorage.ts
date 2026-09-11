@@ -1,6 +1,6 @@
 import type { NoteVersion } from "@manifesto/shared";
 import { compressToUTF16, decompressFromUTF16 } from "lz-string";
-import { reportStorageQuotaExceeded } from "./quotaReporter.js";
+import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 
 const STORAGE_KEY = "manifesto:versions";
 const MAX_VERSIONS_PER_NOTE = 50;
@@ -38,25 +38,15 @@ function save(map: VersionMap): boolean {
           STORAGE_KEY,
           compressToUTF16(JSON.stringify(trimmed)),
         );
-        reportStorageQuotaExceeded();
+        reportQuotaRefusal();
         return true;
       } catch {
-        reportStorageQuotaExceeded();
+        reportQuotaRefusal();
         return false;
       }
     }
     throw err;
   }
-}
-
-function isQuotaError(err: unknown): boolean {
-  return (
-    err instanceof DOMException &&
-    (err.name === "QuotaExceededError" ||
-      // Old WebKit / Firefox surface a different name + numeric code
-      err.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
-      err.code === 22)
-  );
 }
 
 export function saveVersion(
