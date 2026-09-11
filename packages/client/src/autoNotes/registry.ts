@@ -103,7 +103,7 @@ async function fetchPluginText(url: string): Promise<string> {
 
 export async function refetchPlugin(id: string): Promise<void> {
   const plugin = plugins.value.find((p) => p.id === id);
-  if (!plugin || plugin.origin.kind !== "url") return;
+  if (plugin?.origin.kind !== "url") return;
   const source = await fetchPluginText(plugin.origin.url);
   const name = extractPluginTitle(source);
   plugins.value = plugins.value.map((p) =>

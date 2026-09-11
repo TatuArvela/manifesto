@@ -1062,9 +1062,8 @@ body.note-drag-active .note-select {
    class is applied via a ProseMirror decoration on the task item containing
    the selection — a plain `:focus-within` would match every ancestor, since
    ProseMirror keeps focus on the root contenteditable. */
-.milkdown-editor li[data-item-type="task"]:hover:not(
-    :has(li[data-item-type="task"]:hover)
-  )
+.milkdown-editor
+  li[data-item-type="task"]:hover:not(:has(li[data-item-type="task"]:hover))
   > .task-item-delete,
 .milkdown-editor
   li[data-item-type="task"].task-item-active:not(
@@ -1101,7 +1100,8 @@ body.note-drag-active .note-select {
 /* Nested task lists — no extra padding (parent's checkbox+gap already
    shifts content right) and no vertical margin so nesting depth doesn't
    add cumulative top/bottom space. */
-.milkdown-editor ul:has(> li[data-item-type="task"])
+.milkdown-editor
+  ul:has(> li[data-item-type="task"])
   ul:has(> li[data-item-type="task"]) {
   padding-left: 0;
   margin-top: 0;
