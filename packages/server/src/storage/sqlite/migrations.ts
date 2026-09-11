@@ -1,6 +1,11 @@
 import type Database from "better-sqlite3";
+import {
+  LEDGER_TABLE_SQL,
+  type Migration,
+  pendingMigrations,
+} from "../migrations.js";
 
-const INIT_SQL = `
+const INITIAL_SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
   id            TEXT PRIMARY KEY,
   username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -55,6 +60,28 @@ CREATE INDEX IF NOT EXISTS notes_trashed_expiry
   ON notes(trashed, trashed_at);
 `;
 
-export function runMigrations(db: Database.Database): void {
-  db.exec(INIT_SQL);
+export const MIGRATIONS: readonly Migration[] = [
+  { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
+];
+
+export function runMigrations(
+  db: Database.Database,
+  declared: readonly Migration[] = MIGRATIONS,
+): void {
+  db.exec(LEDGER_TABLE_SQL);
+  const applied = (
+    db.prepare(`SELECT id FROM schema_migrations`).all() as { id: string }[]
+  ).map((row) => row.id);
+  const record = db.prepare(
+    `INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)`,
+  );
+  // SQLite has transactional DDL, so a step that fails part-way leaves neither
+  // half of its schema change nor its ledger row behind.
+  const apply = db.transaction((migration: Migration) => {
+    db.exec(migration.sql);
+    record.run(migration.id, new Date().toISOString());
+  });
+  for (const migration of pendingMigrations(declared, applied)) {
+    apply(migration);
+  }
 }

@@ -43,6 +43,24 @@ Adding another driver means implementing these five interfaces and registering t
 - **SQLite** — zero-configuration, a single file you can back up by copying. Fast and ideal for one-server deployments. Pure synchronous writes (better-sqlite3) keep latencies tiny on a notes workload.
 - **Postgres** — required for any deployment that wants to scale beyond one app server, share state with other services, or use managed-database backups. The schema mirrors SQLite's; `yjs_state` lives in `BYTEA`.
 
+#### Schema migrations
+
+Each driver declares an ordered list of migrations, and a `schema_migrations`
+table in the database records which have run. On boot the driver applies the
+ones that are missing, each in its own transaction, and writes its ledger row
+in the same transaction — so a step that fails leaves behind neither half of a
+schema change nor a claim to have made it.
+
+Both drivers ship the same migration ids, in the same order; a test fails if
+they diverge. The SQL differs where the dialects do (SQLite has no boolean
+type and no `BYTEA`; Postgres has no `COLLATE NOCASE`), but what a database has
+been through is described the same way either side.
+
+A migration id is a promise: once a release has shipped it, it is never
+renamed and never removed, because a deployed database remembers having run it.
+A driver that finds an applied migration it no longer declares refuses to start
+rather than stacking later steps on a schema it cannot describe.
+
 ### Authentication providers
 
 Authentication is abstracted as an `AuthProvider`. The provider:

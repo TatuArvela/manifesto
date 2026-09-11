@@ -1,6 +1,11 @@
+import {
+  LEDGER_TABLE_SQL,
+  type Migration,
+  pendingMigrations,
+} from "../migrations.js";
 import type { PgPool } from "./database.js";
 
-const INIT_SQL = `
+const INITIAL_SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
   id            TEXT PRIMARY KEY,
   username      TEXT NOT NULL,
@@ -57,18 +62,50 @@ CREATE INDEX IF NOT EXISTS notes_trashed_expiry
   ON notes(trashed, trashed_at);
 `;
 
-export async function runMigrations(pool: PgPool): Promise<void> {
-  // Run inside a transaction so a partial failure can't leave the schema in an
-  // inconsistent state — most importantly, missing the unique LOWER(username)
-  // index, which would let duplicate usernames slip past `findByUsername`.
+export const MIGRATIONS: readonly Migration[] = [
+  { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
+];
+
+export async function runMigrations(
+  pool: PgPool,
+  declared: readonly Migration[] = MIGRATIONS,
+): Promise<void> {
   const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-    await client.query(INIT_SQL);
-    await client.query("COMMIT");
-  } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw err;
+    // Probed rather than re-issued on every boot: `CREATE TABLE IF NOT EXISTS`
+    // against a table that is already there is a statement whose only possible
+    // effect is nothing. The create keeps its `IF NOT EXISTS` anyway, so two
+    // instances booting at once still cannot collide.
+    const ledger = await client.query(
+      `SELECT 1 FROM information_schema.tables
+       WHERE table_schema = current_schema() AND table_name = 'schema_migrations'`,
+    );
+    if (ledger.rows.length === 0) await client.query(LEDGER_TABLE_SQL);
+    const { rows } = await client.query<{ id: string }>(
+      `SELECT id FROM schema_migrations`,
+    );
+    const pending = pendingMigrations(
+      declared,
+      rows.map((row) => row.id),
+    );
+    // One transaction per step, so a partial failure can't leave the schema in
+    // an inconsistent state — most importantly, missing the unique
+    // LOWER(username) index, which would let duplicate usernames slip past
+    // `findByUsername` — and can't record a step that did not finish.
+    for (const migration of pending) {
+      try {
+        await client.query("BEGIN");
+        await client.query(migration.sql);
+        await client.query(
+          `INSERT INTO schema_migrations (id, applied_at) VALUES ($1, $2)`,
+          [migration.id, new Date().toISOString()],
+        );
+        await client.query("COMMIT");
+      } catch (err) {
+        await client.query("ROLLBACK").catch(() => {});
+        throw err;
+      }
+    }
   } finally {
     client.release();
   }
