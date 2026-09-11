@@ -11,9 +11,21 @@
     ".": {
       "package-name": "manifesto",
       "extra-files": [
-        { "type": "json", "path": "packages/client/package.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "packages/server/package.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "packages/shared/package.json", "jsonpath": "$.version" }
+        {
+          "type": "json",
+          "path": "packages/client/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/server/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/shared/package.json",
+          "jsonpath": "$.version"
+        }
       ]
     }
   }
