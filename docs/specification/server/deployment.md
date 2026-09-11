@@ -102,7 +102,7 @@ In Authentik, configure the application's redirect URI to match `OIDC_REDIRECT_U
 
 ## Postgres deployment
 
-For larger or scale-out deployments, set `STORAGE_DRIVER=postgres` and `DATABASE_URL=...`. The schema is created on first boot.
+For larger or scale-out deployments, set `STORAGE_DRIVER=postgres` and `DATABASE_URL=...`. The schema is created on first boot and brought forward on every boot after that — see [Schema migrations](index.md#schema-migrations).
 
 ```yaml
 services:
