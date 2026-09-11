@@ -1,9 +1,35 @@
 import type { Note } from "./note.js";
 
+// --- Pagination ---
+
+/**
+ * How many notes a list endpoint returns when the caller doesn't say. Large
+ * enough that most accounts are one page, small enough that no single response
+ * is unbounded.
+ */
+export const DEFAULT_NOTES_PAGE_SIZE = 200;
+
+/** The most a caller may ask for in one page. */
+export const MAX_NOTES_PAGE_SIZE = 500;
+
+export interface PageParams {
+  limit?: number;
+  /** Opaque — the `nextCursor` of the previous page, and nothing else. */
+  cursor?: string;
+}
+
 // --- REST responses ---
 
 export interface NotesResponse {
+  /**
+   * One page of notes, newest first. Attachments are **not** included: a
+   * listed note carries `imageCount` and an empty `images`, and the data URLs
+   * arrive with `GET /api/notes/:id`. Sending every attachment of every note
+   * on every load is what made a list response unbounded in the first place.
+   */
   notes: Note[];
+  /** Pass back as `cursor` for the next page; null on the last one. */
+  nextCursor: string | null;
 }
 
 export interface NoteResponse {

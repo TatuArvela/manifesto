@@ -5,6 +5,9 @@ import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
 
+/** A page big enough that these fixtures are never split across two. */
+const PAGE = { limit: 50 };
+
 const NOW = "2026-04-01T00:00:00.000Z";
 
 const baseNoteData = {
@@ -87,8 +90,12 @@ describe("sqlite notesRepo", () => {
       updatedAt: NOW,
     });
     expect(await repo.getById("n-u1", "u2")).toBeNull();
-    expect((await repo.listByUser("u1")).map((n) => n.id)).toEqual(["n-u1"]);
-    expect((await repo.listByUser("u2")).map((n) => n.id)).toEqual(["n-u2"]);
+    expect((await repo.listByUser("u1", PAGE)).notes.map((n) => n.id)).toEqual([
+      "n-u1",
+    ]);
+    expect((await repo.listByUser("u2", PAGE)).notes.map((n) => n.id)).toEqual([
+      "n-u2",
+    ]);
   });
 
   it("updates a partial set of fields and bumps updatedAt", async () => {
@@ -163,9 +170,13 @@ describe("sqlite notesRepo", () => {
       createdAt: NOW,
       updatedAt: NOW,
     });
-    expect((await repo.search("u1", "EGGS")).map((n) => n.id)).toEqual(["n1"]);
-    expect((await repo.search("u1", "trip")).map((n) => n.id)).toEqual(["n2"]);
-    expect(await repo.search("u2", "trip")).toEqual([]);
+    expect(
+      (await repo.search("u1", "EGGS", PAGE)).notes.map((n) => n.id),
+    ).toEqual(["n1"]);
+    expect(
+      (await repo.search("u1", "trip", PAGE)).notes.map((n) => n.id),
+    ).toEqual(["n2"]);
+    expect((await repo.search("u2", "trip", PAGE)).notes).toEqual([]);
   });
 
   it("preserves null reminder on round-trip", async () => {

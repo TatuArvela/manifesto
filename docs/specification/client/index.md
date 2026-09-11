@@ -106,12 +106,26 @@ State lives in `packages/client/src/state/` and is reactive via `@preact/signals
 
 ### Storage Adapters
 
-The client talks to persistence through a `StorageAdapter` interface (`storage/StorageAdapter.ts`) declaring `getAll`, `get`, `create`, `update`, `delete`, `deleteAll`, `search`, `importAll`.
+The client talks to persistence through a `StorageAdapter` interface (`storage/StorageAdapter.ts`) declaring `getAll`, `get`, `create`, `update`, `delete`, `deleteAll`, `search`, `importAll`, `loadImages`.
 
 - **`LocalStorageAdapter`** (default) — stores notes as JSON in `localStorage` under `manifesto:notes`. Generates ULIDs, fills in defaults for newer fields (font, images, link previews, reminder) when reading legacy records. ~5–10 MB limit, single device.
-- **`RestApiAdapter`** — implementation that speaks to a Manifesto server via the REST API. Scaffolded for future use; not yet selected by the factory.
+- **`RestApiAdapter`** — speaks to a Manifesto server over the REST API. `getAll` and `search` follow `nextCursor` until the server stops offering one, so the caller still receives every note: paging bounds a single response, and the app keeps the whole list in memory because tag counts, filtering and search are computed over it.
 
-Adapter resolution at startup is done by `createStorage()` in `storage/index.ts`. It currently returns `LocalStorageAdapter` unconditionally; the hook for switching to `RestApiAdapter` when a server is configured is the intended extension point (see [Deployment](deployment.md)).
+`loadImages` is the seam for attachments, which a server listing leaves out (see
+[API](../api.md#attachments-are-not-in-a-listing)). `ensureImages(id)` in
+`state/actions.ts` is what callers use: it fetches once per note, folds the
+result into the `notes` signal, and shares one request between concurrent
+askers. `hooks/useNoteImages.ts` hangs that call off an `IntersectionObserver`,
+so a grid downloads the pictures of the cards a reader scrolls past rather than
+of every note they own. In open mode nothing was ever separated, so it resolves
+without a round trip.
+
+Which adapter is live is decided by `currentStorage` in `storage/index.ts`, a
+computed over the `storageConnection` signal that `state/auth.ts` writes: a
+server URL plus a token selects `RestApiAdapter`, anything else selects
+`LocalStorageAdapter`. The connection is pushed in rather than read out so that
+storage, which sits underneath the session, does not import the session's state
+(see [Deployment](deployment.md)).
 
 ### Editor
 

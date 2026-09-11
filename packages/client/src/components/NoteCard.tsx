@@ -1,4 +1,9 @@
-import type { LinkPreview, Note, NoteColor } from "@manifesto/shared";
+import {
+  imageCountOf,
+  type LinkPreview,
+  type Note,
+  type NoteColor,
+} from "@manifesto/shared";
 import clsx from "clsx";
 import {
   Archive,
@@ -17,6 +22,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
+import { useNoteImages } from "../hooks/useNoteImages.js";
 import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
 import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
@@ -303,7 +309,12 @@ export function NoteCard({
     ? { ...baseColors, bg: autoColors.bg, border: autoColors.border }
     : baseColors;
   const isTrashView = activeView.value === "trash";
-  const hasImages = note.images.length > 0;
+  const {
+    ref: imagesRef,
+    images,
+    loading: imagesLoading,
+  } = useNoteImages<HTMLDivElement>(note);
+  const hasImages = imageCountOf(note) > 0;
   const isImageOnly = hasImages && !note.title && !note.content;
   const hasLinkPreviews = note.linkPreviews.length > 0;
   const isLinkOnly =
@@ -353,7 +364,7 @@ export function NoteCard({
     ro.observe(el);
     for (const child of Array.from(el.children)) ro.observe(child);
     return () => ro.disconnect();
-  }, [note.title, note.content, note.images.length, note.linkPreviews.length]);
+  }, [note.title, note.content, images.length, note.linkPreviews.length]);
 
   useEffect(
     () => () => {
@@ -593,8 +604,19 @@ export function NoteCard({
           </div>
 
           {hasImages && (
-            <div class={isImageOnly ? "" : "-mx-4 -mt-4 mb-3"}>
-              <ImageGallery images={note.images} />
+            <div ref={imagesRef} class={isImageOnly ? "" : "-mx-4 -mt-4 mb-3"}>
+              {imagesLoading ? (
+                // Reserved rather than left empty: the masonry grid measures
+                // this card, and a picture arriving afterwards would reflow
+                // the column under the reader's hands.
+                <div
+                  class="w-full bg-black/5 dark:bg-white/5 animate-pulse"
+                  style={{ aspectRatio: "4 / 3" }}
+                  aria-hidden="true"
+                />
+              ) : (
+                <ImageGallery images={images} />
+              )}
             </div>
           )}
 

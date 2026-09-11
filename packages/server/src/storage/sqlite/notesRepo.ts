@@ -1,18 +1,46 @@
 import type { Note, NoteUpdate } from "@manifesto/shared";
 import {
+  decodeCursor,
   INSERT_COLUMNS,
   type NoteRow,
   noteInsertValues,
   noteUpdateColumns,
   rowToNote,
   searchPattern,
+  takePage,
 } from "../noteMapping.js";
-import type { InsertNoteInput, NotesRepo } from "../types.js";
+import type {
+  InsertNoteInput,
+  ListNotesOptions,
+  NotePage,
+  NotesRepo,
+} from "../types.js";
 import type { SqliteDB } from "./database.js";
+
+/**
+ * Everything but the attachments. Listing queries select this so the bytes
+ * never leave the database, which is the point of leaving them out of the
+ * response.
+ */
+const LIST_COLUMNS = INSERT_COLUMNS.filter((c) => c !== "images").join(", ");
+
+/**
+ * Ordered by `updated_at DESC, id DESC`, so a cursor is a place in a total
+ * order rather than a timestamp two notes might share. Written as two
+ * comparisons rather than a row value because pg-mem, which the parallel
+ * Postgres suite runs on, does not parse `(a, b) < (c, d)` — and both drivers
+ * should be reading the same shape of query.
+ */
+const PAGE_ORDER = `ORDER BY updated_at DESC, id DESC LIMIT ?`;
+const AFTER_CURSOR = `AND (updated_at < ? OR (updated_at = ? AND id < ?))`;
 
 export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
   const listStmt = db.prepare(
-    `SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC`,
+    `SELECT ${LIST_COLUMNS} FROM notes WHERE user_id = ? ${PAGE_ORDER}`,
+  );
+  const listAfterStmt = db.prepare(
+    `SELECT ${LIST_COLUMNS} FROM notes
+     WHERE user_id = ? ${AFTER_CURSOR} ${PAGE_ORDER}`,
   );
   const getStmt = db.prepare(
     `SELECT * FROM notes WHERE id = ? AND user_id = ?`,
@@ -25,16 +53,38 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     `DELETE FROM notes WHERE id = ? AND user_id = ?`,
   );
   const searchStmt = db.prepare(
-    `SELECT * FROM notes
+    `SELECT ${LIST_COLUMNS} FROM notes
      WHERE user_id = ?
        AND (LOWER(title) LIKE LOWER(?) OR LOWER(content) LIKE LOWER(?))
-     ORDER BY updated_at DESC`,
+     ${PAGE_ORDER}`,
+  );
+  const searchAfterStmt = db.prepare(
+    `SELECT ${LIST_COLUMNS} FROM notes
+     WHERE user_id = ?
+       AND (LOWER(title) LIKE LOWER(?) OR LOWER(content) LIKE LOWER(?))
+     ${AFTER_CURSOR} ${PAGE_ORDER}`,
   );
 
   const repo: NotesRepo = {
-    async listByUser(userId: string): Promise<Note[]> {
-      const rows = listStmt.all(userId) as NoteRow[];
-      return rows.map(rowToNote);
+    async listByUser(
+      userId: string,
+      { limit, cursor }: ListNotesOptions,
+    ): Promise<NotePage> {
+      // One more than asked for, so the presence of a next page is a fact
+      // about the rows rather than a second COUNT query.
+      const after = cursor ? decodeCursor(cursor) : null;
+      const rows = (
+        after
+          ? listAfterStmt.all(
+              userId,
+              after.updatedAt,
+              after.updatedAt,
+              after.id,
+              limit + 1,
+            )
+          : listStmt.all(userId, limit + 1)
+      ) as NoteRow[];
+      return takePage(rows, limit);
     },
 
     async getById(id: string, userId: string): Promise<Note | null> {
@@ -80,11 +130,28 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       return info.changes > 0;
     },
 
-    async search(userId: string, query: string): Promise<Note[]> {
+    async search(
+      userId: string,
+      query: string,
+      { limit, cursor }: ListNotesOptions,
+    ): Promise<NotePage> {
       const like = searchPattern(query);
-      if (like === null) return [];
-      const rows = searchStmt.all(userId, like, like) as NoteRow[];
-      return rows.map(rowToNote);
+      if (like === null) return { notes: [], nextCursor: null };
+      const after = cursor ? decodeCursor(cursor) : null;
+      const rows = (
+        after
+          ? searchAfterStmt.all(
+              userId,
+              like,
+              like,
+              after.updatedAt,
+              after.updatedAt,
+              after.id,
+              limit + 1,
+            )
+          : searchStmt.all(userId, like, like, limit + 1)
+      ) as NoteRow[];
+      return takePage(rows, limit);
     },
   };
 

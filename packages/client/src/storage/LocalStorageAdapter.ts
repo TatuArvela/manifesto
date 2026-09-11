@@ -131,6 +131,11 @@ export class LocalStorageAdapter implements StorageAdapter {
     saveNotes([...existingById.values()]);
   }
 
+  /** Already here: open mode never separates a note from its attachments. */
+  async loadImages(id: string): Promise<string[]> {
+    return (await this.get(id))?.images ?? [];
+  }
+
   async search(query: string): Promise<Note[]> {
     const q = query.toLowerCase();
     return loadNotes().filter(

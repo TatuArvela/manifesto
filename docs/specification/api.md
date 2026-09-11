@@ -8,7 +8,7 @@ The API is the contract between the Manifesto client and server. Any server impl
 
 | Method   | Path             | Description          |
 |----------|------------------|----------------------|
-| `GET`    | `/api/notes`     | List all notes       |
+| `GET`    | `/api/notes`     | List notes, one page at a time |
 | `GET`    | `/api/notes/:id` | Get a single note    |
 | `POST`   | `/api/notes`     | Create a note        |
 | `PUT`    | `/api/notes/:id` | Update a note        |
@@ -18,7 +18,7 @@ The API is the contract between the Manifesto client and server. Any server impl
 
 | Method   | Path              | Description          |
 |----------|-------------------|----------------------|
-| `GET`    | `/api/search?q=`  | Search notes         |
+| `GET`    | `/api/search?q=`  | Search notes, one page at a time |
 
 ### Authentication
 
@@ -64,9 +64,46 @@ All `/api/notes` and `/api/search` endpoints require authentication. Requests in
 - Note objects follow the schema defined in [Data Model](data-model.md)
 - `POST /api/notes` accepts a note without `id`, `createdAt`, or `updatedAt` (server assigns these). `trashedAt` is server-assigned too — it is derived from `trashed`, and a value sent by a client is ignored
 - `PUT /api/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
-- List endpoints return `{ "notes": Note[] }`
+- List endpoints return `{ "notes": Note[], "nextCursor": string | null }`
 - Single note endpoints return `{ "note": Note }`
 - Errors return `{ "error": string }`
+
+### Paging the list endpoints
+
+`GET /api/notes` and `GET /api/search` return one page and, when there is more,
+an opaque `nextCursor` to pass back as `?cursor=`. `?limit=` sets the page size;
+it defaults to 200 and is clamped to 500 rather than refused, since a caller
+asking for more than a page holds wants as much as it can get and a `400` tells
+it nothing it can act on. A cursor the server did not write **is** refused with
+`400`: quietly restarting from the top would hand a paging client the first page
+over and over.
+
+Notes are ordered by `(updatedAt, id)` descending. The id is part of the key
+rather than decoration — two notes saved in the same millisecond have no order
+by timestamp alone, and a page boundary falling between them would repeat one
+and drop the other.
+
+The first-party client drains every page on load: it keeps all of a user's notes
+in memory, because tag counts, filtering and open-mode search are computed over
+the whole list. Paging bounds any single response; it does not change what the
+client holds.
+
+### Attachments are not in a listing
+
+A note returned by a list endpoint carries `imageCount` and an **empty**
+`images`. The bytes come from `GET /api/notes/:id`, which returns the note
+whole.
+
+This is what makes a listing's size a function of how many notes a user has
+rather than of how many pictures they have attached — each of which may be up to
+1.5 MB, inlined as a `data:` URL in the note itself (see
+[Data Model](data-model.md#images)). A client must therefore not read an empty
+`images` as "this note has no pictures": compare it with `imageCount`, and fetch
+the note before doing anything that needs the bytes — drawing them, exporting
+the note, or writing a new list of attachments back.
+
+In open mode nothing is ever separated from its note, so `imageCount` is absent
+there and `images` is always complete.
 
 ## WebSocket APIs
 

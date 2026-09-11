@@ -40,6 +40,7 @@ export interface NoteRow {
   reminder: string | null;
   readonly: RowBoolean;
   source: string | null;
+  image_count?: number | string;
   created_at: string;
   updated_at: string;
 }
@@ -95,6 +96,19 @@ export function rowToNote(row: NoteRow): Note {
   return note;
 }
 
+/**
+ * The note as a listing returns it: attachments left behind, with the count
+ * standing in for them. `images` is empty rather than absent so the shape of a
+ * `Note` never changes — what changes is whether the bytes are in it, which
+ * `imageCount` is what tells you.
+ */
+export function rowToListedNote(row: NoteRow): Note {
+  const note = rowToNote(row);
+  note.imageCount = Number(row.image_count ?? note.images.length);
+  note.images = [];
+  return note;
+}
+
 /** Every field of a note an update may touch, and its column. */
 const FIELD_TO_COLUMN = {
   title: "title",
@@ -126,6 +140,7 @@ export const INSERT_COLUMNS = [
   "id",
   "user_id",
   ...NOTE_FIELDS.map((field) => FIELD_TO_COLUMN[field]),
+  "image_count",
   "created_at",
   "updated_at",
 ] as const;
@@ -177,6 +192,9 @@ function toColumnValue(
 /**
  * The columns an update should set and the values to set them to, in matching
  * order. The driver adds its own placeholder syntax and its own `WHERE`.
+ *
+ * `image_count` is derived here rather than accepted from a caller, so it
+ * cannot disagree with the column it counts.
  */
 export function noteUpdateColumns(
   changes: NoteUpdate,
@@ -194,6 +212,10 @@ export function noteUpdateColumns(
         booleans,
       ),
     );
+    if (field === "images") {
+      columns.push("image_count");
+      values.push(changes.images?.length ?? 0);
+    }
   }
   return { columns, values };
 }
@@ -214,6 +236,7 @@ export function noteInsertValues(
     input.id,
     input.userId,
     ...NOTE_FIELDS.map((field) => toColumnValue(field, data[field], booleans)),
+    (data.images as string[] | undefined)?.length ?? 0,
     input.createdAt,
     input.updatedAt,
   ];
@@ -228,4 +251,58 @@ export function noteInsertValues(
 export function searchPattern(query: string): string | null {
   const sanitized = query.replace(/[%_]/g, "");
   return sanitized.length === 0 ? null : `%${sanitized}%`;
+}
+
+/**
+ * A listing's place in the ordering, as an opaque string.
+ *
+ * Notes are ordered by `updated_at DESC, id DESC` — the timestamp alone is not
+ * a key, since two notes saved in the same millisecond would make a page
+ * boundary ambiguous and could drop or repeat one. The cursor carries both, so
+ * the next page starts exactly after the last row of this one, and a note
+ * edited mid-listing moves to the front rather than appearing twice.
+ */
+export interface NoteCursor {
+  updatedAt: string;
+  id: string;
+}
+
+export function encodeCursor(cursor: NoteCursor): string {
+  return Buffer.from(`${cursor.updatedAt}\u0000${cursor.id}`, "utf8").toString(
+    "base64url",
+  );
+}
+
+/** Null for anything that is not a cursor this server wrote. */
+export function decodeCursor(raw: string): NoteCursor | null {
+  try {
+    const [updatedAt, id, ...rest] = Buffer.from(raw, "base64url")
+      .toString("utf8")
+      .split("\u0000");
+    if (rest.length > 0 || !updatedAt || !id) return null;
+    return { updatedAt, id };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Turns one over-fetched row into `nextCursor`. A driver asks for `limit + 1`
+ * rows: if the extra one came back there is another page, and the cursor is
+ * the last row the caller actually gets.
+ */
+export function takePage(
+  rows: NoteRow[],
+  limit: number,
+): { notes: Note[]; nextCursor: string | null } {
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  const last = page[page.length - 1];
+  return {
+    notes: page.map(rowToListedNote),
+    nextCursor:
+      hasMore && last
+        ? encodeCursor({ updatedAt: last.updated_at, id: last.id })
+        : null,
+  };
 }

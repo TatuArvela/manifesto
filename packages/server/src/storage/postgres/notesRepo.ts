@@ -1,23 +1,48 @@
 import type { Note, NoteUpdate } from "@manifesto/shared";
 import {
+  decodeCursor,
   INSERT_COLUMNS,
   type NoteRow,
   noteInsertValues,
   noteUpdateColumns,
   rowToNote,
   searchPattern,
+  takePage,
 } from "../noteMapping.js";
-import type { InsertNoteInput, NotesRepo } from "../types.js";
+import type {
+  InsertNoteInput,
+  ListNotesOptions,
+  NotePage,
+  NotesRepo,
+} from "../types.js";
 import type { PgPool } from "./database.js";
+
+/** See the SQLite copy — same columns, same ordering, same reasons. */
+const LIST_COLUMNS = INSERT_COLUMNS.filter((c) => c !== "images").join(", ");
 
 export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
   const repo: NotesRepo = {
-    async listByUser(userId: string): Promise<Note[]> {
-      const result = await pool.query<NoteRow>(
-        `SELECT * FROM notes WHERE user_id = $1 ORDER BY updated_at DESC`,
-        [userId],
-      );
-      return result.rows.map(rowToNote);
+    async listByUser(
+      userId: string,
+      { limit, cursor }: ListNotesOptions,
+    ): Promise<NotePage> {
+      const after = cursor ? decodeCursor(cursor) : null;
+      // One more than asked for, so the presence of a next page is a fact
+      // about the rows rather than a second COUNT query.
+      const result = after
+        ? await pool.query<NoteRow>(
+            `SELECT ${LIST_COLUMNS} FROM notes
+             WHERE user_id = $1
+               AND (updated_at < $2 OR (updated_at = $2 AND id < $3))
+             ORDER BY updated_at DESC, id DESC LIMIT $4`,
+            [userId, after.updatedAt, after.id, limit + 1],
+          )
+        : await pool.query<NoteRow>(
+            `SELECT ${LIST_COLUMNS} FROM notes WHERE user_id = $1
+             ORDER BY updated_at DESC, id DESC LIMIT $2`,
+            [userId, limit + 1],
+          );
+      return takePage(result.rows, limit);
     },
 
     async getById(id: string, userId: string): Promise<Note | null> {
@@ -75,17 +100,29 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       return (result.rowCount ?? 0) > 0;
     },
 
-    async search(userId: string, query: string): Promise<Note[]> {
+    async search(
+      userId: string,
+      query: string,
+      { limit, cursor }: ListNotesOptions,
+    ): Promise<NotePage> {
       const like = searchPattern(query);
-      if (like === null) return [];
-      const result = await pool.query<NoteRow>(
-        `SELECT * FROM notes
-         WHERE user_id = $1
-           AND (LOWER(title) LIKE LOWER($2) OR LOWER(content) LIKE LOWER($3))
-         ORDER BY updated_at DESC`,
-        [userId, like, like],
-      );
-      return result.rows.map(rowToNote);
+      if (like === null) return { notes: [], nextCursor: null };
+      const after = cursor ? decodeCursor(cursor) : null;
+      const matches = `WHERE user_id = $1
+           AND (LOWER(title) LIKE LOWER($2) OR LOWER(content) LIKE LOWER($3))`;
+      const result = after
+        ? await pool.query<NoteRow>(
+            `SELECT ${LIST_COLUMNS} FROM notes ${matches}
+             AND (updated_at < $4 OR (updated_at = $4 AND id < $5))
+             ORDER BY updated_at DESC, id DESC LIMIT $6`,
+            [userId, like, like, after.updatedAt, after.id, limit + 1],
+          )
+        : await pool.query<NoteRow>(
+            `SELECT ${LIST_COLUMNS} FROM notes ${matches}
+             ORDER BY updated_at DESC, id DESC LIMIT $4`,
+            [userId, like, like, limit + 1],
+          );
+      return takePage(result.rows, limit);
     },
   };
 

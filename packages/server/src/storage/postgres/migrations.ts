@@ -62,8 +62,15 @@ CREATE INDEX IF NOT EXISTS notes_trashed_expiry
   ON notes(trashed, trashed_at);
 `;
 
+/** See the SQLite copy — same column, same reason. */
+const NOTE_IMAGE_COUNT = `
+ALTER TABLE notes ADD COLUMN image_count INTEGER NOT NULL DEFAULT 0;
+UPDATE notes SET image_count = json_array_length(images::json);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
+  { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
 ];
 
 export async function runMigrations(

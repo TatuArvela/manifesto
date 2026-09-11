@@ -61,13 +61,48 @@ export class RestApiAdapter implements StorageAdapter {
     throw new Error(message);
   }
 
+  /**
+   * Every page of a listing, concatenated.
+   *
+   * The app keeps all of a user's notes in one signal — `filteredNotes`,
+   * `allTags` and the tag counts are computed over the whole list — so pages
+   * are a property of the wire, not of the model: they bound any single
+   * response without changing what the client holds. The notes come back
+   * without their attachments; `loadImages` fetches those for the one note
+   * that needs them.
+   */
+  private async drainPages(path: string, failure: string): Promise<Note[]> {
+    const notes: Note[] = [];
+    let cursor: string | null = null;
+    do {
+      const separator = path.includes("?") ? "&" : "?";
+      const url = cursor
+        ? `${this.baseUrl}${path}${separator}cursor=${encodeURIComponent(cursor)}`
+        : `${this.baseUrl}${path}`;
+      const res: Response = await fetch(url, { headers: this.headers() });
+      if (!res.ok) await this.fail(res, failure);
+      const data = (await res.json()) as NotesResponse;
+      notes.push(...data.notes);
+      cursor = data.nextCursor ?? null;
+      // A page that came back empty cannot be followed by a useful one, and a
+      // server that kept handing back the same cursor would spin here.
+      if (data.notes.length === 0) break;
+    } while (cursor !== null);
+    return notes;
+  }
+
   async getAll(): Promise<Note[]> {
-    const res = await fetch(`${this.baseUrl}/api/notes`, {
-      headers: this.headers(),
-    });
-    if (!res.ok) await this.fail(res, "Failed to fetch notes");
-    const data = (await res.json()) as NotesResponse;
-    return data.notes;
+    return await this.drainPages("/api/notes", "Failed to fetch notes");
+  }
+
+  /**
+   * The attachments of one note, which a listing leaves behind. In open mode
+   * they were never separated from the note, so `LocalStorageAdapter` answers
+   * this from what it already has.
+   */
+  async loadImages(id: string): Promise<string[]> {
+    const note = await this.get(id);
+    return note?.images ?? [];
   }
 
   async get(id: string): Promise<Note | null> {
@@ -161,12 +196,9 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async search(query: string): Promise<Note[]> {
-    const res = await fetch(
-      `${this.baseUrl}/api/search?q=${encodeURIComponent(query)}`,
-      { headers: this.headers() },
+    return await this.drainPages(
+      `/api/search?q=${encodeURIComponent(query)}`,
+      "Failed to search notes",
     );
-    if (!res.ok) await this.fail(res, "Failed to search notes");
-    const data = (await res.json()) as NotesResponse;
-    return data.notes;
   }
 }

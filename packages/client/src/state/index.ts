@@ -17,6 +17,7 @@ export {
   deleteCheckedItems,
   deleteTag,
   editingNote,
+  ensureImages,
   enterSelectMode,
   exitSelectMode,
   expireTrash,

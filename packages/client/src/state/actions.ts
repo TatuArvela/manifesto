@@ -1,5 +1,10 @@
 import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import {
+  hasUnloadedImages,
+  imageCountOf,
+  NoteColor,
+  NoteFont,
+} from "@manifesto/shared";
 import { computed, effect, signal } from "@preact/signals";
 import { type MessageKey, plural, t } from "../i18n/index.js";
 import {
@@ -154,7 +159,7 @@ export const filteredNotes = computed(() => {
       if (types.size > 0) {
         result = result.filter((n) => {
           if (types.has("reminders") && n.reminder) return true;
-          if (types.has("images") && n.images.length > 0) return true;
+          if (types.has("images") && imageCountOf(n) > 0) return true;
           if (types.has("urls") && n.linkPreviews.length > 0) return true;
           if (types.has("checklists") && noteHasChecklist(n.content))
             return true;
@@ -334,6 +339,46 @@ export async function loadNotes(): Promise<boolean> {
   } catch (err) {
     reportFailure("Failed to load notes:", err, "error.loadFailed");
     return false;
+  }
+}
+
+/**
+ * The attachments of a note, fetched if the listing left them behind.
+ *
+ * A server listing sends `imageCount` and an empty `images`, so anything that
+ * needs the bytes — drawing a card that has scrolled into view, opening the
+ * editor, writing an export — asks for them here first. In open mode nothing
+ * was ever separated and this resolves without a round trip.
+ *
+ * Concurrent callers share one request: a card and the editor over it ask at
+ * the same moment, and a note's attachments are the last thing worth fetching
+ * twice.
+ */
+const imageLoads = new Map<string, Promise<string[]>>();
+
+export async function ensureImages(id: string): Promise<string[]> {
+  const note = notes.value.find((n) => n.id === id);
+  if (!note) return [];
+  if (!hasUnloadedImages(note)) return note.images;
+
+  let load = imageLoads.get(id);
+  if (!load) {
+    load = storage.loadImages(id).finally(() => imageLoads.delete(id));
+    imageLoads.set(id, load);
+  }
+  try {
+    const images = await load;
+    notes.value = notes.value.map((n) =>
+      n.id === id ? { ...n, images, imageCount: images.length } : n,
+    );
+    return images;
+  } catch (err) {
+    reportFailure(
+      `Failed to load images for note ${id}:`,
+      err,
+      "error.loadFailed",
+    );
+    return [];
   }
 }
 

@@ -5,7 +5,7 @@ import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { formatDateTime, t } from "../i18n/index.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
-import { notes, togglePin, updateNote } from "../state/index.js";
+import { ensureImages, notes, togglePin, updateNote } from "../state/index.js";
 import { saveVersion } from "../storage/VersionStorage.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
@@ -133,6 +133,14 @@ export function NoteCardEditor({
   const versionsRef = useFocusTrap<HTMLDivElement>(
     showVersions && !versionsClosing,
   );
+
+  // The editor is one of the places that needs the bytes, not the count: its
+  // "add an image" handler writes `[...note.images, ...urls]`, and doing that
+  // against a list a listing had emptied would delete every attachment the
+  // note already had.
+  useEffect(() => {
+    void ensureImages(note.id);
+  }, [note.id]);
 
   // Auto-save on any title/content change
   useEffect(() => {

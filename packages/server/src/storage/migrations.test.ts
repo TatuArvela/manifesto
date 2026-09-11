@@ -1,11 +1,11 @@
 import Database from "better-sqlite3";
-import { newDb } from "pg-mem";
 import { describe, expect, it } from "vitest";
 import { type Migration, pendingMigrations } from "./migrations.js";
 import {
   MIGRATIONS as PG_MIGRATIONS,
   runMigrations as runPgMigrations,
 } from "./postgres/migrations.js";
+import { newTestPool } from "./postgres/testDb.js";
 import {
   runMigrations as runSqliteMigrations,
   MIGRATIONS as SQLITE_MIGRATIONS,
@@ -127,8 +127,7 @@ describe("sqlite migration runner", () => {
 });
 
 describe("postgres migration runner", () => {
-  // biome-ignore lint/suspicious/noExplicitAny: pg-mem's Pool is structurally compatible
-  const open = () => new (newDb().adapters.createPg().Pool)() as any;
+  const open = newTestPool;
 
   it("records what it ran and does nothing the second time", async () => {
     const pool = open();
