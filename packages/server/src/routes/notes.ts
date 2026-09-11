@@ -2,7 +2,6 @@ import { zValidator } from "@hono/zod-validator";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import type { AuthProvider } from "../auth/types.js";
-import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
 import {
@@ -19,7 +18,6 @@ import type { Broadcaster } from "../ws/broadcaster.js";
 interface NotesDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
-  cfg: ServerConfig;
   broadcaster: Broadcaster;
   /** Optional per-user limiter — mounted after auth. Defined in app.ts so
    * it shares state with /api/search rather than maintaining a per-router

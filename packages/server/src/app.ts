@@ -84,14 +84,13 @@ export function createApp(deps: AppDeps): AppHandle {
     createNotesRoutes({
       storage,
       authProvider,
-      cfg,
       broadcaster,
       rateLimit: apiRateLimit,
     }),
   );
   app.route(
     "/api/search",
-    createSearchRoutes({ storage, authProvider, cfg, rateLimit: apiRateLimit }),
+    createSearchRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
   );
 
   return { app, broadcaster };

@@ -112,7 +112,3 @@ const noteFields = {
 
 export const noteCreateSchema = z.object(noteFields);
 export const noteUpdateSchema = z.object(noteFields).partial();
-
-export const searchParamsSchema = z.object({
-  q: z.string(),
-});

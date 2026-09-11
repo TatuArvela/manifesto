@@ -9,10 +9,6 @@ export function nowIso(): string {
   return new Date(ms).toISOString();
 }
 
-export function isoFromDate(date: Date): string {
-  return date.toISOString();
-}
-
 export function isoPlusDays(days: number, base: Date = new Date()): string {
   const d = new Date(base.getTime());
   d.setUTCDate(d.getUTCDate() + days);
