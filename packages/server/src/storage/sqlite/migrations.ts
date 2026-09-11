@@ -60,8 +60,19 @@ CREATE INDEX IF NOT EXISTS notes_trashed_expiry
   ON notes(trashed, trashed_at);
 `;
 
+/**
+ * How many images a note has, kept alongside them so a list query can answer
+ * "does this note have attachments" without reading the attachments — which is
+ * the whole point of leaving them out of a list response.
+ */
+const NOTE_IMAGE_COUNT = `
+ALTER TABLE notes ADD COLUMN image_count INTEGER NOT NULL DEFAULT 0;
+UPDATE notes SET image_count = json_array_length(images);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
+  { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
 ];
 
 export function runMigrations(

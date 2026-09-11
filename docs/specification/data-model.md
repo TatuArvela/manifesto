@@ -47,6 +47,15 @@ The constants are declared once in `@manifesto/shared` (`IMAGE_DATA_URL_PATTERN`
 
 Over-cap images are refused by the client before they are attached, so the user gets a message naming the file rather than a `422` from a later save.
 
+Being inlined is what makes a note self-contained, and also what makes a list of
+notes large: twenty attachments at 1.5 MB is a 30 MB note, and a hundred such
+notes is a list response no client wants. So the bytes stay in the note but are
+left out of a *listing* — a note from `GET /api/notes` or `GET /api/search`
+carries `imageCount` and an empty `images`, and `GET /api/notes/:id` returns it
+whole. `imageCount` is derived by the server from `images` on every write and is
+never accepted from a client; in open mode it is absent, because nothing there
+is ever separated from its note. See [API](api.md#attachments-are-not-in-a-listing).
+
 ### Identifiers
 
 Notes use [ULID](https://github.com/ulid/spec) (Universally Unique Lexicographically Sortable Identifier) for the `id` field.

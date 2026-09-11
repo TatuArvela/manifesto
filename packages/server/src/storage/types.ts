@@ -74,8 +74,27 @@ export interface InsertNoteInput {
   updatedAt: string;
 }
 
+/** One page of a listing, plus the cursor that reaches the next one. */
+export interface NotePage {
+  /**
+   * Attachments are stripped: each note carries `imageCount` and an empty
+   * `images`. A listing exists to say what notes there are, and sending every
+   * attachment of every note is what made that answer unbounded.
+   */
+  notes: Note[];
+  nextCursor: string | null;
+}
+
+export interface ListNotesOptions {
+  limit: number;
+  /** The `nextCursor` of the previous page. */
+  cursor?: string;
+}
+
 export interface NotesRepo {
-  listByUser(userId: string): Promise<Note[]>;
+  /** One page of the user's notes, newest first, without attachments. */
+  listByUser(userId: string, options: ListNotesOptions): Promise<NotePage>;
+  /** A single note, attachments and all. */
   getById(id: string, userId: string): Promise<Note | null>;
   insert(input: InsertNoteInput): Promise<Note>;
   /**
@@ -93,7 +112,12 @@ export interface NotesRepo {
     expectedUpdatedAt?: string,
   ): Promise<Note | null>;
   delete(id: string, userId: string): Promise<boolean>;
-  search(userId: string, query: string): Promise<Note[]>;
+  /** One page of matches, newest first, without attachments. */
+  search(
+    userId: string,
+    query: string,
+    options: ListNotesOptions,
+  ): Promise<NotePage>;
 }
 
 export interface YjsStore {

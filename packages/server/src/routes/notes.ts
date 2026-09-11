@@ -11,6 +11,7 @@ import {
 } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
+import { readPageParams } from "../validation/pageParams.js";
 import { noteCreateSchema, noteUpdateSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
@@ -50,8 +51,8 @@ export function createNotesRoutes(deps: NotesDeps) {
 
   notes.get("/", async (c) => {
     const { userId } = c.get("auth");
-    const list = await deps.storage.notes.listByUser(userId);
-    return c.json({ notes: list });
+    const page = readPageParams(c.req.query("limit"), c.req.query("cursor"));
+    return c.json(await deps.storage.notes.listByUser(userId, page));
   });
 
   notes.get("/:id", async (c) => {

@@ -128,7 +128,19 @@ export interface Note {
   trashedAt: string | null;
   position: number;
   tags: string[];
+  /**
+   * Attached images as `data:` URLs. Empty on a note that came from a list
+   * endpoint even when it has attachments — compare with `imageCount` rather
+   * than reading emptiness as "no images", and call the client's
+   * `ensureImages` before doing anything that needs the bytes.
+   */
   images: string[];
+  /**
+   * How many images the note has, whether or not `images` is loaded. Set by
+   * the server; absent in open mode, where `images` is always complete and
+   * its length is the answer.
+   */
+  imageCount?: number;
   linkPreviews: LinkPreview[];
   reminder: NoteReminder | null;
   createdAt: string;
@@ -139,11 +151,35 @@ export interface Note {
   source?: AutoNoteSource;
 }
 
-/** Fields accepted when creating a note (server assigns id and timestamps). */
-export type NoteCreate = Omit<Note, "id" | "createdAt" | "updatedAt">;
+/**
+ * How many images a note has, whichever mode it came from. `imageCount` is
+ * what a list endpoint sends instead of the bytes; `images.length` is the
+ * answer everywhere it was never stripped.
+ */
+export function imageCountOf(
+  note: Pick<Note, "images" | "imageCount">,
+): number {
+  return note.imageCount ?? note.images.length;
+}
+
+/** Whether this note has attachments whose bytes have not been fetched yet. */
+export function hasUnloadedImages(
+  note: Pick<Note, "images" | "imageCount">,
+): boolean {
+  return imageCountOf(note) > note.images.length;
+}
+
+/**
+ * Fields accepted when creating a note (server assigns id and timestamps).
+ * `imageCount` is derived from `images`, never sent.
+ */
+export type NoteCreate = Omit<
+  Note,
+  "id" | "createdAt" | "updatedAt" | "imageCount"
+>;
 
 /** Partial update — only the fields being changed. */
-export type NoteUpdate = Partial<Omit<Note, "id" | "createdAt">>;
+export type NoteUpdate = Partial<Omit<Note, "id" | "createdAt" | "imageCount">>;
 
 /** A snapshot of a note's title and content at a point in time. */
 export interface NoteVersion {

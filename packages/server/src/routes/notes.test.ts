@@ -1,4 +1,4 @@
-import type { Note, NoteCreate } from "@manifesto/shared";
+import type { Note, NoteCreate, NotesResponse } from "@manifesto/shared";
 import {
   MAX_IMAGE_DATA_URL_BYTES,
   MAX_IMAGE_SOURCE_BYTES,
@@ -83,7 +83,7 @@ describe("notes routes", () => {
       headers: authHeaders(token),
     });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ notes: [] });
+    expect(await res.json()).toEqual({ notes: [], nextCursor: null });
   });
 
   it("creates a note with server-assigned id and timestamps", async () => {
@@ -131,7 +131,7 @@ describe("notes routes", () => {
     expect(res.status).toBe(404);
 
     const list = await rig.request("/api/notes", { headers: authHeaders(bob) });
-    expect(await list.json()).toEqual({ notes: [] });
+    expect(await list.json()).toEqual({ notes: [], nextCursor: null });
   });
 
   it("updates a partial set of fields and bumps updatedAt", async () => {
@@ -380,5 +380,76 @@ describe("notes routes", () => {
     expect(body.error).toMatch(/changed/i);
     expect(body.note.title).toBe("Original");
     expect(body.note.tags).toEqual(["concurrent"]);
+  });
+
+  describe("listing", () => {
+    const PNG = `data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`;
+
+    it("leaves attachments out of the list and sends the count instead", async () => {
+      // The reason the endpoint is paged at all: an unpaged list of notes each
+      // carrying its own pictures is a response with no upper bound.
+      const { token } = await registerTestUser(rig, "alice");
+      await createNote(rig, token, { title: "Holiday", images: [PNG] });
+
+      const res = await rig.request("/api/notes", {
+        headers: authHeaders(token),
+      });
+      const body = (await res.json()) as NotesResponse;
+      expect(body.notes[0].images).toEqual([]);
+      expect(body.notes[0].imageCount).toBe(1);
+
+      // Reading the one note is what fetches the bytes.
+      const one = await rig.request(`/api/notes/${body.notes[0].id}`, {
+        headers: authHeaders(token),
+      });
+      expect(((await one.json()) as { note: Note }).note.images).toEqual([PNG]);
+    });
+
+    it("pages, and the cursor reaches the rest", async () => {
+      const { token } = await registerTestUser(rig, "alice");
+      for (let i = 0; i < 3; i++) {
+        await createNote(rig, token, { title: `Note ${i}` });
+      }
+
+      const first = await rig.request("/api/notes?limit=2", {
+        headers: authHeaders(token),
+      });
+      const firstPage = (await first.json()) as NotesResponse;
+      expect(firstPage.notes).toHaveLength(2);
+      expect(firstPage.nextCursor).toBeTruthy();
+
+      const second = await rig.request(
+        `/api/notes?limit=2&cursor=${encodeURIComponent(firstPage.nextCursor as string)}`,
+        { headers: authHeaders(token) },
+      );
+      const secondPage = (await second.json()) as NotesResponse;
+      expect(secondPage.notes).toHaveLength(1);
+      expect(secondPage.nextCursor).toBeNull();
+    });
+
+    it("clamps a limit rather than refusing it", async () => {
+      // A caller asking for more than a page holds wants as much as it can
+      // get; a 400 tells it nothing it can act on.
+      const { token } = await registerTestUser(rig, "alice");
+      await createNote(rig, token, { title: "One" });
+
+      for (const query of ["?limit=0", "?limit=99999", "?limit=nonsense"]) {
+        const res = await rig.request(`/api/notes${query}`, {
+          headers: authHeaders(token),
+        });
+        expect(res.status, query).toBe(200);
+        expect(((await res.json()) as NotesResponse).notes).toHaveLength(1);
+      }
+    });
+
+    it("refuses a cursor it did not write", async () => {
+      // Quietly restarting from the top would hand a paging client the first
+      // page over and over, and look like a server with two notes on it.
+      const { token } = await registerTestUser(rig, "alice");
+      const res = await rig.request("/api/notes?cursor=not-a-cursor", {
+        headers: authHeaders(token),
+      });
+      expect(res.status).toBe(400);
+    });
   });
 });

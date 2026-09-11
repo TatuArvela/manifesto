@@ -20,6 +20,7 @@ import { buildShareUrl } from "../sharing.js";
 import {
   archiveNote,
   createNote,
+  ensureImages,
   restoreNote,
   trashNote,
   unarchiveNote,
@@ -270,11 +271,15 @@ export function noteMenuItems(
       id: "export-json",
       icon: <Braces class="w-4 h-4" />,
       label: t("noteMenu.exportJson"),
-      onSelect: () => {
+      onSelect: async () => {
+        // The attachments, not the count: a note listed by the server carries
+        // an empty `images`, and an export written from that would be a file
+        // silently missing its pictures.
+        const images = await ensureImages(note.id);
         // Auto-note markers are stripped so the export is a static, portable
         // note rather than one that claims a plugin owns it.
-        const { readonly: _r, source: _s, ...plain } = note;
-        downloadNoteAsJson({ ...plain, title, content });
+        const { readonly: _r, source: _s, imageCount: _c, ...plain } = note;
+        downloadNoteAsJson({ ...plain, title, content, images });
       },
     },
     {

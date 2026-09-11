@@ -402,4 +402,75 @@ describe("RestApiAdapter", () => {
       );
     });
   });
+
+  describe("paging", () => {
+    // The app keeps every note in one signal — `allTags`, the tag counts and
+    // the whole filter chain are computed over the full list — so pages are a
+    // property of the wire and the adapter hands the caller all of them.
+
+    it("follows the cursor until the server stops offering one", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          jsonResponse({
+            notes: [makeNote({ id: "a" })],
+            nextCursor: "cur-1",
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            notes: [makeNote({ id: "b" })],
+            nextCursor: null,
+          }),
+        );
+
+      expect((await adapter.getAll()).map((n) => n.id)).toEqual(["a", "b"]);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.example.com/api/notes",
+      );
+      expect(fetchMock.mock.calls[1][0]).toBe(
+        "https://api.example.com/api/notes?cursor=cur-1",
+      );
+    });
+
+    it("joins the cursor onto a query string that already exists", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          jsonResponse({ notes: [makeNote({ id: "a" })], nextCursor: "c" }),
+        )
+        .mockResolvedValueOnce(jsonResponse({ notes: [], nextCursor: null }));
+
+      await adapter.search("cats");
+      expect(fetchMock.mock.calls[1][0]).toBe(
+        "https://api.example.com/api/search?q=cats&cursor=c",
+      );
+    });
+
+    it("stops on an empty page rather than following its cursor", async () => {
+      // A page with nothing in it cannot be followed by a useful one, and a
+      // server that kept handing back the same cursor would spin forever.
+      fetchMock.mockResolvedValue(
+        jsonResponse({ notes: [], nextCursor: "same-cursor-again" }),
+      );
+      expect(await adapter.getAll()).toEqual([]);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("loadImages", () => {
+    it("reads the attachments a listing left behind", async () => {
+      const png = "data:image/png;base64,iVBORw0KGgo=";
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ note: makeNote({ id: "a", images: [png] }) }),
+      );
+      expect(await adapter.loadImages("a")).toEqual([png]);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.example.com/api/notes/a",
+      );
+    });
+
+    it("answers with nothing for a note that is gone", async () => {
+      fetchMock.mockResolvedValueOnce(new Response("", { status: 404 }));
+      expect(await adapter.loadImages("gone")).toEqual([]);
+    });
+  });
 });

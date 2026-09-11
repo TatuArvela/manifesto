@@ -1,20 +1,18 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { newDb } from "pg-mem";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { UsernameTakenError } from "../types.js";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.js";
+import { newTestPool } from "./testDb.js";
 
 async function bootStorage(): Promise<PostgresStorageDriver> {
-  const mem = newDb();
-  const { Pool } = mem.adapters.createPg();
   return createPostgresStorage(
     { connectionString: "postgres://test" },
-    {
-      // biome-ignore lint/suspicious/noExplicitAny: pg-mem returns a constructor that's structurally compatible with pg.Pool
-      poolFactory: () => new Pool() as any,
-    },
+    { poolFactory: newTestPool },
   );
 }
+
+/** A page big enough that these fixtures are never split across two. */
+const PAGE = { limit: 50 };
 
 const NOW = "2026-04-01T00:00:00.000Z";
 
@@ -205,9 +203,9 @@ describe("postgres storage driver (pg-mem)", () => {
         tags: ["a"],
       });
       expect(await storage.notes.getById("n1", "u2")).toBeNull();
-      expect((await storage.notes.listByUser("u1")).map((n) => n.id)).toEqual([
-        "n1",
-      ]);
+      expect(
+        (await storage.notes.listByUser("u1", PAGE)).notes.map((n) => n.id),
+      ).toEqual(["n1"]);
     });
 
     it("updates a partial set of fields and bumps updatedAt", async () => {
@@ -281,12 +279,14 @@ describe("postgres storage driver (pg-mem)", () => {
         updatedAt: NOW,
       });
       expect(
-        (await storage.notes.search("u1", "EGGS")).map((n) => n.id),
+        (await storage.notes.search("u1", "EGGS", PAGE)).notes.map((n) => n.id),
       ).toEqual(["n1"]);
       expect(
-        (await storage.notes.search("u1", "trip")).map((n) => n.id),
+        (await storage.notes.search("u1", "trip", PAGE)).notes.map((n) => n.id),
       ).toEqual(["n2"]);
-      expect(await storage.notes.search("u2", "trip")).toEqual([]);
+      expect((await storage.notes.search("u2", "trip", PAGE)).notes).toEqual(
+        [],
+      );
     });
 
     it("round-trips structured fields (reminder, tags)", async () => {
