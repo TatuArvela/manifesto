@@ -69,17 +69,16 @@ describe("renderMarkdown sanitizing", () => {
 });
 
 describe("renderMarkdown raw HTML", () => {
-  it.each([
-    "u",
-    "sub",
-    "sup",
-  ])("keeps <%s>, which the formatting toolbar writes", (tag) => {
-    // These sat in the allowlist looking permitted while `remark-rehype`
-    // dropped every raw HTML node before the sanitizer was ever asked, so
-    // underline and sub/superscript silently vanished from every preview.
-    const html = renderMarkdown(`a <${tag}>b</${tag}> c`);
-    expect(html).toContain(`<${tag}>b</${tag}>`);
-  });
+  it.each(["u", "sub", "sup"])(
+    "keeps <%s>, which the formatting toolbar writes",
+    (tag) => {
+      // These sat in the allowlist looking permitted while `remark-rehype`
+      // dropped every raw HTML node before the sanitizer was ever asked, so
+      // underline and sub/superscript silently vanished from every preview.
+      const html = renderMarkdown(`a <${tag}>b</${tag}> c`);
+      expect(html).toContain(`<${tag}>b</${tag}>`);
+    },
+  );
 
   it("still refuses a tag outside the allowlist", () => {
     const html = renderMarkdown("<marquee>hi</marquee>");

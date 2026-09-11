@@ -101,7 +101,7 @@ describe("checklist merge scenarios", () => {
   ): { segIndex: number; position: "first" | "last" } | null {
     const oldSegments = segmentContent(originalContent);
     const seg = oldSegments[editedSegIndex];
-    if (!seg || seg.type !== "text") return null;
+    if (seg?.type !== "text") return null;
 
     const allLines = originalContent.split("\n");
     const newSegLines = newText.split("\n");
@@ -231,7 +231,7 @@ describe("checklist item removal (backspace on empty item)", () => {
   ): { segIndex: number; position: "first" | "last" } | null {
     const oldSegments = segmentContent(originalContent);
     const seg = oldSegments[checklistSegIndex];
-    if (!seg || seg.type !== "checklist") return null;
+    if (seg?.type !== "checklist") return null;
 
     const hadEmpty = newLines.some((l) => !isChecklistLine(l));
     if (!hadEmpty) return null;
