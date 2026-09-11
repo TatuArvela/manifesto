@@ -28,7 +28,12 @@ Run a single test file: `pnpm --filter @manifesto/client exec vitest run src/pat
 
 pnpm monorepo with three packages:
 
-- **`packages/shared`** — TypeScript types and enums (`Note`, `NoteColor`, `NoteVersion`, API types). Imported by both client and server. No runtime dependencies — types only.
+- **`packages/shared`** — types *and runtime values*: `NoteColor` / `NoteFont` are real enums and
+  the image, page-size and recurrence limits are exported constants, so this package emits
+  JavaScript and is not erasable. It has no npm dependencies of its own. Because the client and
+  server resolve it through different export conditions, a value added here must be reachable
+  from the build, not just the types — that mismatch once shipped a constant that typechecked
+  green and was `undefined` at runtime.
 - **`packages/client`** — Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
 - **`packages/server`** — Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
 
@@ -52,7 +57,9 @@ State lives in `packages/client/src/state/` using @preact/signals:
   raise its own toast and reports the total once.
 - **`ui.ts`** — UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
 - **`prefs.ts`** — User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
-- **`router.ts`** — Two-way sync between `activeView`/`activeTag` and the URL hash. `initRouter()` is called once from `App` on mount.
+- **`router.ts`** — Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
+  Routing below). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
+  separate channel used by share links and the OIDC callback, not by the router.
 - **`auth.ts`** — Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` queries `/api/auth/methods` on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
 
 ### Branding
@@ -78,7 +85,11 @@ must stay plain files at fixed paths. `manifesto:` localStorage keys and the
 
 ### Routing
 
-`state/router.ts` syncs `activeView` / `activeTag` with `location.pathname` (base-prefixed from Vite's `BASE_URL`). Paths: `/` → active, `/tags` / `/tags/<tag>` → tags, `/reminders`, `/archived`, `/trash`. The `githubPagesSpaFallback` Vite plugin copies `dist/index.html` to `dist/404.html` so GitHub Pages serves the SPA for any unknown path.
+`state/router.ts` syncs `activeView` / `activeTag` with `location.pathname` (base-prefixed from
+Vite's `BASE_URL`). Seven views, seven paths: `/` → active, `/tags` and `/tags/<tag>` → tags,
+`/reminders`, `/auto-notes`, `/archived`, `/trash`, `/search`. The `githubPagesSpaFallback` Vite
+plugin copies `dist/index.html` to `dist/404.html` so GitHub Pages serves the SPA for any unknown
+path.
 
 ### Version History
 
@@ -89,6 +100,13 @@ Notes have persistent version history stored LZ-String compressed in `localStora
 Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor instance is wired up in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (called via `callCommand(undoCommand)` / `redoCommand`) — there is no separate undo/redo hook. Custom ProseMirror behavior lives in `packages/client/src/extensions/` (`manifestoInlineMarks` for inline marks, `taskItemDraggable` for drag-and-drop checklist items). Read-only previews are rendered by `utils/remarkRenderer.ts` (remark → rehype → sanitized HTML via DOMPurify).
 
 `MilkdownEditor` reads markdown via `getMarkdown()` and post-processes it (`unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with our preview.
+
+The `listener` plugin serializes on a 200ms debounce it gives no way to cancel, and the timer
+throws `Context "editorView" not found` if the editor is gone when it fires. `useMilkdownEditor`
+takes a `beforeDestroy` callback for exactly this, and `MilkdownEditor` uses it to empty
+`markdownUpdated` — the plugin checks that array's length before it serializes, so an empty one
+makes the pending timer a no-op. Anything else added to the editor that outlives a frame needs
+disarming there too; teardown is the only moment the context is still intact.
 
 **Collaborative binding.** Once `collab` is supplied, the shared `Y.XmlFragment` is the authority
 and the `content` prop must never be written into a fragment that already holds something — doing
@@ -115,6 +133,84 @@ remove is load-bearing:
 - The frame returns `JSON.stringify({ value })` and validates nothing; `autoNotes/results.ts`
   decides what is a note. Keep it that way — a plugin that subverts the frame passes the frame's
   own checks.
+
+### Realtime and Conflict Resolution
+
+Server mode runs two sockets, and they carry different things. `realtime/appSocket.ts` holds
+`/api/ws` — note events and presence — and reconnects with exponential backoff to a 30s ceiling.
+Every reconnect *after the first* re-fetches the note list, because writes made on another device
+while this tab was offline arrive nowhere else. `realtime/yjsProvider.ts` holds `/api/yjs`, one
+`HocuspocusProvider` per open note, with `y-indexeddb` underneath so an offline edit survives a
+reload. Its `synced` flag is a correctness gate, not a spinner — see Collaborative binding above.
+
+Non-collaborative writes use optimistic concurrency: `updateNote` sends `If-Match`, and a 412 comes
+back carrying the current server row. `state/mergeNote.ts` then does a 3-way merge of
+(base, desired, current) and retries once. Scalars are client-wins; `tags`, `images` and
+`linkPreviews` merge per item, so two devices adding different tags keep both and a removal still
+removes. Adding an array field to `Note` means teaching `mergeNoteUpdate` about it — the default is
+client-wins, which for an array silently discards the other writer's additions.
+
+### Reminders and the Service Worker
+
+Reminders fire from two places and must not double-fire. `state/reminderScheduler.ts` runs timers
+in the page; `sw.ts` holds its own copy of the reminder list in IndexedDB and fires via
+`periodicSync` (falling back to a poll) so a reminder still arrives with the tab closed. The page
+pushes the list down with `sync-reminders` and the worker reports back with `reminder-fired`, which
+`serviceWorker.ts` turns into the `lastFiredAt` / next-occurrence write. Dedupe is a 60s window;
+catch-up for a missed fire is one hour. `state/reminderTime.ts` owns recurrence maths
+(`nextOccurrence`, `snapToFuture`) and is deliberately pure so it tests in the Node project.
+
+### Sharing, Import and Export
+
+`sharing.ts` encodes a note into the URL fragment — LZ-String over a five-field JSON payload —
+so a share link needs no server and no account. The fragment is attacker-controlled, so
+`decodeSharePayload` is a total type guard, not a cast: every field is checked, color and font
+against the enums, and anything that fails returns `null` rather than a partly-trusted note. `App`
+shows `SharedNoteDialog` when the fragment is present, and the recipient chooses whether to save.
+The rendered preview still goes through `remarkRenderer`, which sanitizes.
+
+`utils/importExport.ts` handles both directions for Markdown and JSON, single note and bulk. It
+caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
+code runs. Export is one of the three callers that genuinely needs image bytes rather than
+`imageCount` — see Pagination below.
+
+### Notes That Compute
+
+Two unrelated features make a note more than text, and both run on every render of a card:
+
+- `utils/evaluateExpression.ts` is a hand-written tokenizer and shunting-yard parser for trailing
+  arithmetic (`200+300` at the end of a line), wired in by `extensions/inlineCalculations.ts`. It
+  is hand-written rather than `eval`-shaped on purpose, and it accepts the comma decimal separator.
+- `utils/linkPreview.ts` extracts URLs for the preview cards. Its trailing-punctuation regex uses a
+  *bounded* quantifier: the unbounded version backtracked quadratically and froze the tab on a long
+  note, during render, with no user action beyond opening it. Keep quantifiers bounded in anything
+  reachable from a card render.
+
+### Layout and Loading
+
+`hooks/useMasonryGrid.ts` does masonry with `grid-row` spans: release every card to its natural
+height, measure, then write each span back. It runs from a `ResizeObserver`, so it only writes
+spans that changed — a pass that changes nothing provokes no further callback, which is what keeps
+it from looping. Content that settles after first paint (images, fonts) has to trigger a re-measure
+or the card keeps the height it was born with.
+
+`storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
+toast queue or the catalogue, so the "tell the user" decision stays in `actions.ts`. A refused
+write is neither retried nor rolled back — the signal keeps the change, so the session continues
+with a note that exists only in this tab.
+
+### Pagination
+
+`/api/notes` and `/api/search` page with `?limit=&cursor=`, ordered by `(updatedAt, id)` — two
+notes saved in the same millisecond have no order by timestamp alone, and a page boundary between
+them would repeat one and drop the other. A *listed* note carries `imageCount` and an empty
+`images`; the bytes come from `GET /api/notes/:id`. The client drains every page, because
+`allTags`, tag counts and the filter chain are computed over the whole list — paging bounds a
+response, it does not change the model. `useNoteImages` hangs `ensureImages` off an
+`IntersectionObserver` so a grid fetches only what is scrolled past. Three callers need the bytes
+and say so: the editor's add-an-image handler (which would otherwise write an empty list over every
+existing attachment), the JSON export, and the `images` search filter. Open mode resolves the same
+call locally, so both modes behave alike.
 
 ### Component Patterns
 
