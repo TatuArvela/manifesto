@@ -201,11 +201,21 @@ body {
 }
 
 html.dark {
-  --color-neutral-50: oklch(98.5% calc(var(--dark-tint-c) * 0.25) var(--dark-tint-h));
-  --color-neutral-100: oklch(97% calc(var(--dark-tint-c) * 0.3) var(--dark-tint-h));
-  --color-neutral-200: oklch(92.2% calc(var(--dark-tint-c) * 0.4) var(--dark-tint-h));
-  --color-neutral-300: oklch(87% calc(var(--dark-tint-c) * 0.5) var(--dark-tint-h));
-  --color-neutral-400: oklch(70.8% calc(var(--dark-tint-c) * 0.65) var(--dark-tint-h));
+  --color-neutral-50: oklch(
+    98.5% calc(var(--dark-tint-c) * 0.25) var(--dark-tint-h)
+  );
+  --color-neutral-100: oklch(
+    97% calc(var(--dark-tint-c) * 0.3) var(--dark-tint-h)
+  );
+  --color-neutral-200: oklch(
+    92.2% calc(var(--dark-tint-c) * 0.4) var(--dark-tint-h)
+  );
+  --color-neutral-300: oklch(
+    87% calc(var(--dark-tint-c) * 0.5) var(--dark-tint-h)
+  );
+  --color-neutral-400: oklch(
+    70.8% calc(var(--dark-tint-c) * 0.65) var(--dark-tint-h)
+  );
   --color-neutral-500: oklch(
     calc(55.6% - var(--dark-dim) * 0.2) calc(var(--dark-tint-c) * 0.8)
       var(--dark-tint-h)
@@ -263,7 +273,10 @@ html.dark {
     margin-block: 4px;
     /* Flip above the trigger near the bottom edge, and slide along the inline
        axis rather than overflowing at the left or right edge. */
-    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
     position-visibility: anchors-visible;
   }
 }
@@ -308,7 +321,10 @@ html.dark {
     /* Flip to the opposite side of the trigger rather than running off the
        viewport — a `bottom-end` menu near the foot of the window opens
        upwards instead of being cut off. */
-    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
     /* Don't leave the panel floating over the page once its trigger has been
        scrolled out of sight. */
     position-visibility: anchors-visible;
@@ -346,6 +362,9 @@ html.dark {
    animation outright would mean that event never arrives and the panel would
    stay on screen forever. A 0.01ms animation still fires it on the next
    frame. */
+/* biome-ignore-start lint/complexity/noImportantStyles: the reduced-motion
+   override has to beat every animation the app declares, including inline
+   ones — that is the whole point of the block. */
 :root.no-motion,
 :root.no-motion *,
 :root.no-motion *::before,
@@ -357,6 +376,7 @@ html.dark {
   transition-delay: 0ms !important;
   scroll-behavior: auto !important;
 }
+/* biome-ignore-end lint/complexity/noImportantStyles: end of the override. */
 
 /* Note corner style — a user preference (Settings > Note Corners). Every note
    surface reads this one variable: the cards, the create-note stack, and the
@@ -522,7 +542,8 @@ html.dark {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: repeating-linear-gradient(
+  background-image:
+    repeating-linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0.06) 0px,
       rgba(0, 0, 0, 0.06) 0.5px,
@@ -537,7 +558,8 @@ html.dark {
 }
 
 .dark .note-stack-base::before {
-  background-image: repeating-linear-gradient(
+  background-image:
+    repeating-linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0.2) 0px,
       rgba(0, 0, 0, 0.2) 0.5px,
@@ -607,6 +629,9 @@ html.dark {
    drag-ghost snapshot already has the checkbox hidden (the `.note-dragging`
    class is applied via rAF and arrives too late for the ghost). */
 body.note-drag-active .note-select {
+  /* biome-ignore lint/complexity/noImportantStyles: the card's own hover rule
+     sets this opacity, and the ghost snapshot is taken before we could unset
+     it any other way. */
   opacity: 0 !important;
   pointer-events: none;
 }
@@ -1037,8 +1062,9 @@ body.note-drag-active .note-select {
    class is applied via a ProseMirror decoration on the task item containing
    the selection — a plain `:focus-within` would match every ancestor, since
    ProseMirror keeps focus on the root contenteditable. */
-.milkdown-editor
-  li[data-item-type="task"]:hover:not(:has(li[data-item-type="task"]:hover))
+.milkdown-editor li[data-item-type="task"]:hover:not(
+    :has(li[data-item-type="task"]:hover)
+  )
   > .task-item-delete,
 .milkdown-editor
   li[data-item-type="task"].task-item-active:not(
@@ -1075,8 +1101,7 @@ body.note-drag-active .note-select {
 /* Nested task lists — no extra padding (parent's checkbox+gap already
    shifts content right) and no vertical margin so nesting depth doesn't
    add cumulative top/bottom space. */
-.milkdown-editor
-  ul:has(> li[data-item-type="task"])
+.milkdown-editor ul:has(> li[data-item-type="task"])
   ul:has(> li[data-item-type="task"]) {
   padding-left: 0;
   margin-top: 0;

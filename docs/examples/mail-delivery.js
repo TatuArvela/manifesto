@@ -11,8 +11,7 @@
 
 function getWeekNumber(date) {
   const firstDayOfYear = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  const pastDaysOfYear =
-    (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
   return Math.ceil((pastDaysOfYear + firstDayOfYear.getUTCDay() + 1) / 7);
 }
 
