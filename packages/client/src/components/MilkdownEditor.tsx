@@ -149,7 +149,24 @@ export function MilkdownEditor({
     return editor;
   }, []);
 
-  const { editor, mountRef } = useMilkdownEditor(build);
+  // `@milkdown/plugin-listener` serializes the document on a 200ms debounce and
+  // exposes no way to cancel it, so an editor torn down inside that window
+  // leaves a timer that runs against a dismantled context and throws
+  // `Context "editorView" not found` from a place nothing can catch. Its
+  // handler checks `markdownUpdated.length` *before* it serializes, though, so
+  // emptying the array is a cancel in everything but name: the timer still
+  // fires, finds nothing to notify, and returns without touching the context.
+  // Reachable whenever a note is closed within 200ms of a keystroke, and on
+  // every solo → collab remount.
+  const disarmListener = useCallback((instance: Editor) => {
+    instance.action((ctx) => {
+      const { listeners } = ctx.get(listenerCtx);
+      listeners.markdownUpdated.length = 0;
+      listeners.updated.length = 0;
+    });
+  }, []);
+
+  const { editor, mountRef } = useMilkdownEditor(build, disarmListener);
 
   // A note that has never been edited collaboratively has an empty shared
   // fragment, and ySyncPlugin adopts whatever the fragment holds — so binding

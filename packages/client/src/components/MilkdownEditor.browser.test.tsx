@@ -23,14 +23,11 @@ function mountHost(): HTMLDivElement {
   return host;
 }
 
-// Milkdown's listener plugin serializes the document on a 200ms debounce, and
-// its serializers read the editor view out of the context as they run. Tearing
-// down inside that window leaves the timer to fire against a destroyed editor
-// and throw where nothing can catch it, so let the debounce drain first.
-const LISTENER_DEBOUNCE_MS = 250;
-
-afterEach(async () => {
-  await new Promise((resolve) => setTimeout(resolve, LISTENER_DEBOUNCE_MS));
+// Milkdown's listener plugin serializes on a 200ms debounce. Tearing down
+// inside that window used to leave a timer that threw against a dismantled
+// context, so this teardown had to drain the debounce first; `MilkdownEditor`
+// now disarms the listener before destroy, and the test below holds it to that.
+afterEach(() => {
   for (const host of hosts.splice(0)) {
     render(null, host);
     host.remove();
@@ -145,6 +142,39 @@ describe("MilkdownEditor collaborative binding", () => {
         "Edited as markdown",
       );
     });
+  });
+});
+
+describe("MilkdownEditor teardown", () => {
+  it("does not throw when destroyed inside the listener debounce", async () => {
+    // `@milkdown/plugin-listener` gives no way to cancel its pending
+    // serialization, and the timer runs where no caller can catch it: the
+    // throw reaches `window.onerror` and, in the app, the console of a user
+    // who did nothing stranger than close a note straight after typing.
+    const seen: unknown[] = [];
+    const onError = (e: ErrorEvent) => seen.push(e.error ?? e.message);
+    window.addEventListener("error", onError);
+
+    const host = mountHost();
+    render(<MilkdownEditor content="Milk" onChange={() => {}} />, host);
+    await vi.waitFor(() => {
+      expect(host.querySelector(".ProseMirror")).toBeTruthy();
+    });
+
+    // A keystroke arms the debounce; `insertText` goes through ProseMirror's
+    // own input handling, so the transaction is the one the plugin listens for.
+    const view = host.querySelector(".ProseMirror") as HTMLElement;
+    view.focus();
+    document.execCommand("insertText", false, "y");
+
+    // Unmount well inside the 200ms window, then outlast it.
+    render(null, host);
+    host.remove();
+    hosts.splice(hosts.indexOf(host), 1);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    window.removeEventListener("error", onError);
+    expect(seen).toEqual([]);
   });
 });
 
