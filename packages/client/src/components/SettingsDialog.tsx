@@ -310,7 +310,6 @@ export function SettingsDialog() {
 
   return (
     <>
-      {/* Backdrop */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
       <div
         class="settings-backdrop fixed inset-0 z-40 bg-black/50"
@@ -320,7 +319,6 @@ export function SettingsDialog() {
         onKeyDown={() => {}}
       />
 
-      {/* Side panel */}
       <div
         ref={panelRef}
         role="dialog"

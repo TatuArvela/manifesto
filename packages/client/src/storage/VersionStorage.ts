@@ -59,12 +59,11 @@ export function saveVersion(
   const now = Date.now();
   const cutoff = now - MAX_AGE_MS;
 
-  // Prune old versions
+  // Stored oldest-first, so both limits trim from the front.
   const fresh = versions.filter(
     (v) => new Date(v.timestamp).getTime() >= cutoff,
   );
 
-  // Add new version
   fresh.push({
     noteId,
     timestamp: new Date(now).toISOString(),
@@ -72,7 +71,6 @@ export function saveVersion(
     content,
   });
 
-  // Cap at max, keeping newest (end of array)
   if (fresh.length > MAX_VERSIONS_PER_NOTE) {
     fresh.splice(0, fresh.length - MAX_VERSIONS_PER_NOTE);
   }
@@ -84,7 +82,7 @@ export function saveVersion(
 export function getVersions(noteId: string): NoteVersion[] {
   const map = load();
   const versions = map[noteId] ?? [];
-  // Return newest first
+  // Newest first — the history panel lists most-recent at the top.
   return [...versions].reverse();
 }
 

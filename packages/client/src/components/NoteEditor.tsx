@@ -250,6 +250,9 @@ export function NoteEditor({
     setShowMenu(false);
   };
 
+  // Read straight off the editor on every render rather than memoised: the
+  // `txCount` bump in `dispatchTransaction` is what schedules that render, so
+  // these are as fresh as the last transaction.
   const canUndo = editor
     ? editor.action((ctx) => undoDepth(ctx.get(editorStateCtx)) > 0)
     : false;
@@ -270,8 +273,6 @@ export function NoteEditor({
         return found;
       })
     : false;
-  // Reference txCount so the memo recomputes on each transaction.
-  void txCount;
 
   const deleteCheckedItems = () => {
     if (!editor) return;
@@ -338,7 +339,6 @@ export function NoteEditor({
         <ImageGallery images={images} onDelete={onRemoveImage} />
       )}
 
-      {/* Content area */}
       <div class="p-4 max-sm:px-4 max-sm:pt-2 max-sm:flex-1 max-sm:overflow-y-auto max-sm:min-h-0 max-sm:flex max-sm:flex-col">
         <input
           ref={titleRef}
@@ -469,9 +469,7 @@ export function NoteEditor({
         )}
       </div>
 
-      {/* Toolbar */}
       <div class="px-3 pt-1.5 pb-2 flex items-center gap-0.5 relative">
-        {/* Color picker */}
         <Dropdown
           open={showColorPicker}
           onClose={() => setShowColorPicker(false)}
@@ -551,7 +549,6 @@ export function NoteEditor({
           </Dropdown>
         </div>
 
-        {/* Reminder */}
         {onReminderChange && (
           <ReminderPicker
             reminder={reminder ?? null}
@@ -560,7 +557,6 @@ export function NoteEditor({
           />
         )}
 
-        {/* Add image */}
         <Tooltip label={t("editor.addImage")}>
           <button
             type="button"
@@ -585,7 +581,6 @@ export function NoteEditor({
           }}
         />
 
-        {/* Kebab menu */}
         <Dropdown
           open={showMenu}
           onClose={() => setShowMenu(false)}
@@ -608,7 +603,6 @@ export function NoteEditor({
           placement="top-start"
           panelClass={menuPanelClass}
         >
-          {/* Font (mobile only) */}
           <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
             {t("editor.font")}
           </div>
@@ -698,7 +692,6 @@ export function NoteEditor({
 
         <div class="flex-1" />
 
-        {/* Discard (new note mode) */}
         {onDelete && deleteLabel && (
           <Tooltip label={deleteLabel}>
             <button
@@ -712,7 +705,6 @@ export function NoteEditor({
           </Tooltip>
         )}
 
-        {/* Done */}
         <Tooltip label={t("editor.done")}>
           <button
             type="button"

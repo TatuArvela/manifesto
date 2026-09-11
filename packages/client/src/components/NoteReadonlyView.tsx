@@ -160,7 +160,6 @@ export function NoteReadonlyView({
         )}
       </div>
 
-      {/* Toolbar */}
       <div class="px-3 pt-1.5 pb-2 flex items-center gap-0.5">
         {note.source?.kind === "auto-note" && (
           <>
@@ -188,7 +187,6 @@ export function NoteReadonlyView({
           </>
         )}
 
-        {/* Color picker */}
         <Dropdown
           open={showColorPicker}
           onClose={() => setShowColorPicker(false)}
@@ -225,14 +223,12 @@ export function NoteReadonlyView({
           ))}
         </Dropdown>
 
-        {/* Reminder */}
         <ReminderPicker
           reminder={note.reminder ?? null}
           onChange={(reminder) => updateNote(note.id, { reminder })}
           triggerClass={iconBtnClass}
         />
 
-        {/* Kebab menu */}
         <Dropdown
           open={showMenu}
           onClose={() => setShowMenu(false)}
@@ -263,7 +259,6 @@ export function NoteReadonlyView({
 
         <div class="flex-1" />
 
-        {/* Close */}
         <Tooltip label={t("noteCard.close")}>
           <button
             type="button"

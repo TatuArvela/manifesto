@@ -442,7 +442,6 @@ export function NoteCard({
           if (e.target === e.currentTarget) setPinSettling(false);
         }}
       >
-        {/* Selection checkbox */}
         <div
           class={clsx(
             "note-select absolute -top-2.5 -left-2.5 z-10",
