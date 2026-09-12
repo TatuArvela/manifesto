@@ -42,24 +42,87 @@ const TAGS: Partial<Record<InlineFormat, string>> = {
 /** Marker characters and tags peeled off a word before looking at its edges. */
 const EDGE_MARKUP_START = /^(?:<(?:u|sub|sup)>|[*_~`])+/;
 const EDGE_MARKUP_END = /(?:<\/(?:u|sub|sup)>|[*_~`])+$/;
+const MARKUP_TOKEN = /<(?:u|sub|sup)>|([*_~`])\1*/g;
+const MARKER_CHARS = "*_~`";
+const OPEN_TAG_BEFORE = /<(?:u|sub|sup)>$/;
+const CLOSE_TAG_AFTER = /^<\/(?:u|sub|sup)>/;
 
-function runBefore(value: string, pos: number, ch: string): number {
-  let n = 0;
-  while (pos - n - 1 >= 0 && value[pos - n - 1] === ch) n++;
-  return n;
+/** A piece of inline markup beside the text: a tag, or a run of one marker. */
+interface Token {
+  text: string;
+  from: number;
+  to: number;
 }
 
-function runAfter(value: string, pos: number, ch: string): number {
-  let n = 0;
-  while (pos + n < value.length && value[pos + n] === ch) n++;
-  return n;
+/** The markup directly before `pos`, nearest first. */
+function tokensBefore(value: string, pos: number): Token[] {
+  const tokens: Token[] = [];
+  while (pos > 0) {
+    const tag = OPEN_TAG_BEFORE.exec(value.slice(Math.max(0, pos - 5), pos));
+    let from = pos - 1;
+    if (tag) {
+      from = pos - tag[0].length;
+    } else if (MARKER_CHARS.includes(value[pos - 1])) {
+      while (from > 0 && value[from - 1] === value[pos - 1]) from--;
+    } else {
+      break;
+    }
+    tokens.push({ text: value.slice(from, pos), from, to: pos });
+    pos = from;
+  }
+  return tokens;
+}
+
+/** The markup directly after `pos`, nearest first. */
+function tokensAfter(value: string, pos: number): Token[] {
+  const tokens: Token[] = [];
+  while (pos < value.length) {
+    const tag = CLOSE_TAG_AFTER.exec(value.slice(pos, pos + 6));
+    let to = pos + 1;
+    if (tag) {
+      to = pos + tag[0].length;
+    } else if (MARKER_CHARS.includes(value[pos])) {
+      while (to < value.length && value[to] === value[pos]) to++;
+    } else {
+      break;
+    }
+    tokens.push({ text: value.slice(pos, to), from: pos, to });
+    pos = to;
+  }
+  return tokens;
+}
+
+/**
+ * `from`..`to` with the markup hugging both ends of it removed, or unchanged
+ * if there is none to remove.
+ *
+ * Only markup at both ends is a wrapper: `**word` on its own is text with
+ * asterisks in it, and formatting just `word` inside it would leave an
+ * unbalanced `****word**`. Nor is it one when the same markup turns up again
+ * inside: the outer asterisks of `**a** and **b**` belong to two separate runs,
+ * and taking them for one would unwrap the selection into `a** and **b`.
+ */
+function peelMarkup(value: string, from: number, to: number): [number, number] {
+  const text = value.slice(from, to);
+  const lead = EDGE_MARKUP_START.exec(text)?.[0] ?? "";
+  const trail = EDGE_MARKUP_END.exec(text.slice(lead.length))?.[0] ?? "";
+  if (!lead || !trail || lead.length + trail.length >= text.length) {
+    return [from, to];
+  }
+  const core = text.slice(lead.length, text.length - trail.length);
+  for (const [token] of lead.matchAll(MARKUP_TOKEN)) {
+    if (core.includes(token)) return [from, to];
+  }
+  return [from + lead.length, to - trail.length];
 }
 
 /**
  * The range an inline format applies to: the selection without surrounding
  * whitespace (`** bold **` is not bold), or with nothing selected, the word
- * under the cursor minus any markup already hugging it, so that pressing Bold
- * inside `**word**` finds the markers to take away rather than nesting more.
+ * under the cursor. Either way minus any markup already wrapping the text, so
+ * that pressing Bold on `**word**` finds the markers to take away rather than
+ * nesting more, whether the caret is in the word or the selection takes in
+ * the asterisks too.
  */
 function inlineRange(
   value: string,
@@ -69,7 +132,7 @@ function inlineRange(
   if (start !== end) {
     while (start < end && /\s/.test(value[start])) start++;
     while (end > start && /\s/.test(value[end - 1])) end--;
-    return [start, end];
+    return peelMarkup(value, start, end);
   }
   let from = start;
   let to = start;
@@ -90,38 +153,48 @@ function inlineRange(
 }
 
 /**
- * How many marker characters to remove on each side to turn `format` off, or
- * 0 if it is not on. `*` and `_` are read as runs because they share a
- * character between two formats: a run of one is italic, two is bold, three
- * is both.
+ * Where the markers that turn `format` on sit around `from`..`to`, as the two
+ * spans to delete to turn it off, or null if it is not on.
+ *
+ * Looks through all the markup beside the text rather than only the innermost
+ * piece, so `<u>**word**</u>` is underlined even though `**` is what touches
+ * the word. `*` and `_` are read as runs because they share a character
+ * between two formats: a run of one is italic, two is bold, three is both, and
+ * the markers taken are the ones nearest the text.
  */
 function wrappedBy(
   value: string,
   from: number,
   to: number,
   format: InlineFormat,
-): { open: string; close: string } | null {
+): { left: [number, number]; right: [number, number] } | null {
+  const before = tokensBefore(value, from);
+  const after = tokensAfter(value, to);
   const tag = TAGS[format];
   if (tag) {
-    const open = `<${tag}>`;
-    const close = `</${tag}>`;
-    return value.slice(from - open.length, from) === open &&
-      value.slice(to, to + close.length) === close
-      ? { open, close }
+    const open = before.find((t) => t.text === `<${tag}>`);
+    const close = after.find((t) => t.text === `</${tag}>`);
+    return open && close
+      ? { left: [open.from, open.to], right: [close.from, close.to] }
       : null;
   }
   const chars =
     format === "code" ? ["`"] : format === "strikethrough" ? ["~"] : ["*", "_"];
   for (const ch of chars) {
-    const n = Math.min(runBefore(value, from, ch), runAfter(value, to, ch));
+    const open = before.find((t) => t.text[0] === ch);
+    const close = after.find((t) => t.text[0] === ch);
+    if (!open || !close) continue;
+    const n = Math.min(open.text.length, close.text.length);
     let take = 0;
     if (format === "bold" && n >= 2) take = 2;
     else if (format === "italic" && n % 2 === 1) take = 1;
     else if (format === "strikethrough" && n >= 2) take = 2;
     else if (format === "code" && n >= 1) take = n;
     if (take > 0) {
-      const marker = ch.repeat(take);
-      return { open: marker, close: marker };
+      return {
+        left: [open.to - take, open.to],
+        right: [close.from, close.from + take],
+      };
     }
   }
   return null;
@@ -150,14 +223,15 @@ function toggleInline(
   const [from, to] = inlineRange(value, start, end);
   const existing = wrappedBy(value, from, to, format);
   if (existing) {
-    const { open, close } = existing;
+    const { left, right } = existing;
+    const shift = left[1] - left[0];
     return {
       value:
-        value.slice(0, from - open.length) +
-        value.slice(from, to) +
-        value.slice(to + close.length),
-      selectionStart: from - open.length,
-      selectionEnd: to - open.length,
+        value.slice(0, left[0]) +
+        value.slice(left[1], right[0]) +
+        value.slice(right[1]),
+      selectionStart: from - shift,
+      selectionEnd: to - shift,
     };
   }
   const { open, close } = inlineMarkers(format);

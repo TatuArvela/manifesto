@@ -54,6 +54,38 @@ describe("inline formats in raw mode", () => {
     expect(format("a <sub>‹word›</sub> b", "subscript")).toBe("a ‹word› b");
   });
 
+  it("unwraps a selection that takes in its own markers", () => {
+    // Selecting the whole `**text**` by double-click or drag is the natural
+    // way to pick it, and used to read as unformatted and gain four more.
+    expect(active("a ‹**word**› b")).toMatchObject({ bold: true });
+    expect(format("a ‹**word**› b", "bold")).toBe("a ‹word› b");
+    expect(format("‹***both***›", "italic")).toBe("**‹both›**");
+    expect(format("‹`x`›", "code")).toBe("‹x›");
+  });
+
+  it("does not read a selection across two formatted runs as one", () => {
+    // Peeling the outer asterisks would leave `a** and **b`, which reads as
+    // bold and would be unwrapped into broken markdown.
+    expect(active("‹**a** and **b**›").bold).toBe(false);
+    expect(format("‹**a** and **b**›", "italic")).toBe("*‹**a** and **b**›*");
+  });
+
+  it("finds a format's markers past other formats nested inside them", () => {
+    expect(active("‹<u>**word**</u>›")).toMatchObject({
+      bold: true,
+      underline: true,
+    });
+    expect(format("‹<u>**word**</u>›", "underline")).toBe("**‹word›**");
+    expect(format("<u>**wo|rd**</u>", "bold")).toBe("<u>‹word›</u>");
+    expect(format("**<sup>‹x›</sup>**", "bold")).toBe("<sup>‹x›</sup>");
+  });
+
+  it("does not peel markup off only one end of a selection", () => {
+    // `**word` is not bold text with its closing half out of view; wrapping
+    // just `word` would leave `****word**`.
+    expect(format("‹**word›", "bold")).toBe("**‹**word›**");
+  });
+
   it("keeps whitespace at the edges of a selection outside the markers", () => {
     // `** word **` is not bold in markdown, just asterisks.
     expect(format("a‹ word ›b", "bold")).toBe("a **‹word›** b");
