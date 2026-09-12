@@ -117,13 +117,43 @@ describe("useMarqueeSelection", () => {
     pointer("pointerup", 400, 150);
   });
 
-  it("leaves a click on empty space alone", async () => {
+  it("clears the selection on a click on empty space", async () => {
     selectedNotes.value = new Set([created[2].id]);
     selectMode.value = true;
     pointer("pointerdown", 70, 60);
     pointer("pointermove", 72, 61);
     pointer("pointerup", 72, 61);
-    await frame();
+    expect(selectedNotes.value.size).toBe(0);
+    expect(selectMode.value).toBe(false);
+  });
+
+  it("clears it on a tap too, but not when the touch scrolls", async () => {
+    selectedNotes.value = new Set([created[2].id]);
+    selectMode.value = true;
+    const touch = { pointerType: "touch" };
+    pointer("pointerdown", 70, 60, touch);
+    pointer("pointermove", 70, 160, touch);
+    pointer("pointercancel", 70, 160, touch);
+    expect(selectedNotes.value.size).toBe(1);
+
+    pointer("pointerdown", 70, 60, touch);
+    pointer("pointerup", 70, 60, touch);
+    expect(selectedNotes.value.size).toBe(0);
+  });
+
+  it("keeps the selection on a Shift-click on empty space", async () => {
+    selectedNotes.value = new Set([created[2].id]);
+    selectMode.value = true;
+    pointer("pointerdown", 70, 60, { shiftKey: true });
+    pointer("pointerup", 70, 60, { shiftKey: true });
+    expect([...selectedNotes.value]).toEqual([created[2].id]);
+  });
+
+  it("keeps the selection on a click on a card", async () => {
+    selectedNotes.value = new Set([created[2].id]);
+    selectMode.value = true;
+    pointer("pointerdown", 150, 150);
+    pointer("pointerup", 150, 150);
     expect([...selectedNotes.value]).toEqual([created[2].id]);
   });
 

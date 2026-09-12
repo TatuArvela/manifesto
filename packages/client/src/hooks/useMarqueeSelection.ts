@@ -1,6 +1,11 @@
 import type { RefObject } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { selectedNotes, selectMode, sortedNotes } from "../state/index.js";
+import {
+  exitSelectMode,
+  selectedNotes,
+  selectMode,
+  sortedNotes,
+} from "../state/index.js";
 import {
   type Box,
   boxesIntersect,
@@ -47,8 +52,12 @@ function sameSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
  * selected before the drag. Holding the pointer near the top or bottom edge
  * scrolls, so the box can reach notes that are off screen.
  *
- * Mouse only. On touch the same press is a scroll, and long-press already
- * selects.
+ * A press on the same empty space that is not a drag clears the selection,
+ * the way clicking beside the files in a file manager does, unless Shift or
+ * Cmd/Ctrl is held.
+ *
+ * The box is mouse only. On touch the same press is a scroll, and long-press
+ * already selects, but a tap still clears.
  *
  * Returns the box to draw, in viewport coordinates and clipped to the
  * container, or null when no drag is under way.
@@ -66,7 +75,7 @@ export function useMarqueeSelection(
     if (!container) return;
 
     const onPointerDown = (down: PointerEvent) => {
-      if (down.pointerType !== "mouse" || down.button !== 0) return;
+      if (down.button !== 0) return;
       if (!(down.target instanceof Element)) return;
       if (down.target.closest(IGNORE_SELECTOR)) return;
       const origin = container.getBoundingClientRect();
@@ -89,6 +98,9 @@ export function useMarqueeSelection(
       const baseMode = selectMode.peek();
       const start = toContent(down.clientX, down.clientY);
       let pointer = { x: down.clientX, y: down.clientY };
+      const canDraw = down.pointerType === "mouse";
+      // Past the threshold: a drag, or on touch a scroll, and not a click.
+      let moved = false;
       let active = false;
       let frame = 0;
 
@@ -157,6 +169,8 @@ export function useMarqueeSelection(
             move.clientY - down.clientY,
           );
           if (distance < THRESHOLD_PX) return;
+          moved = true;
+          if (!canDraw) return;
           active = true;
           // Otherwise the drag also paints a text selection across the page.
           document.getSelection()?.removeAllRanges();
@@ -173,7 +187,12 @@ export function useMarqueeSelection(
         cancelAnimationFrame(frame);
         frame = 0;
         cancelRef.current = null;
-        if (!active) return;
+        if (!active) {
+          if (commit && !moved && !additive && selectMode.peek()) {
+            exitSelectMode();
+          }
+          return;
+        }
         active = false;
         document.body.classList.remove("marquee-active");
         if (!commit) {
