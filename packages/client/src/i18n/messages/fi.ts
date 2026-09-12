@@ -135,6 +135,9 @@ export const fi: Messages = {
 
   "editor.rawMode": "Raakatila",
   "editor.normalMode": "Normaali tila",
+  "editor.formattingToolbar": "Muotoilupalkki",
+  "editor.showFormattingToolbar": "Näytä muotoilupalkki",
+  "editor.hideFormattingToolbar": "Piilota muotoilupalkki",
   "editor.undo": "Kumoa",
   "editor.redo": "Tee uudelleen",
   "editor.done": "Valmis",
@@ -231,6 +234,7 @@ export const fi: Messages = {
   "settings.animations": "Animaatiot",
   "settings.noteQuips": "Hauskat kehotteet",
   "settings.inlineCalculations": "Laskutoimitukset",
+  "settings.formattingToolbar": "Muotoilupalkki",
   "settings.decimalSeparator": "Desimaalierotin",
   "settings.decimalSeparator.auto": "Automaattinen",
   "settings.decimalSeparator.dot": "Piste",

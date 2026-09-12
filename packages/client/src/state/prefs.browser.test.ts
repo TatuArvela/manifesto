@@ -246,6 +246,19 @@ describe("noteQuips", () => {
   });
 });
 
+describe("formattingToolbar", () => {
+  it("defaults to shown", () => {
+    expect(parsePrefs(null).formattingToolbar).toBe(true);
+    expect(parsePrefs("{}").formattingToolbar).toBe(true);
+  });
+
+  it("honours an explicitly persisted choice", () => {
+    expect(parsePrefs('{"formattingToolbar":false}').formattingToolbar).toBe(
+      false,
+    );
+  });
+});
+
 describe("cross-tab preferences", () => {
   beforeEach(() => {
     localStorage.clear();
