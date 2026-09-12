@@ -144,6 +144,7 @@ export const fi: Messages = {
   "editor.metadata.edited": "Muokattu {date}",
   "editor.imageAlt": "Poista kuva",
   "editor.openImage": "Avaa kuva",
+  "editor.openLink": "Avaa linkki",
   "editor.imageViewer": "Kuvakatselin",
   "editor.closeImage": "Sulje kuva",
   "editor.previousImage": "Edellinen kuva",

@@ -332,3 +332,62 @@ describe("normalizeMarkdown", () => {
     expect(normalizeMarkdown("para\n\n- one")).toBe("para\n\n- one");
   });
 });
+
+describe("MilkdownEditor links", () => {
+  async function mountWithLink(content: string) {
+    const host = mountHost();
+    let editor: import("@milkdown/kit/core").Editor | null = null;
+    render(
+      <MilkdownEditor
+        content={content}
+        onChange={() => {}}
+        onEditorReady={(e) => {
+          editor = e;
+        }}
+      />,
+      host,
+    );
+    await vi.waitFor(() => expect(editor).not.toBeNull());
+    const link = host.querySelector(".ProseMirror a") as HTMLAnchorElement;
+    return { host, link };
+  }
+
+  function placeCaretIn(el: Element) {
+    const view = el.closest(".ProseMirror") as HTMLElement;
+    view.focus();
+    const range = document.createRange();
+    range.setStart(el.firstChild as Node, 2);
+    range.collapse(true);
+    const selection = document.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }
+
+  const tooltip = (host: HTMLElement) =>
+    host.querySelector<HTMLElement>(".link-tooltip");
+
+  it("offers to open the link the caret is in, instead of following a click", async () => {
+    const { host, link } = await mountWithLink(
+      "See [the docs](https://example.com) here",
+    );
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+    link.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(true);
+
+    placeCaretIn(link);
+    await vi.waitFor(() => expect(tooltip(host)?.dataset.open).toBe("true"));
+    expect(tooltip(host)?.querySelector("button")?.title).toBe(
+      "https://example.com",
+    );
+  });
+
+  it("does not offer to open a link that is not a web or mail address", async () => {
+    // A note's markdown decides the target; `javascript:` would run in the app.
+    const { host, link } = await mountWithLink(
+      "Bad [js](javascript:void) link",
+    );
+    placeCaretIn(link);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(tooltip(host)?.dataset.open).not.toBe("true");
+  });
+});

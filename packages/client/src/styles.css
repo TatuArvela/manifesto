@@ -893,8 +893,68 @@ body.note-drag-active .note-select {
 
 /* ── Milkdown editor styles ──────────────────────────────────────────── */
 
+.milkdown-editor {
+  /* The link tooltip is positioned against it, so it scrolls with the note. */
+  position: relative;
+}
+
 .milkdown-editor .ProseMirror {
   outline: none;
+}
+
+/* "Open link", under the link the caret is in (extensions/linkTooltip.ts).
+   Coloured like the other tooltips. It fades and drops in, and fades out in
+   place; `visibility` is held until the fade has finished so a closed tooltip
+   neither shows nor takes the clicks meant for the text under it. */
+.link-tooltip {
+  position: absolute;
+  z-index: 20;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  opacity: 0;
+  transform: translateY(-4px);
+  visibility: hidden;
+  transition:
+    opacity 120ms ease-in,
+    transform 120ms ease-in,
+    visibility 0s linear 120ms;
+}
+
+.link-tooltip[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out,
+    visibility 0s;
+}
+
+.link-tooltip button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.375rem;
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-50);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.link-tooltip button:hover {
+  background-color: var(--color-neutral-700);
+}
+
+.dark .link-tooltip button {
+  background-color: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+.dark .link-tooltip button:hover {
+  background-color: var(--color-neutral-300);
 }
 
 /* Headings, paragraphs and lists are shared with .prose; see above. */

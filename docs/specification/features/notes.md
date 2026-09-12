@@ -14,6 +14,7 @@ Clicking a NoteCard opens the NoteEditor as a modal overlay. The editor provides
 
 - Title field (plain text)
 - Content field: a rich markdown editor, with a raw mode that shows and edits the markdown source. Settings > Defaults > Default Edit Mode picks which one a note opens in. In connected mode raw edits reach collaborators as they are typed, and theirs appear in the textarea
+- Links are edited as text: a click places the caret rather than following the link, and while the caret is in one, an "Open link" button under it (or Mod-Enter) opens it in a new tab. Only web and mail addresses are opened
 - Formatting toolbar (headings, bold, italic, quotes, code, links, lists, checklists). In raw mode its buttons insert the markdown syntax instead. It can be hidden under Settings > Features, which hides it in every note
 - Color picker
 - Font picker (Default, Permanent Marker, Comic Relief)
