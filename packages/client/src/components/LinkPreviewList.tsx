@@ -61,7 +61,7 @@ function LinkPreviewRow({
       {onRemove && (
         <button
           type="button"
-          class="absolute top-1 right-1 p-1 rounded-full bg-black/40 text-white opacity-0 group-hover/lp:opacity-100 hover:bg-black/60 transition-opacity cursor-pointer"
+          class="absolute top-1 right-1 p-1 rounded-full bg-black/40 text-white opacity-0 group-hover/lp:opacity-100 focus-visible:opacity-100 hover:bg-black/60 transition-opacity cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();

@@ -546,6 +546,10 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
 
   deleteButton.type = "button";
   deleteButton.contentEditable = "false";
+  // Out of the tab order: it is drawn only on hover or for the item holding
+  // the caret, so tabbing out of a checklist crossed one invisible stop per
+  // item. A keyboard user removes an item by deleting its text instead.
+  deleteButton.tabIndex = -1;
   deleteButton.className = "task-item-delete text-black/40 dark:text-white/40";
   deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   deleteButton.setAttribute("aria-label", "Remove item");

@@ -154,7 +154,7 @@ function CardActions({
           : "mt-auto pt-3 -ml-1.5",
         isSelectMode
           ? "invisible"
-          : "opacity-0 group-hover:opacity-100 touch:opacity-100",
+          : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100",
       )}
       onClick={(e) => {
         if (e.target !== e.currentTarget) e.stopPropagation();
@@ -445,9 +445,12 @@ export function NoteCard({
         <div
           class={clsx(
             "note-select absolute -top-2.5 -left-2.5 z-10",
+            // Revealed by keyboard focus anywhere in the card as well as by
+            // hover: these controls are in the tab order either way, and a
+            // focus ring on something invisible leaves nothing to look at.
             isSelectMode || isSelected
               ? "opacity-100"
-              : "opacity-0 group-hover:opacity-100",
+              : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100",
             "transition-opacity duration-200",
           )}
         >
@@ -557,7 +560,7 @@ export function NoteCard({
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
           <div
             class={clsx(
-              "absolute top-2 right-2 z-10 flex items-center gap-0.5 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200 transition-colors duration-200",
+              "absolute top-2 right-2 z-10 flex items-center gap-0.5 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200 transition-colors duration-200",
               isSelectMode && "invisible",
             )}
             onClick={(e) => e.stopPropagation()}
@@ -568,7 +571,7 @@ export function NoteCard({
               >
                 <button
                   type="button"
-                  class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 touch:opacity-100"} transition-opacity`}
+                  class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100"} transition-opacity`}
                   onClick={() => togglePin(note.id)}
                   aria-label={
                     note.pinned ? t("noteCard.unpin") : t("noteCard.pin")
