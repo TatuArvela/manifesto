@@ -3,9 +3,12 @@ import { t } from "../i18n/index.js";
 import { quotaRefusedAt } from "../storage/quota.js";
 import {
   archiveNote,
+  deleteCheckedItems,
   expireTrash,
   filteredNotes,
+  hasCheckedItems,
   loadNotes,
+  noteHasChecklist,
   notes,
   permanentlyDeleteNote,
   restoreNote,
@@ -142,6 +145,74 @@ describe("state actions", () => {
     expect(notes.value[0].content).toBe(
       "- [ ] Parent\n  - [x] Child1\n  - [ ] Child2",
     );
+  });
+
+  // A note that documents checklist syntax inside a code fence. The preview
+  // renders the fenced lines as code — no boxes — so anything that offers or
+  // performs a checklist action has to see them the same way. When it did
+  // not, "Delete checked items" cut lines out of the middle of the block and
+  // left the fence unterminated.
+  const FENCED = [
+    "- [x] Real item",
+    "",
+    "```markdown",
+    "- [x] Example in docs",
+    "  - [x] Nested example",
+    "```",
+    "",
+    "- [ ] Another real item",
+  ].join("\n");
+
+  it("noteHasChecklist ignores checklist lines inside a code fence", () => {
+    expect(noteHasChecklist(FENCED)).toBe(true);
+    expect(noteHasChecklist("```\n- [ ] Only inside a fence\n```")).toBe(false);
+  });
+
+  it("hasCheckedItems ignores ticked boxes inside a code fence", () => {
+    expect(hasCheckedItems(FENCED)).toBe(true);
+    expect(hasCheckedItems("```\n- [x] Only inside a fence\n```")).toBe(false);
+    expect(hasCheckedItems("- [ ] Open\n\n```\n- [x] Quoted\n```")).toBe(false);
+  });
+
+  it("deleteCheckedItems leaves a fenced code block intact", async () => {
+    const note = await createNoteOrFail({ content: FENCED });
+
+    await deleteCheckedItems(note.id);
+
+    expect(notes.value[0].content).toBe(
+      [
+        "",
+        "```markdown",
+        "- [x] Example in docs",
+        "  - [x] Nested example",
+        "```",
+        "",
+        "- [ ] Another real item",
+      ].join("\n"),
+    );
+  });
+
+  it("deleteCheckedItems does not sweep descendants across a fence", async () => {
+    // The subtree sweep walks forward by indent. An indented line inside a
+    // fence is not the item's child, and taking it deletes the fence's body.
+    const note = await createNoteOrFail({
+      content: ["- [x] Parent", "```", "  indented code", "```"].join("\n"),
+    });
+
+    await deleteCheckedItems(note.id);
+
+    expect(notes.value[0].content).toBe(
+      ["```", "  indented code", "```"].join("\n"),
+    );
+  });
+
+  it("toggleCheckbox refuses a line inside a code fence", async () => {
+    const content = "```\n- [ ] Quoted\n```";
+    const note = await createNoteOrFail({ content });
+
+    await toggleCheckbox(note.id, 1);
+
+    expect(notes.value[0].content).toBe(content);
   });
 
   it("loadNotes reads from storage", async () => {

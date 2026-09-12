@@ -18,6 +18,7 @@ import { NoteConflictError } from "../storage/RestApiAdapter.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
 import {
   isChecklistLine,
+  markFencedLines,
   parseChecklistLine,
   setChecklistChecked,
 } from "../utils/markdown.js";
@@ -108,8 +109,20 @@ export function upsertById(list: Note[], note: Note): Note[] {
 
 // --- Derived ---
 
+/**
+ * Whether a note has any checklist the user can see.
+ *
+ * Fenced lines are skipped for the same reason the preview skips them: inside
+ * a code block `- [x]` is text being quoted, not a box. These three helpers
+ * and `segmentContent` have to agree on that, because the menu offers an
+ * action based on one and `deleteCheckedItems` carries it out with another —
+ * and when they disagreed, a note documenting our own syntax had lines cut out
+ * of the middle of its code block.
+ */
 export function noteHasChecklist(content: string): boolean {
-  return content.split("\n").some(isChecklistLine);
+  const lines = content.split("\n");
+  const fenced = markFencedLines(lines);
+  return lines.some((line, i) => !fenced[i] && isChecklistLine(line));
 }
 
 export const filteredNotes = computed(() => {
@@ -704,25 +717,33 @@ export async function reorderNotes(
   });
 }
 
+/** As `noteHasChecklist`, but only counting boxes that are ticked. */
 export function hasCheckedItems(content: string): boolean {
-  return content
-    .split("\n")
-    .some((line) => parseChecklistLine(line)?.checked === true);
+  const lines = content.split("\n");
+  const fenced = markFencedLines(lines);
+  return lines.some(
+    (line, i) => !fenced[i] && parseChecklistLine(line)?.checked === true,
+  );
 }
 
 export async function deleteCheckedItems(id: string) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
   const lines = note.content.split("\n");
+  const fenced = markFencedLines(lines);
   const toRemove = new Set<number>();
 
   for (let i = 0; i < lines.length; i++) {
+    if (fenced[i]) continue;
     const item = parseChecklistLine(lines[i]);
     if (!item?.checked) continue;
     toRemove.add(i);
-    // Sweep up indented descendants so subtrees go with their parent.
+    // Sweep up indented descendants so subtrees go with their parent. A fence
+    // ends the subtree: whatever is quoted inside it is not this item's child,
+    // and deleting into it would leave the block unterminated.
     const parentIndent = item.indent.length;
     for (let j = i + 1; j < lines.length; j++) {
+      if (fenced[j]) break;
       const child = parseChecklistLine(lines[j]);
       if (!child) break;
       if (child.indent.length <= parentIndent) break;
@@ -739,15 +760,19 @@ export async function toggleCheckbox(id: string, lineIndex: number) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
   const lines = note.content.split("\n");
+  const fenced = markFencedLines(lines);
+  if (fenced[lineIndex]) return;
   const item = parseChecklistLine(lines[lineIndex]);
   if (!item) return;
   const next = !item.checked;
   lines[lineIndex] = setChecklistChecked(lines[lineIndex], next);
 
   // Cascade to descendants — subsequent contiguous checkbox lines with
-  // greater indent. Matches the editor's subtree toggle behavior.
+  // greater indent. Matches the editor's subtree toggle behavior, and stops at
+  // a fence for the same reason the deletion sweep does.
   const parentIndent = item.indent.length;
   for (let i = lineIndex + 1; i < lines.length; i++) {
+    if (fenced[i]) break;
     const child = parseChecklistLine(lines[i]);
     if (!child) break;
     if (child.indent.length <= parentIndent) break;
