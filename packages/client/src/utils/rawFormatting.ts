@@ -144,11 +144,11 @@ function inlineRange(
   const trail = EDGE_MARKUP_END.exec(word.slice(lead))?.[0].length ?? 0;
   const coreFrom = from + lead;
   const coreTo = to - trail;
-  // A cursor sitting in the markup itself, or a word that is all markup, has
-  // no text to format: leave the cursor where it is and insert at it.
-  if (coreFrom >= coreTo || start < coreFrom || start > coreTo) {
-    return [start, start];
-  }
+  // A word that is all markup has no text to format: leave the cursor where
+  // it is. A cursor in the markup of a word that has text belongs to that
+  // word, the same as one in its letters; measured from the cursor instead,
+  // `*|*aa**` read as an `*` either side of it, which is italic.
+  if (coreFrom >= coreTo) return [start, start];
   return [coreFrom, coreTo];
 }
 
@@ -184,6 +184,16 @@ function wrappedBy(
     const open = before.find((t) => t.text[0] === ch);
     const close = after.find((t) => t.text[0] === ch);
     if (!open || !close) continue;
+    // A bare cursor inside one run of markers, with no text either side of
+    // it, is only a pair of empty markers when it sits in the middle: `**|**`
+    // is the empty bold a press of Bold just inserted, `*|***` is not italic.
+    if (
+      from === to &&
+      open.to === close.from &&
+      open.text.length !== close.text.length
+    ) {
+      continue;
+    }
     const n = Math.min(open.text.length, close.text.length);
     let take = 0;
     if (format === "bold" && n >= 2) take = 2;
