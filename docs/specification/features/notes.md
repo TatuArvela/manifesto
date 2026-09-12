@@ -59,6 +59,8 @@ Selected notes can be pinned, tagged, recoloured, archived or deleted together f
 - "Select all" in the selection bar
 - dragging a box with the mouse from empty space in the grid: every card the box touches is selected, except auto-notes, which "Select all" skips too. Shift or Cmd/Ctrl adds to the existing selection instead of replacing it, holding the pointer at the top or bottom edge scrolls, and Escape puts back the selection from before the drag
 
+Clicking or tapping empty space in the grid, without dragging, clears the selection; with Shift or Cmd/Ctrl held it is kept.
+
 ## Sidebar
 
 A collapsible navigation panel on the left with links to:
