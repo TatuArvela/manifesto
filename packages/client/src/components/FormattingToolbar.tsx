@@ -40,6 +40,13 @@ import {
   toggleUnderlineCommand,
 } from "../extensions/manifestoInlineMarks.js";
 import { t } from "../i18n/index.js";
+import {
+  applyRawFormat,
+  applyRawLink,
+  applyTextEdit,
+  getRawActiveFormats,
+  removeRawLink,
+} from "../utils/rawFormatting.js";
 import { Dropdown } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -222,6 +229,12 @@ function toggleChecklist(editor: Editor): void {
 
 interface FormattingToolbarProps {
   editor: Editor;
+  /**
+   * The raw-mode textarea, while raw mode is on. The rich editor is still
+   * mounted then, only hidden, so without this every button would read and
+   * change a document the user cannot see; see `utils/rawFormatting.ts`.
+   */
+  rawTextarea?: HTMLTextAreaElement | null;
   tick: number;
   disabled?: boolean;
   onAddLink?: (url: string) => void;
@@ -234,6 +247,7 @@ const btnActive = `${btnBase} bg-black/10 dark:bg-white/15`;
 
 export function FormattingToolbar({
   editor,
+  rawTextarea,
   tick,
   disabled,
   onAddLink,
@@ -247,8 +261,16 @@ export function FormattingToolbar({
   const [af, setAf] = useState<ActiveFormats>(emptyFormats);
 
   useEffect(() => {
-    setAf(getActiveFormats(editor));
-  }, [editor, tick]);
+    setAf(
+      rawTextarea
+        ? getRawActiveFormats(
+            rawTextarea.value,
+            rawTextarea.selectionStart,
+            rawTextarea.selectionEnd,
+          )
+        : getActiveFormats(editor),
+    );
+  }, [editor, rawTextarea, tick]);
 
   useEffect(() => {
     if (showLinkMenu) linkInputRef.current?.focus();
@@ -261,7 +283,16 @@ export function FormattingToolbar({
 
   const onLinkClick = () => {
     if (af.link) {
-      editor.action(callCommand(toggleLinkCommand.key, {}));
+      if (rawTextarea) {
+        const edit = removeRawLink(
+          rawTextarea.value,
+          rawTextarea.selectionStart,
+          rawTextarea.selectionEnd,
+        );
+        if (edit) applyTextEdit(rawTextarea, edit);
+      } else {
+        editor.action(callCommand(toggleLinkCommand.key, {}));
+      }
       return;
     }
     setLinkUrl("");
@@ -271,16 +302,41 @@ export function FormattingToolbar({
   const applyLink = () => {
     const url = linkUrl.trim();
     if (url) {
-      editor.action(callCommand(updateLinkCommand.key, { href: url }));
+      if (rawTextarea) {
+        applyTextEdit(
+          rawTextarea,
+          applyRawLink(
+            rawTextarea.value,
+            rawTextarea.selectionStart,
+            rawTextarea.selectionEnd,
+            url,
+          ),
+        );
+      } else {
+        editor.action(callCommand(updateLinkCommand.key, { href: url }));
+      }
       if (onAddLink && /^https?:\/\//i.test(url)) onAddLink(url);
     }
     closeLinkMenu();
-    editor.action((ctx) => ctx.get(editorViewCtx).focus());
+    if (rawTextarea) rawTextarea.focus();
+    else editor.action((ctx) => ctx.get(editorViewCtx).focus());
   };
 
   const preventFocus = (e: MouseEvent) => e.preventDefault();
-  const onFormat = (type: FormatType, arg?: string) =>
-    applyFormat(editor, type, arg);
+  const onFormat = (type: FormatType, arg?: string) => {
+    if (!rawTextarea) {
+      applyFormat(editor, type, arg);
+      return;
+    }
+    const edit = applyRawFormat(
+      rawTextarea.value,
+      rawTextarea.selectionStart,
+      rawTextarea.selectionEnd,
+      type,
+      arg,
+    );
+    if (edit) applyTextEdit(rawTextarea, edit);
+  };
 
   const isActive = (type: FormatType): boolean => {
     const v = af[type as keyof ActiveFormats];

@@ -20,6 +20,7 @@ import {
   isChecklistLine,
   markFencedLines,
   parseChecklistLine,
+  removeCheckedItems,
   setChecklistChecked,
 } from "../utils/markdown.js";
 import {
@@ -729,30 +730,8 @@ export function hasCheckedItems(content: string): boolean {
 export async function deleteCheckedItems(id: string) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
-  const lines = note.content.split("\n");
-  const fenced = markFencedLines(lines);
-  const toRemove = new Set<number>();
-
-  for (let i = 0; i < lines.length; i++) {
-    if (fenced[i]) continue;
-    const item = parseChecklistLine(lines[i]);
-    if (!item?.checked) continue;
-    toRemove.add(i);
-    // Sweep up indented descendants so subtrees go with their parent. A fence
-    // ends the subtree: whatever is quoted inside it is not this item's child,
-    // and deleting into it would leave the block unterminated.
-    const parentIndent = item.indent.length;
-    for (let j = i + 1; j < lines.length; j++) {
-      if (fenced[j]) break;
-      const child = parseChecklistLine(lines[j]);
-      if (!child) break;
-      if (child.indent.length <= parentIndent) break;
-      toRemove.add(j);
-    }
-  }
-
-  if (toRemove.size === 0) return;
-  const next = lines.filter((_, i) => !toRemove.has(i)).join("\n");
+  const next = removeCheckedItems(note.content);
+  if (next === note.content) return;
   await updateNote(id, { content: next });
 }
 

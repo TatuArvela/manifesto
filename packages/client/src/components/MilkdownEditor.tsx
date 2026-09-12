@@ -13,7 +13,14 @@ import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { getMarkdown, replaceAll } from "@milkdown/kit/utils";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import type { RefObject } from "preact";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "preact/hooks";
 import type * as Y from "yjs";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
@@ -87,6 +94,8 @@ interface MilkdownEditorProps {
   disabled?: boolean;
   contentLocked?: boolean;
   rawMode?: boolean;
+  /** Receives the raw-mode textarea, so the toolbar can format its text. */
+  textareaRef?: RefObject<HTMLTextAreaElement>;
   autoFocus?: boolean;
   onEditorReady?: (editor: Editor) => void;
   collab?: {
@@ -102,10 +111,13 @@ export function MilkdownEditor({
   disabled,
   contentLocked,
   rawMode,
+  textareaRef: externalTextareaRef,
   autoFocus,
   onEditorReady,
   collab,
 }: MilkdownEditorProps) {
+  const ownTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = externalTextareaRef ?? ownTextareaRef;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onEditorReadyRef = useRef(onEditorReady);
@@ -265,7 +277,9 @@ export function MilkdownEditor({
     previousRawModeRef.current = !!rawMode;
     if (!toggled) return;
     if (rawMode) {
-      const md = getEditorMarkdown(editor);
+      // The serializer ends every document with a newline, which in a
+      // textarea is an empty last line under the text.
+      const md = getEditorMarkdown(editor).replace(/\n+$/, "");
       setRawContent(md);
       rawContentRef.current = md;
     } else {
@@ -278,14 +292,37 @@ export function MilkdownEditor({
     }
   }, [rawMode, editor]);
 
-  const rawRows = Math.max(5, rawContent.split("\n").length);
+  // The textarea grows with its text rather than scrolling inside the note,
+  // which already scrolls. Sizing it by counting newlines, as `rows` did,
+  // missed every line that wraps: a long paragraph pushed the first lines up
+  // out of a box too short to hold it. Measured instead, and again whenever
+  // the width changes, because narrowing the note wraps more lines. While
+  // hidden it has no layout to measure, hence waiting for `rawMode`.
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!rawMode || !textarea) return;
+    const fitHeight = () => {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    };
+    fitHeight();
+    let width = textarea.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (textarea.clientWidth === width) return;
+      width = textarea.clientWidth;
+      fitHeight();
+    });
+    observer.observe(textarea);
+    return () => observer.disconnect();
+  }, [rawMode, rawContent, textareaRef]);
 
   return (
     <>
       <textarea
-        class="w-full p-2 bg-transparent outline-none resize-none font-mono text-sm"
+        ref={textareaRef}
+        class="block w-full py-1 bg-transparent outline-none resize-none overflow-hidden font-mono text-sm"
         style={{ display: rawMode ? "" : "none" }}
-        rows={rawRows}
+        rows={1}
         value={rawContent}
         onInput={(e) => {
           const val = (e.target as HTMLTextAreaElement).value;
@@ -293,6 +330,7 @@ export function MilkdownEditor({
           onChangeRef.current(val);
         }}
         disabled={disabled}
+        readOnly={contentLocked}
       />
       <div
         ref={mountRef}
