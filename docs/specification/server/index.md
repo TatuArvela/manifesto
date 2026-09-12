@@ -21,8 +21,8 @@ The server is split into two pluggable layers behind narrow interfaces. Both are
 
 Storage is abstracted as a `StorageDriver`. Two implementations ship today:
 
-- **SQLite** (`better-sqlite3`, `STORAGE_DRIVER=sqlite`, the default) — single file, zero config, ideal for self-hosted single-server deployments.
-- **Postgres** (`pg`, `STORAGE_DRIVER=postgres`) — managed database, suitable for scale-out and team deployments.
+- **SQLite** (`better-sqlite3`, `STORAGE_DRIVER=sqlite`, the default): single file, zero config, ideal for self-hosted single-server deployments.
+- **Postgres** (`pg`, `STORAGE_DRIVER=postgres`): managed database, suitable for scale-out and team deployments.
 
 Both drivers implement the same interface; the rest of the server is identical regardless of which one is selected.
 
@@ -40,15 +40,15 @@ Adding another driver means implementing these five interfaces and registering t
 
 #### Driver tradeoffs
 
-- **SQLite** — zero-configuration, a single file you can back up by copying. Fast and ideal for one-server deployments. Pure synchronous writes (better-sqlite3) keep latencies tiny on a notes workload.
-- **Postgres** — required for any deployment that wants to scale beyond one app server, share state with other services, or use managed-database backups. The schema mirrors SQLite's; `yjs_state` lives in `BYTEA`.
+- **SQLite**: zero-configuration, a single file you can back up by copying. Fast and ideal for one-server deployments. Pure synchronous writes (better-sqlite3) keep latencies tiny on a notes workload.
+- **Postgres**: required for any deployment that wants to scale beyond one app server, share state with other services, or use managed-database backups. The schema mirrors SQLite's; `yjs_state` lives in `BYTEA`.
 
 #### Schema migrations
 
 Each driver declares an ordered list of migrations, and a `schema_migrations`
 table in the database records which have run. On boot the driver applies the
 ones that are missing, each in its own transaction, and writes its ledger row
-in the same transaction — so a step that fails leaves behind neither half of a
+in the same transaction, so a step that fails leaves behind neither half of a
 schema change nor a claim to have made it.
 
 Both drivers ship the same migration ids, in the same order; a test fails if
@@ -65,15 +65,15 @@ rather than stacking later steps on a schema it cannot describe.
 
 Authentication is abstracted as an `AuthProvider`. The provider:
 
-- Implements `authenticate(token)` — turns a bearer token into an identity (used by HTTP middleware and both WebSocket handshakes).
+- Implements `authenticate(token)`, which turns a bearer token into an identity (used by HTTP middleware and both WebSocket handshakes).
 - Owns its own router, mounted under `/api/auth`. The local provider mounts `/register`, `/login`, `/logout`. The OIDC provider mounts `/login` (302 to the IdP), `/callback`, and `/logout`.
 
 Two implementations ship today:
 
-- **`local`** (default) — username + argon2-hashed password, sessions stored server-side. Mounts `/register`, `/login`, `/logout`.
-- **`oidc`** — OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, etc.). Mounts `/login` (redirect to IdP), `/callback` (code exchange + JIT user provisioning + session mint), `/logout`. The IdP is contacted only at login time; once a session is minted, `authenticate(token)` is identical to the local provider — pure session lookup, no IdP round-trip per request.
+- **`local`** (default): username + argon2-hashed password, sessions stored server-side. Mounts `/register`, `/login`, `/logout`.
+- **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, etc.). Mounts `/login` (redirect to IdP), `/callback` (code exchange + JIT user provisioning + session mint), `/logout`. The IdP is contacted only at login time; once a session is minted, `authenticate(token)` is identical to the local provider: pure session lookup, no IdP round-trip per request.
 
-The server also exposes two provider-agnostic auth endpoints used by the client: `GET /api/auth/methods` (public, returns the active provider name so the client can pick the right login UI) and `GET /api/auth/me` (bearer-protected, returns the current user — used after an OIDC callback when the client only has a token in the URL fragment).
+The server also exposes two provider-agnostic auth endpoints used by the client: `GET /api/auth/methods` (public, returns the active provider name so the client can pick the right login UI) and `GET /api/auth/me` (bearer-protected, returns the current user; used after an OIDC callback when the client only has a token in the URL fragment).
 
 The `users` schema supports both modes: `password_hash` is nullable, and `(provider, external_id)` is the IdP-stable identity. Local and SSO users coexist in the same table; account linking across providers is not supported in v1.
 
@@ -83,8 +83,8 @@ Implements the endpoints defined in [API](../api.md). The auth provider owns `/a
 
 ### WebSockets
 
-- `/api/ws` — application JSON socket for `note:*` and `presence:*` events. Authenticates via the active auth provider. Token is passed in the `Sec-WebSocket-Protocol` header.
-- `/api/yjs` — Hocuspocus-backed Yjs collaboration channel, multiplexing every note over one socket by document name. The `onAuthenticate` hook resolves the token via the active auth provider and then verifies note ownership against the joined document name via the storage driver. Persistence is delegated to `storage.yjs`, so Yjs state lives in whichever store is selected.
+- `/api/ws`: application JSON socket for `note:*` and `presence:*` events. Authenticates via the active auth provider. Token is passed in the `Sec-WebSocket-Protocol` header.
+- `/api/yjs`: Hocuspocus-backed Yjs collaboration channel, multiplexing every note over one socket by document name. The `onAuthenticate` hook resolves the token via the active auth provider and then verifies note ownership against the joined document name via the storage driver. Persistence is delegated to `storage.yjs`, so Yjs state lives in whichever store is selected.
 
 ### Multi-User
 

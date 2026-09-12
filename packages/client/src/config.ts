@@ -1,20 +1,20 @@
 /**
- * Branding — the product name shown to users.
+ * Branding: the product name shown to users.
  *
  * Two ways to set it, so both kinds of self-hoster are served:
  *
- * - **Building from source** — set `VITE_APP_NAME`. It is resolved once in
+ * - **Building from source**: set `VITE_APP_NAME`. It is resolved once in
  *   `vite.config.ts` and reaches the bundle as `__APP_NAME__`, `index.html` as
  *   the `<title>` and the `application-name` meta tag, and
  *   `manifest.webmanifest` as `name`/`short_name`.
- * - **Deploying the release zip** — edit the `application-name` meta tag in the
+ * - **Deploying the release zip**: edit the `application-name` meta tag in the
  *   shipped `index.html` (plus the `<title>` and the manifest, which are plain
  *   text in the same folder). Nobody should need a toolchain to rename an app,
  *   and the JS bundle is minified past the point of safe hand-editing.
  *
  * The meta tag wins when present, so an edited bundle overrides what it was
- * built with. Everything downstream — the header, the login screen, download
- * filenames, and any translated string containing `{appName}` — follows from
+ * built with. Everything downstream (the header, the login screen, download
+ * filenames, and any translated string containing `{appName}`) follows from
  * {@link APP_NAME}.
  */
 

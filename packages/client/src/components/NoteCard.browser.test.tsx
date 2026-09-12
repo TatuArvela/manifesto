@@ -11,7 +11,7 @@ import { NoteCard } from "./NoteCard.js";
  * Two things meet in this component: `editingNoteId` is the only thing that
  * decides whether the modal is up, and the modal is the layer Escape has to
  * find its way through. Both are tested here against the real editor, because
- * both used to fail on the way *out* — a card whose signal was cleared by
+ * both used to fail on the way *out*: a card whose signal was cleared by
  * something else stayed on screen, and a press meant for the colour picker
  * closed the whole editor.
  */
@@ -60,7 +60,7 @@ function editorRoot(): HTMLElement {
 /**
  * A real key press, not a synthesised one: the browser dismisses a
  * `popover="auto"` as the *default action* of a trusted Escape, and a
- * dispatched event skips that entirely — which is exactly the half of this
+ * dispatched event skips that entirely, which is exactly the half of this
  * behaviour that is not ours.
  */
 const pressEscape = () => userEvent.keyboard("{Escape}");
@@ -128,7 +128,7 @@ describe("NoteCard editing modal", () => {
     // A reminder banner, a notification, or a `note:updated` can point
     // `editingNoteId` somewhere else without ever calling this card's close
     // handler. The effect had no `else`, so this card's modal stayed up over a
-    // note nothing was editing — with a second modal opening behind it.
+    // note nothing was editing, with a second modal opening behind it.
     const note = makeNote(NOTE_ID, "Shopping");
     await openEditor(note);
 

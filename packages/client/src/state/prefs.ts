@@ -201,7 +201,7 @@ export function resolvedDecimalSeparator(): "." | "," {
  * written back as one blob, so a tab that adopts a remote change and then
  * saves would send the same content around again; worse, a tab that never
  * adopted it would overwrite the change with its own stale copy on the next
- * unrelated toggle — change the theme in one tab, switch view mode in
+ * unrelated toggle: change the theme in one tab, switch view mode in
  * another, and the theme is back.
  */
 let applyingRemotePrefs = false;

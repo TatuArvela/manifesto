@@ -34,7 +34,7 @@ export interface LinkPreview {
  * list is a security boundary, not a convenience: `data:` is a same-origin
  * scheme, and admitting `data:text/html` or `data:image/svg+xml` would let a
  * note carry executable markup into any surface that renders an attachment by
- * URL. SVG is excluded for exactly that reason — it is a document format that
+ * URL. SVG is excluded for exactly that reason: it is a document format that
  * happens to be an image.
  */
 export const IMAGE_DATA_URL_SUBTYPES = [
@@ -48,7 +48,7 @@ export const IMAGE_DATA_URL_SUBTYPES = [
 
 /**
  * Largest source image a user may attach. This is the number the error messages
- * quote — "1.5 MB" in `en.ts`, "1,5 Mt" in `fi.ts` — so the two must move
+ * quote ("1.5 MB" in `en.ts`, "1,5 Mt" in `fi.ts`), so the two must move
  * together.
  *
  * 1.5 MiB rather than a round 1,500,000 because the platforms disagree about
@@ -64,7 +64,7 @@ export const MAX_IMAGE_SOURCE_BYTES = 1.5 * 1024 * 1024;
  * actually crosses the wire and sits in the note row, and therefore the form
  * worth bounding. Derived rather than written down: base64 emits 4 characters
  * per 3 bytes, and the `data:image/…;base64,` prefix counts toward the limit
- * too — at 23 characters for the longest of the accepted media types, which is
+ * too, at 23 characters for the longest of the accepted media types, which is
  * enough to push a file of exactly MAX_IMAGE_SOURCE_BYTES over a hand-rounded
  * cap and reject it 18 bytes short of the advertised number.
  *
@@ -130,7 +130,7 @@ export interface Note {
   tags: string[];
   /**
    * Attached images as `data:` URLs. Empty on a note that came from a list
-   * endpoint even when it has attachments — compare with `imageCount` rather
+   * endpoint even when it has attachments. Compare with `imageCount` rather
    * than reading emptiness as "no images", and call the client's
    * `ensureImages` before doing anything that needs the bytes.
    */
@@ -178,7 +178,7 @@ export type NoteCreate = Omit<
   "id" | "createdAt" | "updatedAt" | "imageCount"
 >;
 
-/** Partial update — only the fields being changed. */
+/** Partial update: only the fields being changed. */
 export type NoteUpdate = Partial<Omit<Note, "id" | "createdAt" | "imageCount">>;
 
 /** A snapshot of a note's title and content at a point in time. */

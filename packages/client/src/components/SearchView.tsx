@@ -162,7 +162,7 @@ export function SearchView() {
   const [advancedOpen, setAdvancedOpen] = useState(filtersActive);
 
   useEffect(() => {
-    // Only autofocus on desktop — on mobile this would raise the soft keyboard
+    // Only autofocus on desktop; on mobile this would raise the soft keyboard
     // on every search-view mount (incl. back-navigation and deep-link restore).
     // The mobile input is `md:hidden`; desktop uses the header input anyway,
     // so this effectively only fires when the desktop input is rendered.
@@ -172,8 +172,8 @@ export function SearchView() {
   }, []);
 
   // Escape leaves the search view, wherever focus happens to be. This view is
-  // the bottom layer while it is up, so anything opened over it — the note
-  // editor, the settings panel, a popover — registers later and takes the key
+  // the bottom layer while it is up, so anything opened over it (the note
+  // editor, the settings panel, a popover) registers later and takes the key
   // first.
   useEscapeStack(true, exitSearch);
 

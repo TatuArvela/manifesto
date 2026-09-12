@@ -8,7 +8,7 @@ import {
 } from "./config.js";
 
 /**
- * Run `fn` with an `application-name` meta tag in the document — the state a
+ * Run `fn` with an `application-name` meta tag in the document, the state a
  * hand-edited release bundle is in when it loads.
  */
 function withMetaTag<T>(content: string, fn: () => T): T {

@@ -6,22 +6,22 @@ import type { AutoNoteResult, PluginContextInput } from "./types.js";
 // Sandbox architecture notes:
 //
 // The sandbox lives in a static HTML file served from our own origin
-// (public/autonotes-sandbox.html) that we load via `iframe.src` — the frame
-// itself gets an opaque origin, see below. It *cannot* be a `srcdoc` iframe — srcdoc
+// (public/autonotes-sandbox.html) that we load via `iframe.src`; the frame
+// itself gets an opaque origin, see below. It *cannot* be a `srcdoc` iframe, because srcdoc
 // iframes inherit the parent's CSP, and our main app pins `script-src 'self'`.
 // An iframe loaded from a real URL gets its own CSP (from its own meta tag),
 // so the sandbox can use `unsafe-inline` + `unsafe-eval` without relaxing the
 // host page's policy.
 //
 // The sandbox attribute is `allow-scripts` (no `allow-same-origin`), giving
-// the iframe an opaque origin — no access to host storage, cookies, or DOM.
+// the iframe an opaque origin: no access to host storage, cookies, or DOM.
 //
 // Inside the frame, the plugin itself runs in a blob Worker, which is what
 // makes the timeout below mean anything: a plugin that never returns occupies
 // only the worker's thread, so this timer still fires and tearing down the
 // iframe takes the worker with it. When the frame runs a plugin on its own
 // thread instead (an engine that refuses a worker at an opaque origin), a
-// `while (true)` blocks the host too and the timeout cannot be enforced —
+// `while (true)` blocks the host too and the timeout cannot be enforced,
 // hence the warning on that path.
 //
 // Whatever the plugin returns is JSON on the wire and validated here, in
@@ -30,7 +30,7 @@ import type { AutoNoteResult, PluginContextInput } from "./types.js";
 //
 // Flow:
 //   1. Host listens for `message`, then sets `iframe.src`. There is no `load`
-//      handshake — an opaque-origin frame tells us nothing useful on load, and
+//      handshake: an opaque-origin frame tells us nothing useful on load, and
 //      the frame announces itself anyway in step 2.
 //   2. Iframe posts `sandbox-booted` to parent.
 //   3. Host posts `init` with the stdlib prelude string.

@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ContentPreview } from "./ContentPreview.js";
 
 /**
- * What a card actually shows. The pieces below it — the checklist parser, the
- * segmenter, the renderer — have their own tests; these are the four ways the
+ * What a card actually shows. The pieces below it (the checklist parser, the
+ * segmenter, the renderer) have their own tests; these are the four ways the
  * preview used to disagree with the note it was drawing.
  */
 

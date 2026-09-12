@@ -7,7 +7,7 @@ import {
 } from "./index.js";
 
 /**
- * Which backend a note goes to follows the session — but storage is the layer
+ * Which backend a note goes to follows the session, but storage is the layer
  * underneath the session, not above it. It used to import the auth signals
  * directly, so anything that touched a note pulled the login screen's state in
  * with it; `state/auth.ts` pushes the connection in now.

@@ -1,6 +1,6 @@
 # Client Deployment
 
-The client builds to a static site that can be served by anything. The operating mode is baked in at build time — see [Operating Modes](../operating-modes.md) for the conceptual overview.
+The client builds to a static site that can be served by anything. The operating mode is baked in at build time; see [Operating Modes](../operating-modes.md) for the conceptual overview.
 
 ## Build
 
@@ -25,9 +25,9 @@ Everything the client needs is baked in at build time. `VITE_MANIFESTO_SERVER` i
 |---------------------------|---------|----------------------------------------------------------------------------------------------|
 | `VITE_MANIFESTO_SERVER`   | unset   | Absolute URL of the Manifesto server. Unset → open mode. Set → connected mode.               |
 | `VITE_LINK_PREVIEW_API`   | microlink.io | Endpoint used by the editor to fetch link-preview metadata.                            |
-| `VITE_APP_NAME`           | `Manifesto` | Branding — the product name, description and icons. See [Rebranding](#rebranding).       |
+| `VITE_APP_NAME`           | `Manifesto` | Branding: the product name, description and icons. See [Rebranding](#rebranding).       |
 
-The Vite config also reads `VITE_MANIFESTO_SERVER` to extend the `index.html` Content Security Policy: when set, the URL's HTTP and `ws(s)://` origins are added to `connect-src`. When unset, the CSP stays at `connect-src 'self'` and the build cannot reach any external server — a useful defence-in-depth check that an open-mode build is genuinely local.
+The Vite config also reads `VITE_MANIFESTO_SERVER` to extend the `index.html` Content Security Policy: when set, the URL's HTTP and `ws(s)://` origins are added to `connect-src`. When unset, the CSP stays at `connect-src 'self'` and the build cannot reach any external server, a useful defence-in-depth check that an open-mode build is genuinely local.
 
 ### Open mode
 
@@ -56,7 +56,7 @@ the build-time knobs themselves.
 
 Nothing user-facing spells out "Manifesto". The name flows from one value into
 the window title, the PWA manifest, the header, the login screen, export and
-crash-backup filenames, and every translated string — translations carry an
+crash-backup filenames, and every translated string, since translations carry an
 `{appName}` placeholder rather than the name itself. The description and the
 brand marks are parameters too.
 
@@ -92,7 +92,7 @@ change:
 | `favicon.svg` | the browser tab |
 | `icon-1024.png` | the installed PWA and the iOS home screen |
 
-Keeping the folder outside the repository is the point — editing the checked-in
+Keeping the folder outside the repository is the point: editing the checked-in
 `public/` files works, but then every `git pull` from upstream is a conflict.
 
 ### Rebranding a release bundle
@@ -115,16 +115,16 @@ cp ~/acme-brand/*.svg ~/acme-brand/icon-1024.png .
 
 The `application-name` meta tag wins over whatever the bundle was built with, so
 this works on any build. Leave the JS bundle alone: it is minified, and the
-`manifesto:` prefixes inside it are `localStorage` keys — rewriting those would
+`manifesto:` prefixes inside it are `localStorage` keys, and rewriting those would
 orphan every note already saved in a browser.
 
 ## Routing for static hosts
 
 Manifesto uses real URL paths (not hash fragments) for navigation, so deep links like `/archived` or `/tags/work` need to fall back to `index.html`. The Vite plugin `githubPagesSpaFallback` copies `dist/index.html` to `dist/404.html` after each build, which handles GitHub Pages out of the box. For other hosts:
 
-- **nginx / Caddy / Apache** — configure a fallback rewrite to `index.html` for any non-asset request.
-- **Netlify** — drop a `_redirects` file with `/* /index.html 200`.
-- **Cloudflare Pages / Vercel** — SPA fallback is enabled by default.
+- **nginx / Caddy / Apache**: configure a fallback rewrite to `index.html` for any non-asset request.
+- **Netlify**: drop a `_redirects` file with `/* /index.html 200`.
+- **Cloudflare Pages / Vercel**: SPA fallback is enabled by default.
 
 If hosting under a subpath, set Vite's `base` to match (e.g. `/manifesto/` for `https://user.github.io/manifesto/`); the router and the `manifest.webmanifest` rewrite plugin both honour `BASE_URL`.
 

@@ -1,6 +1,6 @@
 # Custom Instances
 
-Running Manifesto under your own name — "Corporate Notes", "Acme Memos",
+Running Manifesto under your own name ("Corporate Notes", "Acme Memos",
 whatever fits. This walks through a complete branded deployment end to end.
 
 The single most useful fact up front: **the server carries no branding at all.**
@@ -13,14 +13,14 @@ is the stock published image, unmodified.
 | | Build from source | Edit a release bundle |
 |---|---|---|
 | Operating mode | open or connected | open only |
-| Toolchain needed | Node + pnpm | none — a text editor |
+| Toolchain needed | Node + pnpm | none, a text editor |
 | Brand assets live | in a folder outside the repo | in the unzipped bundle |
 | Effort per upstream release | re-run one build command | redo the edits |
 
 The mode is what decides this. Connected mode bakes the server URL into the
 bundle *and* into its Content Security Policy, so an edited release zip stays at
 `connect-src 'self'` and physically cannot reach a server no matter what else
-you change. A team instance therefore builds from source — at which point the
+you change. A team instance therefore builds from source, at which point the
 branding is three more variables in a command you were already running.
 
 Editing a release bundle is the right path for an open-mode instance: a
@@ -34,7 +34,7 @@ their own server, with accounts from their existing identity provider.
 
 ### 1. Collect the brand assets
 
-Create a folder anywhere outside the repository — `~/acme-brand/`. Include only
+Create a folder anywhere outside the repository, such as `~/acme-brand/`. Include only
 what you want to change; anything absent keeps the stock mark.
 
 | File | Where it shows up |
@@ -87,13 +87,13 @@ VITE_MANIFESTO_SERVER=https://notes-api.acme.internal \
 ```
 
 Hosting under a subpath rather than a domain root? Add
-`MANIFESTO_BASE_URL=/notes/` — the router, the logo, the web manifest and the
+`MANIFESTO_BASE_URL=/notes/`. The router, the logo, the web manifest and the
 service worker all derive their paths from it.
 
 ### 4. Serve the output
 
 `packages/client/dist/` is a static site. Any host works, as long as unknown
-paths fall back to `index.html` — Manifesto uses real URL paths, so `/archived`
+paths fall back to `index.html`: Manifesto uses real URL paths, so `/archived`
 and `/tags/work` must reach the SPA. `dist/404.html` covers GitHub Pages out of
 the box; see [Client Deployment](client/deployment.md#routing-for-static-hosts)
 for nginx, Caddy, Netlify and Vercel.
@@ -128,7 +128,7 @@ That covers `<title>`, `<meta name="application-name">`,
 needs the same treatment.
 
 **Leave the JS bundle alone.** It is minified, and the `manifesto:` prefixes
-inside it are `localStorage` keys — rewriting those would orphan every note
+inside it are `localStorage` keys, and rewriting those would orphan every note
 already saved in a browser.
 
 ## What is parametrised
@@ -140,7 +140,7 @@ already saved in a browser.
 | PWA manifest description, HTML meta description | `VITE_APP_DESCRIPTION` |
 | Header mark, favicon, PWA icon | `VITE_APP_ICONS_DIR` |
 
-No translated string spells the name out — the message catalogues carry an
+No translated string spells the name out. The message catalogues carry an
 `{appName}` placeholder that is filled at render time, so a rebrand reaches
 every locale at once. A test fails if a catalogue ever hard-codes it.
 
@@ -172,6 +172,6 @@ The server is a tag bump in your compose file.
 
 ## See also
 
-- [Operating Modes](operating-modes.md) — open vs connected, storage and auth options
-- [Client Deployment](client/deployment.md) — static hosting, PWA, build-time configuration
-- [Server Deployment](server/deployment.md) — Docker, environment, reverse proxy, OIDC, Postgres
+- [Operating Modes](operating-modes.md): open vs connected, storage and auth options
+- [Client Deployment](client/deployment.md): static hosting, PWA, build-time configuration
+- [Server Deployment](server/deployment.md): Docker, environment, reverse proxy, OIDC, Postgres

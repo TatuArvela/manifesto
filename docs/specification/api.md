@@ -43,8 +43,8 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 The login flow is bound to one browser. `GET /api/auth/login` sets a
 `manifesto_oidc_flow` cookie (`HttpOnly`, `SameSite=Lax`, `Path=/api/auth`,
 `Secure` when the redirect URI is https) holding the `state` it issued, and the
-callback rejects any request whose cookie does not match its `state` parameter
-— without that, a callback URL captured from an attacker's own login can be
+callback rejects any request whose cookie does not match its `state` parameter.
+Without that, a callback URL captured from an attacker's own login can be
 replayed at a victim to sign them into the attacker's account. The cookie is
 cleared as soon as a callback is spent, so it is never a long-lived credential.
 Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
@@ -53,8 +53,8 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 
 | Method   | Path                  | Description                                                              |
 |----------|-----------------------|--------------------------------------------------------------------------|
-| `GET`    | `/api/auth/methods`   | Public — `{ provider: "local" \| "oidc" }`. Used by the client to pick the login UI. |
-| `GET`    | `/api/auth/me`        | Bearer-protected — `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment). |
+| `GET`    | `/api/auth/methods`   | Public: `{ provider: "local" \| "oidc" }`. Used by the client to pick the login UI. |
+| `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment). |
 
 All `/api/notes` and `/api/search` endpoints require authentication. Requests include a session token in the `Authorization: Bearer <token>` header. The token format and the way it is issued depend on the auth provider; clients treat it as opaque.
 
@@ -62,7 +62,7 @@ All `/api/notes` and `/api/search` endpoints require authentication. Requests in
 
 - Content type: `application/json`
 - Note objects follow the schema defined in [Data Model](data-model.md)
-- `POST /api/notes` accepts a note without `id`, `createdAt`, or `updatedAt` (server assigns these). `trashedAt` is server-assigned too — it is derived from `trashed`, and a value sent by a client is ignored
+- `POST /api/notes` accepts a note without `id`, `createdAt`, or `updatedAt` (server assigns these). `trashedAt` is server-assigned too: it is derived from `trashed`, and a value sent by a client is ignored
 - `PUT /api/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
 - List endpoints return `{ "notes": Note[], "nextCursor": string | null }`
 - Single note endpoints return `{ "note": Note }`
@@ -79,7 +79,7 @@ it nothing it can act on. A cursor the server did not write **is** refused with
 over and over.
 
 Notes are ordered by `(updatedAt, id)` descending. The id is part of the key
-rather than decoration — two notes saved in the same millisecond have no order
+rather than decoration. Two notes saved in the same millisecond have no order
 by timestamp alone, and a page boundary falling between them would repeat one
 and drop the other.
 
@@ -95,11 +95,11 @@ A note returned by a list endpoint carries `imageCount` and an **empty**
 whole.
 
 This is what makes a listing's size a function of how many notes a user has
-rather than of how many pictures they have attached — each of which may be up to
+rather than of how many pictures they have attached, each of which may be up to
 1.5 MB, inlined as a `data:` URL in the note itself (see
 [Data Model](data-model.md#images)). A client must therefore not read an empty
 `images` as "this note has no pictures": compare it with `imageCount`, and fetch
-the note before doing anything that needs the bytes — drawing them, exporting
+the note before doing anything that needs the bytes: drawing them, exporting
 the note, or writing a new list of attachments back.
 
 In open mode nothing is ever separated from its note, so `imageCount` is absent
@@ -107,9 +107,9 @@ there and `images` is always complete.
 
 ## WebSocket APIs
 
-The server exposes two WebSocket endpoints. They authenticate differently, because the collaboration socket is a Hocuspocus room rather than a plain JSON stream — see each section below.
+The server exposes two WebSocket endpoints. They authenticate differently, because the collaboration socket is a Hocuspocus room rather than a plain JSON stream; see each section below.
 
-### Application socket — `/api/ws`
+### Application socket: `/api/ws`
 
 A JSON event stream used for fan-out of REST writes and presence tracking.
 
@@ -126,10 +126,10 @@ REST is the authoritative write path; the server fans out `note:*` events from R
 
 The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol.
 
-### Collaboration socket — `/api/yjs`
+### Collaboration socket: `/api/yjs`
 
 A Hocuspocus-backed Yjs channel for per-note collaborative editing. One endpoint serves every note: Hocuspocus multiplexes documents over a single socket by name, so the note id travels in the protocol as the document name rather than in the path.
 
-Authentication uses the Hocuspocus `Auth` message, not `Sec-WebSocket-Protocol` — clients send the bearer token as the provider's `token` option. The server's `onAuthenticate` hook resolves the token to a user and then verifies that the user owns the note named by that document, rejecting with a permission-denied message before the document is created or joined. Checking the document name rather than a path segment is what makes the check binding: Hocuspocus keys its document map on the name in the frame and never reads the URL.
+Authentication uses the Hocuspocus `Auth` message, not `Sec-WebSocket-Protocol`: clients send the bearer token as the provider's `token` option. The server's `onAuthenticate` hook resolves the token to a user and then verifies that the user owns the note named by that document, rejecting with a permission-denied message before the document is created or joined. Checking the document name rather than a path segment is what makes the check binding: Hocuspocus keys its document map on the name in the frame and never reads the URL.
 
 Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres).

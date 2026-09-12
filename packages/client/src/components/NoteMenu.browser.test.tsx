@@ -189,7 +189,7 @@ describe("NoteMenu dividers", () => {
 
   it("drops a rule with nothing under it", () => {
     // What a menu builds when everything below the divider is conditional and
-    // none of it applies — a read-only note with no checked items to delete.
+    // none of it applies: a read-only note with no checked items to delete.
     expect(dividersIn([row("a"), { kind: "divider", id: "d" }])).toBe(0);
   });
 

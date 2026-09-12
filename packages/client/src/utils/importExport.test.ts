@@ -237,8 +237,8 @@ describe("importFiles", () => {
   });
 
   it("counts a file the handler could not store as a failure", async () => {
-    // The handlers report their own failure and resolve — see the contract on
-    // `state/actions.ts` — so a falsy result is the only signal that a
+    // The handlers report their own failure and resolve (see the contract on
+    // `state/actions.ts`), so a falsy result is the only signal that a
     // perfectly readable file did not make it into storage. Counting it as a
     // success is how an import reported "Imported 1 note" and stored none.
     const summary = await importFiles(
@@ -264,7 +264,7 @@ describe("importFiles", () => {
 describe("parseNoteJson bulk normalization", () => {
   it("replaces unknown color and font with defaults", () => {
     // A note carrying an unknown color used to reach noteColorMap[...] as
-    // undefined and throw inside NoteCard on every render — permanently, since
+    // undefined and throw inside NoteCard on every render, permanently, since
     // the import had already been persisted.
     const result = parseNoteJson(
       JSON.stringify([{ ...baseNote, color: "hotpink", font: "wingdings" }]),

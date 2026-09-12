@@ -28,10 +28,10 @@ Each fire is deduplicated across the two notification paths by:
 
 When a recurring reminder fires, the stored `time` is advanced to the next occurrence:
 
-- `daily` — +1 day
-- `weekly` — +7 days
-- `monthly` — `setMonth(+1)` (clamps to the last day of shorter months)
-- `yearly` — `setFullYear(+1)` (Feb 29 on non-leap years falls back to Feb 28)
+- `daily`: +1 day
+- `weekly`: +7 days
+- `monthly`: `setMonth(+1)` (clamps to the last day of shorter months)
+- `yearly`: `setFullYear(+1)` (Feb 29 on non-leap years falls back to Feb 28)
 
 Arithmetic operates on local components, so a reminder at 08:00 local stays at 08:00 across DST transitions.
 
@@ -43,7 +43,7 @@ Arithmetic operates on local components, so a reminder at 08:00 local stays at 0
 
 ## Data Model
 
-See [Data Model — NoteReminder](../data-model.md#notereminder).
+See [Data Model: NoteReminder](../data-model.md#notereminder).
 
 ## Limitations
 

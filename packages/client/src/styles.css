@@ -62,12 +62,12 @@
   }
 }
 
-/* Settings panel — a full-height sheet that slides in from the right, over a
+/* Settings panel: a full-height sheet that slides in from the right, over a
    dimming backdrop.
 
    Both elements are promoted to their own compositor layer via `will-change`.
-   Without it every frame re-rasterises the whole panel — full-viewport height,
-   plus a 50px-blur shadow spilling off its left edge — and re-composites the
+   Without it every frame re-rasterises the whole panel (full-viewport height,
+   plus a 50px-blur shadow spilling off its left edge) and re-composites the
    note grid underneath the translucent backdrop. That repaint cost, not the
    timing, is what made the slide stutter; with the promotion each frame is a
    layer transform and an opacity value.
@@ -98,7 +98,7 @@
 
 /* `type="search"` makes WebKit and Blink draw their own clear button. In the
    header the field already has our own X while the search view is open, so
-   the native one is a confusing second control — suppress it there.
+   the native one is a confusing second control, so suppress it there.
 
    Scoped to the header deliberately: the search view's mobile input draws no
    clear button of its own, so there the native control is the only way to
@@ -130,7 +130,7 @@ body {
    uses those steps for text and tinted text reads as a mistake where a tinted
    surface reads as a choice. The hues run warm to cool along the violet-blue
    arc at a chroma low enough that each reads as a grey with a cast rather than
-   a colour — the point is matching the dark mode of the OS or editor beside
+   a colour. The point is matching the dark mode of the OS or editor beside
    it, and those sit in a narrow band.
 
    `--dark-dim` deepens instead of tinting: it is subtracted from the lightness
@@ -239,7 +239,7 @@ html.dark {
 }
 
 /* A literal sample of the theme, not an advertisement for it: the chip is the
-   700 step, the tone the dark theme outlines its cards with — light enough to
+   700 step, the tone the dark theme outlines its cards with, light enough to
    carry a cast this subtle, and dark enough that the two dimmed shades read as
    dimmer than the tints. Amplifying the chroma to make the options easier to
    tell apart would promise a tint the user will not get. */
@@ -286,10 +286,10 @@ html.dark {
   color: var(--color-neutral-900);
 }
 
-/* Dropdown panel — rendered in the top layer via Popover API, anchor-positioned
+/* Dropdown panel: rendered in the top layer via Popover API, anchor-positioned
    to its trigger so it is never clipped by ancestor `overflow: hidden`. We hide
    closed panels via `:not([data-open="true"])` so the panelClass utilities
-   (display, padding, border) can take effect when open — a plain
+   (display, padding, border) can take effect when open, since a plain
    `display: block` default would override `flex` in panelClass. `data-open` is
    mirrored from the component's `open` prop as a guard against browsers where
    the UA `[popover]:not(:popover-open)` hide rule doesn't apply. */
@@ -303,7 +303,7 @@ html.dark {
 
 /* The UA stylesheet gives every `[popover]` `color: CanvasText`, and a
    declaration beats inheritance, so a panel that doesn't name a text colour
-   renders black — unreadable on the dark panel background in dark mode. Put
+   renders black, unreadable on the dark panel background in dark mode. Put
    the default back to inheriting from the page. Layered in `base` so a panel
    that *does* name one still wins: the header's menus have to, because they
    are declared inside white-on-blue text. */
@@ -319,7 +319,7 @@ html.dark {
        flips keeps its gap from the trigger either way. */
     margin-block: 0.25rem;
     /* Flip to the opposite side of the trigger rather than running off the
-       viewport — a `bottom-end` menu near the foot of the window opens
+       viewport: a `bottom-end` menu near the foot of the window opens
        upwards instead of being cut off. */
     position-try-fallbacks:
       flip-block,
@@ -357,14 +357,14 @@ html.dark {
    state/prefs.ts and defaulting to the OS `prefers-reduced-motion` setting.
 
    Durations collapse to a near-zero value rather than `animation: none`,
-   because several components finish their work on `animationend` — the
+   because several components finish their work on `animationend`: the
    settings panel only unmounts when its slide-out fires one. Killing the
    animation outright would mean that event never arrives and the panel would
    stay on screen forever. A 0.01ms animation still fires it on the next
    frame. */
 /* biome-ignore-start lint/complexity/noImportantStyles: the reduced-motion
    override has to beat every animation the app declares, including inline
-   ones — that is the whole point of the block. */
+   ones, since that is the whole point of the block. */
 :root.no-motion,
 :root.no-motion *,
 :root.no-motion *::before,
@@ -378,7 +378,7 @@ html.dark {
 }
 /* biome-ignore-end lint/complexity/noImportantStyles: end of the override. */
 
-/* Note corner style — a user preference (Settings > Note Corners). Every note
+/* Note corner style: a user preference (Settings > Note Corners). Every note
    surface reads this one variable: the cards, the create-note stack, and the
    editor. `.notes-rounded` is toggled on <html> by state/prefs.ts. */
 :root {
@@ -429,13 +429,13 @@ html.dark {
   border-radius: inherit;
   background-image: var(--paper-grain);
   /* Multiply at a very low opacity: it has to darken slightly to register on a
-     white sheet at all — soft-light and overlay both leave pure white
+     white sheet at all; soft-light and overlay both leave pure white
      untouched, and the default note colour is white. */
   opacity: 0.08;
   mix-blend-mode: multiply;
 }
 
-/* On a dark sheet, multiplying grain just muddies it — lighten instead, and
+/* On a dark sheet, multiplying grain just muddies it, so lighten instead, and
    more faintly, since dark paper shows less tooth. */
 .dark .note-stack-top::before,
 .dark .note-stack-next::before {
@@ -444,7 +444,7 @@ html.dark {
   mix-blend-mode: screen;
 }
 
-/* Top note — the interactive peeling sheet. Rounded on all four corners: it is
+/* Top note: the interactive peeling sheet. Rounded on all four corners: it is
    a sheet of paper in its own right, and its bottom corners sit in full view
    against the darker base below. */
 .note-stack-top {
@@ -468,8 +468,8 @@ html.dark {
 
 /* Lift-off: the sheet is pulled off the pad and carried down into the editor
    that is opening below it. It starts at the same 22deg the hover state holds
-   — so clicking a hovered stack continues the peel rather than snapping flat
-   first — then flattens out and grows a little as it descends, handing off to
+   (so clicking a hovered stack continues the peel rather than snapping flat
+   first), then flattens out and grows a little as it descends, handing off to
    the modal rather than folding away on the spot.
 
    Activating by keyboard, where there is no hover, begins with a small jump to
@@ -501,7 +501,7 @@ html.dark {
   pointer-events: none;
 }
 
-/* Next note in stack — full-size note behind the top note. `z-index: 0` gives
+/* Next note in stack: full-size note behind the top note. `z-index: 0` gives
    it a stacking context of its own so its grain pseudo-element stays behind
    its text instead of escaping behind the sheet entirely. */
 .note-stack-next {
@@ -514,7 +514,7 @@ html.dark {
     border-color 0.4s ease;
 }
 
-/* Stack base — the pad's visible thickness. Carries the bottom corners so the
+/* Stack base: the pad's visible thickness. Carries the bottom corners so the
    sheets above it can keep square bottoms and the whole stack reads as one
    block. */
 .note-stack-base {
@@ -586,7 +586,7 @@ html.dark {
 /* Pinning.
 
    Pinning moves a card between the pinned and unpinned grids, so it unmounts
-   and remounts somewhere else entirely — with nothing to soften it, the card
+   and remounts somewhere else entirely; with nothing to soften it, the card
    just teleports. The arriving card plays a short settle instead: it lands
    slightly large and a touch askew, then straightens, as though it had been
    pressed onto the board. */
@@ -616,7 +616,7 @@ html.dark {
 
 /* On touch devices, draggable cards must opt out of browser-driven scrolling
    so pointer-based drag gestures aren't cancelled the moment the finger moves.
-   The trade-off is that scrolling cannot start by touching a draggable card —
+   The trade-off is that scrolling cannot start by touching a draggable card;
    users scroll via headers, sidebar, or gaps between cards. */
 @media (hover: none) {
   .note-draggable {
@@ -636,7 +636,7 @@ body.note-drag-active .note-select {
   pointer-events: none;
 }
 
-/* Drop indicators using pseudo-elements — no layout shift, no box-shadow conflict.
+/* Drop indicators using pseudo-elements: no layout shift, no box-shadow conflict.
    Placed on the borderless wrapper so the pseudo's padding-box coincides with the
    card's border-box (no per-card border-width offset to compensate for). */
 .note-draggable-wrapper[data-drop-side]::after {
@@ -746,7 +746,7 @@ body.note-drag-active .note-select {
   margin-bottom: 0.125em;
 }
 
-/* Task list items — remove bullet; keep nested lists flowing below */
+/* Task list items: remove bullet; keep nested lists flowing below */
 .prose .task-list-item {
   list-style: none;
   margin-left: -1.5em;
@@ -805,7 +805,7 @@ body.note-drag-active .note-select {
 }
 
 /* Inside a fenced block the `pre` provides the background, so the chip above
-   is reset — once for each theme. The dark reset is not redundant: its two
+   is reset, once for each theme. The dark reset is not redundant: its two
    classes are what let it outrank `.dark … code`, which would otherwise paint
    the inline chip behind every line of a code block. Specificity decides
    that, not source order. */
@@ -866,12 +866,12 @@ body.note-drag-active .note-select {
   outline: none;
 }
 
-/* Headings, paragraphs and lists are shared with .prose — see above. */
+/* Headings, paragraphs and lists are shared with .prose; see above. */
 .milkdown-editor li p {
   margin: 0;
 }
 
-/* Task lists — Milkdown renders task items as `<li data-item-type="task"
+/* Task lists: Milkdown renders task items as `<li data-item-type="task"
    data-checked="true|false">` inside a regular `<ul>`. The NodeView in
    taskItemDraggable.ts provides the drag handle + real checkbox + content DOM. */
 .milkdown-editor ul:has(> li[data-item-type="task"]) {
@@ -963,7 +963,7 @@ body.note-drag-active .note-select {
   color: var(--color-neutral-500);
 }
 
-/* Drag handle — absolute-positioned in the gutter, only visible on hover. */
+/* Drag handle: absolute-positioned in the gutter, only visible on hover. */
 .milkdown-editor li[data-item-type="task"] > .task-item-drag-handle {
   position: absolute;
   left: -1.1em;
@@ -999,7 +999,7 @@ body.note-drag-active .note-select {
   opacity: 0.4;
 }
 
-/* Delete button — absolute-positioned at the right edge, only visible on
+/* Delete button: absolute-positioned at the right edge, only visible on
    hover or when the cursor is within the item. */
 .milkdown-editor li[data-item-type="task"] > .task-item-delete {
   position: absolute;
@@ -1032,7 +1032,7 @@ body.note-drag-active .note-select {
 /* Only show the X on the innermost hovered/active item so nested levels
    don't stack delete buttons at the same right edge. The `.task-item-active`
    class is applied via a ProseMirror decoration on the task item containing
-   the selection — a plain `:focus-within` would match every ancestor, since
+   the selection, because a plain `:focus-within` would match every ancestor, since
    ProseMirror keeps focus on the root contenteditable. */
 .milkdown-editor
   li[data-item-type="task"]:hover:not(:has(li[data-item-type="task"]:hover))
@@ -1045,7 +1045,7 @@ body.note-drag-active .note-select {
   opacity: 1;
 }
 
-/* Floating drop indicator — positioned in document body during drag */
+/* Floating drop indicator, positioned in document body during drag */
 .task-item-drop-indicator {
   position: fixed;
   height: 2px;
@@ -1069,7 +1069,7 @@ body.note-drag-active .note-select {
   box-sizing: border-box;
 }
 
-/* Nested task lists — no extra padding (parent's checkbox+gap already
+/* Nested task lists: no extra padding (parent's checkbox+gap already
    shifts content right) and no vertical margin so nesting depth doesn't
    add cumulative top/bottom space. */
 .milkdown-editor
@@ -1098,7 +1098,7 @@ body.note-drag-active .note-select {
   pointer-events: none;
 }
 /* ProseMirror inserts a trailing <br> at the end of a paragraph that ends
-   with our widget; it renders as an extra visual line. Hide it — the
+   with our widget; it renders as an extra visual line. Hide it, since the
    real paragraph content ("2+2=") already provides the line height. */
 .milkdown-editor p:has(.inline-calc-preview) > br {
   display: none;

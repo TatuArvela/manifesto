@@ -133,13 +133,13 @@ describe("checklist merge scenarios", () => {
     };
   }
 
-  it("typing checklist syntax in a standalone text creates a new checklist — focus first", () => {
+  it("typing checklist syntax in a standalone text creates a new checklist: focus first", () => {
     const content = "some text";
     const result = computeFocusAfterTextEdit(content, 0, "- [ ] New item");
     expect(result).toEqual({ segIndex: 0, position: "first" });
   });
 
-  it("typing checklist syntax before an existing checklist — focus first (the new item)", () => {
+  it("typing checklist syntax before an existing checklist: focus first (the new item)", () => {
     // text segment "---" sits between two checklists
     const content = "- [ ] A\n---\n- [ ] B\n- [ ] C";
     // Segments: checklist(A), text(---), checklist(B, C)
@@ -157,7 +157,7 @@ describe("checklist merge scenarios", () => {
     expect(result?.segIndex).toBe(0);
   });
 
-  it("typing checklist syntax above a checklist (no checklist above) — focus first", () => {
+  it("typing checklist syntax above a checklist (no checklist above): focus first", () => {
     const content = "---\n- [ ] B\n- [ ] C";
     // Segments: text(---), checklist(B, C)
     // Edit text segment (index 0) "---" → "- [ ] New"
@@ -167,7 +167,7 @@ describe("checklist merge scenarios", () => {
     expect(result).toEqual({ segIndex: 0, position: "first" });
   });
 
-  it("typing checklist syntax below a checklist — focus last (the new item)", () => {
+  it("typing checklist syntax below a checklist: focus last (the new item)", () => {
     const content = "- [ ] A\n- [ ] B\n---";
     // Segments: checklist(A, B), text(---)
     // Edit text segment (index 1) "---" → "- [ ] New"
@@ -178,7 +178,7 @@ describe("checklist merge scenarios", () => {
     expect(result).toEqual({ segIndex: 0, position: "last" });
   });
 
-  it("typing checklist syntax in text with no adjacent checklist — focus first", () => {
+  it("typing checklist syntax in text with no adjacent checklist: focus first", () => {
     const content = "text above\n---\ntext below";
     // Segments: text("text above"), text("---"), text("text below")
     // Wait, these would be one text segment since consecutive text lines merge.
@@ -255,7 +255,7 @@ describe("checklist item removal (backspace on empty item)", () => {
     return { segIndex: textSegIdx, position: "last" };
   }
 
-  it("backspace on first empty item — focuses text segment above, not the checklist", () => {
+  it("backspace on first empty item focuses text segment above, not the checklist", () => {
     const content = "---\n- [ ] \n- [ ] Font options\n- [ ] Version History";
     // Segments: text("---"), checklist("- [ ] ", "- [ ] Font options", "- [ ] Version History")
     // Backspace on first checklist item → newLines = ["", "- [ ] Font options", "- [ ] Version History"]
@@ -271,7 +271,7 @@ describe("checklist item removal (backspace on empty item)", () => {
     expect(result).toEqual({ segIndex: 0, position: "last" });
   });
 
-  it("backspace on first empty item with no text above — creates new text segment", () => {
+  it("backspace on first empty item with no text above creates new text segment", () => {
     const content = "- [ ] \n- [ ] A\n- [ ] B";
     // Segments: checklist("- [ ] ", "- [ ] A", "- [ ] B")
     // Backspace on first item → newLines = ["", "- [ ] A", "- [ ] B"]
@@ -286,7 +286,7 @@ describe("checklist item removal (backspace on empty item)", () => {
     expect(result).toEqual({ segIndex: 0, position: "last" });
   });
 
-  it("enter on empty middle item — focuses new text segment between checklists", () => {
+  it("enter on empty middle item focuses new text segment between checklists", () => {
     const content = "- [ ] A\n- [ ] \n- [ ] B";
     // Segments: checklist("- [ ] A", "- [ ] ", "- [ ] B")
     // Enter on empty middle item → newLines = ["- [ ] A", "", "- [ ] B"]
@@ -327,7 +327,7 @@ describe("empty checklist items", () => {
   });
 
   it("does not leave a trailing space when there is no label", () => {
-    // `${indent}${bullet}[x] ${label}` used to write "- [x] " — invisible in
+    // `${indent}${bullet}[x] ${label}` used to write "- [x] ", invisible in
     // the editor, but the note's content is no longer what it was.
     expect(setChecklistChecked("- [x]", false)).toBe("- [ ]");
   });

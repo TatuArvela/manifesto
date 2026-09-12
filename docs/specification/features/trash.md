@@ -1,6 +1,6 @@
 # Trash
 
-Deleting a note is a soft delete — it moves the note to trash rather than permanently removing it.
+Deleting a note is a soft delete: it moves the note to trash rather than permanently removing it.
 
 ## Behavior
 

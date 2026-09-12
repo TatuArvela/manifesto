@@ -45,7 +45,7 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
      * Authorization must happen here, not at the HTTP upgrade.
      *
      * Hocuspocus reads the document name from the first varString of every
-     * incoming frame and keys its process-global document map on that — it
+     * incoming frame and keys its process-global document map on that; it
      * never looks at the URL. Checking a note id parsed from the path would
      * therefore authorize one document while the client joined another, so a
      * user cleared for their own note could address frames at someone else's
@@ -124,12 +124,12 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
 }
 
 /**
- * Hocuspocus does not read from the socket itself — `WebSocketLike` is only
+ * Hocuspocus does not read from the socket itself: `WebSocketLike` is only
  * `send`/`close`/`readyState`, and `handleConnection` hands back a
  * `ClientConnection` whose `handleMessage` the integrator is expected to feed.
  * Without this wiring the server accepts the upgrade and then ignores every
- * frame, so no document is ever created and no hook — including
- * `onAuthenticate` — ever runs.
+ * frame, so no document is ever created and no hook (including
+ * `onAuthenticate`) ever runs.
  */
 function bindConnection(
   hocuspocus: Hocuspocus<YjsAuthContext>,

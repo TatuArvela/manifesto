@@ -124,7 +124,7 @@ export function NoteInput() {
 
   // Layout effect, not an effect: the stack has no width of its own until this
   // runs, so measuring after paint leaves it stretched across the whole column
-  // area for a frame — very visible on leaving the search view, which remounts
+  // area for a frame, very visible on leaving the search view, which remounts
   // this component with the width unknown again. A zero reading is ignored
   // rather than applied: the ruler measures nothing while this view is not the
   // active one, and 0px would collapse the stack when it comes back.
@@ -188,7 +188,7 @@ export function NoteInput() {
   const openModal = () => {
     // iOS Safari only opens the soft keyboard when .focus() runs synchronously
     // inside a user gesture. MilkdownEditor's autoFocus runs in a useEffect
-    // after editor.create() resolves, well after the gesture ends — too late
+    // after editor.create() resolves, well after the gesture ends, too late
     // for iOS. Pre-focus a hidden input now; iOS opens the keyboard, and the
     // later focus transfer to the editor keeps it up.
     focusCatcherRef.current?.focus();
@@ -267,7 +267,7 @@ export function NoteInput() {
 
   return (
     <>
-      {/* iOS Safari keyboard primer — see openModal() */}
+      {/* iOS Safari keyboard primer; see openModal() */}
       <input
         ref={focusCatcherRef}
         type="text"
@@ -305,7 +305,7 @@ export function NoteInput() {
             if (e.key === "Enter" && !expanded && !lifting) openModal();
           }}
         >
-          {/* Notes area — top note + next note behind it */}
+          {/* Notes area: top note + next note behind it */}
           <div class="relative">
             <div
               class={`note-stack-next border ${noteColorMap[stackColor].bg} ${noteColorMap[stackColor].border}`}
@@ -326,7 +326,7 @@ export function NoteInput() {
         </div>
       </div>
 
-      {/* Mobile FAB — opens the same create-note modal as the stack */}
+      {/* Mobile FAB: opens the same create-note modal as the stack */}
       {!expanded && (
         <button
           type="button"

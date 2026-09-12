@@ -7,15 +7,15 @@ import type { NoteYDoc } from "../realtime/yjsProvider.js";
 
 /**
  * The gate: `NoteCardEditor` must withhold `collab` from the editor until the
- * provider reports `synced`. Binding early is silent data loss — `ySyncPlugin`
+ * provider reports `synced`. Binding early is silent data loss: `ySyncPlugin`
  * adopts whatever the shared fragment holds, and before the server's state
  * arrives that is nothing, so the note reads as blank and the blank is what
  * gets saved.
  *
  * The provider is the one thing mocked here; a real one would need a server,
  * and the server side of this is already covered end to end by
- * `ws/yjsSocket.test.ts`. Everything below the hook — the remount keyed on
- * `collab`, the fragment seeding, the editor itself — is real, because the
+ * `ws/yjsSocket.test.ts`. Everything below the hook (the remount keyed on
+ * `collab`, the fragment seeding, the editor itself) is real, because the
  * three of them together are what the gate has to get right.
  */
 
@@ -142,7 +142,7 @@ describe("NoteCardEditor collaboration gate", () => {
   it("shows the server's document rather than the note row it was opened with", async () => {
     // The row this client rendered from can be behind: another session edited
     // the note after the list was fetched. Once the provider syncs, the shared
-    // document is the authority — the stale row must not be written over it.
+    // document is the authority, and the stale row must not be written over it.
     const note = makeNote("Milk, eggs, coffee");
     storeNote(note);
     const ydoc = new Y.Doc();

@@ -31,7 +31,7 @@ export function SharedNoteDialog({
   const dialogRef = useFocusTrap<HTMLDivElement>(!closing);
 
   const handleSave = async () => {
-    // `createNote` has already told the user if this failed — see the contract
+    // `createNote` has already told the user if this failed; see the contract
     // on `state/actions.ts`. Reporting again here would say it twice.
     const saved = await createNote({
       title: payload.title,

@@ -59,7 +59,7 @@ import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPickerPanel } from "./ReminderPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
-/** How long the modal's fade-out runs — matches its `duration-150` classes. */
+/** How long the modal's fade-out runs; matches its `duration-150` classes. */
 const MODAL_CLOSE_MS = 150;
 
 // --- Sub-components ---
@@ -254,7 +254,7 @@ function contentIsOnlyPreviewUrls(
   if (contentUrls.length === 0) return false;
   const previewUrls = new Set(previews.map((p) => p.url));
   if (!contentUrls.every((u) => previewUrls.has(u))) return false;
-  // Strip URLs and any surrounding markdown syntax (autolinks, link wrappers) —
+  // Strip URLs and any surrounding markdown syntax (autolinks, link wrappers);
   // if nothing meaningful remains, treat it as link-only.
   let remaining = trimmed;
   for (const u of contentUrls) remaining = remaining.split(u).join("");
@@ -329,9 +329,9 @@ export function NoteCard({
   // `editingNoteId` is the only thing that decides whether this card's modal is
   // up, in both directions: setting it opens the modal, clearing it plays the
   // close animation and takes it down. The effect used to have no `else`, so
-  // anything that moved editing elsewhere without going through `closeModal` —
+  // anything that moved editing elsewhere without going through `closeModal` (
   // a reminder banner opening another note, a notification, a `note:updated`
-  // that trashed this one — left the modal on screen over a note nothing was
+  // that trashed this one) left the modal on screen over a note nothing was
   // editing any more, and a second modal could open behind it.
   useEffect(() => {
     if (isEditing) {

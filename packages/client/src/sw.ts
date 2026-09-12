@@ -61,7 +61,7 @@ const STORE = "reminders";
 const PERIODIC_TAG = "check-reminders";
 const DEDUPE_WINDOW_MS = 60_000;
 const POLL_INTERVAL_MS = 60_000;
-// Matches reminderScheduler.ts — an occurrence more than an hour stale is not
+// Matches reminderScheduler.ts: an occurrence more than an hour stale is not
 // worth surfacing, it is only worth skipping past.
 const CATCHUP_WINDOW_MS = 60 * 60_000;
 
@@ -127,7 +127,7 @@ async function fireDue(): Promise<void> {
   const now = Date.now();
   for (const item of items) {
     // A non-recurring reminder fires exactly once. `nextOccurrence` returns null
-    // for it, so its `time` stays in the past forever — and because
+    // for it, so its `time` stays in the past forever, and because
     // DEDUPE_WINDOW_MS equals POLL_INTERVAL_MS, the dedupe check below can never
     // suppress the *next* poll. Without this guard a dismissed reminder came
     // back every 60s indefinitely. Mirrors reminderScheduler.ts.
@@ -212,7 +212,7 @@ self.addEventListener("activate", (event) => {
           });
         }
       } catch {
-        // periodicSync may be unavailable or denied — fall back to polling.
+        // periodicSync may be unavailable or denied, so fall back to polling.
       }
       await fireDue();
       schedulePoll();

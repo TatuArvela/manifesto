@@ -2,11 +2,11 @@
  * One definition of what a checklist line is, for everyone who has to agree:
  * the preview that draws the boxes, the actions that toggle and delete them,
  * and the segmenter that decides which lines belong together. Three copies of
- * this pattern used to drift — a line the preview drew a box for could be one
+ * this pattern used to drift: a line the preview drew a box for could be one
  * `toggleCheckbox` refused to touch.
  *
- * The trailing space is optional. An item with no label is a real thing —
- * pressing Enter in the editor makes one — and requiring "`] `" meant an empty
+ * The trailing space is optional. An item with no label is a real thing
+ * (pressing Enter in the editor makes one), and requiring "`] `" meant an empty
  * item stopped being a checklist line and re-rendered as literal `- [ ]` text
  * that could never be checked again.
  */
@@ -53,8 +53,8 @@ const FENCE_RE = /^\s{0,3}(`{3,}|~{3,})/;
 /**
  * Marks every line that sits inside a fenced code block, fences included.
  *
- * Line-at-a-time rules — "is this a checklist?", "is this a list item?",
- * "unescape these brackets" — are all wrong inside a fence, where the text is
+ * Line-at-a-time rules ("is this a checklist?", "is this a list item?",
+ * "unescape these brackets") are all wrong inside a fence, where the text is
  * data rather than markup. A note documenting our own checklist syntax in a
  * code block used to have that block cut in half and rendered as live
  * checkboxes.
@@ -74,7 +74,7 @@ export function markFencedLines(lines: string[]): boolean[] {
     fenced[i] = true;
     // CommonMark: only a fence of the same character closes, and it must be
     // at least as long. So a ``` inside a ~~~ block, or inside a ```` one,
-    // stays part of the code — which is how a note documents fences at all.
+    // stays part of the code, which is how a note documents fences at all.
     if (
       match &&
       match[1][0] === openFence[0] &&

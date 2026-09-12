@@ -37,7 +37,7 @@ import { Toasts } from "./Toast.js";
 
 // True only on the *very first render* of a page that landed with `#token=`
 // in the URL. The OIDC consumer runs once (in useEffect, after this render
-// commits) — without this gate, LoginScreen would flash on top of the
+// commits). Without this gate, LoginScreen would flash on top of the
 // callback page before `consumeOidcRedirect` resolves.
 const oidcInFlight =
   typeof window !== "undefined" &&

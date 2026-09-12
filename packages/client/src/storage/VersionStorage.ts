@@ -82,7 +82,7 @@ export function saveVersion(
 export function getVersions(noteId: string): NoteVersion[] {
   const map = load();
   const versions = map[noteId] ?? [];
-  // Newest first — the history panel lists most-recent at the top.
+  // Newest first: the history panel lists most-recent at the top.
   return [...versions].reverse();
 }
 

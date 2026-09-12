@@ -4,7 +4,7 @@ import { hashToken, newSessionToken } from "../lib/token.js";
 import type { Session, StorageDriver } from "../storage/types.js";
 import type { AuthIdentity } from "./types.js";
 
-// Sessions are stored hashed at rest. The repo doesn't know this — it just
+// Sessions are stored hashed at rest. The repo doesn't know this; it just
 // indexes whatever string we hand it. The wrapping in `auth/session.ts`
 // (and the local/oidc routers, for logout) is responsible for hashing.
 
@@ -21,7 +21,7 @@ function earlier(a: string, b: string): string {
 
 /**
  * When a session dies no matter how much it is used, measured from when it
- * was minted. Null for a row whose `createdAt` doesn't parse — a corrupt row
+ * was minted. Null for a row whose `createdAt` doesn't parse: a corrupt row
  * is treated as expired rather than as immortal.
  */
 function absoluteExpiryOf(session: Session, days: number): string | null {
@@ -42,7 +42,7 @@ export async function authenticateBySession(
   const now = nowIso();
   // Two clocks, either of which can end a session: the sliding expiry the
   // last request wrote, and the absolute one fixed at mint time. Without the
-  // second, a session in daily use slides forward forever — a token captured
+  // second, a session in daily use slides forward forever, and a token captured
   // once is then a permanent credential.
   const absoluteExpiry = absoluteExpiryOf(session, cfg.sessionAbsoluteTtlDays);
   if (
@@ -55,7 +55,7 @@ export async function authenticateBySession(
   }
   const user = await storage.users.findById(session.userId);
   if (!user) return null;
-  // Slide, but never past the absolute end — which also means the periodic
+  // Slide, but never past the absolute end, which also means the periodic
   // `deleteExpired` sweep reaps sessions that hit either limit, since both
   // are written into the same `expires_at` column.
   await storage.sessions.touch(

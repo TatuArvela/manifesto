@@ -88,7 +88,7 @@ interface NoteEditorProps {
    * The rows of the kebab menu. Taken as a builder rather than a list because
    * two of them belong to the document rather than to the note: whether there
    * are checked items to delete, and how to delete them, are only knowable
-   * here — in collab mode the shared document is the only copy that counts.
+   * here, since in collab mode the shared document is the only copy that counts.
    */
   menuItems?: (editorActions: {
     checkedItems: { present: boolean; remove: () => void };
@@ -139,7 +139,7 @@ export function NoteEditor({
   const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
   const [rawMode, setRawMode] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
-  // Counter bumped on every editor transaction — drives undo/redo button
+  // Counter bumped on every editor transaction; drives undo/redo button
   // state and toolbar active-format refresh.
   const [txCount, setTxCount] = useState(0);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -147,7 +147,7 @@ export function NoteEditor({
   const reminderChipRef = useRef<HTMLButtonElement>(null);
 
   // Measured on the encoded data URL rather than `file.size`, because that is
-  // the value the server bounds and base64 inflates by about a third — a check
+  // the value the server bounds and base64 inflates by about a third, so a check
   // against the raw file would let something through that then 422s. Server
   // mode is the only place the cap is enforced remotely, but rejecting here
   // too keeps a note's behaviour the same in both modes and turns a bare 422
@@ -504,7 +504,7 @@ export function NoteEditor({
           ))}
         </Dropdown>
 
-        {/* Font picker (desktop only — on mobile, fonts live in the kebab menu) */}
+        {/* Font picker (desktop only; on mobile, fonts live in the kebab menu) */}
         <div class="max-sm:hidden flex">
           <Dropdown
             open={showFontPicker}
@@ -646,7 +646,7 @@ export function NoteEditor({
           />
         </Dropdown>
 
-        {/* Normal / Raw mode toggle (desktop only — on mobile, lives in the kebab menu) */}
+        {/* Normal / Raw mode toggle (desktop only; on mobile, lives in the kebab menu) */}
         <div class="max-sm:hidden flex">
           <Tooltip
             label={rawMode ? t("editor.normalMode") : t("editor.rawMode")}

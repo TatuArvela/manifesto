@@ -1,6 +1,6 @@
 # Sharing Notes via URL
 
-Manifesto supports sharing individual notes as self-contained URLs. The note data is encoded entirely in the URL hash fragment, so no server is required — it works with any static host (e.g., GitHub Pages).
+Manifesto supports sharing individual notes as self-contained URLs. The note data is encoded entirely in the URL hash fragment, so no server is required; it works with any static host (e.g., GitHub Pages).
 
 ## How It Works
 
@@ -17,8 +17,8 @@ Manifesto supports sharing individual notes as self-contained URLs. The note dat
 2. The app detects `#share=` in the URL hash on startup
 3. A modal shows the shared note as a read-only preview
 4. The recipient can:
-   - **Save** — creates a new note in their storage (new ULID, current timestamps, default position)
-   - **Discard** — dismisses the modal with no side effects
+   - **Save**: creates a new note in their storage (new ULID, current timestamps, default position)
+   - **Discard**: dismisses the modal with no side effects
 5. The `#share=` hash is cleared from the URL in both cases
 
 ## Payload
@@ -39,10 +39,10 @@ Only content-related fields are encoded:
 
 These are receiver-specific or ephemeral and are not shared:
 
-- `id` — receiver gets a new ULID
-- `position` — receiver gets default position
-- `pinned`, `archived`, `trashed`, `trashedAt` — receiver gets a fresh active note
-- `createdAt`, `updatedAt` — receiver gets current timestamps
+- `id`: receiver gets a new ULID
+- `position`: receiver gets default position
+- `pinned`, `archived`, `trashed`, `trashedAt`: receiver gets a fresh active note
+- `createdAt`, `updatedAt`: receiver gets current timestamps
 - Version history is not included
 
 ### Encoding
@@ -52,7 +52,7 @@ These are receiver-specific or ephemeral and are not shared:
 3. Compress with LZ-String's `compressToEncodedURIComponent` (already a project dependency)
 4. Append as `#share=<compressed>`
 
-`compressToEncodedURIComponent` produces a URI-safe string (A-Z, a-z, 0-9, `+`, `-`, with `$` as padding) — no percent-encoding needed.
+`compressToEncodedURIComponent` produces a URI-safe string (A-Z, a-z, 0-9, `+`, `-`, with `$` as padding), so no percent-encoding is needed.
 
 ### Decoding
 
@@ -68,4 +68,4 @@ Most browsers support URLs of at least 2,000 characters. A typical note (title +
 
 ## Trashed and Archived Notes
 
-Trashed and archived notes can still be shared — the share payload only carries content fields, so the recipient always gets a fresh, active note regardless of the original's state.
+Trashed and archived notes can still be shared: the share payload only carries content fields, so the recipient always gets a fresh, active note regardless of the original's state.

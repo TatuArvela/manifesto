@@ -2,7 +2,7 @@
 //
 // Example auto-note plugin: year progress.
 //
-// Shows how far through the calendar year we are — day number and a little
+// Shows how far through the calendar year we are, with day number and a little
 // progress bar. Works in any locale, needs no personal config.
 //
 // Paste this into Settings → Auto-notes → Paste code, or host it at an HTTPS

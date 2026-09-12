@@ -10,5 +10,5 @@ A search bar in the header allows full-text search across all notes.
 
 ## Implementation
 
-- **Local storage** — Client-side filtering over all notes in memory
-- **Server mode** — Delegated to the server via `GET /api/search?q=` (see [API](../api.md))
+- **Local storage**: Client-side filtering over all notes in memory
+- **Server mode**: Delegated to the server via `GET /api/search?q=` (see [API](../api.md))

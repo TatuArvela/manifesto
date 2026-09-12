@@ -9,7 +9,7 @@ import { useNoteImages } from "./useNoteImages.js";
  * The point of leaving attachments out of a listing is only realised if a card
  * asks for them when it is actually going to draw them. A grid of four hundred
  * notes should fetch the pictures of the handful the reader scrolls past, not
- * of all four hundred — so the fetch hangs off an IntersectionObserver, and
+ * of all four hundred, so the fetch hangs off an IntersectionObserver, and
  * these check both halves: nothing while the card is far away, and the bytes
  * once it is near.
  */
@@ -42,7 +42,7 @@ function Card({ note, spacer }: { note: Note; spacer: number }) {
   const { ref, images, loading } = useNoteImages<HTMLDivElement>(note);
   return (
     <>
-      {/* Pushes the card below the fold — `rootMargin` is one viewport, so
+      {/* Pushes the card below the fold. `rootMargin` is one viewport, so
           two of them is comfortably out of range. */}
       <div style={{ height: `${spacer}px` }} />
       <div ref={ref} data-testid="images">

@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS notes_trashed_expiry
   ON notes(trashed, trashed_at);
 `;
 
-/** See the SQLite copy — same column, same reason. */
+/** See the SQLite copy: same column, same reason. */
 const NOTE_IMAGE_COUNT = `
 ALTER TABLE notes ADD COLUMN image_count INTEGER NOT NULL DEFAULT 0;
 UPDATE notes SET image_count = json_array_length(images::json);
@@ -96,9 +96,9 @@ export async function runMigrations(
       rows.map((row) => row.id),
     );
     // One transaction per step, so a partial failure can't leave the schema in
-    // an inconsistent state — most importantly, missing the unique
+    // an inconsistent state (most importantly, missing the unique
     // LOWER(username) index, which would let duplicate usernames slip past
-    // `findByUsername` — and can't record a step that did not finish.
+    // `findByUsername`) and can't record a step that did not finish.
     for (const migration of pending) {
       try {
         await client.query("BEGIN");

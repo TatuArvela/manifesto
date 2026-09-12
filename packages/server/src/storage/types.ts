@@ -100,7 +100,7 @@ export interface NotesRepo {
   /**
    * Update a note, optionally constrained by the current `updated_at` for
    * optimistic concurrency. Returns null when the row doesn't exist, doesn't
-   * belong to the user, or — if `expectedUpdatedAt` is provided — the row's
+   * belong to the user, or (if `expectedUpdatedAt` is provided) the row's
    * `updated_at` no longer matches. Callers can disambiguate the three cases
    * with a follow-up `getById` lookup.
    */
@@ -124,7 +124,7 @@ export interface YjsStore {
   load(noteId: string, userId: string): Promise<Buffer | null>;
   /**
    * Persist Y.Doc state for a note. Does NOT touch the note's `updated_at`
-   * field — Yjs writes are independent of REST writes, and bumping
+   * field: Yjs writes are independent of REST writes, and bumping
    * `updated_at` on every keystroke would invalidate concurrent
    * `If-Match` tokens held by REST clients.
    */

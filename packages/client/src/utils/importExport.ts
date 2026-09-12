@@ -117,7 +117,7 @@ function parseStringArray(raw: unknown): string[] {
  *
  * The bulk path previously handed `data as Note[]` straight to storage, so an
  * unknown `color` reached `noteColorMap[...]` as `undefined` and threw inside
- * `NoteCard` — on every load thereafter, since the note had been persisted.
+ * `NoteCard` on every load thereafter, since the note had been persisted.
  * Identity fields are trusted (`isValidNoteShape` has already checked them);
  * everything else is validated and falls back to a safe default.
  */

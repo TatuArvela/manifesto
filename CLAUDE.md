@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Manifesto is a free, open-source note-taking app with a sticky note interface. It's MIT licensed. The full spec lives in `docs/specification/`.
 
 Server env vars are documented in `docs/specification/server/deployment.md` and rebranding in
-`docs/specification/custom-instances.md` — both are the source of truth, so configure from there
+`docs/specification/custom-instances.md`. Both are the source of truth, so configure from there
 rather than re-deriving from `src/config.ts`.
 
 ## Commands
@@ -29,48 +29,48 @@ on exactly `lint`, `typecheck`, `test`, then both builds.
 Run for a single package with `pnpm --filter @manifesto/<client|server|shared> <script>`.
 
 Run a single test file: `pnpm --filter @manifesto/client exec vitest run src/path/to/file.test.ts`
-(the packages have no `vitest` script — `exec` reaches the binary). Add `--project node` or
+(the packages have no `vitest` script; `exec` reaches the binary). Add `--project node` or
 `--project browser` to run just one of the client's two test projects.
 
 ## Architecture
 
 pnpm monorepo with three packages:
 
-- **`packages/shared`** — types *and runtime values*: `NoteColor` / `NoteFont` are real enums and
+- **`packages/shared`**: types *and runtime values*: `NoteColor` / `NoteFont` are real enums and
   the image, page-size and recurrence limits are exported constants, so this package emits
   JavaScript and is not erasable. It has no npm dependencies of its own. Because the client and
   server resolve it through different export conditions, a value added here must be reachable
-  from the build, not just the types — that mismatch once shipped a constant that typechecked
+  from the build, not just the types. That mismatch once shipped a constant that typechecked
   green and was `undefined` at runtime. Both vitest configs alias `@manifesto/shared` to
-  `../shared/src/index.ts`, so tests read the same files the compiler checked — which is why
+  `../shared/src/index.ts`, so tests read the same files the compiler checked, which is why
   nothing caught it. Only a real build plus run exercises `dist`.
-- **`packages/client`** — Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
-- **`packages/server`** — Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
+- **`packages/client`**: Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
+- **`packages/server`**: Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
 
 ### Key Design Decisions
 
 - **Local-first**: Client works fully offline using localStorage (open mode). Server connection is opt-in.
 - **Managed mode**: Organizations can deploy as server-only (no local storage, auth required).
-- **Storage adapters**: Client abstracts data access behind `StorageAdapter` interface — `LocalStorageAdapter` (default) or `RestApiAdapter` (server-connected). Factory in `storage/index.ts`.
-- **ULIDs** for note IDs (not UUIDs) — lexicographically sortable, timestamp-prefixed.
+- **Storage adapters**: Client abstracts data access behind `StorageAdapter` interface: `LocalStorageAdapter` (default) or `RestApiAdapter` (server-connected). Factory in `storage/index.ts`.
+- **ULIDs** for note IDs (not UUIDs): lexicographically sortable, timestamp-prefixed.
 - **NoteColor** uses named enums (not hex) so themes can map colors differently for light/dark mode.
 
 ### Client State Management
 
 State lives in `packages/client/src/state/` using @preact/signals:
 
-- **`actions.ts`** — Core signals (`notes`, computed `filteredNotes`/`sortedNotes`/`allTags`), and async action functions (`createNote`, `updateNote`, `trashNote`, `bulkArchive`, etc.). Actions modify both signals and the storage adapter.
-  **An action reports its own failure and resolves — it never rejects**, and says whether it worked
+- **`actions.ts`**: Core signals (`notes`, computed `filteredNotes`/`sortedNotes`/`allTags`), and async action functions (`createNote`, `updateNote`, `trashNote`, `bulkArchive`, etc.). Actions modify both signals and the storage adapter.
+  **An action reports its own failure and resolves; it never rejects**, and says whether it worked
   in its return value (`false`, or `null` where a value was expected). The call sites are JSX
   handlers with nowhere to put a `catch`, so a rejection there is an unhandled rejection the user
   never sees. Group work goes through `asBatch`, which counts failures instead of letting each one
   raise its own toast and reports the total once.
-- **`ui.ts`** — UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
-- **`prefs.ts`** — User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
-- **`router.ts`** — Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
+- **`ui.ts`**: UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
+- **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
+- **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   Routing below). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.
-- **`auth.ts`** — Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` queries `/api/auth/methods` on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
+- **`auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` queries `/api/auth/methods` on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
 
 ### Branding
 
@@ -83,20 +83,20 @@ someone rebrand a prebuilt release zip without a toolchain, so keep new
 user-facing name usages going through `APP_NAME` rather than `__APP_NAME__`.
 
 Message catalogues use an `{appName}` placeholder, which `t()` fills in
-automatically — a test fails if either catalogue hard-codes "Manifesto".
+automatically, and a test fails if either catalogue hard-codes "Manifesto".
 Translations must not inflect it (Finnish says "Kirjaudu palveluun {appName}",
 not "Manifestoon").
 
 `VITE_APP_DESCRIPTION` fills `%APP_DESCRIPTION%` in `index.html` and the web
 manifest. `VITE_APP_ICONS_DIR` overlays replacement icons onto the output, which
-is why `logo.svg` lives in `public/` rather than `src/assets/` — brand marks
+is why `logo.svg` lives in `public/` rather than `src/assets/`: brand marks
 must stay plain files at fixed paths. `manifesto:` localStorage keys and the
 `@manifesto/*` package names are internal and stay as they are.
 
 ### Internationalization
 
 `src/i18n/` holds two catalogues, `messages/en.ts` and `messages/fi.ts`. English is the source
-of truth for keys — `MessageKey = keyof typeof en` — so a new string lands in `en.ts` first and
+of truth for keys (`MessageKey = keyof typeof en`), so a new string lands in `en.ts` first and
 the typecheck then demands it in `fi.ts`; tests enforce key parity, a `.other` form on every
 Finnish plural, and that neither catalogue hard-codes the product name.
 
@@ -120,26 +120,26 @@ Notes have persistent version history stored LZ-String compressed in `localStora
 
 ### Editor
 
-Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor instance is wired up in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (called via `callCommand(undoCommand)` / `redoCommand`) — there is no separate undo/redo hook. Custom ProseMirror behavior lives in `packages/client/src/extensions/` (`manifestoInlineMarks` for inline marks, `taskItemDraggable` for drag-and-drop checklist items). Read-only previews are rendered by `utils/remarkRenderer.ts` (remark → rehype → sanitized HTML via DOMPurify).
+Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor instance is wired up in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (called via `callCommand(undoCommand)` / `redoCommand`); there is no separate undo/redo hook. Custom ProseMirror behavior lives in `packages/client/src/extensions/` (`manifestoInlineMarks` for inline marks, `taskItemDraggable` for drag-and-drop checklist items). Read-only previews are rendered by `utils/remarkRenderer.ts` (remark → rehype → sanitized HTML via DOMPurify).
 
 `MilkdownEditor` reads markdown via `getMarkdown()` and post-processes it (`unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with our preview.
 
 The `listener` plugin serializes on a 200ms debounce it gives no way to cancel, and the timer
 throws `Context "editorView" not found` if the editor is gone when it fires. `useMilkdownEditor`
 takes a `beforeDestroy` callback for exactly this, and `MilkdownEditor` uses it to empty
-`markdownUpdated` — the plugin checks that array's length before it serializes, so an empty one
+`markdownUpdated`. The plugin checks that array's length before it serializes, so an empty one
 makes the pending timer a no-op. Anything else added to the editor that outlives a frame needs
 disarming there too; teardown is the only moment the context is still intact.
 
 **Collaborative binding.** Once `collab` is supplied, the shared `Y.XmlFragment` is the authority
-and the `content` prop must never be written into a fragment that already holds something — doing
+and the `content` prop must never be written into a fragment that already holds something: doing
 so deletes another session's work on every device at once. Four pieces enforce that, and the
 tests in `MilkdownEditor.browser.test.tsx` / `NoteCardEditor.browser.test.tsx` fail if any one is
 removed: `NoteCardEditor` withholds `collab` until the provider reports `synced`, `NoteEditor` keys
 the editor on `collab` so it rebuilds with the plugin installed, `MilkdownEditor` seeds the
 fragment from the note *only* when it is empty, and it holds the editor unbuilt until
 `loadYjsCollab()` resolves. Any effect with `editor` in its dep array also runs
-at mount, after `ySyncPlugin` has rendered the shared document — so an effect that pushes local
+at mount, after `ySyncPlugin` has rendered the shared document, so an effect that pushes local
 content must first establish that it is reacting to a change and not to the editor's arrival.
 
 The collaboration stack is loaded on demand and that is a correctness constraint, not only a size
@@ -147,7 +147,7 @@ one. `realtime/yjsSession.ts` holds every Yjs/Hocuspocus/y-indexeddb import and 
 through `import()` in `useNoteYDoc`; `extensions/yjsCollab.ts` fetches `y-prosemirror` through
 `loadYjsCollab()`. The fetch must finish *before* `Editor.make()`, never inside the plugin's
 runner: Milkdown reads `prosePluginsCtx` to build the view in the same pass, so a runner that
-awaits anything before `ctx.update` installs `ySyncPlugin` after the view exists — the editor then
+awaits anything before `ctx.update` installs `ySyncPlugin` after the view exists. The editor then
 shows the local note instead of the shared document and writes that copy over everyone else's on
 the next save. That is why `useMilkdownEditor` takes a `ready` flag. Open mode is the default
 build and can never sync, so keeping these three chunks out of the entry is worth ~130 KB
@@ -159,30 +159,30 @@ Auto-notes run user-supplied JavaScript, so it executes at three removes from th
 remove is load-bearing:
 
 - `public/autonotes-sandbox.html` is loaded via `iframe.src` with `sandbox="allow-scripts"` and no
-  `allow-same-origin` — an opaque origin, so no host storage, cookies or DOM. It can't be `srcdoc`:
+  `allow-same-origin`: an opaque origin, so no host storage, cookies or DOM. It can't be `srcdoc`:
   those inherit our `script-src 'self'`, while a frame from a real URL carries its own CSP.
 - Inside the frame, the plugin runs in a blob `Worker` (hence `worker-src blob:` in that CSP). This
-  is what makes the 2s timeout in `autoNotes/sandbox.ts` enforceable — a plugin that never returns
+  is what makes the 2s timeout in `autoNotes/sandbox.ts` enforceable: a plugin that never returns
   occupies only the worker's thread. An engine that refuses a worker at an opaque origin gets a
   fallback to frame-thread execution, reported in `init-ok` and warned about by the host.
 - The frame returns `JSON.stringify({ value })` and validates nothing; `autoNotes/results.ts`
-  decides what is a note. Keep it that way — a plugin that subverts the frame passes the frame's
+  decides what is a note. Keep it that way, because a plugin that subverts the frame passes the frame's
   own checks.
 
 ### Realtime and Conflict Resolution
 
 Server mode runs two sockets, and they carry different things. `realtime/appSocket.ts` holds
-`/api/ws` — note events and presence — and reconnects with exponential backoff to a 30s ceiling.
+`/api/ws` (note events and presence) and reconnects with exponential backoff to a 30s ceiling.
 Every reconnect *after the first* re-fetches the note list, because writes made on another device
 while this tab was offline arrive nowhere else. `realtime/yjsProvider.ts` holds `/api/yjs`, one
 `HocuspocusProvider` per open note, with `y-indexeddb` underneath so an offline edit survives a
-reload. Its `synced` flag is a correctness gate, not a spinner — see Collaborative binding above.
+reload. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding above.
 
 Non-collaborative writes use optimistic concurrency: `updateNote` sends `If-Match`, and a 412 comes
 back carrying the current server row. `state/mergeNote.ts` then does a 3-way merge of
 (base, desired, current) and retries once. Scalars are client-wins; `tags`, `images` and
 `linkPreviews` merge per item, so two devices adding different tags keep both and a removal still
-removes. Adding an array field to `Note` means teaching `mergeNoteUpdate` about it — the default is
+removes. Adding an array field to `Note` means teaching `mergeNoteUpdate` about it. The default is
 client-wins, which for an array silently discards the other writer's additions.
 
 ### Reminders and the Service Worker
@@ -197,7 +197,7 @@ catch-up for a missed fire is one hour. `state/reminderTime.ts` owns recurrence 
 
 ### Sharing, Import and Export
 
-`sharing.ts` encodes a note into the URL fragment — LZ-String over a five-field JSON payload —
+`sharing.ts` encodes a note into the URL fragment (LZ-String over a five-field JSON payload),
 so a share link needs no server and no account. The fragment is attacker-controlled, so
 `decodeSharePayload` is a total type guard, not a cast: every field is checked, color and font
 against the enums, and anything that fails returns `null` rather than a partly-trusted note. `App`
@@ -207,7 +207,7 @@ The rendered preview still goes through `remarkRenderer`, which sanitizes.
 `utils/importExport.ts` handles both directions for Markdown and JSON, single note and bulk. It
 caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
 code runs. Export is one of the three callers that genuinely needs image bytes rather than
-`imageCount` — see Pagination below.
+`imageCount`; see Pagination below.
 
 ### Notes That Compute
 
@@ -225,7 +225,7 @@ Two unrelated features make a note more than text, and both run on every render 
 
 `hooks/useMasonryGrid.ts` does masonry with `grid-row` spans: release every card to its natural
 height, measure, then write each span back. It runs from a `ResizeObserver`, so it only writes
-spans that changed — a pass that changes nothing provokes no further callback, which is what keeps
+spans that changed. A pass that changes nothing provokes no further callback, which is what keeps
 it from looping. Content that settles after first paint (images, fonts) has to trigger a re-measure
 or the card keeps the height it was born with.
 
@@ -237,16 +237,16 @@ drop indicator has to change axis.
 
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
 toast queue or the catalogue, so the "tell the user" decision stays in `actions.ts`. A refused
-write is neither retried nor rolled back — the signal keeps the change, so the session continues
+write is neither retried nor rolled back: the signal keeps the change, so the session continues
 with a note that exists only in this tab.
 
 ### Pagination
 
-`/api/notes` and `/api/search` page with `?limit=&cursor=`, ordered by `(updatedAt, id)` — two
+`/api/notes` and `/api/search` page with `?limit=&cursor=`, ordered by `(updatedAt, id)`, because two
 notes saved in the same millisecond have no order by timestamp alone, and a page boundary between
 them would repeat one and drop the other. A *listed* note carries `imageCount` and an empty
 `images`; the bytes come from `GET /api/notes/:id`. The client drains every page, because
-`allTags`, tag counts and the filter chain are computed over the whole list — paging bounds a
+`allTags`, tag counts and the filter chain are computed over the whole list. Paging bounds a
 response, it does not change the model. `useNoteImages` hangs `ensureImages` off an
 `IntersectionObserver` so a grid fetches only what is scrolled past. Three callers need the bytes
 and say so: the editor's add-an-image handler (which would otherwise write an empty list over every
@@ -256,15 +256,15 @@ call locally, so both modes behave alike.
 ### Component Patterns
 
 - **NoteEditor** is fully prop-driven (title, content, color, font, callbacks). Parent components (`NoteCardEditor`, `NoteInput`) own the state.
-- **NoteCardEditor** wraps NoteEditor for editing existing notes — manages auto-save (500ms debounce) and version history. Undo/redo is delegated to Milkdown.
-- **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) — `open`/`onClose`/`trigger`/`children` props.
-- **Escape** goes through `hooks/useEscapeStack.ts` and nowhere else — never bind a `keydown`
+- **NoteCardEditor** wraps NoteEditor for editing existing notes and manages auto-save (500ms debounce) and version history. Undo/redo is delegated to Milkdown.
+- **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) with `open`/`onClose`/`trigger`/`children` props.
+- **Escape** goes through `hooks/useEscapeStack.ts` and nowhere else; never bind a `keydown`
   listener for it. One document listener hands a press to the layer that became active last, so a
   new dismissable layer only has to call `useEscapeStack(active, close)`; binding your own brings
   back the bug where one press closed the picker *and* the editor under it. Ordering is by
   activation, not nesting (Preact runs a child's effects first), so a layer must not become active
   in the same render as one it sits inside. `Dropdown` closes its own panel rather than leaving it
-  to the Popover API — Chromium skips the light-dismiss when focus is inside ProseMirror.
+  to the Popover API, because Chromium skips the light-dismiss when focus is inside ProseMirror.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
   clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
 
@@ -273,28 +273,28 @@ call locally, so both modes behave alike.
 `packages/shared/src/api.ts` declares the wire types and `docs/specification/api.md` is the source of truth.
 
 - REST: `/api/notes`, `/api/search`, `/api/auth/*` (auth routes are owned by the active auth provider)
-- WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration — one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes ownership of the joined document in `onAuthenticate`.
+- WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes ownership of the joined document in `onAuthenticate`.
 - All timestamps are ISO 8601 UTC strings
-- Note schema — see `docs/specification/data-model.md`
+- Note schema: see `docs/specification/data-model.md`
 
 ### Server Architecture
 
 Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUTH_PROVIDER`):
 
-- **`src/storage/`** — `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional — SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
-- **`src/auth/`** — `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. Two providers ship: `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers — the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. Two provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/methods` (public discovery) and `GET /api/auth/me` (bearer → current user).
-- **`src/app.ts` / `src/index.ts`** — composition root. Constructs storage, auth provider, broadcaster, then wires the Hono app, the `/api/ws` socket (`ws/appSocket.ts`), and the Yjs collaboration socket (`ws/yjsSocket.ts` + the generic `ws/yjsExtension.ts` Hocuspocus extension that delegates to `storage.yjs`).
-- **Background work**: `lib/trashCleanup.ts` and `lib/sessionCleanup.ts` both run on `lib/periodic.ts`'s `startPeriodicJob` — once at startup, then hourly. Each goes through a repo method (`storage.maintenance.cleanupTrashedBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
+- **`src/storage/`**: `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional. SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
+- **`src/auth/`**: `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. Two providers ship: `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers, and the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. Two provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/methods` (public discovery) and `GET /api/auth/me` (bearer → current user).
+- **`src/app.ts` / `src/index.ts`**: composition root. Constructs storage, auth provider, broadcaster, then wires the Hono app, the `/api/ws` socket (`ws/appSocket.ts`), and the Yjs collaboration socket (`ws/yjsSocket.ts` + the generic `ws/yjsExtension.ts` Hocuspocus extension that delegates to `storage.yjs`).
+- **Background work**: `lib/trashCleanup.ts` and `lib/sessionCleanup.ts` both run on `lib/periodic.ts`'s `startPeriodicJob`, once at startup, then hourly. Each goes through a repo method (`storage.maintenance.cleanupTrashedBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
 
 ## Testing
 
 - Vitest. The client's suite is split into two projects by filename: `*.browser.test.ts` runs in a
   real headless Chromium via Playwright, everything else runs in Node. A test takes the `.browser`
-  name when it needs a DOM — real CSS, `localStorage`, history, an iframe, DOMPurify — which is what
+  name when it needs a DOM (real CSS, `localStorage`, history, an iframe, DOMPurify), which is what
   keeps the pure majority (parsers, mergers, schedulers, formatters) fast. The server's suite is
   Node-only.
 - Test files are colocated with source (e.g., `actions.browser.test.ts` next to `actions.ts`)
-- Tests use real `localStorage` — clear in `beforeEach`/`afterEach`
+- Tests use real `localStorage`; clear in `beforeEach`/`afterEach`
 - Signal state is set directly in tests (e.g., `notes.value = []`)
 
 ## Code Style
@@ -302,6 +302,9 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - Biome for linting and formatting (not ESLint/Prettier)
 - TypeScript strict mode in all packages
 - `type: "module"` (ESM) throughout
+- No em dashes (—) anywhere: docs, comments, UI strings, test names, commit messages and PR
+  descriptions. Use whichever punctuation fits the sentence: a colon, a semicolon, a comma,
+  parentheses, or a full stop. A term followed by its definition in a list is `**Term**: text`.
 
 ## Rules
 

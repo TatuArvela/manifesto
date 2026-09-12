@@ -35,7 +35,7 @@ export interface ServerConfig {
   postgres: PostgresConfig | null;
   /** When true, the rate limiter (and any future IP-aware logic) honors
    * `X-Forwarded-For`. Set this only when running behind a trusted reverse
-   * proxy that overwrites the header — otherwise an attacker can rotate the
+   * proxy that overwrites the header; otherwise an attacker can rotate the
    * value to defeat per-IP throttling. */
   trustProxy: boolean;
   /** When false, POST /api/auth/register returns 403. Defaults to true to

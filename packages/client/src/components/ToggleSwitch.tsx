@@ -32,7 +32,7 @@ export function ToggleSwitch({
       onKeyDown={(e) => {
         // Only handle activation when the container itself has focus. The
         // inner buttons handle their own Space/Enter via the browser's button
-        // default click — bubbling here would double-toggle and produce the
+        // default click, and bubbling here would double-toggle and produce the
         // wrong value when focus is on a button.
         if (e.target !== e.currentTarget) return;
         if (e.key === " " || e.key === "Enter") {
@@ -84,7 +84,7 @@ export function ToggleSwitch({
 }
 
 /**
- * Plain on/off switch for a boolean setting — no icon per state. Use this
+ * Plain on/off switch for a boolean setting, with no icon per state. Use this
  * wherever the setting really is just on or off; `ToggleSwitch` is for the
  * cases where the two states are genuinely different choices worth naming.
  */

@@ -11,7 +11,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
  * The `notes` row as either driver returns it, and the mapping between it and
  * the `Note` the rest of the server deals in.
  *
- * Both drivers store the same shape — the only real difference is that SQLite
+ * Both drivers store the same shape; the only real difference is that SQLite
  * has no boolean type, so its flags come back as 0/1 where Postgres returns
  * `true`/`false`. Everything else about a row (which columns exist, what JSON
  * lives in them, which fields an update may touch) was written out twice, and
@@ -99,7 +99,7 @@ export function rowToNote(row: NoteRow): Note {
 /**
  * The note as a listing returns it: attachments left behind, with the count
  * standing in for them. `images` is empty rather than absent so the shape of a
- * `Note` never changes — what changes is whether the bytes are in it, which
+ * `Note` never changes. What changes is whether the bytes are in it, which
  * `imageCount` is what tells you.
  */
 export function rowToListedNote(row: NoteRow): Note {
@@ -153,7 +153,7 @@ export type ColumnValue = string | number | boolean | null;
 /**
  * One field's value for its column. An absent field takes the column's
  * default, which is what makes this usable for an insert as well as an
- * update — and is why `position` no longer becomes `NaN` when an update
+ * update, and is why `position` no longer becomes `NaN` when an update
  * carries the key with nothing in it.
  */
 function toColumnValue(
@@ -246,7 +246,7 @@ export function noteInsertValues(
  * The `LIKE` pattern for a search, or null when there is nothing left to
  * search for. Wildcards are stripped rather than escaped: a bare `%` would
  * otherwise match every note, and SQL `ESCAPE` is not available to us because
- * pg-mem — which the Postgres driver's tests run against — does not parse it.
+ * pg-mem (which the Postgres driver's tests run against) does not parse it.
  */
 export function searchPattern(query: string): string | null {
   const sanitized = query.replace(/[%_]/g, "");
@@ -256,7 +256,7 @@ export function searchPattern(query: string): string | null {
 /**
  * A listing's place in the ordering, as an opaque string.
  *
- * Notes are ordered by `updated_at DESC, id DESC` — the timestamp alone is not
+ * Notes are ordered by `updated_at DESC, id DESC`, because the timestamp alone is not
  * a key, since two notes saved in the same millisecond would make a page
  * boundary ambiguous and could drop or repeat one. The cursor carries both, so
  * the next page starts exactly after the last row of this one, and a note

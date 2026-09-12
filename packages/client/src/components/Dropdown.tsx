@@ -61,7 +61,7 @@ export function computePanelPosition(
   }
 
   // "start" aligns the panel's leading edge with the trigger's, "end" its
-  // trailing edge — matching `span-inline-end` / `span-inline-start` in CSS.
+  // trailing edge, matching `span-inline-end` / `span-inline-start` in CSS.
   const left = inline === "start" ? anchor.left : anchor.right - panel.width;
 
   return {
@@ -93,7 +93,7 @@ function placePanel(
  * panel renders in the top layer and is not clipped by ancestor
  * `overflow: hidden`. Uses `popover="auto"` so the browser light-dismisses
  * on outside taps and Escape. Before opening, any other open dropdown panel
- * is hidden explicitly — neither the browser's auto-popover stack mutex nor a
+ * is hidden explicitly: neither the browser's auto-popover stack mutex nor a
  * module-level tracker proved reliable across the modal portal, so we query
  * the DOM for currently-open panels and close them.
  */
@@ -144,7 +144,7 @@ export function Dropdown({
     const isOpen = el.matches(":popover-open");
     if (open && !isOpen) {
       // The trigger's own tooltip would otherwise sit on top of the panel we
-      // are about to open — the pointer never leaves the trigger, so nothing
+      // are about to open, because the pointer never leaves the trigger, so nothing
       // hides it.
       hideAllTooltips();
       // Explicitly hide any other open dropdown panel before opening this one.

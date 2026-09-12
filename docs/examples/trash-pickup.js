@@ -15,7 +15,7 @@
 //   { title, content /* markdown */, color?, font?, tags?, pinned?,
 //     position?, key? }
 
-// Personal data — the whole point is that this lives outside Manifesto.
+// Personal data: the whole point is that this lives outside Manifesto.
 const LAST_CONFIRMED_PICKUP = "2024-05-04";
 const INTERVAL_DAYS = 42;
 

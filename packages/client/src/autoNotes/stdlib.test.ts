@@ -84,7 +84,7 @@ describe("stdlib", () => {
   it("formatDate produces a medium-style locale string", () => {
     const en = formatDate("2026-04-23", "en");
     const fi = formatDate("2026-04-23", "fi");
-    // Don't pin exact wording — just ensure both localize differently and
+    // Don't pin exact wording; just ensure both localize differently and
     // include the year.
     expect(en).toMatch(/2026/);
     expect(fi).toMatch(/2026/);
@@ -173,7 +173,7 @@ describe("stdlib", () => {
     expect(prelude).toContain("const __stdlibRaw");
     expect(prelude).toContain("addDays");
     expect(prelude).toContain("approxUntil");
-    // The prelude should be evaluable — a smoke check that toString didn't
+    // The prelude should be evaluable, as a smoke check that toString didn't
     // produce syntax garbage.
     expect(() => new Function(`${prelude}; return __stdlibRaw;`)).not.toThrow();
   });

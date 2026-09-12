@@ -84,7 +84,7 @@ function tokenize(text: string, decimal: "." | ","): Token[] | null {
  *
  * Unary minus (`-x`, `*-x`, `(-x`) is promoted to a dedicated unary-minus
  * token with the highest precedence and right-associativity. Unary plus is
- * not supported — constructs like `200++300` are rejected as invalid.
+ * not supported; constructs like `200++300` are rejected as invalid.
  */
 function toRpn(tokens: Token[]): Token[] | null {
   const output: Token[] = [];
@@ -204,7 +204,7 @@ function evalRpn(rpn: Token[]): number | null {
  * if the tail is not a valid expression.
  *
  * The match only succeeds when the expression is either the whole line or
- * preceded by whitespace — so prose like `foo=bar=` does not light up.
+ * preceded by whitespace, so prose like `foo=bar=` does not light up.
  */
 export function evaluateExpression(
   text: string,

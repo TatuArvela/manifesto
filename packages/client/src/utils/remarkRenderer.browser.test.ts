@@ -12,7 +12,7 @@ describe("renderMarkdown sanitizing", () => {
     expect(html).not.toContain("<script");
     // The body goes with it. Raw HTML reaches the sanitizer now, so DOMPurify
     // treats this as the element it is rather than as the loose text that
-    // remark-rehype used to leave behind — and it removes a script whole.
+    // remark-rehype used to leave behind, and it removes a script whole.
     // Nothing is lost: the note's markdown still says what the user typed;
     // this is only what the preview draws.
     expect(html).not.toContain("alert(1)");

@@ -14,7 +14,7 @@ export function createAuthProvider(
     case "oidc": {
       if (!cfg.oidc) {
         throw new Error(
-          "OIDC config missing — set OIDC_ISSUER / OIDC_CLIENT_ID / OIDC_CLIENT_SECRET / OIDC_REDIRECT_URI / OIDC_POST_LOGIN_REDIRECT",
+          "OIDC config missing: set OIDC_ISSUER / OIDC_CLIENT_ID / OIDC_CLIENT_SECRET / OIDC_REDIRECT_URI / OIDC_POST_LOGIN_REDIRECT",
         );
       }
       return createOidcAuthProvider({ storage, cfg, oidc: cfg.oidc });

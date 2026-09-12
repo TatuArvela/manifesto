@@ -167,7 +167,7 @@ describe("application WebSocket /api/ws", () => {
     ws.close();
   });
 
-  it("isolates users — Bob's writes don't reach Alice's socket", async () => {
+  it("isolates users: Bob's writes don't reach Alice's socket", async () => {
     const aliceToken = await register(rig, "alice");
     const bobToken = await register(rig, "bob");
 

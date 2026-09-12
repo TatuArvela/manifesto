@@ -14,7 +14,7 @@ export const MAX_NOTES_PAGE_SIZE = 500;
 
 export interface PageParams {
   limit?: number;
-  /** Opaque — the `nextCursor` of the previous page, and nothing else. */
+  /** Opaque: the `nextCursor` of the previous page, and nothing else. */
   cursor?: string;
 }
 

@@ -59,7 +59,7 @@ export function createLocalAuthRouter(
 ): AuthProviderRouter {
   const auth = new Hono<{ Variables: { auth: AuthContext } }>();
 
-  // Tight per-IP throttling on the unauthenticated endpoints — slows down
+  // Tight per-IP throttling on the unauthenticated endpoints slows down
   // password-spraying attacks. Production defaults are 10 requests / 15 minutes
   // per IP.
   const authThrottle = rateLimit({

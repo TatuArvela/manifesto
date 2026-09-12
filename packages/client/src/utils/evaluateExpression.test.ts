@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateExpression, formatResult } from "./evaluateExpression.js";
 
-describe("evaluateExpression — dot decimal", () => {
+describe("evaluateExpression with a dot decimal", () => {
   const ev = (s: string) => evaluateExpression(s, ".");
 
   it("evaluates simple binary addition", () => {
@@ -59,7 +59,7 @@ describe("evaluateExpression — dot decimal", () => {
     expect(ev("1.2.3+1=")).toBeNull();
   });
 
-  it("only matches the tail — prose before is fine if separated by whitespace", () => {
+  it("only matches the tail; prose before is fine if separated by whitespace", () => {
     expect(ev("note: 2+2=")?.result).toBe(4);
   });
 
@@ -73,7 +73,7 @@ describe("evaluateExpression — dot decimal", () => {
   });
 });
 
-describe("evaluateExpression — comma decimal", () => {
+describe("evaluateExpression with a comma decimal", () => {
   const ev = (s: string) => evaluateExpression(s, ",");
 
   it("evaluates with comma decimals", () => {

@@ -41,7 +41,7 @@ export function createApp(deps: AppDeps): AppHandle {
   //
   // Two caps, because notes are the only route that legitimately carries bulk:
   // images are inlined as base64 `data:` URLs, so a note with attachments is
-  // genuinely megabytes. Everything else — auth, search, health — has no reason
+  // genuinely megabytes. Everything else (auth, search, health) has no reason
   // to exceed a small body, and holding those to 1 MiB keeps the wide envelope
   // scoped to the one path that needs it. This body limit, not
   // MAX_IMAGE_DATA_URL_BYTES, is what bounds a note in aggregate: twenty images

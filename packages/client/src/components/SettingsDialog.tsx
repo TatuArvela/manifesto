@@ -50,13 +50,13 @@ import { Switch, ThreeWayToggle } from "./ToggleSwitch.js";
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
 const decimalSeparators: DecimalSeparator[] = ["auto", ".", ","];
 
-// Endonyms never translate — each language's name is rendered in that language.
+// Endonyms never translate: each language's name is rendered in that language.
 const LOCALE_ENDONYMS: Record<string, string> = {
   en: "English",
   fi: "Suomi",
 };
 
-/** A titled group of settings rows — Appearance, Defaults, Features, Data. */
+/** A titled group of settings rows: Appearance, Defaults, Features, Data. */
 function SettingsSection({
   title,
   children,
@@ -91,8 +91,8 @@ function SettingsRow({
 }
 
 /**
- * One choice in a {@link SettingsSelect}. Options carry their own preview — a
- * leading element, a styled label, or neither — so the select stays
+ * One choice in a {@link SettingsSelect}. Options carry their own preview (a
+ * leading element, a styled label, or neither), so the select stays
  * presentation-agnostic instead of growing a render hook per kind of setting.
  */
 type SettingsOption<T extends string> = {
@@ -251,7 +251,7 @@ export function SettingsDialog() {
   useEscapeStack(isOpen, handleClose);
   const panelRef = useFocusTrap<HTMLDivElement>(isOpen && !closing);
 
-  // animationend bubbles, so ignore anything a descendant fires — only the
+  // animationend bubbles, so ignore anything a descendant fires; only the
   // panel's own slide-out marks the close as finished.
   const handleAnimationEnd = (e: AnimationEvent) => {
     if (e.target !== e.currentTarget) return;

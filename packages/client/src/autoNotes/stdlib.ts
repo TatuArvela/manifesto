@@ -1,5 +1,5 @@
 // Pure functions exposed to plugins inside the sandbox. Each must be fully
-// self-contained — no closures over module scope, no imports — so they can be
+// self-contained (no closures over module scope, no imports) so they can be
 // Function.prototype.toString()'d into the iframe bootstrap as a prelude.
 //
 // Host code (tests, potentially UI helpers) can also call these directly.

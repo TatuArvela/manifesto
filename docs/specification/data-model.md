@@ -8,7 +8,7 @@ A note is the fundamental entity in Manifesto.
 
 | Field       | Type             | Required | Description                              |
 |-------------|------------------|----------|------------------------------------------|
-| `id`        | `string`         | Yes      | ULID — unique, lexicographically sortable |
+| `id`        | `string`         | Yes      | ULID: unique, lexicographically sortable |
 | `title`     | `string`         | Yes      | Note title (can be empty string)         |
 | `content`   | `string`         | Yes      | Markdown content (can be empty string)   |
 | `color`     | `NoteColor`      | Yes      | Color theme for the note                 |
@@ -20,7 +20,7 @@ A note is the fundamental entity in Manifesto.
 | `trashedAt` | `string \| null` | Yes      | ISO 8601 timestamp when trashed, `null` if not trashed. Server-assigned: it drives hard deletion 30 days later, so `POST`/`PUT` derive it from `trashed` and the server clock and ignore any value a client sends. |
 | `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
-| `images`    | `string[]`       | Yes      | Attached images as `data:` URLs — see [Images](#images) |
+| `images`    | `string[]`       | Yes      | Attached images as `data:` URLs; see [Images](#images) |
 | `linkPreviews` | `LinkPreview[]` | Yes    | Link preview cards attached to the note  |
 | `reminder`  | `NoteReminder \| null` | Yes | Scheduled reminder, or `null` when not set |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
@@ -37,7 +37,7 @@ The accepted form is narrow, and the server enforces it on every write:
 | Scheme | `data:` only. A remote `http(s)` URL in `images` is rejected. |
 | Media type | `image/png`, `image/jpeg`, `image/jpg`, `image/gif`, `image/webp`, `image/avif` |
 | Encoding | `;base64,` followed by base64-alphabet characters, anchored at both ends |
-| Per-image size | 1.5 MiB of source image. Enforced on the encoded URL, whose cap is derived from it — base64 emits 4 characters per 3 bytes and the `data:image/…;base64,` prefix counts too, so a hand-rounded encoded cap rejects a full-size image 18 bytes short of the advertised number. |
+| Per-image size | 1.5 MiB of source image. Enforced on the encoded URL, whose cap is derived from it: base64 emits 4 characters per 3 bytes and the `data:image/…;base64,` prefix counts too, so a hand-rounded encoded cap rejects a full-size image 18 bytes short of the advertised number. |
 | Images per note | 20 |
 | Whole request | 12 MiB on `/api/notes`, which is what bounds a note in aggregate |
 
@@ -50,7 +50,7 @@ Over-cap images are refused by the client before they are attached, so the user 
 Being inlined is what makes a note self-contained, and also what makes a list of
 notes large: twenty attachments at 1.5 MB is a 30 MB note, and a hundred such
 notes is a list response no client wants. So the bytes stay in the note but are
-left out of a *listing* — a note from `GET /api/notes` or `GET /api/search`
+left out of a *listing*. A note from `GET /api/notes` or `GET /api/search`
 carries `imageCount` and an empty `images`, and `GET /api/notes/:id` returns it
 whole. `imageCount` is derived by the server from `images` on every write and is
 never accepted from a client; in open mode it is absent, because nothing there
@@ -81,7 +81,7 @@ An enum of predefined color names. Using names instead of hex values allows the 
 default | red | orange | yellow | green | teal | blue | purple | pink | brown | gray
 ```
 
-The `default` color means no specific color — the note uses the base card background.
+The `default` color means no specific color; the note uses the base card background.
 
 ## NoteFont
 
@@ -95,7 +95,7 @@ The `default` font uses the base application font. `permanent-marker` and `comic
 
 ## LinkPreview
 
-A preview card attached to a note for a URL. Created only when a link is inserted via the editor toolbar or when a URL is pasted — never regenerated on save.
+A preview card attached to a note for a URL. Created only when a link is inserted via the editor toolbar or when a URL is pasted, never regenerated on save.
 
 | Field         | Type     | Required | Description                                |
 |---------------|----------|----------|--------------------------------------------|

@@ -109,7 +109,7 @@ describe("search route", () => {
     expect(((await res.json()) as { notes: Note[] }).notes).toEqual([]);
   });
 
-  it("treats LIKE wildcards in the query as literal — `%` does not match all", async () => {
+  it("treats LIKE wildcards in the query as literal: `%` does not match all", async () => {
     const { token } = await registerTestUser(rig, "alice");
     await seedNote(rig, token, { title: "Plain note", content: "" });
     await seedNote(rig, token, { title: "100% done", content: "" });

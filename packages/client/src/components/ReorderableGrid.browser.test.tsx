@@ -83,7 +83,7 @@ afterEach(() => {
 });
 
 /**
- * The grid's own children — the wrappers, not the articles inside them. These
+ * The grid's own children: the wrappers, not the articles inside them. These
  * are the boxes the drop position is measured against.
  */
 function cards(): HTMLElement[] {
@@ -99,7 +99,7 @@ function centreOf(el: HTMLElement) {
   };
 }
 
-/** A point in a card's trailing half — a drop *after* it, either way round. */
+/** A point in a card's trailing half: a drop *after* it, either way round. */
 function afterEdgeOf(el: HTMLElement) {
   const rect = el.getBoundingClientRect();
   return {
@@ -111,11 +111,11 @@ function afterEdgeOf(el: HTMLElement) {
 /**
  * A drop position is state, set while the pointer moves and read when it is
  * released, so each phase of a drag has to reach the next one through a
- * render — which in a browser it always does, phases being frames apart.
+ * render, which in a browser it always does, phases being frames apart.
  */
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-/** The draggable element inside a wrapper — the card the handlers sit on. */
+/** The draggable element inside a wrapper: the card the handlers sit on. */
 function articleIn(wrapper: HTMLElement): HTMLElement {
   const article = wrapper.querySelector("article");
   if (!article) throw new Error("no card in this wrapper");
@@ -251,7 +251,7 @@ describe("ReorderableGrid", () => {
 
   it("reads the drop position across columns, not down the page", async () => {
     // The grid is multi-column here, so "after Alpha" is the gap to its right
-    // — a card directly below it is a different column's neighbour, not the
+    // because a card directly below it is a different column's neighbour, not the
     // next position. Deciding this from the view mode instead of measuring
     // the container, which is what the auto-notes grid did, reads a drop
     // beside a card as a drop several places away.
@@ -276,7 +276,7 @@ describe("ReorderableGrid", () => {
     // A card's height is not settled when it is first measured: an image
     // decodes after the frame that added it, and lazy attachments arrive a
     // whole round trip later. A card left with the span it had while it was
-    // empty is drawn *through* by the card below it — which is what the note
+    // empty is drawn *through* by the card below it, which is what the note
     // grid did with any note carrying a picture.
     render(
       <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
@@ -324,7 +324,7 @@ describe("isContainerVertical", () => {
     return vertical;
   };
 
-  it("calls a flex column vertical — the list view", () => {
+  it("calls a flex column vertical (the list view)", () => {
     expect(verticalityOf("display: flex; flex-direction: column")).toBe(true);
   });
 

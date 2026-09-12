@@ -10,7 +10,7 @@ export async function createStorage(cfg: ServerConfig): Promise<StorageDriver> {
     case "postgres": {
       if (!cfg.postgres) {
         throw new Error(
-          "Postgres config missing — set DATABASE_URL when STORAGE_DRIVER=postgres",
+          "Postgres config missing: set DATABASE_URL when STORAGE_DRIVER=postgres",
         );
       }
       return await createPostgresStorage(cfg.postgres);

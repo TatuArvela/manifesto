@@ -7,7 +7,7 @@ Manifesto runs in one of two modes, selected when the **client** is built. The m
 | **Open**      | Browser localStorage | No             | No           | No         | Always       |
 | **Connected** | Manifesto server     | Yes            | Yes          | Yes        | Read-only via service worker cache |
 
-There is no runtime toggle — a build is one mode or the other. To move data between modes, use [Export / Import](features/export-import.md). To run either mode under your own name and icons, see [Custom Instances](custom-instances.md).
+There is no runtime toggle: a build is one mode or the other. To move data between modes, use [Export / Import](features/export-import.md). To run either mode under your own name and icons, see [Custom Instances](custom-instances.md).
 
 ## Open Mode
 
@@ -39,7 +39,7 @@ Multi-device sync, multi-user accounts, server-side search across devices, live 
 ```bash
 pnpm install
 pnpm --filter @manifesto/client build
-# Produces packages/client/dist/ — host as a static site.
+# Produces packages/client/dist/; host as a static site.
 ```
 
 `VITE_MANIFESTO_SERVER` must be unset (or empty) at build time. The Content Security Policy stays at `connect-src 'self'`.
@@ -100,8 +100,8 @@ In connected mode the server picks a **storage driver** and an **auth provider**
 
 Both drivers expose the same `StorageDriver` interface and ship five repositories: `users`, `sessions`, `notes`, `yjs`, `maintenance`. The choice is operational, not functional.
 
-- **`sqlite`** *(default)* — `better-sqlite3`, single file at `${DATA_DIR}/manifesto.db`. Zero configuration. Back up by copying the file.
-- **`postgres`** — `pg` Pool against a `DATABASE_URL`. Required for any deployment that scales beyond a single app server, shares state with other services, or relies on managed-database backups.
+- **`sqlite`** *(default)*: `better-sqlite3`, single file at `${DATA_DIR}/manifesto.db`. Zero configuration. Back up by copying the file.
+- **`postgres`**: `pg` Pool against a `DATABASE_URL`. Required for any deployment that scales beyond a single app server, shares state with other services, or relies on managed-database backups.
 
 See [Server Overview](server/index.md#storage-drivers) for details.
 
@@ -109,8 +109,8 @@ See [Server Overview](server/index.md#storage-drivers) for details.
 
 Both providers expose the same `AuthProvider` interface. Only the login step differs; once a session token is minted, every authenticated request is identical.
 
-- **`local`** *(default)* — username + argon2id password, sessions stored server-side. Mounts `POST /api/auth/{register,login,logout}`.
-- **`oidc`** — OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, …). Mounts `GET /api/auth/login` (302 to IdP), `GET /api/auth/callback`, `POST /api/auth/logout`. Users are JIT-provisioned by `(provider, sub)`.
+- **`local`** *(default)*: username + argon2id password, sessions stored server-side. Mounts `POST /api/auth/{register,login,logout}`.
+- **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, …). Mounts `GET /api/auth/login` (302 to IdP), `GET /api/auth/callback`, `POST /api/auth/logout`. Users are JIT-provisioned by `(provider, sub)`.
 
 The client decides which login UI to render by hitting the public `GET /api/auth/methods` endpoint on mount, so a single client build works against either provider.
 
@@ -120,8 +120,8 @@ See [Server Overview](server/index.md#authentication-providers) for details.
 
 There is no in-place upgrade. To move from one mode to another:
 
-1. **Open → Connected** — Settings → Export to download `manifesto-export.json`, build (or visit) the connected client, log in, then Settings → Import.
-2. **Connected → Open** — Same flow in reverse: export from the connected client, switch to an open-mode build, import.
+1. **Open → Connected**: Settings → Export to download `manifesto-export.json`, build (or visit) the connected client, log in, then Settings → Import.
+2. **Connected → Open**: Same flow in reverse: export from the connected client, switch to an open-mode build, import.
 
 Round-trips preserve every field in the [data model](data-model.md), including version history snapshots referenced via the local `manifesto:versions` key. Export/import is documented in [Export / Import](features/export-import.md).
 
@@ -141,6 +141,6 @@ The full list lives in `packages/server/.env.example`. The mode-shaping subset:
 |-------------------|-------------|------------------------------------------------|
 | `STORAGE_DRIVER`  | `sqlite`    | `sqlite` or `postgres`. Validated at boot.     |
 | `AUTH_PROVIDER`   | `local`     | `local` or `oidc`. Validated at boot.          |
-| `DATABASE_URL`    | —           | Required when `STORAGE_DRIVER=postgres`.        |
-| `OIDC_*`          | —           | Required when `AUTH_PROVIDER=oidc`. See [Server Deployment](server/deployment.md#oidc-variables-when-auth_provideroidc). |
+| `DATABASE_URL`    | none        | Required when `STORAGE_DRIVER=postgres`.        |
+| `OIDC_*`          | none        | Required when `AUTH_PROVIDER=oidc`. See [Server Deployment](server/deployment.md#oidc-variables-when-auth_provideroidc). |
 | `CORS_ORIGINS`    | `http://localhost:5173` | Must include the deployed client origin in connected mode. |

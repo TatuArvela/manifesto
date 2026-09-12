@@ -70,7 +70,7 @@ let popListener: (() => void) | null = null;
 
 /**
  * Sync `activeView` and `activeTag` with `location.pathname`. Safe to call
- * multiple times — subsequent calls are no-ops. Returns a cleanup function
+ * multiple times; subsequent calls are no-ops. Returns a cleanup function
  * primarily intended for tests.
  */
 export function initRouter(): () => void {
