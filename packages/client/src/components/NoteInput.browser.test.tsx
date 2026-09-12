@@ -1,7 +1,7 @@
 import { render } from "preact";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
-import { activeView, noteQuips } from "../state/index.js";
+import { activeView, noteQuips, notes } from "../state/index.js";
 import { NoteInput } from "./NoteInput.js";
 
 /**
@@ -55,5 +55,52 @@ describe("NoteInput quips", () => {
     noteQuips.value = false;
     render(<NoteInput />, host);
     for (const line of stackLines()) expect(line).toBe(t("cta.plain"));
+  });
+});
+
+describe("NoteInput with an empty draft", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    activeView.value = "active";
+    render(<NoteInput />, host);
+  });
+
+  afterEach(() => {
+    render(null, host);
+    host.remove();
+    localStorage.clear();
+    notes.value = [];
+  });
+
+  async function openEmptyDraft(): Promise<HTMLElement> {
+    (host.querySelector(".note-stack") as HTMLElement).click();
+    return await vi.waitFor(() => {
+      const done = document.querySelector<HTMLElement>(
+        `[role="dialog"] button[aria-label="${t("editor.done")}"]`,
+      );
+      expect(done).toBeTruthy();
+      return done as HTMLElement;
+    });
+  }
+
+  it("adds an empty note when Done is pressed", async () => {
+    // Done is an explicit request for a note; an empty one used to be
+    // discarded as silently as a pad opened by accident.
+    const done = await openEmptyDraft();
+    done.click();
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0]).toMatchObject({ title: "", content: "" });
+  });
+
+  it("still discards an empty draft closed with Escape", async () => {
+    await openEmptyDraft();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="dialog"]')).toBeNull(),
+    );
+    expect(notes.value).toHaveLength(0);
   });
 });

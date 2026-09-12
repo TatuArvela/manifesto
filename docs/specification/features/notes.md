@@ -4,7 +4,7 @@ Notes are the core entity in Manifesto. A note is a card with a title, markdown 
 
 ## Creating a Note
 
-A persistent "Take a note..." input bar sits at the top of the note grid. On focus, it expands to reveal separate title and content fields. Pressing away or clicking a close button creates the note if either field has content.
+A persistent "Take a note..." input bar sits at the top of the note grid. On focus, it expands to reveal separate title and content fields. Pressing Done (✓) creates the note, even an empty one. Closing any other way (Escape, clicking outside, the back arrow on phones) creates it only if it has a title, content, images or link previews, so opening the pad by accident leaves nothing behind. The discard button (✕) throws the draft away.
 
 New notes default to: color `default` (or random, per user preference), font `default` (or user's chosen default), not pinned, not archived, not trashed, no tags.
 
