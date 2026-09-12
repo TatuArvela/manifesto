@@ -276,6 +276,9 @@ export function noteMenuItems(
         // an empty `images`, and an export written from that would be a file
         // silently missing its pictures.
         const images = await ensureImages(note.id);
+        // Null is "could not fetch", not "has none" — writing the file anyway
+        // would save a note stripped of the pictures it still has.
+        if (images === null) return;
         // Auto-note markers are stripped so the export is a static, portable
         // note rather than one that claims a plugin owns it.
         const { readonly: _r, source: _s, imageCount: _c, ...plain } = note;
