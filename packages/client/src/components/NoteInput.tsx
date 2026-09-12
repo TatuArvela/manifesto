@@ -119,6 +119,7 @@ export function NoteInput() {
   }, [fontSetting]);
 
   const isList = viewMode.value === "list";
+  const isActiveView = activeView.value === "active";
   const rulerRef = useRef<HTMLDivElement>(null);
   const [colWidth, setColWidth] = useState<number | undefined>(undefined);
 
@@ -128,8 +129,14 @@ export function NoteInput() {
   // this component with the width unknown again. A zero reading is ignored
   // rather than applied: the ruler measures nothing while this view is not the
   // active one, and 0px would collapse the stack when it comes back.
+  //
+  // Keyed on the view as well. `App` keeps this mounted in the archive, trash
+  // and reminders views, where it renders nothing and there is no ruler to
+  // measure; mounted in one of those (arriving from tags, say, which unmounts
+  // it), it came back to the notes view with the width never measured and
+  // stretched across the whole column area until the next resize.
   useLayoutEffect(() => {
-    if (isList) return;
+    if (isList || !isActiveView) return;
     const ruler = rulerRef.current;
     if (!ruler) return;
     const cell = ruler.firstElementChild as HTMLElement;
@@ -142,9 +149,9 @@ export function NoteInput() {
     const obs = new ResizeObserver(measure);
     obs.observe(ruler);
     return () => obs.disconnect();
-  }, [isList]);
+  }, [isList, isActiveView]);
 
-  if (activeView.value !== "active") return null;
+  if (!isActiveView) return null;
 
   /** The unsaved composer contents, shaped as a note for the JSON export. */
   const draftNote = (): Note => {
