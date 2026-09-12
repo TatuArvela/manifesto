@@ -66,6 +66,22 @@ const PURIFY_CONFIG = {
 };
 
 /**
+ * Every link in a rendered note opens in a new tab, so following one never
+ * navigates away from the notes. `noopener` keeps the opened page from
+ * reaching back into this one through `window.opener`.
+ *
+ * A hook rather than a pass over the output because it runs on exactly what
+ * survived sanitizing, including an `<a>` written as raw HTML with a `target`
+ * of its own. DOMPurify hooks are global, which is fine while this module is
+ * DOMPurify's only user.
+ */
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName !== "A" || !node.hasAttribute("href")) return;
+  node.setAttribute("target", "_blank");
+  node.setAttribute("rel", "noopener noreferrer");
+});
+
+/**
  * `allowDangerousHtml` is what lets `<u>`, `<sub>` and `<sup>` survive.
  * Without it `remark-rehype` drops every raw HTML node before DOMPurify is
  * ever asked, so the three tags our own formatting toolbar writes vanished
