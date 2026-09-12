@@ -73,11 +73,11 @@ export const noteColorMap: Record<NoteColor, ColorClasses> = {
     toggleTrack: "bg-pink-200 dark:bg-pink-800",
   },
   [NoteColor.Brown]: {
-    bg: "bg-amber-100 dark:bg-amber-900",
-    hover: "hover:bg-amber-200 dark:hover:bg-amber-800",
+    bg: "bg-tan-100 dark:bg-tan-900",
+    hover: "hover:bg-tan-200 dark:hover:bg-tan-800",
     border: "border-transparent",
-    ring: "ring-amber-300 dark:ring-amber-700",
-    toggleTrack: "bg-amber-200 dark:bg-amber-800",
+    ring: "ring-tan-300 dark:ring-tan-700",
+    toggleTrack: "bg-tan-200 dark:bg-tan-800",
   },
   [NoteColor.Gray]: {
     bg: "bg-neutral-200 dark:bg-neutral-700",
@@ -133,8 +133,8 @@ export const autoNoteColorMap: Record<
     border: "border-4 border-pink-200 dark:border-pink-800",
   },
   [NoteColor.Brown]: {
-    bg: "bg-amber-50 dark:bg-amber-950",
-    border: "border-4 border-amber-200 dark:border-amber-800",
+    bg: "bg-tan-50 dark:bg-tan-950",
+    border: "border-4 border-tan-200 dark:border-tan-800",
   },
   [NoteColor.Gray]: {
     bg: "bg-neutral-100 dark:bg-neutral-800",
@@ -162,6 +162,6 @@ export const colorPickerSwatches: { value: NoteColor; swatch: string }[] = [
   { value: NoteColor.Blue, swatch: "bg-blue-400 dark:bg-blue-600" },
   { value: NoteColor.Purple, swatch: "bg-purple-400 dark:bg-purple-600" },
   { value: NoteColor.Pink, swatch: "bg-pink-400 dark:bg-pink-600" },
-  { value: NoteColor.Brown, swatch: "bg-amber-600 dark:bg-amber-700" },
+  { value: NoteColor.Brown, swatch: "bg-tan-500 dark:bg-tan-600" },
   { value: NoteColor.Gray, swatch: "bg-neutral-400 dark:bg-neutral-500" },
 ];
