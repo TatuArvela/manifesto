@@ -1,7 +1,7 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { currentStorage, storageConnection } from "../storage/index.js";
-import { ensureImages, notes } from "./actions.js";
+import { ensureImages, exportNotes, notes } from "./actions.js";
 
 /**
  * A server listing sends `imageCount` and an empty `images`, so a note in the
@@ -100,8 +100,54 @@ describe("ensureImages", () => {
     loadImages.mockRejectedValue(new Error("offline"));
     notes.value = [listed("a", 2)];
 
-    expect(await ensureImages("a")).toEqual([]);
+    expect(await ensureImages("a")).toBeNull();
     expect(notes.value[0].images).toEqual([]);
     expect(notes.value[0].imageCount).toBe(2);
+  });
+
+  it("answers null for a failure and [] for a note with no attachments", async () => {
+    // The whole point of the null: callers write this value back, and the two
+    // cases must not look alike. "Could not fetch" reaching a write as an
+    // empty list is what deleted a note's pictures.
+    notes.value = [listed("empty", 0)];
+    expect(await ensureImages("empty")).toEqual([]);
+
+    loadImages.mockRejectedValue(new Error("offline"));
+    notes.value = [listed("failing", 2)];
+    expect(await ensureImages("failing")).toBeNull();
+  });
+});
+
+describe("exportNotes", () => {
+  it("fetches the attachments a listing left behind before serializing", async () => {
+    // The bug this covers: the file downloaded as a full backup, every note in
+    // it carrying `images: []`, and importing it back dropped the pictures for
+    // good.
+    notes.value = [listed("a", 1), listed("b", 1)];
+
+    const json = await exportNotes();
+
+    expect(json).not.toBeNull();
+    const exported = JSON.parse(json as string) as Note[];
+    expect(exported.map((n) => n.images)).toEqual([[PNG], [PNG]]);
+    expect(loadImages).toHaveBeenCalledTimes(2);
+  });
+
+  it("writes nothing at all when an attachment cannot be fetched", async () => {
+    // A backup that is silently missing pictures is worse than no backup: the
+    // user keeps it, deletes the original, and finds out later.
+    loadImages.mockRejectedValue(new Error("offline"));
+    notes.value = [listed("a", 3)];
+
+    expect(await exportNotes()).toBeNull();
+  });
+
+  it("does not fetch for notes that already have their attachments", async () => {
+    notes.value = [{ ...listed("a", 1), images: [PNG] }, listed("b", 0)];
+
+    const json = await exportNotes();
+
+    expect(json).not.toBeNull();
+    expect(loadImages).not.toHaveBeenCalled();
   });
 });

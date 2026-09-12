@@ -263,8 +263,11 @@ export function SettingsDialog() {
 
   if (!visible) return null;
 
-  const handleExport = () => {
-    const json = exportNotes();
+  const handleExport = async () => {
+    // Null means some attachment could not be fetched and the export declined
+    // to write a backup that quietly lacked it; it has already said so.
+    const json = await exportNotes();
+    if (json === null) return;
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

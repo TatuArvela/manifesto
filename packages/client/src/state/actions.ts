@@ -356,9 +356,19 @@ export async function loadNotes(): Promise<boolean> {
  */
 const imageLoads = new Map<string, Promise<string[]>>();
 
-export async function ensureImages(id: string): Promise<string[]> {
+/**
+ * The attachments of a note, fetched if a listing left them behind.
+ *
+ * `null` means the bytes could not be had — which is not the same as the note
+ * having none. Callers that write an images array back (the editor's add and
+ * remove handlers) or serialize one (either export) must not read a failure as
+ * an empty note: doing so replaces every attachment it already had with
+ * nothing. This follows the contract of the actions around it — the failure is
+ * reported here and returned, never thrown.
+ */
+export async function ensureImages(id: string): Promise<string[] | null> {
   const note = notes.value.find((n) => n.id === id);
-  if (!note) return [];
+  if (!note) return null;
   if (!hasUnloadedImages(note)) return note.images;
 
   let load = imageLoads.get(id);
@@ -378,7 +388,7 @@ export async function ensureImages(id: string): Promise<string[]> {
       err,
       "error.loadFailed",
     );
-    return [];
+    return null;
   }
 }
 
@@ -747,7 +757,43 @@ export async function toggleCheckbox(id: string, lineIndex: number) {
   await updateNote(id, { content: lines.join("\n") });
 }
 
-export function exportNotes(): string {
+/**
+ * How many attachment fetches an export has in flight at once.
+ *
+ * A backup of four hundred notes is four hundred `GET /api/notes/:id` calls,
+ * and firing them together trips the server's per-user rate limit — which
+ * comes back as failures, which is precisely the lossy backup this is here to
+ * prevent. Draining a few at a time is slower and finishes.
+ */
+const EXPORT_IMAGE_CONCURRENCY = 6;
+
+/**
+ * Every note as JSON, attachments included — or `null` if they could not all
+ * be gathered.
+ *
+ * A server listing leaves the bytes behind, so the notes in the signal carry
+ * `imageCount` and an empty `images` until something asks for them. Writing
+ * the file straight from the signal produced a backup that looked complete and
+ * silently held no pictures at all, and importing it back deleted them for
+ * good. So the missing ones are fetched first, and if any of them cannot be,
+ * this refuses rather than handing back a file the user would trust.
+ */
+export async function exportNotes(): Promise<string | null> {
+  const missing = notes.value.filter(hasUnloadedImages).map((n) => n.id);
+  for (let i = 0; i < missing.length; i += EXPORT_IMAGE_CONCURRENCY) {
+    await Promise.all(
+      missing
+        .slice(i, i + EXPORT_IMAGE_CONCURRENCY)
+        .map((id) => ensureImages(id)),
+    );
+  }
+  // `ensureImages` has already said what went wrong; this only decides that a
+  // partial backup is not worth writing. Re-reading the signal rather than
+  // trusting the return values also covers a note that arrived mid-export.
+  if (notes.value.some(hasUnloadedImages)) {
+    showError(t("error.exportFailed"));
+    return null;
+  }
   return JSON.stringify(notes.value, null, 2);
 }
 

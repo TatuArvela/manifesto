@@ -292,6 +292,8 @@ export const fi: Messages = {
   "error.saveFailed": "Muutosten tallennus epäonnistui.",
   "error.deleteFailed": "Muistiinpanon poisto epäonnistui.",
   "error.importFailed": "Muistiinpanojen tuonti epäonnistui.",
+  "error.exportFailed":
+    "Kaikkia liitteitä ei saatu haettua, joten vientiä ei tallennettu puutteellisena. Tarkista yhteys ja yritä uudelleen.",
   "error.bulkFailed": {
     one: "{count} muistiinpanoa ei voitu muuttaa.",
     other: "{count} muistiinpanoa ei voitu muuttaa.",
