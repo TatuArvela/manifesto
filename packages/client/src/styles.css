@@ -393,6 +393,24 @@ html.dark {
   border-radius: var(--note-radius);
 }
 
+/* Changing a note's colour fades the sheet into the new one instead of
+   swapping it in a frame. A card also animates its selection ring, shadow and
+   editing opacity, quicker; listing the colours last lets them keep their own
+   duration. Utilities rather than plain rules so they sit in the same layer as
+   the rest of the element's classes and do not outrank them. */
+@utility note-color-transition {
+  transition-property: background-color, border-color;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
+}
+
+@utility note-card-transition {
+  transition:
+    all 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 300ms ease,
+    border-color 300ms ease;
+}
+
 /* Sticky note stack.
 
    The stack is a pad of paper: two full sheets (`-next` behind `-top`) sitting
