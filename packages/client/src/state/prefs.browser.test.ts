@@ -259,6 +259,19 @@ describe("formattingToolbar", () => {
   });
 });
 
+describe("defaultEditMode", () => {
+  it("defaults to the normal editor", () => {
+    expect(parsePrefs(null).defaultEditMode).toBe("normal");
+    expect(parsePrefs('{"defaultEditMode":"bogus"}').defaultEditMode).toBe(
+      "normal",
+    );
+  });
+
+  it("honours raw once chosen", () => {
+    expect(parsePrefs('{"defaultEditMode":"raw"}').defaultEditMode).toBe("raw");
+  });
+});
+
 describe("cross-tab preferences", () => {
   beforeEach(() => {
     localStorage.clear();

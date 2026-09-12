@@ -36,7 +36,7 @@ import {
   t,
 } from "../i18n/index.js";
 import { hasCheckedItems as textHasCheckedItems } from "../state/actions.js";
-import { formattingToolbar } from "../state/prefs.js";
+import { defaultEditMode, formattingToolbar } from "../state/prefs.js";
 import { showError } from "../state/ui.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { removeCheckedItems } from "../utils/markdown.js";
@@ -144,7 +144,11 @@ export function NoteEditor({
   const [showFontPicker, setShowFontPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
-  const [rawMode, setRawMode] = useState(false);
+  // Read once, when the editor opens: changing the default mid-edit should
+  // not flip a note that is already open.
+  const [rawMode, setRawMode] = useState(
+    () => defaultEditMode.peek() === "raw",
+  );
   const [editor, setEditor] = useState<Editor | null>(null);
   // Counter bumped on every editor transaction; drives undo/redo button
   // state and toolbar active-format refresh.

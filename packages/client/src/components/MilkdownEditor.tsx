@@ -3,15 +3,18 @@ import {
   Editor,
   editorViewCtx,
   editorViewOptionsCtx,
+  prosePluginsCtx,
   remarkStringifyOptionsCtx,
   rootCtx,
 } from "@milkdown/kit/core";
+import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { clipboard } from "@milkdown/kit/plugin/clipboard";
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
-import { TextSelection } from "@milkdown/kit/prose/state";
+import type { Node as ProseNode } from "@milkdown/kit/prose/model";
+import { Plugin, TextSelection } from "@milkdown/kit/prose/state";
 import { getMarkdown, replaceAll } from "@milkdown/kit/utils";
 import type { RefObject } from "preact";
 import {
@@ -32,6 +35,7 @@ import {
 } from "../extensions/yjsCollab.js";
 import { useMilkdownEditor } from "../hooks/useMilkdownEditor.js";
 import { markFencedLines } from "../utils/markdown.js";
+import { rebaseEdit } from "../utils/textMerge.js";
 
 /** prosemirror-markdown escapes `[` `]` per CommonMark; our content uses literal
  * brackets (e.g. "Post [ ] Maa"), so we unescape them on readout.
@@ -88,6 +92,58 @@ export function getEditorMarkdown(editor: Editor): string {
   return normalizeMarkdown(editor.action(getMarkdown()));
 }
 
+/**
+ * Calls `onChange` after every transaction that changes the document, whatever
+ * its origin, including the ones the markdown listener ignores.
+ */
+function documentWatcher(onChange: () => void): MilkdownPlugin {
+  return (ctx) => () => {
+    ctx.update(prosePluginsCtx, (plugins) => [
+      ...plugins,
+      new Plugin({
+        view: () => ({
+          update: (view, prevState) => {
+            if (view.state.doc !== prevState.doc) onChange();
+          },
+        }),
+      }),
+    ]);
+  };
+}
+
+/**
+ * Replaces a textarea's text with a change made elsewhere, keeping the caret
+ * on the same text: before the change it stays put, after it moves with it.
+ */
+function replaceTextareaText(
+  textarea: HTMLTextAreaElement | null,
+  next: string,
+): void {
+  if (!textarea) return;
+  const old = textarea.value;
+  const focused = document.activeElement === textarea;
+  const { selectionStart, selectionEnd } = textarea;
+  let prefix = 0;
+  const max = Math.min(old.length, next.length);
+  while (prefix < max && old[prefix] === next[prefix]) prefix++;
+  let suffix = 0;
+  while (
+    suffix < max - prefix &&
+    old[old.length - 1 - suffix] === next[next.length - 1 - suffix]
+  ) {
+    suffix++;
+  }
+  const map = (pos: number) =>
+    pos <= prefix
+      ? pos
+      : pos >= old.length - suffix
+        ? pos + next.length - old.length
+        : next.length - suffix;
+  textarea.value = next;
+  if (focused)
+    textarea.setSelectionRange(map(selectionStart), map(selectionEnd));
+}
+
 interface MilkdownEditorProps {
   content: string;
   onChange: (markdown: string) => void;
@@ -116,6 +172,8 @@ export function MilkdownEditor({
   onEditorReady,
   collab,
 }: MilkdownEditorProps) {
+  const rawModeRef = useRef(rawMode);
+  rawModeRef.current = rawMode;
   const ownTextareaRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = externalTextareaRef ?? ownTextareaRef;
   const onChangeRef = useRef(onChange);
@@ -127,6 +185,39 @@ export function MilkdownEditor({
   const [rawContent, setRawContent] = useState(content);
   const rawContentRef = useRef(rawContent);
   rawContentRef.current = rawContent;
+
+  // Raw mode's link to the document, which lives in the hidden rich editor
+  // (and, in collab, in the shared fragment behind it). See the raw-mode
+  // effect further down.
+  const rawSyncRef = useRef<{
+    /** Whether the textarea is the one being edited. */
+    active: boolean;
+    /** The text the textarea and the document last agreed on. */
+    base: string;
+    /** The document `base` was agreed with. */
+    doc: ProseNode | null;
+    /** The last value handed to `onChange`, from either side. */
+    sent: string;
+    frame: number;
+    pullFrame: number;
+  }>({
+    active: false,
+    base: "",
+    doc: null,
+    sent: content,
+    frame: 0,
+    pullFrame: 0,
+  });
+  // Assigned in the component body below; the editor's plugins reach it
+  // through this because `build` runs once and closes over nothing.
+  const documentChangedRef = useRef<() => void>(() => {});
+
+  const emitChange = (value: string) => {
+    rawSyncRef.current.sent = value;
+    onChangeRef.current(value);
+  };
+  const emitChangeRef = useRef(emitChange);
+  emitChangeRef.current = emitChange;
 
   const collabRef = useRef(collab);
   collabRef.current = collab;
@@ -174,7 +265,20 @@ export function MilkdownEditor({
           bullet: "-" as const,
         }));
         ctx.get(listenerCtx).markdownUpdated((_ctx, md) => {
-          onChangeRef.current(normalizeMarkdown(md));
+          const normalized = normalizeMarkdown(md);
+          const sync = rawSyncRef.current;
+          if (sync.active) {
+            // In raw mode the textarea reports the text, as typed. What still
+            // comes through here is rich-mode typing that was inside the
+            // listener's debounce when raw mode opened, recognisable as the
+            // text raw mode was loaded with; our own pushes echo back as the
+            // serializer's rewrite of the textarea, and are dropped.
+            const text = normalized.replace(/\n+$/, "");
+            if (text !== sync.base || text === sync.sent.replace(/\n+$/, "")) {
+              return;
+            }
+          }
+          emitChangeRef.current(normalized);
         });
       })
       .use(commonmark)
@@ -183,7 +287,8 @@ export function MilkdownEditor({
       .use(clipboard)
       .use(manifestoInlineMarks)
       .use(taskItemDraggable)
-      .use(inlineCalculationsPlugin);
+      .use(inlineCalculationsPlugin)
+      .use(documentWatcher(() => documentChangedRef.current()));
     const collabPlugin = collabFactoryRef.current;
     if (collabRef.current && collabPlugin) {
       editor.use(collabPlugin(collabRef.current));
@@ -192,6 +297,47 @@ export function MilkdownEditor({
     }
     return editor;
   }, []);
+
+  /**
+   * Writes the textarea's text into the rich editor, if it has changed since
+   * the two last agreed. In collab that is also a write to the shared
+   * fragment, which `ySyncPlugin` makes in the same call and as a diff, so
+   * only what differs is replaced.
+   *
+   * Only what differs from the text as typed, though: a collaborator's edit
+   * that landed since the last agreement, and has not reached the textarea
+   * yet (the listener reports on a debounce), is not in that text and would
+   * be reverted. So when the document has moved, the local edit is replayed
+   * onto the collaborator's version first, and the textarea takes the result.
+   * When the two edits touch the same text that cannot be done, and the local
+   * one wins.
+   */
+  const pushRaw = useCallback(
+    (instance: Editor) => {
+      const sync = rawSyncRef.current;
+      cancelAnimationFrame(sync.frame);
+      sync.frame = 0;
+      let text = rawContentRef.current;
+      if (text === sync.base) return;
+      const viewDoc = () =>
+        instance.action((ctx) => ctx.get(editorViewCtx).state.doc);
+      if (sync.doc !== null && viewDoc() !== sync.doc) {
+        const theirs = getEditorMarkdown(instance).replace(/\n+$/, "");
+        const merged = rebaseEdit(sync.base, text, theirs);
+        if (merged !== null && merged !== text) {
+          text = merged;
+          replaceTextareaText(textareaRef.current, merged);
+          rawContentRef.current = merged;
+          setRawContent(merged);
+          emitChangeRef.current(merged);
+        }
+      }
+      sync.base = text;
+      instance.action(replaceAll(text));
+      sync.doc = viewDoc();
+    },
+    [textareaRef],
+  );
 
   // `@milkdown/plugin-listener` serializes the document on a 200ms debounce and
   // exposes no way to cancel it, so an editor torn down inside that window
@@ -202,17 +348,34 @@ export function MilkdownEditor({
   // fires, finds nothing to notify, and returns without touching the context.
   // Reachable whenever a note is closed within 200ms of a keystroke, and on
   // every solo → collab remount.
-  const disarmListener = useCallback((instance: Editor) => {
-    instance.action((ctx) => {
-      const { listeners } = ctx.get(listenerCtx);
-      listeners.markdownUpdated.length = 0;
-      listeners.updated.length = 0;
-    });
-  }, []);
+  //
+  // Raw text typed in the last frame is written through afterwards, once the
+  // listener can no longer fire. In collab the provider may already be gone by
+  // now (a parent's cleanup runs before its child's), so that write is best
+  // effort; the per-frame pushes are what actually carry raw edits out.
+  const beforeDestroy = useCallback(
+    (instance: Editor) => {
+      instance.action((ctx) => {
+        const { listeners } = ctx.get(listenerCtx);
+        listeners.markdownUpdated.length = 0;
+        listeners.updated.length = 0;
+      });
+      const sync = rawSyncRef.current;
+      if (!sync.active) return;
+      cancelAnimationFrame(sync.pullFrame);
+      try {
+        pushRaw(instance);
+      } catch {
+        // A document already torn down beneath us has nowhere to write.
+      }
+      sync.active = false;
+    },
+    [pushRaw],
+  );
 
   const { editor, mountRef } = useMilkdownEditor(
     build,
-    disarmListener,
+    beforeDestroy,
     !collab || collabFactory !== null,
   );
 
@@ -236,7 +399,13 @@ export function MilkdownEditor({
   useEffect(() => {
     if (!editor) return;
     onEditorReadyRef.current?.(editor);
-    if (autoFocus) {
+    if (autoFocus && rawModeRef.current) {
+      // The rich editor is hidden: focusing it would send the first
+      // keystrokes into a document nobody can see.
+      const textarea = textareaRef.current;
+      textarea?.focus();
+      textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
+    } else if (autoFocus) {
       editor.action((ctx) => {
         const view = ctx.get(editorViewCtx);
         view.focus();
@@ -245,7 +414,7 @@ export function MilkdownEditor({
         );
       });
     }
-  }, [editor, autoFocus]);
+  }, [editor, autoFocus, textareaRef]);
 
   useEffect(() => {
     if (!editor) return;
@@ -260,37 +429,87 @@ export function MilkdownEditor({
     });
   }, [editor, disabled, contentLocked]);
 
-  // Carries the raw-mode content across a toggle. `null` until the first
-  // toggle, which is how the effect below tells a real mode change from the
-  // editor simply arriving: this effect's deps include `editor`, so it also
-  // fires on the null → instance transition at mount, and its `else` branch
-  // would then push the `content` prop into a document that was already built
-  // from it. Harmless solo; in collab it overwrites the shared fragment that
-  // ySyncPlugin has just rendered, with the note's real content replaced by
-  // whatever this client happened to have, which is the data loss the seeding
-  // effect above exists to avoid.
-  const previousRawModeRef = useRef<boolean | null>(null);
-
+  // Raw mode edits the note as text while the document stays in the rich
+  // editor, and the two are kept in step both ways rather than reconciled on
+  // the way out. They used to be reconciled on toggling back, by writing the
+  // textarea over the whole document, which in collab had two ways to lose
+  // work: a note closed while still in raw mode never reached the shared
+  // fragment at all, so its next opening showed, and saved, the text from
+  // before; and merely looking at a note in raw mode overwrote whatever a
+  // collaborator had written meanwhile.
+  //
+  // - Entering reads the text out of the editor, never from the `content`
+  //   prop, which in collab can be staler than the shared fragment the editor
+  //   is showing. Arriving counts as entering when the editor mounts straight
+  //   into raw mode, but leaving only happens after entering, so the editor
+  //   arriving in rich mode never writes anything.
+  // - Typing pushes the text into the editor once per frame (`pushRaw`), so
+  //   the document, and in collab everyone else, sees raw edits as they are
+  //   made, and nothing is left to write when the editor closes.
+  // - A change to the document that is not our own push's echo (a
+  //   collaborator's edit, or rich-mode typing still in the listener's
+  //   debounce when raw mode opened) is copied into the textarea, keeping the
+  //   caret. If something typed there has yet to be pushed, the push merges
+  //   the two instead.
+  // - `onChange` is fed from the textarea while raw mode is on, so what is
+  //   saved is the text as typed, not the serializer's rewrite of it.
   useEffect(() => {
     if (!editor) return;
-    const toggled = previousRawModeRef.current !== null;
-    previousRawModeRef.current = !!rawMode;
-    if (!toggled) return;
-    if (rawMode) {
+    const sync = rawSyncRef.current;
+    if (rawMode && !sync.active) {
       // The serializer ends every document with a newline, which in a
       // textarea is an empty last line under the text.
-      const md = getEditorMarkdown(editor).replace(/\n+$/, "");
-      setRawContent(md);
-      rawContentRef.current = md;
-    } else {
-      // Read the latest textarea value, not whatever was captured when the
-      // toggle effect was first scheduled; otherwise edits made in raw mode
-      // are silently dropped on the way back to WYSIWYG.
-      const latest = rawContentRef.current;
-      editor.action(replaceAll(latest));
-      onChangeRef.current(latest);
+      const text = getEditorMarkdown(editor).replace(/\n+$/, "");
+      sync.active = true;
+      sync.base = text;
+      sync.doc = editor.action((ctx) => ctx.get(editorViewCtx).state.doc);
+      rawContentRef.current = text;
+      setRawContent(text);
+    } else if (!rawMode && sync.active) {
+      cancelAnimationFrame(sync.pullFrame);
+      sync.pullFrame = 0;
+      pushRaw(editor);
+      sync.active = false;
     }
-  }, [rawMode, editor]);
+  }, [rawMode, editor, pushRaw]);
+
+  // Collaborators' edits have to be watched for directly: `ySyncPlugin`
+  // applies them as `addToHistory: false` transactions, which the markdown
+  // listener skips entirely.
+  documentChangedRef.current = () => {
+    const sync = rawSyncRef.current;
+    if (!editor || !sync.active || sync.pullFrame) return;
+    sync.pullFrame = requestAnimationFrame(() => {
+      sync.pullFrame = 0;
+      if (!sync.active) return;
+      const doc = editor.action((ctx) => ctx.get(editorViewCtx).state.doc);
+      // Our own push, which recorded the document it produced.
+      if (doc === sync.doc) return;
+      // Typed but not yet pushed: the push merges the two.
+      if (rawContentRef.current !== sync.base) return;
+      const md = getEditorMarkdown(editor);
+      const text = md.replace(/\n+$/, "");
+      sync.doc = doc;
+      if (text === sync.base) return;
+      sync.base = text;
+      replaceTextareaText(textareaRef.current, text);
+      rawContentRef.current = text;
+      setRawContent(text);
+      emitChange(md);
+    });
+  };
+
+  const onRawInput = (value: string) => {
+    rawContentRef.current = value;
+    setRawContent(value);
+    emitChange(value);
+    const sync = rawSyncRef.current;
+    if (!editor || !sync.active || sync.frame) return;
+    sync.frame = requestAnimationFrame(() => {
+      sync.frame = 0;
+      pushRaw(editor);
+    });
+  };
 
   // The textarea grows with its text rather than scrolling inside the note,
   // which already scrolls. Sizing it by counting newlines, as `rows` did,
@@ -324,13 +543,12 @@ export function MilkdownEditor({
         style={{ display: rawMode ? "" : "none" }}
         rows={1}
         value={rawContent}
-        onInput={(e) => {
-          const val = (e.target as HTMLTextAreaElement).value;
-          setRawContent(val);
-          onChangeRef.current(val);
-        }}
+        onInput={(e) => onRawInput((e.target as HTMLTextAreaElement).value)}
         disabled={disabled}
-        readOnly={contentLocked}
+        // Until the editor is up there is no document to read the text out of
+        // or push it into: what shows is the `content` prop, which is replaced
+        // by the document's own text the moment it arrives.
+        readOnly={contentLocked || !editor}
       />
       <div
         ref={mountRef}
