@@ -22,6 +22,7 @@ export const selectMode = signal(false);
 export const selectedNotes = signal<Set<string>>(new Set());
 export const editingNoteId = signal<string | null>(null);
 export const showSettings = signal(false);
+export const showWelcome = signal(false);
 export const searchQuery = signal("");
 export const searchTypes = signal<Set<SearchType>>(new Set());
 export const searchColors = signal<Set<NoteColor>>(new Set());

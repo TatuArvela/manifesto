@@ -38,6 +38,29 @@ export function resolveAppName(fallback: string): string {
 export const APP_NAME: string = resolveAppName(__APP_NAME__);
 
 /**
+ * Whether a first-time visitor is greeted by the welcome dialog, which says
+ * what the app is and, above all, where their notes are kept.
+ *
+ * On by default. Switched off with `VITE_APP_WELCOME=off` at build time, or in
+ * a release bundle by setting the `welcome-dialog` meta tag in `index.html` to
+ * `off`, for the same reason the name is read from a meta tag: an operator
+ * should not need a toolchain for it. The tag wins when it holds a value it
+ * recognises.
+ */
+export function resolveWelcomeEnabled(fallback: boolean): boolean {
+  if (typeof document === "undefined") return fallback;
+  const content = document
+    .querySelector<HTMLMetaElement>('meta[name="welcome-dialog"]')
+    ?.content?.trim()
+    .toLowerCase();
+  if (content === "on" || content === "true") return true;
+  if (content === "off" || content === "false") return false;
+  return fallback;
+}
+
+export const WELCOME_ENABLED: boolean = resolveWelcomeEnabled(__APP_WELCOME__);
+
+/**
  * Reduce a product name to something safe to put in a filename. Diacritics are
  * folded rather than dropped, so "Müistiö" becomes `muistio`; a name with no
  * ASCII letters or digits left after folding (a CJK-only name, say) falls back

@@ -4,16 +4,22 @@ import {
   APP_LOGO_URL,
   APP_NAME,
   resolveAppName,
+  resolveWelcomeEnabled,
   toFileSlug,
+  WELCOME_ENABLED,
 } from "./config.js";
 
 /**
  * Run `fn` with an `application-name` meta tag in the document, the state a
  * hand-edited release bundle is in when it loads.
  */
-function withMetaTag<T>(content: string, fn: () => T): T {
+function withMetaTag<T>(
+  content: string,
+  fn: () => T,
+  name = "application-name",
+): T {
   const meta = document.createElement("meta");
-  meta.name = "application-name";
+  meta.name = name;
   meta.content = content;
   document.head.appendChild(meta);
   try {
@@ -64,6 +70,31 @@ describe("resolveAppName()", () => {
 
   test("falls back when the document has no such tag", () => {
     expect(resolveAppName("Manifesto")).toBe("Manifesto");
+  });
+});
+
+describe("WELCOME_ENABLED", () => {
+  test("is on when nothing switches it off", () => {
+    expect(WELCOME_ENABLED).toBe(true);
+  });
+});
+
+describe("resolveWelcomeEnabled()", () => {
+  const withTag = (content: string, fallback: boolean) =>
+    withMetaTag(
+      content,
+      () => resolveWelcomeEnabled(fallback),
+      "welcome-dialog",
+    );
+
+  test("lets a release bundle's meta tag switch it off, or back on", () => {
+    expect(withTag("off", true)).toBe(false);
+    expect(withTag("ON", false)).toBe(true);
+  });
+
+  test("keeps the build's choice for a placeholder or a value it does not know", () => {
+    expect(withTag("%APP_WELCOME%", true)).toBe(true);
+    expect(withTag("maybe", false)).toBe(false);
   });
 });
 

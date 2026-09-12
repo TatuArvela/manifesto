@@ -43,6 +43,15 @@ function saveNotes(notes: Note[]): void {
   }
 }
 
+/** Whether this browser has ever saved notes in open mode. */
+export function hasStoredNotes(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Calls `onChange` when another tab writes the notes key, with the list as it
  * now stands on disk.

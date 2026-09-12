@@ -100,6 +100,7 @@ export {
   showError,
   showSettings,
   showSuccess,
+  showWelcome,
   tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
