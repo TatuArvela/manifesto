@@ -878,16 +878,17 @@ body.note-drag-active .note-select {
   font-weight: 600;
 }
 
-/* Links */
+/* Links: underlined in the note's own text colour, alike on the card, in
+   read-only views and in the editor. A blue link fought every note colour and
+   read as a different thing on a card than in its own editor; and a checklist
+   label, rendered outside `.prose`, had no underline at all, so a link there
+   looked like plain text. */
 .prose a,
-.milkdown-editor a {
-  color: #2563eb;
+.milkdown-editor a,
+.note-inline-markdown a {
+  color: inherit;
   text-decoration: underline;
-}
-
-.dark .prose a,
-.dark .milkdown-editor a {
-  color: #60a5fa;
+  text-underline-offset: 0.15em;
 }
 
 /* ── Milkdown editor styles ──────────────────────────────────────────── */
