@@ -609,6 +609,24 @@ html.dark {
   animation: note-pin-settle 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Trashing and deleting. The card is tossed: it drops a little, tips and
+   fades, accelerating away rather than easing to a stop, since it is leaving
+   rather than arriving. The grid closes the gap once it is gone. `forwards`
+   keeps it invisible through a slow server response, and `leavingNotes` in
+   state/actions.ts clears the class if the removal fails, which brings the
+   card back. Its duration is `LEAVE_MS` there. */
+@keyframes note-leave {
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92) rotate(-2deg);
+  }
+}
+
+.note-leaving {
+  animation: note-leave 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
 /* Drag-and-drop reorder */
 .note-dragging {
   opacity: 0.3;

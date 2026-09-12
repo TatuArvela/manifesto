@@ -32,6 +32,7 @@ import {
   editingNoteId,
   enterSelectMode,
   hasCheckedItems,
+  leavingNotes,
   noteSize,
   permanentlyDeleteNote,
   recentlyPinned,
@@ -433,6 +434,7 @@ export function NoteCard({
         class={clsx(
           "relative group note-draggable-wrapper",
           pinSettling && "note-pin-settle",
+          leavingNotes.value.has(note.id) && "note-leaving",
           noteSize.value === "square" &&
             viewMode.value === "list" &&
             "w-full max-w-sm mx-auto",

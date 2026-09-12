@@ -25,6 +25,7 @@ export {
   filteredNotes,
   hasCheckedItems,
   importNotes,
+  leavingNotes,
   loadNotes,
   noteHasChecklist,
   notes,
