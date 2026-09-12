@@ -13,7 +13,7 @@ import {
 import type { ComponentChildren, JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
-import { APP_FILE_SLUG, APP_NAME } from "../config.js";
+import { APP_FILE_SLUG, APP_NAME, WELCOME_ENABLED } from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { detectBrowserLocale } from "../i18n/detect.js";
@@ -41,6 +41,7 @@ import {
   noteCorners,
   noteQuips,
   showSettings,
+  showWelcome,
   type ThemeMode,
   theme,
 } from "../state/index.js";
@@ -598,6 +599,21 @@ export function SettingsDialog() {
               </a>
               {" · "}
               {t("settings.about.license")}
+              {WELCOME_ENABLED && (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    class="underline hover:text-neutral-700 dark:hover:text-neutral-300 cursor-pointer"
+                    onClick={() => {
+                      handleClose();
+                      showWelcome.value = true;
+                    }}
+                  >
+                    {t("settings.about.welcome")}
+                  </button>
+                </>
+              )}
             </p>
           </div>
         </div>

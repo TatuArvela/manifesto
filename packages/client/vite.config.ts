@@ -66,9 +66,10 @@ const DEFAULT_APP_NAME = "Manifesto";
 const DEFAULT_APP_DESCRIPTION = "Sticky-note style note-taking app.";
 
 /**
- * The product name and tagline shown to users. Resolved once, here, so the
- * bundle (`__APP_NAME__`), `index.html`, and `manifest.webmanifest` cannot
- * disagree about what the app is called or what it says it does.
+ * The product name and tagline shown to users, and whether the welcome dialog
+ * greets them. Resolved once, here, so the bundle (`__APP_NAME__`,
+ * `__APP_WELCOME__`), `index.html`, and `manifest.webmanifest` cannot disagree
+ * about what the app is called, what it says it does, or how it opens.
  */
 function resolveBranding(env: Record<string, string>) {
   const pick = (configured: string | undefined, fallback: string) => {
@@ -78,15 +79,23 @@ function resolveBranding(env: Record<string, string>) {
   return {
     appName: pick(env.VITE_APP_NAME, DEFAULT_APP_NAME),
     appDescription: pick(env.VITE_APP_DESCRIPTION, DEFAULT_APP_DESCRIPTION),
+    // On unless switched off: a new user should hear where their notes go.
+    appWelcome: /^(off|false|0|no)$/i.test(env.VITE_APP_WELCOME?.trim() ?? "")
+      ? "off"
+      : "on",
   };
 }
 
 type Branding = ReturnType<typeof resolveBranding>;
 
-function applyBranding(src: string, { appName, appDescription }: Branding) {
+function applyBranding(
+  src: string,
+  { appName, appDescription, appWelcome }: Branding,
+) {
   return src
     .replaceAll("%APP_NAME%", appName)
-    .replaceAll("%APP_DESCRIPTION%", appDescription);
+    .replaceAll("%APP_DESCRIPTION%", appDescription)
+    .replaceAll("%APP_WELCOME%", appWelcome);
 }
 
 /**
@@ -213,6 +222,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
       __APP_NAME__: JSON.stringify(branding.appName),
+      __APP_WELCOME__: JSON.stringify(branding.appWelcome === "on"),
     },
     resolve: {
       alias: {

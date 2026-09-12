@@ -26,6 +26,7 @@ Everything the client needs is baked in at build time. `VITE_MANIFESTO_SERVER` i
 | `VITE_MANIFESTO_SERVER`   | unset   | Absolute URL of the Manifesto server. Unset → open mode. Set → connected mode.               |
 | `VITE_LINK_PREVIEW_API`   | microlink.io | Endpoint used by the editor to fetch link-preview metadata.                            |
 | `VITE_APP_NAME`           | `Manifesto` | Branding: the product name, description and icons. See [Rebranding](#rebranding).       |
+| `VITE_APP_WELCOME`        | on      | The first-visit welcome dialog. See [Welcome dialog](#welcome-dialog).                       |
 
 The Vite config also reads `VITE_MANIFESTO_SERVER` to extend the `index.html` Content Security Policy: when set, the URL's HTTP and `ws(s)://` origins are added to `connect-src`. When unset, the CSP stays at `connect-src 'self'` and the build cannot reach any external server, a useful defence-in-depth check that an open-mode build is genuinely local.
 
@@ -47,6 +48,23 @@ VITE_MANIFESTO_SERVER=https://server.example.com \
 ```
 
 The server's `CORS_ORIGINS` must include the client's deployed origin, or the browser will block requests.
+
+## Welcome dialog
+
+A browser's first visit opens a short welcome that says what the app is and,
+above all, where notes are saved: in this browser in open mode, with what that
+means for syncing and clearing site data, or on the named server under the
+signed-in account in connected mode. It is shown once per browser and can be
+reopened from Settings. An open-mode browser that already holds notes is
+treated as having seen it, so upgrading an existing instance does not greet
+its users as new.
+
+It is on by default. To leave it out, build with `VITE_APP_WELCOME=off`, or in
+a release bundle set the meta tag in `index.html` (and `404.html`):
+
+```html
+<meta name="welcome-dialog" content="off" />
+```
 
 ## Rebranding
 
@@ -103,8 +121,8 @@ and the icons are plain files at fixed paths. Unzip and edit in place.
 
 | File | What to change |
 |---|---|
-| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">` |
-| `404.html` | the same three (it is a copy of `index.html` for SPA fallback) |
+| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, and `<meta name="welcome-dialog">` to switch the welcome off |
+| `404.html` | the same tags (it is a copy of `index.html` for SPA fallback) |
 | `manifest.webmanifest` | `name`, `short_name`, `description` |
 | `logo.svg`, `favicon.svg`, `icon-1024.png` | overwrite with your own |
 

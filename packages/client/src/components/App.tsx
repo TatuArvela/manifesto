@@ -17,10 +17,12 @@ import {
   notes,
   showError,
   showSuccess,
+  showWelcome,
   updateNote,
   viewMode,
 } from "../state/index.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
+import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
 import { AutoNotesView } from "./AutoNotesView.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
@@ -35,6 +37,7 @@ import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { MobileNav, Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
+import { WelcomeDialog } from "./WelcomeDialog.js";
 
 // True only on the *very first render* of a page that landed with `#token=`
 // in the URL. The OIDC consumer runs once (in useEffect, after this render
@@ -87,6 +90,7 @@ function MainApp() {
     window.addEventListener("reminder:open-note", openHandler);
     const payload = decodeShareFromHash(window.location.hash);
     if (payload) setSharedNote(payload);
+    welcomeIfNew();
     return () => {
       window.removeEventListener("reminder:open-note", openHandler);
       stopAutoNotes();
@@ -239,6 +243,8 @@ function MainApp() {
           onDone={() => setSharedNote(null)}
         />
       )}
+      {/* After a shared note, not on top of it: the link is why they came. */}
+      {showWelcome.value && !sharedNote && <WelcomeDialog />}
       {dragActive && (
         <div class="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center bg-blue-500/10 backdrop-blur-[2px]">
           <div class="m-6 px-8 py-6 rounded-2xl border-2 border-dashed border-blue-500 bg-white/90 dark:bg-neutral-800/90 shadow-xl flex flex-col items-center gap-2 text-center">

@@ -139,6 +139,7 @@ already saved in a browser.
 | Export and crash-backup filenames | derived from `VITE_APP_NAME` |
 | PWA manifest description, HTML meta description | `VITE_APP_DESCRIPTION` |
 | Header mark, favicon, PWA icon | `VITE_APP_ICONS_DIR` |
+| First-visit welcome dialog, on or off | `VITE_APP_WELCOME`, or the `welcome-dialog` meta tag in a release bundle |
 
 No translated string spells the name out. The message catalogues carry an
 `{appName}` placeholder that is filled at render time, so a rebrand reaches
