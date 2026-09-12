@@ -55,7 +55,9 @@ export function TagsView() {
   };
 
   return (
-    <div class="mt-4 mb-6 flex flex-col gap-3">
+    // Centred in the same column in grid mode as in list mode, like the search
+    // filters: the notes below spread across the grid, the controls do not.
+    <div class="mt-4 mb-6 flex flex-col gap-3 w-full max-w-xl mx-auto">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
           {t("nav.tags")}
