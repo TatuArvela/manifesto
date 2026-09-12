@@ -34,7 +34,7 @@ export const fi: Messages = {
   },
 
   // Header: search & controls
-  "header.searchPlaceholder": "Hae muistiinpanoja...",
+  "header.searchPlaceholder": "Hae",
   "header.sort": "Järjestä",
   "header.sortNotes": "Järjestä muistiinpanot",
   "header.view": "Näkymä",
