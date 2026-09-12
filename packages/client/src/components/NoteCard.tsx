@@ -318,6 +318,7 @@ export function NoteCard({
   const hasImages = imageCountOf(note) > 0;
   const isImageOnly = hasImages && !note.title && !note.content;
   const hasLinkPreviews = note.linkPreviews.length > 0;
+  const isSquare = noteSize.value === "square";
   const isLinkOnly =
     hasLinkPreviews &&
     !note.title &&
@@ -616,25 +617,38 @@ export function NoteCard({
           </div>
 
           {hasImages && (
-            <div ref={imagesRef} class={isImageOnly ? "" : "-mx-4 -mt-4 mb-3"}>
+            <div
+              ref={imagesRef}
+              class={
+                isImageOnly
+                  ? isSquare
+                    ? "flex-1 min-h-0"
+                    : ""
+                  : "-mx-4 -mt-4 mb-3"
+              }
+            >
               {imagesLoading ? (
                 // Reserved rather than left empty: the masonry grid measures
                 // this card, and a picture arriving afterwards would reflow
                 // the column under the reader's hands.
                 <div
-                  class="w-full bg-black/5 dark:bg-white/5 animate-pulse"
-                  style={{ aspectRatio: "4 / 3" }}
+                  class={`w-full bg-black/5 dark:bg-white/5 animate-pulse ${isImageOnly && isSquare ? "h-full" : ""}`}
+                  style={
+                    isImageOnly && isSquare
+                      ? undefined
+                      : { aspectRatio: "4 / 3" }
+                  }
                   aria-hidden="true"
                 />
               ) : (
-                <ImageGallery images={images} />
+                <ImageGallery images={images} fill={isImageOnly && isSquare} />
               )}
             </div>
           )}
 
           {isLinkOnly ? (
             <>
-              <LinkPreviewHero preview={note.linkPreviews[0]} />
+              <LinkPreviewHero preview={note.linkPreviews[0]} fill={isSquare} />
               {note.linkPreviews.length > 1 && (
                 <div class="p-3">
                   <LinkPreviewList
@@ -651,7 +665,10 @@ export function NoteCard({
                 class={clsx(
                   "overflow-hidden",
                   contentClipped && "note-content-fade",
-                  noteSize.value === "square" ? "flex-1 min-h-0" : "max-h-80",
+                  // With nothing to show, an image-only note's text block
+                  // must not stretch too, or it takes half of a square card
+                  // from the images.
+                  isSquare && !isImageOnly ? "flex-1 min-h-0" : "max-h-80",
                 )}
                 style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
               >

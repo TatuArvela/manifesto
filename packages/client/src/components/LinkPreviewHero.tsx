@@ -1,13 +1,24 @@
 import type { LinkPreview } from "@manifesto/shared";
 import { ExternalLink, Link as LinkIcon } from "lucide-preact";
 
-export function LinkPreviewHero({ preview }: { preview: LinkPreview }) {
+export function LinkPreviewHero({
+  preview,
+  fill,
+}: {
+  preview: LinkPreview;
+  /**
+   * Stretch to the height of a flex column instead of keeping 16:9: a square
+   * card is taller than that, and a fixed-shape hero left its bottom third as
+   * bare note colour.
+   */
+  fill?: boolean;
+}) {
   return (
     <a
       href={preview.url}
       target="_blank"
       rel="noopener noreferrer"
-      class="block relative aspect-video w-full bg-black/70 overflow-hidden no-underline text-white"
+      class={`block relative ${fill ? "flex-1 min-h-0" : "aspect-video"} w-full bg-black/70 overflow-hidden no-underline text-white`}
       onClick={(e) => e.stopPropagation()}
     >
       {preview.image ? (
@@ -26,7 +37,9 @@ export function LinkPreviewHero({ preview }: { preview: LinkPreview }) {
         <ExternalLink class="w-4 h-4" />
       </div>
       <div class="absolute bottom-0 left-0 right-0 p-3">
-        <div class="text-base font-medium leading-tight line-clamp-2">
+        {/* A bare URL is one long word; let it break anywhere rather than
+            run off the card's edge. */}
+        <div class="text-base font-medium leading-tight line-clamp-2 [overflow-wrap:anywhere]">
           {preview.title}
         </div>
         <div class="text-xs opacity-80 mt-0.5 truncate">{preview.domain}</div>
