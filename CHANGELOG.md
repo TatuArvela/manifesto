@@ -1,5 +1,84 @@
 # Changelog
 
+## [0.1.3](https://github.com/TatuArvela/manifesto/compare/v0.1.2...v0.1.3) (2026-09-12)
+
+
+### Features
+
+* **client:** add a dark shade and a quips toggle, grouped into sections ([2b2fc10](https://github.com/TatuArvela/manifesto/commit/2b2fc10d8ba07a307885f330576f19213198cede))
+* **client:** add a rounded / straight note corner option ([bf5c601](https://github.com/TatuArvela/manifesto/commit/bf5c6016508598cde7f93c340e59114fb0231f8a))
+* **client:** add an animations toggle, defaulting to the OS motion setting ([28f8a31](https://github.com/TatuArvela/manifesto/commit/28f8a31f72da6fc17b24a10a9f8500fff3e4b106))
+* **client:** add an error boundary so a bad note can't white-screen the app ([b159872](https://github.com/TatuArvela/manifesto/commit/b1598729b4ba97742d002b2d5c573f4ec4efe79a))
+* **client:** animate the selection outline, and peel the sheet downward ([9372c3a](https://github.com/TatuArvela/manifesto/commit/9372c3a37797bd0a014feae86876f32fcda7f341))
+* **client:** close the new note editor with Escape ([f60629f](https://github.com/TatuArvela/manifesto/commit/f60629fddad5440bfb13545f9a27682a5b3c8650))
+* **client:** exit search with Escape ([e0fa88c](https://github.com/TatuArvela/manifesto/commit/e0fa88c118566c1ab2ee89698fd3a1ecbfbc108f))
+* **client:** explain automatic notes on the empty plugins page ([17aa0ee](https://github.com/TatuArvela/manifesto/commit/17aa0ee10aeedff645e1417ec5f2cf7889a3ba87))
+* **client:** give the note stack a paper texture ([ca8566e](https://github.com/TatuArvela/manifesto/commit/ca8566e88beafa6fa9d9b915ca5eca9381cf70be))
+* **client:** make the grid keyboard-reachable and trap focus in modals ([c13b9b9](https://github.com/TatuArvela/manifesto/commit/c13b9b9685b6c2ffc7329a0c071d7c793bebdf2d))
+* **client:** parametrize the product name, description and brand marks ([211529e](https://github.com/TatuArvela/manifesto/commit/211529e5381144235b452d2685b946a37f85e811))
+* **client:** polish the search field ([4e2f2de](https://github.com/TatuArvela/manifesto/commit/4e2f2de352331e8e75e033b716ea0f202c428e12))
+* **client:** rebuild the note stack peel and landing animations ([3c56368](https://github.com/TatuArvela/manifesto/commit/3c5636888e3203233d9d2c3be972d103ebcd7fbc))
+* **client:** settle a note into place when it is pinned ([f40943b](https://github.com/TatuArvela/manifesto/commit/f40943b9839bb9889bb11549e1d2447def54c04e))
+* **client:** show the brand mark on the login screen ([661f1d8](https://github.com/TatuArvela/manifesto/commit/661f1d8d9a534293db646ee492ecd6f283758f41))
+* page the note listings and leave attachments out of them ([e036a8c](https://github.com/TatuArvela/manifesto/commit/e036a8c9da2414c6d4a486640eb8aff16af8e9f8))
+* **server:** give sessions an absolute lifetime and reap expired ones ([bb42178](https://github.com/TatuArvela/manifesto/commit/bb42178be871dfdda4839044c96d03b6fb76e6d5))
+* **server:** shut down gracefully on SIGTERM and SIGINT ([1e8f4dd](https://github.com/TatuArvela/manifesto/commit/1e8f4ddae591459e2afde31afdee3dd6e2e90be8))
+* **server:** version the schema instead of re-running one CREATE blob ([e51d467](https://github.com/TatuArvela/manifesto/commit/e51d4676cd346332f6a552d07aa02a932261bc9d))
+
+
+### Bug Fixes
+
+* accept the images the client actually produces ([53a8532](https://github.com/TatuArvela/manifesto/commit/53a85329244bb5c5559c93afb361ab9391787387))
+* **client:** bound the trailing-punctuation regex ([a6712d1](https://github.com/TatuArvela/manifesto/commit/a6712d1f13e2adeb0c44066278b932a7ee775cd9))
+* **client:** centre the search filters in grid view as well as list ([19870a8](https://github.com/TatuArvela/manifesto/commit/19870a8a917051f06eb423fd8cd936d7737d8ff1))
+* **client:** connect with @hocuspocus/provider ([971d320](https://github.com/TatuArvela/manifesto/commit/971d32093c7bf8273e695a5d396c1a23cd8628c6))
+* **client:** disarm Milkdown's listener before destroying the editor ([552dafd](https://github.com/TatuArvela/manifesto/commit/552dafdb34b307927ed515d4acb90a5310c5b0e2))
+* **client:** dismiss the trigger's tooltip when a panel opens over it ([30237f5](https://github.com/TatuArvela/manifesto/commit/30237f5a5c90da336dce2e5219b9b6d4d2ef7755))
+* **client:** don't let an open tooltip swallow Escape ([e3ce36a](https://github.com/TatuArvela/manifesto/commit/e3ce36a802c2e3cc081bf78b0a84563bd00c0aa5))
+* **client:** draw note selection as an outline so it can't reflow the grid ([9922296](https://github.com/TatuArvela/manifesto/commit/99222969274bf4d327c54e6de482c1da4d8febf8))
+* **client:** fetch every attachment before writing an export ([149ecc1](https://github.com/TatuArvela/manifesto/commit/149ecc17d9e7b087e3aa9b0441e42eac2d3cd7b7))
+* **client:** fix the note stack's open and close choreography ([9864d77](https://github.com/TatuArvela/manifesto/commit/9864d777f12195645b537bbe7da7cfbdab2fa1d2))
+* **client:** flip dropdowns at the viewport edge, and place them without anchor positioning ([ce0f3bf](https://github.com/TatuArvela/manifesto/commit/ce0f3bf4b32d5a2f13872f6f6dc22d370d1fd57d))
+* **client:** give Escape to one layer and let the signal close the modal ([1f76361](https://github.com/TatuArvela/manifesto/commit/1f76361ccd8677798d4a3bca57741772d5f5a214))
+* **client:** install the collab plugin once the provider has synced ([26d7e7a](https://github.com/TatuArvela/manifesto/commit/26d7e7afc8f08c8f60777ac27158d3171014e259))
+* **client:** keep checklist actions out of code fences ([bef08b4](https://github.com/TatuArvela/manifesto/commit/bef08b478323634a57a5841dfd9c2db999e28b0c))
+* **client:** keep single-version histories when trimming under quota ([cc576ff](https://github.com/TatuArvela/manifesto/commit/cc576ff3ea6e0cce6d7876d43fe7d343ebe7263e))
+* **client:** make the Fun Quips setting do something ([8746c0d](https://github.com/TatuArvela/manifesto/commit/8746c0deb88118c26f08880133806cc4563145c9))
+* **client:** place card popovers with the same geometry as dropdowns ([842834a](https://github.com/TatuArvela/manifesto/commit/842834a9ed9f9573b6585139e5bc37f428ef4300))
+* **client:** re-measure a card whose height settles after it is drawn ([0ff1fe3](https://github.com/TatuArvela/manifesto/commit/0ff1fe30baabb2f735dd687e1f2a1c93ed84d956))
+* **client:** reveal the next sheet without cross-fading it ([6c1ab84](https://github.com/TatuArvela/manifesto/commit/6c1ab843c1363f93795ef8af644990ece166b0e6))
+* **client:** round the note stack's sheets, not just the pad around them ([f8997f1](https://github.com/TatuArvela/manifesto/commit/f8997f14969043ab3fc9884c27c33b5cac8ee1fd))
+* **client:** run plugins in a worker and validate their output host-side ([3d32016](https://github.com/TatuArvela/manifesto/commit/3d32016bde59fc621d4ce6807bc2144fe0f6a71d))
+* **client:** sanitize inside renderMarkdown, not at each call site ([2725f2d](https://github.com/TatuArvela/manifesto/commit/2725f2db3e46923671b9f990456c5ec390e665d3))
+* **client:** stop an image write erasing a note's attachments ([a6cfbb3](https://github.com/TatuArvela/manifesto/commit/a6cfbb308012a3b528e7e498e5ef09fcb1d205e5))
+* **client:** stop dark code blocks wearing the inline-code background ([d308b3c](https://github.com/TatuArvela/manifesto/commit/d308b3cb242edac9a6d6ca6b0340be199f89eea7))
+* **client:** stop dismissed reminders re-firing every minute ([116059d](https://github.com/TatuArvela/manifesto/commit/116059dbf180eefee4e5b0847e569be47212c0f2))
+* **client:** stop dropdown panels rendering black text in dark mode ([d8ca4eb](https://github.com/TatuArvela/manifesto/commit/d8ca4eb2684dc33138955ea37213dbc208c40601))
+* **client:** stop markdown rules running where they do not apply ([a87b046](https://github.com/TatuArvela/manifesto/commit/a87b046e034db4a89b606fa77f4a2eb136d7ba88))
+* **client:** stop the editor overwriting a synced note on mount ([4ba315a](https://github.com/TatuArvela/manifesto/commit/4ba315ad47de5b918dbe38152acfe678802451ae))
+* **client:** stop the note stack flashing full width on leaving search ([1406fa2](https://github.com/TatuArvela/manifesto/commit/1406fa214f9e5f7070abb5ddada9d966903707c3))
+* **client:** stop the note stack lurching when the editor closes ([3abd512](https://github.com/TatuArvela/manifesto/commit/3abd5129e8acd284a8744e4b1755a36310269342))
+* **client:** suppress the duplicate native clear button in the header search ([0d68deb](https://github.com/TatuArvela/manifesto/commit/0d68deb9ad24f352a978158b06103c707bf9d84d))
+* **client:** sync tabs through storage events and type the network seams ([b5697b8](https://github.com/TatuArvela/manifesto/commit/b5697b848a6236125d3c70d8efc9c826bdf09553))
+* **client:** validate every field on bulk import ([f0f773b](https://github.com/TatuArvela/manifesto/commit/f0f773beb181218cc8d2ffdaaeee360e61dfb152))
+* make the advertised image size the one actually enforced ([31a6689](https://github.com/TatuArvela/manifesto/commit/31a668966e149ff971d77b2d482aa50e40233ab7))
+* **server:** attach a socket error listener before the upgrade awaits ([ca730cc](https://github.com/TatuArvela/manifesto/commit/ca730cc5460e2960bb88c6ecebdd3ed4e3d371d7))
+* **server:** bind the OIDC callback to its browser and throttle the router ([f0a3987](https://github.com/TatuArvela/manifesto/commit/f0a3987dbabdb9b1669e17fa3daab9cd6d8822cd))
+* **server:** keep query strings out of the access log ([36093b9](https://github.com/TatuArvela/manifesto/commit/36093b9761edd530b4b4b511eff45c9c117200ee))
+* **server:** read the socket and authorize the document that is joined ([b4e43d1](https://github.com/TatuArvela/manifesto/commit/b4e43d12cca8fca24371d12ec008ea85618d9a03))
+* **server:** stamp trashedAt on the server rather than trusting the client ([186f60c](https://github.com/TatuArvela/manifesto/commit/186f60c84ea640c6ae9ccd382b766abe5071021a))
+
+
+### Performance Improvements
+
+* **client:** composite the settings panel slide so it doesn't stutter ([f64e684](https://github.com/TatuArvela/manifesto/commit/f64e684726754df7a5f6581ae65e7a0b79063a66))
+* **client:** load the collaboration stack only in connected mode ([86adb90](https://github.com/TatuArvela/manifesto/commit/86adb90fc59717beb395539e7d8b7bdf57358e1c))
+
+
+### Reverts
+
+* **client:** restore the original search field styling ([7154f2d](https://github.com/TatuArvela/manifesto/commit/7154f2d9e13e50107b001fb70ef225b60c6bb94a))
+
 ## [0.1.2](https://github.com/TatuArvela/manifesto/compare/v0.1.1...v0.1.2) (2026-09-01)
 
 
