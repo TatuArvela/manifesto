@@ -35,8 +35,11 @@ import {
   getFontLabel,
   t,
 } from "../i18n/index.js";
+import { hasCheckedItems as textHasCheckedItems } from "../state/actions.js";
 import { showError } from "../state/ui.js";
 import { extractUrls } from "../utils/linkPreview.js";
+import { removeCheckedItems } from "../utils/markdown.js";
+import { applyTextEdit } from "../utils/rawFormatting.js";
 import { Dropdown } from "./Dropdown.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { ImageGallery } from "./ImageGallery.js";
@@ -145,6 +148,11 @@ export function NoteEditor({
   const titleRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
+  const rawTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // The textarea is always mounted, only hidden, so this is the one switch for
+  // everything that edits "the note's text": in raw mode that is the textarea,
+  // and the rich editor behind it is rebuilt from it on the way back.
+  const rawTextarea = rawMode ? rawTextareaRef.current : null;
 
   // Measured on the encoded data URL rather than `file.size`, because that is
   // the value the server bounds and base64 inflates by about a third, so a check
@@ -241,6 +249,45 @@ export function NoteEditor({
     };
   }, [editor]);
 
+  // The rich editor's transactions are what refresh the toolbar in rich mode;
+  // in raw mode the textarea's typing and caret moves have to do it instead.
+  useEffect(() => {
+    const textarea = rawTextareaRef.current;
+    if (!rawMode || !textarea) return;
+    const bump = () => setTxCount((c) => c + 1);
+    const onSelectionChange = () => {
+      if (document.activeElement === textarea) bump();
+    };
+    const events = ["input", "select", "keyup", "mouseup", "focus"] as const;
+    for (const type of events) textarea.addEventListener(type, bump);
+    document.addEventListener("selectionchange", onSelectionChange);
+    return () => {
+      for (const type of events) textarea.removeEventListener(type, bump);
+      document.removeEventListener("selectionchange", onSelectionChange);
+    };
+  }, [rawMode]);
+
+  const focusText = (at: "start" | "end") => {
+    if (rawTextarea) {
+      const pos = at === "start" ? 0 : rawTextarea.value.length;
+      rawTextarea.focus();
+      rawTextarea.setSelectionRange(pos, pos);
+      return;
+    }
+    editor?.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      view.focus();
+      const { doc } = view.state;
+      view.dispatch(
+        view.state.tr.setSelection(
+          at === "start"
+            ? TextSelection.atStart(doc)
+            : TextSelection.atEnd(doc),
+        ),
+      );
+    });
+  };
+
   const colors = noteColorMap[color];
   const pickerColors = getColorPickerColors();
 
@@ -253,28 +300,47 @@ export function NoteEditor({
   // Read straight off the editor on every render rather than memoised: the
   // `txCount` bump in `dispatchTransaction` is what schedules that render, so
   // these are as fresh as the last transaction.
-  const canUndo = editor
-    ? editor.action((ctx) => undoDepth(ctx.get(editorStateCtx)) > 0)
-    : false;
-  const canRedo = editor
-    ? editor.action((ctx) => redoDepth(ctx.get(editorStateCtx)) > 0)
-    : false;
-  const hasCheckedItems = editor
-    ? editor.action((ctx) => {
-        const state = ctx.get(editorStateCtx);
-        let found = false;
-        state.doc.descendants((node) => {
-          if (found) return false;
-          if (node.type.name === "list_item" && node.attrs.checked === true) {
-            found = true;
-            return false;
-          }
-        });
-        return found;
-      })
-    : false;
+  //
+  // The undo buttons drive the rich editor's history, which in raw mode
+  // belongs to a document that is about to be replaced, so they stand down
+  // there; the textarea's own undo (Cmd+Z) covers raw edits, toolbar ones
+  // included.
+  const canUndo =
+    editor && !rawMode
+      ? editor.action((ctx) => undoDepth(ctx.get(editorStateCtx)) > 0)
+      : false;
+  const canRedo =
+    editor && !rawMode
+      ? editor.action((ctx) => redoDepth(ctx.get(editorStateCtx)) > 0)
+      : false;
+  const hasCheckedItems = rawTextarea
+    ? textHasCheckedItems(rawTextarea.value)
+    : editor
+      ? editor.action((ctx) => {
+          const state = ctx.get(editorStateCtx);
+          let found = false;
+          state.doc.descendants((node) => {
+            if (found) return false;
+            if (node.type.name === "list_item" && node.attrs.checked === true) {
+              found = true;
+              return false;
+            }
+          });
+          return found;
+        })
+      : false;
 
   const deleteCheckedItems = () => {
+    if (rawTextarea) {
+      const value = removeCheckedItems(rawTextarea.value);
+      const caret = Math.min(rawTextarea.selectionStart, value.length);
+      applyTextEdit(rawTextarea, {
+        value,
+        selectionStart: caret,
+        selectionEnd: caret,
+      });
+      return;
+    }
     if (!editor) return;
     editor.action((ctx) => {
       const view = ctx.get(editorViewCtx);
@@ -350,15 +416,7 @@ export function NoteEditor({
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              editor?.action((ctx) => {
-                const view = ctx.get(editorViewCtx);
-                view.focus();
-                view.dispatch(
-                  view.state.tr.setSelection(
-                    TextSelection.atStart(view.state.doc),
-                  ),
-                );
-              });
+              focusText("start");
             }
           }}
           disabled={disabled}
@@ -368,6 +426,7 @@ export function NoteEditor({
         {!disabled && !contentLocked && editor && (
           <FormattingToolbar
             editor={editor}
+            rawTextarea={rawTextarea}
             tick={txCount}
             disabled={disabled}
             onAddLink={onAddLinkPreview}
@@ -380,14 +439,8 @@ export function NoteEditor({
           class="max-sm:flex-1 max-sm:min-h-0 max-sm:cursor-text"
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
           onClick={(e) => {
-            if (e.target !== e.currentTarget || !editor) return;
-            editor.action((ctx) => {
-              const view = ctx.get(editorViewCtx);
-              view.focus();
-              view.dispatch(
-                view.state.tr.setSelection(TextSelection.atEnd(view.state.doc)),
-              );
-            });
+            if (e.target !== e.currentTarget) return;
+            focusText("end");
           }}
         >
           <MilkdownEditor
@@ -401,6 +454,7 @@ export function NoteEditor({
             disabled={disabled}
             contentLocked={contentLocked}
             rawMode={rawMode}
+            textareaRef={rawTextareaRef}
             autoFocus
             onEditorReady={setEditor}
             collab={collab}

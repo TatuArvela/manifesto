@@ -43,6 +43,36 @@ export function setChecklistChecked(line: string, checked: boolean): string {
     : `${parsed.indent}${parsed.bullet}[${box}]`;
 }
 
+/**
+ * `content` without its ticked checklist items. Indented descendants go with
+ * their parent, so a subtree is removed whole. A fence ends the subtree:
+ * whatever is quoted inside it is not this item's child, and deleting into it
+ * would leave the block unterminated.
+ */
+export function removeCheckedItems(content: string): string {
+  const lines = content.split("\n");
+  const fenced = markFencedLines(lines);
+  const toRemove = new Set<number>();
+
+  for (let i = 0; i < lines.length; i++) {
+    if (fenced[i]) continue;
+    const item = parseChecklistLine(lines[i]);
+    if (!item?.checked) continue;
+    toRemove.add(i);
+    const parentIndent = item.indent.length;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (fenced[j]) break;
+      const child = parseChecklistLine(lines[j]);
+      if (!child) break;
+      if (child.indent.length <= parentIndent) break;
+      toRemove.add(j);
+    }
+  }
+
+  if (toRemove.size === 0) return content;
+  return lines.filter((_, i) => !toRemove.has(i)).join("\n");
+}
+
 /** Returns true if a line is a checklist item */
 export function isChecklistLine(line: string): boolean {
   return CHECKLIST_RE.test(line);
