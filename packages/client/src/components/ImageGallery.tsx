@@ -41,7 +41,7 @@ export function ImageGallery({ images, onDelete }: ImageGalleryProps) {
             {onDelete && (
               <button
                 type="button"
-                class="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 hover:bg-black/80 transition-opacity cursor-pointer"
+                class="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 focus-visible:opacity-100 hover:bg-black/80 transition-opacity cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(i);
