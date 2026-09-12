@@ -14,22 +14,23 @@ ENV CI=true
 # Install build toolchain for better-sqlite3 / argon2 native bindings.
 RUN apk add --no-cache python3 make g++
 
-# Copy workspace manifests first so the dep layer caches between source edits.
+# Copy workspace manifests first so the dep layer caches between server edits.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
-COPY packages/shared/package.json packages/shared/
 COPY packages/server/package.json packages/server/
+
+# shared goes in whole, not just its manifest: its `prepare` script runs tsc
+# during install, and tsc with no tsconfig.json prints its help and exits 1.
+# That compile is also the shared build — the server imports its output
+# (@manifesto/shared resolves to dist/index.js at runtime).
+COPY packages/shared packages/shared
 
 # Select both packages directly so shared's devDependencies (typescript) are
 # installed too — the builder compiles shared, not just server.
 RUN pnpm install --filter @manifesto/server --filter @manifesto/shared --frozen-lockfile
 
-# Copy sources and build. Build shared first — the server imports its compiled
-# output (@manifesto/shared resolves to dist/index.js at runtime).
-COPY packages/shared packages/shared
 COPY packages/server packages/server
-RUN pnpm --filter @manifesto/shared build \
-  && pnpm --filter @manifesto/server build
+RUN pnpm --filter @manifesto/server build
 
 # Produce a self-contained production bundle. `pnpm deploy` writes a real,
 # fully-resolved node_modules (no symlinks into the workspace .pnpm store) plus
