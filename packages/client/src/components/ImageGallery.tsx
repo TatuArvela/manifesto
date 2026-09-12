@@ -8,24 +8,30 @@ import { t } from "../i18n/index.js";
 interface ImageGalleryProps {
   images: string[];
   onDelete?: (index: number) => void;
+  /**
+   * Fill the height of the parent, sharing it between the images and
+   * cropping each to fit, instead of taking each image's own height: the
+   * shape a square card needs when the images are all it holds.
+   */
+  fill?: boolean;
 }
 
-export function ImageGallery({ images, onDelete }: ImageGalleryProps) {
+export function ImageGallery({ images, onDelete, fill }: ImageGalleryProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   if (images.length === 0) return null;
 
   return (
     <>
-      <div class="flex flex-col">
+      <div class={`flex flex-col ${fill ? "h-full" : ""}`}>
         {images.map((src, i) => (
           <div
             key={`${i}-${src.slice(0, 32)}`}
-            class="relative group/img bg-black/5 dark:bg-white/5"
+            class={`relative group/img bg-black/5 dark:bg-white/5 ${fill ? "flex-1 min-h-0" : ""}`}
           >
             <button
               type="button"
-              class="block w-full cursor-zoom-in"
+              class={`block w-full cursor-zoom-in ${fill ? "h-full" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setOpenIndex(i);
@@ -35,7 +41,7 @@ export function ImageGallery({ images, onDelete }: ImageGalleryProps) {
               <img
                 src={src}
                 alt=""
-                class="w-full h-auto object-cover max-h-96 block"
+                class={`w-full object-cover block ${fill ? "h-full" : "h-auto max-h-96"}`}
               />
             </button>
             {onDelete && (
