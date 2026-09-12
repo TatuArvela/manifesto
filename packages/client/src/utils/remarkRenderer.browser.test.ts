@@ -55,6 +55,18 @@ describe("renderMarkdown sanitizing", () => {
     expect(html).toContain('href="https://x.y"');
   });
 
+  it("opens links in a new tab, whatever target the markdown asked for", () => {
+    for (const md of [
+      "[a link](https://x.y)",
+      '<a href="https://x.y" target="_self" rel="opener">raw</a>',
+    ]) {
+      const html = renderMarkdown(md);
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain('rel="noopener noreferrer"');
+      expect(html).not.toContain("_self");
+    }
+  });
+
   it("keeps GFM task-list checkboxes", () => {
     const html = renderMarkdown("- [x] done\n- [ ] todo");
     expect(html).toContain('type="checkbox"');

@@ -552,6 +552,10 @@ export function NoteCard({
           onClick={handleClick}
           onKeyDown={(e) => {
             if (!cardActivates) return;
+            // Only keys aimed at the card itself. Enter on a link or a button
+            // inside it bubbles here too, and cancelling it stopped that link
+            // or button from ever activating.
+            if (e.target !== e.currentTarget) return;
             if (e.key !== "Enter" && e.key !== " ") return;
             // Space scrolls the page by default, and both would otherwise also
             // reach whatever the click opens.

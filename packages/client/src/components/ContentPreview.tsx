@@ -39,8 +39,15 @@ export function ContentPreview({
     seg.lines.length > 0 && seg.lines[seg.lines.length - 1].trim() === "";
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: stops a link's click reaching the card
+    // biome-ignore lint/a11y/useKeyWithClickEvents: a link handles its own keys
     <div
       class={`${hasTitle ? "mt-2" : ""} text-sm text-neutral-600 dark:text-neutral-300 line-clamp-12`}
+      onClick={(e) => {
+        // A link opens in a new tab (see `renderMarkdown`); the card behind
+        // it opening its editor as well would leave the note in two places.
+        if ((e.target as Element).closest("a")) e.stopPropagation();
+      }}
     >
       {segments.map((seg, segIdx) => {
         const prev = segIdx > 0 ? segments[segIdx - 1] : null;
