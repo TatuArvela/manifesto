@@ -506,7 +506,10 @@ export function NoteCard({
             isSelected
               ? "outline-blue-500 outline-offset-0"
               : "outline-transparent outline-offset-4",
-            "transition-all duration-150 relative select-none overflow-hidden flex flex-col",
+            // Everything else in 150ms, the colour in 300ms: a recoloured
+            // card fades into its new sheet, slowly enough to be seen, while
+            // the selection ring and shadow stay quick.
+            "note-card-transition relative select-none overflow-hidden flex flex-col",
             isImageOnly || isLinkOnly
               ? "p-0"
               : !isTrashView
