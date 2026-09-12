@@ -4,11 +4,11 @@ Manifesto supports exporting and importing note data from the Settings dialog. T
 
 ## Export
 
-- **Export** — Downloads all notes as a single JSON file (`manifesto-export-YYYY-MM-DD.json`)
+- **Export**: Downloads all notes as a single JSON file (`manifesto-export-YYYY-MM-DD.json`)
 
 ## Import
 
-- **Import** — Loads notes from a previously exported JSON file, merging them into the existing notes
+- **Import**: Loads notes from a previously exported JSON file, merging them into the existing notes
 
 ## Use Cases
 

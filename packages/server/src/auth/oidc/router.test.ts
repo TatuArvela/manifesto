@@ -260,7 +260,7 @@ describe("oidc auth router", () => {
   });
 
   it("rejects callbacks with an unknown state (CSRF / replay)", async () => {
-    // Cookie and query agree, so this gets past the browser binding — what
+    // Cookie and query agree, so this gets past the browser binding; what
     // the server has forgotten is the flow itself.
     const res = await rig.request(
       "/api/auth/callback?code=foo&state=never-issued",
@@ -281,7 +281,7 @@ describe("oidc auth router", () => {
     expect(cookie).toContain("Secure"); // redirectUri is https in this rig
     expect(cookie).toContain("Path=/api/auth");
 
-    // The attacker holds a valid, unspent state — but the victim's browser
+    // The attacker holds a valid, unspent state, but the victim's browser
     // has no cookie for it, so the callback must not mint them a session on
     // the attacker's IdP account.
     const victim = await rig.strangerRequest(

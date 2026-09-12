@@ -53,7 +53,7 @@ function isPresenceUser(value: unknown): value is PresenceUser {
 }
 
 /**
- * Discriminates on the payload, not just on `type` — the mirror of the
+ * Discriminates on the payload, not just on `type`, the mirror of the
  * server's `isClientEvent`. Accepting anything with a string `type` narrowed
  * to the union without checking the fields the branches then read, so a
  * malformed `note:created` put `undefined` into the notes list and a card
@@ -125,7 +125,7 @@ function disconnect() {
   connectionStatus.value = "closed";
   clearPresence();
   lastViewedNoteId = undefined;
-  // Reset the "has opened once" flag — a token change (logout, re-login as a
+  // Reset the "has opened once" flag: a token change (logout, re-login as a
   // different user) starts a fresh session that should NOT trigger the
   // reconnect-refetch on its first open.
   hasOpenedOnce = false;
@@ -145,12 +145,12 @@ function connect(token: string) {
       send({ type: "presence:update", noteId: lastViewedNoteId });
     }
     if (hasOpenedOnce) {
-      // Reconnect path — only WS-bound state caught up via fan-out events. We
+      // Reconnect path: only WS-bound state caught up via fan-out events. We
       // missed everything that happened while offline, so refetch the full
       // notes list. The signal-merge in upsertById handles any racing events
       // that arrive between this fire and the response.
       loadNotes().catch(() => {
-        // Network blip during the catch-up fetch is fine — the next user
+        // Network blip during the catch-up fetch is fine; the next user
         // action or full reload will retry.
       });
     } else {
@@ -173,14 +173,14 @@ function connect(token: string) {
     socket = null;
     connectionStatus.value = "closed";
     if (event.code === 4401) {
-      // server rejected our token — drop local auth so the user re-logs in
+      // server rejected our token, so drop local auth so the user re-logs in
       clearAuthLocal();
       return;
     }
     if (authToken.value) {
       backoffMs = Math.min(MAX_BACKOFF, backoffMs * 2);
       reconnectTimer = setTimeout(() => {
-        // Re-read the token at fire time — the user could have logged out
+        // Re-read the token at fire time: the user could have logged out
         // (or had a token swap) between scheduling and this callback.
         const current = authToken.value;
         if (current) connect(current);

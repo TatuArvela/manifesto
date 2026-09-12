@@ -30,7 +30,7 @@ if (typeof window !== "undefined") {
 
 /**
  * Tooltips are shown on a delay, so a click that opens a panel under the
- * cursor can leave one stranded on top of that panel — the pointer never
+ * cursor can leave one stranded on top of that panel: the pointer never
  * leaves the trigger, so no `pointerleave` arrives to hide it. Anything that
  * opens over its own trigger calls this first.
  */

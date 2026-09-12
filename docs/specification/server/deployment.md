@@ -1,6 +1,6 @@
 # Server Deployment
 
-The server carries no branding — it is a JSON + WebSocket API with no HTML, no icons, and no product name in any response. A rebranded deployment runs this image unmodified; see [Custom Instances](../custom-instances.md).
+The server carries no branding: it is a JSON + WebSocket API with no HTML, no icons, and no product name in any response. A rebranded deployment runs this image unmodified; see [Custom Instances](../custom-instances.md).
 
 ## Running Directly
 
@@ -66,10 +66,10 @@ All of these are required and validated at boot. The server only reads them when
 
 | Variable                    | Description                                                                 |
 |-----------------------------|-----------------------------------------------------------------------------|
-| `OIDC_ISSUER`               | Issuer URL (used for OIDC discovery — e.g. `https://idp.example.com`)       |
+| `OIDC_ISSUER`               | Issuer URL (used for OIDC discovery, e.g. `https://idp.example.com`)       |
 | `OIDC_CLIENT_ID`            | Client ID registered with the IdP                                           |
 | `OIDC_CLIENT_SECRET`        | Client secret registered with the IdP                                       |
-| `OIDC_REDIRECT_URI`         | Server callback URL — must end in `/api/auth/callback`                      |
+| `OIDC_REDIRECT_URI`         | Server callback URL; must end in `/api/auth/callback`                      |
 | `OIDC_POST_LOGIN_REDIRECT`  | Client-side URL to redirect to after successful login (token in fragment)   |
 | `OIDC_SCOPES`               | Comma-separated scopes (default `openid,profile,email`)                     |
 
@@ -84,7 +84,7 @@ The login flow:
 
 The session token is then sent as `Authorization: Bearer <token>` against the rest of the API, identical to the local provider. Logout (`POST /api/auth/logout`) invalidates the local session; it does not perform IdP-side logout (RP-initiated logout is not implemented in v1).
 
-Set `OIDC_POST_LOGIN_REDIRECT` to the deployed client URL (e.g. `https://notes.example.com/`). The client app handles the `#token=...` fragment automatically — no extra route is needed on the client side.
+Set `OIDC_POST_LOGIN_REDIRECT` to the deployed client URL (e.g. `https://notes.example.com/`). The client app handles the `#token=...` fragment automatically, so no extra route is needed on the client side.
 
 #### Worked example: Authentik
 
@@ -98,11 +98,11 @@ OIDC_SCOPES=openid,profile,email
 AUTH_PROVIDER=oidc
 ```
 
-In Authentik, configure the application's redirect URI to match `OIDC_REDIRECT_URI` exactly. Other IdPs (Keycloak, Google, Okta, Auth0, Authelia) work the same way — only the `OIDC_ISSUER` differs.
+In Authentik, configure the application's redirect URI to match `OIDC_REDIRECT_URI` exactly. Other IdPs (Keycloak, Google, Okta, Auth0, Authelia) work the same way; only the `OIDC_ISSUER` differs.
 
 ## Postgres deployment
 
-For larger or scale-out deployments, set `STORAGE_DRIVER=postgres` and `DATABASE_URL=...`. The schema is created on first boot and brought forward on every boot after that — see [Schema migrations](index.md#schema-migrations).
+For larger or scale-out deployments, set `STORAGE_DRIVER=postgres` and `DATABASE_URL=...`. The schema is created on first boot and brought forward on every boot after that; see [Schema migrations](index.md#schema-migrations).
 
 ```yaml
 services:
@@ -129,7 +129,7 @@ volumes:
   manifesto-pg:
 ```
 
-Yjs document state lives in a `BYTEA` column on `notes`. For very high collaborative-editing throughput, consider terminating Hocuspocus persistence in Redis and treating Postgres as the cold store — but for typical note-taking workloads the single-table model is fine.
+Yjs document state lives in a `BYTEA` column on `notes`. For very high collaborative-editing throughput, consider terminating Hocuspocus persistence in Redis and treating Postgres as the cold store, but for typical note-taking workloads the single-table model is fine.
 
 ## Reverse Proxy
 

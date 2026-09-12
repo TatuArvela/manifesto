@@ -174,7 +174,7 @@ describe("LocalStorageAdapter", () => {
         throw new DOMException("Quota exceeded", "QuotaExceededError");
       });
     try {
-      // Must not throw — the caller's try/catch isn't responsible for storage
+      // Must not throw: the caller's try/catch isn't responsible for storage
       // failure, and the note stays on screen for the rest of the session.
       await expect(adapter.create(sampleNote)).resolves.toBeDefined();
       expect(quotaRefusedAt.value).toBeGreaterThan(0);

@@ -90,7 +90,7 @@ describe("sandbox", () => {
     const spinSrc = `_default = () => { while (true) {} };`;
     await expect(runPlugin(spinSrc, CTX, 300)).rejects.toThrow(/timed out/);
 
-    // A fresh invocation should still work — the sandbox was rebuilt, and
+    // A fresh invocation should still work: the sandbox was rebuilt, and
     // tearing down the frame took its spinning worker with it.
     const okSrc = `_default = () => ({ title: "ok", content: "still here" });`;
     const notes = await runPlugin(okSrc, CTX);
@@ -113,7 +113,7 @@ describe("sandbox", () => {
 
   it("drops a colour the plugin invented", async () => {
     // The host validates, so `noteColorMap[color]` can't be handed a string
-    // it has no entry for — which threw while a card rendered.
+    // it has no entry for, which threw while a card rendered.
     const src = `
       _default = () => ({ title: "t", content: "c", color: "hotpink" });
     `;

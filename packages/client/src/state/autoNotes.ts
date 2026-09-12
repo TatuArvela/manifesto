@@ -28,7 +28,7 @@ function buildApproxLabels(): ApproxLabels {
 }
 
 /**
- * Manual refresh tick — increment to re-invoke all plugins. There is no
+ * Manual refresh tick: increment to re-invoke all plugins. There is no
  * automatic timer; auto-notes render once on mount and then only when the
  * user hits the refresh button, plugins change, or the locale changes.
  */

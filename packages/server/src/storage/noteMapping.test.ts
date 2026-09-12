@@ -11,8 +11,8 @@ import { createSqliteStorage } from "./sqlite/driver.js";
 import type { StorageDriver } from "./types.js";
 
 /**
- * The two drivers store a note in different column types — SQLite has no
- * boolean and no JSON — and used to carry their own copy of the mapping
+ * The two drivers store a note in different column types (SQLite has no
+ * boolean and no JSON) and used to carry their own copy of the mapping
  * between a row and a `Note`. Parity was a convention, and the tests only ever
  * checked each driver against itself, so a change made in one file and not the
  * other would have gone unnoticed.
@@ -110,7 +110,7 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
 
   it("leaves the two optional fields off a note that has neither", async () => {
     // `readonly` and `source` are optional on `Note`, and each driver had its
-    // own conditional deciding whether to attach them — the one place the two
+    // own conditional deciding whether to attach them, the one place the two
     // mappings could disagree about a note's *shape* rather than its values.
     const { readonly: _r, source: _s, ...plain } = fullNote;
     const note = await storage.notes.insert({
@@ -132,7 +132,7 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
 
   it("folds case beyond ASCII when searching", async () => {
     // SQLite's own LOWER() folds ASCII only, so this used to find the note on
-    // Postgres and not on SQLite — the same query, the same data, two answers.
+    // Postgres and not on SQLite: the same query, the same data, two answers.
     await storage.notes.insert({
       id: "n1",
       userId: "u1",

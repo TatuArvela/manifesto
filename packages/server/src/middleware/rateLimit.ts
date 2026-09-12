@@ -6,10 +6,10 @@ export interface RateLimitOptions {
   limit: number;
   /** Window length in milliseconds. */
   windowMs: number;
-  /** Build a string key from the request — usually the source IP. */
+  /** Build a string key from the request, usually the source IP. */
   keyFor?: (c: Parameters<MiddlewareHandler>[0]) => string;
   /** Honor `X-Forwarded-For` (set this when behind a trusted reverse proxy).
-   * Defaults to false — without it, an attacker can rotate the header to
+   * Defaults to false; without it, an attacker can rotate the header to
    * bypass per-IP throttling. */
   trustProxy?: boolean;
 }
@@ -20,7 +20,7 @@ interface Bucket {
 }
 
 function socketAddress(c: Parameters<MiddlewareHandler>[0]): string {
-  // Hono on Node — fall back to the underlying socket peer address.
+  // Hono on Node: fall back to the underlying socket peer address.
   // biome-ignore lint/suspicious/noExplicitAny: env shape is platform-specific
   const incoming = (c.env as any)?.incoming;
   return incoming?.socket?.remoteAddress ?? "anon";
@@ -54,7 +54,7 @@ export function perUserApiRateLimit(): MiddlewareHandler<{
 }
 
 /**
- * Tiny in-memory rate limiter. Single-process only — when this app outgrows
+ * Tiny in-memory rate limiter. Single-process only; when this app outgrows
  * one node, swap the buckets for a Redis-backed implementation.
  */
 export function rateLimit(opts: RateLimitOptions): MiddlewareHandler {

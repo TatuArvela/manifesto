@@ -4,12 +4,12 @@ import { isServerEvent } from "./appSocket.js";
 /**
  * The wire is untrusted input like any other. This guard used to accept
  * anything carrying a string `type`, which narrowed it to the union without
- * checking the fields the branches then read — a `note:created` with no note
+ * checking the fields the branches then read: a `note:created` with no note
  * put `undefined` into the list and a card threw during render, the same
  * failure as an unknown colour in an imported file.
  *
  * The guard itself is pure, but importing it reaches `state/prefs.ts`, which
- * touches `document` as it loads — so this belongs in the browser project.
+ * touches `document` as it loads, so this belongs in the browser project.
  */
 describe("isServerEvent", () => {
   const note = { id: "01J", title: "T", content: "" };

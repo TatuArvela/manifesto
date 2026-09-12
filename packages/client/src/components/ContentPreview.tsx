@@ -20,7 +20,7 @@ export function ContentPreview({
 }) {
   if (!note.content) return null;
 
-  // Drop empty text segments sandwiched between two checklist segments —
+  // Drop empty text segments sandwiched between two checklist segments:
   // they come from mdast's "spread" list serialization and would otherwise
   // render as a full-line gap between items that visually belong together.
   const rawSegments = segmentContent(note.content);
@@ -58,7 +58,7 @@ export function ContentPreview({
               {seg.lines.map((line, j) => {
                 const lineIndex = seg.startLine + j;
                 // One parser, shared with the actions that toggle and delete
-                // these items — two patterns used to disagree about what a
+                // these items. Two patterns used to disagree about what a
                 // checklist line is, so the preview could draw a box for a
                 // line `toggleCheckbox` then refused to touch.
                 const item = parseChecklistLine(line);
@@ -94,7 +94,7 @@ export function ContentPreview({
         // Render text block as markdown
         const text = seg.lines.join("\n");
         if (!text.trim()) {
-          // Empty text segment between checklists — render a spacer that
+          // Empty text segment between checklists: render a spacer that
           // mirrors the editor's empty <p><br></p> so spacing matches.
           return (
             <div

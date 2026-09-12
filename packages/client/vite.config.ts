@@ -47,7 +47,7 @@ function cspForServer(serverUrl: string | undefined): Plugin {
       const wsOrigin = `${wsScheme}//${url.host}`;
       extras.push(httpOrigin, wsOrigin);
     } catch {
-      // ignore malformed URL — leave CSP unchanged
+      // ignore malformed URL and leave CSP unchanged
     }
   }
   return {
@@ -119,7 +119,7 @@ const IMAGE_TYPES: Record<string, string> = {
  * in its own folder outside the repository. Editing the checked-in `public/`
  * files would work too, but then every `git pull` from upstream is a conflict.
  *
- * A file only overrides if it is actually there — an icons dir holding just a
+ * A file only overrides if it is actually there: an icons dir holding just a
  * `logo.svg` leaves the stock favicon alone.
  */
 function iconOverlay(dir: string | undefined): Plugin {
@@ -133,7 +133,7 @@ function iconOverlay(dir: string | undefined): Plugin {
       outDir = config.build.outDir;
       if (dir && !fs.existsSync(resolveDir())) {
         config.logger.warn(
-          `[icon-overlay] VITE_APP_ICONS_DIR points at ${resolveDir()}, which does not exist — using the stock icons.`,
+          `[icon-overlay] VITE_APP_ICONS_DIR points at ${resolveDir()}, which does not exist; using the stock icons.`,
         );
       }
     },
@@ -169,7 +169,7 @@ function iconOverlay(dir: string | undefined): Plugin {
  *   paths in a manifest (start_url/scope/icons).
  *
  * The dev server has no build output to rewrite, so it gets the same treatment
- * through a middleware — otherwise an app installed from `pnpm dev` would be
+ * through a middleware; otherwise an app installed from `pnpm dev` would be
  * called `%APP_NAME%`.
  */
 function finalizeWebManifest(branding: Branding): Plugin {
@@ -250,8 +250,8 @@ export default defineConfig(({ mode }) => {
       iconOverlay(env.VITE_APP_ICONS_DIR),
     ],
     test: {
-      // Two projects, chosen by filename. Most of what we test is pure —
-      // parsers, mergers, schedulers, formatters — and running those through
+      // Two projects, chosen by filename. Most of what we test is pure
+      // (parsers, mergers, schedulers, formatters), and running those through
       // Playwright cost a browser launch per run for nothing. A test that
       // needs a DOM (real CSS, `localStorage`, history, an iframe, DOMPurify)
       // says so by being named `*.browser.test.ts`, so a new test lands in

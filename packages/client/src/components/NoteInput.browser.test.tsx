@@ -12,7 +12,7 @@ import { NoteInput } from "./NoteInput.js";
 
 let host: HTMLDivElement;
 
-/** The two sheets of the stack — the top one and the one showing behind it. */
+/** The two sheets of the stack: the top one and the one showing behind it. */
 function stackLines(): string[] {
   return [...host.querySelectorAll(".note-stack > div > div > div")].map(
     (el) => el.textContent?.trim() ?? "",

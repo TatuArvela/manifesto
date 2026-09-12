@@ -111,8 +111,8 @@ interface Client {
 
 /**
  * Drives the real @hocuspocus/provider against the real server over a real
- * socket. Everything between the HTTP upgrade and document persistence — the
- * routing key, the Auth handshake, onAuthenticate — is only exercised this way;
+ * socket. Everything between the HTTP upgrade and document persistence (the
+ * routing key, the Auth handshake, onAuthenticate) is only exercised this way;
  * openDirectConnection bypasses all of it.
  */
 function connect(rig: Rig, noteId: string, token: string | null): Client {

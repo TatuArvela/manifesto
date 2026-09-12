@@ -4,7 +4,7 @@ Thanks for taking the time to look. Manifesto is a small, MIT-licensed side proj
 
 ## Licensing of contributions
 
-By submitting a contribution (pull request, patch, issue with code, etc.), you agree that your contribution is licensed under the [MIT License](LICENSE) — the same license as the project. There is no Contributor License Agreement to sign; the inbound license matches the outbound license.
+By submitting a contribution (pull request, patch, issue with code, etc.), you agree that your contribution is licensed under the [MIT License](LICENSE), the same license as the project. There is no Contributor License Agreement to sign; the inbound license matches the outbound license.
 
 You retain copyright on your contribution. You are not assigning it to anyone.
 
@@ -19,9 +19,9 @@ You retain copyright on your contribution. You are not assigning it to anyone.
 Manifesto is intentionally small. The maintainer is not committing to active development, so:
 
 - Bug fixes and small improvements are welcome.
-- Large new features may not be accepted into the main repo — feel free to fork.
+- Large new features may not be accepted into the main repo; feel free to fork.
 - Issues may not always get a response. That's not personal.
 
 ## Name and logo
 
-The name "Manifesto" and the project logo are free to use. Fork it, rename it, keep the name, swap the logo, ship a competing version — whatever works for you. There is no trademark to defend here.
+The name "Manifesto" and the project logo are free to use. Fork it, rename it, keep the name, swap the logo, ship a competing version, whatever works for you. There is no trademark to defend here.

@@ -39,13 +39,13 @@ const FLOW_TTL_MS = 10 * 60 * 1000; // 10 minutes
 /**
  * Ties a callback to the browser that started the flow. Without it, `state`
  * alone only proves *someone* started a flow: an attacker can begin a login,
- * hold on to the resulting callback URL, and lure the victim into visiting it —
+ * hold on to the resulting callback URL, and lure the victim into visiting it:
  * the victim's browser then gets a session for the attacker's IdP account, and
  * everything they write afterwards lands in it.
  *
  * Scoped to the auth routes and readable only by the server. `SameSite=Lax`
  * rather than `Strict` because the IdP sends the user back as a top-level
- * cross-site GET, which `Strict` would withhold — Lax is exactly the setting
+ * cross-site GET, which `Strict` would withhold. Lax is exactly the setting
  * that covers that navigation and nothing else.
  */
 const FLOW_COOKIE = "manifesto_oidc_flow";
@@ -117,7 +117,7 @@ async function provisionUser(
   };
 
   // Try the seed first, then fall back to ULID-derived suffixes on collision.
-  // The (provider, external_id) lookup is the source of truth — username is
+  // The (provider, external_id) lookup is the source of truth; username is
   // just the display handle, so collisions resolve by appending a short tag.
   // We avoid the raw `sub` as a candidate because it's often an email or UUID
   // (PII leak into the username column).
@@ -153,7 +153,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
   const auth = new Hono<{ Variables: { auth: AuthContext } }>();
   // Pending flows live in process memory. That's fine for a single-node
   // deployment, but behind a load balancer the callback may hit a different
-  // instance than the one that issued the state — and the user will see
+  // instance than the one that issued the state, and the user will see
   // "Unknown or expired login state". Loudly warn operators at boot so they
   // either pin sessions to a node or move this to shared storage.
   logger.info(
@@ -181,7 +181,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     // one: walking the whole map per login made a burst quadratic. Amortized
     // to O(1) per insert, and at most SWEEP_EVERY stale entries are held
     // between sweeps. Same idiom as `middleware/rateLimit.ts`, and for the
-    // same reason it is a counter and not a timer — nothing to tear down.
+    // same reason it is a counter and not a timer, with nothing to tear down.
     if (++sinceSweep < SWEEP_EVERY) return;
     sinceSweep = 0;
     const cutoff = Date.now() - FLOW_TTL_MS;

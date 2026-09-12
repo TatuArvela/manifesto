@@ -19,7 +19,7 @@ interface NotesDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
   broadcaster: Broadcaster;
-  /** Optional per-user limiter — mounted after auth. Defined in app.ts so
+  /** Optional per-user limiter, mounted after auth. Defined in app.ts so
    * it shares state with /api/search rather than maintaining a per-router
    * bucket map. */
   rateLimit?: MiddlewareHandler;
@@ -31,7 +31,7 @@ interface NotesDeps {
  * `trashed` leaves the existing stamp alone.
  *
  * Re-trashing an already-trashed note restarts its 30 days. That is the safe
- * direction — it can only delay a hard delete, never bring one forward — and
+ * direction (it can only delay a hard delete, never bring one forward), and
  * it costs a read of the current row to do better.
  */
 function trashStamp(
@@ -114,7 +114,7 @@ export function createNotesRoutes(deps: NotesDeps) {
           // merge and retry without re-fetching.
           return c.json({ error: "Note has changed", note: current }, 412);
         }
-        // Note exists and matched — but UPDATE found nothing. This shouldn't
+        // Note exists and matched, but UPDATE found nothing. This shouldn't
         // happen in practice; treat as 404 so the client retries cleanly.
         throw new HttpError(404, "Note not found");
       }

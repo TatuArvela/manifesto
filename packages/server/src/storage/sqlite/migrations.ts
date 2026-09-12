@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS notes_trashed_expiry
 
 /**
  * How many images a note has, kept alongside them so a list query can answer
- * "does this note have attachments" without reading the attachments — which is
+ * "does this note have attachments" without reading the attachments, which is
  * the whole point of leaving them out of a list response.
  */
 const NOTE_IMAGE_COUNT = `

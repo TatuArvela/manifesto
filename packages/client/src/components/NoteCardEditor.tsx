@@ -28,7 +28,7 @@ export function NoteCardEditor({
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const { ydoc, awareness, synced } = useNoteYDoc(note.id);
-  // Withheld until the provider has synced — see NoteYDoc.synced. NoteEditor
+  // Withheld until the provider has synced; see NoteYDoc.synced. NoteEditor
   // keys the editor on this, so it remounts once collaboration is ready.
   const collab =
     ydoc && synced ? { ydoc, awareness: awareness ?? undefined } : undefined;
@@ -131,7 +131,7 @@ export function NoteCardEditor({
   }, []);
 
   // Escape saves and closes. The version panel and any picker opened from
-  // inside the editor register after this one and take the key first — the
+  // inside the editor register after this one and take the key first. The
   // version panel had no Escape handling of its own at all, so a press over it
   // used to close the editor underneath instead.
   useEscapeStack(true, () => saveAndCloseRef.current());
@@ -144,7 +144,7 @@ export function NoteCardEditor({
   // "add an image" handler writes `[...note.images, ...urls]`, and doing that
   // against a list a listing had emptied would delete every attachment the
   // note already had. Starting the fetch here is what makes it arrive before
-  // the user reaches for it, but it is not what makes it safe — the handlers
+  // the user reaches for it, but it is not what makes it safe: the handlers
   // below await it themselves, because this one is still in flight during the
   // first moments the editor is open and may have failed after that.
   useEffect(() => {
@@ -157,7 +157,7 @@ export function NoteCardEditor({
    * Every write to `images` has to go through this. `note.images` on its own
    * is `[]` both before the load lands and after it fails, and writing
    * `[...note.images, ...urls]` from either state PATCHes a list holding only
-   * the new file — which the server takes as the whole set and the other
+   * the new file, which the server takes as the whole set and the other
    * attachments are gone, on every device.
    */
   const currentImages = async (): Promise<string[] | null> => {

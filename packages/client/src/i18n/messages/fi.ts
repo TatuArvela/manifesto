@@ -33,7 +33,7 @@ export const fi: Messages = {
     other: "{count} osumaa",
   },
 
-  // Header — search & controls
+  // Header: search & controls
   "header.searchPlaceholder": "Hae muistiinpanoja...",
   "header.sort": "Järjestä",
   "header.sortNotes": "Järjestä muistiinpanot",
@@ -48,7 +48,7 @@ export const fi: Messages = {
   "header.view.square": "Neliön muotoiset",
   "header.view.fit": "Sopivan kokoiset",
 
-  // Header — selection toolbar
+  // Header: selection toolbar
   "selection.count": {
     one: "{count} valittu",
     other: "{count} valittu",
@@ -71,7 +71,7 @@ export const fi: Messages = {
   "selection.deletePermanently": "Poista pysyvästi",
   "selection.deleteSelectedPermanently": "Poista valitut pysyvästi",
 
-  // Note card — tooltips, actions, menu
+  // Note card: tooltips, actions, menu
   "noteCard.pin": "Kiinnitä",
   "noteCard.unpin": "Poista kiinnitys",
   "noteCard.archived": "Arkistoitu",
@@ -116,7 +116,7 @@ export const fi: Messages = {
   "editor.addImage": "Lisää kuva",
   "editor.imageTooLarge":
     "{name} on liian suuri liitettäväksi (enintään {size})",
-  // Note menu — one kebab menu, shared by the card, the editor and the
+  // Note menu: one kebab menu, shared by the card, the editor and the
   // read-only view.
   "noteMenu.more": "Lisää",
   "noteMenu.moreOptions": "Lisää toimintoja",
@@ -249,7 +249,7 @@ export const fi: Messages = {
     one: "Tuotiin {count} muistiinpano",
     other: "Tuotiin {count} muistiinpanoa",
   },
-  "settings.data.importFailed": "Tuonti epäonnistui — virheellinen tiedosto",
+  "settings.data.importFailed": "Tuonti epäonnistui: virheellinen tiedosto",
   "settings.data.importedSingle": "Muistiinpano tuotu",
   "settings.data.deleted": "Kaikki muistiinpanot poistettu",
   "settings.autoNotes.empty.title": "Muistiinpanot, jotka kirjoittavat itsensä",
@@ -321,12 +321,12 @@ export const fi: Messages = {
   "reminder.pastHelp": "Valitse aika tulevaisuudesta.",
   "reminder.untitled": "Nimetön muistutus",
   "reminder.permissionDenied":
-    "Ilmoitukset on estetty — muistutukset näkyvät vain sovelluksessa.",
+    "Ilmoitukset on estetty. Muistutukset näkyvät vain sovelluksessa.",
   "reminder.openNote": "Avaa muistiinpano",
   "reminder.dismiss": "Sulje",
   "reminder.chip": "Muistutus: {date}",
 
-  // Shared-note dialog — shown when the app opens on a #share=... link.
+  // Shared-note dialog, shown when the app opens on a #share=... link.
   "share.received": "Joku jakoi sinulle muistiinpanon",
   "share.discard": "Hylkää",
   "share.save": "Tallenna muistiinpanoihini",

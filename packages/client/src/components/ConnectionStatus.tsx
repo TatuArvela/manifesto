@@ -6,7 +6,7 @@ import { isServerMode } from "../state/auth.js";
 /**
  * Tiny banner shown at the bottom of the viewport when the realtime
  * application socket is disconnected (server unreachable, browser offline,
- * etc.). Local edits keep working — they just don't propagate until the
+ * etc.). Local edits keep working; they just don't propagate until the
  * banner clears.
  */
 export function ConnectionStatus() {

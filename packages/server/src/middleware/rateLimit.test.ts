@@ -64,7 +64,7 @@ describe("rateLimit", () => {
     app.use("*", perUserApiRateLimit());
     app.get("/", (c) => c.json({ ok: true }));
 
-    // Same user hammers the endpoint — gets blocked at 301.
+    // Same user hammers the endpoint and gets blocked at 301.
     for (let i = 0; i < 300; i++) {
       const res = await app.request("/", {
         headers: { "x-test-user": "alice" },

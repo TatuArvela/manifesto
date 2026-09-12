@@ -75,7 +75,7 @@ describe("createShutdown", () => {
 
   it("does not wait for connections before doing what closes them", async () => {
     // `close()` calls back only when the open sockets are gone, and a
-    // collaboration socket is open by design — so awaiting it before the
+    // collaboration socket is open by design, so awaiting it before the
     // realtime teardown and the connection drop would stall the whole
     // shutdown until the timeout, with pending Yjs writes unflushed. This
     // `closeServer` resolves only once those have run, which is exactly the
@@ -160,7 +160,7 @@ describe("createShutdown", () => {
 
   it("gives up rather than hanging forever", async () => {
     // A socket that never closes must not hold the process past the runtime's
-    // patience — SIGKILL at 30s in most containers.
+    // patience (SIGKILL at 30s in most containers).
     const shutdown = createShutdown({
       closeServer: () => new Promise<void>(() => {}),
       timeoutMs: 20,

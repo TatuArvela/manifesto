@@ -64,8 +64,8 @@ export class RestApiAdapter implements StorageAdapter {
   /**
    * Every page of a listing, concatenated.
    *
-   * The app keeps all of a user's notes in one signal — `filteredNotes`,
-   * `allTags` and the tag counts are computed over the whole list — so pages
+   * The app keeps all of a user's notes in one signal (`filteredNotes`,
+   * `allTags` and the tag counts are computed over the whole list), so pages
    * are a property of the wire, not of the model: they bound any single
    * response without changing what the client holds. The notes come back
    * without their attachments; `loadImages` fetches those for the one note

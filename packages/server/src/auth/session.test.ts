@@ -60,7 +60,7 @@ describe("session lifetime", () => {
   });
 
   it("refuses a session past its absolute lifetime however recently it was used", async () => {
-    // Kept warm the whole time — its sliding expiry is still in the future.
+    // Kept warm the whole time: its sliding expiry is still in the future.
     const token = await seedSession(CFG.sessionAbsoluteTtlDays + 1);
     expect(await authenticateBySession(storage, CFG, token)).toBeNull();
     // And the row is gone, not merely refused.

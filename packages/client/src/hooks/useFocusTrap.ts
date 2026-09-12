@@ -37,7 +37,7 @@ function isVisible(el: HTMLElement): boolean {
  * Tabbable elements, in tab order, across the modal *and* any popover panel
  * portalled out of it. `CardPopover` renders into `document.body`, so a
  * reminder picker opened from inside the editor is not a descendant of the
- * modal — scoping to the container alone would make its controls unreachable
+ * modal, and scoping to the container alone would make its controls unreachable
  * by keyboard, which is the opposite of the point.
  */
 function tabbable(container: HTMLElement): HTMLElement[] {
@@ -81,8 +81,8 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
       }
       const first = stops[0];
       const last = stops[stops.length - 1];
-      // Focus outside the modal at all — a click on the page behind, or a
-      // browser-restored position — comes back to the near end rather than
+      // Focus outside the modal at all (a click on the page behind, or a
+      // browser-restored position) comes back to the near end rather than
       // being left to wander.
       if (!holdsFocus(container)) {
         event.preventDefault();
@@ -90,7 +90,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
         return;
       }
       // Only the two ends are intercepted, so Tab keeps its meaning
-      // everywhere else — inside ProseMirror it still indents a list item.
+      // everywhere else; inside ProseMirror it still indents a list item.
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();

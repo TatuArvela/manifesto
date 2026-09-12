@@ -13,7 +13,7 @@ export function openDatabase(path: string): SqliteDB {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   // SQLite's built-in LOWER() folds ASCII only, so `LOWER('ÄITI')` is `Äiti`
-  // and a search for "äiti" misses the note — where Postgres, whose LOWER()
+  // and a search for "äiti" misses the note, where Postgres, whose LOWER()
   // is locale-aware, finds it. Overriding it with the JS one puts both
   // drivers on the same case-folding, which is what a search means to a user
   // typing in a language with more letters than English.

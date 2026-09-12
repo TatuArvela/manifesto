@@ -70,9 +70,9 @@ As a user with multiple devices, I want my notes to follow me wherever I sign in
 - Tags and manual ordering are scoped to my account
 - See [Operating Modes](operating-modes.md) for the full mode comparison and migration path between open and connected mode
 
-## Live Collaborative Editing (Connected Mode) — Scoped to one account
+## Live Collaborative Editing (Connected Mode, Scoped to One Account)
 
-> **Implemented, but only between sessions of the same user.** The Yjs/Hocuspocus channel at `/api/yjs` and the editor binding are both in place, so a note edits live across every device and tab signed in to one account, with remote cursors and presence avatars. Collaboration *between* users waits on note sharing, which is not in v1 — the server authorizes each join against note ownership.
+> **Implemented, but only between sessions of the same user.** The Yjs/Hocuspocus channel at `/api/yjs` and the editor binding are both in place, so a note edits live across every device and tab signed in to one account, with remote cursors and presence avatars. Collaboration *between* users waits on note sharing, which is not in v1; the server authorizes each join against note ownership.
 
 As a user connected to a server, I want to edit notes simultaneously with other users in real time.
 
@@ -91,7 +91,7 @@ As an organization administrator, I want to deploy Manifesto as a managed servic
 - Users must authenticate before seeing any UI; there is no anonymous use
 - I can choose `STORAGE_DRIVER=postgres` so the server runs against our managed database
 - I can choose `AUTH_PROVIDER=oidc` so users sign in with our existing IdP (Authentik, Keycloak, Google, Auth0, Okta, …)
-- The server is the source of truth — backups, retention, and access control happen there
+- The server is the source of truth: backups, retention, and access control happen there
 
 ## Archiving
 

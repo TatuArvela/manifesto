@@ -48,11 +48,11 @@ function computeState(
   if (!textBefore.endsWith("=")) return { active: false, dismissedAt };
 
   // Don't show the preview if the user already typed something after the "="
-  // that the cursor has moved past — only light up when "=" is the char
+  // that the cursor has moved past; only light up when "=" is the char
   // immediately before the cursor.
   const remaining = $from.parent.textContent.slice($from.parentOffset);
   if (remaining.length > 0 && remaining[0] !== "\n") {
-    // Something's there after the cursor on this line — skip.
+    // Something's there after the cursor on this line, so skip.
     return { active: false, dismissedAt };
   }
 

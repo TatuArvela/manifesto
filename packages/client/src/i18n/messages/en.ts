@@ -31,7 +31,7 @@ export const en = {
     other: "{count} matches",
   },
 
-  // Header — search & controls
+  // Header: search & controls
   "header.searchPlaceholder": "Search notes...",
   "header.sort": "Sort",
   "header.sortNotes": "Sort notes",
@@ -46,7 +46,7 @@ export const en = {
   "header.view.square": "Square notes",
   "header.view.fit": "Fit notes",
 
-  // Header — selection toolbar
+  // Header: selection toolbar
   "selection.count": {
     one: "{count} selected",
     other: "{count} selected",
@@ -69,7 +69,7 @@ export const en = {
   "selection.deletePermanently": "Delete permanently",
   "selection.deleteSelectedPermanently": "Delete selected permanently",
 
-  // Note card — tooltips, actions, menu
+  // Note card: tooltips, actions, menu
   "noteCard.pin": "Pin",
   "noteCard.unpin": "Unpin",
   "noteCard.archived": "Archived",
@@ -113,7 +113,7 @@ export const en = {
   "editor.changeFont": "Change font",
   "editor.addImage": "Add image",
   "editor.imageTooLarge": "{name} is too large to attach (max {size})",
-  // Note menu — one kebab menu, shared by the card, the editor and the
+  // Note menu: one kebab menu, shared by the card, the editor and the
   // read-only view.
   "noteMenu.more": "More",
   "noteMenu.moreOptions": "More options",
@@ -245,7 +245,7 @@ export const en = {
     one: "Imported {count} note",
     other: "Imported {count} notes",
   },
-  "settings.data.importFailed": "Import failed — invalid file",
+  "settings.data.importFailed": "Import failed: invalid file",
   "settings.data.importedSingle": "Imported note",
   "settings.data.deleted": "All notes deleted",
   "settings.autoNotes.empty.title": "Notes that write themselves",
@@ -317,12 +317,12 @@ export const en = {
   "reminder.pastHelp": "Pick a time in the future.",
   "reminder.untitled": "Untitled reminder",
   "reminder.permissionDenied":
-    "Notifications are blocked — reminders will appear as in-app banners only.",
+    "Notifications are blocked. Reminders will appear as in-app banners only.",
   "reminder.openNote": "Open note",
   "reminder.dismiss": "Dismiss",
   "reminder.chip": "Reminder: {date}",
 
-  // Shared-note dialog — shown when the app opens on a #share=... link.
+  // Shared-note dialog, shown when the app opens on a #share=... link.
   "share.received": "Someone shared a note with you",
   "share.discard": "Discard",
   "share.save": "Save to my notes",

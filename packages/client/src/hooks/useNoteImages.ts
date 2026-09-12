@@ -5,8 +5,8 @@ import { ensureImages } from "../state/index.js";
 /**
  * A note's attachments, fetched when the card carrying them comes into view.
  *
- * Server listings leave the bytes behind — they are almost all of a note, and
- * most of them are never looked at — so a card knows only how many it has. It
+ * Server listings leave the bytes behind (they are almost all of a note, and
+ * most of them are never looked at), so a card knows only how many it has. It
  * asks for them when it is close to being on screen, which is what makes the
  * saving real: a grid of four hundred notes downloads the attachments of the
  * dozen the user actually scrolls past.
@@ -15,7 +15,7 @@ import { ensureImages } from "../state/index.js";
  * image is there by the time the card is.
  *
  * Returns the ref to put on the element to watch, and the images as they
- * stand — empty while they are still on their way.
+ * stand, empty while they are still on their way.
  */
 export function useNoteImages<T extends HTMLElement>(note: Note) {
   const ref = useRef<T>(null);

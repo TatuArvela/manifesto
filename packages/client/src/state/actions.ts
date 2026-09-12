@@ -61,8 +61,8 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * One user action can exhaust the quota several times over — `NoteCardEditor`
- * saves the note and a version — so the message is thrown away for a minute
+ * One user action can exhaust the quota several times over (`NoteCardEditor`
+ * saves the note and a version), so the message is thrown away for a minute
  * after it is shown, and the user sees one clear sentence rather than a
  * burst. Storage reports the refusal; the wording and the throttle are here.
  */
@@ -82,7 +82,7 @@ effect(() => {
 export const notes = signal<Note[]>([]);
 
 /**
- * All notes visible to the UI — user notes plus plugin-generated read-only
+ * All notes visible to the UI: user notes plus plugin-generated read-only
  * notes. Generated notes' metadata (pin/color/tags/archive/trash/reminder)
  * can be overridden by the user; the override sidecar is merged into the
  * rendered note inside `autoNotes.toNote`.
@@ -94,8 +94,8 @@ export const allNotes = computed<Note[]>(() => [
 
 /**
  * Insert or replace a note by id. Optimistic local writes and WebSocket
- * fan-out events race — in server mode the backend broadcasts `note:created`
- * before our own POST resolves — so every local insert must be idempotent by
+ * fan-out events race (in server mode the backend broadcasts `note:created`
+ * before our own POST resolves), so every local insert must be idempotent by
  * id, otherwise the same note lands in the list twice (a duplicate card that
  * only clears on refetch).
  */
@@ -115,7 +115,7 @@ export function upsertById(list: Note[], note: Note): Note[] {
  * Fenced lines are skipped for the same reason the preview skips them: inside
  * a code block `- [x]` is text being quoted, not a box. These three helpers
  * and `segmentContent` have to agree on that, because the menu offers an
- * action based on one and `deleteCheckedItems` carries it out with another —
+ * action based on one and `deleteCheckedItems` carries it out with another,
  * and when they disagreed, a note documenting our own syntax had lines cut out
  * of the middle of its code block.
  */
@@ -297,12 +297,12 @@ export function pickDefaultFont(): NoteFont {
 /**
  * The contract for everything below: an action reports its own failure and
  * resolves. It never rejects, and it says whether it worked in its return
- * value — `false`, or `null` where a value was expected.
+ * value: `false`, or `null` where a value was expected.
  *
  * Throwing does not survive contact with the call sites, which are JSX
  * handlers: `onClick={() => updateNote(...)}` has nowhere to put a `catch`, so
  * a rejection there is an unhandled rejection that the user never sees. The
- * previous arrangement did both — toast *and* rethrow — which meant every
+ * previous arrangement did both (toast *and* rethrow), which meant every
  * caller either ignored the rejection or reported the failure a second time.
  */
 
@@ -323,8 +323,8 @@ function reportFailure(context: string, err: unknown, message: MessageKey) {
 
 /**
  * Runs a group of actions as one operation. Their failures are counted rather
- * than each raising its own toast — twenty selected notes that all fail used
- * to mean twenty toasts — and one message names the total at the end. Nested
+ * than each raising its own toast (twenty selected notes that all fail used
+ * to mean twenty toasts), and one message names the total at the end. Nested
  * batches join the outer one, so `bulkAddTag` reports once and not twice.
  */
 async function asBatch(run: () => Promise<void>): Promise<boolean> {
@@ -359,8 +359,8 @@ export async function loadNotes(): Promise<boolean> {
  * The attachments of a note, fetched if the listing left them behind.
  *
  * A server listing sends `imageCount` and an empty `images`, so anything that
- * needs the bytes — drawing a card that has scrolled into view, opening the
- * editor, writing an export — asks for them here first. In open mode nothing
+ * needs the bytes (drawing a card that has scrolled into view, opening the
+ * editor, writing an export) asks for them here first. In open mode nothing
  * was ever separated and this resolves without a round trip.
  *
  * Concurrent callers share one request: a card and the editor over it ask at
@@ -372,11 +372,11 @@ const imageLoads = new Map<string, Promise<string[]>>();
 /**
  * The attachments of a note, fetched if a listing left them behind.
  *
- * `null` means the bytes could not be had — which is not the same as the note
+ * `null` means the bytes could not be had, which is not the same as the note
  * having none. Callers that write an images array back (the editor's add and
  * remove handlers) or serialize one (either export) must not read a failure as
  * an empty note: doing so replaces every attachment it already had with
- * nothing. This follows the contract of the actions around it — the failure is
+ * nothing. This follows the contract of the actions around it: the failure is
  * reported here and returned, never thrown.
  */
 export async function ensureImages(id: string): Promise<string[] | null> {
@@ -408,7 +408,7 @@ export async function ensureImages(id: string): Promise<string[] | null> {
 // Reorder writes spaced positions so a future tweak (insert-between, etc.)
 // doesn't have to renumber the whole list. Date.now() in createNote is always
 // larger than these spaced positions, so new notes consistently sort to the
-// end of the manual-order list — same as the pre-reorder behavior.
+// end of the manual-order list, same as the pre-reorder behavior.
 const POSITION_STEP = 1000;
 
 export async function createNote(
@@ -504,7 +504,7 @@ export async function updateNote(
 }
 
 export async function permanentlyDeleteNote(id: string): Promise<boolean> {
-  // "Permanent delete" on an auto-note clears the override — the note will
+  // "Permanent delete" on an auto-note clears the override; the note will
   // reappear on the next render in its default state. (The plugin still owns
   // the source of truth; deletion is never truly permanent for auto-notes.)
   if (id.startsWith("generated:")) {
@@ -559,7 +559,7 @@ export async function unarchiveNote(id: string): Promise<boolean> {
 /**
  * The note most recently pinned or unpinned, for the brief moment after the
  * toggle. Pinning moves a card between the pinned and unpinned grids, which
- * unmounts and remounts it — otherwise it simply teleports. NoteCard reads
+ * unmounts and remounts it; otherwise it simply teleports. NoteCard reads
  * this on mount to play a short settle animation instead.
  */
 export const recentlyPinned = signal<string | null>(null);
@@ -767,7 +767,7 @@ export async function toggleCheckbox(id: string, lineIndex: number) {
   const next = !item.checked;
   lines[lineIndex] = setChecklistChecked(lines[lineIndex], next);
 
-  // Cascade to descendants — subsequent contiguous checkbox lines with
+  // Cascade to descendants: subsequent contiguous checkbox lines with
   // greater indent. Matches the editor's subtree toggle behavior, and stops at
   // a fence for the same reason the deletion sweep does.
   const parentIndent = item.indent.length;
@@ -786,14 +786,14 @@ export async function toggleCheckbox(id: string, lineIndex: number) {
  * How many attachment fetches an export has in flight at once.
  *
  * A backup of four hundred notes is four hundred `GET /api/notes/:id` calls,
- * and firing them together trips the server's per-user rate limit — which
+ * and firing them together trips the server's per-user rate limit, which
  * comes back as failures, which is precisely the lossy backup this is here to
  * prevent. Draining a few at a time is slower and finishes.
  */
 const EXPORT_IMAGE_CONCURRENCY = 6;
 
 /**
- * Every note as JSON, attachments included — or `null` if they could not all
+ * Every note as JSON, attachments included, or `null` if they could not all
  * be gathered.
  *
  * A server listing leaves the bytes behind, so the notes in the signal carry

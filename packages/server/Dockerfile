@@ -4,7 +4,7 @@
 FROM node:22-alpine AS builder
 WORKDIR /repo
 
-# pnpm via corepack — pinned to whatever the workspace expects.
+# pnpm via corepack, pinned to whatever the workspace expects.
 RUN corepack enable
 
 # pnpm may prompt before removing a modules directory; a buildx step has no
@@ -21,12 +21,12 @@ COPY packages/server/package.json packages/server/
 
 # shared goes in whole, not just its manifest: its `prepare` script runs tsc
 # during install, and tsc with no tsconfig.json prints its help and exits 1.
-# That compile is also the shared build — the server imports its output
+# That compile is also the shared build: the server imports its output
 # (@manifesto/shared resolves to dist/index.js at runtime).
 COPY packages/shared packages/shared
 
 # Select both packages directly so shared's devDependencies (typescript) are
-# installed too — the builder compiles shared, not just server.
+# installed too, since the builder compiles shared, not just server.
 RUN pnpm install --filter @manifesto/server --filter @manifesto/shared --frozen-lockfile
 
 COPY packages/server packages/server

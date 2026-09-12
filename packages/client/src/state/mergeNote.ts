@@ -29,7 +29,7 @@ function mergeLinkPreviews(
   const result = current.filter((p) => !removedSet.has(p.url));
   for (const preview of desired) {
     if (baseUrls.has(preview.url)) {
-      // The user updated metadata on an existing preview — overwrite the
+      // The user updated metadata on an existing preview, so overwrite the
       // server's copy so the edit isn't silently dropped.
       const idx = result.findIndex((p) => p.url === preview.url);
       if (idx !== -1) result[idx] = preview;

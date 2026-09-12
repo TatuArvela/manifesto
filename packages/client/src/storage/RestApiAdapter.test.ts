@@ -241,7 +241,7 @@ describe("RestApiAdapter", () => {
         .mockResolvedValueOnce(jsonResponse({ notes }))
         // A: success
         .mockResolvedValueOnce(new Response(null, { status: 204 }))
-        // B: 500 — but the loop must continue
+        // B: 500, but the loop must continue
         .mockResolvedValueOnce(new Response("err", { status: 500 }))
         // C: success
         .mockResolvedValueOnce(new Response(null, { status: 204 }));
@@ -249,7 +249,7 @@ describe("RestApiAdapter", () => {
       await expect(adapter.deleteAll()).rejects.toThrow(
         "Failed to delete some notes",
       );
-      // 1 list + 3 deletes — confirms B's failure didn't short-circuit C.
+      // 1 list + 3 deletes confirms B's failure didn't short-circuit C.
       expect(fetchMock).toHaveBeenCalledTimes(4);
     });
   });
@@ -404,8 +404,8 @@ describe("RestApiAdapter", () => {
   });
 
   describe("paging", () => {
-    // The app keeps every note in one signal — `allTags`, the tag counts and
-    // the whole filter chain are computed over the full list — so pages are a
+    // The app keeps every note in one signal (`allTags`, the tag counts and
+    // the whole filter chain are computed over the full list), so pages are a
     // property of the wire and the adapter hands the caller all of them.
 
     it("follows the cursor until the server stops offering one", async () => {

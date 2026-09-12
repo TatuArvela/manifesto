@@ -87,7 +87,7 @@ function withoutStrayDividers(items: NoteMenuItem[]): NoteMenuItem[] {
 }
 
 /**
- * The rows of a note's kebab menu, without the panel around them — the three
+ * The rows of a note's kebab menu, without the panel around them. The three
  * surfaces that show one (the card, the editor, the read-only view) mount it
  * in their own popover and each adds rows of its own above these.
  *
@@ -170,9 +170,9 @@ export interface NoteMenuOptions {
    * preference to the stored note, which lags by the auto-save debounce.
    */
   draft?: { title: string; content: string };
-  /** Adds "Remind me" — only where there is a picker for it to open. */
+  /** Adds "Remind me", only where there is a picker for it to open. */
   onOpenReminder?: () => void;
-  /** Adds "Version history" — only where there is a panel to show. */
+  /** Adds "Version history", only where there is a panel to show. */
   onShowVersions?: () => void;
   /**
    * Adds "Delete checked items". The card rewrites the stored note; the editor
@@ -181,7 +181,7 @@ export interface NoteMenuOptions {
    */
   checkedItems?: { present: boolean; remove: () => void };
   /**
-   * Called when a row moves the note out of the view it was opened from —
+   * Called when a row moves the note out of the view it was opened from,
    * archiving, trashing and restoring all do. Surfaces that sit over that view
    * close themselves here.
    */
@@ -276,7 +276,7 @@ export function noteMenuItems(
         // an empty `images`, and an export written from that would be a file
         // silently missing its pictures.
         const images = await ensureImages(note.id);
-        // Null is "could not fetch", not "has none" — writing the file anyway
+        // Null is "could not fetch", not "has none"; writing the file anyway
         // would save a note stripped of the pictures it still has.
         if (images === null) return;
         // Auto-note markers are stripped so the export is a static, portable

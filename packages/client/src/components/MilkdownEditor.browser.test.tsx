@@ -10,7 +10,7 @@ import { MilkdownEditor, normalizeMarkdown } from "./MilkdownEditor.js";
  * way of getting it wrong loses a note rather than showing an error: bind to an
  * empty fragment and the note blanks, push the prop into a populated one and
  * whatever the other client wrote is gone. So these run against a real editor
- * and a real `Y.Doc` — a mock of either would be a mock of the thing under
+ * and a real `Y.Doc`, because a mock of either would be a mock of the thing under
  * test.
  */
 
@@ -60,7 +60,7 @@ const fragmentText = (ydoc: Y.Doc) =>
 describe("MilkdownEditor collaborative binding", () => {
   it("seeds an empty shared fragment from the note", async () => {
     // The note has never been opened collaboratively, so the server has no
-    // fragment either — see the `synced` gate in NoteCardEditor, which is what
+    // fragment either. See the `synced` gate in NoteCardEditor, which is what
     // lets an empty fragment here mean "empty everywhere" rather than "not
     // arrived yet". Without the seeding, ySyncPlugin adopts the empty fragment
     // and the note reads as blank.
@@ -101,7 +101,7 @@ describe("MilkdownEditor collaborative binding", () => {
   });
 
   it("leaves an empty note's fragment empty", async () => {
-    // A blank new note must not commit a paragraph the user never typed —
+    // A blank new note must not commit a paragraph the user never typed:
     // whoever opens it next would inherit it as the shared state.
     const ydoc = new Y.Doc();
     await mountEditor({ content: "", onChange: () => {}, collab: { ydoc } });

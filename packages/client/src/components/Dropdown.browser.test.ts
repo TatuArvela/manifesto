@@ -31,7 +31,7 @@ describe("panel text colour", () => {
 
   it("inherits the page colour when the panel names none", () => {
     // The UA stylesheet gives `[popover]` `color: CanvasText`, which beats
-    // inheritance — without our reset the panel would render black here, on
+    // inheritance. Without our reset the panel would render black here, on
     // whatever dark background its own class list paints.
     expect(panelColor("color: rgb(1, 2, 3)")).toBe("rgb(1, 2, 3)");
   });

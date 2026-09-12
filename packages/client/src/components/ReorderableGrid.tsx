@@ -6,7 +6,7 @@ import { NoteCard } from "./NoteCard.js";
 
 /**
  * Whether the container lays its children out in a single column, measured
- * rather than inferred from the view mode — the masonry grid collapses to one
+ * rather than inferred from the view mode, because the masonry grid collapses to one
  * column at narrow widths too, and there the drop indicator has to be a
  * horizontal rule between cards rather than a vertical one beside them.
  *
@@ -229,7 +229,7 @@ export function ReorderableGrid({
   };
 
   // A single-column layout puts the drop rule between cards rather than beside
-  // one, which is a different set of `::after` rules — and the list view is
+  // one, which is a different set of `::after` rules, and the list view is
   // always single-column.
   const layoutClass = isList
     ? "flex flex-col gap-3"

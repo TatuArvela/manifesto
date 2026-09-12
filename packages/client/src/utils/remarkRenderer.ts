@@ -86,7 +86,7 @@ const processor = unified()
  * Markdown to HTML, sanitized. Every caller feeds the result to
  * `dangerouslySetInnerHTML`, and note content can arrive from a shared link,
  * an imported file or a plugin, so sanitizing is part of rendering rather
- * than something each call site remembers to do — one of the three used to
+ * than something each call site remembers to do. One of the three used to
  * forget the allowlist, and nothing said so.
  */
 export function renderMarkdown(md: string): string {
@@ -94,7 +94,7 @@ export function renderMarkdown(md: string): string {
 }
 
 /**
- * The same rendering for a fragment that has to sit inside a line — a
+ * The same rendering for a fragment that has to sit inside a line, such as a
  * checklist item's label, which lives next to its checkbox. A single wrapping
  * paragraph is unwrapped; anything block-shaped keeps its markup, since a
  * label that really does contain a list is better ugly than swallowed.

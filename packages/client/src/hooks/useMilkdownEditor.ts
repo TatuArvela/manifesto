@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
  * The hook calls .create() and exposes the editor once ready.
  *
  * `beforeDestroy` runs on a created editor while its context is still intact,
- * which is the only moment a plugin holding a pending timer can be disarmed —
+ * which is the only moment a plugin holding a pending timer can be disarmed;
  * see the caller for why that matters.
  *
  * `ready` defaults to true; pass false while `build` is still missing something

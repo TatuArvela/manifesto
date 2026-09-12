@@ -45,7 +45,7 @@ const LIST_LINE_RE = /^\s*(?:[-*+] |\d+[.)] )/;
 /** mdast's "spread" lists insert blank lines between items on stringify. Our
  * preview treats each blank line as a segment gap, which balloons a simple
  * checklist into disconnected blocks. Collapse blank lines that only sit
- * between two list items — never inside a fence, where a blank line between
+ * between two list items, never inside a fence, where a blank line between
  * two lines that happen to start with `-` is part of the code. */
 function collapseListSpread(md: string): string {
   const lines = md.split("\n");
@@ -120,7 +120,7 @@ export function MilkdownEditor({
   collabRef.current = collab;
 
   // The collaborative plugin is fetched on demand, so a collaborative editor
-  // cannot be built until it lands — see `loadYjsCollab` for why it must be in
+  // cannot be built until it lands. See `loadYjsCollab` for why it must be in
   // hand *before* the editor is created rather than awaited inside the plugin.
   // Held in a ref as well: `build` reads it without taking it as a dependency.
   const [collabFactory, setCollabFactory] = useState<YjsCollabFactory | null>(
@@ -205,7 +205,7 @@ export function MilkdownEditor({
   );
 
   // A note that has never been edited collaboratively has an empty shared
-  // fragment, and ySyncPlugin adopts whatever the fragment holds — so binding
+  // fragment, and ySyncPlugin adopts whatever the fragment holds, so binding
   // would blank the editor and then write that blank back as the note content.
   // Seed the fragment from the note instead. Safe because NoteCardEditor only
   // supplies `collab` after the provider reports synced, so an empty fragment
@@ -254,7 +254,7 @@ export function MilkdownEditor({
   // fires on the null → instance transition at mount, and its `else` branch
   // would then push the `content` prop into a document that was already built
   // from it. Harmless solo; in collab it overwrites the shared fragment that
-  // ySyncPlugin has just rendered — the note's real content replaced by
+  // ySyncPlugin has just rendered, with the note's real content replaced by
   // whatever this client happened to have, which is the data loss the seeding
   // effect above exists to avoid.
   const previousRawModeRef = useRef<boolean | null>(null);
@@ -270,7 +270,7 @@ export function MilkdownEditor({
       rawContentRef.current = md;
     } else {
       // Read the latest textarea value, not whatever was captured when the
-      // toggle effect was first scheduled — otherwise edits made in raw mode
+      // toggle effect was first scheduled; otherwise edits made in raw mode
       // are silently dropped on the way back to WYSIWYG.
       const latest = rawContentRef.current;
       editor.action(replaceAll(latest));

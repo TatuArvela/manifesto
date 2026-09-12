@@ -46,8 +46,8 @@ export function CardPopover({
       );
     };
     updatePos();
-    // Panels here change size while open — the kebab menu grows when the tag
-    // picker expands inside it — so re-place on their own resize too.
+    // Panels here change size while open (the kebab menu grows when the tag
+    // picker expands inside it), so re-place on their own resize too.
     const panel = popoverRef.current;
     const ro = panel ? new ResizeObserver(updatePos) : null;
     if (panel && ro) ro.observe(panel);
@@ -60,7 +60,7 @@ export function CardPopover({
     };
   }, [anchorRef, placement]);
 
-  // The trigger's tooltip would otherwise stay up underneath this panel —
+  // The trigger's tooltip would otherwise stay up underneath this panel:
   // the pointer never leaves the trigger, so no `pointerleave` arrives.
   useEffect(hideAllTooltips, []);
 
@@ -74,7 +74,7 @@ export function CardPopover({
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
       <div class="fixed inset-0 z-40" onClick={onClose} />
       {/* Always rendered so it can be measured, but kept invisible until it
-          has been placed — otherwise it would flash at the top-left corner. */}
+          has been placed; otherwise it would flash at the top-left corner. */}
       <div
         ref={popoverRef}
         class="card-popover fixed z-50"

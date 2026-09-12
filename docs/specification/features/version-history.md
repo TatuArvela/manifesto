@@ -21,13 +21,13 @@ Notes have persistent version history, allowing users to browse and restore prev
 
 Each version is a `NoteVersion` (see [Data Model](../data-model.md)) containing:
 
-- `noteId` — the note this version belongs to
-- `timestamp` — when the version was captured
-- `title` — the note title at that point
-- `content` — the note content at that point
+- `noteId`: the note this version belongs to
+- `timestamp`: when the version was captured
+- `title`: the note title at that point
+- `content`: the note content at that point
 
 ## Limitations
 
-- Version history is local-only — not synced to the server
+- Version history is local-only and not synced to the server
 - Only title and content are versioned (not color, font, tags, etc.)
 - Version history is not included in share links or export files

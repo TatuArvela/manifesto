@@ -41,7 +41,7 @@ jobs:
       - run: pnpm --filter @manifesto/client build
 
   # The Dockerfile installs from a partial copy of the workspace, so a change
-  # that builds fine here can still break it — and otherwise nothing builds the
+  # that builds fine here can still break it, and otherwise nothing builds the
   # image until a release. One native arch is enough to catch that; never push.
   image:
     runs-on: ubuntu-latest

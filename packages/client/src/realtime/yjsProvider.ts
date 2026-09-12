@@ -40,19 +40,19 @@ function wsUrl(): string | null {
 /**
  * Returns a Y.Doc bound to the given note id, with WebSocket sync to the
  * server and IndexedDB persistence for offline buffering. Returns
- * { ydoc: null } when not in server mode or unauthenticated — the caller
+ * { ydoc: null } when not in server mode or unauthenticated; the caller
  * should fall back to plain (non-collaborative) editing.
  *
  * The collaboration stack itself is fetched on demand (see `yjsSession`), so
  * the document appears one microtask-plus-a-network-fetch after the hook first
  * asks for it. `status` is `loading` for that window, and a chunk that fails to
- * arrive reports `disconnected` with no document — which lands the caller in
+ * arrive reports `disconnected` with no document, which lands the caller in
  * the same non-collaborative fallback as open mode rather than leaving an
  * editor waiting on a document that will never come.
  */
 export function useNoteYDoc(noteId: string | null): NoteYDoc {
   const [state, setState] = useState<NoteYDoc>(IDLE);
-  // Read the token via the value to make the dep array meaningful — token
+  // Read the token via the value to make the dep array meaningful: token
   // rotation (login swap, server-forced logout) tears down the provider and
   // re-establishes the connection with the new credentials.
   const token = authToken.value;
@@ -72,7 +72,7 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
 
     // Fetched alongside the session rather than when the editor asks for it:
     // the editor asks the instant we report `synced`, and fetching then would
-    // leave the note body blank for a round trip. Fire and forget — the
+    // leave the note body blank for a round trip. Fire and forget; the
     // editor awaits the same memoized promise.
     void loadYjsCollab().catch(() => {});
 

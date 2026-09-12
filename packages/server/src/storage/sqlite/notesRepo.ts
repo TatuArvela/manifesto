@@ -28,7 +28,7 @@ const LIST_COLUMNS = INSERT_COLUMNS.filter((c) => c !== "images").join(", ");
  * Ordered by `updated_at DESC, id DESC`, so a cursor is a place in a total
  * order rather than a timestamp two notes might share. Written as two
  * comparisons rather than a row value because pg-mem, which the parallel
- * Postgres suite runs on, does not parse `(a, b) < (c, d)` — and both drivers
+ * Postgres suite runs on, does not parse `(a, b) < (c, d)`, and both drivers
  * should be reading the same shape of query.
  */
 const PAGE_ORDER = `ORDER BY updated_at DESC, id DESC LIMIT ?`;
@@ -112,7 +112,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
         (column) => `${column} = ?`,
       );
       const params = [...values, updatedAt, id, userId];
-      // Compare-and-set on `updated_at` when the caller passed `If-Match` —
+      // Compare-and-set on `updated_at` when the caller passed `If-Match`;
       // collapses the prior read-then-write race into a single atomic write.
       let where = `WHERE id = ? AND user_id = ?`;
       if (expectedUpdatedAt !== undefined) {

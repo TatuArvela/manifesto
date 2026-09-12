@@ -266,7 +266,7 @@ export function Header() {
     <header class="relative z-20 shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-white dark:bg-neutral-900">
       {/* Left: logo + title. Logo shows only on the active (main) view,
           matching desktop. Title truncates on md+ so long translations don't
-          overlap the centered search bar — which is absolutely centered with
+          overlap the centered search bar, which is absolutely centered with
           a max width of 36rem, so the title gets (50vw − 19rem) to grow into
           on wide viewports, or 11rem on narrow md widths where the search
           bar fills the padded area. */}
@@ -282,7 +282,7 @@ export function Header() {
         </h1>
       </div>
 
-      {/* Center: search bar — absolutely positioned for true centering
+      {/* Center: search bar, absolutely positioned for true centering
           (desktop only; on mobile the search icon button is used instead) */}
       <div class="absolute inset-0 hidden md:flex items-center justify-center pointer-events-none px-48">
         <div class="relative w-full max-w-xl pointer-events-auto">
@@ -344,7 +344,7 @@ export function Header() {
             )}
           </button>
         </Tooltip>
-        {/* Sort button with dropdown — hidden in views with a fixed sort order */}
+        {/* Sort button with dropdown, hidden in views with a fixed sort order */}
         {activeView.value !== "trash" && activeView.value !== "reminders" && (
           <Dropdown
             open={showSortMenu}

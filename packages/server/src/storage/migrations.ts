@@ -3,7 +3,7 @@
  *
  * Until now each driver ran one blob of `CREATE TABLE IF NOT EXISTS`. That
  * builds a correct schema on an empty database and does nothing at all on a
- * populated one — so the *next* change to the schema would have applied on a
+ * populated one, so the *next* change to the schema would have applied on a
  * developer's fresh checkout and silently skipped every deployed instance,
  * leaving a column the code expects missing from the table.
  *
@@ -56,7 +56,7 @@ export function pendingMigrations(
   for (const id of applied) {
     if (!seen.has(id)) {
       throw new Error(
-        `Database has migration ${id} applied, but it is no longer declared — ` +
+        `Database has migration ${id} applied, but it is no longer declared; ` +
           `a shipped migration must never be renamed or removed`,
       );
     }

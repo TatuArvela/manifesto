@@ -210,7 +210,7 @@ describe("notes routes", () => {
     const cases: Array<[string, string]> = [
       ["javascript:alert(1)", "javascript scheme"],
       ["file:///etc/passwd", "file scheme"],
-      ["https://example.com/cat.png", "remote url — images are inlined"],
+      ["https://example.com/cat.png", "remote url (images are inlined)"],
       ["not a url", "not a url at all"],
       // A document format wearing an image content type. Excluded on purpose:
       // SVG can carry script into anything that renders an attachment by URL.

@@ -25,7 +25,7 @@ export const noteColorSchema = z.nativeEnum(NoteColor);
 export const noteFontSchema = z.nativeEnum(NoteFont);
 
 /**
- * Only http(s) URLs are accepted for the link-preview fields — the ones a
+ * Only http(s) URLs are accepted for the link-preview fields, the ones a
  * renderer will dereference. This blocks `javascript:`, `data:`, `file:`, and
  * arbitrary internal-scheme URLs that could otherwise be used to fingerprint or
  * SSRF-probe a recipient's network when a note is shared via /share/...
@@ -40,7 +40,7 @@ const httpUrlSchema = z
 
 /**
  * Attached images are inlined by the client as `data:` URLs, so they cannot go
- * through `httpUrlSchema` — that schema exists to keep remote-fetching fields
+ * through `httpUrlSchema`; that schema exists to keep remote-fetching fields
  * (link previews) from being pointed at internal hosts, a concern a `data:` URL
  * does not have. What matters here instead is that the payload is inert image
  * bytes and that one note cannot carry an unbounded write.
@@ -50,7 +50,7 @@ const imageDataUrlSchema = z
   .max(
     MAX_IMAGE_DATA_URL_BYTES,
     // Derived, so the number a client sees can never drift from the one
-    // enforced. This message is not localized — the client refuses over-cap
+    // enforced. This message is not localized: the client refuses over-cap
     // images before sending, and localizes its own.
     `Image is too large; attach an image under ${
       MAX_IMAGE_SOURCE_BYTES / (1024 * 1024)
@@ -99,7 +99,7 @@ const noteFields = {
   trashed: z.boolean(),
   // `trashedAt` is deliberately absent: it drives hard deletion 30 days on,
   // so a client that could set it could also ask for a note to be destroyed
-  // immediately — or never. The routes stamp it from `trashed` and the
+  // immediately, or never. The routes stamp it from `trashed` and the
   // server clock, and zod strips whatever a client sends.
   position: z.number(),
   tags: z.array(z.string().min(1).max(64)).max(50),

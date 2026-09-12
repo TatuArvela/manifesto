@@ -6,7 +6,7 @@ import { useFocusTrap } from "./useFocusTrap.js";
 
 /**
  * Real Tab presses through the browser, because the whole behaviour under test
- * is the browser's own sequential navigation — a synthesised `keydown` moves
+ * is the browser's own sequential navigation. A synthesised `keydown` moves
  * focus nowhere, so a trap could be missing entirely and every assertion would
  * still pass.
  */
@@ -56,7 +56,7 @@ const shiftTab = () => userEvent.keyboard("{Shift>}{Tab}{/Shift}");
 
 /**
  * Puts focus on a known control by clicking it. A real key press goes to the
- * *page*, and test files share one — so without first taking focus here, a Tab
+ * *page*, and test files share one, so without first taking focus here, a Tab
  * meant for this document can land in another file's frame.
  */
 async function focusOn(id: string) {
@@ -107,7 +107,7 @@ describe("useFocusTrap", () => {
     await focusOn("last");
 
     // Without the trap this is `after`, and Tab walks on through the grid
-    // behind the modal — where the cards are focusable and still open notes.
+    // behind the modal, where the cards are focusable and still open notes.
     await tab();
     expect(focusedId()).toBe("first");
   });
@@ -122,7 +122,7 @@ describe("useFocusTrap", () => {
 
   it("lets Tab move normally between stops inside the modal", async () => {
     // Only the two ends are intercepted, so Tab keeps its meaning everywhere
-    // else — inside ProseMirror it still indents a list item.
+    // else; inside ProseMirror it still indents a list item.
     render(
       <Trapped>
         <button type="button" id="a">

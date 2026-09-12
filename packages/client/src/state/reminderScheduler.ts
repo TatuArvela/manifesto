@@ -70,7 +70,7 @@ async function registerPeriodicSync(): Promise<void> {
     });
   } catch {
     // periodicSync requires a permission grant on Chromium and isn't available
-    // elsewhere — fall back to the in-SW polling loop.
+    // elsewhere, so fall back to the in-SW polling loop.
   }
 }
 
@@ -147,7 +147,7 @@ function scheduleForNote(note: Note) {
   const dueMs = parseLocalISO(reminder.time).getTime() - Date.now();
 
   if (dueMs <= 0) {
-    // Overdue — only catch up within the last hour to avoid spamming after long absences.
+    // Overdue: only catch up within the last hour to avoid spamming after long absences.
     if (dueMs > -CATCHUP_WINDOW_MS) {
       queueMicrotask(() => fire(note));
     } else if (reminder.recurrence !== "none") {
@@ -158,7 +158,7 @@ function scheduleForNote(note: Note) {
     return;
   }
 
-  // `setTimeout` is clamped to ~24.8 days (2^31 ms) — that's fine for our
+  // `setTimeout` is clamped to ~24.8 days (2^31 ms), which is fine for our
   // expected horizon; a reschedule is triggered whenever `notes` changes or
   // the tab visibility flips.
   const delay = Math.min(dueMs, 2_000_000_000);

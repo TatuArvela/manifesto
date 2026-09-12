@@ -75,7 +75,7 @@ function resolvePlural(key: MessageKey, n: number): string {
 /**
  * Translate a key for the current locale. Reads `locale.value` internally, so
  * every call subscribes during render. **Always call inside component render
- * bodies** — not at module scope, or the string will freeze to the load-time
+ * bodies**, not at module scope, or the string will freeze to the load-time
  * locale.
  *
  * `{appName}` resolves on its own; every other placeholder comes from `vars`.
@@ -115,7 +115,7 @@ export function formatDate(iso: string): string {
  * stale the moment the underlying limit moved.
  *
  * Divides by 1024², which is how Windows and most file managers label sizes and
- * how `MAX_IMAGE_SOURCE_BYTES` — currently the only value rendered here — is
+ * how `MAX_IMAGE_SOURCE_BYTES` (currently the only value rendered here) is
  * defined. Reads `locale.value`, so the same render-body rule as `t()` applies.
  */
 export function formatFileSize(bytes: number): string {

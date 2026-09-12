@@ -81,7 +81,7 @@ export function useTouchGesture(opts: TouchGestureOptions) {
           longPressTimer = null;
         }
         if (!optsRef.current.onDragStart) {
-          // Movement past threshold but card isn't draggable — abandon gesture.
+          // Movement past threshold but card isn't draggable: abandon gesture.
           teardown();
           return;
         }

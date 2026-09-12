@@ -7,7 +7,7 @@ import { ensureImages, exportNotes, notes } from "./actions.js";
  * A server listing sends `imageCount` and an empty `images`, so a note in the
  * signal may be carrying a promise of attachments rather than the attachments.
  * `ensureImages` is what turns one into the other, and everything that needs
- * the bytes — a card scrolling into view, the editor, an export — goes through
+ * the bytes (a card scrolling into view, the editor, an export) goes through
  * it. It is also the one place that can turn a note's own pictures into an
  * empty list if it gets the bookkeeping wrong, which is what these check.
  */

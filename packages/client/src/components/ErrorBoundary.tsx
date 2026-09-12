@@ -18,7 +18,7 @@ interface State {
  * The failure this exists for is persistent, not transient: a note carrying an
  * unknown `color` or `font` throws inside `NoteCard`, and because it is stored
  * in `localStorage` it throws again on every subsequent load. So the fallback
- * has to offer a way *out* — reloading alone would trap the user in the same
+ * has to offer a way *out*; reloading alone would trap the user in the same
  * crash forever. The backup button reads `localStorage` directly rather than
  * going through the storage layer, because that layer may be what's broken.
  */
@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
     try {
       raw = localStorage.getItem(NOTES_KEY) ?? "[]";
     } catch {
-      // Storage unreadable (private mode, blocked cookies) — fall through and
+      // Storage unreadable (private mode, blocked cookies): fall through and
       // hand the user an empty file rather than failing the click silently.
     }
     const url = URL.createObjectURL(

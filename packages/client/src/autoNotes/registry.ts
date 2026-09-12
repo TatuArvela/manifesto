@@ -42,7 +42,7 @@ effect(() => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(plugins.value));
   } catch {
-    // Ignore quota or access failures — plugins will still work for this session.
+    // Ignore quota or access failures; plugins will still work for this session.
   }
 });
 

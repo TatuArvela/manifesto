@@ -282,8 +282,8 @@ describe("failure reporting", () => {
 
   /**
    * Three notes in the signal that storage has never heard of, so every write
-   * against them fails. That is the shape of a real partial failure — a note
-   * deleted from another device, a row the server rejects — without having to
+   * against them fails. That is the shape of a real partial failure (a note
+   * deleted from another device, a row the server rejects) without having to
    * reach into the adapter.
    */
   function selectPhantomNotes(count: number): string[] {

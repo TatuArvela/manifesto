@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <!-- `worker-src blob:` is what lets plugins run off this frame's thread;
          everything else stays denied. A blob worker inherits this policy, so
-         `unsafe-eval` reaches the worker too — which is where it is needed,
+         `unsafe-eval` reaches the worker too, which is where it is needed,
          since a plugin is evaluated with `new Function`. -->
     <meta
       http-equiv="Content-Security-Policy"
@@ -123,7 +123,7 @@
         /**
          * Starts the worker, or reports that it couldn't. Firefox and older
          * engines refuse a worker in a frame with an opaque origin, in which
-         * case plugins run on this frame's thread as they used to — the host
+         * case plugins run on this frame's thread as they used to, and the host
          * timeout is then only as good as the plugin's willingness to yield,
          * which is why the host says so out loud.
          */

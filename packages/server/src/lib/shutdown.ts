@@ -2,8 +2,8 @@ import { logger } from "./logger.js";
 
 /**
  * The pieces a running server holds open, in the order they have to be let go
- * of. Each is optional so a test — or a future entrypoint that wires less than
- * `index.ts` does — can supply only what it has.
+ * of. Each is optional so a test (or a future entrypoint that wires less than
+ * `index.ts` does) can supply only what it has.
  */
 export interface ShutdownSteps {
   /** Stop accepting new connections. Existing ones are dropped afterwards. */
@@ -14,7 +14,7 @@ export interface ShutdownSteps {
   destroyRealtime?: () => Promise<void>;
   /** Stop the background sweeps. */
   stopJobs?: Array<() => void>;
-  /** Close the database last — everything above may still write. */
+  /** Close the database last, since everything above may still write. */
   closeStorage?: () => Promise<void>;
 }
 
@@ -93,7 +93,7 @@ async function step(name: string, run?: () => Promise<void>): Promise<void> {
   try {
     await run();
   } catch (err) {
-    // A step that fails must not strand the ones after it — a database left
+    // A step that fails must not strand the ones after it: a database left
     // open is worse than a socket that refused to close.
     logFailure(name, err);
   }

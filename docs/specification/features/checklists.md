@@ -13,7 +13,7 @@ Checklists are represented as [GFM task lists](https://github.github.com/gfm/#ta
 - Checkboxes render as interactive, tappable/clickable elements
 - Toggling a checkbox mutates the markdown string in-place (flipping `[ ]` to `[x]` or vice versa)
 - Checklists and freeform markdown coexist naturally in the same note
-- No separate data structure — the markdown content is the single source of truth
+- No separate data structure; the markdown content is the single source of truth
 
 ## Interaction from the Card View
 

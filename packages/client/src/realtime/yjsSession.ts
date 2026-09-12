@@ -4,7 +4,7 @@ import type { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
 
 /**
- * Every import of the collaboration stack — Yjs, Hocuspocus, y-indexeddb —
+ * Every import of the collaboration stack (Yjs, Hocuspocus, y-indexeddb)
  * lives behind this module, which `yjsProvider` reaches only through a dynamic
  * `import()`. Open mode is the default build and can never open a socket, so
  * keeping these out of the entry chunk is what stops ~130 KB of collaboration

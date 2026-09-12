@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
 
-/** Vertical gap between cards — matches the grid's `gap-x-4`. */
+/** Vertical gap between cards; matches the grid's `gap-x-4`. */
 const MASONRY_GAP = 16;
 
 /**
@@ -27,7 +27,7 @@ function applyMasonrySpans(container: HTMLElement, square: boolean) {
   });
   for (let i = 0; i < children.length; i++) {
     // Every child is written back, including the ones whose span is unchanged
-    // — they are all sitting at `span 9999` right now. The release and the
+    // because they are all sitting at `span 9999` right now. The release and the
     // restore happen inside one synchronous pass, so nothing is painted in
     // between and a pass that changes nothing leaves the frame as it found it.
     children[i].style.gridRowEnd = spans[i];
@@ -39,7 +39,7 @@ function applyMasonrySpans(container: HTMLElement, square: boolean) {
  * Lays a grid container out as masonry and keeps it that way, returning the
  * ref to put on the container.
  *
- * `contents` is whatever changes when the cards do — the note list, usually.
+ * `contents` is whatever changes when the cards do: the note list, usually.
  * Passing it is what separates a re-measure from an unrelated re-render:
  * `AutoNotesView` had this effect with no dependency array at all, so it
  * measured every child on every keystroke anywhere in the view.
@@ -47,7 +47,7 @@ function applyMasonrySpans(container: HTMLElement, square: boolean) {
  * The children are watched as well as the container, because a card's height
  * is not settled when it is first measured: an image decodes after the frame
  * that added it, and a card measured before its picture arrives is given a
- * span a fraction of its eventual height — which in a column layout means the
+ * span a fraction of its eventual height, which in a column layout means the
  * card below is drawn *through* it. The container is watched for width, since
  * a different width is a different number of columns.
  */

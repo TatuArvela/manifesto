@@ -28,7 +28,7 @@ export const storageConnection = signal<StorageConnection>({
 });
 
 /**
- * Reactive adapter — recomputes when the connection changes. Read
+ * Reactive adapter that recomputes when the connection changes. Read
  * `currentStorage.value` at call time so actions always hit the right backend
  * after a login or logout.
  */

@@ -17,7 +17,7 @@ import type {
 } from "../types.js";
 import type { PgPool } from "./database.js";
 
-/** See the SQLite copy — same columns, same ordering, same reasons. */
+/** See the SQLite copy: same columns, same ordering, same reasons. */
 const LIST_COLUMNS = INSERT_COLUMNS.filter((c) => c !== "images").join(", ");
 
 export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
@@ -79,7 +79,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         (column, i) => `${column} = $${i + 1}`,
       );
       const idParam = params.length - 1;
-      // Compare-and-set on `updated_at` when the caller passed `If-Match` —
+      // Compare-and-set on `updated_at` when the caller passed `If-Match`;
       // collapses the prior read-then-write race into a single atomic write.
       let where = `WHERE id = $${idParam} AND user_id = $${idParam + 1}`;
       if (expectedUpdatedAt !== undefined) {

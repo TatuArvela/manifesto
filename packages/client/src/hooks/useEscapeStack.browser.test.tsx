@@ -9,7 +9,7 @@ import { escapeStackDepth, useEscapeStack } from "./useEscapeStack.js";
  * Real key events on a real document: the bug it replaces was several document
  * listeners all firing, which testing a handler in isolation cannot show.
  *
- * Layers are opened one render at a time, the way the app opens them — a click
+ * Layers are opened one render at a time, the way the app opens them: a click
  * on the editor opens the picker over it. See the hook's note on why a layer
  * must not become active in the same render as one it sits inside.
  */

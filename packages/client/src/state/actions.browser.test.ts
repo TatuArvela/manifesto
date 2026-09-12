@@ -69,8 +69,8 @@ describe("state actions", () => {
 
   it("updateNote reports a nonexistent note rather than rejecting", async () => {
     // The contract at the top of actions.ts: an action tells the user and
-    // resolves. Rejecting instead left every JSX handler — none of which can
-    // hold a `catch` — raising an unhandled rejection the user never saw.
+    // resolves. Rejecting instead left every JSX handler (none of which can
+    // hold a `catch`) raising an unhandled rejection the user never saw.
     await expect(updateNote("fake", { title: "X" })).resolves.toBe(false);
     expect(toasts.value.at(-1)?.message).toBe(t("error.saveFailed"));
   });
@@ -148,7 +148,7 @@ describe("state actions", () => {
   });
 
   // A note that documents checklist syntax inside a code fence. The preview
-  // renders the fenced lines as code — no boxes — so anything that offers or
+  // renders the fenced lines as code (no boxes), so anything that offers or
   // performs a checklist action has to see them the same way. When it did
   // not, "Delete checked items" cut lines out of the middle of the block and
   // left the fence unterminated.

@@ -2,7 +2,7 @@ import type { Note, NoteCreate } from "@manifesto/shared";
 import { createNote } from "./actions.js";
 
 /**
- * `createNote` resolves `null` rather than rejecting when storage fails — see
+ * `createNote` resolves `null` rather than rejecting when storage fails; see
  * the contract at the top of `actions.ts`. Tests that are about what happens
  * *after* a note exists say so with this, instead of asserting non-null at
  * every call site.

@@ -2,8 +2,8 @@ import { signal } from "@preact/signals";
 
 /**
  * What storage says when the browser refuses a write for want of space, and
- * nothing more. Deciding what the user is told — which message, in which
- * language, how often — is `actions.ts`'s job, so this layer holds no
+ * nothing more. Deciding what the user is told (which message, in which
+ * language, how often) is `actions.ts`'s job, so this layer holds no
  * reference to the toast queue or the message catalogue.
  *
  * The write itself is not retried and not rolled back: the in-memory signal

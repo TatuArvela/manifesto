@@ -42,7 +42,7 @@ function toResult(raw: unknown): AutoNoteResult {
   // dropped rather than thrown: `toNote` has a default for each, and one
   // misspelled colour shouldn't cost the plugin its whole run. Colour and
   // font are checked against the enums because they index `noteColorMap` /
-  // `noteFontFamilies` — an unrecognized string reaches `undefined` there
+  // `noteFontFamilies`, and an unrecognized string reaches `undefined` there
   // and throws while a card renders.
   if (typeof raw.color === "string" && NOTE_COLORS.has(raw.color)) {
     out.color = raw.color as NoteColor;
@@ -69,7 +69,7 @@ function toResult(raw: unknown): AutoNoteResult {
  * Turns whatever the sandbox sent into notes, or throws.
  *
  * This is the trust boundary. The sandbox evaluates code the user pasted in,
- * so nothing it says about its own output can be taken at face value — it
+ * so nothing it says about its own output can be taken at face value. It
  * used to do this check itself, on the wrong side of the boundary, and a
  * plugin that subverted its frame could hand the app any shape it liked.
  */

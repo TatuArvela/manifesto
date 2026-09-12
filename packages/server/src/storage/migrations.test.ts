@@ -16,7 +16,7 @@ import {
  * of `CREATE TABLE IF NOT EXISTS`, which builds the right schema on an empty
  * database and does nothing whatsoever on a populated one. The next schema
  * change would have worked on every fresh checkout and reached no deployed
- * instance — so the tests that matter here are the ones that add a second
+ * instance, so the tests that matter here are the ones that add a second
  * migration to a database that has already been through the first.
  */
 

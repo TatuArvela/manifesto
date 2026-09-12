@@ -190,13 +190,13 @@ export function attachAppSocket(deps: AppSocketDeps): void {
           }
           if (!isClientEvent(parsed)) return;
           if (parsed.type === "presence:update") {
-            // The noteId is taken on trust here — the broadcaster fans out
+            // The noteId is taken on trust here: the broadcaster fans out
             // only to the same user's tabs, so a malformed id can't leak
             // across users. If notes ever become shareable, gate this on
             // `storage.notes.getById(parsed.noteId, conn.userId)`.
             setViewedNote(conn, parsed.noteId);
           }
-          // `note:edit` from clients is not handled in Phase 3 — REST is the
+          // `note:edit` from clients is not handled in Phase 3; REST is the
           // authoritative write path; the server fans out updates from REST.
         },
 
