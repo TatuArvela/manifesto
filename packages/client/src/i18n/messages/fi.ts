@@ -135,9 +135,6 @@ export const fi: Messages = {
 
   "editor.rawMode": "Raakatila",
   "editor.normalMode": "Normaali tila",
-  "editor.formattingToolbar": "Muotoilupalkki",
-  "editor.showFormattingToolbar": "Näytä muotoilupalkki",
-  "editor.hideFormattingToolbar": "Piilota muotoilupalkki",
   "editor.undo": "Kumoa",
   "editor.redo": "Tee uudelleen",
   "editor.done": "Valmis",

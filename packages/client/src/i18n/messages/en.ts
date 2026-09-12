@@ -132,9 +132,6 @@ export const en = {
 
   "editor.rawMode": "Raw mode",
   "editor.normalMode": "Normal mode",
-  "editor.formattingToolbar": "Formatting toolbar",
-  "editor.showFormattingToolbar": "Show formatting toolbar",
-  "editor.hideFormattingToolbar": "Hide formatting toolbar",
   "editor.undo": "Undo",
   "editor.redo": "Redo",
   "editor.done": "Done",
