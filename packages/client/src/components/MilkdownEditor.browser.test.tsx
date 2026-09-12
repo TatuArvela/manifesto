@@ -113,27 +113,17 @@ describe("MilkdownEditor collaborative binding", () => {
   it("carries raw-mode edits back into the editor on toggle", async () => {
     // The raw-mode effect is the one that used to overwrite the shared
     // fragment on mount, because `editor` is in its dep array and arriving is
-    // not a toggle. Skipping the arrival must not cost us the toggle itself:
-    // this branch is the only thing that moves textarea edits into the
-    // document, so losing it silently discards everything typed in raw mode.
+    // not a toggle. Skipping the arrival must not cost us the toggle itself.
     const host = mountHost();
     const props = { content: "Written in rich mode", onChange: () => {} };
 
-    // Mounting straight into raw mode, rather than toggling into it, keeps the
-    // edit below from racing the effect that reads markdown out of the editor.
     render(<MilkdownEditor {...props} rawMode />, host);
-    const textarea = await vi.waitFor(() => {
-      const el = host.querySelector("textarea");
-      expect(el?.value).toBe("Written in rich mode");
-      return el as HTMLTextAreaElement;
-    });
+    const textarea = await rawTextareaReady(host);
+    expect(textarea.value).toBe("Written in rich mode");
 
-    textarea.value = "Edited as markdown";
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-    // Setting `.value` directly means the DOM already reads back the edit, so
-    // there is nothing to poll for: yield a macrotask instead and let Preact
-    // flush the state update the handler queued. Toggling before that commit
-    // would push the value it replaced.
+    typeInto(textarea, "Edited as markdown");
+    // Yield a macrotask so Preact commits the state the handler queued;
+    // toggling before that would push the value it replaced.
     await new Promise((resolve) => setTimeout(resolve, 0));
     render(<MilkdownEditor {...props} />, host);
 
@@ -142,6 +132,141 @@ describe("MilkdownEditor collaborative binding", () => {
         "Edited as markdown",
       );
     });
+  });
+});
+
+/** The raw textarea once the editor behind it is up and it accepts typing. */
+async function rawTextareaReady(host: HTMLElement) {
+  return await vi.waitFor(() => {
+    const el = host.querySelector("textarea");
+    expect(el).toBeTruthy();
+    expect(el?.readOnly).toBe(false);
+    return el as HTMLTextAreaElement;
+  });
+}
+
+function typeInto(textarea: HTMLTextAreaElement, value: string) {
+  textarea.value = value;
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+/** A second paragraph, written into the fragment as another client would. */
+function appendRemoteParagraph(ydoc: Y.Doc, text: string) {
+  const fragment = ydoc.getXmlFragment(DEFAULT_FRAGMENT_NAME);
+  const paragraph = new Y.XmlElement("paragraph");
+  paragraph.insert(0, [new Y.XmlText(text)]);
+  fragment.insert(fragment.length, [paragraph]);
+}
+
+describe("MilkdownEditor raw mode with a shared document", () => {
+  // Raw mode used to keep its text to itself until toggled back, and then
+  // wrote it over the whole document. In collab that lost work both ways:
+  // a note closed in raw mode never reached the fragment, so its next opening
+  // showed the old text and saved it back; and looking at a note in raw mode
+  // overwrote whatever a collaborator wrote meanwhile. With raw mode as a
+  // default, those became the ordinary path rather than an edge.
+
+  it("opens on the shared document's text, not the note's stale copy", async () => {
+    const ydoc = docContaining("What the other session wrote");
+    const host = mountHost();
+    render(
+      <MilkdownEditor
+        content="What this client last saw"
+        onChange={() => {}}
+        rawMode
+        collab={{ ydoc }}
+      />,
+      host,
+    );
+    const textarea = await rawTextareaReady(host);
+    await vi.waitFor(() =>
+      expect(textarea.value).toBe("What the other session wrote"),
+    );
+    expect(fragmentText(ydoc)).not.toContain("What this client last saw");
+  });
+
+  it("sends raw edits to the shared document as they are typed", async () => {
+    const ydoc = docContaining("Milk");
+    const host = mountHost();
+    render(
+      <MilkdownEditor
+        content="Milk"
+        onChange={() => {}}
+        rawMode
+        collab={{ ydoc }}
+      />,
+      host,
+    );
+    const textarea = await rawTextareaReady(host);
+    typeInto(textarea, "Milk and honey");
+    // No toggle and no close: the edit has to be out already.
+    await vi.waitFor(() =>
+      expect(fragmentText(ydoc)).toContain("Milk and honey"),
+    );
+  });
+
+  it("writes nothing when raw mode is only looked at", async () => {
+    const ydoc = docContaining("Leave me be");
+    const updates: Uint8Array[] = [];
+    ydoc.on("update", (update: Uint8Array) => updates.push(update));
+    const host = mountHost();
+    const props = {
+      content: "Leave me be",
+      onChange: () => {},
+      collab: { ydoc },
+    };
+    render(<MilkdownEditor {...props} rawMode />, host);
+    await rawTextareaReady(host);
+    render(<MilkdownEditor {...props} />, host);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(updates).toHaveLength(0);
+  });
+
+  it("shows a collaborator's edit in the textarea", async () => {
+    const ydoc = docContaining("Mine");
+    const onChange = vi.fn();
+    const host = mountHost();
+    render(
+      <MilkdownEditor
+        content="Mine"
+        onChange={onChange}
+        rawMode
+        collab={{ ydoc }}
+      />,
+      host,
+    );
+    const textarea = await rawTextareaReady(host);
+    appendRemoteParagraph(ydoc, "Theirs");
+    await vi.waitFor(() => expect(textarea.value).toBe("Mine\n\nTheirs"));
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.stringContaining("Theirs"),
+    );
+  });
+
+  it("keeps a collaborator's edit that lands just before a keystroke", async () => {
+    // The listener reports the collaborator's edit on a debounce, so a
+    // keystroke inside that window is pushed from text that lacks it.
+    const ydoc = docContaining("Shopping list for the weekend");
+    const host = mountHost();
+    render(
+      <MilkdownEditor
+        content="Shopping list for the weekend"
+        onChange={() => {}}
+        rawMode
+        collab={{ ydoc }}
+      />,
+      host,
+    );
+    const textarea = await rawTextareaReady(host);
+    appendRemoteParagraph(ydoc, "Bring bags");
+    typeInto(textarea, "Shopping list for the long weekend");
+    await vi.waitFor(() => {
+      expect(fragmentText(ydoc)).toContain("long weekend");
+      expect(fragmentText(ydoc)).toContain("Bring bags");
+    });
+    expect(textarea.value).toBe(
+      "Shopping list for the long weekend\n\nBring bags",
+    );
   });
 });
 

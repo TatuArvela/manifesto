@@ -30,9 +30,11 @@ import {
   type DefaultNoteFont,
   darkHue,
   decimalSeparator,
+  defaultEditMode,
   defaultNoteColor,
   defaultNoteFont,
   deleteAllNotes,
+  type EditMode,
   exportNotes,
   formattingToolbar,
   importNotes,
@@ -214,6 +216,11 @@ export function SettingsDialog() {
   const colorOptions: SettingsOption<DefaultNoteColor>[] = [
     { value: "plain", label: t("settings.defaultColor.plain") },
     { value: "random", label: t("settings.defaultColor.random") },
+  ];
+
+  const editModeOptions: SettingsOption<EditMode>[] = [
+    { value: "normal", label: t("settings.defaultEditMode.normal") },
+    { value: "raw", label: t("settings.defaultEditMode.raw") },
   ];
 
   const hueOptions: SettingsOption<DarkHue>[] = DARK_HUES.map((hue) => ({
@@ -437,6 +444,17 @@ export function SettingsDialog() {
                 options={fontOptions}
                 onChange={(next) => {
                   defaultNoteFont.value = next;
+                }}
+              />
+            </SettingsRow>
+
+            <SettingsRow label={t("settings.defaultEditMode")}>
+              <SettingsSelect
+                label={t("settings.defaultEditMode")}
+                value={defaultEditMode.value}
+                options={editModeOptions}
+                onChange={(next) => {
+                  defaultEditMode.value = next;
                 }}
               />
             </SettingsRow>

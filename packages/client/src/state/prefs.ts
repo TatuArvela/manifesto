@@ -13,6 +13,7 @@ export type DefaultNoteColor = "plain" | "random";
 export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
+export type EditMode = "normal" | "raw";
 export type DarkHue =
   | "neutral"
   | "midnight"
@@ -90,6 +91,7 @@ export interface LoadedPrefs {
   darkHue: DarkHue;
   noteQuips: boolean;
   formattingToolbar: boolean;
+  defaultEditMode: EditMode;
 }
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
@@ -124,6 +126,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
           typeof parsed.formattingToolbar === "boolean"
             ? parsed.formattingToolbar
             : true,
+        defaultEditMode: parsed.defaultEditMode === "raw" ? "raw" : "normal",
       };
     } catch {
       // ignore
@@ -144,6 +147,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     darkHue: "neutral",
     noteQuips: true,
     formattingToolbar: true,
+    defaultEditMode: "normal",
   };
 }
 
@@ -173,6 +177,7 @@ function savePrefs() {
       darkHue: darkHue.value,
       noteQuips: noteQuips.value,
       formattingToolbar: formattingToolbar.value,
+      defaultEditMode: defaultEditMode.value,
     }),
   );
 }
@@ -197,6 +202,7 @@ export const animations = signal<boolean>(prefs.animations);
 export const darkHue = signal<DarkHue>(prefs.darkHue);
 export const noteQuips = signal<boolean>(prefs.noteQuips);
 export const formattingToolbar = signal<boolean>(prefs.formattingToolbar);
+export const defaultEditMode = signal<EditMode>(prefs.defaultEditMode);
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
 export function resolvedDecimalSeparator(): "." | "," {
@@ -233,6 +239,7 @@ export function applyPrefs(loaded: LoadedPrefs) {
       darkHue.value = loaded.darkHue;
       noteQuips.value = loaded.noteQuips;
       formattingToolbar.value = loaded.formattingToolbar;
+      defaultEditMode.value = loaded.defaultEditMode;
     });
   } finally {
     applyingRemotePrefs = false;
@@ -257,6 +264,7 @@ effect(() => {
   darkHue.value;
   noteQuips.value;
   formattingToolbar.value;
+  defaultEditMode.value;
   // The reads above stay unconditional: they are what subscribes this effect.
   if (applyingRemotePrefs) return;
   clearTimeout(saveTimeout);
