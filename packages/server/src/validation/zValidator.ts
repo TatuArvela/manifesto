@@ -3,7 +3,7 @@ import type { z } from "zod";
 
 type ValidatorResult =
   | { success: true; data: unknown }
-  | { success: false; error: z.ZodError };
+  | { success: false; error: z.core.$ZodError };
 
 export function validatorHook(result: ValidatorResult, c: Context) {
   if (!result.success) {
