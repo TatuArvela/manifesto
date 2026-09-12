@@ -22,6 +22,7 @@ import {
   Pin,
   PinOff,
   Redo,
+  Type,
   Undo,
   X,
 } from "lucide-preact";
@@ -36,6 +37,7 @@ import {
   t,
 } from "../i18n/index.js";
 import { hasCheckedItems as textHasCheckedItems } from "../state/actions.js";
+import { formattingToolbar } from "../state/prefs.js";
 import { showError } from "../state/ui.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { removeCheckedItems } from "../utils/markdown.js";
@@ -369,6 +371,13 @@ export function NoteEditor({
 
   const checkedItems = { present: hasCheckedItems, remove: deleteCheckedItems };
 
+  const canFormat = !disabled && !contentLocked;
+  // A preference rather than editor state: whoever hides the toolbar wants it
+  // gone from every note, and still gone tomorrow.
+  const toggleFormattingToolbar = () => {
+    formattingToolbar.value = !formattingToolbar.value;
+  };
+
   return (
     <article
       class={`${colors.bg} ${colors.border} note-surface relative z-10 sm:border sm:shadow-lg max-sm:h-full max-sm:flex max-sm:flex-col max-sm:pt-[env(safe-area-inset-top)] max-sm:pb-[env(safe-area-inset-bottom)]`}
@@ -423,7 +432,7 @@ export function NoteEditor({
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
         />
 
-        {!disabled && !contentLocked && editor && (
+        {canFormat && formattingToolbar.value && editor && (
           <FormattingToolbar
             editor={editor}
             rawTextarea={rawTextarea}
@@ -691,6 +700,22 @@ export function NoteEditor({
             {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
           </button>
 
+          {canFormat && (
+            <button
+              type="button"
+              class={`sm:hidden ${menuItemClass}`}
+              onClick={() => {
+                toggleFormattingToolbar();
+                closeAllMenus();
+              }}
+            >
+              <Type class="w-4 h-4" />
+              {formattingToolbar.value
+                ? t("editor.hideFormattingToolbar")
+                : t("editor.showFormattingToolbar")}
+            </button>
+          )}
+
           <div class={`sm:hidden ${menuDividerClass}`} />
 
           <NoteMenu
@@ -717,6 +742,28 @@ export function NoteEditor({
             </button>
           </Tooltip>
         </div>
+
+        {canFormat && (
+          <div class="max-sm:hidden flex">
+            <Tooltip
+              label={
+                formattingToolbar.value
+                  ? t("editor.hideFormattingToolbar")
+                  : t("editor.showFormattingToolbar")
+              }
+            >
+              <button
+                type="button"
+                class={`${iconBtnClass} ${formattingToolbar.value ? "bg-black/10 dark:bg-white/15" : ""}`}
+                onClick={toggleFormattingToolbar}
+                aria-label={t("editor.formattingToolbar")}
+                aria-pressed={formattingToolbar.value}
+              >
+                <Type class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          </div>
+        )}
 
         {/* Undo / Redo (true-centered on mobile, inline on desktop) */}
         <div class="flex items-center gap-0.5 max-sm:absolute max-sm:left-1/2 max-sm:-translate-x-1/2">

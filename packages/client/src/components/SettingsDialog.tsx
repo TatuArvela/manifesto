@@ -34,6 +34,7 @@ import {
   defaultNoteFont,
   deleteAllNotes,
   exportNotes,
+  formattingToolbar,
   importNotes,
   inlineCalculations,
   locale,
@@ -451,6 +452,16 @@ export function SettingsDialog() {
           </SettingsSection>
 
           <SettingsSection title={t("settings.group.features")}>
+            <SettingsRow label={t("settings.formattingToolbar")}>
+              <Switch
+                checked={formattingToolbar.value}
+                onChange={(checked) => {
+                  formattingToolbar.value = checked;
+                }}
+                label={t("settings.formattingToolbar")}
+              />
+            </SettingsRow>
+
             <SettingsRow label={t("settings.inlineCalculations")}>
               <Switch
                 checked={inlineCalculations.value}

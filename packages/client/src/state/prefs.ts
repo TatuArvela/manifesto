@@ -89,6 +89,7 @@ export interface LoadedPrefs {
   animations: boolean;
   darkHue: DarkHue;
   noteQuips: boolean;
+  formattingToolbar: boolean;
 }
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
@@ -119,6 +120,10 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
         darkHue: parseDarkHue(parsed.darkHue),
         noteQuips:
           typeof parsed.noteQuips === "boolean" ? parsed.noteQuips : true,
+        formattingToolbar:
+          typeof parsed.formattingToolbar === "boolean"
+            ? parsed.formattingToolbar
+            : true,
       };
     } catch {
       // ignore
@@ -138,6 +143,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     animations: !prefersReducedMotion(),
     darkHue: "neutral",
     noteQuips: true,
+    formattingToolbar: true,
   };
 }
 
@@ -166,6 +172,7 @@ function savePrefs() {
       animations: animations.value,
       darkHue: darkHue.value,
       noteQuips: noteQuips.value,
+      formattingToolbar: formattingToolbar.value,
     }),
   );
 }
@@ -189,6 +196,7 @@ export const noteCorners = signal<NoteCorners>(prefs.noteCorners);
 export const animations = signal<boolean>(prefs.animations);
 export const darkHue = signal<DarkHue>(prefs.darkHue);
 export const noteQuips = signal<boolean>(prefs.noteQuips);
+export const formattingToolbar = signal<boolean>(prefs.formattingToolbar);
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
 export function resolvedDecimalSeparator(): "." | "," {
@@ -224,6 +232,7 @@ export function applyPrefs(loaded: LoadedPrefs) {
       animations.value = loaded.animations;
       darkHue.value = loaded.darkHue;
       noteQuips.value = loaded.noteQuips;
+      formattingToolbar.value = loaded.formattingToolbar;
     });
   } finally {
     applyingRemotePrefs = false;
@@ -247,6 +256,7 @@ effect(() => {
   animations.value;
   darkHue.value;
   noteQuips.value;
+  formattingToolbar.value;
   // The reads above stay unconditional: they are what subscribes this effect.
   if (applyingRemotePrefs) return;
   clearTimeout(saveTimeout);

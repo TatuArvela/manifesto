@@ -13,8 +13,8 @@ New notes default to: color `default` (or random, per user preference), font `de
 Clicking a NoteCard opens the NoteEditor as a modal overlay. The editor provides:
 
 - Title field (plain text)
-- Content field (plain textarea for editing markdown)
-- Preview toggle to see rendered markdown
+- Content field: a rich markdown editor, with a raw mode that shows and edits the markdown source
+- Formatting toolbar (headings, bold, italic, quotes, code, links, lists, checklists). In raw mode its buttons insert the markdown syntax instead. It can be hidden from a button beside the raw mode toggle or from Settings, and stays hidden across notes and sessions
 - Color picker
 - Font picker (Default, Permanent Marker, Comic Relief)
 - Tag picker

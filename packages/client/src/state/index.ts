@@ -56,6 +56,7 @@ export {
   decimalSeparator,
   defaultNoteColor,
   defaultNoteFont,
+  formattingToolbar,
   inlineCalculations,
   locale,
   type NoteCorners,
