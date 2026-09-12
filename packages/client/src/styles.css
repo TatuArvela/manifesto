@@ -627,6 +627,13 @@ html.dark {
   pointer-events: none;
 }
 
+/* Drag-to-select (hooks/useMarqueeSelection.ts). Without this, dragging the
+   box across the page also drags out a text selection. */
+body.marquee-active {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Drag-and-drop reorder */
 .note-dragging {
   opacity: 0.3;

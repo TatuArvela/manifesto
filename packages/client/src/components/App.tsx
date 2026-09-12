@@ -1,6 +1,7 @@
 import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
@@ -64,6 +65,8 @@ function useOidcRedirectOnce(blockUntilDone: boolean): boolean {
 function MainApp() {
   const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+  const marquee = useMarqueeSelection(mainRef);
 
   useEffect(() => {
     initRouter();
@@ -166,6 +169,7 @@ function MainApp() {
       <div class="flex flex-1 overflow-hidden relative z-0">
         <Sidebar />
         <main
+          ref={mainRef}
           class={`flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
         >
           {isSearchView ? (
@@ -213,6 +217,18 @@ function MainApp() {
           )}
         </main>
       </div>
+      {marquee && (
+        <div
+          aria-hidden="true"
+          class="fixed z-30 pointer-events-none rounded-sm border border-blue-500 bg-blue-500/10"
+          style={{
+            left: `${marquee.left}px`,
+            top: `${marquee.top}px`,
+            width: `${Math.max(0, marquee.right - marquee.left)}px`,
+            height: `${Math.max(0, marquee.bottom - marquee.top)}px`,
+          }}
+        />
+      )}
       <SettingsDialog />
       <ReminderBanner />
       <ConnectionStatus />
