@@ -5,7 +5,13 @@ import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { formatDateTime, t } from "../i18n/index.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
-import { ensureImages, notes, togglePin, updateNote } from "../state/index.js";
+import {
+  ensureImages,
+  notes,
+  showError,
+  togglePin,
+  updateNote,
+} from "../state/index.js";
 import { saveVersion } from "../storage/VersionStorage.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
@@ -137,10 +143,28 @@ export function NoteCardEditor({
   // The editor is one of the places that needs the bytes, not the count: its
   // "add an image" handler writes `[...note.images, ...urls]`, and doing that
   // against a list a listing had emptied would delete every attachment the
-  // note already had.
+  // note already had. Starting the fetch here is what makes it arrive before
+  // the user reaches for it, but it is not what makes it safe — the handlers
+  // below await it themselves, because this one is still in flight during the
+  // first moments the editor is open and may have failed after that.
   useEffect(() => {
     void ensureImages(note.id);
   }, [note.id]);
+
+  /**
+   * The note's attachments, or `null` if they could not be fetched.
+   *
+   * Every write to `images` has to go through this. `note.images` on its own
+   * is `[]` both before the load lands and after it fails, and writing
+   * `[...note.images, ...urls]` from either state PATCHes a list holding only
+   * the new file — which the server takes as the whole set and the other
+   * attachments are gone, on every device.
+   */
+  const currentImages = async (): Promise<string[] | null> => {
+    const images = await ensureImages(note.id);
+    if (images === null) showError(t("error.imagesUnavailable"));
+    return images;
+  };
 
   // Auto-save on any title/content change
   useEffect(() => {
@@ -206,14 +230,18 @@ export function NoteCardEditor({
         font={note.font}
         onFontChange={(font) => updateNote(note.id, { font })}
         images={note.images}
-        onAddImages={(urls) =>
-          updateNote(note.id, { images: [...note.images, ...urls] })
-        }
-        onRemoveImage={(index) =>
-          updateNote(note.id, {
-            images: note.images.filter((_, i) => i !== index),
-          })
-        }
+        onAddImages={async (urls) => {
+          const images = await currentImages();
+          if (images === null) return;
+          await updateNote(note.id, { images: [...images, ...urls] });
+        }}
+        onRemoveImage={async (index) => {
+          const images = await currentImages();
+          if (images === null) return;
+          await updateNote(note.id, {
+            images: images.filter((_, i) => i !== index),
+          });
+        }}
         linkPreviews={note.linkPreviews}
         onAddLinkPreview={(url) => {
           const current = notes.value.find((n) => n.id === note.id);

@@ -290,6 +290,8 @@ export const en = {
   "error.importFailed": "Failed to import notes.",
   "error.exportFailed":
     "Could not gather every attachment, so the export was cancelled rather than saved without them. Check your connection and try again.",
+  "error.imagesUnavailable":
+    "Could not load this note's attachments, so the change was not saved. Check your connection and try again.",
   "error.bulkFailed": {
     one: "{count} note could not be changed.",
     other: "{count} notes could not be changed.",
