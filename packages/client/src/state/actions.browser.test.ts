@@ -7,6 +7,7 @@ import {
   expireTrash,
   filteredNotes,
   hasCheckedItems,
+  leavingNotes,
   loadNotes,
   noteHasChecklist,
   notes,
@@ -20,7 +21,7 @@ import {
   updateNote,
   upsertById,
 } from "./actions.js";
-import { sortMode } from "./prefs.js";
+import { animations, sortMode } from "./prefs.js";
 import { createNoteOrFail } from "./testSupport.js";
 import { activeView, searchQuery, toasts } from "./ui.js";
 
@@ -87,6 +88,53 @@ describe("state actions", () => {
     expect(notes.value[0].trashed).toBe(true);
     expect(notes.value[0].trashedAt).toBeTruthy();
     expect(notes.value[0].archived).toBe(false);
+  });
+
+  it("trashNote lets the card animate out before the note leaves the grid", async () => {
+    const previous = animations.value;
+    animations.value = true;
+    try {
+      const note = await createNoteOrFail({ title: "Toss me" });
+      const done = trashNote(note.id);
+      // Still in the grid, but flagged: this is the window the card spends
+      // playing `.note-leaving`.
+      expect(leavingNotes.value.has(note.id)).toBe(true);
+      expect(sortedNotes.value.map((n) => n.id)).toContain(note.id);
+      await done;
+      expect(leavingNotes.value.size).toBe(0);
+      expect(sortedNotes.value).toHaveLength(0);
+    } finally {
+      animations.value = previous;
+    }
+  });
+
+  it("trashNote does not wait on an animation that is turned off", async () => {
+    const previous = animations.value;
+    animations.value = false;
+    try {
+      const note = await createNoteOrFail({ title: "Quietly" });
+      const done = trashNote(note.id);
+      expect(leavingNotes.value.size).toBe(0);
+      await done;
+      expect(notes.value[0].trashed).toBe(true);
+    } finally {
+      animations.value = previous;
+    }
+  });
+
+  it("a failed delete brings the card back", async () => {
+    const previous = animations.value;
+    animations.value = true;
+    try {
+      const note = await createNoteOrFail({ title: "Stubborn" });
+      // Gone from storage underneath the signal, so the update fails.
+      localStorage.clear();
+      await expect(trashNote(note.id)).resolves.toBe(false);
+      expect(leavingNotes.value.size).toBe(0);
+      expect(sortedNotes.value.map((n) => n.id)).toContain(note.id);
+    } finally {
+      animations.value = previous;
+    }
   });
 
   it("restoreNote clears trashed flag", async () => {

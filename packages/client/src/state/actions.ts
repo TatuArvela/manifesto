@@ -29,7 +29,12 @@ import {
 } from "./autoNoteOverrides.js";
 import { generatedNotes } from "./autoNotes.js";
 import { mergeNoteUpdate } from "./mergeNote.js";
-import { defaultNoteColor, defaultNoteFont, sortMode } from "./prefs.js";
+import {
+  animations,
+  defaultNoteColor,
+  defaultNoteFont,
+  sortMode,
+} from "./prefs.js";
 import {
   activeTag,
   activeView,
@@ -504,7 +509,48 @@ export async function updateNote(
   }
 }
 
+/**
+ * Notes whose cards are playing their exit animation, in the moment before a
+ * trash or delete takes them out of the grid. Without it a card simply
+ * vanished and the column closed over the gap at once, which read as the page
+ * glitching rather than as the note being thrown away. NoteCard reads this to
+ * play `.note-leaving`.
+ */
+export const leavingNotes = signal<ReadonlySet<string>>(new Set());
+
+/** How long `.note-leaving` runs; see styles.css. */
+const LEAVE_MS = 200;
+
+/**
+ * Runs `remove` once the cards for `ids` have animated out. Waits only for
+ * notes that have a card in the current view, and not at all with animations
+ * turned off, so a delete nobody can see is not held up for one. If `remove`
+ * fails the flag still clears, and the card comes back rather than staying
+ * invisible over a note that was never removed.
+ */
+async function afterLeaving<T>(
+  ids: string[],
+  remove: () => Promise<T>,
+): Promise<T> {
+  const shown = new Set(sortedNotes.peek().map((n) => n.id));
+  const animated = animations.peek() ? ids.filter((id) => shown.has(id)) : [];
+  if (animated.length === 0) return await remove();
+  leavingNotes.value = new Set([...leavingNotes.peek(), ...animated]);
+  try {
+    await new Promise((resolve) => setTimeout(resolve, LEAVE_MS));
+    return await remove();
+  } finally {
+    const next = new Set(leavingNotes.peek());
+    for (const id of animated) next.delete(id);
+    leavingNotes.value = next;
+  }
+}
+
 export async function permanentlyDeleteNote(id: string): Promise<boolean> {
+  return await afterLeaving([id], () => deleteNow(id));
+}
+
+async function deleteNow(id: string): Promise<boolean> {
   // "Permanent delete" on an auto-note clears the override; the note will
   // reappear on the next render in its default state. (The plugin still owns
   // the source of truth; deletion is never truly permanent for auto-notes.)
@@ -538,6 +584,10 @@ export async function deleteAllNotes(): Promise<boolean> {
 }
 
 export async function trashNote(id: string): Promise<boolean> {
+  return await afterLeaving([id], () => trashNow(id));
+}
+
+async function trashNow(id: string): Promise<boolean> {
   return await updateNote(id, {
     trashed: true,
     trashedAt: new Date().toISOString(),
@@ -677,12 +727,18 @@ export async function bulkArchive(): Promise<boolean> {
   return await bulkApply(archiveNote);
 }
 
+// One exit for the whole selection: going through `trashNote` per note would
+// animate the cards out one after another, a fifth of a second apiece.
 export async function bulkTrash(): Promise<boolean> {
-  return await bulkApply(trashNote);
+  return await afterLeaving([...selectedNotes.value], () =>
+    bulkApply(trashNow),
+  );
 }
 
 export async function bulkDelete(): Promise<boolean> {
-  return await bulkApply(permanentlyDeleteNote);
+  return await afterLeaving([...selectedNotes.value], () =>
+    bulkApply(deleteNow),
+  );
 }
 
 export async function bulkRestore(): Promise<boolean> {
