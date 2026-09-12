@@ -104,3 +104,31 @@ describe("NoteInput with an empty draft", () => {
     expect(notes.value).toHaveLength(0);
   });
 });
+
+describe("NoteInput width", () => {
+  beforeEach(() => {
+    host = document.createElement("div");
+    document.body.appendChild(host);
+  });
+
+  afterEach(() => {
+    render(null, host);
+    host.remove();
+    activeView.value = "active";
+  });
+
+  it("measures its column on arriving from a view where it rendered nothing", async () => {
+    // `App` keeps the composer mounted in the archive view, where it renders
+    // nothing. Mounted there and then shown, it used to keep no width at all
+    // and stretch across every column.
+    activeView.value = "archived";
+    render(<NoteInput />, host);
+    expect(host.querySelector(".note-stack")).toBeNull();
+
+    activeView.value = "active";
+    await vi.waitFor(() => {
+      const wrapper = host.querySelector(".note-stack")?.parentElement;
+      expect(wrapper?.style.width).toMatch(/^\d+(\.\d+)?px$/);
+    });
+  });
+});
