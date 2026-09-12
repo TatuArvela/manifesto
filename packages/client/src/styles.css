@@ -1021,6 +1021,26 @@ body.note-drag-active .note-select {
     background-color 0.15s;
 }
 
+/* The button floats over the item's right edge, so the text keeps clear of it
+   or a long item runs underneath the X. Only while editable, since that is the
+   only time the button is drawn. A nested list is pulled back out by the same
+   amount: its items' buttons then share their parent's right edge, where the
+   rule below shows one X at a time, instead of stepping inwards per level. */
+.milkdown-editor
+  .ProseMirror[contenteditable="true"]
+  li[data-item-type="task"]
+  > .task-item-content {
+  padding-right: 1.4em;
+}
+
+.milkdown-editor
+  .ProseMirror[contenteditable="true"]
+  li[data-item-type="task"]
+  > .task-item-content
+  > :is(ul, ol) {
+  margin-right: -1.4em;
+}
+
 .milkdown-editor li[data-item-type="task"] > .task-item-delete:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
