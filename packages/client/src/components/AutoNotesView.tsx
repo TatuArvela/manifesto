@@ -86,10 +86,15 @@ export function AutoNotesView() {
     }
   };
 
+  // The controls and the introduction keep to the centred column that list
+  // mode puts everything in, as the search and tag filters do; each plugin's
+  // notes still spread across the grid.
+  const column = "w-full max-w-xl mx-auto";
+
   return (
     <div class="mt-4 mb-6 flex flex-col gap-4">
       {addMode === null && (
-        <div class="flex justify-end">
+        <div class={`flex justify-end ${column}`}>
           <button
             type="button"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
@@ -102,7 +107,9 @@ export function AutoNotesView() {
       )}
 
       {list.length === 0 && addMode === null && (
-        <div class="max-w-prose flex flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300">
+        <div
+          class={`flex flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300 ${column}`}
+        >
           <div class="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
             <Wand2 class="w-5 h-5 shrink-0 text-blue-600 dark:text-blue-400" />
             <h2 class="text-base font-semibold">
@@ -205,7 +212,9 @@ export function AutoNotesView() {
       })}
 
       {addMode !== null && (
-        <div class="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600 space-y-2">
+        <div
+          class={`p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600 space-y-2 ${column}`}
+        >
           <div class="flex items-center justify-between">
             <div class="flex gap-1 text-xs">
               <button
