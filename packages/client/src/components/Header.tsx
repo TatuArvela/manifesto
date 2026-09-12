@@ -227,6 +227,15 @@ function SelectionToolbar() {
   );
 }
 
+/**
+ * The header's icon buttons, in the same grey as the navigation beside them:
+ * the sidebar on desktop, the icon bar under the header on phones. They used
+ * to inherit the page's text colour, which made them the darkest thing on the
+ * screen next to lighter icons doing the same job.
+ */
+const headerIconBtnClass =
+  "p-2 rounded-lg text-neutral-600 md:text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800";
+
 export function Header() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showViewMenu, setShowViewMenu] = useState(false);
@@ -326,7 +335,7 @@ export function Header() {
         <Tooltip label={t("nav.search")}>
           <button
             type="button"
-            class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 md:hidden"
+            class={`${headerIconBtnClass} md:hidden`}
             onClick={() => {
               if (activeView.value === "search") {
                 exitSearch();
@@ -353,7 +362,7 @@ export function Header() {
               <Tooltip label={t("header.sort")}>
                 <button
                   type="button"
-                  class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  class={headerIconBtnClass}
                   onClick={() => setShowSortMenu(!showSortMenu)}
                   aria-label={t("header.sortNotes")}
                 >
@@ -391,7 +400,7 @@ export function Header() {
             <Tooltip label={t("header.view")}>
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                class={headerIconBtnClass}
                 onClick={() => setShowViewMenu(!showViewMenu)}
                 aria-label={t("header.viewOptions")}
               >
@@ -464,7 +473,7 @@ export function Header() {
         <Tooltip label={t("header.settings")}>
           <button
             type="button"
-            class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            class={headerIconBtnClass}
             onClick={() => {
               showSettings.value = true;
             }}
