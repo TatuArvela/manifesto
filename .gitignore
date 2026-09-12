@@ -9,6 +9,7 @@ dist
 *.db-wal
 data/
 
+.vitest
 .vitest-attachments
 __screenshots__
 
