@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/TatuArvela/manifesto/compare/v0.1.3...v0.1.4) (2026-09-12)
+
+
+### Bug Fixes
+
+* **server:** copy shared in whole before installing in the image build ([2d4cb60](https://github.com/TatuArvela/manifesto/commit/2d4cb604ad25609fd78b9c6f4d8c85a6f731f6ea))
+
 ## [0.1.3](https://github.com/TatuArvela/manifesto/compare/v0.1.2...v0.1.3) (2026-09-12)
 
 
