@@ -50,6 +50,15 @@ In connected mode, manual ordering is per-user: each user has their own arrangem
 
 Toggled via a ViewToggle button in the header.
 
+## Selecting Notes
+
+Selected notes can be pinned, tagged, recoloured, archived or deleted together from the header, which turns into a selection bar while anything is selected. A selection is made by:
+
+- the round checkbox at a card's top-left corner, which then toggles on click anywhere on the card
+- a long press on touch devices
+- "Select all" in the selection bar
+- dragging a box with the mouse from empty space in the grid: every card the box touches is selected, except auto-notes, which "Select all" skips too. Shift or Cmd/Ctrl adds to the existing selection instead of replacing it, holding the pointer at the top or bottom edge scrolls, and Escape puts back the selection from before the drag
+
 ## Sidebar
 
 A collapsible navigation panel on the left with links to:

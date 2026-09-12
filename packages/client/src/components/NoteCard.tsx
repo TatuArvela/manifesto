@@ -440,6 +440,7 @@ export function NoteCard({
             "w-full max-w-sm mx-auto",
         )}
         data-drop-side={dropSide}
+        data-note-id={note.id}
         onAnimationEnd={(e) => {
           if (e.target === e.currentTarget) setPinSettling(false);
         }}
