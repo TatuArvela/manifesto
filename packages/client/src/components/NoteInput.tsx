@@ -222,7 +222,14 @@ export function NoteInput() {
     });
   };
 
-  const closeModal = () => {
+  /**
+   * Saves the draft and closes. An empty draft becomes a note only when
+   * `keepEmpty` says the user pressed Done, which asks for one. Escape, the
+   * backdrop and the back arrow are also how someone who opened the pad by
+   * accident gets out again, and saving there would leave a blank note behind
+   * every time.
+   */
+  const closeModal = (keepEmpty = false) => {
     // Snapshot at call time. The 150ms close animation creates a window where
     // a final Milkdown markdownUpdated (fired on blur) can land after this,
     // and reading the closure-captured state inside the timeout would drop
@@ -238,6 +245,7 @@ export function NoteInput() {
       linkPreviews,
     };
     if (
+      keepEmpty ||
       snap.title ||
       snap.content ||
       snap.images.length > 0 ||
@@ -346,7 +354,7 @@ export function NoteInput() {
             <div
               class={`fixed inset-0 bg-black/50 z-40 max-sm:hidden transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
               role="presentation"
-              onClick={closeModal}
+              onClick={() => closeModal()}
               onKeyDown={() => {}}
             />
             <div
@@ -417,7 +425,8 @@ export function NoteInput() {
                         ]
                       : []),
                   ]}
-                  onDone={closeModal}
+                  onDone={() => closeModal(true)}
+                  onBack={() => closeModal()}
                   onDelete={discardNote}
                   deleteLabel={t("editor.discard")}
                 />

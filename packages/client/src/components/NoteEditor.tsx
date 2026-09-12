@@ -85,6 +85,8 @@ interface NoteEditorProps {
   reminder?: NoteReminder | null;
   onReminderChange?: (reminder: NoteReminder | null) => void;
   onDone: () => void;
+  /** The phone's back arrow. Defaults to `onDone`. */
+  onBack?: () => void;
   disabled?: boolean;
   contentLocked?: boolean;
   metadata?: ComponentChildren;
@@ -129,6 +131,7 @@ export function NoteEditor({
   reminder,
   onReminderChange,
   onDone,
+  onBack,
   disabled,
   contentLocked,
   metadata,
@@ -381,7 +384,7 @@ export function NoteEditor({
           <button
             type="button"
             class={iconBtnClass}
-            onClick={onDone}
+            onClick={onBack ?? onDone}
             aria-label={t("editor.back")}
           >
             <ArrowLeft class="w-5 h-5" />
