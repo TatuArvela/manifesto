@@ -5,23 +5,6 @@
 
 @theme {
   --breakpoint-3xl: 1920px;
-
-  /* Tan, for the brown note colour. Tailwind's nearest scales both miss:
-     amber is orange-yellow, and stone is a warm grey with no colour to it.
-     This keeps amber's hue but at a fraction of its chroma, rising slightly
-     towards the middle of the ramp, so the light end reads as tan paper
-     and the dark end as a dusty brown rather than rust. */
-  --color-tan-50: oklch(97.5% 0.01 85);
-  --color-tan-100: oklch(93.5% 0.024 83);
-  --color-tan-200: oklch(88% 0.036 80);
-  --color-tan-300: oklch(81% 0.05 77);
-  --color-tan-400: oklch(71% 0.06 73);
-  --color-tan-500: oklch(61% 0.064 68);
-  --color-tan-600: oklch(51% 0.062 62);
-  --color-tan-700: oklch(43% 0.052 60);
-  --color-tan-800: oklch(35% 0.042 58);
-  --color-tan-900: oklch(29% 0.034 58);
-  --color-tan-950: oklch(21% 0.024 58);
 }
 
 @keyframes fade-in {
