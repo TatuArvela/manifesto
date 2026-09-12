@@ -53,7 +53,7 @@ export function ContentPreview({
           return (
             <div
               key={seg.startLine}
-              class={`flex flex-col items-start space-y-1.5 ${gapAbove ? "mt-3" : segIdx > 0 ? "mt-1" : ""}`}
+              class={`flex flex-col items-start space-y-2 ${gapAbove ? "mt-3" : segIdx > 0 ? "mt-1" : ""}`}
             >
               {seg.lines.map((line, j) => {
                 const lineIndex = seg.startLine + j;
