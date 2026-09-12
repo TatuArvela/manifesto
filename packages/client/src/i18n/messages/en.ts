@@ -32,7 +32,7 @@ export const en = {
   },
 
   // Header: search & controls
-  "header.searchPlaceholder": "Search notes...",
+  "header.searchPlaceholder": "Search",
   "header.sort": "Sort",
   "header.sortNotes": "Sort notes",
   "header.view": "View",
