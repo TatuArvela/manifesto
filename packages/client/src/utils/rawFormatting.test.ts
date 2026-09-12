@@ -103,6 +103,23 @@ describe("inline formats in raw mode", () => {
     expect(format("one |", "bold")).toBe("one **|**");
   });
 
+  it("takes empty markers back out on a second press", () => {
+    expect(active("one **|**")).toMatchObject({ bold: true, italic: false });
+    expect(format("one **|**", "bold")).toBe("one |");
+  });
+
+  it("does not split a marker run at the caret", () => {
+    // `*|*aa**` is one `**` with the caret inside it, not an `*` on either
+    // side of the caret, which lit up Italic.
+    expect(active("- [ ] *|*aa**")).toMatchObject({
+      bold: true,
+      italic: false,
+    });
+    expect(active("**aa*|*")).toMatchObject({ bold: true, italic: false });
+    expect(format("*|*aa**", "bold")).toBe("‹aa›");
+    expect(active("*|***")).toMatchObject({ bold: false, italic: false });
+  });
+
   it("tells bold from italic when they share an asterisk", () => {
     expect(active("***‹both›***")).toMatchObject({ bold: true, italic: true });
     expect(active("**‹bold›**")).toMatchObject({ bold: true, italic: false });
