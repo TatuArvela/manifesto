@@ -24,6 +24,8 @@ export interface CreateUserInput {
   externalId: string | null;
   passwordHash: string | null;
   mustChangePassword?: boolean;
+  /** Make the account an admin whether or not it is the first. */
+  isAdmin?: boolean;
   createdAt: string;
 }
 
@@ -43,10 +45,10 @@ export type AdminGuardedResult = "ok" | "not-found" | "last-admin";
 
 export interface UsersRepo {
   /**
-   * Insert a user. The account is made an admin exactly when it is the first
-   * one, and that is decided in the insert itself rather than by a count read
-   * beforehand, so two sign-ups arriving together on an empty server cannot
-   * both be told there is nobody yet.
+   * Insert a user. The account is an admin when `isAdmin` says so, and
+   * otherwise exactly when it is the first one. That is decided in the insert
+   * itself rather than by a count read beforehand, so two sign-ups arriving
+   * together on an empty server cannot both be told there is nobody yet.
    */
   create(input: CreateUserInput): Promise<User>;
   findById(id: string): Promise<User | null>;
@@ -54,6 +56,8 @@ export interface UsersRepo {
   findByExternalId(provider: string, externalId: string): Promise<User | null>;
   /** Every user, ordered by username. */
   list(): Promise<UserSummary[]>;
+  /** Every admin, oldest first. */
+  listAdmins(): Promise<User[]>;
   summarize(id: string): Promise<UserSummary | null>;
   /**
    * Grant or revoke admin. Revoking it from the only admin is refused, with

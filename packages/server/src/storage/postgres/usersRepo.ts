@@ -134,7 +134,7 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
   return {
     async create(input: CreateUserInput): Promise<User> {
       try {
-        // Under READ COMMITTED two first sign-ups racing each other can both
+        // Under READ COMMITTED two first sign-ins racing each other can both
         // see an empty table, so both become admin. That is the harmless way
         // for this to go wrong; the reverse, nobody, is what the guards on
         // demotion and deletion exist to prevent.
@@ -144,7 +144,7 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
             provider, external_id, is_admin, must_change_password, created_at
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7,
-            NOT EXISTS (SELECT 1 FROM users), $8, $9
+            ($8 OR NOT EXISTS (SELECT 1 FROM users)), $9, $10
           )`,
           [
             input.id,
@@ -154,6 +154,7 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
             input.avatarColor,
             input.provider,
             input.externalId,
+            input.isAdmin ?? false,
             input.mustChangePassword ?? false,
             input.createdAt,
           ],
@@ -208,6 +209,13 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
         `${SUMMARY_SELECT} ORDER BY LOWER(u.username), u.id`,
       );
       return result.rows.map(rowToSummary);
+    },
+
+    async listAdmins(): Promise<User[]> {
+      const result = await pool.query<UserRow>(
+        `SELECT * FROM users WHERE is_admin = TRUE ORDER BY created_at, id`,
+      );
+      return result.rows.map(rowToUser);
     },
 
     async summarize(id: string): Promise<UserSummary | null> {
