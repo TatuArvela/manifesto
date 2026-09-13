@@ -34,7 +34,7 @@ Run a single test file: `pnpm --filter @manifesto/client exec vitest run src/pat
 
 ## Architecture
 
-pnpm monorepo with three packages:
+pnpm monorepo with three packages, plus one build tool:
 
 - **`packages/shared`**: types *and runtime values*: `NoteColor` / `NoteFont` are real enums and
   the image, page-size and recurrence limits are exported constants, so this package emits
@@ -46,6 +46,13 @@ pnpm monorepo with three packages:
   nothing caught it. Only a real build plus run exercises `dist`.
 - **`packages/client`**: Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
 - **`packages/server`**: Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
+- **`packages/build-version`**: build-time only, never shipped. Resolves the version a build
+  reports (Settings footer, `/api/health`): `0.1.5` on the release commit, `0.1.5+14.bf5a6dd`
+  after it. It counts from the last commit to touch `.release-please-manifest.json`, not from the
+  tag, because the tag is created by the Release workflow while the Pages build of the same push
+  is already running. It needs full history, so a checkout that builds must set `fetch-depth: 0`;
+  a shallow one gets `0.1.5+<sha>` rather than a false release number. The Docker context has no
+  `.git`, so `image-publish.yml` resolves it outside and passes `MANIFESTO_VERSION` in.
 
 ### Key Design Decisions
 

@@ -21,6 +21,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the version in Settings counts commits since the last
+          # release, and a shallow clone cannot.
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 

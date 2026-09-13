@@ -5,10 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
-
-const pkg = JSON.parse(
-  fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
-) as { version: string };
+import { resolveBuildVersion } from "../build-version/src/index.ts";
 
 /**
  * GitHub Pages serves `404.html` for any unknown path, so we copy the built
@@ -222,7 +219,11 @@ export default defineConfig(({ mode }) => {
       process.env.MANIFESTO_BASE_URL ??
       (process.env.GITHUB_ACTIONS ? "/manifesto/" : "/"),
     define: {
-      __APP_VERSION__: JSON.stringify(pkg.version),
+      __APP_VERSION__: JSON.stringify(
+        resolveBuildVersion({
+          root: path.resolve(import.meta.dirname, "../.."),
+        }),
+      ),
       __APP_NAME__: JSON.stringify(branding.appName),
       __APP_WELCOME__: JSON.stringify(branding.appWelcome === "on"),
     },

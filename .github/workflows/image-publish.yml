@@ -59,6 +59,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          # Full history: the version counts commits since the last release.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .tool-versions
+
+      # Resolved out here because the Docker build context excludes `.git`.
+      - id: app-version
+        run: echo "version=$(node packages/build-version/src/cli.ts)" >> "$GITHUB_OUTPUT"
 
       - name: Name the platform pair
         env:
@@ -79,6 +89,8 @@ jobs:
           context: .
           file: packages/server/Dockerfile
           platforms: ${{ matrix.platform }}
+          build-args: |
+            MANIFESTO_VERSION=${{ steps.app-version.outputs.version }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.version=${{ inputs.version }}

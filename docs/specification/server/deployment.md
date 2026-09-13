@@ -36,6 +36,15 @@ docker compose up --build
 
 Data persists across container restarts via the volume mount.
 
+`/api/health` reports the server's version. The build context has no `.git`, so an image built this way reports the release number from `package.json` even when it is built from a later commit. To report the exact build, resolve the version on the host and pass it in as a build arg:
+
+```bash
+docker build -f packages/server/Dockerfile \
+  --build-arg MANIFESTO_VERSION="$(node packages/build-version/src/cli.ts)" .
+```
+
+With Compose, list `MANIFESTO_VERSION` under `build.args` and export it before `docker compose up --build`.
+
 ## Environment Variables
 
 See `packages/server/.env.example` for the full list and defaults.
