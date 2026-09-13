@@ -109,8 +109,10 @@ local convention.
 ### Routing
 
 `state/router.ts` syncs `activeView` / `activeTag` with `location.pathname` (base-prefixed from
-Vite's `BASE_URL`). Seven views, seven paths: `/` → active, `/tags` and `/tags/<tag>` → tags,
-`/reminders`, `/auto-notes`, `/archived`, `/trash`, `/search`. The `githubPagesSpaFallback` Vite
+Vite's `BASE_URL`). Eight views, eight paths: `/` → active, `/tags` and `/tags/<tag>` → tags,
+`/reminders`, `/auto-notes`, `/archived`, `/trash`, `/search`, `/admin`. `/admin` renders only for an
+admin in connected mode; `App` sends anyone else to `/` once `/me` has answered, not before, since the
+persisted user can predate a grant. The `githubPagesSpaFallback` Vite
 plugin copies `dist/index.html` to `dist/404.html` so GitHub Pages serves the SPA for any unknown
 path.
 
@@ -291,6 +293,23 @@ call locally, so both modes behave alike.
 - WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes ownership of the joined document in `onAuthenticate`.
 - All timestamps are ISO 8601 UTC strings
 - Note schema: see `docs/specification/data-model.md`
+
+### Accounts and Admins
+
+Connected mode has admins (spec: `docs/specification/features/accounts.md`). Three rules live in the
+`users` repository rather than in routes, so both drivers enforce them and
+`storage/adminContract.ts` tests each: the first account is the admin (decided inside the `INSERT`),
+and `setAdmin` / `delete` never remove the last admin (a locked count, not a read-then-write).
+
+Anything that ends a user's sessions must go through `endUserSessions` (`auth/session.ts`), never
+`sessions.deleteByUser` alone. Sockets authenticate once, at connect, so deleting rows leaves them
+live; the helper also announces on `auth/revocations.ts`, and `ws/appSocket.ts` / `ws/yjsSocket.ts`
+close what it covers. The Yjs side closes the raw socket, since closing one document's connection is
+only a message the peer may ignore.
+
+A temporary password yields no session: login answers `403 password_change_required` until the same
+request carries `newPassword`. Client admin actions (`state/admin.ts`) map failures to catalogue
+messages by status rather than showing the server's English `error`.
 
 ### Server Architecture
 
