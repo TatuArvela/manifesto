@@ -36,8 +36,15 @@ export interface NoteResponse {
   note: Note;
 }
 
+/**
+ * A machine-readable reason, sent alongside `error` only where a client has to
+ * do something other than show the message.
+ */
+export type ErrorCode = "password_change_required";
+
 export interface ErrorResponse {
   error: string;
+  code?: ErrorCode;
 }
 
 // --- Link previews ---
@@ -64,6 +71,16 @@ export interface SearchParams {
 export interface AuthCredentials {
   username: string;
   password: string;
+  /**
+   * Read only when the account holds a temporary password: the sign-in then
+   * sets this as the password instead of answering `password_change_required`.
+   */
+  newPassword?: string;
+}
+
+export interface PasswordChangeRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export type AuthProviderName = "local" | "oidc";
@@ -77,6 +94,51 @@ export interface AuthUser {
   username: string;
   displayName: string;
   avatarColor: string;
+  isAdmin: boolean;
+}
+
+// --- Administration ---
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarColor: string;
+  isAdmin: boolean;
+  /** How the account signs in: a password here, or an identity provider. */
+  provider: AuthProviderName;
+  /** Holds a temporary password that has not been replaced yet. */
+  mustChangePassword: boolean;
+  noteCount: number;
+  createdAt: string;
+  /** The most recent request of any live session; null when there is none. */
+  lastSeenAt: string | null;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUser[];
+}
+
+export interface AdminUserResponse {
+  user: AdminUser;
+}
+
+export interface AdminCreateUserRequest {
+  username: string;
+}
+
+export interface AdminUpdateUserRequest {
+  isAdmin: boolean;
+}
+
+/**
+ * A new account, or a reset one, with the password its owner signs in with
+ * once. The server keeps only its hash, so this response is the one place it
+ * can be read.
+ */
+export interface AdminTemporaryPasswordResponse {
+  user: AdminUser;
+  temporaryPassword: string;
 }
 
 export interface AuthMeResponse {

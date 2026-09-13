@@ -5,6 +5,7 @@ import type {
   WebSocketEvent,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
+import type { SessionRevocations } from "../auth/revocations.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
@@ -15,8 +16,11 @@ export const SUBPROTOCOL = "manifesto-session";
 interface Connection {
   id: string;
   userId: string;
+  /** The bearer token the socket authenticated with. */
+  token: string;
   user: PresenceUser;
   send: (data: string) => void;
+  close: (code: number, reason: string) => void;
   viewedNoteId: string | null;
 }
 
@@ -25,11 +29,12 @@ interface AppSocketDeps {
   ws: NodeWebSocket;
   authProvider: AuthProvider;
   broadcaster: Broadcaster;
+  revocations: SessionRevocations;
   cfg: ServerConfig;
 }
 
 export function attachAppSocket(deps: AppSocketDeps): void {
-  const { app, ws, authProvider, broadcaster } = deps;
+  const { app, ws, authProvider, broadcaster, revocations } = deps;
 
   // Negotiate the subprotocol so browsers don't reject the handshake when they
   // sent `Sec-WebSocket-Protocol: manifesto-session, <token>`.
@@ -79,6 +84,18 @@ export function attachAppSocket(deps: AppSocketDeps): void {
   }
 
   broadcaster.subscribe((userId, event) => sendToOthers(userId, event));
+
+  // A socket is authenticated once, at the handshake, so ending a session
+  // has to reach the sockets it opened. 4401 is what the client already reads
+  // as "signed out"; `onClose` below unregisters each one.
+  revocations.subscribe(({ userId, keepToken }) => {
+    const set = connectionsByUser.get(userId);
+    if (!set) return;
+    for (const conn of [...set]) {
+      if (conn.token === keepToken) continue;
+      conn.close(4401, "Session ended");
+    }
+  });
 
   function viewCounts(userId: string): Map<string, number> {
     let m = viewCountByUser.get(userId);
@@ -167,12 +184,14 @@ export function attachAppSocket(deps: AppSocketDeps): void {
           conn = {
             id: `c${++nextId}`,
             userId: identity.userId,
+            token,
             user: {
               id: identity.userId,
               displayName: identity.displayName,
               avatarColor: identity.avatarColor,
             },
             send: (data) => socket.send(data),
+            close: (code, reason) => socket.close(code, reason),
             viewedNoteId: null,
           };
           register(conn);

@@ -68,9 +68,18 @@ ALTER TABLE notes ADD COLUMN image_count INTEGER NOT NULL DEFAULT 0;
 UPDATE notes SET image_count = json_array_length(images::json);
 `;
 
+/** See the SQLite copy: same columns, same promotion of the oldest account. */
+const USER_ADMIN = `
+ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+UPDATE users SET is_admin = TRUE
+  WHERE id IN (SELECT id FROM users ORDER BY created_at, id LIMIT 1);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
+  { id: "0003-user-admin", sql: USER_ADMIN },
 ];
 
 export async function runMigrations(

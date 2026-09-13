@@ -5,6 +5,7 @@ import type {
   AuthIdentity,
   AuthProvider,
   AuthProviderRouter,
+  AuthRouterContext,
 } from "../types.js";
 import { createLocalAuthRouter } from "./router.js";
 
@@ -23,8 +24,13 @@ export function createLocalAuthProvider(
       return authenticateBySession(storage, cfg, token);
     },
 
-    router(): AuthProviderRouter {
-      return createLocalAuthRouter({ storage, authProvider: provider, cfg });
+    router({ revocations }: AuthRouterContext): AuthProviderRouter {
+      return createLocalAuthRouter({
+        storage,
+        authProvider: provider,
+        cfg,
+        revocations,
+      });
     },
   };
 

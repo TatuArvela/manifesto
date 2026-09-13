@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import type { AuthSuccessResponse } from "@manifesto/shared";
 import { Hono } from "hono";
 import type { ServerConfig } from "../../config.js";
 import { hashPassword, verifyPassword } from "../../lib/password.js";
@@ -10,48 +11,23 @@ import {
 } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
 import { rateLimit } from "../../middleware/rateLimit.js";
-import type { StorageDriver, User } from "../../storage/types.js";
-import { authCredentialsSchema } from "../../validation/schemas.js";
+import type { StorageDriver } from "../../storage/types.js";
+import {
+  authCredentialsSchema,
+  loginSchema,
+  passwordChangeSchema,
+} from "../../validation/schemas.js";
 import { validatorHook } from "../../validation/zValidator.js";
-import { issueSession, revokeSession } from "../session.js";
-import type {
-  AuthProvider,
-  AuthProviderRouter,
-  AuthSuccess,
-  PublicUser,
-} from "../types.js";
+import type { SessionRevocations } from "../revocations.js";
+import { endUserSessions, issueSession, revokeSession } from "../session.js";
+import type { AuthProvider, AuthProviderRouter } from "../types.js";
+import { pickAvatarColor, toAuthUser } from "../users.js";
 
 interface LocalRouterDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
   cfg: ServerConfig;
-}
-
-const AVATAR_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#f59e0b",
-  "#84cc16",
-  "#10b981",
-  "#06b6d4",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
-];
-
-function pickAvatarColor(): string {
-  return AVATAR_COLORS[
-    Math.floor(Math.random() * AVATAR_COLORS.length)
-  ] as string;
-}
-
-function toPublicUser(user: User): PublicUser {
-  return {
-    id: user.id,
-    username: user.username,
-    displayName: user.displayName,
-    avatarColor: user.avatarColor,
-  };
+  revocations: SessionRevocations;
 }
 
 export function createLocalAuthRouter(
@@ -93,7 +69,7 @@ export function createLocalAuthRouter(
         createdAt: nowIso(),
       });
       const { token } = await issueSession(deps.storage, deps.cfg, user.id);
-      const body: AuthSuccess = { token, user: toPublicUser(user) };
+      const body: AuthSuccessResponse = { token, user: toAuthUser(user) };
       return c.json(body, 201);
     },
   );
@@ -101,9 +77,9 @@ export function createLocalAuthRouter(
   auth.post(
     "/login",
     authThrottle,
-    zValidator("json", authCredentialsSchema, validatorHook),
+    zValidator("json", loginSchema, validatorHook),
     async (c) => {
-      const { username, password } = c.req.valid("json");
+      const { username, password, newPassword } = c.req.valid("json");
       const user = await deps.storage.users.findByUsername(username);
       if (!user || user.passwordHash === null) {
         throw new HttpError(401, "Invalid username or password");
@@ -112,8 +88,32 @@ export function createLocalAuthRouter(
       if (!ok) {
         throw new HttpError(401, "Invalid username or password");
       }
+      // A temporary password buys the right to set a real one and nothing
+      // else: no session exists until it has been replaced, so there is no
+      // half-signed-in state for every other route to have to refuse. Checked
+      // after the password, so the flag is never disclosed to a wrong guess.
+      if (user.mustChangePassword) {
+        if (newPassword === undefined) {
+          throw new HttpError(
+            403,
+            "Choose a new password to finish signing in",
+            "password_change_required",
+          );
+        }
+        if (newPassword === password) {
+          throw new HttpError(
+            422,
+            "newPassword: The new password must differ from the temporary one",
+          );
+        }
+        await deps.storage.users.setPassword(
+          user.id,
+          await hashPassword(newPassword, deps.cfg),
+          false,
+        );
+      }
       const { token } = await issueSession(deps.storage, deps.cfg, user.id);
-      const body: AuthSuccess = { token, user: toPublicUser(user) };
+      const body: AuthSuccessResponse = { token, user: toAuthUser(user) };
       return c.json(body, 200);
     },
   );
@@ -123,6 +123,46 @@ export function createLocalAuthRouter(
     await revokeSession(deps.storage, token);
     return c.body(null, 204);
   });
+
+  auth.post(
+    "/password",
+    // Throttled like sign-in: a session is enough to guess at the current
+    // password here, and a stolen one should not make that cheap.
+    authThrottle,
+    createAuthMiddleware(deps.authProvider),
+    zValidator("json", passwordChangeSchema, validatorHook),
+    async (c) => {
+      const { userId, token } = c.get("auth");
+      const { currentPassword, newPassword } = c.req.valid("json");
+      const user = await deps.storage.users.findById(userId);
+      if (!user) {
+        throw new HttpError(401, "User not found");
+      }
+      if (user.passwordHash === null) {
+        throw new HttpError(409, "This account signs in without a password");
+      }
+      // 403 rather than 401: the session is fine, and a client treats 401 as
+      // being signed out.
+      if (!(await verifyPassword(user.passwordHash, currentPassword))) {
+        throw new HttpError(403, "Current password is incorrect");
+      }
+      if (newPassword === currentPassword) {
+        throw new HttpError(
+          422,
+          "newPassword: The new password must differ from the current one",
+        );
+      }
+      await deps.storage.users.setPassword(
+        userId,
+        await hashPassword(newPassword, deps.cfg),
+        false,
+      );
+      // Changing a password is how someone locks out a person who learned it,
+      // so every other session ends, and this one carries on.
+      await endUserSessions(deps.storage, deps.revocations, userId, token);
+      return c.body(null, 204);
+    },
+  );
 
   return auth;
 }

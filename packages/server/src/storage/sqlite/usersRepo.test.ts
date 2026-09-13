@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describeAdminContract } from "../adminContract.js";
 import { UsernameTakenError, type UsersRepo } from "../types.js";
 import { openDatabase, type SqliteDB } from "./database.js";
+import { createSqliteStorage } from "./driver.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
+
+describeAdminContract("sqlite", async () =>
+  createSqliteStorage({ dbPath: ":memory:" }),
+);
 
 describe("sqlite usersRepo", () => {
   let db: SqliteDB;
