@@ -14,8 +14,11 @@ export enum NoteColor {
 
 export enum NoteFont {
   Default = "default",
+  Serif = "serif",
+  Monospace = "monospace",
   PermanentMarker = "permanent-marker",
   ComicRelief = "comic-relief",
+  RougeScript = "rouge-script",
 }
 
 export interface LinkPreview {

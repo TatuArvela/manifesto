@@ -204,9 +204,7 @@ export function SettingsDialog() {
 
   // Each font previews itself; "random" and the default font have none to show.
   const fontOptions: SettingsOption<DefaultNoteFont>[] = [
-    NoteFont.Default,
-    NoteFont.PermanentMarker,
-    NoteFont.ComicRelief,
+    ...Object.values(NoteFont),
     "random" as const,
   ].map((font) => {
     const fontFamily = font === "random" ? "" : noteFontFamilies[font];
