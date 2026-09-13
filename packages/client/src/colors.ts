@@ -142,10 +142,22 @@ export const autoNoteColorMap: Record<
   },
 };
 
+/**
+ * A note's font follows it to every device, so each choice is a kind of face
+ * rather than a named one: a stack ending in its generic family looks like
+ * itself everywhere, where a named face such as Verdana falls back to the
+ * default sans on Android and Linux and the choice silently disappears. The
+ * default is the app's own sans. Marker, comic and script are web fonts, loaded
+ * from Google Fonts in `index.html`.
+ */
 export const noteFontFamilies: Record<NoteFont, string> = {
   [NoteFont.Default]: "",
+  [NoteFont.Serif]: 'Georgia, "Times New Roman", serif',
+  [NoteFont.Monospace]:
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   [NoteFont.PermanentMarker]: '"Permanent Marker", cursive',
   [NoteFont.ComicRelief]: '"Comic Relief", cursive',
+  [NoteFont.RougeScript]: '"Rouge Script", cursive',
 };
 
 export const colorPickerSwatches: { value: NoteColor; swatch: string }[] = [

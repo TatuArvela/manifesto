@@ -363,9 +363,12 @@ export const en = {
   "color.gray": "Gray",
 
   // Font labels
-  "font.default": "Default",
-  "font.permanentMarker": "Permanent Marker",
-  "font.comicRelief": "Comic Relief",
+  "font.sansSerif": "Sans-serif",
+  "font.serif": "Serif",
+  "font.monospace": "Monospace",
+  "font.marker": "Marker",
+  "font.comic": "Comic",
+  "font.script": "Script",
   "font.random": "Random",
 
   // Note input CTAs (playful placeholders for the empty top note)

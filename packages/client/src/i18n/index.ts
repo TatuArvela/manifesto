@@ -130,11 +130,17 @@ export function formatFileSize(bytes: number): string {
 export function getFontLabel(font: DefaultNoteFont): string {
   switch (font) {
     case NoteFont.Default:
-      return t("font.default");
+      return t("font.sansSerif");
+    case NoteFont.Serif:
+      return t("font.serif");
+    case NoteFont.Monospace:
+      return t("font.monospace");
     case NoteFont.PermanentMarker:
-      return t("font.permanentMarker");
+      return t("font.marker");
     case NoteFont.ComicRelief:
-      return t("font.comicRelief");
+      return t("font.comic");
+    case NoteFont.RougeScript:
+      return t("font.script");
     case "random":
       return t("font.random");
   }

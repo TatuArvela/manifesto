@@ -367,9 +367,12 @@ export const fi: Messages = {
   "color.gray": "Harmaa",
 
   // Font labels
-  "font.default": "Oletus",
-  "font.permanentMarker": "Permanent Marker",
-  "font.comicRelief": "Comic Relief",
+  "font.sansSerif": "Päätteetön",
+  "font.serif": "Päätteellinen",
+  "font.monospace": "Tasalevyinen",
+  "font.marker": "Tussi",
+  "font.comic": "Sarjakuva",
+  "font.script": "Kaunokirjoitus",
   "font.random": "Satunnainen",
 
   // Note input CTAs (playful placeholders for the empty top note)

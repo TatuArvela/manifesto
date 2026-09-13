@@ -88,10 +88,10 @@ The `default` color means no specific color; the note uses the base card backgro
 An enum of font styles available for notes.
 
 ```
-default | permanent-marker | comic-relief
+default | serif | monospace | permanent-marker | comic-relief | rouge-script
 ```
 
-The `default` font uses the base application font. `permanent-marker` and `comic-relief` are decorative web fonts loaded on demand.
+Each value is a kind of face rather than a named one, so a note looks alike on every device. The client labels them Sans-serif, Serif, Monospace, Marker, Comic and Script. `default` is the base application font, a sans-serif. `serif` and `monospace` are system font stacks ending in their generic family. `permanent-marker`, `comic-relief` and `rouge-script` are decorative web fonts loaded on demand.
 
 ## LinkPreview
 
