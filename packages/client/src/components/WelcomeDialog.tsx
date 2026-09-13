@@ -2,7 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { Cloud, HardDrive } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
-import { APP_LOGO_URL } from "../config.js";
+import { APP_LOGO_URL, IS_UNBRANDED } from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
@@ -93,7 +93,7 @@ export function WelcomeDialog() {
               class="text-2xl leading-tight mb-2"
               style={{ fontFamily: noteFontFamilies[NoteFont.PermanentMarker] }}
             >
-              {t("welcome.title")}
+              {t(IS_UNBRANDED ? "welcome.title.unbranded" : "welcome.title")}
             </h2>
             <p class="text-sm text-neutral-700 dark:text-neutral-300">
               {t("welcome.intro")}

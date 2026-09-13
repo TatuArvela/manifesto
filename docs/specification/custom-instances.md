@@ -145,6 +145,12 @@ No translated string spells the name out. The message catalogues carry an
 `{appName}` placeholder that is filled at render time, so a rebrand reaches
 every locale at once. A test fails if a catalogue ever hard-codes it.
 
+The exception is where a language would decline the name. A placeholder cannot
+be inflected, so Finnish says "Tervetuloa palveluun {appName}". While the app
+still goes by Manifesto, the welcome dialog uses a separate unbranded message
+that can say it properly, "Tervetuloa Manifestoon". Any other name gets the
+placeholder form.
+
 Not parametrised, both one-line source edits:
 
 - **Theme colour** `#2563eb`, in `packages/client/index.html`

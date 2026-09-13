@@ -281,7 +281,7 @@ export const en = {
   "settings.autoNotes.origin.inline": "Pasted",
   "settings.autoNotes.origin.url": "URL",
   "settings.about.repo": "GitHub",
-  "settings.about.welcome": "Welcome guide",
+  "settings.about.welcome": "About",
   "settings.about.license": "MIT licensed",
   "storage.quotaExceeded":
     "Browser storage is full. Some changes may not be saved until you free up space.",
@@ -331,11 +331,13 @@ export const en = {
 
   // Shared-note dialog, shown when the app opens on a #share=... link.
   "welcome.title": "Welcome to {appName}",
+  // Only shown while the app is still called Manifesto; see `IS_UNBRANDED`.
+  "welcome.title.unbranded": "Welcome to Manifesto",
   "welcome.intro":
     "Sticky notes for your thoughts, lists and reminders. Write in Markdown or use the formatting toolbar, and drag notes around to arrange them.",
   "welcome.local.title": "Saved on this device",
   "welcome.local.body":
-    "Your notes are kept in this browser. There is no account and no server holds a copy, so they won't appear on your other devices, and clearing this site's data erases them. Export a backup from Settings now and then.",
+    "The notes you write are kept only in this browser. This {appName} instance has no server, so your notes won't appear on your other devices. Clearing this site's data erases your notes, but you can export a backup from Settings.",
   "welcome.server.title": "Saved to {host}",
   "welcome.server.body":
     "Your notes are stored on the server under your account, {user}, and stay in sync on every device you sign in on.",
