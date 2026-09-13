@@ -396,7 +396,6 @@ export const en = {
   "account.cancel": "Cancel",
 
   // Login screen
-  "login.title": "Sign in to {appName}",
   "login.tabSignIn": "Sign in",
   "login.tabRegister": "Create account",
   "login.username": "Username",

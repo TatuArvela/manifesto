@@ -54,12 +54,11 @@ export function LoginScreen() {
           alt=""
           class="h-12 w-12 mx-auto mb-4 dark:invert"
         />
-        <h1 class="text-2xl font-semibold text-center mb-1 text-neutral-900 dark:text-neutral-50">
+        {/* No "Sign in to…" beneath: the name is the heading, and the form
+            under it starts with a Sign in tab. */}
+        <h1 class="text-2xl font-semibold text-center mb-6 text-neutral-900 dark:text-neutral-50">
           {APP_NAME}
         </h1>
-        <p class="text-sm text-center text-neutral-500 dark:text-neutral-400 mb-6">
-          {t("login.title")}
-        </p>
 
         {discovery.kind === "loading" && (
           <p class="text-sm text-center text-neutral-500 dark:text-neutral-400 py-6">

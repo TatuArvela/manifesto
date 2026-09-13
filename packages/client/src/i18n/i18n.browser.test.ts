@@ -39,13 +39,13 @@ describe("t()", () => {
   // The product name is a build-time parameter, so no catalogue spells it out:
   // messages carry `{appName}` and t() fills it in without being asked.
   test("fills {appName} from the build-time app name", () => {
-    expect(t("login.title")).toBe(`Sign in to ${APP_NAME}`);
+    expect(t("welcome.title")).toBe(`Welcome to ${APP_NAME}`);
     expect(t("error.body")).toContain(APP_NAME);
   });
 
   test("fills {appName} in translations too", () => {
     locale.value = "fi";
-    expect(t("login.title")).toBe(`Kirjaudu palveluun ${APP_NAME}`);
+    expect(t("welcome.title")).toBe(`Tervetuloa palveluun ${APP_NAME}`);
   });
 
   test("says the default name the way Finnish does in an unbranded title", () => {

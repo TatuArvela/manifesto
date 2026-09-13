@@ -400,7 +400,6 @@ export const fi: Messages = {
   "account.cancel": "Peruuta",
 
   // Login screen
-  "login.title": "Kirjaudu palveluun {appName}",
   "login.tabSignIn": "Kirjaudu",
   "login.tabRegister": "Luo tili",
   "login.username": "Käyttäjätunnus",
