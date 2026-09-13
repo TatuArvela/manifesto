@@ -16,6 +16,7 @@ import { type MessageKey, t } from "../i18n/index.js";
 import {
   activeView,
   animations,
+  applyLinkPreviews,
   createNote,
   defaultNoteColor,
   defaultNoteFont,
@@ -23,13 +24,15 @@ import {
   noteSize,
   pickDefaultColor,
   pickDefaultFont,
+  reportPreviewOverflow,
+  resolveLinkPreview,
   viewMode,
 } from "../state/index.js";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
 } from "../utils/importExport.js";
-import { makeStubPreview } from "../utils/linkPreview.js";
+import { appendStubPreviews } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
 
 const ctaKeys: MessageKey[] = [
@@ -69,7 +72,15 @@ export function NoteInput() {
   const [pinned, setPinned] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
-  const [linkPreviews, setLinkPreviews] = useState<LinkPreview[]>([]);
+  const [linkPreviews, setLinkPreviewsState] = useState<LinkPreview[]>([]);
+  // The draft's previews as of the last change rather than the last render. A
+  // paste and a preview arriving can both land before a render, and building
+  // the second change from render state throws away the first.
+  const linkPreviewsRef = useRef<LinkPreview[]>([]);
+  const setLinkPreviews = (next: LinkPreview[]) => {
+    linkPreviewsRef.current = next;
+    setLinkPreviewsState(next);
+  };
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
   const [topCta, setTopCta] = useState(() => randomCta());
@@ -82,6 +93,11 @@ export function NoteInput() {
   const nextLine = noteQuips.value ? nextCta : t("cta.plain");
   const focusCatcherRef = useRef<HTMLInputElement>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Previews still loading for this draft. The draft can be saved before they
+  // arrive, and then they are applied to the note it became.
+  const pendingPreviewsRef = useRef(
+    new Map<string, Promise<LinkPreview | null>>(),
+  );
   const closeModalRef = useRef<() => void>(() => {});
 
   const after = (ms: number, fn: () => void) => {
@@ -187,6 +203,40 @@ export function NoteInput() {
     setLinkPreviews([]);
   };
 
+  const addLinkPreviews = (urls: string[]) => {
+    const { previews, added, overflow } = appendStubPreviews(
+      linkPreviewsRef.current,
+      urls,
+    );
+    reportPreviewOverflow(overflow);
+    if (added.length === 0) return;
+    setLinkPreviews(previews);
+    const pendingPreviews = pendingPreviewsRef.current;
+    for (const url of added) {
+      const pending = resolveLinkPreview(url);
+      pendingPreviews.set(url, pending);
+      pending.then((resolved) => {
+        // Not in this draft's map any more: the draft was saved or discarded,
+        // and `closeModal` has handed the answer on to the note. It stays in
+        // the map once answered, because the close can still read state from
+        // before this update rendered, and applying it twice is a no-op.
+        if (pendingPreviewsRef.current.get(url) !== pending) return;
+        if (!resolved) return;
+        setLinkPreviews(
+          linkPreviewsRef.current.map((p) => (p.url === url ? resolved : p)),
+        );
+      });
+    }
+  };
+
+  /** Hands the draft's unfinished previews over and starts the next draft
+   * with none. */
+  const takePendingPreviews = () => {
+    const pending = [...pendingPreviewsRef.current.values()];
+    pendingPreviewsRef.current = new Map();
+    return pending;
+  };
+
   const cycleCta = useCallback(() => {
     setTopCta(nextCta);
     setNextCta(randomCta(nextCta));
@@ -258,12 +308,18 @@ export function NoteInput() {
       snap.images.length > 0 ||
       snap.linkPreviews.length > 0
     ) {
-      createNote(snap);
+      const pending = takePendingPreviews();
+      createNote(snap).then((note) => {
+        if (note && pending.length > 0) applyLinkPreviews(note.id, pending);
+      });
+    } else {
+      takePendingPreviews();
     }
     finishClose();
   };
 
   const discardNote = () => {
+    takePendingPreviews();
     finishClose();
   };
 
@@ -387,14 +443,11 @@ export function NoteInput() {
                     setImages(images.filter((_, i) => i !== index))
                   }
                   linkPreviews={linkPreviews}
-                  onAddLinkPreview={(url) => {
-                    setLinkPreviews((prev) => {
-                      if (prev.some((p) => p.url === url)) return prev;
-                      return [...prev, makeStubPreview(url)];
-                    });
-                  }}
+                  onAddLinkPreviews={addLinkPreviews}
                   onRemoveLinkPreview={(index) =>
-                    setLinkPreviews(linkPreviews.filter((_, i) => i !== index))
+                    setLinkPreviews(
+                      linkPreviewsRef.current.filter((_, i) => i !== index),
+                    )
                   }
                   pinned={pinned}
                   onPinToggle={() => setPinned(!pinned)}

@@ -6,14 +6,13 @@ import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { formatDateTime, t } from "../i18n/index.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
 import {
+  addLinkPreviews,
   ensureImages,
-  notes,
   showError,
   togglePin,
   updateNote,
 } from "../state/index.js";
 import { saveVersion } from "../storage/VersionStorage.js";
-import { makeStubPreview } from "../utils/linkPreview.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { noteMenuItems } from "./NoteMenu.js";
 import { VersionHistory } from "./VersionHistory.js";
@@ -243,14 +242,7 @@ export function NoteCardEditor({
           });
         }}
         linkPreviews={note.linkPreviews}
-        onAddLinkPreview={(url) => {
-          const current = notes.value.find((n) => n.id === note.id);
-          if (!current) return;
-          if (current.linkPreviews.some((p) => p.url === url)) return;
-          updateNote(note.id, {
-            linkPreviews: [...current.linkPreviews, makeStubPreview(url)],
-          });
-        }}
+        onAddLinkPreviews={(urls) => addLinkPreviews(note.id, urls)}
         onRemoveLinkPreview={(index) =>
           updateNote(note.id, {
             linkPreviews: note.linkPreviews.filter((_, i) => i !== index),

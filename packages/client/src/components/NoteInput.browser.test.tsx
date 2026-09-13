@@ -1,7 +1,9 @@
+import type { LinkPreview } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { activeView, noteQuips, notes } from "../state/index.js";
+import { LocalStorageAdapter } from "../storage/index.js";
 import { NoteInput } from "./NoteInput.js";
 
 /**
@@ -102,6 +104,101 @@ describe("NoteInput with an empty draft", () => {
       expect(document.querySelector('[role="dialog"]')).toBeNull(),
     );
     expect(notes.value).toHaveLength(0);
+  });
+});
+
+describe("NoteInput link previews", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    activeView.value = "active";
+    render(<NoteInput />, host);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    render(null, host);
+    host.remove();
+    localStorage.clear();
+    notes.value = [];
+  });
+
+  async function openDraft() {
+    (host.querySelector(".note-stack") as HTMLElement).click();
+    return await vi.waitFor(() => {
+      const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+      const body = dialog?.querySelector<HTMLElement>(".ProseMirror");
+      const title = dialog?.querySelector<HTMLInputElement>(
+        `input[placeholder="${t("editor.titlePlaceholder")}"]`,
+      );
+      expect(body).toBeTruthy();
+      expect(title).toBeTruthy();
+      return {
+        dialog: dialog as HTMLElement,
+        body: body as HTMLElement,
+        title: title as HTMLInputElement,
+      };
+    });
+  }
+
+  function paste(target: HTMLElement, text: string) {
+    const data = new DataTransfer();
+    data.setData("text/plain", text);
+    target.dispatchEvent(
+      new ClipboardEvent("paste", {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: data,
+      }),
+    );
+  }
+
+  const cardDomains = (dialog: HTMLElement) =>
+    [...dialog.querySelectorAll(".group\\/lp .truncate + .truncate")].map(
+      (el) => el.textContent,
+    );
+
+  it("adds a card for every link pasted into the body, and none for the title", async () => {
+    const { dialog, body, title } = await openDraft();
+
+    paste(title, "https://title.test");
+    paste(body, "see https://a.test and https://b.test");
+
+    await vi.waitFor(() =>
+      expect(cardDomains(dialog)).toEqual(["a.test", "b.test"]),
+    );
+  });
+
+  it("fills in the saved note when its preview arrives after closing", async () => {
+    let answer: (preview: LinkPreview) => void = () => {};
+    vi.spyOn(LocalStorageAdapter.prototype, "fetchLinkPreview").mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+    );
+    const { dialog, body } = await openDraft();
+    paste(body, "https://slow.test");
+    await vi.waitFor(() => expect(cardDomains(dialog)).toEqual(["slow.test"]));
+
+    (
+      dialog.querySelector(
+        `button[aria-label="${t("editor.done")}"]`,
+      ) as HTMLElement
+    ).click();
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0].linkPreviews[0].title).toBe("https://slow.test");
+
+    answer({
+      url: "https://slow.test",
+      title: "Slow page",
+      domain: "slow.test",
+    });
+
+    await vi.waitFor(() =>
+      expect(notes.value[0].linkPreviews[0].title).toBe("Slow page"),
+    );
   });
 });
 

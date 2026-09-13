@@ -197,6 +197,7 @@ export const en = {
 
   // Link previews / images
   "linkPreview.remove": "Remove link preview",
+  "linkPreview.tooMany": "A note can hold up to {max} link previews",
 
   // Settings dialog
   "settings.title": "Settings",

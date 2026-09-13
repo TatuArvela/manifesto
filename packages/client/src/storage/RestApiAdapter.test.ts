@@ -473,4 +473,55 @@ describe("RestApiAdapter", () => {
       expect(await adapter.loadImages("gone")).toEqual([]);
     });
   });
+
+  describe("fetchLinkPreview", () => {
+    it("asks the server for the encoded URL with the session token", async () => {
+      const preview = {
+        url: "https://example.com/a?b=c&d",
+        title: "A",
+        domain: "example.com",
+      };
+      fetchMock.mockResolvedValueOnce(jsonResponse({ preview }));
+
+      expect(await adapter.fetchLinkPreview(preview.url)).toEqual(preview);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.example.com/api/link-preview?url=https%3A%2F%2Fexample.com%2Fa%3Fb%3Dc%26d",
+      );
+      const headers = lastCallInit(fetchMock).headers as Record<string, string>;
+      expect(headers.Authorization).toBe("Bearer token-abc");
+    });
+
+    it("passes on a null preview for a page the server could not fetch", async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ preview: null }));
+      expect(await adapter.fetchLinkPreview("https://down.test/")).toBeNull();
+    });
+
+    it("reads previews being turned off on the server as no preview", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ error: "disabled" }, { status: 404 }),
+      );
+      expect(await adapter.fetchLinkPreview("https://a.test/")).toBeNull();
+    });
+
+    it("throws on other failures, and reports a 401", async () => {
+      const onUnauthorized = vi.fn();
+      const withHook = new RestApiAdapter("https://api.example.com", "t", {
+        onUnauthorized,
+      });
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ error: "Unauthorized" }, { status: 401 }),
+      );
+      await expect(
+        withHook.fetchLinkPreview("https://a.test/"),
+      ).rejects.toThrow("Unauthorized");
+      expect(onUnauthorized).toHaveBeenCalledOnce();
+
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ error: "Too many requests" }, { status: 429 }),
+      );
+      await expect(adapter.fetchLinkPreview("https://a.test/")).rejects.toThrow(
+        "Too many requests",
+      );
+    });
+  });
 });

@@ -56,5 +56,6 @@ export function createStorage(): StorageAdapter {
     search: (query) => currentStorage.value.search(query),
     importAll: (notes) => currentStorage.value.importAll(notes),
     loadImages: (id) => currentStorage.value.loadImages(id),
+    fetchLinkPreview: (url) => currentStorage.value.fetchLinkPreview(url),
   };
 }

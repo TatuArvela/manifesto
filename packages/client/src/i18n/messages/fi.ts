@@ -201,6 +201,8 @@ export const fi: Messages = {
 
   // Link previews / images
   "linkPreview.remove": "Poista linkin esikatselu",
+  "linkPreview.tooMany":
+    "Muistiinpanossa voi olla enintään {max} linkin esikatselua",
 
   // Settings dialog
   "settings.title": "Asetukset",
