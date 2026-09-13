@@ -1,5 +1,7 @@
 import type {
   ErrorResponse,
+  LinkPreview,
+  LinkPreviewResponse,
   Note,
   NoteCreate,
   NoteResponse,
@@ -193,6 +195,18 @@ export class RestApiAdapter implements StorageAdapter {
         await this.create(payload);
       }
     }
+  }
+
+  async fetchLinkPreview(url: string): Promise<LinkPreview | null> {
+    const res = await fetch(
+      `${this.baseUrl}/api/link-preview?url=${encodeURIComponent(url)}`,
+      { headers: this.headers() },
+    );
+    // Previews turned off on this server: the plain card is the answer.
+    if (res.status === 404) return null;
+    if (!res.ok) await this.fail(res, "Failed to fetch link preview");
+    const data = (await res.json()) as LinkPreviewResponse;
+    return data.preview;
   }
 
   async search(query: string): Promise<Note[]> {

@@ -76,7 +76,8 @@ interface NoteEditorProps {
   onAddImages: (dataUrls: string[]) => void;
   onRemoveImage: (index: number) => void;
   linkPreviews: LinkPreview[];
-  onAddLinkPreview: (url: string) => void;
+  /** Every URL from one paste, together, so they land in a single write. */
+  onAddLinkPreviews: (urls: string[]) => void;
   onRemoveLinkPreview: (index: number) => void;
   pinned: boolean;
   onPinToggle: () => void;
@@ -122,7 +123,7 @@ export function NoteEditor({
   onAddImages,
   onRemoveImage,
   linkPreviews,
-  onAddLinkPreview,
+  onAddLinkPreviews,
   onRemoveLinkPreview,
   pinned,
   onPinToggle,
@@ -227,14 +228,19 @@ export function NoteEditor({
           return;
         }
       }
+      // Only text pasted into the note's body becomes a card. The listener is
+      // on the document, so it also hears a URL pasted into the title, the
+      // toolbar's link box or a tag field, none of which is asking for one.
+      if (e.target instanceof HTMLInputElement) return;
       const text = e.clipboardData.getData("text");
       if (text) {
-        for (const url of extractUrls(text)) onAddLinkPreview(url);
+        const urls = extractUrls(text);
+        if (urls.length > 0) onAddLinkPreviews(urls);
       }
     };
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
-  }, [disabled, onAddImages, onAddLinkPreview]);
+  }, [disabled, onAddImages, onAddLinkPreviews]);
 
   useEffect(() => {
     if (!editor) return;
@@ -438,7 +444,7 @@ export function NoteEditor({
             rawTextarea={rawTextarea}
             tick={txCount}
             disabled={disabled}
-            onAddLink={onAddLinkPreview}
+            onAddLink={(url) => onAddLinkPreviews([url])}
           />
         )}
 

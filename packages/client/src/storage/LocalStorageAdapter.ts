@@ -1,4 +1,5 @@
 import {
+  type LinkPreview,
   type Note,
   NoteColor,
   type NoteCreate,
@@ -74,6 +75,12 @@ export function subscribeToExternalNotes(
 }
 
 export class LocalStorageAdapter implements StorageAdapter {
+  /** Open mode keeps the plain link card: fetching a page would mean asking a
+   * third party, which the build's CSP deliberately does not allow. */
+  async fetchLinkPreview(_url: string): Promise<LinkPreview | null> {
+    return null;
+  }
+
   async getAll(): Promise<Note[]> {
     return loadNotes();
   }

@@ -1,10 +1,6 @@
-import type {
-  LinkPreview,
-  Note,
-  NoteCreate,
-  NoteReminder,
-} from "@manifesto/shared";
+import type { Note, NoteCreate, NoteReminder } from "@manifesto/shared";
 import { NoteColor, NoteFont, REMINDER_RECURRENCES } from "@manifesto/shared";
+import { parseLinkPreviews } from "./linkPreview.js";
 
 export type ImportResult =
   | { kind: "single"; note: Partial<NoteCreate> }
@@ -96,16 +92,6 @@ function parseReminder(raw: unknown): NoteReminder | null {
   };
 }
 
-function parseLinkPreviews(raw: unknown): LinkPreview[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (p): p is LinkPreview =>
-      typeof p === "object" &&
-      p !== null &&
-      typeof (p as { url?: unknown }).url === "string",
-  );
-}
-
 function parseStringArray(raw: unknown): string[] {
   return Array.isArray(raw)
     ? raw.filter((v): v is string => typeof v === "string")
@@ -191,12 +177,7 @@ export function parseSingleNoteJson(data: unknown): Partial<NoteCreate> {
     out.images = raw.images.filter((i): i is string => typeof i === "string");
   }
   if (Array.isArray(raw.linkPreviews)) {
-    out.linkPreviews = raw.linkPreviews.filter(
-      (p): p is NonNullable<NoteCreate["linkPreviews"][number]> =>
-        typeof p === "object" &&
-        p !== null &&
-        typeof (p as { url?: unknown }).url === "string",
-    );
+    out.linkPreviews = parseLinkPreviews(raw.linkPreviews);
   }
   if (
     raw.reminder &&

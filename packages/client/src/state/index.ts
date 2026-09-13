@@ -47,6 +47,12 @@ export {
   updateNote,
 } from "./actions.js";
 export {
+  addLinkPreviews,
+  applyLinkPreviews,
+  reportPreviewOverflow,
+  resolveLinkPreview,
+} from "./linkPreviews.js";
+export {
   animations,
   DARK_HUES,
   type DarkHue,
