@@ -46,6 +46,10 @@ export interface ServerConfig {
    * client keeps the plain link card. Off is for deployments with no outbound
    * internet access, or an egress policy that should not be asked. */
   linkPreviews: boolean;
+  /** The temporary password to give the initial admin account instead of a
+   * generated one, for deployments that cannot read the server's output. It
+   * still has to be changed at first sign-in. */
+  initialAdminPassword: string | null;
 }
 
 const DEFAULT_DATA_DIR = "./data";
@@ -113,6 +117,19 @@ function loadPostgresConfig(): PostgresConfig {
   };
 }
 
+function loadInitialAdminPassword(): string | null {
+  const raw = process.env.INITIAL_ADMIN_PASSWORD;
+  if (raw === undefined || raw === "") return null;
+  // Held to the same minimum as any password, so the account it creates can
+  // actually be signed in to.
+  if (raw.length < 8 || raw.length > 256) {
+    throw new Error(
+      "Invalid INITIAL_ADMIN_PASSWORD: must be 8 to 256 characters",
+    );
+  }
+  return raw;
+}
+
 function loadOidcConfig(): OidcConfig {
   const scopes = envList("OIDC_SCOPES", ["openid", "profile", "email"]);
   // Normalize the issuer URL once at boot. The issuer is part of the user
@@ -150,5 +167,6 @@ export function loadConfig(): ServerConfig {
     trustProxy: envBool("TRUST_PROXY", false),
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
     linkPreviews: envBool("LINK_PREVIEWS", true),
+    initialAdminPassword: loadInitialAdminPassword(),
   };
 }

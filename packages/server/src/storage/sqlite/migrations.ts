@@ -73,9 +73,9 @@ UPDATE notes SET image_count = json_array_length(images);
 /**
  * Admins, and passwords an admin issued that their owner has to replace.
  *
- * A new server makes its first account the admin as the account is created. A
- * server that already has accounts gets the same outcome after the fact: the
- * oldest one is promoted, so no deployment comes out of this upgrade with
+ * A new server gets its admin on boot (local sign-in) or at its first sign-in
+ * (single sign-on). A server that already has accounts has had neither, so the
+ * oldest one is promoted and no deployment comes out of this upgrade with
  * nobody able to administer it.
  */
 const USER_ADMIN = `

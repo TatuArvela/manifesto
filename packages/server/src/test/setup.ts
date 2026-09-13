@@ -24,6 +24,7 @@ export const TEST_CONFIG: ServerConfig = {
   trustProxy: false,
   registrationEnabled: true,
   linkPreviews: true,
+  initialAdminPassword: null,
 };
 
 export async function bootTestAppWith(

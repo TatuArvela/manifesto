@@ -3,6 +3,10 @@ import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { createApp } from "./app.js";
 import { createAuthProvider } from "./auth/index.js";
+import {
+  announceInitialAdmin,
+  ensureInitialAdmin,
+} from "./auth/initialAdmin.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./lib/logger.js";
 import { startSessionCleanup } from "./lib/sessionCleanup.js";
@@ -15,6 +19,10 @@ import { attachYjsSocket } from "./ws/yjsSocket.js";
 
 const cfg = loadConfig();
 const storage = await createStorage(cfg);
+// Before the server listens, so no request can reach a server nobody can
+// administer.
+const initialAdmin = await ensureInitialAdmin(storage, cfg);
+if (initialAdmin) announceInitialAdmin(initialAdmin);
 const authProvider = createAuthProvider(cfg, storage);
 const { app, broadcaster, revocations } = createApp({
   cfg,

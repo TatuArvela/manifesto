@@ -89,6 +89,24 @@ export function describeAdminContract(
       expect(second.isAdmin).toBe(false);
     });
 
+    it("makes an account an admin when asked, first or not", async () => {
+      await storage.users.create(userInput("u1", "alice"));
+      const asked = await storage.users.create(
+        userInput("u2", "bob", {
+          isAdmin: true,
+          createdAt: "2026-03-01T00:00:00.000Z",
+        }),
+      );
+      const notAsked = await storage.users.create(userInput("u3", "carol"));
+      expect(asked.isAdmin).toBe(true);
+      expect(notAsked.isAdmin).toBe(false);
+      // Oldest first.
+      expect((await storage.users.listAdmins()).map((u) => u.id)).toEqual([
+        "u2",
+        "u1",
+      ]);
+    });
+
     it("stores whether a password is a temporary one", async () => {
       await storage.users.create(userInput("u1", "alice"));
       const created = await storage.users.create(

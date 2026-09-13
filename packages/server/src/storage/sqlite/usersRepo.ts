@@ -90,7 +90,7 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
       provider, external_id, is_admin, must_change_password, created_at
     ) VALUES (
       @id, @username, @passwordHash, @displayName, @avatarColor,
-      @provider, @externalId, NOT EXISTS (SELECT 1 FROM users),
+      @provider, @externalId, (@isAdmin OR NOT EXISTS (SELECT 1 FROM users)),
       @mustChangePassword, @createdAt
     )`,
   );
@@ -102,6 +102,9 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
     `SELECT * FROM users WHERE provider = ? AND external_id = ?`,
   );
   const listStmt = db.prepare(`${SUMMARY_SELECT} ORDER BY u.username, u.id`);
+  const listAdminsStmt = db.prepare(
+    `SELECT * FROM users WHERE is_admin = 1 ORDER BY created_at, id`,
+  );
   const summarizeStmt = db.prepare(`${SUMMARY_SELECT} WHERE u.id = ?`);
   const countAdminsStmt = db.prepare(
     `SELECT COUNT(*) AS count FROM users WHERE is_admin = 1`,
@@ -152,6 +155,7 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
           provider: input.provider,
           externalId: input.externalId,
           mustChangePassword: input.mustChangePassword ? 1 : 0,
+          isAdmin: input.isAdmin ? 1 : 0,
           createdAt: input.createdAt,
         });
       } catch (err) {
@@ -186,6 +190,10 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
 
     async list(): Promise<UserSummary[]> {
       return (listStmt.all() as UserSummaryRow[]).map(rowToSummary);
+    },
+
+    async listAdmins(): Promise<User[]> {
+      return (listAdminsStmt.all() as UserRow[]).map(rowToUser);
     },
 
     async summarize(id: string): Promise<UserSummary | null> {
