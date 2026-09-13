@@ -22,10 +22,26 @@ export interface LinkPreview {
   url: string;
   title: string;
   description?: string;
+  /** A small inlined thumbnail, as an image `data:` URL. */
   image?: string;
+  /** The site's icon, inlined the same way. */
   favicon?: string;
   domain: string;
 }
+
+/** Maximum number of link previews on one note. */
+export const MAX_LINK_PREVIEWS_PER_NOTE = 20;
+
+/** Longest URL a link preview may point at. */
+export const MAX_LINK_PREVIEW_URL_LENGTH = 2048;
+
+/**
+ * Cap on a stored preview thumbnail or favicon, measured on the encoded
+ * `data:` URL. Previews travel with every note in a listing, unlike
+ * attachments, so the client shrinks what the server fetched to fit this
+ * rather than storing the page's full-size image.
+ */
+export const MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES = 64 * 1024;
 
 /**
  * Image subtypes accepted in `Note.images`.

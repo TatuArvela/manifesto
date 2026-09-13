@@ -42,6 +42,10 @@ export interface ServerConfig {
    * preserve open-signup behavior; set to false for managed-mode deployments
    * where accounts are provisioned out-of-band. */
   registrationEnabled: boolean;
+  /** When false, the server never fetches a URL for a link preview, and the
+   * client keeps the plain link card. Off is for deployments with no outbound
+   * internet access, or an egress policy that should not be asked. */
+  linkPreviews: boolean;
 }
 
 const DEFAULT_DATA_DIR = "./data";
@@ -145,5 +149,6 @@ export function loadConfig(): ServerConfig {
     postgres: storageDriver === "postgres" ? loadPostgresConfig() : null,
     trustProxy: envBool("TRUST_PROXY", false),
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
+    linkPreviews: envBool("LINK_PREVIEWS", true),
   };
 }

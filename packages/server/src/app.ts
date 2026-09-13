@@ -3,10 +3,15 @@ import { bodyLimit } from "hono/body-limit";
 import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import type { ServerConfig } from "./config.js";
+import {
+  createLinkPreviewFetcher,
+  type LinkPreviewFetcher,
+} from "./linkPreview/fetchPreview.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
 import { requestLog } from "./middleware/requestLog.js";
+import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
 import type { StorageDriver } from "./storage/types.js";
@@ -18,6 +23,8 @@ export interface AppDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
   broadcaster?: Broadcaster;
+  /** Test seam: replaces the fetcher that reaches the network. */
+  fetchLinkPreview?: LinkPreviewFetcher;
 }
 
 export interface AppHandle {
@@ -91,6 +98,16 @@ export function createApp(deps: AppDeps): AppHandle {
   app.route(
     "/api/search",
     createSearchRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
+  );
+  app.route(
+    "/api/link-preview",
+    createLinkPreviewRoutes({
+      authProvider,
+      fetchPreview: cfg.linkPreviews
+        ? (deps.fetchLinkPreview ?? createLinkPreviewFetcher())
+        : null,
+      rateLimit: apiRateLimit,
+    }),
   );
 
   return { app, broadcaster };
