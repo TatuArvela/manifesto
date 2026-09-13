@@ -87,8 +87,10 @@ Implements the endpoints defined in [API](../api.md). The auth provider owns `/a
 
 The rules that must hold whatever calls them live in the `users` repository, so both drivers enforce them and a shared contract test (`src/storage/adminContract.ts`) runs against each:
 
-- `create` makes an account admin exactly when it is the first, decided inside the `INSERT`.
+- `create` makes an account admin when asked to, or otherwise exactly when it is the first, decided inside the `INSERT`. Under single sign-on the first sign-in is how a server gets its admin.
 - `setAdmin` and `delete` refuse to remove the last admin. SQLite runs the count and the write in an immediate transaction; Postgres locks every admin row (`FOR UPDATE`, in id order) before counting, so two admins demoting each other at once cannot both succeed.
+
+Under local sign-in, `ensureInitialAdmin` (`src/auth/initialAdmin.ts`) runs in `src/index.ts` before the server listens. When no admin has a password of their own it creates `admin` with a temporary password, or gives the still-unclaimed one a fresh password, and prints it regardless of `LOG_LEVEL`. See [The initial admin](../features/accounts.md#the-initial-admin).
 
 Ending a user's sessions (a reset, a deletion, a password change) goes through `endUserSessions` in `src/auth/session.ts`, which deletes the rows and announces the revocation on `src/auth/revocations.ts`. Both socket layers subscribe and close the sockets those sessions opened, because a socket is authenticated only once, when it connects.
 

@@ -55,11 +55,25 @@ See `packages/server/.env.example` for the full list and defaults.
 | `ARGON2_MEMORY_KIB` | `19456`                   | argon2id memory cost (local auth only)   |
 | `ARGON2_TIME_COST`  | `2`                       | argon2id time cost (local auth only)     |
 | `ARGON2_PARALLELISM` | `1`                      | argon2id parallelism (local auth only)   |
-| `REGISTRATION_ENABLED` | `true`                  | Allow public POST `/api/auth/register`. The first account registered is the server's admin, so register yours before setting this `false`; admins then create accounts from the Users view. See [Account Administration](../features/accounts.md). |
+| `REGISTRATION_ENABLED` | `true`                  | Allow public POST `/api/auth/register`. Set `false` when accounts should only come from an admin, who creates them from the Users view. Registering never makes anyone an admin. |
+| `INITIAL_ADMIN_PASSWORD` | _(generated)_          | The temporary password for the initial `admin` account, instead of a generated one that is printed at boot. 8 to 256 characters. It still has to be changed at first sign-in. Local auth only. See [The initial admin](../features/accounts.md#the-initial-admin). |
 | `TRUST_PROXY`      | `false`                    | Honor `X-Forwarded-For` for IP-aware rate limiting. Set `true` only behind a trusted reverse proxy. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.
+
+### First sign-in
+
+With `AUTH_PROVIDER=local`, a new server creates an `admin` account and prints its temporary password to
+standard error on boot, regardless of `LOG_LEVEL`:
+
+```bash
+docker compose logs manifesto-server | grep temporaryPassword
+```
+
+Sign in as `admin` with that password and choose your own. Until you do, each restart prints a new one.
+See [The initial admin](../features/accounts.md#the-initial-admin). With `AUTH_PROVIDER=oidc`, the first
+person to sign in through the identity provider is the admin instead.
 
 ### OIDC variables (when `AUTH_PROVIDER=oidc`)
 

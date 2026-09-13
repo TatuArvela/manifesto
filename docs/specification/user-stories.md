@@ -97,7 +97,8 @@ As an organization administrator, I want to deploy Manifesto as a managed servic
 
 As the person running a server, I want to manage who has an account on it without touching the database.
 
-- The first account on the server is mine, and it is an admin
+- A new server prints a temporary password for its `admin` account when it starts, and I choose my own when I first sign in; nobody can guess their way in before I do
+- I can close registration and still add people, because admins create accounts
 - I can see every account, with how many notes it has and when it was last used
 - With local sign-in, I can create an account and hand its owner a temporary password; they choose their own the first time they sign in
 - With local sign-in, I can reset someone's password: they are signed out everywhere, including open tabs, and get a temporary password

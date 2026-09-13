@@ -298,8 +298,11 @@ call locally, so both modes behave alike.
 
 Connected mode has admins (spec: `docs/specification/features/accounts.md`). Three rules live in the
 `users` repository rather than in routes, so both drivers enforce them and
-`storage/adminContract.ts` tests each: the first account is the admin (decided inside the `INSERT`),
-and `setAdmin` / `delete` never remove the last admin (a locked count, not a read-then-write).
+`storage/adminContract.ts` tests each: the first account is the admin unless `isAdmin` says otherwise
+(decided inside the `INSERT`), and `setAdmin` / `delete` never remove the last admin (a locked count,
+not a read-then-write). Under local sign-in that first-account rule never fires in production:
+`ensureInitialAdmin` (`auth/initialAdmin.ts`) creates `admin` with a printed temporary password before
+the server listens. Never replace that with a fixed default; see the spec for why.
 
 Anything that ends a user's sessions must go through `endUserSessions` (`auth/session.ts`), never
 `sessions.deleteByUser` alone. Sockets authenticate once, at connect, so deleting rows leaves them
