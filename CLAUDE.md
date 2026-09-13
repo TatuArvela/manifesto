@@ -84,7 +84,7 @@ user-facing name usages going through `APP_NAME` rather than `__APP_NAME__`.
 
 Message catalogues use an `{appName}` placeholder, which `t()` fills in
 automatically, and a test fails if either catalogue hard-codes "Manifesto".
-Translations must not inflect it (Finnish says "Kirjaudu palveluun {appName}",
+Translations must not inflect it (Finnish says "Tervetuloa palveluun {appName}",
 not "Manifestoon"). The one exception is a `<key>.unbranded` variant, which may
 spell the default name inflected and is chosen at the call site only when
 `IS_UNBRANDED` (`config.ts`) holds; the welcome title is the only one so far,

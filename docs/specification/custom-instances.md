@@ -107,7 +107,7 @@ curl -s https://notes.acme.internal/manifest.webmanifest    # name + description
 ```
 
 Then load the page: the header should show your mark and name, and the login
-screen should read "Sign in to Corporate Notes". Exports download as
+screen should have "Corporate Notes" as its heading. Exports download as
 `corporate-notes-export-YYYY-MM-DD.json`.
 
 ## Walkthrough: rebranding a release bundle
