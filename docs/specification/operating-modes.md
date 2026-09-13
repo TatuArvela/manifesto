@@ -25,7 +25,7 @@ Notes, checklists, tags, colors, pinning, archive, trash, search, reminders, ver
 
 ### Not available
 
-Multi-device sync, multi-user accounts, server-side search across devices, live collaborative editing, persistence beyond a single browser profile.
+Multi-device sync, multi-user accounts, server-side search across devices, live collaborative editing, [link preview](features/link-previews.md) titles and images (cards show the URL and domain only), persistence beyond a single browser profile.
 
 ### When to use
 
@@ -56,7 +56,7 @@ The client is built with `VITE_MANIFESTO_SERVER=<url>` and talks to a Manifesto 
 
 ### Available features
 
-Everything in open mode, **plus**: multi-device sync, multi-user isolation, server-side search, live collaborative editing, presence (who is viewing/editing).
+Everything in open mode, **plus**: multi-device sync, multi-user isolation, server-side search, live collaborative editing, presence (who is viewing/editing), and [link previews](features/link-previews.md) filled in with the page's title, description and image.
 
 ### Behavioural differences vs open mode
 

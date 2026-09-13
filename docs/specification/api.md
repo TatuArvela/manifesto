@@ -20,6 +20,23 @@ The API is the contract between the Manifesto client and server. Any server impl
 |----------|-------------------|----------------------|
 | `GET`    | `/api/search?q=`  | Search notes, one page at a time |
 
+### Link previews
+
+| Method   | Path                     | Description          |
+|----------|--------------------------|----------------------|
+| `GET`    | `/api/link-preview?url=` | Read a page's title, description, image and favicon |
+
+Requires authentication. `url` must be `http` or `https` and at most 2048
+characters, or the server replies `422`. The response is
+`{ "preview": LinkPreview | null }`: `null` when the page could not be fetched
+(it was down, not HTML, too slow, or on an address that is not public), which is
+an ordinary answer rather than an error. `image` and `favicon` are the source
+images as fetched, inlined as `data:` URLs of up to 1.5 MB, and are **not** the
+form a note stores: the client shrinks them to the 64 KB a note accepts. A
+server with previews turned off (`LINK_PREVIEWS=off`) replies `404`. Limited to
+40 requests a minute per user, on top of the general API limit. What the server
+will and will not fetch is in [Link Previews](features/link-previews.md#what-the-server-fetches).
+
 ### Authentication
 
 Endpoints under `/api/auth/*` are owned by the configured auth provider. Two providers ship today:

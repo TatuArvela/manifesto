@@ -81,6 +81,10 @@ The `users` schema supports both modes: `password_hash` is nullable, and `(provi
 
 Implements the endpoints defined in [API](../api.md). The auth provider owns `/api/auth/*`; the rest of the surface is static.
 
+### Link previews
+
+`GET /api/link-preview` is the one route that makes the server reach out to the internet on a user's behalf, so it is built around not being turned against the server's own network. `src/linkPreview/safeFetch.ts` resolves the hostname, refuses unless every address is publicly routable (`addressPolicy.ts`), and then connects to that checked address through a pinned `lookup` rather than letting the HTTP client resolve the name a second time, which a hostname with a short TTL could answer differently. Redirects go back through the same check, and the body limit applies after decompression. `parseHtml.ts` reads the metadata with bounded regular expressions, and `fetchPreview.ts` identifies images by their leading bytes. Uses Node's own `http`, `https`, `dns` and `zlib`, with no dependency. See [Link Previews](../features/link-previews.md) for the rules and `LINK_PREVIEWS` to turn it off.
+
 ### WebSockets
 
 - `/api/ws`: application JSON socket for `note:*` and `presence:*` events. Authenticates via the active auth provider. Token is passed in the `Sec-WebSocket-Protocol` header.

@@ -24,7 +24,6 @@ Everything the client needs is baked in at build time. `VITE_MANIFESTO_SERVER` i
 | Variable                  | Default | Description                                                                                  |
 |---------------------------|---------|----------------------------------------------------------------------------------------------|
 | `VITE_MANIFESTO_SERVER`   | unset   | Absolute URL of the Manifesto server. Unset → open mode. Set → connected mode.               |
-| `VITE_LINK_PREVIEW_API`   | microlink.io | Endpoint used by the editor to fetch link-preview metadata.                            |
 | `VITE_APP_NAME`           | `Manifesto` | Branding: the product name, description and icons. See [Rebranding](#rebranding).       |
 | `VITE_APP_WELCOME`        | on      | The first-visit welcome dialog. See [Welcome dialog](#welcome-dialog).                       |
 

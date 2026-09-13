@@ -95,18 +95,18 @@ The `default` font uses the base application font. `permanent-marker` and `comic
 
 ## LinkPreview
 
-A preview card attached to a note for a URL. Created only when a link is inserted via the editor toolbar or when a URL is pasted, never regenerated on save.
+A preview card attached to a note for a URL. Created only when a link is inserted via the editor toolbar or when a URL is pasted into the note's body, never regenerated on save. A note holds at most 20. See [Link Previews](features/link-previews.md).
 
 | Field         | Type     | Required | Description                                |
 |---------------|----------|----------|--------------------------------------------|
-| `url`         | `string` | Yes      | Original URL                               |
-| `title`       | `string` | Yes      | Page title (falls back to the URL)         |
-| `description` | `string` | No       | Short page description                     |
-| `image`       | `string` | No       | Thumbnail image URL (og:image / twitter:image) |
-| `favicon`     | `string` | No       | Site favicon URL                           |
+| `url`         | `string` | Yes      | Original URL, `http` or `https`, at most 2048 characters |
+| `title`       | `string` | Yes      | Page title (falls back to the URL), at most 500 characters |
+| `description` | `string` | No       | Short page description, at most 2000 characters |
+| `image`       | `string` | No       | Thumbnail, inlined as an image `data:` URL of at most 64 KB |
+| `favicon`     | `string` | No       | Site icon, inlined the same way            |
 | `domain`      | `string` | Yes      | Host portion of the URL, e.g. `www.k-ruoka.fi` |
 
-Metadata is fetched from a configurable endpoint (defaults to microlink.io). If fetching fails, a minimal preview with just `url`, `title = url`, and `domain` is stored so the link is still represented.
+In open mode a preview is only `url`, `title = url` and `domain`. In connected mode the server reads the page and the client fills in the rest, shrinking the images to fit. `image` and `favicon` accept the same image subtypes as [Images](#images); a server also accepts an `http(s)` URL there, so a row written before previews were inlined stays updatable, but the client never writes one and drops it on import.
 
 ## NoteReminder
 
