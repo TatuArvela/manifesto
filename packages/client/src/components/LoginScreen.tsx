@@ -6,11 +6,18 @@ import {
   fetchAuthMethods,
   login,
   oidcLoginUrl,
+  PasswordChangeRequiredError,
   register,
   SERVER_URL,
 } from "../state/auth.js";
 
-type Mode = "signIn" | "register";
+/**
+ * `changePassword` is the step after signing in with a temporary password an
+ * admin issued: the server answers with no session until a new one is chosen,
+ * so the username and password typed a moment ago are kept and sent again
+ * with it.
+ */
+type Mode = "signIn" | "register" | "changePassword";
 
 type DiscoveryState =
   | { kind: "loading" }
@@ -102,10 +109,18 @@ function LocalLoginForm() {
   const [mode, setMode] = useState<Mode>("signIn");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function localValidationError(): string | null {
+    if (mode === "changePassword") {
+      if (newPassword.length < 8) return t("login.passwordTooShort");
+      if (newPassword !== confirmPassword) return t("login.passwordMismatch");
+      if (newPassword === password) return t("login.samePassword");
+      return null;
+    }
     if (username.trim().length === 0) return t("login.usernameRequired");
     if (password.length === 0) return t("login.passwordRequired");
     if (mode === "register" && password.length < 8) {
@@ -127,10 +142,18 @@ function LocalLoginForm() {
     try {
       if (mode === "signIn") {
         await login(username, password);
+      } else if (mode === "changePassword") {
+        await login(username, password, newPassword);
       } else {
         await register(username, password);
       }
     } catch (err) {
+      if (err instanceof PasswordChangeRequiredError) {
+        setNewPassword("");
+        setConfirmPassword("");
+        setMode("changePassword");
+        return;
+      }
       const message =
         err instanceof Error && err.message
           ? err.message
@@ -148,6 +171,87 @@ function LocalLoginForm() {
         ? "border-blue-500 text-blue-700 dark:text-blue-300"
         : "border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200",
     ].join(" ");
+  }
+
+  const inputClass =
+    "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+  if (mode === "changePassword") {
+    return (
+      <form onSubmit={onSubmit} class="space-y-4">
+        <div>
+          <h2 class="text-base font-semibold text-neutral-900 dark:text-neutral-50">
+            {t("login.changePassword.title")}
+          </h2>
+          <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+            {t("login.changePassword.hint")}
+          </p>
+        </div>
+        {/* Lets a password manager file the new password under this account. */}
+        <input
+          type="text"
+          autoComplete="username"
+          value={username}
+          readOnly
+          hidden
+        />
+        <label class="block">
+          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+            {t("login.newPassword")}
+          </span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            // biome-ignore lint/a11y/noAutofocus: the one thing to do on this step
+            autoFocus
+            value={newPassword}
+            onInput={(e) =>
+              setNewPassword((e.currentTarget as HTMLInputElement).value)
+            }
+            class={inputClass}
+          />
+        </label>
+        <label class="block">
+          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+            {t("login.confirmPassword")}
+          </span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onInput={(e) =>
+              setConfirmPassword((e.currentTarget as HTMLInputElement).value)
+            }
+            class={inputClass}
+          />
+        </label>
+
+        {error && (
+          <p class="text-sm text-red-600 dark:text-red-400" role="alert">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          class="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2 transition-colors"
+        >
+          {submitting ? t("login.submitting") : t("login.submitChangePassword")}
+        </button>
+        <button
+          type="button"
+          class="w-full text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200"
+          onClick={() => {
+            setMode("signIn");
+            setPassword("");
+            setError(null);
+          }}
+        >
+          {t("login.back")}
+        </button>
+      </form>
+    );
   }
 
   return (

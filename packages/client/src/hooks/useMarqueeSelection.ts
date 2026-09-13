@@ -33,6 +33,9 @@ const IGNORE_SELECTOR = [
   '[role="button"]',
   '[role="dialog"]',
   ".note-draggable-wrapper",
+  // A view with no notes to select, where a drag should select text instead:
+  // the admin view shows a temporary password that has to be copyable.
+  "[data-marquee-ignore]",
 ].join(",");
 
 /** Movement before a press becomes a drag, so a click stays a click. */

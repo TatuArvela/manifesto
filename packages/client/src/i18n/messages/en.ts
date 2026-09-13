@@ -7,6 +7,7 @@ export const en = {
   "nav.archive": "Archive",
   "nav.trash": "Trash",
   "nav.search": "Search",
+  "nav.admin": "Users",
   "nav.primary": "Primary navigation",
   "nav.newNote": "New note",
 
@@ -207,6 +208,16 @@ export const en = {
   "settings.group.features": "Features",
   "settings.group.data": "Data",
   "settings.group.account": "Account",
+  "settings.account.manageUsers": "Manage users",
+  "settings.account.changePassword": "Change password",
+  "settings.account.currentPassword": "Current password",
+  "settings.account.passwordChanged":
+    "Password changed. Your other devices have been signed out.",
+  "settings.account.wrongPassword": "Current password is incorrect",
+  "settings.account.samePassword":
+    "Choose a password different from the current one",
+  "settings.account.changeFailed":
+    "Could not change the password. Please try again.",
   "settings.theme": "Theme",
   "settings.theme.system": "System",
   "settings.theme.light": "Light",
@@ -401,6 +412,63 @@ export const en = {
     "Could not reach the server. Check your connection and try again.",
   "login.oidcHint": "Sign in with your organization account.",
   "login.oidcSubmit": "Continue with single sign-on",
+  "login.changePassword.title": "Choose a new password",
+  "login.changePassword.hint":
+    "You signed in with a temporary password. Choose your own to continue.",
+  "login.newPassword": "New password",
+  "login.confirmPassword": "Confirm new password",
+  "login.passwordMismatch": "The passwords do not match",
+  "login.samePassword": "Choose a password different from the temporary one",
+  "login.submitChangePassword": "Set password and sign in",
+  "login.back": "Back",
+
+  // Admin view
+  "admin.count": {
+    one: "{count} account",
+    other: "{count} accounts",
+  },
+  "admin.create": "Create account",
+  "admin.create.submit": "Create",
+  "admin.cancel": "Cancel",
+  "admin.ssoHint":
+    "People sign in with single sign-on, which creates their account the first time. Here you can grant admin rights and delete accounts.",
+  "admin.loading": "Loading accounts…",
+  "admin.badge.admin": "Admin",
+  "admin.badge.you": "You",
+  "admin.badge.sso": "Single sign-on",
+  "admin.badge.temporaryPassword": "Temporary password",
+  "admin.notes": {
+    one: "{count} note",
+    other: "{count} notes",
+  },
+  "admin.joined": "Joined {date}",
+  "admin.lastActive": "Last active {date}",
+  "admin.noSessions": "No active sessions",
+  "admin.actions": "Actions for {username}",
+  "admin.makeAdmin": "Make admin",
+  "admin.removeAdmin": "Remove admin",
+  "admin.resetPassword": "Reset password",
+  "admin.delete": "Delete account",
+  "admin.resetConfirm":
+    "Reset the password of {username}? They are signed out everywhere and get a temporary password.",
+  "admin.deleteConfirm":
+    "Delete {username} and all of their notes? This cannot be undone.",
+  "admin.issued.created": "Account created for {username}",
+  "admin.issued.reset": "Password reset for {username}",
+  "admin.issued.hint":
+    "Give them this temporary password. They choose their own the first time they sign in. It is not shown again.",
+  "admin.issued.copy": "Copy",
+  "admin.issued.copied": "Copied",
+  "admin.issued.done": "Done",
+  "admin.retry": "Try again",
+  "admin.error.loadFailed": "Could not load accounts.",
+  "admin.error.forbidden": "You no longer have admin rights.",
+  "admin.error.createFailed": "Could not create the account.",
+  "admin.error.usernameTaken": "That username is already taken.",
+  "admin.error.updateFailed": "Could not change admin rights.",
+  "admin.error.lastAdmin": "The server needs at least one admin.",
+  "admin.error.resetFailed": "Could not reset the password.",
+  "admin.error.deleteFailed": "Could not delete the account.",
 
   // Connection status banner
   "connection.reconnecting": "Reconnecting…",

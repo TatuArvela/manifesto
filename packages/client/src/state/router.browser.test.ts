@@ -17,6 +17,7 @@ describe("parsePath", () => {
     expect(parsePath("/archived")).toEqual({ view: "archived", tag: null });
     expect(parsePath("/trash")).toEqual({ view: "trash", tag: null });
     expect(parsePath("/search")).toEqual({ view: "search", tag: null });
+    expect(parsePath("/admin")).toEqual({ view: "admin", tag: null });
   });
 
   it("parses a tag sub-route", () => {
@@ -45,6 +46,7 @@ describe("buildPath", () => {
     expect(buildPath({ view: "reminders", tag: null })).toBe("/reminders");
     expect(buildPath({ view: "archived", tag: null })).toBe("/archived");
     expect(buildPath({ view: "trash", tag: null })).toBe("/trash");
+    expect(buildPath({ view: "admin", tag: null })).toBe("/admin");
   });
 
   it("serializes a selected tag", () => {
