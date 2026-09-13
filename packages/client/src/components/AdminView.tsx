@@ -27,6 +27,7 @@ import {
   currentUser,
   fetchAuthMethods,
 } from "../state/auth.js";
+import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
 import { menuItemClass, menuPanelClass } from "./NoteMenu.js";
 
@@ -304,15 +305,11 @@ function UserRow({
   return (
     <li class="px-4 py-3">
       <div class="flex items-start gap-3">
-        <span
-          aria-hidden="true"
-          class="mt-0.5 w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold text-white bg-neutral-400"
-          style={
-            user.avatarColor ? { backgroundColor: user.avatarColor } : undefined
-          }
-        >
-          {(user.displayName || user.username).charAt(0).toUpperCase()}
-        </span>
+        <Avatar
+          name={user.displayName || user.username}
+          color={user.avatarColor}
+          class="mt-0.5 w-9 h-9 text-sm"
+        />
         <div class="flex-1 min-w-0">
           <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span class="font-medium truncate">{user.displayName}</span>
@@ -336,7 +333,7 @@ function UserRow({
             {meta}
           </p>
         </div>
-        {/* An admin manages other accounts; their own is changed in Settings. */}
+        {/* An admin manages other accounts; their own is in the account menu. */}
         {!isSelf && (
           <Dropdown
             open={menuOpen}

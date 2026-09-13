@@ -6,6 +6,7 @@ import type {
   ErrorResponse,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
+import type { MessageKey } from "../i18n/messages/index.js";
 import { storageConnection } from "../storage/index.js";
 
 export interface CurrentUser {
@@ -123,18 +124,33 @@ if (typeof window !== "undefined") {
 }
 
 /**
+ * A sign-in or registration the server refused. It carries the status, not
+ * just the server's `error`, because that text is English and written for a
+ * log: the login screen says what went wrong in the catalogue's words.
+ */
+export class AuthRequestError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "AuthRequestError";
+  }
+}
+
+/**
  * The password was right but is a temporary one, and signing in has to set a
  * new one. Thrown rather than returned so `LoginScreen`'s single catch can
  * tell it apart from a failure.
  */
-export class PasswordChangeRequiredError extends Error {
+export class PasswordChangeRequiredError extends AuthRequestError {
   constructor(message: string) {
-    super(message);
+    super(403, message);
     this.name = "PasswordChangeRequiredError";
   }
 }
 
-/** Throws with the server's message, or the password-change error it names. */
+/** Throws for a refused auth request, keeping its status. */
 async function throwForResponse(res: Response): Promise<never> {
   let message = `Request failed (${res.status})`;
   let code: ErrorResponse["code"];
@@ -148,7 +164,44 @@ async function throwForResponse(res: Response): Promise<never> {
   if (code === "password_change_required") {
     throw new PasswordChangeRequiredError(message);
   }
-  throw new Error(message);
+  throw new AuthRequestError(res.status, message);
+}
+
+/**
+ * What the login screen should say about a failed sign-in, registration or
+ * first password change, by status. The server's own text never reaches the
+ * screen, so every message comes from the catalogue.
+ */
+export function loginErrorKey(
+  err: unknown,
+  mode: "signIn" | "register" | "changePassword",
+): MessageKey {
+  if (!(err instanceof AuthRequestError)) {
+    // `fetch` rejects with a TypeError when the server cannot be reached.
+    return err instanceof TypeError
+      ? "login.serverUnavailable"
+      : "login.errorGeneric";
+  }
+  switch (err.status) {
+    case 401:
+      return "login.invalidCredentials";
+    case 403:
+      return mode === "register"
+        ? "login.registrationDisabled"
+        : "login.errorGeneric";
+    case 409:
+      return "login.usernameTaken";
+    case 422:
+      // The form checks lengths first, so on the change step this is the new
+      // password matching the temporary one.
+      return mode === "changePassword"
+        ? "login.samePassword"
+        : "login.errorGeneric";
+    case 429:
+      return "login.tooManyAttempts";
+    default:
+      return "login.errorGeneric";
+  }
 }
 
 async function authRequest(
@@ -293,7 +346,7 @@ effect(() => {
 });
 
 /**
- * How this server signs people in, once something has asked. Settings reads
+ * How this server signs people in, once something has asked. The account menu reads
  * it to decide whether there is a password to change, and the admin view
  * whether accounts can be created here or belong to an identity provider.
  */

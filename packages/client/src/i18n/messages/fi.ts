@@ -212,16 +212,6 @@ export const fi: Messages = {
   "settings.group.defaults": "Oletukset",
   "settings.group.features": "Ominaisuudet",
   "settings.group.data": "Tiedot",
-  "settings.group.account": "Tili",
-  "settings.account.manageUsers": "Hallitse käyttäjiä",
-  "settings.account.changePassword": "Vaihda salasana",
-  "settings.account.currentPassword": "Nykyinen salasana",
-  "settings.account.passwordChanged":
-    "Salasana vaihdettu. Muut laitteesi on kirjattu ulos.",
-  "settings.account.wrongPassword": "Nykyinen salasana on väärin",
-  "settings.account.samePassword": "Valitse eri salasana kuin nykyinen",
-  "settings.account.changeFailed":
-    "Salasanan vaihtaminen epäonnistui. Yritä uudelleen.",
   "settings.theme": "Teema",
   "settings.theme.system": "Järjestelmä",
   "settings.theme.light": "Vaalea",
@@ -396,6 +386,18 @@ export const fi: Messages = {
   "cta.10": "Muistio itselleni... 💭",
   "cta.11": "Kiinnitä tämä ajatus! 📍",
 
+  // Account menu
+  "account.menu": "Tili",
+  "account.manageUsers": "Hallitse käyttäjiä",
+  "account.changePassword": "Vaihda salasana",
+  "account.currentPassword": "Nykyinen salasana",
+  "account.passwordChanged":
+    "Salasana vaihdettu. Muut laitteesi on kirjattu ulos.",
+  "account.wrongPassword": "Nykyinen salasana on väärin",
+  "account.samePassword": "Valitse eri salasana kuin nykyinen",
+  "account.changeFailed": "Salasanan vaihtaminen epäonnistui. Yritä uudelleen.",
+  "account.cancel": "Peruuta",
+
   // Login screen
   "login.title": "Kirjaudu palveluun {appName}",
   "login.tabSignIn": "Kirjaudu",
@@ -410,6 +412,11 @@ export const fi: Messages = {
   "login.passwordRequired": "Salasana vaaditaan",
   "login.passwordTooShort": "Salasanan tulee olla vähintään 8 merkkiä",
   "login.errorGeneric": "Kirjautuminen epäonnistui. Yritä uudelleen.",
+  "login.invalidCredentials": "Väärä käyttäjätunnus tai salasana",
+  "login.usernameTaken": "Käyttäjätunnus on jo käytössä",
+  "login.registrationDisabled": "Tällä palvelimella ei voi luoda tilejä",
+  "login.tooManyAttempts":
+    "Liian monta yritystä. Odota hetki ja yritä uudelleen.",
   "login.signOut": "Kirjaudu ulos",
   "login.loading": "Yhdistetään palvelimeen…",
   "login.serverUnavailable":
