@@ -207,17 +207,6 @@ export const en = {
   "settings.group.defaults": "Defaults",
   "settings.group.features": "Features",
   "settings.group.data": "Data",
-  "settings.group.account": "Account",
-  "settings.account.manageUsers": "Manage users",
-  "settings.account.changePassword": "Change password",
-  "settings.account.currentPassword": "Current password",
-  "settings.account.passwordChanged":
-    "Password changed. Your other devices have been signed out.",
-  "settings.account.wrongPassword": "Current password is incorrect",
-  "settings.account.samePassword":
-    "Choose a password different from the current one",
-  "settings.account.changeFailed":
-    "Could not change the password. Please try again.",
   "settings.theme": "Theme",
   "settings.theme.system": "System",
   "settings.theme.light": "Light",
@@ -392,6 +381,18 @@ export const en = {
   "cta.10": "Note to self... 💭",
   "cta.11": "Pin this thought! 📍",
 
+  // Account menu
+  "account.menu": "Account",
+  "account.manageUsers": "Manage users",
+  "account.changePassword": "Change password",
+  "account.currentPassword": "Current password",
+  "account.passwordChanged":
+    "Password changed. Your other devices have been signed out.",
+  "account.wrongPassword": "Current password is incorrect",
+  "account.samePassword": "Choose a password different from the current one",
+  "account.changeFailed": "Could not change the password. Please try again.",
+  "account.cancel": "Cancel",
+
   // Login screen
   "login.title": "Sign in to {appName}",
   "login.tabSignIn": "Sign in",
@@ -406,6 +407,10 @@ export const en = {
   "login.passwordRequired": "Password is required",
   "login.passwordTooShort": "Password must be at least 8 characters",
   "login.errorGeneric": "Could not sign in. Please try again.",
+  "login.invalidCredentials": "Invalid username or password",
+  "login.usernameTaken": "That username is already taken",
+  "login.registrationDisabled": "This server does not allow creating accounts",
+  "login.tooManyAttempts": "Too many attempts. Wait a moment and try again.",
   "login.signOut": "Sign out",
   "login.loading": "Connecting to server…",
   "login.serverUnavailable":

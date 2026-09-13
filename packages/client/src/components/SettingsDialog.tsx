@@ -2,14 +2,11 @@ import { NoteFont } from "@manifesto/shared";
 import {
   ChevronDown,
   Download,
-  KeyRound,
-  LogOut,
   Monitor,
   Moon,
   Sun,
   Trash2,
   Upload,
-  Users,
   X,
 } from "lucide-preact";
 import type { ComponentChildren, JSX } from "preact";
@@ -22,14 +19,6 @@ import { detectBrowserLocale } from "../i18n/detect.js";
 import { getFontLabel, plural, t } from "../i18n/index.js";
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
 import {
-  authProviderName,
-  changePassword,
-  currentUser,
-  isServerMode,
-  logout,
-} from "../state/auth.js";
-import {
-  activeView,
   animations,
   createNote,
   DARK_HUES,
@@ -199,115 +188,10 @@ function SettingsSelect<T extends string>({
 
 type LanguageOption = "system" | (typeof SUPPORTED_LOCALES)[number];
 
-const settingsButtonClass =
-  "px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5 disabled:opacity-60";
-
-const settingsInputClass =
-  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
-
-/**
- * Change your own password, in place in the Account section. Only offered
- * where accounts have passwords; under single sign-on the identity provider
- * owns them.
- */
-function ChangePasswordForm({
-  onDone,
-}: {
-  onDone: (changed: boolean) => void;
-}) {
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (event: Event) => {
-    event.preventDefault();
-    if (busy) return;
-    if (current.length === 0) return setError(t("login.passwordRequired"));
-    if (next.length < 8) return setError(t("login.passwordTooShort"));
-    if (next !== confirm) return setError(t("login.passwordMismatch"));
-    if (next === current) return setError(t("settings.account.samePassword"));
-    setError(null);
-    setBusy(true);
-    const result = await changePassword(current, next);
-    setBusy(false);
-    if (result === "ok") return onDone(true);
-    setError(
-      t(
-        result === "wrong-password"
-          ? "settings.account.wrongPassword"
-          : result === "same-password"
-            ? "settings.account.samePassword"
-            : "settings.account.changeFailed",
-      ),
-    );
-  };
-
-  const field = (
-    label: string,
-    value: string,
-    set: (value: string) => void,
-    autoComplete: string,
-  ) => (
-    <label class="block">
-      <span class="block text-sm text-neutral-600 dark:text-neutral-400 mb-1">
-        {label}
-      </span>
-      <input
-        type="password"
-        autoComplete={autoComplete}
-        value={value}
-        onInput={(e) => set((e.currentTarget as HTMLInputElement).value)}
-        class={settingsInputClass}
-      />
-    </label>
-  );
-
-  return (
-    <form
-      onSubmit={submit}
-      class="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600 space-y-3"
-    >
-      {field(
-        t("settings.account.currentPassword"),
-        current,
-        setCurrent,
-        "current-password",
-      )}
-      {field(t("login.newPassword"), next, setNext, "new-password")}
-      {field(t("login.confirmPassword"), confirm, setConfirm, "new-password")}
-      {error && (
-        <p class="text-sm text-red-600 dark:text-red-400" role="alert">
-          {error}
-        </p>
-      )}
-      <div class="flex gap-2">
-        <button
-          type="submit"
-          disabled={busy}
-          class="flex-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-60"
-        >
-          {t("settings.account.changePassword")}
-        </button>
-        <button
-          type="button"
-          class="flex-1 px-3 py-1.5 text-sm bg-neutral-200 dark:bg-neutral-600 rounded-lg font-medium hover:bg-neutral-300 dark:hover:bg-neutral-500"
-          onClick={() => onDone(false)}
-        >
-          {t("settings.data.cancel")}
-        </button>
-      </div>
-    </form>
-  );
-}
-
 export function SettingsDialog() {
   const [dataStatus, setDataStatus] = useState("");
   const [deleteStatus, setDeleteStatus] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [accountStatus, setAccountStatus] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -697,71 +581,6 @@ export function SettingsDialog() {
               </p>
             )}
           </SettingsSection>
-
-          {isServerMode && currentUser.value && (
-            <SettingsSection title={t("settings.group.account")}>
-              <SettingsRow label={currentUser.value.username}>
-                <button
-                  type="button"
-                  class={settingsButtonClass}
-                  onClick={() => {
-                    void logout();
-                    handleClose();
-                  }}
-                >
-                  <LogOut class="w-4 h-4" />
-                  {t("login.signOut")}
-                </button>
-              </SettingsRow>
-              {changingPassword ? (
-                <ChangePasswordForm
-                  onDone={(changed) => {
-                    setChangingPassword(false);
-                    if (changed) {
-                      setAccountStatus(t("settings.account.passwordChanged"));
-                    }
-                  }}
-                />
-              ) : (
-                (authProviderName.value === "local" ||
-                  currentUser.value.isAdmin) && (
-                  <div class="grid grid-cols-2 gap-2">
-                    {authProviderName.value === "local" && (
-                      <button
-                        type="button"
-                        class={settingsButtonClass}
-                        onClick={() => {
-                          setAccountStatus("");
-                          setChangingPassword(true);
-                        }}
-                      >
-                        <KeyRound class="w-4 h-4" />
-                        {t("settings.account.changePassword")}
-                      </button>
-                    )}
-                    {currentUser.value.isAdmin && (
-                      <button
-                        type="button"
-                        class={settingsButtonClass}
-                        onClick={() => {
-                          activeView.value = "admin";
-                          handleClose();
-                        }}
-                      >
-                        <Users class="w-4 h-4" />
-                        {t("settings.account.manageUsers")}
-                      </button>
-                    )}
-                  </div>
-                )
-              )}
-              {accountStatus && (
-                <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                  {accountStatus}
-                </p>
-              )}
-            </SettingsSection>
-          )}
 
           <div class="pt-2 border-t border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 space-y-1">
             <p>

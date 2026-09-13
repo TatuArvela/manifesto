@@ -41,6 +41,7 @@ import {
   sortMode,
   viewMode,
 } from "../state/index.js";
+import { AccountMenu } from "./AccountMenu.js";
 import { Dropdown } from "./Dropdown.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
@@ -489,6 +490,7 @@ export function Header() {
             <Settings class="w-5 h-5" />
           </button>
         </Tooltip>
+        <AccountMenu />
       </div>
     </header>
   );

@@ -5,6 +5,7 @@ import { t } from "../i18n/index.js";
 import {
   fetchAuthMethods,
   login,
+  loginErrorKey,
   oidcLoginUrl,
   PasswordChangeRequiredError,
   register,
@@ -154,11 +155,7 @@ function LocalLoginForm() {
         setMode("changePassword");
         return;
       }
-      const message =
-        err instanceof Error && err.message
-          ? err.message
-          : t("login.errorGeneric");
-      setError(message);
+      setError(t(loginErrorKey(err, mode)));
     } finally {
       setSubmitting(false);
     }
