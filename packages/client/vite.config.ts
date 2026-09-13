@@ -62,6 +62,8 @@ function cspForServer(serverUrl: string | undefined): Plugin {
   };
 }
 
+// Mirrored as `DEFAULT_APP_NAME` in `src/config.ts`, which decides from it
+// whether a deployment is unbranded.
 const DEFAULT_APP_NAME = "Manifesto";
 const DEFAULT_APP_DESCRIPTION = "Sticky-note style note-taking app.";
 

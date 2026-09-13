@@ -54,7 +54,7 @@ A browser's first visit opens a short welcome that says what the app is and,
 above all, where notes are saved: in this browser in open mode, with what that
 means for syncing and clearing site data, or on the named server under the
 signed-in account in connected mode. It is shown once per browser and can be
-reopened from Settings. An open-mode browser that already holds notes is
+reopened from **About** at the foot of Settings. An open-mode browser that already holds notes is
 treated as having seen it, so upgrading an existing instance does not greet
 its users as new.
 

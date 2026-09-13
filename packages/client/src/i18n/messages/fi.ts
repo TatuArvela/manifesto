@@ -286,7 +286,7 @@ export const fi: Messages = {
   "settings.autoNotes.origin.inline": "Liitetty",
   "settings.autoNotes.origin.url": "URL",
   "settings.about.repo": "GitHub",
-  "settings.about.welcome": "Tervetulo-opas",
+  "settings.about.welcome": "Tietoja",
   "settings.about.license": "MIT-lisenssillä",
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
@@ -336,11 +336,12 @@ export const fi: Messages = {
 
   // Shared-note dialog, shown when the app opens on a #share=... link.
   "welcome.title": "Tervetuloa palveluun {appName}",
+  "welcome.title.unbranded": "Tervetuloa Manifestoon",
   "welcome.intro":
     "Muistilappuja ajatuksille, listoille ja muistutuksille. Kirjoita Markdownilla tai käytä muotoilupalkkia, ja järjestä lappuja vetämällä.",
   "welcome.local.title": "Tallennettu tälle laitteelle",
   "welcome.local.body":
-    "Muistiinpanosi säilytetään tässä selaimessa. Tiliä ei ole eikä millään palvelimella ole niistä kopiota, joten ne eivät näy muilla laitteillasi, ja sivuston tietojen tyhjentäminen poistaa ne. Ota välillä varmuuskopio asetuksista.",
+    "Kirjoittamasi muistiinpanot säilytetään vain tässä selaimessa. Tällä {appName}-instanssilla ei ole palvelinta, joten muistiinpanosi eivät näy muilla laitteilla. Sivuston tietojen tyhjentäminen poistaa muistiinpanosi, mutta voit ottaa varmuuskopion asetuksista.",
   "welcome.server.title": "Tallennettu palvelimelle {host}",
   "welcome.server.body":
     "Muistiinpanosi tallennetaan palvelimelle tilillesi {user}, ja ne pysyvät ajan tasalla kaikilla laitteilla, joilla kirjaudut sisään.",

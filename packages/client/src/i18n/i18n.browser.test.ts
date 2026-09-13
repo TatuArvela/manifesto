@@ -47,6 +47,11 @@ describe("t()", () => {
     locale.value = "fi";
     expect(t("login.title")).toBe(`Kirjaudu palveluun ${APP_NAME}`);
   });
+
+  test("says the default name the way Finnish does in an unbranded title", () => {
+    locale.value = "fi";
+    expect(t("welcome.title.unbranded")).toBe("Tervetuloa Manifestoon");
+  });
 });
 
 describe("plural()", () => {
@@ -102,10 +107,13 @@ describe("detectBrowserLocale()", () => {
 
 describe("message shape parity", () => {
   // A hard-coded product name would survive a rebrand and read as someone
-  // else's app, so the catalogues must go through `{appName}` instead.
+  // else's app, so the catalogues must go through `{appName}` instead. The one
+  // exception is a `.unbranded` variant, shown only while the app is still
+  // called Manifesto, where a language may inflect the name.
   test("no catalogue hard-codes the default product name", () => {
     for (const [key, value] of Object.entries({ en, fi })) {
       for (const [messageKey, message] of Object.entries(value)) {
+        if (messageKey.endsWith(".unbranded")) continue;
         const text =
           typeof message === "string"
             ? message
@@ -114,6 +122,25 @@ describe("message shape parity", () => {
           text,
           `${key}.${messageKey} hard-codes the app name`,
         ).not.toContain("Manifesto");
+      }
+    }
+  });
+
+  test("every .unbranded variant stands in for a branded message", () => {
+    const variants = Object.keys(en).filter((k) => k.endsWith(".unbranded"));
+    expect(variants.length).toBeGreaterThan(0);
+    for (const variant of variants) {
+      const base = variant.slice(0, -".unbranded".length);
+      for (const [locale, catalogue] of Object.entries({ en, fi })) {
+        const messages = catalogue as Record<string, unknown>;
+        expect(
+          messages[base],
+          `${locale}.${variant} has no branded ${base}`,
+        ).toContain("{appName}");
+        // The variant is chosen because the name is Manifesto; a placeholder
+        // there would be filled with the same name and gain nothing.
+        expect(messages[variant]).toContain("Manifesto");
+        expect(messages[variant]).not.toContain("{appName}");
       }
     }
   });
