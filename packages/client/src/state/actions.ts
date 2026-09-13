@@ -286,7 +286,7 @@ export function pickDefaultColor(): NoteColor {
   if (defaultNoteColor.value === "random") {
     return noteColors[Math.floor(Math.random() * noteColors.length)];
   }
-  return NoteColor.Default;
+  return defaultNoteColor.value;
 }
 
 const noteFonts = Object.values(NoteFont).filter((f) => f !== NoteFont.Default);

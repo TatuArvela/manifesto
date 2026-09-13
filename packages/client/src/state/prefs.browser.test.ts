@@ -1,4 +1,4 @@
-import { NoteFont } from "@manifesto/shared";
+import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   animations,
@@ -24,7 +24,7 @@ describe("parsePrefs", () => {
     expect(result.sortMode).toBe("default");
     expect(result.noteSize).toBe("fit");
     expect(result.theme).toBe("system");
-    expect(result.defaultNoteColor).toBe("plain");
+    expect(result.defaultNoteColor).toBe(NoteColor.Default);
     expect(result.defaultNoteFont).toBe(NoteFont.Default);
     expect(["en", "fi"]).toContain(result.locale);
   });
@@ -62,6 +62,23 @@ describe("parsePrefs", () => {
     expect(result.sortMode).toBe("default");
     expect(result.noteSize).toBe("fit");
     expect(result.theme).toBe("system");
+  });
+
+  it("restores a specific default note color", () => {
+    const result = parsePrefs(
+      JSON.stringify({ defaultNoteColor: NoteColor.Teal }),
+    );
+    expect(result.defaultNoteColor).toBe(NoteColor.Teal);
+  });
+
+  it("migrates the legacy `plain` default note color to `default`", () => {
+    const result = parsePrefs(JSON.stringify({ defaultNoteColor: "plain" }));
+    expect(result.defaultNoteColor).toBe(NoteColor.Default);
+  });
+
+  it("falls back to `default` for an unknown default note color", () => {
+    const result = parsePrefs(JSON.stringify({ defaultNoteColor: "mauve" }));
+    expect(result.defaultNoteColor).toBe(NoteColor.Default);
   });
 
   it("migrates legacy `noteFont` key to `defaultNoteFont`", () => {

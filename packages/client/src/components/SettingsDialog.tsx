@@ -1,9 +1,10 @@
-import { NoteFont } from "@manifesto/shared";
+import { NoteColor, NoteFont } from "@manifesto/shared";
 import {
   ChevronDown,
   Download,
   Monitor,
   Moon,
+  Shuffle,
   Sun,
   Trash2,
   Upload,
@@ -16,7 +17,12 @@ import { APP_FILE_SLUG, APP_NAME, WELCOME_ENABLED } from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { detectBrowserLocale } from "../i18n/detect.js";
-import { getFontLabel, plural, t } from "../i18n/index.js";
+import {
+  getColorPickerColors,
+  getFontLabel,
+  plural,
+  t,
+} from "../i18n/index.js";
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
 import {
   animations,
@@ -211,9 +217,24 @@ export function SettingsDialog() {
     };
   });
 
+  // "Default" is the colour's own name, which reads as nonsense for a default
+  // colour, so this one list calls it plain.
   const colorOptions: SettingsOption<DefaultNoteColor>[] = [
-    { value: "plain", label: t("settings.defaultColor.plain") },
-    { value: "random", label: t("settings.defaultColor.random") },
+    ...getColorPickerColors().map((c) => ({
+      value: c.value,
+      label:
+        c.value === NoteColor.Default
+          ? t("settings.defaultColor.plain")
+          : c.label,
+      preview: <span class={`w-4 h-4 shrink-0 rounded-full ${c.swatch}`} />,
+    })),
+    {
+      value: "random",
+      label: t("settings.defaultColor.random"),
+      preview: (
+        <Shuffle class="w-4 h-4 shrink-0 text-neutral-500 dark:text-neutral-400" />
+      ),
+    },
   ];
 
   const editModeOptions: SettingsOption<EditMode>[] = [
