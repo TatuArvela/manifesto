@@ -1,4 +1,4 @@
-import { NoteFont } from "@manifesto/shared";
+import { NoteColor, NoteFont } from "@manifesto/shared";
 import { batch, effect, signal } from "@preact/signals";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { isLocale, type Locale } from "../i18n/locales.js";
@@ -9,7 +9,7 @@ export type ViewMode = "grid" | "list";
 export type NoteSize = "fit" | "square";
 export type SortMode = "default" | "updated" | "created";
 export type ThemeMode = "system" | "light" | "dark";
-export type DefaultNoteColor = "plain" | "random";
+export type DefaultNoteColor = NoteColor | "random";
 export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
@@ -65,6 +65,21 @@ function parseDarkHue(value: unknown): DarkHue {
     : "neutral";
 }
 
+const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
+
+/**
+ * The value indexes `noteColorMap` when a note is created, so anything
+ * unrecognised falls back rather than reaching a card as `undefined`. Before
+ * a specific colour could be the default, the setting was `"plain" | "random"`,
+ * and `"plain"` meant what `NoteColor.Default` means now.
+ */
+function parseDefaultNoteColor(value: unknown): DefaultNoteColor {
+  if (value === "random") return "random";
+  return typeof value === "string" && NOTE_COLORS.has(value)
+    ? (value as NoteColor)
+    : NoteColor.Default;
+}
+
 function parseDecimalSeparator(value: unknown): DecimalSeparator {
   return typeof value === "string" &&
     (DECIMAL_SEPARATOR_VALUES as readonly string[]).includes(value)
@@ -105,7 +120,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
         sortMode: parsed.sortMode ?? "default",
         noteSize: parsed.noteSize ?? "fit",
         theme: parsed.theme ?? "system",
-        defaultNoteColor: parsed.defaultNoteColor ?? "plain",
+        defaultNoteColor: parseDefaultNoteColor(parsed.defaultNoteColor),
         defaultNoteFont:
           parsed.defaultNoteFont ?? parsed.noteFont ?? NoteFont.Default,
         locale: persistedLocale ?? detectBrowserLocale(),
@@ -137,7 +152,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     sortMode: "default",
     noteSize: "fit",
     theme: "system",
-    defaultNoteColor: "plain",
+    defaultNoteColor: NoteColor.Default,
     defaultNoteFont: NoteFont.Default,
     locale: detectBrowserLocale(),
     inlineCalculations: true,
