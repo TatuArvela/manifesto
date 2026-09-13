@@ -251,6 +251,16 @@ export default defineConfig(({ mode }) => {
         registerType: "autoUpdate",
         injectRegister: false,
         manifest: false,
+        injectManifest: {
+          // Workbox's default, plus the Latin subset of each note font, so a
+          // note opened offline keeps its face on a device that never showed
+          // it online. `[0-9]` stops at the weight, which leaves out
+          // `latin-ext`; that and the other scripts still load on demand.
+          globPatterns: [
+            "**/*.{js,wasm,css,html}",
+            "assets/*-latin-[0-9]*.woff2",
+          ],
+        },
         devOptions: {
           enabled: true,
           type: "module",
