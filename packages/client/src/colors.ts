@@ -147,8 +147,8 @@ export const autoNoteColorMap: Record<
  * rather than a named one: a stack ending in its generic family looks like
  * itself everywhere, where a named face such as Verdana falls back to the
  * default sans on Android and Linux and the choice silently disappears. The
- * default is the app's own sans. Marker, comic and script are web fonts, loaded
- * from Google Fonts in `index.html`.
+ * default is the app's own sans. Marker, comic and script are web fonts served
+ * from our own origin (`assets/fonts/`).
  */
 export const noteFontFamilies: Record<NoteFont, string> = {
   [NoteFont.Default]: "",
