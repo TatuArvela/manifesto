@@ -5,7 +5,14 @@ import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
-import { authToken, consumeOidcRedirect, isServerMode } from "../state/auth.js";
+import {
+  authToken,
+  consumeOidcRedirect,
+  currentUser,
+  fetchAuthMethods,
+  isServerMode,
+  refreshCurrentUser,
+} from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
@@ -24,6 +31,7 @@ import {
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
+import { AdminView } from "./AdminView.js";
 import { AutoNotesView } from "./AutoNotesView.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
 import { Header } from "./Header.js";
@@ -70,6 +78,10 @@ function MainApp() {
   const [dragActive, setDragActive] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const marquee = useMarqueeSelection(mainRef);
+  // Whether the saved user has been checked against the server. Admin rights
+  // can change while signed out, so the `/admin` route waits for the answer
+  // before deciding someone does not belong on it.
+  const [userChecked, setUserChecked] = useState(!isServerMode);
 
   useEffect(() => {
     initRouter();
@@ -91,6 +103,10 @@ function MainApp() {
     const payload = decodeShareFromHash(window.location.hash);
     if (payload) setSharedNote(payload);
     welcomeIfNew();
+    if (isServerMode) {
+      void refreshCurrentUser().finally(() => setUserChecked(true));
+      void fetchAuthMethods();
+    }
     return () => {
       window.removeEventListener("reminder:open-note", openHandler);
       stopAutoNotes();
@@ -160,6 +176,13 @@ function MainApp() {
     };
   }, []);
 
+  const isAdmin = isServerMode && currentUser.value?.isAdmin === true;
+  const isAdminView = activeView.value === "admin";
+
+  useEffect(() => {
+    if (isAdminView && userChecked && !isAdmin) activeView.value = "active";
+  }, [isAdminView, userChecked, isAdmin]);
+
   const isTagsView = activeView.value === "tags";
   const isSearchView = activeView.value === "search";
   const isAutoNotesView = activeView.value === "autoNotes";
@@ -176,7 +199,9 @@ function MainApp() {
           ref={mainRef}
           class={`flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
         >
-          {isSearchView ? (
+          {isAdminView ? (
+            isAdmin && <AdminView />
+          ) : isSearchView ? (
             isList ? (
               <div class="max-w-xl mx-auto">
                 <SearchView />

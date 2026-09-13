@@ -9,6 +9,7 @@ export const fi: Messages = {
   "nav.archive": "Arkisto",
   "nav.trash": "Roskakori",
   "nav.search": "Haku",
+  "nav.admin": "Käyttäjät",
   "nav.primary": "Päänavigointi",
   "nav.newNote": "Uusi muistiinpano",
 
@@ -212,6 +213,15 @@ export const fi: Messages = {
   "settings.group.features": "Ominaisuudet",
   "settings.group.data": "Tiedot",
   "settings.group.account": "Tili",
+  "settings.account.manageUsers": "Hallitse käyttäjiä",
+  "settings.account.changePassword": "Vaihda salasana",
+  "settings.account.currentPassword": "Nykyinen salasana",
+  "settings.account.passwordChanged":
+    "Salasana vaihdettu. Muut laitteesi on kirjattu ulos.",
+  "settings.account.wrongPassword": "Nykyinen salasana on väärin",
+  "settings.account.samePassword": "Valitse eri salasana kuin nykyinen",
+  "settings.account.changeFailed":
+    "Salasanan vaihtaminen epäonnistui. Yritä uudelleen.",
   "settings.theme": "Teema",
   "settings.theme.system": "Järjestelmä",
   "settings.theme.light": "Vaalea",
@@ -406,6 +416,63 @@ export const fi: Messages = {
     "Palvelimeen ei saatu yhteyttä. Tarkista verkkoyhteys ja yritä uudelleen.",
   "login.oidcHint": "Kirjaudu organisaatiosi tunnuksilla.",
   "login.oidcSubmit": "Jatka kertakirjautumisella",
+  "login.changePassword.title": "Valitse uusi salasana",
+  "login.changePassword.hint":
+    "Kirjauduit väliaikaisella salasanalla. Valitse oma salasana jatkaaksesi.",
+  "login.newPassword": "Uusi salasana",
+  "login.confirmPassword": "Vahvista uusi salasana",
+  "login.passwordMismatch": "Salasanat eivät täsmää",
+  "login.samePassword": "Valitse eri salasana kuin väliaikainen",
+  "login.submitChangePassword": "Aseta salasana ja kirjaudu",
+  "login.back": "Takaisin",
+
+  // Admin view
+  "admin.count": {
+    one: "{count} tili",
+    other: "{count} tiliä",
+  },
+  "admin.create": "Luo tili",
+  "admin.create.submit": "Luo",
+  "admin.cancel": "Peruuta",
+  "admin.ssoHint":
+    "Käyttäjät kirjautuvat kertakirjautumisella, joka luo tilin ensimmäisellä kirjautumiskerralla. Täällä voit antaa ylläpito-oikeudet ja poistaa tilejä.",
+  "admin.loading": "Ladataan tilejä…",
+  "admin.badge.admin": "Ylläpitäjä",
+  "admin.badge.you": "Sinä",
+  "admin.badge.sso": "Kertakirjautuminen",
+  "admin.badge.temporaryPassword": "Väliaikainen salasana",
+  "admin.notes": {
+    one: "{count} muistiinpano",
+    other: "{count} muistiinpanoa",
+  },
+  "admin.joined": "Liittyi {date}",
+  "admin.lastActive": "Viimeksi aktiivinen {date}",
+  "admin.noSessions": "Ei aktiivisia istuntoja",
+  "admin.actions": "Toiminnot: {username}",
+  "admin.makeAdmin": "Tee ylläpitäjäksi",
+  "admin.removeAdmin": "Poista ylläpito-oikeudet",
+  "admin.resetPassword": "Nollaa salasana",
+  "admin.delete": "Poista tili",
+  "admin.resetConfirm":
+    "Nollataanko käyttäjän {username} salasana? Hänet kirjataan ulos kaikkialta, ja hän saa väliaikaisen salasanan.",
+  "admin.deleteConfirm":
+    "Poistetaanko käyttäjä {username} ja kaikki hänen muistiinpanonsa? Toimintoa ei voi perua.",
+  "admin.issued.created": "Tili luotu käyttäjälle {username}",
+  "admin.issued.reset": "Salasana nollattu käyttäjälle {username}",
+  "admin.issued.hint":
+    "Anna tämä väliaikainen salasana käyttäjälle. Hän valitsee oman salasanansa ensimmäisellä kirjautumisella. Salasanaa ei näytetä uudelleen.",
+  "admin.issued.copy": "Kopioi",
+  "admin.issued.copied": "Kopioitu",
+  "admin.issued.done": "Valmis",
+  "admin.retry": "Yritä uudelleen",
+  "admin.error.loadFailed": "Tilien lataaminen epäonnistui.",
+  "admin.error.forbidden": "Sinulla ei ole enää ylläpito-oikeuksia.",
+  "admin.error.createFailed": "Tilin luominen epäonnistui.",
+  "admin.error.usernameTaken": "Käyttäjätunnus on jo käytössä.",
+  "admin.error.updateFailed": "Ylläpito-oikeuksien muuttaminen epäonnistui.",
+  "admin.error.lastAdmin": "Palvelimella on oltava vähintään yksi ylläpitäjä.",
+  "admin.error.resetFailed": "Salasanan nollaaminen epäonnistui.",
+  "admin.error.deleteFailed": "Tilin poistaminen epäonnistui.",
 
   // Connection status banner
   "connection.reconnecting": "Yhdistetään uudelleen…",

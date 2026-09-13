@@ -3,6 +3,7 @@ import type {
   AuthMethodsResponse,
   AuthProviderName,
   AuthSuccessResponse,
+  ErrorResponse,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
 import { storageConnection } from "../storage/index.js";
@@ -12,6 +13,7 @@ export interface CurrentUser {
   username: string;
   displayName: string;
   avatarColor: string;
+  isAdmin: boolean;
 }
 
 interface PersistedAuth {
@@ -33,15 +35,30 @@ export const SERVER_URL: string | null =
 
 export const isServerMode = SERVER_URL !== null;
 
-function isCurrentUser(value: unknown): value is CurrentUser {
-  if (!value || typeof value !== "object") return false;
+/**
+ * The user out of a persisted or cross-tab payload, or null. `isAdmin` may be
+ * missing: a session saved before the flag existed is still a good session,
+ * and signing everyone out on upgrade to learn a flag `/me` will supply would
+ * be a poor trade. Missing reads as not an admin until then.
+ */
+function toCurrentUser(value: unknown): CurrentUser | null {
+  if (!value || typeof value !== "object") return null;
   const v = value as Record<string, unknown>;
-  return (
-    typeof v.id === "string" &&
-    typeof v.username === "string" &&
-    typeof v.displayName === "string" &&
-    typeof v.avatarColor === "string"
-  );
+  if (
+    typeof v.id !== "string" ||
+    typeof v.username !== "string" ||
+    typeof v.displayName !== "string" ||
+    typeof v.avatarColor !== "string"
+  ) {
+    return null;
+  }
+  return {
+    id: v.id,
+    username: v.username,
+    displayName: v.displayName,
+    avatarColor: v.avatarColor,
+    isAdmin: v.isAdmin === true,
+  };
 }
 
 function loadPersisted(): PersistedAuth | null {
@@ -50,12 +67,9 @@ function loadPersisted(): PersistedAuth | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed.token === "string" &&
-      isCurrentUser(parsed.user)
-    ) {
-      return { token: parsed.token, user: parsed.user };
+    const user = toCurrentUser(parsed?.user);
+    if (typeof parsed?.token === "string" && user) {
+      return { token: parsed.token, user };
     }
   } catch {
     // ignore corrupt payloads
@@ -97,18 +111,44 @@ if (typeof window !== "undefined") {
     }
     try {
       const parsed = JSON.parse(event.newValue);
-      if (
-        parsed &&
-        typeof parsed.token === "string" &&
-        isCurrentUser(parsed.user)
-      ) {
+      const user = toCurrentUser(parsed?.user);
+      if (typeof parsed?.token === "string" && user) {
         authToken.value = parsed.token;
-        currentUser.value = parsed.user;
+        currentUser.value = user;
       }
     } catch {
       // ignore corrupt payloads from other tabs
     }
   });
+}
+
+/**
+ * The password was right but is a temporary one, and signing in has to set a
+ * new one. Thrown rather than returned so `LoginScreen`'s single catch can
+ * tell it apart from a failure.
+ */
+export class PasswordChangeRequiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PasswordChangeRequiredError";
+  }
+}
+
+/** Throws with the server's message, or the password-change error it names. */
+async function throwForResponse(res: Response): Promise<never> {
+  let message = `Request failed (${res.status})`;
+  let code: ErrorResponse["code"];
+  try {
+    const data = (await res.json()) as Partial<ErrorResponse>;
+    if (typeof data.error === "string") message = data.error;
+    code = data.code;
+  } catch {
+    // non-JSON body, leave default
+  }
+  if (code === "password_change_required") {
+    throw new PasswordChangeRequiredError(message);
+  }
+  throw new Error(message);
 }
 
 async function authRequest(
@@ -123,23 +163,90 @@ async function authRequest(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    try {
-      const data = (await res.json()) as { error?: unknown };
-      if (typeof data.error === "string") message = data.error;
-    } catch {
-      // non-JSON body, leave default
-    }
-    throw new Error(message);
-  }
+  if (!res.ok) await throwForResponse(res);
   return (await res.json()) as AuthSuccessResponse;
 }
 
-export async function login(username: string, password: string): Promise<void> {
-  const result = await authRequest("/api/auth/login", { username, password });
+/**
+ * Sign in. `newPassword` is sent only to finish signing in with a temporary
+ * password, after this has thrown `PasswordChangeRequiredError` once.
+ */
+export async function login(
+  username: string,
+  password: string,
+  newPassword?: string,
+): Promise<void> {
+  const result = await authRequest("/api/auth/login", {
+    username,
+    password,
+    ...(newPassword === undefined ? {} : { newPassword }),
+  });
   authToken.value = result.token;
   currentUser.value = result.user;
+}
+
+export type ChangePasswordResult =
+  | "ok"
+  | "wrong-password"
+  | "same-password"
+  | "failed";
+
+/**
+ * Change the signed-in user's password. Every other session ends; this one
+ * carries on. Resolves with what happened, for the form to say in its own
+ * words rather than the server's.
+ */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<ChangePasswordResult> {
+  const token = authToken.value;
+  if (!SERVER_URL || !token) return "failed";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    if (res.ok) return "ok";
+    if (res.status === 401) clearAuthLocal();
+    if (res.status === 403) return "wrong-password";
+    // The form has already checked the length, so what is left to refuse is
+    // a new password that is the current one.
+    if (res.status === 422) return "same-password";
+    return "failed";
+  } catch {
+    return "failed";
+  }
+}
+
+/**
+ * Re-read the current user from the server. What was persisted at sign-in
+ * goes stale when an admin grants or revokes admin, so the app asks again on
+ * start. Resolves either way: a failure leaves the persisted user in place, and
+ * a 401 signs out as it would anywhere else.
+ */
+export async function refreshCurrentUser(): Promise<void> {
+  const token = authToken.value;
+  if (!SERVER_URL || !token) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) {
+      clearAuthLocal();
+      return;
+    }
+    if (!res.ok) return;
+    const body = (await res.json()) as AuthMeResponse;
+    // A sign-out or another account in the meantime makes this answer stale.
+    if (authToken.value === token) currentUser.value = body.user;
+  } catch {
+    // offline: keep what we have
+  }
 }
 
 export async function register(
@@ -185,12 +292,21 @@ effect(() => {
   };
 });
 
+/**
+ * How this server signs people in, once something has asked. Settings reads
+ * it to decide whether there is a password to change, and the admin view
+ * whether accounts can be created here or belong to an identity provider.
+ */
+export const authProviderName = signal<AuthProviderName | null>(null);
+
 export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
   if (!SERVER_URL) return null;
   try {
     const res = await fetch(`${SERVER_URL}/api/auth/methods`);
     if (!res.ok) return null;
-    return (await res.json()) as AuthMethodsResponse;
+    const methods = (await res.json()) as AuthMethodsResponse;
+    authProviderName.value = methods.provider;
+    return methods;
   } catch {
     return null;
   }

@@ -8,7 +8,8 @@ export type AppView =
   | "autoNotes"
   | "archived"
   | "trash"
-  | "search";
+  | "search"
+  | "admin";
 
 export type SearchType = "reminders" | "checklists" | "images" | "urls";
 export type SearchLocation = "active" | "archived" | "trashed";
