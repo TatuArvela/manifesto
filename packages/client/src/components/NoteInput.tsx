@@ -11,7 +11,7 @@ import {
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { useFocusTrap } from "../hooks/useFocusTrap.js";
+import { holdFocus, useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   activeView,
@@ -247,8 +247,9 @@ export function NoteInput() {
     // inside a user gesture. MilkdownEditor's autoFocus runs in a useEffect
     // after editor.create() resolves, well after the gesture ends, too late
     // for iOS. Pre-focus a hidden input now; iOS opens the keyboard, and the
-    // later focus transfer to the editor keeps it up.
-    focusCatcherRef.current?.focus();
+    // later focus transfer to the editor keeps it up. Through `holdFocus`, so
+    // the focus trap neither takes focus off it nor gives focus back to it.
+    holdFocus(focusCatcherRef.current);
     setLifting(true);
     setStackColor(pickDefaultColor());
     // Give the peel a moment on its own before the editor opens over it,

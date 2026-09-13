@@ -54,6 +54,27 @@ function tabbable(container: HTMLElement): HTMLElement[] {
   return [...seen];
 }
 
+/** Stand-ins focused by `holdFocus`, each with what had focus before it. */
+const standIns = new WeakMap<Element, Element | null>();
+
+/**
+ * Focuses `standIn` on behalf of a modal that doesn't exist yet, and remembers
+ * what had focus before it.
+ *
+ * iOS opens the soft keyboard only for a focus made inside the tap itself, and
+ * the note editor focuses its content well after that, once Milkdown has built.
+ * `NoteInput` bridges the gap with a hidden input. The trap has to treat that
+ * input as the modal's own: moving focus off it onto the first button drops the
+ * keyboard, and giving focus back to it on close raises the keyboard again over
+ * a page with nothing to type into. So a trap that opens over a stand-in leaves
+ * focus where it is, and on close returns it to what had it before.
+ */
+export function holdFocus(standIn: HTMLElement | null) {
+  if (!standIn) return;
+  standIns.set(standIn, document.activeElement);
+  standIn.focus();
+}
+
 function holdsFocus(container: HTMLElement): boolean {
   const active = document.activeElement;
   if (!(active instanceof HTMLElement)) return false;
@@ -69,8 +90,10 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     const container = ref.current;
     if (!active || !container) return;
 
-    const restoreTo = document.activeElement;
-    if (!holdsFocus(container)) tabbable(container)[0]?.focus();
+    const focused = document.activeElement;
+    const standingIn = focused !== null && standIns.has(focused);
+    const restoreTo = standingIn ? standIns.get(focused) : focused;
+    if (!standingIn && !holdsFocus(container)) tabbable(container)[0]?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Tab" || event.defaultPrevented) return;

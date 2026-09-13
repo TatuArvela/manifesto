@@ -107,6 +107,62 @@ describe("NoteInput with an empty draft", () => {
   });
 });
 
+describe("NoteInput focus on a phone", () => {
+  // Chromium has no soft keyboard, so these follow focus instead. iOS keeps the
+  // keyboard up only while focus goes from one text field to another, and
+  // raises it for any text field focused inside a gesture.
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    activeView.value = "active";
+    render(<NoteInput />, host);
+  });
+
+  afterEach(() => {
+    render(null, host);
+    host.remove();
+    localStorage.clear();
+    notes.value = [];
+  });
+
+  const editorHasFocus = () =>
+    expect(document.activeElement?.closest(".ProseMirror")).toBeTruthy();
+
+  it("hands focus from the tap straight to the editor", async () => {
+    // The focus trap moved focus onto the editor's first button while Milkdown
+    // was still building, which put the keyboard away before the editor asked.
+    const focused: Element[] = [];
+    const record = (e: FocusEvent) => focused.push(e.target as Element);
+    document.addEventListener("focusin", record);
+    try {
+      host
+        .querySelector<HTMLElement>(`button[aria-label="${t("nav.newNote")}"]`)
+        ?.click();
+      await vi.waitFor(editorHasFocus);
+    } finally {
+      document.removeEventListener("focusin", record);
+    }
+    const outsideEditor = focused.filter((el) => !el.closest(".ProseMirror"));
+    expect(outsideEditor.map((el) => el.tagName)).toEqual(["INPUT"]);
+  });
+
+  it("does not give focus back to the keyboard primer on close", async () => {
+    // It did, and that raised the keyboard as the editor went away.
+    host
+      .querySelector<HTMLElement>(`button[aria-label="${t("nav.newNote")}"]`)
+      ?.click();
+    await vi.waitFor(editorHasFocus);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="dialog"]')).toBeNull(),
+    );
+    expect(document.activeElement?.tagName).not.toBe("INPUT");
+  });
+});
+
 describe("NoteInput link previews", () => {
   beforeEach(() => {
     localStorage.clear();

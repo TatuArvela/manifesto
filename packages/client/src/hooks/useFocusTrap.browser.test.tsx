@@ -2,7 +2,7 @@ import type { ComponentChildren } from "preact";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
-import { useFocusTrap } from "./useFocusTrap.js";
+import { holdFocus, useFocusTrap } from "./useFocusTrap.js";
 
 /**
  * Real Tab presses through the browser, because the whole behaviour under test
@@ -179,6 +179,31 @@ describe("useFocusTrap", () => {
     expect(focusedId()).toBe("first");
 
     render(<Page active={false} />, host);
+    expect(focusedId()).toBe("before");
+  });
+
+  it("leaves a stand-in holding focus, and returns focus past it", () => {
+    // NoteInput focuses a hidden input inside the tap so iOS opens the
+    // keyboard. Moving focus off it onto the first button dropped the keyboard
+    // before the editor could take it over, and handing focus back to it on
+    // close raised the keyboard over the page.
+    function WithStandIn({ active }: { active: boolean }) {
+      return (
+        <>
+          <input id="stand-in" tabIndex={-1} />
+          <Page active={active} />
+        </>
+      );
+    }
+    render(<WithStandIn active={false} />, host);
+    document.getElementById("before")?.focus();
+    holdFocus(document.getElementById("stand-in"));
+    expect(focusedId()).toBe("stand-in");
+
+    render(<WithStandIn active={true} />, host);
+    expect(focusedId()).toBe("stand-in");
+
+    render(<WithStandIn active={false} />, host);
     expect(focusedId()).toBe("before");
   });
 
