@@ -48,6 +48,23 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 | `POST`   | `/api/auth/register`  | Create account       |
 | `POST`   | `/api/auth/login`     | Log in               |
 | `POST`   | `/api/auth/logout`    | Log out              |
+| `POST`   | `/api/auth/password`  | Change your own password |
+
+`POST /api/auth/login` takes `{ username, password }`, and an optional
+`newPassword` that is read only when the account holds a temporary password an
+admin issued. Without it such a sign-in answers `403`
+`{ "error": "...", "code": "password_change_required" }` and issues no session;
+with it (at least 8 characters, and different from the temporary one) the server
+sets the new password and signs in. A wrong password is `401` either way, so
+the flag is never disclosed to a guess. See
+[Account Administration](features/accounts.md#temporary-passwords).
+
+`POST /api/auth/password` is bearer-protected and takes
+`{ currentPassword, newPassword }`. It answers `204`, then ends every other
+session of the account and closes their sockets; the calling session carries on.
+A wrong current password is `403`, not `401`, because the session itself is
+fine. A new password equal to the current one is `422`, and an account with no
+password (single sign-on) is `409`. It shares the sign-in throttle.
 
 **OIDC** (`AUTH_PROVIDER=oidc`):
 
@@ -71,7 +88,38 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 | Method   | Path                  | Description                                                              |
 |----------|-----------------------|--------------------------------------------------------------------------|
 | `GET`    | `/api/auth/methods`   | Public: `{ provider: "local" \| "oidc" }`. Used by the client to pick the login UI. |
-| `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment). |
+| `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment), and on start to pick up admin rights granted or revoked since sign-in. |
+
+`AuthUser` is `{ id, username, displayName, avatarColor, isAdmin }`.
+
+### Administration
+
+Bearer-protected, and the caller must be an admin, which is checked against the
+database on every request (`403` otherwise). Shares the per-user API limit. See
+[Account Administration](features/accounts.md) for the rules.
+
+| Method   | Path                              | Description |
+|----------|-----------------------------------|-------------|
+| `GET`    | `/api/admin/users`                | Every account, by username: `{ users: AdminUser[] }` |
+| `POST`   | `/api/admin/users`                | Create an account from `{ username }`: `201` `{ user, temporaryPassword }` |
+| `PUT`    | `/api/admin/users/:id`            | Grant or revoke admin with `{ isAdmin }`: `{ user }` |
+| `POST`   | `/api/admin/users/:id/password`   | Reset the password and end every session of the account: `{ user, temporaryPassword }` |
+| `DELETE` | `/api/admin/users/:id`            | Delete the account with its notes and sessions: `204` |
+
+`AdminUser` is `{ id, username, displayName, avatarColor, isAdmin, provider,
+mustChangePassword, noteCount, createdAt, lastSeenAt }`, where `provider` is
+`"local"` or `"oidc"` and `lastSeenAt` is the latest use of any of the account's
+sessions, or `null` when it has none.
+
+- The temporary password appears in that one response and is stored only as a
+  hash; it cannot be fetched again.
+- Creating an account and resetting a password are `404` under
+  `AUTH_PROVIDER=oidc`, where the identity provider owns both. Resetting the
+  password of an account that signs in with single sign-on is `409`.
+- A taken username is `409`, and an invalid one `422`.
+- Acting on your own account (`PUT`, reset or `DELETE` with your own id) is
+  `409`, as is anything that would leave the server with no admin.
+- An unknown id is `404`.
 
 All `/api/notes` and `/api/search` endpoints require authentication. Requests include a session token in the `Authorization: Bearer <token>` header. The token format and the way it is issued depend on the auth provider; clients treat it as opaque.
 
@@ -83,7 +131,7 @@ All `/api/notes` and `/api/search` endpoints require authentication. Requests in
 - `PUT /api/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
 - List endpoints return `{ "notes": Note[], "nextCursor": string | null }`
 - Single note endpoints return `{ "note": Note }`
-- Errors return `{ "error": string }`
+- Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (today only `password_change_required`)
 
 ### Paging the list endpoints
 

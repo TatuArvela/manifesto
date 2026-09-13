@@ -93,6 +93,19 @@ As an organization administrator, I want to deploy Manifesto as a managed servic
 - I can choose `AUTH_PROVIDER=oidc` so users sign in with our existing IdP (Authentik, Keycloak, Google, Auth0, Okta, …)
 - The server is the source of truth: backups, retention, and access control happen there
 
+## Account Administration (Connected Mode)
+
+As the person running a server, I want to manage who has an account on it without touching the database.
+
+- The first account on the server is mine, and it is an admin
+- I can see every account, with how many notes it has and when it was last used
+- With local sign-in, I can create an account and hand its owner a temporary password; they choose their own the first time they sign in
+- With local sign-in, I can reset someone's password: they are signed out everywhere, including open tabs, and get a temporary password
+- I can make other people admins and take it away again, but the server never ends up with no admin
+- I can delete an account along with its notes, after confirming
+- I cannot lock myself out from this screen: my own account is changed from Settings instead
+- As any user with local sign-in, I can change my own password, which signs out my other devices
+
 ## Archiving
 
 As a user, I want to archive notes I no longer need in my main view but want to keep.

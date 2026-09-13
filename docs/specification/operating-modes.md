@@ -56,7 +56,7 @@ The client is built with `VITE_MANIFESTO_SERVER=<url>` and talks to a Manifesto 
 
 ### Available features
 
-Everything in open mode, **plus**: multi-device sync, multi-user isolation, server-side search, live collaborative editing, presence (who is viewing/editing), and [link previews](features/link-previews.md) filled in with the page's title, description and image.
+Everything in open mode, **plus**: multi-device sync, multi-user isolation, [account administration](features/accounts.md), server-side search, live collaborative editing, presence (who is viewing/editing), and [link previews](features/link-previews.md) filled in with the page's title, description and image.
 
 ### Behavioural differences vs open mode
 

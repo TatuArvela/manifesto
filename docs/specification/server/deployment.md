@@ -55,7 +55,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `ARGON2_MEMORY_KIB` | `19456`                   | argon2id memory cost (local auth only)   |
 | `ARGON2_TIME_COST`  | `2`                       | argon2id time cost (local auth only)     |
 | `ARGON2_PARALLELISM` | `1`                      | argon2id parallelism (local auth only)   |
-| `REGISTRATION_ENABLED` | `true`                  | Allow public POST `/api/auth/register`. Set `false` for managed-mode deployments where accounts are provisioned out-of-band. |
+| `REGISTRATION_ENABLED` | `true`                  | Allow public POST `/api/auth/register`. The first account registered is the server's admin, so register yours before setting this `false`; admins then create accounts from the Users view. See [Account Administration](../features/accounts.md). |
 | `TRUST_PROXY`      | `false`                    | Honor `X-Forwarded-For` for IP-aware rate limiting. Set `true` only behind a trusted reverse proxy. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
 

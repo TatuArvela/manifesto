@@ -8,7 +8,7 @@
 A free, open-source note-taking app with a simple sticky note interface.
 
 - [Local-first](docs/specification/operating-modes.md#open-mode): works in the browser with no server required
-- Optionally [self-host a server](docs/specification/operating-modes.md#connected-mode) for multi-device sync, accounts, [live collaboration](docs/specification/features/collaborative-editing.md) and [link previews](docs/specification/features/link-previews.md)
+- Optionally [self-host a server](docs/specification/operating-modes.md#connected-mode) for multi-device sync, [accounts with admin tools](docs/specification/features/accounts.md), [live collaboration](docs/specification/features/collaborative-editing.md) and [link previews](docs/specification/features/link-previews.md)
 - [Markdown](docs/specification/features/notes.md#editing-a-note) and interactive [checklists](docs/specification/features/checklists.md)
 - [Tags](docs/specification/features/tags.md), [colors](docs/specification/features/notes.md#colors), [pinning](docs/specification/features/notes.md#pinning), [archiving](docs/specification/features/archiving.md), [reminders](docs/specification/features/reminders.md), [version history](docs/specification/features/version-history.md)
 - [Full-text search](docs/specification/features/search.md), [link sharing](docs/specification/features/sharing.md) and plugin-generated [auto-notes](docs/specification/features/auto-notes.md)
@@ -50,6 +50,7 @@ Each release ships a client bundle and a server image. The client's [operating m
 - [Accounts](docs/specification/server/index.md#authentication-providers) use argon2id passwords or OIDC with PKCE, rate-limited login, and sessions with both idle and absolute expiry
 - Notes are [isolated per user](docs/specification/server/index.md#multi-user), and collaborative editing checks note ownership
 - [Link previews](docs/specification/features/link-previews.md#what-the-server-fetches) are fetched by the server from public addresses only, and their images are stored in the note, so viewing one contacts no third party. `LINK_PREVIEWS=off` disables fetching
-- In production, set `REGISTRATION_ENABLED=false` if accounts are provisioned elsewhere, and `TRUST_PROXY=true` only behind a trusted [reverse proxy](docs/specification/server/deployment.md#reverse-proxy)
+- The first account on a server is its [admin](docs/specification/features/accounts.md), so register yours before sharing the address. Admin-issued passwords are single-use, and a reset signs the account out everywhere, open sockets included
+- In production, set `REGISTRATION_ENABLED=false` once your own account exists if accounts should only come from an admin, and `TRUST_PROXY=true` only behind a trusted [reverse proxy](docs/specification/server/deployment.md#reverse-proxy)
 
 If you have found a vulnerability and wish to report it, please [contribute](CONTRIBUTING.md).
