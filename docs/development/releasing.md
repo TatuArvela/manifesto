@@ -9,6 +9,10 @@ Manifesto uses a single shared version across all three packages (`@manifesto/cl
 3. Merging that PR creates a `vX.Y.Z` git tag and a GitHub Release.
 4. The `artifacts` job then builds a client bundle and a multi-arch server image, and attaches the client bundle to the release.
 
+## Versions between releases
+
+Only the release commit is `X.Y.Z`. A build of any later commit reports the release it follows, the number of commits since, and its own short SHA, as semver build metadata: `0.1.5+14.bf5a6dd`. That is what the GitHub Pages deployment of `main` shows in Settings, and what `/api/health` answers for a server image built by hand from a branch. `packages/build-version` works this out from git history, so a CI checkout that builds needs `fetch-depth: 0`. Set `MANIFESTO_VERSION` to override it, for example as a Docker build arg, since the image's build context has no `.git`.
+
 ## Conventional commits
 
 PR titles become commit messages on squash-merge, so the PR title is what release-please reads.

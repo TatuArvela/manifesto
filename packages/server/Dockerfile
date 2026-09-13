@@ -30,6 +30,13 @@ COPY packages/shared packages/shared
 RUN pnpm install --filter @manifesto/server --filter @manifesto/shared --frozen-lockfile
 
 COPY packages/server packages/server
+
+# The server build writes dist/VERSION with packages/build-version, which reads
+# git history. The context has no `.git`, so a caller that knows the commit
+# passes the resolved version in (image-publish.yml does); without it the image
+# reports the release number from package.json.
+COPY packages/build-version packages/build-version
+ARG MANIFESTO_VERSION
 RUN pnpm --filter @manifesto/server build
 
 # Produce a self-contained production bundle. `pnpm deploy` writes a real,
