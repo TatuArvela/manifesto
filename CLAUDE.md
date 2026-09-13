@@ -221,6 +221,21 @@ Two unrelated features make a note more than text, and both run on every render 
   note, during render, with no user action beyond opening it. Keep quantifiers bounded in anything
   reachable from a card render.
 
+### Link Previews
+
+A pasted link gets a plain card at once (`appendStubPreviews`, all of a paste's URLs in *one*
+write: building each from the same note kept only the last). `state/linkPreviews.ts` then asks
+`storage.fetchLinkPreview`, which is always null in open mode, since its CSP forbids reaching a
+third party. In connected mode the server fetches the page and returns the images raw;
+`utils/previewImage.ts` redraws them through a canvas to fit 64 KB, because previews travel in
+every listing and must render with the CSP's `img-src` unchanged.
+
+On the server, `src/linkPreview/safeFetch.ts` is an SSRF boundary. It checks *every* resolved
+address with `addressPolicy.ts` and connects to the checked one through a pinned `lookup`. Handing
+the hostname to the HTTP client instead re-resolves it, which is a DNS rebinding hole. Redirects
+must go back through the check. Tests reach a loopback server only through the explicit
+`isAllowedAddress` / `allowAnyPort` seams.
+
 ### Layout and Loading
 
 `hooks/useMasonryGrid.ts` does masonry with `grid-row` spans: release every card to its natural

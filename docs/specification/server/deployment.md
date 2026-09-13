@@ -57,6 +57,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `ARGON2_PARALLELISM` | `1`                      | argon2id parallelism (local auth only)   |
 | `REGISTRATION_ENABLED` | `true`                  | Allow public POST `/api/auth/register`. Set `false` for managed-mode deployments where accounts are provisioned out-of-band. |
 | `TRUST_PROXY`      | `false`                    | Honor `X-Forwarded-For` for IP-aware rate limiting. Set `true` only behind a trusted reverse proxy. |
+| `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.
 
