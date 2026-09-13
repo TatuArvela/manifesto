@@ -8,6 +8,7 @@ import {
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 import type { AuthProvider, AuthProviderRouter } from "./types.js";
+import { toAuthUser } from "./users.js";
 
 interface SharedAuthRoutesDeps {
   cfg: ServerConfig;
@@ -37,14 +38,7 @@ export function createAuthSharedRoutes(
     if (!user) {
       throw new HttpError(401, "User not found");
     }
-    const body: AuthMeResponse = {
-      user: {
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName || user.username,
-        avatarColor: user.avatarColor,
-      },
-    };
+    const body: AuthMeResponse = { user: toAuthUser(user) };
     return c.json(body);
   });
 

@@ -42,9 +42,13 @@ async function bootRig(): Promise<Rig> {
   const cfg = { ...TEST_CONFIG, port: 0 };
   const storage = createSqliteStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
-  const { app, broadcaster } = createApp({ cfg, storage, authProvider });
+  const { app, broadcaster, revocations } = createApp({
+    cfg,
+    storage,
+    authProvider,
+  });
   const ws = createNodeWebSocket({ app });
-  attachAppSocket({ app, ws, authProvider, broadcaster, cfg });
+  attachAppSocket({ app, ws, authProvider, broadcaster, revocations, cfg });
   // biome-ignore lint/suspicious/noExplicitAny: cast around hono-node-server's union return type
   const server = serve({ fetch: app.fetch, port: 0 }) as any;
   await new Promise<void>((resolve) => server.once("listening", resolve));
@@ -53,6 +57,7 @@ async function bootRig(): Promise<Rig> {
     httpServer: server,
     storage,
     authProvider,
+    revocations,
     cfg,
   });
   const port = (server.address() as AddressInfo).port;
@@ -83,6 +88,16 @@ async function register(
   expect(res.status).toBe(201);
   const body = (await res.json()) as { token: string; user: { id: string } };
   return { token: body.token, userId: body.user.id };
+}
+
+async function signIn(rig: Rig, username: string): Promise<string> {
+  const res = await fetch(`${rig.baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password: "password-1234" }),
+  });
+  expect(res.status).toBe(200);
+  return ((await res.json()) as { token: string }).token;
 }
 
 async function createNote(
@@ -258,6 +273,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
     const conn = await rig.yjs.hocuspocus.openDirectConnection(noteId, {
       userId,
       noteId,
+      token,
     });
     await conn.transact((doc) => {
       doc.getText("scratch").insert(0, "Hello, world.");
@@ -280,6 +296,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
     const first = await rig.yjs.hocuspocus.openDirectConnection(noteId, {
       userId,
       noteId,
+      token,
     });
     await first.transact((doc) => {
       doc.getText("scratch").insert(0, "persisted bytes");
@@ -294,6 +311,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
     const second = await rig.yjs.hocuspocus.openDirectConnection(noteId, {
       userId,
       noteId,
+      token,
     });
     let observed = "";
     await second.transact((doc) => {
@@ -302,4 +320,41 @@ describe("Yjs collaboration socket /api/yjs", () => {
     await second.disconnect();
     expect(observed).toBe("persisted bytes");
   });
+
+  it("disconnects the sessions a password change ends, and keeps its own", async () => {
+    // A document connection closed alone only asks the peer to stop; the
+    // socket has to go, and the reconnect has to meet a refused session.
+    const { token: elsewhere } = await register(rig, "alice");
+    const here = await signIn(rig, "alice");
+    const noteId = await createNote(rig, here);
+
+    const other = connect(rig, noteId, elsewhere);
+    const own = connect(rig, noteId, here);
+    expect(await waitSynced(other)).toBe(true);
+    expect(await waitSynced(own)).toBe(true);
+
+    const otherRefused = waitAuthFailed(other, 8000);
+    const res = await fetch(`${rig.baseUrl}/api/auth/password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${here}`,
+      },
+      body: JSON.stringify({
+        currentPassword: "password-1234",
+        newPassword: "password-5678",
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(await otherRefused).toBe(true);
+
+    // The session that made the change still edits live.
+    const ownConnections = [...rig.yjs.hocuspocus.documents.values()].flatMap(
+      (document) => document.getConnections(),
+    );
+    expect(ownConnections.map((c) => c.context.token)).toEqual([here]);
+
+    other.destroy();
+    own.destroy();
+  }, 15_000);
 });

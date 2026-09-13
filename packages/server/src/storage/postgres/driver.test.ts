@@ -1,5 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describeAdminContract } from "../adminContract.js";
 import { UsernameTakenError } from "../types.js";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.js";
 import { newTestPool } from "./testDb.js";
@@ -10,6 +11,8 @@ async function bootStorage(): Promise<PostgresStorageDriver> {
     { poolFactory: newTestPool },
   );
 }
+
+describeAdminContract("postgres (pg-mem)", bootStorage);
 
 /** A page big enough that these fixtures are never split across two. */
 const PAGE = { limit: 50 };

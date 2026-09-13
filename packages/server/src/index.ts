@@ -16,10 +16,14 @@ import { attachYjsSocket } from "./ws/yjsSocket.js";
 const cfg = loadConfig();
 const storage = await createStorage(cfg);
 const authProvider = createAuthProvider(cfg, storage);
-const { app, broadcaster } = createApp({ cfg, storage, authProvider });
+const { app, broadcaster, revocations } = createApp({
+  cfg,
+  storage,
+  authProvider,
+});
 
 const ws = createNodeWebSocket({ app });
-attachAppSocket({ app, ws, authProvider, broadcaster, cfg });
+attachAppSocket({ app, ws, authProvider, broadcaster, revocations, cfg });
 
 const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
   logger.info("Server listening", {
@@ -33,7 +37,13 @@ const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
 }) as unknown as HttpServer;
 
 ws.injectWebSocket(server);
-const yjs = attachYjsSocket({ httpServer: server, storage, authProvider, cfg });
+const yjs = attachYjsSocket({
+  httpServer: server,
+  storage,
+  authProvider,
+  revocations,
+  cfg,
+});
 const stopTrashCleanup = startTrashCleanup(storage, broadcaster);
 const stopSessionCleanup = startSessionCleanup(storage);
 

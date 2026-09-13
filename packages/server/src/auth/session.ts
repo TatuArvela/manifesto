@@ -2,6 +2,7 @@ import type { ServerConfig } from "../config.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
 import { hashToken, newSessionToken } from "../lib/token.js";
 import type { Session, StorageDriver } from "../storage/types.js";
+import type { SessionRevocations } from "./revocations.js";
 import type { AuthIdentity } from "./types.js";
 
 // Sessions are stored hashed at rest. The repo doesn't know this; it just
@@ -102,4 +103,22 @@ export async function revokeSession(
   token: string,
 ): Promise<void> {
   await storage.sessions.deleteByToken(hashToken(token));
+}
+
+/**
+ * End every session a user holds, except `keepToken`'s, and close the sockets
+ * those sessions opened. Both halves, because deleting the rows alone leaves
+ * an already-open socket authenticated.
+ */
+export async function endUserSessions(
+  storage: StorageDriver,
+  revocations: SessionRevocations,
+  userId: string,
+  keepToken?: string,
+): Promise<void> {
+  await storage.sessions.deleteByUser(
+    userId,
+    keepToken === undefined ? undefined : hashToken(keepToken),
+  );
+  revocations.revoke({ userId, keepToken });
 }

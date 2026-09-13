@@ -126,6 +126,58 @@ describe("sqlite migration runner", () => {
   });
 });
 
+/** Every declared migration up to, but not including, `id`. */
+function upTo(migrations: readonly Migration[], id: string): Migration[] {
+  const index = migrations.findIndex((m) => m.id === id);
+  expect(index).toBeGreaterThan(0);
+  return migrations.slice(0, index);
+}
+
+const LEGACY_USERS = [
+  ["u-late", "zed", "2026-03-01T00:00:00.000Z"],
+  ["u-early-b", "bob", "2026-01-01T00:00:00.000Z"],
+  ["u-early-a", "amy", "2026-01-01T00:00:00.000Z"],
+] as const;
+
+describe("0003-user-admin on a server that already has accounts", () => {
+  // A fresh server makes its first sign-up the admin as it is created. One
+  // upgraded with accounts in it has had no such moment, so the migration has
+  // to choose, or the upgrade leaves nobody able to administer it.
+  it("promotes the oldest account on SQLite, and only that one", () => {
+    const db = new Database(":memory:");
+    runSqliteMigrations(db, upTo(SQLITE_MIGRATIONS, "0003-user-admin"));
+    const insert = db.prepare(
+      `INSERT INTO users (id, username, created_at) VALUES (?, ?, ?)`,
+    );
+    for (const row of LEGACY_USERS) insert.run(...row);
+
+    runSqliteMigrations(db);
+    const admins = db
+      .prepare(`SELECT id FROM users WHERE is_admin = 1`)
+      .all() as { id: string }[];
+    // Ties on created_at fall to the id, so the choice is stable.
+    expect(admins.map((row) => row.id)).toEqual(["u-early-a"]);
+    db.close();
+  });
+
+  it("promotes the oldest account on Postgres, and only that one", async () => {
+    const pool = newTestPool();
+    await runPgMigrations(pool, upTo(PG_MIGRATIONS, "0003-user-admin"));
+    for (const row of LEGACY_USERS) {
+      await pool.query(
+        `INSERT INTO users (id, username, created_at) VALUES ($1, $2, $3)`,
+        [...row],
+      );
+    }
+
+    await runPgMigrations(pool);
+    const { rows } = await pool.query(
+      `SELECT id FROM users WHERE is_admin = TRUE`,
+    );
+    expect(rows.map((row: { id: string }) => row.id)).toEqual(["u-early-a"]);
+  });
+});
+
 describe("postgres migration runner", () => {
   const open = newTestPool;
 

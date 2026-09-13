@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import type { SessionRevocations } from "./revocations.js";
 
 export interface AuthIdentity {
   userId: string;
@@ -15,20 +16,14 @@ export interface AuthIdentity {
 // biome-ignore lint/suspicious/noExplicitAny: see comment above
 export type AuthProviderRouter = Hono<any, any, any>;
 
+/** Services the app owns that a provider's routes may need, handed over when
+ * the router is mounted rather than when the provider is built. */
+export interface AuthRouterContext {
+  revocations: SessionRevocations;
+}
+
 export interface AuthProvider {
   authenticate(token: string): Promise<AuthIdentity | null>;
-  router(): AuthProviderRouter;
+  router(context: AuthRouterContext): AuthProviderRouter;
   close?(): Promise<void>;
-}
-
-export interface PublicUser {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarColor: string;
-}
-
-export interface AuthSuccess {
-  token: string;
-  user: PublicUser;
 }

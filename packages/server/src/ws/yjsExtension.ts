@@ -10,6 +10,9 @@ import type { YjsStore } from "../storage/types.js";
 export interface YjsAuthContext {
   userId: string;
   noteId: string;
+  /** The bearer token the connection authenticated with, so ending a session
+   * can find the sockets it opened. */
+  token: string;
 }
 
 export class YjsPersistenceExtension implements Extension {

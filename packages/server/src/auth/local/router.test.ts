@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  authHeaders,
   bootTestApp,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
 } from "../../test/setup.js";
+import { issueSession } from "../session.js";
 
 describe("local auth router", () => {
   let rig: TestRig;
@@ -144,5 +146,115 @@ describe("local auth router", () => {
     } finally {
       await closedRig.close();
     }
+  });
+
+  it("tells the first account it is the admin, and no later one", async () => {
+    const register = async (username: string) => {
+      const res = await rig.request("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password: "test-pass-12" }),
+      });
+      return ((await res.json()) as { user: { isAdmin: boolean } }).user;
+    };
+    expect((await register("alice")).isAdmin).toBe(true);
+    expect((await register("bob")).isAdmin).toBe(false);
+  });
+
+  describe("changing your own password", () => {
+    function change(token: string, body: unknown) {
+      return rig.request("/api/auth/password", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify(body),
+      });
+    }
+
+    async function signIn(password: string): Promise<Response> {
+      return rig.request("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "alice", password }),
+      });
+    }
+
+    it("replaces the password and ends every other session", async () => {
+      const { token: elsewhere } = await registerTestUser(
+        rig,
+        "alice",
+        "old-password-1",
+      );
+      const here = (
+        (await (await signIn("old-password-1")).json()) as {
+          token: string;
+        }
+      ).token;
+
+      const res = await change(here, {
+        currentPassword: "old-password-1",
+        newPassword: "new-password-2",
+      });
+      expect(res.status).toBe(204);
+
+      const notes = (token: string) =>
+        rig.request("/api/notes", { headers: authHeaders(token) });
+      expect((await notes(elsewhere)).status).toBe(401);
+      expect((await notes(here)).status).toBe(200);
+      expect((await signIn("old-password-1")).status).toBe(401);
+      expect((await signIn("new-password-2")).status).toBe(200);
+    });
+
+    it("refuses a wrong current password without signing the caller out", async () => {
+      const { token } = await registerTestUser(rig, "alice", "old-password-1");
+      const res = await change(token, {
+        currentPassword: "not-it-at-all",
+        newPassword: "new-password-2",
+      });
+      // Not 401, which a client reads as a dead session.
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({
+        error: "Current password is incorrect",
+      });
+    });
+
+    it("refuses a new password that is the current one, or too short", async () => {
+      const { token } = await registerTestUser(rig, "alice", "old-password-1");
+      expect(
+        (
+          await change(token, {
+            currentPassword: "old-password-1",
+            newPassword: "old-password-1",
+          })
+        ).status,
+      ).toBe(422);
+      expect(
+        (
+          await change(token, {
+            currentPassword: "old-password-1",
+            newPassword: "short",
+          })
+        ).status,
+      ).toBe(422);
+    });
+
+    it("refuses an account that has no password to change", async () => {
+      await registerTestUser(rig, "alice");
+      const sso = await rig.storage.users.create({
+        id: "sso-1",
+        username: "sso-user",
+        passwordHash: null,
+        displayName: "",
+        avatarColor: "",
+        provider: "oidc:example",
+        externalId: "sub-1",
+        createdAt: new Date().toISOString(),
+      });
+      const { token } = await issueSession(rig.storage, rig.cfg, sso.id);
+      const res = await change(token, {
+        currentPassword: "anything-at-all",
+        newPassword: "new-password-2",
+      });
+      expect(res.status).toBe(409);
+    });
   });
 });

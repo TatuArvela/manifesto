@@ -8,6 +8,10 @@ export interface User {
   provider: string;
   externalId: string | null;
   passwordHash: string | null;
+  isAdmin: boolean;
+  /** The password is a temporary one an admin issued, good for one sign-in
+   * that replaces it. */
+  mustChangePassword: boolean;
   createdAt: string;
 }
 
@@ -19,14 +23,54 @@ export interface CreateUserInput {
   provider: string;
   externalId: string | null;
   passwordHash: string | null;
+  mustChangePassword?: boolean;
   createdAt: string;
 }
 
+/** A user as the admin listing shows them, with what the listing needs to say
+ * about their use of the server. */
+export interface UserSummary extends User {
+  noteCount: number;
+  /** Latest `last_seen_at` across the user's sessions, or null with none. */
+  lastSeenAt: string | null;
+}
+
+/**
+ * What became of a change that could take away the server's last admin.
+ * `last-admin` means nothing was written.
+ */
+export type AdminGuardedResult = "ok" | "not-found" | "last-admin";
+
 export interface UsersRepo {
+  /**
+   * Insert a user. The account is made an admin exactly when it is the first
+   * one, and that is decided in the insert itself rather than by a count read
+   * beforehand, so two sign-ups arriving together on an empty server cannot
+   * both be told there is nobody yet.
+   */
   create(input: CreateUserInput): Promise<User>;
   findById(id: string): Promise<User | null>;
   findByUsername(username: string): Promise<User | null>;
   findByExternalId(provider: string, externalId: string): Promise<User | null>;
+  /** Every user, ordered by username. */
+  list(): Promise<UserSummary[]>;
+  summarize(id: string): Promise<UserSummary | null>;
+  /**
+   * Grant or revoke admin. Revoking it from the only admin is refused, with
+   * the count and the write made atomically.
+   */
+  setAdmin(id: string, isAdmin: boolean): Promise<AdminGuardedResult>;
+  /** Replace the password hash and say whether it is a temporary one. */
+  setPassword(
+    id: string,
+    passwordHash: string,
+    mustChangePassword: boolean,
+  ): Promise<boolean>;
+  /**
+   * Delete a user and, by cascade, their notes and sessions. The only admin
+   * cannot be deleted.
+   */
+  delete(id: string): Promise<AdminGuardedResult>;
 }
 
 /**
@@ -62,6 +106,9 @@ export interface SessionsRepo {
   create(input: CreateSessionInput): Promise<Session>;
   findByToken(token: string): Promise<Session | null>;
   deleteByToken(token: string): Promise<void>;
+  /** End every session a user holds, except the one whose (hashed) token is
+   * `exceptToken`. Returns how many were removed. */
+  deleteByUser(userId: string, exceptToken?: string): Promise<number>;
   deleteExpired(nowIso: string): Promise<number>;
   touch(token: string, lastSeenAt: string, expiresAt: string): Promise<void>;
 }

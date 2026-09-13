@@ -1,5 +1,9 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import {
+  createSessionRevocations,
+  type SessionRevocations,
+} from "./auth/revocations.js";
 import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import type { ServerConfig } from "./config.js";
@@ -11,6 +15,7 @@ import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
 import { requestLog } from "./middleware/requestLog.js";
+import { createAdminRoutes } from "./routes/admin.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
@@ -23,6 +28,8 @@ export interface AppDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
   broadcaster?: Broadcaster;
+  /** Where ended sessions are announced to the sockets. */
+  revocations?: SessionRevocations;
   /** Test seam: replaces the fetcher that reaches the network. */
   fetchLinkPreview?: LinkPreviewFetcher;
 }
@@ -30,11 +37,13 @@ export interface AppDeps {
 export interface AppHandle {
   app: Hono;
   broadcaster: Broadcaster;
+  revocations: SessionRevocations;
 }
 
 export function createApp(deps: AppDeps): AppHandle {
   const { cfg, storage, authProvider } = deps;
   const broadcaster = deps.broadcaster ?? createBroadcaster();
+  const revocations = deps.revocations ?? createSessionRevocations();
 
   const app = new Hono();
   app.use("*", corsMiddleware(cfg));
@@ -85,7 +94,7 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/auth",
     createAuthSharedRoutes({ cfg, storage, authProvider }),
   );
-  app.route("/api/auth", authProvider.router());
+  app.route("/api/auth", authProvider.router({ revocations }));
   app.route(
     "/api/notes",
     createNotesRoutes({
@@ -110,5 +119,16 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
 
-  return { app, broadcaster };
+  app.route(
+    "/api/admin",
+    createAdminRoutes({
+      cfg,
+      storage,
+      authProvider,
+      revocations,
+      rateLimit: apiRateLimit,
+    }),
+  );
+
+  return { app, broadcaster, revocations };
 }

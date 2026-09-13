@@ -70,9 +70,25 @@ ALTER TABLE notes ADD COLUMN image_count INTEGER NOT NULL DEFAULT 0;
 UPDATE notes SET image_count = json_array_length(images);
 `;
 
+/**
+ * Admins, and passwords an admin issued that their owner has to replace.
+ *
+ * A new server makes its first account the admin as the account is created. A
+ * server that already has accounts gets the same outcome after the fact: the
+ * oldest one is promoted, so no deployment comes out of this upgrade with
+ * nobody able to administer it.
+ */
+const USER_ADMIN = `
+ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0;
+UPDATE users SET is_admin = 1
+  WHERE id = (SELECT id FROM users ORDER BY created_at, id LIMIT 1);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
+  { id: "0003-user-admin", sql: USER_ADMIN },
 ];
 
 export function runMigrations(

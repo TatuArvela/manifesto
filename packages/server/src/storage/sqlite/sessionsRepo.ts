@@ -26,6 +26,9 @@ export function createSqliteSessionsRepo(db: SqliteDB): SessionsRepo {
   );
   const findStmt = db.prepare(`SELECT * FROM sessions WHERE token = ?`);
   const deleteStmt = db.prepare(`DELETE FROM sessions WHERE token = ?`);
+  const deleteByUserStmt = db.prepare(
+    `DELETE FROM sessions WHERE user_id = ? AND token IS NOT ?`,
+  );
   const deleteExpiredStmt = db.prepare(
     `DELETE FROM sessions WHERE expires_at < ?`,
   );
@@ -47,6 +50,11 @@ export function createSqliteSessionsRepo(db: SqliteDB): SessionsRepo {
 
     async deleteByToken(token: string): Promise<void> {
       deleteStmt.run(token);
+    },
+
+    async deleteByUser(userId: string, exceptToken?: string): Promise<number> {
+      // `IS NOT NULL` is true for every row, so no exception removes them all.
+      return deleteByUserStmt.run(userId, exceptToken ?? null).changes;
     },
 
     async deleteExpired(nowIso: string): Promise<number> {

@@ -18,6 +18,7 @@ import {
 } from "../../storage/types.js";
 import { issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
+import { pickAvatarColor } from "../users.js";
 import type { OidcDiscoveryClient } from "./provider.js";
 
 interface OidcRouterDeps {
@@ -53,24 +54,6 @@ const FLOW_COOKIE_PATH = "/api/auth";
 
 /** Insertions between sweeps of expired pending flows. */
 const SWEEP_EVERY = 256;
-
-const AVATAR_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#f59e0b",
-  "#84cc16",
-  "#10b981",
-  "#06b6d4",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
-];
-
-function pickAvatarColor(): string {
-  return AVATAR_COLORS[
-    Math.floor(Math.random() * AVATAR_COLORS.length)
-  ] as string;
-}
 
 function providerKey(issuer: string): string {
   // Issuer is normalized at config-load time, but be defensive: trailing

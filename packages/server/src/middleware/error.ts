@@ -1,3 +1,4 @@
+import type { ErrorCode, ErrorResponse } from "@manifesto/shared";
 import type { Context, ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "../lib/logger.js";
@@ -6,6 +7,7 @@ export class HttpError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: ErrorCode,
   ) {
     super(message);
   }
@@ -15,7 +17,9 @@ export const onError: ErrorHandler = (err, c) => handleError(c, err);
 
 function handleError(c: Context, err: unknown) {
   if (err instanceof HttpError) {
-    return c.json({ error: err.message }, err.status as never);
+    const body: ErrorResponse = { error: err.message };
+    if (err.code) body.code = err.code;
+    return c.json(body, err.status as never);
   }
   if (err instanceof HTTPException) {
     return c.json(

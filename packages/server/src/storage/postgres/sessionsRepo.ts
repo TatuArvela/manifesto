@@ -50,6 +50,19 @@ export function createPostgresSessionsRepo(pool: PgPool): SessionsRepo {
       await pool.query(`DELETE FROM sessions WHERE token = $1`, [token]);
     },
 
+    async deleteByUser(userId: string, exceptToken?: string): Promise<number> {
+      const result =
+        exceptToken === undefined
+          ? await pool.query(`DELETE FROM sessions WHERE user_id = $1`, [
+              userId,
+            ])
+          : await pool.query(
+              `DELETE FROM sessions WHERE user_id = $1 AND token <> $2`,
+              [userId, exceptToken],
+            );
+      return result.rowCount ?? 0;
+    },
+
     async deleteExpired(nowIso: string): Promise<number> {
       const result = await pool.query(
         `DELETE FROM sessions WHERE expires_at < $1`,

@@ -3,6 +3,7 @@ import type { Duplex } from "node:stream";
 import { Hocuspocus } from "@hocuspocus/server";
 import type { RawData, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
+import type { SessionRevocations } from "../auth/revocations.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
@@ -22,6 +23,7 @@ interface AttachOptions {
   httpServer: HttpServer;
   storage: StorageDriver;
   authProvider: AuthProvider;
+  revocations: SessionRevocations;
   cfg: ServerConfig;
 }
 
@@ -31,7 +33,7 @@ export interface YjsSocket {
 }
 
 export function attachYjsSocket(opts: AttachOptions): YjsSocket {
-  const { httpServer, storage, authProvider } = opts;
+  const { httpServer, storage, authProvider, revocations } = opts;
 
   const hocuspocus = new Hocuspocus<YjsAuthContext>();
   hocuspocus.configure({
@@ -65,8 +67,26 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       return {
         userId: identity.userId,
         noteId: documentName,
+        token,
       } satisfies YjsAuthContext;
     },
+  });
+
+  // Close the whole socket rather than the one document's connection. A
+  // socket carries every note a tab has open under one token, and closing a
+  // document connection alone sends a close message the peer is free to
+  // ignore. The provider reconnects, and `onAuthenticate` refuses the ended
+  // session.
+  const stopRevocations = revocations.subscribe(({ userId, keepToken }) => {
+    for (const document of hocuspocus.documents.values()) {
+      for (const connection of document.getConnections()) {
+        const context = connection.context as YjsAuthContext | undefined;
+        if (context?.userId !== userId || context.token === keepToken) {
+          continue;
+        }
+        connection.webSocket.close(4401, "Session ended");
+      }
+    }
   });
 
   const wss = new WebSocketServer({ noServer: true });
@@ -116,6 +136,7 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       // Hocuspocus debounces persistence (2s, 10s max). Drain pending writes
       // and close active connections before tearing down the WebSocket server
       // so in-flight Yjs updates aren't lost on shutdown.
+      stopRevocations();
       await hocuspocus.flushPendingStores();
       hocuspocus.closeConnections();
       wss.close();

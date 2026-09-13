@@ -22,9 +22,13 @@ async function bootRig(): Promise<Rig> {
   const cfg = { ...TEST_CONFIG, port: 0 };
   const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
-  const { app, broadcaster } = createApp({ cfg, storage, authProvider });
+  const { app, broadcaster, revocations } = createApp({
+    cfg,
+    storage,
+    authProvider,
+  });
   const ws = createNodeWebSocket({ app });
-  attachAppSocket({ app, ws, authProvider, broadcaster, cfg });
+  attachAppSocket({ app, ws, authProvider, broadcaster, revocations, cfg });
   const server = serve({ fetch: app.fetch, port: 0 });
   ws.injectWebSocket(server);
   await new Promise<void>((resolve) =>
@@ -44,6 +48,16 @@ async function close(rig: Rig): Promise<void> {
     rig.server.close(() => resolve());
   });
   await rig.storage.close();
+}
+
+async function signIn(rig: Rig, username: string): Promise<string> {
+  const res = await fetch(`${rig.baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password: "password-1234" }),
+  });
+  expect(res.status).toBe(200);
+  return ((await res.json()) as { token: string }).token;
 }
 
 async function register(rig: Rig, username: string): Promise<string> {
@@ -248,5 +262,36 @@ describe("application WebSocket /api/ws", () => {
     observer.ws.close();
     tabA.ws.close();
     tabB.ws.close();
+  });
+
+  it("closes the sockets of sessions a password change ends, and keeps its own", async () => {
+    const elsewhere = await register(rig, "alice");
+    const here = await signIn(rig, "alice");
+    const other = openSocket(rig.wsUrl, elsewhere);
+    const own = openSocket(rig.wsUrl, here);
+    await Promise.all([waitOpen(other.ws), waitOpen(own.ws)]);
+    // The server authenticates in its own open handler, after the client's.
+    await new Promise((r) => setTimeout(r, 50));
+
+    const otherClosed = new Promise<number>((resolve) => {
+      other.ws.once("close", (code) => resolve(code));
+    });
+    const res = await fetch(`${rig.baseUrl}/api/auth/password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${here}`,
+      },
+      body: JSON.stringify({
+        currentPassword: "password-1234",
+        newPassword: "password-5678",
+      }),
+    });
+    expect(res.status).toBe(204);
+
+    expect(await otherClosed).toBe(4401);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(own.ws.readyState).toBe(WebSocket.OPEN);
+    own.ws.close();
   });
 });

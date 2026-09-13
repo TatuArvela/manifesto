@@ -12,17 +12,36 @@ import {
 } from "@manifesto/shared";
 import { z } from "zod";
 
+const usernameSchema = z
+  .string()
+  .trim()
+  .min(1, "Username is required")
+  .max(64, "Username is too long");
+
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(256, "Password is too long");
+
 export const authCredentialsSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(1, "Username is required")
-    .max(64, "Username is too long"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(256, "Password is too long"),
+  username: usernameSchema,
+  password: passwordSchema,
 });
+
+export const loginSchema = authCredentialsSchema.extend({
+  newPassword: passwordSchema.optional(),
+});
+
+export const passwordChangeSchema = z.object({
+  // Only compared with the stored hash, so it is held to the length cap and
+  // not to today's rules, which an older password may predate.
+  currentPassword: z.string().min(1).max(256),
+  newPassword: passwordSchema,
+});
+
+export const adminCreateUserSchema = z.object({ username: usernameSchema });
+
+export const adminUpdateUserSchema = z.object({ isAdmin: z.boolean() });
 
 export const noteColorSchema = z.nativeEnum(NoteColor);
 export const noteFontSchema = z.nativeEnum(NoteFont);
