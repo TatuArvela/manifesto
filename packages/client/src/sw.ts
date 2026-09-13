@@ -5,6 +5,7 @@ import {
 } from "@manifesto/shared";
 import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
+import { StaleWhileRevalidate } from "workbox-strategies";
 import {
   nextOccurrence,
   parseLocalISO,
@@ -29,6 +30,22 @@ registerRoute(
   new NavigationRoute(createHandlerBoundToURL("index.html"), {
     denylist: [/^\/api\//, /\.[^/]+$/],
   }),
+);
+
+// The header logo and favicon, cached so they still show offline. They are
+// not precached like the rest of the shell because an instance rebrands by
+// swapping them in place (docs/specification/custom-instances.md): a precache
+// entry is pinned to the file as built, so a swapped logo would never reach a
+// returning user. Stale-while-revalidate serves the copy it has and picks up
+// a swap on the next online visit.
+const BRAND_MARKS = new Set(
+  ["logo.svg", "favicon.svg"].map(
+    (name) => new URL(name, self.registration.scope).href,
+  ),
+);
+registerRoute(
+  ({ url }) => BRAND_MARKS.has(url.origin + url.pathname),
+  new StaleWhileRevalidate({ cacheName: "brand-marks" }),
 );
 
 interface StoredReminder {
