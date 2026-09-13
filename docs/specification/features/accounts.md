@@ -8,20 +8,50 @@ Open mode has no accounts and none of this.
 
 ## Who is an admin
 
-- **The first account on a server is its admin.** Whoever registers first (or, under single
-  sign-on, signs in first) gets admin rights as the account is created. The decision is made in the
-  same statement that inserts the account, so two sign-ups on an empty server cannot both be told
-  nobody is there yet. On Postgres they can in theory both become admin, which is the harmless way
-  for that race to go.
+- **Under local sign-in, the server creates the first admin itself.** See
+  [The initial admin](#the-initial-admin) below. Nobody who registers becomes an admin by doing so.
+- **Under single sign-on, the first person to sign in is the admin.** There is no password to issue,
+  and the identity provider already decides who can sign in at all. The decision is made in the same
+  statement that inserts the account, so two first sign-ins cannot both be told nobody is there yet.
+  On Postgres they can in theory both become admin, which is the harmless way for that race to go.
 - **A server upgraded with accounts already in it promotes the oldest one**, so no deployment comes
   out of the upgrade with nobody able to administer it.
 - **Admins make other admins** from the Users view.
 - **A server always keeps at least one admin.** Revoking the last admin's rights, or deleting that
   account, is refused.
 
-On a public server, registering first is a race between the operator and anyone else who finds it.
-Register your own account before announcing the address, and set `REGISTRATION_ENABLED=false`
-afterwards if accounts should only come from an admin.
+## The initial admin
+
+When a server using local sign-in starts and no admin has a password of their own, it creates an
+account called `admin` with a [temporary password](#temporary-passwords) and prints both, before it
+accepts a request:
+
+```json
+{"level":"warn","message":"Created the initial admin account. Sign in with this temporary password and choose your own.","username":"admin","temporaryPassword":"k7mq-2xha-p9dt-4wne"}
+```
+
+- **It is printed whatever `LOG_LEVEL` says**, as a JSON line like every other, on standard error.
+  Look for it with `docker logs` or wherever the server's output goes.
+- **Signing in with it asks for a new password**, like any temporary password. After that the account
+  is an ordinary admin.
+- **Until then, every boot issues a new password** for the same account and prints it, and the
+  previous one stops working. Lost the line? Restart the server.
+- **Once any admin has chosen a password, nothing happens on boot.** An upgraded server whose oldest
+  account was promoted never gets an `admin` account.
+- **A server whose only admins sign in through an identity provider it no longer uses** gets one too,
+  since none of them can sign in. If a user already holds the name `admin`, their account is left
+  alone and the new one is called `admin-` plus a short suffix.
+- **`INITIAL_ADMIN_PASSWORD`** sets the temporary password instead of generating one, for deployments
+  that cannot read the server's output. It is not printed, and it still has to be changed at first
+  sign-in.
+
+It is deliberately not a fixed `admin`/`admin`. A well-known default belongs to whoever tries it
+first, and scanners try it within minutes of a server appearing. A forced password change would then
+hand them the server, since they are the ones making the change. A random password is known only to
+whoever can read the server's output.
+
+To administer as yourself rather than as `admin`, create your own account from the Users view, make it
+an admin, sign in as it, and delete `admin`.
 
 Whether someone is an admin is read from the database on every admin request, not carried in their
 session, so revoking admin takes effect on their next request.

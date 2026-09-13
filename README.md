@@ -50,7 +50,7 @@ Each release ships a client bundle and a server image. The client's [operating m
 - [Accounts](docs/specification/server/index.md#authentication-providers) use argon2id passwords or OIDC with PKCE, rate-limited login, and sessions with both idle and absolute expiry
 - Notes are [isolated per user](docs/specification/server/index.md#multi-user), and collaborative editing checks note ownership
 - [Link previews](docs/specification/features/link-previews.md#what-the-server-fetches) are fetched by the server from public addresses only, and their images are stored in the note, so viewing one contacts no third party. `LINK_PREVIEWS=off` disables fetching
-- The first account on a server is its [admin](docs/specification/features/accounts.md), so register yours before sharing the address. Admin-issued passwords are single-use, and a reset signs the account out everywhere, open sockets included
-- In production, set `REGISTRATION_ENABLED=false` once your own account exists if accounts should only come from an admin, and `TRUST_PROXY=true` only behind a trusted [reverse proxy](docs/specification/server/deployment.md#reverse-proxy)
+- A new server's [initial admin](docs/specification/features/accounts.md#the-initial-admin) gets a random password printed at boot, never a default. Admin-issued passwords are single-use, and a reset signs the account out everywhere, open sockets included
+- In production, set `REGISTRATION_ENABLED=false` if accounts should only come from an admin, and `TRUST_PROXY=true` only behind a trusted [reverse proxy](docs/specification/server/deployment.md#reverse-proxy)
 
 If you have found a vulnerability and wish to report it, please [contribute](CONTRIBUTING.md).
