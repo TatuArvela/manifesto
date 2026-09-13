@@ -308,8 +308,10 @@ close what it covers. The Yjs side closes the raw socket, since closing one docu
 only a message the peer may ignore.
 
 A temporary password yields no session: login answers `403 password_change_required` until the same
-request carries `newPassword`. Client admin actions (`state/admin.ts`) map failures to catalogue
-messages by status rather than showing the server's English `error`.
+request carries `newPassword`. The client never shows a server's `error` text, which is English:
+`loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map
+failures to catalogue messages by status. Account actions live in `AccountMenu` in the header, which
+renders nothing in open mode; Settings has no account section.
 
 ### Server Architecture
 

@@ -103,8 +103,8 @@ As the person running a server, I want to manage who has an account on it withou
 - With local sign-in, I can reset someone's password: they are signed out everywhere, including open tabs, and get a temporary password
 - I can make other people admins and take it away again, but the server never ends up with no admin
 - I can delete an account along with its notes, after confirming
-- I cannot lock myself out from this screen: my own account is changed from Settings instead
-- As any user with local sign-in, I can change my own password, which signs out my other devices
+- I cannot lock myself out from this screen: my own account is changed from the account menu instead
+- As any user with local sign-in, I can change my own password from the account menu in the header, which signs out my other devices
 
 ## Archiving
 

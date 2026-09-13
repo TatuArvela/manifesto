@@ -26,11 +26,18 @@ afterwards if accounts should only come from an admin.
 Whether someone is an admin is read from the database on every admin request, not carried in their
 session, so revoking admin takes effect on their next request.
 
+## The account menu
+
+In connected mode the header shows the signed-in user's avatar to the right of the settings button.
+Its menu names the account and holds everything about it: **Manage users** for admins, **Change
+password** under local sign-in, and **Sign out**. Open mode has no accounts, so the button is not
+there at all, and the Settings panel carries no account section in either mode.
+
 ## The Users view
 
-Admins reach it from **Settings → Account → Manage users**, at `/admin`. It lists every account with
-its note count, when it was created, and when one of its sessions was last used. Badges mark admins,
-the viewer's own account, accounts that sign in with single sign-on, and accounts still holding a
+Admins reach it from the account menu → **Manage users**, at `/admin`. It lists every account with its
+note count, when it was created, and when one of its sessions was last used. Badges mark admins, the
+viewer's own account, accounts that sign in with single sign-on, and accounts still holding a
 temporary password.
 
 Each account other than your own has a menu:
@@ -44,7 +51,7 @@ Each account other than your own has a menu:
 
 **An admin cannot change their own account from here.** Removing your own admin rights, deleting
 yourself or resetting your own password is refused, because each locks you out mid-task and each has
-a safer route: another admin, or **Change password** in Settings.
+a safer route: another admin, or **Change password** in the account menu.
 
 Under single sign-on the identity provider creates accounts (the first time someone signs in) and
 owns their passwords, so the view offers neither. It says so above the list.
@@ -69,9 +76,9 @@ A temporary password is good for one thing: choosing a real one.
 
 ## Changing your own password
 
-**Settings → Account → Change password** asks for the current password and the new one twice. It is
-offered only under local sign-in. A successful change keeps the current session and ends every other
-session of the account, including its open sockets.
+**Change password** in the account menu opens a dialog that asks for the current password and the new
+one twice. It is offered only under local sign-in. A successful change keeps the current session and
+ends every other session of the account, including its open sockets.
 
 ## Ending sessions
 
