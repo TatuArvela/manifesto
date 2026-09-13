@@ -23,6 +23,7 @@ export const TEST_CONFIG: ServerConfig = {
   postgres: null,
   trustProxy: false,
   registrationEnabled: true,
+  linkPreviews: true,
 };
 
 export async function bootTestAppWith(

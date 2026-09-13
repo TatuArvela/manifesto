@@ -3,6 +3,9 @@ import {
   MAX_IMAGE_DATA_URL_BYTES,
   MAX_IMAGE_SOURCE_BYTES,
   MAX_IMAGES_PER_NOTE,
+  MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES,
+  MAX_LINK_PREVIEW_URL_LENGTH,
+  MAX_LINK_PREVIEWS_PER_NOTE,
   NoteColor,
   NoteFont,
   REMINDER_RECURRENCES,
@@ -35,7 +38,7 @@ export const noteFontSchema = z.nativeEnum(NoteFont);
 const httpUrlSchema = z
   .string()
   .url()
-  .max(2048)
+  .max(MAX_LINK_PREVIEW_URL_LENGTH)
   .regex(/^https?:\/\//i, "URL must use http(s) scheme");
 
 /**
@@ -61,14 +64,34 @@ const imageDataUrlSchema = z
     "Image must be a PNG, JPEG, GIF, WebP or AVIF data URL",
   );
 
+/**
+ * A preview's thumbnail or favicon. The client stores a small inlined copy, so
+ * viewing a note never makes the viewer's browser contact the linked site (and
+ * the client's CSP would refuse a remote image anyway). An http(s) URL is still
+ * accepted so a row written before previews were inlined stays updatable.
+ */
+const previewImageSchema = z.union([
+  z
+    .string()
+    .max(MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES)
+    .regex(IMAGE_DATA_URL_PATTERN),
+  httpUrlSchema,
+]);
+
+export const MAX_LINK_PREVIEW_TITLE_LENGTH = 500;
+export const MAX_LINK_PREVIEW_DESCRIPTION_LENGTH = 2000;
+
 const linkPreviewSchema = z.object({
   url: httpUrlSchema,
-  title: z.string().max(500),
-  description: z.string().max(2000).optional(),
-  image: httpUrlSchema.optional(),
-  favicon: httpUrlSchema.optional(),
+  title: z.string().max(MAX_LINK_PREVIEW_TITLE_LENGTH),
+  description: z.string().max(MAX_LINK_PREVIEW_DESCRIPTION_LENGTH).optional(),
+  image: previewImageSchema.optional(),
+  favicon: previewImageSchema.optional(),
   domain: z.string().max(255),
 });
+
+/** The query of `GET /api/link-preview`. */
+export const linkPreviewQuerySchema = z.object({ url: httpUrlSchema });
 
 const reminderRecurrenceSchema = z.enum(REMINDER_RECURRENCES);
 
@@ -104,7 +127,7 @@ const noteFields = {
   position: z.number(),
   tags: z.array(z.string().min(1).max(64)).max(50),
   images: z.array(imageDataUrlSchema).max(MAX_IMAGES_PER_NOTE),
-  linkPreviews: z.array(linkPreviewSchema).max(20),
+  linkPreviews: z.array(linkPreviewSchema).max(MAX_LINK_PREVIEWS_PER_NOTE),
   reminder: reminderSchema.nullable(),
   readonly: z.boolean().optional(),
   source: autoNoteSourceSchema.optional(),
