@@ -46,7 +46,7 @@ Each release ships a client bundle and a server image. The client's [operating m
 
 - [Auto-notes](docs/specification/features/auto-notes.md#execution-and-sandboxing) run user-supplied JavaScript in a sandboxed iframe and worker with an opaque origin and a timeout
 - Rendered [Markdown](docs/specification/client/index.md#editor) is sanitized with DOMPurify, and incoming [share links](docs/specification/features/sharing.md#decoding) are validated before display
-- The client's [Content Security Policy](docs/specification/client/deployment.md#configuration) only allows connections to its own origin and the configured server
+- The client's [Content Security Policy](docs/specification/client/deployment.md#configuration) only allows connections to its own origin and the configured server, and its fonts are bundled, so using it contacts no third party
 - [Accounts](docs/specification/server/index.md#authentication-providers) use argon2id passwords or OIDC with PKCE, rate-limited login, and sessions with both idle and absolute expiry
 - Notes are [isolated per user](docs/specification/server/index.md#multi-user), and collaborative editing checks note ownership
 - [Link previews](docs/specification/features/link-previews.md#what-the-server-fetches) are fetched by the server from public addresses only, and their images are stored in the note, so viewing one contacts no third party. `LINK_PREVIEWS=off` disables fetching
