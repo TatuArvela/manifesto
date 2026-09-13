@@ -1,5 +1,10 @@
 # Manifesto
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="logo-dark.svg">
+  <img src="logo.svg" alt="" width="96">
+</picture>
+
 A free, open-source note-taking app with a simple sticky note interface.
 
 - [Local-first](docs/specification/operating-modes.md#open-mode): works in the browser with no server required
@@ -11,7 +16,7 @@ A free, open-source note-taking app with a simple sticky note interface.
 - [Rebrandable](docs/specification/custom-instances.md): run it under your own name, description and icons
 - [PWA](docs/specification/client/deployment.md#pwa) for mobile and offline use
 
-[Documentation](docs/specification/index.md) | [Contributing](CONTRIBUTING.md) | [MIT License](LICENSE)
+[Preview](https://tatuarvela.github.io/manifesto/) | [Documentation](docs/specification/index.md) | [Contributing](CONTRIBUTING.md) | [MIT License](LICENSE)
 
 ## Built with
 
