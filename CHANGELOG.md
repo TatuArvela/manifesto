@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.1.5](https://github.com/TatuArvela/manifesto/compare/v0.1.4...v0.1.5) (2026-09-13)
+
+
+### Features
+
+* **client:** animate a note's card out when it is deleted ([8bd205d](https://github.com/TatuArvela/manifesto/commit/8bd205d7b131a5d7ac15006d07d8978d8ffc424d))
+* **client:** clear the selection on a click on empty grid space ([796da08](https://github.com/TatuArvela/manifesto/commit/796da082d32532a739d6cbd7efab9ac2b36e98d6))
+* **client:** fill in link previews from the server in connected mode ([fc86b22](https://github.com/TatuArvela/manifesto/commit/fc86b224e79ee0df228f70076d5bc67cb410f593))
+* **client:** let Done add an empty note ([9817878](https://github.com/TatuArvela/manifesto/commit/9817878e5939b9256eee4e204e536d44c6fc5c07))
+* **client:** let raw mode be the default edit mode ([678e557](https://github.com/TatuArvela/manifesto/commit/678e557e3ade1a632153701fb66878d648998561))
+* **client:** let the formatting toolbar be hidden ([3497cdc](https://github.com/TatuArvela/manifesto/commit/3497cdcd6cdf6121bda89295de43b846e5d85639))
+* **client:** open editor links from a button, not a click ([7bc1d07](https://github.com/TatuArvela/manifesto/commit/7bc1d07f12ffb1c41f2238968e4205bec13efa68))
+* **client:** open links in notes in a new tab ([cdbbaa4](https://github.com/TatuArvela/manifesto/commit/cdbbaa473b52dfa731451485b5165db1fb112090))
+* **client:** select notes by dragging a box over the grid ([c5ed182](https://github.com/TatuArvela/manifesto/commit/c5ed18231a8b915273ce347e74cac8120f6b71c3))
+* **client:** welcome first-time visitors and say where notes are saved ([8e41414](https://github.com/TatuArvela/manifesto/commit/8e4141485001475557f93ab2627fc553f9825ea6))
+* **server:** fetch link preview metadata for connected clients ([e9f86c7](https://github.com/TatuArvela/manifesto/commit/e9f86c7e4a7f3ca0b2992218636be7815198e4d0))
+
+
+### Bug Fixes
+
+* **client:** fill square cards that hold only a link or images ([5be3c5c](https://github.com/TatuArvela/manifesto/commit/5be3c5cbb373478d9306f701d23b9a40e54528c7))
+* **client:** keep checklist text clear of the delete button ([19b177a](https://github.com/TatuArvela/manifesto/commit/19b177a048eff308fec95a73decdb19862806668))
+* **client:** make the toolbar edit raw mode's markdown ([8b12cc6](https://github.com/TatuArvela/manifesto/commit/8b12cc6535f0b8957cc037b154d816747875a78e))
+* **client:** recognise raw-mode markers inside the selection ([c56b1ae](https://github.com/TatuArvela/manifesto/commit/c56b1ae17f6c09e3583a9093a2000312f8bf06da))
+* **client:** stop a caret inside bold markers lighting up Italic ([59bc039](https://github.com/TatuArvela/manifesto/commit/59bc039b6e80b1bc8216692cda8376ac8aaf8803))
+* **client:** stop keyboard focus landing on invisible controls ([991bb37](https://github.com/TatuArvela/manifesto/commit/991bb379836a0d68c5041b696945eca531c47ba2))
+* **client:** stop the new-note stack stretching after a view switch ([c372e77](https://github.com/TatuArvela/manifesto/commit/c372e77eaf072ef47969260add1d53b8ca3ed8bd))
+
 ## [0.1.4](https://github.com/TatuArvela/manifesto/compare/v0.1.3...v0.1.4) (2026-09-12)
 
 
