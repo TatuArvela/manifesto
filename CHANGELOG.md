@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.6](https://github.com/TatuArvela/manifesto/compare/v0.1.5...v0.1.6) (2026-09-13)
+
+
+### Features
+
+* add serif, monospace and script note fonts ([b96a587](https://github.com/TatuArvela/manifesto/commit/b96a587508211354049bde3ba8fa69d9da323daf))
+* **client:** a Users view for admins, and changing passwords ([6ddae2c](https://github.com/TatuArvela/manifesto/commit/6ddae2cba4250aff8349a06ba2e1b1133648310a))
+* **client:** drop the "Sign in to" line from the login screen ([4123f8e](https://github.com/TatuArvela/manifesto/commit/4123f8e1a02570640c3102416f9494a0baf2cd9a))
+* **client:** keep note fonts and the logo available offline ([bf5a6dd](https://github.com/TatuArvela/manifesto/commit/bf5a6dda4cc6ab6c6798306c018ac99db462c409))
+* **client:** let any color be the default for new notes ([6fede22](https://github.com/TatuArvela/manifesto/commit/6fede226cfafda0794054b6807dd14905738da04))
+* **client:** move account actions to a menu in the header ([cd284c3](https://github.com/TatuArvela/manifesto/commit/cd284c3d284b71fbb7532a2cad607d2d0ec63eed))
+* **client:** say the app's name properly in an unbranded welcome ([337f3df](https://github.com/TatuArvela/manifesto/commit/337f3df4946a7fe3b09350b986a23043fdd1d3dc))
+* **client:** serve the note fonts from our own origin ([5c29b7c](https://github.com/TatuArvela/manifesto/commit/5c29b7c10c973de1651ba8b3257ae8265fc37d87))
+* **server:** admins, temporary passwords and account management ([c551aef](https://github.com/TatuArvela/manifesto/commit/c551aefcb14f03f08d4deb466adc3ef8386143b0))
+* **server:** create the initial admin with a printed temporary password ([9effed7](https://github.com/TatuArvela/manifesto/commit/9effed7b86b6e0245bd07a4f286027646dd575f9))
+
+
+### Bug Fixes
+
+* **client:** let the new-note keyboard open on a phone, and stay shut on close ([e41bec5](https://github.com/TatuArvela/manifesto/commit/e41bec5843f97faa54840f35ece4d283130fc82f))
+* report the real build version between releases ([b5de696](https://github.com/TatuArvela/manifesto/commit/b5de696a2ef89c4c52aebd5bb44c56adc355b35f))
+
 ## [0.1.5](https://github.com/TatuArvela/manifesto/compare/v0.1.4...v0.1.5) (2026-09-13)
 
 
