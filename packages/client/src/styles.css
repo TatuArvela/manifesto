@@ -627,12 +627,14 @@ html.dark {
   animation: note-pin-settle 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Trashing and deleting. The card drops a little, shrinks and fades,
-   accelerating away rather than easing to a stop, since it is leaving rather
-   than arriving. The grid closes the gap once it is gone. `forwards`
-   keeps it invisible through a slow server response, and `leavingNotes` in
-   state/actions.ts clears the class if the removal fails, which brings the
-   card back. Its duration is `LEAVE_MS` there. */
+/* Leaving the view: trashing, archiving and restoring. Each accelerates away
+   rather than easing to a stop, since the card is leaving rather than
+   arriving, and the grid closes the gap once it is gone. `forwards` keeps it
+   invisible through a slow server response, and `leavingNotes` in
+   state/actions.ts clears the attribute if the change fails, which brings the
+   card back. The duration is `LEAVE_MS` there.
+
+   Trashed or deleted, the card drops a little and shrinks away. */
 @keyframes note-leave {
   to {
     opacity: 0;
@@ -640,9 +642,34 @@ html.dark {
   }
 }
 
+/* Archived, it is lifted up and off the board, to be put away. */
+@keyframes note-leave-archive {
+  to {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+}
+
+/* Undeleted or unarchived, it swells a touch as it fades: going back to the
+   notes rather than away from them. */
+@keyframes note-leave-restore {
+  to {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
 .note-leaving {
   animation: note-leave 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
   pointer-events: none;
+}
+
+.note-leaving[data-leaving="archive"] {
+  animation-name: note-leave-archive;
+}
+
+.note-leaving[data-leaving="restore"] {
+  animation-name: note-leave-restore;
 }
 
 /* Drag-to-select (hooks/useMarqueeSelection.ts). Without this, dragging the

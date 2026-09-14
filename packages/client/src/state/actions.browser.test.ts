@@ -23,7 +23,7 @@ import {
 } from "./actions.js";
 import { animations, sortMode } from "./prefs.js";
 import { createNoteOrFail } from "./testSupport.js";
-import { activeView, searchQuery, toasts } from "./ui.js";
+import { activeView, searchLocations, searchQuery, toasts } from "./ui.js";
 
 describe("state actions", () => {
   beforeEach(() => {
@@ -98,7 +98,7 @@ describe("state actions", () => {
       const done = trashNote(note.id);
       // Still in the grid, but flagged: this is the window the card spends
       // playing `.note-leaving`.
-      expect(leavingNotes.value.has(note.id)).toBe(true);
+      expect(leavingNotes.value.get(note.id)).toBe("discard");
       expect(sortedNotes.value.map((n) => n.id)).toContain(note.id);
       await done;
       expect(leavingNotes.value.size).toBe(0);
@@ -134,6 +134,66 @@ describe("state actions", () => {
       expect(sortedNotes.value.map((n) => n.id)).toContain(note.id);
     } finally {
       animations.value = previous;
+    }
+  });
+
+  it("archiveNote animates the card up and away before it leaves", async () => {
+    const previous = animations.value;
+    animations.value = true;
+    try {
+      const note = await createNoteOrFail({ title: "Put away" });
+      const done = archiveNote(note.id);
+      expect(leavingNotes.value.get(note.id)).toBe("archive");
+      await done;
+      expect(leavingNotes.value.size).toBe(0);
+      expect(notes.value[0].archived).toBe(true);
+    } finally {
+      animations.value = previous;
+    }
+  });
+
+  it("restoreNote and unarchiveNote animate the card back out of their view", async () => {
+    const previous = animations.value;
+    animations.value = true;
+    try {
+      const trashed = await createNoteOrFail({ title: "Undelete me" });
+      await trashNote(trashed.id);
+      activeView.value = "trash";
+      const restoring = restoreNote(trashed.id);
+      expect(leavingNotes.value.get(trashed.id)).toBe("restore");
+      await restoring;
+
+      const archived = await createNoteOrFail({ title: "Unarchive me" });
+      await archiveNote(archived.id);
+      activeView.value = "archived";
+      const unarchiving = unarchiveNote(archived.id);
+      expect(leavingNotes.value.get(archived.id)).toBe("restore");
+      await unarchiving;
+
+      expect(leavingNotes.value.size).toBe(0);
+    } finally {
+      animations.value = previous;
+    }
+  });
+
+  it("does not animate a card that the change leaves in the view", async () => {
+    // A search across every location still shows the note once it is
+    // archived, so playing the exit would blink it out and back.
+    const previous = animations.value;
+    animations.value = true;
+    try {
+      const note = await createNoteOrFail({ title: "Still here" });
+      activeView.value = "search";
+      searchQuery.value = "still";
+      searchLocations.value = new Set(["active", "archived"]);
+      expect(sortedNotes.value.map((n) => n.id)).toContain(note.id);
+      const done = archiveNote(note.id);
+      expect(leavingNotes.value.size).toBe(0);
+      await done;
+      expect(sortedNotes.value.map((n) => n.id)).toContain(note.id);
+    } finally {
+      animations.value = previous;
+      searchLocations.value = new Set(["active"]);
     }
   });
 

@@ -302,6 +302,7 @@ export function NoteCard({
   dropSide?: "before" | "after";
 }) {
   const isEditing = editingNoteId.value === note.id;
+  const leaving = leavingNotes.value.get(note.id);
   const isSelectMode = selectMode.value;
   const isSelected = selectedNotes.value.has(note.id);
   // Read once at mount: this card was remounted into the other grid by a pin
@@ -454,12 +455,13 @@ export function NoteCard({
         class={clsx(
           "relative group note-draggable-wrapper",
           pinSettling && "note-pin-settle",
-          leavingNotes.value.has(note.id) && "note-leaving",
+          leaving && "note-leaving",
           noteSize.value === "square" &&
             viewMode.value === "list" &&
             "w-full max-w-sm mx-auto",
         )}
         data-drop-side={dropSide}
+        data-leaving={leaving}
         data-note-id={note.id}
         onAnimationEnd={(e) => {
           if (e.target === e.currentTarget) setPinSettling(false);

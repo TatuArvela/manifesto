@@ -131,36 +131,59 @@ export function noteHasChecklist(content: string): boolean {
   return lines.some((line, i) => !fenced[i] && isChecklistLine(line));
 }
 
+/**
+ * Whether the current view has room for a note where it lives: active,
+ * archived or trashed, and for the reminders and auto-notes views what kind of
+ * note it is. The part of a view's filter that archiving, trashing and
+ * restoring change, so they can tell whether the card is about to leave.
+ */
+function inViewLocation(
+  n: Pick<Note, "archived" | "trashed" | "readonly" | "reminder">,
+): boolean {
+  switch (activeView.value) {
+    case "active":
+      return !n.archived && !n.trashed;
+    case "tags":
+      if (n.trashed) return tagsShowTrashed.value;
+      if (n.archived) return tagsShowArchived.value;
+      return tagsShowActive.value;
+    case "reminders":
+      return !!n.reminder && !n.trashed;
+    case "autoNotes":
+      return !!n.readonly && !n.archived && !n.trashed;
+    case "archived":
+      return n.archived && !n.trashed;
+    case "trash":
+      return n.trashed;
+    case "search": {
+      const locations = searchLocations.value;
+      if (n.trashed) return locations.has("trashed");
+      if (n.archived) return locations.has("archived");
+      return locations.has("active");
+    }
+    default:
+      return true;
+  }
+}
+
 export const filteredNotes = computed(() => {
   let result: Note[] = allNotes.value;
 
   // Filter by view
   switch (activeView.value) {
     case "active":
-      result = result.filter((n) => !n.archived && !n.trashed);
+    case "reminders":
+    case "autoNotes":
+    case "archived":
+    case "trash":
+      result = result.filter(inViewLocation);
       break;
     case "tags":
-      result = result.filter((n) => {
-        if (n.trashed) return tagsShowTrashed.value;
-        if (n.archived) return tagsShowArchived.value;
-        return tagsShowActive.value;
-      });
+      result = result.filter(inViewLocation);
       if (activeTag.value) {
         const tag = activeTag.value;
         result = result.filter((n) => n.tags.includes(tag));
       }
-      break;
-    case "reminders":
-      result = result.filter((n) => n.reminder && !n.trashed);
-      break;
-    case "autoNotes":
-      result = result.filter((n) => n.readonly && !n.archived && !n.trashed);
-      break;
-    case "archived":
-      result = result.filter((n) => n.archived && !n.trashed);
-      break;
-    case "trash":
-      result = result.filter((n) => n.trashed);
       break;
     case "search": {
       const types = searchTypes.value;
@@ -169,12 +192,7 @@ export const filteredNotes = computed(() => {
         result = [];
         break;
       }
-      const locations = searchLocations.value;
-      result = result.filter((n) => {
-        if (n.trashed) return locations.has("trashed");
-        if (n.archived) return locations.has("archived");
-        return locations.has("active");
-      });
+      result = result.filter(inViewLocation);
       if (types.size > 0) {
         result = result.filter((n) => {
           if (types.has("reminders") && n.reminder) return true;
@@ -510,44 +528,65 @@ export async function updateNote(
 }
 
 /**
- * Notes whose cards are playing their exit animation, in the moment before a
- * trash or delete takes them out of the grid. Without it a card simply
- * vanished and the column closed over the gap at once, which read as the page
- * glitching rather than as the note being thrown away. NoteCard reads this to
- * play `.note-leaving`.
+ * How a card leaves the grid, one look per kind of going:
+ *
+ * - `discard`: trashed or deleted. It drops a little and shrinks away.
+ * - `archive`: put away. It is lifted up and off the board.
+ * - `restore`: undeleted or unarchived, from the trash or the archive, back
+ *   among the notes. It swells slightly as it fades, rising to meet them.
  */
-export const leavingNotes = signal<ReadonlySet<string>>(new Set());
+export type LeaveStyle = "discard" | "archive" | "restore";
+
+/**
+ * Notes whose cards are playing their exit animation, in the moment before a
+ * trash, archive or restore takes them out of the grid, and how each is going.
+ * Without it a card simply vanished and the column closed over the gap at
+ * once, which read as the page glitching rather than as the note going
+ * somewhere. NoteCard reads this to play `.note-leaving`.
+ */
+export const leavingNotes = signal<ReadonlyMap<string, LeaveStyle>>(new Map());
 
 /** How long `.note-leaving` runs; see styles.css. */
 const LEAVE_MS = 200;
 
 /**
- * Runs `remove` once the cards for `ids` have animated out. Waits only for
- * notes that have a card in the current view, and not at all with animations
- * turned off, so a delete nobody can see is not held up for one. If `remove`
+ * Runs `change` once the cards for `ids` have animated out. Waits only for
+ * notes whose card is in the current view and would no longer be after
+ * `becomes` is applied: a note archived from a search that also shows archived
+ * notes stays put, and must not blink out and back. Not at all with animations
+ * turned off, so a change nobody can see is not held up for one. If `change`
  * fails the flag still clears, and the card comes back rather than staying
- * invisible over a note that was never removed.
+ * invisible over a note that never went anywhere.
  */
 async function afterLeaving<T>(
   ids: string[],
-  remove: () => Promise<T>,
+  style: LeaveStyle,
+  becomes: Partial<Pick<Note, "archived" | "trashed">> | "gone",
+  change: () => Promise<T>,
 ): Promise<T> {
-  const shown = new Set(sortedNotes.peek().map((n) => n.id));
-  const animated = animations.peek() ? ids.filter((id) => shown.has(id)) : [];
-  if (animated.length === 0) return await remove();
-  leavingNotes.value = new Set([...leavingNotes.peek(), ...animated]);
+  const shown = new Map(sortedNotes.peek().map((n) => [n.id, n]));
+  const leaves = (id: string) => {
+    const note = shown.get(id);
+    if (!note) return false;
+    return becomes === "gone" || !inViewLocation({ ...note, ...becomes });
+  };
+  const animated = animations.peek() ? ids.filter(leaves) : [];
+  if (animated.length === 0) return await change();
+  const flagged = new Map(leavingNotes.peek());
+  for (const id of animated) flagged.set(id, style);
+  leavingNotes.value = flagged;
   try {
     await new Promise((resolve) => setTimeout(resolve, LEAVE_MS));
-    return await remove();
+    return await change();
   } finally {
-    const next = new Set(leavingNotes.peek());
+    const next = new Map(leavingNotes.peek());
     for (const id of animated) next.delete(id);
     leavingNotes.value = next;
   }
 }
 
 export async function permanentlyDeleteNote(id: string): Promise<boolean> {
-  return await afterLeaving([id], () => deleteNow(id));
+  return await afterLeaving([id], "discard", "gone", () => deleteNow(id));
 }
 
 async function deleteNow(id: string): Promise<boolean> {
@@ -583,8 +622,13 @@ export async function deleteAllNotes(): Promise<boolean> {
   }
 }
 
+const TRASHED = { trashed: true, archived: false } as const;
+const RESTORED = { trashed: false } as const;
+const ARCHIVED = { archived: true } as const;
+const UNARCHIVED = { archived: false } as const;
+
 export async function trashNote(id: string): Promise<boolean> {
-  return await afterLeaving([id], () => trashNow(id));
+  return await afterLeaving([id], "discard", TRASHED, () => trashNow(id));
 }
 
 async function trashNow(id: string): Promise<boolean> {
@@ -596,15 +640,29 @@ async function trashNow(id: string): Promise<boolean> {
 }
 
 export async function restoreNote(id: string): Promise<boolean> {
+  return await afterLeaving([id], "restore", RESTORED, () => restoreNow(id));
+}
+
+async function restoreNow(id: string): Promise<boolean> {
   return await updateNote(id, { trashed: false, trashedAt: null });
 }
 
 export async function archiveNote(id: string): Promise<boolean> {
-  return await updateNote(id, { archived: true });
+  return await afterLeaving([id], "archive", ARCHIVED, () => archiveNow(id));
+}
+
+async function archiveNow(id: string): Promise<boolean> {
+  return await updateNote(id, ARCHIVED);
 }
 
 export async function unarchiveNote(id: string): Promise<boolean> {
-  return await updateNote(id, { archived: false });
+  return await afterLeaving([id], "restore", UNARCHIVED, () =>
+    unarchiveNow(id),
+  );
+}
+
+async function unarchiveNow(id: string): Promise<boolean> {
+  return await updateNote(id, UNARCHIVED);
 }
 
 /**
@@ -736,26 +794,31 @@ export async function bulkPin(): Promise<boolean> {
   return await bulkApply((id) => updateNote(id, { pinned: !allPinned }));
 }
 
+// One exit for the whole selection: going through `archiveNote` or
+// `trashNote` per note would animate the cards out one after another, a fifth
+// of a second apiece.
 export async function bulkArchive(): Promise<boolean> {
-  return await bulkApply(archiveNote);
+  return await afterLeaving([...selectedNotes.value], "archive", ARCHIVED, () =>
+    bulkApply(archiveNow),
+  );
 }
 
-// One exit for the whole selection: going through `trashNote` per note would
-// animate the cards out one after another, a fifth of a second apiece.
 export async function bulkTrash(): Promise<boolean> {
-  return await afterLeaving([...selectedNotes.value], () =>
+  return await afterLeaving([...selectedNotes.value], "discard", TRASHED, () =>
     bulkApply(trashNow),
   );
 }
 
 export async function bulkDelete(): Promise<boolean> {
-  return await afterLeaving([...selectedNotes.value], () =>
+  return await afterLeaving([...selectedNotes.value], "discard", "gone", () =>
     bulkApply(deleteNow),
   );
 }
 
 export async function bulkRestore(): Promise<boolean> {
-  return await bulkApply(restoreNote);
+  return await afterLeaving([...selectedNotes.value], "restore", RESTORED, () =>
+    bulkApply(restoreNow),
+  );
 }
 
 export async function bulkSetColor(color: NoteColor): Promise<boolean> {
