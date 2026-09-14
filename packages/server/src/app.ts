@@ -11,6 +11,10 @@ import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,
 } from "./linkPreview/fetchPreview.js";
+import {
+  type AuthContext,
+  createAuthMiddleware,
+} from "./middleware/authBearer.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
@@ -19,6 +23,13 @@ import { createAdminRoutes } from "./routes/admin.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
+import { registerInvitationRoutes } from "./routes/shares.js";
+import { createUsersRoutes } from "./routes/users.js";
+import {
+  type AccessChanges,
+  createAccessChanges,
+} from "./sharing/accessChanges.js";
+import { createNoteEvents, type NoteEvents } from "./sharing/noteEvents.js";
 import type { StorageDriver } from "./storage/types.js";
 import { VERSION } from "./version.js";
 import { type Broadcaster, createBroadcaster } from "./ws/broadcaster.js";
@@ -30,6 +41,8 @@ export interface AppDeps {
   broadcaster?: Broadcaster;
   /** Where ended sessions are announced to the sockets. */
   revocations?: SessionRevocations;
+  /** Where lost access to a note is announced to the sockets. */
+  accessChanges?: AccessChanges;
   /** Test seam: replaces the fetcher that reaches the network. */
   fetchLinkPreview?: LinkPreviewFetcher;
 }
@@ -38,12 +51,16 @@ export interface AppHandle {
   app: Hono;
   broadcaster: Broadcaster;
   revocations: SessionRevocations;
+  accessChanges: AccessChanges;
+  noteEvents: NoteEvents;
 }
 
 export function createApp(deps: AppDeps): AppHandle {
   const { cfg, storage, authProvider } = deps;
   const broadcaster = deps.broadcaster ?? createBroadcaster();
   const revocations = deps.revocations ?? createSessionRevocations();
+  const accessChanges = deps.accessChanges ?? createAccessChanges();
+  const noteEvents = createNoteEvents({ storage, broadcaster, accessChanges });
 
   const app = new Hono();
   app.use("*", corsMiddleware(cfg));
@@ -101,8 +118,24 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
       authProvider,
       broadcaster,
+      noteEvents,
+      accessChanges,
       rateLimit: apiRateLimit,
     }),
+  );
+  const invitations = new Hono<{ Variables: { auth: AuthContext } }>();
+  invitations.use("*", createAuthMiddleware(authProvider));
+  invitations.use("*", apiRateLimit);
+  registerInvitationRoutes(invitations, {
+    storage,
+    broadcaster,
+    noteEvents,
+    accessChanges,
+  });
+  app.route("/api/invitations", invitations);
+  app.route(
+    "/api/users",
+    createUsersRoutes({ cfg, storage, authProvider, rateLimit: apiRateLimit }),
   );
   app.route(
     "/api/search",
@@ -126,9 +159,10 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
       authProvider,
       revocations,
+      noteEvents,
       rateLimit: apiRateLimit,
     }),
   );
 
-  return { app, broadcaster, revocations };
+  return { app, broadcaster, revocations, accessChanges, noteEvents };
 }

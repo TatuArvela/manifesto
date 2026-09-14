@@ -24,7 +24,8 @@ A note is the fundamental entity in Manifesto.
 | `linkPreviews` | `LinkPreview[]` | Yes    | Link preview cards attached to the note  |
 | `reminder`  | `NoteReminder \| null` | Yes | Scheduled reminder, or `null` when not set |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
-| `updatedAt` | `string`         | Yes      | ISO 8601 last modification timestamp     |
+| `updatedAt` | `string`         | Yes      | ISO 8601 last modification timestamp. On a shared note, the last change by anyone, including a participant's change to their own personal fields |
+| `sharing`   | `NoteSharing`    | No       | Who else has the note; see [NoteSharing](#notesharing). Server-assigned, connected mode only |
 
 ### Images
 
@@ -107,6 +108,31 @@ A preview card attached to a note for a URL. Created only when a link is inserte
 | `domain`      | `string` | Yes      | Host portion of the URL, e.g. `www.k-ruoka.fi` |
 
 In open mode a preview is only `url`, `title = url` and `domain`. In connected mode the server reads the page and the client fills in the rest, shrinking the images to fit. `image` and `favicon` accept the same image subtypes as [Images](#images); a server also accepts an `http(s)` URL there, so a row written before previews were inlined stays updatable, but the client never writes one and drops it on import.
+
+## NoteSharing
+
+Present on a note that has been shared with at least one other account, as the reader sees it.
+Server-assigned and never accepted from a client; absent in open mode and on a note nobody was
+invited to. See [Sharing with People](features/sharing-with-people.md).
+
+| Field     | Type                          | Description |
+|-----------|-------------------------------|-------------|
+| `role`    | `"owner" \| "edit" \| "view"` | The reader's relationship to the note |
+| `owner`   | `ShareUser`                   | Whose note it is |
+| `members` | `NoteMember[]`                | Everyone but the owner, by when they were invited. The owner is also told about invitations not yet accepted; everyone else sees only the people who accepted |
+
+`ShareUser` is `{ id, username, displayName, avatarColor }`. `NoteMember` adds `role`
+(`"edit"` or `"view"`) and `accepted` (a boolean).
+
+The fields of a shared note split in two, declared once in `@manifesto/shared` as
+`SHARED_NOTE_FIELDS` and `PERSONAL_NOTE_FIELDS`:
+
+| Shared by everyone | Each participant's own |
+|--------------------|------------------------|
+| `title`, `content`, `font`, `images`, `linkPreviews` | `color`, `pinned`, `archived`, `position`, `tags`, `reminder` |
+
+`trashed`, `trashedAt`, `readonly` and `source` are the owner's alone. A recipient's copy is never
+trashed: a note in its owner's trash is not shown to anyone else.
 
 ## NoteReminder
 

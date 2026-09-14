@@ -109,6 +109,7 @@ function LocalLoginForm() {
   const [mode, setMode] = useState<Mode>("signIn");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -125,6 +126,13 @@ function LocalLoginForm() {
     if (password.length === 0) return t("login.passwordRequired");
     if (mode === "register" && password.length < 8) {
       return t("login.passwordTooShort");
+    }
+    if (
+      mode === "register" &&
+      email.trim().length > 0 &&
+      !/^[^\s@]+@[^\s@]+$/.test(email.trim())
+    ) {
+      return t("account.email.invalid");
     }
     return null;
   }
@@ -145,7 +153,7 @@ function LocalLoginForm() {
       } else if (mode === "changePassword") {
         await login(username, password, newPassword);
       } else {
-        await register(username, password);
+        await register(username, password, email.trim() || undefined);
       }
     } catch (err) {
       if (err instanceof PasswordChangeRequiredError) {
@@ -306,6 +314,26 @@ function LocalLoginForm() {
             class="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </label>
+        {mode === "register" && (
+          <label class="block">
+            <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+              {t("login.emailOptional")}
+            </span>
+            <input
+              type="email"
+              autoComplete="email"
+              maxLength={254}
+              value={email}
+              onInput={(e) =>
+                setEmail((e.currentTarget as HTMLInputElement).value)
+              }
+              class={inputClass}
+            />
+            <span class="block mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              {t("account.email.hint")}
+            </span>
+          </label>
+        )}
 
         {error && (
           <p class="text-sm text-red-600 dark:text-red-400" role="alert">

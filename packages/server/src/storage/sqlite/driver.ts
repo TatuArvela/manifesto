@@ -4,6 +4,7 @@ import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
+import { createSqliteSharesRepo } from "./sharesRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
 import { createSqliteYjsStore } from "./yjsStore.js";
 
@@ -22,6 +23,7 @@ export function createSqliteStorage(
     users: createSqliteUsersRepo(db),
     sessions: createSqliteSessionsRepo(db),
     notes: createSqliteNotesRepo(db),
+    shares: createSqliteSharesRepo(db),
     yjs: createSqliteYjsStore(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async close() {

@@ -17,24 +17,24 @@ export function createSqliteYjsStore(db: SqliteDB): YjsStore {
     `UPDATE notes
        SET yjs_state = @state,
            yjs_state_vector = @stateVector
-     WHERE id = @id AND user_id = @userId`,
+     WHERE id = @id AND user_id = @ownerId`,
   );
 
   return {
-    async load(noteId: string, userId: string): Promise<Buffer | null> {
-      const row = fetchStmt.get(noteId, userId) as YjsStateRow | undefined;
+    async load(noteId: string, ownerId: string): Promise<Buffer | null> {
+      const row = fetchStmt.get(noteId, ownerId) as YjsStateRow | undefined;
       return row?.yjs_state ?? null;
     },
 
     async store(
       noteId: string,
-      userId: string,
+      ownerId: string,
       state: Buffer,
       stateVector: Buffer,
     ): Promise<void> {
       storeStmt.run({
         id: noteId,
-        userId,
+        ownerId,
         state,
         stateVector,
       });

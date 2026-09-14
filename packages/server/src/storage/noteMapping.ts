@@ -20,7 +20,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
  */
 
 /** A flag column, as one driver or the other returns it. */
-type RowBoolean = boolean | number;
+export type RowBoolean = boolean | number;
 
 export interface NoteRow {
   id: string;
@@ -48,15 +48,15 @@ export interface NoteRow {
 const allNoteColors = new Set<string>(Object.values(NoteColor));
 const allNoteFonts = new Set<string>(Object.values(NoteFont));
 
-function parseColor(raw: string): NoteColor {
+export function parseColor(raw: string): NoteColor {
   return allNoteColors.has(raw) ? (raw as NoteColor) : NoteColor.Default;
 }
 
-function parseFont(raw: string): NoteFont {
+export function parseFont(raw: string): NoteFont {
   return allNoteFonts.has(raw) ? (raw as NoteFont) : NoteFont.Default;
 }
 
-function parseJson<T>(raw: string | null, fallback: T): T {
+export function parseJson<T>(raw: string | null, fallback: T): T {
   if (raw === null || raw === "") return fallback;
   try {
     return JSON.parse(raw) as T;
@@ -66,7 +66,7 @@ function parseJson<T>(raw: string | null, fallback: T): T {
 }
 
 /** `false !== 0` is true, so a driver's own flags cannot be read as numbers. */
-function asBoolean(raw: RowBoolean): boolean {
+export function asBoolean(raw: RowBoolean): boolean {
   return raw === true || raw === 1;
 }
 
@@ -291,15 +291,15 @@ export function decodeCursor(raw: string): NoteCursor | null {
  * rows: if the extra one came back there is another page, and the cursor is
  * the last row the caller actually gets.
  */
-export function takePage(
-  rows: NoteRow[],
+export function splitPage<R extends Pick<NoteRow, "id" | "updated_at">>(
+  rows: R[],
   limit: number,
-): { notes: Note[]; nextCursor: string | null } {
+): { page: R[]; nextCursor: string | null } {
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
   const last = page[page.length - 1];
   return {
-    notes: page.map(rowToListedNote),
+    page,
     nextCursor:
       hasMore && last
         ? encodeCursor({ updatedAt: last.updated_at, id: last.id })

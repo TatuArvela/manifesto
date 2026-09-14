@@ -1,9 +1,13 @@
 import type pg from "pg";
+import { searchPattern } from "../noteMapping.js";
 import {
   type AdminGuardedResult,
   type CreateUserInput,
+  EmailTakenError,
+  type SetEmailResult,
   type User,
   UsernameTakenError,
+  type UserSearchOptions,
   type UserSummary,
   type UsersRepo,
 } from "../types.js";
@@ -15,6 +19,7 @@ interface UserRow {
   password_hash: string | null;
   display_name: string;
   avatar_color: string;
+  email: string | null;
   provider: string;
   external_id: string | null;
   is_admin: boolean;
@@ -30,23 +35,11 @@ interface UserSummaryRow extends UserRow {
 
 interface PgError {
   code?: string;
-  constraint?: string;
-  message?: string;
 }
 
-/**
- * Postgres signals unique-constraint violations with SQLSTATE 23505. Real
- * `pg` populates `error.constraint` with the index name; pg-mem (used in
- * tests) leaves it undefined and only embeds the index name in the message.
- * Match either path so the same code works in tests and production.
- */
-function isPgUniqueViolation(err: unknown, columnHint: string): boolean {
-  if (!(err instanceof Error)) return false;
-  const pgErr = err as PgError;
-  if (pgErr.code !== "23505") return false;
-  const haystack =
-    `${pgErr.constraint ?? ""} ${pgErr.message ?? ""}`.toLowerCase();
-  return haystack.includes(columnHint);
+/** Postgres signals unique-constraint violations with SQLSTATE 23505. */
+function isPgUniqueViolation(err: unknown): boolean {
+  return err instanceof Error && (err as PgError).code === "23505";
 }
 
 function rowToUser(row: UserRow): User {
@@ -55,6 +48,7 @@ function rowToUser(row: UserRow): User {
     username: row.username,
     displayName: row.display_name,
     avatarColor: row.avatar_color,
+    email: row.email,
     provider: row.provider,
     externalId: row.external_id,
     passwordHash: row.password_hash,
@@ -131,7 +125,7 @@ async function guardedAdminChange(
 }
 
 export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
-  return {
+  const repo: UsersRepo = {
     async create(input: CreateUserInput): Promise<User> {
       try {
         // Under READ COMMITTED two first sign-ins racing each other can both
@@ -140,11 +134,11 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
         // demotion and deletion exist to prevent.
         await pool.query(
           `INSERT INTO users (
-            id, username, password_hash, display_name, avatar_color,
+            id, username, password_hash, display_name, avatar_color, email,
             provider, external_id, is_admin, must_change_password, created_at
           ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7,
-            ($8 OR NOT EXISTS (SELECT 1 FROM users)), $9, $10
+            $1, $2, $3, $4, $5, $6, $7, $8,
+            ($9 OR NOT EXISTS (SELECT 1 FROM users)), $10, $11
           )`,
           [
             input.id,
@@ -152,6 +146,7 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
             input.passwordHash,
             input.displayName,
             input.avatarColor,
+            input.email ?? null,
             input.provider,
             input.externalId,
             input.isAdmin ?? false,
@@ -160,8 +155,17 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
           ],
         );
       } catch (err) {
-        if (isPgUniqueViolation(err, "username")) {
+        if (!isPgUniqueViolation(err)) throw err;
+        // Which value collided is read back rather than out of the error. Real
+        // `pg` names the index in `constraint`, but pg-mem leaves that empty,
+        // names the wrong index, and quotes the whole statement (column list
+        // included) in the message, so a message that mentions "username"
+        // says nothing about which one was taken.
+        if (await repo.findByUsername(input.username)) {
           throw new UsernameTakenError(input.username);
+        }
+        if (input.email && (await repo.findByEmail(input.email))) {
+          throw new EmailTakenError(input.email);
         }
         throw err;
       }
@@ -202,6 +206,47 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
       );
       const row = result.rows[0];
       return row ? rowToUser(row) : null;
+    },
+
+    async findByEmail(email: string): Promise<User | null> {
+      const result = await pool.query<UserRow>(
+        `SELECT * FROM users WHERE LOWER(email) = LOWER($1)`,
+        [email],
+      );
+      const row = result.rows[0];
+      return row ? rowToUser(row) : null;
+    },
+
+    async search(
+      query: string,
+      { excludeId, limit }: UserSearchOptions,
+    ): Promise<User[]> {
+      const like = searchPattern(query);
+      if (like === null) return [];
+      const result = await pool.query<UserRow>(
+        `SELECT * FROM users
+         WHERE id <> $1
+           AND (LOWER(username) LIKE LOWER($2)
+             OR LOWER(display_name) LIKE LOWER($2)
+             OR LOWER(COALESCE(email, '')) LIKE LOWER($2))
+         ORDER BY LOWER(username), id LIMIT $3`,
+        [excludeId, like, limit],
+      );
+      return result.rows.map(rowToUser);
+    },
+
+    async setEmail(id: string, email: string | null): Promise<SetEmailResult> {
+      try {
+        const result = await pool.query(
+          `UPDATE users SET email = $1 WHERE id = $2`,
+          [email, id],
+        );
+        return (result.rowCount ?? 0) > 0 ? "ok" : "not-found";
+      } catch (err) {
+        // The only unique value this writes.
+        if (isPgUniqueViolation(err)) return "email-taken";
+        throw err;
+      }
     },
 
     async list(): Promise<UserSummary[]> {
@@ -265,4 +310,5 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
       );
     },
   };
+  return repo;
 }

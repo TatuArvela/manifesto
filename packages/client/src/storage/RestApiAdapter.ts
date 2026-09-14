@@ -8,6 +8,7 @@ import type {
   NotesResponse,
   NoteUpdate,
 } from "@manifesto/shared";
+import { roleOf } from "@manifesto/shared";
 import type { StorageAdapter } from "./StorageAdapter.js";
 
 export interface RestApiAdapterOptions {
@@ -161,7 +162,10 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async deleteAll(): Promise<void> {
-    const notes = await this.getAll();
+    // "All your notes": the ones shared with you are someone else's to delete.
+    const notes = (await this.getAll()).filter(
+      (note) => roleOf(note) === "owner",
+    );
     // Use allSettled so a single failed DELETE (e.g. 404 because another tab
     // already removed it) doesn't leave the rest of the notes intact. The
     // caller in actions.ts re-reads from the server after this resolves so
@@ -180,13 +184,20 @@ export class RestApiAdapter implements StorageAdapter {
   async importAll(imported: Note[]): Promise<void> {
     const existing = await this.getAll();
     const existingIds = new Set(existing.map((n) => n.id));
+    // A note shared with this user is already here, and belongs to someone
+    // else: importing a backup is not a way to overwrite it.
+    const sharedIds = new Set(
+      existing.filter((n) => roleOf(n) !== "owner").map((n) => n.id),
+    );
     for (const note of imported) {
+      if (sharedIds.has(note.id)) continue;
       // Strip server-assigned fields. The server's noteUpdateSchema strips
       // them anyway, but sending them is misleading and bloats the payload.
       const {
         id: _id,
         createdAt: _createdAt,
         updatedAt: _updatedAt,
+        sharing: _sharing,
         ...payload
       } = note;
       if (existingIds.has(note.id)) {

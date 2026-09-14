@@ -71,6 +71,7 @@ App
 │   ├── Archive
 │   └── Trash
 ├── NoteInput              ("Take a note…" bar)
+├── InvitationList         (notes offered by other accounts, Notes view, connected mode)
 ├── TagsView               (tag chip list with counts)
 ├── NoteGrid
 │   └── NoteCard[]         (pinned + unpinned sections, drag-to-reorder)
@@ -86,6 +87,7 @@ App
 │       ├── Dropdown            (color picker, font picker, kebab menu)
 │       └── VersionHistory      (opened from kebab menu)
 ├── SharedNoteDialog       (when a share URL hash is present)
+├── ShareDialogHost        (who has a note: invite, roles, remove, leave; connected mode)
 ├── SettingsDialog         (theme, defaults, language, import/export/delete all)
 ├── ReminderBanner         (fires when a reminder is due)
 └── Toasts                 (success + error notifications)
@@ -101,6 +103,7 @@ State lives in `packages/client/src/state/` and is reactive via `@preact/signals
 - **`ui.ts`**: transient UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`, `selectMode`, `selectedNotes`, `showSettings`, plus the toast queue (`toasts`, `showError`, `showSuccess`, `dismissToast`).
 - **`prefs.ts`**: user preferences persisted to `localStorage` under `manifesto:prefs` via a debounced `effect()`. Covers `viewMode`, `noteSize`, `sortMode`, `theme`, `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `defaultEditMode`, `noteCorners`, `animations`, `boardColor`, `boardCustomColor`, `boardTexture`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`, `decimalSeparator`, and `locale`. Also owns the presentation side of those: toggling the `dark` class on `<html>` (and listening for system preference changes), the `notes-rounded` and `no-motion` classes, the `data-dark-hue` attribute the stylesheet derives the dark neutral ramp from, and the `data-board-color` / `data-board-texture` attributes (plus `--board-custom`) that compose the board. `boardCustomColor` is accepted only as a six-digit hex colour, since it is written into a CSS custom property.
 - **`board.ts`**: the board picture. It lives in IndexedDB (`storage/boardImage.ts`), not in the preferences, so `boardImageStamp` changing is how another tab learns to load it again.
+- **`sharing.ts`**: notes shared between accounts in connected mode. Holds the `invitations` signal and `shareDialog` (which note's people are on screen), and the actions that invite, change a role, remove, leave, accept and decline. Like `admin.ts` it maps failures to catalogue messages by status. `updateNote` in `actions.ts` asks the same question the server will, before sending: a viewer's change to the note itself, or a recipient reaching for the trash, is refused with a sentence rather than a `403`. A viewer's note opens in `NoteReadonlyView`, whose boxes cannot be ticked, and never joins `/api/yjs`.
 - **`reminderScheduler.ts`**: timer loop that fires `reminder:open-note` events when a reminder is due.
 - **`router.ts`**: two-way sync between `activeView` / `activeTag` and the URL hash (see [Routing](#routing)).
 - **`index.ts`**: barrel export of the public state API.

@@ -70,13 +70,24 @@ As a user with multiple devices, I want my notes to follow me wherever I sign in
 - Tags and manual ordering are scoped to my account
 - See [Operating Modes](operating-modes.md) for the full mode comparison and migration path between open and connected mode
 
-## Live Collaborative Editing (Connected Mode, Scoped to One Account)
+## Sharing Notes with People (Connected Mode)
 
-> **Implemented, but only between sessions of the same user.** The Yjs/Hocuspocus channel at `/api/yjs` and the editor binding are both in place, so a note edits live across every device and tab signed in to one account, with remote cursors and presence avatars. Collaboration *between* users waits on note sharing, which is not in v1; the server authorizes each join against note ownership.
+As a user on a server, I want to share a note with people who have accounts there.
+
+- I can share a note from its menu, and choose for each person whether they can edit it or only view it
+- Depending on how the server is set up, I either search accounts by name, username or email as I type, or type someone's exact username or email address
+- The note reaches them only after they accept my invitation, and I can see who has not answered yet
+- I can change what someone can do, or take them off the note, at any time, and it takes effect at once
+- The text, images and links are the same for everyone; my color, pin, archive, tags and reminder on the note are mine alone, and so are theirs
+- Someone I shared a note with can remove it from their notes, but only I can delete it; while it is in my trash, nobody else sees it
+- I can give my account an email address so people can find me by it
+- See [Sharing with People](features/sharing-with-people.md)
+
+## Live Collaborative Editing (Connected Mode)
 
 As a user connected to a server, I want to edit notes simultaneously with other users in real time.
 
-- When I open a note that another user is also editing, I see their changes appear live
+- When I open a note I share with other people, or they share with me to edit, and one of them is also editing it, I see their changes appear live
 - My changes are broadcast to other users viewing the same note
 - Conflicting edits are resolved gracefully (no data loss)
 - I can see who else is currently viewing or editing a note
@@ -137,4 +148,4 @@ As a user, I want to organize my notes with tags.
 - Tags are shown on the note card
 - I can manage (rename, delete) tags
 - Tags are created inline when added to a note (no predefined tag list required)
-- In connected mode, tags are per-user (each user has their own tag namespace)
+- In connected mode, tags are per-user (each user has their own tag namespace), including on notes shared with them

@@ -59,14 +59,30 @@ session, so revoking admin takes effect on their next request.
 ## The account menu
 
 In connected mode the header shows the signed-in user's avatar to the right of the settings button.
-Its menu names the account and holds everything about it: **Manage users** for admins, **Change
-password** under local sign-in, and **Sign out**. Open mode has no accounts, so the button is not
-there at all, and the Settings panel carries no account section in either mode.
+Its menu names the account (with its email address, if it has one) and holds everything about it:
+**Manage users** for admins, **Email address** and **Change password** under local sign-in, and
+**Sign out**. Open mode has no accounts, so the button is not there at all, and the Settings panel
+carries no account section in either mode.
+
+## Email addresses
+
+An account may have one email address. It exists so that someone [sharing a note](sharing-with-people.md)
+can find the account by it, and it is used for nothing else: no mail is ever sent, so it is not
+verified by sending any.
+
+- **Unique regardless of case.** An address leads to one account. Using one another account holds is
+  refused (`409`, `code: "email_taken"`).
+- **Under local sign-in** it can be given when registering, set or removed from the account menu, and
+  given or changed by an admin.
+- **Under single sign-on** the identity provider's `email` claim is stored at every sign-in, unless the
+  provider marks it `email_verified: false`, or another account already holds it (the sign-in goes
+  ahead and the address is left off). The account menu does not offer to change it. An admin can, but
+  the next sign-in puts the provider's address back.
 
 ## The Users view
 
 Admins reach it from the account menu → **Manage users**, at `/admin`. It lists every account with its
-note count, when it was created, and when one of its sessions was last used. Badges mark admins, the
+email address, note count, when it was created, and when one of its sessions was last used. Badges mark admins, the
 viewer's own account, accounts that sign in with single sign-on, and accounts still holding a
 temporary password.
 
@@ -74,10 +90,11 @@ Each account other than your own has a menu:
 
 | Action           | Local sign-in | Single sign-on | What happens                                                     |
 |------------------|---------------|----------------|------------------------------------------------------------------|
-| Create account   | Yes           | No             | The account gets a temporary password, shown once                |
+| Create account   | Yes           | No             | The account gets a temporary password, shown once, and optionally an email address |
 | Make/remove admin | Yes          | Yes            | Takes effect on the account's next request                        |
+| Change email     | Yes           | Yes            | Sets or clears the address; under SSO the next sign-in replaces it |
 | Reset password   | Yes           | No             | Every session of that account ends; a temporary password is shown once |
-| Delete account   | Yes           | Yes            | The account, its notes and its sessions are removed; asks first  |
+| Delete account   | Yes           | Yes            | The account, its notes and its sessions are removed; asks first. Its notes disappear for everyone they were shared with |
 
 **An admin cannot change their own account from here.** Removing your own admin rights, deleting
 yourself or resetting your own password is refused, because each locks you out mid-task and each has

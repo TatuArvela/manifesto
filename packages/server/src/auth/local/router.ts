@@ -9,13 +9,14 @@ import {
   type AuthContext,
   createAuthMiddleware,
 } from "../../middleware/authBearer.js";
-import { HttpError } from "../../middleware/error.js";
+import { emailTaken, HttpError } from "../../middleware/error.js";
 import { rateLimit } from "../../middleware/rateLimit.js";
 import type { StorageDriver } from "../../storage/types.js";
+import { EmailTakenError } from "../../storage/types.js";
 import {
-  authCredentialsSchema,
   loginSchema,
   passwordChangeSchema,
+  registerSchema,
 } from "../../validation/schemas.js";
 import { validatorHook } from "../../validation/zValidator.js";
 import type { SessionRevocations } from "../revocations.js";
@@ -47,27 +48,37 @@ export function createLocalAuthRouter(
   auth.post(
     "/register",
     authThrottle,
-    zValidator("json", authCredentialsSchema, validatorHook),
+    zValidator("json", registerSchema, validatorHook),
     async (c) => {
       if (!deps.cfg.registrationEnabled) {
         throw new HttpError(403, "Registration is disabled");
       }
-      const { username, password } = c.req.valid("json");
+      const { username, password, email } = c.req.valid("json");
       const existing = await deps.storage.users.findByUsername(username);
       if (existing) {
         throw new HttpError(409, "Username is already taken");
       }
+      if (email && (await deps.storage.users.findByEmail(email))) {
+        throw emailTaken();
+      }
       const passwordHash = await hashPassword(password, deps.cfg);
-      const user = await deps.storage.users.create({
-        id: newId(),
-        username,
-        displayName: username,
-        avatarColor: pickAvatarColor(),
-        provider: "local",
-        externalId: null,
-        passwordHash,
-        createdAt: nowIso(),
-      });
+      let user: Awaited<ReturnType<typeof deps.storage.users.create>>;
+      try {
+        user = await deps.storage.users.create({
+          id: newId(),
+          username,
+          displayName: username,
+          avatarColor: pickAvatarColor(),
+          email: email ?? null,
+          provider: "local",
+          externalId: null,
+          passwordHash,
+          createdAt: nowIso(),
+        });
+      } catch (err) {
+        if (err instanceof EmailTakenError) throw emailTaken();
+        throw err;
+      }
       const { token } = await issueSession(deps.storage, deps.cfg, user.id);
       const body: AuthSuccessResponse = { token, user: toAuthUser(user) };
       return c.json(body, 201);

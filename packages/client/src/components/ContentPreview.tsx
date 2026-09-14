@@ -13,10 +13,16 @@ export function ContentPreview({
   note,
   onCheckboxToggle,
   hasTitle,
+  readOnly = false,
 }: {
-  note: Note;
+  /** Only the text is read, so an invitation can preview a note it holds
+   * just the text of. */
+  note: Pick<Note, "content">;
   onCheckboxToggle: (lineIndex: number) => void;
   hasTitle: boolean;
+  /** Boxes that show their state but cannot be ticked: a note shared with
+   * this user only to view. */
+  readOnly?: boolean;
 }) {
   if (!note.content) return null;
 
@@ -78,8 +84,9 @@ export function ContentPreview({
                   >
                     <input
                       type="checkbox"
-                      class="mt-0.5 w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 shrink-0 cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300 transition-colors checkbox-custom"
+                      class={`mt-0.5 w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 shrink-0 transition-colors checkbox-custom ${readOnly ? "cursor-default" : "cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300"}`}
                       checked={item.checked}
+                      disabled={readOnly}
                       onClick={(e) => e.stopPropagation()}
                       onChange={() => onCheckboxToggle(lineIndex)}
                     />

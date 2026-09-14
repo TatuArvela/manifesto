@@ -3,6 +3,7 @@ import {
   type LinkPreview,
   type Note,
   type NoteColor,
+  roleOf,
 } from "@manifesto/shared";
 import clsx from "clsx";
 import {
@@ -70,6 +71,7 @@ import { CardPopover } from "./Popover.js";
 import { PresenceAvatars } from "./PresenceAvatars.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPickerPanel } from "./ReminderPicker.js";
+import { SharedAvatars } from "./SharedAvatars.js";
 import { TagPicker, tagPickerPanelClass } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -340,6 +342,9 @@ export function NoteCard({
     ? { ...baseColors, bg: autoColors.bg, border: autoColors.border }
     : baseColors;
   const isTrashView = activeView.value === "trash";
+  // Shared with this user to read, not to write: it opens as the read-only
+  // view does for an automatic note, and its boxes cannot be ticked.
+  const viewOnly = roleOf(note) === "view";
   const {
     ref: imagesRef,
     images,
@@ -759,6 +764,7 @@ export function NoteCard({
                     toggleCheckbox(note.id, lineIndex)
                   }
                   hasTitle={!!note.title}
+                  readOnly={viewOnly}
                 />
               </div>
 
@@ -771,7 +777,7 @@ export function NoteCard({
                 </div>
               )}
 
-              {(note.tags.length > 0 || note.reminder) && (
+              {(note.tags.length > 0 || note.reminder || note.sharing) && (
                 <div class="mt-3 flex flex-wrap gap-1 items-center">
                   {note.reminder && (
                     <ReminderChip
@@ -793,6 +799,11 @@ export function NoteCard({
                       #{tag}
                     </span>
                   ))}
+                  {note.sharing && (
+                    <span class="ml-auto pl-1">
+                      <SharedAvatars note={note} />
+                    </span>
+                  )}
                 </div>
               )}
             </>
@@ -894,7 +905,7 @@ export function NoteCard({
                 ref={panelRef}
                 class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden"
               >
-                {note.readonly ? (
+                {note.readonly || viewOnly ? (
                   <NoteReadonlyView note={note} onClose={closeModal} />
                 ) : (
                   <NoteCardEditor note={note} onClose={closeModal} />

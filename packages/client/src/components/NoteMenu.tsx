@@ -1,4 +1,4 @@
-import type { Note } from "@manifesto/shared";
+import { type Note, roleOf } from "@manifesto/shared";
 import {
   Archive,
   ArchiveRestore,
@@ -9,12 +9,16 @@ import {
   History,
   Link,
   ListX,
+  LogOut,
   Trash2,
   Undo2,
+  UserPlus,
+  Users,
 } from "lucide-preact";
 import type { VNode } from "preact";
 import { t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
+import { isServerMode } from "../state/auth.js";
 import {
   archiveNote,
   createNote,
@@ -23,6 +27,7 @@ import {
   trashNote,
   unarchiveNote,
 } from "../state/index.js";
+import { shareDialog } from "../state/sharing.js";
 import { showSuccess } from "../state/ui.js";
 import {
   downloadNoteAsJson,
@@ -154,6 +159,7 @@ export function noteMenuItems(
   const { draft, onDismiss } = options;
   const title = draft?.title ?? note.title;
   const content = draft?.content ?? note.content;
+  const role = roleOf(note);
   const items: NoteMenuItem[] = [];
 
   if (options.onOpenReminder) {
@@ -172,6 +178,31 @@ export function noteMenuItems(
       label: t("noteMenu.versionHistory"),
       onSelect: options.onShowVersions,
     });
+  }
+
+  // Sharing with people needs accounts, so a server. An automatic note is
+  // rewritten by a plugin in its owner's browser and has nothing to offer
+  // anyone else, and a trashed one is on its way out.
+  if (isServerMode && !note.readonly) {
+    if (role === "owner" && !note.trashed) {
+      items.push({
+        id: "share-people",
+        icon: <UserPlus class="w-4 h-4" />,
+        label: t("noteMenu.shareWithPeople"),
+        onSelect: () => {
+          shareDialog.value = { noteId: note.id };
+        },
+      });
+    } else if (role !== "owner") {
+      items.push({
+        id: "people",
+        icon: <Users class="w-4 h-4" />,
+        label: t("noteMenu.people"),
+        onSelect: () => {
+          shareDialog.value = { noteId: note.id };
+        },
+      });
+    }
   }
 
   items.push(
@@ -249,7 +280,9 @@ export function noteMenuItems(
     { kind: "divider", id: "destructive" },
   );
 
-  if (options.checkedItems?.present) {
+  // Deleting items is changing the note, which someone who can only view it
+  // cannot do.
+  if (options.checkedItems?.present && role !== "view") {
     const { remove } = options.checkedItems;
     items.push({
       id: "delete-checked",
@@ -259,7 +292,19 @@ export function noteMenuItems(
     });
   }
 
-  if (!options.omitTrash) {
+  if (role !== "owner") {
+    // The trash is the owner's. What a recipient can do is let go of the
+    // note, which the dialog asks about first: it takes a new invitation to
+    // get it back.
+    items.push({
+      id: "leave",
+      icon: <LogOut class="w-4 h-4" />,
+      label: t("noteMenu.leave"),
+      onSelect: () => {
+        shareDialog.value = { noteId: note.id, confirmLeave: true };
+      },
+    });
+  } else if (!options.omitTrash) {
     items.push({
       id: "trash",
       icon: note.trashed ? (

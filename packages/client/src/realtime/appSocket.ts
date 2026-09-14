@@ -1,7 +1,10 @@
-import type {
-  PresenceUser,
-  WebSocketClientEvent,
-  WebSocketEvent,
+import {
+  NoteColor,
+  NoteFont,
+  type PresenceUser,
+  type ShareInvitation,
+  type WebSocketClientEvent,
+  type WebSocketEvent,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
 import { loadNotes, notes, upsertById } from "../state/actions.js";
@@ -11,6 +14,11 @@ import {
   recordPresenceJoin,
   recordPresenceLeave,
 } from "../state/presence.js";
+import {
+  forgetInvitation,
+  loadInvitations,
+  receiveInvitation,
+} from "../state/sharing.js";
 import { editingNoteId } from "../state/ui.js";
 
 const SUBPROTOCOL = "manifesto-session";
@@ -52,6 +60,38 @@ function isPresenceUser(value: unknown): value is PresenceUser {
   );
 }
 
+function isShareUser(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.id === "string" &&
+    typeof v.username === "string" &&
+    typeof v.displayName === "string" &&
+    typeof v.avatarColor === "string"
+  );
+}
+
+const noteColors = new Set<unknown>(Object.values(NoteColor));
+const noteFonts = new Set<unknown>(Object.values(NoteFont));
+
+/** Color and font are checked against the enums, not just typed as strings:
+ * the invitation card indexes `noteColorMap` and `noteFontFamilies` with them,
+ * and an unknown key throws while it renders. */
+function isInvitation(value: unknown): value is ShareInvitation {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.noteId === "string" &&
+    (v.role === "edit" || v.role === "view") &&
+    isShareUser(v.owner) &&
+    typeof v.title === "string" &&
+    typeof v.content === "string" &&
+    noteColors.has(v.color) &&
+    noteFonts.has(v.font) &&
+    typeof v.invitedAt === "string"
+  );
+}
+
 /**
  * Discriminates on the payload, not just on `type`, the mirror of the
  * server's `isClientEvent`. Accepting anything with a string `type` narrowed
@@ -76,6 +116,10 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
       return typeof v.noteId === "string" && isPresenceUser(v.user);
     case "presence:leave":
       return typeof v.noteId === "string" && typeof v.userId === "string";
+    case "invitation:created":
+      return isInvitation(v.invitation);
+    case "invitation:removed":
+      return typeof v.noteId === "string";
     default:
       return false;
   }
@@ -97,6 +141,12 @@ function applyServerEvent(event: WebSocketEvent) {
       break;
     case "presence:leave":
       recordPresenceLeave(event.noteId, event.userId);
+      break;
+    case "invitation:created":
+      receiveInvitation(event.invitation);
+      break;
+    case "invitation:removed":
+      forgetInvitation(event.noteId);
       break;
   }
 }
@@ -153,6 +203,7 @@ function connect(token: string) {
         // Network blip during the catch-up fetch is fine; the next user
         // action or full reload will retry.
       });
+      void loadInvitations();
     } else {
       hasOpenedOnce = true;
     }

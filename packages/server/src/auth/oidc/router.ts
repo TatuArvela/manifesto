@@ -13,9 +13,11 @@ import { HttpError } from "../../middleware/error.js";
 import { rateLimit } from "../../middleware/rateLimit.js";
 import {
   type CreateUserInput,
+  EmailTakenError,
   type StorageDriver,
   UsernameTakenError,
 } from "../../storage/types.js";
+import { emailSchema } from "../../validation/schemas.js";
 import { issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
 import { pickAvatarColor } from "../users.js";
@@ -78,6 +80,37 @@ function pickDisplayName(claims: openid.IDToken, fallback: string): string {
   return fallback;
 }
 
+/**
+ * The address the identity provider vouches for, or null. One it marks as
+ * unverified is not taken: an address is how a note's owner finds a person to
+ * share with, and an unverified one would let anybody claim someone else's.
+ */
+function pickEmail(claims: openid.IDToken): string | null {
+  const { email, email_verified: verified } = claims as Record<string, unknown>;
+  if (typeof email !== "string" || verified === false) return null;
+  const parsed = emailSchema.safeParse(email);
+  return parsed.success ? parsed.data : null;
+}
+
+/**
+ * Keep an account's address in step with the identity provider, which owns
+ * it. One already held by another account is left where it is: which of the
+ * two is right is not something a sign-in can settle.
+ */
+async function syncEmail(
+  storage: StorageDriver,
+  userId: string,
+  current: string | null,
+  email: string | null,
+): Promise<void> {
+  if (email === null || current?.toLowerCase() === email.toLowerCase()) return;
+  if ((await storage.users.setEmail(userId, email)) === "email-taken") {
+    logger.warn("OIDC email already belongs to another account; not stored", {
+      userId,
+    });
+  }
+}
+
 async function provisionUser(
   storage: StorageDriver,
   oidc: OidcConfig,
@@ -85,14 +118,22 @@ async function provisionUser(
 ): Promise<string> {
   const provider = providerKey(oidc.issuer);
   const externalId = claims.sub;
+  const claimedEmail = pickEmail(claims);
   const existing = await storage.users.findByExternalId(provider, externalId);
-  if (existing) return existing.id;
+  if (existing) {
+    await syncEmail(storage, existing.id, existing.email, claimedEmail);
+    return existing.id;
+  }
 
   const seed = pickUsernameSeed(claims);
   const displayName = pickDisplayName(claims, seed);
   const baseInput: Omit<CreateUserInput, "id" | "username"> = {
     displayName,
     avatarColor: pickAvatarColor(),
+    email:
+      claimedEmail && !(await storage.users.findByEmail(claimedEmail))
+        ? claimedEmail
+        : null,
     provider,
     externalId,
     passwordHash: null,
@@ -110,14 +151,28 @@ async function provisionUser(
     `${seed}-${newShortSuffix()}`,
     `${seed}-${newShortSuffix()}`,
   ];
-  for (const username of candidates) {
+  /** Lost a race for the address: sign them in without one rather than not
+   * at all. */
+  const create = async (username: string) => {
     try {
-      const user = await storage.users.create({
+      return await storage.users.create({
         ...baseInput,
         id: newId(),
         username,
       });
-      return user.id;
+    } catch (err) {
+      if (!(err instanceof EmailTakenError)) throw err;
+      return await storage.users.create({
+        ...baseInput,
+        email: null,
+        id: newId(),
+        username,
+      });
+    }
+  };
+  for (const username of candidates) {
+    try {
+      return (await create(username)).id;
     } catch (err) {
       // Only retry on UNIQUE-constraint collisions on username. Any other
       // error (disk full, broken schema, network) propagates so it lands in

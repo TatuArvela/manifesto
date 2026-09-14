@@ -85,10 +85,48 @@ UPDATE users SET is_admin = 1
   WHERE id = (SELECT id FROM users ORDER BY created_at, id LIMIT 1);
 `;
 
+/**
+ * An email address, so a person can be found by it when a note is shared.
+ * Optional, and unique regardless of case: an address names one person, and
+ * finding a share recipient by it has to lead to exactly one account.
+ */
+const USER_EMAIL = `
+ALTER TABLE users ADD COLUMN email TEXT COLLATE NOCASE;
+CREATE UNIQUE INDEX users_email ON users(email);
+`;
+
+/**
+ * Notes shared with other accounts.
+ *
+ * A row is an invitation until `accepted_at` is set. The note itself (title,
+ * body, font, attachments, previews) stays in `notes` and is the same for
+ * everyone; the columns here are what each recipient keeps for themselves, the
+ * way the owner keeps theirs in the note's own row.
+ */
+const NOTE_SHARES = `
+CREATE TABLE note_shares (
+  note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL,
+  color       TEXT NOT NULL DEFAULT 'default',
+  pinned      INTEGER NOT NULL DEFAULT 0,
+  archived    INTEGER NOT NULL DEFAULT 0,
+  position    REAL NOT NULL DEFAULT 0,
+  tags        TEXT NOT NULL DEFAULT '[]',
+  reminder    TEXT,
+  created_at  TEXT NOT NULL,
+  accepted_at TEXT,
+  PRIMARY KEY (note_id, user_id)
+);
+CREATE INDEX note_shares_user ON note_shares(user_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
   { id: "0003-user-admin", sql: USER_ADMIN },
+  { id: "0004-user-email", sql: USER_EMAIL },
+  { id: "0005-note-shares", sql: NOTE_SHARES },
 ];
 
 export function runMigrations(

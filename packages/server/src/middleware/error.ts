@@ -13,6 +13,16 @@ export class HttpError extends Error {
   }
 }
 
+/** An email address another account holds. Coded, because the same status
+ * also means a taken username and the client says the two differently. */
+export function emailTaken(): HttpError {
+  return new HttpError(
+    409,
+    "Another account already uses this email address",
+    "email_taken",
+  );
+}
+
 export const onError: ErrorHandler = (err, c) => handleError(c, err);
 
 function handleError(c: Context, err: unknown) {

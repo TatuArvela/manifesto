@@ -287,6 +287,15 @@ export function NoteCardEditor({
                 })}
               </span>
             )}
+            {note.sharing && note.sharing.role !== "owner" && (
+              <span>
+                {t("sharing.metadata.sharedBy", {
+                  name:
+                    note.sharing.owner.displayName ||
+                    note.sharing.owner.username,
+                })}
+              </span>
+            )}
           </div>
         }
         collab={collab}

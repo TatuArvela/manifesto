@@ -22,13 +22,22 @@ async function bootRig(): Promise<Rig> {
   const cfg = { ...TEST_CONFIG, port: 0 };
   const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
-  const { app, broadcaster, revocations } = createApp({
+  const { app, broadcaster, revocations, accessChanges } = createApp({
     cfg,
     storage,
     authProvider,
   });
   const ws = createNodeWebSocket({ app });
-  attachAppSocket({ app, ws, authProvider, broadcaster, revocations, cfg });
+  attachAppSocket({
+    app,
+    ws,
+    authProvider,
+    broadcaster,
+    revocations,
+    accessChanges,
+    storage,
+    cfg,
+  });
   const server = serve({ fetch: app.fetch, port: 0 });
   ws.injectWebSocket(server);
   await new Promise<void>((resolve) =>
@@ -204,6 +213,12 @@ describe("application WebSocket /api/ws", () => {
 
   it("emits presence:join with the originating user's profile", async () => {
     const token = await register(rig, "alice");
+    const { note } = await authedPost<{ note: Note }>(
+      rig,
+      "/api/notes",
+      token,
+      baseNote,
+    );
     // tab A, will receive the broadcast
     const a = openSocket(rig.wsUrl, token);
     // tab B, will originate the presence change
@@ -219,11 +234,11 @@ describe("application WebSocket /api/ws", () => {
       a.ws.once("message", (data) => resolve(data.toString()));
     });
 
-    b.ws.send(JSON.stringify({ type: "presence:update", noteId: "note-X" }));
+    b.ws.send(JSON.stringify({ type: "presence:update", noteId: note.id }));
     const raw = await aReceived;
     const parsed = JSON.parse(raw);
     expect(parsed.type).toBe("presence:join");
-    expect(parsed.noteId).toBe("note-X");
+    expect(parsed.noteId).toBe(note.id);
     expect(parsed.user.displayName).toBe("alice");
     expect(typeof parsed.user.avatarColor).toBe("string");
     expect(parsed.user.id).toMatch(/^[0-9A-Z]{26}$/);
@@ -238,6 +253,12 @@ describe("application WebSocket /api/ws", () => {
 
   it("only emits one presence:join when the same user opens the note in multiple tabs", async () => {
     const token = await register(rig, "alice");
+    const { note } = await authedPost<{ note: Note }>(
+      rig,
+      "/api/notes",
+      token,
+      baseNote,
+    );
     const observer = openSocket(rig.wsUrl, token);
     const tabA = openSocket(rig.wsUrl, token);
     const tabB = openSocket(rig.wsUrl, token);
@@ -250,13 +271,13 @@ describe("application WebSocket /api/ws", () => {
     const events: string[] = [];
     observer.ws.on("message", (data) => events.push(data.toString()));
 
-    tabA.ws.send(JSON.stringify({ type: "presence:update", noteId: "note-Y" }));
-    tabB.ws.send(JSON.stringify({ type: "presence:update", noteId: "note-Y" }));
+    tabA.ws.send(JSON.stringify({ type: "presence:update", noteId: note.id }));
+    tabB.ws.send(JSON.stringify({ type: "presence:update", noteId: note.id }));
     await new Promise((r) => setTimeout(r, 80));
 
     const joins = events
       .map((raw) => JSON.parse(raw))
-      .filter((e) => e.type === "presence:join" && e.noteId === "note-Y");
+      .filter((e) => e.type === "presence:join" && e.noteId === note.id);
     expect(joins).toHaveLength(1);
 
     observer.ws.close();
@@ -293,5 +314,172 @@ describe("application WebSocket /api/ws", () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(own.ws.readyState).toBe(WebSocket.OPEN);
     own.ws.close();
+  });
+
+  async function registerWithId(
+    username: string,
+  ): Promise<{ token: string; userId: string }> {
+    const res = await fetch(`${rig.baseUrl}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password: "password-1234" }),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { token: string; user: { id: string } };
+    return { token: body.token, userId: body.user.id };
+  }
+
+  function collect(ws: WebSocket): () => { type: string; noteId?: string }[] {
+    const seen: string[] = [];
+    ws.on("message", (data) => seen.push(data.toString()));
+    return () => seen.map((raw) => JSON.parse(raw));
+  }
+
+  it("shows presence to the people a note is shared with, and nobody else", async () => {
+    const owner = await registerWithId("olivia");
+    const alice = await registerWithId("alice");
+    const bob = await registerWithId("bob");
+    const { note } = await authedPost<{ note: Note }>(
+      rig,
+      "/api/notes",
+      owner.token,
+      baseNote,
+    );
+    await authedPost(rig, `/api/notes/${note.id}/shares`, owner.token, {
+      userId: alice.userId,
+      role: "view",
+    });
+    await authedPost(
+      rig,
+      `/api/invitations/${note.id}/accept`,
+      alice.token,
+      {},
+    );
+
+    const ownerSock = openSocket(rig.wsUrl, owner.token);
+    const aliceSock = openSocket(rig.wsUrl, alice.token);
+    const bobSock = openSocket(rig.wsUrl, bob.token);
+    await Promise.all([
+      waitOpen(ownerSock.ws),
+      waitOpen(aliceSock.ws),
+      waitOpen(bobSock.ws),
+    ]);
+    await new Promise((r) => setTimeout(r, 50));
+    const toAlice = collect(aliceSock.ws);
+    const toBob = collect(bobSock.ws);
+    const toOwner = collect(ownerSock.ws);
+
+    ownerSock.ws.send(
+      JSON.stringify({ type: "presence:update", noteId: note.id }),
+    );
+    // Bob has no business on this note, so his claim to be viewing it is
+    // not passed on to anyone.
+    bobSock.ws.send(
+      JSON.stringify({ type: "presence:update", noteId: note.id }),
+    );
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(toAlice()).toContainEqual(
+      expect.objectContaining({ type: "presence:join", noteId: note.id }),
+    );
+    expect(toBob()).toEqual([]);
+    expect(toOwner()).toEqual([]);
+
+    // Someone arriving learns who is already there.
+    aliceSock.ws.send(
+      JSON.stringify({ type: "presence:update", noteId: note.id }),
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    const joinsForAlice = toAlice().filter((e) => e.type === "presence:join");
+    expect(joinsForAlice).toHaveLength(2);
+    expect(toOwner()).toContainEqual(
+      expect.objectContaining({ type: "presence:join", noteId: note.id }),
+    );
+
+    ownerSock.ws.close();
+    aliceSock.ws.close();
+    bobSock.ws.close();
+  });
+
+  async function noteViewedByOwner() {
+    const owner = await registerWithId("olivia");
+    const alice = await registerWithId("alice");
+    const { note } = await authedPost<{ note: Note }>(
+      rig,
+      "/api/notes",
+      owner.token,
+      baseNote,
+    );
+    await authedPost(rig, `/api/notes/${note.id}/shares`, owner.token, {
+      userId: alice.userId,
+      role: "edit",
+    });
+    const ownerSock = openSocket(rig.wsUrl, owner.token);
+    await waitOpen(ownerSock.ws);
+    await new Promise((r) => setTimeout(r, 50));
+    ownerSock.ws.send(
+      JSON.stringify({ type: "presence:update", noteId: note.id }),
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    return { owner, alice, note, ownerSock };
+  }
+
+  const joinsFor = (
+    seen: { type: string; noteId?: string; user?: { id: string } }[],
+    noteId: string,
+  ) =>
+    seen
+      .filter((e) => e.type === "presence:join" && e.noteId === noteId)
+      .map((e) => e.user?.id);
+
+  it("shows someone who accepts a note who is already looking at it", async () => {
+    const { owner, alice, note, ownerSock } = await noteViewedByOwner();
+    const aliceSock = openSocket(rig.wsUrl, alice.token);
+    await waitOpen(aliceSock.ws);
+    await new Promise((r) => setTimeout(r, 50));
+    const toAlice = collect(aliceSock.ws);
+
+    // Not hers yet: an invitation shows her nobody.
+    expect(joinsFor(toAlice(), note.id)).toEqual([]);
+
+    await authedPost(
+      rig,
+      `/api/invitations/${note.id}/accept`,
+      alice.token,
+      {},
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    expect(joinsFor(toAlice(), note.id)).toEqual([owner.userId]);
+
+    // And from now on she hears the owner leave, without opening the note.
+    ownerSock.ws.send(
+      JSON.stringify({ type: "presence:update", noteId: null }),
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    expect(toAlice()).toContainEqual(
+      expect.objectContaining({ type: "presence:leave", noteId: note.id }),
+    );
+
+    ownerSock.ws.close();
+    aliceSock.ws.close();
+  });
+
+  it("tells a socket that opens later who is already on the notes it can see", async () => {
+    const { owner, alice, note, ownerSock } = await noteViewedByOwner();
+    await authedPost(
+      rig,
+      `/api/invitations/${note.id}/accept`,
+      alice.token,
+      {},
+    );
+
+    const aliceSock = openSocket(rig.wsUrl, alice.token);
+    const toAlice = collect(aliceSock.ws);
+    await waitOpen(aliceSock.ws);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(joinsFor(toAlice(), note.id)).toEqual([owner.userId]);
+
+    ownerSock.ws.close();
+    aliceSock.ws.close();
   });
 });

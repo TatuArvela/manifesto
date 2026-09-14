@@ -1,5 +1,6 @@
 export type StorageDriverName = "sqlite" | "postgres";
 export type AuthProviderName = "local" | "oidc";
+export type UserLookupMode = "search" | "exact";
 
 export interface OidcConfig {
   issuer: string;
@@ -46,6 +47,10 @@ export interface ServerConfig {
    * client keeps the plain link card. Off is for deployments with no outbound
    * internet access, or an egress policy that should not be asked. */
   linkPreviews: boolean;
+  /** How someone sharing a note finds the account to share it with: by
+   * searching every account as they type, or only by its exact username or
+   * email address, which keeps the list of accounts private. */
+  userLookup: UserLookupMode;
   /** The temporary password to give the initial admin account instead of a
    * generated one, for deployments that cannot read the server's output. It
    * still has to be changed at first sign-in. */
@@ -106,6 +111,10 @@ const STORAGE_DRIVERS = [
   "sqlite",
   "postgres",
 ] as const satisfies readonly StorageDriverName[];
+const USER_LOOKUP_MODES = [
+  "search",
+  "exact",
+] as const satisfies readonly UserLookupMode[];
 const AUTH_PROVIDERS = [
   "local",
   "oidc",
@@ -167,6 +176,7 @@ export function loadConfig(): ServerConfig {
     trustProxy: envBool("TRUST_PROXY", false),
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
     linkPreviews: envBool("LINK_PREVIEWS", true),
+    userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "search"),
     initialAdminPassword: loadInitialAdminPassword(),
   };
 }

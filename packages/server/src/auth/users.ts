@@ -26,6 +26,7 @@ export function toAuthUser(user: User): AuthUser {
     username: user.username,
     displayName: user.displayName || user.username,
     avatarColor: user.avatarColor,
+    email: user.email,
     isAdmin: user.isAdmin,
   };
 }
