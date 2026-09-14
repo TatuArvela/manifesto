@@ -387,7 +387,10 @@ export function MilkdownEditor({
   // Seed the fragment from the note instead. Safe because NoteCardEditor only
   // supplies `collab` after the provider reports synced, so an empty fragment
   // here means the server has none either.
-  useEffect(() => {
+  //
+  // A layout effect only to keep it ahead of the raw-mode one below, which
+  // reads the text this writes.
+  useLayoutEffect(() => {
     if (!editor || !collab) return;
     const fragment = collab.ydoc.getXmlFragment(
       collab.fragmentName ?? DEFAULT_FRAGMENT_NAME,
@@ -455,7 +458,12 @@ export function MilkdownEditor({
   //   the two instead.
   // - `onChange` is fed from the textarea while raw mode is on, so what is
   //   saved is the text as typed, not the serializer's rewrite of it.
-  useEffect(() => {
+  //
+  // A layout effect, so entering happens in the same task as the commit that
+  // lifts the textarea's `readOnly`. As a passive effect it ran a frame later,
+  // and a keystroke in that frame was not pushed (raw mode was not on yet) and
+  // then overwritten by entering, which reads the text out of the editor.
+  useLayoutEffect(() => {
     if (!editor) return;
     const sync = rawSyncRef.current;
     if (rawMode && !sync.active) {
