@@ -14,6 +14,7 @@ import {
   refreshCurrentUser,
 } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
+import { initBoardBackground } from "../state/board.js";
 import {
   activeView,
   createNote,
@@ -88,6 +89,7 @@ function MainApp() {
     startAppSocket();
     loadNotes();
     const stopAutoNotes = initAutoNotes();
+    const stopBoardBackground = initBoardBackground();
     initReminderScheduler({
       notes: () => notes.value,
       subscribe: (listener) => effect(() => listener(notes.value)),
@@ -120,6 +122,7 @@ function MainApp() {
     return () => {
       window.removeEventListener("reminder:open-note", openHandler);
       stopAutoNotes();
+      stopBoardBackground();
     };
   }, []);
 
@@ -207,7 +210,7 @@ function MainApp() {
         <Sidebar />
         <main
           ref={mainRef}
-          class={`flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
+          class={`board flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
         >
           {isAdminView ? (
             isAdmin && <AdminView />

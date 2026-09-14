@@ -14,6 +14,26 @@ export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
 export type EditMode = "normal" | "raw";
+/** A preset board tint, each with a light and a dark shade in styles.css. */
+export type BoardColor =
+  | "sand"
+  | "sage"
+  | "mist"
+  | "blush"
+  | "lavender"
+  | "caramel";
+/** The board's colour: the page's own, a preset, or `boardCustomColor`. */
+export type BoardColorChoice = "none" | BoardColor | "custom";
+/** Drawn over the board's colour in CSS, in ink that follows the theme. */
+export type BoardTexture =
+  | "none"
+  | "paper"
+  | "cork"
+  | "felt"
+  | "linen"
+  | "dots"
+  | "grid"
+  | "lines";
 export type DarkHue =
   | "neutral"
   | "midnight"
@@ -24,6 +44,55 @@ export type DarkHue =
   | "steel"
   | "ocean"
   | "black";
+
+export const BOARD_COLORS: readonly BoardColor[] = [
+  "sand",
+  "sage",
+  "mist",
+  "blush",
+  "lavender",
+  "caramel",
+];
+
+export const BOARD_TEXTURES: readonly BoardTexture[] = [
+  "none",
+  "paper",
+  "cork",
+  "felt",
+  "linen",
+  "dots",
+  "grid",
+  "lines",
+];
+
+/** What the custom colour starts as before one is picked: a warm corkboard. */
+export const DEFAULT_BOARD_CUSTOM_COLOR = "#d9bf94";
+
+function parseBoardColor(value: unknown): BoardColorChoice {
+  if (value === "custom") return "custom";
+  return typeof value === "string" &&
+    (BOARD_COLORS as readonly string[]).includes(value)
+    ? (value as BoardColor)
+    : "none";
+}
+
+function parseBoardTexture(value: unknown): BoardTexture {
+  return typeof value === "string" &&
+    (BOARD_TEXTURES as readonly string[]).includes(value)
+    ? (value as BoardTexture)
+    : "none";
+}
+
+/**
+ * Only a six-digit hex colour, which is all `<input type="color">` produces.
+ * The value is written into a CSS custom property, so anything freer would be
+ * a way to inject arbitrary CSS through a hand-edited preferences blob.
+ */
+function parseHexColor(value: unknown): string {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
+    ? value.toLowerCase()
+    : DEFAULT_BOARD_CUSTOM_COLOR;
+}
 
 const DECIMAL_SEPARATOR_VALUES: readonly DecimalSeparator[] = [
   "auto",
@@ -107,6 +176,20 @@ export interface LoadedPrefs {
   noteQuips: boolean;
   formattingToolbar: boolean;
   defaultEditMode: EditMode;
+  boardColor: BoardColorChoice;
+  boardCustomColor: string;
+  boardTexture: BoardTexture;
+  /**
+   * Whether the picture on file covers the board, in place of the colour and
+   * texture. Those are kept, so turning the picture off brings them back.
+   */
+  boardUsePicture: boolean;
+  /**
+   * When the board picture was last replaced, or 0 with none on file. The
+   * picture is in IndexedDB, which no other tab hears about, so this is what
+   * changes in the preferences blob and tells them to load it again.
+   */
+  boardImageStamp: number;
 }
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
@@ -142,6 +225,15 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
             ? parsed.formattingToolbar
             : true,
         defaultEditMode: parsed.defaultEditMode === "raw" ? "raw" : "normal",
+        boardColor: parseBoardColor(parsed.boardColor),
+        boardCustomColor: parseHexColor(parsed.boardCustomColor),
+        boardTexture: parseBoardTexture(parsed.boardTexture),
+        boardUsePicture: parsed.boardUsePicture === true,
+        boardImageStamp:
+          typeof parsed.boardImageStamp === "number" &&
+          Number.isFinite(parsed.boardImageStamp)
+            ? parsed.boardImageStamp
+            : 0,
       };
     } catch {
       // ignore
@@ -163,6 +255,11 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     noteQuips: true,
     formattingToolbar: true,
     defaultEditMode: "normal",
+    boardColor: "none",
+    boardCustomColor: DEFAULT_BOARD_CUSTOM_COLOR,
+    boardTexture: "none",
+    boardUsePicture: false,
+    boardImageStamp: 0,
   };
 }
 
@@ -193,6 +290,11 @@ function savePrefs() {
       noteQuips: noteQuips.value,
       formattingToolbar: formattingToolbar.value,
       defaultEditMode: defaultEditMode.value,
+      boardColor: boardColor.value,
+      boardCustomColor: boardCustomColor.value,
+      boardTexture: boardTexture.value,
+      boardUsePicture: boardUsePicture.value,
+      boardImageStamp: boardImageStamp.value,
     }),
   );
 }
@@ -218,6 +320,11 @@ export const darkHue = signal<DarkHue>(prefs.darkHue);
 export const noteQuips = signal<boolean>(prefs.noteQuips);
 export const formattingToolbar = signal<boolean>(prefs.formattingToolbar);
 export const defaultEditMode = signal<EditMode>(prefs.defaultEditMode);
+export const boardColor = signal<BoardColorChoice>(prefs.boardColor);
+export const boardCustomColor = signal<string>(prefs.boardCustomColor);
+export const boardTexture = signal<BoardTexture>(prefs.boardTexture);
+export const boardUsePicture = signal<boolean>(prefs.boardUsePicture);
+export const boardImageStamp = signal<number>(prefs.boardImageStamp);
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
 export function resolvedDecimalSeparator(): "." | "," {
@@ -255,6 +362,11 @@ export function applyPrefs(loaded: LoadedPrefs) {
       noteQuips.value = loaded.noteQuips;
       formattingToolbar.value = loaded.formattingToolbar;
       defaultEditMode.value = loaded.defaultEditMode;
+      boardColor.value = loaded.boardColor;
+      boardCustomColor.value = loaded.boardCustomColor;
+      boardTexture.value = loaded.boardTexture;
+      boardUsePicture.value = loaded.boardUsePicture;
+      boardImageStamp.value = loaded.boardImageStamp;
     });
   } finally {
     applyingRemotePrefs = false;
@@ -280,6 +392,11 @@ effect(() => {
   noteQuips.value;
   formattingToolbar.value;
   defaultEditMode.value;
+  boardColor.value;
+  boardCustomColor.value;
+  boardTexture.value;
+  boardUsePicture.value;
+  boardImageStamp.value;
   // The reads above stay unconditional: they are what subscribes this effect.
   if (applyingRemotePrefs) return;
   clearTimeout(saveTimeout);
@@ -309,6 +426,23 @@ effect(() => {
 
 effect(() => {
   document.documentElement.classList.toggle("no-motion", !animations.value);
+});
+
+// --- Board background ---
+
+// Attributes on <html>, like the dark hue: styles.css keys the board's colour
+// and texture off them, in both themes. A custom colour is handed over as
+// `--board-custom`, which the dark theme deepens. The picture, which covers
+// both, is applied by state/board.ts.
+effect(() => {
+  const root = document.documentElement;
+  const color = boardColor.value;
+  const texture = boardTexture.value;
+  if (color === "none") delete root.dataset.boardColor;
+  else root.dataset.boardColor = color;
+  if (texture === "none") delete root.dataset.boardTexture;
+  else root.dataset.boardTexture = texture;
+  root.style.setProperty("--board-custom", boardCustomColor.value);
 });
 
 // --- Dark hue ---

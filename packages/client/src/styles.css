@@ -393,6 +393,228 @@ html.dark {
   border-radius: var(--note-radius);
 }
 
+/* Board background: user preferences (Settings > Appearance > Board
+   Background), keyed off attributes on <html> by state/prefs.ts. The board is
+   composed of a colour and a texture over it, or covered whole by a picture.
+   `.board` is the scrolling area the notes sit in; a background there stays
+   put while they scroll over it.
+
+   Every preset colour has a light and a dark shade, pale and deep enough that
+   any note colour still reads against it. A custom colour is shown as picked
+   in the light theme and mixed deep into the page colour in the dark one, so a
+   pastel chosen in daylight does not glare behind dark notes at night. */
+:root {
+  --board-sand: #f3ead9;
+  --board-sage: #e2eadd;
+  --board-mist: #dfe7ee;
+  --board-blush: #f2e2e1;
+  --board-lavender: #e8e3f1;
+  --board-caramel: #dcc39b;
+  --board-page: var(--color-white);
+  --board-custom-shade: var(--board-custom);
+  --board-scrim: rgb(255 255 255 / 0.15);
+  /* The ink textures are drawn in: darker than the colour under them. */
+  --board-ink: rgb(0 0 0 / 0.07);
+  --board-ink-strong: rgb(0 0 0 / 0.15);
+}
+
+:root.dark {
+  --board-sand: #29241b;
+  --board-sage: #1d2720;
+  --board-mist: #1b232c;
+  --board-blush: #2b1f21;
+  --board-lavender: #232030;
+  --board-caramel: #3b2e1f;
+  --board-page: var(--color-neutral-900);
+  --board-custom-shade: color-mix(
+    in oklab,
+    var(--board-custom) 30%,
+    var(--color-neutral-900)
+  );
+  --board-scrim: rgb(0 0 0 / 0.4);
+  /* Lighter than the colour under them, and fainter: dark surfaces show it
+     more. */
+  --board-ink: rgb(255 255 255 / 0.05);
+  --board-ink-strong: rgb(255 255 255 / 0.11);
+}
+
+:root[data-board-color="sand"] {
+  --board-color: var(--board-sand);
+}
+:root[data-board-color="sage"] {
+  --board-color: var(--board-sage);
+}
+:root[data-board-color="mist"] {
+  --board-color: var(--board-mist);
+}
+:root[data-board-color="blush"] {
+  --board-color: var(--board-blush);
+}
+:root[data-board-color="lavender"] {
+  --board-color: var(--board-lavender);
+}
+:root[data-board-color="caramel"] {
+  --board-color: var(--board-caramel);
+}
+:root[data-board-color="custom"] {
+  --board-color: var(--board-custom-shade);
+}
+
+/* Textures. Each is a background-image and a matching background-size, named
+   once here and used both by the board and by its tile in Settings. The noise
+   ones are SVG turbulence with the ink baked in, since a data URI cannot read a
+   custom property, so they come in a light and a dark version; the drawn ones
+   are gradients in `--board-ink`. */
+:root {
+  --board-texture-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.200 -0.050'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --board-texture-paper-size: 160px 160px;
+  --board-texture-cork: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.950 -0.380'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --board-texture-cork-size: 200px 200px;
+  --board-texture-felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.12' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.260 -0.080'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --board-texture-felt-size: 250px 250px;
+  --board-texture-linen:
+    var(--board-texture-paper),
+    repeating-linear-gradient(0deg, var(--board-ink) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(
+      90deg,
+      var(--board-ink) 0 1px,
+      transparent 1px 4px
+    );
+  --board-texture-linen-size: 160px 160px, auto, auto;
+  --board-texture-dots: radial-gradient(
+    circle,
+    var(--board-ink-strong) 1.25px,
+    transparent 1.75px
+  );
+  --board-texture-dots-size: 22px 22px;
+  --board-texture-grid:
+    linear-gradient(var(--board-ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--board-ink) 1px, transparent 1px);
+  --board-texture-grid-size: 24px 24px;
+  --board-texture-lines: repeating-linear-gradient(
+    to bottom,
+    transparent 0 27px,
+    var(--board-ink-strong) 27px 28px
+  );
+  --board-texture-lines-size: auto;
+}
+
+:root.dark {
+  --board-texture-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.150 -0.038'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --board-texture-cork: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.712 -0.285'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --board-texture-felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.12' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.195 -0.060'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-board-texture="paper"] {
+  --board-texture: var(--board-texture-paper);
+  --board-texture-size: var(--board-texture-paper-size);
+}
+:root[data-board-texture="cork"] {
+  --board-texture: var(--board-texture-cork);
+  --board-texture-size: var(--board-texture-cork-size);
+}
+:root[data-board-texture="felt"] {
+  --board-texture: var(--board-texture-felt);
+  --board-texture-size: var(--board-texture-felt-size);
+}
+:root[data-board-texture="linen"] {
+  --board-texture: var(--board-texture-linen);
+  --board-texture-size: var(--board-texture-linen-size);
+}
+:root[data-board-texture="dots"] {
+  --board-texture: var(--board-texture-dots);
+  --board-texture-size: var(--board-texture-dots-size);
+}
+:root[data-board-texture="grid"] {
+  --board-texture: var(--board-texture-grid);
+  --board-texture-size: var(--board-texture-grid-size);
+}
+:root[data-board-texture="lines"] {
+  --board-texture: var(--board-texture-lines);
+  --board-texture-size: var(--board-texture-lines-size);
+}
+
+.board {
+  background-color: var(--board-color, transparent);
+  background-image: var(--board-texture, none);
+  background-size: var(--board-texture-size, auto);
+  transition: background-color 300ms ease;
+  /* Its own stacking context, so it paints its background first: the
+     new-note pad tucks its base behind the sheets with a negative z-index,
+     which would otherwise put it under this background and out of sight. */
+  isolation: isolate;
+}
+
+/* The picture covers the colour and texture alike, under a thin scrim in the
+   page's own colour so headings and empty-view text stay legible over a busy
+   photo. The attribute is only set once the picture has loaded. */
+:root[data-board-picture] .board {
+  background-image:
+    linear-gradient(var(--board-scrim), var(--board-scrim)),
+    var(--board-image, none);
+  background-size: cover;
+  background-position: center;
+}
+
+/* The choices in Settings, drawn in the shade the current theme uses. A
+   texture tile shows the texture on the colour chosen now, as the board will. */
+.board-swatch {
+  background-color: var(--board-page);
+}
+.board-swatch[data-board-swatch="sand"] {
+  background-color: var(--board-sand);
+}
+.board-swatch[data-board-swatch="sage"] {
+  background-color: var(--board-sage);
+}
+.board-swatch[data-board-swatch="mist"] {
+  background-color: var(--board-mist);
+}
+.board-swatch[data-board-swatch="blush"] {
+  background-color: var(--board-blush);
+}
+.board-swatch[data-board-swatch="lavender"] {
+  background-color: var(--board-lavender);
+}
+.board-swatch[data-board-swatch="caramel"] {
+  background-color: var(--board-caramel);
+}
+.board-swatch[data-board-swatch="custom"] {
+  background-color: var(--board-custom-shade);
+}
+
+.board-texture-tile {
+  background-color: var(--board-color, var(--board-page));
+}
+.board-texture-tile[data-texture="paper"] {
+  background-image: var(--board-texture-paper);
+  background-size: var(--board-texture-paper-size);
+}
+.board-texture-tile[data-texture="cork"] {
+  background-image: var(--board-texture-cork);
+  background-size: var(--board-texture-cork-size);
+}
+.board-texture-tile[data-texture="felt"] {
+  background-image: var(--board-texture-felt);
+  background-size: var(--board-texture-felt-size);
+}
+.board-texture-tile[data-texture="linen"] {
+  background-image: var(--board-texture-linen);
+  background-size: var(--board-texture-linen-size);
+}
+.board-texture-tile[data-texture="dots"] {
+  background-image: var(--board-texture-dots);
+  background-size: var(--board-texture-dots-size);
+}
+.board-texture-tile[data-texture="grid"] {
+  background-image: var(--board-texture-grid);
+  background-size: var(--board-texture-grid-size);
+}
+.board-texture-tile[data-texture="lines"] {
+  background-image: var(--board-texture-lines);
+  background-size: var(--board-texture-lines-size);
+}
+
 /* Changing a note's colour fades the sheet into the new one instead of
    swapping it in a frame. A card also animates its selection ring, shadow and
    editing opacity, quicker; listing the colours last lets them keep their own

@@ -55,6 +55,16 @@ export {
 } from "./linkPreviews.js";
 export {
   animations,
+  BOARD_COLORS,
+  BOARD_TEXTURES,
+  type BoardColor,
+  type BoardColorChoice,
+  type BoardTexture,
+  boardColor,
+  boardCustomColor,
+  boardImageStamp,
+  boardTexture,
+  boardUsePicture,
   DARK_HUES,
   type DarkHue,
   type DecimalSeparator,

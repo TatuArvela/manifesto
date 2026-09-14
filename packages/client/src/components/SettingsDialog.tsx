@@ -52,6 +52,7 @@ import {
   theme,
 } from "../state/index.js";
 import { importFiles } from "../utils/importExport.js";
+import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
 import { Dropdown } from "./Dropdown.js";
 import { Switch, ThreeWayToggle } from "./ToggleSwitch.js";
 
@@ -420,6 +421,8 @@ export function SettingsDialog() {
                 }}
               />
             </SettingsRow>
+
+            <BoardBackgroundSetting />
 
             <SettingsRow label={t("settings.noteCorners")}>
               <Switch
