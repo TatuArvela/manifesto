@@ -118,6 +118,14 @@ export function Dropdown({
   const anchorRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // Whether the panel was up when the pointer last went down on the trigger.
+  // Pressing the trigger of an open panel is a press outside that panel, so
+  // the browser light-dismisses it. With a mouse the click lands in the same
+  // task, before the `toggle` event reports the close, and the trigger's own
+  // toggle closes it as intended. A tap delivers its click as a separate
+  // gesture, after the close has rendered, so the trigger saw a closed panel
+  // and opened it again: the menu could not be shut from its own button.
+  const openAtPointerDownRef = useRef(false);
 
   // Closed here rather than left to the Popover API's own Escape handling: with
   // focus inside the editor's ProseMirror, Chromium does not run the
@@ -176,11 +184,30 @@ export function Dropdown({
     };
   }, [open, placement]);
 
+  /** Presses inside the panel are the panel's; only the trigger's count. */
+  const onTrigger = (e: Event) =>
+    !panelRef.current?.contains(e.target as Node | null);
+
   return (
     <div
       ref={anchorRef}
       class="relative flex"
       style={{ anchorName: idRef.current }}
+      onPointerDownCapture={(e) => {
+        if (!onTrigger(e)) return;
+        openAtPointerDownRef.current =
+          panelRef.current?.matches(":popover-open") ?? false;
+      }}
+      onClickCapture={(e) => {
+        const wasOpen = openAtPointerDownRef.current;
+        openAtPointerDownRef.current = false;
+        if (!wasOpen || !onTrigger(e)) return;
+        // The press was meant to close. Keep it from reaching the trigger,
+        // which by now may see the panel closed and open it again.
+        e.stopPropagation();
+        panelRef.current?.hidePopover();
+        onCloseRef.current();
+      }}
     >
       {trigger}
       <div
