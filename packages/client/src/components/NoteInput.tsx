@@ -453,14 +453,13 @@ export function NoteInput() {
                   pinned={pinned}
                   onPinToggle={() => setPinned(!pinned)}
                   tags={tags}
+                  onAddTag={(tag) =>
+                    setTags((current) =>
+                      current.includes(tag) ? current : [...current, tag],
+                    )
+                  }
                   onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
                   menuItems={({ checkedItems }) => [
-                    {
-                      kind: "tags",
-                      id: "tags",
-                      tags,
-                      onAddTag: (tag) => setTags([...tags, tag]),
-                    },
                     {
                       id: "export-markdown",
                       icon: <FileText class="w-4 h-4" />,

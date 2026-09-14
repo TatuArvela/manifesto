@@ -9,12 +9,10 @@ import {
   History,
   Link,
   ListX,
-  Tag,
   Trash2,
   Undo2,
 } from "lucide-preact";
 import type { VNode } from "preact";
-import { useEffect, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
 import {
@@ -24,14 +22,12 @@ import {
   restoreNote,
   trashNote,
   unarchiveNote,
-  updateNote,
 } from "../state/index.js";
 import { showSuccess } from "../state/ui.js";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
 } from "../utils/importExport.js";
-import { TagPicker } from "./TagPicker.js";
 
 /**
  * The panel a kebab menu draws itself on. `Dropdown` takes it as `panelClass`;
@@ -54,13 +50,6 @@ export type NoteMenuItem =
       icon: VNode;
       label: string;
       onSelect: () => void;
-    }
-  /** The tag list plus its picker, which opens in place and keeps the menu up. */
-  | {
-      kind: "tags";
-      id: string;
-      tags: string[];
-      onAddTag: (tag: string) => void;
     }
   | { kind: "divider"; id: string };
 
@@ -97,53 +86,15 @@ function withoutStrayDividers(items: NoteMenuItem[]): NoteMenuItem[] {
 export function NoteMenu({
   items,
   onClose,
-  open = true,
 }: {
   items: NoteMenuItem[];
   onClose: () => void;
-  /**
-   * Whether the menu is on screen. `Dropdown` keeps its panel mounted while
-   * closed, so without this the tag picker would still be expanded the next
-   * time the menu opened. Surfaces that mount the menu only while it is open
-   * can leave it alone.
-   */
-  open?: boolean;
 }) {
-  const [showTagPicker, setShowTagPicker] = useState(false);
-
-  useEffect(() => {
-    if (!open) setShowTagPicker(false);
-  }, [open]);
-
   return (
     <>
       {withoutStrayDividers(items).map((item) => {
         if (item.kind === "divider") {
           return <div key={item.id} class={menuDividerClass} />;
-        }
-        if (item.kind === "tags") {
-          return (
-            <div key={item.id} class="relative">
-              <button
-                type="button"
-                class={menuItemClass}
-                onClick={() => setShowTagPicker(!showTagPicker)}
-              >
-                <Tag class="w-4 h-4" />
-                {t("noteMenu.tags")}
-              </button>
-              {showTagPicker && (
-                <TagPicker
-                  tags={item.tags}
-                  onAddTag={(tag) => {
-                    // TagPicker trims and lowercases before it calls back, so
-                    // all that is left here is not adding a tag twice.
-                    if (!item.tags.includes(tag)) item.onAddTag(tag);
-                  }}
-                />
-              )}
-            </div>
-          );
         }
         return (
           <button
@@ -203,14 +154,7 @@ export function noteMenuItems(
   const { draft, onDismiss } = options;
   const title = draft?.title ?? note.title;
   const content = draft?.content ?? note.content;
-  const items: NoteMenuItem[] = [
-    {
-      kind: "tags",
-      id: "tags",
-      tags: note.tags,
-      onAddTag: (tag) => updateNote(note.id, { tags: [...note.tags, tag] }),
-    },
-  ];
+  const items: NoteMenuItem[] = [];
 
   if (options.onOpenReminder) {
     items.push({

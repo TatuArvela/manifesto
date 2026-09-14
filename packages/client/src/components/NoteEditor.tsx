@@ -56,6 +56,7 @@ import {
 import { CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
+import { TagPickerButton } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 const iconBtnClass =
@@ -91,6 +92,8 @@ interface NoteEditorProps {
   pinned: boolean;
   onPinToggle: () => void;
   tags: string[];
+  /** Called with a normalized tag the note does not have yet. */
+  onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
   reminder?: NoteReminder | null;
   onReminderChange?: (reminder: NoteReminder | null) => void;
@@ -137,6 +140,7 @@ export function NoteEditor({
   pinned,
   onPinToggle,
   tags,
+  onAddTag,
   onRemoveTag,
   reminder,
   onReminderChange,
@@ -682,6 +686,13 @@ export function NoteEditor({
             }}
           />
 
+          <TagPickerButton
+            tags={tags}
+            onAddTag={onAddTag}
+            triggerClass={editorBtnClass}
+            iconClass={editorIconClass}
+          />
+
           <Dropdown
             open={showMenu}
             onClose={() => setShowMenu(false)}
@@ -743,7 +754,6 @@ export function NoteEditor({
             <NoteMenu
               items={menuItems?.({ checkedItems }) ?? []}
               onClose={() => setShowMenu(false)}
-              open={showMenu}
             />
           </Dropdown>
 

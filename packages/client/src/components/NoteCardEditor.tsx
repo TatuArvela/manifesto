@@ -7,6 +7,7 @@ import { formatDateTime, t } from "../i18n/index.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
 import {
   addLinkPreviews,
+  addTag,
   ensureImages,
   showError,
   togglePin,
@@ -251,6 +252,7 @@ export function NoteCardEditor({
         pinned={note.pinned}
         onPinToggle={() => togglePin(note.id)}
         tags={note.tags}
+        onAddTag={(tag) => addTag(note.id, tag)}
         onRemoveTag={(tag) =>
           updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) })
         }

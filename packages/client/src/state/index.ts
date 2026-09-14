@@ -1,6 +1,7 @@
 // Barrel re-export of all public state, actions, and types
 
 export {
+  addTag,
   addTagToNotes,
   allTags,
   archiveNote,
