@@ -18,7 +18,7 @@ import { refreshAutoNotes } from "../state/autoNotes.js";
 import { togglePin, updateNote } from "../state/index.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
 import { Dropdown } from "./Dropdown.js";
-import { iconBtnClass } from "./NoteEditor.js";
+import { editorBtnClass, editorIconClass } from "./NoteEditor.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
@@ -59,11 +59,11 @@ export function NoteReadonlyView({
         <div class="sm:hidden">
           <button
             type="button"
-            class={iconBtnClass}
+            class={editorBtnClass}
             onClick={onClose}
             aria-label={t("editor.back")}
           >
-            <ArrowLeft class="w-5 h-5" />
+            <ArrowLeft class="w-5 h-5 max-sm:w-6 max-sm:h-6" />
           </button>
         </div>
         <div class="sm:absolute sm:top-2 sm:right-2 flex items-center gap-0.5">
@@ -72,14 +72,14 @@ export function NoteReadonlyView({
           >
             <button
               type="button"
-              class={iconBtnClass}
+              class={editorBtnClass}
               onClick={() => togglePin(note.id)}
               aria-label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
             >
               {note.pinned ? (
-                <PinOff class="w-4 h-4" />
+                <PinOff class={editorIconClass} />
               ) : (
-                <Pin class="w-4 h-4" />
+                <Pin class={editorIconClass} />
               )}
             </button>
           </Tooltip>
@@ -167,21 +167,21 @@ export function NoteReadonlyView({
               label={t("autoNotes.generatedBy", { name: pluginLabel ?? "" })}
             >
               <span
-                class="p-1.5 opacity-60"
+                class="p-1.5 max-sm:p-3 opacity-60"
                 role="img"
                 aria-label={t("autoNotes.badge")}
               >
-                <Sparkles class="w-4 h-4" />
+                <Sparkles class={editorIconClass} />
               </span>
             </Tooltip>
             <Tooltip label={t("autoNotes.refresh")}>
               <button
                 type="button"
-                class={iconBtnClass}
+                class={editorBtnClass}
                 onClick={() => refreshAutoNotes()}
                 aria-label={t("autoNotes.refresh")}
               >
-                <RefreshCw class="w-4 h-4" />
+                <RefreshCw class={editorIconClass} />
               </button>
             </Tooltip>
           </>
@@ -194,14 +194,14 @@ export function NoteReadonlyView({
             <Tooltip label={t("editor.color")}>
               <button
                 type="button"
-                class={iconBtnClass}
+                class={editorBtnClass}
                 onClick={() => {
                   setShowColorPicker(!showColorPicker);
                   setShowMenu(false);
                 }}
                 aria-label={t("editor.changeColor")}
               >
-                <Palette class="w-4 h-4" />
+                <Palette class={editorIconClass} />
               </button>
             </Tooltip>
           }
@@ -226,7 +226,8 @@ export function NoteReadonlyView({
         <ReminderPicker
           reminder={note.reminder ?? null}
           onChange={(reminder) => updateNote(note.id, { reminder })}
-          triggerClass={iconBtnClass}
+          triggerClass={editorBtnClass}
+          iconClass={editorIconClass}
         />
 
         <Dropdown
@@ -236,14 +237,14 @@ export function NoteReadonlyView({
             <Tooltip label={t("noteMenu.more")}>
               <button
                 type="button"
-                class={iconBtnClass}
+                class={editorBtnClass}
                 onClick={() => {
                   setShowMenu(!showMenu);
                   setShowColorPicker(false);
                 }}
                 aria-label={t("noteMenu.moreOptions")}
               >
-                <EllipsisVertical class="w-4 h-4" />
+                <EllipsisVertical class={editorIconClass} />
               </button>
             </Tooltip>
           }
@@ -262,11 +263,11 @@ export function NoteReadonlyView({
         <Tooltip label={t("noteCard.close")}>
           <button
             type="button"
-            class={iconBtnClass}
+            class={editorBtnClass}
             onClick={onClose}
             aria-label={t("noteCard.close")}
           >
-            <X class="w-4 h-4" />
+            <X class={editorIconClass} />
           </button>
         </Tooltip>
       </div>
