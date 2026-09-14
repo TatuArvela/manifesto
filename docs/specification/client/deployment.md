@@ -156,4 +156,9 @@ Manifesto is a Progressive Web App:
   bundle reaches returning users on their next online visit. `icon-1024.png` is left to the browser, since
   the page never displays it.
 - Installable on mobile and desktop via the browser's "Add to Home Screen" / install prompt.
+- Updates itself. A new worker takes over as soon as it installs, and the page checks for one whenever it
+  returns to the foreground and hourly while it stays there, since an installed app resumed from the
+  background never navigates and the browser would otherwise never look. Once a new version has taken
+  over, the page reloads onto it the next time it is hidden or shown with no dialog open and nothing being
+  typed (`utils/updateReload.ts`), so an open editor is never reloaded out from under its debounced save.
 - Open-mode builds work fully offline. Connected-mode builds load from cache when offline but cannot read or write notes until the network returns.

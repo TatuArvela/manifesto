@@ -1,5 +1,6 @@
 import type { NoteReminder } from "@manifesto/shared";
 import { notes, updateNote } from "./state/actions.js";
+import { createUpdateReloader, pageIsIdle } from "./utils/updateReload.js";
 
 interface SwMessage {
   type: "reminder-fired" | "open-note";
@@ -34,16 +35,51 @@ export function registerServiceWorker(): void {
     }
   });
 
+  const reloader = createUpdateReloader({
+    hadController: navigator.serviceWorker.controller !== null,
+    isIdle: () => pageIsIdle(),
+    reload: () => window.location.reload(),
+  });
+  navigator.serviceWorker.addEventListener("controllerchange", () =>
+    reloader.controllerChanged(),
+  );
+
   void (async () => {
     try {
       const isDev = import.meta.env.DEV;
       const base = import.meta.env.BASE_URL;
-      await navigator.serviceWorker.register(
+      const registration = await navigator.serviceWorker.register(
         isDev ? `${base}dev-sw.js?dev-sw` : `${base}sw.js`,
         { type: "module", scope: base },
       );
+      keepCheckingForUpdates(registration, reloader);
     } catch (err) {
       console.warn("Service worker registration failed:", err);
     }
   })();
+}
+
+const UPDATE_CHECK_INTERVAL_MS = 60 * 60_000;
+
+/**
+ * The browser looks for a new worker on navigation, and an installed app
+ * resumed from the background never navigates. So look on every return to the
+ * foreground, and hourly while it stays there.
+ */
+function keepCheckingForUpdates(
+  registration: ServiceWorkerRegistration,
+  reloader: ReturnType<typeof createUpdateReloader>,
+): void {
+  const check = () => {
+    registration.update().catch(() => {
+      // Offline, or the server is down: the next check tries again.
+    });
+  };
+  document.addEventListener("visibilitychange", () => {
+    reloader.visibilityChanged();
+    if (document.visibilityState === "visible") check();
+  });
+  setInterval(() => {
+    if (document.visibilityState === "visible") check();
+  }, UPDATE_CHECK_INTERVAL_MS);
 }
