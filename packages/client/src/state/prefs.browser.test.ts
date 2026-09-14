@@ -98,6 +98,44 @@ describe("parsePrefs", () => {
     expect(result.defaultNoteFont).toBe(NoteFont.PermanentMarker);
   });
 
+  it("restores a board composition, and drops anything else", () => {
+    const composed = parsePrefs(
+      JSON.stringify({
+        boardColor: "custom",
+        boardCustomColor: "#AABBCC",
+        boardTexture: "cork",
+        boardUsePicture: true,
+        boardImageStamp: 42,
+      }),
+    );
+    expect(composed.boardColor).toBe("custom");
+    expect(composed.boardCustomColor).toBe("#aabbcc");
+    expect(composed.boardTexture).toBe("cork");
+    expect(composed.boardUsePicture).toBe(true);
+    expect(composed.boardImageStamp).toBe(42);
+
+    const unknown = parsePrefs(
+      JSON.stringify({
+        boardColor: "plaid",
+        boardTexture: "velvet",
+        boardUsePicture: "yes",
+        boardImageStamp: "soon",
+      }),
+    );
+    expect(unknown.boardColor).toBe("none");
+    expect(unknown.boardTexture).toBe("none");
+    expect(unknown.boardUsePicture).toBe(false);
+    expect(unknown.boardImageStamp).toBe(0);
+  });
+
+  it("refuses a custom board colour that is anything but a hex colour", () => {
+    // It is written straight into a CSS custom property.
+    const injected = parsePrefs(
+      JSON.stringify({ boardCustomColor: "red; background: url(evil)" }),
+    );
+    expect(injected.boardCustomColor).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
   it("ignores an unsupported locale and falls back to detection", () => {
     const result = parsePrefs(JSON.stringify({ locale: "xx-NEVER" }));
     // detectBrowserLocale returns one of the supported locales.
