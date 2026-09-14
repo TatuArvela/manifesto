@@ -1,4 +1,9 @@
-import type { ExpiredTrashedNote, MaintenanceRepo } from "../types.js";
+import { rowToShare, type ShareRow } from "../shareMapping.js";
+import type {
+  ExpiredTrashedNote,
+  MaintenanceRepo,
+  NoteShare,
+} from "../types.js";
 import type { SqliteDB } from "./database.js";
 
 interface ExpiredRow {
@@ -17,7 +22,19 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
      RETURNING id, user_id`,
   );
 
+  const cleanupSharesStmt = db.prepare(
+    `DELETE FROM note_shares
+       WHERE trashed = 1
+         AND trashed_at IS NOT NULL
+         AND trashed_at < ?
+     RETURNING note_id, user_id, role, created_at, accepted_at`,
+  );
+
   return {
+    async cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]> {
+      return (cleanupSharesStmt.all(cutoffIso) as ShareRow[]).map(rowToShare);
+    },
+
     async cleanupTrashedBefore(
       cutoffIso: string,
     ): Promise<ExpiredTrashedNote[]> {

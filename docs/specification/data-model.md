@@ -129,10 +129,10 @@ The fields of a shared note split in two, declared once in `@manifesto/shared` a
 
 | Shared by everyone | Each participant's own |
 |--------------------|------------------------|
-| `title`, `content`, `font`, `images`, `linkPreviews` | `color`, `pinned`, `archived`, `position`, `tags`, `reminder` |
+| `title`, `content`, `font`, `images`, `linkPreviews` | `color`, `pinned`, `archived`, `trashed`, `trashedAt`, `position`, `tags`, `reminder` |
 
-`trashed`, `trashedAt`, `readonly` and `source` are the owner's alone. A recipient's copy is never
-trashed: a note in its owner's trash is not shown to anyone else.
+`readonly` and `source` are the owner's alone. A recipient's `trashed` is their own trash; the
+owner's is different, because a note in its owner's trash is not shown to anyone else at all.
 
 ## NoteReminder
 

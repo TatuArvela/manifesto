@@ -132,7 +132,6 @@ export const en = {
   "noteMenu.undelete": "Undelete",
   "noteMenu.shareWithPeople": "Share with people",
   "noteMenu.people": "People with this note",
-  "noteMenu.leave": "Remove from my notes",
 
   "editor.rawMode": "Raw mode",
   "editor.normalMode": "Normal mode",

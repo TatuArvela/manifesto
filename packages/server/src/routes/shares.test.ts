@@ -279,16 +279,50 @@ describe("sharing notes between accounts", () => {
     ).toBe(200);
   });
 
-  it("leaves the trash and deletion to the owner", async () => {
+  it("puts a recipient's deleted note in their own trash, and empties it from there", async () => {
+    const note = await createNote();
+    await shareAccepted(note.id, alice);
+    events.length = 0;
+
+    const trashed = await call(alice, "PUT", `/api/notes/${note.id}`, {
+      trashed: true,
+    });
+    expect(trashed.status).toBe(200);
+    const { note: aliceView } = (await trashed.json()) as { note: Note };
+    expect(aliceView.trashed).toBe(true);
+    expect(aliceView.trashedAt).not.toBeNull();
+    // The owner's copy is untouched, and nobody's access changed.
+    expect(eventsFor(owner.userId).at(-1)).toMatchObject({
+      type: "note:updated",
+      note: { trashed: false },
+    });
+    expect(events.some((e) => e.event.type === "invitation:created")).toBe(
+      false,
+    );
+
+    expect((await call(alice, "DELETE", `/api/notes/${note.id}`)).status).toBe(
+      204,
+    );
+    expect(eventsFor(alice.userId).at(-1)).toEqual({
+      type: "note:deleted",
+      id: note.id,
+    });
+    expect((await noteAs(alice, note.id)).status).toBe(404);
+    const ownerView = (
+      (await (await noteAs(owner, note.id)).json()) as {
+        note: Note;
+      }
+    ).note;
+    expect(ownerView.sharing).toBeUndefined();
+  });
+
+  it("still leaves what only the owner decides to the owner", async () => {
     const note = await createNote();
     await shareAccepted(note.id, alice);
     expect(
-      (await call(alice, "PUT", `/api/notes/${note.id}`, { trashed: true }))
+      (await call(alice, "PUT", `/api/notes/${note.id}`, { readonly: true }))
         .status,
     ).toBe(403);
-    expect((await call(alice, "DELETE", `/api/notes/${note.id}`)).status).toBe(
-      403,
-    );
   });
 
   it("answers a stale recipient write with 412 and the recipient's copy", async () => {

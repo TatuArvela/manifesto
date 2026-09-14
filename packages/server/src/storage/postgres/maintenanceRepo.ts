@@ -1,4 +1,9 @@
-import type { ExpiredTrashedNote, MaintenanceRepo } from "../types.js";
+import { rowToShare, type ShareRow } from "../shareMapping.js";
+import type {
+  ExpiredTrashedNote,
+  MaintenanceRepo,
+  NoteShare,
+} from "../types.js";
 import type { PgPool } from "./database.js";
 
 interface ExpiredRow {
@@ -8,6 +13,18 @@ interface ExpiredRow {
 
 export function createPostgresMaintenanceRepo(pool: PgPool): MaintenanceRepo {
   return {
+    async cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]> {
+      const result = await pool.query<ShareRow>(
+        `DELETE FROM note_shares
+           WHERE trashed = TRUE
+             AND trashed_at IS NOT NULL
+             AND trashed_at < $1
+         RETURNING note_id, user_id, role, created_at, accepted_at`,
+        [cutoffIso],
+      );
+      return result.rows.map(rowToShare);
+    },
+
     async cleanupTrashedBefore(
       cutoffIso: string,
     ): Promise<ExpiredTrashedNote[]> {

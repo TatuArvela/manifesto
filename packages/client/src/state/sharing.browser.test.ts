@@ -225,13 +225,24 @@ describe("writing a shared note", () => {
     expect(messages()).toEqual(["You can view this note but not change it."]);
   });
 
-  it("leaves the trash to the owner, even for an editor", async () => {
+  it("leaves what only the owner decides to the owner, even for an editor", async () => {
     notes.value = [makeNote({ sharing: sharedAs("edit") })];
-    expect(
-      await updateNote("n1", { trashed: true, trashedAt: "2026-04-02" }),
-    ).toBe(false);
+    expect(await updateNote("n1", { readonly: true })).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(messages()).toEqual(["Only the note's owner can do that."]);
+  });
+
+  it("sends a viewer's delete to their own trash", async () => {
+    const viewed = makeNote({ sharing: sharedAs("view") });
+    notes.value = [viewed];
+    fetchMock.mockResolvedValueOnce(
+      json({ note: { ...viewed, trashed: true, trashedAt: "2026-04-02" } }),
+    );
+    expect(
+      await updateNote("n1", { trashed: true, trashedAt: "2026-04-02" }),
+    ).toBe(true);
+    expect(notes.value[0]?.trashed).toBe(true);
+    expect(messages()).toEqual([]);
   });
 
   it("sends a viewer's own pin, and an editor's text", async () => {

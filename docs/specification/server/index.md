@@ -119,8 +119,9 @@ accepted (`null` while it is an invitation), and their own copy of the personal 
   announces ended sessions. `/api/yjs` closes the affected sockets; `/api/ws` stops showing the person
   on the note and stops telling them who else is.
 - **Contract.** `src/storage/sharingContract.ts` runs the same rules against both drivers: an
-  invitation grants nothing, personal fields stay apart, viewers cannot write the note, the trash hides
-  a note from recipients, cascades take shares along.
+  invitation grants nothing, personal fields stay apart, viewers cannot write the note, the owner's
+  trash hides a note from recipients while a recipient's is their own, an expired recipient trash
+  removes only their share, cascades take shares along.
 
 `USER_LOOKUP` decides what `GET /api/users` answers: matches as the owner types (`search`), or only an
 exact username or address, never showing the address (`exact`).

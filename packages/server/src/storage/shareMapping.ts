@@ -46,6 +46,8 @@ export interface ViewRow extends NoteRow {
   s_color?: string | null;
   s_pinned?: RowBoolean | null;
   s_archived?: RowBoolean | null;
+  s_trashed?: RowBoolean | null;
+  s_trashed_at?: string | null;
   s_position?: number | string | null;
   s_tags?: string | null;
   s_reminder?: string | null;
@@ -57,6 +59,8 @@ export const SHARE_OVERLAY_COLUMNS = [
   "s.color AS s_color",
   "s.pinned AS s_pinned",
   "s.archived AS s_archived",
+  "s.trashed AS s_trashed",
+  "s.trashed_at AS s_trashed_at",
   "s.position AS s_position",
   "s.tags AS s_tags",
   "s.reminder AS s_reminder",
@@ -146,8 +150,8 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
 
 /**
  * The note as its reader sees it. A row that came through a share takes the
- * recipient's own personal fields, and is never in the trash: the trash is the
- * owner's, and a trashed note does not reach anyone else at all.
+ * recipient's own personal fields, their own trash included. The owner's trash
+ * never shows here: a note in it does not reach anyone else at all.
  */
 export function rowToViewNote(row: ViewRow, listed: boolean): Note {
   const note = listed ? rowToListedNote(row) : rowToNote(row);
@@ -158,8 +162,8 @@ export function rowToViewNote(row: ViewRow, listed: boolean): Note {
   note.position = Number(row.s_position ?? 0);
   note.tags = parseJson<string[]>(row.s_tags ?? null, []);
   note.reminder = parseJson<NoteReminder | null>(row.s_reminder ?? null, null);
-  note.trashed = false;
-  note.trashedAt = null;
+  note.trashed = asBoolean(row.s_trashed ?? false);
+  note.trashedAt = row.s_trashed_at ?? null;
   return note;
 }
 
@@ -221,8 +225,8 @@ const PERSONAL_FIELDS = new Set<string>(PERSONAL_NOTE_FIELDS);
 
 /**
  * A recipient's update, split by where each field is written: the shared
- * fields to the note, the personal ones to their share, and the rest (the
- * trash, auto-note markers) belonging to the owner alone.
+ * fields to the note, the personal ones (their own trash among them) to their
+ * share, and the rest (auto-note markers) belonging to the owner alone.
  */
 export function splitChanges(changes: NoteUpdate): {
   shared: NoteUpdate;

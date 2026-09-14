@@ -112,7 +112,8 @@ export function createNotesRoutes(deps: NotesDeps) {
           ifMatch,
         );
       } catch (err) {
-        // A recipient reaching for the trash, or a viewer for the note itself.
+        // A viewer reaching for the note itself, or a recipient for what only
+        // the owner decides.
         if (err instanceof NoteAccessError) {
           throw new HttpError(
             403,
@@ -136,9 +137,12 @@ export function createNotesRoutes(deps: NotesDeps) {
         throw new HttpError(404, "Note not found");
       }
       // Everyone holding the note gets their own copy of it, the writer's
-      // other tabs included.
+      // other tabs included. Only the owner's trash hides the note from anyone
+      // else; a recipient's is theirs alone.
       await deps.noteEvents.changed(id, {
-        trashChanged: fields.trashed !== undefined,
+        trashChanged:
+          fields.trashed !== undefined &&
+          (updated.sharing?.role ?? "owner") === "owner",
       });
       return c.json({ note: updated });
     },
@@ -148,8 +152,15 @@ export function createNotesRoutes(deps: NotesDeps) {
     const { userId } = c.get("auth");
     const id = c.req.param("id") as string;
     const access = await deps.storage.notes.access(id, userId);
+    // Deleting a note shared with you deletes it from your notes: your share
+    // goes, and the note stays with its owner and everyone else. This is what
+    // emptying it from your own trash does.
     if (access && access.role !== "owner") {
-      throw new HttpError(403, "Only the owner can delete this note");
+      const removed = await deps.storage.shares.delete(id, userId);
+      if (!removed) throw new HttpError(404, "Note not found");
+      deps.noteEvents.ended([removed]);
+      await deps.noteEvents.changed(id);
+      return c.body(null, 204);
     }
     // Read before the delete, which takes the shares with it by cascade.
     const shares = (await deps.storage.shares.audience(id))?.shares ?? [];

@@ -15,9 +15,11 @@ The API is the contract between the Manifesto client and server. Any server impl
 | `DELETE` | `/api/notes/:id` | Permanently delete   |
 
 The notes a user sees are their own and the ones [shared with them](features/sharing-with-people.md)
-that they accepted. A shared note is theirs to read (and, as an editor, to write) but not to
-trash or delete: `PUT` with `trashed` from a recipient, `PUT` with a shared field from a viewer, and
-`DELETE` from anyone but the owner are all `403`, and nothing is written.
+that they accepted. A shared note is theirs to read (and, as an editor, to write), and their
+personal fields are theirs to change, `trashed` included. A viewer's `PUT` with a shared field, and
+a recipient's with `readonly` or `source`, is `403` with nothing written. A recipient's `DELETE`
+removes the note from their notes (their share goes, the note stays with everyone else) and answers
+`204`, as emptying it from their own trash.
 
 ### Sharing
 

@@ -24,7 +24,7 @@ const storage = await createStorage(cfg);
 const initialAdmin = await ensureInitialAdmin(storage, cfg);
 if (initialAdmin) announceInitialAdmin(initialAdmin);
 const authProvider = createAuthProvider(cfg, storage);
-const { app, broadcaster, revocations, accessChanges } = createApp({
+const { app, broadcaster, revocations, accessChanges, noteEvents } = createApp({
   cfg,
   storage,
   authProvider,
@@ -62,7 +62,12 @@ const yjs = attachYjsSocket({
   accessChanges,
   cfg,
 });
-const stopTrashCleanup = startTrashCleanup(storage, broadcaster);
+const stopTrashCleanup = startTrashCleanup(
+  storage,
+  broadcaster,
+  undefined,
+  noteEvents,
+);
 const stopSessionCleanup = startSessionCleanup(storage);
 
 const shutdown = createShutdown({

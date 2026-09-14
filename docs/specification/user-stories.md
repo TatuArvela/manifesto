@@ -79,7 +79,7 @@ As a user on a server, I want to share a note with people who have accounts ther
 - The note reaches them only after they accept my invitation, and I can see who has not answered yet
 - I can change what someone can do, or take them off the note, at any time, and it takes effect at once
 - The text, images and links are the same for everyone; my color, pin, archive, tags and reminder on the note are mine alone, and so are theirs
-- Someone I shared a note with can remove it from their notes, but only I can delete it; while it is in my trash, nobody else sees it
+- Someone I shared a note with can put it in their own trash and restore it, or remove it from their notes, but only I can delete it for everyone; while it is in my trash, nobody else sees it
 - I can give my account an email address so people can find me by it
 - See [Sharing with People](features/sharing-with-people.md)
 

@@ -12,7 +12,8 @@ This is separate from [sharing a note via URL](sharing.md), which copies a note 
 | Change title, text, font, images, link previews | Yes | Yes, live over `/api/yjs` | No |
 | Their own color, pin, archive, position, tags and reminder | Yes | Yes | Yes |
 | Invite people, change roles, remove people | Yes | No | No |
-| Trash, restore or delete the note | Yes | No | No |
+| Trash, restore or delete the note for everyone | Yes | No | No |
+| Put the note in their own trash, restore it, empty it from there | Yes | Yes | Yes |
 | Remove the note from their own notes | No | Yes | Yes |
 
 A note has one owner, the account that created it, and ownership never changes.
@@ -21,11 +22,11 @@ A note has one owner, the account that created it, and ownership never changes.
 
 The **note itself** is the same for everyone: `title`, `content`, `font`, `images` and `linkPreviews`.
 
-**Everything about how a person keeps it** is their own: `color`, `pinned`, `archived`, `position`, `tags` and `reminder`. A recipient pinning the note, filing it under a tag or archiving it changes nothing for anyone else. This is what keeps tags per-user, as they are everywhere else in connected mode.
+**Everything about how a person keeps it** is their own: `color`, `pinned`, `archived`, `trashed`, `position`, `tags` and `reminder`. A recipient pinning the note, filing it under a tag, archiving it or putting it in their trash changes nothing for anyone else. This is what keeps tags per-user, as they are everywhere else in connected mode.
 
 A recipient starts with the note's color at the moment they accept, unpinned, unarchived, without tags or a reminder, and at the end of their manual order.
 
-The trash belongs to the owner. See [Trash](#trash) below.
+The owner's trash is different from everyone else's. See [Trash](#trash) below.
 
 ## Inviting
 
@@ -50,15 +51,18 @@ Invitations appear above the grid in the recipient's Notes view, live if they ar
 
 ## Leaving and removal
 
-A recipient can **Remove from my notes** from the note's menu, in place of Delete. The dialog asks first, since only a new invitation brings it back. The note stays with its owner and everyone else.
+A recipient lets go of a note by deleting it, as they would a note of their own: it goes to their trash, and **Delete permanently** there, or 30 days in it, takes it out of their notes. They can also **Remove from my notes** straight away from the People with this note dialog, which asks first, since only a new invitation brings it back. Either way the note stays with its owner and everyone else.
 
 When the owner removes someone, or they leave, the note disappears from their grid at once, their open editor closes, and the collaboration socket stops accepting their edits.
 
 ## Trash
 
-Trashing a note hides it from everyone the owner shared it with, and withdraws any pending invitations from view, for as long as it stays in the trash. Restoring it brings both back. Deleting it permanently, directly or through the 30-day expiry, removes it and its shares for good.
+Everyone has a trash of their own, and a shared note can be in any of them.
 
-A recipient cannot trash a shared note: there is no trash of theirs for it to go to, and the owner's is not theirs to use.
+- **The owner's trash** hides the note from everyone the owner shared it with, and withdraws any pending invitations from view, for as long as it stays there. Restoring it brings both back. Deleting it permanently, directly or through the 30-day expiry, removes the note and its shares for good.
+- **A recipient's trash** is theirs alone, viewers included: it is part of how they keep the note, like its pin or archive. The note stays in everyone else's notes and keeps receiving changes. Restoring it brings it back among their notes; deleting it permanently, directly or through the same 30-day expiry, removes their share and nothing else, as leaving does.
+
+A recipient cannot put the note in the owner's trash or delete it for anyone but themselves.
 
 ## Live updates
 

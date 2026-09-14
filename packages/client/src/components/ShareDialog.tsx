@@ -56,7 +56,6 @@ export function ShareDialogHost() {
   return (
     <ShareDialog
       note={note}
-      confirmLeave={open.confirmLeave === true}
       onClose={() => {
         shareDialog.value = null;
       }}
@@ -95,19 +94,11 @@ function RoleSelect({
  * Who has a note. Its owner invites people, sets what each may do and takes
  * them off it; everyone else sees who is there and may leave.
  */
-function ShareDialog({
-  note,
-  confirmLeave,
-  onClose,
-}: {
-  note: Note;
-  confirmLeave: boolean;
-  onClose: () => void;
-}) {
+function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
   const me = currentUser.value;
   const role = roleOf(note);
   const isOwner = role === "owner";
-  const [leaving, setLeaving] = useState(confirmLeave);
+  const [leaving, setLeaving] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEscapeStack(true, onClose);
