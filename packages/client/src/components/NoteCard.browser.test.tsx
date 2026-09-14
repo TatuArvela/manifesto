@@ -4,7 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { escapeStackDepth } from "../hooks/useEscapeStack.js";
 import { t } from "../i18n/index.js";
-import { activeView, editingNoteId, notes } from "../state/index.js";
+import {
+  activeView,
+  animations,
+  editingNoteId,
+  notes,
+} from "../state/index.js";
 import { NoteCard } from "./NoteCard.js";
 
 /**
@@ -124,6 +129,32 @@ async function openEditor(note: Note) {
 }
 
 describe("NoteCard editing modal", () => {
+  it("grows the editor out of the card, and keeps it growing", async () => {
+    // The effect that opens the modal runs again as the modal comes up, and
+    // once cancelled the grow it had just started: the editor appeared in
+    // place with no animation at all.
+    const previous = animations.value;
+    animations.value = true;
+    try {
+      const note = makeNote(NOTE_ID, "Shopping");
+      storeNote(note);
+      show(note);
+      editingNoteId.value = note.id;
+
+      const running = await vi.waitFor(() => {
+        const panel = document.querySelector('[role="dialog"] > div');
+        if (!panel) throw new Error("modal is not up");
+        return panel.getAnimations();
+      });
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      expect(running).toHaveLength(1);
+      expect(running[0].playState).toBe("running");
+    } finally {
+      animations.value = previous;
+    }
+  });
+
   it("takes the modal down when editing moves to another note", async () => {
     // A reminder banner, a notification, or a `note:updated` can point
     // `editingNoteId` somewhere else without ever calling this card's close

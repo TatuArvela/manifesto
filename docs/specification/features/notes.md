@@ -6,11 +6,13 @@ Notes are the core entity in Manifesto. A note is a card with a title, markdown 
 
 A persistent "Take a note..." input bar sits at the top of the note grid. On focus, it expands to reveal separate title and content fields. Pressing Done (✓) creates the note, even an empty one. Closing any other way (Escape, clicking outside, the back arrow on phones) creates it only if it has a title, content, images or link previews, so opening the pad by accident leaves nothing behind. The discard button (✕) throws the draft away.
 
+Opening the pad peels its top sheet off first, and only once the sheet is free does the editor grow out of it. On a phone, where the pad is a floating + button, the editor grows out of the button.
+
 New notes default to: color `default` (or the user's chosen default color, which may be random), font `default` (or user's chosen default), not pinned, not archived, not trashed, no tags.
 
 ## Editing a Note
 
-Clicking a NoteCard opens the NoteEditor as a modal overlay. The editor provides:
+Clicking a NoteCard opens the NoteEditor as a modal overlay, grown out of the card, and closing shrinks it back onto the card. A card that cannot be seen (scrolled away, or opened from a notification) fades in and out instead. With Settings > Appearance > Animations off, the editor simply appears. The editor provides:
 
 - Title field (plain text)
 - Content field: a rich markdown editor, with a raw mode that shows and edits the markdown source. Settings > Defaults > Default Edit Mode picks which one a note opens in. In connected mode raw edits reach collaborators as they are typed, and theirs appear in the textarea
