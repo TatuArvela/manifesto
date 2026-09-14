@@ -18,10 +18,10 @@ import {
   Eye,
   Image as ImageIcon,
   Palette,
-  PenLine,
   Pin,
   PinOff,
   Redo,
+  Type,
   Undo,
   X,
 } from "lucide-preact";
@@ -61,7 +61,16 @@ import { Tooltip } from "./Tooltip.js";
 const iconBtnClass =
   "p-1.5 max-sm:p-2.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
 
-export { iconBtnClass };
+/**
+ * The open note's buttons and icons. A fifth larger than a card's on a phone,
+ * where the editor fills the screen and is worked with a thumb: 36px targets
+ * become 43px.
+ */
+const editorBtnClass =
+  "p-1.5 max-sm:p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
+const editorIconClass = "w-4 h-4 max-sm:w-[1.2rem] max-sm:h-[1.2rem]";
+
+export { editorBtnClass, editorIconClass, iconBtnClass };
 
 interface NoteEditorProps {
   title: string;
@@ -383,6 +392,21 @@ export function NoteEditor({
 
   const checkedItems = { present: hasCheckedItems, remove: deleteCheckedItems };
 
+  // Rendered in one of two places, see the toolbar below.
+  const imageButton = (
+    <Tooltip label={t("editor.addImage")}>
+      <button
+        type="button"
+        class={editorBtnClass}
+        onClick={() => fileInputRef.current?.click()}
+        aria-label={t("editor.addImage")}
+        disabled={disabled}
+      >
+        <ImageIcon class={editorIconClass} />
+      </button>
+    </Tooltip>
+  );
+
   return (
     <article
       class={`${colors.bg} ${colors.border} note-surface note-color-transition relative z-10 sm:border sm:shadow-lg max-sm:h-full max-sm:flex max-sm:flex-col max-sm:pt-[env(safe-area-inset-top)] max-sm:pb-[env(safe-area-inset-bottom)]`}
@@ -393,23 +417,27 @@ export function NoteEditor({
         <div class="sm:hidden">
           <button
             type="button"
-            class={iconBtnClass}
+            class={editorBtnClass}
             onClick={onBack ?? onDone}
             aria-label={t("editor.back")}
           >
-            <ArrowLeft class="w-5 h-5" />
+            <ArrowLeft class="w-5 h-5 max-sm:w-6 max-sm:h-6" />
           </button>
         </div>
         <div class="sm:absolute sm:top-2 sm:right-2 flex items-center gap-0.5">
           <Tooltip label={pinned ? t("noteCard.unpin") : t("noteCard.pin")}>
             <button
               type="button"
-              class={`${iconBtnClass} transition-opacity`}
+              class={`${editorBtnClass} transition-opacity`}
               onClick={onPinToggle}
               aria-label={pinned ? t("noteCard.unpin") : t("noteCard.pin")}
               disabled={disabled}
             >
-              {pinned ? <PinOff class="w-4 h-4" /> : <Pin class="w-4 h-4" />}
+              {pinned ? (
+                <PinOff class={editorIconClass} />
+              ) : (
+                <Pin class={editorIconClass} />
+              )}
             </button>
           </Tooltip>
         </div>
@@ -423,7 +451,7 @@ export function NoteEditor({
         <input
           ref={titleRef}
           type="text"
-          class="w-full bg-transparent outline-none font-medium text-base max-sm:text-lg mb-2 placeholder:text-neutral-400 sm:pr-32"
+          class="w-full bg-transparent outline-none font-medium text-base max-sm:text-[1.35rem] mb-2 placeholder:text-neutral-400 sm:pr-32"
           placeholder={t("editor.titlePlaceholder")}
           value={title}
           onInput={(e) => onTitleChange((e.target as HTMLInputElement).value)}
@@ -538,252 +566,263 @@ export function NoteEditor({
         )}
       </div>
 
-      <div class="px-3 pt-1.5 pb-2 flex items-center gap-0.5 relative">
-        <Dropdown
-          open={showColorPicker}
-          onClose={() => setShowColorPicker(false)}
-          trigger={
-            <Tooltip label={t("editor.color")}>
-              <button
-                type="button"
-                class={iconBtnClass}
-                onClick={() => {
-                  setShowColorPicker(!showColorPicker);
-                  setShowMenu(false);
-                  setShowFontPicker(false);
-                }}
-                aria-label={t("editor.changeColor")}
-              >
-                <Palette class="w-4 h-4" />
-              </button>
-            </Tooltip>
-          }
-          placement="top-start"
-          panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
-        >
-          {pickerColors.map((c) => (
-            <Tooltip key={c.value} label={c.label}>
-              <button
-                type="button"
-                class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                onClick={() => onColorChange(c.value)}
-                aria-label={c.label}
-              />
-            </Tooltip>
-          ))}
-        </Dropdown>
-
-        {/* Font picker (desktop only; on mobile, fonts live in the kebab menu) */}
-        <div class="max-sm:hidden flex">
+      {/* The bottom toolbar. Two groups that wrap as units: the first tools,
+          and everything else. When a phone is too narrow for one row, the
+          first group is what gives way, so it moves up a row and the controls
+          a thumb reaches for (the menu, undo, done) keep the bottom one. */}
+      <div class="px-3 pt-1.5 pb-2 flex flex-wrap items-center gap-0.5">
+        <div class="flex items-center gap-0.5">
           <Dropdown
-            open={showFontPicker}
-            onClose={() => setShowFontPicker(false)}
+            open={showColorPicker}
+            onClose={() => setShowColorPicker(false)}
             trigger={
-              <Tooltip label={t("editor.font")}>
+              <Tooltip label={t("editor.color")}>
                 <button
                   type="button"
-                  class={iconBtnClass}
+                  class={editorBtnClass}
                   onClick={() => {
-                    setShowFontPicker(!showFontPicker);
-                    setShowColorPicker(false);
+                    setShowColorPicker(!showColorPicker);
                     setShowMenu(false);
+                    setShowFontPicker(false);
                   }}
-                  aria-label={t("editor.changeFont")}
+                  aria-label={t("editor.changeColor")}
                 >
-                  <PenLine class="w-4 h-4" />
+                  <Palette class={editorIconClass} />
                 </button>
               </Tooltip>
             }
             placement="top-start"
             panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
           >
-            {Object.values(NoteFont).map((f) => {
-              const label = getFontLabel(f);
-              return (
-                <Tooltip key={f} label={label}>
+            {pickerColors.map((c) => (
+              <Tooltip key={c.value} label={c.label}>
+                <button
+                  type="button"
+                  class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                  onClick={() => onColorChange(c.value)}
+                  aria-label={c.label}
+                />
+              </Tooltip>
+            ))}
+          </Dropdown>
+
+          {/* Font picker (desktop only; on mobile, fonts live in the kebab menu) */}
+          <div class="max-sm:hidden flex">
+            <Dropdown
+              open={showFontPicker}
+              onClose={() => setShowFontPicker(false)}
+              trigger={
+                <Tooltip label={t("editor.font")}>
                   <button
                     type="button"
-                    class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                    style={{
-                      fontFamily: noteFontFamilies[f] || undefined,
+                    class={editorBtnClass}
+                    onClick={() => {
+                      setShowFontPicker(!showFontPicker);
+                      setShowColorPicker(false);
+                      setShowMenu(false);
                     }}
+                    aria-label={t("editor.changeFont")}
+                  >
+                    <Type class={editorIconClass} />
+                  </button>
+                </Tooltip>
+              }
+              placement="top-start"
+              panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
+            >
+              {Object.values(NoteFont).map((f) => {
+                const label = getFontLabel(f);
+                return (
+                  <Tooltip key={f} label={label}>
+                    <button
+                      type="button"
+                      class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+                      style={{
+                        fontFamily: noteFontFamilies[f] || undefined,
+                      }}
+                      onClick={() => onFontChange(f)}
+                      aria-label={label}
+                    >
+                      Aa
+                    </button>
+                  </Tooltip>
+                );
+              })}
+            </Dropdown>
+          </div>
+
+          {/* The second tool on a phone. A new note has no reminder, so there
+              the image button takes its place. */}
+          {onReminderChange ? (
+            <ReminderPicker
+              reminder={reminder ?? null}
+              onChange={onReminderChange}
+              triggerClass={editorBtnClass}
+              iconClass={editorIconClass}
+            />
+          ) : (
+            imageButton
+          )}
+        </div>
+
+        {/* `grow` so that on a row of its own it still spans the bar. It does
+            not wrap inside itself, so it only ever moves as a whole. */}
+        <div class="grow flex items-center gap-0.5">
+          {onReminderChange && imageButton}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            class="hidden"
+            onChange={(e) => {
+              const input = e.target as HTMLInputElement;
+              handleFilesSelected(input.files);
+              input.value = "";
+            }}
+          />
+
+          <Dropdown
+            open={showMenu}
+            onClose={() => setShowMenu(false)}
+            trigger={
+              <Tooltip label={t("noteMenu.more")}>
+                <button
+                  type="button"
+                  class={editorBtnClass}
+                  onClick={() => {
+                    setShowMenu(!showMenu);
+                    setShowColorPicker(false);
+                    setShowFontPicker(false);
+                  }}
+                  aria-label={t("noteMenu.moreOptions")}
+                >
+                  <EllipsisVertical class={editorIconClass} />
+                </button>
+              </Tooltip>
+            }
+            placement="top-start"
+            panelClass={menuPanelClass}
+          >
+            <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
+              {t("editor.font")}
+            </div>
+            <div class="sm:hidden flex gap-1 px-3 pb-2">
+              {Object.values(NoteFont).map((f) => {
+                const label = getFontLabel(f);
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+                    style={{ fontFamily: noteFontFamilies[f] || undefined }}
                     onClick={() => onFontChange(f)}
                     aria-label={label}
                   >
                     Aa
                   </button>
-                </Tooltip>
-              );
-            })}
-          </Dropdown>
-        </div>
+                );
+              })}
+            </div>
 
-        {onReminderChange && (
-          <ReminderPicker
-            reminder={reminder ?? null}
-            onChange={onReminderChange}
-            triggerClass={iconBtnClass}
-          />
-        )}
-
-        <Tooltip label={t("editor.addImage")}>
-          <button
-            type="button"
-            class={iconBtnClass}
-            onClick={() => fileInputRef.current?.click()}
-            aria-label={t("editor.addImage")}
-            disabled={disabled}
-          >
-            <ImageIcon class="w-4 h-4" />
-          </button>
-        </Tooltip>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          class="hidden"
-          onChange={(e) => {
-            const input = e.target as HTMLInputElement;
-            handleFilesSelected(input.files);
-            input.value = "";
-          }}
-        />
-
-        <Dropdown
-          open={showMenu}
-          onClose={() => setShowMenu(false)}
-          trigger={
-            <Tooltip label={t("noteMenu.more")}>
-              <button
-                type="button"
-                class={iconBtnClass}
-                onClick={() => {
-                  setShowMenu(!showMenu);
-                  setShowColorPicker(false);
-                  setShowFontPicker(false);
-                }}
-                aria-label={t("noteMenu.moreOptions")}
-              >
-                <EllipsisVertical class="w-4 h-4" />
-              </button>
-            </Tooltip>
-          }
-          placement="top-start"
-          panelClass={menuPanelClass}
-        >
-          <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
-            {t("editor.font")}
-          </div>
-          <div class="sm:hidden flex gap-1 px-3 pb-2">
-            {Object.values(NoteFont).map((f) => {
-              const label = getFontLabel(f);
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                  style={{ fontFamily: noteFontFamilies[f] || undefined }}
-                  onClick={() => onFontChange(f)}
-                  aria-label={label}
-                >
-                  Aa
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Raw / Normal mode toggle (mobile only) */}
-          <button
-            type="button"
-            class={`sm:hidden ${menuItemClass}`}
-            onClick={() => {
-              setRawMode(!rawMode);
-              closeAllMenus();
-            }}
-          >
-            {rawMode ? <Eye class="w-4 h-4" /> : <Code class="w-4 h-4" />}
-            {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
-          </button>
-
-          <div class={`sm:hidden ${menuDividerClass}`} />
-
-          <NoteMenu
-            items={menuItems?.({ checkedItems }) ?? []}
-            onClose={() => setShowMenu(false)}
-            open={showMenu}
-          />
-        </Dropdown>
-
-        {/* Normal / Raw mode toggle (desktop only; on mobile, lives in the kebab menu) */}
-        <div class="max-sm:hidden flex">
-          <Tooltip
-            label={rawMode ? t("editor.normalMode") : t("editor.rawMode")}
-          >
+            {/* Raw / Normal mode toggle (mobile only) */}
             <button
               type="button"
-              class={iconBtnClass}
-              onClick={() => setRawMode(!rawMode)}
-              aria-label={
-                rawMode ? t("editor.normalMode") : t("editor.rawMode")
-              }
+              class={`sm:hidden ${menuItemClass}`}
+              onClick={() => {
+                setRawMode(!rawMode);
+                closeAllMenus();
+              }}
             >
               {rawMode ? <Eye class="w-4 h-4" /> : <Code class="w-4 h-4" />}
+              {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
+            </button>
+
+            <div class={`sm:hidden ${menuDividerClass}`} />
+
+            <NoteMenu
+              items={menuItems?.({ checkedItems }) ?? []}
+              onClose={() => setShowMenu(false)}
+              open={showMenu}
+            />
+          </Dropdown>
+
+          {/* Normal / Raw mode toggle (desktop only; on mobile, lives in the kebab menu) */}
+          <div class="max-sm:hidden flex">
+            <Tooltip
+              label={rawMode ? t("editor.normalMode") : t("editor.rawMode")}
+            >
+              <button
+                type="button"
+                class={editorBtnClass}
+                onClick={() => setRawMode(!rawMode)}
+                aria-label={
+                  rawMode ? t("editor.normalMode") : t("editor.rawMode")
+                }
+              >
+                {rawMode ? (
+                  <Eye class={editorIconClass} />
+                ) : (
+                  <Code class={editorIconClass} />
+                )}
+              </button>
+            </Tooltip>
+          </div>
+
+          {/* Centered between the tools and Done on a phone, inline on desktop. */}
+          <div class="flex-1 sm:hidden" />
+
+          <div class="flex items-center gap-0.5">
+            <Tooltip label={t("editor.undo")}>
+              <button
+                type="button"
+                class={`${editorBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
+                onClick={() => editor?.action(callCommand(undoCommand.key))}
+                aria-label={t("editor.undo")}
+                disabled={!canUndo}
+              >
+                <Undo class={editorIconClass} />
+              </button>
+            </Tooltip>
+            <Tooltip label={t("editor.redo")}>
+              <button
+                type="button"
+                class={`${editorBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
+                onClick={() => editor?.action(callCommand(redoCommand.key))}
+                aria-label={t("editor.redo")}
+                disabled={!canRedo}
+              >
+                <Redo class={editorIconClass} />
+              </button>
+            </Tooltip>
+          </div>
+
+          <div class="flex-1" />
+
+          {onDelete && deleteLabel && (
+            <Tooltip label={deleteLabel}>
+              <button
+                type="button"
+                class={editorBtnClass}
+                onClick={onDelete}
+                aria-label={deleteLabel}
+              >
+                <X class={editorIconClass} />
+              </button>
+            </Tooltip>
+          )}
+
+          <Tooltip label={t("editor.done")}>
+            <button
+              type="button"
+              class={editorBtnClass}
+              onClick={onDone}
+              aria-label={t("editor.done")}
+            >
+              <Check class={editorIconClass} />
             </button>
           </Tooltip>
         </div>
-
-        {/* Undo / Redo (true-centered on mobile, inline on desktop) */}
-        <div class="flex items-center gap-0.5 max-sm:absolute max-sm:left-1/2 max-sm:-translate-x-1/2">
-          <Tooltip label={t("editor.undo")}>
-            <button
-              type="button"
-              class={`${iconBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
-              onClick={() => editor?.action(callCommand(undoCommand.key))}
-              aria-label={t("editor.undo")}
-              disabled={!canUndo}
-            >
-              <Undo class="w-4 h-4" />
-            </button>
-          </Tooltip>
-          <Tooltip label={t("editor.redo")}>
-            <button
-              type="button"
-              class={`${iconBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
-              onClick={() => editor?.action(callCommand(redoCommand.key))}
-              aria-label={t("editor.redo")}
-              disabled={!canRedo}
-            >
-              <Redo class="w-4 h-4" />
-            </button>
-          </Tooltip>
-        </div>
-
-        <div class="flex-1" />
-
-        {onDelete && deleteLabel && (
-          <Tooltip label={deleteLabel}>
-            <button
-              type="button"
-              class={iconBtnClass}
-              onClick={onDelete}
-              aria-label={deleteLabel}
-            >
-              <X class="w-4 h-4" />
-            </button>
-          </Tooltip>
-        )}
-
-        <Tooltip label={t("editor.done")}>
-          <button
-            type="button"
-            class={iconBtnClass}
-            onClick={onDone}
-            aria-label={t("editor.done")}
-          >
-            <Check class="w-4 h-4" />
-          </button>
-        </Tooltip>
       </div>
     </article>
   );

@@ -17,10 +17,12 @@ Clicking a NoteCard opens the NoteEditor as a modal overlay. The editor provides
 - Links are edited as text: a click places the caret rather than following the link, and while the caret is in one, an "Open link" button under it (or Mod-Enter) opens it in a new tab. Only web and mail addresses are opened
 - Formatting toolbar (headings, bold, italic, quotes, code, links, lists, checklists). In raw mode its buttons insert the markdown syntax instead. It can be hidden under Settings > Features, which hides it in every note
 - Color picker
-- Font picker (Default, Permanent Marker, Comic Relief)
+- Font picker, the "T" button (Default, Serif, Monospace, Permanent Marker, Comic Relief, Rouge Script); on a phone it lives in the kebab menu
 - Tag picker
 - Kebab menu with version history, sharing, and delete
 - Toolbar with pin, archive, and undo/redo actions
+
+On a phone the editor fills the screen, and its buttons, icons, title and text are a fifth larger than on a desktop. When the bottom toolbar does not fit on one row, its first two tools move to a row above, keeping the menu, undo/redo and Done within the thumb's reach.
 
 Changes are saved on close (or debounced while editing).
 

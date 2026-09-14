@@ -549,7 +549,7 @@ export function MilkdownEditor({
     <>
       <textarea
         ref={textareaRef}
-        class="block w-full py-1 bg-transparent outline-none resize-none overflow-hidden font-mono text-sm"
+        class="block w-full py-1 bg-transparent outline-none resize-none overflow-hidden font-mono text-sm max-sm:text-[1.05rem]/6"
         style={{ display: rawMode ? "" : "none" }}
         rows={1}
         value={rawContent}
@@ -562,7 +562,7 @@ export function MilkdownEditor({
       />
       <div
         ref={mountRef}
-        class="milkdown-editor w-full outline-none text-sm"
+        class="milkdown-editor w-full outline-none text-sm max-sm:text-[1.05rem]/6"
         style={{ display: rawMode ? "none" : "" }}
       />
     </>

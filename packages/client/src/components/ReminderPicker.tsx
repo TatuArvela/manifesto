@@ -23,6 +23,7 @@ interface ReminderPickerProps {
   reminder: NoteReminder | null;
   onChange: (reminder: NoteReminder | null) => void;
   triggerClass: string;
+  iconClass?: string;
   align?: "left" | "right";
 }
 
@@ -345,6 +346,7 @@ export function ReminderPicker({
   reminder,
   onChange,
   triggerClass,
+  iconClass = "w-4 h-4",
   align = "left",
 }: ReminderPickerProps) {
   const [open, setOpen] = useState(false);
@@ -368,7 +370,7 @@ export function ReminderPicker({
             onClick={() => setOpen(!open)}
             aria-label={label}
           >
-            <Bell class="w-4 h-4" />
+            <Bell class={iconClass} />
           </button>
         </Tooltip>
       }
