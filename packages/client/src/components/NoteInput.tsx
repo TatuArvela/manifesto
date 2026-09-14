@@ -33,6 +33,12 @@ import {
   downloadNoteAsMarkdown,
 } from "../utils/importExport.js";
 import { appendStubPreviews } from "../utils/linkPreview.js";
+import {
+  isMorphSource,
+  morphIn,
+  type RectLike,
+  viewportSize,
+} from "../utils/morph.js";
 import { NoteEditor } from "./NoteEditor.js";
 
 const ctaKeys: MessageKey[] = [
@@ -50,10 +56,11 @@ const ctaKeys: MessageKey[] = [
   "cta.11",
 ];
 
-/** Peel duration; the sheet is fully gone by the end of it. */
-const LIFT_MS = 400;
-/** How long the peel runs on its own before the editor arrives over it. */
-const HANDOFF_MS = 160;
+/**
+ * How long the sheet takes to come off the pad. The editor waits for all of
+ * it and then grows out of the sheet, so this is also the delay before typing.
+ */
+const LIFT_MS = 280;
 /** Editor fade-out. */
 const CLOSE_MS = 150;
 function randomCta(exclude?: string): string {
@@ -92,6 +99,14 @@ export function NoteInput() {
   const topLine = noteQuips.value ? topCta : t("cta.plain");
   const nextLine = noteQuips.value ? nextCta : t("cta.plain");
   const focusCatcherRef = useRef<HTMLInputElement>(null);
+  const topSheetRef = useRef<HTMLDivElement>(null);
+  const fabRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // What the editor grows out of, measured as it is asked to open and used
+  // once the panel is laid out. `opaque` for the peeled sheet, which is gone
+  // the moment the editor takes over from it.
+  const morphFromRef = useRef<{ rect: RectLike; opaque: boolean } | null>(null);
+  const [morphing, setMorphing] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Previews still loading for this draft. The draft can be saved before they
   // arrive, and then they are applied to the note it became.
@@ -119,6 +134,15 @@ export function NoteInput() {
   // the key first.
   useEscapeStack(expanded, () => closeModalRef.current());
   const modalRef = useFocusTrap<HTMLDivElement>(expanded && !closing);
+
+  // Layout, not effect, so the panel's first frame is already over its source.
+  useLayoutEffect(() => {
+    const from = morphFromRef.current;
+    const panel = panelRef.current;
+    if (!expanded || !from || !panel) return;
+    morphFromRef.current = null;
+    morphIn(panel, from.rect, { opaque: from.opaque });
+  }, [expanded]);
 
   // Re-pick colors when the default note color setting changes
   const colorSetting = defaultNoteColor.value;
@@ -242,7 +266,20 @@ export function NoteInput() {
     setNextCta(randomCta(nextCta));
   }, [nextCta]);
 
-  const openModal = () => {
+  /** Opens the editor over `rect`, growing out of it if it can be seen. */
+  const expandFrom = (rect: RectLike | undefined, opaque: boolean) => {
+    const from = isMorphSource(rect, viewportSize()) ? rect : null;
+    morphFromRef.current = from ? { rect: from, opaque } : null;
+    setMorphing(from !== null);
+    setExpanded(true);
+  };
+
+  /**
+   * Opens the editor for a new note. From the pad, the top sheet is pulled
+   * off first, and only once it is free does the editor grow out of it; from
+   * the phone's button, the editor grows out of the button.
+   */
+  const openModal = (source: "pad" | "button") => {
     // iOS Safari only opens the soft keyboard when .focus() runs synchronously
     // inside a user gesture. MilkdownEditor's autoFocus runs in a useEffect
     // after editor.create() resolves, well after the gesture ends, too late
@@ -250,18 +287,24 @@ export function NoteInput() {
     // later focus transfer to the editor keeps it up. Through `holdFocus`, so
     // the focus trap neither takes focus off it nor gives focus back to it.
     holdFocus(focusCatcherRef.current);
-    setLifting(true);
     setStackColor(pickDefaultColor());
-    // Give the peel a moment on its own before the editor opens over it,
-    // so the note reads as being pulled off the pad and handed across rather
-    // than the editor simply appearing on top of it. With motion off there is
-    // nothing to wait for.
-    if (animations.value) {
-      after(HANDOFF_MS, () => setExpanded(true));
-    } else {
+    // With motion off there is nothing to wait for or grow out of.
+    if (!animations.value) {
+      setMorphing(false);
       setExpanded(true);
+      return;
     }
-    after(LIFT_MS, () => setLifting(false));
+    if (source === "button") {
+      expandFrom(fabRef.current?.getBoundingClientRect(), false);
+      return;
+    }
+    setLifting(true);
+    after(LIFT_MS, () => {
+      // Measured while the sheet still holds its lifted pose, which is where
+      // the eye is; the same render that opens the editor hides the sheet.
+      expandFrom(topSheetRef.current?.getBoundingClientRect(), true);
+      setLifting(false);
+    });
   };
 
   /** Fades the editor out and hands the pad back to the stack. */
@@ -370,11 +413,11 @@ export function NoteInput() {
         {/* biome-ignore lint/a11y/useSemanticElements: styled card element */}
         <div
           class="note-stack cursor-pointer"
-          onClick={() => !expanded && !lifting && openModal()}
+          onClick={() => !expanded && !lifting && openModal("pad")}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !expanded && !lifting) openModal();
+            if (e.key === "Enter" && !expanded && !lifting) openModal("pad");
           }}
         >
           {/* Notes area: top note + next note behind it */}
@@ -387,6 +430,7 @@ export function NoteInput() {
               </div>
             </div>
             <div
+              ref={topSheetRef}
               class={`${topNoteClass} border ${noteColorMap[topSheetColor].bg} ${noteColorMap[topSheetColor].border}`}
             >
               <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
@@ -401,10 +445,11 @@ export function NoteInput() {
       {/* Mobile FAB: opens the same create-note modal as the stack */}
       {!expanded && (
         <button
+          ref={fabRef}
           type="button"
           class="md:hidden fixed right-5 z-10 w-14 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg flex items-center justify-center transition-colors"
           style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
-          onClick={openModal}
+          onClick={() => openModal("button")}
           aria-label={t("nav.newNote")}
         >
           <Plus class="w-7 h-7" />
@@ -426,9 +471,12 @@ export function NoteInput() {
               role="dialog"
               aria-modal="true"
               aria-label={t("nav.newNote")}
-              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : morphing ? "" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
-              <div class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden">
+              <div
+                ref={panelRef}
+                class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden"
+              >
                 <NoteEditor
                   title={title}
                   onTitleChange={setTitle}

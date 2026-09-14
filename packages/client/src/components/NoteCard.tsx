@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-preact";
 import { createPortal } from "preact/compat";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
@@ -30,6 +30,7 @@ import { refreshAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
   addTag,
+  animations,
   deleteCheckedItems,
   editingNoteId,
   enterSelectMode,
@@ -48,6 +49,15 @@ import {
   viewMode,
 } from "../state/index.js";
 import { extractUrls } from "../utils/linkPreview.js";
+import {
+  isMorphSource,
+  MORPH_CLOSE_MS,
+  morphIn,
+  morphOut,
+  type RectLike,
+  settle,
+  viewportSize,
+} from "../utils/morph.js";
 import { ContentPreview } from "./ContentPreview.js";
 import { ImageGallery } from "./ImageGallery.js";
 import { LinkPreviewHero } from "./LinkPreviewHero.js";
@@ -347,6 +357,21 @@ export function NoteCard({
       contentIsOnlyPreviewUrls(note.content, note.linkPreviews));
 
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Where the editor grows out of, between the effect that opens it and the
+  // layout pass that can first measure the panel.
+  const morphFromRef = useRef<RectLike | null>(null);
+  // Whether the editor is growing out of, or shrinking back onto, the card
+  // rather than fading in place. Only where the card can be seen to do it.
+  const [morphing, setMorphing] = useState(false);
+
+  /** The card's rectangle, if the editor can be seen to morph to or from it. */
+  const morphSource = (): RectLike | null => {
+    if (!animations.peek()) return null;
+    const rect = cardRef.current?.getBoundingClientRect();
+    return isMorphSource(rect, viewportSize()) ? rect : null;
+  };
 
   // `editingNoteId` is the only thing that decides whether this card's modal is
   // up, in both directions: setting it opens the modal, clearing it plays the
@@ -361,18 +386,44 @@ export function NoteCard({
         clearTimeout(closeTimerRef.current);
         closeTimerRef.current = null;
       }
+      if (closing) {
+        // Reopened while still closing: undo the shrink where it stands. Only
+        // then, because this effect runs again as the modal comes up, and
+        // settling there would cancel the grow it has just started.
+        if (panelRef.current) settle(panelRef.current);
+      } else if (!showModal) {
+        morphFromRef.current = morphSource();
+        setMorphing(morphFromRef.current !== null);
+      }
       setShowModal(true);
       setClosing(false);
       return;
     }
     if (!showModal || closing) return;
+    const panel = panelRef.current;
+    const to = panel ? morphSource() : null;
+    if (panel && to) morphOut(panel, to);
+    setMorphing(to !== null);
     setClosing(true);
-    closeTimerRef.current = setTimeout(() => {
-      closeTimerRef.current = null;
-      setShowModal(false);
-      setClosing(false);
-    }, MODAL_CLOSE_MS);
+    closeTimerRef.current = setTimeout(
+      () => {
+        closeTimerRef.current = null;
+        setShowModal(false);
+        setClosing(false);
+      },
+      to ? MORPH_CLOSE_MS : MODAL_CLOSE_MS,
+    );
   }, [isEditing, showModal, closing]);
+
+  // Layout, not effect: the panel's first frame has to be the one over the
+  // card, or it paints once in its final place first.
+  useLayoutEffect(() => {
+    const from = morphFromRef.current;
+    const panel = panelRef.current;
+    if (!showModal || !from || !panel) return;
+    morphFromRef.current = null;
+    morphIn(panel, from);
+  }, [showModal]);
 
   useEffect(() => {
     const el = contentRef.current;
@@ -510,6 +561,7 @@ export function NoteCard({
         </div>
 
         <article
+          ref={cardRef}
           class={clsx(
             colors.bg,
             "note-surface",
@@ -538,7 +590,9 @@ export function NoteCard({
                 ? "p-4 pb-2"
                 : "p-4",
             "shadow-sm group-hover:shadow-lg",
-            isEditing && !closing && "opacity-20",
+            // Gone while it morphs into the editor, since the editor is it;
+            // a ghost of it otherwise, to show where the note lives.
+            isEditing && !closing && (morphing ? "opacity-0" : "opacity-20"),
             noteSize.value === "square" &&
               viewMode.value === "list" &&
               "w-full",
@@ -834,9 +888,12 @@ export function NoteCard({
               role="dialog"
               aria-modal="true"
               aria-label={note.title || t("editor.titlePlaceholder")}
-              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${morphing ? "" : closing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
-              <div class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden">
+              <div
+                ref={panelRef}
+                class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden"
+              >
                 {note.readonly ? (
                   <NoteReadonlyView note={note} onClose={closeModal} />
                 ) : (

@@ -484,32 +484,35 @@ html.dark {
   }
 }
 
-/* Lift-off: the sheet is pulled off the pad and carried down into the editor
-   that is opening below it. It starts at the same 22deg the hover state holds
-   (so clicking a hovered stack continues the peel rather than snapping flat
-   first), then flattens out and grows a little as it descends, handing off to
-   the modal rather than folding away on the spot.
+/* Lift-off: the sheet is pulled off the pad, and only then does the editor
+   grow out of it (NoteInput.tsx waits out `LIFT_MS`, which is this duration).
+   It starts at the same 22deg the hover state holds, so clicking a hovered
+   stack continues the peel rather than snapping flat first. The sheet then
+   comes free: it springs flat and comes up off the pad towards the viewer,
+   larger and casting a deeper shadow. Growing from its top edge (the
+   `transform-origin` above) and drifting down rather than up keeps it clear
+   of the scroll container's top, which would clip it. It stays opaque throughout, because
+   the editor takes over from it in place.
 
    Activating by keyboard, where there is no hover, begins with a small jump to
-   that angle: the far less common path, and the descent carries it straight
-   on. */
+   that angle: the far less common path, and the peel carries it straight on. */
 @keyframes note-lift-off {
   0% {
-    opacity: 1;
     transform: rotateX(22deg) translateY(0) scale(1);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
   }
-  40% {
-    opacity: 0.85;
-    transform: rotateX(9deg) translateY(26px) scale(1.02);
+  55% {
+    transform: rotateX(-5deg) translateY(4px) scale(1.035);
+    box-shadow: 0 20px 38px rgba(0, 0, 0, 0.2);
   }
   100% {
-    opacity: 0;
-    transform: rotateX(0deg) translateY(84px) scale(1.06);
+    transform: rotateX(0deg) translateY(6px) scale(1.04);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
   }
 }
 
 .note-lift-off {
-  animation: note-lift-off 0.4s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+  animation: note-lift-off 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   pointer-events: none;
 }
 
