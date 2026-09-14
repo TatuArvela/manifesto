@@ -7,6 +7,7 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
+import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
   type YjsAuthContext,
@@ -24,6 +25,7 @@ interface AttachOptions {
   storage: StorageDriver;
   authProvider: AuthProvider;
   revocations: SessionRevocations;
+  accessChanges: AccessChanges;
   cfg: ServerConfig;
 }
 
@@ -33,7 +35,8 @@ export interface YjsSocket {
 }
 
 export function attachYjsSocket(opts: AttachOptions): YjsSocket {
-  const { httpServer, storage, authProvider, revocations } = opts;
+  const { httpServer, storage, authProvider, revocations, accessChanges } =
+    opts;
 
   const hocuspocus = new Hocuspocus<YjsAuthContext>();
   hocuspocus.configure({
@@ -56,17 +59,23 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
      *
      * Throwing rejects the connection with a permission-denied message before
      * any document is created or joined.
+     *
+     * The live document is the note's text, so joining it is writing it: the
+     * owner and people it is shared with to edit may, and someone who can only
+     * view it may not. A viewer reads the note as REST writes and `note:updated`
+     * events bring it, and never needs the room.
      */
     onAuthenticate: async ({ token, documentName }) => {
       const identity = await authProvider.authenticate(token);
       if (!identity) throw new Error("Invalid or expired session");
 
-      const note = await storage.notes.getById(documentName, identity.userId);
-      if (!note) throw new Error("Forbidden");
+      const access = await storage.notes.access(documentName, identity.userId);
+      if (!access || access.role === "view") throw new Error("Forbidden");
 
       return {
         userId: identity.userId,
         noteId: documentName,
+        ownerId: access.ownerId,
         token,
       } satisfies YjsAuthContext;
     },
@@ -88,6 +97,22 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       }
     }
   });
+
+  // Losing a note, or the right to edit it, ends the connections to its
+  // document. The whole socket, for the reason above: the provider
+  // reconnects, rejoins the notes still allowed, and is refused this one.
+  const stopAccessChanges = accessChanges.subscribe(
+    ({ noteId, userIds, change }) => {
+      if (change === "gained") return;
+      const document = hocuspocus.documents.get(noteId);
+      if (!document) return;
+      for (const connection of document.getConnections()) {
+        const context = connection.context as YjsAuthContext | undefined;
+        if (!context || !userIds.includes(context.userId)) continue;
+        connection.webSocket.close(4403, "Access changed");
+      }
+    },
+  );
 
   const wss = new WebSocketServer({ noServer: true });
 
@@ -137,6 +162,7 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       // and close active connections before tearing down the WebSocket server
       // so in-flight Yjs updates aren't lost on shutdown.
       stopRevocations();
+      stopAccessChanges();
       await hocuspocus.flushPendingStores();
       hocuspocus.closeConnections();
       wss.close();

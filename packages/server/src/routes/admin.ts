@@ -21,9 +21,11 @@ import {
   type AuthContext,
   createAuthMiddleware,
 } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
+import { emailTaken, HttpError } from "../middleware/error.js";
+import type { NoteEvents } from "../sharing/noteEvents.js";
 import {
   type AdminGuardedResult,
+  EmailTakenError,
   type StorageDriver,
   UsernameTakenError,
   type UserSummary,
@@ -39,6 +41,7 @@ interface AdminDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
   revocations: SessionRevocations;
+  noteEvents: NoteEvents;
   /** The shared per-user limiter, mounted after auth. */
   rateLimit?: MiddlewareHandler;
 }
@@ -49,6 +52,7 @@ function toAdminUser(user: UserSummary): AdminUser {
     username: user.username,
     displayName: user.displayName || user.username,
     avatarColor: user.avatarColor,
+    email: user.email,
     isAdmin: user.isAdmin,
     // The stored value is `oidc:<issuer>`; which issuer is not the admin
     // screen's business, and the wire type is the provider name.
@@ -122,9 +126,12 @@ export function createAdminRoutes(deps: AdminDeps) {
     zValidator("json", adminCreateUserSchema, validatorHook),
     async (c) => {
       requireLocalProvider();
-      const { username } = c.req.valid("json");
+      const { username, email } = c.req.valid("json");
       if (await deps.storage.users.findByUsername(username)) {
         throw new HttpError(409, "Username is already taken");
+      }
+      if (email && (await deps.storage.users.findByEmail(email))) {
+        throw emailTaken();
       }
       const temporaryPassword = newTemporaryPassword();
       const passwordHash = await hashPassword(temporaryPassword, deps.cfg);
@@ -135,6 +142,7 @@ export function createAdminRoutes(deps: AdminDeps) {
           username,
           displayName: username,
           avatarColor: pickAvatarColor(),
+          email: email ?? null,
           provider: "local",
           externalId: null,
           passwordHash,
@@ -146,6 +154,7 @@ export function createAdminRoutes(deps: AdminDeps) {
         if (err instanceof UsernameTakenError) {
           throw new HttpError(409, "Username is already taken");
         }
+        if (err instanceof EmailTakenError) throw emailTaken();
         throw err;
       }
       logger.info("Admin created an account", {
@@ -166,12 +175,25 @@ export function createAdminRoutes(deps: AdminDeps) {
     async (c) => {
       const id = c.req.param("id") as string;
       refuseSelf(c, id);
-      const { isAdmin } = c.req.valid("json");
-      refuseGuarded(await deps.storage.users.setAdmin(id, isAdmin));
-      logger.info(isAdmin ? "Admin granted admin" : "Admin revoked admin", {
-        adminId: c.get("auth").userId,
-        userId: id,
-      });
+      const { isAdmin, email } = c.req.valid("json");
+      // The address first: it is the change that can be refused for a reason
+      // the admin can fix, and a refusal should leave the rights untouched.
+      if (email !== undefined) {
+        const result = await deps.storage.users.setEmail(id, email);
+        if (result === "not-found") throw new HttpError(404, "User not found");
+        if (result === "email-taken") throw emailTaken();
+        logger.info("Admin changed an email address", {
+          adminId: c.get("auth").userId,
+          userId: id,
+        });
+      }
+      if (isAdmin !== undefined) {
+        refuseGuarded(await deps.storage.users.setAdmin(id, isAdmin));
+        logger.info(isAdmin ? "Admin granted admin" : "Admin revoked admin", {
+          adminId: c.get("auth").userId,
+          userId: id,
+        });
+      }
       const body: AdminUserResponse = { user: await summaryOf(id) };
       return c.json(body);
     },
@@ -209,10 +231,18 @@ export function createAdminRoutes(deps: AdminDeps) {
   admin.delete("/users/:id", async (c) => {
     const id = c.req.param("id") as string;
     refuseSelf(c, id);
+    // Read before the delete: the shares go with the account by cascade,
+    // and the people on the other end of them still have to hear about it.
+    const onTheirNotes = await deps.storage.shares.listByOwner(id);
+    const onOthersNotes = await deps.storage.shares.listByRecipient(id);
     refuseGuarded(await deps.storage.users.delete(id));
     // The rows went with the user by cascade; what is left to end is any
     // socket still open on one of them.
     deps.revocations.revoke({ userId: id });
+    deps.noteEvents.ended(onTheirNotes);
+    for (const noteId of new Set(onOthersNotes.map((s) => s.noteId))) {
+      await deps.noteEvents.changed(noteId);
+    }
     logger.info("Admin deleted an account", {
       adminId: c.get("auth").userId,
       userId: id,

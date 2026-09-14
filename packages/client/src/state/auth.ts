@@ -4,6 +4,7 @@ import type {
   AuthProviderName,
   AuthSuccessResponse,
   ErrorResponse,
+  UserLookupMode,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
 import type { MessageKey } from "../i18n/messages/index.js";
@@ -14,6 +15,7 @@ export interface CurrentUser {
   username: string;
   displayName: string;
   avatarColor: string;
+  email: string | null;
   isAdmin: boolean;
 }
 
@@ -37,10 +39,11 @@ export const SERVER_URL: string | null =
 export const isServerMode = SERVER_URL !== null;
 
 /**
- * The user out of a persisted or cross-tab payload, or null. `isAdmin` may be
- * missing: a session saved before the flag existed is still a good session,
- * and signing everyone out on upgrade to learn a flag `/me` will supply would
- * be a poor trade. Missing reads as not an admin until then.
+ * The user out of a persisted or cross-tab payload, or null. `isAdmin` and
+ * `email` may be missing: a session saved before they existed is still a good
+ * session, and signing everyone out on upgrade to learn what `/me` will supply
+ * would be a poor trade. Missing reads as not an admin, with no address, until
+ * then.
  */
 function toCurrentUser(value: unknown): CurrentUser | null {
   if (!value || typeof value !== "object") return null;
@@ -58,6 +61,7 @@ function toCurrentUser(value: unknown): CurrentUser | null {
     username: v.username,
     displayName: v.displayName,
     avatarColor: v.avatarColor,
+    email: typeof v.email === "string" ? v.email : null,
     isAdmin: v.isAdmin === true,
   };
 }
@@ -132,6 +136,7 @@ export class AuthRequestError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: ErrorResponse["code"],
   ) {
     super(message);
     this.name = "AuthRequestError";
@@ -164,7 +169,7 @@ async function throwForResponse(res: Response): Promise<never> {
   if (code === "password_change_required") {
     throw new PasswordChangeRequiredError(message);
   }
-  throw new AuthRequestError(res.status, message);
+  throw new AuthRequestError(res.status, message, code);
 }
 
 /**
@@ -190,7 +195,9 @@ export function loginErrorKey(
         ? "login.registrationDisabled"
         : "login.errorGeneric";
     case 409:
-      return "login.usernameTaken";
+      return err.code === "email_taken"
+        ? "login.emailTaken"
+        : "login.usernameTaken";
     case 422:
       // The form checks lengths first, so on the change step this is the new
       // password matching the temporary one.
@@ -305,10 +312,12 @@ export async function refreshCurrentUser(): Promise<void> {
 export async function register(
   username: string,
   password: string,
+  email?: string,
 ): Promise<void> {
   const result = await authRequest("/api/auth/register", {
     username,
     password,
+    ...(email ? { email } : {}),
   });
   authToken.value = result.token;
   currentUser.value = result.user;
@@ -326,6 +335,38 @@ export async function logout(): Promise<void> {
     });
   } catch {
     // best-effort revoke
+  }
+}
+
+export type UpdateEmailResult = "ok" | "taken" | "invalid" | "failed";
+
+/**
+ * Set or clear (`null`) the signed-in user's email address. Resolves with what
+ * happened, for the dialog to say in its own words.
+ */
+export async function updateEmail(
+  email: string | null,
+): Promise<UpdateEmailResult> {
+  const token = authToken.value;
+  if (!SERVER_URL || !token) return "failed";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/me`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ email }),
+    });
+    if (res.status === 401) clearAuthLocal();
+    if (res.status === 409) return "taken";
+    if (res.status === 422) return "invalid";
+    if (!res.ok) return "failed";
+    const body = (await res.json()) as AuthMeResponse;
+    if (authToken.value === token) currentUser.value = body.user;
+    return "ok";
+  } catch {
+    return "failed";
   }
 }
 
@@ -352,6 +393,13 @@ effect(() => {
  */
 export const authProviderName = signal<AuthProviderName | null>(null);
 
+/**
+ * How the share dialog finds people on this server: suggestions as you type,
+ * or only a whole username or address. `search` until the server says, which
+ * is the server's own default and the friendlier guess.
+ */
+export const userLookupMode = signal<UserLookupMode>("search");
+
 export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
   if (!SERVER_URL) return null;
   try {
@@ -359,6 +407,10 @@ export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
     if (!res.ok) return null;
     const methods = (await res.json()) as AuthMethodsResponse;
     authProviderName.value = methods.provider;
+    // A server from before sharing does not say, and has no lookup anyway.
+    if (methods.userLookup === "exact" || methods.userLookup === "search") {
+      userLookupMode.value = methods.userLookup;
+    }
     return methods;
   } catch {
     return null;
@@ -409,4 +461,4 @@ export async function consumeOidcRedirect(): Promise<boolean> {
   }
 }
 
-export type { AuthProviderName };
+export type { AuthProviderName, UserLookupMode };

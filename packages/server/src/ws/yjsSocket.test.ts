@@ -42,13 +42,22 @@ async function bootRig(): Promise<Rig> {
   const cfg = { ...TEST_CONFIG, port: 0 };
   const storage = createSqliteStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
-  const { app, broadcaster, revocations } = createApp({
+  const { app, broadcaster, revocations, accessChanges } = createApp({
     cfg,
     storage,
     authProvider,
   });
   const ws = createNodeWebSocket({ app });
-  attachAppSocket({ app, ws, authProvider, broadcaster, revocations, cfg });
+  attachAppSocket({
+    app,
+    ws,
+    authProvider,
+    broadcaster,
+    revocations,
+    accessChanges,
+    storage,
+    cfg,
+  });
   // biome-ignore lint/suspicious/noExplicitAny: cast around hono-node-server's union return type
   const server = serve({ fetch: app.fetch, port: 0 }) as any;
   await new Promise<void>((resolve) => server.once("listening", resolve));
@@ -58,6 +67,7 @@ async function bootRig(): Promise<Rig> {
     storage,
     authProvider,
     revocations,
+    accessChanges,
     cfg,
   });
   const port = (server.address() as AddressInfo).port;
@@ -116,6 +126,32 @@ async function createNote(
   expect(res.status).toBe(201);
   const body = (await res.json()) as { note: { id: string } };
   return body.note.id;
+}
+
+async function shareWith(
+  rig: Rig,
+  ownerToken: string,
+  noteId: string,
+  recipient: { token: string; userId: string },
+  role: "edit" | "view",
+): Promise<void> {
+  const invited = await fetch(`${rig.baseUrl}/api/notes/${noteId}/shares`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${ownerToken}`,
+    },
+    body: JSON.stringify({ userId: recipient.userId, role }),
+  });
+  expect(invited.status).toBe(201);
+  const accepted = await fetch(
+    `${rig.baseUrl}/api/invitations/${noteId}/accept`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${recipient.token}` },
+    },
+  );
+  expect(accepted.status).toBe(200);
 }
 
 interface Client {
@@ -273,6 +309,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
     const conn = await rig.yjs.hocuspocus.openDirectConnection(noteId, {
       userId,
       noteId,
+      ownerId: userId,
       token,
     });
     await conn.transact((doc) => {
@@ -296,6 +333,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
     const first = await rig.yjs.hocuspocus.openDirectConnection(noteId, {
       userId,
       noteId,
+      ownerId: userId,
       token,
     });
     await first.transact((doc) => {
@@ -311,6 +349,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
     const second = await rig.yjs.hocuspocus.openDirectConnection(noteId, {
       userId,
       noteId,
+      ownerId: userId,
       token,
     });
     let observed = "";
@@ -356,5 +395,81 @@ describe("Yjs collaboration socket /api/yjs", () => {
 
     other.destroy();
     own.destroy();
+  }, 15_000);
+
+  it("lets an editor of a shared note into its document, stored under the owner", async () => {
+    const owner = await register(rig, "olivia");
+    const alice = await register(rig, "alice");
+    const noteId = await createNote(rig, owner.token);
+    await shareWith(rig, owner.token, noteId, alice, "edit");
+
+    const ownerClient = connect(rig, noteId, owner.token);
+    const aliceClient = connect(rig, noteId, alice.token);
+    try {
+      expect(await waitSynced(ownerClient)).toBe(true);
+      expect(await waitSynced(aliceClient)).toBe(true);
+
+      const seen = new Promise<string>((resolve) => {
+        ownerClient.doc.getText("scratch").observe(() => {
+          resolve(ownerClient.doc.getText("scratch").toString());
+        });
+      });
+      aliceClient.doc.getText("scratch").insert(0, "from a collaborator");
+      expect(await seen).toBe("from a collaborator");
+
+      // `flushPendingStores` starts the write without waiting for it.
+      rig.yjs.hocuspocus.flushPendingStores();
+      let stored = "";
+      for (let i = 0; i < 50 && stored === ""; i++) {
+        const persisted = await rig.storage.yjs.load(noteId, owner.userId);
+        if (persisted) {
+          const restored = new Y.Doc();
+          Y.applyUpdate(restored, new Uint8Array(persisted));
+          stored = restored.getText("scratch").toString();
+        }
+        if (stored === "") await new Promise((r) => setTimeout(r, 50));
+      }
+      expect(stored).toBe("from a collaborator");
+    } finally {
+      ownerClient.destroy();
+      aliceClient.destroy();
+    }
+  });
+
+  it("keeps someone who can only view a note out of its document", async () => {
+    const owner = await register(rig, "olivia");
+    const alice = await register(rig, "alice");
+    const noteId = await createNote(rig, owner.token);
+    await shareWith(rig, owner.token, noteId, alice, "view");
+
+    const client = connect(rig, noteId, alice.token);
+    expect(await waitAuthFailed(client)).toBe(true);
+    client.destroy();
+  });
+
+  it("puts out an editor whose role is taken away, and refuses their return", async () => {
+    const owner = await register(rig, "olivia");
+    const alice = await register(rig, "alice");
+    const noteId = await createNote(rig, owner.token);
+    await shareWith(rig, owner.token, noteId, alice, "edit");
+
+    const client = connect(rig, noteId, alice.token);
+    expect(await waitSynced(client)).toBe(true);
+
+    const refused = waitAuthFailed(client, 8000);
+    const res = await fetch(
+      `${rig.baseUrl}/api/notes/${noteId}/shares/${alice.userId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${owner.token}`,
+        },
+        body: JSON.stringify({ role: "view" }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(await refused).toBe(true);
+    client.destroy();
   }, 15_000);
 });

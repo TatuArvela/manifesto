@@ -299,8 +299,8 @@ call locally, so both modes behave alike.
 
 `packages/shared/src/api.ts` declares the wire types and `docs/specification/api.md` is the source of truth.
 
-- REST: `/api/notes`, `/api/search`, `/api/auth/*` (auth routes are owned by the active auth provider)
-- WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes ownership of the joined document in `onAuthenticate`.
+- REST: `/api/notes` (with `/api/notes/:id/shares`), `/api/search`, `/api/invitations`, `/api/users`, `/api/auth/*` (auth routes are owned by the active auth provider)
+- WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes the right to edit the joined document (owner or `edit` recipient) in `onAuthenticate`.
 - All timestamps are ISO 8601 UTC strings
 - Note schema: see `docs/specification/data-model.md`
 
@@ -326,11 +326,30 @@ request carries `newPassword`. The client never shows a server's `error` text, w
 failures to catalogue messages by status. Account actions live in `AccountMenu` in the header, which
 renders nothing in open mode; Settings has no account section.
 
+### Sharing Between Accounts
+
+Connected mode lets an owner share a note with other accounts, each as `edit` or `view`, once they
+accept an invitation (spec: `docs/specification/features/sharing-with-people.md`). The note row is
+the owner's; each recipient's `note_shares` row holds their role and their own `color`, `pinned`,
+`archived`, `position`, `tags` and `reminder`. `SHARED_NOTE_FIELDS` / `PERSONAL_NOTE_FIELDS` in
+`@manifesto/shared` are the one list of which is which, read by the server's `splitChanges`
+(`storage/shareMapping.ts`) and the client's `refusalFor` (`state/actions.ts`). Adding a field to
+`Note` means putting it in one of them, or recipients cannot write it at all.
+
+Every write by anyone stamps the note's `updated_at`, a recipient's pin included, so all participants
+share one `If-Match` token and a listing merges own and shared notes in one `(updatedAt, id)` order.
+Broadcast through `sharing/noteEvents.ts`, never `broadcaster.emit` with the writer's copy: each
+participant sees different personal fields and a different `sharing.role`. Anything that takes a note
+away from someone (removal, a role drop to `view`, the owner trashing it) also goes through
+`sharing/accessChanges.ts`, for the same reason as `endUserSessions`: sockets authorized at connect
+stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
+`storage/sharingContract.ts` runs the rules against both drivers.
+
 ### Server Architecture
 
 Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUTH_PROVIDER`):
 
-- **`src/storage/`**: `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional. SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
+- **`src/storage/`**: `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional. SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
 - **`src/auth/`**: `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. Two providers ship: `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers, and the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. Two provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/methods` (public discovery) and `GET /api/auth/me` (bearer → current user).
 - **`src/app.ts` / `src/index.ts`**: composition root. Constructs storage, auth provider, broadcaster, then wires the Hono app, the `/api/ws` socket (`ws/appSocket.ts`), and the Yjs collaboration socket (`ws/yjsSocket.ts` + the generic `ws/yjsExtension.ts` Hocuspocus extension that delegates to `storage.yjs`).
 - **Background work**: `lib/trashCleanup.ts` and `lib/sessionCleanup.ts` both run on `lib/periodic.ts`'s `startPeriodicJob`, once at startup, then hourly. Each goes through a repo method (`storage.maintenance.cleanupTrashedBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.

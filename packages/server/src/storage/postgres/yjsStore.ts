@@ -7,10 +7,10 @@ interface YjsStateRow {
 
 export function createPostgresYjsStore(pool: PgPool): YjsStore {
   return {
-    async load(noteId: string, userId: string): Promise<Buffer | null> {
+    async load(noteId: string, ownerId: string): Promise<Buffer | null> {
       const result = await pool.query<YjsStateRow>(
         `SELECT yjs_state FROM notes WHERE id = $1 AND user_id = $2`,
-        [noteId, userId],
+        [noteId, ownerId],
       );
       const row = result.rows[0];
       return row?.yjs_state ?? null;
@@ -18,7 +18,7 @@ export function createPostgresYjsStore(pool: PgPool): YjsStore {
 
     async store(
       noteId: string,
-      userId: string,
+      ownerId: string,
       state: Buffer,
       stateVector: Buffer,
     ): Promise<void> {
@@ -29,7 +29,7 @@ export function createPostgresYjsStore(pool: PgPool): YjsStore {
         `UPDATE notes
            SET yjs_state = $1, yjs_state_vector = $2
          WHERE id = $3 AND user_id = $4`,
-        [state, stateVector, noteId, userId],
+        [state, stateVector, noteId, ownerId],
       );
     },
   };

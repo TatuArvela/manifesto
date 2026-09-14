@@ -24,6 +24,7 @@ export const TEST_CONFIG: ServerConfig = {
   trustProxy: false,
   registrationEnabled: true,
   linkPreviews: true,
+  userLookup: "search",
   initialAdminPassword: null,
 };
 

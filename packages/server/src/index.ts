@@ -24,14 +24,23 @@ const storage = await createStorage(cfg);
 const initialAdmin = await ensureInitialAdmin(storage, cfg);
 if (initialAdmin) announceInitialAdmin(initialAdmin);
 const authProvider = createAuthProvider(cfg, storage);
-const { app, broadcaster, revocations } = createApp({
+const { app, broadcaster, revocations, accessChanges } = createApp({
   cfg,
   storage,
   authProvider,
 });
 
 const ws = createNodeWebSocket({ app });
-attachAppSocket({ app, ws, authProvider, broadcaster, revocations, cfg });
+attachAppSocket({
+  app,
+  ws,
+  authProvider,
+  broadcaster,
+  revocations,
+  accessChanges,
+  storage,
+  cfg,
+});
 
 const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
   logger.info("Server listening", {
@@ -50,6 +59,7 @@ const yjs = attachYjsSocket({
   storage,
   authProvider,
   revocations,
+  accessChanges,
   cfg,
 });
 const stopTrashCleanup = startTrashCleanup(storage, broadcaster);

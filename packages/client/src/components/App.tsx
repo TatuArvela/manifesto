@@ -30,18 +30,21 @@ import {
   viewMode,
 } from "../state/index.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
+import { loadInvitations } from "../state/sharing.js";
 import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
 import { AdminView } from "./AdminView.js";
 import { AutoNotesView } from "./AutoNotesView.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
 import { Header } from "./Header.js";
+import { InvitationList } from "./InvitationList.js";
 import { LoginScreen } from "./LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
 import { ReminderBanner } from "./ReminderBanner.js";
 import { SearchView } from "./SearchView.js";
 import { SettingsDialog } from "./SettingsDialog.js";
+import { ShareDialogHost } from "./ShareDialog.js";
 import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { MobileNav, Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
@@ -118,6 +121,7 @@ function MainApp() {
     if (isServerMode) {
       void refreshCurrentUser().finally(() => setUserChecked(true));
       void fetchAuthMethods();
+      void loadInvitations();
     }
     return () => {
       window.removeEventListener("reminder:open-note", openHandler);
@@ -249,11 +253,13 @@ function MainApp() {
           ) : isList ? (
             <div class="max-w-xl mx-auto">
               <NoteInput />
+              {isActive && <InvitationList />}
               <NoteGrid />
             </div>
           ) : (
             <>
               <NoteInput />
+              {isActive && <InvitationList />}
               <NoteGrid />
             </>
           )}
@@ -272,6 +278,7 @@ function MainApp() {
         />
       )}
       <SettingsDialog />
+      <ShareDialogHost />
       <ReminderBanner />
       <ConnectionStatus />
       <Toasts />

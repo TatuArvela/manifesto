@@ -9,6 +9,8 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
+import type { AccessChanges } from "../sharing/accessChanges.js";
+import type { StorageDriver } from "../storage/types.js";
 import type { Broadcaster } from "./broadcaster.js";
 
 export const SUBPROTOCOL = "manifesto-session";
@@ -22,6 +24,10 @@ interface Connection {
   send: (data: string) => void;
   close: (code: number, reason: string) => void;
   viewedNoteId: string | null;
+  /** Bumped by every `presence:update`, so an access check that finishes
+   * after a newer update has arrived knows to drop its answer. */
+  presenceSeq: number;
+  closed: boolean;
 }
 
 interface AppSocketDeps {
@@ -30,11 +36,13 @@ interface AppSocketDeps {
   authProvider: AuthProvider;
   broadcaster: Broadcaster;
   revocations: SessionRevocations;
+  accessChanges: AccessChanges;
+  storage: StorageDriver;
   cfg: ServerConfig;
 }
 
 export function attachAppSocket(deps: AppSocketDeps): void {
-  const { app, ws, authProvider, broadcaster, revocations } = deps;
+  const { app, ws, authProvider, broadcaster, revocations, storage } = deps;
 
   // Negotiate the subprotocol so browsers don't reject the handshake when they
   // sent `Sec-WebSocket-Protocol: manifesto-session, <token>`.
@@ -43,11 +51,14 @@ export function attachAppSocket(deps: AppSocketDeps): void {
   };
 
   const connectionsByUser = new Map<string, Set<Connection>>();
-  // For each user, count how many of their connections are viewing each note.
-  // We send presence:join when the count goes 0 -> 1 and presence:leave when
+  // For each note, how many of each user's connections are viewing it. We
+  // send presence:join when a user's count goes 0 -> 1 and presence:leave when
   // it goes 1 -> 0, so a user with three tabs on the same note shows up
   // exactly once in the avatar stack.
-  const viewCountByUser = new Map<string, Map<string, number>>();
+  const viewersByNote = new Map<string, Map<string, number>>();
+  // Who hears about presence on a note: its owner and the people it is shared
+  // with. Read when someone starts viewing it, and kept while anyone is.
+  const audienceByNote = new Map<string, Set<string>>();
   let nextId = 0;
 
   function register(conn: Connection) {
@@ -63,10 +74,7 @@ export function attachAppSocket(deps: AppSocketDeps): void {
     const set = connectionsByUser.get(conn.userId);
     if (!set) return;
     set.delete(conn);
-    if (set.size === 0) {
-      connectionsByUser.delete(conn.userId);
-      viewCountByUser.delete(conn.userId);
-    }
+    if (set.size === 0) connectionsByUser.delete(conn.userId);
   }
 
   function sendToOthers(
@@ -80,6 +88,16 @@ export function attachAppSocket(deps: AppSocketDeps): void {
     for (const conn of set) {
       if (conn === exclude) continue;
       conn.send(payload);
+    }
+  }
+
+  function sendToAudience(
+    noteId: string,
+    event: WebSocketEvent,
+    exclude: Connection,
+  ) {
+    for (const userId of audienceByNote.get(noteId) ?? []) {
+      sendToOthers(userId, event, exclude);
     }
   }
 
@@ -97,44 +115,119 @@ export function attachAppSocket(deps: AppSocketDeps): void {
     }
   });
 
-  function viewCounts(userId: string): Map<string, number> {
-    let m = viewCountByUser.get(userId);
-    if (!m) {
-      m = new Map();
-      viewCountByUser.set(userId, m);
+  // Someone who can no longer see a note stops being shown on it, and stops
+  // hearing who else is. Losing only the right to edit changes neither.
+  // Someone who has just been let in hears about it from now on, and is told
+  // at once who is already looking at it. A note nobody is looking at needs
+  // nothing: its audience is read afresh when someone opens it.
+  deps.accessChanges.subscribe(({ noteId, userIds, change }) => {
+    if (change === "lost-edit") return;
+    if (change === "gained") {
+      const audience = audienceByNote.get(noteId);
+      if (!audience) return;
+      for (const userId of userIds) {
+        audience.add(userId);
+        for (const conn of connectionsByUser.get(userId) ?? []) {
+          tellWhoIsHere(conn, noteId);
+        }
+      }
+      return;
     }
-    return m;
+    for (const userId of userIds) {
+      for (const conn of connectionsByUser.get(userId) ?? []) {
+        if (conn.viewedNoteId === noteId) stopViewing(conn);
+      }
+      audienceByNote.get(noteId)?.delete(userId);
+    }
+  });
+
+  function stopViewing(conn: Connection) {
+    const noteId = conn.viewedNoteId;
+    if (noteId === null) return;
+    conn.viewedNoteId = null;
+    const counts = viewersByNote.get(noteId);
+    const next = (counts?.get(conn.userId) ?? 1) - 1;
+    if (counts && next > 0) {
+      counts.set(conn.userId, next);
+      return;
+    }
+    sendToAudience(
+      noteId,
+      { type: "presence:leave", noteId, userId: conn.userId },
+      conn,
+    );
+    counts?.delete(conn.userId);
+    if (!counts || counts.size === 0) {
+      viewersByNote.delete(noteId);
+      audienceByNote.delete(noteId);
+    }
   }
 
-  function setViewedNote(conn: Connection, noteId: string | null) {
-    const previous = conn.viewedNoteId;
-    if (previous === noteId) return;
-    const counts = viewCounts(conn.userId);
-    if (previous !== null) {
-      const next = (counts.get(previous) ?? 1) - 1;
-      if (next <= 0) {
-        counts.delete(previous);
-        sendToOthers(
-          conn.userId,
-          { type: "presence:leave", noteId: previous, userId: conn.userId },
-          conn,
-        );
-      } else {
-        counts.set(previous, next);
-      }
+  /**
+   * Send `conn` a join for everyone else viewing the note, if its user is
+   * among the people who may know. A connection's own user is left out: its
+   * other tabs never announced themselves to it, and still do not.
+   */
+  function tellWhoIsHere(conn: Connection, noteId: string) {
+    const counts = viewersByNote.get(noteId);
+    if (!counts || !audienceByNote.get(noteId)?.has(conn.userId)) return;
+    for (const userId of counts.keys()) {
+      if (userId === conn.userId) continue;
+      const other = connectionsByUser.get(userId)?.values().next().value;
+      if (!other) continue;
+      conn.send(
+        JSON.stringify({ type: "presence:join", noteId, user: other.user }),
+      );
     }
+  }
+
+  function startViewing(conn: Connection, noteId: string, audience: string[]) {
     conn.viewedNoteId = noteId;
-    if (noteId !== null) {
-      const next = (counts.get(noteId) ?? 0) + 1;
-      counts.set(noteId, next);
-      if (next === 1) {
-        sendToOthers(
-          conn.userId,
-          { type: "presence:join", noteId, user: conn.user },
-          conn,
-        );
-      }
+    audienceByNote.set(noteId, new Set(audience));
+    let counts = viewersByNote.get(noteId);
+    if (!counts) {
+      counts = new Map();
+      viewersByNote.set(noteId, counts);
     }
+    const next = (counts.get(conn.userId) ?? 0) + 1;
+    counts.set(conn.userId, next);
+    if (next !== 1) return;
+    sendToAudience(
+      noteId,
+      { type: "presence:join", noteId, user: conn.user },
+      conn,
+    );
+    // Whoever else is already here, so the newcomer does not have to wait for
+    // them to leave and come back to know it.
+    tellWhoIsHere(conn, noteId);
+  }
+
+  /** Everyone who can see the note, if `userId` is one of them. */
+  async function audienceOf(
+    noteId: string,
+    userId: string,
+  ): Promise<string[] | null> {
+    const audience = await storage.shares.audience(noteId);
+    if (!audience) return null;
+    const accepted = audience.trashed
+      ? []
+      : audience.shares
+          .filter((share) => share.acceptedAt !== null)
+          .map((share) => share.userId);
+    const everyone = [audience.ownerId, ...accepted];
+    return everyone.includes(userId) ? everyone : null;
+  }
+
+  async function setViewedNote(conn: Connection, noteId: string | null) {
+    const seq = ++conn.presenceSeq;
+    if (conn.viewedNoteId === noteId) return;
+    stopViewing(conn);
+    if (noteId === null) return;
+    // A note id is not taken on trust: presence says who is looking at what,
+    // and a note shared with nobody is nobody else's business.
+    const audience = await audienceOf(noteId, conn.userId);
+    if (conn.closed || seq !== conn.presenceSeq || audience === null) return;
+    startViewing(conn, noteId, audience);
   }
 
   function isClientEvent(value: unknown): value is WebSocketClientEvent {
@@ -193,8 +286,16 @@ export function attachAppSocket(deps: AppSocketDeps): void {
             send: (data) => socket.send(data),
             close: (code, reason) => socket.close(code, reason),
             viewedNoteId: null,
+            presenceSeq: 0,
+            closed: false,
           };
           register(conn);
+          // A socket that opens (a new tab, a reload, a reconnect) missed
+          // every join sent before it, so it learns who is on the notes its
+          // user can see.
+          for (const noteId of viewersByNote.keys()) {
+            tellWhoIsHere(conn, noteId);
+          }
         },
 
         onMessage(evt) {
@@ -209,11 +310,11 @@ export function attachAppSocket(deps: AppSocketDeps): void {
           }
           if (!isClientEvent(parsed)) return;
           if (parsed.type === "presence:update") {
-            // The noteId is taken on trust here: the broadcaster fans out
-            // only to the same user's tabs, so a malformed id can't leak
-            // across users. If notes ever become shareable, gate this on
-            // `storage.notes.getById(parsed.noteId, conn.userId)`.
-            setViewedNote(conn, parsed.noteId);
+            void setViewedNote(conn, parsed.noteId).catch((err) => {
+              logger.warn("Presence update failed", {
+                error: err instanceof Error ? err.message : String(err),
+              });
+            });
           }
           // `note:edit` from clients is not handled in Phase 3; REST is the
           // authoritative write path; the server fans out updates from REST.
@@ -221,7 +322,9 @@ export function attachAppSocket(deps: AppSocketDeps): void {
 
         onClose() {
           if (!conn) return;
-          setViewedNote(conn, null);
+          conn.closed = true;
+          conn.presenceSeq++;
+          stopViewing(conn);
           unregister(conn);
           conn = null;
         },

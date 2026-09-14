@@ -21,6 +21,7 @@ function user(overrides: Partial<AdminUser> = {}): AdminUser {
     username: "bob",
     displayName: "bob",
     avatarColor: "#3b82f6",
+    email: null,
     isAdmin: false,
     provider: "local",
     mustChangePassword: false,

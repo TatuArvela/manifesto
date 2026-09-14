@@ -1,4 +1,11 @@
-import type { LinkPreview, Note } from "./note.js";
+import type {
+  LinkPreview,
+  Note,
+  NoteColor,
+  NoteFont,
+  ShareRole,
+  ShareUser,
+} from "./note.js";
 
 // --- Pagination ---
 
@@ -40,7 +47,7 @@ export interface NoteResponse {
  * A machine-readable reason, sent alongside `error` only where a client has to
  * do something other than show the message.
  */
-export type ErrorCode = "password_change_required";
+export type ErrorCode = "password_change_required" | "email_taken";
 
 export interface ErrorResponse {
   error: string;
@@ -78,6 +85,18 @@ export interface AuthCredentials {
   newPassword?: string;
 }
 
+/** `POST /api/auth/register`. */
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  email?: string;
+}
+
+/** `PUT /api/auth/me`: the signed-in user's own details. `null` clears. */
+export interface AuthMeUpdateRequest {
+  email: string | null;
+}
+
 export interface PasswordChangeRequest {
   currentPassword: string;
   newPassword: string;
@@ -85,8 +104,16 @@ export interface PasswordChangeRequest {
 
 export type AuthProviderName = "local" | "oidc";
 
+/**
+ * How a note's owner finds the person to share it with. `search` offers
+ * matches as they type; `exact` finds an account only by its full username or
+ * email address, so nobody can list who else is on the server.
+ */
+export type UserLookupMode = "search" | "exact";
+
 export interface AuthMethodsResponse {
   provider: AuthProviderName;
+  userLookup: UserLookupMode;
 }
 
 export interface AuthUser {
@@ -94,6 +121,7 @@ export interface AuthUser {
   username: string;
   displayName: string;
   avatarColor: string;
+  email: string | null;
   isAdmin: boolean;
 }
 
@@ -104,6 +132,7 @@ export interface AdminUser {
   username: string;
   displayName: string;
   avatarColor: string;
+  email: string | null;
   isAdmin: boolean;
   /** How the account signs in: a password here, or an identity provider. */
   provider: AuthProviderName;
@@ -125,10 +154,13 @@ export interface AdminUserResponse {
 
 export interface AdminCreateUserRequest {
   username: string;
+  email?: string;
 }
 
+/** At least one of the two. `email: null` clears it. */
 export interface AdminUpdateUserRequest {
-  isAdmin: boolean;
+  isAdmin?: boolean;
+  email?: string | null;
 }
 
 /**
@@ -150,6 +182,50 @@ export interface AuthSuccessResponse {
   user: AuthUser;
 }
 
+// --- Sharing ---
+
+/** `GET /api/users?q=`: accounts to share a note with. */
+export interface UserLookupResponse {
+  users: DirectoryUser[];
+}
+
+export interface DirectoryUser extends ShareUser {
+  /** Shown only where the server searches its accounts (`search`). */
+  email?: string;
+}
+
+/** `POST /api/notes/:id/shares`. */
+export interface ShareCreateRequest {
+  userId: string;
+  role: ShareRole;
+}
+
+/** `PUT /api/notes/:id/shares/:userId`. */
+export interface ShareUpdateRequest {
+  role: ShareRole;
+}
+
+/** A note someone has offered to share with the signed-in user. */
+export interface ShareInvitation {
+  noteId: string;
+  role: ShareRole;
+  owner: ShareUser;
+  /**
+   * The note's title, text, color and font, so the invitation can show the
+   * note itself to decide on. Its attachments and link previews wait until it
+   * is accepted.
+   */
+  title: string;
+  content: string;
+  color: NoteColor;
+  font: NoteFont;
+  invitedAt: string;
+}
+
+export interface InvitationsResponse {
+  invitations: ShareInvitation[];
+}
+
 // --- WebSocket events (server → client) ---
 
 export interface PresenceUser {
@@ -163,7 +239,9 @@ export type WebSocketEvent =
   | { type: "note:created"; note: Note }
   | { type: "note:deleted"; id: string }
   | { type: "presence:join"; noteId: string; user: PresenceUser }
-  | { type: "presence:leave"; noteId: string; userId: string };
+  | { type: "presence:leave"; noteId: string; userId: string }
+  | { type: "invitation:created"; invitation: ShareInvitation }
+  | { type: "invitation:removed"; noteId: string };
 
 // --- WebSocket events (client → server) ---
 

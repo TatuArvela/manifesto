@@ -14,6 +14,46 @@ The API is the contract between the Manifesto client and server. Any server impl
 | `PUT`    | `/api/notes/:id` | Update a note        |
 | `DELETE` | `/api/notes/:id` | Permanently delete   |
 
+The notes a user sees are their own and the ones [shared with them](features/sharing-with-people.md)
+that they accepted. A shared note is theirs to read (and, as an editor, to write) but not to
+trash or delete: `PUT` with `trashed` from a recipient, `PUT` with a shared field from a viewer, and
+`DELETE` from anyone but the owner are all `403`, and nothing is written.
+
+### Sharing
+
+Bearer-protected, and share the per-user API limit.
+
+| Method   | Path                                 | Description |
+|----------|--------------------------------------|-------------|
+| `POST`   | `/api/notes/:id/shares`              | Invite an account: `{ userId, role }`, `201` `{ note }` |
+| `PUT`    | `/api/notes/:id/shares/:userId`      | Change their role: `{ role }`, `{ note }` |
+| `DELETE` | `/api/notes/:id/shares/:userId`      | Remove them or withdraw the invitation (owner), or leave the note (the user themselves): `204` |
+| `GET`    | `/api/invitations`                   | Invitations waiting for the signed-in user: `{ invitations: ShareInvitation[] }` |
+| `POST`   | `/api/invitations/:noteId/accept`    | Accept: `{ note }`, the recipient's copy |
+| `POST`   | `/api/invitations/:noteId/decline`   | Decline: `204` |
+| `GET`    | `/api/users?q=`                      | Accounts to share with: `{ users: DirectoryUser[] }` |
+
+`role` is `"edit"` or `"view"`. The `{ note }` a share route returns is the owner's copy, with
+`sharing` brought up to date.
+
+- Inviting, changing a role and removing someone else are the owner's: another participant gets
+  `403`, and someone who cannot see the note `404`.
+- Inviting yourself, or to an automatic note (`readonly`), is `422`. Inviting someone who already
+  holds an invitation or a share, or to a note in the trash, is `409`. An unknown `userId` is `404`.
+- Accepting or declining an invitation that is not there (withdrawn, the note trashed or deleted, or
+  already answered) is `404`. Declining is for invitations only; leaving an accepted note is the
+  `DELETE` above.
+- `ShareInvitation` is `{ noteId, role, owner: ShareUser, title, content, color, font, invitedAt }`:
+  the note's text whole, with the owner's color and its font, so the invitation can show the note
+  itself. Attachments and link previews come with the note once it is accepted. Invitations to a
+  note in the trash are not listed.
+
+`GET /api/users` depends on `USER_LOOKUP`. Under `search` (the default) it returns up to 10
+accounts whose username, display name or email contains `q`, regardless of case, each as
+`DirectoryUser` `{ id, username, displayName, avatarColor, email? }`. Under `exact` it returns
+only an account whose username or email address is `q` exactly (regardless of case), and never
+includes `email`. Either way the caller is never among the results, and an empty `q` returns none.
+
 ### Search
 
 | Method   | Path              | Description          |
@@ -45,7 +85,7 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 
 | Method   | Path                  | Description          |
 |----------|-----------------------|----------------------|
-| `POST`   | `/api/auth/register`  | Create account       |
+| `POST`   | `/api/auth/register`  | Create account: `{ username, password, email? }` |
 | `POST`   | `/api/auth/login`     | Log in               |
 | `POST`   | `/api/auth/logout`    | Log out              |
 | `POST`   | `/api/auth/password`  | Change your own password |
@@ -87,10 +127,17 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 
 | Method   | Path                  | Description                                                              |
 |----------|-----------------------|--------------------------------------------------------------------------|
-| `GET`    | `/api/auth/methods`   | Public: `{ provider: "local" \| "oidc" }`. Used by the client to pick the login UI. |
+| `GET`    | `/api/auth/methods`   | Public: `{ provider: "local" \| "oidc", userLookup: "search" \| "exact" }`. Used by the client to pick the login UI, and how the share dialog finds people. |
 | `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment), and on start to pick up admin rights granted or revoked since sign-in. |
+| `PUT`    | `/api/auth/me`        | Bearer-protected: set or clear (`null`) your own email address with `{ email }`: `{ user: AuthUser }`. An account that signs in with single sign-on is `409`, since the identity provider owns its address. |
 
-`AuthUser` is `{ id, username, displayName, avatarColor, isAdmin }`.
+`AuthUser` is `{ id, username, displayName, avatarColor, email, isAdmin }`, where `email` is a
+string or `null`.
+
+An email address is checked only for its shape (something, `@`, something; at most 254
+characters), is unique regardless of case, and is optional. One another account holds is `409`
+with `code: "email_taken"`, wherever it is given: registering, `PUT /api/auth/me`, or the admin
+routes. See [Account Administration](features/accounts.md#email-addresses).
 
 ### Administration
 
@@ -101,12 +148,12 @@ database on every request (`403` otherwise). Shares the per-user API limit. See
 | Method   | Path                              | Description |
 |----------|-----------------------------------|-------------|
 | `GET`    | `/api/admin/users`                | Every account, by username: `{ users: AdminUser[] }` |
-| `POST`   | `/api/admin/users`                | Create an account from `{ username }`: `201` `{ user, temporaryPassword }` |
-| `PUT`    | `/api/admin/users/:id`            | Grant or revoke admin with `{ isAdmin }`: `{ user }` |
+| `POST`   | `/api/admin/users`                | Create an account from `{ username, email? }`: `201` `{ user, temporaryPassword }` |
+| `PUT`    | `/api/admin/users/:id`            | Grant or revoke admin with `{ isAdmin }`, set or clear the address with `{ email }`, or both: `{ user }` |
 | `POST`   | `/api/admin/users/:id/password`   | Reset the password and end every session of the account: `{ user, temporaryPassword }` |
 | `DELETE` | `/api/admin/users/:id`            | Delete the account with its notes and sessions: `204` |
 
-`AdminUser` is `{ id, username, displayName, avatarColor, isAdmin, provider,
+`AdminUser` is `{ id, username, displayName, avatarColor, email, isAdmin, provider,
 mustChangePassword, noteCount, createdAt, lastSeenAt }`, where `provider` is
 `"local"` or `"oidc"` and `lastSeenAt` is the latest use of any of the account's
 sessions, or `null` when it has none.
@@ -116,12 +163,13 @@ sessions, or `null` when it has none.
 - Creating an account and resetting a password are `404` under
   `AUTH_PROVIDER=oidc`, where the identity provider owns both. Resetting the
   password of an account that signs in with single sign-on is `409`.
-- A taken username is `409`, and an invalid one `422`.
+- A taken username is `409`, and an invalid one `422`. A taken email address is `409` with
+  `code: "email_taken"`. A `PUT` with neither field is `422`.
 - Acting on your own account (`PUT`, reset or `DELETE` with your own id) is
   `409`, as is anything that would leave the server with no admin.
 - An unknown id is `404`.
 
-All `/api/notes` and `/api/search` endpoints require authentication. Requests include a session token in the `Authorization: Bearer <token>` header. The token format and the way it is issued depend on the auth provider; clients treat it as opaque.
+All `/api/notes`, `/api/search`, `/api/invitations` and `/api/users` endpoints require authentication. Requests include a session token in the `Authorization: Bearer <token>` header. The token format and the way it is issued depend on the auth provider; clients treat it as opaque.
 
 ### Request and Response Format
 
@@ -131,7 +179,7 @@ All `/api/notes` and `/api/search` endpoints require authentication. Requests in
 - `PUT /api/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
 - List endpoints return `{ "notes": Note[], "nextCursor": string | null }`
 - Single note endpoints return `{ "note": Note }`
-- Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (today only `password_change_required`)
+- Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (`password_change_required`, and `email_taken` to tell a taken address from a taken username)
 
 ### Paging the list endpoints
 
@@ -185,9 +233,22 @@ A JSON event stream used for fan-out of REST writes and presence tracking.
 | `note:deleted`     | Server → Client  | A note was permanently deleted           |
 | `presence:join`    | Server → Client  | A user started viewing/editing a note    |
 | `presence:leave`   | Server → Client  | A user stopped viewing/editing a note    |
+| `invitation:created` | Server → Client | Someone offered this user a note, or changed the offer: `{ invitation: ShareInvitation }` |
+| `invitation:removed` | Server → Client | An invitation is gone (accepted in another tab, declined, withdrawn, the note trashed or deleted): `{ noteId }` |
 | `presence:update`  | Client → Server  | The client is viewing/editing a note     |
 
 REST is the authoritative write path; the server fans out `note:*` events from REST handlers. A `note:edit` client→server event is reserved but not currently handled.
+
+A change to a shared note reaches every participant, each as their own copy (their personal fields,
+their role in `sharing`) in `note:updated`. Someone who can no longer see a note (removed from it,
+or the owner trashed it) gets `note:deleted` for it; restoring it from the trash sends
+`note:updated` again, which a client treats as an insert for a note it does not have.
+
+`presence:update` names a note by id. The server relays it only if the user can see that note, and
+only to the note's owner and the people who accepted it. Someone is sent a `presence:join` for each
+other person already on a note they can see whenever they could not have heard it announced:
+when they open the note themselves, when their socket connects, and when they gain the note
+(accepting it, or its owner restoring it from the trash) while someone is on it.
 
 The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol.
 
@@ -195,6 +256,6 @@ The application socket authenticates by passing the bearer token through `Sec-We
 
 A Hocuspocus-backed Yjs channel for per-note collaborative editing. One endpoint serves every note: Hocuspocus multiplexes documents over a single socket by name, so the note id travels in the protocol as the document name rather than in the path.
 
-Authentication uses the Hocuspocus `Auth` message, not `Sec-WebSocket-Protocol`: clients send the bearer token as the provider's `token` option. The server's `onAuthenticate` hook resolves the token to a user and then verifies that the user owns the note named by that document, rejecting with a permission-denied message before the document is created or joined. Checking the document name rather than a path segment is what makes the check binding: Hocuspocus keys its document map on the name in the frame and never reads the URL.
+Authentication uses the Hocuspocus `Auth` message, not `Sec-WebSocket-Protocol`: clients send the bearer token as the provider's `token` option. The server's `onAuthenticate` hook resolves the token to a user and then verifies that the user may edit the note named by that document (its owner, or an accepted recipient with the `edit` role), rejecting with a permission-denied message before the document is created or joined. Losing that right closes the user's socket with `4403`. Checking the document name rather than a path segment is what makes the check binding: Hocuspocus keys its document map on the name in the frame and never reads the URL.
 
 Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres).

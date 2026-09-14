@@ -367,6 +367,66 @@ describe("oidc auth router", () => {
     expect(carol?.username).toBe("carol");
   });
 
+  describe("email addresses", () => {
+    let flow = 0;
+
+    /** One sign-in with these claims, each with a state of its own. */
+    async function signInWith(claims: Record<string, unknown>) {
+      const state = `email-state-${++flow}`;
+      oidcModule.randomState.mockReturnValueOnce(state);
+      await rig.request("/api/auth/login");
+      oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
+        makeTokenResponse(makeIdToken(claims as Partial<openid.IDToken>)),
+      );
+      const res = await rig.request(`/api/auth/callback?code=c&state=${state}`);
+      expect(res.status).toBe(302);
+      return rig.storage.users.findByExternalId(
+        "oidc:https://idp.example.com",
+        String(claims.sub),
+      );
+    }
+
+    it("stores the provider's address and keeps it in step at every sign-in", async () => {
+      const first = await signInWith({
+        sub: "mail-1",
+        email: "dana@example.com",
+        email_verified: true,
+      });
+      expect(first?.email).toBe("dana@example.com");
+
+      const later = await signInWith({
+        sub: "mail-1",
+        email: "dana@work.example",
+      });
+      expect(later?.email).toBe("dana@work.example");
+    });
+
+    it("does not take an address the provider has not verified", async () => {
+      const user = await signInWith({
+        sub: "mail-2",
+        email: "erin@example.com",
+        email_verified: false,
+      });
+      expect(user?.email).toBeNull();
+    });
+
+    it("signs someone in without an address another account holds", async () => {
+      await signInWith({ sub: "mail-3", email: "shared@example.com" });
+      const second = await signInWith({
+        sub: "mail-4",
+        email: "SHARED@example.com",
+      });
+      expect(second).not.toBeNull();
+      expect(second?.email).toBeNull();
+
+      const existing = await signInWith({
+        sub: "mail-3",
+        email: "shared@example.com",
+      });
+      expect(existing?.email).toBe("shared@example.com");
+    });
+  });
+
   it("logout invalidates the session token", async () => {
     await rig.request("/api/auth/login");
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(

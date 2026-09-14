@@ -9,16 +9,21 @@ import {
   createAuthMiddleware,
 } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
-import type { StorageDriver } from "../storage/types.js";
+import type { AccessChanges } from "../sharing/accessChanges.js";
+import type { NoteEvents } from "../sharing/noteEvents.js";
+import { NoteAccessError, type StorageDriver } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
 import { noteCreateSchema, noteUpdateSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
+import { registerShareRoutes } from "./shares.js";
 
 interface NotesDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
   broadcaster: Broadcaster;
+  noteEvents: NoteEvents;
+  accessChanges: AccessChanges;
   /** Optional per-user limiter, mounted after auth. Defined in app.ts so
    * it shares state with /api/search rather than maintaining a per-router
    * bucket map. */
@@ -95,15 +100,27 @@ export function createNotesRoutes(deps: NotesDeps) {
       // Atomic compare-and-set: storage.notes.update with an
       // `expectedUpdatedAt` only touches the row if its current
       // updated_at still matches. A null result means one of:
-      //   (a) the note doesn't exist or doesn't belong to this user (404)
+      //   (a) the note doesn't exist or this user cannot see it (404)
       //   (b) the note exists but updated_at moved on (412 + current note)
-      const updated = await deps.storage.notes.update(
-        id,
-        userId,
-        changes,
-        now,
-        ifMatch,
-      );
+      let updated: Awaited<ReturnType<typeof deps.storage.notes.update>>;
+      try {
+        updated = await deps.storage.notes.update(
+          id,
+          userId,
+          changes,
+          now,
+          ifMatch,
+        );
+      } catch (err) {
+        // A recipient reaching for the trash, or a viewer for the note itself.
+        if (err instanceof NoteAccessError) {
+          throw new HttpError(
+            403,
+            `Your role on this note does not allow changing ${err.fields.join(", ")}`,
+          );
+        }
+        throw err;
+      }
       if (!updated) {
         const current = await deps.storage.notes.getById(id, userId);
         if (!current) {
@@ -118,7 +135,11 @@ export function createNotesRoutes(deps: NotesDeps) {
         // happen in practice; treat as 404 so the client retries cleanly.
         throw new HttpError(404, "Note not found");
       }
-      deps.broadcaster.emit(userId, { type: "note:updated", note: updated });
+      // Everyone holding the note gets their own copy of it, the writer's
+      // other tabs included.
+      await deps.noteEvents.changed(id, {
+        trashChanged: fields.trashed !== undefined,
+      });
       return c.json({ note: updated });
     },
   );
@@ -126,13 +147,22 @@ export function createNotesRoutes(deps: NotesDeps) {
   notes.delete("/:id", async (c) => {
     const { userId } = c.get("auth");
     const id = c.req.param("id") as string;
+    const access = await deps.storage.notes.access(id, userId);
+    if (access && access.role !== "owner") {
+      throw new HttpError(403, "Only the owner can delete this note");
+    }
+    // Read before the delete, which takes the shares with it by cascade.
+    const shares = (await deps.storage.shares.audience(id))?.shares ?? [];
     const deleted = await deps.storage.notes.delete(id, userId);
     if (!deleted) {
       throw new HttpError(404, "Note not found");
     }
     deps.broadcaster.emit(userId, { type: "note:deleted", id });
+    deps.noteEvents.ended(shares);
     return c.body(null, 204);
   });
+
+  registerShareRoutes(notes, deps);
 
   return notes;
 }

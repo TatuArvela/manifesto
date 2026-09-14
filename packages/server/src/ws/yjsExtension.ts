@@ -10,6 +10,9 @@ import type { YjsStore } from "../storage/types.js";
 export interface YjsAuthContext {
   userId: string;
   noteId: string;
+  /** Whose note it is. The state is stored under the owner whichever
+   * participant's connection happens to write it. */
+  ownerId: string;
   /** The bearer token the connection authenticated with, so ending a session
    * can find the sockets it opened. */
   token: string;
@@ -25,8 +28,8 @@ export class YjsPersistenceExtension implements Extension {
     payload: onLoadDocumentPayload<YjsAuthContext>,
   ): Promise<Y.Doc | undefined> {
     const { context, document } = payload;
-    if (!context?.userId || !context?.noteId) return undefined;
-    const state = await this.store.load(context.noteId, context.userId);
+    if (!context?.ownerId || !context?.noteId) return undefined;
+    const state = await this.store.load(context.noteId, context.ownerId);
     if (!state) return undefined;
     try {
       Y.applyUpdate(document, new Uint8Array(state));
@@ -44,12 +47,12 @@ export class YjsPersistenceExtension implements Extension {
   ): Promise<void> {
     const { document } = payload;
     const ctx = payload.lastContext;
-    if (!ctx?.userId || !ctx?.noteId) return;
+    if (!ctx?.ownerId || !ctx?.noteId) return;
     const state = Y.encodeStateAsUpdate(document);
     const vector = Y.encodeStateVector(document);
     await this.store.store(
       ctx.noteId,
-      ctx.userId,
+      ctx.ownerId,
       Buffer.from(state),
       Buffer.from(vector),
     );

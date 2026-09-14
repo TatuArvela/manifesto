@@ -1,8 +1,12 @@
+import { searchPattern } from "../noteMapping.js";
 import {
   type AdminGuardedResult,
   type CreateUserInput,
+  EmailTakenError,
+  type SetEmailResult,
   type User,
   UsernameTakenError,
+  type UserSearchOptions,
   type UserSummary,
   type UsersRepo,
 } from "../types.js";
@@ -14,6 +18,7 @@ interface UserRow {
   password_hash: string | null;
   display_name: string;
   avatar_color: string;
+  email: string | null;
   provider: string;
   external_id: string | null;
   is_admin: number;
@@ -50,6 +55,7 @@ function rowToUser(row: UserRow): User {
     username: row.username,
     displayName: row.display_name,
     avatarColor: row.avatar_color,
+    email: row.email,
     provider: row.provider,
     externalId: row.external_id,
     passwordHash: row.password_hash,
@@ -86,14 +92,25 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
   // be split by another insert.
   const insertStmt = db.prepare(
     `INSERT INTO users (
-      id, username, password_hash, display_name, avatar_color,
+      id, username, password_hash, display_name, avatar_color, email,
       provider, external_id, is_admin, must_change_password, created_at
     ) VALUES (
-      @id, @username, @passwordHash, @displayName, @avatarColor,
+      @id, @username, @passwordHash, @displayName, @avatarColor, @email,
       @provider, @externalId, (@isAdmin OR NOT EXISTS (SELECT 1 FROM users)),
       @mustChangePassword, @createdAt
     )`,
   );
+  // The column is `COLLATE NOCASE`, so `=` already ignores case.
+  const findByEmailStmt = db.prepare(`SELECT * FROM users WHERE email = ?`);
+  const searchStmt = db.prepare(
+    `SELECT * FROM users
+     WHERE id <> @excludeId
+       AND (LOWER(username) LIKE LOWER(@like)
+         OR LOWER(display_name) LIKE LOWER(@like)
+         OR LOWER(COALESCE(email, '')) LIKE LOWER(@like))
+     ORDER BY username, id LIMIT @limit`,
+  );
+  const setEmailStmt = db.prepare(`UPDATE users SET email = ? WHERE id = ?`);
   const findByUsernameStmt = db.prepare(
     `SELECT * FROM users WHERE username = ? COLLATE NOCASE`,
   );
@@ -152,6 +169,7 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
           passwordHash: input.passwordHash,
           displayName: input.displayName,
           avatarColor: input.avatarColor,
+          email: input.email ?? null,
           provider: input.provider,
           externalId: input.externalId,
           mustChangePassword: input.mustChangePassword ? 1 : 0,
@@ -161,6 +179,9 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
       } catch (err) {
         if (isSqliteUniqueViolation(err, "username")) {
           throw new UsernameTakenError(input.username);
+        }
+        if (input.email && isSqliteUniqueViolation(err, "email")) {
+          throw new EmailTakenError(input.email);
         }
         throw err;
       }
@@ -186,6 +207,31 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
         | UserRow
         | undefined;
       return row ? rowToUser(row) : null;
+    },
+
+    async findByEmail(email: string): Promise<User | null> {
+      const row = findByEmailStmt.get(email) as UserRow | undefined;
+      return row ? rowToUser(row) : null;
+    },
+
+    async search(
+      query: string,
+      { excludeId, limit }: UserSearchOptions,
+    ): Promise<User[]> {
+      const like = searchPattern(query);
+      if (like === null) return [];
+      const rows = searchStmt.all({ excludeId, like, limit }) as UserRow[];
+      return rows.map(rowToUser);
+    },
+
+    async setEmail(id: string, email: string | null): Promise<SetEmailResult> {
+      try {
+        const info = setEmailStmt.run(email, id);
+        return info.changes > 0 ? "ok" : "not-found";
+      } catch (err) {
+        if (isSqliteUniqueViolation(err, "email")) return "email-taken";
+        throw err;
+      }
     },
 
     async list(): Promise<UserSummary[]> {

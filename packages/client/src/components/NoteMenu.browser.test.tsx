@@ -5,7 +5,7 @@ import { t } from "../i18n/index.js";
 import { editingNoteId, notes } from "../state/index.js";
 import { NoteCard } from "./NoteCard.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
-import { NoteMenu, type NoteMenuItem } from "./NoteMenu.js";
+import { NoteMenu, type NoteMenuItem, noteMenuItems } from "./NoteMenu.js";
 import { NoteReadonlyView } from "./NoteReadonlyView.js";
 
 /**
@@ -164,6 +164,40 @@ describe("the note menu across its three surfaces", () => {
       expect(notes.value[0].archived).toBe(true);
     });
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("a note shared with the user", () => {
+  const sharing = (role: "edit" | "view") => ({
+    role,
+    owner: {
+      id: "u-olivia",
+      username: "olivia",
+      displayName: "Olivia",
+      avatarColor: "#ef4444",
+    },
+    members: [],
+  });
+  const checkedItems = { present: true, remove: () => {} };
+  const ids = (note: Note) =>
+    noteMenuItems(note, { checkedItems }).map((item) => item.id);
+
+  it("offers leaving it instead of the trash, which is the owner's", () => {
+    expect(ids(makeNote({ sharing: sharing("edit") }))).toEqual(
+      expect.arrayContaining(["leave", "delete-checked"]),
+    );
+    expect(ids(makeNote({ sharing: sharing("edit") }))).not.toContain("trash");
+  });
+
+  it("does not offer a viewer to delete checked items", () => {
+    expect(ids(makeNote({ sharing: sharing("view") }))).not.toContain(
+      "delete-checked",
+    );
+  });
+
+  it("offers no sharing with people in open mode, which has no accounts", () => {
+    expect(ids(makeNote())).not.toContain("share-people");
+    expect(ids(makeNote())).toContain("trash");
   });
 });
 

@@ -1,4 +1,8 @@
-import type { Note, NoteColor } from "@manifesto/shared";
+import {
+  hasUnloadedImages,
+  type Note,
+  type NoteColor,
+} from "@manifesto/shared";
 import {
   ArrowLeft,
   EllipsisVertical,
@@ -9,15 +13,17 @@ import {
   Sparkles,
   X,
 } from "lucide-preact";
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { getColorPickerColors, t } from "../i18n/index.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
-import { addTag, togglePin, updateNote } from "../state/index.js";
+import { addTag, ensureImages, togglePin, updateNote } from "../state/index.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
 import { Dropdown } from "./Dropdown.js";
+import { ImageGallery } from "./ImageGallery.js";
+import { LinkPreviewList } from "./LinkPreviewList.js";
 import { editorBtnClass, editorIconClass } from "./NoteEditor.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { CardPopover } from "./Popover.js";
@@ -26,6 +32,11 @@ import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
 import { TagPickerButton } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
+/**
+ * A note that can be looked at and organized but not written: an automatic
+ * note, which its plugin rewrites, or a note shared with this user to view.
+ * Pin, color, tags and the reminder are the reader's own either way.
+ */
 export function NoteReadonlyView({
   note,
   onClose,
@@ -40,6 +51,14 @@ export function NoteReadonlyView({
       ? (plugins.value.find((p) => p.id === note.source?.pluginId)?.name ??
         note.source.pluginId)
       : null;
+
+  const sharedBy =
+    note.sharing && note.sharing.role !== "owner" ? note.sharing.owner : null;
+
+  // A listing leaves the attachments behind; an automatic note has none.
+  useEffect(() => {
+    if (hasUnloadedImages(note)) void ensureImages(note.id);
+  }, [note.id]);
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -101,6 +120,16 @@ export function NoteReadonlyView({
           style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
           dangerouslySetInnerHTML={{ __html: html }}
         />
+        {note.images.length > 0 && (
+          <div class="mt-3 -mx-4">
+            <ImageGallery images={note.images} />
+          </div>
+        )}
+        {note.linkPreviews.length > 0 && (
+          <div class="mt-3">
+            <LinkPreviewList previews={note.linkPreviews} variant="card" />
+          </div>
+        )}
         {(note.tags.length > 0 || note.reminder) && (
           <div class="flex flex-wrap gap-1 mt-2 items-center">
             {note.tags.map((tag) => (
@@ -151,6 +180,14 @@ export function NoteReadonlyView({
                 )}
               </span>
             )}
+          </div>
+        )}
+
+        {sharedBy && (
+          <div class="mt-4 pt-2 border-t border-black/10 dark:border-white/10 text-xs text-black/40 dark:text-white/40">
+            {t("sharing.viewOnly", {
+              name: sharedBy.displayName || sharedBy.username,
+            })}
           </div>
         )}
 

@@ -9,6 +9,7 @@ import { createPostgresMaintenanceRepo } from "./maintenanceRepo.js";
 import { runMigrations } from "./migrations.js";
 import { createPostgresNotesRepo } from "./notesRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
+import { createPostgresSharesRepo } from "./sharesRepo.js";
 import { createPostgresUsersRepo } from "./usersRepo.js";
 import { createPostgresYjsStore } from "./yjsStore.js";
 
@@ -39,6 +40,7 @@ export async function createPostgresStorage(
     users: createPostgresUsersRepo(pool),
     sessions: createPostgresSessionsRepo(pool),
     notes: createPostgresNotesRepo(pool),
+    shares: createPostgresSharesRepo(pool),
     yjs: createPostgresYjsStore(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {

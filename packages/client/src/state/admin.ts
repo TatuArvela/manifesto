@@ -3,6 +3,7 @@ import type {
   AdminUser,
   AdminUserResponse,
   AdminUsersResponse,
+  ErrorResponse,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
@@ -35,7 +36,10 @@ export interface IssuedPassword {
 export const issuedPassword = signal<IssuedPassword | null>(null);
 
 class AdminRequestError extends Error {
-  constructor(public status: number) {
+  constructor(
+    public status: number,
+    public code?: ErrorResponse["code"],
+  ) {
     super(`Admin request failed (${status})`);
   }
 }
@@ -57,7 +61,13 @@ async function request<T>(
   });
   if (!res.ok) {
     if (res.status === 401) onUnauthorized?.();
-    throw new AdminRequestError(res.status);
+    let code: ErrorResponse["code"];
+    try {
+      code = ((await res.json()) as Partial<ErrorResponse>).code;
+    } catch {
+      // not JSON; the status says enough
+    }
+    throw new AdminRequestError(res.status, code);
   }
   if (res.status === 204) return null;
   return (await res.json()) as T;
@@ -70,6 +80,10 @@ async function request<T>(
 function report(err: unknown, fallback: MessageKey, conflict?: MessageKey) {
   const status = err instanceof AdminRequestError ? err.status : 0;
   if (status === 401) return; // signed out; the login screen says enough
+  if (err instanceof AdminRequestError && err.code === "email_taken") {
+    showError(t("admin.error.emailTaken"));
+    return;
+  }
   if (status === 403) {
     showError(t("admin.error.forbidden"));
     adminUsers.value = null;
@@ -104,12 +118,15 @@ export async function loadAdminUsers(): Promise<boolean> {
   }
 }
 
-export async function createAccount(username: string): Promise<boolean> {
+export async function createAccount(
+  username: string,
+  email?: string,
+): Promise<boolean> {
   try {
     const body = await request<AdminTemporaryPasswordResponse>(
       "POST",
       "/users",
-      { username },
+      { username, ...(email ? { email } : {}) },
     );
     if (!body) return false;
     replaceUser(body.user);
@@ -137,6 +154,23 @@ export async function setAccountAdmin(
     return true;
   } catch (err) {
     report(err, "admin.error.updateFailed", "admin.error.lastAdmin");
+    return false;
+  }
+}
+
+/** Set or clear (`null`) an account's email address. */
+export async function setAccountEmail(
+  id: string,
+  email: string | null,
+): Promise<boolean> {
+  try {
+    const body = await request<AdminUserResponse>("PUT", `/users/${id}`, {
+      email,
+    });
+    if (body) replaceUser(body.user);
+    return true;
+  } catch (err) {
+    report(err, "admin.error.emailFailed");
     return false;
   }
 }

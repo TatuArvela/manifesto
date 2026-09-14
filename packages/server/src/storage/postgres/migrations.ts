@@ -76,10 +76,38 @@ UPDATE users SET is_admin = TRUE
   WHERE id IN (SELECT id FROM users ORDER BY created_at, id LIMIT 1);
 `;
 
+/** See the SQLite copy. Postgres has no `COLLATE NOCASE`, so the index is on
+ * the lowered address, like `users_username_lower`. */
+const USER_EMAIL = `
+ALTER TABLE users ADD COLUMN email TEXT;
+CREATE UNIQUE INDEX users_email_lower ON users (LOWER(email));
+`;
+
+/** See the SQLite copy: same table, same reasons. */
+const NOTE_SHARES = `
+CREATE TABLE note_shares (
+  note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL,
+  color       TEXT NOT NULL DEFAULT 'default',
+  pinned      BOOLEAN NOT NULL DEFAULT FALSE,
+  archived    BOOLEAN NOT NULL DEFAULT FALSE,
+  position    DOUBLE PRECISION NOT NULL DEFAULT 0,
+  tags        TEXT NOT NULL DEFAULT '[]',
+  reminder    TEXT,
+  created_at  TEXT NOT NULL,
+  accepted_at TEXT,
+  PRIMARY KEY (note_id, user_id)
+);
+CREATE INDEX note_shares_user ON note_shares(user_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
   { id: "0003-user-admin", sql: USER_ADMIN },
+  { id: "0004-user-email", sql: USER_EMAIL },
+  { id: "0005-note-shares", sql: NOTE_SHARES },
 ];
 
 export async function runMigrations(

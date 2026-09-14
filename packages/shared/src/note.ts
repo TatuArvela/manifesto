@@ -135,6 +135,66 @@ export interface AutoNoteSource {
   noteKey: string;
 }
 
+/** What a recipient may do with a note shared with them. */
+export const SHARE_ROLES = ["edit", "view"] as const;
+
+export type ShareRole = (typeof SHARE_ROLES)[number];
+
+/** The signed-in user's relationship to a note. */
+export type NoteRole = "owner" | ShareRole;
+
+/** Another account, as sharing shows it. */
+export interface ShareUser {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarColor: string;
+}
+
+/** Someone a note is shared with. */
+export interface NoteMember extends ShareUser {
+  role: ShareRole;
+  /**
+   * False while the invitation waits for an answer. Only the owner is told
+   * about those; everyone else sees the people who accepted.
+   */
+  accepted: boolean;
+}
+
+/**
+ * Who a note is shared with, and on what terms, from the point of view of
+ * whoever is reading it. Present only in connected mode and only on a note
+ * shared with at least one other person.
+ */
+export interface NoteSharing {
+  role: NoteRole;
+  owner: ShareUser;
+  /** Everyone but the owner. */
+  members: NoteMember[];
+}
+
+/**
+ * The fields every participant sees alike. Everything else about a note
+ * (color, pin, archive, position, tags, reminder) is each person's own.
+ */
+export const SHARED_NOTE_FIELDS = [
+  "title",
+  "content",
+  "font",
+  "images",
+  "linkPreviews",
+] as const;
+
+/** The fields a recipient keeps for themselves, whatever their role. */
+export const PERSONAL_NOTE_FIELDS = [
+  "color",
+  "pinned",
+  "archived",
+  "position",
+  "tags",
+  "reminder",
+] as const;
+
 export interface Note {
   id: string;
   title: string;
@@ -168,6 +228,16 @@ export interface Note {
   readonly?: boolean;
   /** Origin of a generated note. */
   source?: AutoNoteSource;
+  /**
+   * Who else has this note. Set by the server and never accepted from a
+   * client; absent in open mode and on a note nobody else has been invited to.
+   */
+  sharing?: NoteSharing;
+}
+
+/** What the signed-in user may do with a note: open mode owns everything. */
+export function roleOf(note: Pick<Note, "sharing">): NoteRole {
+  return note.sharing?.role ?? "owner";
 }
 
 /**
@@ -194,11 +264,13 @@ export function hasUnloadedImages(
  */
 export type NoteCreate = Omit<
   Note,
-  "id" | "createdAt" | "updatedAt" | "imageCount"
+  "id" | "createdAt" | "updatedAt" | "imageCount" | "sharing"
 >;
 
 /** Partial update: only the fields being changed. */
-export type NoteUpdate = Partial<Omit<Note, "id" | "createdAt" | "imageCount">>;
+export type NoteUpdate = Partial<
+  Omit<Note, "id" | "createdAt" | "imageCount" | "sharing">
+>;
 
 /** A snapshot of a note's title and content at a point in time. */
 export interface NoteVersion {

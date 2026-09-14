@@ -4,6 +4,9 @@ import {
   imageCountOf,
   NoteColor,
   NoteFont,
+  PERSONAL_NOTE_FIELDS,
+  roleOf,
+  SHARED_NOTE_FIELDS,
 } from "@manifesto/shared";
 import { computed, effect, signal } from "@preact/signals";
 import { type MessageKey, plural, t } from "../i18n/index.js";
@@ -463,6 +466,30 @@ export async function createNote(
   }
 }
 
+const PERSONAL_FIELDS = new Set<string>(PERSONAL_NOTE_FIELDS);
+const SHARED_FIELDS = new Set<string>(SHARED_NOTE_FIELDS);
+
+/**
+ * Why a change to a note shared with this user would be refused, or null if
+ * it would not be. The server decides; this is the same rule asked first, so
+ * a viewer ticking a box, or a recipient reaching for the trash, is told in a
+ * sentence instead of in a failed request.
+ */
+function refusalFor(note: Note, changes: NoteUpdate): MessageKey | null {
+  const role = roleOf(note);
+  if (role === "owner") return null;
+  const fields = Object.entries(changes)
+    .filter(([, value]) => value !== undefined)
+    .map(([field]) => field);
+  if (fields.some((f) => !PERSONAL_FIELDS.has(f) && !SHARED_FIELDS.has(f))) {
+    return "sharing.error.ownerOnly";
+  }
+  if (role === "view" && fields.some((f) => SHARED_FIELDS.has(f))) {
+    return "sharing.error.viewOnly";
+  }
+  return null;
+}
+
 export async function updateNote(
   id: string,
   changes: NoteUpdate,
@@ -493,6 +520,11 @@ export async function updateNote(
     return true;
   }
   const base = notes.value.find((n) => n.id === id) ?? null;
+  const refusal = base ? refusalFor(base, changes) : null;
+  if (refusal) {
+    reportFailure(`Refused change to shared note ${id}:`, changes, refusal);
+    return false;
+  }
   try {
     const note = await storage.update(
       id,
@@ -930,7 +962,10 @@ export async function exportNotes(): Promise<string | null> {
     showError(t("error.exportFailed"));
     return null;
   }
-  return JSON.stringify(notes.value, null, 2);
+  // Who else holds a note is the server's to say, and would mean nothing in
+  // a file imported somewhere else.
+  const plain = notes.value.map(({ sharing: _sharing, ...note }) => note);
+  return JSON.stringify(plain, null, 2);
 }
 
 export async function importNotes(imported: Note[]): Promise<boolean> {

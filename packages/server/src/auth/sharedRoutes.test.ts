@@ -15,7 +15,10 @@ describe("auth shared routes", () => {
   it("GET /api/auth/methods returns the configured provider name", async () => {
     const res = await rig.request("/api/auth/methods");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ provider: "local" });
+    expect(await res.json()).toEqual({
+      provider: "local",
+      userLookup: "search",
+    });
   });
 
   it("GET /api/auth/methods is public (no auth required)", async () => {

@@ -9,6 +9,7 @@ import {
   NoteColor,
   NoteFont,
   REMINDER_RECURRENCES,
+  SHARE_ROLES,
 } from "@manifesto/shared";
 import { z } from "zod";
 
@@ -23,10 +24,28 @@ const passwordSchema = z
   .min(8, "Password must be at least 8 characters")
   .max(256, "Password is too long");
 
+/**
+ * An email address, checked only for its shape: something, an `@`, something.
+ * Nothing is ever sent to it, so what matters is that it names one person and
+ * can be typed back to find them, not that a mail server would accept it.
+ */
+export const emailSchema = z
+  .string()
+  .trim()
+  .min(3, "Email is required")
+  .max(254, "Email is too long")
+  .regex(/^[^\s@]+@[^\s@]+$/, "Email must look like name@example.com");
+
 export const authCredentialsSchema = z.object({
   username: usernameSchema,
   password: passwordSchema,
 });
+
+export const registerSchema = authCredentialsSchema.extend({
+  email: emailSchema.optional(),
+});
+
+export const authMeUpdateSchema = z.object({ email: emailSchema.nullable() });
 
 export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.optional(),
@@ -39,9 +58,28 @@ export const passwordChangeSchema = z.object({
   newPassword: passwordSchema,
 });
 
-export const adminCreateUserSchema = z.object({ username: usernameSchema });
+export const adminCreateUserSchema = z.object({
+  username: usernameSchema,
+  email: emailSchema.optional(),
+});
 
-export const adminUpdateUserSchema = z.object({ isAdmin: z.boolean() });
+export const adminUpdateUserSchema = z
+  .object({
+    isAdmin: z.boolean().optional(),
+    email: emailSchema.nullable().optional(),
+  })
+  .refine((body) => body.isAdmin !== undefined || body.email !== undefined, {
+    message: "Nothing to change",
+  });
+
+const shareRoleSchema = z.enum(SHARE_ROLES);
+
+export const shareCreateSchema = z.object({
+  userId: z.string().min(1).max(64),
+  role: shareRoleSchema,
+});
+
+export const shareUpdateSchema = z.object({ role: shareRoleSchema });
 
 export const noteColorSchema = z.nativeEnum(NoteColor);
 export const noteFontSchema = z.nativeEnum(NoteFont);

@@ -1,10 +1,19 @@
-import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
+import type {
+  Note,
+  NoteCreate,
+  NoteUpdate,
+  ShareInvitation,
+  ShareRole,
+  ShareUser,
+} from "@manifesto/shared";
 
 export interface User {
   id: string;
   username: string;
   displayName: string;
   avatarColor: string;
+  /** Unique regardless of case, and optional. */
+  email: string | null;
   provider: string;
   externalId: string | null;
   passwordHash: string | null;
@@ -20,6 +29,7 @@ export interface CreateUserInput {
   username: string;
   displayName: string;
   avatarColor: string;
+  email?: string | null;
   provider: string;
   externalId: string | null;
   passwordHash: string | null;
@@ -43,6 +53,15 @@ export interface UserSummary extends User {
  */
 export type AdminGuardedResult = "ok" | "not-found" | "last-admin";
 
+/** What became of setting an email address. `email-taken` wrote nothing. */
+export type SetEmailResult = "ok" | "not-found" | "email-taken";
+
+export interface UserSearchOptions {
+  /** Left out of the results: the person searching. */
+  excludeId: string;
+  limit: number;
+}
+
 export interface UsersRepo {
   /**
    * Insert a user. The account is an admin when `isAdmin` says so, and
@@ -54,6 +73,15 @@ export interface UsersRepo {
   findById(id: string): Promise<User | null>;
   findByUsername(username: string): Promise<User | null>;
   findByExternalId(provider: string, externalId: string): Promise<User | null>;
+  /** Compared regardless of case. */
+  findByEmail(email: string): Promise<User | null>;
+  /**
+   * Accounts whose username, display name or email contains `query`,
+   * regardless of case, ordered by username.
+   */
+  search(query: string, options: UserSearchOptions): Promise<User[]>;
+  /** Set or clear the email address. */
+  setEmail(id: string, email: string | null): Promise<SetEmailResult>;
   /** Every user, ordered by username. */
   list(): Promise<UserSummary[]>;
   /** Every admin, oldest first. */
@@ -87,6 +115,14 @@ export class UsernameTakenError extends Error {
   constructor(public readonly username: string) {
     super(`Username already taken: ${username}`);
     this.name = "UsernameTakenError";
+  }
+}
+
+/** As `UsernameTakenError`, for the email address. */
+export class EmailTakenError extends Error {
+  constructor(public readonly email: string) {
+    super("Email address already taken");
+    this.name = "EmailTakenError";
   }
 }
 
@@ -142,18 +178,56 @@ export interface ListNotesOptions {
   cursor?: string;
 }
 
+/**
+ * What a user may do with a note, and whose it is.
+ *
+ * A note shared with someone is theirs to read (and, as an editor, to write)
+ * only while they have accepted it and its owner has not put it in the trash.
+ * An invitation grants nothing.
+ */
+export interface NoteAccess {
+  role: "owner" | ShareRole;
+  ownerId: string;
+}
+
+/**
+ * A write the caller's role does not allow: a recipient touching what only the
+ * owner decides (the trash, auto-note markers), or a viewer touching the note
+ * itself. Nothing was written.
+ */
+export class NoteAccessError extends Error {
+  constructor(public readonly fields: string[]) {
+    super(`Not allowed to change: ${fields.join(", ")}`);
+    this.name = "NoteAccessError";
+  }
+}
+
+/**
+ * Notes as one user sees them: their own, and those shared with them that they
+ * accepted. A shared note carries the recipient's own color, pin, archive,
+ * position, tags and reminder in place of the owner's, and every note that has
+ * members carries `sharing`.
+ */
 export interface NotesRepo {
-  /** One page of the user's notes, newest first, without attachments. */
+  /** One page of the notes the user can see, newest first, without
+   * attachments. */
   listByUser(userId: string, options: ListNotesOptions): Promise<NotePage>;
-  /** A single note, attachments and all. */
+  /** A single note the user can see, attachments and all. */
   getById(id: string, userId: string): Promise<Note | null>;
+  /** The user's role on a note they can see, or null. */
+  access(id: string, userId: string): Promise<NoteAccess | null>;
   insert(input: InsertNoteInput): Promise<Note>;
   /**
    * Update a note, optionally constrained by the current `updated_at` for
-   * optimistic concurrency. Returns null when the row doesn't exist, doesn't
-   * belong to the user, or (if `expectedUpdatedAt` is provided) the row's
-   * `updated_at` no longer matches. Callers can disambiguate the three cases
-   * with a follow-up `getById` lookup.
+   * optimistic concurrency. Returns null when the user cannot see the note
+   * or (if `expectedUpdatedAt` is provided) its `updated_at` no longer
+   * matches. Callers can disambiguate the cases with a follow-up `getById`.
+   *
+   * The owner's changes go to the note. A recipient's go to the note (the
+   * shared fields, editors only) and to their share (the personal ones), and
+   * stamp the note's `updated_at` either way, so everyone holds one
+   * concurrency token. Throws `NoteAccessError` when the role does not allow
+   * a field.
    */
   update(
     id: string,
@@ -162,8 +236,10 @@ export interface NotesRepo {
     updatedAt: string,
     expectedUpdatedAt?: string,
   ): Promise<Note | null>;
+  /** Owner only. The note's shares go with it. */
   delete(id: string, userId: string): Promise<boolean>;
-  /** One page of matches, newest first, without attachments. */
+  /** One page of matches among the notes the user can see, newest first,
+   * without attachments. */
   search(
     userId: string,
     query: string,
@@ -171,8 +247,69 @@ export interface NotesRepo {
   ): Promise<NotePage>;
 }
 
+/** A note shared with one user: an invitation until `acceptedAt` is set. */
+export interface NoteShare {
+  noteId: string;
+  userId: string;
+  role: ShareRole;
+  createdAt: string;
+  acceptedAt: string | null;
+}
+
+/** Everyone with a stake in one note, for deciding who hears about it. */
+export interface NoteAudience {
+  ownerId: string;
+  /** In the owner's trash, which hides it from everyone else. */
+  trashed: boolean;
+  /** Invitations and accepted shares both. */
+  shares: NoteShare[];
+}
+
+export interface CreateShareInput {
+  noteId: string;
+  userId: string;
+  role: ShareRole;
+  createdAt: string;
+}
+
+export interface SharesRepo {
+  /** Null when there is no such note. */
+  audience(noteId: string): Promise<NoteAudience | null>;
+  /** Invite a user. `exists` when they already hold an invitation or a share,
+   * and nothing was written. */
+  create(input: CreateShareInput): Promise<"ok" | "exists">;
+  setRole(noteId: string, userId: string, role: ShareRole): Promise<boolean>;
+  /**
+   * Accept an invitation to a note that is not in its owner's trash. The
+   * recipient starts with the note's color and at the end of their manual
+   * order. False when there was no such invitation.
+   */
+  accept(noteId: string, userId: string, acceptedAt: string): Promise<boolean>;
+  /** Remove an invitation or a share, returning what it was. */
+  delete(noteId: string, userId: string): Promise<NoteShare | null>;
+  /** The invitations waiting for a user, newest first, leaving out notes in
+   * their owner's trash. */
+  listInvitations(userId: string): Promise<ShareInvitation[]>;
+  /** One invitation, as `listInvitations` describes it. */
+  getInvitation(
+    noteId: string,
+    userId: string,
+  ): Promise<ShareInvitation | null>;
+  /** Every invitation and share a user holds on other people's notes. */
+  listByRecipient(userId: string): Promise<NoteShare[]>;
+  /** Every invitation and share on a user's own notes. */
+  listByOwner(ownerId: string): Promise<NoteShare[]>;
+}
+
+export type { ShareUser };
+
+/**
+ * Keyed by the note and its owner. The collaboration socket authorizes a
+ * participant before either is called, and passes the owner's id whoever the
+ * participant is.
+ */
 export interface YjsStore {
-  load(noteId: string, userId: string): Promise<Buffer | null>;
+  load(noteId: string, ownerId: string): Promise<Buffer | null>;
   /**
    * Persist Y.Doc state for a note. Does NOT touch the note's `updated_at`
    * field: Yjs writes are independent of REST writes, and bumping
@@ -181,7 +318,7 @@ export interface YjsStore {
    */
   store(
     noteId: string,
-    userId: string,
+    ownerId: string,
     state: Buffer,
     stateVector: Buffer,
   ): Promise<void>;
@@ -200,6 +337,7 @@ export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
   notes: NotesRepo;
+  shares: SharesRepo;
   yjs: YjsStore;
   maintenance: MaintenanceRepo;
   close(): Promise<void>;

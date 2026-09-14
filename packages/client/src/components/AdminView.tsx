@@ -1,5 +1,6 @@
 import type { AdminUser } from "@manifesto/shared";
 import {
+  AtSign,
   Check,
   Copy,
   KeyRound,
@@ -21,6 +22,7 @@ import {
   loadAdminUsers,
   resetAccountPassword,
   setAccountAdmin,
+  setAccountEmail,
 } from "../state/admin.js";
 import {
   authProviderName,
@@ -133,8 +135,12 @@ export function AdminView() {
   );
 }
 
+const fieldClass =
+  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+
 function CreateAccountForm({ onDone }: { onDone: () => void }) {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEscapeStack(true, onDone);
@@ -145,7 +151,7 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
     if (!name || busy) return;
     setBusy(true);
     // A failure has already been reported; the form stays open to fix it.
-    const created = await createAccount(name);
+    const created = await createAccount(name, email.trim() || undefined);
     setBusy(false);
     if (created) onDone();
   };
@@ -169,7 +175,20 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
           onInput={(e) =>
             setUsername((e.currentTarget as HTMLInputElement).value)
           }
-          class="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class={fieldClass}
+        />
+      </label>
+      <label class="flex-1 min-w-48">
+        <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+          {t("login.emailOptional")}
+        </span>
+        <input
+          type="email"
+          autoComplete="off"
+          maxLength={254}
+          value={email}
+          onInput={(e) => setEmail((e.currentTarget as HTMLInputElement).value)}
+          class={fieldClass}
         />
       </label>
       <button
@@ -281,7 +300,9 @@ function UserRow({
   passwordsHere: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [confirming, setConfirming] = useState<"reset" | "delete" | null>(null);
+  const [confirming, setConfirming] = useState<
+    "reset" | "delete" | "email" | null
+  >(null);
   const [busy, setBusy] = useState(false);
   const canReset = passwordsHere && user.provider === "local";
 
@@ -329,6 +350,11 @@ function UserRow({
               <Badge tone="amber">{t("admin.badge.temporaryPassword")}</Badge>
             )}
           </div>
+          {user.email && (
+            <p class="mt-0.5 text-sm text-neutral-600 dark:text-neutral-300 truncate">
+              {user.email}
+            </p>
+          )}
           <p class="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
             {meta}
           </p>
@@ -366,6 +392,17 @@ function UserRow({
               )}
               {t(user.isAdmin ? "admin.removeAdmin" : "admin.makeAdmin")}
             </button>
+            <button
+              type="button"
+              class={menuItemClass}
+              onClick={() => {
+                setMenuOpen(false);
+                setConfirming("email");
+              }}
+            >
+              <AtSign class="w-4 h-4" />
+              {t("admin.changeEmail")}
+            </button>
             {canReset && (
               <button
                 type="button"
@@ -394,7 +431,11 @@ function UserRow({
         )}
       </div>
 
-      {confirming && (
+      {confirming === "email" && (
+        <EmailForm user={user} onDone={() => setConfirming(null)} />
+      )}
+
+      {(confirming === "reset" || confirming === "delete") && (
         <div class="mt-3 ml-12 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600">
           <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-3">
             {t(
@@ -437,5 +478,57 @@ function UserRow({
         </div>
       )}
     </li>
+  );
+}
+
+/**
+ * An admin setting someone's address, for an account created without one or
+ * holding one that belongs to somebody else. Under single sign-on the next
+ * sign-in brings the identity provider's address back.
+ */
+function EmailForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
+  const [email, setEmail] = useState(user.email ?? "");
+  const [busy, setBusy] = useState(false);
+
+  useEscapeStack(true, onDone);
+
+  const submit = async (event: Event) => {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    const next = email.trim();
+    // A failure has already been reported; the form stays open to fix it.
+    const saved = await setAccountEmail(user.id, next.length > 0 ? next : null);
+    setBusy(false);
+    if (saved) onDone();
+  };
+
+  return (
+    <form
+      onSubmit={submit}
+      class="mt-3 ml-12 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600 flex flex-wrap items-end gap-2"
+    >
+      <label class="flex-1 min-w-48">
+        <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+          {t("login.email")}
+        </span>
+        <input
+          type="email"
+          autoComplete="off"
+          // biome-ignore lint/a11y/noAutofocus: opened by a click to type in
+          autoFocus
+          maxLength={254}
+          value={email}
+          onInput={(e) => setEmail((e.currentTarget as HTMLInputElement).value)}
+          class={fieldClass}
+        />
+      </label>
+      <button type="submit" class={primaryButtonClass} disabled={busy}>
+        {t("admin.saveEmail")}
+      </button>
+      <button type="button" class={secondaryButtonClass} onClick={onDone}>
+        {t("admin.cancel")}
+      </button>
+    </form>
   );
 }

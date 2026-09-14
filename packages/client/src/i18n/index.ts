@@ -106,6 +106,17 @@ export function formatDate(iso: string): string {
 }
 
 /**
+ * Names joined the way the language joins them ("Alice, Bob and Carol",
+ * "Alice, Bob ja Carol"), so no message has to spell out a separator. Reads
+ * `locale.value`, so the same render-body rule as `t()` applies.
+ */
+export function formatList(items: string[]): string {
+  return new Intl.ListFormat(locale.value, { type: "conjunction" }).format(
+    items,
+  );
+}
+
+/**
  * Format a byte count for display in megabytes.
  *
  * Both halves come from the platform rather than from each message: the decimal

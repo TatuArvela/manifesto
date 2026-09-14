@@ -25,7 +25,7 @@ Notes, checklists, tags, colors, pinning, archive, trash, search, reminders, ver
 
 ### Not available
 
-Multi-device sync, multi-user accounts, server-side search across devices, live collaborative editing, [link preview](features/link-previews.md) titles and images (cards show the URL and domain only), persistence beyond a single browser profile.
+Multi-device sync, multi-user accounts, sharing notes with other accounts, server-side search across devices, live collaborative editing, [link preview](features/link-previews.md) titles and images (cards show the URL and domain only), persistence beyond a single browser profile.
 
 ### When to use
 
@@ -56,7 +56,7 @@ The client is built with `VITE_MANIFESTO_SERVER=<url>` and talks to a Manifesto 
 
 ### Available features
 
-Everything in open mode, **plus**: multi-device sync, multi-user isolation, [account administration](features/accounts.md), server-side search, live collaborative editing, presence (who is viewing/editing), and [link previews](features/link-previews.md) filled in with the page's title, description and image.
+Everything in open mode, **plus**: multi-device sync, multi-user isolation, [account administration](features/accounts.md), [sharing notes with other accounts](features/sharing-with-people.md), server-side search, live collaborative editing, presence (who is viewing/editing), and [link previews](features/link-previews.md) filled in with the page's title, description and image.
 
 ### Behavioural differences vs open mode
 
@@ -98,7 +98,7 @@ In connected mode the server picks a **storage driver** and an **auth provider**
 
 ### Storage drivers
 
-Both drivers expose the same `StorageDriver` interface and ship five repositories: `users`, `sessions`, `notes`, `yjs`, `maintenance`. The choice is operational, not functional.
+Both drivers expose the same `StorageDriver` interface and ship six repositories: `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance`. The choice is operational, not functional.
 
 - **`sqlite`** *(default)*: `better-sqlite3`, single file at `${DATA_DIR}/manifesto.db`. Zero configuration. Back up by copying the file.
 - **`postgres`**: `pg` Pool against a `DATABASE_URL`. Required for any deployment that scales beyond a single app server, shares state with other services, or relies on managed-database backups.
