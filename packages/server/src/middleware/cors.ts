@@ -9,7 +9,10 @@ export function corsMiddleware(cfg: ServerConfig): MiddlewareHandler {
       if (!incoming) return null;
       return origins.includes(incoming) ? incoming : null;
     },
-    allowHeaders: ["Authorization", "Content-Type"],
+    // `If-Match` carries the optimistic-concurrency token on every update of
+    // a note the client already holds; without it here the browser refuses
+    // the request before it is sent.
+    allowHeaders: ["Authorization", "Content-Type", "If-Match"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: false,
     maxAge: 600,
