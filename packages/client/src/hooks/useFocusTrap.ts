@@ -81,6 +81,15 @@ function holdsFocus(container: HTMLElement): boolean {
   return container.contains(active) || active.closest(".card-popover") !== null;
 }
 
+/**
+ * The traps that are up, oldest first. Only the newest handles Tab: a dialog
+ * portalled over the note editor (the share dialog, version history) is not
+ * inside the editor's container, and the editor's trap, which registered its
+ * listener first, would otherwise see focus "outside" it and pull it back on
+ * every press.
+ */
+const openTraps: object[] = [];
+
 export function useFocusTrap<T extends HTMLElement>(active: boolean) {
   const ref = useRef<T>(null);
 
@@ -95,8 +104,12 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     const restoreTo = standingIn ? standIns.get(focused) : focused;
     if (!standingIn && !holdsFocus(container)) tabbable(container)[0]?.focus();
 
+    const trap = {};
+    openTraps.push(trap);
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Tab" || event.defaultPrevented) return;
+      if (openTraps[openTraps.length - 1] !== trap) return;
       const stops = tabbable(container);
       if (stops.length === 0) {
         event.preventDefault();
@@ -127,6 +140,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
+      openTraps.splice(openTraps.indexOf(trap), 1);
       // Only if it is still on the page: the element that opened a note can be
       // a card that archiving has just removed from the grid.
       if (restoreTo instanceof HTMLElement && restoreTo.isConnected) {
