@@ -91,33 +91,74 @@ function fire(note: Note) {
   const title = note.title.trim() || t("reminder.untitled");
   const body = note.content.replace(/\s+/g, " ").trim().slice(0, 140);
 
-  let fired = false;
+  // Rescheduled before the notification is out, not after: showing one through
+  // the service worker is async, and a reschedule landing in that gap would
+  // find the reminder still due and fire it again.
+  scheduleNext(note, reminder);
+
+  const showBanner = () => {
+    reminderBanner.value = { noteId: note.id, title, body };
+  };
   if (
     typeof Notification !== "undefined" &&
     Notification.permission === "granted"
   ) {
+    void showReminderNotification(note.id, title, body).then((shown) => {
+      if (!shown) showBanner();
+    });
+  } else {
+    showBanner();
+  }
+}
+
+/**
+ * Shows a reminder as a system notification, reporting whether one appeared.
+ *
+ * Through the service worker wherever there is one. The page's own
+ * `new Notification()` is what desktop browsers accept, but Chrome on Android
+ * refuses it outright ("Illegal constructor") and an installed app on iOS has
+ * no constructor at all, so on a phone every reminder the open app fired came
+ * out as the in-app banner instead. A notification the worker shows is also
+ * one it handles the click for (`notificationclick` in sw.ts), which opens the
+ * note the same way.
+ *
+ * Assumes permission is granted; the caller has checked. Never rejects.
+ */
+export async function showReminderNotification(
+  noteId: string,
+  title: string,
+  body: string,
+): Promise<boolean> {
+  const registration =
+    typeof navigator !== "undefined" && navigator.serviceWorker
+      ? await navigator.serviceWorker.getRegistration().catch(() => undefined)
+      : undefined;
+  if (registration) {
     try {
-      const n = new Notification(title, { body, tag: note.id });
-      n.onclick = () => {
-        window.focus();
-        window.dispatchEvent(
-          new CustomEvent("reminder:open-note", {
-            detail: { noteId: note.id },
-          }),
-        );
-        n.close();
-      };
-      fired = true;
+      await registration.showNotification(title, {
+        body,
+        tag: noteId,
+        data: { noteId },
+      });
+      return true;
     } catch {
-      fired = false;
+      // Fall through to the page's own notification.
     }
   }
-
-  if (!fired) {
-    reminderBanner.value = { noteId: note.id, title, body };
+  if (typeof Notification === "undefined") return false;
+  try {
+    const n = new Notification(title, { body, tag: noteId });
+    n.onclick = () => {
+      window.focus();
+      window.dispatchEvent(
+        new CustomEvent("reminder:open-note", { detail: { noteId } }),
+      );
+      n.close();
+    };
+    return true;
+  } catch {
+    return false;
   }
-
-  scheduleNext(note, reminder);
 }
 
 function scheduleNext(note: Note, reminder: NoteReminder) {

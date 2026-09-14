@@ -100,6 +100,16 @@ function MainApp() {
       if (detail?.noteId) editingNoteId.value = detail.noteId;
     };
     window.addEventListener("reminder:open-note", openHandler);
+    // A notification tapped with no window open starts the app on
+    // `?note=<id>` (sw.ts). Taken once and removed, so a reload does not open
+    // the note again.
+    const launchUrl = new URL(window.location.href);
+    const launchNoteId = launchUrl.searchParams.get("note");
+    if (launchNoteId) {
+      editingNoteId.value = launchNoteId;
+      launchUrl.searchParams.delete("note");
+      history.replaceState(history.state, "", launchUrl.href);
+    }
     const payload = decodeShareFromHash(window.location.hash);
     if (payload) setSharedNote(payload);
     welcomeIfNew();

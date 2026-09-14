@@ -289,7 +289,12 @@ self.addEventListener("notificationclick", (event) => {
         }
       }
       if (self.clients.openWindow) {
-        await self.clients.openWindow(`/?note=${noteId ?? ""}`);
+        // Against the scope, not the origin: an instance served from a
+        // subpath (GitHub Pages' `/manifesto/`) is not at `/`. `App` opens the
+        // note named in `?note=` once it starts.
+        const url = new URL(self.registration.scope);
+        if (noteId) url.searchParams.set("note", noteId);
+        await self.clients.openWindow(url.href);
       }
     })(),
   );
