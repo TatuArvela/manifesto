@@ -27,14 +27,11 @@ import { editingNoteId, showError, showSuccess } from "./ui.js";
 export const invitations = signal<ShareInvitation[]>([]);
 
 /**
- * The note whose people are being looked at, if any, and whether the dialog
- * opened on the question of leaving it. One dialog for the whole app: it is
- * opened from a note's menu, which closes as soon as a row is chosen.
+ * The note whose people are being looked at, if any. One dialog for the whole
+ * app: it is opened from a note's menu, which closes as soon as a row is
+ * chosen.
  */
-export const shareDialog = signal<{
-  noteId: string;
-  confirmLeave?: boolean;
-} | null>(null);
+export const shareDialog = signal<{ noteId: string } | null>(null);
 
 class SharingRequestError extends Error {
   constructor(public status: number) {

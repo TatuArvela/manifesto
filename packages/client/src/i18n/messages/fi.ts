@@ -135,7 +135,6 @@ export const fi: Messages = {
   "noteMenu.undelete": "Palauta roskakorista",
   "noteMenu.shareWithPeople": "Jaa muiden kanssa",
   "noteMenu.people": "Muistiinpanon käyttäjät",
-  "noteMenu.leave": "Poista muistiinpanoistani",
 
   "editor.rawMode": "Raakatila",
   "editor.normalMode": "Normaali tila",

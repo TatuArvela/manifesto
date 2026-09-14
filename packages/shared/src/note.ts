@@ -175,7 +175,7 @@ export interface NoteSharing {
 
 /**
  * The fields every participant sees alike. Everything else about a note
- * (color, pin, archive, position, tags, reminder) is each person's own.
+ * (color, pin, archive, trash, position, tags, reminder) is each person's own.
  */
 export const SHARED_NOTE_FIELDS = [
   "title",
@@ -185,11 +185,17 @@ export const SHARED_NOTE_FIELDS = [
   "linkPreviews",
 ] as const;
 
-/** The fields a recipient keeps for themselves, whatever their role. */
+/**
+ * The fields a recipient keeps for themselves, whatever their role. The
+ * trash is among them: a recipient's Delete puts the note in their own trash,
+ * while the owner's trash hides the note from everyone.
+ */
 export const PERSONAL_NOTE_FIELDS = [
   "color",
   "pinned",
   "archived",
+  "trashed",
+  "trashedAt",
   "position",
   "tags",
   "reminder",

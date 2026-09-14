@@ -331,6 +331,12 @@ export interface ExpiredTrashedNote {
 
 export interface MaintenanceRepo {
   cleanupTrashedBefore(cutoffIso: string): Promise<ExpiredTrashedNote[]>;
+  /**
+   * Remove shares their recipients put in their own trash before the cutoff,
+   * returning what was removed. The note stays with its owner and everyone
+   * else; for the recipient it is gone, as a note of their own would be.
+   */
+  cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]>;
 }
 
 export interface StorageDriver {

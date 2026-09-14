@@ -9,7 +9,6 @@ import {
   History,
   Link,
   ListX,
-  LogOut,
   Trash2,
   Undo2,
   UserPlus,
@@ -292,19 +291,10 @@ export function noteMenuItems(
     });
   }
 
-  if (role !== "owner") {
-    // The trash is the owner's. What a recipient can do is let go of the
-    // note, which the dialog asks about first: it takes a new invitation to
-    // get it back.
-    items.push({
-      id: "leave",
-      icon: <LogOut class="w-4 h-4" />,
-      label: t("noteMenu.leave"),
-      onSelect: () => {
-        shareDialog.value = { noteId: note.id, confirmLeave: true };
-      },
-    });
-  } else if (!options.omitTrash) {
+  // A recipient's Delete puts the note in their own trash, as the owner's does
+  // for theirs. Emptying it from there takes the note out of their notes and
+  // leaves it with everyone else.
+  if (!options.omitTrash) {
     items.push({
       id: "trash",
       icon: note.trashed ? (

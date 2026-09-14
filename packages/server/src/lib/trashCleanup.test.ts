@@ -116,4 +116,52 @@ describe("startTrashCleanup", () => {
     expect(events).toEqual(["later"]);
     vi.useRealTimers();
   });
+
+  it("expires a note from a recipient's own trash without deleting it", async () => {
+    await storage.users.create({
+      id: "u2",
+      username: "bob",
+      passwordHash: "h",
+      displayName: "",
+      avatarColor: "",
+      provider: "local",
+      externalId: null,
+      createdAt: new Date().toISOString(),
+    });
+    const now = new Date().toISOString();
+    const longAgo = new Date(
+      Date.now() - 31 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    await storage.notes.insert({
+      id: "shared",
+      userId: "u1",
+      data: { ...baseNote, trashed: false },
+      createdAt: now,
+      updatedAt: now,
+    });
+    await storage.shares.create({
+      noteId: "shared",
+      userId: "u2",
+      role: "edit",
+      createdAt: now,
+    });
+    await storage.shares.accept("shared", "u2", now);
+    await storage.notes.update(
+      "shared",
+      "u2",
+      { trashed: true, trashedAt: longAgo },
+      now,
+    );
+
+    const events: { userId: string; id: string }[] = [];
+    broadcaster.subscribe((userId, event) => {
+      if (event.type === "note:deleted") events.push({ userId, id: event.id });
+    });
+    stop = startTrashCleanup(storage, broadcaster, 1_000_000);
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(await storage.notes.getById("shared", "u2")).toBeNull();
+    expect(await storage.notes.getById("shared", "u1")).not.toBeNull();
+    expect(events).toEqual([{ userId: "u2", id: "shared" }]);
+  });
 });

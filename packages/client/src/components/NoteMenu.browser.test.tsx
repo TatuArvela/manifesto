@@ -182,11 +182,11 @@ describe("a note shared with the user", () => {
   const ids = (note: Note) =>
     noteMenuItems(note, { checkedItems }).map((item) => item.id);
 
-  it("offers leaving it instead of the trash, which is the owner's", () => {
+  it("offers the recipient's own trash, as for a note of their own", () => {
+    expect(ids(makeNote({ sharing: sharing("view") }))).toContain("trash");
     expect(ids(makeNote({ sharing: sharing("edit") }))).toEqual(
-      expect.arrayContaining(["leave", "delete-checked"]),
+      expect.arrayContaining(["trash", "delete-checked"]),
     );
-    expect(ids(makeNote({ sharing: sharing("edit") }))).not.toContain("trash");
   });
 
   it("does not offer a viewer to delete checked items", () => {

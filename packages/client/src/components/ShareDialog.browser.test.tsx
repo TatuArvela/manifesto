@@ -179,7 +179,7 @@ describe("the share dialog", () => {
         members: [{ ...alice, role: "view", accepted: true }],
       }),
     ];
-    shareDialog.value = { noteId: "n1", confirmLeave: true };
+    shareDialog.value = { noteId: "n1" };
     render(<ShareDialogHost />, host);
 
     const text = dialog().textContent ?? "";
@@ -187,7 +187,14 @@ describe("the share dialog", () => {
     expect(text).toContain(t("sharing.you", { name: "Alice" }));
     // No inviting, and no choosing roles, for anyone but the owner.
     expect(dialog().querySelector("select")).toBeNull();
-    expect(text).toContain(t("sharing.leave.confirm", { name: "Olivia" }));
+    expect(text).not.toContain(t("sharing.leave.confirm", { name: "Olivia" }));
+
+    button(t("sharing.leave")).click();
+    await vi.waitFor(() => {
+      expect(dialog().textContent).toContain(
+        t("sharing.leave.confirm", { name: "Olivia" }),
+      );
+    });
 
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     const leave = [...dialog().querySelectorAll("button")].filter(

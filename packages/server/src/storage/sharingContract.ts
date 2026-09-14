@@ -259,12 +259,71 @@ export function describeSharingContract(
       ).toMatchObject({ archived: true });
     });
 
-    it("leaves the trash to the owner", async () => {
+    it("gives a recipient a trash of their own, even as a viewer", async () => {
+      await share("alice", "view");
+      await share("bob", "edit");
+
+      const trashed = await storage.notes.update(
+        "n1",
+        "alice",
+        { trashed: true, trashedAt: T3 },
+        T3,
+      );
+      expect(trashed).toMatchObject({ trashed: true, trashedAt: T3 });
+      // Still hers, in her trash, and nobody else's business.
+      expect(
+        (await storage.notes.listByUser("alice", PAGE)).notes[0],
+      ).toMatchObject({ id: "n1", trashed: true });
+      expect(await storage.notes.getById("n1", "owner")).toMatchObject({
+        trashed: false,
+        trashedAt: null,
+      });
+      expect(await storage.notes.getById("n1", "bob")).toMatchObject({
+        trashed: false,
+      });
+      expect((await storage.shares.audience("n1"))?.trashed).toBe(false);
+
+      expect(
+        await storage.notes.update(
+          "n1",
+          "alice",
+          { trashed: false, trashedAt: null },
+          T3,
+        ),
+      ).toMatchObject({ trashed: false, trashedAt: null });
+    });
+
+    it("leaves what only the owner decides to the owner", async () => {
       await share("alice", "edit");
       await expect(
-        storage.notes.update("n1", "alice", { trashed: true }, T3),
+        storage.notes.update("n1", "alice", { readonly: true }, T3),
       ).rejects.toBeInstanceOf(NoteAccessError);
       expect(await storage.notes.delete("n1", "alice")).toBe(false);
+      expect(await storage.notes.getById("n1", "owner")).not.toBeNull();
+    });
+
+    it("expires a share from its recipient's trash, leaving the note", async () => {
+      await share("alice", "edit");
+      await share("bob", "edit");
+      await storage.notes.update(
+        "n1",
+        "alice",
+        { trashed: true, trashedAt: "2026-01-01T00:00:00.000Z" },
+        T3,
+      );
+      await storage.notes.update(
+        "n1",
+        "bob",
+        { trashed: true, trashedAt: "2026-03-30T00:00:00.000Z" },
+        T3,
+      );
+
+      const expired = await storage.maintenance.cleanupTrashedSharesBefore(
+        "2026-03-01T00:00:00.000Z",
+      );
+      expect(expired).toMatchObject([{ noteId: "n1", userId: "alice" }]);
+      expect(await storage.notes.getById("n1", "alice")).toBeNull();
+      expect(await storage.notes.getById("n1", "bob")).not.toBeNull();
       expect(await storage.notes.getById("n1", "owner")).not.toBeNull();
     });
 

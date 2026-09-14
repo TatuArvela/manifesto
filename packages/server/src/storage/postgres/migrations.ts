@@ -92,6 +92,8 @@ CREATE TABLE note_shares (
   color       TEXT NOT NULL DEFAULT 'default',
   pinned      BOOLEAN NOT NULL DEFAULT FALSE,
   archived    BOOLEAN NOT NULL DEFAULT FALSE,
+  trashed     BOOLEAN NOT NULL DEFAULT FALSE,
+  trashed_at  TEXT,
   position    DOUBLE PRECISION NOT NULL DEFAULT 0,
   tags        TEXT NOT NULL DEFAULT '[]',
   reminder    TEXT,
@@ -100,6 +102,7 @@ CREATE TABLE note_shares (
   PRIMARY KEY (note_id, user_id)
 );
 CREATE INDEX note_shares_user ON note_shares(user_id);
+CREATE INDEX note_shares_trashed_expiry ON note_shares(trashed, trashed_at);
 `;
 
 export const MIGRATIONS: readonly Migration[] = [
