@@ -16,8 +16,10 @@ Notes can have a scheduled reminder that fires as a device notification at the c
 Reminders are delivered via three paths, in priority order:
 
 1. **Service worker notification (primary).** When notifications permission is granted, a service worker schedules reminders in IndexedDB and calls `showNotification` when they are due. This path fires even when the tab is closed, subject to the browser waking the service worker (Chromium with Periodic Background Sync is the most reliable; Firefox and Safari are best-effort).
-2. **In-tab `Notification` (fallback while the tab is open).** The page maintains a `setTimeout` per upcoming reminder and fires a native notification directly. Catches missed fires via `visibilitychange` when the tab regains focus (within a one-hour window).
+2. **From the open page (fallback while the tab is open).** The page maintains a `setTimeout` per upcoming reminder and shows the notification through its service worker registration, falling back to the page's own `Notification` only where there is no worker. The worker path is what works on phones: Chrome on Android refuses `new Notification()` and an installed iOS app has none. Catches missed fires via `visibilitychange` when the tab regains focus (within a one-hour window).
 3. **In-app banner (fallback when permission is denied).** The app renders a dismissible banner linking to the note. No OS notification is shown.
+
+Tapping a notification focuses an open window and opens the note there. With no window open it starts the app at its own scope (not the origin root, so an instance under a subpath works) with `?note=<id>`, which the app opens once and removes from the URL.
 
 Each fire is deduplicated across the two notification paths by:
 

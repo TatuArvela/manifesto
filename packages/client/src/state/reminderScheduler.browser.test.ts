@@ -1,10 +1,55 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   formatLocalISO,
   nextOccurrence,
   parseLocalISO,
+  showReminderNotification,
   snapToFuture,
 } from "./reminderScheduler.js";
+
+describe("showReminderNotification", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  /** A `Notification` that refuses construction, as Chrome on Android does. */
+  const refusingConstructor = () =>
+    vi.fn(() => {
+      throw new TypeError("Illegal constructor");
+    });
+
+  it("shows it through the service worker when there is one", async () => {
+    const showNotification = vi.fn(async () => {});
+    vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue({
+      showNotification,
+    } as unknown as ServiceWorkerRegistration);
+    const pageNotification = refusingConstructor();
+    vi.stubGlobal("Notification", pageNotification);
+
+    await expect(
+      showReminderNotification("n1", "Call the bank", "Before noon"),
+    ).resolves.toBe(true);
+
+    expect(showNotification).toHaveBeenCalledWith("Call the bank", {
+      body: "Before noon",
+      tag: "n1",
+      data: { noteId: "n1" },
+    });
+    expect(pageNotification).not.toHaveBeenCalled();
+  });
+
+  it("says so when neither way can show one, so the banner can", async () => {
+    vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
+      undefined,
+    );
+    vi.stubGlobal("Notification", refusingConstructor());
+
+    await expect(
+      showReminderNotification("n1", "Call the bank", ""),
+    ).resolves.toBe(false);
+  });
+});
 
 describe("parseLocalISO / formatLocalISO", () => {
   it("round-trips a local-wall-clock timestamp", () => {
