@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.7](https://github.com/TatuArvela/manifesto/compare/v0.1.6...v0.1.7) (2026-09-14)
+
+
+### Features
+
+* **client:** animate archived and restored cards out of the grid ([8a04989](https://github.com/TatuArvela/manifesto/commit/8a04989f0dadd8c69d0641cb69cd525f9dde8b72))
+* **client:** compose a board background ([0cf1c40](https://github.com/TatuArvela/manifesto/commit/0cf1c40a68e92772163b7ef9778d984410b2406d))
+* **client:** give tags a button of their own ([c925ffc](https://github.com/TatuArvela/manifesto/commit/c925ffc9e6ea45266e9e777e23ffff105cc0b231))
+* **client:** grow the editor out of its note ([b48d168](https://github.com/TatuArvela/manifesto/commit/b48d16894104a61d31d677918beb6e3fc4ab74c3))
+* **client:** larger editor controls on phones, wrapping when narrow ([12751a8](https://github.com/TatuArvela/manifesto/commit/12751a81fe4533efa892cb8b8b77a055afca1a32))
+* **client:** update an installed app without losing work ([5e1ef13](https://github.com/TatuArvela/manifesto/commit/5e1ef1372ea9b5419707f5e2f6f065ee107d23d4))
+* give share recipients a trash of their own ([c5a43fa](https://github.com/TatuArvela/manifesto/commit/c5a43faa1070b664f1b0cb583a107cf300990330))
+* share notes with other accounts ([a9460d7](https://github.com/TatuArvela/manifesto/commit/a9460d7a99b0439718b825a2d31ce52384775121))
+
+
+### Bug Fixes
+
+* **client:** keep a keystroke typed as a raw-mode note opens ([97ad299](https://github.com/TatuArvela/manifesto/commit/97ad299d181b94d9d70e3afca8dfdb776e64a29b))
+* **client:** let a dropdown's own button close it on a phone ([88c6bc1](https://github.com/TatuArvela/manifesto/commit/88c6bc1282f9c53d655e24ce42f063992a62e4ba))
+* **client:** let only the newest focus trap handle Tab ([e50d04c](https://github.com/TatuArvela/manifesto/commit/e50d04c6493cb183355ebd704d4527c77b9a2e6c))
+* **client:** show reminders as notifications on phones ([79b879b](https://github.com/TatuArvela/manifesto/commit/79b879bfa4b68e1b0ada7fdf0d068a2e9d4a16ce))
+* **server:** allow If-Match through CORS ([598db5c](https://github.com/TatuArvela/manifesto/commit/598db5ca1522d36a629a79521286718e62845ba1))
+
 ## [0.1.6](https://github.com/TatuArvela/manifesto/compare/v0.1.5...v0.1.6) (2026-09-13)
 
 
