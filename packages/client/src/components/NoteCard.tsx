@@ -13,6 +13,7 @@ import {
   PinOff,
   RefreshCw,
   Sparkles,
+  Tag,
   Trash2,
   Undo2,
   X,
@@ -28,6 +29,7 @@ import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
 import {
   activeView,
+  addTag,
   deleteCheckedItems,
   editingNoteId,
   enterSelectMode,
@@ -58,6 +60,7 @@ import { CardPopover } from "./Popover.js";
 import { PresenceAvatars } from "./PresenceAvatars.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPickerPanel } from "./ReminderPicker.js";
+import { TagPicker, tagPickerPanelClass } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 /** How long the modal's fade-out runs; matches its `duration-150` classes. */
@@ -131,8 +134,10 @@ function CardActions({
   isSelectMode,
   overlay,
   colorBtnRef,
+  tagsBtnRef,
   menuBtnRef,
   onToggleColorPicker,
+  onToggleTags,
   onToggleMenu,
 }: {
   note: Note;
@@ -140,8 +145,10 @@ function CardActions({
   isSelectMode: boolean;
   overlay?: boolean;
   colorBtnRef: preact.Ref<HTMLButtonElement>;
+  tagsBtnRef: preact.Ref<HTMLButtonElement>;
   menuBtnRef: preact.Ref<HTMLButtonElement>;
   onToggleColorPicker: () => void;
+  onToggleTags: () => void;
   onToggleMenu: () => void;
 }) {
   return (
@@ -228,6 +235,17 @@ function CardActions({
               <Palette class="w-4 h-4" />
             </button>
           </Tooltip>
+          <Tooltip label={t("noteMenu.tags")}>
+            <button
+              ref={tagsBtnRef}
+              type="button"
+              class={iconBtnClass}
+              onClick={onToggleTags}
+              aria-label={t("noteMenu.tags")}
+            >
+              <Tag class="w-4 h-4" />
+            </button>
+          </Tooltip>
           <Tooltip label={t("noteMenu.more")}>
             <button
               ref={menuBtnRef}
@@ -297,9 +315,10 @@ export function NoteCard({
   const [closing, setClosing] = useState(false);
   const modalRef = useFocusTrap<HTMLDivElement>(showModal && !closing);
   const [openPopover, setOpenPopover] = useState<
-    "color" | "menu" | "reminder" | null
+    "color" | "tags" | "menu" | "reminder" | null
   >(null);
   const colorBtnRef = useRef<HTMLButtonElement>(null);
+  const tagsBtnRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -729,9 +748,13 @@ export function NoteCard({
             isSelectMode={isSelectMode}
             overlay={isImageOnly || isLinkOnly}
             colorBtnRef={colorBtnRef}
+            tagsBtnRef={tagsBtnRef}
             menuBtnRef={menuBtnRef}
             onToggleColorPicker={() =>
               setOpenPopover(openPopover === "color" ? null : "color")
+            }
+            onToggleTags={() =>
+              setOpenPopover(openPopover === "tags" ? null : "tags")
             }
             onToggleMenu={() =>
               setOpenPopover(openPopover === "menu" ? null : "menu")
@@ -751,6 +774,21 @@ export function NoteCard({
             anchorRef={colorBtnRef}
             onClose={() => setOpenPopover(null)}
           />
+        )}
+
+        {openPopover === "tags" && (
+          <CardPopover
+            anchorRef={tagsBtnRef}
+            onClose={() => setOpenPopover(null)}
+          >
+            <div class={tagPickerPanelClass}>
+              <TagPicker
+                tags={note.tags}
+                autoFocus
+                onAddTag={(tag) => addTag(note.id, tag)}
+              />
+            </div>
+          </CardPopover>
         )}
 
         {openPopover === "menu" && (

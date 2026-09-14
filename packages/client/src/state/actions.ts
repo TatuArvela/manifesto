@@ -628,6 +628,19 @@ export async function togglePin(id: string) {
   await updateNote(id, { pinned: !note.pinned });
 }
 
+/**
+ * Adds one tag to one note, reading its tags as they stand now rather than as
+ * the caller last rendered them: the tag picker stays open between adds, and
+ * two picked before a render would otherwise each write a list holding only
+ * itself. Takes `allNotes` so an auto-note's override gets it too.
+ */
+export async function addTag(id: string, tag: string): Promise<boolean> {
+  const note = allNotes.peek().find((n) => n.id === id);
+  if (!note) return false;
+  if (note.tags.includes(tag)) return true;
+  return await updateNote(id, { tags: [...note.tags, tag] });
+}
+
 export async function deleteTag(tag: string): Promise<boolean> {
   const affectedIds = notes.value
     .filter((n) => n.tags.includes(tag))

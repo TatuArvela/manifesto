@@ -15,7 +15,7 @@ import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { getColorPickerColors, t } from "../i18n/index.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
-import { togglePin, updateNote } from "../state/index.js";
+import { addTag, togglePin, updateNote } from "../state/index.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
 import { Dropdown } from "./Dropdown.js";
 import { editorBtnClass, editorIconClass } from "./NoteEditor.js";
@@ -23,6 +23,7 @@ import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
+import { TagPickerButton } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 export function NoteReadonlyView({
@@ -230,6 +231,13 @@ export function NoteReadonlyView({
           iconClass={editorIconClass}
         />
 
+        <TagPickerButton
+          tags={note.tags}
+          onAddTag={(tag) => addTag(note.id, tag)}
+          triggerClass={editorBtnClass}
+          iconClass={editorIconClass}
+        />
+
         <Dropdown
           open={showMenu}
           onClose={() => setShowMenu(false)}
@@ -254,7 +262,6 @@ export function NoteReadonlyView({
           <NoteMenu
             items={noteMenuItems(note, { onDismiss: onClose })}
             onClose={() => setShowMenu(false)}
-            open={showMenu}
           />
         </Dropdown>
 

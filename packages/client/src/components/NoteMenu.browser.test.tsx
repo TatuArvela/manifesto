@@ -103,7 +103,6 @@ async function openKebab(root: ParentNode = host) {
 
 /** The rows every surface shows, in the order they share. */
 const sharedRows = [
-  t("noteMenu.tags"),
   t("noteMenu.shareLink"),
   t("noteMenu.duplicate"),
   t("noteMenu.exportMarkdown"),
@@ -165,6 +164,65 @@ describe("the note menu across its three surfaces", () => {
       expect(notes.value[0].archived).toBe(true);
     });
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("the tag button", () => {
+  /** Opens the tag picker from its own button and adds `tag` through it. */
+  async function addTagThroughButton(tag: string) {
+    const button = [...host.querySelectorAll("button")].find(
+      (el) => el.getAttribute("aria-label") === t("noteMenu.tags"),
+    );
+    if (!button) throw new Error("no tag button");
+    button.click();
+    const input = await vi.waitFor(() => {
+      const field = openMenuPanel().querySelector("input");
+      if (!field) throw new Error("no tag field");
+      return field;
+    });
+    input.value = tag;
+    input.dispatchEvent(new InputEvent("input", { bubbles: true }));
+    // Let the typed text render before Enter reads it, as it would between
+    // real keystrokes.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+  }
+
+  const surfaces = [
+    ["card", (note: Note) => <NoteCard note={note} />],
+    [
+      "editor",
+      (note: Note) => <NoteCardEditor note={note} onClose={() => {}} />,
+    ],
+    [
+      "read-only view",
+      (note: Note) => <NoteReadonlyView note={note} onClose={() => {}} />,
+    ],
+  ] as const;
+
+  for (const [name, surface] of surfaces) {
+    it(`adds a tag from the ${name}, keeping the ones it has`, async () => {
+      const note = makeNote({ tags: ["home"] });
+      storeNote(note);
+      render(surface(note), host);
+
+      await addTagThroughButton("Errands ");
+
+      await vi.waitFor(() => {
+        expect(notes.value[0].tags).toEqual(["home", "errands"]);
+      });
+    });
+  }
+
+  it("is not a row in the menu any more", async () => {
+    const note = makeNote();
+    storeNote(note);
+    render(<NoteCard note={note} />, host);
+    await openKebab();
+
+    expect(menuRows()).not.toContain(t("noteMenu.tags"));
   });
 });
 

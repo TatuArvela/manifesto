@@ -18,7 +18,7 @@ Clicking a NoteCard opens the NoteEditor as a modal overlay. The editor provides
 - Formatting toolbar (headings, bold, italic, quotes, code, links, lists, checklists). In raw mode its buttons insert the markdown syntax instead. It can be hidden under Settings > Features, which hides it in every note
 - Color picker
 - Font picker, the "T" button (Default, Serif, Monospace, Permanent Marker, Comic Relief, Rouge Script); on a phone it lives in the kebab menu
-- Tag picker
+- Tag button, opening the tag picker
 - Kebab menu with version history, sharing, and delete
 - Toolbar with pin, archive, and undo/redo actions
 
