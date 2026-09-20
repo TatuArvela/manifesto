@@ -365,108 +365,157 @@ export function FormattingToolbar({
 
   return (
     <div class="flex flex-wrap items-center gap-0.5 py-0.5 mb-2 border-b border-black/5 dark:border-white/5">
+      {/* The secondary controls. On a wide screen this is an ordinary flex item
+          and they sit inline, exactly where they have always been. On a phone
+          it drops to a full-width line of its own below the row (`order-2`,
+          `w-full`) and unfolds: a one-row grid whose track goes from `0fr` to
+          `1fr`, which is the one way to animate to a height nobody has
+          measured. The inner box clips the overflow while the track is short,
+          and turns invisible with it so the buttons it hides are not tab stops
+          on the way past. `visibility` holds until the fold has closed,
+          because any progress below 100% still counts as visible. */}
       <div
-        class={`flex items-center gap-0.5 ${expanded ? "" : "max-sm:hidden"}`}
+        class={`max-sm:order-2 max-sm:w-full max-sm:grid max-sm:transition-[grid-template-rows] max-sm:duration-200 max-sm:ease-out ${
+          expanded ? "max-sm:grid-rows-[1fr]" : "max-sm:grid-rows-[0fr]"
+        }`}
       >
-        <Dropdown
-          open={showHeadingMenu}
-          onClose={() => setShowHeadingMenu(false)}
-          trigger={
-            <Tooltip label={t("format.heading")}>
-              <button
-                type="button"
-                class={`${af.heading ? btnActive : btnInactive} flex items-center gap-0.5`}
-                onMouseDown={preventFocus}
-                onClick={() => setShowHeadingMenu(!showHeadingMenu)}
-                aria-label={t("format.heading")}
-                disabled={disabled}
-              >
-                <Heading class="w-4 h-4" />
-                <ChevronDown class="w-3 h-3 opacity-50" />
-              </button>
-            </Tooltip>
-          }
-          panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
+        <div
+          class={`max-sm:overflow-hidden max-sm:transition-[visibility] max-sm:duration-200 ${
+            expanded ? "" : "max-sm:invisible"
+          }`}
         >
-          {[1, 2, 3, 4].map((level) => (
-            <button
-              key={level}
-              type="button"
-              class="flex items-center gap-2 w-full px-3 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-              onMouseDown={preventFocus}
-              onClick={() => {
-                onFormat("heading", String(level));
-                setShowHeadingMenu(false);
-              }}
+          <div class="flex flex-wrap items-center gap-0.5 max-sm:pt-1.5 max-sm:pb-0.5">
+            <Dropdown
+              open={showHeadingMenu}
+              onClose={() => setShowHeadingMenu(false)}
+              trigger={
+                <Tooltip label={t("format.heading")}>
+                  <button
+                    type="button"
+                    class={`${af.heading ? btnActive : btnInactive} flex items-center gap-0.5`}
+                    onMouseDown={preventFocus}
+                    onClick={() => setShowHeadingMenu(!showHeadingMenu)}
+                    aria-label={t("format.heading")}
+                    disabled={disabled}
+                  >
+                    <Heading class="w-4 h-4" />
+                    <ChevronDown class="w-3 h-3 opacity-50" />
+                  </button>
+                </Tooltip>
+              }
+              panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
             >
-              <span class="font-semibold">H{level}</span>
-              <span class="text-neutral-400 text-xs">
-                {t("format.headingLevel", { level })}
-              </span>
-            </button>
-          ))}
-        </Dropdown>
+              {[1, 2, 3, 4].map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  class="flex items-center gap-2 w-full px-3 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
+                  onMouseDown={preventFocus}
+                  onClick={() => {
+                    onFormat("heading", String(level));
+                    setShowHeadingMenu(false);
+                  }}
+                >
+                  <span class="font-semibold">H{level}</span>
+                  <span class="text-neutral-400 text-xs">
+                    {t("format.headingLevel", { level })}
+                  </span>
+                </button>
+              ))}
+            </Dropdown>
 
-        {fmtBtn("bold", t("format.bold"), <Bold class="w-4 h-4" />)}
-        {fmtBtn("italic", t("format.italic"), <Italic class="w-4 h-4" />)}
-        {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
-        {fmtBtn("code", t("format.code"), <Code class="w-4 h-4" />)}
+            {fmtBtn("bold", t("format.bold"), <Bold class="w-4 h-4" />)}
+            {fmtBtn("italic", t("format.italic"), <Italic class="w-4 h-4" />)}
+            {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
+            {fmtBtn("code", t("format.code"), <Code class="w-4 h-4" />)}
 
-        <Dropdown
-          open={showLinkMenu}
-          onClose={closeLinkMenu}
-          trigger={
-            <Tooltip label={t("format.link")}>
-              <button
-                type="button"
-                class={af.link ? btnActive : btnInactive}
-                onMouseDown={preventFocus}
-                onClick={onLinkClick}
-                aria-label={t("format.link")}
-                disabled={disabled}
+            <Dropdown
+              open={showLinkMenu}
+              onClose={closeLinkMenu}
+              trigger={
+                <Tooltip label={t("format.link")}>
+                  <button
+                    type="button"
+                    class={af.link ? btnActive : btnInactive}
+                    onMouseDown={preventFocus}
+                    onClick={onLinkClick}
+                    aria-label={t("format.link")}
+                    disabled={disabled}
+                  >
+                    <Link class="w-4 h-4" />
+                  </button>
+                </Tooltip>
+              }
+              panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5"
+            >
+              <form
+                class="flex items-center gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  applyLink();
+                }}
               >
-                <Link class="w-4 h-4" />
-              </button>
-            </Tooltip>
-          }
-          panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5"
-        >
-          <form
-            class="flex items-center gap-1"
-            onSubmit={(e) => {
-              e.preventDefault();
-              applyLink();
-            }}
-          >
-            <input
-              ref={linkInputRef}
-              type="url"
-              value={linkUrl}
-              onInput={(e) => setLinkUrl((e.target as HTMLInputElement).value)}
-              placeholder={t("format.linkPlaceholder")}
-              class="px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded focus:outline-none focus:border-blue-500 w-56"
-            />
-            <button
-              type="submit"
-              class="px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            >
-              {t("format.linkAdd")}
-            </button>
-          </form>
-        </Dropdown>
+                <input
+                  ref={linkInputRef}
+                  type="url"
+                  value={linkUrl}
+                  onInput={(e) =>
+                    setLinkUrl((e.target as HTMLInputElement).value)
+                  }
+                  placeholder={t("format.linkPlaceholder")}
+                  class="px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded focus:outline-none focus:border-blue-500 w-56"
+                />
+                <button
+                  type="submit"
+                  class="px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
+                >
+                  {t("format.linkAdd")}
+                </button>
+              </form>
+            </Dropdown>
 
-        <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+            <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
-        {fmtBtn(
-          "numberedList",
-          t("format.numberedList"),
-          <ListOrdered class="w-4 h-4" />,
-        )}
-        {fmtBtn(
-          "unorderedList",
-          t("format.bulletList"),
-          <List class="w-4 h-4" />,
-        )}
+            {fmtBtn(
+              "numberedList",
+              t("format.numberedList"),
+              <ListOrdered class="w-4 h-4" />,
+            )}
+            {fmtBtn(
+              "unorderedList",
+              t("format.bulletList"),
+              <List class="w-4 h-4" />,
+            )}
+
+            {/* The marks the wide layout keeps behind its "more" menu. There
+                is no room for that menu on a phone, so they are spelled out
+                here instead, inside the fold that reveals them. No rule ahead
+                of them: the row they land on depends on how much fits, and a
+                rule that wraps to the start of a line separates nothing. */}
+            <div class="sm:hidden flex items-center gap-0.5">
+              {fmtBtn(
+                "strikethrough",
+                t("format.strikethrough"),
+                <Strikethrough class="w-4 h-4" />,
+              )}
+              {fmtBtn(
+                "underline",
+                t("format.underline"),
+                <Underline class="w-4 h-4" />,
+              )}
+              {fmtBtn(
+                "subscript",
+                t("format.subscript"),
+                <Subscript class="w-4 h-4" />,
+              )}
+              {fmtBtn(
+                "superscript",
+                t("format.superscript"),
+                <Superscript class="w-4 h-4" />,
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {fmtBtn(
@@ -475,34 +524,7 @@ export function FormattingToolbar({
         <ListChecks class="w-4 h-4" />,
       )}
 
-      <div
-        class={`w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5 ${expanded ? "" : "max-sm:hidden"}`}
-      />
-
-      {expanded && (
-        <div class="sm:hidden flex items-center gap-0.5">
-          {fmtBtn(
-            "strikethrough",
-            t("format.strikethrough"),
-            <Strikethrough class="w-4 h-4" />,
-          )}
-          {fmtBtn(
-            "underline",
-            t("format.underline"),
-            <Underline class="w-4 h-4" />,
-          )}
-          {fmtBtn(
-            "subscript",
-            t("format.subscript"),
-            <Subscript class="w-4 h-4" />,
-          )}
-          {fmtBtn(
-            "superscript",
-            t("format.superscript"),
-            <Superscript class="w-4 h-4" />,
-          )}
-        </div>
-      )}
+      <div class="max-sm:hidden w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
       <div class="max-sm:hidden flex">
         <Dropdown

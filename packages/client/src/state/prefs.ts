@@ -175,6 +175,7 @@ export interface LoadedPrefs {
   darkHue: DarkHue;
   noteQuips: boolean;
   formattingToolbar: boolean;
+  confirmBeforeDelete: boolean;
   defaultEditMode: EditMode;
   boardColor: BoardColorChoice;
   boardCustomColor: string;
@@ -224,6 +225,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
           typeof parsed.formattingToolbar === "boolean"
             ? parsed.formattingToolbar
             : true,
+        confirmBeforeDelete: parsed.confirmBeforeDelete === true,
         defaultEditMode: parsed.defaultEditMode === "raw" ? "raw" : "normal",
         boardColor: parseBoardColor(parsed.boardColor),
         boardCustomColor: parseHexColor(parsed.boardCustomColor),
@@ -254,6 +256,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     darkHue: "neutral",
     noteQuips: true,
     formattingToolbar: true,
+    confirmBeforeDelete: false,
     defaultEditMode: "normal",
     boardColor: "none",
     boardCustomColor: DEFAULT_BOARD_CUSTOM_COLOR,
@@ -289,6 +292,7 @@ function savePrefs() {
       darkHue: darkHue.value,
       noteQuips: noteQuips.value,
       formattingToolbar: formattingToolbar.value,
+      confirmBeforeDelete: confirmBeforeDelete.value,
       defaultEditMode: defaultEditMode.value,
       boardColor: boardColor.value,
       boardCustomColor: boardCustomColor.value,
@@ -319,6 +323,7 @@ export const animations = signal<boolean>(prefs.animations);
 export const darkHue = signal<DarkHue>(prefs.darkHue);
 export const noteQuips = signal<boolean>(prefs.noteQuips);
 export const formattingToolbar = signal<boolean>(prefs.formattingToolbar);
+export const confirmBeforeDelete = signal<boolean>(prefs.confirmBeforeDelete);
 export const defaultEditMode = signal<EditMode>(prefs.defaultEditMode);
 export const boardColor = signal<BoardColorChoice>(prefs.boardColor);
 export const boardCustomColor = signal<string>(prefs.boardCustomColor);
@@ -361,6 +366,7 @@ export function applyPrefs(loaded: LoadedPrefs) {
       darkHue.value = loaded.darkHue;
       noteQuips.value = loaded.noteQuips;
       formattingToolbar.value = loaded.formattingToolbar;
+      confirmBeforeDelete.value = loaded.confirmBeforeDelete;
       defaultEditMode.value = loaded.defaultEditMode;
       boardColor.value = loaded.boardColor;
       boardCustomColor.value = loaded.boardCustomColor;
@@ -391,6 +397,7 @@ effect(() => {
   darkHue.value;
   noteQuips.value;
   formattingToolbar.value;
+  confirmBeforeDelete.value;
   defaultEditMode.value;
   boardColor.value;
   boardCustomColor.value;

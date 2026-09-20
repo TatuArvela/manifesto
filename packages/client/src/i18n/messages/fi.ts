@@ -72,6 +72,26 @@ export const fi: Messages = {
   "selection.deletePermanently": "Poista pysyvästi",
   "selection.deleteSelectedPermanently": "Poista valitut pysyvästi",
 
+  // Confirming a deletion (Settings > Confirm Deletions, and every bulk one)
+  "confirm.cancel": "Peruuta",
+  "confirm.trash.title": "Poistetaanko muistiinpano?",
+  "confirm.trash.body": "Se siirtyy roskakoriin, josta voit palauttaa sen.",
+  "confirm.trash.action": "Poista",
+  "confirm.delete.title": "Poistetaanko muistiinpano pysyvästi?",
+  "confirm.delete.body": "Tätä ei voi perua.",
+  "confirm.delete.action": "Poista pysyvästi",
+  "confirm.bulkTrash.title": {
+    one: "Poistetaanko {count} muistiinpano?",
+    other: "Poistetaanko {count} muistiinpanoa?",
+  },
+  "confirm.bulkTrash.body":
+    "Ne siirtyvät roskakoriin, josta voit palauttaa ne.",
+  "confirm.bulkDelete.title": {
+    one: "Poistetaanko {count} muistiinpano pysyvästi?",
+    other: "Poistetaanko {count} muistiinpanoa pysyvästi?",
+  },
+  "confirm.bulkDelete.body": "Tätä ei voi perua.",
+
   // Note card: tooltips, actions, menu
   "noteCard.pin": "Kiinnitä",
   "noteCard.unpin": "Poista kiinnitys",
@@ -268,6 +288,7 @@ export const fi: Messages = {
   "settings.noteQuips": "Hauskat kehotteet",
   "settings.inlineCalculations": "Laskutoimitukset",
   "settings.formattingToolbar": "Muotoilupalkki",
+  "settings.confirmBeforeDelete": "Vahvista poistot",
   "settings.decimalSeparator": "Desimaalierotin",
   "settings.decimalSeparator.auto": "Automaattinen",
   "settings.decimalSeparator.dot": "Piste",

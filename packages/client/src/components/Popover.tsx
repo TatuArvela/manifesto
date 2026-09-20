@@ -78,6 +78,7 @@ export function CardPopover({
       <div
         ref={popoverRef}
         class="card-popover fixed z-50"
+        data-placed={pos ? "true" : undefined}
         style={{
           top: `${pos?.top ?? 0}px`,
           left: `${pos?.left ?? 0}px`,

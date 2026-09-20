@@ -18,6 +18,7 @@ import type { VNode } from "preact";
 import { t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
 import { isServerMode } from "../state/auth.js";
+import { confirmDeletion } from "../state/confirm.js";
 import {
   archiveNote,
   createNote,
@@ -303,12 +304,22 @@ export function noteMenuItems(
         <Trash2 class="w-4 h-4" />
       ),
       label: note.trashed ? t("noteMenu.undelete") : t("noteMenu.delete"),
-      onSelect: () => {
+      onSelect: async () => {
         if (note.trashed) {
           restoreNote(note.id);
-        } else {
-          trashNote(note.id);
+          onDismiss?.();
+          return;
         }
+        // Asked before anything moves, and the surface stays put if the
+        // answer is no: dismissing first would close the editor over a note
+        // the reader has just decided to keep.
+        const ok = await confirmDeletion({
+          title: t("confirm.trash.title"),
+          body: t("confirm.trash.body"),
+          confirmLabel: t("confirm.trash.action"),
+        });
+        if (!ok) return;
+        trashNote(note.id);
         onDismiss?.();
       },
     });

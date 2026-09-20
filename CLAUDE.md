@@ -262,6 +262,25 @@ than 0..n, leaving room to insert between later. `ReorderableGrid` measures the 
 tell a one-column layout from a grid, because masonry collapses to one column when narrow and the
 drop indicator has to change axis.
 
+On a touch screen that drag is reached only by holding the card first, and the ordering in
+`hooks/useTouchGesture.ts` is what keeps the board scrollable: a finger that moves before the hold
+has elapsed is scrolling, so the gesture abandons itself and the card is never picked up, dimmed or
+selected on the way past. Releasing a hold that never moved is what enters select mode.
+`.note-draggable` therefore carries `touch-action: pan-y`, not `none`. That alone would let the
+browser start a pan on the first move *after* the hold and take the pointer stream with it, so a
+held card cancels the scroll at its source: a non-passive `touchmove` listener that
+`preventDefault`s from the moment the hold fires. `touch-action` cannot express "pannable until
+held". `onHoldEnd` fires however a hold ends, including a `pointercancel` the system sends, or a
+card the OS took the touch from would stay lifted with nothing holding it.
+
+`index.html` carries a loading screen and a blocking `/theme-init.js` ahead of the bundle, because
+both have to be on screen or applied before the bundle exists: launched from a home screen there is
+no browser chrome to look at while it loads. `theme-init.js` duplicates the two reads `prefs.ts`
+makes of `manifesto:prefs` and writes the same `dark` class; it is a separate file rather than an
+inline script because the page's CSP allows scripts from `'self'` only. `main.tsx` removes the
+splash a frame after the first render, on a timer as well as `transitionend`, since that event
+never arrives in a background tab.
+
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
 toast queue or the catalogue, so the "tell the user" decision stays in `actions.ts`. A refused
 write is neither retried nor rolled back: the signal keeps the change, so the session continues
@@ -284,7 +303,18 @@ call locally, so both modes behave alike.
 
 - **NoteEditor** is fully prop-driven (title, content, color, font, callbacks). Parent components (`NoteCardEditor`, `NoteInput`) own the state.
 - **NoteCardEditor** wraps NoteEditor for editing existing notes and manages auto-save (500ms debounce) and version history. Undo/redo is delegated to Milkdown.
-- **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) with `open`/`onClose`/`trigger`/`children` props.
+- **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) with
+  `open`/`onClose`/`trigger`/`children` props. Its panel opens and closes on one CSS transition
+  rather than two animations, so a menu re-opened mid-fade reverses instead of starting over;
+  `display` and `overlay` need `allow-discrete` or the panel leaves the top layer on the first frame
+  and the exit is never seen, and `@starting-style` supplies the entry's other end. The slide is a
+  translation and never a scale, because the browsers without anchor positioning place the panel
+  from a measured `getBoundingClientRect` and a scaled box measures smaller than it lands.
+- **Confirming a deletion** goes through the `confirmRequest` signal in `state/confirm.ts`, which
+  `ConfirmDialogHost` renders, one question at a time: a second question answers the first with
+  "no" rather than stacking, so the promise behind a replaced prompt always settles and no caller
+  is left half-done. `confirmDeletion` is the guard for a single note and respects the preference;
+  bulk deletions call `askConfirmation` directly, since they take many notes whatever it says.
 - **Escape** goes through `hooks/useEscapeStack.ts` and nowhere else; never bind a `keydown`
   listener for it. One document listener hands a press to the layer that became active last, so a
   new dismissable layer only has to call `useEscapeStack(active, close)`; binding your own brings

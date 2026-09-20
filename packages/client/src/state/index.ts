@@ -65,6 +65,7 @@ export {
   boardImageStamp,
   boardTexture,
   boardUsePicture,
+  confirmBeforeDelete,
   DARK_HUES,
   type DarkHue,
   type DecimalSeparator,

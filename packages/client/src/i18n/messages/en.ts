@@ -70,6 +70,25 @@ export const en = {
   "selection.deletePermanently": "Delete permanently",
   "selection.deleteSelectedPermanently": "Delete selected permanently",
 
+  // Confirming a deletion (Settings > Confirm Deletions, and every bulk one)
+  "confirm.cancel": "Cancel",
+  "confirm.trash.title": "Delete this note?",
+  "confirm.trash.body": "It moves to Trash, where you can restore it.",
+  "confirm.trash.action": "Delete",
+  "confirm.delete.title": "Delete this note permanently?",
+  "confirm.delete.body": "This cannot be undone.",
+  "confirm.delete.action": "Delete permanently",
+  "confirm.bulkTrash.title": {
+    one: "Delete {count} note?",
+    other: "Delete {count} notes?",
+  },
+  "confirm.bulkTrash.body": "They move to Trash, where you can restore them.",
+  "confirm.bulkDelete.title": {
+    one: "Delete {count} note permanently?",
+    other: "Delete {count} notes permanently?",
+  },
+  "confirm.bulkDelete.body": "This cannot be undone.",
+
   // Note card: tooltips, actions, menu
   "noteCard.pin": "Pin",
   "noteCard.unpin": "Unpin",
@@ -263,6 +282,7 @@ export const en = {
   "settings.noteQuips": "Fun Quips",
   "settings.inlineCalculations": "Inline Calculations",
   "settings.formattingToolbar": "Formatting Toolbar",
+  "settings.confirmBeforeDelete": "Confirm Deletions",
   "settings.decimalSeparator": "Decimal Separator",
   "settings.decimalSeparator.auto": "Auto",
   "settings.decimalSeparator.dot": "Dot",

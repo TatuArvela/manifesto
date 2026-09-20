@@ -151,16 +151,25 @@ async function mouseDrag(
   await tick();
 }
 
+/** `useTouchGesture`'s default hold, plus enough for the timer to have run. */
+const HOLD_MS = 500;
+
+/**
+ * A finger on a card. `hold` is the whole gesture contract: a press that waits
+ * picks the card up and can drag it, and a press that moves straight away is a
+ * scroll and must leave the card alone.
+ */
 async function touchDrag(
   wrapper: HTMLElement,
   to: { clientX: number; clientY: number },
+  { hold = true }: { hold?: boolean } = {},
 ) {
   const from = articleIn(wrapper);
   const opts = { bubbles: true, pointerId: 1, pointerType: "touch" as const };
   from.dispatchEvent(
     new PointerEvent("pointerdown", { ...opts, ...centreOf(from) }),
   );
-  await tick();
+  await new Promise((resolve) => setTimeout(resolve, hold ? HOLD_MS : 0));
   from.dispatchEvent(new PointerEvent("pointermove", { ...opts, ...to }));
   await tick();
   from.dispatchEvent(new PointerEvent("pointerup", { ...opts, ...to }));
@@ -199,6 +208,25 @@ describe("ReorderableGrid", () => {
       0,
       2,
     );
+  });
+
+  it("leaves a card alone when the finger moves before holding it", async () => {
+    hoverNone.current = true;
+    const onReorder = vi.fn();
+    render(
+      <ReorderableGrid notes={three} reorderable onReorder={onReorder} />,
+      host,
+    );
+
+    await touchDrag(cards()[0], afterEdgeOf(cards()[2]), { hold: false });
+
+    // The swipe belonged to the page: the card was never picked up, so it was
+    // never dimmed on the way past and nothing was reordered behind it.
+    expect(onReorder).not.toHaveBeenCalled();
+    expect(articleIn(cards()[0]).classList.contains("note-dragging")).toBe(
+      false,
+    );
+    expect(document.body.classList.contains("note-drag-active")).toBe(false);
   });
 
   it("does not reorder a card dropped where it already is", async () => {

@@ -26,6 +26,7 @@ import {
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
 import {
   animations,
+  confirmBeforeDelete,
   createNote,
   DARK_HUES,
   type DarkHue,
@@ -498,6 +499,16 @@ export function SettingsDialog() {
                   formattingToolbar.value = checked;
                 }}
                 label={t("settings.formattingToolbar")}
+              />
+            </SettingsRow>
+
+            <SettingsRow label={t("settings.confirmBeforeDelete")}>
+              <Switch
+                checked={confirmBeforeDelete.value}
+                onChange={(checked) => {
+                  confirmBeforeDelete.value = checked;
+                }}
+                label={t("settings.confirmBeforeDelete")}
               />
             </SettingsRow>
 

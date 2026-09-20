@@ -301,6 +301,73 @@ html.dark {
   display: none;
 }
 
+/* Opening and closing, in one transition rather than two keyframe animations,
+   because a menu re-opened while it is still fading out has to reverse from
+   where it stands instead of starting over.
+
+   `display` and `overlay` are discrete properties, so they need
+   `allow-discrete` to be held back until the fade has finished; without them
+   the panel would be taken out of the top layer on the first frame and the
+   exit would never be seen. `@starting-style` supplies the other end of the
+   entry, which a panel that was `display: none` a moment ago has no previous
+   value for.
+
+   The panel slides from the side its trigger is on, so it reads as coming out
+   of the button rather than drifting in. Only a translation, never a scale: the
+   browsers without anchor positioning place the panel from a measured
+   `getBoundingClientRect`, and a scaled box measures smaller than it lands. */
+.dropdown-panel {
+  --dd-slide: -0.25rem;
+  opacity: 0;
+  translate: 0 var(--dd-slide);
+  transition:
+    opacity 110ms ease-in,
+    translate 110ms ease-in,
+    overlay 110ms allow-discrete,
+    display 110ms allow-discrete;
+}
+
+.dropdown-panel[data-placement^="top"] {
+  --dd-slide: 0.25rem;
+}
+
+.dropdown-panel[data-open="true"] {
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    opacity 140ms ease-out,
+    translate 140ms cubic-bezier(0.32, 0.72, 0, 1),
+    overlay 140ms allow-discrete,
+    display 140ms allow-discrete;
+}
+
+@starting-style {
+  .dropdown-panel[data-open="true"] {
+    opacity: 0;
+    translate: 0 var(--dd-slide);
+  }
+}
+
+/* The card popovers (colour picker, kebab menu, reminder and tag panels) are
+   unmounted on close, so they have only an entry to play. It waits for
+   `data-placed`, which the component sets once it has measured where the panel
+   goes: animating before that would play the whole thing in the top-left
+   corner, where the panel sits until it is placed. */
+.card-popover[data-placed="true"] {
+  animation: dropdown-in 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.25rem;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
 /* The UA stylesheet gives every `[popover]` `color: CanvasText`, and a
    declaration beats inheritance, so a panel that doesn't name a text colour
    renders black, unreadable on the dark panel background in dark mode. Put
@@ -909,14 +976,25 @@ body.marquee-active {
   opacity: 0.3;
 }
 
-/* On touch devices, draggable cards must opt out of browser-driven scrolling
-   so pointer-based drag gestures aren't cancelled the moment the finger moves.
-   The trade-off is that scrolling cannot start by touching a draggable card;
-   users scroll via headers, sidebar, or gaps between cards. */
+/* On a touch screen a card stays pannable, so a swipe that starts on one
+   scrolls the board like a swipe anywhere else. Reordering is reached by
+   holding the card first, and a held card cancels the pan itself; see
+   hooks/useTouchGesture.ts for why `touch-action` cannot do that part. */
 @media (hover: none) {
   .note-draggable {
-    touch-action: none;
+    touch-action: pan-y;
   }
+}
+
+/* A card held under a finger: lifted off the board, waiting to be dragged or
+   selected. Small enough not to disturb the masonry column it sits in, since
+   `transform` takes no part in layout. */
+.note-held {
+  transform: scale(1.03);
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.25),
+    0 8px 10px -6px rgb(0 0 0 / 0.2);
+  z-index: 20;
 }
 
 /* Hide selection checkboxes on all cards while any drag is in progress.
@@ -1235,11 +1313,54 @@ body.note-drag-active .note-select {
 /* Task lists: Milkdown renders task items as `<li data-item-type="task"
    data-checked="true|false">` inside a regular `<ul>`. The NodeView in
    taskItemDraggable.ts provides the drag handle + real checkbox + content DOM. */
+/* The geometry of a task row's two gutter controls, in one place because four
+   rules have to agree on it: the control's own size, the gutter it is pulled
+   out into, and the padding the text keeps clear so it never runs underneath.
+
+   A pointer device gets the smaller pair, since the controls only appear under
+   the cursor that is already on them. A finger gets targets it can actually
+   hit, and the list indents to make room rather than letting the handle sit
+   over the note's own padding. */
+.milkdown-editor {
+  --task-handle-size: 1em;
+  --task-handle-gutter: 1.1em;
+  --task-delete-size: 1.2em;
+  --task-delete-gutter: 1.4em;
+}
+
+@media (hover: none) {
+  .milkdown-editor {
+    --task-handle-size: 1.9em;
+    --task-handle-gutter: 2em;
+    --task-delete-size: 1.9em;
+    --task-delete-gutter: 2.1em;
+  }
+}
+
 .milkdown-editor ul:has(> li[data-item-type="task"]) {
   list-style: none;
   padding-left: 0;
   margin-top: 0.25em;
   margin-bottom: 0.25em;
+}
+
+/* Room for the handle, only where it is drawn at all times and so cannot
+   borrow the note's padding. A nested list keeps none of it: its items are
+   already indented by their parent's checkbox, and indenting again per level
+   would walk a deep checklist off the right of a phone. */
+@media (hover: none) {
+  .milkdown-editor
+    .ProseMirror[contenteditable="true"]
+    ul:has(> li[data-item-type="task"]) {
+    padding-left: var(--task-handle-gutter);
+  }
+
+  .milkdown-editor
+    .ProseMirror[contenteditable="true"]
+    ul:has(> li[data-item-type="task"])
+    ul:has(> li[data-item-type="task"]) {
+    padding-left: 0;
+  }
 }
 
 .milkdown-editor li[data-item-type="task"] {
@@ -1327,18 +1448,45 @@ body.note-drag-active .note-select {
 /* Drag handle: absolute-positioned in the gutter, only visible on hover. */
 .milkdown-editor li[data-item-type="task"] > .task-item-drag-handle {
   position: absolute;
-  left: -1.1em;
+  left: calc(-1 * var(--task-handle-gutter));
   top: 0.2em;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1em;
-  height: 1em;
+  width: var(--task-handle-size);
+  height: var(--task-handle-size);
   border-radius: 0.25em;
   opacity: 0;
   transition:
     opacity 0.15s,
     background-color 0.15s;
+}
+
+/* The handle and the X sit inside the item, so a selection that spans the row
+   paints over them too: a stray blue block in each gutter, one per line, which
+   is what a selected checklist looked like on a phone. They are not text and
+   cannot be selected, so they take no part in the highlight. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle,
+.milkdown-editor li[data-item-type="task"] > .task-item-delete,
+.milkdown-editor li[data-item-type="task"] > label {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The icon is authored at 14px; the touch-sized handle scales it with the box
+   rather than leaving a small glyph adrift in a large target. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle > svg,
+.milkdown-editor li[data-item-type="task"] > .task-item-delete > svg {
+  width: 1em;
+  height: 1em;
+}
+
+@media (hover: none) {
+  .milkdown-editor li[data-item-type="task"] > .task-item-drag-handle > svg,
+  .milkdown-editor li[data-item-type="task"] > .task-item-delete > svg {
+    width: 1.25em;
+    height: 1.25em;
+  }
 }
 
 .milkdown-editor li[data-item-type="task"] > .task-item-drag-handle:hover {
@@ -1356,6 +1504,18 @@ body.note-drag-active .note-select {
   opacity: 1;
 }
 
+/* Nothing hovers on a touch screen, so a handle that waits for a cursor is a
+   handle that is never there. Drawn faintly at all times instead, only while
+   the note is editable, which is the only time it does anything. */
+@media (hover: none) {
+  .milkdown-editor
+    .ProseMirror[contenteditable="true"]
+    li[data-item-type="task"]
+    > .task-item-drag-handle {
+    opacity: 0.6;
+  }
+}
+
 .milkdown-editor li[data-item-type="task"].task-item-dragging {
   opacity: 0.4;
 }
@@ -1369,8 +1529,6 @@ body.note-drag-active .note-select {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.2em;
-  height: 1.2em;
   padding: 0;
   border: none;
   border-radius: 0.25em;
@@ -1380,6 +1538,8 @@ body.note-drag-active .note-select {
   transition:
     opacity 0.15s,
     background-color 0.15s;
+  width: var(--task-delete-size);
+  height: var(--task-delete-size);
 }
 
 /* The button floats over the item's right edge, so the text keeps clear of it
@@ -1391,7 +1551,7 @@ body.note-drag-active .note-select {
   .ProseMirror[contenteditable="true"]
   li[data-item-type="task"]
   > .task-item-content {
-  padding-right: 1.4em;
+  padding-right: var(--task-delete-gutter);
 }
 
 .milkdown-editor
@@ -1399,7 +1559,7 @@ body.note-drag-active .note-select {
   li[data-item-type="task"]
   > .task-item-content
   > :is(ul, ol) {
-  margin-right: -1.4em;
+  margin-right: calc(-1 * var(--task-delete-gutter));
 }
 
 .milkdown-editor li[data-item-type="task"] > .task-item-delete:hover {
@@ -1415,10 +1575,23 @@ body.note-drag-active .note-select {
    class is applied via a ProseMirror decoration on the task item containing
    the selection, because a plain `:focus-within` would match every ancestor, since
    ProseMirror keeps focus on the root contenteditable. */
-.milkdown-editor
-  li[data-item-type="task"]:hover:not(:has(li[data-item-type="task"]:hover))
-  > .task-item-delete,
-.milkdown-editor
+@media (hover: hover) {
+  .milkdown-editor
+    li[data-item-type="task"]:hover:not(:has(li[data-item-type="task"]:hover))
+    > .task-item-delete {
+    opacity: 1;
+  }
+}
+
+/* The caret's own item, but only while the pointer is over none of them.
+   Hover and caret are two answers to "which row is this X for", and a reader
+   whose caret sat in one row while the pointer rested on another was shown
+   both at once with nothing to say which button belonged to which. The pointer
+   is the more immediate of the two, so it wins while it is over the list and
+   this rule stands down. Where there is no pointer at all the caret is the
+   only answer, and `(hover: hover)` above keeps the other rule from ever
+   claiming a row on a touch screen. */
+.milkdown-editor:not(:has(li[data-item-type="task"]:hover))
   li[data-item-type="task"].task-item-active:not(
     :has(li[data-item-type="task"].task-item-active)
   )

@@ -35,6 +35,7 @@ import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
 import { AdminView } from "./AdminView.js";
 import { AutoNotesView } from "./AutoNotesView.js";
+import { ConfirmDialogHost } from "./ConfirmDialog.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
 import { Header } from "./Header.js";
 import { InvitationList } from "./InvitationList.js";
@@ -279,6 +280,7 @@ function MainApp() {
       )}
       <SettingsDialog />
       <ShareDialogHost />
+      <ConfirmDialogHost />
       <ReminderBanner />
       <ConnectionStatus />
       <Toasts />
