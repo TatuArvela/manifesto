@@ -22,9 +22,106 @@
     <link rel="apple-touch-icon" href="/icon-1024.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#2563eb" />
+    <!-- Blocking on purpose: it decides the page's theme, and anything painted
+         before it runs would be painted in the wrong one. -->
+    <script src="/theme-init.js"></script>
+    <!-- The loading screen, spelled out here rather than in styles.css or a
+         component, because both arrive with the bundle and this has to be on
+         screen before the bundle is. Launched from a home screen there is no
+         browser chrome to look at while it loads, so the alternative is a
+         blank rectangle. main.tsx takes it down once the app has painted. -->
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.9rem;
+        background: #ffffff;
+        color: #171717;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+          Roboto, sans-serif;
+      }
+      html.dark #splash {
+        background: #171717;
+        color: #fafafa;
+      }
+      /* Inverted in the dark, exactly as the header does to the same file: the
+         brand mark is a solid black shape, and unchanged it would be a black
+         mark on a near-black ground. */
+      #splash img {
+        width: 76px;
+        height: 76px;
+      }
+      html.dark #splash img {
+        filter: invert(1);
+      }
+      #splash p {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      /* A segment sweeping a track rather than a spinner: it says the app is
+         coming without pretending to know how far along it is. Both tones are
+         literal rather than `currentColor` at two opacities, because opacity
+         on the track would take the segment down with it. */
+      #splash div {
+        width: 112px;
+        height: 3px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.1);
+      }
+      #splash div::after {
+        content: "";
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: inherit;
+        background: rgba(0, 0, 0, 0.45);
+        animation: splash-sweep 1.15s ease-in-out infinite;
+      }
+      html.dark #splash div {
+        background: rgba(255, 255, 255, 0.14);
+      }
+      html.dark #splash div::after {
+        background: rgba(255, 255, 255, 0.5);
+      }
+      @keyframes splash-sweep {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(280%);
+        }
+      }
+      /* Removed a frame later, so the fade has something to run from. */
+      #splash[data-done="true"] {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease-out;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash div::after {
+          animation: none;
+        }
+        #splash[data-done="true"] {
+          transition-duration: 1ms;
+        }
+      }
+    </style>
   </head>
   <body class="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
     <div id="app"></div>
+    <div id="splash" role="status" aria-live="polite">
+      <img src="/logo.svg" alt="" />
+      <p>%APP_NAME%</p>
+      <div></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

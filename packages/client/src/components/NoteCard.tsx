@@ -28,6 +28,7 @@ import { useNoteImages } from "../hooks/useNoteImages.js";
 import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
 import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
+import { confirmDeletion } from "../state/confirm.js";
 import {
   activeView,
   addTag,
@@ -196,7 +197,14 @@ function CardActions({
             <button
               type="button"
               class={iconBtnClass}
-              onClick={() => permanentlyDeleteNote(note.id)}
+              onClick={async () => {
+                const ok = await confirmDeletion({
+                  title: t("confirm.delete.title"),
+                  body: t("confirm.delete.body"),
+                  confirmLabel: t("confirm.delete.action"),
+                });
+                if (ok) permanentlyDeleteNote(note.id);
+              }}
               aria-label={t("noteCard.deletePermanently")}
             >
               <X class="w-4 h-4" />
@@ -486,18 +494,27 @@ export function NoteCard({
   };
 
   const isTouch = useIsTouch();
+  // Whether a finger is holding this card: it has been pressed long enough to
+  // have lifted off the board, and is now either about to be dragged or about
+  // to be selected. The tilt is the only sign the press registered before the
+  // reader lets go, so it is not gated on the animations preference.
+  const [held, setHeld] = useState(false);
   const { onPointerDown: touchPointerDown } = useTouchGesture({
     enabled: isTouch && !isTrashView && !isEditing,
+    onHold: () => {
+      setHeld(true);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(10);
+        } catch {}
+      }
+    },
+    onHoldEnd: () => setHeld(false),
     onLongPress: () => {
       if (selectMode.value) {
         toggleSelectNote(note.id);
       } else {
         enterSelectMode(note.id);
-      }
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-        try {
-          navigator.vibrate(10);
-        } catch {}
       }
     },
     onDragStart: draggable ? onTouchDragStart : undefined,
@@ -602,6 +619,7 @@ export function NoteCard({
               viewMode.value === "list" &&
               "w-full",
             draggable && "note-draggable",
+            held && "note-held",
           )}
           style={{
             aspectRatio: noteSize.value === "square" ? "1/1" : "auto",

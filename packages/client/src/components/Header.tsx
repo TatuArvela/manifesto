@@ -19,6 +19,7 @@ import {
 import { useState } from "preact/hooks";
 import { APP_LOGO_URL, APP_NAME } from "../config.js";
 import { getColorPickerColors, plural, t } from "../i18n/index.js";
+import { askConfirmation } from "../state/confirm.js";
 import {
   activeView,
   bulkAddTag,
@@ -58,6 +59,24 @@ function SelectionToolbar() {
   const allSelected =
     visibleIds.length > 0 &&
     visibleIds.every((id) => selectedNotes.value.has(id));
+
+  // A bulk deletion asks whatever the Confirm Deletions preference says. The
+  // preference is about the cost of being asked on a single note; nothing here
+  // acts on fewer than the whole selection, and a selection is easy to grow by
+  // one card without noticing.
+  const askThenDelete = async (
+    key: "bulkTrash" | "bulkDelete",
+    run: () => void,
+  ) => {
+    const ok = await askConfirmation({
+      title: plural(`confirm.${key}.title`, count),
+      body: t(`confirm.${key}.body`),
+      confirmLabel: t(
+        key === "bulkTrash" ? "confirm.trash.action" : "confirm.delete.action",
+      ),
+    });
+    if (ok) run();
+  };
 
   return (
     <header class="relative z-20 shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
@@ -114,7 +133,7 @@ function SelectionToolbar() {
               <button
                 type="button"
                 class={selToolbarBtnClass}
-                onClick={() => bulkDelete()}
+                onClick={() => askThenDelete("bulkDelete", bulkDelete)}
                 aria-label={t("selection.deleteSelectedPermanently")}
               >
                 <Trash2 class="w-5 h-5" />
@@ -215,7 +234,7 @@ function SelectionToolbar() {
               <button
                 type="button"
                 class={selToolbarBtnClass}
-                onClick={() => bulkTrash()}
+                onClick={() => askThenDelete("bulkTrash", bulkTrash)}
                 aria-label={t("selection.deleteSelected")}
               >
                 <Trash2 class="w-5 h-5" />
