@@ -3,6 +3,7 @@ import { t } from "../i18n/index.js";
 import {
   activeView,
   canReorder,
+  notesLoaded,
   pinnedNotes,
   reorderNotes,
   unpinnedNotes,
@@ -16,6 +17,7 @@ export function NoteGrid() {
 
   if (pinned.length === 0 && unpinned.length === 0) {
     const isSearch = activeView.value === "search";
+    if (!isSearch && !notesLoaded.value) return null;
     return (
       <div class="flex flex-col items-center justify-center py-20 text-neutral-400 dark:text-neutral-600">
         {isSearch ? (

@@ -11,6 +11,7 @@ import {
   loadNotes,
   noteHasChecklist,
   notes,
+  notesLoaded,
   permanentlyDeleteNote,
   receiveNote,
   restoreNote,
@@ -372,6 +373,13 @@ describe("state actions", () => {
     await loadNotes();
     expect(notes.value).toHaveLength(1);
     expect(notes.value[0].title).toBe("Persisted");
+  });
+
+  it("loadNotes marks the list as known, so the board may call it empty", async () => {
+    notesLoaded.value = false;
+    await loadNotes();
+    expect(notes.value).toHaveLength(0);
+    expect(notesLoaded.value).toBe(true);
   });
 });
 

@@ -93,6 +93,15 @@ effect(() => {
 export const notes = signal<Note[]>([]);
 
 /**
+ * Whether the note list has been read at least once. Until it has, an empty
+ * `notes` means "not known yet" rather than "none", and the board must not
+ * say there is nothing on it: in connected mode that claim sat on screen for
+ * the whole first round trip. A failed load leaves it false, since "no notes
+ * yet" is the last thing to show someone whose notes could not be fetched.
+ */
+export const notesLoaded = signal(false);
+
+/**
  * All notes visible to the UI: user notes plus plugin-generated read-only
  * notes. Generated notes' metadata (pin/color/tags/archive/trash/reminder)
  * can be overridden by the user; the override sidecar is merged into the
@@ -424,6 +433,7 @@ export async function loadNotes(): Promise<boolean> {
     // for notes that had not moved, and dropped the attachments the cards had
     // already fetched.
     notes.value = foldIncomingList(notes.peek(), await storage.getAll());
+    notesLoaded.value = true;
     await expireTrash();
     return true;
   } catch (err) {
