@@ -97,6 +97,33 @@ spell the default name inflected and is chosen at the call site only when
 `IS_UNBRANDED` (`config.ts`) holds; the welcome title is the only one so far,
 and the test requires every variant to have a branded `{appName}` twin.
 
+Three deployment parameters are read from `index.html` this way, not one:
+`application-name`, `welcome-dialog`, and `manifesto-server` (`resolveServerUrl`,
+feeding `SERVER_URL` / `isServerMode` in `state/auth.ts`). The last one is not
+branding and carries a trap the other two do not. The server address and the CSP
+that permits reaching it live in the same file, and the build writes both
+together (`cspForServer` derives `connect-src` from `VITE_MANIFESTO_SERVER`)
+while a hand edit writes one and forgets the other. Forgetting it gives a login
+screen whose every request is blocked before it is sent, which says nothing about
+the cause, so `main.tsx` compares the two at boot and renders `ServerSetupError`
+instead of the app. `utils/serverCsp.ts` holds that comparison and is
+deliberately fail-open: no CSP meta tag, or none naming `connect-src` or
+`default-src`, means no judgement, because a false alarm would take down a
+deployment that works. The case that must keep passing it is a same-origin
+server, which the stock `connect-src 'self'` already covers, since CSP3 extends
+`'self'` to the `wss://` form of the page's own host; that is what makes a
+single-origin deployment a one-line edit with no policy change.
+
+A relative server value is **not** a working configuration, whichever layer sets
+it. `VITE_MANIFESTO_SERVER=/` (and a meta tag holding the same) resolves to the
+empty string rather than null, so `isServerMode` is true and `LoginScreen`
+renders, while every call site guards with `if (!SERVER_URL)` and takes the
+open-mode branch: no auth request is sent and `wsBaseUrl()` / `wsUrl()` return
+null, so neither socket connects. It predates the meta tag and the resolver
+preserves it deliberately rather than changing what an existing build does.
+Anything that makes relative values work has to move those guards to
+`SERVER_URL === null` and give the sockets a base from `window.location`.
+
 `VITE_APP_DESCRIPTION` fills `%APP_DESCRIPTION%` in `index.html` and the web
 manifest. `VITE_APP_ICONS_DIR` overlays replacement icons onto the output, which
 is why `logo.svg` lives in `public/` rather than `src/assets/`: brand marks

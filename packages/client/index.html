@@ -18,6 +18,15 @@
     <!-- "on" greets a first-time visitor with where their notes are saved;
          "off" skips it. Read at startup, like application-name. -->
     <meta name="welcome-dialog" content="%APP_WELCOME%" />
+    <!-- Connected mode without a rebuild: put the server's absolute URL here,
+         AND add its https:// and wss:// origins to connect-src in the CSP
+         above, or the browser blocks every request to it. The app checks the
+         two agree at startup and says which origins are missing rather than
+         letting the login screen fail in silence. Empty means open mode, with
+         notes kept in this browser, which is what the release zip ships as.
+         Building with VITE_MANIFESTO_SERVER writes the CSP for you and needs
+         no tag. -->
+    <meta name="manifesto-server" content="" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icon-1024.png" />
     <link rel="manifest" href="/manifest.webmanifest" />

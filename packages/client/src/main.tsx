@@ -1,7 +1,10 @@
 import { render } from "preact";
 import { App } from "./components/App.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
+import { ServerSetupError } from "./components/ServerSetupError.js";
 import { registerServiceWorker } from "./serviceWorker.js";
+import { SERVER_URL } from "./state/auth.js";
+import { serverSetupProblem } from "./utils/serverCsp.js";
 import "./assets/fonts/fonts.css";
 import "./styles.css";
 
@@ -26,11 +29,17 @@ function dismissSplash() {
   });
 }
 
+// Asked once, at boot: both the document's CSP and the resolved server are
+// fixed for the life of the page. A copy that names a server its own policy
+// blocks cannot do anything useful, so it says which lines are missing
+// instead of rendering a login screen whose every request dies silently.
+const setupProblem = serverSetupProblem(SERVER_URL);
+
 const root = document.getElementById("app");
 if (root)
   render(
     <ErrorBoundary>
-      <App />
+      {setupProblem ? <ServerSetupError problem={setupProblem} /> : <App />}
     </ErrorBoundary>,
     root,
   );
