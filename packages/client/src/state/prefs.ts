@@ -33,7 +33,11 @@ export type BoardTexture =
   | "linen"
   | "dots"
   | "grid"
-  | "lines";
+  | "lines"
+  | "confetti"
+  | "waves"
+  | "stars"
+  | "hearts";
 export type DarkHue =
   | "neutral"
   | "midnight"
@@ -63,6 +67,10 @@ export const BOARD_TEXTURES: readonly BoardTexture[] = [
   "dots",
   "grid",
   "lines",
+  "confetti",
+  "waves",
+  "stars",
+  "hearts",
 ];
 
 /** What the custom colour starts as before one is picked: a warm corkboard. */

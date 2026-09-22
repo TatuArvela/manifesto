@@ -33,7 +33,7 @@ Changes are saved on close (or debounced while editing).
 Settings > Appearance > Board Background folds open into a composition for the area behind the notes, applied as it is chosen:
 
 - **Color**: none (the page's own), a preset (Sand, Sage, Mist, Blush, Lavender, Caramel, each with a light and a dark shade), or a custom colour from the system picker. A custom colour is shown as picked in the light theme and mixed deep into the page colour in the dark one.
-- **Texture**: Plain, Paper, Cork, Felt, Linen, Dots, Grid or Lines, drawn over the colour in ink that follows the theme: darker than the colour in light, lighter and fainter in dark. They are CSS gradients and SVG noise, so no image files ship.
+- **Texture**: Plain, Paper, Cork, Felt, Linen, Dots, Grid, Lines, Confetti, Waves, Stars or Hearts, drawn over the colour in ink that follows the theme: darker than the colour in light, lighter and fainter in dark. Confetti is the exception, in translucent colours that read on any board. They are CSS gradients and inline SVG, so no image files ship.
 - **Picture**: one of the user's own, which covers the whole board in place of the colour and texture. It is scaled to at most 2560px on its longest side and kept in IndexedDB on the device, under a thin scrim in the theme's colour so headings stay legible. Choosing a colour or texture sets the picture aside without deleting it, and tapping its thumbnail brings it back.
 
 The choices are per device and not synced, like the other preferences.
