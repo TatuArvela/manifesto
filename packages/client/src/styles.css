@@ -1581,22 +1581,35 @@ body.note-drag-active .note-select {
     > .task-item-delete {
     opacity: 1;
   }
+
+  /* The caret's own item, but only while the pointer is over none of them.
+     Hover and caret are two answers to "which row is this X for", and a reader
+     whose caret sat in one row while the pointer rested on another was shown
+     both at once with nothing to say which button belonged to which. The
+     pointer is the more immediate of the two, so it wins while it is over the
+     list and this rule stands down. */
+  .milkdown-editor:not(:has(li[data-item-type="task"]:hover))
+    li[data-item-type="task"].task-item-active:not(
+      :has(li[data-item-type="task"].task-item-active)
+    )
+    > .task-item-delete {
+    opacity: 1;
+  }
 }
 
-/* The caret's own item, but only while the pointer is over none of them.
-   Hover and caret are two answers to "which row is this X for", and a reader
-   whose caret sat in one row while the pointer rested on another was shown
-   both at once with nothing to say which button belonged to which. The pointer
-   is the more immediate of the two, so it wins while it is over the list and
-   this rule stands down. Where there is no pointer at all the caret is the
-   only answer, and `(hover: hover)` above keeps the other rule from ever
-   claiming a row on a touch screen. */
-.milkdown-editor:not(:has(li[data-item-type="task"]:hover))
-  li[data-item-type="task"].task-item-active:not(
-    :has(li[data-item-type="task"].task-item-active)
-  )
-  > .task-item-delete {
-  opacity: 1;
+/* Where there is no pointer the caret is the only answer, so the rule above
+   carries no hover guard at all. It cannot: a touch screen leaves `:hover` on
+   the row it was last tapped, which is the row the caret is in, so a guard
+   that stands down for a hovered row would hide every X the moment one was
+   wanted. */
+@media (hover: none) {
+  .milkdown-editor
+    li[data-item-type="task"].task-item-active:not(
+      :has(li[data-item-type="task"].task-item-active)
+    )
+    > .task-item-delete {
+    opacity: 1;
+  }
 }
 
 /* Floating drop indicator, positioned in document body during drag */
