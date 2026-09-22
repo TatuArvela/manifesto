@@ -25,12 +25,20 @@ import {
   receiveInvitation,
 } from "../state/sharing.js";
 import { editingNoteId } from "../state/ui.js";
+import { trackConnection } from "./connectionOutage.js";
 
 const SUBPROTOCOL = "manifesto-session";
 
 export type ConnectionStatus = "idle" | "connecting" | "open" | "closed";
 
 export const connectionStatus = signal<ConnectionStatus>("idle");
+
+/** Every status write goes through here, so `connectionOutage` cannot drift
+ * out of step with the socket it speaks for. */
+function setStatus(next: ConnectionStatus) {
+  connectionStatus.value = next;
+  trackConnection(next);
+}
 
 let socket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -157,22 +165,30 @@ function send(event: WebSocketClientEvent) {
   }
 }
 
+/** Let go of the current socket: stop hearing it, and close it if the browser
+ * has not already. */
+function dropSocket() {
+  if (!socket) return;
+  socket.onopen = null;
+  socket.onmessage = null;
+  socket.onclose = null;
+  socket.onerror = null;
+  if (
+    socket.readyState === WebSocket.OPEN ||
+    socket.readyState === WebSocket.CONNECTING
+  ) {
+    socket.close();
+  }
+  socket = null;
+}
+
 function disconnect() {
   clearReconnect();
-  if (socket) {
-    socket.onopen = null;
-    socket.onmessage = null;
-    socket.onclose = null;
-    socket.onerror = null;
-    if (
-      socket.readyState === WebSocket.OPEN ||
-      socket.readyState === WebSocket.CONNECTING
-    ) {
-      socket.close();
-    }
-    socket = null;
-  }
-  connectionStatus.value = "closed";
+  dropSocket();
+  // "idle", not "closed": this runs when the token changes, so we are not
+  // failing to reach the server, we are not asking. A logout that reported an
+  // outage would be reporting one that nobody is waiting to end.
+  setStatus("idle");
   clearPresence();
   lastViewedNoteId = undefined;
   // Reset the "has opened once" flag: a token change (logout, re-login as a
@@ -183,12 +199,12 @@ function disconnect() {
 
 function connect(token: string) {
   if (WS_ORIGIN === null) return;
-  connectionStatus.value = "connecting";
+  setStatus("connecting");
   const ws = new WebSocket(`${WS_ORIGIN}/api/ws`, [SUBPROTOCOL, token]);
   socket = ws;
 
   ws.onopen = () => {
-    connectionStatus.value = "open";
+    setStatus("open");
     backoffMs = 1000;
     if (lastViewedNoteId !== undefined) {
       send({ type: "presence:update", noteId: lastViewedNoteId });
@@ -221,7 +237,7 @@ function connect(token: string) {
 
   ws.onclose = (event) => {
     socket = null;
-    connectionStatus.value = "closed";
+    setStatus("closed");
     if (event.code === 4401) {
       // server rejected our token, so drop local auth so the user re-logs in
       clearAuthLocal();
@@ -241,6 +257,38 @@ function connect(token: string) {
   ws.onerror = () => {
     // onclose will follow with the reconnect logic
   };
+}
+
+/**
+ * Dial now rather than waiting the backoff out, because something just told us
+ * the network is worth another try: the app came back to the foreground, or
+ * the browser went back online.
+ *
+ * An app resumed from the background comes back to a socket the browser closed
+ * while the page was frozen, and to a backoff that the retries it did manage
+ * in between may have grown to {@link MAX_BACKOFF}. Left alone, the notes list
+ * would then stay stale, and the banner up, for half a minute after the app
+ * was already on screen.
+ */
+function reconnectNow() {
+  if (!isServerMode) return;
+  const token = authToken.value;
+  if (!token) return;
+  // A socket that is open, or still dialling, is doing its job. One the browser
+  // has closed under us is not, and its `onclose` may not have reached us yet:
+  // a resume can deliver the visibility change first, and waiting for the close
+  // would put us back on the very backoff we came here to skip.
+  if (
+    socket &&
+    socket.readyState !== WebSocket.CLOSED &&
+    socket.readyState !== WebSocket.CLOSING
+  ) {
+    return;
+  }
+  dropSocket();
+  clearReconnect();
+  backoffMs = 1000;
+  connect(token);
 }
 
 let started = false;
@@ -263,4 +311,13 @@ export function startAppSocket(): void {
       send({ type: "presence:update", noteId: id });
     }
   });
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") reconnectNow();
+    });
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("online", reconnectNow);
+  }
 }

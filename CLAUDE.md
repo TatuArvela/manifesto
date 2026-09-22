@@ -218,6 +218,17 @@ while this tab was offline arrive nowhere else. `realtime/yjsProvider.ts` holds 
 `HocuspocusProvider` per open note, with `y-indexeddb` underneath so an offline edit survives a
 reload. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding above.
 
+Being resumed is a reason to skip the backoff. A frozen page comes back to a socket the browser
+closed for it, and to a backoff its throttled retries may have grown to the ceiling, so a
+`visibilitychange` back to visible (and an `online` event) dials at once and resets the backoff. It
+dials for a socket in `CLOSED` as well as a missing one, because a resume can deliver the visibility
+change before the queued close event. The user side of the same moment is `realtime/connectionOutage.ts`:
+the banner reports `connectionOutage`, which is `connectionStatus` after a delay, never the status
+itself, or every resume announces a reconnect that is already finishing. A deliberate teardown
+(`disconnect`, so a logout or open mode) is `idle` rather than `closed` for that reason, and the
+delay is armed once per outage, not once per status write, since `connecting` and `closed` alternate
+all the way through one.
+
 Non-collaborative writes use optimistic concurrency: `updateNote` sends `If-Match`, and a 412 comes
 back carrying the current server row. `state/mergeNote.ts` then does a 3-way merge of
 (base, desired, current) and retries once. Scalars are client-wins; `tags`, `images` and
