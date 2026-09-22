@@ -54,7 +54,7 @@ import {
 import { extractUrls } from "../utils/linkPreview.js";
 import {
   isMorphSource,
-  MORPH_CLOSE_MS,
+  MORPH_MS,
   morphIn,
   morphOut,
   type RectLike,
@@ -77,8 +77,18 @@ import { SharedAvatars } from "./SharedAvatars.js";
 import { TagPicker, tagPickerPanelClass } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
-/** How long the modal's fade-out runs; matches its `duration-150` classes. */
-const MODAL_CLOSE_MS = 150;
+/**
+ * How long the modal's plain fade runs, either way, where there is no card to
+ * morph from; matches its `duration-100` classes and `animate-scale-in`.
+ */
+const MODAL_CLOSE_MS = 100;
+
+/**
+ * How long the card takes to fade (`note-card-transition`). Opening, it fades
+ * out as the editor grows off it; closing, it waits so that it fades back in
+ * over the end of the morph, as the same fade played backwards.
+ */
+const CARD_FADE_MS = 150;
 
 // --- Sub-components ---
 
@@ -383,6 +393,9 @@ export const NoteCard = memo(function NoteCard({
   const overlayControls = isImageOnly || isLinkOnly;
 
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Counts closes and reopens, so a close that finishes after the note was
+  // opened again leaves the panel alone.
+  const closeRunRef = useRef(0);
   const cardRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   // Where the editor grows out of, between the effect that opens it and the
@@ -408,6 +421,7 @@ export const NoteCard = memo(function NoteCard({
   // editing any more, and a second modal could open behind it.
   useEffect(() => {
     if (isEditing) {
+      closeRunRef.current++;
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
         closeTimerRef.current = null;
@@ -426,19 +440,27 @@ export const NoteCard = memo(function NoteCard({
       return;
     }
     if (!showModal || closing) return;
+    const run = ++closeRunRef.current;
+    const takeDown = () => {
+      // Reopened since: this close is over, and the panel is staying.
+      if (run !== closeRunRef.current) return;
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+      setShowModal(false);
+      setClosing(false);
+    };
     const panel = panelRef.current;
     const to = panel ? morphSource() : null;
-    if (panel && to) morphOut(panel, to);
     setMorphing(to !== null);
     setClosing(true);
-    closeTimerRef.current = setTimeout(
-      () => {
-        closeTimerRef.current = null;
-        setShowModal(false);
-        setClosing(false);
-      },
-      to ? MORPH_CLOSE_MS : MODAL_CLOSE_MS,
-    );
+    if (panel && to) {
+      // Down once the morph has landed. The timer is only a backstop, for a
+      // tab in the background, where animations are throttled or never run.
+      void morphOut(panel, to).then(takeDown);
+      closeTimerRef.current = setTimeout(takeDown, MORPH_MS + 250);
+    } else {
+      closeTimerRef.current = setTimeout(takeDown, MODAL_CLOSE_MS);
+    }
   }, [isEditing, showModal, closing]);
 
   // Layout, not effect: the panel's first frame has to be the one over the
@@ -639,6 +661,8 @@ export const NoteCard = memo(function NoteCard({
           )}
           style={{
             aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
+            transitionDelay:
+              closing && morphing ? `${MORPH_MS - CARD_FADE_MS}ms` : undefined,
           }}
           draggable={!isTouch && draggable}
           onPointerDown={(e) => {
@@ -937,7 +961,9 @@ export const NoteCard = memo(function NoteCard({
             {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
             <div
-              class={`fixed inset-0 bg-black/50 z-40 max-sm:hidden transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
+              // In and out over the same time as the panel: the morph's
+              // when it morphs, the plain fade's otherwise.
+              class={`fixed inset-0 bg-black/50 z-40 max-sm:hidden transition-opacity ease-in ${morphing ? "duration-240" : "duration-100"} ${closing ? "opacity-0" : morphing ? "animate-[fade-in_240ms_ease-out]" : "animate-fade-in"}`}
               onClick={closeModal}
             />
             <div
@@ -945,7 +971,7 @@ export const NoteCard = memo(function NoteCard({
               role="dialog"
               aria-modal="true"
               aria-label={note.title || t("editor.titlePlaceholder")}
-              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${morphing ? "" : closing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-100 ease-in ${morphing ? "" : closing ? "opacity-0 sm:scale-[0.98]" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
               <div
                 ref={panelRef}
