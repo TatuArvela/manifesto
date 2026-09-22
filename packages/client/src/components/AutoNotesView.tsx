@@ -19,7 +19,13 @@ import {
   togglePlugin,
 } from "../autoNotes/registry.js";
 import { t } from "../i18n/index.js";
-import { canReorder, reorderNotes, sortedNotes } from "../state/index.js";
+import {
+  canReorder,
+  reorderNotes,
+  sortedNotes,
+  viewMode,
+} from "../state/index.js";
+import { GRID_COLUMNS } from "./gridColumns.js";
 import { ReorderableGrid } from "./ReorderableGrid.js";
 import { ToggleSwitch } from "./ToggleSwitch.js";
 
@@ -36,6 +42,7 @@ export function AutoNotesView() {
   const list = plugins.value;
   const allNotes = sortedNotes.value;
   const reorderable = canReorder.value;
+  const isList = viewMode.value === "list";
 
   const resetForm = () => {
     setAddMode(null);
@@ -88,8 +95,9 @@ export function AutoNotesView() {
 
   // The controls and the introduction keep to the centred column that list
   // mode puts everything in, as the search and tag filters do, and stay above
-  // the plugins however many there are; each plugin's notes still spread
-  // across the grid.
+  // the plugins however many there are. In grid mode each plugin is one column
+  // of the board, its notes stacked under it, so a handful of plugins sit side
+  // by side instead of one full-width row each.
   const column = "w-full max-w-xl mx-auto";
 
   return (
@@ -241,85 +249,96 @@ export function AutoNotesView() {
         </div>
       )}
 
-      {list.map((plugin) => {
-        const pluginNotes = allNotes.filter(
-          (n) => n.source?.pluginId === plugin.id,
-        );
-        return (
-          <section key={plugin.id} class="flex flex-col gap-3">
-            <div class="px-3 py-2 bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-700 rounded-lg flex flex-col gap-1">
-              <div class="flex items-center gap-2">
-                <span
-                  class={`flex-1 min-w-0 text-sm font-medium truncate ${
-                    plugin.name
-                      ? ""
-                      : "italic text-neutral-400 dark:text-neutral-500 font-normal"
-                  }`}
-                >
-                  {plugin.name || t("settings.autoNotes.untitled")}
-                </span>
-                <span class="text-[10px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                  {plugin.origin.kind === "url"
-                    ? t("settings.autoNotes.origin.url")
-                    : t("settings.autoNotes.origin.inline")}
-                </span>
-                <ToggleSwitch
-                  checked={plugin.enabled}
-                  onChange={() => togglePlugin(plugin.id)}
-                  iconOff={<Slash class="w-4 h-4" />}
-                  iconOn={<Check class="w-4 h-4" />}
-                  labelOff={t("settings.autoNotes.disabled")}
-                  labelOn={t("settings.autoNotes.enabled")}
-                />
-                {plugin.origin.kind === "url" && (
+      <div
+        class={
+          isList
+            ? "flex flex-col gap-4"
+            : `grid ${GRID_COLUMNS} gap-4 items-start`
+        }
+      >
+        {list.map((plugin) => {
+          const pluginNotes = allNotes.filter(
+            (n) => n.source?.pluginId === plugin.id,
+          );
+          return (
+            <section key={plugin.id} class="flex flex-col gap-3">
+              <div class="px-3 py-2 bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-700 rounded-lg flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                  <span
+                    class={`flex-1 min-w-0 text-sm font-medium truncate ${
+                      plugin.name
+                        ? ""
+                        : "italic text-neutral-400 dark:text-neutral-500 font-normal"
+                    }`}
+                  >
+                    {plugin.name || t("settings.autoNotes.untitled")}
+                  </span>
+                  <span class="text-[10px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    {plugin.origin.kind === "url"
+                      ? t("settings.autoNotes.origin.url")
+                      : t("settings.autoNotes.origin.inline")}
+                  </span>
+                  <ToggleSwitch
+                    checked={plugin.enabled}
+                    onChange={() => togglePlugin(plugin.id)}
+                    iconOff={<Slash class="w-4 h-4" />}
+                    iconOn={<Check class="w-4 h-4" />}
+                    labelOff={t("settings.autoNotes.disabled")}
+                    labelOn={t("settings.autoNotes.enabled")}
+                  />
+                  {plugin.origin.kind === "url" && (
+                    <button
+                      type="button"
+                      class="p-1 rounded text-neutral-600 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+                      onClick={() => handleRefetch(plugin.id)}
+                      aria-label={t("settings.autoNotes.refetch")}
+                      title={t("settings.autoNotes.refetch")}
+                    >
+                      <RefreshCw class="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     type="button"
-                    class="p-1 rounded text-neutral-600 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
-                    onClick={() => handleRefetch(plugin.id)}
-                    aria-label={t("settings.autoNotes.refetch")}
-                    title={t("settings.autoNotes.refetch")}
+                    class="p-1 rounded text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+                    onClick={() => removePlugin(plugin.id)}
+                    aria-label={t("settings.autoNotes.remove")}
+                    title={t("settings.autoNotes.remove")}
                   >
-                    <RefreshCw class="w-4 h-4" />
+                    <Trash2 class="w-4 h-4" />
                   </button>
+                </div>
+
+                {plugin.origin.kind === "url" && (
+                  <p
+                    class="text-[11px] text-neutral-500 dark:text-neutral-400 truncate"
+                    title={plugin.origin.url}
+                  >
+                    {plugin.origin.url}
+                  </p>
                 )}
-                <button
-                  type="button"
-                  class="p-1 rounded text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
-                  onClick={() => removePlugin(plugin.id)}
-                  aria-label={t("settings.autoNotes.remove")}
-                  title={t("settings.autoNotes.remove")}
-                >
-                  <Trash2 class="w-4 h-4" />
-                </button>
+
+                {plugin.lastError && (
+                  <p class="text-[11px] text-red-600 dark:text-red-400 flex items-start gap-1">
+                    <AlertTriangle class="w-3 h-3 mt-0.5 shrink-0" />
+                    <span class="break-all">{plugin.lastError}</span>
+                  </p>
+                )}
               </div>
 
-              {plugin.origin.kind === "url" && (
-                <p
-                  class="text-[11px] text-neutral-500 dark:text-neutral-400 truncate"
-                  title={plugin.origin.url}
-                >
-                  {plugin.origin.url}
-                </p>
+              {pluginNotes.length > 0 && (
+                <ReorderableGrid
+                  notes={pluginNotes}
+                  reorderable={reorderable}
+                  onReorder={(ids, from, to) =>
+                    void reorderNotes(ids, from, to)
+                  }
+                  stacked={!isList}
+                />
               )}
-
-              {plugin.lastError && (
-                <p class="text-[11px] text-red-600 dark:text-red-400 flex items-start gap-1">
-                  <AlertTriangle class="w-3 h-3 mt-0.5 shrink-0" />
-                  <span class="break-all">{plugin.lastError}</span>
-                </p>
-              )}
-            </div>
-
-            {pluginNotes.length > 0 && (
-              <ReorderableGrid
-                notes={pluginNotes}
-                reorderable={reorderable}
-                onReorder={(ids, from, to) => void reorderNotes(ids, from, to)}
-              />
-            )}
-          </section>
-        );
-      })}
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }
