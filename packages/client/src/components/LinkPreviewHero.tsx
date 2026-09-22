@@ -1,5 +1,5 @@
 import type { LinkPreview } from "@manifesto/shared";
-import { ExternalLink, Link as LinkIcon } from "lucide-preact";
+import { Link as LinkIcon } from "lucide-preact";
 
 export function LinkPreviewHero({
   preview,
@@ -33,15 +33,18 @@ export function LinkPreviewHero({
         </div>
       )}
       <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-      <div class="absolute top-2 right-2 opacity-80">
-        <ExternalLink class="w-4 h-4" />
-      </div>
       <div class="absolute bottom-0 left-0 right-0 p-3">
         {/* A bare URL is one long word; let it break anywhere rather than
             run off the card's edge. */}
         <div class="text-base font-medium leading-tight line-clamp-2 [overflow-wrap:anywhere]">
           {preview.title}
         </div>
+        {/* The domain alone, with no open-in-a-new-tab glyph beside it. Every
+            corner of a card that is all hero has an owner already: the select
+            checkbox top left, the pin and its badges top right, the card's
+            own buttons along the bottom. The glyph used to sit in the top
+            right, under the pin, and the row of previews below a note has
+            never carried one either. */}
         <div class="text-xs opacity-80 mt-0.5 truncate">{preview.domain}</div>
       </div>
     </a>
