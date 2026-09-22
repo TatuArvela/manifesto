@@ -54,7 +54,7 @@ Notes can be sorted in three modes, selectable from the header:
 - **Updated**: Last updated first.
 - **Created**: Most recently created first.
 
-Pinned and unpinned sections each maintain their own order independently. In default mode, each section has its own drag-and-drop sequence.
+Pinned and unpinned sections each maintain their own order independently. In default mode, each section has its own drag-and-drop sequence. While a note is dragged, the others move aside to show the order a drop would give: the note takes the place of the note under the pointer, and its own place in the preview is left empty, since the note is shown under the pointer (on a touch screen, a lifted copy that follows the finger). Letting go outside the section puts everything back.
 
 In connected mode, manual ordering is per-user: each user has their own arrangement.
 
