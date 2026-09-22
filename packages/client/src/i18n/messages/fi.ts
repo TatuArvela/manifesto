@@ -48,6 +48,8 @@ export const fi: Messages = {
   "header.view.list": "Lista",
   "header.view.square": "Neliön muotoiset",
   "header.view.fit": "Sopivan kokoiset",
+  "header.view.big": "Isot",
+  "header.view.small": "Pienet",
 
   // Header: selection toolbar
   "selection.count": {

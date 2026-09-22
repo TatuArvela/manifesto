@@ -46,6 +46,8 @@ export const en = {
   "header.view.list": "List view",
   "header.view.square": "Square notes",
   "header.view.fit": "Fit notes",
+  "header.view.big": "Big notes",
+  "header.view.small": "Small notes",
 
   // Header: selection toolbar
   "selection.count": {

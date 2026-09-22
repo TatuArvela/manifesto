@@ -135,6 +135,16 @@ describe("parsePrefs", () => {
     expect(unknown.boardImageStamp).toBe(0);
   });
 
+  it("reads the note scale, big unless small was chosen", () => {
+    expect(parsePrefs(null).noteScale).toBe("big");
+    expect(parsePrefs(JSON.stringify({ noteScale: "small" })).noteScale).toBe(
+      "small",
+    );
+    expect(parsePrefs(JSON.stringify({ noteScale: "huge" })).noteScale).toBe(
+      "big",
+    );
+  });
+
   it("keeps a random colour and texture as random", () => {
     const random = parsePrefs(
       JSON.stringify({ boardColor: "random", boardTexture: "random" }),

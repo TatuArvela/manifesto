@@ -39,7 +39,7 @@ import {
   type RectLike,
   viewportSize,
 } from "../utils/morph.js";
-import { GRID_COLUMNS } from "./gridColumns.js";
+import { gridColumns } from "./gridColumns.js";
 import { NoteEditor } from "./NoteEditor.js";
 
 const ctaKeys: MessageKey[] = [
@@ -189,6 +189,9 @@ export function NoteInput() {
     measure();
     const obs = new ResizeObserver(measure);
     obs.observe(ruler);
+    // The cell too: switching to small notes changes the column count, which
+    // narrows the cell while the ruler keeps its width.
+    obs.observe(cell);
     return () => obs.disconnect();
   }, [isList, isActiveView]);
 
@@ -395,7 +398,7 @@ export function NoteInput() {
       {!isList && (
         <div
           ref={rulerRef}
-          class={`grid ${GRID_COLUMNS} gap-x-4 h-0 overflow-hidden pointer-events-none`}
+          class={`grid ${gridColumns()} gap-x-4 h-0 overflow-hidden pointer-events-none`}
           aria-hidden="true"
         >
           <div />

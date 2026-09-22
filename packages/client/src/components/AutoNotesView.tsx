@@ -25,7 +25,7 @@ import {
   sortedNotes,
   viewMode,
 } from "../state/index.js";
-import { GRID_COLUMNS } from "./gridColumns.js";
+import { gridColumns } from "./gridColumns.js";
 import { ReorderableGrid } from "./ReorderableGrid.js";
 import { ToggleSwitch } from "./ToggleSwitch.js";
 
@@ -253,7 +253,7 @@ export function AutoNotesView() {
         class={
           isList
             ? "flex flex-col gap-4"
-            : `grid ${GRID_COLUMNS} gap-4 items-start`
+            : `grid ${gridColumns()} gap-4 items-start`
         }
       >
         {list.map((plugin) => {

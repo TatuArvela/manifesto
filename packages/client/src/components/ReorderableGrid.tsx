@@ -2,7 +2,7 @@ import type { Note } from "@manifesto/shared";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useMasonryGrid } from "../hooks/useMasonryGrid.js";
 import { noteSize, viewMode } from "../state/index.js";
-import { GRID_COLUMNS } from "./gridColumns.js";
+import { gridColumns } from "./gridColumns.js";
 import { NoteCard } from "./NoteCard.js";
 
 /**
@@ -314,7 +314,7 @@ export function ReorderableGrid({
     ? "flex flex-col gap-3"
     : stacked
       ? "flex flex-col gap-4"
-      : `grid ${GRID_COLUMNS} gap-x-4 items-start`;
+      : `grid ${gridColumns()} gap-x-4 items-start`;
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: grid layout requires div
