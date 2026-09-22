@@ -5,6 +5,7 @@ import {
   type NoteColor,
   roleOf,
 } from "@manifesto/shared";
+import { useComputed } from "@preact/signals";
 import clsx from "clsx";
 import {
   Archive,
@@ -19,7 +20,7 @@ import {
   Undo2,
   X,
 } from "lucide-preact";
-import { createPortal } from "preact/compat";
+import { createPortal, memo } from "preact/compat";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
@@ -302,7 +303,16 @@ function contentIsOnlyPreviewUrls(
 
 // --- Main component ---
 
-export function NoteCard({
+/**
+ * One card on the board. Memoized, and it derives the three board-wide
+ * signals it cares about (which note is being edited, which are selected,
+ * which are leaving) down to its own answer before reading them. Reading the
+ * signals themselves subscribed every card to every change: a click on one
+ * card's select button re-rendered, and re-rendered the markdown of, all of
+ * them. `ReorderableGrid` keeps the handlers it passes stable for the same
+ * reason; a new closure per render would defeat the `memo`.
+ */
+export const NoteCard = memo(function NoteCard({
   note,
   draggable,
   onDragStart,
@@ -314,17 +324,17 @@ export function NoteCard({
 }: {
   note: Note;
   draggable?: boolean;
-  onDragStart?: (e: DragEvent) => void;
+  onDragStart?: (e: DragEvent, id: string) => void;
   onDragEnd?: (e: DragEvent) => void;
-  onTouchDragStart?: (e: PointerEvent) => void;
+  onTouchDragStart?: (e: PointerEvent, id: string) => void;
   onTouchDragMove?: (e: PointerEvent) => void;
   onTouchDragEnd?: (e: PointerEvent, didDrag: boolean) => void;
   dropSide?: "before" | "after";
 }) {
-  const isEditing = editingNoteId.value === note.id;
-  const leaving = leavingNotes.value.get(note.id);
+  const isEditing = useComputed(() => editingNoteId.value === note.id).value;
+  const leaving = useComputed(() => leavingNotes.value.get(note.id)).value;
   const isSelectMode = selectMode.value;
-  const isSelected = selectedNotes.value.has(note.id);
+  const isSelected = useComputed(() => selectedNotes.value.has(note.id)).value;
   // Read once at mount: this card was remounted into the other grid by a pin
   // toggle, so it should settle in rather than appear from nowhere. Reading it
   // during render would also re-trigger on unrelated re-renders in the window
@@ -520,7 +530,10 @@ export function NoteCard({
         enterSelectMode(note.id);
       }
     },
-    onDragStart: draggable ? onTouchDragStart : undefined,
+    onDragStart:
+      draggable && onTouchDragStart
+        ? (e) => onTouchDragStart(e, note.id)
+        : undefined,
     onDragMove: draggable ? onTouchDragMove : undefined,
     onDragEnd: draggable ? onTouchDragEnd : undefined,
   });
@@ -638,7 +651,9 @@ export function NoteCard({
           onPointerUp={() => {
             if (!isTouch) document.body.classList.remove("note-drag-active");
           }}
-          onDragStart={isTouch ? undefined : onDragStart}
+          onDragStart={
+            isTouch || !onDragStart ? undefined : (e) => onDragStart(e, note.id)
+          }
           onDragEnd={
             isTouch
               ? undefined
@@ -945,4 +960,4 @@ export function NoteCard({
         )}
     </>
   );
-}
+});

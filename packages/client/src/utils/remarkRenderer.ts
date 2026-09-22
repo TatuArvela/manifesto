@@ -99,6 +99,20 @@ const processor = unified()
   .use(rehypeStringify, { allowDangerousHtml: true });
 
 /**
+ * Rendered HTML by source, most recently used last.
+ *
+ * Every card on the board renders its preview through here, and a card
+ * re-renders for reasons that have nothing to do with its text: the editor
+ * opening, a selection, a drag passing over it. The pipeline costs most of a
+ * millisecond per block before DOMPurify, so a board of a hundred cards spent
+ * a hundred milliseconds or more producing the HTML it already had. Big
+ * enough to hold every block of a large board; a `Map` keeps insertion order,
+ * so the first key is the one to evict.
+ */
+const RENDER_CACHE_SIZE = 2000;
+const renderCache = new Map<string, string>();
+
+/**
  * Markdown to HTML, sanitized. Every caller feeds the result to
  * `dangerouslySetInnerHTML`, and note content can arrive from a shared link,
  * an imported file or a plugin, so sanitizing is part of rendering rather
@@ -106,7 +120,21 @@ const processor = unified()
  * forget the allowlist, and nothing said so.
  */
 export function renderMarkdown(md: string): string {
-  return DOMPurify.sanitize(String(processor.processSync(md)), PURIFY_CONFIG);
+  const cached = renderCache.get(md);
+  if (cached !== undefined) {
+    renderCache.delete(md);
+    renderCache.set(md, cached);
+    return cached;
+  }
+  const html = DOMPurify.sanitize(
+    String(processor.processSync(md)),
+    PURIFY_CONFIG,
+  );
+  renderCache.set(md, html);
+  if (renderCache.size > RENDER_CACHE_SIZE) {
+    renderCache.delete(renderCache.keys().next().value as string);
+  }
+  return html;
 }
 
 /**

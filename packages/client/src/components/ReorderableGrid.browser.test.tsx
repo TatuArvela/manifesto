@@ -1,7 +1,13 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
-import { render } from "preact";
+import { options, render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { editingNoteId, notes, viewMode } from "../state/index.js";
+import {
+  editingNoteId,
+  notes,
+  selectedNotes,
+  selectMode,
+  viewMode,
+} from "../state/index.js";
 import "../styles.css";
 
 /**
@@ -326,6 +332,58 @@ describe("ReorderableGrid", () => {
     expect(cards()[0].getBoundingClientRect().bottom).toBeLessThanOrEqual(
       cards()[0].getBoundingClientRect().top + spanOf(0),
     );
+  });
+
+  it("re-renders only the cards a selection or a drop gap touches", async () => {
+    // Every card used to read the board-wide signals itself, and was handed a
+    // fresh closure per render, so selecting one note re-rendered (and
+    // re-parsed the markdown of) every card on the board.
+    const rendered: string[] = [];
+    const previous = options.diffed;
+    options.diffed = (vnode) => {
+      const type = vnode.type as { name?: string } | string;
+      if (typeof type === "function" && type.name === "NoteCard") {
+        rendered.push((vnode.props as unknown as { note: Note }).note.title);
+      }
+      previous?.(vnode);
+    };
+    try {
+      selectMode.value = true;
+      render(
+        <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
+        host,
+      );
+      rendered.length = 0;
+      selectedNotes.value = new Set([three[1].id]);
+      await tick();
+      expect(rendered).toEqual(["Bravo"]);
+
+      rendered.length = 0;
+      const from = articleIn(cards()[0]);
+      const dataTransfer = new DataTransfer();
+      from.dispatchEvent(
+        new DragEvent("dragstart", {
+          bubbles: true,
+          dataTransfer,
+          ...centreOf(from),
+        }),
+      );
+      await tick();
+      host.querySelector('[role="list"]')?.dispatchEvent(
+        new DragEvent("dragover", {
+          bubbles: true,
+          dataTransfer,
+          ...afterEdgeOf(cards()[2]),
+        }),
+      );
+      await tick();
+      expect(rendered).toEqual(["Charlie"]);
+      from.dispatchEvent(new DragEvent("dragend", { bubbles: true }));
+    } finally {
+      options.diffed = previous;
+      selectedNotes.value = new Set();
+      selectMode.value = false;
+    }
   });
 
   it("lays the list view out without masonry spans", () => {
