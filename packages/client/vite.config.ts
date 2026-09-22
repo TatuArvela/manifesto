@@ -215,9 +215,15 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   const branding = resolveBranding(env);
   return {
-    base:
-      process.env.MANIFESTO_BASE_URL ??
-      (process.env.GITHUB_ACTIONS ? "/manifesto/" : "/"),
+    // Plain env var rather than a `VITE_` one, since Vite reads `base` before
+    // it loads the `VITE_` set. The default is the domain root, and a subpath
+    // belongs to the build that wants one: keying it off `GITHUB_ACTIONS`
+    // meant every fork's Actions build, not just this repo's Pages build,
+    // silently produced a bundle whose assets all lived under `/manifesto/`.
+    // Served at a root that is a blank page and a fistful of 404s, with
+    // nothing in the output saying why. The Pages build sets it in
+    // `.github/workflows/ci-main.yml`.
+    base: process.env.MANIFESTO_BASE_URL ?? "/",
     define: {
       __APP_VERSION__: JSON.stringify(
         resolveBuildVersion({

@@ -54,7 +54,14 @@ jobs:
       - run: pnpm test
 
       - run: pnpm --filter @manifesto/server build
-      - run: pnpm --filter @manifesto/client build
+
+      # Pages serves this site from https://tatuarvela.github.io/manifesto/,
+      # so its assets need that prefix. It is set here rather than defaulted
+      # in vite.config.ts, where it applied to every fork's Actions build too.
+      - name: Build client (Pages, base /manifesto/)
+        env:
+          MANIFESTO_BASE_URL: /manifesto/
+        run: pnpm --filter @manifesto/client build
 
       - uses: actions/configure-pages@v5
 

@@ -69,8 +69,13 @@ volumes: { notes-data: }
 ```
 
 `CORS_ORIGINS` must list the client's origin or the browser blocks every
-request. See [Server Deployment](server/deployment.md) for the full variable
-list, Postgres setup, and reverse-proxy notes.
+request, unless you put both behind
+[one reverse proxy on one origin](server/deployment.md#single-origin-behind-one-reverse-proxy),
+where nothing is cross-origin and the variable never applies. Drop the published
+`3001` port once a proxy is in front: see
+[Do not publish the server port](server/deployment.md#do-not-publish-the-server-port).
+See [Server Deployment](server/deployment.md) for the full variable list,
+Postgres setup, and reverse-proxy notes.
 
 ### 3. Build the client
 

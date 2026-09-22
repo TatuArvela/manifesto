@@ -41,7 +41,7 @@ Adding another driver means implementing these six interfaces and registering th
 
 #### Driver tradeoffs
 
-- **SQLite**: zero-configuration, a single file you can back up by copying. Fast and ideal for one-server deployments. Pure synchronous writes (better-sqlite3) keep latencies tiny on a notes workload.
+- **SQLite**: zero-configuration, a single file, backed up with SQLite's own `.backup` rather than `cp` (the driver runs WAL; see [Backups](deployment.md#backups)). Fast and ideal for one-server deployments. Pure synchronous writes (better-sqlite3) keep latencies tiny on a notes workload.
 - **Postgres**: required for any deployment that wants to scale beyond one app server, share state with other services, or use managed-database backups. The schema mirrors SQLite's; `yjs_state` lives in `BYTEA`.
 
 #### Schema migrations

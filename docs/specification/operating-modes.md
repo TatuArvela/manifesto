@@ -100,7 +100,7 @@ In connected mode the server picks a **storage driver** and an **auth provider**
 
 Both drivers expose the same `StorageDriver` interface and ship six repositories: `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance`. The choice is operational, not functional.
 
-- **`sqlite`** *(default)*: `better-sqlite3`, single file at `${DATA_DIR}/manifesto.db`. Zero configuration. Back up by copying the file.
+- **`sqlite`** *(default)*: `better-sqlite3`, single file at `${DATA_DIR}/manifesto.db`. Zero configuration. Back it up with SQLite's own `.backup`, never `cp`: the driver runs in WAL mode, so the `.db` file on its own is not the whole database. See [Backups](server/deployment.md#backups).
 - **`postgres`**: `pg` Pool against a `DATABASE_URL`. Required for any deployment that scales beyond a single app server, shares state with other services, or relies on managed-database backups.
 
 See [Server Overview](server/index.md#storage-drivers) for details.

@@ -83,6 +83,8 @@ Auto-notes run code the user pasted in, so the plugin executes at three removes 
 2. **A blob Worker inside the frame.** This is what makes the two-second timeout enforceable: a plugin that never returns occupies only the worker's thread, so the timer still fires and tearing down the frame takes the worker with it. An engine that refuses a worker at an opaque origin falls back to running on the frame's thread; the fallback is reported in the frame's `init-ok` message and warned about by the host, because on that path a `while (true)` blocks the page and the timeout cannot be enforced.
 3. **Validation on the host side.** The frame returns `JSON.stringify({ value })` and deliberately validates nothing. The check belongs outside the sandbox: a plugin that has subverted its frame would satisfy any check the frame made about itself.
 
+A site-wide `Content-Security-Policy: frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` do not break this frame, though the opaque origin makes it look as though they should. Both are checked against the origin of the framed URL, which is the site's own, so the frame renders and plugins keep running. It needs no exemption from a host's security headers; see [Security headers](../client/deployment.md#security-headers).
+
 The host–frame protocol is: the frame posts `sandbox-booted`, the host replies with `init` carrying the standard-library prelude, the frame evaluates it, starts its worker and posts `init-ok`; each invocation is then a `run` message answered by `run-ok` or `run-err`.
 
 ## Plugin Sources
