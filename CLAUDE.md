@@ -366,9 +366,13 @@ call locally, so both modes behave alike.
 - **NoteCardEditor** wraps NoteEditor for editing existing notes and manages auto-save (500ms debounce) and version history. Undo/redo is delegated to Milkdown.
 - **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) with
   `open`/`onClose`/`trigger`/`children` props. Its panel opens and closes on one CSS transition
-  rather than two animations, so a menu re-opened mid-fade reverses instead of starting over;
-  `display` and `overlay` need `allow-discrete` or the panel leaves the top layer on the first frame
-  and the exit is never seen, and `@starting-style` supplies the entry's other end. The slide is a
+  rather than two animations, so a menu re-opened mid-fade reverses instead of starting over, and
+  `@starting-style` supplies the entry's other end. The popover is `manual`: the component
+  dismisses it (outside press, Escape) and hides it only once the exit has played, since a browser
+  that hides it at once takes it out of the top layer mid-fade and only Chromium can transition
+  `overlay`. `leaving` is derived in render, never set by an effect: one frame of neither open nor
+  leaving is `display: none`, which cancels the exit. Card popovers (`CardPopover`) are mounted
+  only while open and get their exit from `usePresence`. The slide is a
   translation and never a scale, because the browsers without anchor positioning place the panel
   from a measured `getBoundingClientRect` and a scaled box measures smaller than it lands.
 - **Confirming a deletion** goes through the `confirmRequest` signal in `state/confirm.ts`, which
