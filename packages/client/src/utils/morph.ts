@@ -13,11 +13,17 @@ export interface RectLike {
   height: number;
 }
 
-const OPEN_MS = 240;
-const CLOSE_MS = 180;
-
-/** How long `morphOut` runs, so the caller can take the panel down after. */
-export const MORPH_CLOSE_MS = CLOSE_MS;
+/**
+ * How long either morph runs. Both ways take the same time and follow the same
+ * curve: one that moves at once and settles gently, so the editor settles
+ * into place opening and onto its card closing. The close once ran the opening
+ * curve backwards instead, which barely moved for most of its run and then
+ * snapped onto the card, and read as no animation at all.
+ */
+export const MORPH_MS = 240;
+const EASING = "cubic-bezier(0.2, 0, 0, 1)";
+/** The share of the run the panel spends fading, at the start or the end. */
+const FADE_SHARE = 0.3;
 
 /**
  * The transform that draws an element laid out at `to` over `from` instead,
@@ -81,28 +87,39 @@ export function morphIn(
   panel.animate(
     [
       { transform: start, opacity: opaque ? 1 : 0 },
-      { opacity: 1, offset: 0.3 },
+      { opacity: 1, offset: FADE_SHARE },
       { transform: "none", opacity: 1 },
     ],
-    { duration: OPEN_MS, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+    { duration: MORPH_MS, easing: EASING },
   );
 }
 
-/** Shrinks `panel` onto `to`, fading as it lands. Holds the end state. */
-export function morphOut(panel: HTMLElement, to: RectLike): void {
+/**
+ * Shrinks `panel` onto `to`, fading over the last part of the way. Holds the
+ * end state, and resolves once it has played, which is when the caller should
+ * take the panel down: a timer started beside it runs out first, since the
+ * animation only starts on the next frame, and cut the landing off.
+ *
+ * The fade is its own animation, on linear time: under the shared curve its
+ * keyframes would be placed by progress, and a curve that covers most of the
+ * distance early would start the fade with the panel still far from the card.
+ */
+export function morphOut(panel: HTMLElement, to: RectLike): Promise<void> {
   settle(panel);
   const end = morphTransform(to, panel.getBoundingClientRect());
   panel.style.transformOrigin = "0 0";
+  const motion = panel.animate([{ transform: "none" }, { transform: end }], {
+    duration: MORPH_MS,
+    easing: EASING,
+    fill: "forwards",
+  });
   panel.animate(
-    [
-      { transform: "none", opacity: 1 },
-      { opacity: 1, offset: 0.55 },
-      { transform: end, opacity: 0 },
-    ],
-    {
-      duration: CLOSE_MS,
-      easing: "cubic-bezier(0.3, 0, 0.8, 0.15)",
-      fill: "forwards",
-    },
+    [{ opacity: 1 }, { opacity: 1, offset: 1 - FADE_SHARE }, { opacity: 0 }],
+    { duration: MORPH_MS, fill: "forwards" },
+  );
+  return motion.finished.then(
+    () => {},
+    // Cancelled: reopened mid-close, which settles the panel where it stands.
+    () => {},
   );
 }
