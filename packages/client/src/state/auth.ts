@@ -7,7 +7,7 @@ import type {
   UserLookupMode,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { resolveServerUrl } from "../config.js";
+import { resolveServerOrigin, resolveServerUrl } from "../config.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { storageConnection } from "../storage/index.js";
 
@@ -32,11 +32,27 @@ const rawServer =
     ? import.meta.env?.VITE_MANIFESTO_SERVER
     : undefined;
 
-/** The server, from the `manifesto-server` meta tag or the build-time value.
- * See {@link resolveServerUrl} for why a bundle gets a say at all. */
+/**
+ * The server, from the `manifesto-server` meta tag or the build-time value.
+ * See {@link resolveServerUrl} for why a bundle gets a say at all.
+ *
+ * This is a `fetch` base and may be relative, including the empty string that
+ * `/` resolves to. So every guard here tests `=== null` and never falsiness:
+ * the empty string is a server on this page's own origin, and treating it as
+ * "no server" is how a single-origin deployment used to render a login screen
+ * whose every request took the open-mode branch instead of being sent.
+ */
 export const SERVER_URL: string | null = resolveServerUrl(
   typeof rawServer === "string" ? rawServer : undefined,
 );
+
+/** The same server spelled absolutely, for the callers that cannot use a
+ * relative base. See {@link resolveServerOrigin}. */
+export const SERVER_ORIGIN: string | null = resolveServerOrigin(SERVER_URL);
+
+/** The `ws(s)://` origin both sockets dial, or null when there is none. */
+export const WS_ORIGIN: string | null =
+  SERVER_ORIGIN === null ? null : SERVER_ORIGIN.replace(/^http/, "ws");
 
 export const isServerMode = SERVER_URL !== null;
 
@@ -217,7 +233,7 @@ async function authRequest(
   path: string,
   body: unknown,
 ): Promise<AuthSuccessResponse> {
-  if (!SERVER_URL) {
+  if (SERVER_URL === null) {
     throw new Error("Server is not configured");
   }
   const res = await fetch(`${SERVER_URL}${path}`, {
@@ -263,7 +279,7 @@ export async function changePassword(
   newPassword: string,
 ): Promise<ChangePasswordResult> {
   const token = authToken.value;
-  if (!SERVER_URL || !token) return "failed";
+  if (SERVER_URL === null || !token) return "failed";
   try {
     const res = await fetch(`${SERVER_URL}/api/auth/password`, {
       method: "POST",
@@ -293,7 +309,7 @@ export async function changePassword(
  */
 export async function refreshCurrentUser(): Promise<void> {
   const token = authToken.value;
-  if (!SERVER_URL || !token) return;
+  if (SERVER_URL === null || !token) return;
   try {
     const res = await fetch(`${SERVER_URL}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -329,7 +345,7 @@ export async function logout(): Promise<void> {
   const token = authToken.value;
   authToken.value = null;
   currentUser.value = null;
-  if (!token || !SERVER_URL) return;
+  if (!token || SERVER_URL === null) return;
   try {
     await fetch(`${SERVER_URL}/api/auth/logout`, {
       method: "POST",
@@ -350,7 +366,7 @@ export async function updateEmail(
   email: string | null,
 ): Promise<UpdateEmailResult> {
   const token = authToken.value;
-  if (!SERVER_URL || !token) return "failed";
+  if (SERVER_URL === null || !token) return "failed";
   try {
     const res = await fetch(`${SERVER_URL}/api/auth/me`, {
       method: "PUT",
@@ -403,7 +419,7 @@ export const authProviderName = signal<AuthProviderName | null>(null);
 export const userLookupMode = signal<UserLookupMode>("search");
 
 export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
-  if (!SERVER_URL) return null;
+  if (SERVER_URL === null) return null;
   try {
     const res = await fetch(`${SERVER_URL}/api/auth/methods`);
     if (!res.ok) return null;
@@ -420,7 +436,7 @@ export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
 }
 
 export function buildOidcLoginUrl(): string | null {
-  if (!SERVER_URL) return null;
+  if (SERVER_URL === null) return null;
   return `${SERVER_URL}/api/auth/login`;
 }
 
@@ -434,7 +450,7 @@ export const oidcLoginUrl = buildOidcLoginUrl();
  */
 export async function consumeOidcRedirect(): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  if (!SERVER_URL) return false;
+  if (SERVER_URL === null) return false;
   const hash = window.location.hash;
   if (!hash?.includes("token=")) return false;
   const params = new URLSearchParams(hash.replace(/^#/, ""));

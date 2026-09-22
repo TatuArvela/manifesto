@@ -132,7 +132,8 @@ describe("findServerSetupProblem", () => {
 
   it("leaves a single-origin deployment alone", () => {
     // The shape server/deployment.md now recommends: one proxy, one origin,
-    // the site's own absolute URL in the tag, stock CSP, nothing to edit.
+    // stock CSP, nothing to edit. Written either as the site's own absolute
+    // URL or relatively, both of which `'self'` covers.
     expect(
       findServerSetupProblem("https://app.example.com", SHIPPED_CSP, page),
     ).toBeNull();

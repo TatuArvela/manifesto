@@ -6,7 +6,7 @@ import {
   authToken,
   currentUser,
   isServerMode,
-  SERVER_URL,
+  WS_ORIGIN,
 } from "../state/auth.js";
 import type { YjsConnectionStatus, YjsSession } from "./yjsSession.js";
 
@@ -33,8 +33,7 @@ const IDLE: NoteYDoc = {
 };
 
 function wsUrl(): string | null {
-  if (!SERVER_URL) return null;
-  return `${SERVER_URL.replace(/^http/, "ws")}/api/yjs`;
+  return WS_ORIGIN === null ? null : `${WS_ORIGIN}/api/yjs`;
 }
 
 /**

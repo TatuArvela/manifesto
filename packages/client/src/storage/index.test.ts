@@ -36,6 +36,14 @@ describe("currentStorage", () => {
     expect(currentStorage.value).toBeInstanceOf(LocalStorageAdapter);
   });
 
+  it("treats a same-origin base as a server, not as no server at all", () => {
+    // A single-origin deployment configures `/`, which resolves to the empty
+    // string. Read as falsy, that sent every note to this device while the
+    // user was signed in and believed otherwise.
+    storageConnection.value = { serverUrl: "", token: "t" };
+    expect(currentStorage.value).toBeInstanceOf(RestApiAdapter);
+  });
+
   it("switches to the server the moment a token arrives, and back on logout", () => {
     storageConnection.value = {
       serverUrl: "https://notes.example",

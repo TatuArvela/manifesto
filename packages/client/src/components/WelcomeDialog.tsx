@@ -6,14 +6,17 @@ import { APP_LOGO_URL, IS_UNBRANDED } from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
-import { currentUser, SERVER_URL } from "../state/auth.js";
+import { currentUser, isServerMode, SERVER_ORIGIN } from "../state/auth.js";
 import { showWelcome } from "../state/ui.js";
 import { markWelcomed } from "../state/welcome.js";
 
 /** How long the fade-out runs; matches the `duration-150` classes below. */
 const CLOSE_MS = 150;
 
-function serverHost(url: string): string {
+/** The host to name as where notes are kept. Asked only in server mode, so
+ * the null branch is defensive rather than reachable. */
+function serverHost(url: string | null): string {
+  if (url === null) return "";
   try {
     return new URL(url).host;
   } catch {
@@ -45,10 +48,10 @@ export function WelcomeDialog() {
   const dialogRef = useFocusTrap<HTMLDivElement>(!closing);
 
   const user = currentUser.value;
-  const mode = SERVER_URL
+  const mode = isServerMode
     ? {
         Icon: Cloud,
-        title: t("welcome.server.title", { host: serverHost(SERVER_URL) }),
+        title: t("welcome.server.title", { host: serverHost(SERVER_ORIGIN) }),
         body: user
           ? t("welcome.server.body", {
               user: user.displayName || user.username,

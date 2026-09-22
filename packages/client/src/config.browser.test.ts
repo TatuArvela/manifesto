@@ -172,14 +172,14 @@ describe("resolveServerUrl", () => {
     ).toBe("https://notes.example.com");
   });
 
-  test("strips a trailing slash so both spellings of a server agree", () => {
+  test("strips a trailing slash, so `/` is same-origin and not open mode", () => {
     expect(resolveServerUrl("https://notes.example.com/")).toBe(
       "https://notes.example.com",
     );
-    // `/` collapses to the empty string, which is what the build-time path
-    // has always done with it. It is not a working configuration (see the
-    // note on relative values in CLAUDE.md); this only pins the behaviour so
-    // the meta tag does not quietly differ from the env var.
+    // `/` collapses to the empty string, meaning this page's own origin. It
+    // has to stay distinct from null, which is open mode, and every guard
+    // downstream tests null rather than falsiness because of it.
     expect(resolveServerUrl("/")).toBe("");
+    expect(resolveServerUrl("/")).not.toBeNull();
   });
 });

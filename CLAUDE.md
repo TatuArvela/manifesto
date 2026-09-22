@@ -114,15 +114,17 @@ server, which the stock `connect-src 'self'` already covers, since CSP3 extends
 `'self'` to the `wss://` form of the page's own host; that is what makes a
 single-origin deployment a one-line edit with no policy change.
 
-A relative server value is **not** a working configuration, whichever layer sets
-it. `VITE_MANIFESTO_SERVER=/` (and a meta tag holding the same) resolves to the
-empty string rather than null, so `isServerMode` is true and `LoginScreen`
-renders, while every call site guards with `if (!SERVER_URL)` and takes the
-open-mode branch: no auth request is sent and `wsBaseUrl()` / `wsUrl()` return
-null, so neither socket connects. It predates the meta tag and the resolver
-preserves it deliberately rather than changing what an existing build does.
-Anything that makes relative values work has to move those guards to
-`SERVER_URL === null` and give the sockets a base from `window.location`.
+A relative server value is supported and is the tidiest way to configure a
+single-origin deployment: `/` resolves to the **empty string**, which means this
+page's own origin and is not the same as null, which is open mode. So every
+guard on `SERVER_URL` tests `=== null` and never falsiness. Reading `""` as "no
+server" is exactly the bug this had: `isServerMode` was true so `LoginScreen`
+rendered, while `authRequest`, `currentStorage` and both socket builders took
+the open-mode branch, giving a sign-in form that submitted into nothing and,
+had a token ever arrived, notes written to `localStorage`. A relative base is
+right for `fetch` and useless to a `WebSocket`, so `resolveServerOrigin` spells
+it out from `window.location` once and `SERVER_ORIGIN` / `WS_ORIGIN` are what
+the sockets and the "your notes are on <host>" copy read.
 
 `VITE_APP_DESCRIPTION` fills `%APP_DESCRIPTION%` in `index.html` and the web
 manifest. `VITE_APP_ICONS_DIR` overlays replacement icons onto the output, which

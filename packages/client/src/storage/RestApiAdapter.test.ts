@@ -67,6 +67,15 @@ describe("RestApiAdapter", () => {
       );
     });
 
+    it("builds relative paths from an empty base, for a same-origin server", async () => {
+      // What `/` resolves to. `fetch` takes it from here against the page, so
+      // the client needs no hostname of its own and cannot have a stale one.
+      const sameOrigin = new RestApiAdapter("", "t");
+      fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
+      await sameOrigin.getAll();
+      expect(fetchMock.mock.calls[0][0]).toBe("/api/notes");
+    });
+
     it("leaves a base URL without a trailing slash unchanged", async () => {
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await adapter.getAll();

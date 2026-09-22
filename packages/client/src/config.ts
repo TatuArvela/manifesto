@@ -118,6 +118,25 @@ export function resolveServerUrl(fallback: string | undefined): string | null {
 }
 
 /**
+ * The server as an absolute URL, resolved the way the browser would.
+ *
+ * {@link resolveServerUrl} keeps whatever was configured, which may be
+ * relative (`/`, or `/notes` behind a path-stripping proxy). That is the right
+ * base for `fetch`, which resolves it against the page. It is not enough for
+ * everything: `new WebSocket("/api/ws")` is not a thing, and the welcome
+ * dialog has a host to name. Those callers take this instead.
+ *
+ * Null in open mode, and null when there is no document to resolve a relative
+ * value against, which is any non-browser caller.
+ */
+export function resolveServerOrigin(serverUrl: string | null): string | null {
+  if (serverUrl === null) return null;
+  if (/^https?:\/\//i.test(serverUrl)) return serverUrl;
+  if (typeof window === "undefined") return null;
+  return `${window.location.origin}${serverUrl}`;
+}
+
+/**
  * Reduce a product name to something safe to put in a filename. Diacritics are
  * folded rather than dropped, so "Müistiö" becomes `muistio`; a name with no
  * ASCII letters or digits left after folding (a CJK-only name, say) falls back
