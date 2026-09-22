@@ -16,7 +16,9 @@ import {
   boardImageStamp,
   boardTexture,
   boardUsePicture,
+  rerollBoardColor,
   rerollBoardTexture,
+  resolvedBoardColor,
   resolvedBoardTexture,
 } from "../state/index.js";
 
@@ -171,6 +173,25 @@ export function BoardBackgroundSetting() {
                   }
                 />
               </label>
+              <button
+                type="button"
+                data-board-swatch={
+                  color === "random" ? resolvedBoardColor.value : "none"
+                }
+                class={`board-swatch w-7 h-7 rounded-full cursor-pointer flex items-center justify-center ${ringClass} ${composing && color === "random" ? selectedClass : ""}`}
+                onClick={() =>
+                  compose(() => {
+                    // Picking "random" again is how to ask for another.
+                    if (color === "random") rerollBoardColor();
+                    boardColor.value = "random";
+                  })
+                }
+                aria-label={colorLabel("random")}
+                aria-pressed={composing && color === "random"}
+                title={colorLabel("random")}
+              >
+                <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+              </button>
             </div>
           </fieldset>
 
@@ -198,7 +219,11 @@ export function BoardBackgroundSetting() {
                   <span
                     aria-hidden="true"
                     data-texture={
-                      choice === "random" ? resolvedBoardTexture.value : choice
+                      choice !== "random"
+                        ? choice
+                        : texture === "random"
+                          ? resolvedBoardTexture.value
+                          : "none"
                     }
                     class={`board-texture-tile relative flex items-center justify-center aspect-[4/3] rounded-md ${ringClass} ${composing && texture === choice ? selectedClass : ""}`}
                   >

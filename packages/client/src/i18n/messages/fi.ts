@@ -268,6 +268,7 @@ export const fi: Messages = {
   "settings.boardBackground.lavender": "Laventeli",
   "settings.boardBackground.caramel": "Karamelli",
   "settings.boardBackground.custom": "Oma väri",
+  "settings.boardBackground.random": "Satunnainen",
   "settings.boardBackground.texture": "Pinta",
   "settings.boardBackground.texture.none": "Sileä",
   "settings.boardBackground.texture.paper": "Paperi",

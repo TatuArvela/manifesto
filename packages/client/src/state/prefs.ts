@@ -22,8 +22,11 @@ export type BoardColor =
   | "blush"
   | "lavender"
   | "caramel";
-/** The board's colour: the page's own, a preset, or `boardCustomColor`. */
-export type BoardColorChoice = "none" | BoardColor | "custom";
+/**
+ * The board's colour: the page's own, a preset, `boardCustomColor`, or a
+ * preset picked at random on each visit.
+ */
+export type BoardColorChoice = "none" | BoardColor | "custom" | "random";
 /** Drawn over the board's colour in CSS, in ink that follows the theme. */
 export type BoardTexture =
   | "none"
@@ -79,7 +82,7 @@ export const BOARD_TEXTURES: readonly BoardTexture[] = [
 export const DEFAULT_BOARD_CUSTOM_COLOR = "#d9bf94";
 
 function parseBoardColor(value: unknown): BoardColorChoice {
-  if (value === "custom") return "custom";
+  if (value === "custom" || value === "random") return value;
   return typeof value === "string" &&
     (BOARD_COLORS as readonly string[]).includes(value)
     ? (value as BoardColor)
@@ -101,6 +104,11 @@ function pickOne<T>(list: readonly T[]): T {
 /** What "random" stands for, which is anything but plain. */
 function rollBoardTexture(): BoardTexture {
   return pickOne(BOARD_TEXTURES.filter((texture) => texture !== "none"));
+}
+
+/** A preset: the page's own colour is no colour, and a custom one is chosen. */
+function rollBoardColor(): BoardColor {
+  return pickOne(BOARD_COLORS);
 }
 
 /**
@@ -347,6 +355,22 @@ export const confirmBeforeDelete = signal<boolean>(prefs.confirmBeforeDelete);
 export const defaultEditMode = signal<EditMode>(prefs.defaultEditMode);
 export const boardColor = signal<BoardColorChoice>(prefs.boardColor);
 export const boardCustomColor = signal<string>(prefs.boardCustomColor);
+/** The preset "random" stands for in this tab; see `randomBoardTexture`. */
+const randomBoardColor = signal<BoardColor>(rollBoardColor());
+
+/** The colour choice actually on the board, with "random" resolved. */
+export const resolvedBoardColor = computed<Exclude<BoardColorChoice, "random">>(
+  () =>
+    boardColor.value === "random" ? randomBoardColor.value : boardColor.value,
+);
+
+/** Picks another random colour, never the one showing now. */
+export function rerollBoardColor() {
+  const current = randomBoardColor.peek();
+  let next = rollBoardColor();
+  while (next === current) next = rollBoardColor();
+  randomBoardColor.value = next;
+}
 export const boardTexture = signal<BoardTextureChoice>(prefs.boardTexture);
 /**
  * The texture "random" stands for in this tab. Rolled once per page load,
@@ -484,7 +508,7 @@ effect(() => {
 // both, is applied by state/board.ts.
 effect(() => {
   const root = document.documentElement;
-  const color = boardColor.value;
+  const color = resolvedBoardColor.value;
   const texture = resolvedBoardTexture.value;
   if (color === "none") delete root.dataset.boardColor;
   else root.dataset.boardColor = color;
