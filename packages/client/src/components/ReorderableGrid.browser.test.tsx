@@ -386,6 +386,42 @@ describe("ReorderableGrid", () => {
     }
   });
 
+  it("re-spans only the card that grew, not its neighbours", async () => {
+    // Releasing and re-measuring every card for one card's change forced a
+    // layout of the whole board each time a picture decoded or an auto-save
+    // changed a note's height.
+    render(
+      <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
+      host,
+    );
+    const spanOf = (i: number) =>
+      Number(/span (\d+)/.exec(cards()[i].style.gridRowEnd)?.[1] ?? 0);
+    // Let the observer's first delivery pass before watching for writes.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await tick();
+    const touched = new Set<Node>();
+    const watcher = new MutationObserver((records) => {
+      for (const record of records) touched.add(record.target);
+    });
+    for (const card of cards()) {
+      watcher.observe(card, { attributes: true, attributeFilter: ["style"] });
+    }
+    const before = spanOf(0);
+
+    const grown = document.createElement("div");
+    grown.style.height = "400px";
+    articleIn(cards()[0]).appendChild(grown);
+
+    await vi.waitFor(() => {
+      expect(spanOf(0)).toBeGreaterThan(before + 300);
+    });
+    for (const record of watcher.takeRecords()) touched.add(record.target);
+    watcher.disconnect();
+    expect(touched.has(cards()[0])).toBe(true);
+    expect(touched.has(cards()[1])).toBe(false);
+    expect(touched.has(cards()[2])).toBe(false);
+  });
+
   it("lays the list view out without masonry spans", () => {
     viewMode.value = "list";
     render(

@@ -308,7 +308,10 @@ must go back through the check. Tests reach a loopback server only through the e
 `hooks/useMasonryGrid.ts` does masonry with `grid-row` spans: release every card to its natural
 height, measure, then write each span back. It runs from a `ResizeObserver`, so it only writes
 spans that changed. A pass that changes nothing provokes no further callback, which is what keeps
-it from looping. Content that settles after first paint (images, fonts) has to trigger a re-measure
+it from looping. Only a change of the container's *width* releases the whole grid; a card that
+resized is re-measured where it stands (items are `items-start`, so its span cannot change its
+height), and the effect is keyed on the note ids, not the note list, so an auto-save does not set
+the grid up again. Content that settles after first paint (images, fonts) has to trigger a re-measure
 or the card keeps the height it was born with.
 
 Drag-to-reorder is gated by the `canReorder` computed: Notes or Auto-notes view, default sort, no
