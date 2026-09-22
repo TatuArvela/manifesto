@@ -368,6 +368,9 @@ export function NoteCard({
     !hasImages &&
     (!note.content.trim() ||
       contentIsOnlyPreviewUrls(note.content, note.linkPreviews));
+  // The card is a picture edge to edge, so its controls sit over that picture
+  // instead of over the note's own colour, at the top and at the bottom alike.
+  const overlayControls = isImageOnly || isLinkOnly;
 
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cardRef = useRef<HTMLElement>(null);
@@ -669,7 +672,14 @@ export function NoteCard({
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
           <div
             class={clsx(
-              "absolute top-2 right-2 z-10 flex items-center gap-0.5 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200 transition-colors duration-200",
+              "absolute top-2 right-2 z-10 flex items-center gap-0.5 transition-colors duration-200",
+              // A card whose whole face is an image or a link hero has no
+              // note colour up here to darken against, and the picture
+              // underneath can be any shade, so the icons go white with a
+              // shadow of their own rather than joining the neutral ramp.
+              overlayControls
+                ? "text-white [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.7))]"
+                : "text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
               isSelectMode && "invisible",
             )}
             onClick={(e) => e.stopPropagation()}
@@ -831,7 +841,7 @@ export function NoteCard({
             note={note}
             isTrashView={isTrashView}
             isSelectMode={isSelectMode}
-            overlay={isImageOnly || isLinkOnly}
+            overlay={overlayControls}
             colorBtnRef={colorBtnRef}
             tagsBtnRef={tagsBtnRef}
             menuBtnRef={menuBtnRef}
