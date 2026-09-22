@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { hashPassword, verifyPassword } from "../../lib/password.js";
 import {
   authHeaders,
   bootTestApp,
@@ -7,6 +8,20 @@ import {
   type TestRig,
 } from "../../test/setup.js";
 import { issueSession } from "../session.js";
+import { MAX_LOGIN_FAILURES } from "./loginAttempts.js";
+
+// Spied, not replaced: these tests ask how many argon2 operations a request
+// spent, which is the whole of what separates a known username from an
+// unknown one.
+vi.mock("../../lib/password.js", async () => {
+  const actual = await vi.importActual<typeof import("../../lib/password.js")>(
+    "../../lib/password.js",
+  );
+  return {
+    hashPassword: vi.fn(actual.hashPassword),
+    verifyPassword: vi.fn(actual.verifyPassword),
+  };
+});
 
 describe("local auth router", () => {
   let rig: TestRig;
@@ -255,6 +270,120 @@ describe("local auth router", () => {
         newPassword: "new-password-2",
       });
       expect(res.status).toBe(409);
+    });
+  });
+
+  describe("what a wrong sign-in costs", () => {
+    function login(username: string, password = "password-1234") {
+      return rig.request("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+    }
+
+    it("verifies against a decoy when the username is nobody's", async () => {
+      vi.mocked(verifyPassword).mockClear();
+      expect((await login("ghost")).status).toBe(401);
+      // Without this the miss returns in about a millisecond while a hit
+      // pays a ~50 ms verify, and the gap reports which accounts exist.
+      expect(verifyPassword).toHaveBeenCalledTimes(1);
+    });
+
+    it("verifies against a decoy for an account that has no password", async () => {
+      await rig.storage.users.create({
+        id: "sso-1",
+        username: "sso-user",
+        passwordHash: null,
+        displayName: "",
+        avatarColor: "",
+        provider: "oidc:example",
+        externalId: "sub-1",
+        createdAt: new Date().toISOString(),
+      });
+      vi.mocked(verifyPassword).mockClear();
+      expect((await login("sso-user")).status).toBe(401);
+      expect(verifyPassword).toHaveBeenCalledTimes(1);
+    });
+
+    it("builds the decoy once and keeps it", async () => {
+      vi.mocked(hashPassword).mockClear();
+      await login("ghost-one");
+      await login("ghost-two");
+      expect(hashPassword).toHaveBeenCalledTimes(1);
+      // From the server's own parameters, so it tracks an ARGON2_* override
+      // instead of freezing a cost of its own.
+      expect(hashPassword).toHaveBeenCalledWith(expect.any(String), rig.cfg);
+    });
+  });
+
+  describe("failed sign-ins per account", () => {
+    let proxied: TestRig;
+
+    beforeEach(async () => {
+      proxied = await bootTestAppWith({ trustProxy: true });
+    });
+
+    afterEach(async () => {
+      await proxied.close();
+    });
+
+    // Every attempt comes from a /64 of its own, so the per-IP throttle never
+    // sees the same client twice and only the per-account count can stop it.
+    // That is the attacker this counter is for: the per-IP budget is renewed
+    // by moving, and `admin` is a name every local-auth server has.
+    function attempt(username: string, password: string, n: number) {
+      return proxied.request("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": `2001:db8:0:${n.toString(16)}::1`,
+        },
+        body: JSON.stringify({ username, password }),
+      });
+    }
+
+    it("stops asking after enough failures, wherever they came from", async () => {
+      await registerTestUser(proxied, "alice", "password-1234");
+      for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
+        expect((await attempt("alice", "wrong-password", i)).status).toBe(401);
+      }
+      const locked = await attempt("alice", "wrong-password", 900);
+      expect(locked.status).toBe(429);
+      expect(locked.headers.get("Retry-After")).toMatch(/^\d+$/);
+      // The lock is on the account, so the right password waits as well.
+      expect((await attempt("alice", "password-1234", 901)).status).toBe(429);
+    });
+
+    it("locks a username nobody holds on the same budget", async () => {
+      // Otherwise the lock itself would answer what the 401 will not: an
+      // account that can be locked is an account that exists.
+      for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
+        expect((await attempt("ghost", "wrong-password", i)).status).toBe(401);
+      }
+      expect((await attempt("ghost", "wrong-password", 900)).status).toBe(429);
+    });
+
+    it("leaves every other account alone", async () => {
+      await registerTestUser(proxied, "alice", "password-1234");
+      await registerTestUser(proxied, "bob", "password-5678");
+      for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
+        await attempt("alice", "wrong-password", i);
+      }
+      expect((await attempt("alice", "password-1234", 900)).status).toBe(429);
+      expect((await attempt("bob", "password-5678", 901)).status).toBe(200);
+    });
+
+    it("forgets the failures once a password is right", async () => {
+      await registerTestUser(proxied, "alice", "password-1234");
+      for (let i = 0; i < MAX_LOGIN_FAILURES - 1; i++) {
+        expect((await attempt("alice", "wrong-password", i)).status).toBe(401);
+      }
+      expect((await attempt("alice", "password-1234", 900)).status).toBe(200);
+      // The budget starts over, so these two are the first and second of a
+      // fresh ten rather than the tenth and a refusal.
+      expect((await attempt("alice", "wrong-password", 901)).status).toBe(401);
+      expect((await attempt("alice", "wrong-password", 902)).status).toBe(401);
     });
   });
 });
