@@ -944,7 +944,12 @@ export const NoteCard = memo(function NoteCard({
           <CardMenu
             note={note}
             anchorRef={menuBtnRef}
-            onClose={() => setOpenPopover(null)}
+            // Only if the menu is still what is open: the menu closes itself
+            // after every item, and "Remind me" has by then handed over to
+            // the reminder picker, which a plain close took down with it.
+            onClose={() =>
+              setOpenPopover((open) => (open === "menu" ? null : open))
+            }
             onOpenReminder={() => setOpenPopover("reminder")}
             leaving={popoverLeaving}
           />
