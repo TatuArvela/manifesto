@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
 import type { AuthSuccessResponse } from "@manifesto/shared";
 import { Hono } from "hono";
@@ -23,6 +24,7 @@ import type { SessionRevocations } from "../revocations.js";
 import { endUserSessions, issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
 import { pickAvatarColor, toAuthUser } from "../users.js";
+import { createLoginAttempts } from "./loginAttempts.js";
 
 interface LocalRouterDeps {
   storage: StorageDriver;
@@ -44,6 +46,29 @@ export function createLocalAuthRouter(
     windowMs: 15 * 60 * 1000,
     trustProxy: deps.cfg.trustProxy,
   });
+
+  // A budget per account on top of the budget per address, since an attacker
+  // who can move between addresses gets a fresh one of the latter with each.
+  const loginAttempts = createLoginAttempts();
+
+  // A sign-in for a name nobody holds has to cost what a real one costs, or
+  // the time the answer takes reports whether the account exists. Built from
+  // the configured argon2 parameters, so it tracks an ARGON2_* override
+  // rather than freezing one cost, and from a random string, so no password
+  // ever verifies against it. Built on the first miss rather than at boot,
+  // and held afterwards, since it never needs to differ.
+  let decoyHash: Promise<string> | null = null;
+  const spendDecoyVerify = async (password: string): Promise<void> => {
+    try {
+      decoyHash ??= hashPassword(randomBytes(32).toString("hex"), deps.cfg);
+      await verifyPassword(await decoyHash, password);
+    } catch {
+      // The decoy buys time; it decides nothing. A failure to build one must
+      // not turn an ordinary wrong name into a 500, now or on every later
+      // miss that would have reused the rejected promise.
+      decoyHash = null;
+    }
+  };
 
   auth.post(
     "/register",
@@ -91,14 +116,25 @@ export function createLocalAuthRouter(
     zValidator("json", loginSchema, validatorHook),
     async (c) => {
       const { username, password, newPassword } = c.req.valid("json");
+      const wait = loginAttempts.retryAfter(username);
+      if (wait > 0) {
+        // Ahead of the lookup and the verify, so a guessing run that has used
+        // its budget stops costing the server argon2 as well.
+        c.header("Retry-After", String(wait));
+        throw new HttpError(429, "Too many sign-in attempts");
+      }
       const user = await deps.storage.users.findByUsername(username);
       if (!user || user.passwordHash === null) {
+        await spendDecoyVerify(password);
+        loginAttempts.fail(username);
         throw new HttpError(401, "Invalid username or password");
       }
       const ok = await verifyPassword(user.passwordHash, password);
       if (!ok) {
+        loginAttempts.fail(username);
         throw new HttpError(401, "Invalid username or password");
       }
+      loginAttempts.succeed(username);
       // A temporary password buys the right to set a real one and nothing
       // else: no session exists until it has been replaced, so there is no
       // half-signed-in state for every other route to have to refuse. Checked

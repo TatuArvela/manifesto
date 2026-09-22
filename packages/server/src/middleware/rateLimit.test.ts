@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { onError } from "./error.js";
-import { perUserApiRateLimit, rateLimit } from "./rateLimit.js";
+import { ipBucketKey, perUserApiRateLimit, rateLimit } from "./rateLimit.js";
 
 function buildApp(limit: number, windowMs: number, key = "x") {
   const app = new Hono();
@@ -79,5 +79,73 @@ describe("rateLimit", () => {
     // A different user has its own bucket and is not affected.
     const ok = await app.request("/", { headers: { "x-test-user": "bob" } });
     expect(ok.status).toBe(200);
+  });
+});
+
+describe("ipBucketKey", () => {
+  it("keys an IPv6 client on its /64, however the address is written", () => {
+    expect(ipBucketKey("2001:db8::1")).toBe("2001:db8:0:0::/64");
+    expect(ipBucketKey("2001:0db8:0000:0000:aaaa:bbbb:cccc:dddd")).toBe(
+      "2001:db8:0:0::/64",
+    );
+    expect(ipBucketKey("2001:db8:0:0:0:0:0:0")).toBe("2001:db8:0:0::/64");
+  });
+
+  it("keeps separate /64s apart", () => {
+    expect(ipBucketKey("2001:db8:0:1::1")).not.toBe(
+      ipBucketKey("2001:db8:0:2::1"),
+    );
+  });
+
+  it("ignores a zone index, which names a route and not a network", () => {
+    expect(ipBucketKey("fe80::1%eth0")).toBe(ipBucketKey("fe80::2"));
+  });
+
+  it("keys an IPv4 client whole, mapped or not", () => {
+    // Slicing four hextets off the mapped form would file every IPv4 client
+    // on the internet into one bucket.
+    expect(ipBucketKey("203.0.113.7")).toBe("203.0.113.7");
+    expect(ipBucketKey("::ffff:203.0.113.7")).toBe("203.0.113.7");
+    expect(ipBucketKey("::ffff:203.0.113.8")).toBe("203.0.113.8");
+    // The same address written as hex groups, which is how some stacks
+    // report it.
+    expect(ipBucketKey("::ffff:c000:280")).toBe("192.0.2.128");
+  });
+
+  it("keys anything that is not an address as itself", () => {
+    expect(ipBucketKey("anon")).toBe("anon");
+    expect(ipBucketKey("unknown")).toBe("unknown");
+    // Two "::", too few groups, and a group that is not hex.
+    expect(ipBucketKey("2001:db8::1::2")).toBe("2001:db8::1::2");
+    expect(ipBucketKey("2001:db8:1:2:3:4:5")).toBe("2001:db8:1:2:3:4:5");
+    expect(ipBucketKey("2001:db8::zzzz")).toBe("2001:db8::zzzz");
+  });
+});
+
+describe("rateLimit keyed by address", () => {
+  function proxiedApp(limit: number) {
+    const app = new Hono();
+    app.onError(onError);
+    app.use("*", rateLimit({ limit, windowMs: 1_000_000, trustProxy: true }));
+    app.get("/", (c) => c.json({ ok: true }));
+    return (ip: string) =>
+      app.request("/", { headers: { "x-forwarded-for": ip } });
+  }
+
+  it("spends one budget on a whole IPv6 /64", async () => {
+    const from = proxiedApp(1);
+    expect((await from("2001:db8:1:2::1")).status).toBe(200);
+    // A routed /64 is one subscriber, so rotating inside it buys nothing.
+    expect((await from("2001:db8:1:2:ffff:ffff:ffff:ffff")).status).toBe(429);
+    // The next /64 along is somebody else.
+    expect((await from("2001:db8:1:3::1")).status).toBe(200);
+  });
+
+  it("gives each IPv4 client its own budget on a dual-stack listener", async () => {
+    const from = proxiedApp(1);
+    expect((await from("::ffff:203.0.113.7")).status).toBe(200);
+    expect((await from("::ffff:203.0.113.8")).status).toBe(200);
+    // Mapped and unmapped are the same client, and share the one bucket.
+    expect((await from("203.0.113.7")).status).toBe(429);
   });
 });

@@ -384,6 +384,19 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - **`src/auth/`**: `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. Two providers ship: `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers, and the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. Two provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/methods` (public discovery) and `GET /api/auth/me` (bearer → current user).
 - **`src/app.ts` / `src/index.ts`**: composition root. Constructs storage, auth provider, broadcaster, then wires the Hono app, the `/api/ws` socket (`ws/appSocket.ts`), and the Yjs collaboration socket (`ws/yjsSocket.ts` + the generic `ws/yjsExtension.ts` Hocuspocus extension that delegates to `storage.yjs`).
 - **Background work**: `lib/trashCleanup.ts` and `lib/sessionCleanup.ts` both run on `lib/periodic.ts`'s `startPeriodicJob`, once at startup, then hourly. Each goes through a repo method (`storage.maintenance.cleanupTrashedBefore()` and `cleanupTrashedSharesBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
+- **Counting against a key**: `lib/expiringCounter.ts` is the one bounded map behind both throttles,
+  `middleware/rateLimit.ts` (per address, per user) and `auth/local/loginAttempts.ts` (failed
+  sign-ins per account name). Sweeping expired keys bounds the map only while they expire faster
+  than a caller creates them, and the caller sets that rate, so the hard cap and its oldest-first
+  eviction are the real bound. The invariant both halves rest on is that a window is *re-inserted*
+  when it opens and never mutated in place: every key shares one `windowMs`, so insertion order is
+  then expiry order, the sweep can stop at the first live key, and an eviction always takes the key
+  closest to expiring anyway. Mutate a stale entry in place and the order drifts, the sweep breaks
+  at the first key it meets, and eviction starts dropping live keys ahead of expired ones.
+  The per-address key is a /64 for IPv6 (`ipBucketKey`), because one subscriber holds every address
+  inside one and keying the /128 leaves nothing to throttle. IPv4 is keyed whole, and the
+  `::ffff:a.b.c.d` form an IPv4 client takes on a dual-stack listener is unwrapped to that same key
+  first, or every IPv4 client on the internet shares one bucket.
 
 ## Testing
 

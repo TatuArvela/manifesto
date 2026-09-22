@@ -101,6 +101,19 @@ sets the new password and signs in. A wrong password is `401` either way, so
 the flag is never disclosed to a guess. See
 [Account Administration](features/accounts.md#temporary-passwords).
 
+Sign-in is budgeted twice over, and either budget answers `429` with a
+`Retry-After` header. Per source address, 10 requests every 15 minutes, shared
+with `/register` and `/password`: an IPv6 client is counted on its /64, since
+the addresses inside one belong to a single subscriber and counting the whole
+address would let one of them rotate freely. Per account name, 10 failed
+sign-ins every 15 minutes, which is the part a caller moving between addresses
+cannot escape. The right password clears the name's count, and the lock lapses
+with the window rather than waiting for an admin. A name nobody holds is
+counted exactly like one that exists, and costs the same password verify, so
+neither the refusal, its timing, nor the lock reports which accounts are there.
+Both counts live in the server process, so with more than one node each holds
+its own.
+
 `POST /api/auth/password` is bearer-protected and takes
 `{ currentPassword, newPassword }`. It answers `204`, then ends every other
 session of the account and closes their sockets; the calling session carries on.
