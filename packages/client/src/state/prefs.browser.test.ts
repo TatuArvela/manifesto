@@ -2,6 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   animations,
+  boardTexture,
   darkHue,
   defaultNoteColor,
   defaultNoteFont,
@@ -10,6 +11,8 @@ import {
   noteQuips,
   noteSize,
   parsePrefs,
+  rerollBoardTexture,
+  resolvedBoardTexture,
   sortMode,
   theme,
   viewMode,
@@ -126,6 +129,12 @@ describe("parsePrefs", () => {
     expect(unknown.boardTexture).toBe("none");
     expect(unknown.boardUsePicture).toBe(false);
     expect(unknown.boardImageStamp).toBe(0);
+  });
+
+  it("keeps a random texture as random", () => {
+    expect(
+      parsePrefs(JSON.stringify({ boardTexture: "random" })).boardTexture,
+    ).toBe("random");
   });
 
   it("refuses a custom board colour that is anything but a hex colour", () => {
@@ -396,5 +405,37 @@ describe("cross-tab preferences", () => {
       }),
     );
     expect(theme.value).toBe("system");
+  });
+});
+
+describe("random board texture", () => {
+  afterEach(() => {
+    boardTexture.value = "none";
+  });
+
+  it("puts a real texture on the board, never plain", () => {
+    boardTexture.value = "random";
+    for (let i = 0; i < 20; i++) {
+      expect(resolvedBoardTexture.value).not.toBe("none");
+      expect(resolvedBoardTexture.value).not.toBe("random");
+      expect(document.documentElement.dataset.boardTexture).toBe(
+        resolvedBoardTexture.value,
+      );
+      rerollBoardTexture();
+    }
+  });
+
+  it("rolls a different texture when asked again", () => {
+    boardTexture.value = "random";
+    for (let i = 0; i < 20; i++) {
+      const before = resolvedBoardTexture.value;
+      rerollBoardTexture();
+      expect(resolvedBoardTexture.value).not.toBe(before);
+    }
+  });
+
+  it("shows the chosen texture when not random", () => {
+    boardTexture.value = "stars";
+    expect(resolvedBoardTexture.value).toBe("stars");
   });
 });

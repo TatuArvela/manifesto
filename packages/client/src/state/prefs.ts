@@ -1,5 +1,5 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { batch, effect, signal } from "@preact/signals";
+import { batch, computed, effect, signal } from "@preact/signals";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { isLocale, type Locale } from "../i18n/locales.js";
 
@@ -38,6 +38,8 @@ export type BoardTexture =
   | "waves"
   | "stars"
   | "hearts";
+/** A texture, or a different one picked at random on each visit. */
+export type BoardTextureChoice = BoardTexture | "random";
 export type DarkHue =
   | "neutral"
   | "midnight"
@@ -84,11 +86,21 @@ function parseBoardColor(value: unknown): BoardColorChoice {
     : "none";
 }
 
-function parseBoardTexture(value: unknown): BoardTexture {
+function parseBoardTexture(value: unknown): BoardTextureChoice {
+  if (value === "random") return "random";
   return typeof value === "string" &&
     (BOARD_TEXTURES as readonly string[]).includes(value)
     ? (value as BoardTexture)
     : "none";
+}
+
+function pickOne<T>(list: readonly T[]): T {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/** What "random" stands for, which is anything but plain. */
+function rollBoardTexture(): BoardTexture {
+  return pickOne(BOARD_TEXTURES.filter((texture) => texture !== "none"));
 }
 
 /**
@@ -187,7 +199,7 @@ export interface LoadedPrefs {
   defaultEditMode: EditMode;
   boardColor: BoardColorChoice;
   boardCustomColor: string;
-  boardTexture: BoardTexture;
+  boardTexture: BoardTextureChoice;
   /**
    * Whether the picture on file covers the board, in place of the colour and
    * texture. Those are kept, so turning the picture off brings them back.
@@ -335,7 +347,28 @@ export const confirmBeforeDelete = signal<boolean>(prefs.confirmBeforeDelete);
 export const defaultEditMode = signal<EditMode>(prefs.defaultEditMode);
 export const boardColor = signal<BoardColorChoice>(prefs.boardColor);
 export const boardCustomColor = signal<string>(prefs.boardCustomColor);
-export const boardTexture = signal<BoardTexture>(prefs.boardTexture);
+export const boardTexture = signal<BoardTextureChoice>(prefs.boardTexture);
+/**
+ * The texture "random" stands for in this tab. Rolled once per page load,
+ * so the board changes between visits but never under the user mid-session,
+ * and again by `rerollBoardTexture`. Not persisted: a fresh roll is the point.
+ */
+const randomBoardTexture = signal<BoardTexture>(rollBoardTexture());
+
+/** The texture actually on the board, with "random" resolved. */
+export const resolvedBoardTexture = computed<BoardTexture>(() =>
+  boardTexture.value === "random"
+    ? randomBoardTexture.value
+    : boardTexture.value,
+);
+
+/** Picks another random texture, never the one showing now. */
+export function rerollBoardTexture() {
+  const current = randomBoardTexture.peek();
+  let next = rollBoardTexture();
+  while (next === current) next = rollBoardTexture();
+  randomBoardTexture.value = next;
+}
 export const boardUsePicture = signal<boolean>(prefs.boardUsePicture);
 export const boardImageStamp = signal<number>(prefs.boardImageStamp);
 
@@ -452,7 +485,7 @@ effect(() => {
 effect(() => {
   const root = document.documentElement;
   const color = boardColor.value;
-  const texture = boardTexture.value;
+  const texture = resolvedBoardTexture.value;
   if (color === "none") delete root.dataset.boardColor;
   else root.dataset.boardColor = color;
   if (texture === "none") delete root.dataset.boardTexture;
