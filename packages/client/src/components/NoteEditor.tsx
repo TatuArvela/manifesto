@@ -29,6 +29,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { getDeletionRange } from "../extensions/taskItemDraggable.js";
+import { usePresence } from "../hooks/usePresence.js";
 import {
   formatFileSize,
   getColorPickerColors,
@@ -53,7 +54,7 @@ import {
   NoteMenu,
   type NoteMenuItem,
 } from "./NoteMenu.js";
-import { CardPopover } from "./Popover.js";
+import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
 import { TagPickerButton } from "./TagPicker.js";
@@ -158,6 +159,10 @@ export function NoteEditor({
   const [showFontPicker, setShowFontPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
+  const reminderChipPicker = usePresence(
+    showReminderChipPicker || null,
+    CARD_POPOVER_EXIT_MS,
+  );
   // Read once, when the editor opens: changing the default mid-edit should
   // not flip a note that is already open.
   const [rawMode, setRawMode] = useState(
@@ -550,10 +555,11 @@ export function NoteEditor({
                     onReminderChange ? () => onReminderChange(null) : undefined
                   }
                 />
-                {showReminderChipPicker && onReminderChange && (
+                {reminderChipPicker.shown && onReminderChange && (
                   <CardPopover
                     anchorRef={reminderChipRef}
                     onClose={() => setShowReminderChipPicker(false)}
+                    leaving={reminderChipPicker.leaving}
                   >
                     <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 w-72">
                       <ReminderPickerPanel

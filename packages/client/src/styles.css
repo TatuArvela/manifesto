@@ -292,7 +292,8 @@ html.dark {
 
 /* Dropdown panel: rendered in the top layer via Popover API, anchor-positioned
    to its trigger so it is never clipped by ancestor `overflow: hidden`. We hide
-   closed panels via `:not([data-open="true"])` so the panelClass utilities
+   closed panels via `:not([data-open="true"])` (and not while `data-leaving`
+   says the exit is still playing) so the panelClass utilities
    (display, padding, border) can take effect when open, since a plain
    `display: block` default would override `flex` in panelClass. `data-open` is
    mirrored from the component's `open` prop as a guard against browsers where
@@ -301,7 +302,7 @@ html.dark {
   inset: auto;
   margin: 0;
 }
-.dropdown-panel:not([data-open="true"]) {
+.dropdown-panel:not([data-open="true"]):not([data-leaving="true"]) {
   display: none;
 }
 
@@ -309,26 +310,29 @@ html.dark {
    because a menu re-opened while it is still fading out has to reverse from
    where it stands instead of starting over.
 
-   `display` and `overlay` are discrete properties, so they need
-   `allow-discrete` to be held back until the fade has finished; without them
-   the panel would be taken out of the top layer on the first frame and the
-   exit would never be seen. `@starting-style` supplies the other end of the
-   entry, which a panel that was `display: none` a moment ago has no previous
-   value for.
+   The component keeps a closing panel in the top layer until the exit has
+   played (DROPDOWN_EXIT_MS in Dropdown.tsx) and only then hides the popover,
+   so the exit does not depend on transitioning `overlay` or `display`, which
+   only Chromium can. `@starting-style` supplies the other end of the entry,
+   which a panel that was `display: none` a moment ago has no previous value
+   for.
 
    The panel slides from the side its trigger is on, so it reads as coming out
    of the button rather than drifting in. Only a translation, never a scale: the
    browsers without anchor positioning place the panel from a measured
-   `getBoundingClientRect`, and a scaled box measures smaller than it lands. */
+   `getBoundingClientRect`, and a scaled box measures smaller than it lands.
+
+   Closing retraces the opening: the same path, the same duration and the
+   same curves, so it moves from its first frame. The opening's curves played
+   backwards were tried, and held the panel almost still until it vanished,
+   which read as no animation at all. */
 .dropdown-panel {
   --dd-slide: -0.25rem;
   opacity: 0;
   translate: 0 var(--dd-slide);
   transition:
-    opacity 110ms ease-in,
-    translate 110ms ease-in,
-    overlay 110ms allow-discrete,
-    display 110ms allow-discrete;
+    opacity 140ms ease-out,
+    translate 140ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .dropdown-panel[data-placement^="top"] {
@@ -340,9 +344,7 @@ html.dark {
   translate: 0 0;
   transition:
     opacity 140ms ease-out,
-    translate 140ms cubic-bezier(0.32, 0.72, 0, 1),
-    overlay 140ms allow-discrete,
-    display 140ms allow-discrete;
+    translate 140ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @starting-style {
@@ -353,12 +355,25 @@ html.dark {
 }
 
 /* The card popovers (colour picker, kebab menu, reminder and tag panels) are
-   unmounted on close, so they have only an entry to play. It waits for
-   `data-placed`, which the component sets once it has measured where the panel
-   goes: animating before that would play the whole thing in the top-left
-   corner, where the panel sits until it is placed. */
+   mounted while open, so the entry is a keyframe animation rather than the
+   dropdown's transition. It waits for `data-placed`, which the component sets
+   once it has measured where the panel goes: animating before that would play
+   the whole thing in the top-left corner, where the panel sits until it is
+   placed. The exit retraces the entry on the same curve while `usePresence`
+   holds the panel on screen; its duration is CARD_POPOVER_EXIT_MS. */
 .card-popover[data-placed="true"] {
   animation: dropdown-in 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.card-popover[data-placed="true"][data-leaving="true"] {
+  animation: card-popover-out 140ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes card-popover-out {
+  to {
+    opacity: 0;
+    translate: 0 -0.25rem;
+  }
 }
 
 @keyframes dropdown-in {

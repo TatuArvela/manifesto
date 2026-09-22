@@ -26,6 +26,7 @@ import { plugins } from "../autoNotes/registry.js";
 import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { useNoteImages } from "../hooks/useNoteImages.js";
+import { usePresence } from "../hooks/usePresence.js";
 import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
 import { formatDate, getColorPickerColors, t } from "../i18n/index.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
@@ -69,7 +70,7 @@ import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { NoteReadonlyView } from "./NoteReadonlyView.js";
-import { CardPopover } from "./Popover.js";
+import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
 import { PresenceAvatars } from "./PresenceAvatars.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPickerPanel } from "./ReminderPicker.js";
@@ -96,14 +97,16 @@ function CardColorPicker({
   note,
   anchorRef,
   onClose,
+  leaving,
 }: {
   note: Note;
   anchorRef: preact.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
+  leaving: boolean;
 }) {
   const pickerColors = getColorPickerColors();
   return (
-    <CardPopover anchorRef={anchorRef} onClose={onClose}>
+    <CardPopover anchorRef={anchorRef} onClose={onClose} leaving={leaving}>
       <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1">
         {pickerColors.map((c) => (
           <Tooltip key={c.value} label={c.label}>
@@ -128,14 +131,16 @@ function CardMenu({
   anchorRef,
   onClose,
   onOpenReminder,
+  leaving,
 }: {
   note: Note;
   anchorRef: preact.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   onOpenReminder: () => void;
+  leaving: boolean;
 }) {
   return (
-    <CardPopover anchorRef={anchorRef} onClose={onClose}>
+    <CardPopover anchorRef={anchorRef} onClose={onClose} leaving={leaving}>
       <div class={menuPanelClass}>
         <NoteMenu
           items={noteMenuItems(note, {
@@ -358,6 +363,11 @@ export const NoteCard = memo(function NoteCard({
   const [openPopover, setOpenPopover] = useState<
     "color" | "tags" | "menu" | "reminder" | null
   >(null);
+  // What is drawn: the open popover, or the one just closed while it fades.
+  const { shown: shownPopover, leaving: popoverLeaving } = usePresence(
+    openPopover,
+    CARD_POPOVER_EXIT_MS,
+  );
   const colorBtnRef = useRef<HTMLButtonElement>(null);
   const tagsBtnRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
@@ -905,18 +915,20 @@ export const NoteCard = memo(function NoteCard({
           )}
         </article>
 
-        {openPopover === "color" && (
+        {shownPopover === "color" && (
           <CardColorPicker
             note={note}
             anchorRef={colorBtnRef}
             onClose={() => setOpenPopover(null)}
+            leaving={popoverLeaving}
           />
         )}
 
-        {openPopover === "tags" && (
+        {shownPopover === "tags" && (
           <CardPopover
             anchorRef={tagsBtnRef}
             onClose={() => setOpenPopover(null)}
+            leaving={popoverLeaving}
           >
             <div class={tagPickerPanelClass}>
               <TagPicker
@@ -928,21 +940,23 @@ export const NoteCard = memo(function NoteCard({
           </CardPopover>
         )}
 
-        {openPopover === "menu" && (
+        {shownPopover === "menu" && (
           <CardMenu
             note={note}
             anchorRef={menuBtnRef}
             onClose={() => setOpenPopover(null)}
             onOpenReminder={() => setOpenPopover("reminder")}
+            leaving={popoverLeaving}
           />
         )}
 
-        {openPopover === "reminder" && (
+        {shownPopover === "reminder" && (
           <CardPopover
             anchorRef={
               note.reminder && !isLinkOnly ? reminderChipRef : menuBtnRef
             }
             onClose={() => setOpenPopover(null)}
+            leaving={popoverLeaving}
           >
             <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 w-72">
               <ReminderPickerPanel

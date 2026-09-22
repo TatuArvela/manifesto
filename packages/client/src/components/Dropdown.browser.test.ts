@@ -111,3 +111,69 @@ describe("panel text colour", () => {
     );
   });
 });
+
+describe("closing", () => {
+  function Harness() {
+    const [open, setOpen] = useState(true);
+    return h(
+      "div",
+      null,
+      h(Dropdown, {
+        open,
+        onClose: () => setOpen(false),
+        trigger: h(
+          "button",
+          { type: "button", onClick: () => setOpen(!open) },
+          "more",
+        ),
+        children: h("span", null, "item"),
+      }),
+      h("p", { class: "outside" }, "elsewhere"),
+    );
+  }
+
+  const wait = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  it("stays in the top layer while its exit plays, then leaves it", async () => {
+    // Hiding the popover at once took the panel out of the top layer before
+    // it had faded, which only Chromium could paper over.
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    render(h(Harness, null), host);
+    await wait(50);
+    const panel = host.querySelector(".dropdown-panel") as HTMLElement;
+    expect(panel.matches(":popover-open")).toBe(true);
+
+    host
+      .querySelector(".outside")
+      ?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await wait(40);
+    expect(panel.matches(":popover-open")).toBe(true);
+    expect(panel.dataset.leaving).toBe("true");
+    expect(getComputedStyle(panel).display).not.toBe("none");
+    expect(Number(getComputedStyle(panel).opacity)).toBeLessThan(1);
+
+    await wait(200);
+    expect(panel.matches(":popover-open")).toBe(false);
+    expect(panel.dataset.leaving).toBeUndefined();
+    render(null, host);
+    host.remove();
+  });
+
+  it("does not close on a press inside the panel", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    render(h(Harness, null), host);
+    await wait(50);
+    const panel = host.querySelector(".dropdown-panel") as HTMLElement;
+    panel
+      .querySelector("span")
+      ?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await wait(200);
+    expect(panel.dataset.open).toBe("true");
+    expect(panel.matches(":popover-open")).toBe(true);
+    render(null, host);
+    host.remove();
+  });
+});
