@@ -79,9 +79,14 @@
    Leaving `will-change` on permanently is normally wasteful, but these
    elements only exist while the panel is open, so it is naturally scoped.
 
-   The easing is a decelerating curve rather than plain ease-out/ease-in: it
+   Opening, the easing is a decelerating curve rather than plain ease-out: it
    covers most of the distance early, so the sheet reads as settling into
-   place instead of coasting. */
+   place instead of coasting. Closing, it accelerates instead, moving from the
+   first frame and leaving at speed. The opening's curve on the way out, which
+   this used to use, put most of the sheet off screen in three frames and then
+   crept the last sliver along the edge for over 100ms, while the backdrop,
+   on a curve of its own, stayed dark after the sheet had all but gone. The
+   backdrop now fades evenly over the same time. */
 .settings-backdrop {
   will-change: opacity;
   animation: fade-in 220ms ease-out;
@@ -93,11 +98,11 @@
 }
 
 .settings-backdrop[data-closing="true"] {
-  animation: fade-out 200ms ease-in forwards;
+  animation: fade-out 200ms linear forwards;
 }
 
 .settings-panel[data-closing="true"] {
-  animation: slide-out-right 200ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  animation: slide-out-right 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 /* `type="search"` makes WebKit and Blink draw their own clear button. In the
