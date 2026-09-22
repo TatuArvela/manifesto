@@ -3,6 +3,7 @@ import { options, render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   editingNoteId,
+  noteSize,
   notes,
   selectedNotes,
   selectMode,
@@ -332,6 +333,39 @@ describe("ReorderableGrid", () => {
     expect(cards()[0].getBoundingClientRect().bottom).toBeLessThanOrEqual(
       cards()[0].getBoundingClientRect().top + spanOf(0),
     );
+  });
+
+  it("spans a card by its layout box, not the box its animation draws", () => {
+    // A just-pinned card is measured on arrival, scaled up and tilted by its
+    // settle animation. Measured with the transform, a square card was given a
+    // span several percent taller than itself, which stayed as a gap under it.
+    noteSize.value = "square";
+    try {
+      render(
+        <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
+        host,
+      );
+      cards()[0].style.transform = "scale(1.045) rotate(-0.9deg)";
+      render(
+        <ReorderableGrid
+          notes={[...three].reverse()}
+          reorderable
+          onReorder={() => {}}
+        />,
+        host,
+      );
+      const tilted = cards().find(
+        (card) => card.style.transform !== "",
+      ) as HTMLElement;
+      expect(tilted.getBoundingClientRect().width).toBeGreaterThan(
+        tilted.offsetWidth + 2,
+      );
+      expect(tilted.style.gridRowEnd).toBe(
+        `span ${Math.ceil(tilted.offsetWidth + 16)}`,
+      );
+    } finally {
+      noteSize.value = "fit";
+    }
   });
 
   it("re-renders only the cards a selection or a drop gap touches", async () => {

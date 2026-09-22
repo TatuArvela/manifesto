@@ -14,8 +14,12 @@ const MASONRY_GAP = 16;
  * callback, and a pass that does change something converges on the next one.
  */
 function spanOf(child: HTMLElement, square: boolean): string {
-  const rect = child.getBoundingClientRect();
-  return `span ${Math.ceil((square ? rect.width : rect.height) + MASONRY_GAP)}`;
+  // The layout box, not `getBoundingClientRect`, which includes transforms. A
+  // card is measured the moment it arrives, and a card that has just been
+  // pinned arrives mid-animation, scaled up and tilted: its bounding box is
+  // several percent larger than the card, and since a transform never fires
+  // the observer below, the span it was given stayed as a gap under it.
+  return `span ${Math.ceil((square ? child.offsetWidth : child.offsetHeight) + MASONRY_GAP)}`;
 }
 
 function applyMasonrySpans(container: HTMLElement, square: boolean) {
