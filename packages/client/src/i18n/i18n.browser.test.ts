@@ -39,18 +39,13 @@ describe("t()", () => {
   // The product name is a build-time parameter, so no catalogue spells it out:
   // messages carry `{appName}` and t() fills it in without being asked.
   test("fills {appName} from the build-time app name", () => {
-    expect(t("welcome.title")).toBe(`Welcome to ${APP_NAME}`);
+    expect(t("welcome.title")).toBe(`This is ${APP_NAME}`);
     expect(t("error.body")).toContain(APP_NAME);
   });
 
   test("fills {appName} in translations too", () => {
     locale.value = "fi";
-    expect(t("welcome.title")).toBe(`Tervetuloa palveluun ${APP_NAME}`);
-  });
-
-  test("says the default name the way Finnish does in an unbranded title", () => {
-    locale.value = "fi";
-    expect(t("welcome.title.unbranded")).toBe("Tervetuloa Manifestoon");
+    expect(t("welcome.title")).toBe(`Tämä on ${APP_NAME}`);
   });
 });
 
@@ -107,13 +102,12 @@ describe("detectBrowserLocale()", () => {
 
 describe("message shape parity", () => {
   // A hard-coded product name would survive a rebrand and read as someone
-  // else's app, so the catalogues must go through `{appName}` instead. The one
-  // exception is a `.unbranded` variant, shown only while the app is still
-  // called Manifesto, where a language may inflect the name.
+  // else's app, so the catalogues must go through `{appName}` instead. Every
+  // message is phrased so that the placeholder stands uninflected, which is
+  // what lets one wording serve every deployment name.
   test("no catalogue hard-codes the default product name", () => {
     for (const [key, value] of Object.entries({ en, fi })) {
       for (const [messageKey, message] of Object.entries(value)) {
-        if (messageKey.endsWith(".unbranded")) continue;
         const text =
           typeof message === "string"
             ? message
@@ -122,25 +116,6 @@ describe("message shape parity", () => {
           text,
           `${key}.${messageKey} hard-codes the app name`,
         ).not.toContain("Manifesto");
-      }
-    }
-  });
-
-  test("every .unbranded variant stands in for a branded message", () => {
-    const variants = Object.keys(en).filter((k) => k.endsWith(".unbranded"));
-    expect(variants.length).toBeGreaterThan(0);
-    for (const variant of variants) {
-      const base = variant.slice(0, -".unbranded".length);
-      for (const [locale, catalogue] of Object.entries({ en, fi })) {
-        const messages = catalogue as Record<string, unknown>;
-        expect(
-          messages[base],
-          `${locale}.${variant} has no branded ${base}`,
-        ).toContain("{appName}");
-        // The variant is chosen because the name is Manifesto; a placeholder
-        // there would be filled with the same name and gain nothing.
-        expect(messages[variant]).toContain("Manifesto");
-        expect(messages[variant]).not.toContain("{appName}");
       }
     }
   });

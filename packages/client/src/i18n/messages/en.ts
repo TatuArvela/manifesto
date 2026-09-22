@@ -390,9 +390,7 @@ export const en = {
   "reminder.chip": "Reminder: {date}",
 
   // Shared-note dialog, shown when the app opens on a #share=... link.
-  "welcome.title": "Welcome to {appName}",
-  // Only shown while the app is still called Manifesto; see `IS_UNBRANDED`.
-  "welcome.title.unbranded": "Welcome to Manifesto",
+  "welcome.title": "This is {appName}",
   "welcome.intro":
     "Sticky notes for your thoughts, lists and reminders. Write in Markdown or use the formatting toolbar, and drag notes around to arrange them.",
   "welcome.local.title": "Saved on this device",

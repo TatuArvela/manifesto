@@ -91,11 +91,10 @@ user-facing name usages going through `APP_NAME` rather than `__APP_NAME__`.
 
 Message catalogues use an `{appName}` placeholder, which `t()` fills in
 automatically, and a test fails if either catalogue hard-codes "Manifesto".
-Translations must not inflect it (Finnish says "Tervetuloa palveluun {appName}",
-not "Manifestoon"). The one exception is a `<key>.unbranded` variant, which may
-spell the default name inflected and is chosen at the call site only when
-`IS_UNBRANDED` (`config.ts`) holds; the welcome title is the only one so far,
-and the test requires every variant to have a branded `{appName}` twin.
+A translation cannot know how another name declines, so every message is
+phrased to leave the placeholder uninflected: Finnish says "Tämä on {appName}",
+never "{appName}on". Reach for a rewording, not a special case, when a
+language wants to bend the name.
 
 Three deployment parameters are read from `index.html` this way, not one:
 `application-name`, `welcome-dialog`, and `manifesto-server` (`resolveServerUrl`,
