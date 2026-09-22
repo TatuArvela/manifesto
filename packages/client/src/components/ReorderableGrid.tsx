@@ -228,6 +228,34 @@ export function ReorderableGrid({
     return undefined;
   };
 
+  // What the cards are handed never changes identity, and calls through to
+  // this render's handlers: `NoteCard` is memoized, and a fresh closure per
+  // card per render made every card re-render on every drop-gap change.
+  const latest = useRef({
+    handleDragStart,
+    handleDragEnd,
+    handleTouchDragStart,
+    handleTouchDragMove,
+    handleTouchDragEnd,
+  });
+  latest.current = {
+    handleDragStart,
+    handleDragEnd,
+    handleTouchDragStart,
+    handleTouchDragMove,
+    handleTouchDragEnd,
+  };
+  const [cardHandlers] = useState(() => ({
+    onDragStart: (e: DragEvent, id: string) =>
+      latest.current.handleDragStart(e, id),
+    onDragEnd: (e: DragEvent) => latest.current.handleDragEnd(e),
+    onTouchDragStart: (e: PointerEvent, id: string) =>
+      latest.current.handleTouchDragStart(e, id),
+    onTouchDragMove: (e: PointerEvent) => latest.current.handleTouchDragMove(e),
+    onTouchDragEnd: (e: PointerEvent, didDrag: boolean) =>
+      latest.current.handleTouchDragEnd(e, didDrag),
+  }));
+
   // A single-column layout puts the drop rule between cards rather than beside
   // one, which is a different set of `::after` rules, and the list view is
   // always single-column.
@@ -251,11 +279,11 @@ export function ReorderableGrid({
           key={note.id}
           note={note}
           draggable={reorderable}
-          onDragStart={(e) => handleDragStart(e, note.id)}
-          onDragEnd={handleDragEnd}
-          onTouchDragStart={(e) => handleTouchDragStart(e, note.id)}
-          onTouchDragMove={handleTouchDragMove}
-          onTouchDragEnd={handleTouchDragEnd}
+          onDragStart={cardHandlers.onDragStart}
+          onDragEnd={cardHandlers.onDragEnd}
+          onTouchDragStart={cardHandlers.onTouchDragStart}
+          onTouchDragMove={cardHandlers.onTouchDragMove}
+          onTouchDragEnd={cardHandlers.onTouchDragEnd}
           dropSide={dropSideOf(idx)}
         />
       ))}

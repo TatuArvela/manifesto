@@ -126,3 +126,19 @@ describe("renderInlineMarkdown", () => {
     expect(renderInlineMarkdown('<u onclick="x()">hi</u>')).toBe("<u>hi</u>");
   });
 });
+
+describe("renderMarkdown cache", () => {
+  it("answers a repeat from the cache, sanitized as the first time", () => {
+    const md = 'cached <img src="x" onerror="alert(1)"> **text**';
+    const first = renderMarkdown(md);
+    expect(renderMarkdown(md)).toBe(first);
+    expect(first).not.toContain("onerror");
+    expect(first).toContain("<strong>text</strong>");
+  });
+
+  it("keeps rendering correctly past the cache's size", () => {
+    for (let i = 0; i < 2100; i++) renderMarkdown(`note ${i}`);
+    expect(renderMarkdown("note 0")).toBe("<p>note 0</p>");
+    expect(renderMarkdown("note 2099")).toBe("<p>note 2099</p>");
+  });
+});
