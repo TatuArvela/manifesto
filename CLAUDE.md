@@ -72,6 +72,16 @@ State lives in `packages/client/src/state/` using @preact/signals:
   handlers with nowhere to put a `catch`, so a rejection there is an unhandled rejection the user
   never sees. Group work goes through `asBatch`, which counts failures instead of letting each one
   raise its own toast and reports the total once.
+  In connected mode a write is local-first: `updateNote` puts the change in the signal before it
+  sends. Every copy of a note the server sends back (a reply, a broadcast, a listing) comes in
+  through `receiveNote` / `foldIncomingList` and never through a plain assignment.
+  `pendingWrites.ts` replays the writes still outstanding on top of that copy, so a late reply
+  cannot revert a newer click. `settle` must get the same `changes` object `begin` did, even
+  when a conflict retry sent a merged one. `incomingNote.ts` hands back the held note by
+  reference when nothing changed. That keeps a client's own write, which it hears twice (as the
+  reply and as the broadcast), and a reconnect's re-fetch from repainting the board or dropping
+  image bytes a card already loaded. Grouped writes start together, each showing its change
+  before it awaits anything.
 - **`ui.ts`**: UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
 - **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
@@ -302,8 +312,11 @@ it from looping. Content that settles after first paint (images, fonts) has to t
 or the card keeps the height it was born with.
 
 Drag-to-reorder is gated by the `canReorder` computed: Notes or Auto-notes view, default sort, no
-search, no modal. `reorderNotes` rewrites `position` in `POSITION_STEP` (1000) increments rather
-than 0..n, leaving room to insert between later. `ReorderableGrid` measures the computed style to
+search, no modal. `reorderNotes` gives the dropped note the midpoint between its neighbours and
+writes nothing else. `position` is a float in both drivers, so a `POSITION_STEP` (1000) gap lasts
+about fifty halvings before `renumberFrom` spreads everything out again. The neighbours are found
+on the whole number line, archived and trashed notes included: they share it, and a slot chosen
+among the visible notes alone can land on a hidden one. Ties in the manual sort break on `id`. `ReorderableGrid` measures the computed style to
 tell a one-column layout from a grid, because masonry collapses to one column when narrow and the
 drop indicator has to change axis.
 
