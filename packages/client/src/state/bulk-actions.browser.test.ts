@@ -15,6 +15,7 @@ import {
   notes,
   permanentlyDeleteNote,
   reorderNotes,
+  sortedNotes,
   toggleSelectNote,
 } from "./actions.js";
 import { sortMode } from "./prefs.js";
@@ -233,6 +234,17 @@ describe("tag operations", () => {
 });
 
 describe("reorderNotes", () => {
+  /**
+   * The whole manual order by title, hidden notes included. `sortedNotes`
+   * answers for the view on screen, which is exactly what these tests must
+   * not read: where an archived or trashed note sits on the same number line
+   * is the thing being checked.
+   */
+  const order = () =>
+    [...notes.value]
+      .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
+      .map((n) => n.title);
+
   beforeEach(() => {
     localStorage.clear();
     notes.value = [];
@@ -262,6 +274,88 @@ describe("reorderNotes", () => {
     // Positions unchanged
     expect(notes.value.find((n) => n.id === n1.id)?.position).toBe(0);
     expect(notes.value.find((n) => n.id === n2.id)?.position).toBe(1);
+  });
+
+  it("moves the one note that was dropped and leaves the rest alone", async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      ids.push(
+        (await createNoteOrFail({ title: `N${i}`, position: i * 1000 })).id,
+      );
+    }
+    const before = new Map(notes.value.map((n) => [n.id, n.position]));
+    await reorderNotes(ids, 5, 1);
+
+    const moved = notes.value.filter((n) => before.get(n.id) !== n.position);
+    expect(moved).toHaveLength(1);
+    expect(moved[0].id).toBe(ids[5]);
+    expect(order()).toEqual(["N0", "N5", "N1", "N2", "N3", "N4"]);
+  });
+
+  it("drops a note at the head without renumbering the head", async () => {
+    const a = await createNoteOrFail({ title: "A", position: 1000 });
+    const b = await createNoteOrFail({ title: "B", position: 2000 });
+    await reorderNotes([a.id, b.id], 1, 0);
+    expect(notes.value.find((n) => n.id === a.id)?.position).toBe(1000);
+    expect(order()).toEqual(["B", "A"]);
+  });
+
+  it("leaves a note that is not on screen where it was", async () => {
+    // The archived note sits between B and C on the same number line. A drag
+    // among the visible three used to renumber them to 1000, 2000, 3000,
+    // which put the archived note's old 25 ahead of all of them: restore it
+    // and it jumped to the top of the board.
+    const a = await createNoteOrFail({ title: "A", position: 10 });
+    const b = await createNoteOrFail({ title: "B", position: 20 });
+    const c = await createNoteOrFail({ title: "C", position: 30 });
+    await createNoteOrFail({
+      title: "Archived",
+      position: 25,
+      archived: true,
+    });
+
+    const section = [a.id, b.id, c.id];
+    await reorderNotes(section, 0, 1);
+
+    // A sits between B and the archived note, which has not moved at all.
+    expect(notes.value.find((n) => n.title === "Archived")?.position).toBe(25);
+    expect(order()).toEqual(["B", "A", "Archived", "C"]);
+  });
+
+  it("spreads everything out again when a gap has no room left", async () => {
+    // Two adjacent doubles: there is no number between them to drop into, so
+    // the midpoint rounds back onto one of the two and the fallback runs.
+    const a = await createNoteOrFail({ title: "A", position: 1 });
+    const b = await createNoteOrFail({
+      title: "B",
+      position: 1 + Number.EPSILON,
+    });
+    const c = await createNoteOrFail({ title: "C", position: 3 });
+    await createNoteOrFail({ title: "Hidden", position: 2, trashed: true });
+
+    await reorderNotes([a.id, b.id, c.id], 2, 1);
+
+    // Everything is spaced out again, the hidden note included, and C landed
+    // where it was dropped.
+    expect(notes.value.map((n) => n.position).sort((x, y) => x - y)).toEqual([
+      1000, 2000, 3000, 4000,
+    ]);
+    expect(order()).toEqual(["A", "C", "B", "Hidden"]);
+  });
+
+  it("orders two notes that share a position by id", async () => {
+    // Two devices can pick the same midpoint for the same gap. Whichever
+    // order the notes are held in, both devices must show the same board.
+    const first = await createNoteOrFail({ title: "First", position: 100 });
+    const second = await createNoteOrFail({ title: "Second", position: 100 });
+    const [low, high] =
+      first.id < second.id ? [first, second] : [second, first];
+
+    const shown = () => sortedNotes.value.map((n) => n.title);
+    notes.value = [high, low];
+    expect(shown()).toEqual([low.title, high.title]);
+    notes.value = [low, high];
+    expect(shown()).toEqual([low.title, high.title]);
   });
 });
 
