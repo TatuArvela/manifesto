@@ -156,6 +156,34 @@ describe("LocalStorageAdapter", () => {
     expect(notes[0].font).toBe(NoteFont.Default);
   });
 
+  it("does not parse the stored list again for a write of its own", async () => {
+    // Auto-save writes every half second while the user types, and the list
+    // carries every image, so a parse per write was megabytes per keystroke
+    // pause.
+    const note = await adapter.create(sampleNote);
+    await adapter.getAll();
+    const parse = vi.spyOn(JSON, "parse");
+    try {
+      await adapter.update(note.id, { title: "One" });
+      await adapter.update(note.id, { title: "Two" });
+      expect((await adapter.get(note.id))?.title).toBe("Two");
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it("still sees a write it did not make", async () => {
+    const note = await adapter.create(sampleNote);
+    await adapter.getAll();
+    const [stored] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([{ ...stored, title: "From another tab" }]),
+    );
+    expect((await adapter.get(note.id))?.title).toBe("From another tab");
+  });
+
   it("handles corrupted localStorage gracefully", async () => {
     localStorage.setItem(STORAGE_KEY, "not json");
     const freshAdapter = new LocalStorageAdapter();

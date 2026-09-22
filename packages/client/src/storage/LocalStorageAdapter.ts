@@ -12,18 +12,33 @@ import type { StorageAdapter } from "./StorageAdapter.js";
 
 const STORAGE_KEY = "manifesto:notes";
 
+/**
+ * The list as last read or written, with the exact string it was stored as.
+ *
+ * Every write goes through the whole list (read, change one note, write it
+ * back), and images live inside it as data URLs, so parsing it again on each
+ * auto-save put megabytes of `JSON.parse` on the main thread every half second
+ * while the user typed. The key is still read every time, so a write from
+ * another tab or a cleared store is noticed by the string no longer matching;
+ * only the parse is skipped. The notes are shared, not copied: nothing changes
+ * a note in place, every write replaces it.
+ */
+let cached: { raw: string; notes: Note[] } | null = null;
+
 function loadNotes(): Note[] {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
+  if (cached && cached.raw === raw) return cached.notes.slice();
   try {
-    const notes = JSON.parse(raw) as Note[];
-    return notes.map((n) => ({
+    const notes = (JSON.parse(raw) as Note[]).map((n) => ({
       ...n,
       font: n.font ?? NoteFont.Default,
       images: n.images ?? [],
       linkPreviews: n.linkPreviews ?? [],
       reminder: n.reminder ?? null,
     }));
+    cached = { raw, notes };
+    return notes.slice();
   } catch {
     return [];
   }
@@ -31,7 +46,9 @@ function loadNotes(): Note[] {
 
 function saveNotes(notes: Note[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    const raw = JSON.stringify(notes);
+    localStorage.setItem(STORAGE_KEY, raw);
+    cached = { raw, notes: notes.slice() };
   } catch (err) {
     if (isQuotaError(err)) {
       // Say so and carry on: the in-memory signal still reflects the change,
