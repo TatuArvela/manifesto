@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.1.8](https://github.com/TatuArvela/manifesto/compare/v0.1.7...v0.1.8) (2026-09-22)
+
+
+### Features
+
+* **client:** greet with "This is Foo" and drop the unbranded variant ([3f7e3b9](https://github.com/TatuArvela/manifesto/commit/3f7e3b90a1d92f014505abbbc004e23807fcb861))
+* **client:** let a release bundle be pointed at a server ([ea14f34](https://github.com/TatuArvela/manifesto/commit/ea14f34177e382c4d24557e9e58ba5fb34a06e55))
+* notice an app socket that died without a close ([6ad08f6](https://github.com/TatuArvela/manifesto/commit/6ad08f6c48f3fec19fda0b553c33ecd75f306313))
+
+
+### Bug Fixes
+
+* **client:** make a same-origin server URL actually reach the server ([deebcf2](https://github.com/TatuArvela/manifesto/commit/deebcf22de9f77ed97130077076f1b98e5350668))
+* **client:** make the pin readable on a card that is all picture ([eddb065](https://github.com/TatuArvela/manifesto/commit/eddb0656d8d6a1a9e707700d86d6974ec1ebb0f0))
+* **client:** show a checklist row's delete button on a touch screen ([eccd7ff](https://github.com/TatuArvela/manifesto/commit/eccd7ff595087d903d8cdbef4a0f74f7aad4fa87))
+* **client:** stop announcing a lost connection on every resume ([ca90d79](https://github.com/TatuArvela/manifesto/commit/ca90d79fbbef988065de208a52853885d57138c9))
+* **client:** stop the outage banner from redialling the socket ([8ad29c3](https://github.com/TatuArvela/manifesto/commit/8ad29c31a95288c2a2ca86c487277231fe01af87))
+* **server:** make sign-in throttling hold against IPv6 and timing ([3e9bc72](https://github.com/TatuArvela/manifesto/commit/3e9bc72f89f9d1f46644d223b14d500d81ccfc7c))
+
+
+### Performance Improvements
+
+* **client:** give a dropped note a number of its own ([e9dd60f](https://github.com/TatuArvela/manifesto/commit/e9dd60f0680010cdc3b7d2750540fe57ef89b1f2))
+* **client:** keep each note's version history under its own key ([8605292](https://github.com/TatuArvela/manifesto/commit/86052922f5b1b6826efaef7579194b200fdf6490))
+* **client:** let a connected board change on the click, not on the reply ([e79851e](https://github.com/TatuArvela/manifesto/commit/e79851e3064c3f511df0c623b9a5cc91bc013692))
+* **client:** re-span only the masonry card that resized ([4f2d830](https://github.com/TatuArvela/manifesto/commit/4f2d830d656dfc44622c7b11e4be45a3170dd88f))
+* **client:** stop parsing the whole note list on every open-mode write ([5201de0](https://github.com/TatuArvela/manifesto/commit/5201de03558768415258ac4ff360ca74e4967ee2))
+* **client:** stop re-rendering every card for one card's change ([f017750](https://github.com/TatuArvela/manifesto/commit/f0177505dd498ce5f71d99083423eba7ba0de35a))
+* **client:** trim per-frame work on cards, sorting and dragging ([560ff35](https://github.com/TatuArvela/manifesto/commit/560ff3598210b62010858e0f98ae7e680d8e7336))
+
 ## [0.1.7](https://github.com/TatuArvela/manifesto/compare/v0.1.6...v0.1.7) (2026-09-20)
 
 
