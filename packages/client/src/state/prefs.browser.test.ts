@@ -2,6 +2,8 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   animations,
+  BOARD_COLORS,
+  boardColor,
   boardTexture,
   darkHue,
   defaultNoteColor,
@@ -11,7 +13,9 @@ import {
   noteQuips,
   noteSize,
   parsePrefs,
+  rerollBoardColor,
   rerollBoardTexture,
+  resolvedBoardColor,
   resolvedBoardTexture,
   sortMode,
   theme,
@@ -131,10 +135,12 @@ describe("parsePrefs", () => {
     expect(unknown.boardImageStamp).toBe(0);
   });
 
-  it("keeps a random texture as random", () => {
-    expect(
-      parsePrefs(JSON.stringify({ boardTexture: "random" })).boardTexture,
-    ).toBe("random");
+  it("keeps a random colour and texture as random", () => {
+    const random = parsePrefs(
+      JSON.stringify({ boardColor: "random", boardTexture: "random" }),
+    );
+    expect(random.boardColor).toBe("random");
+    expect(random.boardTexture).toBe("random");
   });
 
   it("refuses a custom board colour that is anything but a hex colour", () => {
@@ -437,5 +443,27 @@ describe("random board texture", () => {
   it("shows the chosen texture when not random", () => {
     boardTexture.value = "stars";
     expect(resolvedBoardTexture.value).toBe("stars");
+  });
+});
+
+describe("random board colour", () => {
+  afterEach(() => {
+    boardColor.value = "none";
+  });
+
+  it("puts a preset on the board, and rolls a different one when asked", () => {
+    boardColor.value = "random";
+    for (let i = 0; i < 20; i++) {
+      const before = resolvedBoardColor.value;
+      expect(BOARD_COLORS).toContain(before);
+      expect(document.documentElement.dataset.boardColor).toBe(before);
+      rerollBoardColor();
+      expect(resolvedBoardColor.value).not.toBe(before);
+    }
+  });
+
+  it("shows the chosen colour when not random", () => {
+    boardColor.value = "custom";
+    expect(resolvedBoardColor.value).toBe("custom");
   });
 });

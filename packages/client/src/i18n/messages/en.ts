@@ -262,6 +262,7 @@ export const en = {
   "settings.boardBackground.lavender": "Lavender",
   "settings.boardBackground.caramel": "Caramel",
   "settings.boardBackground.custom": "Custom Color",
+  "settings.boardBackground.random": "Random",
   "settings.boardBackground.texture": "Texture",
   "settings.boardBackground.texture.none": "Plain",
   "settings.boardBackground.texture.paper": "Paper",
