@@ -1,4 +1,4 @@
-import { Ban, ChevronDown, ImagePlus, Trash2 } from "lucide-preact";
+import { Ban, ChevronDown, ImagePlus, Shuffle, Trash2 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
 import {
@@ -10,12 +10,14 @@ import {
   BOARD_COLORS,
   BOARD_TEXTURES,
   type BoardColorChoice,
-  type BoardTexture,
+  type BoardTextureChoice,
   boardColor,
   boardCustomColor,
   boardImageStamp,
   boardTexture,
   boardUsePicture,
+  rerollBoardTexture,
+  resolvedBoardTexture,
 } from "../state/index.js";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
@@ -43,7 +45,7 @@ function BoardPreview({ class: className }: { class: string }) {
   return (
     <span
       aria-hidden="true"
-      data-texture={boardTexture.value}
+      data-texture={resolvedBoardTexture.value}
       class={`board-texture-tile ${className} ${ringClass}`}
     />
   );
@@ -53,7 +55,7 @@ function colorLabel(color: BoardColorChoice): string {
   return t(`settings.boardBackground.${color}`);
 }
 
-function textureLabel(texture: BoardTexture): string {
+function textureLabel(texture: BoardTextureChoice): string {
   return t(`settings.boardBackground.texture.${texture}`);
 }
 
@@ -177,13 +179,17 @@ export function BoardBackgroundSetting() {
               {t("settings.boardBackground.texture")}
             </legend>
             <div class="grid grid-cols-4 gap-2">
-              {BOARD_TEXTURES.map((choice) => (
+              {[...BOARD_TEXTURES, "random" as const].map((choice) => (
                 <button
                   key={choice}
                   type="button"
                   class="flex flex-col items-stretch gap-1 text-xs text-neutral-600 dark:text-neutral-300 cursor-pointer"
                   onClick={() =>
                     compose(() => {
+                      // Picking "random" again is how to ask for another.
+                      if (choice === "random" && texture === "random") {
+                        rerollBoardTexture();
+                      }
                       boardTexture.value = choice;
                     })
                   }
@@ -191,9 +197,15 @@ export function BoardBackgroundSetting() {
                 >
                   <span
                     aria-hidden="true"
-                    data-texture={choice}
-                    class={`board-texture-tile block aspect-[4/3] rounded-md ${ringClass} ${composing && texture === choice ? selectedClass : ""}`}
-                  />
+                    data-texture={
+                      choice === "random" ? resolvedBoardTexture.value : choice
+                    }
+                    class={`board-texture-tile relative flex items-center justify-center aspect-[4/3] rounded-md ${ringClass} ${composing && texture === choice ? selectedClass : ""}`}
+                  >
+                    {choice === "random" && (
+                      <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                    )}
+                  </span>
                   {textureLabel(choice)}
                 </button>
               ))}

@@ -275,6 +275,7 @@ export const en = {
   "settings.boardBackground.texture.waves": "Waves",
   "settings.boardBackground.texture.stars": "Stars",
   "settings.boardBackground.texture.hearts": "Hearts",
+  "settings.boardBackground.texture.random": "Random",
   "settings.boardBackground.picture": "Picture",
   "settings.boardBackground.usePicture": "Use Picture",
   "settings.boardBackground.choose": "Choose Picture…",

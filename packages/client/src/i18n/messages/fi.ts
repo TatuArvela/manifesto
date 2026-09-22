@@ -281,6 +281,7 @@ export const fi: Messages = {
   "settings.boardBackground.texture.waves": "Aallot",
   "settings.boardBackground.texture.stars": "Tähdet",
   "settings.boardBackground.texture.hearts": "Sydämet",
+  "settings.boardBackground.texture.random": "Satunnainen",
   "settings.boardBackground.picture": "Kuva",
   "settings.boardBackground.usePicture": "Käytä kuvaa",
   "settings.boardBackground.choose": "Valitse kuva…",
