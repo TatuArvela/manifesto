@@ -267,6 +267,24 @@ function byPosition(a: Note, b: Note): number {
   return a.position - b.position || a.id.localeCompare(b.id);
 }
 
+/**
+ * Newest first by a timestamp, parsing each one once. Comparing with
+ * `new Date(...)` inside the comparator parsed two strings per comparison,
+ * n log n of them for every change to the list. The timestamps are not
+ * compared as strings: they are ISO, but not all written the same way (with
+ * and without milliseconds), and those do not sort as text. A missing or
+ * unreadable one counts as the epoch, and the sort is stable, as before.
+ */
+function newestFirst(
+  list: Note[],
+  time: (n: Note) => string | null | undefined,
+): Note[] {
+  return list
+    .map((note) => ({ note, at: Date.parse(time(note) ?? "") || 0 }))
+    .sort((a, b) => b.at - a.at)
+    .map(({ note }) => note);
+}
+
 export const sortedNotes = computed(() => {
   const result = [...filteredNotes.value];
   if (activeView.value === "reminders") {
@@ -276,31 +294,16 @@ export const sortedNotes = computed(() => {
     return result;
   }
   if (activeView.value === "trash") {
-    result.sort(
-      (a, b) =>
-        new Date(b.trashedAt ?? 0).getTime() -
-        new Date(a.trashedAt ?? 0).getTime(),
-    );
-    return result;
+    return newestFirst(result, (n) => n.trashedAt);
   }
   switch (sortMode.value) {
     case "updated":
-      result.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      );
-      break;
+      return newestFirst(result, (n) => n.updatedAt);
     case "created":
-      result.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      break;
+      return newestFirst(result, (n) => n.createdAt);
     default:
-      result.sort(byPosition);
-      break;
+      return result.sort(byPosition);
   }
-  return result;
 });
 
 export const pinnedNotes = computed(() =>

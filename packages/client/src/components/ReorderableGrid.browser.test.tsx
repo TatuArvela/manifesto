@@ -376,6 +376,8 @@ describe("ReorderableGrid", () => {
           ...afterEdgeOf(cards()[2]),
         }),
       );
+      // The gap is looked up once per frame, not once per event.
+      await new Promise((resolve) => requestAnimationFrame(resolve));
       await tick();
       expect(rendered).toEqual(["Charlie"]);
       from.dispatchEvent(new DragEvent("dragend", { bubbles: true }));

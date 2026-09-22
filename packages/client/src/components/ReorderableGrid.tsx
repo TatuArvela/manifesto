@@ -1,5 +1,5 @@
 import type { Note } from "@manifesto/shared";
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { useMasonryGrid } from "../hooks/useMasonryGrid.js";
 import { noteSize, viewMode } from "../state/index.js";
 import { NoteCard } from "./NoteCard.js";
@@ -101,6 +101,14 @@ export function ReorderableGrid({
   const [dragVertical, setDragVertical] = useState(false);
   const dragSourceId = useRef<string | null>(null);
   const touchDragElRef = useRef<HTMLElement | null>(null);
+  // `dragover` and `pointermove` arrive faster than frames, and each drop-gap
+  // lookup measures every card, so the latest position waits for the next
+  // frame and is looked up once there. A drop reads it at once instead.
+  const pendingCoords = useRef<{ clientX: number; clientY: number } | null>(
+    null,
+  );
+  const gapFrame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(gapFrame.current), []);
 
   const beginDrag = (id: string) => {
     dragSourceId.current = id;
@@ -115,7 +123,14 @@ export function ReorderableGrid({
     document.body.classList.add("note-drag-active");
   };
 
+  const cancelGap = () => {
+    cancelAnimationFrame(gapFrame.current);
+    gapFrame.current = 0;
+    pendingCoords.current = null;
+  };
+
   const endDrag = () => {
+    cancelGap();
     document.body.classList.remove("note-drag-active");
     dragSourceId.current = null;
     setDragVertical(false);
@@ -131,6 +146,26 @@ export function ReorderableGrid({
     // Either side of the card being dragged is where it already is.
     if (srcIdx !== -1 && (gap === srcIdx || gap === srcIdx + 1)) return null;
     return gap;
+  };
+
+  const scheduleGap = ({ clientX, clientY }: PointerEvent | DragEvent) => {
+    pendingCoords.current = { clientX, clientY };
+    if (gapFrame.current) return;
+    gapFrame.current = requestAnimationFrame(() => {
+      gapFrame.current = 0;
+      const coords = pendingCoords.current;
+      pendingCoords.current = null;
+      // Through `latest`: this frame may run after a render this closure
+      // predates, one that changed the drag's axis.
+      if (coords) setDropGap(latest.current.gapAt(coords));
+    });
+  };
+
+  /** The gap as of the last event, including one still waiting for a frame. */
+  const settledGap = () => {
+    const coords = pendingCoords.current;
+    cancelGap();
+    return coords ? gapAt(coords) : dropGap;
   };
 
   const commitDrop = (gap: number | null) => {
@@ -187,11 +222,11 @@ export function ReorderableGrid({
 
   const handleTouchDragMove = (e: PointerEvent) => {
     if (!dragSourceId.current) return;
-    setDropGap(gapAt(e));
+    scheduleGap(e);
   };
 
   const handleTouchDragEnd = (_e: PointerEvent, didDrag: boolean) => {
-    const gap = dropGap;
+    const gap = settledGap();
     if (touchDragElRef.current) {
       touchDragElRef.current.classList.remove("note-dragging");
       touchDragElRef.current = null;
@@ -204,7 +239,7 @@ export function ReorderableGrid({
     if (!reorderable || !dragSourceId.current) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    setDropGap(gapAt(e));
+    scheduleGap(e);
   };
 
   const handleDragLeave = (e: DragEvent) => {
@@ -217,12 +252,13 @@ export function ReorderableGrid({
     ) {
       return;
     }
+    cancelGap();
     setDropGap(null);
   };
 
   const handleDrop = (e: DragEvent) => {
     e.preventDefault();
-    commitDrop(dropGap);
+    commitDrop(settledGap());
     setDropGap(null);
   };
 
@@ -237,6 +273,7 @@ export function ReorderableGrid({
   // this render's handlers: `NoteCard` is memoized, and a fresh closure per
   // card per render made every card re-render on every drop-gap change.
   const latest = useRef({
+    gapAt,
     handleDragStart,
     handleDragEnd,
     handleTouchDragStart,
@@ -244,6 +281,7 @@ export function ReorderableGrid({
     handleTouchDragEnd,
   });
   latest.current = {
+    gapAt,
     handleDragStart,
     handleDragEnd,
     handleTouchDragStart,

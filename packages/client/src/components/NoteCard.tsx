@@ -613,7 +613,7 @@ export const NoteCard = memo(function NoteCard({
             // The outline is always present at the same width and only its
             // colour and offset change, so the ring can animate in (it draws
             // from slightly outside the card and tightens onto it) under the
-            // `transition-all` below without ever affecting layout.
+            // `note-card-transition` below without ever affecting layout.
             "outline-2",
             isSelected
               ? "outline-blue-500 outline-offset-0"
