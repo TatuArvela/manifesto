@@ -1,18 +1,21 @@
 import { CloudOff } from "lucide-preact";
 import { t } from "../i18n/index.js";
 import { connectionStatus } from "../realtime/appSocket.js";
+import { connectionOutage } from "../realtime/connectionOutage.js";
 import { isServerMode } from "../state/auth.js";
 
 /**
- * Tiny banner shown at the bottom of the viewport when the realtime
- * application socket is disconnected (server unreachable, browser offline,
- * etc.). Local edits keep working; they just don't propagate until the
- * banner clears.
+ * Tiny banner shown at the bottom of the viewport once the realtime
+ * application socket has been away long enough to count as an outage (server
+ * unreachable, browser offline, etc.). Local edits keep working; they just
+ * don't propagate until the banner clears.
+ *
+ * It follows `connectionOutage` rather than `connectionStatus`, so a resumed
+ * app reconnecting does not announce itself; see that module for why.
  */
 export function ConnectionStatus() {
   if (!isServerMode) return null;
-  if (connectionStatus.value === "open") return null;
-  if (connectionStatus.value === "idle") return null;
+  if (!connectionOutage.value) return null;
   return (
     <div
       role="status"
