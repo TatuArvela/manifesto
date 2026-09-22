@@ -1,5 +1,5 @@
 import { signal } from "@preact/signals";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * An app resumed from the background comes back to a socket the browser closed
@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 const authToken = signal<string | null>(null);
 const editingNoteId = signal<string | null>(null);
+const loadNotes = vi.fn(async () => {});
 
 vi.mock("../state/auth.js", () => ({
   authToken,
@@ -24,7 +25,7 @@ vi.mock("../state/auth.js", () => ({
   WS_ORIGIN: "ws://notes.invalid",
 }));
 vi.mock("../state/actions.js", () => ({
-  loadNotes: async () => {},
+  loadNotes,
   notes: signal([]),
   receiveNote: () => {},
 }));
@@ -172,5 +173,30 @@ describe("coming back to the foreground", () => {
 
     window.dispatchEvent(new Event("online"));
     expect(dialled).toHaveLength(1);
+  });
+});
+
+describe("an outage that outlasts the banner's wait", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("keeps to the backoff and catches up when it gets back", () => {
+    // The banner's outage timer used to re-run the token effect, which dialled
+    // again every 4s and forgot the socket had been open, so the reconnect
+    // skipped the fetch of what changed meanwhile.
+    const socket = signedIn();
+    loadNotes.mockClear();
+    socket.die();
+
+    vi.advanceTimersByTime(10_000);
+    expect(dialled).toHaveLength(2);
+
+    dialled[1]?.answer();
+    expect(loadNotes).toHaveBeenCalledTimes(1);
   });
 });

@@ -42,7 +42,13 @@ export function trackConnection(status: ConnectionStatus): void {
   // Armed once per outage rather than once per status write: "connecting" and
   // "closed" alternate as the backoff retries, and rearming on each of them
   // would put the outage off for as long as the outage itself lasted.
-  if (timer || connectionOutage.value) return;
+  //
+  // `peek`, because this runs inside whatever effect wrote the status, and a
+  // read there would subscribe that effect to the outage. `appSocket`'s token
+  // effect is one: the outage arriving re-ran it, which redialled on a 4s
+  // cycle whatever the backoff said and forgot the socket had ever been open,
+  // so the reconnect skipped its catch-up fetch.
+  if (timer || connectionOutage.peek()) return;
   timer = setTimeout(() => {
     timer = null;
     connectionOutage.value = true;

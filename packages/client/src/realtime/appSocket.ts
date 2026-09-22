@@ -6,7 +6,7 @@ import {
   type WebSocketClientEvent,
   type WebSocketEvent,
 } from "@manifesto/shared";
-import { effect, signal } from "@preact/signals";
+import { effect, signal, untracked } from "@preact/signals";
 import { loadNotes, notes, receiveNote } from "../state/actions.js";
 import {
   authToken,
@@ -297,10 +297,15 @@ export function startAppSocket(): void {
   if (started) return;
   started = true;
 
+  // Only the token is this effect's business. Connecting writes status, and
+  // anything that reads a signal on the way would otherwise become a reason to
+  // tear the socket down and dial again.
   effect(() => {
     const token = authToken.value;
-    disconnect();
-    if (token && isServerMode) connect(token);
+    untracked(() => {
+      disconnect();
+      if (token && isServerMode) connect(token);
+    });
   });
 
   effect(() => {
