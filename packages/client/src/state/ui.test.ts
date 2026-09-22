@@ -4,11 +4,14 @@ import {
   dismissToast,
   exitSearch,
   previousView,
+  SEARCH_DEBOUNCE_MS,
   searchColors,
+  searchInput,
   searchQuery,
   searchTypes,
   showError,
   toasts,
+  typeSearch,
 } from "./ui.js";
 
 describe("error notifications", () => {
@@ -90,5 +93,51 @@ describe("exitSearch", () => {
     exitSearch();
 
     expect(activeView.value).toBe("active");
+  });
+});
+
+describe("typeSearch", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    typeSearch("");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("shows each keystroke at once and filters once typing pauses", () => {
+    typeSearch("m");
+    typeSearch("mi");
+    typeSearch("mil");
+    expect(searchInput.value).toBe("mil");
+    expect(searchQuery.value).toBe("");
+
+    vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS - 1);
+    typeSearch("milk");
+    vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS - 1);
+    expect(searchQuery.value).toBe("");
+
+    vi.advanceTimersByTime(1);
+    expect(searchQuery.value).toBe("milk");
+  });
+
+  it("clears the results at once when the field is emptied", () => {
+    typeSearch("milk");
+    vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
+    typeSearch("mil");
+    typeSearch("");
+    expect(searchQuery.value).toBe("");
+
+    vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
+    expect(searchQuery.value).toBe("");
+  });
+
+  it("drops a pending query when the search is left", () => {
+    typeSearch("milk");
+    exitSearch();
+    vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
+    expect(searchInput.value).toBe("");
+    expect(searchQuery.value).toBe("");
   });
 });

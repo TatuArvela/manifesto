@@ -112,6 +112,7 @@ export {
   type SearchLocation,
   type SearchType,
   searchColors,
+  searchInput,
   searchLocations,
   searchQuery,
   searchTypes,
@@ -128,4 +129,5 @@ export {
   toggleSearchColor,
   toggleSearchLocation,
   toggleSearchType,
+  typeSearch,
 } from "./ui.js";

@@ -33,13 +33,14 @@ import {
   exitSelectMode,
   noteSize,
   type SortMode,
-  searchQuery,
+  searchInput,
   selectAllVisible,
   selectedNotes,
   selectMode,
   showSettings,
   sortedNotes,
   sortMode,
+  typeSearch,
   viewMode,
 } from "../state/index.js";
 import { AccountMenu } from "./AccountMenu.js";
@@ -322,7 +323,7 @@ export function Header() {
             type="search"
             placeholder={t("header.searchPlaceholder")}
             class="w-full pl-10 pr-10 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-neutral-900 outline-none transition text-sm"
-            value={searchQuery.value}
+            value={searchInput.value}
             onFocus={() => {
               if (activeView.value !== "search") {
                 activeView.value = "search";
@@ -330,7 +331,7 @@ export function Header() {
             }}
             onInput={(e) => {
               const value = (e.target as HTMLInputElement).value;
-              searchQuery.value = value;
+              typeSearch(value);
               if (value && activeView.value !== "search") {
                 activeView.value = "search";
               }

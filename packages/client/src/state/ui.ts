@@ -24,7 +24,10 @@ export const selectedNotes = signal<Set<string>>(new Set());
 export const editingNoteId = signal<string | null>(null);
 export const showSettings = signal(false);
 export const showWelcome = signal(false);
+/** The query the notes are filtered by; trails `searchInput` while typing. */
 export const searchQuery = signal("");
+/** What the search field shows, which changes on every keystroke. */
+export const searchInput = signal("");
 export const searchTypes = signal<Set<SearchType>>(new Set());
 export const searchColors = signal<Set<NoteColor>>(new Set());
 export const searchLocations = signal<Set<SearchLocation>>(new Set(["active"]));
@@ -56,7 +59,35 @@ export function toggleSearchLocation(location: SearchLocation) {
   searchLocations.value = next;
 }
 
+/**
+ * How long typing must pause before the notes are filtered again. Filtering
+ * scans every note's text and re-lays the whole grid, which on a big board
+ * made each keystroke visibly lag behind the field.
+ */
+export const SEARCH_DEBOUNCE_MS = 200;
+
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Takes a keystroke in a search field. The field follows at once, the results
+ * once typing pauses, except that emptying the field clears them at once:
+ * there is nothing to wait for, and the board coming back should not lag.
+ */
+export function typeSearch(value: string) {
+  searchInput.value = value;
+  clearTimeout(searchTimer);
+  if (value === "") {
+    searchQuery.value = "";
+    return;
+  }
+  searchTimer = setTimeout(() => {
+    searchQuery.value = value;
+  }, SEARCH_DEBOUNCE_MS);
+}
+
 export function clearSearchFilters() {
+  clearTimeout(searchTimer);
+  searchInput.value = "";
   searchQuery.value = "";
   searchTypes.value = new Set();
   searchColors.value = new Set();
