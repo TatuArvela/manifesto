@@ -6,6 +6,7 @@ import {
   activeTag,
   allTags,
   deleteTag,
+  notesLoaded,
   tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
@@ -164,7 +165,7 @@ export function TagsView() {
         </Chip>
       </div>
 
-      {tags.length === 0 && (
+      {tags.length === 0 && notesLoaded.value && (
         <p class="text-sm text-neutral-400 dark:text-neutral-500">
           {t("tags.empty")}
         </p>

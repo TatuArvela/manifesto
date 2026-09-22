@@ -30,6 +30,7 @@ export {
   loadNotes,
   noteHasChecklist,
   notes,
+  notesLoaded,
   permanentlyDeleteNote,
   pickDefaultColor,
   pickDefaultFont,
