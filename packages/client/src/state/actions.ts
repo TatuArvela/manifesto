@@ -252,6 +252,21 @@ export const filteredNotes = computed(() => {
   return result;
 });
 
+/**
+ * Manual order: by `position`, and by id where two notes share one.
+ *
+ * The tiebreak is not decoration. Positions are chosen as the midpoint
+ * between two neighbours (see `positionBetween`), so two devices reordering
+ * the same gap at the same moment can pick the same number, and a note
+ * imported from a backup can carry one that already exists. Without a second
+ * key the sort falls back to the order the notes happen to be held in, which
+ * is the order they were fetched in, and two devices showing the same board
+ * disagree about it. Ids are ULIDs and so sort by themselves.
+ */
+function byPosition(a: Note, b: Note): number {
+  return a.position - b.position || a.id.localeCompare(b.id);
+}
+
 export const sortedNotes = computed(() => {
   const result = [...filteredNotes.value];
   if (activeView.value === "reminders") {
@@ -282,7 +297,7 @@ export const sortedNotes = computed(() => {
       );
       break;
     default:
-      result.sort((a, b) => a.position - b.position);
+      result.sort(byPosition);
       break;
   }
   return result;
@@ -464,10 +479,11 @@ export async function ensureImages(id: string): Promise<string[] | null> {
   }
 }
 
-// Reorder writes spaced positions so a future tweak (insert-between, etc.)
-// doesn't have to renumber the whole list. Date.now() in createNote is always
-// larger than these spaced positions, so new notes consistently sort to the
-// end of the manual-order list, same as the pre-reorder behavior.
+// The gap a fresh numbering leaves between two notes, so that a note dropped
+// between them has room to take a number of its own rather than making
+// everything after it move up. See `positionBetween`, which is what spends
+// it. Date.now() in createNote is always larger than these spaced positions,
+// so new notes consistently sort to the end of the manual-order list.
 const POSITION_STEP = 1000;
 
 export async function createNote(
@@ -924,28 +940,100 @@ export async function bulkAddTag(tag: string): Promise<boolean> {
   return ok;
 }
 
+/**
+ * Where a note dropped between two others belongs: halfway between them.
+ *
+ * `position` is a float in both storage drivers (`REAL` in SQLite,
+ * `DOUBLE PRECISION` in Postgres), which is what makes this available at all.
+ * A gap of {@link POSITION_STEP} survives about fifty successive halvings
+ * before two doubles have nothing left between them, so a drop writes the one
+ * note that moved and {@link renumberFrom} is a fallback that in practice
+ * never runs. This is the pattern the spacing was always for.
+ *
+ * Null when the two have no room between them, which is the caller's cue to
+ * spread everything out again. That covers a gap halved away to nothing and a
+ * pair that are equal or out of order, which tied data can produce.
+ */
+function positionBetween(
+  before: number | undefined,
+  after: number | undefined,
+): number | null {
+  if (before === undefined) {
+    return after === undefined ? null : after - POSITION_STEP;
+  }
+  if (after === undefined) return before + POSITION_STEP;
+  const between = (before + after) / 2;
+  if (between <= before || between >= after) return null;
+  return between;
+}
+
+/**
+ * Spread every note out again, with the dropped one at `at`.
+ *
+ * Over the whole number line rather than the section that was dragged, so the
+ * notes not on screen keep their place among the ones that are. Reached only
+ * when {@link positionBetween} has run out of room.
+ */
+async function renumberFrom(
+  rest: Note[],
+  at: number,
+  movedId: string,
+): Promise<void> {
+  const order = rest.map((n) => n.id);
+  order.splice(at, 0, movedId);
+  await asBatch(async () => {
+    await Promise.all(
+      order.map((id, i) =>
+        updateNote(id, { position: (i + 1) * POSITION_STEP }),
+      ),
+    );
+  });
+}
+
+/**
+ * Moves one note within `noteIds`, the dragged section's order as it stood
+ * before the drop.
+ *
+ * The note lands immediately after the one it was dropped behind, on the
+ * whole number line and not just within the section. Archived and trashed
+ * notes are off screen but share that line, so the slot is found among them
+ * too: a midpoint taken between the visible neighbours alone can land on a
+ * hidden note's exact position, and renumbering the visible ones, which is
+ * what this used to do, rewrote them into a range a hidden note's old number
+ * already sat inside. That is how restoring a note from the archive came to
+ * land it at the top of the board. Writing one number and leaving every other
+ * one alone cannot do either.
+ */
 export async function reorderNotes(
   noteIds: string[],
   fromIndex: number,
   toIndex: number,
 ) {
   if (fromIndex === toIndex) return;
-  const reordered = [...noteIds];
-  const [moved] = reordered.splice(fromIndex, 1);
-  reordered.splice(toIndex, 0, moved);
-  // Spaced rather than 0..n-1 so a future insert-between doesn't have to
-  // renumber the list. See POSITION_STEP for why the spacing stays clear of
-  // the `Date.now()` a new note gets.
-  // Together, for the same reason as `bulkApply`: the dropped card has to
-  // land where it was dropped, not creep there as each note's position comes
-  // back from the server one round trip after the last.
-  await asBatch(async () => {
-    await Promise.all(
-      reordered.map((id, i) =>
-        updateNote(id, { position: (i + 1) * POSITION_STEP }),
-      ),
-    );
-  });
+  const movedId = noteIds[fromIndex];
+  if (movedId === undefined) return;
+  const section = [...noteIds];
+  section.splice(fromIndex, 1);
+  section.splice(toIndex, 0, movedId);
+  const predecessorId = section[toIndex - 1];
+
+  const rest = [...allNotes.peek()]
+    .sort(byPosition)
+    .filter((n) => n.id !== movedId);
+  // Straight after the note it was dropped behind, or at the head when it was
+  // dropped in front of everything. A predecessor that is somehow not on the
+  // line puts it at the head too, which is at least somewhere.
+  const at =
+    predecessorId === undefined
+      ? 0
+      : rest.findIndex((n) => n.id === predecessorId) + 1;
+
+  const next = positionBetween(rest[at - 1]?.position, rest[at]?.position);
+  if (next === null) {
+    await renumberFrom(rest, at, movedId);
+    return;
+  }
+  await updateNote(movedId, { position: next });
 }
 
 /** As `noteHasChecklist`, but only counting boxes that are ticked. */
