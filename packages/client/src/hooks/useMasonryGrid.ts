@@ -13,6 +13,11 @@ const MASONRY_GAP = 16;
  * ends the frame at the sizes it started it with, so it provokes no further
  * callback, and a pass that does change something converges on the next one.
  */
+function spanOf(child: HTMLElement, square: boolean): string {
+  const rect = child.getBoundingClientRect();
+  return `span ${Math.ceil((square ? rect.width : rect.height) + MASONRY_GAP)}`;
+}
+
 function applyMasonrySpans(container: HTMLElement, square: boolean) {
   const children = Array.from(container.children) as HTMLElement[];
   const before = children.map((child) => child.style.gridRowEnd);
@@ -21,10 +26,7 @@ function applyMasonrySpans(container: HTMLElement, square: boolean) {
   }
   // Measured only after every child has been let go, so one card's span can't
   // constrain the next one's measurement.
-  const spans = children.map((child) => {
-    const rect = child.getBoundingClientRect();
-    return `span ${Math.ceil((square ? rect.width : rect.height) + MASONRY_GAP)}`;
-  });
+  const spans = children.map((child) => spanOf(child, square));
   for (let i = 0; i < children.length; i++) {
     // Every child is written back, including the ones whose span is unchanged
     // because they are all sitting at `span 9999` right now. The release and the
@@ -36,13 +38,35 @@ function applyMasonrySpans(container: HTMLElement, square: boolean) {
 }
 
 /**
+ * Re-spans only the cards that changed size. The grid's items are aligned to
+ * the start of their area, so a card's height is its content's whatever span
+ * it holds, and it can be measured where it stands. Releasing and measuring
+ * the whole grid for one card forced a layout of every card on the board each
+ * time a picture decoded or an auto-save changed a note's height.
+ */
+function applyChangedSpans(
+  container: HTMLElement,
+  changed: Element[],
+  square: boolean,
+) {
+  for (const el of changed) {
+    if (el.parentElement !== container) continue;
+    const child = el as HTMLElement;
+    const span = spanOf(child, square);
+    if (child.style.gridRowEnd !== span) child.style.gridRowEnd = span;
+  }
+}
+
+/**
  * Lays a grid container out as masonry and keeps it that way, returning the
  * ref to put on the container.
  *
- * `contents` is whatever changes when the cards do: the note list, usually.
- * Passing it is what separates a re-measure from an unrelated re-render:
- * `AutoNotesView` had this effect with no dependency array at all, so it
- * measured every child on every keystroke anywhere in the view.
+ * `contents` changes when the set of cards does: the note ids, usually, not
+ * the notes. Passing it is what separates a re-measure from an unrelated
+ * re-render: `AutoNotesView` had this effect with no dependency array at all,
+ * so it measured every child on every keystroke anywhere in the view. A card
+ * whose text changes is caught by the observer below instead, so passing the
+ * note list itself set the whole grid up again on every auto-save.
  *
  * The children are watched as well as the container, because a card's height
  * is not settled when it is first measured: an image decodes after the frame
@@ -64,8 +88,23 @@ export function useMasonryGrid<T extends HTMLElement>(
     if (!enabled || !container) return;
     applyMasonrySpans(container, square);
 
-    const observer = new ResizeObserver(() => {
-      applyMasonrySpans(container, square);
+    // A different width is a different set of columns, and every card moves;
+    // otherwise only the cards that resized need a new span. The container's
+    // height is ignored: it grows whenever a card's span does, and treating
+    // that as a reason for a full pass would undo the point of the other path.
+    let width = container.getBoundingClientRect().width;
+    const observer = new ResizeObserver((entries) => {
+      const nextWidth = container.getBoundingClientRect().width;
+      if (nextWidth !== width) {
+        width = nextWidth;
+        applyMasonrySpans(container, square);
+        return;
+      }
+      applyChangedSpans(
+        container,
+        entries.map((entry) => entry.target),
+        square,
+      );
     });
     observer.observe(container);
     for (const child of Array.from(container.children)) observer.observe(child);

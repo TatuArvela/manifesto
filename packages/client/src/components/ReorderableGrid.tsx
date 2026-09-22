@@ -87,10 +87,15 @@ export function ReorderableGrid({
 }) {
   const isList = viewMode.value === "list";
   const isSquare = noteSize.value === "square";
-  const gridRef = useMasonryGrid<HTMLDivElement>(notes, {
-    enabled: !isList,
-    square: isSquare,
-  });
+  // By id: a note whose text changed is re-spanned by the grid's observer, and
+  // the list is a new array on every auto-save of any note.
+  const gridRef = useMasonryGrid<HTMLDivElement>(
+    notes.map((n) => n.id).join(" "),
+    {
+      enabled: !isList,
+      square: isSquare,
+    },
+  );
 
   const [dropGap, setDropGap] = useState<number | null>(null);
   const [dragVertical, setDragVertical] = useState(false);
