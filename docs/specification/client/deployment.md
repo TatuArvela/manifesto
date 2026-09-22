@@ -26,6 +26,7 @@ Everything the client needs is baked in at build time. `VITE_MANIFESTO_SERVER` i
 | `VITE_MANIFESTO_SERVER`   | unset   | Absolute URL of the Manifesto server. Unset → open mode. Set → connected mode.               |
 | `VITE_APP_NAME`           | `Manifesto` | Branding: the product name, description and icons. See [Rebranding](#rebranding).       |
 | `VITE_APP_WELCOME`        | on      | The first-visit welcome dialog. See [Welcome dialog](#welcome-dialog).                       |
+| `MANIFESTO_BASE_URL`      | `/`     | The path the site is served from. Set it to `/notes/` to host under a subpath. Not a `VITE_` variable: Vite reads `base` before it loads that set. |
 
 The Vite config also reads `VITE_MANIFESTO_SERVER` to extend the `index.html` Content Security Policy: when set, the URL's HTTP and `ws(s)://` origins are added to `connect-src`. When unset, the CSP stays at `connect-src 'self'` and the build cannot reach any external server, a useful defence-in-depth check that an open-mode build is genuinely local. The note fonts are bundled for the same reason, so `font-src` and `style-src` name no third party either.
 
@@ -118,6 +119,10 @@ Keeping the folder outside the repository is the point: editing the checked-in
 need a toolchain to change it: the app reads its name from the HTML at startup,
 and the icons are plain files at fixed paths. Unzip and edit in place.
 
+The release bundle is an open-mode build and cannot be pointed at a server; the
+server URL is baked in at build time, including into the CSP. A connected
+instance is built from source, see [Connected mode](#connected-mode) above.
+
 | File | What to change |
 |---|---|
 | `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, and `<meta name="welcome-dialog">` to switch the welcome off |
@@ -135,6 +140,33 @@ this works on any build. Leave the JS bundle alone: it is minified, and the
 `manifesto:` prefixes inside it are `localStorage` keys, and rewriting those would
 orphan every note already saved in a browser.
 
+## Security headers
+
+`index.html` carries a Content Security Policy in a meta tag, and it covers most
+of what the app needs. Two things it cannot do: `frame-ancestors` is not allowed
+in a meta tag at all (CSP3 § 5.4), and a meta tag arrives too late to protect
+anything but the document. Add these as real HTTP response headers on whatever
+serves the files.
+
+| Header | Value | What it stops |
+|---|---|---|
+| `Content-Security-Policy` | `frame-ancestors 'self'` | Clickjacking: another site framing the app and stealing clicks through it. The meta-tag CSP cannot express this one. |
+| `X-Frame-Options` | `SAMEORIGIN` | The same thing, for anything that predates `frame-ancestors`. |
+| `X-Content-Type-Options` | `nosniff` | A browser guessing a served file is a type it was not sent as. |
+| `Referrer-Policy` | `no-referrer` (or `strict-origin-when-cross-origin`) | Note titles and tags leaking through `Referer` on outbound links. |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | A downgrade to plain HTTP on a later visit. Add `preload` only deliberately: it is a one-way door that needs its own submission and is slow to undo. |
+
+A site-wide `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` do **not**
+break `/autonotes-sandbox.html`, despite appearances. That frame is loaded with
+`sandbox="allow-scripts"` and no `allow-same-origin`, so its document ends up at
+an opaque origin, which looks like it should match neither policy. Both are
+checked against the origin of the framed **URL**, which is the site's own, so
+the frame renders and auto-notes keep running. It needs no exemption, and
+carving one out is the wrong lesson to draw from a failure that does not happen.
+
+A full worked example, with these headers and the caching split the PWA needs,
+is in [Server Deployment](../server/deployment.md#single-origin-behind-one-reverse-proxy).
+
 ## Routing for static hosts
 
 Manifesto uses real URL paths (not hash fragments) for navigation, so deep links like `/archived` or `/tags/work` need to fall back to `index.html`. The Vite plugin `githubPagesSpaFallback` copies `dist/index.html` to `dist/404.html` after each build, which handles GitHub Pages out of the box. For other hosts:
@@ -143,7 +175,7 @@ Manifesto uses real URL paths (not hash fragments) for navigation, so deep links
 - **Netlify**: drop a `_redirects` file with `/* /index.html 200`.
 - **Cloudflare Pages / Vercel**: SPA fallback is enabled by default.
 
-If hosting under a subpath, set Vite's `base` to match (e.g. `/manifesto/` for `https://user.github.io/manifesto/`); the router and the `manifest.webmanifest` rewrite plugin both honour `BASE_URL`.
+If hosting under a subpath, build with `MANIFESTO_BASE_URL` set to match (e.g. `MANIFESTO_BASE_URL=/manifesto/` for `https://user.github.io/manifesto/`); the router, the asset URLs, `theme-init.js`, the icons and the `manifest.webmanifest` rewrite plugin all honour it. It defaults to `/`, so a build for a domain root needs nothing.
 
 ## PWA
 

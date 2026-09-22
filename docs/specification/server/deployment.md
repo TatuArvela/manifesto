@@ -12,14 +12,13 @@ pnpm --filter @manifesto/server start
 
 ## Docker
 
-The Dockerfile lives at `packages/server/Dockerfile`. Build with the repo root as the build context so the workspace manifests are reachable:
+Each release publishes a multi-arch image, so there is nothing to build. Pin the
+tag to the release you mean to run:
 
 ```yaml
 services:
   manifesto-server:
-    build:
-      context: .
-      dockerfile: packages/server/Dockerfile
+    image: ghcr.io/tatuarvela/manifesto-server:X.Y.Z
     ports:
       - "3001:3001"
     volumes:
@@ -31,10 +30,31 @@ volumes:
 ```
 
 ```bash
-docker compose up --build
+docker compose up -d
 ```
 
 Data persists across container restarts via the volume mount.
+
+The published port is for trying the server out directly. Behind a reverse
+proxy, drop it: see [Do not publish the server port](#do-not-publish-the-server-port).
+
+### Building the image yourself
+
+Working on the server, or running a commit no release covers? The Dockerfile
+lives at `packages/server/Dockerfile`. Build with the repo root as the build
+context so the workspace manifests are reachable:
+
+```yaml
+services:
+  manifesto-server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+```
+
+```bash
+docker compose up --build
+```
 
 `/api/health` reports the server's version. The build context has no `.git`, so an image built this way reports the release number from `package.json` even when it is built from a later commit. To report the exact build, resolve the version on the host and pass it in as a build arg:
 
@@ -156,11 +176,182 @@ volumes:
 
 Yjs document state lives in a `BYTEA` column on `notes`. For very high collaborative-editing throughput, consider terminating Hocuspocus persistence in Redis and treating Postgres as the cold store, but for typical note-taking workloads the single-table model is fine.
 
+## Backups
+
+**Back up the SQLite database with `.backup`, never with `cp`.** The driver opens
+every database with `journal_mode = WAL` (`storage/sqlite/database.ts`), and
+under WAL a committed transaction is durable as soon as it reaches
+`manifesto.db-wal`. It moves into `manifesto.db` only at a checkpoint, so a copy
+of `manifesto.db` alone can be missing notes that were saved days ago. What
+makes this worth stating twice is that it is silent at both ends: the copy is a
+valid, openable, `integrity_check`-clean database, and nothing looks wrong until
+someone goes looking for a note that is not there. Copying all three files
+(`.db`, `-wal`, `-shm`) from a running server is no better, since nothing holds
+the three still while you read them.
+
+`.backup` consolidates the WAL, cannot catch a write half-finished, and runs
+while the server keeps serving. The image ships no `sqlite3` binary and runs as
+a non-root user, so `docker exec` cannot do this; run a throwaway container
+against the volume instead:
+
+```bash
+docker run --rm \
+  -v <project>_manifesto-data:/data \
+  -v "$PWD":/out \
+  alpine:3 sh -c '
+    apk add --no-cache sqlite >/dev/null &&
+    sqlite3 /data/manifesto.db ".backup /out/manifesto-backup.db" &&
+    sqlite3 /out/manifesto-backup.db "pragma integrity_check"'
+```
+
+Mount `/data` **writable**. Opening a WAL database even to read it means
+touching the `-shm` file, so a `:ro` mount fails to open it at all. Check the
+integrity of the copy rather than the live database, as above: that is the file
+you will restore from, and it is the one that can be truncated.
+
+To restore, stop the server, replace `manifesto.db` in the volume with the
+backup, and delete any `-wal` and `-shm` left beside it. Then start the server.
+
+**The database is the whole backup.** `DATA_DIR` sites the SQLite file and
+nothing else (`config.ts`), and images are base64 `data:` URLs inside note rows
+rather than files on disk (see [Data Model](../data-model.md)), so there is no
+second thing to copy.
+
+With `STORAGE_DRIVER=postgres` this section does not apply: back up with
+`pg_dump` or whatever the managed database offers, which is one of the reasons
+to choose it.
+
 ## Reverse Proxy
 
-For production use behind a reverse proxy (nginx, Caddy, Traefik):
+Run the server behind a reverse proxy that terminates HTTPS. It must pass
+WebSocket upgrades through for `/api/ws` (application events) and `/api/yjs`
+(collaborative editing); most proxies do that on their own for a proxied route,
+so the two rarely need blocks of their own.
 
-- Proxy all requests to the Manifesto server port
-- Proxy WebSocket connections at `/api/ws` (application events) and `/api/yjs` (collaborative editing)
-- Set appropriate headers (`X-Forwarded-For`, `X-Forwarded-Proto`)
-- Enable HTTPS via the reverse proxy
+Two things below are easy to get wrong in ways nothing reports.
+
+### `X-Forwarded-For` must be overwritten, not appended
+
+With `TRUST_PROXY=true` the server keys its per-IP throttling on the
+**leftmost** value of `X-Forwarded-For`. That is the correct read for a proxy
+that *overwrites* the header, and the wrong one for a proxy that *appends* to
+it, because an appending proxy puts whatever the client sent in front of the
+address it actually observed. Set `TRUST_PROXY=true` only with a proxy
+configured to overwrite, and only when nothing can reach the server except
+through it.
+
+- **nginx**: `proxy_set_header X-Forwarded-For $remote_addr;`
+  Do **not** use `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`,
+  which is the line most nginx tutorials give. `$proxy_add_x_forwarded_for` is
+  defined as the incoming header plus `$remote_addr`, so it appends, and the
+  value the server then trusts is one the client chose. On `/api/auth/login`
+  that makes the argon2 verify budget per attacker unbounded.
+- **Caddy**: `header_up X-Forwarded-For {http.request.remote.host}` inside
+  `reverse_proxy`. Recent Caddy already replaces an untrusted client's header
+  rather than appending, but writing it makes the behaviour a property of your
+  config rather than of the image tag you happen to have pulled.
+- **Traefik**: the address the server sees comes from the entrypoint's
+  `forwardedHeaders` trust configuration; set `trustedIPs` to the proxy in
+  front of Traefik, or nothing at all when Traefik is the edge.
+
+Leave `TRUST_PROXY` at `false` if you are unsure. The cost is that every client
+shares one throttling bucket, which is far cheaper than a bucket per forged
+header.
+
+### Do not publish the server port
+
+The compose examples above map `ports: ["3001:3001"]`, which is right for a
+local trial and wrong the moment a proxy is in front of it. A published port
+plus `TRUST_PROXY=true` makes the proxy a suggestion rather than a chokepoint:
+anything that can reach the host on 3001 sets its own `X-Forwarded-For` and is
+believed. Behind a proxy the server should have no `ports` at all, and the proxy
+should reach it over the compose network by service name.
+
+### Single origin behind one reverse proxy
+
+Serving the client bundle and proxying `/api/*` from **one** origin is the
+recommended shape for a one-box deployment. It removes CORS from the picture
+entirely: no preflights, no `CORS_ORIGINS` list to keep in step with a rename,
+one certificate, one DNS record, and no published server port. Nothing in the
+app resists it, both WebSockets included.
+
+`CORS_ORIGINS` then never comes into play, since no browser request is ever
+cross-origin, and its `http://localhost:5173` default is harmless. Worth knowing
+because a missing `CORS_ORIGINS` is the first thing an operator suspects when
+something breaks, and on a single origin it is never the cause.
+
+```yaml
+services:
+  manifesto-server:
+    image: ghcr.io/tatuarvela/manifesto-server:X.Y.Z
+    # No `ports`: only the proxy reaches it, over the compose network.
+    volumes:
+      - manifesto-data:/app/data
+    environment:
+      TRUST_PROXY: "true"
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      manifesto-server:
+        condition: service_healthy
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./client-dist:/srv:ro
+      - caddy-data:/data
+volumes:
+  manifesto-data:
+  caddy-data:
+```
+
+```caddy
+notes.example.com {
+    encode zstd gzip
+
+    header {
+        Content-Security-Policy "frame-ancestors 'self'"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+
+    # Both WebSockets live under here. reverse_proxy passes an Upgrade
+    # through on its own, so /api/ws and /api/yjs need no separate block.
+    handle /api/* {
+        reverse_proxy manifesto-server:3001 {
+            header_up X-Forwarded-For {http.request.remote.host}
+        }
+    }
+
+    # Content-hashed filenames, cacheable forever. Bundled note fonts too.
+    handle /assets/* {
+        root * /srv
+        header Cache-Control "public, max-age=31536000, immutable"
+        file_server
+    }
+
+    handle {
+        root * /srv
+        # no-cache means revalidate, not "do not store". The shell and the
+        # service worker have stable names, so a cached copy would outlive a
+        # deploy, and the PWA only updates if the browser re-asks for sw.js.
+        header Cache-Control "no-cache"
+        try_files {path} /index.html
+        file_server
+    }
+}
+```
+
+Two details in there were learned the hard way. Caddy's `handle` blocks are
+mutually exclusive, so a `header` block written *inside* the last one reaches
+nothing the earlier blocks serve: the JS bundle, the fonts and every API
+response go out with no `nosniff` while the config reads as though they do not.
+And the `Cache-Control` split is what keeps the PWA updating: cache the shell
+and `sw.js` without revalidation and the browser never re-asks for the new
+service worker, so the self-update path described in
+[Client Deployment](../client/deployment.md#pwa) quietly stops working.
+
+The split-origin examples elsewhere in this document remain the right shape when
+the client lives somewhere the server does not, such as a CDN or GitHub Pages.
+Those do need `CORS_ORIGINS` set to the client's origin.
