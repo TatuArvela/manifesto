@@ -31,7 +31,7 @@ const { app, broadcaster, revocations, accessChanges, noteEvents } = createApp({
 });
 
 const ws = createNodeWebSocket({ app });
-attachAppSocket({
+const stopAppSocket = attachAppSocket({
   app,
   ws,
   authProvider,
@@ -79,7 +79,7 @@ const shutdown = createShutdown({
   // `close()` waits for open sockets and a collaboration socket is open by
   // design, so its callback only arrives once these are gone.
   dropConnections: () => server.closeAllConnections?.(),
-  stopJobs: [stopTrashCleanup, stopSessionCleanup],
+  stopJobs: [stopTrashCleanup, stopSessionCleanup, stopAppSocket],
   closeStorage: () => storage.close(),
 });
 

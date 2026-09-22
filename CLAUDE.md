@@ -222,8 +222,14 @@ Being resumed is a reason to skip the backoff. A frozen page comes back to a soc
 closed for it, and to a backoff its throttled retries may have grown to the ceiling, so a
 `visibilitychange` back to visible (and an `online` event) dials at once and resets the backoff. It
 dials for a socket in `CLOSED` as well as a missing one, because a resume can deliver the visibility
-change before the queued close event. The user side of the same moment is `realtime/connectionOutage.ts`:
-the banner reports `connectionOutage`, which is `connectionStatus` after a delay, never the status
+change before the queued close event, and for one that has gone silent. A socket that dies with no
+close stays `OPEN` to both ends, so the server pings every `APP_SOCKET_HEARTBEAT_MS` and terminates
+a peer that did not answer the last one, and sends a `heartbeat` event, since a page cannot see
+pings. The client gives up on a socket after two and a half beats without a word, but only once it
+has heard a heartbeat, so an older server's quiet socket is not redialled forever. The token effect
+in `startAppSocket` runs its work `untracked`: `setStatus` reaches code that reads signals, and a
+read there once made the outage timer tear the socket down every 4s. The user side of the same
+moment is `realtime/connectionOutage.ts`: the banner reports `connectionOutage`, which is `connectionStatus` after a delay, never the status
 itself, or every resume announces a reconnect that is already finishing. A deliberate teardown
 (`disconnect`, so a logout or open mode) is `idle` rather than `closed` for that reason, and the
 delay is armed once per outage, not once per status write, since `connecting` and `closed` alternate

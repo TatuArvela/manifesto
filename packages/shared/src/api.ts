@@ -228,6 +228,13 @@ export interface InvitationsResponse {
 
 // --- WebSocket events (server → client) ---
 
+/**
+ * How often the server sends `heartbeat` on `/api/ws`. A socket that dies
+ * without a close stays open to both ends, so silence longer than a couple of
+ * these is how each side learns it is talking to nobody.
+ */
+export const APP_SOCKET_HEARTBEAT_MS = 30_000;
+
 export interface PresenceUser {
   id: string;
   displayName: string;
@@ -241,7 +248,8 @@ export type WebSocketEvent =
   | { type: "presence:join"; noteId: string; user: PresenceUser }
   | { type: "presence:leave"; noteId: string; userId: string }
   | { type: "invitation:created"; invitation: ShareInvitation }
-  | { type: "invitation:removed"; noteId: string };
+  | { type: "invitation:removed"; noteId: string }
+  | { type: "heartbeat" };
 
 // --- WebSocket events (client → server) ---
 

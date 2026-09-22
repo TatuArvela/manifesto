@@ -72,6 +72,10 @@ class FakeSocket {
     this.onopen?.();
   }
 
+  receive(event: unknown) {
+    this.onmessage?.({ data: JSON.stringify(event) });
+  }
+
   /** The close the browser hands us for a socket it tore down. */
   die(code = 1006) {
     this.readyState = FakeSocket.CLOSED;
@@ -198,5 +202,68 @@ describe("an outage that outlasts the banner's wait", () => {
 
     dialled[1]?.answer();
     expect(loadNotes).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a socket that dies without a close", () => {
+  // The limit is two and a half heartbeats; past it by a beat is past it.
+  const SILENT_FOR = 30_000 * 3.5;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("is given up on once the heartbeats stop, and redialled", () => {
+    const socket = signedIn();
+    socket.receive({ type: "heartbeat" });
+
+    // The browser never reports a close; the silence is what decides.
+    vi.advanceTimersByTime(SILENT_FOR);
+    expect(socket.readyState).toBe(FakeSocket.CLOSED);
+    expect(dialled).toHaveLength(2);
+  });
+
+  it("is kept while the heartbeats keep coming", () => {
+    const socket = signedIn();
+    for (let i = 0; i < 10; i++) {
+      socket.receive({ type: "heartbeat" });
+      vi.advanceTimersByTime(30_000);
+    }
+    expect(dialled).toHaveLength(1);
+    expect(connectionStatus.value).toBe("open");
+  });
+
+  it("is not judged by silence if the server never sends heartbeats", () => {
+    // A server from before heartbeats: a quiet board is not a dead socket.
+    signedIn();
+    vi.advanceTimersByTime(SILENT_FOR * 10);
+    expect(dialled).toHaveLength(1);
+    expect(connectionStatus.value).toBe("open");
+  });
+
+  it("is redialled at once on resume after a freeze no timer saw", () => {
+    const socket = signedIn();
+    socket.receive({ type: "heartbeat" });
+    // A frozen page runs no timers, so only the clock moves.
+    vi.setSystemTime(Date.now() + 60 * 60_000);
+
+    becomeVisible();
+    expect(dialled).toHaveLength(2);
+    expect(connectionStatus.value).toBe("connecting");
+  });
+
+  it("leaves the new socket alone while it is still dialling", () => {
+    const socket = signedIn();
+    socket.receive({ type: "heartbeat" });
+    vi.setSystemTime(Date.now() + 60 * 60_000);
+    becomeVisible();
+    expect(dialled).toHaveLength(2);
+
+    becomeVisible();
+    expect(dialled).toHaveLength(2);
   });
 });

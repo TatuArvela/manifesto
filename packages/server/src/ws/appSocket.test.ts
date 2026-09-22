@@ -16,9 +16,10 @@ interface Rig {
   server: ReturnType<typeof serve>;
   baseUrl: string;
   wsUrl: string;
+  stopHeartbeat: () => void;
 }
 
-async function bootRig(): Promise<Rig> {
+async function bootRig(heartbeatMs?: number): Promise<Rig> {
   const cfg = { ...TEST_CONFIG, port: 0 };
   const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
@@ -28,7 +29,7 @@ async function bootRig(): Promise<Rig> {
     authProvider,
   });
   const ws = createNodeWebSocket({ app });
-  attachAppSocket({
+  const stopHeartbeat = attachAppSocket({
     app,
     ws,
     authProvider,
@@ -37,6 +38,7 @@ async function bootRig(): Promise<Rig> {
     accessChanges,
     storage,
     cfg,
+    heartbeatMs,
   });
   const server = serve({ fetch: app.fetch, port: 0 });
   ws.injectWebSocket(server);
@@ -49,10 +51,12 @@ async function bootRig(): Promise<Rig> {
     server,
     baseUrl: `http://127.0.0.1:${port}`,
     wsUrl: `ws://127.0.0.1:${port}/api/ws`,
+    stopHeartbeat,
   };
 }
 
 async function close(rig: Rig): Promise<void> {
+  rig.stopHeartbeat();
   await new Promise<void>((resolve) => {
     rig.server.close(() => resolve());
   });
@@ -481,5 +485,53 @@ describe("application WebSocket /api/ws", () => {
 
     ownerSock.ws.close();
     aliceSock.ws.close();
+  });
+});
+
+describe("heartbeat on /api/ws", () => {
+  let rig: Rig;
+
+  beforeEach(async () => {
+    rig = await bootRig(50);
+  });
+
+  afterEach(async () => {
+    await close(rig);
+  });
+
+  it("sends a heartbeat the page can see", async () => {
+    const token = await register(rig, "alice");
+    const { ws } = openSocket(rig.wsUrl, token);
+    await waitOpen(ws);
+
+    const first = await new Promise<string>((resolve) => {
+      ws.once("message", (data) => resolve(data.toString()));
+    });
+    expect(JSON.parse(first)).toEqual({ type: "heartbeat" });
+
+    ws.close();
+  });
+
+  it("drops a peer that stops answering pings, and keeps one that answers", async () => {
+    // A browser answers a protocol ping without the page taking part, so a
+    // peer that does not answer is one that is no longer there. `autoPong:
+    // false` is that peer, seen from the server.
+    const token = await register(rig, "alice");
+    const gone = new WebSocket(rig.wsUrl, [SUBPROTOCOL, token], {
+      autoPong: false,
+    });
+    const here = openSocket(rig.wsUrl, token);
+    await waitOpen(gone);
+    await waitOpen(here.ws);
+
+    const code = await new Promise<number>((resolve) => {
+      gone.once("close", (c) => resolve(c));
+    });
+    // 1006: terminated without a closing handshake, which a vanished peer
+    // could never have completed.
+    expect(code).toBe(1006);
+    expect(here.ws.readyState).toBe(WebSocket.OPEN);
+
+    here.ws.close();
   });
 });

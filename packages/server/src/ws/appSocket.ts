@@ -1,8 +1,9 @@
 import type { NodeWebSocket } from "@hono/node-ws";
-import type {
-  PresenceUser,
-  WebSocketClientEvent,
-  WebSocketEvent,
+import {
+  APP_SOCKET_HEARTBEAT_MS,
+  type PresenceUser,
+  type WebSocketClientEvent,
+  type WebSocketEvent,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
 import type { SessionRevocations } from "../auth/revocations.js";
@@ -23,6 +24,13 @@ interface Connection {
   user: PresenceUser;
   send: (data: string) => void;
   close: (code: number, reason: string) => void;
+  /** Send a protocol ping; the peer's pong sets `alive`. */
+  ping: () => void;
+  /** Drop the connection without a closing handshake, which a peer that has
+   * gone away would never answer. */
+  terminate: () => void;
+  /** Whether the peer has answered since the last ping. */
+  alive: boolean;
   viewedNoteId: string | null;
   /** Bumped by every `presence:update`, so an access check that finishes
    * after a newer update has arrived knows to drop its answer. */
@@ -39,9 +47,12 @@ interface AppSocketDeps {
   accessChanges: AccessChanges;
   storage: StorageDriver;
   cfg: ServerConfig;
+  /** Tests shorten this; everyone else uses {@link APP_SOCKET_HEARTBEAT_MS}. */
+  heartbeatMs?: number;
 }
 
-export function attachAppSocket(deps: AppSocketDeps): void {
+/** Wire `/api/ws` onto the app. Returns a function that stops the heartbeat. */
+export function attachAppSocket(deps: AppSocketDeps): () => void {
   const { app, ws, authProvider, broadcaster, revocations, storage } = deps;
 
   // Negotiate the subprotocol so browsers don't reject the handshake when they
@@ -102,6 +113,30 @@ export function attachAppSocket(deps: AppSocketDeps): void {
   }
 
   broadcaster.subscribe((userId, event) => sendToOthers(userId, event));
+
+  // A connection that vanishes without a close (a phone changing networks, a
+  // laptop asleep, a NAT forgetting it) stays open to both ends until TCP gives
+  // up, which can take many minutes. Meanwhile its user is still shown on the
+  // note they had open, and their client believes it is hearing everything.
+  // The protocol ping finds such a peer here: a browser answers it without the
+  // page taking part, so one unanswered interval means nobody is there, and
+  // terminating it runs `onClose` like any other departure. The client cannot
+  // see protocol pings, so the `heartbeat` event is what it listens for.
+  const heartbeat = JSON.stringify({ type: "heartbeat" });
+  const heartbeatTimer = setInterval(() => {
+    for (const set of [...connectionsByUser.values()]) {
+      for (const conn of [...set]) {
+        if (!conn.alive) {
+          conn.terminate();
+          continue;
+        }
+        conn.alive = false;
+        conn.ping();
+        conn.send(heartbeat);
+      }
+    }
+  }, deps.heartbeatMs ?? APP_SOCKET_HEARTBEAT_MS);
+  heartbeatTimer.unref();
 
   // A socket is authenticated once, at the handshake, so ending a session
   // has to reach the sockets it opened. 4401 is what the client already reads
@@ -285,10 +320,17 @@ export function attachAppSocket(deps: AppSocketDeps): void {
             },
             send: (data) => socket.send(data),
             close: (code, reason) => socket.close(code, reason),
+            ping: () => socket.raw?.ping(),
+            terminate: () => socket.raw?.terminate(),
+            alive: true,
             viewedNoteId: null,
             presenceSeq: 0,
             closed: false,
           };
+          const live = conn;
+          socket.raw?.on("pong", () => {
+            live.alive = true;
+          });
           register(conn);
           // A socket that opens (a new tab, a reload, a reconnect) missed
           // every join sent before it, so it learns who is on the notes its
@@ -337,4 +379,6 @@ export function attachAppSocket(deps: AppSocketDeps): void {
       };
     }),
   );
+
+  return () => clearInterval(heartbeatTimer);
 }

@@ -250,6 +250,7 @@ A JSON event stream used for fan-out of REST writes and presence tracking.
 | `presence:leave`   | Server → Client  | A user stopped viewing/editing a note    |
 | `invitation:created` | Server → Client | Someone offered this user a note, or changed the offer: `{ invitation: ShareInvitation }` |
 | `invitation:removed` | Server → Client | An invitation is gone (accepted in another tab, declined, withdrawn, the note trashed or deleted): `{ noteId }` |
+| `heartbeat`        | Server → Client  | Sent every 30 seconds; carries nothing   |
 | `presence:update`  | Client → Server  | The client is viewing/editing a note     |
 
 REST is the authoritative write path; the server fans out `note:*` events from REST handlers. A `note:edit` client→server event is reserved but not currently handled.
@@ -264,6 +265,15 @@ only to the note's owner and the people who accepted it. Someone is sent a `pres
 other person already on a note they can see whenever they could not have heard it announced:
 when they open the note themselves, when their socket connects, and when they gain the note
 (accepting it, or its owner restoring it from the trash) while someone is on it.
+
+A connection that vanishes without a close (a network change, a device asleep, a NAT that forgot
+it) stays open to both ends until TCP gives up, so each end watches for silence. Every 30 seconds
+the server sends a protocol ping and a `heartbeat` event; a peer that has not answered the previous
+ping is terminated, which ends its presence like any other departure. A browser answers pings
+without the page, but cannot see them, which is why the event exists. A client that has heard a
+`heartbeat` and then hears nothing for 75 seconds treats the socket as closed and reconnects, as
+it does when coming back to the foreground after longer than that. A client that has never heard
+one, because the server predates it, does not judge the socket by silence.
 
 The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol.
 
