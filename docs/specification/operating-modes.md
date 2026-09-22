@@ -14,7 +14,7 @@ There is no runtime toggle: a build is one mode or the other. To move data betwe
 The default. The client is a standalone single-page application; there is no server to deploy or operate.
 
 - All notes live in `localStorage` under the `manifesto:notes` key (JSON).
-- Version history lives in `localStorage` under `manifesto:versions` (LZ-String compressed).
+- Version history lives in `localStorage`, one LZ-String compressed key per note (`manifesto:versions:<noteId>`).
 - Preferences live in `localStorage` under `manifesto:prefs`.
 - Sharing works via URL hash payloads, so any two open-mode users can share a note without a server.
 - The PWA service worker caches the app shell, so the site works fully offline once installed.
@@ -123,7 +123,7 @@ There is no in-place upgrade. To move from one mode to another:
 1. **Open → Connected**: Settings → Export to download `manifesto-export.json`, build (or visit) the connected client, log in, then Settings → Import.
 2. **Connected → Open**: Same flow in reverse: export from the connected client, switch to an open-mode build, import.
 
-Round-trips preserve every field in the [data model](data-model.md), including version history snapshots referenced via the local `manifesto:versions` key. Export/import is documented in [Export / Import](features/export-import.md).
+Round-trips preserve every field in the [data model](data-model.md), including version history snapshots referenced via the local `manifesto:versions:<noteId>` keys. Export/import is documented in [Export / Import](features/export-import.md).
 
 ## Configuration Reference
 

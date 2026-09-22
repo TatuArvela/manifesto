@@ -1,12 +1,19 @@
 import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteVersions, getVersions, saveVersion } from "./VersionStorage.js";
+import {
+  deleteVersions,
+  getVersions,
+  resetVersionMigrationForTests,
+  saveVersion,
+} from "./VersionStorage.js";
 
-const STORAGE_KEY = "manifesto:versions";
+const LEGACY_KEY = "manifesto:versions";
+const keyFor = (noteId: string) => `manifesto:versions:${noteId}`;
 
 describe("VersionStorage", () => {
   beforeEach(() => {
     localStorage.clear();
+    resetVersionMigrationForTests();
   });
 
   afterEach(() => {
@@ -51,18 +58,21 @@ describe("VersionStorage", () => {
     saveVersion("note1", "Recent", "Content");
 
     // Read, modify timestamp, write back
-    const raw = localStorage.getItem(STORAGE_KEY) ?? "";
-    const map = JSON.parse(decompressFromUTF16(raw) ?? "{}");
+    const raw = localStorage.getItem(keyFor("note1")) ?? "";
+    const list = JSON.parse(decompressFromUTF16(raw) ?? "[]");
     const oldDate = new Date(
       Date.now() - 91 * 24 * 60 * 60 * 1000,
     ).toISOString();
-    map.note1.unshift({
+    list.unshift({
       noteId: "note1",
       timestamp: oldDate,
       title: "Old",
       content: "Old content",
     });
-    localStorage.setItem(STORAGE_KEY, compressToUTF16(JSON.stringify(map)));
+    localStorage.setItem(
+      keyFor("note1"),
+      compressToUTF16(JSON.stringify(list)),
+    );
 
     // Saving a new version should prune the old one
     saveVersion("note1", "New", "New content");
@@ -86,7 +96,7 @@ describe("VersionStorage", () => {
 
   it("stores data compressed (not raw JSON)", () => {
     saveVersion("note1", "Title", "Content");
-    const raw = localStorage.getItem(STORAGE_KEY) ?? "";
+    const raw = localStorage.getItem(keyFor("note1")) ?? "";
     // Compressed data should not be valid JSON
     expect(() => JSON.parse(raw)).toThrow();
   });
@@ -99,12 +109,23 @@ describe("VersionStorage", () => {
     expect(getVersions("note2")).toHaveLength(1);
   });
 
+  it("keeps each note's history under a key of its own", () => {
+    // Saving one note's version must not rewrite anyone else's: the shared
+    // map this replaced made closing the editor cost the whole history.
+    saveVersion("note1", "A", "A");
+    const other = compressToUTF16(JSON.stringify([]));
+    localStorage.setItem(keyFor("note2"), other);
+    saveVersion("note1", "B", "B");
+    expect(localStorage.getItem(keyFor("note2"))).toBe(other);
+    expect(localStorage.getItem(LEGACY_KEY)).toBeNull();
+  });
+
   it("returns empty array for note with no versions", () => {
     expect(getVersions("nonexistent")).toHaveLength(0);
   });
 
   it("handles empty/corrupt storage gracefully", () => {
-    localStorage.setItem(STORAGE_KEY, "corrupt data");
+    localStorage.setItem(keyFor("note1"), "corrupt data");
     expect(getVersions("note1")).toHaveLength(0);
     // Should still be able to save after corruption
     saveVersion("note1", "A", "A");
@@ -112,9 +133,10 @@ describe("VersionStorage", () => {
   });
 });
 
-describe("VersionStorage quota fallback", () => {
+describe("VersionStorage legacy migration", () => {
   beforeEach(() => {
     localStorage.clear();
+    resetVersionMigrationForTests();
   });
 
   afterEach(() => {
@@ -122,17 +144,80 @@ describe("VersionStorage quota fallback", () => {
     localStorage.clear();
   });
 
-  function seed(map: Record<string, unknown[]>): void {
+  const version = (noteId: string, title: string) => ({
+    noteId,
+    timestamp: new Date().toISOString(),
+    title,
+    content: title,
+  });
+
+  it("splits the shared map into per-note keys and drops it", () => {
     localStorage.setItem(
-      "manifesto:versions",
-      compressToUTF16(JSON.stringify(map)),
+      LEGACY_KEY,
+      compressToUTF16(
+        JSON.stringify({
+          note1: [version("note1", "A"), version("note1", "B")],
+          note2: [version("note2", "C")],
+        }),
+      ),
+    );
+
+    expect(getVersions("note1").map((v) => v.title)).toEqual(["B", "A"]);
+    expect(getVersions("note2").map((v) => v.title)).toEqual(["C"]);
+    expect(localStorage.getItem(LEGACY_KEY)).toBeNull();
+  });
+
+  it("frees the shared key's space when the split runs out of room", () => {
+    localStorage.setItem(
+      LEGACY_KEY,
+      compressToUTF16(JSON.stringify({ note1: [version("note1", "A")] })),
+    );
+    const real = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      // Full for as long as the shared key is still taking up room.
+      if (this.getItem(LEGACY_KEY) !== null) {
+        throw new DOMException("full", "QuotaExceededError");
+      }
+      real.call(this, key, value);
+    });
+
+    expect(getVersions("note1").map((v) => v.title)).toEqual(["A"]);
+    expect(localStorage.getItem(LEGACY_KEY)).toBeNull();
+  });
+
+  it("drops a corrupt shared map rather than keeping it", () => {
+    localStorage.setItem(LEGACY_KEY, "corrupt data");
+    expect(getVersions("note1")).toHaveLength(0);
+    expect(localStorage.getItem(LEGACY_KEY)).toBeNull();
+  });
+});
+
+describe("VersionStorage quota fallback", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetVersionMigrationForTests();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  function seed(noteId: string, versions: unknown[]): void {
+    localStorage.setItem(
+      keyFor(noteId),
+      compressToUTF16(JSON.stringify(versions)),
     );
   }
 
   function version(noteId: string, title: string) {
     return {
       noteId,
-      timestamp: "2026-01-01T00:00:00.000Z",
+      timestamp: new Date().toISOString(),
       title,
       content: title,
     };
@@ -155,19 +240,18 @@ describe("VersionStorage quota fallback", () => {
     });
   }
 
-  it("keeps single-version histories when trimming under quota pressure", () => {
-    seed({
-      solo: [version("solo", "Only")],
-      multi: [version("multi", "First"), version("multi", "Second")],
-    });
+  it("gives up the note's oldest version to make room for the new one", () => {
+    seed("multi", [version("multi", "First"), version("multi", "Second")]);
+    seed("solo", [version("solo", "Only")]);
     failFirstSetItem();
 
     saveVersion("multi", "Third", "Third");
 
-    // The retry drops the oldest version of a multi-version note...
-    expect(getVersions("multi").length).toBeGreaterThan(0);
-    // ...but must not delete a note whose history has exactly one entry.
-    expect(getVersions("solo")).toHaveLength(1);
-    expect(getVersions("solo")[0].title).toBe("Only");
+    expect(getVersions("multi").map((v) => v.title)).toEqual([
+      "Third",
+      "Second",
+    ]);
+    // Another note's history is never what pays for this one.
+    expect(getVersions("solo").map((v) => v.title)).toEqual(["Only"]);
   });
 });

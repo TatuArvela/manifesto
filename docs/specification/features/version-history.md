@@ -12,7 +12,9 @@ Notes have persistent version history, allowing users to browse and restore prev
 
 ## Storage
 
-- Versions are stored in `localStorage` under the key `manifesto:versions`
+- Versions are stored in `localStorage`, one key per note: `manifesto:versions:<noteId>`. Saving a
+  version rewrites only that note's history. Histories written under the single shared
+  `manifesto:versions` key by older versions are split into per-note keys on first use.
 - Data is compressed using LZ-String to minimize storage usage
 - Capped at 50 versions per note
 - Versions older than 90 days are automatically pruned
