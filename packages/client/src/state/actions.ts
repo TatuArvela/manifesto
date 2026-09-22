@@ -31,7 +31,9 @@ import {
   updateAutoNoteOverride,
 } from "./autoNoteOverrides.js";
 import { generatedNotes } from "./autoNotes.js";
+import { foldIncoming, foldIncomingList, sameValue } from "./incomingNote.js";
 import { mergeNoteUpdate } from "./mergeNote.js";
+import { createPendingWrites } from "./pendingWrites.js";
 import {
   animations,
   defaultNoteColor,
@@ -114,6 +116,30 @@ export function upsertById(list: Note[], note: Note): Note[] {
   const next = list.slice();
   next[idx] = note;
   return next;
+}
+
+/**
+ * Writes shown before storage has answered for them. See `pendingWrites.ts`:
+ * this is what lets a click change the board at once in connected mode and a
+ * late response fold in afterwards without undoing anything newer.
+ */
+const pendingWrites = createPendingWrites();
+
+/**
+ * Take in a note as the server has it: the answer to one of our writes, a
+ * broadcast from another device, or a row from a listing.
+ *
+ * The outstanding local writes are replayed on top, and a copy that turns out
+ * to say nothing new is dropped rather than written, so hearing about our own
+ * change twice (once as the response, once as the broadcast back to us) costs
+ * one render and not three.
+ */
+export function receiveNote(note: Note): void {
+  const list = notes.peek();
+  const held = list.find((n) => n.id === note.id);
+  const next = pendingWrites.replay(foldIncoming(held, note));
+  if (held && sameValue(held, next)) return;
+  notes.value = upsertById(list, next);
 }
 
 // --- Derived ---
@@ -373,7 +399,13 @@ async function asBatch(run: () => Promise<void>): Promise<boolean> {
 
 export async function loadNotes(): Promise<boolean> {
   try {
-    notes.value = await storage.getAll();
+    // Folded in rather than assigned. A reconnect re-fetches the whole list
+    // to catch what happened while the tab was offline, and on a board that
+    // did not change in the meantime that must cost nothing: assigning a
+    // freshly parsed array re-rendered every card and re-ran the masonry pass
+    // for notes that had not moved, and dropped the attachments the cards had
+    // already fetched.
+    notes.value = foldIncomingList(notes.peek(), await storage.getAll());
     await expireTrash();
     return true;
   } catch (err) {
@@ -458,7 +490,7 @@ export async function createNote(
   };
   try {
     const note = await storage.create(noteCreate);
-    notes.value = upsertById(notes.value, note);
+    receiveNote(note);
     return note;
   } catch (err) {
     reportFailure("Failed to create note:", err, "error.createFailed");
@@ -525,13 +557,19 @@ export async function updateNote(
     reportFailure(`Refused change to shared note ${id}:`, changes, refusal);
     return false;
   }
+  // Shown now, sent next, reconciled when the answer comes. See
+  // `pendingWrites.ts` for why the two halves are separate, and `receiveNote`
+  // for what happens to the answer.
+  if (base)
+    notes.value = upsertById(notes.value, pendingWrites.begin(base, changes));
   try {
     const note = await storage.update(
       id,
       changes,
       base ? { ifMatch: base.updatedAt } : undefined,
     );
-    notes.value = notes.value.map((n) => (n.id === id ? note : n));
+    pendingWrites.settle(id, changes);
+    receiveNote(note);
     return true;
   } catch (err) {
     if (err instanceof NoteConflictError && base) {
@@ -543,9 +581,12 @@ export async function updateNote(
         const note = await storage.update(id, merged, {
           ifMatch: err.currentNote.updatedAt,
         });
-        notes.value = notes.value.map((n) => (n.id === id ? note : n));
+        pendingWrites.settle(id, changes);
+        receiveNote(note);
         return true;
       } catch (retryErr) {
+        pendingWrites.settle(id, changes);
+        receiveNote(base);
         reportFailure(
           `Conflict retry failed for note ${id}:`,
           retryErr,
@@ -554,6 +595,11 @@ export async function updateNote(
         return false;
       }
     }
+    // The write never landed, so neither does what it showed. The note goes
+    // back to what storage last confirmed, with any newer local write of its
+    // own still on top of it.
+    pendingWrites.settle(id, changes);
+    if (base) receiveNote(base);
     reportFailure(`Failed to update note ${id}:`, err, "error.saveFailed");
     return false;
   }
@@ -629,12 +675,17 @@ async function deleteNow(id: string): Promise<boolean> {
     clearAutoNoteOverride(id);
     return true;
   }
+  // Out of the grid now, as with every other write; back into it if the
+  // delete never landed. A selection of twenty otherwise emptied one card at
+  // a time, over as many round trips.
+  const held = notes.value.find((n) => n.id === id) ?? null;
+  notes.value = notes.value.filter((n) => n.id !== id);
   try {
     await storage.delete(id);
-    notes.value = notes.value.filter((n) => n.id !== id);
     deleteVersions(id);
     return true;
   } catch (err) {
+    if (held) notes.value = upsertById(notes.value, held);
     reportFailure(`Failed to delete note ${id}:`, err, "error.deleteFailed");
     return false;
   }
@@ -736,12 +787,13 @@ export async function deleteTag(tag: string): Promise<boolean> {
     .filter((n) => n.tags.includes(tag))
     .map((n) => n.id);
   const ok = await asBatch(async () => {
-    for (const id of affectedIds) {
-      const note = notes.value.find((n) => n.id === id);
-      if (note) {
-        await updateNote(id, { tags: note.tags.filter((t) => t !== tag) });
-      }
-    }
+    await Promise.all(
+      affectedIds.map((id) => {
+        const note = notes.value.find((n) => n.id === id);
+        if (!note) return Promise.resolve(false);
+        return updateNote(id, { tags: note.tags.filter((t) => t !== tag) });
+      }),
+    );
   });
   if (activeTag.value === tag) {
     activeTag.value = null;
@@ -754,12 +806,13 @@ export async function addTagToNotes(
   noteIds: Set<string>,
 ): Promise<boolean> {
   return await asBatch(async () => {
-    for (const id of noteIds) {
-      const note = notes.value.find((n) => n.id === id);
-      if (note && !note.tags.includes(tag)) {
-        await updateNote(id, { tags: [...note.tags, tag] });
-      }
-    }
+    await Promise.all(
+      [...noteIds].map((id) => {
+        const note = notes.value.find((n) => n.id === id);
+        if (!note || note.tags.includes(tag)) return Promise.resolve(true);
+        return updateNote(id, { tags: [...note.tags, tag] });
+      }),
+    );
   });
 }
 
@@ -805,15 +858,23 @@ export function toggleSelectNote(id: string) {
   }
 }
 
-/** Applies `act` to every selected note that still exists, as one operation. */
+/**
+ * Applies `act` to every selected note that still exists, as one operation.
+ *
+ * Started together rather than one after the next. Each write shows its own
+ * change before it awaits anything, so starting them in the same tick settles
+ * the board once; awaiting each in turn walked the selection a round trip at
+ * a time, with the grid closing over one card and then the next for as long
+ * as the selection was large.
+ */
 async function bulkApply(
   act: (id: string) => Promise<unknown>,
 ): Promise<boolean> {
-  const ids = [...selectedNotes.value];
+  const ids = [...selectedNotes.value].filter((id) =>
+    notes.value.some((n) => n.id === id),
+  );
   const ok = await asBatch(async () => {
-    for (const id of ids) {
-      if (notes.value.some((n) => n.id === id)) await act(id);
-    }
+    await Promise.all(ids.map((id) => act(id)));
   });
   exitSelectMode();
   return ok;
@@ -875,10 +936,15 @@ export async function reorderNotes(
   // Spaced rather than 0..n-1 so a future insert-between doesn't have to
   // renumber the list. See POSITION_STEP for why the spacing stays clear of
   // the `Date.now()` a new note gets.
+  // Together, for the same reason as `bulkApply`: the dropped card has to
+  // land where it was dropped, not creep there as each note's position comes
+  // back from the server one round trip after the last.
   await asBatch(async () => {
-    for (let i = 0; i < reordered.length; i++) {
-      await updateNote(reordered[i], { position: (i + 1) * POSITION_STEP });
-    }
+    await Promise.all(
+      reordered.map((id, i) =>
+        updateNote(id, { position: (i + 1) * POSITION_STEP }),
+      ),
+    );
   });
 }
 

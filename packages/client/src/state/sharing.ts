@@ -1,7 +1,6 @@
 import type {
   DirectoryUser,
   InvitationsResponse,
-  Note,
   NoteResponse,
   ShareInvitation,
   ShareRole,
@@ -11,7 +10,7 @@ import { signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { storageConnection } from "../storage/index.js";
-import { notes, upsertById } from "./actions.js";
+import { notes, receiveNote } from "./actions.js";
 import { editingNoteId, showError, showSuccess } from "./ui.js";
 
 /**
@@ -120,7 +119,7 @@ export async function acceptInvitation(noteId: string): Promise<boolean> {
       `/invitations/${noteId}/accept`,
     );
     forgetInvitation(noteId);
-    if (body) notes.value = upsertById(notes.value, body.note);
+    if (body) receiveNote(body.note);
     return true;
   } catch (err) {
     // Gone: withdrawn, or the note was trashed or deleted in the meantime.
@@ -181,10 +180,6 @@ export async function findUsers(
   }
 }
 
-function replaceNote(note: Note) {
-  notes.value = upsertById(notes.value, note);
-}
-
 export async function shareNote(
   noteId: string,
   userId: string,
@@ -199,7 +194,7 @@ export async function shareNote(
         role,
       },
     );
-    if (body) replaceNote(body.note);
+    if (body) receiveNote(body.note);
     return true;
   } catch (err) {
     report(
@@ -227,7 +222,7 @@ export async function setShareRole(
       `/notes/${noteId}/shares/${userId}`,
       { role },
     );
-    if (body) replaceNote(body.note);
+    if (body) receiveNote(body.note);
     return true;
   } catch (err) {
     report(

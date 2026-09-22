@@ -12,6 +12,7 @@ import {
   noteHasChecklist,
   notes,
   permanentlyDeleteNote,
+  receiveNote,
   restoreNote,
   sortedNotes,
   toggleCheckbox,
@@ -66,6 +67,47 @@ describe("state actions", () => {
     const note = await createNoteOrFail({ title: "Original" });
     await updateNote(note.id, { title: "Updated" });
     expect(notes.value[0].title).toBe("Updated");
+  });
+
+  it("updateNote shows the change before storage has answered", async () => {
+    const note = await createNoteOrFail({ title: "Original" });
+    // Not awaited: what the user sees between the click and the answer.
+    const saved = updateNote(note.id, { title: "Updated" });
+    expect(notes.value[0].title).toBe("Updated");
+    expect(await saved).toBe(true);
+    expect(notes.value[0].title).toBe("Updated");
+  });
+
+  it("updateNote takes the change back when the write fails", async () => {
+    await createNoteOrFail({ title: "Original" });
+    // A note storage has never heard of: the write cannot land.
+    notes.value = [{ ...notes.value[0], id: "does-not-exist" }];
+    const shown = updateNote("does-not-exist", { title: "Updated" });
+    expect(notes.value[0].title).toBe("Updated");
+    expect(await shown).toBe(false);
+    expect(notes.value[0].title).toBe("Original");
+  });
+
+  it("receiveNote ignores a copy that says nothing new", async () => {
+    const note = await createNoteOrFail({ title: "Echoed" });
+    const before = notes.value;
+    receiveNote({ ...note });
+    expect(notes.value).toBe(before);
+  });
+
+  it("receiveNote keeps a write the server has not answered yet", async () => {
+    const note = await createNoteOrFail({ title: "Original" });
+    const saved = updateNote(note.id, { pinned: true });
+    // Another device renames the note while our pin is still in the air.
+    receiveNote({
+      ...notes.value[0],
+      pinned: false,
+      title: "Renamed elsewhere",
+      updatedAt: "2099-01-01T00:00:00.000Z",
+    });
+    expect(notes.value[0].title).toBe("Renamed elsewhere");
+    expect(notes.value[0].pinned).toBe(true);
+    await saved;
   });
 
   it("updateNote reports a nonexistent note rather than rejecting", async () => {

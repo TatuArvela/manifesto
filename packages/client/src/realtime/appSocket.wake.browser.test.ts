@@ -26,7 +26,7 @@ vi.mock("../state/auth.js", () => ({
 vi.mock("../state/actions.js", () => ({
   loadNotes: async () => {},
   notes: signal([]),
-  upsertById: (list: unknown[]) => list,
+  receiveNote: () => {},
 }));
 vi.mock("../state/presence.js", () => ({
   clearPresence: () => {},
