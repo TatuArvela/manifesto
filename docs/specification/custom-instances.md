@@ -117,9 +117,11 @@ screen should have "Corporate Notes" as its heading. Exports download as
 
 ## Walkthrough: rebranding a release bundle
 
-For an open-mode instance, with no toolchain. The app reads its name from the
-HTML at startup and its icons are plain files at fixed paths, so both are
-editable after the fact.
+No toolchain. The app reads its name from the HTML at startup and its icons are
+plain files at fixed paths, so both are editable after the fact. The bundle
+ships in open mode; the same file also carries the server it talks to, so a
+rebranded connected instance is this walkthrough plus
+[two more lines](client/deployment.md#pointing-a-release-bundle-at-a-server).
 
 ```bash
 unzip manifesto-client-vX.Y.Z.zip && cd dist

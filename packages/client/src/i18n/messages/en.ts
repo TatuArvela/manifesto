@@ -338,6 +338,16 @@ export const en = {
   "dropZone.title": "Drop to import",
   "dropZone.hint": "Markdown or JSON files",
 
+  // Deployment misconfiguration, shown instead of the app at startup
+  "setup.title": "{appName} cannot reach its server",
+  "setup.cspBody":
+    "This copy is set up to use the server at {server}, but the Content Security Policy in its index.html does not allow connections there, so the browser blocks every request before it is sent.",
+  "setup.cspAdd": "Add these to connect-src in index.html:",
+  "setup.cspWhere":
+    "The server address and the policy sit a few lines apart in index.html. Building from source with VITE_MANIFESTO_SERVER set writes both of them for you.",
+  "setup.invalidBody":
+    "This copy is set up to use a server at {server}, which is not a full web address. It needs a scheme and a host, like https://notes.example.com.",
+
   // Toasts / errors
   "toast.dismiss": "Dismiss",
   "error.loadFailed": "Failed to load notes. Please refresh the page.",

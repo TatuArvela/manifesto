@@ -7,6 +7,7 @@ import type {
   UserLookupMode,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
+import { resolveServerUrl } from "../config.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { storageConnection } from "../storage/index.js";
 
@@ -31,10 +32,11 @@ const rawServer =
     ? import.meta.env?.VITE_MANIFESTO_SERVER
     : undefined;
 
-export const SERVER_URL: string | null =
-  typeof rawServer === "string" && rawServer.trim().length > 0
-    ? rawServer.replace(/\/$/, "")
-    : null;
+/** The server, from the `manifesto-server` meta tag or the build-time value.
+ * See {@link resolveServerUrl} for why a bundle gets a say at all. */
+export const SERVER_URL: string | null = resolveServerUrl(
+  typeof rawServer === "string" ? rawServer : undefined,
+);
 
 export const isServerMode = SERVER_URL !== null;
 

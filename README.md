@@ -33,7 +33,7 @@ A free, open-source note-taking app with a simple sticky note interface.
 
 Each release ships a client bundle and a server image. The client's [operating mode](docs/specification/operating-modes.md) is fixed at build time, so pick it first.
 
-- [Client](docs/specification/client/deployment.md): `manifesto-client-vX.Y.Z.zip` is an open-mode static site for any static host. A connected-mode client is built from source with `VITE_MANIFESTO_SERVER` set
+- [Client](docs/specification/client/deployment.md): `manifesto-client-vX.Y.Z.zip` is an open-mode static site for any static host, and can be pointed at a server by editing two lines of its `index.html`. A connected-mode client is otherwise built from source with `VITE_MANIFESTO_SERVER` set
 - [Server](docs/specification/server/deployment.md): `ghcr.io/tatuarvela/manifesto-server` Docker image, run behind an HTTPS reverse proxy
 
 ## Configuration

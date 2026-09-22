@@ -344,6 +344,16 @@ export const fi: Messages = {
   "dropZone.title": "Pudota tuodaksesi",
   "dropZone.hint": "Markdown- tai JSON-tiedostoja",
 
+  // Käyttöönoton virheasetus, näytetään sovelluksen sijaan käynnistyksessä
+  "setup.title": "{appName} ei tavoita palvelintaan",
+  "setup.cspBody":
+    "Tämä kopio on asetettu käyttämään palvelinta {server}, mutta sen index.html-tiedoston sisällönsuojauskäytäntö ei salli yhteyksiä sinne, joten selain estää jokaisen pyynnön ennen lähettämistä.",
+  "setup.cspAdd": "Lisää nämä index.html-tiedoston connect-src-kohtaan:",
+  "setup.cspWhere":
+    "Palvelimen osoite ja käytäntö ovat index.html-tiedostossa muutaman rivin päässä toisistaan. Lähdekoodista rakennettaessa VITE_MANIFESTO_SERVER kirjoittaa molemmat puolestasi.",
+  "setup.invalidBody":
+    "Tämä kopio on asetettu käyttämään palvelinta {server}, joka ei ole täysi verkko-osoite. Siinä pitää olla protokolla ja verkkotunnus, esimerkiksi https://notes.example.com.",
+
   // Toasts / errors
   "toast.dismiss": "Sulje",
   "error.loadFailed": "Muistiinpanojen lataus epäonnistui. Päivitä sivu.",

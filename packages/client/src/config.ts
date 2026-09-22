@@ -72,6 +72,51 @@ export function resolveWelcomeEnabled(fallback: boolean): boolean {
 
 export const WELCOME_ENABLED: boolean = resolveWelcomeEnabled(__APP_WELCOME__);
 
+/** The unsubstituted build-time token, in case the raw template gets served. */
+const SERVER_PLACEHOLDER = "%MANIFESTO_SERVER%";
+
+function usableServer(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === SERVER_PLACEHOLDER) return null;
+  return trimmed;
+}
+
+/**
+ * The Manifesto server this deployment talks to, or null for open mode.
+ *
+ * Two ways to set it, the same pair as the product name:
+ *
+ * - **Building from source**: set `VITE_MANIFESTO_SERVER`. `vite.config.ts`
+ *   also widens the `connect-src` in `index.html` to the server's HTTP and
+ *   `ws(s)://` origins, so the address and the policy cannot disagree.
+ * - **Deploying the release zip**: fill in the `manifesto-server` meta tag in
+ *   the shipped `index.html`. That one is not enough on its own, because the
+ *   CSP in the same file still says `connect-src 'self'` and the browser
+ *   blocks every request until the server's origins are added there too.
+ *   `main.tsx` checks for exactly that mismatch at startup and says so, since
+ *   the alternative is a login screen that fails with no explanation. See
+ *   `utils/serverCsp.ts`.
+ *
+ * The tag wins when it holds a value, so an edited bundle overrides what it
+ * was built with. Empty, absent or an unsubstituted placeholder means open
+ * mode, which is what the published zip ships as and what it keeps doing if
+ * nobody touches the tag.
+ *
+ * A trailing slash is stripped, so `https://notes.example.com/` and the same
+ * without agree. `/` therefore resolves to the empty string rather than null,
+ * which is the deliberate same-origin case: requests go to this page's own
+ * origin, and `'self'` already permits them.
+ */
+export function resolveServerUrl(fallback: string | undefined): string | null {
+  const fromTag =
+    typeof document === "undefined"
+      ? undefined
+      : document.querySelector<HTMLMetaElement>('meta[name="manifesto-server"]')
+          ?.content;
+  const raw = usableServer(fromTag) ?? usableServer(fallback);
+  return raw === null ? null : raw.replace(/\/+$/, "");
+}
+
 /**
  * Reduce a product name to something safe to put in a filename. Diacritics are
  * folded rather than dropped, so "Müistiö" becomes `muistio`; a name with no

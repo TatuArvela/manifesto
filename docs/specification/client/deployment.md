@@ -23,7 +23,7 @@ Everything the client needs is baked in at build time. `VITE_MANIFESTO_SERVER` i
 
 | Variable                  | Default | Description                                                                                  |
 |---------------------------|---------|----------------------------------------------------------------------------------------------|
-| `VITE_MANIFESTO_SERVER`   | unset   | Absolute URL of the Manifesto server. Unset → open mode. Set → connected mode.               |
+| `VITE_MANIFESTO_SERVER`   | unset   | Absolute URL of the Manifesto server. Unset → open mode. Set → connected mode. A built bundle can be repointed without a rebuild through the `manifesto-server` meta tag; see [Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server). |
 | `VITE_APP_NAME`           | `Manifesto` | Branding: the product name, description and icons. See [Rebranding](#rebranding).       |
 | `VITE_APP_WELCOME`        | on      | The first-visit welcome dialog. See [Welcome dialog](#welcome-dialog).                       |
 | `MANIFESTO_BASE_URL`      | `/`     | The path the site is served from. Set it to `/notes/` to host under a subpath. Not a `VITE_` variable: Vite reads `base` before it loads that set. |
@@ -47,7 +47,9 @@ VITE_MANIFESTO_SERVER=https://server.example.com \
   pnpm --filter @manifesto/client build
 ```
 
-The server's `CORS_ORIGINS` must include the client's deployed origin, or the browser will block requests.
+The server's `CORS_ORIGINS` must include the client's deployed origin, or the browser will block requests. It does not come into it when both are served from [one origin behind one proxy](../server/deployment.md#single-origin-behind-one-reverse-proxy).
+
+A build is not the only way in: the same value can be set in a prebuilt bundle's `index.html`, which is what lets the published zip become a connected client. See [Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server).
 
 ## Welcome dialog
 
@@ -119,9 +121,10 @@ Keeping the folder outside the repository is the point: editing the checked-in
 need a toolchain to change it: the app reads its name from the HTML at startup,
 and the icons are plain files at fixed paths. Unzip and edit in place.
 
-The release bundle is an open-mode build and cannot be pointed at a server; the
-server URL is baked in at build time, including into the CSP. A connected
-instance is built from source, see [Connected mode](#connected-mode) above.
+The release bundle ships in open mode, and can be pointed at a server by
+editing the same file. See
+[Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server)
+below, which is two edits rather than one.
 
 | File | What to change |
 |---|---|
@@ -139,6 +142,50 @@ The `application-name` meta tag wins over whatever the bundle was built with, so
 this works on any build. Leave the JS bundle alone: it is minified, and the
 `manifesto:` prefixes inside it are `localStorage` keys, and rewriting those would
 orphan every note already saved in a browser.
+
+## Pointing a release bundle at a server
+
+`manifesto-client-vX.Y.Z.zip` is built in open mode, and needs no toolchain to
+become a connected client either. It is **two** edits in `index.html`, not one,
+and the second is the one people forget:
+
+```html
+<!-- 1. the server -->
+<meta name="manifesto-server" content="https://notes.example.com" />
+
+<!-- 2. the policy, or the browser blocks every request to it -->
+<meta http-equiv="Content-Security-Policy" content="... connect-src 'self' https://notes.example.com wss://notes.example.com ..." />
+```
+
+Both origins are needed. The `https://` one carries REST, and the `wss://` one
+carries `/api/ws` and `/api/yjs`; adding only the first gives you a client that
+signs in and then never syncs, which says very little about itself. Make the
+same edits in `404.html`, the SPA fallback copy.
+
+If the app is doing this at all, it says so: at startup it compares the tag
+against the policy in the same document and, when they disagree, shows which
+origins are missing instead of a login screen whose requests die in silence. It
+does the same when the address is not a full URL.
+
+Two cases need no CSP edit at all.
+
+A **single-origin deployment**, where one proxy serves the bundle and `/api/*`
+from the same host, is already covered by the stock `connect-src 'self'`: CSP3
+extends `'self'` to the `wss://` form of the page's own host, so the sockets
+are permitted too. Write the site's own absolute URL in the tag
+(`https://notes.example.com`) and leave the policy alone. That is the shape
+[server/deployment.md recommends](../server/deployment.md#single-origin-behind-one-reverse-proxy)
+for one box, and it makes a connected instance a one-line edit. The tag needs a
+full URL: a relative value is not supported.
+
+A **build from source** with `VITE_MANIFESTO_SERVER` set needs no tag either:
+`vite.config.ts` derives the CSP from the same value, so the address and the
+policy cannot drift apart. The tag wins over the build-time value when both are
+set, which is what lets a bundle be repointed without a rebuild.
+
+The service worker, the router and everything else follow from this one value,
+so nothing else in the bundle needs touching. As with rebranding, leave the
+minified JS alone.
 
 ## Security headers
 
