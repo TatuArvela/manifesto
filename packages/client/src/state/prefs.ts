@@ -7,6 +7,8 @@ import { isLocale, type Locale } from "../i18n/locales.js";
 
 export type ViewMode = "grid" | "list";
 export type NoteSize = "fit" | "square";
+/** How wide the grid's cards are: big fits fewer to a row, small more. */
+export type NoteScale = "big" | "small";
 export type SortMode = "default" | "updated" | "created";
 export type ThemeMode = "system" | "light" | "dark";
 export type DefaultNoteColor = NoteColor | "random";
@@ -192,6 +194,7 @@ export interface LoadedPrefs {
   viewMode: ViewMode;
   sortMode: SortMode;
   noteSize: NoteSize;
+  noteScale: NoteScale;
   theme: ThemeMode;
   defaultNoteColor: DefaultNoteColor;
   defaultNoteFont: DefaultNoteFont;
@@ -231,6 +234,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
         viewMode: parsed.viewMode ?? "grid",
         sortMode: parsed.sortMode ?? "default",
         noteSize: parsed.noteSize ?? "fit",
+        noteScale: parsed.noteScale === "small" ? "small" : "big",
         theme: parsed.theme ?? "system",
         defaultNoteColor: parseDefaultNoteColor(parsed.defaultNoteColor),
         defaultNoteFont:
@@ -273,6 +277,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     viewMode: "grid",
     sortMode: "default",
     noteSize: "fit",
+    noteScale: "big",
     theme: "system",
     defaultNoteColor: NoteColor.Default,
     defaultNoteFont: NoteFont.Default,
@@ -309,6 +314,7 @@ function savePrefs() {
       viewMode: viewMode.value,
       sortMode: sortMode.value,
       noteSize: noteSize.value,
+      noteScale: noteScale.value,
       theme: theme.value,
       defaultNoteColor: defaultNoteColor.value,
       defaultNoteFont: defaultNoteFont.value,
@@ -335,6 +341,7 @@ const prefs = loadPrefs();
 
 export const viewMode = signal<ViewMode>(prefs.viewMode);
 export const noteSize = signal<NoteSize>(prefs.noteSize);
+export const noteScale = signal<NoteScale>(prefs.noteScale);
 export const sortMode = signal<SortMode>(prefs.sortMode);
 export const theme = signal<ThemeMode>(prefs.theme);
 export const defaultNoteColor = signal<DefaultNoteColor>(
@@ -420,6 +427,7 @@ export function applyPrefs(loaded: LoadedPrefs) {
       viewMode.value = loaded.viewMode;
       sortMode.value = loaded.sortMode;
       noteSize.value = loaded.noteSize;
+      noteScale.value = loaded.noteScale;
       theme.value = loaded.theme;
       defaultNoteColor.value = loaded.defaultNoteColor;
       defaultNoteFont.value = loaded.defaultNoteFont;
@@ -451,6 +459,7 @@ effect(() => {
   viewMode.value;
   sortMode.value;
   noteSize.value;
+  noteScale.value;
   theme.value;
   defaultNoteColor.value;
   defaultNoteFont.value;

@@ -3,6 +3,8 @@ import {
   Archive,
   ArrowDownUp,
   CheckSquare,
+  Grid2x2,
+  Grid3x3,
   LayoutDashboard,
   Palette,
   Pin,
@@ -31,6 +33,7 @@ import {
   bulkTrash,
   exitSearch,
   exitSelectMode,
+  noteScale,
   noteSize,
   type SortMode,
   searchInput,
@@ -533,6 +536,39 @@ function MainHeader({ covered }: { covered: boolean }) {
               <RectangleHorizontal class="w-4 h-4" />
               {t("header.view.fit")}
             </button>
+            {viewMode.value === "grid" && (
+              <>
+                <div class="border-t border-neutral-200 dark:border-neutral-700 my-1" />
+                <button
+                  type="button"
+                  class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
+                    noteScale.value === "big"
+                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                      : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                  }`}
+                  onClick={() => {
+                    noteScale.value = "big";
+                  }}
+                >
+                  <Grid2x2 class="w-4 h-4" />
+                  {t("header.view.big")}
+                </button>
+                <button
+                  type="button"
+                  class={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm ${
+                    noteScale.value === "small"
+                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                      : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                  }`}
+                  onClick={() => {
+                    noteScale.value = "small";
+                  }}
+                >
+                  <Grid3x3 class="w-4 h-4" />
+                  {t("header.view.small")}
+                </button>
+              </>
+            )}
           </Dropdown>
         )}
 
