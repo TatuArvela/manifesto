@@ -456,6 +456,33 @@ describe("sortedNotes", () => {
     sortMode.value = "created";
     expect(sortedNotes.value[0].title).toBe("Second");
   });
+
+  it("orders by time, not by the text of timestamps written differently", async () => {
+    // As text, ".500Z" sorts before "Z", which would put the later note last.
+    const early = await createNoteOrFail({ title: "Early" });
+    const late = await createNoteOrFail({ title: "Late" });
+    notes.value = notes.value.map((n) =>
+      n.id === early.id
+        ? { ...n, updatedAt: "2026-01-01T00:00:00Z" }
+        : n.id === late.id
+          ? { ...n, updatedAt: "2026-01-01T00:00:00.500Z" }
+          : n,
+    );
+    sortMode.value = "updated";
+    expect(sortedNotes.value.map((n) => n.title)).toEqual(["Late", "Early"]);
+  });
+
+  it("puts a trashed note with no trash time last in the trash", async () => {
+    const dated = await createNoteOrFail({ title: "Dated", trashed: true });
+    await createNoteOrFail({ title: "Undated", trashed: true });
+    notes.value = notes.value.map((n) =>
+      n.id === dated.id
+        ? { ...n, trashedAt: "2026-01-01T00:00:00.000Z" }
+        : { ...n, trashedAt: null },
+    );
+    activeView.value = "trash";
+    expect(sortedNotes.value.map((n) => n.title)).toEqual(["Dated", "Undated"]);
+  });
 });
 
 describe("expireTrash", () => {
