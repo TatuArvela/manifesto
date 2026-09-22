@@ -39,6 +39,7 @@ import {
   type RectLike,
   viewportSize,
 } from "../utils/morph.js";
+import { GRID_COLUMNS } from "./gridColumns.js";
 import { NoteEditor } from "./NoteEditor.js";
 
 const ctaKeys: MessageKey[] = [
@@ -394,7 +395,7 @@ export function NoteInput() {
       {!isList && (
         <div
           ref={rulerRef}
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-x-4 h-0 overflow-hidden pointer-events-none"
+          class={`grid ${GRID_COLUMNS} gap-x-4 h-0 overflow-hidden pointer-events-none`}
           aria-hidden="true"
         >
           <div />

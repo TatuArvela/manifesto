@@ -60,7 +60,7 @@ In connected mode, manual ordering is per-user: each user has their own arrangem
 
 ## Grid and List Views
 
-- **Grid view** (default): Responsive masonry-like grid. Notes have varying heights based on content (capped with overflow).
+- **Grid view** (default): Responsive masonry-like grid. Notes have varying heights based on content (capped with overflow). The column count follows the window width, from one on a phone up to ten on a very wide screen, so a card stays about the same width and a bigger screen shows more notes rather than bigger ones.
 - **List view**: Single-column, full-width layout.
 
 Toggled via a ViewToggle button in the header.
