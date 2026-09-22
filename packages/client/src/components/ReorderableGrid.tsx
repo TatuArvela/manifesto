@@ -80,20 +80,27 @@ export function ReorderableGrid({
   notes,
   reorderable,
   onReorder,
+  stacked = false,
 }: {
   notes: Note[];
   reorderable: boolean;
+  /**
+   * One card-wide column whatever the view mode, for a section that is itself
+   * one column of a wider grid (each auto-note plugin's in grid mode).
+   */
+  stacked?: boolean;
   /** `ids` is this section's order before the move. */
   onReorder: (ids: string[], fromIndex: number, toIndex: number) => void;
 }) {
   const isList = viewMode.value === "list";
+  const isColumn = isList || stacked;
   const isSquare = noteSize.value === "square";
   // By id: a note whose text changed is re-spanned by the grid's observer, and
   // the list is a new array on every auto-save of any note.
   const gridRef = useMasonryGrid<HTMLDivElement>(
     notes.map((n) => n.id).join(" "),
     {
-      enabled: !isList,
+      enabled: !isColumn,
       square: isSquare,
     },
   );
@@ -305,7 +312,9 @@ export function ReorderableGrid({
   // always single-column.
   const layoutClass = isList
     ? "flex flex-col gap-3"
-    : `grid ${GRID_COLUMNS} gap-x-4 items-start`;
+    : stacked
+      ? "flex flex-col gap-4"
+      : `grid ${GRID_COLUMNS} gap-x-4 items-start`;
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: grid layout requires div
@@ -313,7 +322,7 @@ export function ReorderableGrid({
       ref={gridRef}
       role="list"
       class={`${layoutClass}${dragVertical ? " note-grid-vertical" : ""}`}
-      style={isList ? undefined : { gridAutoRows: "1px" }}
+      style={isColumn ? undefined : { gridAutoRows: "1px" }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

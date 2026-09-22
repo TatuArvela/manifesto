@@ -435,6 +435,32 @@ describe("ReorderableGrid", () => {
     }
     viewMode.value = "grid";
   });
+
+  it("stacks a section into one column in grid mode, and drags down it", async () => {
+    const onReorder = vi.fn();
+    render(
+      <ReorderableGrid
+        notes={three}
+        reorderable
+        onReorder={onReorder}
+        stacked
+      />,
+      host,
+    );
+    const container = cards()[0].parentElement as HTMLElement;
+    expect(isContainerVertical(container)).toBe(true);
+    for (const card of cards()) {
+      expect(card.style.gridRowEnd).toBe("");
+    }
+
+    await mouseDrag(cards()[0], afterEdgeOf(cards()[2]));
+
+    expect(onReorder).toHaveBeenCalledWith(
+      three.map((n) => n.id),
+      0,
+      2,
+    );
+  });
 });
 
 describe("isContainerVertical", () => {
