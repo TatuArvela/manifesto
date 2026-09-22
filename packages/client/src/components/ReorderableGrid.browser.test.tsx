@@ -37,9 +37,7 @@ vi.stubGlobal("matchMedia", (query: string) => {
   return realMatchMedia(query);
 });
 
-const { isContainerVertical, ReorderableGrid } = await import(
-  "./ReorderableGrid.js"
-);
+const { moveInto, ReorderableGrid } = await import("./ReorderableGrid.js");
 
 function makeNote(id: string, title: string, position: number): Note {
   return {
@@ -122,6 +120,12 @@ function afterEdgeOf(el: HTMLElement) {
  */
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+/** A frame and a render: how long a move under the pointer takes to show. */
+const nextFrame = async () => {
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await tick();
+};
+
 /** The draggable element inside a wrapper: the card the handlers sit on. */
 function articleIn(wrapper: HTMLElement): HTMLElement {
   const article = wrapper.querySelector("article");
@@ -148,7 +152,9 @@ async function mouseDrag(
   grid.dispatchEvent(
     new DragEvent("dragover", { bubbles: true, dataTransfer, ...to }),
   );
-  await tick();
+  // A drop commits the order on screen, which a move reaches on the next
+  // frame; a browser's events are frames apart anyway.
+  await nextFrame();
   grid.dispatchEvent(
     new DragEvent("drop", { bubbles: true, dataTransfer, ...to }),
   );
@@ -178,7 +184,7 @@ async function touchDrag(
   );
   await new Promise((resolve) => setTimeout(resolve, hold ? HOLD_MS : 0));
   from.dispatchEvent(new PointerEvent("pointermove", { ...opts, ...to }));
-  await tick();
+  await nextFrame();
   from.dispatchEvent(new PointerEvent("pointerup", { ...opts, ...to }));
   await tick();
 }
@@ -284,12 +290,10 @@ describe("ReorderableGrid", () => {
     for (const span of spans()) expect(span).toMatch(/^span \d+$/);
   });
 
-  it("reads the drop position across columns, not down the page", async () => {
-    // The grid is multi-column here, so "after Alpha" is the gap to its right
-    // because a card directly below it is a different column's neighbour, not the
-    // next position. Deciding this from the view mode instead of measuring
-    // the container, which is what the auto-notes grid did, reads a drop
-    // beside a card as a drop several places away.
+  it("takes the place of the card it is dragged over, across a row", async () => {
+    // The grid is multi-column here: Charlie dropped on Bravo, beside it in
+    // the row, lands in Bravo's place, which is found by where the cards are
+    // drawn rather than guessed from the view mode.
     const onReorder = vi.fn();
     render(
       <ReorderableGrid notes={three} reorderable onReorder={onReorder} />,
@@ -298,11 +302,136 @@ describe("ReorderableGrid", () => {
     const grid = host.querySelector<HTMLElement>('[role="list"]');
     expect(getComputedStyle(grid as HTMLElement).display).toBe("grid");
 
-    await mouseDrag(cards()[2], afterEdgeOf(cards()[0]));
+    await mouseDrag(cards()[2], centreOf(cards()[1]));
 
     expect(onReorder).toHaveBeenCalledWith(
       three.map((n) => n.id),
       2,
+      1,
+    );
+  });
+
+  it("previews the new order while the drag is under way", async () => {
+    // The dragged card stands in the place it would drop into and the others
+    // make room, instead of a line marking the gap.
+    render(
+      <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
+      host,
+    );
+    const [alpha, bravo, charlie] = cards();
+    const from = articleIn(alpha);
+    const dataTransfer = new DataTransfer();
+    from.dispatchEvent(
+      new DragEvent("dragstart", {
+        bubbles: true,
+        dataTransfer,
+        ...centreOf(from),
+      }),
+    );
+    await tick();
+    const alphaWas = alpha.getBoundingClientRect();
+    const charlieWas = charlie.getBoundingClientRect();
+    host.querySelector('[role="list"]')?.dispatchEvent(
+      new DragEvent("dragover", {
+        bubbles: true,
+        dataTransfer,
+        ...centreOf(charlie),
+      }),
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await tick();
+
+    expect([alpha, bravo, charlie].map((c) => c.style.order)).toEqual([
+      "2",
+      "0",
+      "1",
+    ]);
+    // Settled where the preview puts them: Alpha where Charlie was.
+    for (const card of cards()) {
+      for (const shift of card.getAnimations()) shift.finish();
+    }
+    expect(alpha.getBoundingClientRect().left).toBeCloseTo(charlieWas.left, 0);
+    expect(bravo.getBoundingClientRect().left).toBeCloseTo(alphaWas.left, 0);
+
+    // Let go outside the grid: nothing moves, and the preview goes back.
+    from.dispatchEvent(
+      new DragEvent("dragend", { bubbles: true, dataTransfer }),
+    );
+    await tick();
+    expect(cards().map((c) => c.style.order)).toEqual(["", "", ""]);
+  });
+
+  it("follows a finger with a copy while the card holds its place unseen", async () => {
+    hoverNone.current = true;
+    render(
+      <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
+      host,
+    );
+    const from = articleIn(cards()[0]);
+    const opts = { bubbles: true, pointerId: 1, pointerType: "touch" as const };
+    const start = centreOf(from);
+    from.dispatchEvent(new PointerEvent("pointerdown", { ...opts, ...start }));
+    await new Promise((resolve) => setTimeout(resolve, HOLD_MS));
+    // The drag starts on the first move past the threshold, from there.
+    const picked = { clientX: start.clientX + 20, clientY: start.clientY };
+    from.dispatchEvent(new PointerEvent("pointermove", { ...opts, ...picked }));
+    const to = centreOf(cards()[2]);
+    from.dispatchEvent(new PointerEvent("pointermove", { ...opts, ...to }));
+    await nextFrame();
+
+    const ghost = document.querySelector<HTMLElement>(".note-drag-ghost");
+    expect(ghost?.textContent).toContain("Alpha");
+    expect(ghost?.style.translate).toBe(
+      `${to.clientX - picked.clientX}px ${to.clientY - picked.clientY}px`,
+    );
+    // Still taking its space in the grid, just not drawn there.
+    expect(getComputedStyle(from).visibility).toBe("hidden");
+    expect(from.getBoundingClientRect().height).toBeGreaterThan(0);
+
+    from.dispatchEvent(new PointerEvent("pointerup", { ...opts, ...to }));
+    await tick();
+    expect(document.querySelector(".note-drag-ghost")).toBeNull();
+    expect(getComputedStyle(from).visibility).toBe("visible");
+  });
+
+  it("does not flip back and forth under a pointer that has not moved", async () => {
+    // Cards move under a still pointer when the order changes, and the card
+    // now beneath it is not a new target until the pointer travels.
+    const onReorder = vi.fn();
+    render(
+      <ReorderableGrid notes={three} reorderable onReorder={onReorder} />,
+      host,
+    );
+    const from = articleIn(cards()[0]);
+    const grid = host.querySelector('[role="list"]') as HTMLElement;
+    const dataTransfer = new DataTransfer();
+    from.dispatchEvent(
+      new DragEvent("dragstart", {
+        bubbles: true,
+        dataTransfer,
+        ...centreOf(from),
+      }),
+    );
+    await tick();
+    const over = centreOf(cards()[1]);
+    for (let i = 0; i < 4; i++) {
+      grid.dispatchEvent(
+        new DragEvent("dragover", { bubbles: true, dataTransfer, ...over }),
+      );
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await tick();
+    }
+    grid.dispatchEvent(
+      new DragEvent("drop", { bubbles: true, dataTransfer, ...over }),
+    );
+    from.dispatchEvent(
+      new DragEvent("dragend", { bubbles: true, dataTransfer }),
+    );
+    await tick();
+    expect(onReorder).toHaveBeenCalledTimes(1);
+    expect(onReorder).toHaveBeenCalledWith(
+      three.map((n) => n.id),
+      0,
       1,
     );
   });
@@ -368,7 +497,7 @@ describe("ReorderableGrid", () => {
     }
   });
 
-  it("re-renders only the cards a selection or a drop gap touches", async () => {
+  it("re-renders only the card a selection touches, and none for a drag", async () => {
     // Every card used to read the board-wide signals itself, and was handed a
     // fresh closure per render, so selecting one note re-rendered (and
     // re-parsed the markdown of) every card on the board.
@@ -410,10 +539,11 @@ describe("ReorderableGrid", () => {
           ...afterEdgeOf(cards()[2]),
         }),
       );
-      // The gap is looked up once per frame, not once per event.
+      // The previewed order is put on the cards' styles, not their props, so
+      // a drag re-renders none of them.
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await tick();
-      expect(rendered).toEqual(["Charlie"]);
+      expect(rendered).toEqual([]);
       from.dispatchEvent(new DragEvent("dragend", { bubbles: true }));
     } finally {
       options.diffed = previous;
@@ -482,7 +612,7 @@ describe("ReorderableGrid", () => {
       host,
     );
     const container = cards()[0].parentElement as HTMLElement;
-    expect(isContainerVertical(container)).toBe(true);
+    expect(getComputedStyle(container).flexDirection).toBe("column");
     for (const card of cards()) {
       expect(card.style.gridRowEnd).toBe("");
     }
@@ -497,33 +627,24 @@ describe("ReorderableGrid", () => {
   });
 });
 
-describe("isContainerVertical", () => {
-  /** A container with this inline style, measured for real. */
-  const verticalityOf = (style: string): boolean => {
-    const el = document.createElement("div");
-    el.setAttribute("style", style);
-    document.body.appendChild(el);
-    const vertical = isContainerVertical(el);
-    el.remove();
-    return vertical;
-  };
-
-  it("calls a flex column vertical (the list view)", () => {
-    expect(verticalityOf("display: flex; flex-direction: column")).toBe(true);
+describe("moveInto", () => {
+  it("takes the target's place, from either side", () => {
+    expect(moveInto(["a", "b", "c", "d"], "a", "c")).toEqual([
+      "b",
+      "c",
+      "a",
+      "d",
+    ]);
+    expect(moveInto(["a", "b", "c", "d"], "d", "b")).toEqual([
+      "a",
+      "d",
+      "b",
+      "c",
+    ]);
   });
 
-  it("calls a single-column grid vertical", () => {
-    // The reason this is measured rather than read off the view mode: the
-    // masonry grid is one column at narrow widths too, and there a drop rule
-    // goes between cards rather than beside one.
-    expect(verticalityOf("display: grid; grid-template-columns: 1fr")).toBe(
-      true,
-    );
-  });
-
-  it("calls a multi-column grid horizontal", () => {
-    expect(
-      verticalityOf("display: grid; grid-template-columns: 1fr 1fr 1fr"),
-    ).toBe(false);
+  it("changes nothing for itself or an unknown id", () => {
+    expect(moveInto(["a", "b"], "a", "a")).toEqual(["a", "b"]);
+    expect(moveInto(["a", "b"], "a", "z")).toEqual(["a", "b"]);
   });
 });

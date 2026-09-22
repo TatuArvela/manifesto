@@ -319,9 +319,18 @@ search, no modal. `reorderNotes` gives the dropped note the midpoint between its
 writes nothing else. `position` is a float in both drivers, so a `POSITION_STEP` (1000) gap lasts
 about fifty halvings before `renumberFrom` spreads everything out again. The neighbours are found
 on the whole number line, archived and trashed notes included: they share it, and a slot chosen
-among the visible notes alone can land on a hidden one. Ties in the manual sort break on `id`. `ReorderableGrid` measures the computed style to
-tell a one-column layout from a grid, because masonry collapses to one column when narrow and the
-drop indicator has to change axis.
+among the visible notes alone can land on a hidden one. Ties in the manual sort break on `id`.
+
+While a card is dragged, `ReorderableGrid` previews the new order: the card takes the place of the
+card under the pointer, found by hit-testing where cards are drawn, and the others slide (FLIP)
+to make room. The order is shown through each card's CSS `order`, never by moving DOM nodes,
+because moving a node drops the pointer capture a touch drag holds. The dragged card keeps its
+slot with `visibility: hidden`; the only copy on screen is under the pointer (the browser's drag
+image, or `.note-drag-ghost` for a finger). The card just swapped with is passed over until the
+pointer leaves it, or the two swap back and forth under a still pointer. A drop commits the order
+on screen and never applies a move still waiting for its frame. `dragenter` is cancelled as well
+as `dragover`: cards move under the pointer, and a drop onto a card entered with no `dragover`
+since is refused by the browser.
 
 On a touch screen that drag is reached only by holding the card first, and the ordering in
 `hooks/useTouchGesture.ts` is what keeps the board scrollable: a finger that moves before the hold

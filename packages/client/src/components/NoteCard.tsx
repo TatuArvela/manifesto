@@ -335,7 +335,6 @@ export const NoteCard = memo(function NoteCard({
   onTouchDragStart,
   onTouchDragMove,
   onTouchDragEnd,
-  dropSide,
 }: {
   note: Note;
   draggable?: boolean;
@@ -344,7 +343,6 @@ export const NoteCard = memo(function NoteCard({
   onTouchDragStart?: (e: PointerEvent, id: string) => void;
   onTouchDragMove?: (e: PointerEvent) => void;
   onTouchDragEnd?: (e: PointerEvent, didDrag: boolean) => void;
-  dropSide?: "before" | "after";
 }) {
   const isEditing = useComputed(() => editingNoteId.value === note.id).value;
   const leaving = useComputed(() => leavingNotes.value.get(note.id)).value;
@@ -581,7 +579,6 @@ export const NoteCard = memo(function NoteCard({
             viewMode.value === "list" &&
             "w-full max-w-sm mx-auto",
         )}
-        data-drop-side={dropSide}
         data-leaving={leaving}
         data-note-id={note.id}
         onAnimationEnd={(e) => {

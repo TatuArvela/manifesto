@@ -1102,8 +1102,26 @@ body.marquee-active {
 }
 
 /* Drag-and-drop reorder */
+/* The card being dragged holds the place it would drop into, and the others
+   make room around it, but it is not drawn there: the only copy on screen is
+   the one under the pointer, the browser's drag image with a mouse and
+   `.note-drag-ghost` under a finger. `visibility`, not `display`, so it keeps
+   its space in the grid. */
 .note-dragging {
-  opacity: 0.3;
+  visibility: hidden;
+}
+
+/* The copy of a card that follows a finger (ReorderableGrid.tsx), lifted as a
+   held card is. */
+.note-drag-ghost {
+  position: fixed;
+  margin: 0;
+  z-index: 60;
+  pointer-events: none;
+  transform: scale(1.03);
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.25),
+    0 8px 10px -6px rgb(0 0 0 / 0.2);
 }
 
 /* On a touch screen a card stays pannable, so a swipe that starts on one
@@ -1137,54 +1155,6 @@ body.note-drag-active .note-select {
      it any other way. */
   opacity: 0 !important;
   pointer-events: none;
-}
-
-/* Drop indicators using pseudo-elements: no layout shift, no box-shadow conflict.
-   Placed on the borderless wrapper so the pseudo's padding-box coincides with the
-   card's border-box (no per-card border-width offset to compensate for). */
-.note-draggable-wrapper[data-drop-side]::after {
-  content: "";
-  position: absolute;
-  background: #3b82f6;
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* Grid (gap-4 = 16px): vertical bars centered in the gap */
-.note-draggable-wrapper[data-drop-side="before"]::after {
-  left: -10px;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  border-radius: 1.5px;
-}
-
-.note-draggable-wrapper[data-drop-side="after"]::after {
-  right: -10px;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  border-radius: 1.5px;
-}
-
-/* Vertical layouts (list view or single-column grid): horizontal bars centered in the gap.
-   The grid container sets --drop-gap to its measured vertical gap at dragstart. */
-.note-grid-vertical .note-draggable-wrapper[data-drop-side="before"]::after,
-.note-grid-vertical .note-draggable-wrapper[data-drop-side="after"]::after {
-  left: 0;
-  right: 0;
-  width: auto;
-  height: 3px;
-  border-radius: 1.5px;
-}
-
-.note-grid-vertical .note-draggable-wrapper[data-drop-side="before"]::after {
-  top: calc(-1 * var(--drop-gap, 16px) / 2 - 0.5px);
-  bottom: auto;
-}
-.note-grid-vertical .note-draggable-wrapper[data-drop-side="after"]::after {
-  top: auto;
-  bottom: calc(-1 * var(--drop-gap, 16px) / 2 - 0.5px);
 }
 
 /* Prose heading styles for markdown content */
