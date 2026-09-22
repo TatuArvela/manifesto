@@ -26,13 +26,14 @@ import {
   type SearchLocation,
   type SearchType,
   searchColors,
+  searchInput,
   searchLocations,
-  searchQuery,
   searchTypes,
   sortedNotes,
   toggleSearchColor,
   toggleSearchLocation,
   toggleSearchType,
+  typeSearch,
 } from "../state/index.js";
 
 const TYPE_META: {
@@ -151,7 +152,7 @@ export function SearchView() {
   const locations = searchLocations.value;
   const locationsAtDefault = locations.size === 1 && locations.has("active");
   const filtersActive =
-    searchQuery.value.length > 0 ||
+    searchInput.value.length > 0 ||
     searchTypes.value.size > 0 ||
     searchColors.value.size > 0 ||
     !locationsAtDefault;
@@ -193,9 +194,9 @@ export function SearchView() {
           type="search"
           placeholder={t("header.searchPlaceholder")}
           class="w-full pl-10 pr-3 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-neutral-900 outline-none transition text-sm"
-          value={searchQuery.value}
+          value={searchInput.value}
           onInput={(e) => {
-            searchQuery.value = (e.target as HTMLInputElement).value;
+            typeSearch((e.target as HTMLInputElement).value);
           }}
         />
       </div>
