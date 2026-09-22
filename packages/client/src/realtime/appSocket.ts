@@ -7,7 +7,7 @@ import {
   type WebSocketEvent,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { loadNotes, notes, upsertById } from "../state/actions.js";
+import { loadNotes, notes, receiveNote } from "../state/actions.js";
 import {
   authToken,
   clearAuthLocal,
@@ -136,10 +136,8 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
 function applyServerEvent(event: WebSocketEvent) {
   switch (event.type) {
     case "note:created":
-      notes.value = upsertById(notes.value, event.note);
-      break;
     case "note:updated":
-      notes.value = upsertById(notes.value, event.note);
+      receiveNote(event.note);
       break;
     case "note:deleted":
       notes.value = notes.value.filter((n) => n.id !== event.id);
@@ -212,8 +210,9 @@ function connect(token: string) {
     if (hasOpenedOnce) {
       // Reconnect path: only WS-bound state caught up via fan-out events. We
       // missed everything that happened while offline, so refetch the full
-      // notes list. The signal-merge in upsertById handles any racing events
-      // that arrive between this fire and the response.
+      // notes list. `foldIncomingList` keeps the notes that did not change,
+      // and `receiveNote` handles any racing events that arrive between this
+      // fire and the response.
       loadNotes().catch(() => {
         // Network blip during the catch-up fetch is fine; the next user
         // action or full reload will retry.
