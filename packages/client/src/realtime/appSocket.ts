@@ -1,4 +1,5 @@
 import {
+  APP_SOCKET_HEARTBEAT_MS,
   NoteColor,
   NoteFont,
   type PresenceUser,
@@ -50,6 +51,33 @@ let lastViewedNoteId: string | null | undefined;
 // (after onclose triggers a reconnect) trigger a notes re-fetch so any writes
 // that happened on another device while we were offline aren't missed.
 let hasOpenedOnce = false;
+
+/**
+ * How long the socket may stay silent before we stop believing it. A socket
+ * that dies without a close (a network change, a sleep, a NAT forgetting it)
+ * stays `OPEN` here until TCP gives up, which can take many minutes, and all
+ * that time the banner says connected while nothing arrives. The server sends
+ * `heartbeat` on an interval, so two missed beats and some slack is enough to
+ * call it.
+ */
+const SILENCE_LIMIT_MS = APP_SOCKET_HEARTBEAT_MS * 2.5;
+let lastHeardAt = 0;
+// Only a socket that has heard one heartbeat is held to the limit. A server
+// from before heartbeats sends none, and a quiet board would otherwise be
+// redialled every minute or so, forever.
+let hearsHeartbeats = false;
+let watchdog: ReturnType<typeof setInterval> | null = null;
+
+function stopWatchdog() {
+  if (watchdog) {
+    clearInterval(watchdog);
+    watchdog = null;
+  }
+}
+
+function hasGoneSilent(): boolean {
+  return hearsHeartbeats && Date.now() - lastHeardAt > SILENCE_LIMIT_MS;
+}
 
 function clearReconnect() {
   if (reconnectTimer) {
@@ -128,6 +156,8 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
       return isInvitation(v.invitation);
     case "invitation:removed":
       return typeof v.noteId === "string";
+    case "heartbeat":
+      return true;
     default:
       return false;
   }
@@ -154,6 +184,9 @@ function applyServerEvent(event: WebSocketEvent) {
     case "invitation:removed":
       forgetInvitation(event.noteId);
       break;
+    case "heartbeat":
+      hearsHeartbeats = true;
+      break;
   }
 }
 
@@ -166,6 +199,7 @@ function send(event: WebSocketClientEvent) {
 /** Let go of the current socket: stop hearing it, and close it if the browser
  * has not already. */
 function dropSocket() {
+  stopWatchdog();
   if (!socket) return;
   socket.onopen = null;
   socket.onmessage = null;
@@ -198,12 +232,24 @@ function disconnect() {
 function connect(token: string) {
   if (WS_ORIGIN === null) return;
   setStatus("connecting");
+  // A new socket has not been heard from, and owes nothing to what the last
+  // one heard.
+  hearsHeartbeats = false;
   const ws = new WebSocket(`${WS_ORIGIN}/api/ws`, [SUBPROTOCOL, token]);
   socket = ws;
 
   ws.onopen = () => {
     setStatus("open");
     backoffMs = 1000;
+    lastHeardAt = Date.now();
+    stopWatchdog();
+    watchdog = setInterval(() => {
+      if (!hasGoneSilent()) return;
+      // Closing it would wait on a closing handshake nobody will answer, so
+      // let go of it and take the path a close would have taken.
+      dropSocket();
+      lost(1006);
+    }, APP_SOCKET_HEARTBEAT_MS / 2);
     if (lastViewedNoteId !== undefined) {
       send({ type: "presence:update", noteId: lastViewedNoteId });
     }
@@ -224,6 +270,7 @@ function connect(token: string) {
   };
 
   ws.onmessage = (msg) => {
+    lastHeardAt = Date.now();
     if (typeof msg.data !== "string") return;
     let parsed: unknown;
     try {
@@ -234,28 +281,32 @@ function connect(token: string) {
     if (isServerEvent(parsed)) applyServerEvent(parsed);
   };
 
-  ws.onclose = (event) => {
-    socket = null;
-    setStatus("closed");
-    if (event.code === 4401) {
-      // server rejected our token, so drop local auth so the user re-logs in
-      clearAuthLocal();
-      return;
-    }
-    if (authToken.value) {
-      backoffMs = Math.min(MAX_BACKOFF, backoffMs * 2);
-      reconnectTimer = setTimeout(() => {
-        // Re-read the token at fire time: the user could have logged out
-        // (or had a token swap) between scheduling and this callback.
-        const current = authToken.value;
-        if (current) connect(current);
-      }, backoffMs);
-    }
-  };
+  ws.onclose = (event) => lost(event.code);
 
   ws.onerror = () => {
     // onclose will follow with the reconnect logic
   };
+}
+
+/** The socket is gone, whether the browser said so or the silence did. */
+function lost(code: number) {
+  stopWatchdog();
+  socket = null;
+  setStatus("closed");
+  if (code === 4401) {
+    // server rejected our token, so drop local auth so the user re-logs in
+    clearAuthLocal();
+    return;
+  }
+  if (authToken.value) {
+    backoffMs = Math.min(MAX_BACKOFF, backoffMs * 2);
+    reconnectTimer = setTimeout(() => {
+      // Re-read the token at fire time: the user could have logged out
+      // (or had a token swap) between scheduling and this callback.
+      const current = authToken.value;
+      if (current) connect(current);
+    }, backoffMs);
+  }
 }
 
 /**
@@ -276,11 +327,14 @@ function reconnectNow() {
   // A socket that is open, or still dialling, is doing its job. One the browser
   // has closed under us is not, and its `onclose` may not have reached us yet:
   // a resume can deliver the visibility change first, and waiting for the close
-  // would put us back on the very backoff we came here to skip.
+  // would put us back on the very backoff we came here to skip. One that says
+  // it is open but has not been heard from in too long is not either: a page
+  // frozen for an hour had no timer running to notice.
   if (
     socket &&
     socket.readyState !== WebSocket.CLOSED &&
-    socket.readyState !== WebSocket.CLOSING
+    socket.readyState !== WebSocket.CLOSING &&
+    !hasGoneSilent()
   ) {
     return;
   }

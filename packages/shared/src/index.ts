@@ -33,6 +33,7 @@ export type {
   WebSocketEvent,
 } from "./api.js";
 export {
+  APP_SOCKET_HEARTBEAT_MS,
   DEFAULT_NOTES_PAGE_SIZE,
   MAX_NOTES_PAGE_SIZE,
 } from "./api.js";
