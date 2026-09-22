@@ -16,7 +16,7 @@ import {
   Undo2,
   X,
 } from "lucide-preact";
-import { useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { APP_LOGO_URL, APP_NAME } from "../config.js";
 import { getColorPickerColors, plural, t } from "../i18n/index.js";
 import { askConfirmation } from "../state/confirm.js";
@@ -50,8 +50,16 @@ import { Tooltip } from "./Tooltip.js";
 
 const selToolbarBtnClass = "p-2 rounded-lg hover:bg-white/10 transition-colors";
 
-function SelectionToolbar() {
-  const count = selectedNotes.value.size;
+/** How long the selection bar takes to fade out; `selection-bar-out` in CSS. */
+const SELECTION_BAR_LEAVE_MS = 180;
+
+function SelectionToolbar({ leaving }: { leaving: boolean }) {
+  // Leaving select mode empties the selection in the same step, so the count
+  // is held at what it was while the bar fades rather than reading "0".
+  const liveCount = selectedNotes.value.size;
+  const heldCount = useRef(liveCount);
+  if (!leaving) heldCount.current = liveCount;
+  const count = heldCount.current;
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const colors = getColorPickerColors();
@@ -80,7 +88,10 @@ function SelectionToolbar() {
   };
 
   return (
-    <header class="relative z-20 shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-blue-600 dark:bg-blue-700 text-white">
+    <div
+      class={`selection-bar absolute inset-0 z-30 shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 pt-[env(safe-area-inset-top)] bg-blue-600 dark:bg-blue-700 text-white${leaving ? " pointer-events-none" : ""}`}
+      data-leaving={leaving ? "true" : undefined}
+    >
       <div class="flex items-center gap-2 shrink-0">
         <button
           type="button"
@@ -244,7 +255,7 @@ function SelectionToolbar() {
           </>
         )}
       </div>
-    </header>
+    </div>
   );
 }
 
@@ -257,13 +268,35 @@ function SelectionToolbar() {
 const headerIconBtnClass =
   "p-2 rounded-lg text-neutral-600 md:text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800";
 
+/**
+ * The header, with the selection bar laid over it while notes are selected.
+ * Over it rather than instead of it, so the bar can fade out onto the header
+ * underneath when select mode ends; swapping one for the other in a frame made
+ * leaving select mode the one abrupt change on the board.
+ */
 export function Header() {
+  const selecting = selectMode.value;
+  const [barShown, setBarShown] = useState(selecting);
+  useEffect(() => {
+    if (selecting) {
+      setBarShown(true);
+      return;
+    }
+    const timer = setTimeout(() => setBarShown(false), SELECTION_BAR_LEAVE_MS);
+    return () => clearTimeout(timer);
+  }, [selecting]);
+
+  return (
+    <div class="relative z-20 shrink-0">
+      <MainHeader covered={selecting} />
+      {(selecting || barShown) && <SelectionToolbar leaving={!selecting} />}
+    </div>
+  );
+}
+
+function MainHeader({ covered }: { covered: boolean }) {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showViewMenu, setShowViewMenu] = useState(false);
-
-  if (selectMode.value) {
-    return <SelectionToolbar />;
-  }
 
   const sortOptions: { value: SortMode; label: string }[] = [
     { value: "default", label: t("header.sort.manual") },
@@ -295,7 +328,12 @@ export function Header() {
   })();
 
   return (
-    <header class="relative z-20 shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-white dark:bg-neutral-900">
+    <header
+      class="relative shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-white dark:bg-neutral-900"
+      // Out of reach under the selection bar: its controls would otherwise
+      // still take Tab presses and clicks through the gaps between buttons.
+      inert={covered}
+    >
       {/* Left: logo + title. Logo shows only on the active (main) view,
           matching desktop. Title truncates on md+ so long translations don't
           overlap the centered search bar, which is absolutely centered with
