@@ -37,18 +37,6 @@ export function resolveAppName(fallback: string): string {
 
 export const APP_NAME: string = resolveAppName(__APP_NAME__);
 
-/** The name the project ships under. Mirrors the default in `vite.config.ts`. */
-export const DEFAULT_APP_NAME = "Manifesto";
-
-/**
- * Whether this deployment still goes by the default name. Only then may a
- * message spell the name out the way its language says it (Finnish
- * "Tervetuloa Manifestoon"), through a `.unbranded` variant of a key that
- * otherwise carries `{appName}`. A rebranded name cannot be inflected, since a
- * translation cannot know how it declines.
- */
-export const IS_UNBRANDED: boolean = APP_NAME === DEFAULT_APP_NAME;
-
 /**
  * Whether a first-time visitor is greeted by the welcome dialog, which says
  * what the app is and, above all, where their notes are kept.

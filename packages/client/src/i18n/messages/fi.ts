@@ -396,8 +396,7 @@ export const fi: Messages = {
   "reminder.chip": "Muistutus: {date}",
 
   // Shared-note dialog, shown when the app opens on a #share=... link.
-  "welcome.title": "Tervetuloa palveluun {appName}",
-  "welcome.title.unbranded": "Tervetuloa Manifestoon",
+  "welcome.title": "Tämä on {appName}",
   "welcome.intro":
     "Muistilappuja ajatuksille, listoille ja muistutuksille. Kirjoita Markdownilla tai käytä muotoilupalkkia, ja järjestä lappuja vetämällä.",
   "welcome.local.title": "Tallennettu tälle laitteelle",

@@ -152,11 +152,10 @@ No translated string spells the name out. The message catalogues carry an
 `{appName}` placeholder that is filled at render time, so a rebrand reaches
 every locale at once. A test fails if a catalogue ever hard-codes it.
 
-The exception is where a language would decline the name. A placeholder cannot
-be inflected, so Finnish says "Tervetuloa palveluun {appName}". While the app
-still goes by Manifesto, the welcome dialog uses a separate unbranded message
-that can say it properly, "Tervetuloa Manifestoon". Any other name gets the
-placeholder form.
+A placeholder cannot be inflected, since a translation cannot know how another
+name declines, so every message is phrased to leave it in its base form: the
+welcome dialog says "Tämä on {appName}", not "Tervetuloa {appName}on". One
+wording therefore serves every deployment name.
 
 Not parametrised, both one-line source edits:
 

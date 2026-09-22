@@ -3,8 +3,6 @@ import {
   APP_FILE_SLUG,
   APP_LOGO_URL,
   APP_NAME,
-  DEFAULT_APP_NAME,
-  IS_UNBRANDED,
   resolveAppName,
   resolveServerUrl,
   resolveWelcomeEnabled,
@@ -38,14 +36,6 @@ describe("APP_NAME", () => {
   test("falls back to the built-in name when nothing overrides it", () => {
     expect(APP_NAME).toBe("Manifesto");
     expect(APP_FILE_SLUG).toBe("manifesto");
-  });
-});
-
-describe("IS_UNBRANDED", () => {
-  // The test build keeps the default name.
-  test("holds while the app goes by its default name", () => {
-    expect(APP_NAME).toBe(DEFAULT_APP_NAME);
-    expect(IS_UNBRANDED).toBe(true);
   });
 });
 
