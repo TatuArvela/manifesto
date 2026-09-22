@@ -991,6 +991,30 @@ html.dark {
    just teleports. The arriving card plays a short settle instead: it lands
    slightly large and a touch askew, then straightens, as though it had been
    pressed onto the board. */
+/* The selection bar (Header.tsx) drops in over the header and fades back
+   out onto it. The exit's duration is SELECTION_BAR_LEAVE_MS there. */
+@keyframes selection-bar-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.5rem;
+  }
+}
+
+@keyframes selection-bar-out {
+  to {
+    opacity: 0;
+    translate: 0 -0.5rem;
+  }
+}
+
+.selection-bar {
+  animation: selection-bar-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.selection-bar[data-leaving="true"] {
+  animation: selection-bar-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 @keyframes note-pin-settle {
   0% {
     opacity: 0.4;

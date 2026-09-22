@@ -170,12 +170,12 @@ function CardActions({
     /* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */
     <div
       class={clsx(
-        "flex items-center gap-1 transition-opacity",
+        "flex items-center gap-1 transition-[opacity,visibility]",
         overlay
           ? "absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-gradient-to-t from-black/60 to-transparent text-white"
           : "mt-auto pt-3 -ml-1.5",
         isSelectMode
-          ? "invisible"
+          ? "invisible opacity-0"
           : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100",
       )}
       onClick={(e) => {
@@ -687,7 +687,7 @@ export const NoteCard = memo(function NoteCard({
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */}
           <div
             class={clsx(
-              "absolute top-2 right-2 z-10 flex items-center gap-0.5 transition-colors duration-200",
+              "absolute top-2 right-2 z-10 flex items-center gap-0.5 transition-[color,opacity,visibility] duration-200",
               // A card whose whole face is an image or a link hero has no
               // note colour up here to darken against, and the picture
               // underneath can be any shade, so the icons go white with a
@@ -695,7 +695,10 @@ export const NoteCard = memo(function NoteCard({
               overlayControls
                 ? "text-white [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.7))]"
                 : "text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
-              isSelectMode && "invisible",
+              // Faded rather than switched, both ways. Visibility is in the
+              // transition so it waits for the fade out, and still hides the
+              // buttons from Tab once it has finished.
+              isSelectMode && "invisible opacity-0",
             )}
             onClick={(e) => e.stopPropagation()}
           >
