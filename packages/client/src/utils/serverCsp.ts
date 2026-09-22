@@ -40,10 +40,9 @@ function splitOrigin(origin: string): Origin | null {
  * already covers it. Null when the value is not a server address at all.
  */
 export function requiredConnectOrigins(serverUrl: string): string[] | null {
-  // A relative value asks for no origin the policy has to name: it resolves
-  // against this page. It is not a working configuration for other reasons
-  // (see Branding in CLAUDE.md), but that is not this function's complaint to
-  // make, and reporting it here would be the wrong diagnosis.
+  // A relative value (`VITE_MANIFESTO_SERVER=/`, or the empty string it trims
+  // to) asks for no origin the policy has to name: it resolves against this
+  // page, which `'self'` already permits. That is the single-proxy shape.
   if (serverUrl === "" || serverUrl.startsWith("/")) return [];
   let url: URL;
   try {

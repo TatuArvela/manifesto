@@ -172,11 +172,17 @@ Two cases need no CSP edit at all.
 A **single-origin deployment**, where one proxy serves the bundle and `/api/*`
 from the same host, is already covered by the stock `connect-src 'self'`: CSP3
 extends `'self'` to the `wss://` form of the page's own host, so the sockets
-are permitted too. Write the site's own absolute URL in the tag
-(`https://notes.example.com`) and leave the policy alone. That is the shape
+are permitted too. Leave the policy alone and set only the tag:
+
+```html
+<meta name="manifesto-server" content="/" />
+```
+
+`/` means "wherever this page came from", so the client needs no hostname of
+its own and there is nothing to update if the domain ever changes. The site's
+own absolute URL works too. That shape is what
 [server/deployment.md recommends](../server/deployment.md#single-origin-behind-one-reverse-proxy)
-for one box, and it makes a connected instance a one-line edit. The tag needs a
-full URL: a relative value is not supported.
+for one box, and it makes a connected instance a one-line edit.
 
 A **build from source** with `VITE_MANIFESTO_SERVER` set needs no tag either:
 `vite.config.ts` derives the CSP from the same value, so the address and the

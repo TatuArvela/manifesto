@@ -9,7 +9,7 @@ import {
   oidcLoginUrl,
   PasswordChangeRequiredError,
   register,
-  SERVER_URL,
+  SERVER_ORIGIN,
 } from "../state/auth.js";
 
 /**
@@ -78,9 +78,9 @@ export function LoginScreen() {
         {discovery.kind === "ready" &&
           discovery.methods.provider === "local" && <LocalLoginForm />}
 
-        {SERVER_URL && (
+        {SERVER_ORIGIN !== null && (
           <p class="mt-6 text-xs text-center text-neutral-400 dark:text-neutral-500 break-all">
-            {t("login.serverLabel")}: {SERVER_URL}
+            {t("login.serverLabel")}: {SERVER_ORIGIN}
           </p>
         )}
       </div>

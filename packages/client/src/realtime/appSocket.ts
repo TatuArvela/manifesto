@@ -8,7 +8,12 @@ import {
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
 import { loadNotes, notes, upsertById } from "../state/actions.js";
-import { authToken, clearAuthLocal, SERVER_URL } from "../state/auth.js";
+import {
+  authToken,
+  clearAuthLocal,
+  isServerMode,
+  WS_ORIGIN,
+} from "../state/auth.js";
 import {
   clearPresence,
   recordPresenceJoin,
@@ -37,11 +42,6 @@ let lastViewedNoteId: string | null | undefined;
 // (after onclose triggers a reconnect) trigger a notes re-fetch so any writes
 // that happened on another device while we were offline aren't missed.
 let hasOpenedOnce = false;
-
-function wsBaseUrl(): string | null {
-  if (!SERVER_URL) return null;
-  return SERVER_URL.replace(/^http/, "ws");
-}
 
 function clearReconnect() {
   if (reconnectTimer) {
@@ -182,10 +182,9 @@ function disconnect() {
 }
 
 function connect(token: string) {
-  const base = wsBaseUrl();
-  if (!base) return;
+  if (WS_ORIGIN === null) return;
   connectionStatus.value = "connecting";
-  const ws = new WebSocket(`${base}/api/ws`, [SUBPROTOCOL, token]);
+  const ws = new WebSocket(`${WS_ORIGIN}/api/ws`, [SUBPROTOCOL, token]);
   socket = ws;
 
   ws.onopen = () => {
@@ -254,7 +253,7 @@ export function startAppSocket(): void {
   effect(() => {
     const token = authToken.value;
     disconnect();
-    if (token && SERVER_URL) connect(token);
+    if (token && isServerMode) connect(token);
   });
 
   effect(() => {

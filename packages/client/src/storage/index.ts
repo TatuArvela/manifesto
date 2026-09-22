@@ -34,7 +34,10 @@ export const storageConnection = signal<StorageConnection>({
  */
 export const currentStorage = computed<StorageAdapter>(() => {
   const { serverUrl, token, onUnauthorized } = storageConnection.value;
-  if (serverUrl && token) {
+  // `=== null`, not falsiness: a same-origin deployment's base is the empty
+  // string, and reading that as "no server" sent every note to localStorage
+  // while the user believed they were signed in.
+  if (serverUrl !== null && token) {
     return new RestApiAdapter(serverUrl, token, { onUnauthorized });
   }
   return new LocalStorageAdapter();
