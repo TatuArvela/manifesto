@@ -2,51 +2,82 @@ import type { NoteVersion } from "@manifesto/shared";
 import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 
-const STORAGE_KEY = "manifesto:versions";
+/**
+ * One key per note, `manifesto:versions:<id>`, each an LZ-compressed list.
+ *
+ * All of them used to share `manifesto:versions`, one map for every note, so
+ * saving a version decompressed, parsed, re-serialized and re-compressed every
+ * other note's history too. LZ-String compresses at a few MB a second, and a
+ * well-used history is several MB of JSON, so closing the editor froze the page
+ * for half a second, in the middle of the animation that closes it. A save now
+ * costs one note's history.
+ */
+const KEY_PREFIX = "manifesto:versions:";
+/** The single shared key the per-note ones replaced; migrated on first use. */
+const LEGACY_KEY = "manifesto:versions";
 const MAX_VERSIONS_PER_NOTE = 50;
 const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
 type VersionMap = Record<string, NoteVersion[]>;
 
-function load(): VersionMap {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return {};
+const keyFor = (noteId: string) => `${KEY_PREFIX}${noteId}`;
+
+function decode<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
   try {
     const json = decompressFromUTF16(raw);
-    if (!json) return {};
-    return JSON.parse(json) as VersionMap;
+    if (!json) return fallback;
+    return JSON.parse(json) as T;
   } catch {
-    return {};
+    return fallback;
   }
 }
 
-function save(map: VersionMap): boolean {
-  const json = JSON.stringify(map);
+/** Writes one note's list, or reports whether the browser refused it. */
+function write(noteId: string, versions: NoteVersion[]): "ok" | "quota" {
   try {
-    localStorage.setItem(STORAGE_KEY, compressToUTF16(json));
-    return true;
+    localStorage.setItem(
+      keyFor(noteId),
+      compressToUTF16(JSON.stringify(versions)),
+    );
+    return "ok";
   } catch (err) {
-    // QuotaExceededError under heavy use (50 versions × N notes). Drop the
-    // oldest version from each note and try once more before giving up.
-    if (isQuotaError(err)) {
-      const trimmed: VersionMap = {};
-      for (const [id, versions] of Object.entries(map)) {
-        trimmed[id] = versions.length > 1 ? versions.slice(1) : versions;
-      }
-      try {
-        localStorage.setItem(
-          STORAGE_KEY,
-          compressToUTF16(JSON.stringify(trimmed)),
-        );
-        reportQuotaRefusal();
-        return true;
-      } catch {
-        reportQuotaRefusal();
-        return false;
-      }
-    }
+    if (isQuotaError(err)) return "quota";
     throw err;
   }
+}
+
+let migrated = false;
+
+/**
+ * Splits the old shared map into per-note keys, once. The shared key is
+ * dropped only after its notes are written, so a refusal part way through
+ * frees its space and tries the note again rather than losing the rest.
+ */
+function migrateLegacy(): void {
+  if (migrated) return;
+  migrated = true;
+  const raw = localStorage.getItem(LEGACY_KEY);
+  if (raw === null) return;
+  const map = decode<VersionMap>(raw, {});
+  let legacyRemoved = false;
+  for (const [noteId, versions] of Object.entries(map)) {
+    if (!Array.isArray(versions) || versions.length === 0) continue;
+    if (write(noteId, versions) === "ok") continue;
+    if (!legacyRemoved) {
+      localStorage.removeItem(LEGACY_KEY);
+      legacyRemoved = true;
+      if (write(noteId, versions) === "ok") continue;
+    }
+    reportQuotaRefusal();
+  }
+  localStorage.removeItem(LEGACY_KEY);
+}
+
+function load(noteId: string): NoteVersion[] {
+  migrateLegacy();
+  const versions = decode<unknown>(localStorage.getItem(keyFor(noteId)), []);
+  return Array.isArray(versions) ? (versions as NoteVersion[]) : [];
 }
 
 export function saveVersion(
@@ -54,13 +85,11 @@ export function saveVersion(
   title: string,
   content: string,
 ): void {
-  const map = load();
-  const versions = map[noteId] ?? [];
   const now = Date.now();
   const cutoff = now - MAX_AGE_MS;
 
   // Stored oldest-first, so both limits trim from the front.
-  const fresh = versions.filter(
+  const fresh = load(noteId).filter(
     (v) => new Date(v.timestamp).getTime() >= cutoff,
   );
 
@@ -75,20 +104,23 @@ export function saveVersion(
     fresh.splice(0, fresh.length - MAX_VERSIONS_PER_NOTE);
   }
 
-  map[noteId] = fresh;
-  save(map);
+  if (write(noteId, fresh) === "ok") return;
+  // Out of room: give up this note's oldest version for the new one, once.
+  reportQuotaRefusal();
+  if (fresh.length > 1) write(noteId, fresh.slice(1));
 }
 
 export function getVersions(noteId: string): NoteVersion[] {
-  const map = load();
-  const versions = map[noteId] ?? [];
   // Newest first: the history panel lists most-recent at the top.
-  return [...versions].reverse();
+  return [...load(noteId)].reverse();
 }
 
 export function deleteVersions(noteId: string): void {
-  const map = load();
-  if (!(noteId in map)) return;
-  delete map[noteId];
-  save(map);
+  migrateLegacy();
+  localStorage.removeItem(keyFor(noteId));
+}
+
+/** For tests: run the legacy migration again on the next access. */
+export function resetVersionMigrationForTests(): void {
+  migrated = false;
 }
