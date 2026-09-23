@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 import { createExpiringCounter } from "../lib/expiringCounter.js";
+import { countMetric } from "../lib/metrics.js";
 import { HttpError } from "./error.js";
 
 export interface RateLimitOptions {
@@ -13,6 +14,8 @@ export interface RateLimitOptions {
    * Defaults to false; without it, an attacker can rotate the header to
    * bypass per-IP throttling. */
   trustProxy?: boolean;
+  /** Names the limiter in the rate-limit metric. */
+  name?: string;
 }
 
 /**
@@ -178,6 +181,7 @@ export function perUserApiRateLimit(limit = 300): MiddlewareHandler<{
     limit,
     windowMs: 60 * 1000,
     keyFor: (c) => `user:${c.get("auth").userId}`,
+    name: "per-user",
   });
 }
 
@@ -195,6 +199,11 @@ export function rateLimit(opts: RateLimitOptions): MiddlewareHandler {
     const now = Date.now();
     const { count, resetAt } = buckets.hit(keyFor(c), now);
     if (count > opts.limit) {
+      countMetric(
+        "manifesto_rate_limited_total",
+        "Requests refused by a rate limit.",
+        { limiter: opts.name ?? "api" },
+      );
       const retryAfter = Math.max(1, Math.ceil((resetAt - now) / 1000));
       c.header("Retry-After", String(retryAfter));
       throw new HttpError(429, "Too many requests");

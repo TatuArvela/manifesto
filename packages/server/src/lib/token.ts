@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 export function newSessionToken(): string {
   return randomBytes(32).toString("hex");
@@ -22,4 +22,11 @@ export const API_TOKEN_PREFIX = "mfp_";
 
 export function newApiToken(): string {
   return `${API_TOKEN_PREFIX}${randomBytes(32).toString("base64url")}`;
+}
+
+/** Compares two secrets in time that does not depend on where they differ. */
+export function safeEqual(a: string, b: string): boolean {
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb);
 }

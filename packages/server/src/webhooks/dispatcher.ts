@@ -6,6 +6,7 @@ import type {
 } from "@manifesto/shared";
 import type { WebhookMode } from "../config.js";
 import { logger } from "../lib/logger.js";
+import { countMetric } from "../lib/metrics.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
 import {
@@ -177,6 +178,11 @@ export function createWebhookDispatcher(
       outcome = await post(webhook, payload);
       if (outcome.error === null) break;
     }
+    countMetric(
+      "manifesto_webhook_deliveries_total",
+      "Webhook deliveries, by whether they got through.",
+      { result: outcome.error === null ? "delivered" : "failed" },
+    );
     try {
       await storage.webhooks.recordDelivery(webhook.id, {
         at: nowIso(),
