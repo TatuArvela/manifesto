@@ -196,6 +196,7 @@ export const fi: Messages = {
 
   // Version history
   "versions.title": "Versiohistoria",
+  "versions.loading": "Ladataan historiaa...",
   "versions.empty": "Ei aiempia versioita",
   "versions.backToList": "Takaisin listaan",
   "versions.backToEditor": "Takaisin editoriin",

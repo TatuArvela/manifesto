@@ -3,6 +3,7 @@ import type {
   Note,
   NoteCreate,
   NoteUpdate,
+  NoteVersion,
 } from "@manifesto/shared";
 
 export interface UpdateOptions {
@@ -36,6 +37,16 @@ export interface StorageAdapter {
    * them); open mode never does, and rejects.
    */
   loadAttachment(ref: string): Promise<Blob>;
+  /**
+   * A note's version history, newest first. Open mode keeps it in this
+   * browser; connected mode on the server, so every device shares it.
+   */
+  listVersions(noteId: string): Promise<NoteVersion[]>;
+  /** Adds a version; `timestamp` only when bringing an older one across. */
+  saveVersion(
+    noteId: string,
+    version: { title: string; content: string; timestamp?: string },
+  ): Promise<void>;
   /**
    * What the server could read from a linked page, with its image and favicon
    * as fetched (not yet shrunk). Null when there is nothing to add to the plain

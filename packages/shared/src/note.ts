@@ -302,6 +302,11 @@ export type NoteUpdate = Partial<
 >;
 
 /** A snapshot of a note's title and content at a point in time. */
+/** A note's version history keeps at most this many versions... */
+export const MAX_NOTE_VERSIONS = 50;
+/** ...none older than this, in both modes. */
+export const NOTE_VERSION_MAX_AGE_DAYS = 90;
+
 export interface NoteVersion {
   noteId: string;
   timestamp: string;

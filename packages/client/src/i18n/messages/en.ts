@@ -192,6 +192,7 @@ export const en = {
 
   // Version history
   "versions.title": "Version history",
+  "versions.loading": "Loading history...",
   "versions.empty": "No previous versions",
   "versions.backToList": "Back to list",
   "versions.backToEditor": "Back to editor",

@@ -3,6 +3,7 @@ import type {
   Note,
   NoteColor,
   NoteFont,
+  NoteVersion,
   ShareRole,
   ShareUser,
 } from "./note.js";
@@ -41,6 +42,21 @@ export interface NotesResponse {
 
 export interface NoteResponse {
   note: Note;
+}
+
+/** `GET /api/notes/:id/versions`, newest first. */
+export interface NoteVersionsResponse {
+  versions: NoteVersion[];
+}
+
+/**
+ * `POST /api/notes/:id/versions`. `timestamp` is for bringing a history kept
+ * in a browser across with its own dates; the server stamps one left out.
+ */
+export interface NoteVersionCreateRequest {
+  title: string;
+  content: string;
+  timestamp?: string;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { NOTE_VERSION_MAX_AGE_DAYS } from "@manifesto/shared";
 import { moveInlineImagesToStore } from "../attachments/store.js";
 import type { StorageDriver } from "../storage/types.js";
 import { logger } from "./logger.js";
@@ -12,7 +13,7 @@ const DAY_MS = 24 * HOUR_MS;
  * refers to attachments by id and keeps versions for 90 days, so a version
  * restored within that window still finds its images.
  */
-export const ATTACHMENT_GRACE_DAYS = 90;
+export const ATTACHMENT_GRACE_DAYS = NOTE_VERSION_MAX_AGE_DAYS;
 
 /**
  * Deletes attachments no note has referred to for `ATTACHMENT_GRACE_DAYS`.

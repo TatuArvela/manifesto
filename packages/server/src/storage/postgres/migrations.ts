@@ -134,6 +134,19 @@ CREATE TABLE attachments (
 );
 `;
 
+/** See the SQLite copy. */
+const NOTE_VERSIONS = `
+CREATE TABLE note_versions (
+  id         TEXT PRIMARY KEY,
+  note_id    TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  author_id  TEXT REFERENCES users(id) ON DELETE SET NULL,
+  title      TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX note_versions_note ON note_versions(note_id, created_at);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -142,6 +155,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0005-note-shares", sql: NOTE_SHARES },
   { id: "0006-note-search-terms", sql: NOTE_SEARCH_TERMS },
   { id: "0007-attachments", sql: ATTACHMENTS },
+  { id: "0008-note-versions", sql: NOTE_VERSIONS },
 ];
 
 export async function runMigrations(

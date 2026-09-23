@@ -2,6 +2,7 @@ import type {
   Note,
   NoteCreate,
   NoteUpdate,
+  NoteVersion,
   ShareInvitation,
   ShareRole,
   ShareUser,
@@ -388,6 +389,24 @@ export interface AttachmentsRepo {
   setNoteImages(id: string, images: string[]): Promise<void>;
 }
 
+/**
+ * A note's earlier title and content (connected mode's version history). The
+ * repo keeps each note to `MAX_NOTE_VERSIONS` and `NOTE_VERSION_MAX_AGE_DAYS`
+ * as versions are added; a deleted note takes its versions with it.
+ */
+export interface VersionsRepo {
+  /** Newest first. */
+  list(noteId: string): Promise<NoteVersion[]>;
+  add(input: {
+    id: string;
+    noteId: string;
+    authorId: string;
+    title: string;
+    content: string;
+    createdAt: string;
+  }): Promise<void>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -396,5 +415,6 @@ export interface StorageDriver {
   yjs: YjsStore;
   maintenance: MaintenanceRepo;
   attachments: AttachmentsRepo;
+  versions: VersionsRepo;
   close(): Promise<void>;
 }

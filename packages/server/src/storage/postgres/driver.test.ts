@@ -1,4 +1,4 @@
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { describeAdminContract } from "../adminContract.js";
 import { describeAttachmentsContract } from "../attachmentsContract.js";
@@ -23,6 +23,45 @@ describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
   const { pool } = storage as PostgresStorageDriver;
   await pool.query(`DELETE FROM note_terms`);
   await pool.query(`UPDATE notes SET search_version = 0`);
+});
+
+describe("postgres: versions", () => {
+  it("lists newest first, trims to the cap, and goes with the note", async () => {
+    const storage = await bootStorage();
+    await storage.users.create({
+      id: "u1",
+      username: "una",
+      passwordHash: "h",
+      displayName: "",
+      avatarColor: "",
+      provider: "local",
+      externalId: null,
+      createdAt: NOW,
+    });
+    await storage.notes.insert({
+      id: "n1",
+      userId: "u1",
+      data: baseNoteData,
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+    for (let i = 0; i < MAX_NOTE_VERSIONS + 2; i++) {
+      await storage.versions.add({
+        id: `v${String(i).padStart(3, "0")}`,
+        noteId: "n1",
+        authorId: "u1",
+        title: "",
+        content: String(i),
+        createdAt: new Date(Date.now() - (100 - i) * 1000).toISOString(),
+      });
+    }
+    const kept = await storage.versions.list("n1");
+    expect(kept).toHaveLength(MAX_NOTE_VERSIONS);
+    expect(kept[0].content).toBe(String(MAX_NOTE_VERSIONS + 1));
+    await storage.notes.delete("n1", "u1");
+    expect(await storage.versions.list("n1")).toEqual([]);
+    await storage.close();
+  });
 });
 
 describe("postgres: search index backfill", () => {

@@ -7,6 +7,7 @@ import { createSqliteNotesRepo } from "./notesRepo.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteSharesRepo } from "./sharesRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
+import { createSqliteVersionsRepo } from "./versionsRepo.js";
 import { createSqliteYjsStore } from "./yjsStore.js";
 
 export interface SqliteStorageDriver extends StorageDriver {
@@ -27,6 +28,7 @@ export function createSqliteStorage(
     shares: createSqliteSharesRepo(db),
     yjs: createSqliteYjsStore(db),
     attachments: createSqliteAttachmentsRepo(db),
+    versions: createSqliteVersionsRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async close() {
       db.close();
