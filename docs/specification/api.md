@@ -70,6 +70,15 @@ without spaces. A query with no word in it at all (`->`, an emoji) falls back to
 substring match. Results are paged newest first, like `GET /api/notes`; they are not ranked by
 relevance, because the cursor is a place in the `(updatedAt, id)` order.
 
+### Version history
+
+| Method   | Path                         | Description          |
+|----------|------------------------------|----------------------|
+| `GET`    | `/api/notes/:id/versions`    | The note's versions, newest first (`NoteVersionsResponse`) |
+| `POST`   | `/api/notes/:id/versions`    | Add a version (`NoteVersionCreateRequest`); owner and editors |
+
+See [Version History](features/version-history.md).
+
 ### Attachments
 
 | Method   | Path                     | Description          |

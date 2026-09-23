@@ -7,6 +7,9 @@ import type {
   NoteResponse,
   NotesResponse,
   NoteUpdate,
+  NoteVersion,
+  NoteVersionCreateRequest,
+  NoteVersionsResponse,
 } from "@manifesto/shared";
 import { attachmentIdOf, roleOf } from "@manifesto/shared";
 import type { StorageAdapter } from "./StorageAdapter.js";
@@ -106,6 +109,26 @@ export class RestApiAdapter implements StorageAdapter {
   async loadImages(id: string): Promise<string[]> {
     const note = await this.get(id);
     return note?.images ?? [];
+  }
+
+  async listVersions(noteId: string): Promise<NoteVersion[]> {
+    const res = await fetch(`${this.baseUrl}/api/notes/${noteId}/versions`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) await this.fail(res, "Failed to fetch versions");
+    return ((await res.json()) as NoteVersionsResponse).versions;
+  }
+
+  async saveVersion(
+    noteId: string,
+    version: NoteVersionCreateRequest,
+  ): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/api/notes/${noteId}/versions`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify(version),
+    });
+    if (!res.ok) await this.fail(res, "Failed to save version");
   }
 
   async loadAttachment(ref: string): Promise<Blob> {

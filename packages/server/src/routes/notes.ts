@@ -18,6 +18,7 @@ import { noteCreateSchema, noteUpdateSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
 import { registerShareRoutes } from "./shares.js";
+import { registerVersionRoutes } from "./versions.js";
 
 interface NotesDeps {
   storage: StorageDriver;
@@ -197,6 +198,7 @@ export function createNotesRoutes(deps: NotesDeps) {
   });
 
   registerShareRoutes(notes, deps);
+  registerVersionRoutes(notes, deps);
 
   return notes;
 }

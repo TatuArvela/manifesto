@@ -12,6 +12,7 @@ import { createPostgresNotesRepo, reindexStaleNotes } from "./notesRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
 import { createPostgresSharesRepo } from "./sharesRepo.js";
 import { createPostgresUsersRepo } from "./usersRepo.js";
+import { createPostgresVersionsRepo } from "./versionsRepo.js";
 import { createPostgresYjsStore } from "./yjsStore.js";
 
 export interface PostgresStorageDriver extends StorageDriver {
@@ -45,6 +46,7 @@ export async function createPostgresStorage(
     shares: createPostgresSharesRepo(pool),
     yjs: createPostgresYjsStore(pool),
     attachments: createPostgresAttachmentsRepo(pool),
+    versions: createPostgresVersionsRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {
       await pool.end();

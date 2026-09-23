@@ -13,7 +13,7 @@ import {
   togglePin,
   updateNote,
 } from "../state/index.js";
-import { saveVersion } from "../storage/VersionStorage.js";
+import { recordVersion } from "../state/versions.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { noteMenuItems } from "./NoteMenu.js";
 import { VersionHistory } from "./VersionHistory.js";
@@ -70,7 +70,7 @@ export function NoteCardEditor({
       title !== originalTitleRef.current ||
       content !== originalContentRef.current
     ) {
-      saveVersion(
+      void recordVersion(
         note.id,
         originalTitleRef.current,
         originalContentRef.current,
@@ -121,7 +121,7 @@ export function NoteCardEditor({
         titleRef.current !== originalTitleRef.current ||
         contentRef.current !== originalContentRef.current
       ) {
-        saveVersion(
+        void recordVersion(
           note.id,
           originalTitleRef.current,
           originalContentRef.current,

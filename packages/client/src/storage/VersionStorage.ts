@@ -1,4 +1,8 @@
-import type { NoteVersion } from "@manifesto/shared";
+import {
+  MAX_NOTE_VERSIONS,
+  NOTE_VERSION_MAX_AGE_DAYS,
+  type NoteVersion,
+} from "@manifesto/shared";
 import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 
@@ -15,8 +19,8 @@ import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 const KEY_PREFIX = "manifesto:versions:";
 /** The single shared key the per-note ones replaced; migrated on first use. */
 const LEGACY_KEY = "manifesto:versions";
-const MAX_VERSIONS_PER_NOTE = 50;
-const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+const MAX_VERSIONS_PER_NOTE = MAX_NOTE_VERSIONS;
+const MAX_AGE_MS = NOTE_VERSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 
 type VersionMap = Record<string, NoteVersion[]>;
 

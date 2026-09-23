@@ -3,7 +3,7 @@ import { ArrowLeft, RotateCcw } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { noteColorMap } from "../colors.js";
 import { formatDateTime, t } from "../i18n/index.js";
-import { getVersions } from "../storage/VersionStorage.js";
+import { loadVersions } from "../state/versions.js";
 import { iconBtnClass } from "./NoteEditor.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -23,12 +23,21 @@ export function VersionHistory({
   onRestore: (title: string, content: string) => void;
   onClose: () => void;
 }) {
-  const [versions, setVersions] = useState<NoteVersion[]>([]);
+  // Null while loading; a failed load reads as an empty history rather than
+  // a spinner that never ends.
+  const [versions, setVersions] = useState<NoteVersion[] | null>(null);
   const [selected, setSelected] = useState<NoteVersion | null>(null);
   const colors = noteColorMap[color];
 
   useEffect(() => {
-    setVersions(getVersions(noteId));
+    let live = true;
+    setVersions(null);
+    void loadVersions(noteId).then((loaded) => {
+      if (live) setVersions(loaded ?? []);
+    });
+    return () => {
+      live = false;
+    };
   }, [noteId]);
 
   if (selected) {
@@ -74,7 +83,11 @@ export function VersionHistory({
     <article class={`${colors.bg} ${colors.border} border shadow-lg`}>
       <div class="p-4">
         <h3 class="font-medium text-base mb-3">{t("versions.title")}</h3>
-        {versions.length === 0 ? (
+        {versions === null ? (
+          <p class="text-sm text-black/40 dark:text-white/40">
+            {t("versions.loading")}
+          </p>
+        ) : versions.length === 0 ? (
           <p class="text-sm text-black/40 dark:text-white/40">
             {t("versions.empty")}
           </p>
@@ -82,7 +95,7 @@ export function VersionHistory({
           <div class="flex flex-col gap-1 max-h-80 overflow-y-auto">
             {versions.map((v) => (
               <button
-                key={v.timestamp}
+                key={`${v.timestamp}-${v.content.length}`}
                 type="button"
                 class="text-left px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                 onClick={() => setSelected(v)}

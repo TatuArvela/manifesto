@@ -196,4 +196,11 @@ const noteFields = {
 } as const;
 
 export const noteCreateSchema = z.object(noteFields);
+
+/** `POST /api/notes/:id/versions`: the same bounds as the note's own text. */
+export const noteVersionCreateSchema = z.object({
+  title: noteFields.title,
+  content: noteFields.content,
+  timestamp: z.string().max(40).optional(),
+});
 export const noteUpdateSchema = z.object(noteFields).partial();

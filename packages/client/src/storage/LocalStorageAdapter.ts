@@ -5,10 +5,12 @@ import {
   type NoteCreate,
   NoteFont,
   type NoteUpdate,
+  type NoteVersion,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
 import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
+import { getVersions, saveVersion } from "./VersionStorage.js";
 
 const STORAGE_KEY = "manifesto:notes";
 
@@ -167,6 +169,17 @@ export class LocalStorageAdapter implements StorageAdapter {
   /** Already here: open mode never separates a note from its attachments. */
   async loadImages(id: string): Promise<string[]> {
     return (await this.get(id))?.images ?? [];
+  }
+
+  async listVersions(noteId: string): Promise<NoteVersion[]> {
+    return getVersions(noteId);
+  }
+
+  async saveVersion(
+    noteId: string,
+    version: { title: string; content: string },
+  ): Promise<void> {
+    saveVersion(noteId, version.title, version.content);
   }
 
   /** Open mode keeps every image inline, so no reference can name one. */
