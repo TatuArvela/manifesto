@@ -570,7 +570,7 @@ export function SettingsDialog() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".json,.md,.markdown"
+                accept=".json,.md,.markdown,.zip,image/*"
                 multiple
                 class="hidden"
                 onChange={handleFileChange}
@@ -608,6 +608,9 @@ export function SettingsDialog() {
                 </button>
               )}
             </div>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400">
+              {t("settings.data.importHint")}
+            </p>
             {(dataStatus || deleteStatus) && (
               <p class="text-xs text-neutral-500 dark:text-neutral-400">
                 {dataStatus || deleteStatus}

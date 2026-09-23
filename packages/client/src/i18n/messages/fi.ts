@@ -304,6 +304,8 @@ export const fi: Messages = {
   "settings.language": "Kieli",
   "settings.language.system": "Järjestelmän oletus",
   "settings.data.import": "Tuo muistiinpanot",
+  "settings.data.importHint":
+    "Tuo JSON-viennit, Markdown-tiedostot ja Google Keepin muistiinpanot (Takeoutin .zip tai sen puretut tiedostot).",
   "settings.data.export": "Vie muistiinpanot",
   "settings.data.deleteAll": "Poista kaikki",
   "settings.data.deleteConfirm":
