@@ -14,6 +14,12 @@ You retain copyright on your contribution. You are not assigning it to anyone.
 - Keep changes focused. Smaller PRs are easier to review and more likely to land.
 - For larger changes, open an issue first to check that the direction makes sense.
 
+## Dependency updates
+
+Dependabot opens grouped pull requests every Monday (`.github/dependabot.yml`): one for minor and patch
+updates of runtime dependencies, one for development ones, one for GitHub Actions, and a pull request of
+its own for each major update or base image. They run the same CI as any other pull request.
+
 ## Scope
 
 Manifesto is intentionally small. The maintainer is not committing to active development, so:
