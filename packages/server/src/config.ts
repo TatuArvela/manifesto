@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 export type StorageDriverName = "sqlite" | "postgres";
 export type AuthProviderName = "local" | "oidc";
 export type UserLookupMode = "search" | "exact";
@@ -263,7 +264,48 @@ function loadOidcConfig(): OidcConfig {
   };
 }
 
+/**
+ * `FOO_FILE=/run/secrets/foo` as the value of `FOO`, the convention Docker and
+ * Kubernetes secrets are mounted by (and the official Postgres image reads),
+ * for the settings that are secrets. Only those: an environment has other
+ * variables ending in `_FILE` (`COMPOSE_FILE`) that are none of ours. The
+ * file's trailing newline is dropped, since editors add one. Setting both
+ * `FOO` and `FOO_FILE` is refused rather than guessed at.
+ */
+export const FILE_SECRETS = [
+  "DATABASE_URL",
+  "OIDC_CLIENT_ID",
+  "OIDC_CLIENT_SECRET",
+  "SMTP_URL",
+  "METRICS_TOKEN",
+  "INITIAL_ADMIN_PASSWORD",
+] as const;
+
+export function resolveFileSecrets(
+  env: NodeJS.ProcessEnv,
+  read: (path: string) => string = (path) => readFileSync(path, "utf8"),
+): void {
+  for (const name of FILE_SECRETS) {
+    const key = `${name}_FILE`;
+    const path = env[key];
+    if (!path) continue;
+    if (env[name] !== undefined && env[name] !== "") {
+      throw new Error(`Set ${name} or ${key}, not both`);
+    }
+    let value: string;
+    try {
+      value = read(path);
+    } catch (err) {
+      throw new Error(
+        `Cannot read ${key} (${path}): ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    env[name] = value.replace(/\r?\n$/, "");
+  }
+}
+
 export function loadConfig(): ServerConfig {
+  resolveFileSecrets(process.env);
   const dataDir = process.env.DATA_DIR ?? DEFAULT_DATA_DIR;
   const authProvider = envEnum("AUTH_PROVIDER", AUTH_MODES, "local");
   const storageDriver = envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite");

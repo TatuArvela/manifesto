@@ -132,6 +132,25 @@ See `packages/server/.env.example` for the full list and defaults.
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.
 
+### Secrets from files
+
+Each secret can be given as a file instead, the way Docker and Kubernetes mount secrets:
+`DATABASE_URL_FILE`, `OIDC_CLIENT_ID_FILE`, `OIDC_CLIENT_SECRET_FILE`, `SMTP_URL_FILE`,
+`METRICS_TOKEN_FILE` and `INITIAL_ADMIN_PASSWORD_FILE` name a file whose contents are the value (a
+trailing newline is dropped). Setting both a variable and its `_FILE` stops the server at boot.
+
+```yaml
+services:
+  manifesto:
+    environment:
+      STORAGE_DRIVER: postgres
+      DATABASE_URL_FILE: /run/secrets/database_url
+    secrets: [database_url]
+secrets:
+  database_url:
+    file: ./database_url.txt
+```
+
 ### First sign-in
 
 With local sign-in on (`AUTH_PROVIDER=local` or `both`), a new server creates an `admin` account and prints its temporary password to
