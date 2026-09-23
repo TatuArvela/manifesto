@@ -1,11 +1,20 @@
 /// <reference lib="webworker" />
 import {
+  MAX_IMAGES_PER_NOTE,
   REMINDER_RECURRENCES,
   type ReminderRecurrence,
 } from "@manifesto/shared";
 import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import { StaleWhileRevalidate } from "workbox-strategies";
+import {
+  SHARE_CACHE,
+  SHARE_IMAGE_KEY_PREFIX,
+  SHARE_TARGET_ACTION,
+  SHARE_TARGET_PARAM,
+  SHARE_TEXT_KEY,
+  sharedTextFromForm,
+} from "./shareTarget.js";
 import {
   nextOccurrence,
   parseLocalISO,
@@ -24,6 +33,58 @@ declare const self: ServiceWorkerGlobalScope & {
   };
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
 };
+
+// "Share to..." posts here (the manifest's `share_target`). Registered before
+// Workbox's routes so the POST is ours; Workbox's navigation route only
+// answers GETs anyway. The shared text and images wait in a cache for the page
+// the redirect opens, since a POST body cannot be handed to it directly.
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (
+    event.request.method !== "POST" ||
+    url.href.split("?")[0] !==
+      new URL(SHARE_TARGET_ACTION, self.registration.scope).href
+  ) {
+    return;
+  }
+  event.respondWith(receiveShare(event.request));
+});
+
+async function receiveShare(request: Request): Promise<Response> {
+  const scope = self.registration.scope;
+  try {
+    const form = await request.formData();
+    // One share at a time: a second before the page took the first replaces it.
+    await caches.delete(SHARE_CACHE);
+    const cache = await caches.open(SHARE_CACHE);
+    await cache.put(
+      new URL(SHARE_TEXT_KEY, scope).href,
+      Response.json(sharedTextFromForm(form)),
+    );
+    const images = form
+      .getAll("images")
+      .filter(
+        (f): f is File => f instanceof File && f.type.startsWith("image/"),
+      )
+      .slice(0, MAX_IMAGES_PER_NOTE);
+    await Promise.all(
+      images.map((file, i) =>
+        cache.put(
+          new URL(`${SHARE_IMAGE_KEY_PREFIX}${i}`, scope).href,
+          new Response(file, {
+            headers: {
+              "Content-Type": file.type,
+              "X-File-Name": encodeURIComponent(file.name),
+            },
+          }),
+        ),
+      ),
+    );
+  } catch {
+    // Unreadable share: the app still opens, with nothing to prefill.
+  }
+  return Response.redirect(`${scope}?${SHARE_TARGET_PARAM}`, 303);
+}
 
 precacheAndRoute(self.__WB_MANIFEST);
 registerRoute(

@@ -2,6 +2,7 @@ import type { LinkPreview } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
+import { incomingShare } from "../state/incomingShare.js";
 import { activeView, noteQuips, notes } from "../state/index.js";
 import { LocalStorageAdapter } from "../storage/index.js";
 import { NoteInput } from "./NoteInput.js";
@@ -283,5 +284,52 @@ describe("NoteInput width", () => {
       const wrapper = host.querySelector(".note-stack")?.parentElement;
       expect(wrapper?.style.width).toMatch(/^\d+(\.\d+)?px$/);
     });
+  });
+});
+
+describe("NoteInput with something shared to the app", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    activeView.value = "active";
+  });
+
+  afterEach(() => {
+    incomingShare.value = null;
+    render(null, host);
+    host.remove();
+    localStorage.clear();
+    notes.value = [];
+  });
+
+  it("opens the editor with the share and saves it as a note", async () => {
+    incomingShare.value = {
+      title: "Shared page",
+      content: "A quote\n\nhttps://example.com/a",
+      images: [],
+    };
+    render(<NoteInput />, host);
+    const done = await vi.waitFor(() => {
+      const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+      expect(dialog?.querySelector(".ProseMirror")?.textContent).toContain(
+        "A quote",
+      );
+      const title = dialog?.querySelector<HTMLInputElement>(
+        `input[placeholder="${t("editor.titlePlaceholder")}"]`,
+      );
+      expect(title?.value).toBe("Shared page");
+      return dialog?.querySelector<HTMLElement>(
+        `button[aria-label="${t("editor.done")}"]`,
+      ) as HTMLElement;
+    });
+    expect(incomingShare.value).toBeNull();
+    done.click();
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0].title).toBe("Shared page");
+    expect(notes.value[0].linkPreviews.map((p) => p.url)).toEqual([
+      "https://example.com/a",
+    ]);
   });
 });
