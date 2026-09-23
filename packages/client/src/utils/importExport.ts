@@ -1,5 +1,13 @@
 import type { Note, NoteCreate, NoteReminder } from "@manifesto/shared";
 import { NoteColor, NoteFont, REMINDER_RECURRENCES } from "@manifesto/shared";
+import { ulid } from "ulid";
+import {
+  frontmatterBoolean,
+  frontmatterDate,
+  frontmatterList,
+  frontmatterString,
+  splitFrontmatter,
+} from "./frontmatter.js";
 import { isKeepNote, keepNoteToNote } from "./keepImport.js";
 import { parseLinkPreviews } from "./linkPreview.js";
 import { isZipFile, readZip, type ZipEntry } from "./zip.js";
@@ -58,10 +66,15 @@ export function downloadNoteAsJson(note: Note): void {
   triggerDownload(JSON.stringify(note, null, 2), filename, "application/json");
 }
 
+/**
+ * One Markdown file as a note. A leading `# ` heading is the title; YAML
+ * frontmatter, as Obsidian and other Markdown note apps write it, can give
+ * the title, `tags` (or `tag`) and the pinned / archived flags too.
+ */
 export function parseMarkdownToNote(text: string): Partial<NoteCreate> {
-  const normalized = text.replace(/^\uFEFF/, "");
-  const lines = normalized.split(/\r?\n/);
-  let title = "";
+  const { data, body } = splitFrontmatter(text.replace(/^\uFEFF/, ""));
+  const lines = body.split(/\r?\n/);
+  let title = frontmatterString(data.title) ?? "";
   let contentStart = 0;
   if (lines[0]?.startsWith("# ")) {
     title = lines[0].slice(2).trim();
@@ -71,7 +84,46 @@ export function parseMarkdownToNote(text: string): Partial<NoteCreate> {
     }
   }
   const content = lines.slice(contentStart).join("\n").replace(/\s+$/, "");
-  return { title, content };
+  const note: Partial<NoteCreate> = { title, content };
+  const tags = frontmatterList(data.tags ?? data.tag);
+  if (tags.length > 0) note.tags = [...new Set(tags)];
+  const pinned = frontmatterBoolean(data.pinned);
+  if (pinned !== undefined) note.pinned = pinned;
+  const archived = frontmatterBoolean(data.archived);
+  if (archived !== undefined) note.archived = archived;
+  return note;
+}
+
+/**
+ * A Markdown file from a folder of notes. Such apps name the note after the
+ * file rather than heading it, so the file name is the fallback title, and
+ * the folders it sits in (Nextcloud Notes' categories, an Obsidian vault's
+ * directories) become tags.
+ */
+export function markdownFileToNote(
+  path: string,
+  text: string,
+  now: string = new Date().toISOString(),
+): Note {
+  const note = parseMarkdownToNote(text);
+  const { data } = splitFrontmatter(text.replace(/^\uFEFF/, ""));
+  const segments = path.split("/").filter((s) => s !== "");
+  const file = segments.pop() ?? "";
+  const stem = file.replace(/\.(md|markdown)$/i, "");
+  const updatedAt =
+    frontmatterDate(data.updated ?? data.modified ?? data.lastmod) ?? now;
+  const createdAt =
+    frontmatterDate(data.created ?? data.date) ??
+    (updatedAt < now ? updatedAt : now);
+  return normalizeImportedNote({
+    ...note,
+    id: ulid(),
+    title: note.title || stem,
+    tags: [...new Set([...(note.tags ?? []), ...segments])],
+    position: Date.parse(createdAt),
+    createdAt,
+    updatedAt,
+  });
 }
 
 const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
@@ -276,9 +328,10 @@ function parseJsonOrNull(text: string): unknown {
 }
 
 /**
- * Reads an archive into notes. A Takeout zip holds Keep's per-note JSON files
- * beside their attachments; everything else in it (other Google products,
- * Keep's `.html` twins) is ignored. The byte budget is shared by every entry,
+ * Reads an archive into notes: every Markdown file in it, and every Keep note
+ * of a Takeout zip, which holds Keep's per-note JSON files beside their
+ * attachments. Everything else (other Google products, Keep's `.html` twins,
+ * a vault's settings) is ignored. The byte budget is shared by every entry,
  * so an archive cannot add up to more than one file would be allowed.
  */
 async function notesFromZip(file: File): Promise<Note[]> {
@@ -295,7 +348,30 @@ async function notesFromZip(file: File): Promise<Note[]> {
   const byDirAndName = new Map<string, ZipEntry>();
   for (const entry of entries) byDirAndName.set(entry.name, entry);
 
+  // A zipped folder puts every file under that folder's name; it names the
+  // archive, not a category, so it is not made a tag.
+  const markdown = entries.filter((e) =>
+    MARKDOWN_EXTS.includes(fileExtension(e.name)),
+  );
+  const firstDir = (name: string) =>
+    name.includes("/") ? name.slice(0, name.indexOf("/") + 1) : "";
+  const root =
+    markdown.length > 0 &&
+    markdown.every((e) => firstDir(e.name) === firstDir(markdown[0].name))
+      ? firstDir(markdown[0].name)
+      : "";
+
   const notes: Note[] = [];
+  for (const entry of markdown) {
+    // Folders a tool keeps for itself are not notes.
+    if (/(^|\/)\.(obsidian|trash|git)\//.test(entry.name)) continue;
+    notes.push(
+      markdownFileToNote(
+        entry.name.slice(root.length),
+        textDecoder.decode(await read(entry)),
+      ),
+    );
+  }
   for (const entry of entries) {
     if (fileExtension(entry.name) !== ".json") continue;
     const data = parseJsonOrNull(textDecoder.decode(await read(entry)));
