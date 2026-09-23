@@ -29,6 +29,18 @@ any client route with the page. Put HTTPS in front of it and that is the deploym
 rebranded one, mounted into the container) to serve that instead, or unset it to run the API alone
 behind a client hosted elsewhere. Open mode and GitHub Pages stay the static client, as before.
 
+### What is in an image
+
+Every published image carries an SBOM (the packages inside it) and a build provenance attestation (the
+repository, commit and workflow that built it), both attached in the registry:
+
+```bash
+docker buildx imagetools inspect ghcr.io/tatuarvela/manifesto-server:X.Y.Z --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/tatuarvela/manifesto-server:X.Y.Z --format '{{ json .Provenance }}'
+```
+
+Images from releases before this was added carry neither.
+
 ### Compose files
 
 The repository root has two, kept at the current release by release-please along with the packages:

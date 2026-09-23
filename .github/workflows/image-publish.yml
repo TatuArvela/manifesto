@@ -6,6 +6,10 @@ name: Publish server image
 #
 # Reused by release.yml for tagged releases, and dispatchable by hand to
 # rebuild/republish an image for any ref (recovery, or validating a build).
+#
+# Each image carries an SBOM and a build provenance attestation: buildx
+# attaches both to every platform's image; reading them is shown in
+# docs/specification/server/deployment.md.
 
 on:
   workflow_call:
@@ -91,6 +95,10 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: |
             MANIFESTO_VERSION=${{ steps.app-version.outputs.version }}
+          # An SPDX SBOM of the image and SLSA provenance of how it was
+          # built, attached to the image in the registry.
+          sbom: true
+          provenance: mode=max
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.version=${{ inputs.version }}
