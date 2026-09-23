@@ -2,6 +2,7 @@ import type { PostgresConfig } from "../../config.js";
 import type { StorageDriver } from "../types.js";
 import { createPostgresApiTokensRepo } from "./apiTokensRepo.js";
 import { createPostgresAttachmentsRepo } from "./attachmentsRepo.js";
+import { createPostgresAuditRepo } from "./auditRepo.js";
 import {
   openPostgres,
   type PgPool,
@@ -55,6 +56,7 @@ export async function createPostgresStorage(
     webhooks: createPostgresWebhooksRepo(pool),
     twoFactor: createPostgresTwoFactorRepo(pool),
     passwordResets: createPostgresPasswordResetsRepo(pool),
+    audit: createPostgresAuditRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {
       await pool.end();

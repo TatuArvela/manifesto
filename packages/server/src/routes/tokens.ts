@@ -4,6 +4,7 @@ import type {
   ApiTokensResponse,
 } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
+import { audit } from "../audit/audit.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
@@ -79,6 +80,11 @@ export function createTokenRoutes(deps: TokenDeps) {
         userId,
         tokenHash: hashToken(secret),
       });
+      audit(deps.storage, c, {
+        action: "token.created",
+        actorId: userId,
+        detail: { name, prefix: token.prefix },
+      });
       const body: ApiTokenCreatedResponse = { token, secret };
       return c.json(body, 201);
     },
@@ -93,6 +99,11 @@ export function createTokenRoutes(deps: TokenDeps) {
       c.req.param("id"),
     );
     if (!revoked) throw new HttpError(404, "Token not found");
+    audit(deps.storage, c, {
+      action: "token.revoked",
+      actorId: userId,
+      detail: { id: c.req.param("id") },
+    });
     return c.body(null, 204);
   });
 

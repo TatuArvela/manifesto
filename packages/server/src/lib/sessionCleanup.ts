@@ -4,6 +4,7 @@ import { startPeriodicJob } from "./periodic.js";
 import { nowIso } from "./time.js";
 
 const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 /**
  * Deletes sessions whose `expires_at` has passed. Runs once on startup, then
@@ -18,6 +19,7 @@ const HOUR_MS = 60 * 60 * 1000;
 export function startSessionCleanup(
   storage: StorageDriver,
   intervalMs: number = HOUR_MS,
+  auditRetentionDays = 180,
 ): () => void {
   return startPeriodicJob("session cleanup", intervalMs, async () => {
     const now = nowIso();
@@ -26,6 +28,9 @@ export function startSessionCleanup(
       logger.info("session cleanup pruned sessions", { count: removed });
     }
     await storage.passwordResets.deleteExpired(now);
+    await storage.audit.deleteBefore(
+      new Date(Date.parse(now) - auditRetentionDays * DAY_MS).toISOString(),
+    );
     // Expired API tokens are refused already; this is about the rows.
     const tokens = await storage.apiTokens.deleteExpired(now);
     if (tokens > 0) {

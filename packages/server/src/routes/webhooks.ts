@@ -6,6 +6,7 @@ import {
   type WebhooksResponse,
 } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
+import { audit } from "../audit/audit.js";
 import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
@@ -93,6 +94,11 @@ export function createWebhookRoutes(deps: WebhookDeps) {
         failureCount: 0,
       };
       await deps.storage.webhooks.create(webhook);
+      audit(deps.storage, c, {
+        action: "webhook.created",
+        actorId: userId,
+        detail: { url },
+      });
       const body: WebhookCreatedResponse = {
         webhook: listedWebhook(webhook),
         secret,
@@ -120,9 +126,15 @@ export function createWebhookRoutes(deps: WebhookDeps) {
 
   routes.delete("/:id", async (c) => {
     const { userId } = c.get("auth");
-    if (!(await deps.storage.webhooks.delete(c.req.param("id"), userId))) {
+    const webhook = await owned(c.req.param("id"), userId);
+    if (!(await deps.storage.webhooks.delete(webhook.id, userId))) {
       throw new HttpError(404, "Webhook not found");
     }
+    audit(deps.storage, c, {
+      action: "webhook.deleted",
+      actorId: userId,
+      detail: { url: webhook.url },
+    });
     return c.body(null, 204);
   });
 

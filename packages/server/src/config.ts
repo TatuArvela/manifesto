@@ -88,6 +88,8 @@ export interface ServerConfig {
    * way back into a local account.
    */
   mail: MailConfig | null;
+  /** Days the audit log keeps an entry. */
+  auditRetentionDays: number;
   /** How someone sharing a note finds the account to share it with: by
    * searching every account as they type, or only by its exact username or
    * email address, which keeps the list of accounts private. */
@@ -257,6 +259,7 @@ export function loadConfig(): ServerConfig {
     linkPreviews: envBool("LINK_PREVIEWS", true),
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
     mail: loadMailConfig(),
+    auditRetentionDays: envInt("AUDIT_RETENTION_DAYS", 180),
     userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "search"),
     initialAdminPassword: loadInitialAdminPassword(),
   };

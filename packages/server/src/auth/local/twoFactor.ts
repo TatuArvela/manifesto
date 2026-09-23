@@ -5,6 +5,7 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
+import { audit } from "../../audit/audit.js";
 import { verifyPassword } from "../../lib/password.js";
 import { nowIso } from "../../lib/time.js";
 import { hashToken } from "../../lib/token.js";
@@ -138,6 +139,7 @@ export function registerTwoFactorRoutes(
         );
       }
       await storage.twoFactor.enable(userId, nowIso(), step);
+      audit(storage, c, { action: "auth.two_factor_enabled", actorId: userId });
       const body: TwoFactorRecoveryCodesResponse = {
         recoveryCodes: await issueRecoveryCodes(storage, userId),
       };
@@ -154,6 +156,10 @@ export function registerTwoFactorRoutes(
       const { userId } = c.get("auth");
       await requirePassword(userId, c.req.valid("json").password);
       await storage.twoFactor.disable(userId);
+      audit(storage, c, {
+        action: "auth.two_factor_disabled",
+        actorId: userId,
+      });
       return c.body(null, 204);
     },
   );

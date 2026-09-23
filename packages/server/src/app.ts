@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { recordClientAddress } from "./audit/audit.js";
 import {
   createSessionRevocations,
   type SessionRevocations,
@@ -96,6 +97,7 @@ export function createApp(deps: AppDeps): AppHandle {
     app.use("*", requestLog());
   }
   app.onError(onError);
+  app.use("/api/*", recordClientAddress(cfg.trustProxy));
 
   // Cap request bodies on /api/*. Without this, an authenticated user could
   // POST a multi-MB JSON body and exhaust server memory.

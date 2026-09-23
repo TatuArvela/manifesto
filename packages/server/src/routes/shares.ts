@@ -5,6 +5,7 @@ import type {
   ShareRole,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
+import { audit } from "../audit/audit.js";
 import { nowIso } from "../lib/time.js";
 import type { Mailer } from "../mail/mailer.js";
 import { mailLocale, shareInvitationMail } from "../mail/templates.js";
@@ -100,6 +101,13 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
           invitation,
         });
       }
+      audit(storage, c, {
+        action: "share.created",
+        actorId: userId,
+        targetId: recipientId,
+        noteId,
+        detail: { role },
+      });
       if (deps.mail && recipient.email) {
         const owner = await storage.users.findById(userId);
         const message = shareInvitationMail(
@@ -136,6 +144,13 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
           throw new HttpError(404, "Share not found");
         }
         await announceRole(noteId, recipientId, before.acceptedAt, role);
+        audit(storage, c, {
+          action: "share.role_changed",
+          actorId: userId,
+          targetId: recipientId,
+          noteId,
+          detail: { from: before.role, to: role },
+        });
         await noteEvents.changed(noteId);
       }
       return c.json(await ownerView(noteId, userId));
@@ -179,6 +194,13 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
     if (recipientId !== userId) await requireOwner(noteId, userId);
     const removed = await storage.shares.delete(noteId, recipientId);
     if (!removed) throw new HttpError(404, "Share not found");
+    audit(storage, c, {
+      action: "share.removed",
+      actorId: userId,
+      targetId: recipientId,
+      noteId,
+      ...(recipientId === userId && { detail: { left: "yes" } }),
+    });
     noteEvents.ended([removed]);
     await noteEvents.changed(noteId);
     return c.body(null, 204);

@@ -2,6 +2,7 @@ import type { ServerConfig } from "../../config.js";
 import type { StorageDriver } from "../types.js";
 import { createSqliteApiTokensRepo } from "./apiTokensRepo.js";
 import { createSqliteAttachmentsRepo } from "./attachmentsRepo.js";
+import { createSqliteAuditRepo } from "./auditRepo.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
@@ -37,6 +38,7 @@ export function createSqliteStorage(
     webhooks: createSqliteWebhooksRepo(db),
     twoFactor: createSqliteTwoFactorRepo(db),
     passwordResets: createSqlitePasswordResetsRepo(db),
+    audit: createSqliteAuditRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async close() {
       db.close();

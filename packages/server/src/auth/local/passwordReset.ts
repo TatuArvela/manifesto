@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import type { Hono } from "hono";
+import { audit } from "../../audit/audit.js";
 import type { ServerConfig } from "../../config.js";
 import { logger } from "../../lib/logger.js";
 import { hashPassword } from "../../lib/password.js";
@@ -56,7 +57,11 @@ export function registerPasswordResetRoutes(
     return { mailer, appUrl };
   };
 
-  async function sendLink(email: string, locale: string | undefined) {
+  async function sendLink(
+    email: string,
+    locale: string | undefined,
+    c: { req: { raw: Request } },
+  ) {
     const { mailer, appUrl } = requireMail();
     const user = await storage.users.findByEmail(email);
     if (!user || user.passwordHash === null) return;
@@ -78,6 +83,10 @@ export function registerPasswordResetRoutes(
       minutes: RESET_LINK_MINUTES,
     });
     await mailer.send({ to: email, ...message });
+    audit(storage, c, {
+      action: "auth.password_reset_requested",
+      targetId: user.id,
+    });
   }
 
   auth.post(
@@ -87,7 +96,7 @@ export function registerPasswordResetRoutes(
     async (c) => {
       requireMail();
       const { email, locale } = c.req.valid("json");
-      void sendLink(email, locale).catch((err) => {
+      void sendLink(email, locale, c).catch((err) => {
         logger.warn("Password reset link could not be made", {
           error: err instanceof Error ? err.message : String(err),
         });
@@ -116,6 +125,7 @@ export function registerPasswordResetRoutes(
         false,
       );
       await endUserSessions(storage, deps.revocations, userId);
+      audit(storage, c, { action: "auth.password_reset", actorId: userId });
       return c.body(null, 204);
     },
   );

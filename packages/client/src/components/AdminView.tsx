@@ -25,6 +25,7 @@ import {
   setAccountEmail,
 } from "../state/admin.js";
 import { authProviders, currentUser, fetchAuthMethods } from "../state/auth.js";
+import { AuditLog } from "./AuditLog.js";
 import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
 import { menuItemClass, menuPanelClass } from "./NoteMenu.js";
@@ -52,6 +53,7 @@ export function AdminView() {
   const passwordsHere = providers.includes("local");
   const [loadFailed, setLoadFailed] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [section, setSection] = useState<"users" | "activity">("users");
 
   const load = () => {
     setLoadFailed(false);
@@ -72,60 +74,92 @@ export function AdminView() {
       data-marquee-ignore
       class="w-full max-w-2xl mx-auto py-4 flex flex-col gap-4"
     >
-      <div class="flex items-center justify-between gap-3 min-h-9">
-        <p class="text-sm text-neutral-500 dark:text-neutral-400">
-          {users ? plural("admin.count", users.length) : ""}
-        </p>
-        {passwordsHere && !creating && (
+      <div
+        class="flex gap-1 self-start rounded-lg bg-neutral-100 dark:bg-neutral-800 p-1"
+        role="tablist"
+      >
+        {(["users", "activity"] as const).map((tab) => (
           <button
+            key={tab}
             type="button"
-            class={primaryButtonClass}
-            onClick={() => setCreating(true)}
+            role="tab"
+            aria-selected={section === tab}
+            class={`px-3 py-1 text-sm rounded-md cursor-pointer ${
+              section === tab
+                ? "bg-white dark:bg-neutral-700 shadow-sm font-medium"
+                : "text-neutral-600 dark:text-neutral-300"
+            }`}
+            onClick={() => setSection(tab)}
           >
-            <UserPlus class="w-4 h-4" />
-            {t("admin.create")}
+            {t(tab === "users" ? "admin.tab.users" : "admin.tab.activity")}
           </button>
-        )}
+        ))}
       </div>
 
-      {providers.includes("oidc") && (
-        <p class="text-sm text-neutral-600 dark:text-neutral-300">
-          {t("admin.ssoHint")}
-        </p>
-      )}
-
-      {creating && <CreateAccountForm onDone={() => setCreating(false)} />}
-
-      {issuedPassword.value && (
-        <IssuedPasswordPanel issued={issuedPassword.value} />
-      )}
-
-      {users === null ? (
-        loadFailed ? (
-          <div class="py-8 flex flex-col items-center gap-3 text-sm">
-            <p class="text-red-600 dark:text-red-400" role="alert">
-              {t("admin.error.loadFailed")}
-            </p>
-            <button type="button" class={secondaryButtonClass} onClick={load}>
-              {t("admin.retry")}
-            </button>
-          </div>
-        ) : (
-          <p class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
-            {t("admin.loading")}
-          </p>
-        )
+      {section === "activity" ? (
+        <AuditLog />
       ) : (
-        <ul class="rounded-xl border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-200 dark:divide-neutral-700 bg-white dark:bg-neutral-800">
-          {users.map((user) => (
-            <UserRow
-              key={user.id}
-              user={user}
-              isSelf={user.id === currentUser.value?.id}
-              passwordsHere={passwordsHere}
-            />
-          ))}
-        </ul>
+        <>
+          <div class="flex items-center justify-between gap-3 min-h-9">
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">
+              {users ? plural("admin.count", users.length) : ""}
+            </p>
+            {passwordsHere && !creating && (
+              <button
+                type="button"
+                class={primaryButtonClass}
+                onClick={() => setCreating(true)}
+              >
+                <UserPlus class="w-4 h-4" />
+                {t("admin.create")}
+              </button>
+            )}
+          </div>
+
+          {providers.includes("oidc") && (
+            <p class="text-sm text-neutral-600 dark:text-neutral-300">
+              {t("admin.ssoHint")}
+            </p>
+          )}
+
+          {creating && <CreateAccountForm onDone={() => setCreating(false)} />}
+
+          {issuedPassword.value && (
+            <IssuedPasswordPanel issued={issuedPassword.value} />
+          )}
+
+          {users === null ? (
+            loadFailed ? (
+              <div class="py-8 flex flex-col items-center gap-3 text-sm">
+                <p class="text-red-600 dark:text-red-400" role="alert">
+                  {t("admin.error.loadFailed")}
+                </p>
+                <button
+                  type="button"
+                  class={secondaryButtonClass}
+                  onClick={load}
+                >
+                  {t("admin.retry")}
+                </button>
+              </div>
+            ) : (
+              <p class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
+                {t("admin.loading")}
+              </p>
+            )
+          ) : (
+            <ul class="rounded-xl border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-200 dark:divide-neutral-700 bg-white dark:bg-neutral-800">
+              {users.map((user) => (
+                <UserRow
+                  key={user.id}
+                  user={user}
+                  isSelf={user.id === currentUser.value?.id}
+                  passwordsHere={passwordsHere}
+                />
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );

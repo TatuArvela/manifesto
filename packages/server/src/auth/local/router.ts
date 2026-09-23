@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
 import type { AuthSuccessResponse } from "@manifesto/shared";
 import { Hono } from "hono";
+import { audit } from "../../audit/audit.js";
 import type { ServerConfig } from "../../config.js";
 import { hashPassword, verifyPassword } from "../../lib/password.js";
 import { nowIso } from "../../lib/time.js";
@@ -110,6 +111,10 @@ export function createLocalAuthRouter(
         throw err;
       }
       const { token } = await issueSession(deps.storage, deps.cfg, user.id);
+      audit(deps.storage, c, {
+        action: "account.registered",
+        actorId: user.id,
+      });
       const body: AuthSuccessResponse = { token, user: toAuthUser(user) };
       return c.json(body, 201);
     },
@@ -132,11 +137,21 @@ export function createLocalAuthRouter(
       if (!user || user.passwordHash === null) {
         await spendDecoyVerify(password);
         loginAttempts.fail(username);
+        audit(deps.storage, c, {
+          action: "auth.sign_in_failed",
+          targetId: user?.id ?? null,
+          detail: { username, reason: "unknown_account" },
+        });
         throw new HttpError(401, "Invalid username or password");
       }
       const ok = await verifyPassword(user.passwordHash, password);
       if (!ok) {
         loginAttempts.fail(username);
+        audit(deps.storage, c, {
+          action: "auth.sign_in_failed",
+          targetId: user.id,
+          detail: { username, reason: "password" },
+        });
         throw new HttpError(401, "Invalid username or password");
       }
       // The second factor, after the password so that asking for one tells a
@@ -155,6 +170,11 @@ export function createLocalAuthRouter(
           !(await checkSecondFactor(deps.storage, user.id, totp.secret, otp))
         ) {
           loginAttempts.fail(username);
+          audit(deps.storage, c, {
+            action: "auth.sign_in_failed",
+            targetId: user.id,
+            detail: { username, reason: "two_factor" },
+          });
           throw new HttpError(
             401,
             "That code is not right",
@@ -188,6 +208,14 @@ export function createLocalAuthRouter(
         );
       }
       const { token } = await issueSession(deps.storage, deps.cfg, user.id);
+      audit(deps.storage, c, {
+        action: "auth.signed_in",
+        actorId: user.id,
+        detail: {
+          method: "password",
+          ...(totp?.enabledAt != null && { twoFactor: "yes" }),
+        },
+      });
       const body: AuthSuccessResponse = { token, user: toAuthUser(user) };
       return c.json(body, 200);
     },
@@ -196,6 +224,10 @@ export function createLocalAuthRouter(
   auth.post("/logout", createAuthMiddleware(deps.authProvider), async (c) => {
     const { token } = c.get("auth");
     await revokeSession(deps.storage, token);
+    audit(deps.storage, c, {
+      action: "auth.signed_out",
+      actorId: c.get("auth").userId,
+    });
     return c.body(null, 204);
   });
 
@@ -235,6 +267,10 @@ export function createLocalAuthRouter(
       // Changing a password is how someone locks out a person who learned it,
       // so every other session ends, and this one carries on.
       await endUserSessions(deps.storage, deps.revocations, userId, token);
+      audit(deps.storage, c, {
+        action: "auth.password_changed",
+        actorId: userId,
+      });
       return c.body(null, 204);
     },
   );

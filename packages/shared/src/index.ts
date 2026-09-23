@@ -9,6 +9,9 @@ export type {
   ApiTokenCreatedResponse,
   ApiTokenCreateRequest,
   ApiTokensResponse,
+  AuditAction,
+  AuditEntry,
+  AuditLogResponse,
   AuthCredentials,
   AuthMeResponse,
   AuthMethodsResponse,
@@ -49,6 +52,7 @@ export type {
 } from "./api.js";
 export {
   APP_SOCKET_HEARTBEAT_MS,
+  AUDIT_ACTIONS,
   DEFAULT_NOTES_PAGE_SIZE,
   MAX_NOTES_PAGE_SIZE,
   WEBHOOK_EVENTS,

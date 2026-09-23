@@ -147,6 +147,54 @@ export type WebhookPayload =
       noteId: string;
     };
 
+/** What the audit log records. */
+export const AUDIT_ACTIONS = [
+  "account.registered",
+  "auth.signed_in",
+  "auth.sign_in_failed",
+  "auth.signed_out",
+  "auth.password_changed",
+  "auth.password_reset_requested",
+  "auth.password_reset",
+  "auth.two_factor_enabled",
+  "auth.two_factor_disabled",
+  "token.created",
+  "token.revoked",
+  "webhook.created",
+  "webhook.deleted",
+  "share.created",
+  "share.role_changed",
+  "share.removed",
+  "admin.user_created",
+  "admin.user_deleted",
+  "admin.admin_granted",
+  "admin.admin_revoked",
+  "admin.email_changed",
+  "admin.password_reset",
+] as const;
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+/** One line of the audit log, as `GET /api/admin/audit` lists it. */
+export interface AuditEntry {
+  id: string;
+  at: string;
+  action: AuditAction;
+  /** Who did it; null when nobody was signed in (a failed sign-in). */
+  actor: ShareUser | null;
+  /** Whose account it was about, when not the actor's. */
+  target: ShareUser | null;
+  noteId: string | null;
+  ip: string | null;
+  /** A few words of detail: the method, a failure's reason, a role. */
+  detail: Record<string, string>;
+}
+
+export interface AuditLogResponse {
+  entries: AuditEntry[];
+  /** Pass as `before` for older entries; null at the end. */
+  nextBefore: string | null;
+}
+
 /** `GET /api/auth/two-factor`. */
 export interface TwoFactorStatusResponse {
   enabled: boolean;

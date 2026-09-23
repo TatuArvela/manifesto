@@ -436,6 +436,10 @@ and `AuthIdentity.via` says which credential it was. Anything that changes how a
 so a token handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
 revoking one token goes through `revokeApiToken`, which closes its sockets by the token's hash.
 
+Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
+fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
+catalogues, which `AuditLog.test.ts` checks.
+
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:
 `loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map

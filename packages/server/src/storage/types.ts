@@ -1,5 +1,6 @@
 import type {
   ApiToken,
+  AuditAction,
   Note,
   NoteCreate,
   NoteUpdate,
@@ -499,6 +500,33 @@ export interface PasswordResetsRepo {
   deleteExpired(now: string): Promise<number>;
 }
 
+export interface AuditRecord {
+  id: string;
+  at: string;
+  action: AuditAction;
+  actorId: string | null;
+  targetId: string | null;
+  noteId: string | null;
+  ip: string | null;
+  detail: Record<string, string>;
+}
+
+export interface AuditListOptions {
+  limit: number;
+  /** Entries older than this id (ids are ULIDs, so they sort by time). */
+  before?: string;
+  /** Entries where this account is the actor or the target. */
+  userId?: string;
+  action?: AuditAction;
+}
+
+export interface AuditRepo {
+  append(record: AuditRecord): Promise<void>;
+  /** Newest first. */
+  list(options: AuditListOptions): Promise<AuditRecord[]>;
+  deleteBefore(at: string): Promise<number>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -512,5 +540,6 @@ export interface StorageDriver {
   webhooks: WebhooksRepo;
   twoFactor: TwoFactorRepo;
   passwordResets: PasswordResetsRepo;
+  audit: AuditRepo;
   close(): Promise<void>;
 }
