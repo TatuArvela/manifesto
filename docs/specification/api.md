@@ -2,6 +2,11 @@
 
 The API is the contract between the Manifesto client and server. Any server implementing this contract is compatible with the Manifesto client.
 
+The server describes itself as an OpenAPI 3.1 document at `GET /api/openapi.json` (public), for
+third-party clients and code generators. Request bodies in it are the zod schemas the routes validate
+with, converted (`src/openapi.ts`), and `openapi.test.ts` holds its list of operations to the routes the
+app registers, so it cannot fall behind. This page stays the prose account of the contract.
+
 ## REST API
 
 ### Notes

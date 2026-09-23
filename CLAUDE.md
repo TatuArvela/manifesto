@@ -406,6 +406,8 @@ call locally, so both modes behave alike.
 ### API Contract
 
 `packages/shared/src/api.ts` declares the wire types and `docs/specification/api.md` is the source of truth.
+`GET /api/openapi.json` is generated from `src/openapi.ts`, whose request bodies are the validation
+schemas; a new route must be added to `OPERATIONS` there, or `openapi.test.ts` fails.
 
 - REST: `/api/notes` (with `/api/notes/:id/shares`), `/api/search`, `/api/invitations`, `/api/users`, `/api/auth/*` (auth routes are owned by the active auth provider)
 - WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes the right to edit the joined document (owner or `edit` recipient) in `onAuthenticate`.
