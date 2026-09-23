@@ -111,6 +111,34 @@ async function syncEmail(
   }
 }
 
+/**
+ * Why a sign-in the identity provider accepted is refused here. Sent back to
+ * the client as `#error=<reason>`, which says it in the catalogue's words.
+ */
+export type SignInRefusal = "not_in_group" | "not_registered";
+
+class SignInRefused extends Error {
+  constructor(readonly reason: SignInRefusal) {
+    super(reason);
+  }
+}
+
+/**
+ * The user's groups, from `claim` (a list, or one group as a string). Group
+ * names are compared as the identity provider writes them.
+ */
+export function groupsOf(
+  claims: Record<string, unknown> | undefined,
+  claim: string,
+): string[] | null {
+  const value = claims?.[claim];
+  if (Array.isArray(value)) {
+    return value.filter((g): g is string => typeof g === "string");
+  }
+  if (typeof value === "string") return [value];
+  return null;
+}
+
 async function provisionUser(
   storage: StorageDriver,
   oidc: OidcConfig,
@@ -124,6 +152,7 @@ async function provisionUser(
     await syncEmail(storage, existing.id, existing.email, claimedEmail);
     return existing.id;
   }
+  if (!oidc.autoRegister) throw new SignInRefused("not_registered");
 
   const seed = pickUsernameSeed(claims);
   const displayName = pickDisplayName(claims, seed);
@@ -306,12 +335,68 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       throw new HttpError(401, "OIDC ID token missing subject");
     }
 
-    const userId = await provisionUser(deps.storage, deps.oidc, claims);
-    const { token } = await issueSession(deps.storage, deps.cfg, userId);
+    const target = new URL(deps.oidc.postLoginRedirect);
+    const { adminGroup, userGroup, groupsClaim } = deps.oidc;
 
+    // Groups only matter when a group is configured. Many identity providers
+    // leave them out of the ID token unless asked, so userinfo is asked when
+    // the token does not carry the claim.
+    let groups: string[] | null = null;
+    if (adminGroup || userGroup) {
+      groups = groupsOf(claims as Record<string, unknown>, groupsClaim);
+      if (groups === null) {
+        try {
+          const info = await openid.fetchUserInfo(
+            config,
+            tokens.access_token,
+            claims.sub,
+          );
+          groups = groupsOf(info as Record<string, unknown>, groupsClaim);
+        } catch (err) {
+          logger.warn("OIDC userinfo could not be read for groups", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      if (groups === null) {
+        logger.warn("OIDC groups claim missing; treating as no groups", {
+          claim: groupsClaim,
+        });
+      }
+    }
+
+    let userId: string;
+    try {
+      if (userGroup && !(groups ?? []).includes(userGroup)) {
+        throw new SignInRefused("not_in_group");
+      }
+      userId = await provisionUser(deps.storage, deps.oidc, claims);
+    } catch (err) {
+      if (!(err instanceof SignInRefused)) throw err;
+      logger.info("OIDC sign-in refused", { reason: err.reason });
+      target.hash = `error=${err.reason}`;
+      return c.redirect(target.toString(), 302);
+    }
+
+    // Admin follows the group at every sign-in, both ways, so taking someone
+    // out of the group at the identity provider takes admin away here. The
+    // last admin is kept, as it is everywhere else.
+    if (adminGroup) {
+      const wanted = (groups ?? []).includes(adminGroup);
+      const user = await deps.storage.users.findById(userId);
+      if (user && user.isAdmin !== wanted) {
+        const result = await deps.storage.users.setAdmin(userId, wanted);
+        if (result === "last-admin") {
+          logger.warn("OIDC admin group would remove the last admin; kept", {
+            userId,
+          });
+        }
+      }
+    }
+
+    const { token } = await issueSession(deps.storage, deps.cfg, userId);
     // Token is delivered in the URL fragment so it never enters Referer
     // headers or server access logs on the client side.
-    const target = new URL(deps.oidc.postLoginRedirect);
     target.hash = `token=${encodeURIComponent(token)}`;
     return c.redirect(target.toString(), 302);
   });

@@ -128,6 +128,10 @@ All of these are required and validated at boot. The server only reads them when
 | `OIDC_REDIRECT_URI`         | Server callback URL; must end in `/api/auth/callback`                      |
 | `OIDC_POST_LOGIN_REDIRECT`  | Client-side URL to redirect to after successful login (token in fragment)   |
 | `OIDC_SCOPES`               | Comma-separated scopes (default `openid,profile,email`)                     |
+| `OIDC_GROUPS_CLAIM`         | The claim holding the user's groups (default `groups`). Read from the ID token, or from userinfo when the token leaves it out. A list, or one group as a string. |
+| `OIDC_USER_GROUP`           | Optional. Only members may sign in; anyone else is sent back to the sign-in screen with a message. |
+| `OIDC_ADMIN_GROUP`          | Optional. Members are admins and non-members are not, decided again at every sign-in, so removing someone from the group at the identity provider takes admin away at their next sign-in. The last admin is never demoted. Leave unset to grant admin by hand. |
+| `OIDC_AUTO_REGISTER`        | `on` (default) creates an account the first time someone signs in. `off` lets in only identities that already have one, and sends anyone else back with a message. |
 
 The login flow:
 

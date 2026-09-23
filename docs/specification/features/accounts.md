@@ -171,3 +171,12 @@ the password. Accounts that sign in through single sign-on get this from their i
 
 The secret is held as is in `user_totp` (it has to be, to compute codes), next to the password hash;
 `totp_recovery_codes` holds the hashed recovery codes.
+
+## Admins and sign-up under single sign-on
+
+With single sign-on, admin can follow a group at the identity provider (`OIDC_ADMIN_GROUP`) instead of
+being granted by hand: it is decided again at every sign-in, both ways, and never takes admin from the
+last admin. `OIDC_USER_GROUP` limits who may sign in at all, and `OIDC_AUTO_REGISTER=off` stops accounts
+being created on first sign-in. A refused sign-in comes back to the client as `#error=not_in_group` or
+`#error=not_registered`, and the sign-in screen says which. See [Server
+Deployment](../server/deployment.md#oidc-variables-when-auth_provideroidc-or-both).

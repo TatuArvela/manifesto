@@ -7,6 +7,7 @@ import {
   login,
   loginErrorKey,
   oidcLoginUrl,
+  oidcRefusal,
   PasswordChangeRequiredError,
   register,
   SERVER_ORIGIN,
@@ -127,8 +128,21 @@ function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
 
 function OidcLoginPanel() {
   const href = oidcLoginUrl ?? "#";
+  const refusal = oidcRefusal.value;
   return (
     <div class="space-y-4 py-2">
+      {refusal && (
+        <p
+          class="text-sm text-center text-red-600 dark:text-red-400"
+          role="alert"
+        >
+          {t(
+            refusal === "not_in_group"
+              ? "login.oidcNotInGroup"
+              : "login.oidcNotRegistered",
+          )}
+        </p>
+      )}
       <p class="text-sm text-center text-neutral-600 dark:text-neutral-300">
         {t("login.oidcHint")}
       </p>

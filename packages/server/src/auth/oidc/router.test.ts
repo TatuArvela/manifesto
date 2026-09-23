@@ -23,6 +23,7 @@ vi.mock("openid-client", async () => {
     discovery: vi.fn(),
     buildAuthorizationUrl: vi.fn(),
     authorizationCodeGrant: vi.fn(),
+    fetchUserInfo: vi.fn(),
     randomPKCECodeVerifier: vi.fn(() => "test-code-verifier"),
     calculatePKCECodeChallenge: vi.fn(async () => "test-code-challenge"),
     randomState: vi.fn(() => "test-state-token"),
@@ -33,6 +34,7 @@ const oidcModule = (await import("openid-client")) as typeof openid & {
   discovery: MockedFunction<typeof openid.discovery>;
   buildAuthorizationUrl: MockedFunction<typeof openid.buildAuthorizationUrl>;
   authorizationCodeGrant: MockedFunction<typeof openid.authorizationCodeGrant>;
+  fetchUserInfo: MockedFunction<typeof openid.fetchUserInfo>;
   randomState: MockedFunction<typeof openid.randomState>;
 };
 
@@ -43,6 +45,10 @@ const OIDC_CONFIG: OidcConfig = {
   redirectUri: "https://server.example.com/api/auth/callback",
   postLoginRedirect: "https://app.example.com/auth-callback",
   scopes: ["openid", "profile", "email"],
+  groupsClaim: "groups",
+  adminGroup: null,
+  userGroup: null,
+  autoRegister: true,
 };
 
 const FAKE_DISCOVERY = {} as openid.Configuration;
@@ -76,17 +82,18 @@ function applySetCookie(jar: Map<string, string>, res: Response): void {
   }
 }
 
-function bootOidcRig(): OidcRig {
+function bootOidcRig(overrides: Partial<OidcConfig> = {}): OidcRig {
+  const oidc = { ...OIDC_CONFIG, ...overrides };
   const cfg: ServerConfig = {
     ...TEST_CONFIG,
     authProvider: "oidc",
-    oidc: OIDC_CONFIG,
+    oidc,
   };
   const storage = createSqliteStorage(cfg);
   const authProvider = createOidcAuthProvider({
     storage,
     cfg,
-    oidc: OIDC_CONFIG,
+    oidc,
     discoveryClient: { getConfig: async () => FAKE_DISCOVERY },
   });
   const { app } = createApp({ cfg, storage, authProvider });
@@ -457,5 +464,90 @@ describe("oidc auth router", () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     expect(after.status).toBe(401);
+  });
+});
+
+describe("oidc groups and registration", () => {
+  let rig: OidcRig;
+
+  beforeEach(() => {
+    oidcModule.discovery.mockResolvedValue(FAKE_DISCOVERY);
+    oidcModule.buildAuthorizationUrl.mockReturnValue(
+      new URL("https://idp.example.com/authorize?state=test-state-token"),
+    );
+    oidcModule.randomState.mockReturnValue("test-state-token");
+  });
+
+  afterEach(async () => {
+    await rig.close();
+    vi.clearAllMocks();
+  });
+
+  /** One sign-in round trip; the fragment the client would receive. */
+  async function signIn(claims: Record<string, unknown>) {
+    await rig.request("/api/auth/login");
+    oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
+      makeTokenResponse(makeIdToken(claims as Partial<openid.IDToken>)),
+    );
+    const res = await rig.request(
+      "/api/auth/callback?code=c&state=test-state-token",
+    );
+    expect(res.status).toBe(302);
+    const dest = new URL(res.headers.get("location") ?? "");
+    return new URLSearchParams(dest.hash.replace(/^#/, ""));
+  }
+
+  const account = (sub: string) =>
+    rig.storage.users.findByExternalId("oidc:https://idp.example.com", sub);
+
+  it("keeps out anyone outside the user group", async () => {
+    rig = bootOidcRig({ userGroup: "notes" });
+    const refused = await signIn({ sub: "s1", groups: ["other"] });
+    expect(refused.get("error")).toBe("not_in_group");
+    expect(await account("s1")).toBeNull();
+    const allowed = await signIn({ sub: "s2", groups: ["notes"] });
+    expect(allowed.get("token")).toBeTruthy();
+  });
+
+  it("makes admin follow the admin group, both ways", async () => {
+    rig = bootOidcRig({ adminGroup: "admins" });
+    // Someone else is the admin first, so taking it away is allowed.
+    await signIn({ sub: "keeper", preferred_username: "keeper" });
+    await signIn({
+      sub: "s1",
+      preferred_username: "alice",
+      groups: ["admins"],
+    });
+    expect((await account("s1"))?.isAdmin).toBe(true);
+    await signIn({ sub: "s1", preferred_username: "alice", groups: [] });
+    expect((await account("s1"))?.isAdmin).toBe(false);
+  });
+
+  it("asks userinfo for groups the ID token leaves out", async () => {
+    rig = bootOidcRig({ userGroup: "notes", groupsClaim: "roles" });
+    oidcModule.fetchUserInfo.mockResolvedValueOnce({
+      sub: "s1",
+      roles: "notes",
+    } as unknown as Awaited<ReturnType<typeof openid.fetchUserInfo>>);
+    const allowed = await signIn({ sub: "s1" });
+    expect(allowed.get("token")).toBeTruthy();
+  });
+
+  it("with registration off, lets in only accounts that exist", async () => {
+    rig = bootOidcRig({ autoRegister: false });
+    await rig.storage.users.create({
+      id: "u-known",
+      username: "known",
+      displayName: "",
+      avatarColor: "",
+      provider: "oidc:https://idp.example.com",
+      externalId: "known",
+      passwordHash: null,
+      createdAt: new Date().toISOString(),
+    });
+    expect((await signIn({ sub: "known" })).get("token")).toBeTruthy();
+    const refused = await signIn({ sub: "stranger" });
+    expect(refused.get("error")).toBe("not_registered");
+    expect(await account("stranger")).toBeNull();
   });
 });

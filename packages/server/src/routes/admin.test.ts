@@ -321,6 +321,10 @@ describe("admin routes under single sign-on", () => {
         redirectUri: "http://localhost:3001/api/auth/callback",
         postLoginRedirect: "http://localhost:5173/",
         scopes: ["openid"],
+        groupsClaim: "groups",
+        adminGroup: null,
+        userGroup: null,
+        autoRegister: true,
       },
     });
     const user = await rig.storage.users.create({

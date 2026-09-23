@@ -434,6 +434,10 @@ export const fi: Messages = {
   "twoFactor.wrongCode": "Koodi ei ole oikea; tarkista laitteen kellonaika",
   "twoFactor.failed": "Palvelimeen ei saatu yhteyttä; yritä uudelleen",
   "twoFactor.close": "Sulje",
+  "login.oidcNotInGroup":
+    "Tililläsi ei voi kirjautua tänne. Kysy palvelimen ylläpitäjältä.",
+  "login.oidcNotRegistered":
+    "Sinulle ei ole tiliä täällä, eikä uusia luoda. Kysy palvelimen ylläpitäjältä.",
   "login.or": "tai",
   "login.withPassword": "Kirjaudu mieluummin salasanalla",
   "login.twoFactor.title": "Anna koodi",

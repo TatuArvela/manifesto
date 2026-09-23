@@ -9,6 +9,14 @@ export interface OidcConfig {
   redirectUri: string;
   postLoginRedirect: string;
   scopes: string[];
+  /** The claim holding the user's groups (`OIDC_GROUPS_CLAIM`). */
+  groupsClaim: string;
+  /** Members are admins, and anyone else is not, from each sign-in on. */
+  adminGroup: string | null;
+  /** When set, only members may sign in at all. */
+  userGroup: string | null;
+  /** When false, only identities that already have an account sign in. */
+  autoRegister: boolean;
 }
 
 export interface PostgresConfig {
@@ -188,6 +196,10 @@ function loadOidcConfig(): OidcConfig {
     redirectUri: envRequired("OIDC_REDIRECT_URI"),
     postLoginRedirect: envRequired("OIDC_POST_LOGIN_REDIRECT"),
     scopes,
+    groupsClaim: process.env.OIDC_GROUPS_CLAIM?.trim() || "groups",
+    adminGroup: process.env.OIDC_ADMIN_GROUP?.trim() || null,
+    userGroup: process.env.OIDC_USER_GROUP?.trim() || null,
+    autoRegister: envBool("OIDC_AUTO_REGISTER", true),
   };
 }
 
