@@ -15,6 +15,7 @@ import {
 } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import { initBoardBackground } from "../state/board.js";
+import { takeIncomingShare } from "../state/incomingShare.js";
 import {
   activeView,
   createNote,
@@ -116,6 +117,7 @@ function MainApp() {
       launchUrl.searchParams.delete("note");
       history.replaceState(history.state, "", launchUrl.href);
     }
+    void takeIncomingShare();
     const payload = decodeShareFromHash(window.location.hash);
     if (payload) setSharedNote(payload);
     welcomeIfNew();

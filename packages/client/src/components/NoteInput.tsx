@@ -13,6 +13,7 @@ import { noteColorMap } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { holdFocus, useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
+import { type IncomingShare, incomingShare } from "../state/incomingShare.js";
 import {
   activeView,
   animations,
@@ -32,7 +33,7 @@ import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
 } from "../utils/importExport.js";
-import { appendStubPreviews } from "../utils/linkPreview.js";
+import { appendStubPreviews, extractUrls } from "../utils/linkPreview.js";
 import {
   isMorphSource,
   morphIn,
@@ -194,6 +195,17 @@ export function NoteInput() {
     obs.observe(cell);
     return () => obs.disconnect();
   }, [isList, isActiveView]);
+
+  // Something shared to the installed app from elsewhere opens here as a new
+  // note. Through a ref for the same reason as `closeModalRef`: the handler
+  // needs state setters and helpers defined below the early return.
+  const openShareRef = useRef<(share: IncomingShare) => void>(() => {});
+  const share = incomingShare.value;
+  useEffect(() => {
+    if (!share || !isActiveView || expanded) return;
+    incomingShare.value = null;
+    openShareRef.current(share);
+  }, [share, isActiveView, expanded]);
 
   if (!isActiveView) return null;
 
@@ -372,6 +384,15 @@ export function NoteInput() {
   };
 
   closeModalRef.current = closeModal;
+  openShareRef.current = (incoming) => {
+    setTitle(incoming.title);
+    setContent(incoming.content);
+    setImages(incoming.images);
+    addLinkPreviews(extractUrls(incoming.content));
+    // No gesture to grow out of: the app has just been opened for this.
+    setMorphing(false);
+    setExpanded(true);
+  };
 
   const topNoteHidden = lifting || (expanded && !closing);
   const topNoteClass = lifting

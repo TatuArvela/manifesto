@@ -17,6 +17,7 @@ As a user, I want to move my data in and out of Manifesto freely.
 
 - I can export all my notes as a single JSON file from the Settings dialog
 - I can import notes from a JSON file, merging them into my existing notes
+- I can bring my notes from Google Keep (a Takeout archive) or a folder of Markdown notes
 - Exported files are human-readable and follow a documented format
 
 ## PWA
@@ -27,6 +28,7 @@ As a user on the go, I want to use Manifesto as an app on my phone or tablet.
 - The app works offline with my locally stored notes
 - The interface is responsive and touch-friendly
 - Notes sync when I reconnect (if connected to a server)
+- I can share text, a link or images from another app to Manifesto, and it opens as a new note
 
 ## Checklists
 
