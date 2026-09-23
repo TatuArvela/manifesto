@@ -19,6 +19,7 @@ import { endUserSessions } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
 import { pickAvatarColor } from "../auth/users.js";
 import { type ServerConfig, signsInLocally } from "../config.js";
+import { exportAccount, sendExport } from "../export/userExport.js";
 import { logger } from "../lib/logger.js";
 import { hashPassword } from "../lib/password.js";
 import { jobStatuses } from "../lib/periodic.js";
@@ -293,6 +294,23 @@ export function createAdminRoutes(deps: AdminDeps) {
       targetId: id,
     });
     return c.body(null, 204);
+  });
+
+  /** Everything an account owns, as a zip, for a data request or a move. */
+  admin.get("/users/:id/export", async (c) => {
+    const id = c.req.param("id");
+    const zip = await exportAccount(deps.storage, id);
+    if (!zip) throw new HttpError(404, "User not found");
+    audit(deps.storage, c, {
+      action: "admin.user_exported",
+      actorId: c.get("auth").userId,
+      targetId: id,
+    });
+    return sendExport(
+      c,
+      zip,
+      (await deps.storage.users.findById(id))?.username,
+    );
   });
 
   /** Whether a newer release is out, for the account menu to mention. */

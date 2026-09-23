@@ -196,6 +196,7 @@ export interface AdminUpdateResponse {
 /** What the audit log records. */
 export const AUDIT_ACTIONS = [
   "account.registered",
+  "account.exported",
   "auth.signed_in",
   "auth.sign_in_failed",
   "auth.signed_out",
@@ -217,6 +218,7 @@ export const AUDIT_ACTIONS = [
   "admin.admin_revoked",
   "admin.email_changed",
   "admin.password_reset",
+  "admin.user_exported",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
