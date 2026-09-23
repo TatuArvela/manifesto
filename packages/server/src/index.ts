@@ -35,6 +35,7 @@ const { app, broadcaster, revocations, accessChanges, noteEvents, webhooks } =
     cfg,
     storage,
     authProvider,
+    updateStatus: () => updateCheck?.status() ?? null,
   });
 
 const ws = createNodeWebSocket({ app });
