@@ -173,6 +173,17 @@ export class PasswordChangeRequiredError extends AuthRequestError {
   }
 }
 
+/**
+ * The password was right and the account has two-factor sign-in on: the same
+ * request has to be sent again with a code.
+ */
+export class TwoFactorRequiredError extends AuthRequestError {
+  constructor(message: string) {
+    super(403, message, "two_factor_required");
+    this.name = "TwoFactorRequiredError";
+  }
+}
+
 /** Throws for a refused auth request, keeping its status. */
 async function throwForResponse(res: Response): Promise<never> {
   let message = `Request failed (${res.status})`;
@@ -187,6 +198,9 @@ async function throwForResponse(res: Response): Promise<never> {
   if (code === "password_change_required") {
     throw new PasswordChangeRequiredError(message);
   }
+  if (code === "two_factor_required") {
+    throw new TwoFactorRequiredError(message);
+  }
   throw new AuthRequestError(res.status, message, code);
 }
 
@@ -197,7 +211,7 @@ async function throwForResponse(res: Response): Promise<never> {
  */
 export function loginErrorKey(
   err: unknown,
-  mode: "signIn" | "register" | "changePassword",
+  mode: "signIn" | "register" | "changePassword" | "twoFactor",
 ): MessageKey {
   if (!(err instanceof AuthRequestError)) {
     // `fetch` rejects with a TypeError when the server cannot be reached.
@@ -207,7 +221,9 @@ export function loginErrorKey(
   }
   switch (err.status) {
     case 401:
-      return "login.invalidCredentials";
+      return mode === "twoFactor"
+        ? "login.twoFactorInvalid"
+        : "login.invalidCredentials";
     case 403:
       return mode === "register"
         ? "login.registrationDisabled"
@@ -253,11 +269,13 @@ export async function login(
   username: string,
   password: string,
   newPassword?: string,
+  otp?: string,
 ): Promise<void> {
   const result = await authRequest("/api/auth/login", {
     username,
     password,
     ...(newPassword === undefined ? {} : { newPassword }),
+    ...(otp === undefined ? {} : { otp }),
   });
   authToken.value = result.token;
   currentUser.value = result.user;

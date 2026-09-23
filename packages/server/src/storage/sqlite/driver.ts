@@ -7,6 +7,7 @@ import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteSharesRepo } from "./sharesRepo.js";
+import { createSqliteTwoFactorRepo } from "./twoFactorRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
 import { createSqliteVersionsRepo } from "./versionsRepo.js";
 import { createSqliteWebhooksRepo } from "./webhooksRepo.js";
@@ -33,6 +34,7 @@ export function createSqliteStorage(
     versions: createSqliteVersionsRepo(db),
     apiTokens: createSqliteApiTokensRepo(db),
     webhooks: createSqliteWebhooksRepo(db),
+    twoFactor: createSqliteTwoFactorRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async close() {
       db.close();

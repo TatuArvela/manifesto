@@ -12,6 +12,7 @@ import { runMigrations } from "./migrations.js";
 import { createPostgresNotesRepo, reindexStaleNotes } from "./notesRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
 import { createPostgresSharesRepo } from "./sharesRepo.js";
+import { createPostgresTwoFactorRepo } from "./twoFactorRepo.js";
 import { createPostgresUsersRepo } from "./usersRepo.js";
 import { createPostgresVersionsRepo } from "./versionsRepo.js";
 import { createPostgresWebhooksRepo } from "./webhooksRepo.js";
@@ -51,6 +52,7 @@ export async function createPostgresStorage(
     versions: createPostgresVersionsRepo(pool),
     apiTokens: createPostgresApiTokensRepo(pool),
     webhooks: createPostgresWebhooksRepo(pool),
+    twoFactor: createPostgresTwoFactorRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {
       await pool.end();

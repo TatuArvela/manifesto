@@ -180,6 +180,23 @@ CREATE TABLE webhooks (
 CREATE INDEX webhooks_user ON webhooks(user_id);
 `;
 
+/** See the SQLite copy. */
+const TWO_FACTOR = `
+CREATE TABLE user_totp (
+  user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  secret     TEXT NOT NULL,
+  enabled_at TEXT,
+  last_step  INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE totp_recovery_codes (
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code_hash TEXT NOT NULL,
+  used_at   TEXT,
+  PRIMARY KEY (user_id, code_hash)
+);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -191,6 +208,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0008-note-versions", sql: NOTE_VERSIONS },
   { id: "0009-api-tokens", sql: API_TOKENS },
   { id: "0010-webhooks", sql: WEBHOOKS },
+  { id: "0011-two-factor", sql: TWO_FACTOR },
 ];
 
 export async function runMigrations(

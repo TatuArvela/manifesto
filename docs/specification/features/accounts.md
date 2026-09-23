@@ -148,3 +148,26 @@ command-line capture or home automation that should not hold a password. A token
 after 30, 90 or 365 days or never, is shown once when it is made, and is listed afterwards by its first
 characters and when it was last used. Revoking it closes anything connected with it at once. A token
 reaches notes, never the account's own security or the admin API; see the API doc for the rules.
+
+## Two-factor sign-in
+
+A local account can turn on two-factor sign-in from the account menu (**Two-factor sign-in**): signing in
+then asks for a six-digit code from an authenticator app (TOTP, RFC 6238: SHA-1, 30-second steps) after
+the password. Accounts that sign in through single sign-on get this from their identity provider instead.
+
+- **Turning it on** asks for the password, shows a new key (base32, grouped for typing, and as an
+  `otpauth://` link for an authenticator on the same device), and takes effect only once a code from it
+  is entered. It then shows ten one-time **recovery codes**, once; they are stored hashed.
+- **Signing in** answers `403` with `code: "two_factor_required"` after a right password, and the client
+  sends the same request again with `otp`, which may be an authenticator code or a recovery code (case
+  and separators ignored). The code is checked only after the password, so a wrong guess learns nothing
+  about the account, and a wrong code counts against the same per-account sign-in budget as a wrong
+  password, so six digits cannot be walked through. Each code's time step is accepted once (the server
+  keeps the last one used), and a recovery code once.
+- **Turning it off** or **replacing the recovery codes** asks for the password again, and all of it is
+  session-only: an API token cannot touch it.
+- **Lost everything**: an admin issuing a temporary password (see above) also turns two-factor off, since
+  that is the recovery path; the user can turn it on again after signing in.
+
+The secret is held as is in `user_totp` (it has to be, to compute codes), next to the password hash;
+`totp_recovery_codes` holds the hashed recovery codes.
