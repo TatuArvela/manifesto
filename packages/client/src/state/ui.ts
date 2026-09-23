@@ -24,6 +24,10 @@ export const selectedNotes = signal<Set<string>>(new Set());
 export const editingNoteId = signal<string | null>(null);
 export const showSettings = signal(false);
 export const showWelcome = signal(false);
+/** The keyboard shortcut sheet (`?`). */
+export const showShortcuts = signal(false);
+/** Asks `NoteInput` to open a new note, as the `c` shortcut does. */
+export const newNoteRequested = signal(false);
 /** The query the notes are filtered by; trails `searchInput` while typing. */
 export const searchQuery = signal("");
 /** What the search field shows, which changes on every keystroke. */

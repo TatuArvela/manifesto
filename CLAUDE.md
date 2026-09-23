@@ -396,6 +396,10 @@ call locally, so both modes behave alike.
   activation, not nesting (Preact runs a child's effects first), so a layer must not become active
   in the same render as one it sits inside. `Dropdown` closes its own panel rather than leaving it
   to the Popover API, because Chromium skips the light-dismiss when focus is inside ProseMirror.
+- **Single-key shortcuts** go through `hooks/useShortcut.ts` and nowhere else, like Escape. The
+  dispatcher, not the binding, decides when a key is not a shortcut (typing, an `aria-modal` layer or
+  open popover, a modifier), so a new binding only calls `useShortcut(key, run)`. The board's keys and
+  the `?` sheet read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
   clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
 

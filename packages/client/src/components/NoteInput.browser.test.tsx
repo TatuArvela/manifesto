@@ -3,7 +3,12 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { incomingShare } from "../state/incomingShare.js";
-import { activeView, noteQuips, notes } from "../state/index.js";
+import {
+  activeView,
+  newNoteRequested,
+  noteQuips,
+  notes,
+} from "../state/index.js";
 import { LocalStorageAdapter } from "../storage/index.js";
 import { NoteInput } from "./NoteInput.js";
 
@@ -331,5 +336,30 @@ describe("NoteInput with something shared to the app", () => {
     expect(notes.value[0].linkPreviews.map((p) => p.url)).toEqual([
       "https://example.com/a",
     ]);
+  });
+});
+
+describe("NoteInput asked for a new note", () => {
+  beforeEach(() => {
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    activeView.value = "active";
+  });
+
+  afterEach(() => {
+    newNoteRequested.value = false;
+    render(null, host);
+    host.remove();
+  });
+
+  it("opens the editor and takes the request", async () => {
+    render(<NoteInput />, host);
+    newNoteRequested.value = true;
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[role="dialog"] .ProseMirror'),
+      ).toBeTruthy(),
+    );
+    expect(newNoteRequested.value).toBe(false);
   });
 });

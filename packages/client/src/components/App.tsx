@@ -1,6 +1,7 @@
 import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { useBoardShortcuts } from "../hooks/useBoardShortcuts.js";
 import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
@@ -25,6 +26,7 @@ import {
   loadNotes,
   notes,
   showError,
+  showShortcuts,
   showSuccess,
   showWelcome,
   updateNote,
@@ -48,6 +50,7 @@ import { SearchView } from "./SearchView.js";
 import { SettingsDialog } from "./SettingsDialog.js";
 import { ShareDialogHost } from "./ShareDialog.js";
 import { SharedNoteDialog } from "./SharedNoteDialog.js";
+import { ShortcutsDialog } from "./ShortcutsDialog.js";
 import { MobileNav, Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
@@ -84,6 +87,7 @@ function MainApp() {
   const [dragActive, setDragActive] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const marquee = useMarqueeSelection(mainRef);
+  useBoardShortcuts();
   // Whether the saved user has been checked against the server. Admin rights
   // can change while signed out, so the `/admin` route waits for the answer
   // before deciding someone does not belong on it.
@@ -294,6 +298,7 @@ function MainApp() {
       )}
       {/* After a shared note, not on top of it: the link is why they came. */}
       {showWelcome.value && !sharedNote && <WelcomeDialog />}
+      {showShortcuts.value && <ShortcutsDialog />}
       {dragActive && (
         <div class="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center bg-blue-500/10 backdrop-blur-[2px]">
           <div class="m-6 px-8 py-6 rounded-2xl border-2 border-dashed border-blue-500 bg-white/90 dark:bg-neutral-800/90 shadow-xl flex flex-col items-center gap-2 text-center">
