@@ -95,6 +95,8 @@ export interface ServerConfig {
    * way back into a local account.
    */
   mail: MailConfig | null;
+  /** A built client to serve at the site root beside the API, or null. */
+  clientDir: string | null;
   /** The bearer token `GET /metrics` asks for; null keeps it off. */
   metricsToken: string | null;
   /** Scheduled SQLite backups, or null when off (the default). */
@@ -287,6 +289,7 @@ export function loadConfig(): ServerConfig {
     mail: loadMailConfig(),
     backup: loadBackupConfig(dataDir),
     metricsToken: process.env.METRICS_TOKEN?.trim() || null,
+    clientDir: process.env.CLIENT_DIR?.trim() || null,
     auditRetentionDays: envInt("AUDIT_RETENTION_DAYS", 180),
     updateCheckRepo: envBool("UPDATE_CHECK", true)
       ? process.env.UPDATE_CHECK_REPO?.trim() || "TatuArvela/manifesto"

@@ -1,6 +1,10 @@
 # Server Deployment
 
-The server carries no branding: it is a JSON + WebSocket API with no HTML, no icons, and no product name in any response. A rebranded deployment runs this image unmodified; see [Custom Instances](../custom-instances.md).
+The server is a JSON + WebSocket API. The published image also carries a built client and serves it at
+the site root (`CLIENT_DIR`), so one container is a whole connected-mode deployment on one origin; see
+[One container](#one-container). The API itself carries no branding, and the client in the image is the
+stock build: a rebranded deployment points `CLIENT_DIR` at its own build, or hosts it separately; see
+[Custom Instances](../custom-instances.md).
 
 ## Running Directly
 
@@ -11,6 +15,21 @@ pnpm --filter @manifesto/server start
 ```
 
 ## Docker
+
+### One container
+
+The image serves the client too: open `http://localhost:3001/` and sign in. The client in it is built
+with its server set to `/`, so it talks to the container it came from, on the same origin: no
+`CORS_ORIGINS`, no `VITE_MANIFESTO_SERVER`, and the client's `connect-src 'self'` already reaches the API
+and both sockets. The server adds the headers a `<meta>` CSP cannot carry (`frame-ancestors`,
+`X-Frame-Options`), caches hashed assets for good, revalidates the page and service worker, and answers
+any client route with the page. Put HTTPS in front of it and that is the deployment.
+
+`CLIENT_DIR` (set to `/app/public` in the image) is what turns this on. Point it at another build (a
+rebranded one, mounted into the container) to serve that instead, or unset it to run the API alone
+behind a client hosted elsewhere. Open mode and GitHub Pages stay the static client, as before.
+
+### Releases
 
 Each release publishes a multi-arch image, so there is nothing to build. Pin the
 tag to the release you mean to run:
@@ -96,6 +115,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `UPDATE_CHECK`     | `on`                       | Asks GitHub twice a day for the newest release, so admins are told when there is one (a dot on their avatar, a line in the account menu, a banner in the overview). One request to `api.github.com`, through the same outbound boundary as link previews; `off` makes none. |
 | `UPDATE_CHECK_REPO`| `TatuArvela/manifesto`     | Whose releases the check reads, for a fork that publishes its own. |
 | `METRICS_TOKEN`    | *(unset: off)*             | Turns on `GET /metrics` for a scraper that sends it as a bearer token. See [Metrics](#metrics). |
+| `CLIENT_DIR`       | `/app/public` in the image, else unset | A built client to serve at the site root beside the API. See [One container](#one-container). |
 | `WEBHOOKS`         | `public`                   | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
 
@@ -356,6 +376,10 @@ believed. Behind a proxy the server should have no `ports` at all, and the proxy
 should reach it over the compose network by service name.
 
 ### Single origin behind one reverse proxy
+
+With the image serving the client itself ([One container](#one-container)), the proxy below only needs
+to terminate HTTPS and pass everything to the server. The longer setup, where the proxy serves a client
+bundle of its own and forwards `/api/*`, is for a client built separately (a rebranded one, say).
 
 Serving the client bundle and proxying `/api/*` from **one** origin is the
 recommended shape for a one-box deployment. It removes CORS from the picture

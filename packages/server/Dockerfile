@@ -18,6 +18,7 @@ RUN apk add --no-cache python3 make g++
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY packages/server/package.json packages/server/
+COPY packages/client/package.json packages/client/
 
 # shared goes in whole, not just its manifest: its `prepare` script runs tsc
 # during install, and tsc with no tsconfig.json prints its help and exits 1.
@@ -25,9 +26,13 @@ COPY packages/server/package.json packages/server/
 # (@manifesto/shared resolves to dist/index.js at runtime).
 COPY packages/shared packages/shared
 
-# Select both packages directly so shared's devDependencies (typescript) are
-# installed too, since the builder compiles shared, not just server.
-RUN pnpm install --filter @manifesto/server --filter @manifesto/shared --frozen-lockfile
+# Select the packages directly so shared's devDependencies (typescript) are
+# installed too, since the builder compiles shared, not just server. The
+# client comes along because the image serves it (see below); its test
+# browser is never needed here.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+RUN pnpm install --filter @manifesto/server --filter @manifesto/shared \
+  --filter @manifesto/client --frozen-lockfile
 
 COPY packages/server packages/server
 
@@ -38,6 +43,13 @@ COPY packages/server packages/server
 COPY packages/build-version packages/build-version
 ARG MANIFESTO_VERSION
 RUN pnpm --filter @manifesto/server build
+
+# The client, built to talk to the server that serves it: `/` is the
+# same-origin form, so the page's stock `connect-src 'self'` reaches the API
+# and both sockets and there is no CORS to set up. CLIENT_DIR below points the
+# server at it; a deployment that hosts the client elsewhere can unset it.
+COPY packages/client packages/client
+RUN VITE_MANIFESTO_SERVER=/ pnpm --filter @manifesto/client build
 
 # Produce a self-contained production bundle. `pnpm deploy` writes a real,
 # fully-resolved node_modules (no symlinks into the workspace .pnpm store) plus
@@ -53,11 +65,13 @@ RUN addgroup -S manifesto && adduser -S manifesto -G manifesto
 
 ENV NODE_ENV=production \
     PORT=3001 \
-    DATA_DIR=/app/data
+    DATA_DIR=/app/data \
+    CLIENT_DIR=/app/public
 
 COPY --from=builder /prod/dist ./dist
 COPY --from=builder /prod/package.json ./package.json
 COPY --from=builder /prod/node_modules ./node_modules
+COPY --from=builder /repo/packages/client/dist ./public
 
 # Create the data dir up front and hand it to the runtime user, so the SQLite
 # driver can write even when /app/data is backed by an anonymous volume.

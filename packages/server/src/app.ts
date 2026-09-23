@@ -7,6 +7,7 @@ import {
 } from "./auth/revocations.js";
 import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
+import { mountClient } from "./client/serveClient.js";
 import type { ServerConfig } from "./config.js";
 import { exportAccount, sendExport } from "./export/userExport.js";
 import { countMetric, renderMetrics } from "./lib/metrics.js";
@@ -288,6 +289,9 @@ export function createApp(deps: AppDeps): AppHandle {
       rateLimit: apiRateLimit,
     }),
   );
+
+  // Last, so every API route above answers before the client's catch-all.
+  if (cfg.clientDir) mountClient(app, cfg.clientDir);
 
   return {
     app,
