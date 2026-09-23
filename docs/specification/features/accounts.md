@@ -215,3 +215,9 @@ Admins read it in the Users view's **Activity** tab, newest first, from `GET /ap
 hop with `TRUST_PROXY` on. Actor and target are not foreign keys, so an entry about an account outlives
 the account. Entries are kept for `AUDIT_RETENTION_DAYS` (180 by default) and pruned hourly. Writing an
 entry never fails the request it describes; one that cannot be written is logged.
+
+## Lockout recovery
+
+With no admin able to sign in, the server's admin CLI (`node dist/cli.js`, run in the container) lists
+admins, issues a temporary password, makes an account an admin, or creates a new local admin. See
+[Server Deployment](../server/deployment.md#locked-out).
