@@ -31,6 +31,7 @@ export const TEST_CONFIG: ServerConfig = {
   mail: null,
   backup: null,
   metricsToken: null,
+  clientDir: null,
   auditRetentionDays: 180,
   // Off: no test should reach GitHub.
   updateCheckRepo: null,

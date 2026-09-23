@@ -4,9 +4,13 @@ Running Manifesto under your own name ("Corporate Notes", "Acme Memos",
 whatever fits. This walks through a complete branded deployment end to end.
 
 The single most useful fact up front: **the server carries no branding at all.**
-It is a JSON + WebSocket API with no HTML, no icons, and no product name in any
-response. Rebranding is entirely a client-side concern, so the server you deploy
-is the stock published image, unmodified.
+Its API has no HTML, no icons, and no product name in any response. Rebranding
+is entirely a client-side concern, so the server you deploy is the stock
+published image, unmodified. The image does carry the stock client, which it
+serves at the site root; to serve yours instead, mount your build into the
+container and point `CLIENT_DIR` at it (see [One
+container](server/deployment.md#one-container)), or unset `CLIENT_DIR` and host
+the client yourself as below.
 
 ## Which path
 

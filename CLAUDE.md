@@ -488,6 +488,9 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   note's `title` or `content` must set `search_version = 0` in the same statement and re-index after
   (`touchesText`); startup re-indexes every note not at `SEARCH_INDEX_VERSION`. `searchContract.ts`
   runs the rules against both drivers.
+- **Serving the client**: with `CLIENT_DIR` set (it is, in the image) `client/serveClient.ts` serves
+  a built client at the root, mounted last in `app.ts` so every API route answers first; the image's
+  client is built with `VITE_MANIFESTO_SERVER=/`.
 - **Background work**: `lib/trashCleanup.ts` and `lib/sessionCleanup.ts` both run on `lib/periodic.ts`'s `startPeriodicJob`, once at startup, then hourly. Each goes through a repo method (`storage.maintenance.cleanupTrashedBefore()` and `cleanupTrashedSharesBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
 - **Counting against a key**: `lib/expiringCounter.ts` is the one bounded map behind both throttles,
   `middleware/rateLimit.ts` (per address, per user) and `auth/local/loginAttempts.ts` (failed
