@@ -1,0 +1,42 @@
+# Weekly dependency updates, grouped so a week is one or two pull requests
+# rather than thirty. Every commit is `chore(deps)` (or `ci(deps)`), which
+# release-please does not count as releasable: updates ride along with the
+# next real release instead of cutting one of their own every week.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      # Minor and patch updates, dev and runtime apart, one PR each.
+      runtime:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+    # Majors come one per PR, ungrouped, since each can need code changes.
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /packages/server
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore(deps)
