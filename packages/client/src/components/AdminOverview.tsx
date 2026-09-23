@@ -14,6 +14,7 @@ const JOB_NAMES: Record<string, MessageKey> = {
   "session cleanup": "overview.job.sessions",
   "attachment cleanup": "overview.job.attachments",
   "scheduled backup": "overview.job.backup",
+  "update check": "overview.job.update",
 };
 
 function uptime(seconds: number): string {
@@ -68,6 +69,19 @@ export function AdminOverview() {
         {t("overview.version", { version: overview.version })} ·{" "}
         {uptime(overview.uptimeSeconds)}
       </p>
+      {overview.update?.available && (
+        <p class="rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 px-3 py-2 text-sm">
+          {t("overview.updateAvailable", { version: overview.update.latest })}{" "}
+          <a
+            class="underline"
+            href={overview.update.url}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {t("overview.updateNotes")}
+          </a>
+        </p>
+      )}
 
       <dl class="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {tiles.map(([label, value]) => (

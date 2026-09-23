@@ -90,6 +90,9 @@ export interface ServerConfig {
   mail: MailConfig | null;
   /** Days the audit log keeps an entry. */
   auditRetentionDays: number;
+  /** The GitHub repository whose releases the update check reads, or null
+   * with `UPDATE_CHECK=off`. */
+  updateCheckRepo: string | null;
   /** How someone sharing a note finds the account to share it with: by
    * searching every account as they type, or only by its exact username or
    * email address, which keeps the list of accounts private. */
@@ -260,6 +263,9 @@ export function loadConfig(): ServerConfig {
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
     mail: loadMailConfig(),
     auditRetentionDays: envInt("AUDIT_RETENTION_DAYS", 180),
+    updateCheckRepo: envBool("UPDATE_CHECK", true)
+      ? process.env.UPDATE_CHECK_REPO?.trim() || "TatuArvela/manifesto"
+      : null,
     userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "search"),
     initialAdminPassword: loadInitialAdminPassword(),
   };

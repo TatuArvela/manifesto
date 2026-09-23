@@ -1,4 +1,5 @@
 import {
+  ArrowUpCircle,
   AtSign,
   KeyRound,
   KeySquare,
@@ -11,6 +12,7 @@ import { useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
+import { availableUpdate } from "../state/admin.js";
 import {
   authProviderName,
   changePassword,
@@ -42,6 +44,7 @@ export function AccountMenu() {
   const [managingWebhooks, setManagingWebhooks] = useState(false);
   const [managingTwoFactor, setManagingTwoFactor] = useState(false);
   const user = currentUser.value;
+  const update = user?.isAdmin ? availableUpdate.value : null;
   if (!isServerMode || !user) return null;
 
   const name = user.displayName || user.username;
@@ -68,11 +71,19 @@ export function AccountMenu() {
               aria-haspopup="menu"
               aria-expanded={open}
             >
-              <Avatar
-                name={name}
-                color={user.avatarColor}
-                class="w-7 h-7 text-xs"
-              />
+              <span class="relative block">
+                <Avatar
+                  name={name}
+                  color={user.avatarColor}
+                  class="w-7 h-7 text-xs"
+                />
+                {update && (
+                  <span
+                    class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-white dark:ring-neutral-900"
+                    aria-hidden="true"
+                  />
+                )}
+              </span>
             </button>
           </Tooltip>
         }
@@ -91,6 +102,17 @@ export function AccountMenu() {
           )}
         </div>
         <div class={menuDividerClass} />
+        {user.isAdmin && update && (
+          <a
+            class={menuItemClass}
+            href={update.url}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            <ArrowUpCircle class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            {t("account.updateAvailable", { version: update.latest })}
+          </a>
+        )}
         {user.isAdmin && (
           <button
             type="button"

@@ -30,6 +30,8 @@ export const TEST_CONFIG: ServerConfig = {
   webhooks: "off",
   mail: null,
   auditRetentionDays: 180,
+  // Off: no test should reach GitHub.
+  updateCheckRepo: null,
   userLookup: "search",
   initialAdminPassword: null,
 };

@@ -2,6 +2,7 @@ export type {
   AdminCreateUserRequest,
   AdminOverviewResponse,
   AdminTemporaryPasswordResponse,
+  AdminUpdateResponse,
   AdminUpdateUserRequest,
   AdminUser,
   AdminUserResponse,

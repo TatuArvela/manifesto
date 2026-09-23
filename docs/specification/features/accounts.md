@@ -229,5 +229,8 @@ The Users view's **Overview** tab shows an admin what the server holds and how i
 trash), shares, images and the bytes they take, and saved versions; the same per account, the largest
 first, with images counted under the owner of the notes they belong to; and every background job (trash,
 sessions, unused images, backups when on) with when it last ran, how long it took and its last error.
-The counts are plain aggregates in either driver (`maintenance.stats`); job status is kept in memory by
+When the update check (`UPDATE_CHECK`, on by default) has found a newer release than the one running,
+the overview says so with a link to its notes, and every admin sees a dot on their avatar and a line in
+the account menu. A build past a release (`0.1.8+14.bf5a6dd`) counts as that release, so only a later
+release is news. The counts are plain aggregates in either driver (`maintenance.stats`); job status is kept in memory by
 `startPeriodicJob`, so it describes the running process since it started.
