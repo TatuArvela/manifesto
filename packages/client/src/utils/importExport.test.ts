@@ -154,7 +154,12 @@ describe("isImportableFile", () => {
 
   it("rejects unrelated files", () => {
     expect(isImportableFile(new File(["x"], "a.txt"))).toBe(false);
-    expect(isImportableFile(new File(["x"], "a.png"))).toBe(false);
+    expect(isImportableFile(new File(["x"], "a.pdf"))).toBe(false);
+  });
+
+  it("accepts a Takeout archive and the images of an unpacked one", () => {
+    expect(isImportableFile(new File(["x"], "takeout.zip"))).toBe(true);
+    expect(isImportableFile(new File(["x"], "a.png"))).toBe(true);
   });
 });
 
