@@ -1,12 +1,17 @@
 import { zValidator } from "@hono/zod-validator";
-import type {
-  AdminTemporaryPasswordResponse,
-  AdminUser,
-  AdminUserResponse,
-  AdminUsersResponse,
+import {
+  type AdminTemporaryPasswordResponse,
+  type AdminUser,
+  type AdminUserResponse,
+  type AdminUsersResponse,
+  AUDIT_ACTIONS,
+  type AuditAction,
+  type AuditLogResponse,
+  type ShareUser,
 } from "@manifesto/shared";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
+import { audit } from "../audit/audit.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { endUserSessions } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
@@ -166,6 +171,11 @@ export function createAdminRoutes(deps: AdminDeps) {
         adminId: c.get("auth").userId,
         userId: id,
       });
+      audit(deps.storage, c, {
+        action: "admin.user_created",
+        actorId: c.get("auth").userId,
+        targetId: id,
+      });
       const body: AdminTemporaryPasswordResponse = {
         user: await summaryOf(id),
         temporaryPassword,
@@ -191,12 +201,22 @@ export function createAdminRoutes(deps: AdminDeps) {
           adminId: c.get("auth").userId,
           userId: id,
         });
+        audit(deps.storage, c, {
+          action: "admin.email_changed",
+          actorId: c.get("auth").userId,
+          targetId: id,
+        });
       }
       if (isAdmin !== undefined) {
         refuseGuarded(await deps.storage.users.setAdmin(id, isAdmin));
         logger.info(isAdmin ? "Admin granted admin" : "Admin revoked admin", {
           adminId: c.get("auth").userId,
           userId: id,
+        });
+        audit(deps.storage, c, {
+          action: isAdmin ? "admin.admin_granted" : "admin.admin_revoked",
+          actorId: c.get("auth").userId,
+          targetId: id,
         });
       }
       const body: AdminUserResponse = { user: await summaryOf(id) };
@@ -229,6 +249,11 @@ export function createAdminRoutes(deps: AdminDeps) {
       adminId: c.get("auth").userId,
       userId: id,
     });
+    audit(deps.storage, c, {
+      action: "admin.password_reset",
+      actorId: c.get("auth").userId,
+      targetId: id,
+    });
     const body: AdminTemporaryPasswordResponse = {
       user: await summaryOf(id),
       temporaryPassword,
@@ -255,7 +280,75 @@ export function createAdminRoutes(deps: AdminDeps) {
       adminId: c.get("auth").userId,
       userId: id,
     });
+    audit(deps.storage, c, {
+      action: "admin.user_deleted",
+      actorId: c.get("auth").userId,
+      targetId: id,
+    });
     return c.body(null, 204);
+  });
+
+  /**
+   * The audit log, newest first, a page at a time: `before` an entry id for
+   * older ones, and narrowed to one account (as actor or target) or one
+   * action. Actor and target come with their names while the accounts exist.
+   */
+  admin.get("/audit", async (c) => {
+    const limit = Math.min(
+      Math.max(Number(c.req.query("limit")) || 100, 1),
+      500,
+    );
+    const actionQuery = c.req.query("action");
+    const action = (AUDIT_ACTIONS as readonly string[]).includes(
+      actionQuery ?? "",
+    )
+      ? (actionQuery as AuditAction)
+      : undefined;
+    const records = await deps.storage.audit.list({
+      limit: limit + 1,
+      before: c.req.query("before") || undefined,
+      userId: c.req.query("userId") || undefined,
+      action,
+    });
+    const page = records.slice(0, limit);
+    const ids = new Set(
+      page.flatMap((r) => [r.actorId, r.targetId]).filter(Boolean) as string[],
+    );
+    const people = new Map<string, ShareUser>();
+    for (const id of ids) {
+      const user = await deps.storage.users.findById(id);
+      if (user) {
+        people.set(id, {
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName || user.username,
+          avatarColor: user.avatarColor,
+        });
+      }
+    }
+    const who = (id: string | null) =>
+      id === null
+        ? null
+        : (people.get(id) ?? {
+            id,
+            username: "",
+            displayName: "",
+            avatarColor: "",
+          });
+    const body: AuditLogResponse = {
+      entries: page.map((r) => ({
+        id: r.id,
+        at: r.at,
+        action: r.action,
+        actor: who(r.actorId),
+        target: who(r.targetId),
+        noteId: r.noteId,
+        ip: r.ip,
+        detail: r.detail,
+      })),
+      nextBefore: records.length > limit ? (page.at(-1)?.id ?? null) : null,
+    };
+    return c.json(body);
   });
 
   return admin;

@@ -199,3 +199,19 @@ the address and mails a link to `APP_URL/#reset=<token>`, which opens a form for
 The same setting mails a share invitation to a recipient who has an address. Mail is a convenience
 beside something that already happened, so a failure to send is logged and nothing else fails.
 Accounts from single sign-on have no password here and are not offered a reset.
+
+## Audit log
+
+The server records who did what to which account or note, and from where, in `audit_log`: sign-ins
+(with the method, and whether two-factor was used), failed sign-ins (with the name tried and why:
+unknown account, wrong password, wrong code, or single sign-on refused), sign-outs, password changes and
+resets, two-factor turned on or off, API tokens and webhooks created or removed, shares created, changed
+and removed, and every admin action (accounts created or deleted, admin granted or taken away, including
+by `OIDC_ADMIN_GROUP`, email addresses changed, temporary passwords issued). Note contents are never
+recorded.
+
+Admins read it in the Users view's **Activity** tab, newest first, from `GET /api/admin/audit`
+(`limit`, `before`, `userId`, `action`). The address is the socket peer, or the first `X-Forwarded-For`
+hop with `TRUST_PROXY` on. Actor and target are not foreign keys, so an entry about an account outlives
+the account. Entries are kept for `AUDIT_RETENTION_DAYS` (180 by default) and pruned hourly. Writing an
+entry never fails the request it describes; one that cannot be written is logged.

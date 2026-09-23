@@ -138,6 +138,22 @@ export function ipBucketKey(address: string): string {
   return `${prefix}::/64`;
 }
 
+/**
+ * The client's address as the server sees it: the first `X-Forwarded-For`
+ * hop behind a trusted proxy, else the socket peer. Unbucketed, for the
+ * audit log to show.
+ */
+export function clientAddress(
+  c: Parameters<MiddlewareHandler>[0],
+  trustProxy: boolean,
+): string {
+  if (trustProxy) {
+    const fwd = c.req.header("x-forwarded-for");
+    if (fwd) return fwd.split(",")[0].trim();
+  }
+  return socketAddress(c);
+}
+
 function makeDefaultKey(
   trustProxy: boolean,
 ): (c: Parameters<MiddlewareHandler>[0]) => string {

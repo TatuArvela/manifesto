@@ -254,6 +254,27 @@ CREATE TABLE password_resets (
 CREATE INDEX password_resets_user ON password_resets(user_id, created_at);
 `;
 
+/**
+ * The audit log: who did what to which account or note, from where. Kept for
+ * `AUDIT_RETENTION_DAYS`. Actor and target are not foreign keys, so an entry
+ * about a deleted account outlives it.
+ */
+const AUDIT_LOG = `
+CREATE TABLE audit_log (
+  id        TEXT PRIMARY KEY,
+  at        TEXT NOT NULL,
+  action    TEXT NOT NULL,
+  actor_id  TEXT,
+  target_id TEXT,
+  note_id   TEXT,
+  ip        TEXT,
+  detail    TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX audit_log_at ON audit_log(at);
+CREATE INDEX audit_log_actor ON audit_log(actor_id);
+CREATE INDEX audit_log_target ON audit_log(target_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -267,6 +288,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0010-webhooks", sql: WEBHOOKS },
   { id: "0011-two-factor", sql: TWO_FACTOR },
   { id: "0012-password-resets", sql: PASSWORD_RESETS },
+  { id: "0013-audit-log", sql: AUDIT_LOG },
 ];
 
 export function runMigrations(

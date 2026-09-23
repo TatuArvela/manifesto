@@ -92,6 +92,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `SMTP_URL`         | *(unset)*                  | Outgoing mail, for password reset links and share invitations: `smtp://user:pass@host:587` (STARTTLS when offered) or `smtps://...:465`. Unset, the server sends no mail and an admin's temporary password stays the only way back into a local account. |
 | `SMTP_FROM`        | *(required with `SMTP_URL`)* | The From header: `Notes <notes@example.com>` or a bare address. |
 | `APP_URL`          | *(required with `SMTP_URL`)* | The client's public address, which links in mail point at. |
+| `AUDIT_RETENTION_DAYS` | `180`                  | Days the [audit log](../features/accounts.md#audit-log) keeps an entry. |
 | `WEBHOOKS`         | `public`                   | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
 

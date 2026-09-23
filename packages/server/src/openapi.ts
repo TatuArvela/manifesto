@@ -460,6 +460,20 @@ export const OPERATIONS: Operation[] = [
     responses: ok("AdminUsersResponse"),
   },
   {
+    method: "get",
+    path: "/api/admin/audit",
+    tag: "Admin",
+    summary: "The audit log, newest first",
+    auth: "session",
+    query: {
+      limit: "Entries per page (up to 500)",
+      before: "An entry id; older entries only",
+      userId: "Entries where this account acted or was acted on",
+      action: "One kind of entry",
+    },
+    responses: ok("AuditLogResponse"),
+  },
+  {
     method: "post",
     path: "/api/admin/users",
     tag: "Admin",
@@ -579,6 +593,10 @@ function components() {
         secret: { type: "string" },
       }),
       AdminUsersResponse: shape({ users: { type: "array" } }),
+      AuditLogResponse: shape({
+        entries: { type: "array" },
+        nextBefore: { type: ["string", "null"] },
+      }),
       AdminUserResponse: shape({ user: { type: "object" } }),
       AdminTemporaryPasswordResponse: shape({
         user: { type: "object" },

@@ -3,6 +3,7 @@ import type {
   AdminUser,
   AdminUserResponse,
   AdminUsersResponse,
+  AuditLogResponse,
   ErrorResponse,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
@@ -105,6 +106,20 @@ function replaceUser(user: AdminUser) {
           }),
         )
       : users.map((u) => (u.id === user.id ? user : u));
+}
+
+/** One page of the audit log, older than `before` when given; null on
+ * failure, which has been reported. */
+export async function loadAuditLog(
+  before?: string,
+): Promise<AuditLogResponse | null> {
+  try {
+    const query = before ? `?before=${encodeURIComponent(before)}` : "";
+    return await request<AuditLogResponse>("GET", `/audit${query}`);
+  } catch (err) {
+    report(err, "audit.failed");
+    return null;
+  }
 }
 
 export async function loadAdminUsers(): Promise<boolean> {

@@ -25,6 +25,55 @@ describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
   await pool.query(`UPDATE notes SET search_version = 0`);
 });
 
+describe("postgres: audit log", () => {
+  it("appends, filters, pages and prunes", async () => {
+    const storage = await bootStorage();
+    const entry = (
+      id: string,
+      action: "auth.signed_in" | "auth.sign_in_failed",
+      actorId: string | null,
+      targetId: string | null,
+    ) =>
+      storage.audit.append({
+        id,
+        at: `2026-04-0${id.slice(-1)}T00:00:00.000Z`,
+        action,
+        actorId,
+        targetId,
+        noteId: null,
+        ip: "203.0.113.1",
+        detail: { method: "password" },
+      });
+    await entry("01A1", "auth.signed_in", "u1", null);
+    await entry("01A2", "auth.sign_in_failed", null, "u1");
+    await entry("01A3", "auth.signed_in", "u2", null);
+    expect((await storage.audit.list({ limit: 10 })).map((e) => e.id)).toEqual([
+      "01A3",
+      "01A2",
+      "01A1",
+    ]);
+    expect(
+      (await storage.audit.list({ limit: 10, userId: "u1" })).map((e) => e.id),
+    ).toEqual(["01A2", "01A1"]);
+    expect(
+      (
+        await storage.audit.list({
+          limit: 10,
+          action: "auth.signed_in",
+          before: "01A3",
+        })
+      ).map((e) => e.id),
+    ).toEqual(["01A1"]);
+    expect((await storage.audit.list({ limit: 1 }))[0].detail).toEqual({
+      method: "password",
+    });
+    expect(await storage.audit.deleteBefore("2026-04-02T12:00:00.000Z")).toBe(
+      2,
+    );
+    await storage.close();
+  });
+});
+
 describe("postgres: password resets", () => {
   it("spends a link once, only before it expires", async () => {
     const storage = await bootStorage();

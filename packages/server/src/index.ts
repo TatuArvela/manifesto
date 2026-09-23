@@ -70,7 +70,11 @@ const stopTrashCleanup = startTrashCleanup(
   undefined,
   noteEvents,
 );
-const stopSessionCleanup = startSessionCleanup(storage);
+const stopSessionCleanup = startSessionCleanup(
+  storage,
+  undefined,
+  cfg.auditRetentionDays,
+);
 const stopAttachmentCleanup = startAttachmentCleanup(storage);
 
 const shutdown = createShutdown({

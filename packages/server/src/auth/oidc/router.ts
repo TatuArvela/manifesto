@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import * as openid from "openid-client";
+import { audit } from "../../audit/audit.js";
 import type { OidcConfig, ServerConfig } from "../../config.js";
 import { logger } from "../../lib/logger.js";
 import { nowIso } from "../../lib/time.js";
@@ -374,6 +375,10 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     } catch (err) {
       if (!(err instanceof SignInRefused)) throw err;
       logger.info("OIDC sign-in refused", { reason: err.reason });
+      audit(deps.storage, c, {
+        action: "auth.sign_in_failed",
+        detail: { method: "oidc", reason: err.reason, subject: claims.sub },
+      });
       target.hash = `error=${err.reason}`;
       return c.redirect(target.toString(), 302);
     }
@@ -386,6 +391,13 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       const user = await deps.storage.users.findById(userId);
       if (user && user.isAdmin !== wanted) {
         const result = await deps.storage.users.setAdmin(userId, wanted);
+        if (result === "ok") {
+          audit(deps.storage, c, {
+            action: wanted ? "admin.admin_granted" : "admin.admin_revoked",
+            targetId: userId,
+            detail: { by: "oidc_group" },
+          });
+        }
         if (result === "last-admin") {
           logger.warn("OIDC admin group would remove the last admin; kept", {
             userId,
@@ -395,6 +407,11 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     }
 
     const { token } = await issueSession(deps.storage, deps.cfg, userId);
+    audit(deps.storage, c, {
+      action: "auth.signed_in",
+      actorId: userId,
+      detail: { method: "oidc" },
+    });
     // Token is delivered in the URL fragment so it never enters Referer
     // headers or server access logs on the client side.
     target.hash = `token=${encodeURIComponent(token)}`;
