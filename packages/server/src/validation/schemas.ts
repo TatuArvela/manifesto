@@ -11,6 +11,7 @@ import {
   NoteFont,
   REMINDER_RECURRENCES,
   SHARE_ROLES,
+  WEBHOOK_EVENTS,
 } from "@manifesto/shared";
 import { z } from "zod";
 
@@ -210,3 +211,21 @@ export const apiTokenCreateSchema = z.object({
   name: z.string().trim().min(1).max(100),
   expiresInDays: z.number().int().min(1).max(3650).optional(),
 });
+
+/** `POST /api/webhooks`. Where it may point is checked on every delivery,
+ * against the resolved address; this only refuses what is never a webhook. */
+export const webhookCreateSchema = z.object({
+  url: z
+    .string()
+    .url()
+    .max(2048)
+    .regex(/^https?:\/\//i, "URL must use http(s) scheme"),
+  events: z
+    .array(z.enum(WEBHOOK_EVENTS))
+    .min(1)
+    .max(WEBHOOK_EVENTS.length)
+    .optional(),
+});
+
+/** `PUT /api/webhooks/:id`. */
+export const webhookUpdateSchema = z.object({ active: z.boolean() });

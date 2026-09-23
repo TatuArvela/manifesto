@@ -162,6 +162,24 @@ CREATE TABLE api_tokens (
 CREATE INDEX api_tokens_user ON api_tokens(user_id);
 `;
 
+/** See the SQLite copy. */
+const WEBHOOKS = `
+CREATE TABLE webhooks (
+  id               TEXT PRIMARY KEY,
+  user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  url              TEXT NOT NULL,
+  secret           TEXT NOT NULL,
+  events           TEXT NOT NULL,
+  active           BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at       TEXT NOT NULL,
+  last_delivery_at TEXT,
+  last_status      INTEGER,
+  last_error       TEXT,
+  failure_count    INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX webhooks_user ON webhooks(user_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -172,6 +190,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0007-attachments", sql: ATTACHMENTS },
   { id: "0008-note-versions", sql: NOTE_VERSIONS },
   { id: "0009-api-tokens", sql: API_TOKENS },
+  { id: "0010-webhooks", sql: WEBHOOKS },
 ];
 
 export async function runMigrations(

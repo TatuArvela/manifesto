@@ -27,6 +27,7 @@ import { createSearchRoutes } from "./routes/search.js";
 import { registerInvitationRoutes } from "./routes/shares.js";
 import { createTokenRoutes } from "./routes/tokens.js";
 import { createUsersRoutes } from "./routes/users.js";
+import { createWebhookRoutes } from "./routes/webhooks.js";
 import {
   type AccessChanges,
   createAccessChanges,
@@ -34,6 +35,10 @@ import {
 import { createNoteEvents, type NoteEvents } from "./sharing/noteEvents.js";
 import type { StorageDriver } from "./storage/types.js";
 import { VERSION } from "./version.js";
+import {
+  createWebhookDispatcher,
+  type WebhookDispatcher,
+} from "./webhooks/dispatcher.js";
 import { type Broadcaster, createBroadcaster } from "./ws/broadcaster.js";
 
 export interface AppDeps {
@@ -47,6 +52,9 @@ export interface AppDeps {
   accessChanges?: AccessChanges;
   /** Test seam: replaces the fetcher that reaches the network. */
   fetchLinkPreview?: LinkPreviewFetcher;
+  /** Test seam: which addresses webhooks may reach, and how fast they retry. */
+  webhookAddressPolicy?: (address: string) => boolean;
+  webhookRetryDelaysMs?: number[];
 }
 
 export interface AppHandle {
@@ -55,6 +63,8 @@ export interface AppHandle {
   revocations: SessionRevocations;
   accessChanges: AccessChanges;
   noteEvents: NoteEvents;
+  /** Null when the server has webhooks off. */
+  webhooks: WebhookDispatcher | null;
 }
 
 export function createApp(deps: AppDeps): AppHandle {
@@ -63,6 +73,16 @@ export function createApp(deps: AppDeps): AppHandle {
   const revocations = deps.revocations ?? createSessionRevocations();
   const accessChanges = deps.accessChanges ?? createAccessChanges();
   const noteEvents = createNoteEvents({ storage, broadcaster, accessChanges });
+  const webhooks =
+    cfg.webhooks === "off"
+      ? null
+      : createWebhookDispatcher({
+          storage,
+          broadcaster,
+          mode: cfg.webhooks,
+          isAllowedAddress: deps.webhookAddressPolicy,
+          retryDelaysMs: deps.webhookRetryDelaysMs,
+        });
 
   const app = new Hono();
   app.use("*", corsMiddleware(cfg));
@@ -149,6 +169,15 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
   app.route(
+    "/api/webhooks",
+    createWebhookRoutes({
+      storage,
+      authProvider,
+      dispatcher: webhooks,
+      rateLimit: apiRateLimit,
+    }),
+  );
+  app.route(
     "/api/attachments",
     createAttachmentRoutes({
       storage,
@@ -185,5 +214,12 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
 
-  return { app, broadcaster, revocations, accessChanges, noteEvents };
+  return {
+    app,
+    broadcaster,
+    revocations,
+    accessChanges,
+    noteEvents,
+    webhooks,
+  };
 }

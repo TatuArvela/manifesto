@@ -418,6 +418,9 @@ export const authProviderName = signal<AuthProviderName | null>(null);
  */
 export const userLookupMode = signal<UserLookupMode>("search");
 
+/** Whether this server lets users register webhooks. */
+export const webhooksEnabled = signal(false);
+
 export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
   if (SERVER_URL === null) return null;
   try {
@@ -429,6 +432,7 @@ export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
     if (methods.userLookup === "exact" || methods.userLookup === "search") {
       userLookupMode.value = methods.userLookup;
     }
+    webhooksEnabled.value = methods.webhooks === true;
     return methods;
   } catch {
     return null;

@@ -1,4 +1,11 @@
-import { AtSign, KeyRound, KeySquare, LogOut, Users } from "lucide-preact";
+import {
+  AtSign,
+  KeyRound,
+  KeySquare,
+  LogOut,
+  Users,
+  Webhook,
+} from "lucide-preact";
 import { useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
@@ -10,6 +17,7 @@ import {
   isServerMode,
   logout,
   updateEmail,
+  webhooksEnabled,
 } from "../state/auth.js";
 import { activeView, showSuccess } from "../state/ui.js";
 import { ApiTokensDialog } from "./ApiTokensDialog.js";
@@ -17,6 +25,7 @@ import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
 import { menuDividerClass, menuItemClass, menuPanelClass } from "./NoteMenu.js";
 import { Tooltip } from "./Tooltip.js";
+import { WebhooksDialog } from "./WebhooksDialog.js";
 
 /**
  * The signed-in user, at the right end of the header: who you are, and what
@@ -28,6 +37,7 @@ export function AccountMenu() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [changingEmail, setChangingEmail] = useState(false);
   const [managingTokens, setManagingTokens] = useState(false);
+  const [managingWebhooks, setManagingWebhooks] = useState(false);
   const user = currentUser.value;
   if (!isServerMode || !user) return null;
 
@@ -126,6 +136,19 @@ export function AccountMenu() {
           <KeySquare class="w-4 h-4" />
           {t("tokens.menu")}
         </button>
+        {webhooksEnabled.value && (
+          <button
+            type="button"
+            class={menuItemClass}
+            onClick={() => {
+              setOpen(false);
+              setManagingWebhooks(true);
+            }}
+          >
+            <Webhook class="w-4 h-4" />
+            {t("webhooks.menu")}
+          </button>
+        )}
         <div class={menuDividerClass} />
         <button
           type="button"
@@ -141,6 +164,9 @@ export function AccountMenu() {
       </Dropdown>
       {changingPassword && (
         <ChangePasswordDialog onClose={() => setChangingPassword(false)} />
+      )}
+      {managingWebhooks && (
+        <WebhooksDialog onClose={() => setManagingWebhooks(false)} />
       )}
       {managingTokens && (
         <ApiTokensDialog onClose={() => setManagingTokens(false)} />

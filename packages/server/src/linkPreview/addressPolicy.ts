@@ -62,3 +62,32 @@ export function isPublicAddress(address: string): boolean {
   if (!ipv6GlobalUnicast.check(address, "ipv6")) return false;
   return !blocked.check(address, "ipv6");
 }
+
+/**
+ * The local network, for webhooks an operator has allowed to reach it
+ * (`WEBHOOKS=private`): a Home Assistant or n8n beside the server. Private
+ * ranges, carrier-grade NAT (where overlay networks such as Tailscale live),
+ * loopback and IPv6 unique-local. Link-local stays out, since that is where
+ * cloud metadata services answer.
+ */
+const localNetwork = new BlockList();
+for (const [net, prefix] of [
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["172.16.0.0", 12],
+  ["192.168.0.0", 16],
+] as const) {
+  localNetwork.addSubnet(net, prefix, "ipv4");
+}
+localNetwork.addAddress("::1", "ipv6");
+localNetwork.addSubnet("fc00::", 7, "ipv6");
+
+export function isLocalNetworkAddress(address: string): boolean {
+  const family = isIP(address);
+  if (family === 4) return localNetwork.check(address, "ipv4");
+  if (family !== 6) return false;
+  const mapped = MAPPED_IPV4.exec(address);
+  if (mapped) return localNetwork.check(mapped[1], "ipv4");
+  return localNetwork.check(address, "ipv6");
+}

@@ -509,7 +509,11 @@ describe("finding people to share with", () => {
     expect(byEmail).toMatchObject([{ username: "bob" }]);
     expect(byEmail[0]).not.toHaveProperty("email");
     const methods = await (await rig.request("/api/auth/methods")).json();
-    expect(methods).toEqual({ provider: "local", userLookup: "exact" });
+    expect(methods).toEqual({
+      provider: "local",
+      userLookup: "exact",
+      webhooks: false,
+    });
     await rig.close();
   });
 });

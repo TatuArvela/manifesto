@@ -34,6 +34,7 @@ export function createAuthSharedRoutes(
     const body: AuthMethodsResponse = {
       provider: deps.cfg.authProvider,
       userLookup: deps.cfg.userLookup,
+      webhooks: deps.cfg.webhooks !== "off",
     };
     return c.json(body);
   });

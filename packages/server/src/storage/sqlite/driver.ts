@@ -9,6 +9,7 @@ import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteSharesRepo } from "./sharesRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
 import { createSqliteVersionsRepo } from "./versionsRepo.js";
+import { createSqliteWebhooksRepo } from "./webhooksRepo.js";
 import { createSqliteYjsStore } from "./yjsStore.js";
 
 export interface SqliteStorageDriver extends StorageDriver {
@@ -31,6 +32,7 @@ export function createSqliteStorage(
     attachments: createSqliteAttachmentsRepo(db),
     versions: createSqliteVersionsRepo(db),
     apiTokens: createSqliteApiTokensRepo(db),
+    webhooks: createSqliteWebhooksRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async close() {
       db.close();

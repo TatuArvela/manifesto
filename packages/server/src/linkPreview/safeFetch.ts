@@ -22,16 +22,33 @@ export interface SafeFetchOptions {
   isAllowedAddress?: (address: string) => boolean;
   /** Test seam. Production accepts only a scheme's default port. */
   allowAnyPort?: boolean;
+  /** GET unless given. A request with a body is never redirected: a 3xx is
+   * returned as it is, since resending a body elsewhere is not the caller's
+   * to assume. */
+  method?: "GET" | "POST";
+  body?: Buffer;
+  headers?: Record<string, string>;
+  /** Which final statuses count as success; 200 only unless given. */
+  acceptStatus?: (status: number) => boolean;
 }
 
 export interface FetchedResource {
   /** Where the body actually came from, after redirects. */
   url: URL;
+  status: number;
   contentType: string;
   body: Buffer;
 }
 
-export class FetchRefused extends Error {}
+export class FetchRefused extends Error {
+  /** The HTTP status, when refused for one. */
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
 
 const USER_AGENT =
   "Mozilla/5.0 (compatible; ManifestoLinkPreview/1.0; +https://github.com/TatuArvela/manifesto)";
@@ -65,19 +82,21 @@ export async function safeFetch(
       const res = await request(current, options, controller.signal);
       const status = res.statusCode ?? 0;
       const location = res.headers.location;
-      if (status >= 300 && status < 400 && location) {
+      if (status >= 300 && status < 400 && location && !options.body) {
         res.resume();
         if (hop >= maxRedirects) throw new FetchRefused("Too many redirects");
         current = new URL(location, current);
         continue;
       }
-      if (status !== 200) {
+      const accepted = options.acceptStatus ?? ((s: number) => s === 200);
+      if (!accepted(status)) {
         res.resume();
-        throw new FetchRefused(`Status ${status}`);
+        throw new FetchRefused(`Status ${status}`, status);
       }
       const body = await readBody(res, options, controller.signal);
       return {
         url: current,
+        status,
         contentType: String(res.headers["content-type"] ?? ""),
         body,
       };
@@ -119,19 +138,21 @@ async function request(
   const client = url.protocol === "https:" ? https : http;
   return await new Promise<IncomingMessage>((resolve, reject) => {
     const req = client.request(url, {
-      method: "GET",
+      method: options.method ?? "GET",
       headers: {
         "User-Agent": USER_AGENT,
         Accept: options.accept,
         "Accept-Encoding": "gzip, deflate, br",
         "Accept-Language": "en;q=0.9, *;q=0.5",
+        ...options.headers,
+        ...(options.body && { "Content-Length": String(options.body.length) }),
       },
       lookup: pinnedLookup,
       signal,
     });
     req.on("response", resolve);
     req.on("error", reject);
-    req.end();
+    req.end(options.body);
   });
 }
 
