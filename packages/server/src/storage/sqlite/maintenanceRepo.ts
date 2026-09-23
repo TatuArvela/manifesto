@@ -1,4 +1,5 @@
 import { rowToShare, type ShareRow } from "../shareMapping.js";
+import { composeStats } from "../statsMapping.js";
 import type {
   ExpiredTrashedNote,
   MaintenanceRepo,
@@ -30,7 +31,36 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
      RETURNING note_id, user_id, role, created_at, accepted_at`,
   );
 
+  const count = (sql: string) => (db.prepare(sql).get() as { n: number }).n;
+
   return {
+    async stats() {
+      const userIds = (
+        db.prepare(`SELECT id FROM users`).all() as { id: string }[]
+      ).map((r) => r.id);
+      return composeStats(
+        userIds,
+        db
+          .prepare(
+            `SELECT user_id AS key, COUNT(*) AS n FROM notes GROUP BY user_id`,
+          )
+          .all() as { key: string; n: number }[],
+        db
+          .prepare(
+            `SELECT owner_id AS key, COUNT(*) AS n, SUM(size) AS bytes
+             FROM attachments GROUP BY owner_id`,
+          )
+          .all() as { key: string; n: number; bytes: number }[],
+        {
+          trashedNotes: count(
+            `SELECT COUNT(*) AS n FROM notes WHERE trashed = 1`,
+          ),
+          shares: count(`SELECT COUNT(*) AS n FROM note_shares`),
+          versions: count(`SELECT COUNT(*) AS n FROM note_versions`),
+        },
+      );
+    },
+
     async cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]> {
       return (cleanupSharesStmt.all(cutoffIso) as ShareRow[]).map(rowToShare);
     },

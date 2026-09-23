@@ -147,6 +147,39 @@ export type WebhookPayload =
       noteId: string;
     };
 
+/** `GET /api/admin/overview`: what the server holds, and how its
+ * background jobs are doing. */
+export interface AdminOverviewResponse {
+  version: string;
+  /** Since this process started, in seconds. */
+  uptimeSeconds: number;
+  totals: {
+    users: number;
+    notes: number;
+    trashedNotes: number;
+    shares: number;
+    attachments: number;
+    attachmentBytes: number;
+    versions: number;
+  };
+  /** Accounts by what they hold, the most first. */
+  perUser: {
+    user: ShareUser;
+    notes: number;
+    attachments: number;
+    attachmentBytes: number;
+  }[];
+  jobs: {
+    name: string;
+    intervalMs: number;
+    lastStartedAt: string | null;
+    lastFinishedAt: string | null;
+    lastDurationMs: number | null;
+    lastError: string | null;
+    running: boolean;
+  }[];
+}
+
 /** What the audit log records. */
 export const AUDIT_ACTIONS = [
   "account.registered",

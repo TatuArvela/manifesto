@@ -93,4 +93,20 @@ describe("audit log", () => {
     ).toBeGreaterThan(0);
     expect((await log()).entries).toEqual([]);
   });
+
+  it("gives an admin the overview of what the server holds", async () => {
+    const res = await rig.request("/api/admin/overview", {
+      headers: authHeaders(admin.token),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.totals.users).toBe(2);
+    expect(
+      body.perUser
+        .map((r: { user: { username: string } }) => r.user.username)
+        .sort(),
+    ).toEqual(["alice", "bob"]);
+    expect(Array.isArray(body.jobs)).toBe(true);
+    expect(typeof body.version).toBe("string");
+  });
 });

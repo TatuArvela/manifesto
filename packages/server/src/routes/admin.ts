@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import {
+  type AdminOverviewResponse,
   type AdminTemporaryPasswordResponse,
   type AdminUser,
   type AdminUserResponse,
@@ -19,6 +20,7 @@ import { pickAvatarColor } from "../auth/users.js";
 import { type ServerConfig, signsInLocally } from "../config.js";
 import { logger } from "../lib/logger.js";
 import { hashPassword } from "../lib/password.js";
+import { jobStatuses } from "../lib/periodic.js";
 import { newTemporaryPassword } from "../lib/temporaryPassword.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
@@ -40,6 +42,7 @@ import {
   adminUpdateUserSchema,
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
+import { VERSION } from "../version.js";
 
 interface AdminDeps {
   cfg: ServerConfig;
@@ -286,6 +289,40 @@ export function createAdminRoutes(deps: AdminDeps) {
       targetId: id,
     });
     return c.body(null, 204);
+  });
+
+  /** What the server holds, per account and in total, and how its
+   * background jobs last ran. */
+  admin.get("/overview", async (c) => {
+    const stats = await deps.storage.maintenance.stats();
+    const users = new Map(
+      (await deps.storage.users.list()).map((u) => [u.id, u]),
+    );
+    const body: AdminOverviewResponse = {
+      version: VERSION,
+      uptimeSeconds: Math.round(process.uptime()),
+      totals: stats.totals,
+      perUser: stats.perUser.flatMap((row) => {
+        const user = users.get(row.userId);
+        return user
+          ? [
+              {
+                user: {
+                  id: user.id,
+                  username: user.username,
+                  displayName: user.displayName || user.username,
+                  avatarColor: user.avatarColor,
+                },
+                notes: row.notes,
+                attachments: row.attachments,
+                attachmentBytes: row.attachmentBytes,
+              },
+            ]
+          : [];
+      }),
+      jobs: jobStatuses(),
+    };
+    return c.json(body);
   });
 
   /**

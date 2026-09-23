@@ -1,4 +1,5 @@
 import type {
+  AdminOverviewResponse,
   AdminTemporaryPasswordResponse,
   AdminUser,
   AdminUserResponse,
@@ -106,6 +107,16 @@ function replaceUser(user: AdminUser) {
           }),
         )
       : users.map((u) => (u.id === user.id ? user : u));
+}
+
+/** The server's overview; null on failure, which has been reported. */
+export async function loadAdminOverview(): Promise<AdminOverviewResponse | null> {
+  try {
+    return await request<AdminOverviewResponse>("GET", "/overview");
+  } catch (err) {
+    report(err, "overview.failed");
+    return null;
+  }
 }
 
 /** One page of the audit log, older than `before` when given; null on

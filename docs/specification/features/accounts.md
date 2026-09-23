@@ -221,3 +221,13 @@ entry never fails the request it describes; one that cannot be written is logged
 With no admin able to sign in, the server's admin CLI (`node dist/cli.js`, run in the container) lists
 admins, issues a temporary password, makes an account an admin, or creates a new local admin. See
 [Server Deployment](../server/deployment.md#locked-out).
+
+## Server overview
+
+The Users view's **Overview** tab shows an admin what the server holds and how it is running, from
+`GET /api/admin/overview`: the version and uptime; totals of accounts, notes (and how many are in the
+trash), shares, images and the bytes they take, and saved versions; the same per account, the largest
+first, with images counted under the owner of the notes they belong to; and every background job (trash,
+sessions, unused images, backups when on) with when it last ran, how long it took and its last error.
+The counts are plain aggregates in either driver (`maintenance.stats`); job status is kept in memory by
+`startPeriodicJob`, so it describes the running process since it started.

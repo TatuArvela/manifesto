@@ -461,6 +461,14 @@ export const OPERATIONS: Operation[] = [
   },
   {
     method: "get",
+    path: "/api/admin/overview",
+    tag: "Admin",
+    summary: "What the server holds, and how its background jobs last ran",
+    auth: "session",
+    responses: ok("AdminOverviewResponse"),
+  },
+  {
+    method: "get",
     path: "/api/admin/audit",
     tag: "Admin",
     summary: "The audit log, newest first",
@@ -593,6 +601,13 @@ function components() {
         secret: { type: "string" },
       }),
       AdminUsersResponse: shape({ users: { type: "array" } }),
+      AdminOverviewResponse: shape({
+        version: { type: "string" },
+        uptimeSeconds: { type: "integer" },
+        totals: { type: "object" },
+        perUser: { type: "array" },
+        jobs: { type: "array" },
+      }),
       AuditLogResponse: shape({
         entries: { type: "array" },
         nextBefore: { type: ["string", "null"] },
