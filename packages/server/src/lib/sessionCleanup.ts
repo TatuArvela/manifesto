@@ -20,9 +20,15 @@ export function startSessionCleanup(
   intervalMs: number = HOUR_MS,
 ): () => void {
   return startPeriodicJob("session cleanup", intervalMs, async () => {
-    const removed = await storage.sessions.deleteExpired(nowIso());
+    const now = nowIso();
+    const removed = await storage.sessions.deleteExpired(now);
     if (removed > 0) {
       logger.info("session cleanup pruned sessions", { count: removed });
+    }
+    // Expired API tokens are refused already; this is about the rows.
+    const tokens = await storage.apiTokens.deleteExpired(now);
+    if (tokens > 0) {
+      logger.info("session cleanup pruned API tokens", { count: tokens });
     }
   });
 }

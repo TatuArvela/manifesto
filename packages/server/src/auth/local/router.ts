@@ -176,7 +176,7 @@ export function createLocalAuthRouter(
     // Throttled like sign-in: a session is enough to guess at the current
     // password here, and a stolen one should not make that cheap.
     authThrottle,
-    createAuthMiddleware(deps.authProvider),
+    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
     zValidator("json", passwordChangeSchema, validatorHook),
     async (c) => {
       const { userId, token } = c.get("auth");

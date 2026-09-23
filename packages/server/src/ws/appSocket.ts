@@ -10,6 +10,7 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
+import { hashToken } from "../lib/token.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { StorageDriver } from "../storage/types.js";
 import type { Broadcaster } from "./broadcaster.js";
@@ -141,11 +142,12 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
   // A socket is authenticated once, at the handshake, so ending a session
   // has to reach the sockets it opened. 4401 is what the client already reads
   // as "signed out"; `onClose` below unregisters each one.
-  revocations.subscribe(({ userId, keepToken }) => {
+  revocations.subscribe(({ userId, keepToken, onlyTokenHash }) => {
     const set = connectionsByUser.get(userId);
     if (!set) return;
     for (const conn of [...set]) {
       if (conn.token === keepToken) continue;
+      if (onlyTokenHash && hashToken(conn.token) !== onlyTokenHash) continue;
       conn.close(4401, "Session ended");
     }
   });

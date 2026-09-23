@@ -428,6 +428,12 @@ live; the helper also announces on `auth/revocations.ts`, and `ws/appSocket.ts` 
 close what it covers. The Yjs side closes the raw socket, since closing one document's connection is
 only a message the peer may ignore.
 
+Personal API tokens (`mfp_`, `/api/tokens`) authenticate through the same `authenticateBySession`,
+and `AuthIdentity.via` says which credential it was. Anything that changes how an account is secured
+(tokens, password, email, the admin API) mounts `createAuthMiddleware(provider, { sessionOnly: true })`,
+so a token handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
+revoking one token goes through `revokeApiToken`, which closes its sockets by the token's hash.
+
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:
 `loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map

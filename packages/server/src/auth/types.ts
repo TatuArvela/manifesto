@@ -1,9 +1,18 @@
 import type { Hono } from "hono";
 import type { SessionRevocations } from "./revocations.js";
 
+/**
+ * What a bearer token turned out to be: a session from signing in, or a
+ * personal API token. Anything that changes how an account is secured
+ * (passwords, tokens, admin actions) asks for a session, so a token handed to
+ * a script cannot be used to take over the account it belongs to.
+ */
+export type CredentialKind = "session" | "api-token";
+
 export interface AuthIdentity {
   userId: string;
   token: string;
+  via: CredentialKind;
   username: string;
   displayName: string;
   avatarColor: string;

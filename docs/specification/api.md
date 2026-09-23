@@ -70,6 +70,22 @@ without spaces. A query with no word in it at all (`->`, an emoji) falls back to
 substring match. Results are paged newest first, like `GET /api/notes`; they are not ranked by
 relevance, because the cursor is a place in the `(updatedAt, id)` order.
 
+### API tokens
+
+| Method   | Path              | Description          |
+|----------|-------------------|----------------------|
+| `GET`    | `/api/tokens`     | The caller's personal API tokens (`ApiTokensResponse`), never their secrets |
+| `POST`   | `/api/tokens`     | Mint one (`ApiTokenCreateRequest`); the response carries the secret, once |
+| `DELETE` | `/api/tokens/:id` | Revoke one; sockets opened with it close with `4401` |
+
+A personal API token is a bearer token like a session, and works on every endpoint a session does,
+the WebSockets included, under either auth provider. It starts with `mfp_`, is stored as a SHA-256
+hash, has no sliding expiry (only the one chosen when minting, or none), and records when it was last
+used. It cannot manage tokens, change a password or email address, or use `/api/admin/*`: those
+answer `403` to a token, so a token given to a script cannot be used to take over its account. Ending
+a user's sessions (a password change, an admin reset) ends their tokens too, since whoever knew the
+password could have minted one. A user holds at most 50.
+
 ### Version history
 
 | Method   | Path                         | Description          |

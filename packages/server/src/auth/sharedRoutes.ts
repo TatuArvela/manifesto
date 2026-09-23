@@ -55,7 +55,7 @@ export function createAuthSharedRoutes(
    */
   router.put(
     "/me",
-    createAuthMiddleware(deps.authProvider),
+    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
     zValidator("json", authMeUpdateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");

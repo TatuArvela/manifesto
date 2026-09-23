@@ -60,6 +60,37 @@ export interface NoteVersionCreateRequest {
 }
 
 /**
+ * A personal API token as listed: never the secret, which is shown once, in
+ * the response that created it.
+ */
+export interface ApiToken {
+  id: string;
+  name: string;
+  /** The secret's first characters, so a user can tell tokens apart. */
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  /** Null for a token that does not expire. */
+  expiresAt: string | null;
+}
+
+export interface ApiTokensResponse {
+  tokens: ApiToken[];
+}
+
+export interface ApiTokenCreateRequest {
+  name: string;
+  /** Days until it stops working; left out for a token that does not expire. */
+  expiresInDays?: number;
+}
+
+export interface ApiTokenCreatedResponse {
+  token: ApiToken;
+  /** The bearer token itself. Shown this once; the server keeps only a hash. */
+  secret: string;
+}
+
+/**
  * A machine-readable reason, sent alongside `error` only where a client has to
  * do something other than show the message.
  */

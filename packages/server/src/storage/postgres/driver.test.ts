@@ -25,6 +25,46 @@ describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
   await pool.query(`UPDATE notes SET search_version = 0`);
 });
 
+describe("postgres: API tokens", () => {
+  it("stores, finds, lists, and deletes a token by its owner", async () => {
+    const storage = await bootStorage();
+    await storage.users.create({
+      id: "u1",
+      username: "una",
+      passwordHash: "h",
+      displayName: "",
+      avatarColor: "",
+      provider: "local",
+      externalId: null,
+      createdAt: NOW,
+    });
+    await storage.apiTokens.create({
+      id: "t1",
+      userId: "u1",
+      name: "script",
+      prefix: "mfp_abc",
+      createdAt: NOW,
+      lastUsedAt: null,
+      expiresAt: null,
+      tokenHash: "hash-1",
+    });
+    expect((await storage.apiTokens.findByHash("hash-1"))?.userId).toBe("u1");
+    await storage.apiTokens.touch("t1", NOW);
+    expect((await storage.apiTokens.listByUser("u1"))[0]).toEqual({
+      id: "t1",
+      name: "script",
+      prefix: "mfp_abc",
+      createdAt: NOW,
+      lastUsedAt: NOW,
+      expiresAt: null,
+    });
+    expect(await storage.apiTokens.delete("t1", "someone-else")).toBeNull();
+    expect(await storage.apiTokens.delete("t1", "u1")).toBe("hash-1");
+    expect(await storage.apiTokens.findByHash("hash-1")).toBeNull();
+    await storage.close();
+  });
+});
+
 describe("postgres: versions", () => {
   it("lists newest first, trims to the cap, and goes with the note", async () => {
     const storage = await bootStorage();
