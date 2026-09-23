@@ -4,9 +4,15 @@ import {
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
-  searchPattern,
   splitPage,
 } from "../noteMapping.js";
+import {
+  noteTerms,
+  SEARCH_INDEX_VERSION,
+  type SearchFilter,
+  searchFilter,
+  touchesText,
+} from "../searchTerms.js";
 import {
   attachSharing,
   forbiddenFields,
@@ -44,6 +50,69 @@ function placeholders(from: number, count: number): string {
   return Array.from({ length: count }, (_, i) => `$${from + i}`).join(", ");
 }
 
+/** Rows per `INSERT` into `note_terms`, three parameters each. */
+const TERMS_PER_INSERT = 1000;
+
+/**
+ * Rewrites one note's words from what is stored now, in one transaction, so a
+ * search never sees a note with half its words.
+ */
+export async function reindexNote(pool: PgPool, id: string): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const found = await client.query<{ title: string; content: string }>(
+      `SELECT title, content FROM notes WHERE id = $1 FOR UPDATE`,
+      [id],
+    );
+    const row = found.rows[0];
+    if (!row) {
+      await client.query("ROLLBACK");
+      return;
+    }
+    await client.query(`DELETE FROM note_terms WHERE note_id = $1`, [id]);
+    const terms = [...noteTerms(row.title, row.content)];
+    for (let i = 0; i < terms.length; i += TERMS_PER_INSERT) {
+      const chunk = terms.slice(i, i + TERMS_PER_INSERT);
+      await client.query(
+        `INSERT INTO note_terms (note_id, term, occurrences) VALUES ${chunk
+          .map((_, j) => `($1, $${j * 2 + 2}, $${j * 2 + 3})`)
+          .join(", ")}`,
+        [id, ...chunk.flat()],
+      );
+    }
+    await client.query(`UPDATE notes SET search_version = $1 WHERE id = $2`, [
+      SEARCH_INDEX_VERSION,
+      id,
+    ]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Indexes every note not indexed by this tokenizer: all of them after the
+ * migration that added the index, those written by an older tokenizer, and
+ * any whose write was interrupted between the note and its words. Returns how
+ * many it indexed.
+ */
+export async function reindexStaleNotes(pool: PgPool): Promise<number> {
+  let total = 0;
+  for (;;) {
+    const stale = await pool.query<{ id: string }>(
+      `SELECT id FROM notes WHERE search_version <> $1 LIMIT 500`,
+      [SEARCH_INDEX_VERSION],
+    );
+    if (stale.rows.length === 0) return total;
+    for (const { id } of stale.rows) await reindexNote(pool, id);
+    total += stale.rows.length;
+  }
+}
+
 export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
   /** See the SQLite copy. */
   async function view(
@@ -78,7 +147,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
   async function half(
     kind: "own" | "shared",
     userId: string,
-    like: string | null,
+    filter: SearchFilter | null,
     { limit, cursor }: ListNotesOptions,
   ): Promise<ViewRow[]> {
     const params: unknown[] = [userId];
@@ -93,10 +162,16 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
            FROM note_shares s JOIN notes n ON n.id = s.note_id
            WHERE s.user_id = $1 AND s.accepted_at IS NOT NULL
              AND n.trashed = FALSE`;
-    if (like !== null) {
-      const p = param(like);
+    if (filter?.kind === "like") {
+      const p = param(filter.like);
       sql += ` AND (LOWER(n.title) LIKE LOWER(${p})
                  OR LOWER(n.content) LIKE LOWER(${p}))`;
+    }
+    if (filter?.kind === "terms") {
+      for (const [lo, hi] of filter.ranges) {
+        sql += ` AND n.id IN (SELECT note_id FROM note_terms
+                   WHERE term >= ${param(lo)} AND term < ${param(hi)})`;
+      }
     }
     const after = cursor ? decodeCursor(cursor) : null;
     if (after) {
@@ -110,12 +185,12 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
 
   async function page(
     userId: string,
-    like: string | null,
+    filter: SearchFilter | null,
     options: ListNotesOptions,
   ): Promise<NotePage> {
     const [own, shared] = await Promise.all([
-      half("own", userId, like, options),
-      half("shared", userId, like, options),
+      half("own", userId, filter, options),
+      half("shared", userId, filter, options),
     ]);
     const { page: kept, nextCursor } = splitPage(
       mergePages(own, shared, options.limit),
@@ -170,6 +245,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       const assignments = [...note.columns, "updated_at"].map(
         (column, i) => `${column} = $${i + 1}`,
       );
+      if (touchesText(changes)) assignments.push("search_version = 0");
       params.push(id);
       let where = `WHERE id = $${params.length} AND trashed = FALSE`;
       if (expectedUpdatedAt !== undefined) {
@@ -197,6 +273,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         );
       }
       await client.query("COMMIT");
+      if (touchesText(changes)) await reindexNote(pool, id);
       return true;
     } catch (err) {
       await client.query("ROLLBACK").catch(() => {});
@@ -264,6 +341,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
          VALUES (${INSERT_COLUMNS.map((_, i) => `$${i + 1}`).join(", ")})`,
         noteInsertValues(input, "native"),
       );
+      await reindexNote(pool, input.id);
       const note = await repo.getById(input.id, input.userId);
       if (!note)
         throw new Error(`Failed to retrieve inserted note ${input.id}`);
@@ -294,6 +372,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       const assignments = [...columns, "updated_at"].map(
         (column, i) => `${column} = $${i + 1}`,
       );
+      if (touchesText(changes)) assignments.push("search_version = 0");
       const idParam = params.length - 1;
       // Compare-and-set on `updated_at` when the caller passed `If-Match`;
       // collapses the prior read-then-write race into a single atomic write.
@@ -305,6 +384,10 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       const sql = `UPDATE notes SET ${assignments.join(", ")} ${where}`;
       const result = await pool.query(sql, params);
       if ((result.rowCount ?? 0) === 0) return null;
+      // After the note's own write, so the search index never holds words the
+      // note did not end up with; `search_version = 0` above is what gets a
+      // note re-indexed at startup if the process dies in between.
+      if (touchesText(changes)) await reindexNote(pool, id);
       return await repo.getById(id, userId);
     },
 
@@ -321,9 +404,9 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       query: string,
       options: ListNotesOptions,
     ): Promise<NotePage> {
-      const like = searchPattern(query);
-      if (like === null) return { notes: [], nextCursor: null };
-      return page(userId, like, options);
+      const filter = searchFilter(query);
+      if (filter === null) return { notes: [], nextCursor: null };
+      return page(userId, filter, options);
     },
   };
 

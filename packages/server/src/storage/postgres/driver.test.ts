@@ -1,9 +1,11 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { describeAdminContract } from "../adminContract.js";
+import { describeSearchContract } from "../searchContract.js";
 import { describeSharingContract } from "../sharingContract.js";
 import { UsernameTakenError } from "../types.js";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.js";
+import { reindexStaleNotes } from "./notesRepo.js";
 import { newTestPool } from "./testDb.js";
 
 async function bootStorage(): Promise<PostgresStorageDriver> {
@@ -15,6 +17,37 @@ async function bootStorage(): Promise<PostgresStorageDriver> {
 
 describeAdminContract("postgres (pg-mem)", bootStorage);
 describeSharingContract("postgres (pg-mem)", bootStorage);
+describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
+  const { pool } = storage as PostgresStorageDriver;
+  await pool.query(`DELETE FROM note_terms`);
+  await pool.query(`UPDATE notes SET search_version = 0`);
+});
+
+describe("postgres: search index backfill", () => {
+  it("indexes stale notes", async () => {
+    const storage = await bootStorage();
+    await storage.users.create({
+      id: "u1",
+      username: "una",
+      passwordHash: "h",
+      displayName: "",
+      avatarColor: "",
+      provider: "local",
+      externalId: null,
+      createdAt: NOW,
+    });
+    await storage.pool.query(
+      `INSERT INTO notes (id, user_id, title, content, color, font, created_at, updated_at)
+       VALUES ('n1', 'u1', 'Old note', 'from before', 'default', 'default', $1, $1)`,
+      [NOW],
+    );
+    expect(await reindexStaleNotes(storage.pool)).toBe(1);
+    const found = await storage.notes.search("u1", "before", PAGE);
+    expect(found.notes.map((n) => n.id)).toEqual(["n1"]);
+    expect(await reindexStaleNotes(storage.pool)).toBe(0);
+    await storage.close();
+  });
+});
 
 /** A page big enough that these fixtures are never split across two. */
 const PAGE = { limit: 50 };
