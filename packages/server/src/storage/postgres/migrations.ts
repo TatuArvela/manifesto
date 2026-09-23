@@ -147,6 +147,21 @@ CREATE TABLE note_versions (
 CREATE INDEX note_versions_note ON note_versions(note_id, created_at);
 `;
 
+/** See the SQLite copy. */
+const API_TOKENS = `
+CREATE TABLE api_tokens (
+  id           TEXT PRIMARY KEY,
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  token_hash   TEXT NOT NULL UNIQUE,
+  prefix       TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  last_used_at TEXT,
+  expires_at   TEXT
+);
+CREATE INDEX api_tokens_user ON api_tokens(user_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -156,6 +171,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0006-note-search-terms", sql: NOTE_SEARCH_TERMS },
   { id: "0007-attachments", sql: ATTACHMENTS },
   { id: "0008-note-versions", sql: NOTE_VERSIONS },
+  { id: "0009-api-tokens", sql: API_TOKENS },
 ];
 
 export async function runMigrations(

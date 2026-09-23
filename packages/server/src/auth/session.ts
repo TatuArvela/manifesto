@@ -1,6 +1,6 @@
 import type { ServerConfig } from "../config.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
-import { hashToken, newSessionToken } from "../lib/token.js";
+import { API_TOKEN_PREFIX, hashToken, newSessionToken } from "../lib/token.js";
 import type { Session, StorageDriver } from "../storage/types.js";
 import type { SessionRevocations } from "./revocations.js";
 import type { AuthIdentity } from "./types.js";
@@ -31,12 +31,46 @@ function absoluteExpiryOf(session: Session, days: number): string | null {
   return isoPlusDays(days, created);
 }
 
+/**
+ * A personal API token (`POST /api/tokens`). It has no sliding expiry, only
+ * the one its owner chose, and records when it was last used so a forgotten
+ * one can be found and revoked.
+ */
+async function authenticateByApiToken(
+  storage: StorageDriver,
+  token: string,
+): Promise<AuthIdentity | null> {
+  const stored = await storage.apiTokens.findByHash(hashToken(token));
+  if (!stored) return null;
+  const now = nowIso();
+  if (stored.expiresAt !== null && stored.expiresAt < now) return null;
+  const user = await storage.users.findById(stored.userId);
+  if (!user) return null;
+  await storage.apiTokens.touch(stored.id, now);
+  return {
+    userId: user.id,
+    token,
+    via: "api-token",
+    username: user.username,
+    displayName: user.displayName || user.username,
+    avatarColor: user.avatarColor,
+  };
+}
+
+/**
+ * The identity behind a bearer token: a session, or, for a token with the API
+ * token prefix, a personal API token. Both providers authenticate through
+ * this, so tokens work the same under local and single sign-on.
+ */
 export async function authenticateBySession(
   storage: StorageDriver,
   cfg: SessionTtlConfig,
   token: string,
 ): Promise<AuthIdentity | null> {
   if (!token) return null;
+  if (token.startsWith(API_TOKEN_PREFIX)) {
+    return authenticateByApiToken(storage, token);
+  }
   const hashed = hashToken(token);
   const session = await storage.sessions.findByToken(hashed);
   if (!session) return null;
@@ -67,6 +101,7 @@ export async function authenticateBySession(
   return {
     userId: user.id,
     token,
+    via: "session",
     username: user.username,
     displayName: user.displayName || user.username,
     avatarColor: user.avatarColor,
@@ -109,6 +144,10 @@ export async function revokeSession(
  * End every session a user holds, except `keepToken`'s, and close the sockets
  * those sessions opened. Both halves, because deleting the rows alone leaves
  * an already-open socket authenticated.
+ *
+ * Their API tokens end too. This runs when a password may be known to someone
+ * else (a change, an admin reset), and whoever knew it could have minted a
+ * token that would otherwise outlive the reset.
  */
 export async function endUserSessions(
   storage: StorageDriver,
@@ -120,5 +159,20 @@ export async function endUserSessions(
     userId,
     keepToken === undefined ? undefined : hashToken(keepToken),
   );
+  await storage.apiTokens.deleteByUser(userId);
   revocations.revoke({ userId, keepToken });
+}
+
+/** Revoke one API token and close what was opened with it. */
+export async function revokeApiToken(
+  storage: StorageDriver,
+  revocations: SessionRevocations,
+  userId: string,
+  tokenId: string,
+): Promise<boolean> {
+  // The hash names the sockets: the raw token was never kept.
+  const tokenHash = await storage.apiTokens.delete(tokenId, userId);
+  if (tokenHash === null) return false;
+  revocations.revoke({ userId, onlyTokenHash: tokenHash });
+  return true;
 }

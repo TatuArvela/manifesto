@@ -1,4 +1,4 @@
-import { AtSign, KeyRound, LogOut, Users } from "lucide-preact";
+import { AtSign, KeyRound, KeySquare, LogOut, Users } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
@@ -12,6 +12,7 @@ import {
   updateEmail,
 } from "../state/auth.js";
 import { activeView, showSuccess } from "../state/ui.js";
+import { ApiTokensDialog } from "./ApiTokensDialog.js";
 import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
 import { menuDividerClass, menuItemClass, menuPanelClass } from "./NoteMenu.js";
@@ -26,6 +27,7 @@ export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [changingEmail, setChangingEmail] = useState(false);
+  const [managingTokens, setManagingTokens] = useState(false);
   const user = currentUser.value;
   if (!isServerMode || !user) return null;
 
@@ -113,7 +115,18 @@ export function AccountMenu() {
             {t("account.changePassword")}
           </button>
         )}
-        {(user.isAdmin || hasPassword) && <div class={menuDividerClass} />}
+        <button
+          type="button"
+          class={menuItemClass}
+          onClick={() => {
+            setOpen(false);
+            setManagingTokens(true);
+          }}
+        >
+          <KeySquare class="w-4 h-4" />
+          {t("tokens.menu")}
+        </button>
+        <div class={menuDividerClass} />
         <button
           type="button"
           class={menuItemClass}
@@ -128,6 +141,9 @@ export function AccountMenu() {
       </Dropdown>
       {changingPassword && (
         <ChangePasswordDialog onClose={() => setChangingPassword(false)} />
+      )}
+      {managingTokens && (
+        <ApiTokensDialog onClose={() => setManagingTokens(false)} />
       )}
       {changingEmail && (
         <EmailDialog

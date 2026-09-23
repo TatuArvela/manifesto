@@ -204,3 +204,9 @@ export const noteVersionCreateSchema = z.object({
   timestamp: z.string().max(40).optional(),
 });
 export const noteUpdateSchema = z.object(noteFields).partial();
+
+/** `POST /api/tokens`. */
+export const apiTokenCreateSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  expiresInDays: z.number().int().min(1).max(3650).optional(),
+});

@@ -320,6 +320,39 @@ describe("application WebSocket /api/ws", () => {
     own.ws.close();
   });
 
+  it("closes only the sockets a revoked API token opened", async () => {
+    const session = await register(rig, "alice");
+    const created = await fetch(`${rig.baseUrl}/api/tokens`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session}`,
+      },
+      body: JSON.stringify({ name: "script" }),
+    });
+    const { token, secret } = (await created.json()) as {
+      token: { id: string };
+      secret: string;
+    };
+    const script = openSocket(rig.wsUrl, secret);
+    const browser = openSocket(rig.wsUrl, session);
+    await Promise.all([waitOpen(script.ws), waitOpen(browser.ws)]);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const scriptClosed = new Promise<number>((resolve) => {
+      script.ws.once("close", (code) => resolve(code));
+    });
+    const res = await fetch(`${rig.baseUrl}/api/tokens/${token.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${session}` },
+    });
+    expect(res.status).toBe(204);
+    expect(await scriptClosed).toBe(4401);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(browser.ws.readyState).toBe(WebSocket.OPEN);
+    browser.ws.close();
+  });
+
   async function registerWithId(
     username: string,
   ): Promise<{ token: string; userId: string }> {

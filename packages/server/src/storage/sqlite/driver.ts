@@ -1,5 +1,6 @@
 import type { ServerConfig } from "../../config.js";
 import type { StorageDriver } from "../types.js";
+import { createSqliteApiTokensRepo } from "./apiTokensRepo.js";
 import { createSqliteAttachmentsRepo } from "./attachmentsRepo.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
@@ -29,6 +30,7 @@ export function createSqliteStorage(
     yjs: createSqliteYjsStore(db),
     attachments: createSqliteAttachmentsRepo(db),
     versions: createSqliteVersionsRepo(db),
+    apiTokens: createSqliteApiTokensRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async close() {
       db.close();

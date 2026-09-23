@@ -1,4 +1,5 @@
 import type {
+  ApiToken,
   Note,
   NoteCreate,
   NoteUpdate,
@@ -407,6 +408,23 @@ export interface VersionsRepo {
   }): Promise<void>;
 }
 
+export interface StoredApiToken extends ApiToken {
+  userId: string;
+}
+
+/** Personal API tokens, keyed by the SHA-256 of the secret. */
+export interface ApiTokensRepo {
+  create(input: StoredApiToken & { tokenHash: string }): Promise<void>;
+  findByHash(tokenHash: string): Promise<StoredApiToken | null>;
+  listByUser(userId: string): Promise<ApiToken[]>;
+  /** The user's token, so one user cannot revoke another's. Returns the
+   * deleted token's hash, which names the sockets it opened, or null. */
+  delete(id: string, userId: string): Promise<string | null>;
+  deleteByUser(userId: string): Promise<number>;
+  touch(id: string, lastUsedAt: string): Promise<void>;
+  deleteExpired(nowIso: string): Promise<number>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -416,5 +434,6 @@ export interface StorageDriver {
   maintenance: MaintenanceRepo;
   attachments: AttachmentsRepo;
   versions: VersionsRepo;
+  apiTokens: ApiTokensRepo;
   close(): Promise<void>;
 }

@@ -7,6 +7,7 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
+import { hashToken } from "../lib/token.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
@@ -86,17 +87,22 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
   // document connection alone sends a close message the peer is free to
   // ignore. The provider reconnects, and `onAuthenticate` refuses the ended
   // session.
-  const stopRevocations = revocations.subscribe(({ userId, keepToken }) => {
-    for (const document of hocuspocus.documents.values()) {
-      for (const connection of document.getConnections()) {
-        const context = connection.context as YjsAuthContext | undefined;
-        if (context?.userId !== userId || context.token === keepToken) {
-          continue;
+  const stopRevocations = revocations.subscribe(
+    ({ userId, keepToken, onlyTokenHash }) => {
+      for (const document of hocuspocus.documents.values()) {
+        for (const connection of document.getConnections()) {
+          const context = connection.context as YjsAuthContext | undefined;
+          if (context?.userId !== userId || context.token === keepToken) {
+            continue;
+          }
+          if (onlyTokenHash && hashToken(context.token) !== onlyTokenHash) {
+            continue;
+          }
+          connection.webSocket.close(4401, "Session ended");
         }
-        connection.webSocket.close(4401, "Session ended");
       }
-    }
-  });
+    },
+  );
 
   // Losing a note, or the right to edit it, ends the connections to its
   // document. The whole socket, for the reason above: the provider

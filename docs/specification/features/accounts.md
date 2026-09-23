@@ -140,3 +140,11 @@ opened:
 
 This is what makes a reset useful against someone who has learned a password: whoever is signed in
 with it stops receiving note events and stops editing live documents at once.
+
+## Personal API tokens
+
+Any account can mint API tokens from the account menu (**API tokens**), for scripts, iOS Shortcuts,
+command-line capture or home automation that should not hold a password. A token is named, expires
+after 30, 90 or 365 days or never, is shown once when it is made, and is listed afterwards by its first
+characters and when it was last used. Revoking it closes anything connected with it at once. A token
+reaches notes, never the account's own security or the admin API; see the API doc for the rules.

@@ -25,6 +25,7 @@ import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
 import { registerInvitationRoutes } from "./routes/shares.js";
+import { createTokenRoutes } from "./routes/tokens.js";
 import { createUsersRoutes } from "./routes/users.js";
 import {
   type AccessChanges,
@@ -137,6 +138,15 @@ export function createApp(deps: AppDeps): AppHandle {
   app.route(
     "/api/users",
     createUsersRoutes({ cfg, storage, authProvider, rateLimit: apiRateLimit }),
+  );
+  app.route(
+    "/api/tokens",
+    createTokenRoutes({
+      storage,
+      authProvider,
+      revocations,
+      rateLimit: apiRateLimit,
+    }),
   );
   app.route(
     "/api/attachments",

@@ -85,7 +85,12 @@ function refuseGuarded(result: AdminGuardedResult): void {
  */
 export function createAdminRoutes(deps: AdminDeps) {
   const admin = new Hono<{ Variables: { auth: AuthContext } }>();
-  admin.use("*", createAuthMiddleware(deps.authProvider));
+  // A session only: an admin's API token must not be a standing key to every
+  // account on the server.
+  admin.use(
+    "*",
+    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
+  );
   if (deps.rateLimit) admin.use("*", deps.rateLimit);
   admin.use("*", async (c, next) => {
     const caller = await deps.storage.users.findById(c.get("auth").userId);

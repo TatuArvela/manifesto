@@ -1,5 +1,6 @@
 import type { PostgresConfig } from "../../config.js";
 import type { StorageDriver } from "../types.js";
+import { createPostgresApiTokensRepo } from "./apiTokensRepo.js";
 import { createPostgresAttachmentsRepo } from "./attachmentsRepo.js";
 import {
   openPostgres,
@@ -47,6 +48,7 @@ export async function createPostgresStorage(
     yjs: createPostgresYjsStore(pool),
     attachments: createPostgresAttachmentsRepo(pool),
     versions: createPostgresVersionsRepo(pool),
+    apiTokens: createPostgresApiTokensRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {
       await pool.end();
