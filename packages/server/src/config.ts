@@ -19,6 +19,15 @@ export interface OidcConfig {
   autoRegister: boolean;
 }
 
+export interface MailConfig {
+  /** `smtp://` (STARTTLS when offered) or `smtps://`, with credentials. */
+  url: string;
+  /** The From header, `Notes <notes@example.com>` or a bare address. */
+  from: string;
+  /** The client's public address, which links in mail point at. */
+  appUrl: string;
+}
+
 export interface PostgresConfig {
   connectionString: string;
 }
@@ -73,6 +82,12 @@ export interface ServerConfig {
    * server), or `off`.
    */
   webhooks: WebhookMode;
+  /**
+   * Outgoing mail, for password reset links and share invitations. Null
+   * without `SMTP_URL`, and then an admin's temporary password stays the only
+   * way back into a local account.
+   */
+  mail: MailConfig | null;
   /** How someone sharing a note finds the account to share it with: by
    * searching every account as they type, or only by its exact username or
    * email address, which keeps the list of accounts private. */
@@ -183,6 +198,21 @@ function loadInitialAdminPassword(): string | null {
   return raw;
 }
 
+function loadMailConfig(): MailConfig | null {
+  const url = process.env.SMTP_URL?.trim();
+  if (!url) return null;
+  if (!/^smtps?:\/\//i.test(url)) {
+    throw new Error("Invalid SMTP_URL: must start with smtp:// or smtps://");
+  }
+  const appUrl = envRequired("APP_URL").replace(/\/+$/, "");
+  try {
+    new URL(appUrl);
+  } catch {
+    throw new Error("Invalid APP_URL: must be the client's full URL");
+  }
+  return { url, from: envRequired("SMTP_FROM"), appUrl };
+}
+
 function loadOidcConfig(): OidcConfig {
   const scopes = envList("OIDC_SCOPES", ["openid", "profile", "email"]);
   // Normalize the issuer URL once at boot. The issuer is part of the user
@@ -226,6 +256,7 @@ export function loadConfig(): ServerConfig {
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
     linkPreviews: envBool("LINK_PREVIEWS", true),
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
+    mail: loadMailConfig(),
     userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "search"),
     initialAdminPassword: loadInitialAdminPassword(),
   };

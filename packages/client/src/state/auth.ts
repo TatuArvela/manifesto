@@ -482,6 +482,63 @@ export const oidcLoginUrl = buildOidcLoginUrl();
  * from the address bar so refreshes don't re-trigger the flow.
  */
 /**
+ * Asks for a reset link to be mailed. The server answers the same whether or
+ * not the address has an account, so this says only whether the request got
+ * there. `locale` picks the mail's language.
+ */
+export async function requestPasswordReset(
+  email: string,
+  locale: string,
+): Promise<boolean> {
+  if (SERVER_URL === null) return false;
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/password-reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, locale }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Sets a new password with a mailed link's token. */
+export async function confirmPasswordReset(
+  token: string,
+  newPassword: string,
+): Promise<"ok" | "expired" | "failed"> {
+  if (SERVER_URL === null) return "failed";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/password-reset/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    if (res.status === 410) return "expired";
+    return res.ok ? "ok" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
+/**
+ * A mailed reset link's token, taken from `#reset=` once and removed from the
+ * address bar, so it is not left in history or shown over someone's shoulder.
+ */
+export function takeResetToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const match = /^#reset=([0-9a-f]{16,200})$/.exec(window.location.hash);
+  if (!match) return null;
+  history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${window.location.search}`,
+  );
+  return match[1];
+}
+
+/**
  * Why the server turned away a single sign-on the identity provider accepted:
  * not in the group allowed to sign in, or no account while registration is
  * off. Set from the callback's `#error=`, for the login screen to say.

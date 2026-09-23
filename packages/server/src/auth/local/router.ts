@@ -6,6 +6,7 @@ import type { ServerConfig } from "../../config.js";
 import { hashPassword, verifyPassword } from "../../lib/password.js";
 import { nowIso } from "../../lib/time.js";
 import { newId } from "../../lib/ulid.js";
+import type { Mailer } from "../../mail/mailer.js";
 import {
   type AuthContext,
   createAuthMiddleware,
@@ -25,6 +26,7 @@ import { endUserSessions, issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
 import { pickAvatarColor, toAuthUser } from "../users.js";
 import { createLoginAttempts } from "./loginAttempts.js";
+import { registerPasswordResetRoutes } from "./passwordReset.js";
 import { checkSecondFactor, registerTwoFactorRoutes } from "./twoFactor.js";
 
 interface LocalRouterDeps {
@@ -32,6 +34,8 @@ interface LocalRouterDeps {
   authProvider: AuthProvider;
   cfg: ServerConfig;
   revocations: SessionRevocations;
+  /** Null when the server sends no mail: then there is no reset by mail. */
+  mailer?: Mailer | null;
 }
 
 export function createLocalAuthRouter(
@@ -235,6 +239,13 @@ export function createLocalAuthRouter(
     },
   );
 
+  registerPasswordResetRoutes(auth, {
+    storage: deps.storage,
+    cfg: deps.cfg,
+    revocations: deps.revocations,
+    mailer: deps.mailer ?? null,
+    throttle: authThrottle,
+  });
   registerTwoFactorRoutes(auth, {
     storage: deps.storage,
     authProvider: deps.authProvider,

@@ -25,6 +25,39 @@ describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
   await pool.query(`UPDATE notes SET search_version = 0`);
 });
 
+describe("postgres: password resets", () => {
+  it("spends a link once, only before it expires", async () => {
+    const storage = await bootStorage();
+    await storage.users.create({
+      id: "u1",
+      username: "una",
+      passwordHash: "h",
+      displayName: "",
+      avatarColor: "",
+      provider: "local",
+      externalId: null,
+      createdAt: NOW,
+    });
+    await storage.passwordResets.create({
+      tokenHash: "t1",
+      userId: "u1",
+      createdAt: NOW,
+      expiresAt: "2026-04-01T00:30:00.000Z",
+    });
+    expect(await storage.passwordResets.latestFor("u1")).toBe(NOW);
+    expect(
+      await storage.passwordResets.consume("t1", "2026-04-01T00:31:00.000Z"),
+    ).toBeNull();
+    expect(
+      await storage.passwordResets.consume("t1", "2026-04-01T00:10:00.000Z"),
+    ).toBe("u1");
+    expect(
+      await storage.passwordResets.consume("t1", "2026-04-01T00:11:00.000Z"),
+    ).toBeNull();
+    await storage.close();
+  });
+});
+
 describe("postgres: two-factor", () => {
   it("sets up, enables, advances steps once, and spends recovery codes", async () => {
     const storage = await bootStorage();

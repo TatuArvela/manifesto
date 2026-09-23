@@ -25,6 +25,7 @@ export function startSessionCleanup(
     if (removed > 0) {
       logger.info("session cleanup pruned sessions", { count: removed });
     }
+    await storage.passwordResets.deleteExpired(now);
     // Expired API tokens are refused already; this is about the rows.
     const tokens = await storage.apiTokens.deleteExpired(now);
     if (tokens > 0) {

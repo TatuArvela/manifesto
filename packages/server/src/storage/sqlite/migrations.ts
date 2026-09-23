@@ -239,6 +239,21 @@ CREATE TABLE totp_recovery_codes (
 );
 `;
 
+/**
+ * Password reset links sent by mail: the SHA-256 of the token, whose account
+ * it resets, until when, and when it was used. One use each.
+ */
+const PASSWORD_RESETS = `
+CREATE TABLE password_resets (
+  token_hash TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at    TEXT
+);
+CREATE INDEX password_resets_user ON password_resets(user_id, created_at);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -251,6 +266,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0009-api-tokens", sql: API_TOKENS },
   { id: "0010-webhooks", sql: WEBHOOKS },
   { id: "0011-two-factor", sql: TWO_FACTOR },
+  { id: "0012-password-resets", sql: PASSWORD_RESETS },
 ];
 
 export function runMigrations(

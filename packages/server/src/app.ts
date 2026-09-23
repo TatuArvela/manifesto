@@ -11,6 +11,7 @@ import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,
 } from "./linkPreview/fetchPreview.js";
+import { createSmtpMailer, type Mailer } from "./mail/mailer.js";
 import {
   type AuthContext,
   createAuthMiddleware,
@@ -56,6 +57,8 @@ export interface AppDeps {
   /** Test seam: which addresses webhooks may reach, and how fast they retry. */
   webhookAddressPolicy?: (address: string) => boolean;
   webhookRetryDelaysMs?: number[];
+  /** Test seam: replaces the SMTP mailer `cfg.mail` would build. */
+  mailer?: Mailer;
 }
 
 export interface AppHandle {
@@ -74,6 +77,8 @@ export function createApp(deps: AppDeps): AppHandle {
   const revocations = deps.revocations ?? createSessionRevocations();
   const accessChanges = deps.accessChanges ?? createAccessChanges();
   const noteEvents = createNoteEvents({ storage, broadcaster, accessChanges });
+  const mailer = deps.mailer ?? (cfg.mail ? createSmtpMailer(cfg.mail) : null);
+  const mail = mailer && cfg.mail ? { mailer, appUrl: cfg.mail.appUrl } : null;
   const webhooks =
     cfg.webhooks === "off"
       ? null
@@ -139,7 +144,7 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/auth",
     createAuthSharedRoutes({ cfg, storage, authProvider }),
   );
-  app.route("/api/auth", authProvider.router({ revocations }));
+  app.route("/api/auth", authProvider.router({ revocations, mailer }));
   app.route(
     "/api/notes",
     createNotesRoutes({
@@ -149,6 +154,7 @@ export function createApp(deps: AppDeps): AppHandle {
       noteEvents,
       accessChanges,
       rateLimit: apiRateLimit,
+      mail,
     }),
   );
   const invitations = new Hono<{ Variables: { auth: AuthContext } }>();

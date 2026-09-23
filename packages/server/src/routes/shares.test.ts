@@ -515,6 +515,7 @@ describe("finding people to share with", () => {
       passwordForm: "shown",
       userLookup: "exact",
       webhooks: false,
+      passwordReset: false,
     });
     await rig.close();
   });

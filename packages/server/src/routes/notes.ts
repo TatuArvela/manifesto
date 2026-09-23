@@ -5,6 +5,7 @@ import { storeInlineImages } from "../attachments/store.js";
 import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
+import type { Mailer } from "../mail/mailer.js";
 import {
   type AuthContext,
   createAuthMiddleware,
@@ -30,6 +31,7 @@ interface NotesDeps {
    * it shares state with /api/search rather than maintaining a per-router
    * bucket map. */
   rateLimit?: MiddlewareHandler;
+  mail?: { mailer: Mailer; appUrl: string } | null;
 }
 
 /**

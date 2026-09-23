@@ -4,6 +4,9 @@ import { t } from "../i18n/index.js";
 import { LoginScreen } from "./LoginScreen.js";
 
 const calls: { password: string; otp?: string }[] = [];
+let resetToken: string | null = null;
+const resets: { token: string; password: string }[] = [];
+const requested: string[] = [];
 let methods: Record<string, unknown> = {
   provider: "local",
   userLookup: "search",
@@ -14,6 +17,15 @@ vi.mock("../state/auth.js", async (original) => {
   return {
     ...actual,
     fetchAuthMethods: async () => methods,
+    takeResetToken: () => resetToken,
+    requestPasswordReset: async (email: string) => {
+      requested.push(email);
+      return true;
+    },
+    confirmPasswordReset: async (token: string, password: string) => {
+      resets.push({ token, password });
+      return "ok";
+    },
     login: async (
       _username: string,
       password: string,
@@ -47,6 +59,9 @@ describe("LoginScreen with two-factor sign-in", () => {
   beforeEach(() => {
     calls.length = 0;
     methods = { provider: "local", userLookup: "search" };
+    resetToken = null;
+    resets.length = 0;
+    requested.length = 0;
     host = document.createElement("div");
     document.body.appendChild(host);
   });
@@ -99,5 +114,48 @@ describe("LoginScreen with two-factor sign-in", () => {
     );
     reveal?.click();
     await field('input[autocomplete="username"]');
+  });
+
+  it("asks for a reset link by mail when the server offers it", async () => {
+    methods = { ...methods, passwordReset: true };
+    render(<LoginScreen />, host);
+    const link = await vi.waitFor(() => {
+      const button = [...host.querySelectorAll("button")].find(
+        (b) => b.textContent === t("login.forgot.link"),
+      );
+      expect(button).toBeTruthy();
+      return button as HTMLButtonElement;
+    });
+    link.click();
+    type(await field('input[type="email"]'), "alice@example.com");
+    await tick();
+    host.querySelector("form")?.requestSubmit();
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("login.forgot.sent")),
+    );
+    expect(requested).toEqual(["alice@example.com"]);
+  });
+
+  it("sets a new password from a mailed link", async () => {
+    resetToken = "abcdef0123456789";
+    render(<LoginScreen />, host);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("login.reset.title")),
+    );
+    const [next, confirm] = [
+      ...host.querySelectorAll<HTMLInputElement>(
+        'input[autocomplete="new-password"]',
+      ),
+    ];
+    type(next, "brand-new-pass");
+    type(confirm, "brand-new-pass");
+    await tick();
+    host.querySelector("form")?.requestSubmit();
+    await vi.waitFor(() =>
+      expect(resets).toEqual([
+        { token: "abcdef0123456789", password: "brand-new-pass" },
+      ]),
+    );
+    await field('input[autocomplete="current-password"]');
   });
 });

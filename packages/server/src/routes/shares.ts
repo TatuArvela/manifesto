@@ -6,6 +6,8 @@ import type {
 } from "@manifesto/shared";
 import type { Hono } from "hono";
 import { nowIso } from "../lib/time.js";
+import type { Mailer } from "../mail/mailer.js";
+import { mailLocale, shareInvitationMail } from "../mail/templates.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
@@ -16,6 +18,9 @@ import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
 
 export interface ShareRoutesDeps {
+  /** Sends the invitation by mail too, when the server has mail and the
+   * recipient an address. */
+  mail?: { mailer: Mailer; appUrl: string } | null;
   storage: StorageDriver;
   broadcaster: Broadcaster;
   noteEvents: NoteEvents;
@@ -74,9 +79,8 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
           "userId: You cannot share a note with yourself",
         );
       }
-      if (!(await storage.users.findById(recipientId))) {
-        throw new HttpError(404, "User not found");
-      }
+      const recipient = await storage.users.findById(recipientId);
+      if (!recipient) throw new HttpError(404, "User not found");
       const created = await storage.shares.create({
         noteId,
         userId: recipientId,
@@ -95,6 +99,19 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
           type: "invitation:created",
           invitation,
         });
+      }
+      if (deps.mail && recipient.email) {
+        const owner = await storage.users.findById(userId);
+        const message = shareInvitationMail(
+          mailLocale(c.req.header("Accept-Language")?.slice(0, 2)),
+          {
+            owner: owner?.displayName || owner?.username || "",
+            title: note.title,
+            link: deps.mail.appUrl,
+          },
+        );
+        // Not awaited: the share is made whether or not the mail goes.
+        void deps.mail.mailer.send({ to: recipient.email, ...message });
       }
       await noteEvents.changed(noteId);
       return c.json(await ownerView(noteId, userId), 201);

@@ -241,3 +241,15 @@ export const webhookCreateSchema = z.object({
 
 /** `PUT /api/webhooks/:id`. */
 export const webhookUpdateSchema = z.object({ active: z.boolean() });
+
+/** `POST /api/auth/password-reset`. `locale` picks the mail's language. */
+export const passwordResetRequestSchema = z.object({
+  email: emailSchema,
+  locale: z.string().max(10).optional(),
+});
+
+/** `POST /api/auth/password-reset/confirm`. */
+export const passwordResetConfirmSchema = z.object({
+  token: z.string().min(1).max(200),
+  newPassword: passwordSchema,
+});

@@ -254,6 +254,8 @@ export interface AuthMethodsResponse {
   /** Whether this server lets users register webhooks. Absent from servers
    * from before webhooks, which have none. */
   webhooks?: boolean;
+  /** Whether a forgotten password can be reset by a link sent by mail. */
+  passwordReset?: boolean;
 }
 
 export interface AuthUser {
