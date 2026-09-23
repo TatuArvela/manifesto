@@ -12,6 +12,10 @@ const both: Partial<ServerConfig> = {
     redirectUri: "https://notes.example/api/auth/callback",
     postLoginRedirect: "https://notes.example/",
     scopes: ["openid"],
+    groupsClaim: "groups",
+    adminGroup: null,
+    userGroup: null,
+    autoRegister: true,
   },
 };
 

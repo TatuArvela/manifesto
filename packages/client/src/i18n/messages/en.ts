@@ -428,6 +428,10 @@ export const en = {
     "That code is not right; check the time on your device",
   "twoFactor.failed": "Could not reach the server; try again",
   "twoFactor.close": "Close",
+  "login.oidcNotInGroup":
+    "Your account is not one allowed to sign in here. Ask whoever runs this server.",
+  "login.oidcNotRegistered":
+    "There is no account for you here, and new ones are not being made. Ask whoever runs this server.",
   "login.or": "or",
   "login.withPassword": "Sign in with a password instead",
   "login.twoFactor.title": "Enter your code",

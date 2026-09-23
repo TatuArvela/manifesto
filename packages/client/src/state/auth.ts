@@ -481,10 +481,29 @@ export const oidcLoginUrl = buildOidcLoginUrl();
  * user via /api/auth/me, populates the auth signals, and clears the fragment
  * from the address bar so refreshes don't re-trigger the flow.
  */
+/**
+ * Why the server turned away a single sign-on the identity provider accepted:
+ * not in the group allowed to sign in, or no account while registration is
+ * off. Set from the callback's `#error=`, for the login screen to say.
+ */
+export const oidcRefusal = signal<"not_in_group" | "not_registered" | null>(
+  null,
+);
+
 export async function consumeOidcRedirect(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (SERVER_URL === null) return false;
   const hash = window.location.hash;
+  const refusal = /^#error=(not_in_group|not_registered)$/.exec(hash);
+  if (refusal) {
+    oidcRefusal.value = refusal[1] as "not_in_group" | "not_registered";
+    history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${window.location.search}`,
+    );
+    return false;
+  }
   if (!hash?.includes("token=")) return false;
   const params = new URLSearchParams(hash.replace(/^#/, ""));
   const token = params.get("token");
