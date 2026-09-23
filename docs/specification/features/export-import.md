@@ -13,6 +13,20 @@ Manifesto supports exporting and importing note data from the Settings dialog. T
 
 Import is offered from the Settings dialog and by dropping files anywhere on the board.
 
+## Markdown
+
+A single `.md` file becomes one note: a leading `# ` heading is the title and the rest is the
+content. YAML frontmatter, as Obsidian, SilverBullet and Nextcloud Notes write it, is read too:
+`title`, `tags` (or `tag`; a list, `[a, b]` or `a, b`), `pinned` and `archived`. Only that flat
+subset is understood; a block with anything else in it, or a note that merely opens with a `---`
+rule, stays in the content untouched.
+
+A **folder of Markdown notes** imports as a `.zip`. Every `.md` file in it becomes a note in one
+merge, titled after its file when it has no heading or frontmatter title, and tagged with the
+folders it sits in (the zipped folder itself, which every entry shares, is not a tag). `created` /
+`date` and `updated` / `modified` / `lastmod` in the frontmatter become `createdAt` / `updatedAt`.
+`.obsidian/`, `.trash/` and `.git/` are skipped, as is anything that is not Markdown.
+
 ## Google Keep (Takeout)
 
 Google Takeout exports Keep as one JSON file per note in `Takeout/Keep/`, with attachments as

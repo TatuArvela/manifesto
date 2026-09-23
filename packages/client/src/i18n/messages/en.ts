@@ -299,7 +299,7 @@ export const en = {
   "settings.language.system": "System default",
   "settings.data.import": "Import Notes",
   "settings.data.importHint":
-    "Imports JSON exports, Markdown files and Google Keep (Takeout .zip or its unpacked files).",
+    "Imports JSON exports, Markdown files or a zipped folder of them, and Google Keep (Takeout .zip or its unpacked files).",
   "settings.data.export": "Export Notes",
   "settings.data.deleteAll": "Delete All",
   "settings.data.deleteConfirm":
