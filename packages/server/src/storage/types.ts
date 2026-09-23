@@ -334,7 +334,29 @@ export interface ExpiredTrashedNote {
   userId: string;
 }
 
+export interface ServerStats {
+  totals: {
+    users: number;
+    notes: number;
+    trashedNotes: number;
+    shares: number;
+    attachments: number;
+    attachmentBytes: number;
+    versions: number;
+  };
+  /** Every account with what it holds; attachments are counted under the
+   * notes' owner. */
+  perUser: {
+    userId: string;
+    notes: number;
+    attachments: number;
+    attachmentBytes: number;
+  }[];
+}
+
 export interface MaintenanceRepo {
+  /** Counts for the admin overview, from plain aggregates. */
+  stats(): Promise<ServerStats>;
   cleanupTrashedBefore(cutoffIso: string): Promise<ExpiredTrashedNote[]>;
   /**
    * Remove shares their recipients put in their own trash before the cutoff,

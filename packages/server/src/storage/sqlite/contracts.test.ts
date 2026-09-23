@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { describeAttachmentsContract } from "../attachmentsContract.js";
 import { describeSearchContract } from "../searchContract.js";
+import { describeStatsContract } from "../statsContract.js";
 import { createSqliteStorage, type SqliteStorageDriver } from "./driver.js";
 
 describeSearchContract(
@@ -13,6 +14,10 @@ describeSearchContract(
 );
 
 describeAttachmentsContract("sqlite", async () =>
+  createSqliteStorage({ dbPath: ":memory:" }),
+);
+
+describeStatsContract("sqlite", async () =>
   createSqliteStorage({ dbPath: ":memory:" }),
 );
 

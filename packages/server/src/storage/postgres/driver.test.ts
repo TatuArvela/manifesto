@@ -4,6 +4,7 @@ import { describeAdminContract } from "../adminContract.js";
 import { describeAttachmentsContract } from "../attachmentsContract.js";
 import { describeSearchContract } from "../searchContract.js";
 import { describeSharingContract } from "../sharingContract.js";
+import { describeStatsContract } from "../statsContract.js";
 import { UsernameTakenError } from "../types.js";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.js";
 import { reindexStaleNotes } from "./notesRepo.js";
@@ -19,6 +20,7 @@ async function bootStorage(): Promise<PostgresStorageDriver> {
 describeAdminContract("postgres (pg-mem)", bootStorage);
 describeSharingContract("postgres (pg-mem)", bootStorage);
 describeAttachmentsContract("postgres (pg-mem)", bootStorage);
+describeStatsContract("postgres (pg-mem)", bootStorage);
 describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
   const { pool } = storage as PostgresStorageDriver;
   await pool.query(`DELETE FROM note_terms`);

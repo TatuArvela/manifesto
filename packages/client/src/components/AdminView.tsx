@@ -25,6 +25,7 @@ import {
   setAccountEmail,
 } from "../state/admin.js";
 import { authProviders, currentUser, fetchAuthMethods } from "../state/auth.js";
+import { AdminOverview } from "./AdminOverview.js";
 import { AuditLog } from "./AuditLog.js";
 import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
@@ -53,7 +54,9 @@ export function AdminView() {
   const passwordsHere = providers.includes("local");
   const [loadFailed, setLoadFailed] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [section, setSection] = useState<"users" | "activity">("users");
+  const [section, setSection] = useState<"users" | "overview" | "activity">(
+    "users",
+  );
 
   const load = () => {
     setLoadFailed(false);
@@ -78,7 +81,7 @@ export function AdminView() {
         class="flex gap-1 self-start rounded-lg bg-neutral-100 dark:bg-neutral-800 p-1"
         role="tablist"
       >
-        {(["users", "activity"] as const).map((tab) => (
+        {(["users", "overview", "activity"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -91,13 +94,15 @@ export function AdminView() {
             }`}
             onClick={() => setSection(tab)}
           >
-            {t(tab === "users" ? "admin.tab.users" : "admin.tab.activity")}
+            {t(`admin.tab.${tab}`)}
           </button>
         ))}
       </div>
 
       {section === "activity" ? (
         <AuditLog />
+      ) : section === "overview" ? (
+        <AdminOverview />
       ) : (
         <>
           <div class="flex items-center justify-between gap-3 min-h-9">
