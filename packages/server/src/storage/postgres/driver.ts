@@ -10,6 +10,7 @@ import {
 import { createPostgresMaintenanceRepo } from "./maintenanceRepo.js";
 import { runMigrations } from "./migrations.js";
 import { createPostgresNotesRepo, reindexStaleNotes } from "./notesRepo.js";
+import { createPostgresPasswordResetsRepo } from "./passwordResetsRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
 import { createPostgresSharesRepo } from "./sharesRepo.js";
 import { createPostgresTwoFactorRepo } from "./twoFactorRepo.js";
@@ -53,6 +54,7 @@ export async function createPostgresStorage(
     apiTokens: createPostgresApiTokensRepo(pool),
     webhooks: createPostgresWebhooksRepo(pool),
     twoFactor: createPostgresTwoFactorRepo(pool),
+    passwordResets: createPostgresPasswordResetsRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {
       await pool.end();

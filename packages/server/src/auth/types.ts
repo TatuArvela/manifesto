@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import type { Mailer } from "../mail/mailer.js";
 import type { SessionRevocations } from "./revocations.js";
 
 /**
@@ -29,6 +30,8 @@ export type AuthProviderRouter = Hono<any, any, any>;
  * the router is mounted rather than when the provider is built. */
 export interface AuthRouterContext {
   revocations: SessionRevocations;
+  /** Null when the server sends no mail. */
+  mailer: Mailer | null;
 }
 
 export interface AuthProvider {

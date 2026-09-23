@@ -3,6 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { APP_LOGO_URL, APP_NAME } from "../config.js";
 import { t } from "../i18n/index.js";
 import {
+  confirmPasswordReset,
   fetchAuthMethods,
   login,
   loginErrorKey,
@@ -10,9 +11,13 @@ import {
   oidcRefusal,
   PasswordChangeRequiredError,
   register,
+  requestPasswordReset,
   SERVER_ORIGIN,
   TwoFactorRequiredError,
+  takeResetToken,
 } from "../state/auth.js";
+import { locale } from "../state/prefs.js";
+import { showSuccess } from "../state/ui.js";
 
 /**
  * `changePassword` is the step after signing in with a temporary password an
@@ -98,8 +103,21 @@ function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
   const providers = methods.providers ?? [methods.provider];
   const collapsed = methods.passwordForm === "collapsed";
   const [showPassword, setShowPassword] = useState(!collapsed);
+  const [resetToken, setResetToken] = useState<string | null>(() =>
+    takeResetToken(),
+  );
+  const [forgot, setForgot] = useState(false);
   const oidc = providers.includes("oidc");
   const local = providers.includes("local");
+  if (resetToken && local) {
+    return (
+      <ResetPasswordForm
+        token={resetToken}
+        onDone={() => setResetToken(null)}
+      />
+    );
+  }
+  if (forgot) return <ForgotPasswordForm onBack={() => setForgot(false)} />;
   return (
     <>
       {oidc && <OidcLoginPanel />}
@@ -112,7 +130,9 @@ function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
       )}
       {local &&
         (showPassword || !oidc ? (
-          <LocalLoginForm />
+          <LocalLoginForm
+            onForgot={methods.passwordReset ? () => setForgot(true) : undefined}
+          />
         ) : (
           <button
             type="button"
@@ -156,7 +176,160 @@ function OidcLoginPanel() {
   );
 }
 
-function LocalLoginForm() {
+const inputClass =
+  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+const submitClass =
+  "w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2 transition-colors";
+const quietClass =
+  "w-full text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200";
+
+/** Asks for a reset link by mail; says the same whatever the address. */
+function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">(
+    "idle",
+  );
+  const submit = async (event: Event) => {
+    event.preventDefault();
+    if (state === "sending" || email.trim().length === 0) return;
+    setState("sending");
+    const ok = await requestPasswordReset(email.trim(), locale.value);
+    setState(ok ? "sent" : "failed");
+  };
+  return (
+    <form onSubmit={submit} class="space-y-4">
+      <div>
+        <h2 class="text-base font-semibold text-neutral-900 dark:text-neutral-50">
+          {t("login.forgot.title")}
+        </h2>
+        <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+          {state === "sent" ? t("login.forgot.sent") : t("login.forgot.hint")}
+        </p>
+      </div>
+      {state !== "sent" && (
+        <>
+          <label class="block">
+            <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+              {t("login.email")}
+            </span>
+            <input
+              type="email"
+              autoComplete="email"
+              // biome-ignore lint/a11y/noAutofocus: the one thing to do on this step
+              autoFocus
+              required
+              maxLength={254}
+              value={email}
+              onInput={(e) =>
+                setEmail((e.currentTarget as HTMLInputElement).value)
+              }
+              class={inputClass}
+            />
+          </label>
+          {state === "failed" && (
+            <p class="text-sm text-red-600 dark:text-red-400" role="alert">
+              {t("login.serverUnavailable")}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={state === "sending"}
+            class={submitClass}
+          >
+            {t("login.forgot.submit")}
+          </button>
+        </>
+      )}
+      <button type="button" class={quietClass} onClick={onBack}>
+        {t("login.back")}
+      </button>
+    </form>
+  );
+}
+
+/** Sets a new password from a mailed link. */
+function ResetPasswordForm({
+  token,
+  onDone,
+}: {
+  token: string;
+  onDone: () => void;
+}) {
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async (event: Event) => {
+    event.preventDefault();
+    if (busy) return;
+    if (next.length < 8) return setError(t("login.passwordTooShort"));
+    if (next !== confirm) return setError(t("login.passwordMismatch"));
+    setError(null);
+    setBusy(true);
+    const result = await confirmPasswordReset(token, next);
+    setBusy(false);
+    if (result === "ok") {
+      showSuccess(t("login.reset.done"));
+      onDone();
+      return;
+    }
+    setError(
+      t(
+        result === "expired"
+          ? "login.reset.expired"
+          : "login.serverUnavailable",
+      ),
+    );
+  };
+  return (
+    <form onSubmit={submit} class="space-y-4">
+      <h2 class="text-base font-semibold text-neutral-900 dark:text-neutral-50">
+        {t("login.reset.title")}
+      </h2>
+      <label class="block">
+        <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+          {t("login.newPassword")}
+        </span>
+        <input
+          type="password"
+          autoComplete="new-password"
+          // biome-ignore lint/a11y/noAutofocus: the one thing to do on this step
+          autoFocus
+          value={next}
+          onInput={(e) => setNext((e.currentTarget as HTMLInputElement).value)}
+          class={inputClass}
+        />
+      </label>
+      <label class="block">
+        <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+          {t("login.confirmPassword")}
+        </span>
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={confirm}
+          onInput={(e) =>
+            setConfirm((e.currentTarget as HTMLInputElement).value)
+          }
+          class={inputClass}
+        />
+      </label>
+      {error && (
+        <p class="text-sm text-red-600 dark:text-red-400" role="alert">
+          {error}
+        </p>
+      )}
+      <button type="submit" disabled={busy} class={submitClass}>
+        {t("login.reset.submit")}
+      </button>
+      <button type="button" class={quietClass} onClick={onDone}>
+        {t("login.back")}
+      </button>
+    </form>
+  );
+}
+
+function LocalLoginForm({ onForgot }: { onForgot?: () => void }) {
   const [mode, setMode] = useState<Mode>("signIn");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -238,9 +411,6 @@ function LocalLoginForm() {
         : "border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200",
     ].join(" ");
   }
-
-  const inputClass =
-    "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   if (mode === "twoFactor") {
     return (
@@ -468,6 +638,11 @@ function LocalLoginForm() {
               ? t("login.submitSignIn")
               : t("login.submitRegister")}
         </button>
+        {mode === "signIn" && onForgot && (
+          <button type="button" class={quietClass} onClick={onForgot}>
+            {t("login.forgot.link")}
+          </button>
+        )}
       </form>
     </>
   );

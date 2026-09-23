@@ -432,6 +432,18 @@ export const en = {
     "Your account is not one allowed to sign in here. Ask whoever runs this server.",
   "login.oidcNotRegistered":
     "There is no account for you here, and new ones are not being made. Ask whoever runs this server.",
+  "login.forgot.link": "Forgot your password?",
+  "login.forgot.title": "Reset your password",
+  "login.forgot.hint":
+    "Enter the email address on your account and a link to set a new password is sent to it.",
+  "login.forgot.submit": "Send the link",
+  "login.forgot.sent":
+    "If an account has that address, a link is on its way. It works once, for 30 minutes.",
+  "login.reset.title": "Choose a new password",
+  "login.reset.submit": "Set password",
+  "login.reset.done": "Password set; sign in with it",
+  "login.reset.expired":
+    "This link has expired or was used already. Ask for a new one.",
   "login.or": "or",
   "login.withPassword": "Sign in with a password instead",
   "login.twoFactor.title": "Enter your code",

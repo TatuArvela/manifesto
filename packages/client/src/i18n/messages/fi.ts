@@ -438,6 +438,17 @@ export const fi: Messages = {
     "Tililläsi ei voi kirjautua tänne. Kysy palvelimen ylläpitäjältä.",
   "login.oidcNotRegistered":
     "Sinulle ei ole tiliä täällä, eikä uusia luoda. Kysy palvelimen ylläpitäjältä.",
+  "login.forgot.link": "Unohtuiko salasana?",
+  "login.forgot.title": "Salasanan vaihtaminen",
+  "login.forgot.hint":
+    "Anna tilisi sähköpostiosoite, niin siihen lähetetään linkki uuden salasanan asettamiseen.",
+  "login.forgot.submit": "Lähetä linkki",
+  "login.forgot.sent":
+    "Jos osoitteella on tili, linkki on matkalla. Se toimii kerran, 30 minuutin ajan.",
+  "login.reset.title": "Valitse uusi salasana",
+  "login.reset.submit": "Aseta salasana",
+  "login.reset.done": "Salasana asetettu; kirjaudu sillä",
+  "login.reset.expired": "Linkki on vanhentunut tai jo käytetty. Pyydä uusi.",
   "login.or": "tai",
   "login.withPassword": "Kirjaudu mieluummin salasanalla",
   "login.twoFactor.title": "Anna koodi",

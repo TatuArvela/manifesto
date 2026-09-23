@@ -52,6 +52,7 @@ export function createAuthSharedRoutes(
         deps.cfg.authProvider === "both" ? deps.cfg.passwordForm : "shown",
       userLookup: deps.cfg.userLookup,
       webhooks: deps.cfg.webhooks !== "off",
+      passwordReset: deps.cfg.mail !== null && signsInLocally(deps.cfg),
     };
     return c.json(body);
   });

@@ -481,6 +481,24 @@ export interface TwoFactorRepo {
   remainingRecoveryCodes(userId: string): Promise<number>;
 }
 
+/** Password reset links sent by mail, keyed by the token's SHA-256. */
+export interface PasswordResetsRepo {
+  create(input: {
+    tokenHash: string;
+    userId: string;
+    createdAt: string;
+    expiresAt: string;
+  }): Promise<void>;
+  /**
+   * Spends a link that is unused and unexpired at `now`, atomically, and
+   * says whose account it resets; null for any other link.
+   */
+  consume(tokenHash: string, now: string): Promise<string | null>;
+  /** When the user's latest link was made, for spacing them out. */
+  latestFor(userId: string): Promise<string | null>;
+  deleteExpired(now: string): Promise<number>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -493,5 +511,6 @@ export interface StorageDriver {
   apiTokens: ApiTokensRepo;
   webhooks: WebhooksRepo;
   twoFactor: TwoFactorRepo;
+  passwordResets: PasswordResetsRepo;
   close(): Promise<void>;
 }

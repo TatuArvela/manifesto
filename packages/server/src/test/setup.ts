@@ -28,6 +28,7 @@ export const TEST_CONFIG: ServerConfig = {
   // Off, so the rest of the suite does not deliver to nothing after a test's
   // storage has closed; the webhook tests switch it on.
   webhooks: "off",
+  mail: null,
   userLookup: "search",
   initialAdminPassword: null,
 };

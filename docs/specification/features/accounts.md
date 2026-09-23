@@ -180,3 +180,22 @@ last admin. `OIDC_USER_GROUP` limits who may sign in at all, and `OIDC_AUTO_REGI
 being created on first sign-in. A refused sign-in comes back to the client as `#error=not_in_group` or
 `#error=not_registered`, and the sign-in screen says which. See [Server
 Deployment](../server/deployment.md#oidc-variables-when-auth_provideroidc-or-both).
+
+## Recovery by mail
+
+With `SMTP_URL` set (see [Server Deployment](../server/deployment.md)), a local account with an email
+address can reset a forgotten password itself: **Forgot your password?** under the sign-in form asks for
+the address and mails a link to `APP_URL/#reset=<token>`, which opens a form for the new password.
+
+- Asking always answers `204`, whether or not the address has an account, and the mail is sent after
+  the answer, so neither the answer nor its timing says which addresses have accounts. One link per
+  account per five minutes, so an address cannot be used to flood its inbox.
+- A link works once, for 30 minutes; its token is stored as a SHA-256 hash. Using it ends every session
+  and API token of the account, as a password change does. Two-factor sign-in stays on: the link proves
+  control of the mailbox, not of the authenticator.
+- The mail is in the language the sign-in screen was in (English or Finnish; the server keeps these few
+  messages in `mail/templates.ts`).
+
+The same setting mails a share invitation to a recipient who has an address. Mail is a convenience
+beside something that already happened, so a failure to send is logged and nothing else fails.
+Accounts from single sign-on have no password here and are not offered a reset.
