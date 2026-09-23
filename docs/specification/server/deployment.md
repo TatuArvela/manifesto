@@ -29,6 +29,17 @@ any client route with the page. Put HTTPS in front of it and that is the deploym
 rebranded one, mounted into the container) to serve that instead, or unset it to run the API alone
 behind a client hosted elsewhere. Open mode and GitHub Pages stay the static client, as before.
 
+### Compose files
+
+The repository root has two, kept at the current release by release-please along with the packages:
+
+- [`compose.yaml`](../../../compose.yaml): the one container, SQLite on a volume, daily backups on.
+- [`compose.postgres.yaml`](../../../compose.postgres.yaml): the same beside a Postgres, with
+  `POSTGRES_PASSWORD` taken from the environment or a `.env` file.
+
+Download one, uncomment what applies (each variable is documented below), and `docker compose up -d`.
+Anything beyond (HTTPS, a proxy, OIDC) is in the sections that follow.
+
 ### Releases
 
 Each release publishes a multi-arch image, so there is nothing to build. Pin the

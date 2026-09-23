@@ -24,6 +24,14 @@
           "type": "json",
           "path": "packages/shared/package.json",
           "jsonpath": "$.version"
+        },
+        {
+          "type": "generic",
+          "path": "compose.yaml"
+        },
+        {
+          "type": "generic",
+          "path": "compose.postgres.yaml"
         }
       ]
     }

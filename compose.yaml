@@ -1,0 +1,33 @@
+# Manifesto in connected mode: one container serving the app and its API,
+# with notes in SQLite on a volume. Download this file, then:
+#
+#   docker compose up -d
+#   docker compose logs manifesto   # the admin's temporary password
+#
+# and open http://localhost:3001. Put HTTPS in front of it before anyone
+# signs in over a network; see docs/specification/server/deployment.md.
+# For Postgres, use compose.postgres.yaml instead.
+
+services:
+  manifesto:
+    image: ghcr.io/tatuarvela/manifesto-server:0.1.8 # x-release-please-version
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - manifesto-data:/app/data
+    environment:
+      # Behind a reverse proxy that sets X-Forwarded-For, say so, or every
+      # request looks like it came from the proxy.
+      # TRUST_PROXY: "true"
+      # Accounts are made by an admin only.
+      # REGISTRATION_ENABLED: "false"
+      # A backup of the database every day, the last week kept.
+      BACKUP_INTERVAL_HOURS: "24"
+      # Password reset links and share invitations by mail.
+      # SMTP_URL: smtp://user:password@smtp.example.com:587
+      # SMTP_FROM: Notes <notes@example.com>
+      # APP_URL: https://notes.example.com
+
+volumes:
+  manifesto-data:

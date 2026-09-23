@@ -1,0 +1,43 @@
+# Manifesto in connected mode on Postgres: the app and its API in one
+# container, the notes in a Postgres beside it. Download this file, set
+# POSTGRES_PASSWORD (in the environment or a .env file next to it), then:
+#
+#   docker compose -f compose.postgres.yaml up -d
+#   docker compose -f compose.postgres.yaml logs manifesto
+#
+# and open http://localhost:3001. Back the database up with pg_dump; the
+# server's scheduled backups are for SQLite. See
+# docs/specification/server/deployment.md.
+
+services:
+  manifesto:
+    image: ghcr.io/tatuarvela/manifesto-server:0.1.8 # x-release-please-version
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    environment:
+      STORAGE_DRIVER: postgres
+      DATABASE_URL: postgres://manifesto:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/manifesto
+      # TRUST_PROXY: "true"
+      # REGISTRATION_ENABLED: "false"
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: manifesto
+      POSTGRES_DB: manifesto
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manifesto -d manifesto"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
