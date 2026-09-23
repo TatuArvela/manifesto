@@ -382,6 +382,14 @@ export const OPERATIONS: Operation[] = [
   },
   {
     method: "get",
+    path: "/api/export",
+    tag: "Account",
+    summary: "Every note the account owns, as a zip of JSON and Markdown",
+    auth: "any",
+    responses: { "200": { description: "application/zip" } },
+  },
+  {
+    method: "get",
     path: "/api/tokens",
     tag: "Account",
     summary: "The user's personal API tokens, without secrets",
@@ -458,6 +466,14 @@ export const OPERATIONS: Operation[] = [
     summary: "Every account",
     auth: "session",
     responses: ok("AdminUsersResponse"),
+  },
+  {
+    method: "get",
+    path: "/api/admin/users/:id/export",
+    tag: "Admin",
+    summary: "Every note an account owns, as a zip",
+    auth: "session",
+    responses: { "200": { description: "application/zip" }, ...notFound },
   },
   {
     method: "get",

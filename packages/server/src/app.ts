@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import { recordClientAddress } from "./audit/audit.js";
+import { audit, recordClientAddress } from "./audit/audit.js";
 import {
   createSessionRevocations,
   type SessionRevocations,
@@ -8,6 +8,7 @@ import {
 import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import type { ServerConfig } from "./config.js";
+import { exportAccount, sendExport } from "./export/userExport.js";
 import type { UpdateStatus } from "./lib/updateCheck.js";
 import {
   createLinkPreviewFetcher,
@@ -176,6 +177,20 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/users",
     createUsersRoutes({ cfg, storage, authProvider, rateLimit: apiRateLimit }),
   );
+  // The account's own notes, all of them, as a zip. Any credential will do,
+  // an API token included, so a backup can be scripted.
+  const exportRoute = new Hono<{ Variables: { auth: AuthContext } }>();
+  exportRoute.use("*", createAuthMiddleware(authProvider));
+  exportRoute.use("*", apiRateLimit);
+  exportRoute.get("/", async (c) => {
+    const { userId } = c.get("auth");
+    const zip = await exportAccount(storage, userId);
+    if (!zip) throw new HttpError(401, "User not found");
+    audit(storage, c, { action: "account.exported", actorId: userId });
+    return sendExport(c, zip, (await storage.users.findById(userId))?.username);
+  });
+  app.route("/api/export", exportRoute);
+
   app.route(
     "/api/tokens",
     createTokenRoutes({

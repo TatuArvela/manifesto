@@ -6,6 +6,22 @@ Manifesto supports exporting and importing note data from the Settings dialog. T
 
 - **Export**: Downloads all notes as a single JSON file (`manifesto-export-YYYY-MM-DD.json`)
 
+### From the server (connected mode)
+
+**Download all my notes (.zip)** in Settings, `GET /api/export` (any credential, so an API token can
+script a backup), and for an admin **Download notes** on any account (`GET
+/api/admin/users/:id/export`) build one zip on the server:
+
+| File | Holds |
+|---|---|
+| `notes.json` | Every note the account owns, the archive and trash included, in the import format above, with images inlined as `data:` URLs. Importing it restores the notes anywhere, open mode included. |
+| `notes/<title>.md` | Each note not in the trash as Markdown, with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`) that the Markdown-folder import reads back, so the zip itself imports too. |
+| `versions.json` | The server's version history of those notes. |
+| `account.json` | The account's username, display name, email address, how it signs in, whether it is an admin and when it was made. |
+
+Notes shared with the account belong to someone else and are not included. It serves a person leaving,
+moving servers, or asking what is held about them; each download is recorded in the audit log.
+
 ## Import
 
 - **Import**: Loads notes from a previously exported JSON file, merging them into the existing notes.

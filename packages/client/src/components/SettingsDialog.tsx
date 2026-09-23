@@ -2,6 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import {
   ChevronDown,
   Download,
+  FileArchive,
   Monitor,
   Moon,
   Shuffle,
@@ -24,6 +25,8 @@ import {
   t,
 } from "../i18n/index.js";
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
+import { downloadAccountExport } from "../state/accountExport.js";
+import { isServerMode } from "../state/auth.js";
 import {
   animations,
   confirmBeforeDelete,
@@ -609,6 +612,25 @@ export function SettingsDialog() {
                 </button>
               )}
             </div>
+            {isServerMode && (
+              <button
+                type="button"
+                class="w-full px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5"
+                onClick={async () => {
+                  const ok = await downloadAccountExport();
+                  setDataStatus(
+                    t(
+                      ok
+                        ? "settings.data.archived"
+                        : "settings.data.archiveFailed",
+                    ),
+                  );
+                }}
+              >
+                <FileArchive class="w-4 h-4" />
+                {t("settings.data.archive")}
+              </button>
+            )}
             <p class="text-xs text-neutral-500 dark:text-neutral-400">
               {t("settings.data.importHint")}
             </p>
