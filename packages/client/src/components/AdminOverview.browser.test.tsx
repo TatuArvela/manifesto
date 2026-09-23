@@ -25,6 +25,12 @@ vi.mock("../state/admin.js", async (original) => ({
         attachmentBytes: 2048,
       },
     ],
+    update: {
+      latest: "1.3.0",
+      url: "https://github.com/TatuArvela/manifesto/releases/tag/v1.3.0",
+      checkedAt: "2026-04-01T00:00:00.000Z",
+      available: true,
+    },
     jobs: [
       {
         name: "trash cleanup",
@@ -57,5 +63,8 @@ describe("AdminOverview", () => {
     expect(host.textContent).toContain(t("overview.job.trash"));
     expect(host.textContent).toContain(t("overview.jobFailed"));
     expect(host.textContent).toContain("disk full");
+    expect(host.textContent).toContain(
+      t("overview.updateAvailable", { version: "1.3.0" }),
+    );
   });
 });

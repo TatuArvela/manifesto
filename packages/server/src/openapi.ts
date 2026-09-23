@@ -461,6 +461,14 @@ export const OPERATIONS: Operation[] = [
   },
   {
     method: "get",
+    path: "/api/admin/update",
+    tag: "Admin",
+    summary: "The running version, and the newest release if the check is on",
+    auth: "session",
+    responses: ok(),
+  },
+  {
+    method: "get",
     path: "/api/admin/overview",
     tag: "Admin",
     summary: "What the server holds, and how its background jobs last ran",

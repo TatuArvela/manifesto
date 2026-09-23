@@ -109,4 +109,11 @@ describe("audit log", () => {
     expect(Array.isArray(body.jobs)).toBe(true);
     expect(typeof body.version).toBe("string");
   });
+
+  it("says whether a newer release is out, as far as it knows", async () => {
+    const res = await rig.request("/api/admin/update", {
+      headers: authHeaders(admin.token),
+    });
+    expect(await res.json()).toMatchObject({ update: null });
+  });
 });

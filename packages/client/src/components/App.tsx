@@ -6,6 +6,7 @@ import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
+import { checkForUpdate } from "../state/admin.js";
 import {
   authToken,
   consumeOidcRedirect,
@@ -206,6 +207,11 @@ function MainApp() {
   useEffect(() => {
     if (isAdminView && userChecked && !isAdmin) activeView.value = "active";
   }, [isAdminView, userChecked, isAdmin]);
+
+  // An admin hears about a newer release in the account menu.
+  useEffect(() => {
+    if (userChecked && isAdmin) void checkForUpdate();
+  }, [userChecked, isAdmin]);
 
   const isTagsView = activeView.value === "tags";
   const isSearchView = activeView.value === "search";

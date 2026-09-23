@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import {
   type AdminOverviewResponse,
   type AdminTemporaryPasswordResponse,
+  type AdminUpdateResponse,
   type AdminUser,
   type AdminUserResponse,
   type AdminUsersResponse,
@@ -24,6 +25,7 @@ import { jobStatuses } from "../lib/periodic.js";
 import { newTemporaryPassword } from "../lib/temporaryPassword.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
+import type { UpdateStatus } from "../lib/updateCheck.js";
 import {
   type AuthContext,
   createAuthMiddleware,
@@ -50,6 +52,8 @@ interface AdminDeps {
   authProvider: AuthProvider;
   revocations: SessionRevocations;
   noteEvents: NoteEvents;
+  /** What the update check last found. */
+  updateStatus?: () => UpdateStatus | null;
   /** The shared per-user limiter, mounted after auth. */
   rateLimit?: MiddlewareHandler;
 }
@@ -291,6 +295,15 @@ export function createAdminRoutes(deps: AdminDeps) {
     return c.body(null, 204);
   });
 
+  /** Whether a newer release is out, for the account menu to mention. */
+  admin.get("/update", (c) => {
+    const body: AdminUpdateResponse = {
+      version: VERSION,
+      update: deps.updateStatus?.() ?? null,
+    };
+    return c.json(body);
+  });
+
   /** What the server holds, per account and in total, and how its
    * background jobs last ran. */
   admin.get("/overview", async (c) => {
@@ -321,6 +334,7 @@ export function createAdminRoutes(deps: AdminDeps) {
           : [];
       }),
       jobs: jobStatuses(),
+      update: deps.updateStatus?.() ?? null,
     };
     return c.json(body);
   });

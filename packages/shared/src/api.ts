@@ -169,6 +169,13 @@ export interface AdminOverviewResponse {
     attachments: number;
     attachmentBytes: number;
   }[];
+  /** What the update check last found; null with it off or not yet run. */
+  update: {
+    latest: string;
+    url: string;
+    checkedAt: string;
+    available: boolean;
+  } | null;
   jobs: {
     name: string;
     intervalMs: number;
@@ -178,6 +185,12 @@ export interface AdminOverviewResponse {
     lastError: string | null;
     running: boolean;
   }[];
+}
+
+/** `GET /api/admin/update`. */
+export interface AdminUpdateResponse {
+  version: string;
+  update: AdminOverviewResponse["update"];
 }
 
 /** What the audit log records. */

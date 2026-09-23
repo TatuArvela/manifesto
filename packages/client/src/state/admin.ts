@@ -1,6 +1,7 @@
 import type {
   AdminOverviewResponse,
   AdminTemporaryPasswordResponse,
+  AdminUpdateResponse,
   AdminUser,
   AdminUserResponse,
   AdminUsersResponse,
@@ -107,6 +108,26 @@ function replaceUser(user: AdminUser) {
           }),
         )
       : users.map((u) => (u.id === user.id ? user : u));
+}
+
+/** A newer release than the server runs, when its update check found one. */
+export const availableUpdate = signal<{ latest: string; url: string } | null>(
+  null,
+);
+
+/**
+ * Asks the server whether a newer release is out, for the account menu to
+ * mention. Quiet on failure: this is news, not something to act on now.
+ */
+export async function checkForUpdate(): Promise<void> {
+  try {
+    const body = await request<AdminUpdateResponse>("GET", "/update");
+    availableUpdate.value = body?.update?.available
+      ? { latest: body.update.latest, url: body.update.url }
+      : null;
+  } catch {
+    availableUpdate.value = null;
+  }
 }
 
 /** The server's overview; null on failure, which has been reported. */

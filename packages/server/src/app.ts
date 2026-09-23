@@ -8,6 +8,7 @@ import {
 import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import type { ServerConfig } from "./config.js";
+import type { UpdateStatus } from "./lib/updateCheck.js";
 import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,
@@ -60,6 +61,8 @@ export interface AppDeps {
   webhookRetryDelaysMs?: number[];
   /** Test seam: replaces the SMTP mailer `cfg.mail` would build. */
   mailer?: Mailer;
+  /** What the update check found; index.ts starts it, the overview reads it. */
+  updateStatus?: () => UpdateStatus | null;
 }
 
 export interface AppHandle {
@@ -224,6 +227,7 @@ export function createApp(deps: AppDeps): AppHandle {
       authProvider,
       revocations,
       noteEvents,
+      updateStatus: deps.updateStatus,
       rateLimit: apiRateLimit,
     }),
   );

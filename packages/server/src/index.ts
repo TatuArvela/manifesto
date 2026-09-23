@@ -13,6 +13,7 @@ import { logger } from "./lib/logger.js";
 import { startSessionCleanup } from "./lib/sessionCleanup.js";
 import { createShutdown } from "./lib/shutdown.js";
 import { startTrashCleanup } from "./lib/trashCleanup.js";
+import { startUpdateCheck } from "./lib/updateCheck.js";
 import { createStorage } from "./storage/index.js";
 import { VERSION } from "./version.js";
 import { attachAppSocket } from "./ws/appSocket.js";
@@ -25,6 +26,9 @@ const storage = await createStorage(cfg);
 const initialAdmin = await ensureInitialAdmin(storage, cfg);
 if (initialAdmin) announceInitialAdmin(initialAdmin);
 const authProvider = createAuthProvider(cfg, storage);
+const updateCheck = cfg.updateCheckRepo
+  ? startUpdateCheck(cfg.updateCheckRepo, VERSION)
+  : null;
 const { app, broadcaster, revocations, accessChanges, noteEvents, webhooks } =
   createApp({
     cfg,
@@ -92,6 +96,7 @@ const shutdown = createShutdown({
     stopAttachmentCleanup,
     stopAppSocket,
     () => webhooks?.stop(),
+    () => updateCheck?.stop(),
   ],
   closeStorage: () => storage.close(),
 });
