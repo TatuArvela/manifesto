@@ -42,6 +42,7 @@ The name references three things:
 - [Archiving](features/archiving.md): Keeping notes out of the main view
 - [Trash](features/trash.md): Soft delete and auto-expiry
 - [Export/Import](features/export-import.md): Data portability
+- [Attachments](features/attachments.md): Images inline in open mode, in the server's attachment store in connected mode
 - [Sharing](features/sharing.md): Share notes via URL
 - [Sharing with People](features/sharing-with-people.md): Share notes with other accounts, to edit or to view (connected mode)
 - [Link Previews](features/link-previews.md): Cards for pasted links, filled in by the server in connected mode

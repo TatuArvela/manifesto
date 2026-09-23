@@ -1,5 +1,7 @@
 import type { Note, NoteCreate, NotesResponse } from "@manifesto/shared";
 import {
+  attachmentIdOf,
+  isAttachmentRef,
   MAX_IMAGE_DATA_URL_BYTES,
   MAX_IMAGE_SOURCE_BYTES,
   NoteColor,
@@ -202,7 +204,9 @@ describe("notes routes", () => {
     const png = `data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`;
     const jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
     const note = await createNote(rig, token, { images: [png, jpeg] });
-    expect(note.images).toEqual([png, jpeg]);
+    // Stored outside the row, and referred to from it.
+    expect(note.images).toHaveLength(2);
+    for (const ref of note.images) expect(isAttachmentRef(ref)).toBe(true);
   });
 
   it("rejects image values that are not inert image data URLs", async () => {
@@ -398,11 +402,19 @@ describe("notes routes", () => {
       expect(body.notes[0].images).toEqual([]);
       expect(body.notes[0].imageCount).toBe(1);
 
-      // Reading the one note is what fetches the bytes.
+      // Reading the one note gives the reference, and that the bytes.
       const one = await rig.request(`/api/notes/${body.notes[0].id}`, {
         headers: authHeaders(token),
       });
-      expect(((await one.json()) as { note: Note }).note.images).toEqual([PNG]);
+      const [ref] = ((await one.json()) as { note: Note }).note.images;
+      const bytes = await rig.request(
+        `/api/attachments/${attachmentIdOf(ref)}`,
+        { headers: authHeaders(token) },
+      );
+      expect(bytes.headers.get("Content-Type")).toBe("image/png");
+      expect(Buffer.from(await bytes.arrayBuffer())).toEqual(
+        Buffer.from(PNG.slice(PNG.indexOf(",") + 1), "base64"),
+      );
     });
 
     it("pages, and the cursor reaches the rest", async () => {

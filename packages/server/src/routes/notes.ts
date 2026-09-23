@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
+import { storeInlineImages } from "../attachments/store.js";
 import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
@@ -75,10 +76,17 @@ export function createNotesRoutes(deps: NotesDeps) {
       const { userId } = c.get("auth");
       const fields = c.req.valid("json");
       const now = nowIso();
+      const images = await storeInlineImages(
+        deps.storage,
+        fields.images,
+        userId,
+        userId,
+        now,
+      );
       const note = await deps.storage.notes.insert({
         id: newId(),
         userId,
-        data: { ...fields, trashedAt: fields.trashed ? now : null },
+        data: { ...fields, images, trashedAt: fields.trashed ? now : null },
         createdAt: now,
         updatedAt: now,
       });
@@ -96,6 +104,21 @@ export function createNotesRoutes(deps: NotesDeps) {
       const fields = c.req.valid("json");
       const now = nowIso();
       const changes = { ...fields, ...trashStamp(fields.trashed, now) };
+      if (fields.images !== undefined) {
+        // Stored under the note's owner, whoever is writing. A viewer is
+        // refused below by the update itself, before anything refers to what
+        // this stored, and the sweep collects it.
+        const access = await deps.storage.notes.access(id, userId);
+        if (access && access.role !== "view") {
+          changes.images = await storeInlineImages(
+            deps.storage,
+            fields.images,
+            access.ownerId,
+            userId,
+            now,
+          );
+        }
+      }
       const ifMatch = c.req.header("If-Match");
       // Atomic compare-and-set: storage.notes.update with an
       // `expectedUpdatedAt` only touches the row if its current

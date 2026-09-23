@@ -94,6 +94,27 @@ export const MAX_IMAGE_SOURCE_BYTES = 1.5 * 1024 * 1024;
 export const MAX_IMAGE_DATA_URL_BYTES =
   Math.ceil(MAX_IMAGE_SOURCE_BYTES / 3) * 4 + 32;
 
+/**
+ * How a connected-mode note refers to an image held in the server's
+ * attachment store rather than inline: `attachment:` and the attachment's
+ * ULID. The server turns every inline image it is sent into one of these
+ * (see `docs/specification/features/attachments.md`), and serves the bytes at
+ * `GET /api/attachments/:id`. Open mode never holds one, and an export never
+ * contains one: both inline the bytes again.
+ */
+export const ATTACHMENT_REF_PREFIX = "attachment:";
+
+export const ATTACHMENT_REF_PATTERN = /^attachment:[0-9A-HJKMNP-TV-Z]{26}$/;
+
+export function isAttachmentRef(image: string): boolean {
+  return ATTACHMENT_REF_PATTERN.test(image);
+}
+
+/** The attachment id a reference names. */
+export function attachmentIdOf(ref: string): string {
+  return ref.slice(ATTACHMENT_REF_PREFIX.length);
+}
+
 /** Maximum number of images attachable to one note. */
 export const MAX_IMAGES_PER_NOTE = 20;
 
@@ -214,7 +235,9 @@ export interface Note {
   position: number;
   tags: string[];
   /**
-   * Attached images as `data:` URLs. Empty on a note that came from a list
+   * Attached images: `data:` URLs, or in connected mode `attachment:<id>`
+   * references to the server's attachment store (`isAttachmentRef`), which
+   * is what the server stores and sends back. Empty on a note that came from a list
    * endpoint even when it has attachments. Compare with `imageCount` rather
    * than reading emptiness as "no images", and call the client's
    * `ensureImages` before doing anything that needs the bytes.

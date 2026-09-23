@@ -169,6 +169,11 @@ export class LocalStorageAdapter implements StorageAdapter {
     return (await this.get(id))?.images ?? [];
   }
 
+  /** Open mode keeps every image inline, so no reference can name one. */
+  async loadAttachment(_ref: string): Promise<Blob> {
+    throw new Error("Open mode has no attachment store");
+  }
+
   async search(query: string): Promise<Note[]> {
     const q = query.toLowerCase();
     return loadNotes().filter(

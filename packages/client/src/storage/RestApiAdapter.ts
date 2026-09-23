@@ -8,7 +8,7 @@ import type {
   NotesResponse,
   NoteUpdate,
 } from "@manifesto/shared";
-import { roleOf } from "@manifesto/shared";
+import { attachmentIdOf, roleOf } from "@manifesto/shared";
 import type { StorageAdapter } from "./StorageAdapter.js";
 
 export interface RestApiAdapterOptions {
@@ -106,6 +106,15 @@ export class RestApiAdapter implements StorageAdapter {
   async loadImages(id: string): Promise<string[]> {
     const note = await this.get(id);
     return note?.images ?? [];
+  }
+
+  async loadAttachment(ref: string): Promise<Blob> {
+    const res = await fetch(
+      `${this.baseUrl}/api/attachments/${attachmentIdOf(ref)}`,
+      { headers: { Authorization: `Bearer ${this.token}` } },
+    );
+    if (!res.ok) await this.fail(res, "Failed to fetch attachment");
+    return await res.blob();
   }
 
   async get(id: string): Promise<Note | null> {

@@ -53,10 +53,14 @@ export type {
   ShareUser,
 } from "./note.js";
 export {
+  ATTACHMENT_REF_PATTERN,
+  ATTACHMENT_REF_PREFIX,
+  attachmentIdOf,
   hasUnloadedImages,
   IMAGE_DATA_URL_PATTERN,
   IMAGE_DATA_URL_SUBTYPES,
   imageCountOf,
+  isAttachmentRef,
   MAX_IMAGE_DATA_URL_BYTES,
   MAX_IMAGE_SOURCE_BYTES,
   MAX_IMAGES_PER_NOTE,

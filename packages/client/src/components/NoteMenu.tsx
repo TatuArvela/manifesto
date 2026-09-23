@@ -17,6 +17,7 @@ import {
 import type { VNode } from "preact";
 import { t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
+import { inlineImages } from "../state/attachments.js";
 import { isServerMode } from "../state/auth.js";
 import { confirmDeletion } from "../state/confirm.js";
 import {
@@ -24,6 +25,7 @@ import {
   createNote,
   ensureImages,
   restoreNote,
+  showError,
   trashNote,
   unarchiveNote,
 } from "../state/index.js";
@@ -250,10 +252,15 @@ export function noteMenuItems(
         // The attachments, not the count: a note listed by the server carries
         // an empty `images`, and an export written from that would be a file
         // silently missing its pictures.
-        const images = await ensureImages(note.id);
+        const loaded = await ensureImages(note.id);
         // Null is "could not fetch", not "has none"; writing the file anyway
-        // would save a note stripped of the pictures it still has.
-        if (images === null) return;
+        // would save a note stripped of the pictures it still has. The file
+        // carries the bytes, not references only this server can read.
+        const images = loaded && (await inlineImages(loaded));
+        if (!images) {
+          if (loaded) showError(t("error.exportFailed"));
+          return;
+        }
         // Auto-note markers are stripped so the export is a static, portable
         // note rather than one that claims a plugin owns it.
         const { readonly: _r, source: _s, imageCount: _c, ...plain } = note;

@@ -20,7 +20,7 @@ A note is the fundamental entity in Manifesto.
 | `trashedAt` | `string \| null` | Yes      | ISO 8601 timestamp when trashed, `null` if not trashed. Server-assigned: it drives hard deletion 30 days later, so `POST`/`PUT` derive it from `trashed` and the server clock and ignore any value a client sends. |
 | `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
-| `images`    | `string[]`       | Yes      | Attached images as `data:` URLs; see [Images](#images) |
+| `images`    | `string[]`       | Yes      | Attached images as `data:` URLs, or in connected mode `attachment:<id>` references; see [Images](#images) |
 | `linkPreviews` | `LinkPreview[]` | Yes    | Link preview cards attached to the note  |
 | `reminder`  | `NoteReminder \| null` | Yes | Scheduled reminder, or `null` when not set |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
@@ -29,13 +29,13 @@ A note is the fundamental entity in Manifesto.
 
 ### Images
 
-Attached images are inlined in the note as base64 `data:` URLs rather than uploaded to a separate endpoint. The note is self-contained: it needs no second request to render, it survives export and re-import as one JSON document, and it works identically in open mode, where there is no server to upload to.
+A client attaches images inline, as base64 `data:` URLs, rather than uploading them to a separate endpoint. In open mode they stay that way: the note is self-contained, and there is no server to upload to. In connected mode the server takes the bytes out of every note it is sent and stores them in its attachment store, and `images` holds `attachment:<id>` references to them (matching `ATTACHMENT_REF_PATTERN`). An export always inlines them again, so a file is self-contained in either mode. See [Attachments](features/attachments.md).
 
 The accepted form is narrow, and the server enforces it on every write:
 
 | Constraint | Value |
 |------------|-------|
-| Scheme | `data:` only. A remote `http(s)` URL in `images` is rejected. |
+| Scheme | `data:`, or an `attachment:<id>` reference the writer may read. A remote `http(s)` URL in `images` is rejected. |
 | Media type | `image/png`, `image/jpeg`, `image/jpg`, `image/gif`, `image/webp`, `image/avif` |
 | Encoding | `;base64,` followed by base64-alphabet characters, anchored at both ends |
 | Per-image size | 1.5 MiB of source image. Enforced on the encoded URL, whose cap is derived from it: base64 emits 4 characters per 3 bytes and the `data:image/…;base64,` prefix counts too, so a hand-rounded encoded cap rejects a full-size image 18 bytes short of the advertised number. |
