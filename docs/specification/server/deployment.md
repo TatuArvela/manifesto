@@ -95,6 +95,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `AUDIT_RETENTION_DAYS` | `180`                  | Days the [audit log](../features/accounts.md#audit-log) keeps an entry. |
 | `UPDATE_CHECK`     | `on`                       | Asks GitHub twice a day for the newest release, so admins are told when there is one (a dot on their avatar, a line in the account menu, a banner in the overview). One request to `api.github.com`, through the same outbound boundary as link previews; `off` makes none. |
 | `UPDATE_CHECK_REPO`| `TatuArvela/manifesto`     | Whose releases the check reads, for a fork that publishes its own. |
+| `METRICS_TOKEN`    | *(unset: off)*             | Turns on `GET /metrics` for a scraper that sends it as a bearer token. See [Metrics](#metrics). |
 | `WEBHOOKS`         | `public`                   | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
 
@@ -279,6 +280,34 @@ With `STORAGE_DRIVER=postgres` this section does not apply, scheduled backups
 included (the server says so at boot if `BACKUP_INTERVAL_HOURS` is set): back up
 with `pg_dump` or whatever the managed database offers, which is one of the
 reasons to choose it.
+
+## Metrics
+
+`/api/health` answers "is it up". `GET /metrics` answers "is it well", in Prometheus's text format, once
+`METRICS_TOKEN` is set; the scraper sends it as a bearer token, and without it (or without the variable)
+the endpoint is a 404. It sits outside `/api`, so a reverse proxy can keep it off the public internet.
+
+```yaml
+scrape_configs:
+  - job_name: manifesto
+    metrics_path: /metrics
+    authorization:
+      credentials: <METRICS_TOKEN>
+    static_configs:
+      - targets: ["manifesto-server:3001"]
+```
+
+| Metric | |
+|---|---|
+| `manifesto_build_info{version}` | Always 1; the running version as a label |
+| `manifesto_http_requests_total{method,status}` | API requests by method and status class (`2xx`...). No route label: note ids in paths would make a series per note |
+| `manifesto_http_request_duration_seconds_sum{method,status}` | Time spent answering them; divide by the count for the mean |
+| `manifesto_rate_limited_total{limiter}` | Requests a rate limit refused |
+| `manifesto_app_sockets`, `manifesto_app_socket_users` | Open `/api/ws` sockets, and the accounts holding them |
+| `manifesto_yjs_documents_open`, `manifesto_yjs_connections` | Collaborative editing |
+| `manifesto_webhook_deliveries_total{result}` | Webhook deliveries, `delivered` or `failed` |
+| `manifesto_job_last_run_failed{job}`, `..._timestamp_seconds`, `..._duration_seconds` | Each background job's last run; alert on a failure or a timestamp that stops moving |
+| `process_uptime_seconds`, `process_resident_memory_bytes`, `nodejs_heap_used_bytes` | The process |
 
 ## Reverse Proxy
 

@@ -10,6 +10,7 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
+import { gaugeMetric } from "../lib/metrics.js";
 import { hashToken } from "../lib/token.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { StorageDriver } from "../storage/types.js";
@@ -63,6 +64,14 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
   };
 
   const connectionsByUser = new Map<string, Set<Connection>>();
+  gaugeMetric("manifesto_app_sockets", "Open /api/ws sockets.", () =>
+    [...connectionsByUser.values()].reduce((n, set) => n + set.size, 0),
+  );
+  gaugeMetric(
+    "manifesto_app_socket_users",
+    "Accounts with at least one open /api/ws socket.",
+    () => connectionsByUser.size,
+  );
   // For each note, how many of each user's connections are viewing it. We
   // send presence:join when a user's count goes 0 -> 1 and presence:leave when
   // it goes 1 -> 0, so a user with three tabs on the same note shows up

@@ -9,6 +9,8 @@ import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import type { ServerConfig } from "./config.js";
 import { exportAccount, sendExport } from "./export/userExport.js";
+import { countMetric, renderMetrics } from "./lib/metrics.js";
+import { safeEqual } from "./lib/token.js";
 import type { UpdateStatus } from "./lib/updateCheck.js";
 import {
   createLinkPreviewFetcher,
@@ -102,6 +104,46 @@ export function createApp(deps: AppDeps): AppHandle {
   }
   app.onError(onError);
   app.use("/api/*", recordClientAddress(cfg.trustProxy));
+  // Requests by method and status class, and the time they took. The route
+  // is not a label: note ids in paths would make one series per note.
+  app.use("/api/*", async (c, next) => {
+    const started = performance.now();
+    await next();
+    const labels = {
+      method: c.req.method,
+      status: `${Math.floor(c.res.status / 100)}xx`,
+    };
+    countMetric(
+      "manifesto_http_requests_total",
+      "API requests, by method and status class.",
+      labels,
+    );
+    countMetric(
+      "manifesto_http_request_duration_seconds_sum",
+      "Seconds spent answering API requests, by method and status class.",
+      labels,
+      (performance.now() - started) / 1000,
+    );
+  });
+
+  // Prometheus scrapes this. Off unless METRICS_TOKEN is set, and then only
+  // for a scraper that sends it: counts of sockets and failures are not for
+  // everyone.
+  app.get("/metrics", async (c) => {
+    if (
+      !cfg.metricsToken ||
+      !safeEqual(
+        c.req.header("Authorization") ?? "",
+        `Bearer ${cfg.metricsToken}`,
+      )
+    ) {
+      throw new HttpError(404, "Not found");
+    }
+    return c.text(await renderMetrics(VERSION), 200, {
+      "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
+      "Cache-Control": "no-store",
+    });
+  });
 
   // Cap request bodies on /api/*. Without this, an authenticated user could
   // POST a multi-MB JSON body and exhaust server memory.

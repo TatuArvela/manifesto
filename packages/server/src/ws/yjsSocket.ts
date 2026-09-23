@@ -7,6 +7,7 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
+import { gaugeMetric } from "../lib/metrics.js";
 import { hashToken } from "../lib/token.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { StorageDriver } from "../storage/types.js";
@@ -40,6 +41,16 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     opts;
 
   const hocuspocus = new Hocuspocus<YjsAuthContext>();
+  gaugeMetric(
+    "manifesto_yjs_documents_open",
+    "Notes open for collaborative editing.",
+    () => hocuspocus.getDocumentsCount(),
+  );
+  gaugeMetric(
+    "manifesto_yjs_connections",
+    "Connections to collaborative editing.",
+    () => hocuspocus.getConnectionsCount(),
+  );
   hocuspocus.configure({
     name: "manifesto-yjs",
     quiet: true,

@@ -95,6 +95,8 @@ export interface ServerConfig {
    * way back into a local account.
    */
   mail: MailConfig | null;
+  /** The bearer token `GET /metrics` asks for; null keeps it off. */
+  metricsToken: string | null;
   /** Scheduled SQLite backups, or null when off (the default). */
   backup: BackupConfig | null;
   /** Days the audit log keeps an entry. */
@@ -284,6 +286,7 @@ export function loadConfig(): ServerConfig {
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
     mail: loadMailConfig(),
     backup: loadBackupConfig(dataDir),
+    metricsToken: process.env.METRICS_TOKEN?.trim() || null,
     auditRetentionDays: envInt("AUDIT_RETENTION_DAYS", 180),
     updateCheckRepo: envBool("UPDATE_CHECK", true)
       ? process.env.UPDATE_CHECK_REPO?.trim() || "TatuArvela/manifesto"
