@@ -28,5 +28,6 @@ export function toAuthUser(user: User): AuthUser {
     avatarColor: user.avatarColor,
     email: user.email,
     isAdmin: user.isAdmin,
+    hasPassword: user.passwordHash !== null,
   };
 }

@@ -18,6 +18,8 @@ export interface CurrentUser {
   avatarColor: string;
   email: string | null;
   isAdmin: boolean;
+  /** Signs in with a password here; absent when the server did not say. */
+  hasPassword?: boolean;
 }
 
 interface PersistedAuth {
@@ -81,6 +83,7 @@ function toCurrentUser(value: unknown): CurrentUser | null {
     avatarColor: v.avatarColor,
     email: typeof v.email === "string" ? v.email : null,
     isAdmin: v.isAdmin === true,
+    ...(typeof v.hasPassword === "boolean" && { hasPassword: v.hasPassword }),
   };
 }
 
@@ -436,6 +439,12 @@ export const authProviderName = signal<AuthProviderName | null>(null);
  */
 export const userLookupMode = signal<UserLookupMode>("search");
 
+/** Every way in this server offers; both kinds side by side is possible. */
+export const authProviders = signal<AuthProviderName[]>([]);
+
+/** With both kinds on, whether the password form is folded behind a link. */
+export const passwordFormCollapsed = signal(false);
+
 /** Whether this server lets users register webhooks. */
 export const webhooksEnabled = signal(false);
 
@@ -446,6 +455,8 @@ export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
     if (!res.ok) return null;
     const methods = (await res.json()) as AuthMethodsResponse;
     authProviderName.value = methods.provider;
+    authProviders.value = methods.providers ?? [methods.provider];
+    passwordFormCollapsed.value = methods.passwordForm === "collapsed";
     // A server from before sharing does not say, and has no lookup anyway.
     if (methods.userLookup === "exact" || methods.userLookup === "search") {
       userLookupMode.value = methods.userLookup;

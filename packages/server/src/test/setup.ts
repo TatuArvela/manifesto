@@ -19,6 +19,7 @@ export const TEST_CONFIG: ServerConfig = {
   argon2Parallelism: 1,
   storageDriver: "sqlite",
   authProvider: "local",
+  passwordForm: "shown",
   oidc: null,
   postgres: null,
   trustProxy: false,

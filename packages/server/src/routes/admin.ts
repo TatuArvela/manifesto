@@ -11,7 +11,7 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import { endUserSessions } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
 import { pickAvatarColor } from "../auth/users.js";
-import type { ServerConfig } from "../config.js";
+import { type ServerConfig, signsInLocally } from "../config.js";
 import { logger } from "../lib/logger.js";
 import { hashPassword } from "../lib/password.js";
 import { newTemporaryPassword } from "../lib/temporaryPassword.js";
@@ -100,10 +100,10 @@ export function createAdminRoutes(deps: AdminDeps) {
     await next();
   });
 
-  /** Where local accounts are the only kind that exists, and so the only kind
-   * an admin can create or give a password to. */
+  /** Where local accounts can sign in, and so an admin can create one or
+   * give one a password. */
   function requireLocalProvider(): void {
-    if (deps.cfg.authProvider !== "local") {
+    if (!signsInLocally(deps.cfg)) {
       throw new HttpError(404, "Accounts are managed by the identity provider");
     }
   }

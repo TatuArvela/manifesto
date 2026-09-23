@@ -17,6 +17,8 @@ describe("auth shared routes", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       provider: "local",
+      providers: ["local"],
+      passwordForm: "shown",
       userLookup: "search",
       webhooks: false,
     });

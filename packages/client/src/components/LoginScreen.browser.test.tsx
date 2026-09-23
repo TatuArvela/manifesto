@@ -4,12 +4,16 @@ import { t } from "../i18n/index.js";
 import { LoginScreen } from "./LoginScreen.js";
 
 const calls: { password: string; otp?: string }[] = [];
+let methods: Record<string, unknown> = {
+  provider: "local",
+  userLookup: "search",
+};
 
 vi.mock("../state/auth.js", async (original) => {
   const actual = await original<typeof import("../state/auth.js")>();
   return {
     ...actual,
-    fetchAuthMethods: async () => ({ provider: "local", userLookup: "search" }),
+    fetchAuthMethods: async () => methods,
     login: async (
       _username: string,
       password: string,
@@ -42,6 +46,7 @@ const field = (selector: string) =>
 describe("LoginScreen with two-factor sign-in", () => {
   beforeEach(() => {
     calls.length = 0;
+    methods = { provider: "local", userLookup: "search" };
     host = document.createElement("div");
     document.body.appendChild(host);
   });
@@ -75,5 +80,24 @@ describe("LoginScreen with two-factor sign-in", () => {
     host.querySelector("form")?.requestSubmit();
     await vi.waitFor(() => expect(calls).toHaveLength(3));
     expect(calls.at(-1)).toEqual({ password: "password-1234", otp: "123 456" });
+  });
+
+  it("offers single sign-on first and folds the password form away", async () => {
+    methods = {
+      provider: "oidc",
+      providers: ["local", "oidc"],
+      passwordForm: "collapsed",
+      userLookup: "search",
+    };
+    render(<LoginScreen />, host);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("login.oidcSubmit")),
+    );
+    expect(host.querySelector('input[autocomplete="username"]')).toBeNull();
+    const reveal = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent === t("login.withPassword"),
+    );
+    reveal?.click();
+    await field('input[autocomplete="username"]');
   });
 });

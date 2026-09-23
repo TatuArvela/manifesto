@@ -47,7 +47,9 @@ export function AccountMenu() {
   const name = user.displayName || user.username;
   // Under single sign-on the identity provider owns the password, and the
   // email address too.
-  const hasPassword = authProviderName.value === "local";
+  // With both kinds of sign-in on, that is a question about this account;
+  // a server from before it could answer says it through its provider.
+  const hasPassword = user.hasPassword ?? authProviderName.value === "local";
 
   return (
     <>

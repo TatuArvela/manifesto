@@ -511,6 +511,8 @@ describe("finding people to share with", () => {
     const methods = await (await rig.request("/api/auth/methods")).json();
     expect(methods).toEqual({
       provider: "local",
+      providers: ["local"],
+      passwordForm: "shown",
       userLookup: "exact",
       webhooks: false,
     });

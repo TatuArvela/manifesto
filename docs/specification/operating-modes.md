@@ -140,7 +140,7 @@ The full list lives in `packages/server/.env.example`. The mode-shaping subset:
 | Variable          | Default     | Notes                                          |
 |-------------------|-------------|------------------------------------------------|
 | `STORAGE_DRIVER`  | `sqlite`    | `sqlite` or `postgres`. Validated at boot.     |
-| `AUTH_PROVIDER`   | `local`     | `local` or `oidc`. Validated at boot.          |
+| `AUTH_PROVIDER`   | `local`     | `local`, `oidc` or `both`. Validated at boot.  |
 | `DATABASE_URL`    | none        | Required when `STORAGE_DRIVER=postgres`.        |
-| `OIDC_*`          | none        | Required when `AUTH_PROVIDER=oidc`. See [Server Deployment](server/deployment.md#oidc-variables-when-auth_provideroidc). |
+| `OIDC_*`          | none        | Required when `AUTH_PROVIDER=oidc` or `both`. See [Server Deployment](server/deployment.md#oidc-variables-when-auth_provideroidc). |
 | `CORS_ORIGINS`    | `http://localhost:5173` | Must include the deployed client origin in connected mode. |

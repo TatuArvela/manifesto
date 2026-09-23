@@ -428,6 +428,8 @@ export const en = {
     "That code is not right; check the time on your device",
   "twoFactor.failed": "Could not reach the server; try again",
   "twoFactor.close": "Close",
+  "login.or": "or",
+  "login.withPassword": "Sign in with a password instead",
   "login.twoFactor.title": "Enter your code",
   "login.twoFactor.hint":
     "Enter the code from your authenticator app, or one of your recovery codes.",
