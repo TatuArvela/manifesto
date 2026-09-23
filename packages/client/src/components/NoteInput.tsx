@@ -21,6 +21,7 @@ import {
   createNote,
   defaultNoteColor,
   defaultNoteFont,
+  newNoteRequested,
   noteQuips,
   noteSize,
   pickDefaultColor,
@@ -207,6 +208,16 @@ export function NoteInput() {
     openShareRef.current(share);
   }, [share, isActiveView, expanded]);
 
+  // The `c` shortcut: a new note, from the pad where it shows, as a click on it
+  // would open one.
+  const openNewRef = useRef<() => void>(() => {});
+  const newNote = newNoteRequested.value;
+  useEffect(() => {
+    if (!newNote || !isActiveView) return;
+    newNoteRequested.value = false;
+    if (!expanded) openNewRef.current();
+  }, [newNote, isActiveView, expanded]);
+
   if (!isActiveView) return null;
 
   /** The unsaved composer contents, shaped as a note for the JSON export. */
@@ -384,6 +395,8 @@ export function NoteInput() {
   };
 
   closeModalRef.current = closeModal;
+  openNewRef.current = () =>
+    openModal(topSheetRef.current?.getClientRects().length ? "pad" : "button");
   openShareRef.current = (incoming) => {
     setTitle(incoming.title);
     setContent(incoming.content);

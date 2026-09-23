@@ -48,6 +48,7 @@ import {
   noteCorners,
   noteQuips,
   showSettings,
+  showShortcuts,
   showWelcome,
   type ThemeMode,
   theme,
@@ -648,6 +649,17 @@ export function SettingsDialog() {
                   </button>
                 </>
               )}
+              {" · "}
+              <button
+                type="button"
+                class="underline hover:text-neutral-700 dark:hover:text-neutral-300 cursor-pointer"
+                onClick={() => {
+                  handleClose();
+                  showShortcuts.value = true;
+                }}
+              >
+                {t("settings.about.shortcuts")}
+              </button>
             </p>
           </div>
         </div>

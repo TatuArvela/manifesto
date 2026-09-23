@@ -698,6 +698,7 @@ export const NoteCard = memo(function NoteCard({
           // nothing could focus. Trash cards do not open, so they are a plain
           // article carrying buttons rather than something to activate.
           tabIndex={cardActivates ? 0 : undefined}
+          data-note-card
           role={cardActivates ? "button" : undefined}
           aria-label={cardActivates ? cardLabel : undefined}
           onClick={handleClick}

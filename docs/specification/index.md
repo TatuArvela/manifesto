@@ -36,6 +36,7 @@ The name references three things:
 - [Notes](features/notes.md): Core CRUD, colors, pinning
 - [Checklists](features/checklists.md): Interactive task lists
 - [Search](features/search.md): Full-text search
+- [Keyboard Shortcuts](features/keyboard-shortcuts.md): Single-key shortcuts on the board
 - [Tags](features/tags.md): Organizing notes with tags
 - [Reminders](features/reminders.md): Scheduled reminders, with optional recurrence
 - [Archiving](features/archiving.md): Keeping notes out of the main view
