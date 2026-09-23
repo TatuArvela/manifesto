@@ -29,6 +29,7 @@ export const TEST_CONFIG: ServerConfig = {
   // storage has closed; the webhook tests switch it on.
   webhooks: "off",
   mail: null,
+  backup: null,
   auditRetentionDays: 180,
   // Off: no test should reach GitHub.
   updateCheckRepo: null,
