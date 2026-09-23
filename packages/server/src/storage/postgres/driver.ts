@@ -7,7 +7,7 @@ import {
 } from "./database.js";
 import { createPostgresMaintenanceRepo } from "./maintenanceRepo.js";
 import { runMigrations } from "./migrations.js";
-import { createPostgresNotesRepo } from "./notesRepo.js";
+import { createPostgresNotesRepo, reindexStaleNotes } from "./notesRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
 import { createPostgresSharesRepo } from "./sharesRepo.js";
 import { createPostgresUsersRepo } from "./usersRepo.js";
@@ -34,6 +34,7 @@ export async function createPostgresStorage(
   });
   if (!options.skipMigrations) {
     await runMigrations(pool);
+    await reindexStaleNotes(pool);
   }
   return {
     pool,

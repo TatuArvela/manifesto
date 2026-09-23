@@ -105,12 +105,27 @@ CREATE INDEX note_shares_user ON note_shares(user_id);
 CREATE INDEX note_shares_trashed_expiry ON note_shares(trashed, trashed_at);
 `;
 
+/** See the SQLite copy. `COLLATE "C"` gives the byte order a prefix range
+ * scan needs, which a linguistic collation does not. */
+const NOTE_SEARCH_TERMS = `
+CREATE TABLE note_terms (
+  note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  term        TEXT COLLATE "C" NOT NULL,
+  occurrences INTEGER NOT NULL,
+  PRIMARY KEY (note_id, term)
+);
+CREATE INDEX note_terms_term ON note_terms(term, note_id);
+ALTER TABLE notes ADD COLUMN search_version INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX notes_search_version ON notes(search_version);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
   { id: "0003-user-admin", sql: USER_ADMIN },
   { id: "0004-user-email", sql: USER_EMAIL },
   { id: "0005-note-shares", sql: NOTE_SHARES },
+  { id: "0006-note-search-terms", sql: NOTE_SEARCH_TERMS },
 ];
 
 export async function runMigrations(
