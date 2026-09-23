@@ -111,6 +111,24 @@ Sign in as `admin` with that password and choose your own. Until you do, each re
 See [The initial admin](../features/accounts.md#the-initial-admin). With `AUTH_PROVIDER=oidc`, the first
 person to sign in through the identity provider is the admin instead.
 
+### Locked out
+
+When no admin can sign in (the last one lost their password, or their authenticator and recovery codes,
+or the identity provider no longer knows them), run the admin CLI inside the container. It works on the
+database directly, with the server's own environment, and needs nothing from the running server:
+
+```bash
+docker exec manifesto-server node dist/cli.js list-admins
+docker exec manifesto-server node dist/cli.js reset-password admin    # prints a temporary password
+docker exec manifesto-server node dist/cli.js make-admin alice
+docker exec manifesto-server node dist/cli.js create-admin rescue     # a new local admin
+```
+
+`reset-password` also ends the account's sessions and API tokens and turns off its two-factor sign-in,
+as an admin's reset does. Each command is recorded in the audit log. A socket the running server
+already holds for an ended session stays open until it reconnects; restart the server to close it at
+once. Outside Docker, run `node dist/cli.js` from `packages/server` with the same environment.
+
 ### Local and single sign-on together
 
 `AUTH_PROVIDER=both` offers both at once: the sign-in screen shows the single sign-on button, then the
