@@ -241,7 +241,15 @@ export type AuthProviderName = "local" | "oidc";
 export type UserLookupMode = "search" | "exact";
 
 export interface AuthMethodsResponse {
+  /** The one way in, for clients from before `providers`; `oidc` when both
+   * are on. */
   provider: AuthProviderName;
+  /** Every way in this server offers. Absent from older servers, which offer
+   * `provider` alone. */
+  providers?: AuthProviderName[];
+  /** With both on, whether the password form is shown or folded behind a
+   * link under the single sign-on button. */
+  passwordForm?: "shown" | "collapsed";
   userLookup: UserLookupMode;
   /** Whether this server lets users register webhooks. Absent from servers
    * from before webhooks, which have none. */
@@ -255,6 +263,10 @@ export interface AuthUser {
   avatarColor: string;
   email: string | null;
   isAdmin: boolean;
+  /** Whether the account signs in with a password here (and so can change
+   * it, and use two-factor), rather than through single sign-on. Absent from
+   * older servers. */
+  hasPassword?: boolean;
 }
 
 // --- Administration ---

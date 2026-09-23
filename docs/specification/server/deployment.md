@@ -73,7 +73,8 @@ See `packages/server/.env.example` for the full list and defaults.
 |--------------------|----------------------------|------------------------------------------|
 | `PORT`             | `3001`                     | Server port                              |
 | `STORAGE_DRIVER`   | `sqlite`                   | Storage driver: `sqlite` or `postgres`.  |
-| `AUTH_PROVIDER`    | `local`                    | Auth provider: `local` or `oidc`.        |
+| `AUTH_PROVIDER`    | `local`                    | Auth provider: `local`, `oidc`, or `both` side by side (see below). |
+| `PASSWORD_FORM`    | `shown`                    | With `AUTH_PROVIDER=both`: `shown` puts the password form under the single sign-on button, `collapsed` folds it behind a "Sign in with a password instead" link, for servers where SSO is the way in and local accounts are the admin's spare key. |
 | `DATA_DIR`         | `./data`                   | Directory for the SQLite database        |
 | `MANIFESTO_DB`     | `${DATA_DIR}/manifesto.db` | Override the SQLite path explicitly      |
 | `DATABASE_URL`     | _(required for postgres)_  | Postgres connection string               |
@@ -95,7 +96,7 @@ Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown valu
 
 ### First sign-in
 
-With `AUTH_PROVIDER=local`, a new server creates an `admin` account and prints its temporary password to
+With local sign-in on (`AUTH_PROVIDER=local` or `both`), a new server creates an `admin` account and prints its temporary password to
 standard error on boot, regardless of `LOG_LEVEL`:
 
 ```bash
@@ -106,7 +107,16 @@ Sign in as `admin` with that password and choose your own. Until you do, each re
 See [The initial admin](../features/accounts.md#the-initial-admin). With `AUTH_PROVIDER=oidc`, the first
 person to sign in through the identity provider is the admin instead.
 
-### OIDC variables (when `AUTH_PROVIDER=oidc`)
+### Local and single sign-on together
+
+`AUTH_PROVIDER=both` offers both at once: the sign-in screen shows the single sign-on button, then the
+password form (or a link to it, with `PASSWORD_FORM=collapsed`). Sessions are the same whichever way
+someone signed in, and the `users` table holds both kinds of account. Accounts from the identity
+provider sign in only through it; local accounts, the initial admin among them, only with their
+password, so the server stays reachable if the identity provider is down. Admins can create local
+accounts and issue temporary passwords, as under `local`. `OIDC_*` is required as for `oidc`.
+
+### OIDC variables (when `AUTH_PROVIDER=oidc` or `both`)
 
 All of these are required and validated at boot. The server only reads them when the OIDC provider is selected.
 

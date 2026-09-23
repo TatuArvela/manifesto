@@ -24,11 +24,7 @@ import {
   setAccountAdmin,
   setAccountEmail,
 } from "../state/admin.js";
-import {
-  authProviderName,
-  currentUser,
-  fetchAuthMethods,
-} from "../state/auth.js";
+import { authProviders, currentUser, fetchAuthMethods } from "../state/auth.js";
 import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
 import { menuItemClass, menuPanelClass } from "./NoteMenu.js";
@@ -50,10 +46,10 @@ const dangerButtonClass =
  */
 export function AdminView() {
   const users = adminUsers.value;
-  const provider = authProviderName.value;
-  // Accounts with passwords exist only under local sign-in. Under SSO the
-  // identity provider creates them and owns their passwords.
-  const passwordsHere = provider === "local";
+  const providers = authProviders.value;
+  // Accounts with passwords exist only where local sign-in is on. Under SSO
+  // the identity provider creates them and owns their passwords.
+  const passwordsHere = providers.includes("local");
   const [loadFailed, setLoadFailed] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -64,7 +60,7 @@ export function AdminView() {
 
   useEffect(() => {
     load();
-    if (authProviderName.value === null) void fetchAuthMethods();
+    if (authProviders.value.length === 0) void fetchAuthMethods();
     // A temporary password is shown once; leaving the view is dismissing it.
     return () => {
       issuedPassword.value = null;
@@ -92,7 +88,7 @@ export function AdminView() {
         )}
       </div>
 
-      {provider === "oidc" && (
+      {providers.includes("oidc") && (
         <p class="text-sm text-neutral-600 dark:text-neutral-300">
           {t("admin.ssoHint")}
         </p>

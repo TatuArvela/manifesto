@@ -1,7 +1,15 @@
 import { zValidator } from "@hono/zod-validator";
-import type { AuthMeResponse, AuthMethodsResponse } from "@manifesto/shared";
+import type {
+  AuthMeResponse,
+  AuthMethodsResponse,
+  AuthProviderName,
+} from "@manifesto/shared";
 import { Hono } from "hono";
-import type { ServerConfig } from "../config.js";
+import {
+  type ServerConfig,
+  signsInLocally,
+  signsInWithOidc,
+} from "../config.js";
 import {
   type AuthContext,
   createAuthMiddleware,
@@ -31,8 +39,17 @@ export function createAuthSharedRoutes(
   const router = new Hono<{ Variables: { auth: AuthContext } }>();
 
   router.get("/methods", (c) => {
+    const providers: AuthProviderName[] = [
+      ...(signsInLocally(deps.cfg) ? (["local"] as const) : []),
+      ...(signsInWithOidc(deps.cfg) ? (["oidc"] as const) : []),
+    ];
     const body: AuthMethodsResponse = {
-      provider: deps.cfg.authProvider,
+      // A client from before `providers` reads this alone; with both on,
+      // single sign-on is the way in it can offer.
+      provider: signsInWithOidc(deps.cfg) ? "oidc" : "local",
+      providers,
+      passwordForm:
+        deps.cfg.authProvider === "both" ? deps.cfg.passwordForm : "shown",
       userLookup: deps.cfg.userLookup,
       webhooks: deps.cfg.webhooks !== "off",
     };

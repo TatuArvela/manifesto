@@ -74,10 +74,9 @@ export function LoginScreen() {
             {t("login.serverUnavailable")}
           </p>
         )}
-        {discovery.kind === "ready" &&
-          discovery.methods.provider === "oidc" && <OidcLoginPanel />}
-        {discovery.kind === "ready" &&
-          discovery.methods.provider === "local" && <LocalLoginForm />}
+        {discovery.kind === "ready" && (
+          <SignInOptions methods={discovery.methods} />
+        )}
 
         {SERVER_ORIGIN !== null && (
           <p class="mt-6 text-xs text-center text-neutral-400 dark:text-neutral-500 break-all">
@@ -86,6 +85,43 @@ export function LoginScreen() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Whichever ways in the server offers. With both, single sign-on comes first,
+ * and the password form follows it, or waits behind a link when the server
+ * keeps local accounts only as a spare key.
+ */
+function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
+  const providers = methods.providers ?? [methods.provider];
+  const collapsed = methods.passwordForm === "collapsed";
+  const [showPassword, setShowPassword] = useState(!collapsed);
+  const oidc = providers.includes("oidc");
+  const local = providers.includes("local");
+  return (
+    <>
+      {oidc && <OidcLoginPanel />}
+      {oidc && local && (
+        <div class="my-5 flex items-center gap-3 text-xs text-neutral-400 dark:text-neutral-500">
+          <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
+          {t("login.or")}
+          <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
+        </div>
+      )}
+      {local &&
+        (showPassword || !oidc ? (
+          <LocalLoginForm />
+        ) : (
+          <button
+            type="button"
+            class="w-full text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200"
+            onClick={() => setShowPassword(true)}
+          >
+            {t("login.withPassword")}
+          </button>
+        ))}
+    </>
   );
 }
 

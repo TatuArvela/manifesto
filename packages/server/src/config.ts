@@ -31,7 +31,18 @@ export interface ServerConfig {
   argon2TimeCost: number;
   argon2Parallelism: number;
   storageDriver: StorageDriverName;
-  authProvider: AuthProviderName;
+  /**
+   * How people sign in: `local` (username and password), `oidc` (single
+   * sign-on), or `both` side by side. `signsInLocally` / `signsInWithOidc`
+   * are the questions to ask of it.
+   */
+  authProvider: AuthMode;
+  /**
+   * With `both`, whether the password form is on the sign-in screen as it
+   * is, or folded behind a link under the single sign-on button, for servers
+   * where SSO is the way in and local accounts are the admin's spare key.
+   */
+  passwordForm: PasswordFormMode;
   oidc: OidcConfig | null;
   postgres: PostgresConfig | null;
   /** When true, the rate limiter (and any future IP-aware logic) honors
@@ -125,10 +136,25 @@ const USER_LOOKUP_MODES = [
   "search",
   "exact",
 ] as const satisfies readonly UserLookupMode[];
-const AUTH_PROVIDERS = [
+export type AuthMode = AuthProviderName | "both";
+const AUTH_MODES = [
   "local",
   "oidc",
-] as const satisfies readonly AuthProviderName[];
+  "both",
+] as const satisfies readonly AuthMode[];
+
+export const PASSWORD_FORM_MODES = ["shown", "collapsed"] as const;
+export type PasswordFormMode = (typeof PASSWORD_FORM_MODES)[number];
+
+/** Whether accounts with passwords can sign in on this server. */
+export function signsInLocally(cfg: Pick<ServerConfig, "authProvider">) {
+  return cfg.authProvider !== "oidc";
+}
+
+/** Whether single sign-on is offered on this server. */
+export function signsInWithOidc(cfg: Pick<ServerConfig, "authProvider">) {
+  return cfg.authProvider !== "local";
+}
 
 function loadPostgresConfig(): PostgresConfig {
   return {
@@ -167,7 +193,7 @@ function loadOidcConfig(): OidcConfig {
 
 export function loadConfig(): ServerConfig {
   const dataDir = process.env.DATA_DIR ?? DEFAULT_DATA_DIR;
-  const authProvider = envEnum("AUTH_PROVIDER", AUTH_PROVIDERS, "local");
+  const authProvider = envEnum("AUTH_PROVIDER", AUTH_MODES, "local");
   const storageDriver = envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite");
   return {
     port: envInt("PORT", 3001),
@@ -181,7 +207,8 @@ export function loadConfig(): ServerConfig {
     argon2Parallelism: envInt("ARGON2_PARALLELISM", 1),
     storageDriver,
     authProvider,
-    oidc: authProvider === "oidc" ? loadOidcConfig() : null,
+    passwordForm: envEnum("PASSWORD_FORM", PASSWORD_FORM_MODES, "shown"),
+    oidc: authProvider !== "local" ? loadOidcConfig() : null,
     postgres: storageDriver === "postgres" ? loadPostgresConfig() : null,
     trustProxy: envBool("TRUST_PROXY", false),
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),

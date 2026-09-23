@@ -1,4 +1,5 @@
 import type { ServerConfig } from "../config.js";
+import { signsInLocally } from "../config.js";
 import { hashPassword } from "../lib/password.js";
 import { newTemporaryPassword } from "../lib/temporaryPassword.js";
 import { nowIso } from "../lib/time.js";
@@ -65,7 +66,7 @@ export async function ensureInitialAdmin(
     | "argon2Parallelism"
   >,
 ): Promise<InitialAdmin | null> {
-  if (cfg.authProvider !== "local") return null;
+  if (!signsInLocally(cfg)) return null;
   const admins = await storage.users.listAdmins();
   if (admins.some(isSettledLocalAdmin)) return null;
 
