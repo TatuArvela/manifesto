@@ -25,6 +25,7 @@ import { endUserSessions, issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
 import { pickAvatarColor, toAuthUser } from "../users.js";
 import { createLoginAttempts } from "./loginAttempts.js";
+import { checkSecondFactor, registerTwoFactorRoutes } from "./twoFactor.js";
 
 interface LocalRouterDeps {
   storage: StorageDriver;
@@ -115,7 +116,7 @@ export function createLocalAuthRouter(
     authThrottle,
     zValidator("json", loginSchema, validatorHook),
     async (c) => {
-      const { username, password, newPassword } = c.req.valid("json");
+      const { username, password, newPassword, otp } = c.req.valid("json");
       const wait = loginAttempts.retryAfter(username);
       if (wait > 0) {
         // Ahead of the lookup and the verify, so a guessing run that has used
@@ -133,6 +134,29 @@ export function createLocalAuthRouter(
       if (!ok) {
         loginAttempts.fail(username);
         throw new HttpError(401, "Invalid username or password");
+      }
+      // The second factor, after the password so that asking for one tells a
+      // wrong guess nothing, and on the same per-account budget, so six
+      // digits cannot be walked through.
+      const totp = await deps.storage.twoFactor.get(user.id);
+      if (totp?.enabledAt != null) {
+        if (otp === undefined) {
+          throw new HttpError(
+            403,
+            "Enter the code from your authenticator",
+            "two_factor_required",
+          );
+        }
+        if (
+          !(await checkSecondFactor(deps.storage, user.id, totp.secret, otp))
+        ) {
+          loginAttempts.fail(username);
+          throw new HttpError(
+            401,
+            "That code is not right",
+            "two_factor_invalid",
+          );
+        }
       }
       loginAttempts.succeed(username);
       // A temporary password buys the right to set a real one and nothing
@@ -210,6 +234,12 @@ export function createLocalAuthRouter(
       return c.body(null, 204);
     },
   );
+
+  registerTwoFactorRoutes(auth, {
+    storage: deps.storage,
+    authProvider: deps.authProvider,
+    throttle: authThrottle,
+  });
 
   return auth;
 }

@@ -21,6 +21,12 @@ describe("loginErrorKey", () => {
     expect(loginErrorKey(refused(429), "signIn")).toBe("login.tooManyAttempts");
   });
 
+  it("says a wrong second-factor code is the code, not the password", () => {
+    expect(loginErrorKey(refused(401), "twoFactor")).toBe(
+      "login.twoFactorInvalid",
+    );
+  });
+
   it("tells a taken username from a server that allows no sign-ups", () => {
     expect(loginErrorKey(refused(409), "register")).toBe("login.usernameTaken");
     expect(loginErrorKey(refused(403), "register")).toBe(

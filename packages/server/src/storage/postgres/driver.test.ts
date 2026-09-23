@@ -25,6 +25,37 @@ describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
   await pool.query(`UPDATE notes SET search_version = 0`);
 });
 
+describe("postgres: two-factor", () => {
+  it("sets up, enables, advances steps once, and spends recovery codes", async () => {
+    const storage = await bootStorage();
+    await storage.users.create({
+      id: "u1",
+      username: "una",
+      passwordHash: "h",
+      displayName: "",
+      avatarColor: "",
+      provider: "local",
+      externalId: null,
+      createdAt: NOW,
+    });
+    expect(await storage.twoFactor.begin("u1", "S1", NOW)).toBe(true);
+    expect(await storage.twoFactor.begin("u1", "S2", NOW)).toBe(true);
+    expect((await storage.twoFactor.get("u1"))?.secret).toBe("S2");
+    await storage.twoFactor.enable("u1", NOW, 10);
+    expect(await storage.twoFactor.begin("u1", "S3", NOW)).toBe(false);
+    expect(await storage.twoFactor.advanceStep("u1", 10)).toBe(false);
+    expect(await storage.twoFactor.advanceStep("u1", 11)).toBe(true);
+    await storage.twoFactor.replaceRecoveryCodes("u1", ["a", "b"]);
+    expect(await storage.twoFactor.useRecoveryCode("u1", "a", NOW)).toBe(true);
+    expect(await storage.twoFactor.useRecoveryCode("u1", "a", NOW)).toBe(false);
+    expect(await storage.twoFactor.remainingRecoveryCodes("u1")).toBe(1);
+    await storage.twoFactor.disable("u1");
+    expect(await storage.twoFactor.get("u1")).toBeNull();
+    expect(await storage.twoFactor.remainingRecoveryCodes("u1")).toBe(0);
+    await storage.close();
+  });
+});
+
 describe("postgres: webhooks", () => {
   it("stores, filters by event, counts failures and switches off", async () => {
     const storage = await bootStorage();

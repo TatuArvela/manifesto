@@ -185,9 +185,9 @@ describe("postgres migration runner", () => {
     const pool = open();
     await runPgMigrations(pool);
     const applied = async () =>
-      (await pool.query(`SELECT id FROM schema_migrations`)).rows.map(
-        (row: { id: string }) => row.id,
-      );
+      (
+        await pool.query(`SELECT id FROM schema_migrations ORDER BY id`)
+      ).rows.map((row: { id: string }) => row.id);
     expect(await applied()).toEqual(PG_MIGRATIONS.map((m) => m.id));
 
     await runPgMigrations(pool);

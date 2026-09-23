@@ -454,6 +454,33 @@ export interface WebhooksRepo {
   recordDelivery(id: string, result: WebhookDeliveryResult): Promise<void>;
 }
 
+export interface TotpState {
+  secret: string;
+  /** Null while set up but not yet confirmed with a code. */
+  enabledAt: string | null;
+  lastStep: number;
+}
+
+/** Two-factor sign-in (TOTP) for local accounts. */
+export interface TwoFactorRepo {
+  get(userId: string): Promise<TotpState | null>;
+  /** Starts (or restarts) a setup with a new secret, unconfirmed. Refused
+   * (false) while two-factor is on: that has to be turned off first. */
+  begin(userId: string, secret: string, at: string): Promise<boolean>;
+  /** Confirms a setup, recording the step of the code that confirmed it. */
+  enable(userId: string, at: string, step: number): Promise<void>;
+  disable(userId: string): Promise<void>;
+  /**
+   * Records `step` as used if it is later than the last one, atomically, and
+   * says whether it was. False is a code used before: refuse it.
+   */
+  advanceStep(userId: string, step: number): Promise<boolean>;
+  replaceRecoveryCodes(userId: string, hashes: string[]): Promise<void>;
+  /** Spends one unused recovery code; false if there is no such code. */
+  useRecoveryCode(userId: string, hash: string, at: string): Promise<boolean>;
+  remainingRecoveryCodes(userId: string): Promise<number>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -465,5 +492,6 @@ export interface StorageDriver {
   versions: VersionsRepo;
   apiTokens: ApiTokensRepo;
   webhooks: WebhooksRepo;
+  twoFactor: TwoFactorRepo;
   close(): Promise<void>;
 }

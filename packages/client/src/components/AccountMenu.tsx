@@ -3,6 +3,7 @@ import {
   KeyRound,
   KeySquare,
   LogOut,
+  ShieldCheck,
   Users,
   Webhook,
 } from "lucide-preact";
@@ -25,6 +26,7 @@ import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
 import { menuDividerClass, menuItemClass, menuPanelClass } from "./NoteMenu.js";
 import { Tooltip } from "./Tooltip.js";
+import { TwoFactorDialog } from "./TwoFactorDialog.js";
 import { WebhooksDialog } from "./WebhooksDialog.js";
 
 /**
@@ -38,6 +40,7 @@ export function AccountMenu() {
   const [changingEmail, setChangingEmail] = useState(false);
   const [managingTokens, setManagingTokens] = useState(false);
   const [managingWebhooks, setManagingWebhooks] = useState(false);
+  const [managingTwoFactor, setManagingTwoFactor] = useState(false);
   const user = currentUser.value;
   if (!isServerMode || !user) return null;
 
@@ -125,6 +128,19 @@ export function AccountMenu() {
             {t("account.changePassword")}
           </button>
         )}
+        {hasPassword && (
+          <button
+            type="button"
+            class={menuItemClass}
+            onClick={() => {
+              setOpen(false);
+              setManagingTwoFactor(true);
+            }}
+          >
+            <ShieldCheck class="w-4 h-4" />
+            {t("twoFactor.menu")}
+          </button>
+        )}
         <button
           type="button"
           class={menuItemClass}
@@ -164,6 +180,9 @@ export function AccountMenu() {
       </Dropdown>
       {changingPassword && (
         <ChangePasswordDialog onClose={() => setChangingPassword(false)} />
+      )}
+      {managingTwoFactor && (
+        <TwoFactorDialog onClose={() => setManagingTwoFactor(false)} />
       )}
       {managingWebhooks && (
         <WebhooksDialog onClose={() => setManagingWebhooks(false)} />

@@ -10,6 +10,7 @@ import {
   PasswordChangeRequiredError,
   register,
   SERVER_ORIGIN,
+  TwoFactorRequiredError,
 } from "../state/auth.js";
 
 /**
@@ -18,7 +19,7 @@ import {
  * so the username and password typed a moment ago are kept and sent again
  * with it.
  */
-type Mode = "signIn" | "register" | "changePassword";
+type Mode = "signIn" | "register" | "changePassword" | "twoFactor";
 
 type DiscoveryState =
   | { kind: "loading" }
@@ -112,10 +113,14 @@ function LocalLoginForm() {
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function localValidationError(): string | null {
+    if (mode === "twoFactor") {
+      return otp.trim().length === 0 ? t("login.twoFactorRequired") : null;
+    }
     if (mode === "changePassword") {
       if (newPassword.length < 8) return t("login.passwordTooShort");
       if (newPassword !== confirmPassword) return t("login.passwordMismatch");
@@ -152,6 +157,8 @@ function LocalLoginForm() {
         await login(username, password);
       } else if (mode === "changePassword") {
         await login(username, password, newPassword);
+      } else if (mode === "twoFactor") {
+        await login(username, password, undefined, otp.trim());
       } else {
         await register(username, password, email.trim() || undefined);
       }
@@ -160,6 +167,11 @@ function LocalLoginForm() {
         setNewPassword("");
         setConfirmPassword("");
         setMode("changePassword");
+        return;
+      }
+      if (err instanceof TwoFactorRequiredError) {
+        setOtp("");
+        setMode("twoFactor");
         return;
       }
       setError(t(loginErrorKey(err, mode)));
@@ -179,6 +191,60 @@ function LocalLoginForm() {
 
   const inputClass =
     "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+  if (mode === "twoFactor") {
+    return (
+      <form onSubmit={onSubmit} class="space-y-4">
+        <div>
+          <h2 class="text-base font-semibold text-neutral-900 dark:text-neutral-50">
+            {t("login.twoFactor.title")}
+          </h2>
+          <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+            {t("login.twoFactor.hint")}
+          </p>
+        </div>
+        <label class="block">
+          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+            {t("login.twoFactor.code")}
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            // biome-ignore lint/a11y/noAutofocus: the one thing to do on this step
+            autoFocus
+            maxLength={32}
+            value={otp}
+            onInput={(e) => setOtp((e.currentTarget as HTMLInputElement).value)}
+            class={`${inputClass} tracking-widest`}
+          />
+        </label>
+        {error && (
+          <p class="text-sm text-red-600 dark:text-red-400" role="alert">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={submitting}
+          class="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2 transition-colors"
+        >
+          {submitting ? t("login.submitting") : t("login.twoFactor.submit")}
+        </button>
+        <button
+          type="button"
+          class="w-full text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200"
+          onClick={() => {
+            setMode("signIn");
+            setPassword("");
+            setError(null);
+          }}
+        >
+          {t("login.back")}
+        </button>
+      </form>
+    );
+  }
 
   if (mode === "changePassword") {
     return (

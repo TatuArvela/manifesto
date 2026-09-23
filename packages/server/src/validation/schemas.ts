@@ -51,6 +51,18 @@ export const authMeUpdateSchema = z.object({ email: emailSchema.nullable() });
 
 export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.optional(),
+  /** An authenticator code, or a recovery code, when two-factor is on. */
+  otp: z.string().trim().min(1).max(32).optional(),
+});
+
+/** Re-entering the password guards the two-factor switches: a session left
+ * open on a shared computer must not be enough to turn it off. */
+export const twoFactorPasswordSchema = z.object({
+  password: z.string().max(256),
+});
+
+export const twoFactorEnableSchema = z.object({
+  code: z.string().trim().min(6).max(10),
 });
 
 export const passwordChangeSchema = z.object({

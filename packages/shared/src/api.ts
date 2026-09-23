@@ -147,11 +147,36 @@ export type WebhookPayload =
       noteId: string;
     };
 
+/** `GET /api/auth/two-factor`. */
+export interface TwoFactorStatusResponse {
+  enabled: boolean;
+  /** Unused recovery codes left; 0 when two-factor is off. */
+  recoveryCodesRemaining: number;
+}
+
+/**
+ * `POST /api/auth/two-factor/setup`: the secret to put in an authenticator,
+ * as base32. The client builds the `otpauth://` link from it, since the
+ * product name that labels it there is the client's to know.
+ */
+export interface TwoFactorSetupResponse {
+  secret: string;
+}
+
+/** Shown once, when two-factor is turned on or the codes are replaced. */
+export interface TwoFactorRecoveryCodesResponse {
+  recoveryCodes: string[];
+}
+
 /**
  * A machine-readable reason, sent alongside `error` only where a client has to
  * do something other than show the message.
  */
-export type ErrorCode = "password_change_required" | "email_taken";
+export type ErrorCode =
+  | "password_change_required"
+  | "email_taken"
+  | "two_factor_required"
+  | "two_factor_invalid";
 
 export interface ErrorResponse {
   error: string;

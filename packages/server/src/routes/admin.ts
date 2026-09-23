@@ -220,8 +220,11 @@ export function createAdminRoutes(deps: AdminDeps) {
       true,
     );
     // A reset is often because someone else has the password, so whoever is
-    // signed in with it now is signed out, sockets included.
+    // signed in with it now is signed out, sockets included. It is also how
+    // someone who lost their authenticator and their recovery codes gets back
+    // in, so two-factor goes too; they can turn it on again.
     await endUserSessions(deps.storage, deps.revocations, id);
+    await deps.storage.twoFactor.disable(id);
     logger.info("Admin reset a password", {
       adminId: c.get("auth").userId,
       userId: id,
