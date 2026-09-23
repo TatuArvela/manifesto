@@ -141,6 +141,25 @@ ALTER TABLE notes ADD COLUMN search_version INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX notes_search_version ON notes(search_version);
 `;
 
+/**
+ * Images kept outside the note row; see `AttachmentsRepo`. `unreferenced_since`
+ * is set by the sweep when no note refers to one, which deletes it once that
+ * has been true for long enough.
+ */
+const ATTACHMENTS = `
+CREATE TABLE attachments (
+  id                 TEXT PRIMARY KEY,
+  owner_id           TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sha256             TEXT NOT NULL,
+  content_type       TEXT NOT NULL,
+  size               INTEGER NOT NULL,
+  data               BLOB NOT NULL,
+  created_at         TEXT NOT NULL,
+  unreferenced_since TEXT,
+  UNIQUE (owner_id, sha256)
+);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -148,6 +167,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0004-user-email", sql: USER_EMAIL },
   { id: "0005-note-shares", sql: NOTE_SHARES },
   { id: "0006-note-search-terms", sql: NOTE_SEARCH_TERMS },
+  { id: "0007-attachments", sql: ATTACHMENTS },
 ];
 
 export function runMigrations(

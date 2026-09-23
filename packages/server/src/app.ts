@@ -20,6 +20,7 @@ import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
 import { requestLog } from "./middleware/requestLog.js";
 import { createAdminRoutes } from "./routes/admin.js";
+import { createAttachmentRoutes } from "./routes/attachments.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
@@ -136,6 +137,16 @@ export function createApp(deps: AppDeps): AppHandle {
   app.route(
     "/api/users",
     createUsersRoutes({ cfg, storage, authProvider, rateLimit: apiRateLimit }),
+  );
+  app.route(
+    "/api/attachments",
+    createAttachmentRoutes({
+      storage,
+      authProvider,
+      // Its own bucket, and a wider one: a grid of notes asks for an image per
+      // card, and each is fetched once per session and then cached.
+      rateLimit: perUserApiRateLimit(1200),
+    }),
   );
   app.route(
     "/api/search",

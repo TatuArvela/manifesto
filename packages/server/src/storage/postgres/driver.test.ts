@@ -1,6 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { describeAdminContract } from "../adminContract.js";
+import { describeAttachmentsContract } from "../attachmentsContract.js";
 import { describeSearchContract } from "../searchContract.js";
 import { describeSharingContract } from "../sharingContract.js";
 import { UsernameTakenError } from "../types.js";
@@ -17,6 +18,7 @@ async function bootStorage(): Promise<PostgresStorageDriver> {
 
 describeAdminContract("postgres (pg-mem)", bootStorage);
 describeSharingContract("postgres (pg-mem)", bootStorage);
+describeAttachmentsContract("postgres (pg-mem)", bootStorage);
 describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
   const { pool } = storage as PostgresStorageDriver;
   await pool.query(`DELETE FROM note_terms`);

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { describeAttachmentsContract } from "../attachmentsContract.js";
 import { describeSearchContract } from "../searchContract.js";
 import { createSqliteStorage, type SqliteStorageDriver } from "./driver.js";
 
@@ -9,6 +10,10 @@ describeSearchContract(
     const { db } = storage as SqliteStorageDriver;
     db.exec(`DELETE FROM note_terms; UPDATE notes SET search_version = 0`);
   },
+);
+
+describeAttachmentsContract("sqlite", async () =>
+  createSqliteStorage({ dbPath: ":memory:" }),
 );
 
 describe("sqlite: search index backfill", () => {

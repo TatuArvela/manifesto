@@ -26,6 +26,7 @@ import {
   removeCheckedItems,
   setChecklistChecked,
 } from "../utils/markdown.js";
+import { inlineImages } from "./attachments.js";
 import {
   clearAutoNoteOverride,
   updateAutoNoteOverride,
@@ -1130,8 +1131,17 @@ export async function exportNotes(): Promise<string | null> {
     return null;
   }
   // Who else holds a note is the server's to say, and would mean nothing in
-  // a file imported somewhere else.
-  const plain = notes.value.map(({ sharing: _sharing, ...note }) => note);
+  // a file imported somewhere else. So would a reference to the server's
+  // attachment store: the file carries the bytes.
+  const plain: Note[] = [];
+  for (const { sharing: _sharing, ...note } of notes.value) {
+    const images = await inlineImages(note.images);
+    if (images === null) {
+      showError(t("error.exportFailed"));
+      return null;
+    }
+    plain.push({ ...note, images });
+  }
   return JSON.stringify(plain, null, 2);
 }
 

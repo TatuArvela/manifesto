@@ -1,5 +1,6 @@
 import type { PostgresConfig } from "../../config.js";
 import type { StorageDriver } from "../types.js";
+import { createPostgresAttachmentsRepo } from "./attachmentsRepo.js";
 import {
   openPostgres,
   type PgPool,
@@ -43,6 +44,7 @@ export async function createPostgresStorage(
     notes: createPostgresNotesRepo(pool),
     shares: createPostgresSharesRepo(pool),
     yjs: createPostgresYjsStore(pool),
+    attachments: createPostgresAttachmentsRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {
       await pool.end();

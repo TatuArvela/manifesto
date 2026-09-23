@@ -70,6 +70,15 @@ without spaces. A query with no word in it at all (`->`, an emoji) falls back to
 substring match. Results are paged newest first, like `GET /api/notes`; they are not ranked by
 relevance, because the cursor is a place in the `(updatedAt, id)` order.
 
+### Attachments
+
+| Method   | Path                     | Description          |
+|----------|--------------------------|----------------------|
+| `GET`    | `/api/attachments/:id`   | The bytes of an image a note refers to as `attachment:<id>` |
+
+`Note.images` accepts image `data:` URLs and `attachment:<id>` references. The server stores every
+inline image it is sent and answers with references; see [Attachments](features/attachments.md).
+
 ### Link previews
 
 | Method   | Path                     | Description          |

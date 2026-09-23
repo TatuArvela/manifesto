@@ -4,6 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
+import { StoredImage } from "./StoredImage.js";
 
 interface ImageGalleryProps {
   images: string[];
@@ -26,7 +27,7 @@ export function ImageGallery({ images, onDelete, fill }: ImageGalleryProps) {
       <div class={`flex flex-col ${fill ? "h-full" : ""}`}>
         {images.map((src, i) => (
           <div
-            key={`${i}-${src.slice(0, 32)}`}
+            key={`${i}-${src.slice(0, 48)}`}
             class={`relative group/img bg-black/5 dark:bg-white/5 ${fill ? "flex-1 min-h-0" : ""}`}
           >
             <button
@@ -38,7 +39,7 @@ export function ImageGallery({ images, onDelete, fill }: ImageGalleryProps) {
               }}
               aria-label={t("editor.openImage")}
             >
-              <img
+              <StoredImage
                 src={src}
                 alt=""
                 class={`w-full object-cover block ${fill ? "h-full" : "h-auto max-h-96"}`}
@@ -116,7 +117,7 @@ function ImageLightbox({
         aria-label={t("editor.imageViewer")}
         class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none animate-fade-in"
       >
-        <img
+        <StoredImage
           src={images[index]}
           alt=""
           class="pointer-events-auto max-h-full max-w-full object-contain select-none"

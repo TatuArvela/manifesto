@@ -31,6 +31,12 @@ export interface StorageAdapter {
    */
   loadImages(id: string): Promise<string[]>;
   /**
+   * The bytes of an `attachment:<id>` image. Only connected mode holds such
+   * references (the server stores images outside the note and refers to
+   * them); open mode never does, and rejects.
+   */
+  loadAttachment(ref: string): Promise<Blob>;
+  /**
    * What the server could read from a linked page, with its image and favicon
    * as fetched (not yet shrunk). Null when there is nothing to add to the plain
    * link card: always in open mode, which has no server to ask and whose CSP

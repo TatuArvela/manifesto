@@ -8,6 +8,7 @@ import {
   ensureInitialAdmin,
 } from "./auth/initialAdmin.js";
 import { loadConfig } from "./config.js";
+import { startAttachmentCleanup } from "./lib/attachmentCleanup.js";
 import { logger } from "./lib/logger.js";
 import { startSessionCleanup } from "./lib/sessionCleanup.js";
 import { createShutdown } from "./lib/shutdown.js";
@@ -69,6 +70,7 @@ const stopTrashCleanup = startTrashCleanup(
   noteEvents,
 );
 const stopSessionCleanup = startSessionCleanup(storage);
+const stopAttachmentCleanup = startAttachmentCleanup(storage);
 
 const shutdown = createShutdown({
   closeServer: () =>
@@ -79,7 +81,12 @@ const shutdown = createShutdown({
   // `close()` waits for open sockets and a collaboration socket is open by
   // design, so its callback only arrives once these are gone.
   dropConnections: () => server.closeAllConnections?.(),
-  stopJobs: [stopTrashCleanup, stopSessionCleanup, stopAppSocket],
+  stopJobs: [
+    stopTrashCleanup,
+    stopSessionCleanup,
+    stopAttachmentCleanup,
+    stopAppSocket,
+  ],
   closeStorage: () => storage.close(),
 });
 

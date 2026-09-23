@@ -1,4 +1,5 @@
 import {
+  ATTACHMENT_REF_PATTERN,
   IMAGE_DATA_URL_PATTERN,
   MAX_IMAGE_DATA_URL_BYTES,
   MAX_IMAGE_SOURCE_BYTES,
@@ -183,7 +184,11 @@ const noteFields = {
   // server clock, and zod strips whatever a client sends.
   position: z.number(),
   tags: z.array(z.string().min(1).max(64)).max(50),
-  images: z.array(imageDataUrlSchema).max(MAX_IMAGES_PER_NOTE),
+  images: z
+    .array(
+      z.union([imageDataUrlSchema, z.string().regex(ATTACHMENT_REF_PATTERN)]),
+    )
+    .max(MAX_IMAGES_PER_NOTE),
   linkPreviews: z.array(linkPreviewSchema).max(MAX_LINK_PREVIEWS_PER_NOTE),
   reminder: reminderSchema.nullable(),
   readonly: z.boolean().optional(),

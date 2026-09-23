@@ -339,6 +339,55 @@ export interface MaintenanceRepo {
   cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]>;
 }
 
+/** An image held in the attachment store, without its bytes. */
+export interface AttachmentMeta {
+  id: string;
+  /** The owner of the notes that refer to it. */
+  ownerId: string;
+  sha256: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+}
+
+export interface StoredAttachment extends AttachmentMeta {
+  data: Buffer;
+}
+
+/**
+ * Images kept outside the note row (`attachment:<id>` in `Note.images`).
+ * Content-addressed per owner: storing bytes an owner already has returns the
+ * attachment that holds them, so sending the same inline image twice, as a
+ * conflict retry or a stale tab does, never stores it twice.
+ */
+export interface AttachmentsRepo {
+  put(input: Omit<StoredAttachment, "size">): Promise<AttachmentMeta>;
+  get(id: string): Promise<StoredAttachment | null>;
+  meta(id: string): Promise<AttachmentMeta | null>;
+  /**
+   * Whether `userId` may read it: they own it, or a note of its owner that
+   * they hold an accepted share of, and the owner has not trashed, refers to
+   * it.
+   */
+  readableBy(id: string, userId: string): Promise<boolean>;
+  /**
+   * Marks attachments no note refers to with `now`, clears the mark on those
+   * referred to again, and deletes those marked before `cutoffIso`. Returns
+   * how many it deleted.
+   */
+  sweep(now: string, cutoffIso: string): Promise<number>;
+  /** Up to `limit` notes still holding an inline (`data:`) image. */
+  notesWithInlineImages(
+    limit: number,
+  ): Promise<{ id: string; ownerId: string; images: string[] }[]>;
+  /**
+   * Replaces a note's images without stamping `updated_at`: moving bytes to
+   * the store changes how an image is held, not the note, so it must not
+   * invalidate an `If-Match` token a client is holding.
+   */
+  setNoteImages(id: string, images: string[]): Promise<void>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -346,5 +395,6 @@ export interface StorageDriver {
   shares: SharesRepo;
   yjs: YjsStore;
   maintenance: MaintenanceRepo;
+  attachments: AttachmentsRepo;
   close(): Promise<void>;
 }
