@@ -40,6 +40,11 @@ export function createSqliteStorage(
     passwordResets: createSqlitePasswordResetsRepo(db),
     audit: createSqliteAuditRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
+    async backup(path) {
+      // SQLite's online backup API: consistent, WAL included, and it lets
+      // writes go on while it copies.
+      await db.backup(path);
+    },
     async close() {
       db.close();
     },

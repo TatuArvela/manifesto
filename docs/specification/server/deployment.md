@@ -251,14 +251,34 @@ you will restore from, and it is the one that can be truncated.
 To restore, stop the server, replace `manifesto.db` in the volume with the
 backup, and delete any `-wal` and `-shm` left beside it. Then start the server.
 
-**The database is the whole backup.** `DATA_DIR` sites the SQLite file and
-nothing else (`config.ts`), and images are base64 `data:` URLs inside note rows
-rather than files on disk (see [Data Model](../data-model.md)), so there is no
-second thing to copy.
+### Scheduled backups
 
-With `STORAGE_DRIVER=postgres` this section does not apply: back up with
-`pg_dump` or whatever the managed database offers, which is one of the reasons
-to choose it.
+The server can take them itself. Set `BACKUP_INTERVAL_HOURS` (say `24`) and it backs up the SQLite
+database with SQLite's online backup API, the same consistent, WAL-inclusive copy as `.backup`, at
+startup and then at that interval, into `BACKUP_DIR` (default `$DATA_DIR/backups`) as
+`manifesto-YYYYMMDD-HHMMSS.db`, keeping the newest `BACKUP_KEEP` (default 7). Each is written under a
+temporary name and renamed when whole, so a crash mid-copy never leaves a file that looks like a
+backup. The admin overview shows when the last one ran and whether it failed.
+
+A backup on the same volume as the database survives a bad upgrade or a deleted note, not a lost disk:
+copy `BACKUP_DIR` somewhere else too (it is plain files, so any file backup will do). Restoring is as
+above.
+
+| Variable | Default | |
+|---|---|---|
+| `BACKUP_INTERVAL_HOURS` | *(unset: off)* | Hours between backups. |
+| `BACKUP_KEEP` | `7` | Backups kept; older ones are deleted. |
+| `BACKUP_DIR` | `$DATA_DIR/backups` | Where they go. |
+
+**The database is the whole backup.** `DATA_DIR` sites the SQLite file and
+nothing else (`config.ts`), and images are kept in the database too (the
+`attachments` table, see [Attachments](../features/attachments.md)) rather
+than as files on disk, so there is no second thing to copy.
+
+With `STORAGE_DRIVER=postgres` this section does not apply, scheduled backups
+included (the server says so at boot if `BACKUP_INTERVAL_HOURS` is set): back up
+with `pg_dump` or whatever the managed database offers, which is one of the
+reasons to choose it.
 
 ## Reverse Proxy
 

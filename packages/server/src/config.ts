@@ -19,6 +19,13 @@ export interface OidcConfig {
   autoRegister: boolean;
 }
 
+export interface BackupConfig {
+  intervalHours: number;
+  /** How many backups to keep; older ones are deleted. */
+  keep: number;
+  dir: string;
+}
+
 export interface MailConfig {
   /** `smtp://` (STARTTLS when offered) or `smtps://`, with credentials. */
   url: string;
@@ -88,6 +95,8 @@ export interface ServerConfig {
    * way back into a local account.
    */
   mail: MailConfig | null;
+  /** Scheduled SQLite backups, or null when off (the default). */
+  backup: BackupConfig | null;
   /** Days the audit log keeps an entry. */
   auditRetentionDays: number;
   /** The GitHub repository whose releases the update check reads, or null
@@ -203,6 +212,18 @@ function loadInitialAdminPassword(): string | null {
   return raw;
 }
 
+function loadBackupConfig(dataDir: string): BackupConfig | null {
+  const intervalHours = envInt("BACKUP_INTERVAL_HOURS", 0);
+  if (intervalHours <= 0) return null;
+  const keep = envInt("BACKUP_KEEP", 7);
+  if (keep < 1) throw new Error("Invalid BACKUP_KEEP: must be at least 1");
+  return {
+    intervalHours,
+    keep,
+    dir: process.env.BACKUP_DIR?.trim() || `${dataDir}/backups`,
+  };
+}
+
 function loadMailConfig(): MailConfig | null {
   const url = process.env.SMTP_URL?.trim();
   if (!url) return null;
@@ -262,6 +283,7 @@ export function loadConfig(): ServerConfig {
     linkPreviews: envBool("LINK_PREVIEWS", true),
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
     mail: loadMailConfig(),
+    backup: loadBackupConfig(dataDir),
     auditRetentionDays: envInt("AUDIT_RETENTION_DAYS", 180),
     updateCheckRepo: envBool("UPDATE_CHECK", true)
       ? process.env.UPDATE_CHECK_REPO?.trim() || "TatuArvela/manifesto"

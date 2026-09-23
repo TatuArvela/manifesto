@@ -10,6 +10,7 @@ import {
 import { loadConfig } from "./config.js";
 import { startAttachmentCleanup } from "./lib/attachmentCleanup.js";
 import { logger } from "./lib/logger.js";
+import { startScheduledBackup } from "./lib/scheduledBackup.js";
 import { startSessionCleanup } from "./lib/sessionCleanup.js";
 import { createShutdown } from "./lib/shutdown.js";
 import { startTrashCleanup } from "./lib/trashCleanup.js";
@@ -80,6 +81,9 @@ const stopSessionCleanup = startSessionCleanup(
   cfg.auditRetentionDays,
 );
 const stopAttachmentCleanup = startAttachmentCleanup(storage);
+const stopBackups = cfg.backup
+  ? startScheduledBackup(storage, cfg.backup)
+  : () => {};
 
 const shutdown = createShutdown({
   closeServer: () =>
@@ -94,6 +98,7 @@ const shutdown = createShutdown({
     stopTrashCleanup,
     stopSessionCleanup,
     stopAttachmentCleanup,
+    stopBackups,
     stopAppSocket,
     () => webhooks?.stop(),
     () => updateCheck?.stop(),

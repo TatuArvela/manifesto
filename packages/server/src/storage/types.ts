@@ -563,5 +563,10 @@ export interface StorageDriver {
   twoFactor: TwoFactorRepo;
   passwordResets: PasswordResetsRepo;
   audit: AuditRepo;
+  /**
+   * A consistent copy of the whole database at `path`, taken while it keeps
+   * serving. SQLite only; Postgres has `pg_dump` and managed backups.
+   */
+  backup?(path: string): Promise<void>;
   close(): Promise<void>;
 }
