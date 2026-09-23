@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPublicAddress } from "./addressPolicy.js";
+import { isLocalNetworkAddress, isPublicAddress } from "./addressPolicy.js";
 
 describe("isPublicAddress", () => {
   it.each([
@@ -46,5 +46,28 @@ describe("isPublicAddress", () => {
   it("refuses anything that is not an IP address", () => {
     expect(isPublicAddress("localhost")).toBe(false);
     expect(isPublicAddress("")).toBe(false);
+  });
+});
+
+describe("isLocalNetworkAddress", () => {
+  it("admits the local network a webhook may be allowed to reach", () => {
+    for (const address of [
+      "10.1.2.3",
+      "192.168.1.10",
+      "172.20.0.5",
+      "100.100.1.1",
+      "127.0.0.1",
+      "::1",
+      "fd12:3456::1",
+      "::ffff:192.168.1.10",
+    ]) {
+      expect(isLocalNetworkAddress(address)).toBe(true);
+    }
+  });
+
+  it("keeps out link-local, where metadata services answer, and the internet", () => {
+    for (const address of ["169.254.169.254", "fe80::1", "8.8.8.8", "nope"]) {
+      expect(isLocalNetworkAddress(address)).toBe(false);
+    }
   });
 });

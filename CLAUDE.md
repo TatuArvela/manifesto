@@ -472,6 +472,9 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   (`attachments/store.ts`, content-addressed per note owner), and the client draws them through
   `StoredImage` and inlines them again for anything that leaves the session (`inlineImages`). A new
   place that renders a note image must use `StoredImage`, and a new export path must inline.
+- **Webhooks**: `webhooks/dispatcher.ts` subscribes to the broadcaster, so a webhook hears what its
+  owner's sockets hear and a new note event needs no webhook code. Deliveries go through `safeFetch`
+  (POST, no redirects) with the address rule `WEBHOOKS` picks; never call `fetch` for them.
 - **Search index**: `/api/search` reads `note_terms`, a word index both drivers keep, with the words
   cut in JavaScript (`storage/searchTerms.ts`) so the two answer alike. Any write path that changes a
   note's `title` or `content` must set `search_version = 0` in the same statement and re-index after

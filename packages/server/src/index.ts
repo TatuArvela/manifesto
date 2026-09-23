@@ -25,11 +25,12 @@ const storage = await createStorage(cfg);
 const initialAdmin = await ensureInitialAdmin(storage, cfg);
 if (initialAdmin) announceInitialAdmin(initialAdmin);
 const authProvider = createAuthProvider(cfg, storage);
-const { app, broadcaster, revocations, accessChanges, noteEvents } = createApp({
-  cfg,
-  storage,
-  authProvider,
-});
+const { app, broadcaster, revocations, accessChanges, noteEvents, webhooks } =
+  createApp({
+    cfg,
+    storage,
+    authProvider,
+  });
 
 const ws = createNodeWebSocket({ app });
 const stopAppSocket = attachAppSocket({
@@ -86,6 +87,7 @@ const shutdown = createShutdown({
     stopSessionCleanup,
     stopAttachmentCleanup,
     stopAppSocket,
+    () => webhooks?.stop(),
   ],
   closeStorage: () => storage.close(),
 });

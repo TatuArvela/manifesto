@@ -24,6 +24,9 @@ export const TEST_CONFIG: ServerConfig = {
   trustProxy: false,
   registrationEnabled: true,
   linkPreviews: true,
+  // Off, so the rest of the suite does not deliver to nothing after a test's
+  // storage has closed; the webhook tests switch it on.
+  webhooks: "off",
   userLookup: "search",
   initialAdminPassword: null,
 };

@@ -86,6 +86,10 @@ answer `403` to a token, so a token given to a script cannot be used to take ove
 a user's sessions (a password change, an admin reset) ends their tokens too, since whoever knew the
 password could have minted one. A user holds at most 50.
 
+### Webhooks
+
+`/api/webhooks`: see [Webhooks](features/webhooks.md).
+
 ### Version history
 
 | Method   | Path                         | Description          |

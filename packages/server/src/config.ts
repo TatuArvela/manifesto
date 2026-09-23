@@ -47,6 +47,13 @@ export interface ServerConfig {
    * client keeps the plain link card. Off is for deployments with no outbound
    * internet access, or an egress policy that should not be asked. */
   linkPreviews: boolean;
+  /**
+   * Whether users may register webhooks, and where they may point: `public`
+   * addresses only (the default, the same rule as link previews), `private`
+   * to also reach the local network (a Home Assistant or n8n beside the
+   * server), or `off`.
+   */
+  webhooks: WebhookMode;
   /** How someone sharing a note finds the account to share it with: by
    * searching every account as they type, or only by its exact username or
    * email address, which keeps the list of accounts private. */
@@ -111,6 +118,9 @@ const STORAGE_DRIVERS = [
   "sqlite",
   "postgres",
 ] as const satisfies readonly StorageDriverName[];
+export const WEBHOOK_MODES = ["off", "public", "private"] as const;
+export type WebhookMode = (typeof WEBHOOK_MODES)[number];
+
 const USER_LOOKUP_MODES = [
   "search",
   "exact",
@@ -176,6 +186,7 @@ export function loadConfig(): ServerConfig {
     trustProxy: envBool("TRUST_PROXY", false),
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
     linkPreviews: envBool("LINK_PREVIEWS", true),
+    webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
     userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "search"),
     initialAdminPassword: loadInitialAdminPassword(),
   };

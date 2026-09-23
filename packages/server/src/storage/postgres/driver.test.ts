@@ -25,6 +25,61 @@ describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
   await pool.query(`UPDATE notes SET search_version = 0`);
 });
 
+describe("postgres: webhooks", () => {
+  it("stores, filters by event, counts failures and switches off", async () => {
+    const storage = await bootStorage();
+    await storage.users.create({
+      id: "u1",
+      username: "una",
+      passwordHash: "h",
+      displayName: "",
+      avatarColor: "",
+      provider: "local",
+      externalId: null,
+      createdAt: NOW,
+    });
+    await storage.webhooks.create({
+      id: "w1",
+      userId: "u1",
+      url: "https://example.com/hook",
+      secret: "s",
+      events: ["note.deleted"],
+      active: true,
+      createdAt: NOW,
+      lastDeliveryAt: null,
+      lastStatus: null,
+      lastError: null,
+      failureCount: 0,
+    });
+    expect(await storage.webhooks.activeFor("u1", "note.created")).toEqual([]);
+    expect(
+      (await storage.webhooks.activeFor("u1", "note.deleted")).map((w) => w.id),
+    ).toEqual(["w1"]);
+    for (let i = 0; i < 2; i++) {
+      await storage.webhooks.recordDelivery("w1", {
+        at: NOW,
+        status: 500,
+        error: "Status 500",
+        failed: true,
+        disableAfter: 2,
+      });
+    }
+    const off = await storage.webhooks.get("w1", "u1");
+    expect(off).toMatchObject({
+      active: false,
+      failureCount: 2,
+      lastStatus: 500,
+    });
+    expect(await storage.webhooks.setActive("w1", "u1", true)).toBe(true);
+    expect(await storage.webhooks.get("w1", "u1")).toMatchObject({
+      active: true,
+      failureCount: 0,
+    });
+    expect(await storage.webhooks.delete("w1", "u1")).toBe(true);
+    await storage.close();
+  });
+});
+
 describe("postgres: API tokens", () => {
   it("stores, finds, lists, and deletes a token by its owner", async () => {
     const storage = await bootStorage();
