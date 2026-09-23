@@ -19,6 +19,7 @@ import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
 import { requestLog } from "./middleware/requestLog.js";
+import { buildOpenApiDocument } from "./openapi.js";
 import { createAdminRoutes } from "./routes/admin.js";
 import { createAttachmentRoutes } from "./routes/attachments.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
@@ -121,6 +122,11 @@ export function createApp(deps: AppDeps): AppHandle {
   );
 
   app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));
+  let openApi: ReturnType<typeof buildOpenApiDocument> | undefined;
+  app.get("/api/openapi.json", (c) => {
+    openApi ??= buildOpenApiDocument(VERSION);
+    return c.json(openApi);
+  });
 
   // Single shared per-user rate limiter for the data-plane endpoints. Sharing
   // one instance across both routers means a user spamming a mix of
