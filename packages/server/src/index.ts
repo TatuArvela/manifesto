@@ -83,7 +83,7 @@ const stopSessionCleanup = startSessionCleanup(
 );
 const stopAttachmentCleanup = startAttachmentCleanup(storage);
 const stopBackups = cfg.backup
-  ? startScheduledBackup(storage, cfg.backup)
+  ? startScheduledBackup(storage, cfg.backup, cfg.dbPath)
   : () => {};
 
 const shutdown = createShutdown({
