@@ -36,9 +36,12 @@ saving a note that refers to nothing; closing the editor cancels what is still u
 adapter also uploads any image that reaches a note write still inline (an import, something shared to
 the app), so what it sends is references.
 
-The server checks an upload's leading bytes against the type it was sent as (PNG, JPEG, GIF, WebP,
-AVIF) and refuses a mismatch with 415, since the file is served back with that type and `nosniff`; over
-the image limit is 413. An upload is stored under the uploader.
+The server reads an upload's type from its leading bytes (PNG, JPEG, GIF, WebP, AVIF) and stores it as
+that, since the file is served back with that type and `nosniff`. It must be sent as some image type,
+but not necessarily that one: a browser names a file's type from its extension, so a JPEG saved as
+`.png` arrives as `image/png`, and refusing it would fail the same upload on every retry. Anything the
+bytes do not show to be one of those images, or not sent as an image, is 415; over the image limit is
+413. An upload is stored under the uploader.
 
 - **Content-addressed per owner.** An attachment is keyed by the SHA-256 of its bytes within its
   owner's store, so the same image sent again (a conflict retry, a stale tab, a duplicate note) resolves

@@ -1,8 +1,7 @@
 /**
  * The image type a file's leading bytes say it is, or null. An upload is
- * stored only when this agrees with the type it was sent as, and is served
- * back with that type and `nosniff`, so a file cannot arrive as an image and
- * be something else.
+ * stored as this type whatever it was sent as, and is served back with it
+ * and `nosniff`, so a file cannot arrive as an image and be something else.
  */
 export function sniffImageType(bytes: Uint8Array): string | null {
   const at = (offset: number, ...values: number[]) =>

@@ -39,7 +39,7 @@ What an image may be, checked by the client before storing and by the server on 
 
 | Constraint | Value |
 |------------|-------|
-| Media type | `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif`; an upload's leading bytes must agree with its type |
+| Media type | `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif`; taken from an upload's leading bytes |
 | Per-image size | 5 MiB (`MAX_IMAGE_SOURCE_BYTES`), after the client has shrunk it: photos are kept at 2560 pixels on the long edge |
 | Images per note | 20 |
 | Whole request | 1 MiB on `/api/notes`, since a note carries references; one upload may be up to the per-image size |

@@ -273,8 +273,19 @@ describe("attachments", () => {
       expect(((await again.json()) as { ref: string }).ref).toBe(ref);
     });
 
-    it("refuses a file that is not the image type it claims", async () => {
-      expect((await upload(owner, PNG_BYTES, "image/jpeg")).status).toBe(415);
+    it("stores an image as the type its bytes say, whatever it was sent as", async () => {
+      const res = await upload(owner, PNG_BYTES, "image/jpeg");
+      expect(res.status).toBe(201);
+      const { ref } = (await res.json()) as { ref: string };
+      const served = await rig.request(
+        `/api/attachments/${ref.slice("attachment:".length)}`,
+        { headers: { Authorization: `Bearer ${owner.token}` } },
+      );
+      expect(served.headers.get("Content-Type")).toBe("image/png");
+    });
+
+    it("refuses a file that is not an image, or is not sent as one", async () => {
+      expect((await upload(owner, PNG_BYTES, "text/html")).status).toBe(415);
       const html = new TextEncoder().encode("<svg onload=alert(1)>");
       expect((await upload(owner, html, "image/png")).status).toBe(415);
       expect((await upload(owner, new Uint8Array(), "image/png")).status).toBe(
