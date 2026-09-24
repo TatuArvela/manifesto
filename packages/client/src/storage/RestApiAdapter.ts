@@ -173,6 +173,11 @@ export class RestApiAdapter implements StorageAdapter {
     } = {},
   ): Promise<string> {
     return new Promise((resolve, reject) => {
+      // An `abort` listener never hears a signal that has already fired.
+      if (options.signal?.aborted) {
+        reject(new DOMException("Aborted", "AbortError"));
+        return;
+      }
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${this.baseUrl}/api/attachments`);
       xhr.setRequestHeader("Authorization", `Bearer ${this.token}`);

@@ -223,6 +223,8 @@ export function NoteEditor({
       onProgress: (progress) => patchUpload(upload.key, { progress }),
     })
       .then((stored) => {
+        // Closed or removed while it finished: the image belongs to nothing.
+        if (upload.controller.signal.aborted) return;
         dropUpload(upload.key);
         onAddImagesRef.current([stored]);
       })

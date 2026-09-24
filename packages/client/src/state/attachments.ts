@@ -86,9 +86,14 @@ export async function attachImage(
     signal?: AbortSignal;
   } = {},
 ): Promise<string> {
+  const { signal } = options;
   const image = await shrinkImage(file);
+  // Shrinking takes a while, and the editor may have closed meanwhile.
+  signal?.throwIfAborted();
   if (image.size > MAX_IMAGE_SOURCE_BYTES) throw new ImageTooLargeError();
   const stored = await storage.putImage(image, options);
+  // Not every adapter can stop a write once it has begun.
+  signal?.throwIfAborted();
   if (isStoredImageRef(stored) && !objectUrls.has(stored)) {
     objectUrls.set(stored, Promise.resolve(URL.createObjectURL(image)));
   }

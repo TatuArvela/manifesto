@@ -127,4 +127,30 @@ describe("attaching an image", () => {
       ).toBe(false),
     );
   });
+
+  it("drops an upload that finishes after the composer closed", async () => {
+    let finish: (ref: string) => void = () => {};
+    storeWith(
+      vi.fn(
+        () =>
+          new Promise<string>((resolve) => {
+            finish = resolve;
+          }),
+      ),
+    );
+    const first = await openDraft();
+    attach(first);
+    await vi.waitFor(() => expect(putImage).toHaveBeenCalled());
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="dialog"]')).toBeNull(),
+    );
+    finish(REF);
+    await new Promise((r) => setTimeout(r, 50));
+    const second = await openDraft();
+    expect(second.querySelector("img")).toBeNull();
+    expect(notes.value).toHaveLength(0);
+  });
 });
