@@ -74,11 +74,11 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
         | { trashed: number; color: string }
         | undefined;
       if (!note || note.trashed === 1) return false;
-      // At the end of the manual order, as a note of their own would be.
+      // At the head of the manual order, as a note of their own would be.
       const info = acceptStmt.run(
         acceptedAt,
         note.color,
-        Date.parse(acceptedAt),
+        -Date.parse(acceptedAt),
         noteId,
         userId,
       );

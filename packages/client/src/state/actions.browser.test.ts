@@ -457,6 +457,30 @@ describe("sortedNotes", () => {
     expect(sortedNotes.value.map((n) => n.title)).toEqual(["A", "B", "C"]);
   });
 
+  it("puts a new note at the head of the manual order", async () => {
+    await createNoteOrFail({ title: "Old" });
+    await createNoteOrFail({ title: "Dragged", position: -1e14 });
+    await createNoteOrFail({ title: "New" });
+    expect(sortedNotes.value.map((n) => n.title)).toEqual([
+      "New",
+      "Dragged",
+      "Old",
+    ]);
+  });
+
+  it("puts a note being pinned at the head of the pinned ones", async () => {
+    await createNoteOrFail({ title: "Early", pinned: true });
+    const late = await createNoteOrFail({ title: "Late" });
+    await createNoteOrFail({ title: "Latest", pinned: true });
+    await togglePin(late.id);
+    expect(
+      sortedNotes.value.filter((n) => n.pinned).map((n) => n.title),
+    ).toEqual(["Late", "Latest", "Early"]);
+    const position = notes.value.find((n) => n.id === late.id)?.position;
+    await togglePin(late.id);
+    expect(notes.value.find((n) => n.id === late.id)?.position).toBe(position);
+  });
+
   it("sort by created (newest first)", async () => {
     await createNoteOrFail({ title: "First" });
     await new Promise((r) => setTimeout(r, 5));

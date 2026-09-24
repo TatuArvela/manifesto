@@ -127,6 +127,16 @@ describe("bulk operations", () => {
     expect(selectMode.value).toBe(false);
   });
 
+  it("bulkPin puts the notes at the head of the pinned ones, in their order", async () => {
+    const a = await createNoteOrFail({ title: "A" });
+    const b = await createNoteOrFail({ title: "B" });
+    await createNoteOrFail({ title: "Pinned", pinned: true });
+    enterSelectMode(a.id);
+    toggleSelectNote(b.id);
+    await bulkPin();
+    expect(sortedNotes.value.map((n) => n.title)).toEqual(["B", "A", "Pinned"]);
+  });
+
   it("bulkPin unpins when all are already pinned", async () => {
     const n1 = await createNoteOrFail({ title: "A", pinned: true });
     const n2 = await createNoteOrFail({ title: "B", pinned: true });

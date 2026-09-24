@@ -212,7 +212,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       archived: input.archived ?? false,
       trashed: input.trashed ?? false,
       trashedAt: input.trashedAt ?? null,
-      position: input.position ?? Date.now(),
+      position: input.position ?? -Date.now(),
       tags: input.tags ?? [],
       images,
       linkPreviews,

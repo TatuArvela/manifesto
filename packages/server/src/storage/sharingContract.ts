@@ -147,7 +147,7 @@ export function describeSharingContract(
         archived: false,
         tags: [],
         reminder: null,
-        position: Date.parse(T2),
+        position: -Date.parse(T2),
         sharing: {
           role: "edit",
           owner: { id: "owner", displayName: "Olivia" },

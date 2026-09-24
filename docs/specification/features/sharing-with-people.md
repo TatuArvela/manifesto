@@ -24,7 +24,7 @@ The **note itself** is the same for everyone: `title`, `content`, `font`, `image
 
 **Everything about how a person keeps it** is their own: `color`, `pinned`, `archived`, `trashed`, `position`, `tags` and `reminder`. A recipient pinning the note, filing it under a tag, archiving it or putting it in their trash changes nothing for anyone else. This is what keeps tags per-user, as they are everywhere else in connected mode.
 
-A recipient starts with the note's color at the moment they accept, unpinned, unarchived, without tags or a reminder, and at the end of their manual order.
+A recipient starts with the note's color at the moment they accept, unpinned, unarchived, without tags or a reminder, and at the head of their manual order, as a note of their own would be.
 
 The owner's trash is different from everyone else's. See [Trash](#trash) below.
 

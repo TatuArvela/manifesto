@@ -120,7 +120,8 @@ export function markdownFileToNote(
     id: ulid(),
     title: note.title || stem,
     tags: [...new Set([...(note.tags ?? []), ...segments])],
-    position: Date.parse(createdAt),
+    // Newest first, as notes written here are.
+    position: -Date.parse(createdAt),
     createdAt,
     updatedAt,
   });
@@ -182,7 +183,7 @@ function normalizeImportedNote(raw: Record<string, unknown>): Note {
     position:
       typeof raw.position === "number" && Number.isFinite(raw.position)
         ? raw.position
-        : Date.now(),
+        : -Date.now(),
     tags: parseStringArray(raw.tags),
     images: parseStringArray(raw.images),
     linkPreviews: parseLinkPreviews(raw.linkPreviews),

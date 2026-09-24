@@ -44,13 +44,13 @@ Notes can be assigned a color from a predefined set (see `NoteColor` in [Data Mo
 
 ## Pinning
 
-Toggling the pin icon sets `pinned: true/false`. Pinned notes appear in a separate section at the top of the grid, labeled "Pinned." Unpinned notes appear below under "Others" (label only shown when pinned notes exist).
+Toggling the pin icon sets `pinned: true/false`. Pinned notes appear in a separate section at the top of the grid, labeled "Pinned." Unpinned notes appear below under "Others" (label only shown when pinned notes exist). A note being pinned goes to the head of the Pinned section; unpinning leaves its position alone.
 
 ## Ordering
 
 Notes can be sorted in three modes, selectable from the header:
 
-- **Default**: Manual drag-and-drop ordering. New notes are placed in creation order. The user can rearrange notes freely by dragging. The custom position is stored in the `position` field (see [Data Model](../data-model.md)).
+- **Default**: Manual drag-and-drop ordering. New notes go to the head of the board, newest first: a new note's `position` is minus its creation time, or a step ahead of the lowest position already held if that is lower still. The user can rearrange notes freely by dragging. The custom position is stored in the `position` field (see [Data Model](../data-model.md)).
 - **Updated**: Last updated first.
 - **Created**: Most recently created first.
 
