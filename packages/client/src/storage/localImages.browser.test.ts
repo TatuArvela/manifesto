@@ -92,4 +92,33 @@ describe("open mode's image store", () => {
     expect(isLocalImageRef(note.images[0])).toBe(true);
     expect(localStorage.getItem("manifesto:notes")).not.toContain("data:");
   });
+  it("keeps a note's images inline, and loads the board, when they cannot move", async () => {
+    const broken = "data:image/gif;base64,%%%not-base64%%%";
+    const stored = (id: string, image: string) => ({
+      id,
+      title: id,
+      content: "",
+      color: "default",
+      font: "default",
+      pinned: false,
+      archived: false,
+      trashed: false,
+      trashedAt: null,
+      position: 0,
+      tags: [],
+      images: [image],
+      linkPreviews: [],
+      reminder: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    localStorage.setItem(
+      "manifesto:notes",
+      JSON.stringify([stored("01BAD", broken), stored("01GOOD", GIF)]),
+    );
+    const all = await new LocalStorageAdapter().getAll();
+    expect(all.map((n) => n.id)).toEqual(["01BAD", "01GOOD"]);
+    expect(all[0].images).toEqual([broken]);
+    expect(isLocalImageRef(all[1].images[0])).toBe(true);
+  });
 });

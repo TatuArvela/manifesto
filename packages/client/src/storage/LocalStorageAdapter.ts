@@ -132,11 +132,23 @@ export class LocalStorageAdapter implements StorageAdapter {
   async getAll(): Promise<Note[]> {
     const notes = loadNotes();
     if (notes.some((n) => n.images.some((i) => i.startsWith("data:")))) {
+      // A note whose images cannot be moved (IndexedDB unavailable or full, a
+      // URL that will not decode) keeps them inline, where they still show;
+      // the move is tried again on the next load. Failing here would leave an
+      // empty board for notes that loaded fine before.
       const moved: Note[] = [];
       for (const note of notes) {
-        moved.push({ ...note, images: await storeInline(note.images) });
+        try {
+          moved.push({ ...note, images: await storeInline(note.images) });
+        } catch {
+          moved.push(note);
+        }
       }
-      saveNotes(moved);
+      try {
+        saveNotes(moved);
+      } catch {
+        // The inline copies are still on disk; nothing is lost.
+      }
     }
     const current = loadNotes();
     void sweepLocalImages(
