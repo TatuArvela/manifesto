@@ -317,11 +317,22 @@ backup, and delete any `-wal` and `-shm` left beside it. Then start the server.
 ### Scheduled backups
 
 The server can take them itself. Set `BACKUP_INTERVAL_HOURS` (say `24`) and it backs up the SQLite
-database with SQLite's online backup API, the same consistent, WAL-inclusive copy as `.backup`, at
-startup and then at that interval, into `BACKUP_DIR` (default `$DATA_DIR/backups`) as
-`manifesto-YYYYMMDD-HHMMSS.db`, keeping the newest `BACKUP_KEEP` (default 7). Each is written under a
-temporary name and renamed when whole, so a crash mid-copy never leaves a file that looks like a
-backup. The admin overview shows when the last one ran and whether it failed.
+database with SQLite's online backup API, the same consistent, WAL-inclusive copy as `.backup`, into
+`BACKUP_DIR` (default `$DATA_DIR/backups`) as `manifesto-YYYYMMDD-HHMMSS.db`, keeping the newest
+`BACKUP_KEEP` (default 7). The disk it takes levels off at about `BACKUP_KEEP` times the database, and
+the database includes the images.
+
+Each run guards the disk:
+
+- **Restarts do not add copies.** A run also happens at startup, but it is skipped while the newest
+  backup is younger than 90% of the interval, so a restart, or a server stuck restarting, does not copy
+  the database each time.
+- **Half-written copies are cleared.** Each copy is written under a `.partial` name and renamed when
+  whole, so a crash never leaves a file that looks like a backup, and the next run deletes the
+  `.partial` a crash left.
+- **A full disk is refused.** A run that would leave less than 256 MB free after the copy (sized from
+  the database and its WAL) does not start, and fails the job instead: the admin overview shows the
+  error, and the `manifesto_job_last_run_failed{job="scheduled backup"}` metric turns to 1.
 
 A backup on the same volume as the database survives a bad upgrade or a deleted note, not a lost disk:
 copy `BACKUP_DIR` somewhere else too (it is plain files, so any file backup will do). Restoring is as
