@@ -25,6 +25,7 @@ import {
 import { activeView, showSuccess } from "../state/ui.js";
 import { ApiTokensDialog } from "./ApiTokensDialog.js";
 import { Avatar } from "./Avatar.js";
+import { Backdrop } from "./Backdrop.js";
 import { Dropdown } from "./Dropdown.js";
 import { menuDividerClass, menuItemClass, menuPanelClass } from "./NoteMenu.js";
 import { Tooltip } from "./Tooltip.js";
@@ -294,12 +295,7 @@ function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class="fixed inset-0 bg-black/50 z-40 animate-fade-in"
-        onClick={onClose}
-      />
+      <Backdrop onDismiss={onClose} class="z-40" />
       <div
         ref={dialogRef}
         role="dialog"
@@ -407,12 +403,7 @@ function EmailDialog({
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class="fixed inset-0 bg-black/50 z-40 animate-fade-in"
-        onClick={onClose}
-      />
+      <Backdrop onDismiss={onClose} class="z-40" />
       <div
         ref={dialogRef}
         role="dialog"

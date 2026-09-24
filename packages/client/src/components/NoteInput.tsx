@@ -43,6 +43,7 @@ import {
   type RectLike,
   viewportSize,
 } from "../utils/morph.js";
+import { Backdrop } from "./Backdrop.js";
 import { gridColumns } from "./gridColumns.js";
 import { NoteEditor } from "./NoteEditor.js";
 
@@ -499,12 +500,10 @@ export function NoteInput() {
       {expanded &&
         createPortal(
           <>
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-            <div
-              class={`fixed inset-0 bg-black/50 z-40 max-sm:hidden transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
-              role="presentation"
-              onClick={() => closeModal()}
-              onKeyDown={() => {}}
+            <Backdrop
+              onDismiss={() => closeModal()}
+              closing={closing}
+              class="z-40 max-sm:hidden"
             />
             <div
               ref={modalRef}

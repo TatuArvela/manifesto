@@ -14,6 +14,7 @@ import {
   updateNote,
 } from "../state/index.js";
 import { recordVersion } from "../state/versions.js";
+import { Backdrop } from "./Backdrop.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { noteMenuItems } from "./NoteMenu.js";
 import { VersionHistory } from "./VersionHistory.js";
@@ -183,11 +184,10 @@ export function NoteCardEditor({
       {showVersions &&
         createPortal(
           <>
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-            <div
-              class={`fixed inset-0 bg-black/50 z-[60] transition-opacity duration-150 ${versionsClosing ? "opacity-0" : "animate-fade-in"}`}
-              onClick={closeVersions}
+            <Backdrop
+              onDismiss={closeVersions}
+              closing={versionsClosing}
+              class="z-[60]"
             />
             <div
               ref={versionsRef}

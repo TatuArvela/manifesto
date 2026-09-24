@@ -9,6 +9,7 @@ import { t } from "../i18n/index.js";
 import { currentUser, isServerMode, SERVER_ORIGIN } from "../state/auth.js";
 import { showWelcome } from "../state/ui.js";
 import { markWelcomed } from "../state/welcome.js";
+import { Backdrop } from "./Backdrop.js";
 
 /** How long the fade-out runs; matches the `duration-150` classes below. */
 const CLOSE_MS = 150;
@@ -66,12 +67,7 @@ export function WelcomeDialog() {
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
-        onClick={dismiss}
-      />
+      <Backdrop onDismiss={dismiss} closing={closing} class="z-40" />
 
       <div
         ref={dialogRef}

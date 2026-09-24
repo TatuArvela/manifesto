@@ -15,6 +15,7 @@ import {
   twoFactorStatus,
 } from "../state/twoFactor.js";
 import { showSuccess } from "../state/ui.js";
+import { Backdrop } from "./Backdrop.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -286,12 +287,7 @@ export function TwoFactorDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class="fixed inset-0 bg-black/50 z-40 animate-fade-in"
-        onClick={onClose}
-      />
+      <Backdrop onDismiss={onClose} class="z-40" />
       <div
         ref={dialogRef}
         role="dialog"

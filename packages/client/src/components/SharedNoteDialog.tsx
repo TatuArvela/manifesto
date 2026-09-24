@@ -8,6 +8,7 @@ import { clearShareHash } from "../sharing.js";
 import { createNote } from "../state/actions.js";
 import { showSuccess } from "../state/ui.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
+import { Backdrop } from "./Backdrop.js";
 
 export function SharedNoteDialog({
   payload,
@@ -50,12 +51,7 @@ export function SharedNoteDialog({
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
-        onClick={dismiss}
-      />
+      <Backdrop onDismiss={dismiss} closing={closing} class="z-40" />
 
       <div
         ref={dialogRef}
