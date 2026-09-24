@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/TatuArvela/manifesto/compare/v0.2.0...v0.2.1) (2026-09-24)
+
+
+### Bug Fixes
+
+* **client:** resolve stored link preview images on the board ([#58](https://github.com/TatuArvela/manifesto/issues/58)) ([895d48b](https://github.com/TatuArvela/manifesto/commit/895d48b6c57575cf1b7815c4c78a45e13700fafe))
+
 ## [0.2.0](https://github.com/TatuArvela/manifesto/compare/v0.1.8...v0.2.0) (2026-09-24)
 
 
