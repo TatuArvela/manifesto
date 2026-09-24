@@ -339,6 +339,17 @@ describe("formattingToolbar", () => {
   });
 });
 
+describe("stickyTopBar", () => {
+  it("defaults to keeping the top bar in view", () => {
+    expect(parsePrefs(null).stickyTopBar).toBe(true);
+    expect(parsePrefs("{}").stickyTopBar).toBe(true);
+  });
+
+  it("honours an explicitly persisted choice", () => {
+    expect(parsePrefs('{"stickyTopBar":false}').stickyTopBar).toBe(false);
+  });
+});
+
 describe("defaultEditMode", () => {
   it("defaults to the normal editor", () => {
     expect(parsePrefs(null).defaultEditMode).toBe("normal");

@@ -3,6 +3,7 @@ import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useBoardShortcuts } from "../hooks/useBoardShortcuts.js";
 import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
+import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
@@ -27,10 +28,12 @@ import {
   initRouter,
   loadNotes,
   notes,
+  selectMode,
   showError,
   showShortcuts,
   showSuccess,
   showWelcome,
+  stickyTopBar,
   updateNote,
   viewMode,
 } from "../state/index.js";
@@ -89,6 +92,14 @@ function MainApp() {
   const [dragActive, setDragActive] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const marquee = useMarqueeSelection(mainRef);
+  const topBarRef = useRef<HTMLDivElement>(null);
+  const scrollAway = !stickyTopBar.value;
+  const topBarHeight = useScrollAwayBar(
+    mainRef,
+    topBarRef,
+    scrollAway,
+    selectMode.value,
+  );
   useBoardShortcuts();
   // Whether the saved user has been checked against the server. Admin rights
   // can change while signed out, so the `/admin` route waits for the answer
@@ -223,15 +234,33 @@ function MainApp() {
   const isList = viewMode.value === "list";
 
   return (
-    <div class="flex flex-col h-dvh overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
-      <Header />
-      <MobileNav />
+    <div class="relative flex flex-col h-dvh overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+      {/* On a phone with the top bar set to scroll away, it lies over the
+          board and `useScrollAwayBar` moves it up as the board scrolls. */}
+      <div
+        ref={topBarRef}
+        class={
+          scrollAway
+            ? "relative z-20 shrink-0 max-md:absolute max-md:inset-x-0 max-md:top-0 max-md:[transform:translateY(calc(-1*var(--bar-shift,0px)))]"
+            : "contents"
+        }
+      >
+        <Header />
+        <MobileNav />
+      </div>
       <div class="flex flex-1 overflow-hidden relative z-0">
         <Sidebar />
         <main
           ref={mainRef}
           class={`board flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
         >
+          {topBarHeight > 0 && (
+            <div
+              aria-hidden="true"
+              class="md:hidden"
+              style={{ height: `${topBarHeight}px` }}
+            />
+          )}
           {isAdminView ? (
             isAdmin && <AdminView />
           ) : isSearchView ? (

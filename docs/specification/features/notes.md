@@ -38,6 +38,10 @@ Settings > Appearance > Board Background folds open into a composition for the a
 
 The choices are per device and not synced, like the other preferences.
 
+## Top Bar on Phones
+
+On a narrow screen the top bar (the header and the row of view buttons under it) stays at the top of the screen while the board scrolls. Turning off Settings > Appearance > Keep Top Bar in View on Phones lets it scroll away with the board instead, giving the notes the whole screen; it comes back when the board is scrolled to the top, and while notes are selected, since the selection's actions live in it. Wider screens always keep it.
+
 ## Colors
 
 Notes can be assigned a color from a predefined set (see `NoteColor` in [Data Model](../data-model.md)). Colors are displayed as the note card's background. Both light and dark theme variants are defined for every color.

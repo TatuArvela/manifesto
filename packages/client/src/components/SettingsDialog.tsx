@@ -53,6 +53,7 @@ import {
   showSettings,
   showShortcuts,
   showWelcome,
+  stickyTopBar,
   type ThemeMode,
   theme,
 } from "../state/index.js";
@@ -436,6 +437,16 @@ export function SettingsDialog() {
                   noteCorners.value = checked ? "rounded" : "straight";
                 }}
                 label={t("settings.noteCorners")}
+              />
+            </SettingsRow>
+
+            <SettingsRow label={t("settings.stickyTopBar")}>
+              <Switch
+                checked={stickyTopBar.value}
+                onChange={(checked) => {
+                  stickyTopBar.value = checked;
+                }}
+                label={t("settings.stickyTopBar")}
               />
             </SettingsRow>
 
