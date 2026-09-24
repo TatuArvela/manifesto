@@ -1,5 +1,93 @@
 # Changelog
 
+## [0.2.0](https://github.com/TatuArvela/manifesto/compare/v0.1.8...v0.2.0) (2026-09-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* POST and PUT /api/notes refuse a data: URL in a link preview's image or favicon. Migration 0014 empties link_previews on any note still holding one inline.
+* **server:** POST and PUT /api/notes refuse data: URLs in images; upload each image to POST /api/attachments and send the reference.
+
+### Features
+
+* an audit log for admins ([04d639e](https://github.com/TatuArvela/manifesto/commit/04d639e07b1b1d39590ef4628584194f3226ecd9))
+* an overview page for admins ([9e127bf](https://github.com/TatuArvela/manifesto/commit/9e127bfc548af5bfaf4eb9c484d8b0f96c8ab42d))
+* **client:** add grid columns on screens wider than 1920px ([76b3989](https://github.com/TatuArvela/manifesto/commit/76b398929562f7f9b41a44a5dbe5f1c330d2895f))
+* **client:** add keyboard shortcuts to the board ([5cdd693](https://github.com/TatuArvela/manifesto/commit/5cdd69385eac0780884ed85bf3138d656c6d5725))
+* **client:** add playful board textures ([6897503](https://github.com/TatuArvela/manifesto/commit/689750399a7e39d4e3341c02901a7a0620941463))
+* **client:** debounce the search field ([c4450a0](https://github.com/TatuArvela/manifesto/commit/c4450a0dffba2d65c23bd617bfde5e672cf3b2fa))
+* **client:** ease out of select mode ([bb4c8dc](https://github.com/TatuArvela/manifesto/commit/bb4c8dc71d7bb4b3e8a59c8d3a831914d34cd469))
+* **client:** import a folder of Markdown notes ([253544d](https://github.com/TatuArvela/manifesto/commit/253544d26991bbe92ca529b5924944e1d003e7a5))
+* **client:** import Google Keep notes from Takeout ([19b754a](https://github.com/TatuArvela/manifesto/commit/19b754a72aa22293c1d25cb574e216b7401a81a9))
+* **client:** keep open-mode images in IndexedDB ([c712121](https://github.com/TatuArvela/manifesto/commit/c712121de9a91e56b5d02a4b270bf49569da722e))
+* **client:** lay auto-note plugins out in columns in grid mode ([69dc591](https://github.com/TatuArvela/manifesto/commit/69dc591156c385c7cccb442d0491a627d6b305c2))
+* **client:** let the top bar scroll away on phones ([97935d9](https://github.com/TatuArvela/manifesto/commit/97935d95ee54f3d5a0f443818406caadb92bf159))
+* **client:** offer a random board colour ([1f2f8cd](https://github.com/TatuArvela/manifesto/commit/1f2f8cd2d500c535baf200159c6c844f4fa4c9c2))
+* **client:** offer a random board texture ([38c6a02](https://github.com/TatuArvela/manifesto/commit/38c6a02fbabbb2f3e90b6a70540ede1513febdf2))
+* **client:** offer small notes in the grid ([5530581](https://github.com/TatuArvela/manifesto/commit/553058110e71416d8283d7b331bfb418c879cf21))
+* **client:** preview the new order while a note is dragged ([ecc97fb](https://github.com/TatuArvela/manifesto/commit/ecc97fbdac7103faf8e84c32d87469169b18be16))
+* **client:** put the empty board's message on a card ([a880ea2](https://github.com/TatuArvela/manifesto/commit/a880ea2d8ae3b191a65ba055b7499caebb9e839f))
+* **client:** receive shares from other apps ([bd0ce8e](https://github.com/TatuArvela/manifesto/commit/bd0ce8e63075f63b994fa637bd803bbf82eda6c4))
+* **client:** tag counts, renaming, and hiding a tag from the Notes view ([9d9785a](https://github.com/TatuArvela/manifesto/commit/9d9785a3f654d6a45c7435a3fccde60438b04549))
+* compose files in the repository ([a7946a9](https://github.com/TatuArvela/manifesto/commit/a7946a9014894e9930eb6f4d39dfaba29643f97f))
+* download an account's notes from the server ([375b4a0](https://github.com/TatuArvela/manifesto/commit/375b4a0a60ec33d219ad7ebe45db783f261b54f7))
+* hide Create account when the server does not allow it ([ec94db6](https://github.com/TatuArvela/manifesto/commit/ec94db62032b27d4e0d26f749fb43736266418cd))
+* keep connected-mode images outside the note row ([c15ebcc](https://github.com/TatuArvela/manifesto/commit/c15ebcc2d3b3fca67f9b077ef50e4c34c27b14ef))
+* keep version history on the server in connected mode ([0c2e6f9](https://github.com/TatuArvela/manifesto/commit/0c2e6f9268c49ad215793a72b100b724c5206a2e))
+* offer local and single sign-on side by side ([5ddd864](https://github.com/TatuArvela/manifesto/commit/5ddd864b4e7bc546674c84f8d2ee5048580ea9dd))
+* one container that serves the client too ([b917295](https://github.com/TatuArvela/manifesto/commit/b917295311ed829dfa2ac900e4a54b6fbd88ad15))
+* password reset and share invitations by mail ([ccd0148](https://github.com/TatuArvela/manifesto/commit/ccd0148b02823ee08cb8b866451e8ac13f44857a))
+* personal API tokens ([21b1383](https://github.com/TatuArvela/manifesto/commit/21b138385390239d804f4b960c3ca64f92431043))
+* put new and newly pinned notes at the head of the board ([39c47c2](https://github.com/TatuArvela/manifesto/commit/39c47c2039a73c97c955e4fa90e055831dfc494e))
+* **server:** a Prometheus metrics endpoint ([22ec130](https://github.com/TatuArvela/manifesto/commit/22ec1307398d682407e13289235b42e557e4a94c))
+* **server:** an admin CLI for lockout recovery ([e93720b](https://github.com/TatuArvela/manifesto/commit/e93720b7391c7143b388c58d5331861b45fa02dc))
+* **server:** map an OIDC group to admin, and gate sign-up ([ba8aac5](https://github.com/TatuArvela/manifesto/commit/ba8aac5bdad33b7793ba148d8291c8a9b157e27e))
+* **server:** publish an OpenAPI document ([23ef202](https://github.com/TatuArvela/manifesto/commit/23ef2022ab4660079c856efe8e4d09e2d85553b1))
+* **server:** read secrets from files ([b157ec4](https://github.com/TatuArvela/manifesto/commit/b157ec46be0fec523c3e997b7e34b0118af538d6))
+* **server:** search notes from a word index ([dfe54db](https://github.com/TatuArvela/manifesto/commit/dfe54db1c0ea9156be8293432cb0aa59938e3686))
+* **server:** serve metrics on a port of their own ([f307b30](https://github.com/TatuArvela/manifesto/commit/f307b30145dac89ae4a4967df315252f9ad083cf))
+* **server:** take scheduled SQLite backups ([27b65d5](https://github.com/TatuArvela/manifesto/commit/27b65d570389175317efb75bcc977d4dce8ac36b))
+* shrink large photos on attach and raise the image limit to 5 MB ([a46ceda](https://github.com/TatuArvela/manifesto/commit/a46ceda205c920fb3b64e501986a93d2fec078ff))
+* store link preview images as attachments ([aedfb98](https://github.com/TatuArvela/manifesto/commit/aedfb98cd66c6ca6b6fad21c22b76ffb5e6162fe))
+* tell admins when a newer release is out ([12d6388](https://github.com/TatuArvela/manifesto/commit/12d638840afb9052f50fabfc00de9bf9c6d87a46))
+* two-factor sign-in for local accounts ([f0d8ca3](https://github.com/TatuArvela/manifesto/commit/f0d8ca36bb326aae24d1bf5a256b545e206d95b1))
+* upload images separately in connected mode ([a2b934b](https://github.com/TatuArvela/manifesto/commit/a2b934bcce8ac690e16be135de0f161e9f8d8247))
+* webhooks for note events ([829465d](https://github.com/TatuArvela/manifesto/commit/829465d37321a3f1e911c55d8f9a81f868287aaf))
+* write share invitations in the recipient's language ([6d8d929](https://github.com/TatuArvela/manifesto/commit/6d8d929dd16d63a6ca85e7ef9b7375f01c6ac839))
+
+
+### Bug Fixes
+
+* **client:** animate dropdowns and card popovers out ([514dd7f](https://github.com/TatuArvela/manifesto/commit/514dd7f20884419c75dcf025fcfcb2566f9f049e))
+* **client:** close the editor the way it opened ([24d8b06](https://github.com/TatuArvela/manifesto/commit/24d8b065e411445b4fbb3303d0e9515b249bbe71))
+* **client:** keep the auto-notes add form at the top ([8ebde67](https://github.com/TatuArvela/manifesto/commit/8ebde67078fbedadce0054345808eab30abf63ef))
+* **client:** let the Settings panel leave at speed ([5eec3c3](https://github.com/TatuArvela/manifesto/commit/5eec3c3dc824327e6a785cfcbbdd276685a08d19))
+* **client:** load the board when an open-mode image cannot move ([6465348](https://github.com/TatuArvela/manifesto/commit/64653489505393e1049059d32e8605f7d1483f9c))
+* **client:** open the reminder picker from a card's menu ([bd63ec6](https://github.com/TatuArvela/manifesto/commit/bd63ec6faffedfe836a6b68bd2ead8b9c8ab52f1))
+* **client:** put image bytes in the composer download and crash backup ([889e4d1](https://github.com/TatuArvela/manifesto/commit/889e4d1bdb928341583e637103b76661bc52b734))
+* **client:** restore an account download from its notes.json ([29615db](https://github.com/TatuArvela/manifesto/commit/29615db4de897818a4c1386e856877b002f9b7a6))
+* **client:** stop a just-pinned card leaving a gap under it ([c503dcf](https://github.com/TatuArvela/manifesto/commit/c503dcfc8d196583aee938f17a0519569673b65a))
+* **client:** stop an image upload once its editor has closed ([e5f6d04](https://github.com/TatuArvela/manifesto/commit/e5f6d04415c478345d7e4f79c613433a932205e8))
+* **client:** wait for the first load before saying the board is empty ([360e5f5](https://github.com/TatuArvela/manifesto/commit/360e5f5205f1620c11d6d6018a0dce8e8bf6a569))
+* leave OIDC admin as it was when the groups cannot be read ([79a5819](https://github.com/TatuArvela/manifesto/commit/79a5819d81d1896f431e6346c088436dea81947f))
+* restart an image's grace when it is stored again ([f56ff46](https://github.com/TatuArvela/manifesto/commit/f56ff469eff0c37dadf0108118f9a2ea83261faa))
+* **server:** hand the update check's answer to the admin routes ([1414214](https://github.com/TatuArvela/manifesto/commit/1414214c793246dd05761aba07bda2ba788cc9ba))
+* **server:** keep scheduled backups from crowding the disk ([4d861d0](https://github.com/TatuArvela/manifesto/commit/4d861d0a19e11c81079c7787df78f26137091bbe))
+* **server:** recognise an AVIF that lists its brand as compatible ([0be9501](https://github.com/TatuArvela/manifesto/commit/0be950148618976690cae94f695bb0e06a34366b))
+* **server:** run a job with a long interval at that interval ([faf095c](https://github.com/TatuArvela/manifesto/commit/faf095c3eaaaf3cb0042e2af6b5c0fd6522eed2a))
+* **server:** store an upload as the image type its bytes show ([a50c403](https://github.com/TatuArvela/manifesto/commit/a50c403160a066d2804e8ba1f785e315d3f27057))
+* silenced errors, duplicate imports and same-origin admin; note state split up ([#57](https://github.com/TatuArvela/manifesto/issues/57)) ([38bafa2](https://github.com/TatuArvela/manifesto/commit/38bafa2d621834fbe255279934a42cd3fe1bf46f))
+
+
+### Reverts
+
+* **server:** take the word index out of search ([7d454d0](https://github.com/TatuArvela/manifesto/commit/7d454d0b8ba3451c7b76fab2efad05be894c022b))
+
+
+### Code Refactoring
+
+* **server:** take image references only in note writes ([4398763](https://github.com/TatuArvela/manifesto/commit/4398763f3ea92f80fd922335852d5398a03f55c4))
+
 ## [0.1.8](https://github.com/TatuArvela/manifesto/compare/v0.1.7...v0.1.8) (2026-09-22)
 
 
