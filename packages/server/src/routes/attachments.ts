@@ -43,19 +43,18 @@ export function createAttachmentRoutes(deps: AttachmentDeps) {
     const declared = (c.req.header("Content-Type") ?? "")
       .split(";")[0]
       .trim()
-      .toLowerCase()
-      .replace("image/jpg", "image/jpeg");
+      .toLowerCase();
     const data = Buffer.from(await c.req.arrayBuffer());
     if (data.length === 0) throw new HttpError(422, "The file is empty");
     if (data.length > MAX_IMAGE_SOURCE_BYTES) {
       throw new HttpError(413, "The image is too large");
     }
+    // Only an image is taken, but its bytes decide which one: a browser
+    // declares a file's type from its extension, so a JPEG saved as `.png`
+    // arrives as `image/png`. It is stored and served as what it is.
     const actual = sniffImageType(data);
-    if (!actual || actual !== declared) {
-      throw new HttpError(
-        415,
-        "Upload a PNG, JPEG, GIF, WebP or AVIF image, sent as its own type",
-      );
+    if (!actual || !declared.startsWith("image/")) {
+      throw new HttpError(415, "Upload a PNG, JPEG, GIF, WebP or AVIF image");
     }
     const stored = await deps.storage.attachments.put({
       id: newId(),
