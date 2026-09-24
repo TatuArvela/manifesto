@@ -1,17 +1,32 @@
 import type { LucideIcon } from "lucide-preact";
-import { Archive, StickyNote, Trash2 } from "lucide-preact";
+import {
+  Archive,
+  Eye,
+  EyeOff,
+  Pencil,
+  StickyNote,
+  Trash2,
+} from "lucide-preact";
 import { useState } from "preact/hooks";
-import { t } from "../i18n/index.js";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
+import { plural, t } from "../i18n/index.js";
+import { askConfirmation } from "../state/confirm.js";
 import {
   activeTag,
   allTags,
   deleteTag,
+  hiddenTags,
   notesLoaded,
+  renameTag,
+  setTagHidden,
+  tagCounts,
   tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
 } from "../state/index.js";
-import { Tooltip } from "./Tooltip.js";
+
+const actionClass =
+  "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600";
 
 function Chip({
   selected,
@@ -44,15 +59,69 @@ function Chip({
   );
 }
 
+/**
+ * Renames the selected tag on every note. Normalized the way the tag picker
+ * does it, so a rename cannot make a tag the picker would never have made.
+ */
+function RenameTagForm({ tag, onDone }: { tag: string; onDone: () => void }) {
+  const [name, setName] = useState(tag);
+  const [busy, setBusy] = useState(false);
+  useEscapeStack(true, onDone);
+  const next = name.trim().toLowerCase();
+
+  const submit = async (event: Event) => {
+    event.preventDefault();
+    if (busy || !next) return;
+    setBusy(true);
+    await renameTag(tag, next);
+    setBusy(false);
+    onDone();
+  };
+
+  return (
+    <form onSubmit={submit} class="flex items-center gap-2 flex-wrap">
+      <label class="flex-1 min-w-40">
+        <span class="sr-only">{t("tags.renameLabel", { tag })}</span>
+        <input
+          type="text"
+          value={name}
+          maxLength={64}
+          // biome-ignore lint/a11y/noAutofocus: opened by the Rename button, to type into
+          autoFocus
+          onFocus={(e) => (e.currentTarget as HTMLInputElement).select()}
+          onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)}
+          class="w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={busy || !next}
+        class="px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white cursor-pointer"
+      >
+        {t("tags.renameSubmit")}
+      </button>
+      <button type="button" class={actionClass} onClick={onDone}>
+        {t("tags.cancel")}
+      </button>
+    </form>
+  );
+}
+
 export function TagsView() {
   const tags = allTags.value;
+  const counts = tagCounts.value;
+  const hidden = new Set(hiddenTags.value);
   const selected = activeTag.value;
-  const [showConfirm, setShowConfirm] = useState(false);
+  const selectedHidden = selected !== null && hidden.has(selected);
+  const [renaming, setRenaming] = useState(false);
 
   const handleDelete = async () => {
     if (!selected) return;
-    await deleteTag(selected);
-    setShowConfirm(false);
+    const ok = await askConfirmation({
+      title: t("tags.removeConfirm", { tag: selected }),
+      confirmLabel: t("tags.confirmDelete"),
+    });
+    if (ok) await deleteTag(selected);
   };
 
   return (
@@ -67,59 +136,84 @@ export function TagsView() {
           selected={!selected}
           onClick={() => {
             activeTag.value = null;
-            setShowConfirm(false);
+            setRenaming(false);
           }}
         >
           {t("tags.all")}
         </Chip>
-        {tags.map((tag) => (
-          <Chip
-            key={tag}
-            selected={selected === tag}
-            onClick={() => {
-              activeTag.value = tag;
-              setShowConfirm(false);
-            }}
-          >
-            #{tag}
-          </Chip>
-        ))}
-
-        {selected && !showConfirm && (
-          <Tooltip label={t("tags.delete")}>
-            <button
-              type="button"
-              class="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-neutral-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
-              onClick={() => setShowConfirm(true)}
-              aria-label={t("tags.delete")}
+        {tags.map((tag) => {
+          const count = counts.get(tag) ?? 0;
+          const isHidden = hidden.has(tag);
+          return (
+            <Chip
+              key={tag}
+              selected={selected === tag}
+              onClick={() => {
+                activeTag.value = tag;
+                setRenaming(false);
+              }}
+              ariaLabel={[
+                `#${tag}`,
+                plural("tags.noteCount", count),
+                ...(isHidden ? [t("tags.hidden")] : []),
+              ].join(", ")}
             >
-              <Trash2 class="w-4 h-4" />
-            </button>
-          </Tooltip>
-        )}
-
-        {selected && showConfirm && (
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-neutral-500 dark:text-neutral-400">
-              {t("tags.removeConfirm", { tag: selected })}
-            </span>
-            <button
-              type="button"
-              class="px-2 py-1 text-xs bg-red-600 text-white rounded font-medium hover:bg-red-700 cursor-pointer"
-              onClick={handleDelete}
-            >
-              {t("tags.confirmDelete")}
-            </button>
-            <button
-              type="button"
-              class="px-2 py-1 text-xs bg-neutral-200 dark:bg-neutral-600 rounded font-medium hover:bg-neutral-300 dark:hover:bg-neutral-500 cursor-pointer"
-              onClick={() => setShowConfirm(false)}
-            >
-              {t("tags.cancel")}
-            </button>
-          </div>
-        )}
+              {isHidden && (
+                <EyeOff class="w-3.5 h-3.5 opacity-60" aria-hidden="true" />
+              )}
+              <span class={isHidden ? "opacity-70" : undefined}>#{tag}</span>
+              <span class="text-xs tabular-nums opacity-60">{count}</span>
+            </Chip>
+          );
+        })}
       </div>
+
+      {selected && renaming && (
+        <RenameTagForm
+          key={selected}
+          tag={selected}
+          onDone={() => setRenaming(false)}
+        />
+      )}
+
+      {selected && !renaming && (
+        <div class="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            class={actionClass}
+            onClick={() => setTagHidden(selected, !selectedHidden)}
+            aria-pressed={selectedHidden}
+          >
+            {selectedHidden ? (
+              <Eye class="w-4 h-4" />
+            ) : (
+              <EyeOff class="w-4 h-4" />
+            )}
+            {selectedHidden ? t("tags.showInNotes") : t("tags.hideFromNotes")}
+          </button>
+          <button
+            type="button"
+            class={actionClass}
+            onClick={() => setRenaming(true)}
+          >
+            <Pencil class="w-4 h-4" />
+            {t("tags.rename")}
+          </button>
+          <button
+            type="button"
+            class={`${actionClass} hover:text-red-600 dark:hover:text-red-400`}
+            onClick={handleDelete}
+          >
+            <Trash2 class="w-4 h-4" />
+            {t("tags.delete")}
+          </button>
+          {selectedHidden && (
+            <p class="basis-full text-sm text-neutral-600 dark:text-neutral-300">
+              {t("tags.hiddenHint", { tag: selected })}
+            </p>
+          )}
+        </div>
+      )}
 
       <div class="flex items-center gap-2 flex-wrap">
         <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">

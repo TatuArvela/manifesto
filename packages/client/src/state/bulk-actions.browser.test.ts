@@ -13,12 +13,16 @@ import {
   enterSelectMode,
   exitSelectMode,
   notes,
+  notesHiddenByTag,
   permanentlyDeleteNote,
+  renameTag,
   reorderNotes,
+  setTagHidden,
   sortedNotes,
+  tagCounts,
   toggleSelectNote,
 } from "./actions.js";
-import { sortMode } from "./prefs.js";
+import { hiddenTags, sortMode } from "./prefs.js";
 import { createNoteOrFail } from "./testSupport.js";
 import {
   activeView,
@@ -240,6 +244,78 @@ describe("tag operations", () => {
     await deleteTag("work");
     expect(notes.value[0].tags).toEqual(["personal"]);
     expect(notes.value[1].tags).toEqual([]);
+  });
+
+  it("deleteTag stops hiding the tag it deleted", async () => {
+    await createNoteOrFail({ title: "A", tags: ["work"] });
+    setTagHidden("work", true);
+    await deleteTag("work");
+    expect(hiddenTags.value).toEqual([]);
+  });
+
+  it("renameTag renames the tag on every note, merging into one it meets", async () => {
+    await createNoteOrFail({ title: "A", tags: ["wrok", "home"] });
+    await createNoteOrFail({ title: "B", tags: ["wrok", "work"] });
+    await createNoteOrFail({ title: "C", tags: ["home"] });
+    await renameTag("wrok", "work");
+    const tagsOf = (title: string) =>
+      notes.value.find((n) => n.title === title)?.tags;
+    expect(tagsOf("A")).toEqual(["work", "home"]);
+    expect(tagsOf("B")).toEqual(["work"]);
+    expect(tagsOf("C")).toEqual(["home"]);
+    expect(tagCounts.value.get("work")).toBe(2);
+    expect(tagCounts.value.has("wrok")).toBe(false);
+  });
+
+  it("renameTag keeps a hidden tag hidden under its new name", async () => {
+    await createNoteOrFail({ title: "A", tags: ["old"] });
+    setTagHidden("old", true);
+    await renameTag("old", "new");
+    expect(hiddenTags.value).toEqual(["new"]);
+  });
+});
+
+describe("hidden tags", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+    hiddenTags.value = [];
+    activeView.value = "active";
+    searchQuery.value = "";
+    sortMode.value = "default";
+  });
+
+  afterEach(() => {
+    hiddenTags.value = [];
+    localStorage.clear();
+  });
+
+  const titles = () => sortedNotes.value.map((n) => n.title).sort();
+
+  it("keeps a hidden tag's notes out of the Notes view only", async () => {
+    await createNoteOrFail({ title: "Work", tags: ["work"] });
+    await createNoteOrFail({ title: "Both", tags: ["home", "work"] });
+    await createNoteOrFail({ title: "Home", tags: ["home"] });
+    await createNoteOrFail({
+      title: "Old work",
+      tags: ["work"],
+      archived: true,
+    });
+    setTagHidden("work", true);
+
+    expect(titles()).toEqual(["Home"]);
+    // Only notes the Notes view would otherwise show count as hidden.
+    expect(notesHiddenByTag.value).toBe(2);
+
+    activeView.value = "tags";
+    expect(titles()).toEqual(["Both", "Home", "Work"]);
+    activeView.value = "archived";
+    expect(titles()).toEqual(["Old work"]);
+
+    activeView.value = "active";
+    setTagHidden("work", false);
+    expect(titles()).toEqual(["Both", "Home", "Work"]);
+    expect(notesHiddenByTag.value).toBe(0);
   });
 });
 

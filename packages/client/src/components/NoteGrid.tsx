@@ -1,8 +1,9 @@
 import { Search, StickyNote } from "lucide-preact";
-import { t } from "../i18n/index.js";
+import { plural, t } from "../i18n/index.js";
 import {
   activeView,
   canReorder,
+  notesHiddenByTag,
   notesLoaded,
   pinnedNotes,
   reorderNotes,
@@ -18,6 +19,10 @@ export function NoteGrid() {
   if (pinned.length === 0 && unpinned.length === 0) {
     const isSearch = activeView.value === "search";
     if (!isSearch && !notesLoaded.value) return null;
+    // An empty Notes view with notes kept out by a hidden tag is not "no
+    // notes yet", and saying so would send someone looking for lost notes.
+    const hiddenByTag =
+      activeView.value === "active" ? notesHiddenByTag.value : 0;
     // On a card of its own, so it stays legible over a board picture or a
     // busy texture, and not selectable: it is a message, not content.
     return (
@@ -28,12 +33,18 @@ export function NoteGrid() {
           ) : (
             <StickyNote class="w-12 h-12 mb-4" />
           )}
-          <p class="text-lg text-neutral-700 dark:text-neutral-200">
-            {isSearch ? t("search.empty") : t("noteGrid.empty")}
-          </p>
-          <p class="text-sm">
-            {isSearch ? t("search.emptyHint") : t("noteGrid.emptyHint")}
-          </p>
+          {hiddenByTag > 0 ? (
+            <p class="text-sm">{plural("noteGrid.hiddenByTag", hiddenByTag)}</p>
+          ) : (
+            <>
+              <p class="text-lg text-neutral-700 dark:text-neutral-200">
+                {isSearch ? t("search.empty") : t("noteGrid.empty")}
+              </p>
+              <p class="text-sm">
+                {isSearch ? t("search.emptyHint") : t("noteGrid.emptyHint")}
+              </p>
+            </>
+          )}
         </div>
       </div>
     );

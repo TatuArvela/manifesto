@@ -179,6 +179,14 @@ function parseDefaultNoteColor(value: unknown): DefaultNoteColor {
     : NoteColor.Default;
 }
 
+/** Strings only, each once: anything else in a hand-edited blob is dropped. */
+function parseTagList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(value.filter((tag): tag is string => typeof tag === "string")),
+  ];
+}
+
 function parseDecimalSeparator(value: unknown): DecimalSeparator {
   return typeof value === "string" &&
     (DECIMAL_SEPARATOR_VALUES as readonly string[]).includes(value)
@@ -211,6 +219,11 @@ export interface LoadedPrefs {
    * board scrolls, or scrolls away with it. Wider screens always keep it.
    */
   stickyTopBar: boolean;
+  /**
+   * Tags whose notes stay out of the Notes view. They are still in Tags,
+   * Search, Reminders and the rest; this only keeps the main board clear.
+   */
+  hiddenTags: string[];
   confirmBeforeDelete: boolean;
   defaultEditMode: EditMode;
   boardColor: BoardColorChoice;
@@ -263,6 +276,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
             ? parsed.formattingToolbar
             : true,
         stickyTopBar: parsed.stickyTopBar !== false,
+        hiddenTags: parseTagList(parsed.hiddenTags),
         confirmBeforeDelete: parsed.confirmBeforeDelete === true,
         defaultEditMode: parsed.defaultEditMode === "raw" ? "raw" : "normal",
         boardColor: parseBoardColor(parsed.boardColor),
@@ -296,6 +310,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     noteQuips: true,
     formattingToolbar: true,
     stickyTopBar: true,
+    hiddenTags: [],
     confirmBeforeDelete: false,
     defaultEditMode: "normal",
     boardColor: "none",
@@ -334,6 +349,7 @@ function savePrefs() {
       noteQuips: noteQuips.value,
       formattingToolbar: formattingToolbar.value,
       stickyTopBar: stickyTopBar.value,
+      hiddenTags: hiddenTags.value,
       confirmBeforeDelete: confirmBeforeDelete.value,
       defaultEditMode: defaultEditMode.value,
       boardColor: boardColor.value,
@@ -367,6 +383,7 @@ export const darkHue = signal<DarkHue>(prefs.darkHue);
 export const noteQuips = signal<boolean>(prefs.noteQuips);
 export const formattingToolbar = signal<boolean>(prefs.formattingToolbar);
 export const stickyTopBar = signal<boolean>(prefs.stickyTopBar);
+export const hiddenTags = signal<string[]>(prefs.hiddenTags);
 export const confirmBeforeDelete = signal<boolean>(prefs.confirmBeforeDelete);
 export const defaultEditMode = signal<EditMode>(prefs.defaultEditMode);
 export const boardColor = signal<BoardColorChoice>(prefs.boardColor);
@@ -449,6 +466,7 @@ export function applyPrefs(loaded: LoadedPrefs) {
       noteQuips.value = loaded.noteQuips;
       formattingToolbar.value = loaded.formattingToolbar;
       stickyTopBar.value = loaded.stickyTopBar;
+      hiddenTags.value = loaded.hiddenTags;
       confirmBeforeDelete.value = loaded.confirmBeforeDelete;
       defaultEditMode.value = loaded.defaultEditMode;
       boardColor.value = loaded.boardColor;
@@ -482,6 +500,7 @@ effect(() => {
   noteQuips.value;
   formattingToolbar.value;
   stickyTopBar.value;
+  hiddenTags.value;
   confirmBeforeDelete.value;
   defaultEditMode.value;
   boardColor.value;

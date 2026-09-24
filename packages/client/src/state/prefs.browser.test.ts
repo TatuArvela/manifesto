@@ -350,6 +350,19 @@ describe("stickyTopBar", () => {
   });
 });
 
+describe("hiddenTags", () => {
+  it("defaults to none", () => {
+    expect(parsePrefs(null).hiddenTags).toEqual([]);
+    expect(parsePrefs('{"hiddenTags":"work"}').hiddenTags).toEqual([]);
+  });
+
+  it("keeps each string once and drops anything else", () => {
+    expect(
+      parsePrefs('{"hiddenTags":["work",3,"work",null,"later"]}').hiddenTags,
+    ).toEqual(["work", "later"]);
+  });
+});
+
 describe("defaultEditMode", () => {
   it("defaults to the normal editor", () => {
     expect(parsePrefs(null).defaultEditMode).toBe("normal");
