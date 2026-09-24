@@ -75,6 +75,13 @@ describe("admin actions", () => {
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer tok");
   });
 
+  it("reaches a same-origin server, whose base is the empty string", async () => {
+    storageConnection.value = { serverUrl: "", token: "tok", onUnauthorized };
+    fetchMock.mockResolvedValueOnce(json({ users: [user()] }));
+    expect(await loadAdminUsers()).toBe(true);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/admin/users");
+  });
+
   it("adds a created account in order and holds its password to show once", async () => {
     adminUsers.value = [
       user({ id: "u-admin", username: "admin" }),

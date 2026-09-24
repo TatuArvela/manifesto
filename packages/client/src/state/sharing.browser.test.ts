@@ -175,6 +175,13 @@ describe("sharing a note", () => {
     expect(messages()).toEqual(["Could not look anyone up."]);
   });
 
+  it("reaches a same-origin server, whose base is the empty string", async () => {
+    storageConnection.value = { serverUrl: "", token: "tok" };
+    fetchMock.mockResolvedValueOnce(json({ users: [] }));
+    expect(await findUsers("zed")).toEqual([]);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/users?q=zed");
+  });
+
   it("invites someone and takes the server's copy of the note", async () => {
     notes.value = [makeNote()];
     const shared = makeNote({ sharing: sharedAs("owner") });
