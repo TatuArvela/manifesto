@@ -4,12 +4,16 @@ import type {
   NoteResponse,
   ShareRole,
 } from "@manifesto/shared";
-import type { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import { audit } from "../audit/audit.js";
+import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import type { Mailer } from "../mail/mailer.js";
 import { mailLocale, shareInvitationMail } from "../mail/templates.js";
-import type { AuthContext } from "../middleware/authBearer.js";
+import {
+  type AuthContext,
+  createAuthMiddleware,
+} from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
@@ -211,17 +215,19 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
 
 interface InvitationRoutesDeps {
   storage: StorageDriver;
+  authProvider: AuthProvider;
   broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
+  rateLimit?: MiddlewareHandler;
 }
 
 /** `/api/invitations`: notes offered to the signed-in user. */
-export function registerInvitationRoutes(
-  invitations: AuthedApp,
-  deps: InvitationRoutesDeps,
-) {
+export function createInvitationRoutes(deps: InvitationRoutesDeps) {
   const { storage, broadcaster, noteEvents, accessChanges } = deps;
+  const invitations: AuthedApp = new Hono();
+  invitations.use("*", createAuthMiddleware(deps.authProvider));
+  if (deps.rateLimit) invitations.use("*", deps.rateLimit);
 
   invitations.get("/", async (c) => {
     const { userId } = c.get("auth");
@@ -262,4 +268,6 @@ export function registerInvitationRoutes(
     await noteEvents.changed(noteId);
     return c.body(null, 204);
   });
+
+  return invitations;
 }

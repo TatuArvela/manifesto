@@ -3,6 +3,7 @@ import {
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
+  MAX_NOTES_PER_IMPORT,
   NoteColor,
   NoteFont,
   REMINDER_RECURRENCES,
@@ -24,8 +25,8 @@ const passwordSchema = z
 
 /**
  * An email address, checked only for its shape: something, an `@`, something.
- * Nothing is ever sent to it, so what matters is that it names one person and
- * can be typed back to find them, not that a mail server would accept it.
+ * A mail server is the judge of whether it is deliverable; this only refuses
+ * what cannot be an address at all.
  */
 export const emailSchema = z
   .string()
@@ -185,6 +186,22 @@ const noteFields = {
 } as const;
 
 export const noteCreateSchema = z.object(noteFields);
+
+/** `POST /api/notes/import`: notes as created, with the id and creation time
+ * they had where they came from. */
+export const notesImportSchema = z.object({
+  notes: z
+    .array(
+      noteCreateSchema.extend({
+        id: z
+          .string()
+          .regex(/^[0-9A-Za-z_-]{1,64}$/)
+          .optional(),
+        createdAt: z.iso.datetime({ offset: true }).optional(),
+      }),
+    )
+    .max(MAX_NOTES_PER_IMPORT),
+});
 
 /** `POST /api/notes/:id/versions`: the same bounds as the note's own text. */
 export const noteVersionCreateSchema = z.object({

@@ -4,7 +4,7 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import { APP_NAME } from "../config.js";
-import { authToken, clearAuthLocal, SERVER_URL } from "./auth.js";
+import { apiFetch } from "../storage/apiRequest.js";
 
 /**
  * Two-factor sign-in for the signed-in local account. Each call resolves with
@@ -14,29 +14,6 @@ import { authToken, clearAuthLocal, SERVER_URL } from "./auth.js";
 
 type Failure = { kind: "wrong-password" | "wrong-code" | "failed" };
 
-async function request(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<Response | null> {
-  const token = authToken.value;
-  if (SERVER_URL === null || !token) return null;
-  try {
-    const res = await fetch(`${SERVER_URL}/api/auth/two-factor${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(body !== undefined && { "Content-Type": "application/json" }),
-      },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
-    });
-    if (res.status === 401) clearAuthLocal();
-    return res;
-  } catch {
-    return null;
-  }
-}
-
 function failureOf(res: Response | null): Failure {
   if (res?.status === 403) return { kind: "wrong-password" };
   if (res?.status === 422) return { kind: "wrong-code" };
@@ -44,14 +21,14 @@ function failureOf(res: Response | null): Failure {
 }
 
 export async function twoFactorStatus(): Promise<TwoFactorStatusResponse | null> {
-  const res = await request("GET", "");
+  const res = await apiFetch("GET", "/auth/two-factor");
   return res?.ok ? ((await res.json()) as TwoFactorStatusResponse) : null;
 }
 
 export async function beginTwoFactor(
   password: string,
 ): Promise<{ kind: "ok"; secret: string } | Failure> {
-  const res = await request("POST", "/setup", { password });
+  const res = await apiFetch("POST", "/auth/two-factor/setup", { password });
   if (!res?.ok) return failureOf(res);
   return { kind: "ok", ...((await res.json()) as TwoFactorSetupResponse) };
 }
@@ -59,7 +36,7 @@ export async function beginTwoFactor(
 export async function enableTwoFactor(
   code: string,
 ): Promise<{ kind: "ok"; recoveryCodes: string[] } | Failure> {
-  const res = await request("POST", "/enable", { code });
+  const res = await apiFetch("POST", "/auth/two-factor/enable", { code });
   if (!res?.ok) return failureOf(res);
   return {
     kind: "ok",
@@ -70,14 +47,16 @@ export async function enableTwoFactor(
 export async function disableTwoFactor(
   password: string,
 ): Promise<{ kind: "ok" } | Failure> {
-  const res = await request("POST", "/disable", { password });
+  const res = await apiFetch("POST", "/auth/two-factor/disable", { password });
   return res?.ok ? { kind: "ok" } : failureOf(res);
 }
 
 export async function renewRecoveryCodes(
   password: string,
 ): Promise<{ kind: "ok"; recoveryCodes: string[] } | Failure> {
-  const res = await request("POST", "/recovery-codes", { password });
+  const res = await apiFetch("POST", "/auth/two-factor/recovery-codes", {
+    password,
+  });
   if (!res?.ok) return failureOf(res);
   return {
     kind: "ok",

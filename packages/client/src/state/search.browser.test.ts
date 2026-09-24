@@ -1,11 +1,7 @@
 import { NoteColor } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  filteredNotes,
-  noteHasChecklist,
-  notes,
-  updateNote,
-} from "./actions.js";
+import { hasChecklist } from "../utils/markdown.js";
+import { notes, updateNote } from "./notesStore.js";
 import { sortMode } from "./prefs.js";
 import { createNoteOrFail } from "./testSupport.js";
 import {
@@ -19,18 +15,19 @@ import {
   toggleSearchLocation,
   toggleSearchType,
 } from "./ui.js";
+import { filteredNotes } from "./views.js";
 
-describe("noteHasChecklist", () => {
+describe("hasChecklist", () => {
   it("detects checklist lines with and without bullets", () => {
-    expect(noteHasChecklist("- [ ] todo")).toBe(true);
-    expect(noteHasChecklist("- [x] done")).toBe(true);
-    expect(noteHasChecklist("[ ] bare")).toBe(true);
-    expect(noteHasChecklist("hello")).toBe(false);
-    expect(noteHasChecklist("")).toBe(false);
+    expect(hasChecklist("- [ ] todo")).toBe(true);
+    expect(hasChecklist("- [x] done")).toBe(true);
+    expect(hasChecklist("[ ] bare")).toBe(true);
+    expect(hasChecklist("hello")).toBe(false);
+    expect(hasChecklist("")).toBe(false);
   });
 
   it("detects checklist lines mixed with other content", () => {
-    expect(noteHasChecklist("heading\n- [ ] item\nmore text")).toBe(true);
+    expect(hasChecklist("heading\n- [ ] item\nmore text")).toBe(true);
   });
 });
 

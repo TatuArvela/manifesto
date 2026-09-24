@@ -5,9 +5,10 @@ import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
 import type { SharedNotePayload } from "../sharing.js";
 import { clearShareHash } from "../sharing.js";
-import { createNote } from "../state/actions.js";
+import { createNote } from "../state/notesStore.js";
 import { showSuccess } from "../state/ui.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
+import { Backdrop } from "./Backdrop.js";
 
 export function SharedNoteDialog({
   payload,
@@ -50,12 +51,7 @@ export function SharedNoteDialog({
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
-        onClick={dismiss}
-      />
+      <Backdrop onDismiss={dismiss} closing={closing} class="z-40" />
 
       <div
         ref={dialogRef}

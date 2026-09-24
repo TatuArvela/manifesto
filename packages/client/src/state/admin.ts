@@ -6,12 +6,11 @@ import type {
   AdminUserResponse,
   AdminUsersResponse,
   AuditLogResponse,
-  ErrorResponse,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
-import { storageConnection } from "../storage/index.js";
+import { ApiError, apiJson } from "../storage/apiRequest.js";
 import { refreshCurrentUser } from "./auth.js";
 import { activeView, showError } from "./ui.js";
 
@@ -38,42 +37,8 @@ export interface IssuedPassword {
 
 export const issuedPassword = signal<IssuedPassword | null>(null);
 
-class AdminRequestError extends Error {
-  constructor(
-    public status: number,
-    public code?: ErrorResponse["code"],
-  ) {
-    super(`Admin request failed (${status})`);
-  }
-}
-
-async function request<T>(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<T | null> {
-  const { serverUrl, token, onUnauthorized } = storageConnection.value;
-  if (!serverUrl || !token) throw new AdminRequestError(401);
-  const res = await fetch(`${serverUrl}/api/admin${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!res.ok) {
-    if (res.status === 401) onUnauthorized?.();
-    let code: ErrorResponse["code"];
-    try {
-      code = ((await res.json()) as Partial<ErrorResponse>).code;
-    } catch {
-      // not JSON; the status says enough
-    }
-    throw new AdminRequestError(res.status, code);
-  }
-  if (res.status === 204) return null;
-  return (await res.json()) as T;
+function request<T>(method: string, path: string, body?: unknown) {
+  return apiJson<T>(method, `/admin${path}`, body);
 }
 
 /**
@@ -81,9 +46,9 @@ async function request<T>(
  * admin revoked it), so the view they are on has nothing left to show them.
  */
 function report(err: unknown, fallback: MessageKey, conflict?: MessageKey) {
-  const status = err instanceof AdminRequestError ? err.status : 0;
+  const status = err instanceof ApiError ? err.status : 0;
   if (status === 401) return; // signed out; the login screen says enough
-  if (err instanceof AdminRequestError && err.code === "email_taken") {
+  if (err instanceof ApiError && err.code === "email_taken") {
     showError(t("admin.error.emailTaken"));
     return;
   }

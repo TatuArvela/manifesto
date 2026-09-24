@@ -44,8 +44,8 @@ const rawServer =
  * This is a `fetch` base and may be relative, including the empty string that
  * `/` resolves to. So every guard here tests `=== null` and never falsiness:
  * the empty string is a server on this page's own origin, and treating it as
- * "no server" is how a single-origin deployment used to render a login screen
- * whose every request took the open-mode branch instead of being sent.
+ * "no server" sends a single-origin deployment's every request down the
+ * open-mode branch.
  */
 export const SERVER_URL: string | null = resolveServerUrl(
   typeof rawServer === "string" ? rawServer : undefined,

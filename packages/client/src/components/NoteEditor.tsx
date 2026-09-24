@@ -35,12 +35,14 @@ import {
   getFontLabel,
   t,
 } from "../i18n/index.js";
-import { hasCheckedItems as textHasCheckedItems } from "../state/actions.js";
 import { attachImage, ImageTooLargeError } from "../state/attachments.js";
 import { defaultEditMode, formattingToolbar } from "../state/prefs.js";
 import { showError } from "../state/ui.js";
 import { extractUrls } from "../utils/linkPreview.js";
-import { removeCheckedItems } from "../utils/markdown.js";
+import {
+  removeCheckedItems,
+  hasCheckedItems as textHasCheckedItems,
+} from "../utils/markdown.js";
 import { applyTextEdit } from "../utils/rawFormatting.js";
 import { Dropdown } from "./Dropdown.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";

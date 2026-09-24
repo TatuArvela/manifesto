@@ -1,14 +1,12 @@
 /**
  * One definition of what a checklist line is, for everyone who has to agree:
  * the preview that draws the boxes, the actions that toggle and delete them,
- * and the segmenter that decides which lines belong together. Three copies of
- * this pattern used to drift: a line the preview drew a box for could be one
- * `toggleCheckbox` refused to touch.
+ * and the segmenter that decides which lines belong together. If they
+ * disagree, the preview draws a box that `toggleCheckbox` refuses to touch.
  *
  * The trailing space is optional. An item with no label is a real thing
- * (pressing Enter in the editor makes one), and requiring "`] `" meant an empty
- * item stopped being a checklist line and re-rendered as literal `- [ ]` text
- * that could never be checked again.
+ * (pressing Enter in the editor makes one); requiring "`] `" would turn an
+ * empty item into literal `- [ ]` text that can never be checked.
  */
 const CHECKLIST_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\](?: (.*))?$/;
 
@@ -78,6 +76,51 @@ export function isChecklistLine(line: string): boolean {
   return CHECKLIST_RE.test(line);
 }
 
+/**
+ * Whether `content` has a checklist the user can see. Fenced lines are
+ * skipped, as the preview skips them: inside a code block `- [x]` is quoted
+ * text, not a box.
+ */
+export function hasChecklist(content: string): boolean {
+  const lines = content.split("\n");
+  const fenced = markFencedLines(lines);
+  return lines.some((line, i) => !fenced[i] && isChecklistLine(line));
+}
+
+/** As {@link hasChecklist}, but only counting boxes that are ticked. */
+export function hasCheckedItems(content: string): boolean {
+  const lines = content.split("\n");
+  const fenced = markFencedLines(lines);
+  return lines.some(
+    (line, i) => !fenced[i] && parseChecklistLine(line)?.checked === true,
+  );
+}
+
+/**
+ * `content` with the box on `lineIndex` flipped, and every indented
+ * descendant below it set to match, as the editor's subtree toggle does.
+ * Null when that line is not a box that can be ticked.
+ */
+export function toggleChecklistItem(
+  content: string,
+  lineIndex: number,
+): string | null {
+  const lines = content.split("\n");
+  const fenced = markFencedLines(lines);
+  if (fenced[lineIndex]) return null;
+  const item = parseChecklistLine(lines[lineIndex] ?? "");
+  if (!item) return null;
+  const next = !item.checked;
+  lines[lineIndex] = setChecklistChecked(lines[lineIndex], next);
+  for (let i = lineIndex + 1; i < lines.length; i++) {
+    if (fenced[i]) break;
+    const child = parseChecklistLine(lines[i]);
+    if (!child || child.indent.length <= item.indent.length) break;
+    lines[i] = setChecklistChecked(lines[i], next);
+  }
+  return lines.join("\n");
+}
+
 const FENCE_RE = /^\s{0,3}(`{3,}|~{3,})/;
 
 /**
@@ -85,9 +128,8 @@ const FENCE_RE = /^\s{0,3}(`{3,}|~{3,})/;
  *
  * Line-at-a-time rules ("is this a checklist?", "is this a list item?",
  * "unescape these brackets") are all wrong inside a fence, where the text is
- * data rather than markup. A note documenting our own checklist syntax in a
- * code block used to have that block cut in half and rendered as live
- * checkboxes.
+ * data rather than markup: a note quoting checklist syntax in a code block
+ * must not have it rendered as live checkboxes.
  */
 export function markFencedLines(lines: string[]): boolean[] {
   const fenced: boolean[] = new Array(lines.length).fill(false);

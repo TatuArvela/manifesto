@@ -1,5 +1,5 @@
 import type { Note } from "@manifesto/shared";
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { MAX_NOTES_PER_IMPORT, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
 
@@ -239,92 +239,78 @@ describe("RestApiAdapter", () => {
   });
 
   describe("deleteAll", () => {
-    it("fetches all notes then issues one DELETE per note", async () => {
-      const notes = [makeNote({ id: "A" }), makeNote({ id: "B" })];
-      fetchMock
-        .mockResolvedValueOnce(jsonResponse({ notes }))
-        .mockResolvedValue(new Response(null, { status: 204 }));
+    it("asks the server to delete every note in one request", async () => {
+      fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
 
       await adapter.deleteAll();
 
-      expect(fetchMock).toHaveBeenCalledTimes(3);
-      const deleteUrls = fetchMock.mock.calls
-        .slice(1)
-        .map((c) => c[0])
-        .sort();
-      expect(deleteUrls).toEqual([
-        "https://api.example.com/api/notes/A",
-        "https://api.example.com/api/notes/B",
-      ]);
-    });
-
-    it("is a no-op when there are no notes", async () => {
-      fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
-      await adapter.deleteAll();
       expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.example.com/api/notes",
+      );
+      expect(lastCallInit(fetchMock).method).toBe("DELETE");
     });
 
-    it("continues past individual failures and aggregates them", async () => {
-      const notes = [
-        makeNote({ id: "A" }),
-        makeNote({ id: "B" }),
-        makeNote({ id: "C" }),
-      ];
-      fetchMock
-        .mockResolvedValueOnce(jsonResponse({ notes }))
-        // A: success
-        .mockResolvedValueOnce(new Response(null, { status: 204 }))
-        // B: 500, but the loop must continue
-        .mockResolvedValueOnce(new Response("err", { status: 500 }))
-        // C: success
-        .mockResolvedValueOnce(new Response(null, { status: 204 }));
-
+    it("rejects when the server refuses", async () => {
+      fetchMock.mockResolvedValueOnce(new Response("err", { status: 500 }));
       await expect(adapter.deleteAll()).rejects.toThrow(
-        "Failed to delete some notes",
+        "Failed to delete notes",
       );
-      // 1 list + 3 deletes confirms B's failure didn't short-circuit C.
-      expect(fetchMock).toHaveBeenCalledTimes(4);
     });
   });
 
   describe("importAll", () => {
-    it("updates existing notes and creates new ones", async () => {
-      const existing = makeNote({ id: "keep", title: "Old" });
-      fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [existing] }));
-
-      const updatedVersion = makeNote({ id: "keep", title: "New" });
-      const newNote = makeNote({ id: "fresh", title: "Fresh" });
-
-      fetchMock.mockResolvedValueOnce(jsonResponse({ note: updatedVersion }));
-      fetchMock.mockResolvedValueOnce(jsonResponse({ note: newNote }));
-
-      await adapter.importAll([updatedVersion, newNote]);
-
-      expect(fetchMock).toHaveBeenCalledTimes(3);
-      expect(fetchMock.mock.calls[1][0]).toBe(
-        "https://api.example.com/api/notes/keep",
+    it("sends the notes with their ids and creation times", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ created: 1, updated: 0, skipped: 0 }),
       );
-      expect(lastCallInit(fetchMock, 1).method).toBe("PUT");
-      expect(fetchMock.mock.calls[2][0]).toBe(
-        "https://api.example.com/api/notes",
-      );
-      expect(lastCallInit(fetchMock, 2).method).toBe("POST");
-    });
-
-    it("strips server-assigned fields from the payload", async () => {
-      fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       const incoming = makeNote({ id: "fresh", title: "Hi" });
-      fetchMock.mockResolvedValueOnce(jsonResponse({ note: incoming }));
 
       await adapter.importAll([incoming]);
 
-      const createBody = JSON.parse(
-        lastCallInit(fetchMock, 1).body as string,
-      ) as Record<string, unknown>;
-      expect(createBody.id).toBeUndefined();
-      expect(createBody.createdAt).toBeUndefined();
-      expect(createBody.updatedAt).toBeUndefined();
-      expect(createBody.title).toBe("Hi");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.example.com/api/notes/import",
+      );
+      const body = JSON.parse(lastCallInit(fetchMock).body as string) as {
+        notes: Record<string, unknown>[];
+      };
+      expect(body.notes).toHaveLength(1);
+      expect(body.notes[0].id).toBe("fresh");
+      expect(body.notes[0].createdAt).toBe(incoming.createdAt);
+      expect(body.notes[0].updatedAt).toBeUndefined();
+      expect(body.notes[0].title).toBe("Hi");
+    });
+
+    it("splits a backup larger than one request may carry", async () => {
+      fetchMock.mockResolvedValue(
+        jsonResponse({ created: 0, updated: 0, skipped: 0 }),
+      );
+      const backup = Array.from({ length: MAX_NOTES_PER_IMPORT + 1 }, (_, i) =>
+        makeNote({ id: `n${i}` }),
+      );
+
+      await adapter.importAll(backup);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("keeps each request under the body limit", async () => {
+      fetchMock.mockResolvedValue(
+        jsonResponse({ created: 0, updated: 0, skipped: 0 }),
+      );
+      const large = "x".repeat(90_000);
+      const backup = Array.from({ length: 20 }, (_, i) =>
+        makeNote({ id: `n${i}`, content: large }),
+      );
+
+      await adapter.importAll(backup);
+
+      for (const index of fetchMock.mock.calls.keys()) {
+        const body = lastCallInit(fetchMock, index).body as string;
+        expect(body.length).toBeLessThan(1024 * 1024);
+      }
+      expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
     });
   });
 
@@ -413,29 +399,6 @@ describe("RestApiAdapter", () => {
     });
   });
 
-  describe("search", () => {
-    it("URL-encodes the query parameter", async () => {
-      fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
-      await adapter.search("hello world & stuff");
-      expect(fetchMock.mock.calls[0][0]).toBe(
-        "https://api.example.com/api/search?q=hello%20world%20%26%20stuff",
-      );
-    });
-
-    it("returns the notes array from the response envelope", async () => {
-      const hits = [makeNote({ id: "hit" })];
-      fetchMock.mockResolvedValueOnce(jsonResponse({ notes: hits }));
-      expect(await adapter.search("q")).toEqual(hits);
-    });
-
-    it("throws on failure", async () => {
-      fetchMock.mockResolvedValueOnce(new Response("", { status: 500 }));
-      await expect(adapter.search("q")).rejects.toThrow(
-        "Failed to search notes",
-      );
-    });
-  });
-
   describe("paging", () => {
     // The app keeps every note in one signal (`allTags`, the tag counts and
     // the whole filter chain are computed over the full list), so pages are a
@@ -462,19 +425,6 @@ describe("RestApiAdapter", () => {
       );
       expect(fetchMock.mock.calls[1][0]).toBe(
         "https://api.example.com/api/notes?cursor=cur-1",
-      );
-    });
-
-    it("joins the cursor onto a query string that already exists", async () => {
-      fetchMock
-        .mockResolvedValueOnce(
-          jsonResponse({ notes: [makeNote({ id: "a" })], nextCursor: "c" }),
-        )
-        .mockResolvedValueOnce(jsonResponse({ notes: [], nextCursor: null }));
-
-      await adapter.search("cats");
-      expect(fetchMock.mock.calls[1][0]).toBe(
-        "https://api.example.com/api/search?q=cats&cursor=c",
       );
     });
 

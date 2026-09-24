@@ -3,6 +3,7 @@ import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
 import { answerConfirmation, confirmRequest } from "../state/confirm.js";
+import { Backdrop } from "./Backdrop.js";
 
 /**
  * The one place a destructive action stops to ask. Driven by the
@@ -48,11 +49,10 @@ export function ConfirmDialogHost() {
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class={`fixed inset-0 bg-black/50 z-[60] transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
-        onClick={() => answerConfirmation(false)}
+      <Backdrop
+        onDismiss={() => answerConfirmation(false)}
+        closing={closing}
+        class="z-[60]"
       />
       <div
         ref={dialogRef}

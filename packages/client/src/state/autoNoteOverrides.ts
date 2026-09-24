@@ -1,4 +1,4 @@
-import type { NoteColor, NoteReminder } from "@manifesto/shared";
+import type { NoteUpdate } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
 
 /**
@@ -8,15 +8,42 @@ import { effect, signal } from "@preact/signals";
  * id (`generated:<pluginId>:<noteKey>`). Overrides merge on top of whatever
  * the plugin emits.
  */
-export interface AutoNoteOverride {
-  pinned?: boolean;
-  color?: NoteColor;
-  tags?: string[];
-  archived?: boolean;
-  trashed?: boolean;
-  trashedAt?: string | null;
-  position?: number;
-  reminder?: NoteReminder | null;
+export const AUTO_NOTE_OVERRIDE_FIELDS = [
+  "pinned",
+  "color",
+  "tags",
+  "archived",
+  "trashed",
+  "trashedAt",
+  "position",
+  "reminder",
+] as const satisfies readonly (keyof NoteUpdate)[];
+
+export type AutoNoteOverride = Pick<
+  NoteUpdate,
+  (typeof AUTO_NOTE_OVERRIDE_FIELDS)[number]
+>;
+
+const GENERATED_ID_PREFIX = "generated:";
+
+/** The synthetic id an auto-note is known by. */
+export function generatedNoteId(pluginId: string, noteKey: string): string {
+  return `${GENERATED_ID_PREFIX}${pluginId}:${noteKey}`;
+}
+
+/** Whether a note id names an auto-note rather than a stored note. */
+export function isGeneratedNoteId(id: string): boolean {
+  return id.startsWith(GENERATED_ID_PREFIX);
+}
+
+/** The part of `changes` an auto-note keeps; its title and content are the
+ * plugin's. */
+export function overrideFrom(changes: NoteUpdate): AutoNoteOverride {
+  const override: Record<string, unknown> = {};
+  for (const field of AUTO_NOTE_OVERRIDE_FIELDS) {
+    if (changes[field] !== undefined) override[field] = changes[field];
+  }
+  return override as AutoNoteOverride;
 }
 
 const STORAGE_KEY = "manifesto:auto-note-overrides";

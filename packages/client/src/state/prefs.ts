@@ -1,5 +1,5 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { batch, computed, effect, signal } from "@preact/signals";
+import { batch, computed, effect, type Signal, signal } from "@preact/signals";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { isLocale, type Locale } from "../i18n/locales.js";
 
@@ -157,26 +157,27 @@ function prefersReducedMotion(): boolean {
   );
 }
 
-function parseDarkHue(value: unknown): DarkHue {
-  return typeof value === "string" &&
-    (DARK_HUES as readonly string[]).includes(value)
-    ? (value as DarkHue)
-    : "neutral";
-}
-
 const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
+const NOTE_FONTS = new Set<string>(Object.values(NoteFont));
 
 /**
  * The value indexes `noteColorMap` when a note is created, so anything
- * unrecognised falls back rather than reaching a card as `undefined`. Before
- * a specific colour could be the default, the setting was `"plain" | "random"`,
- * and `"plain"` meant what `NoteColor.Default` means now.
+ * unrecognised falls back rather than reaching a card as `undefined`. The
+ * setting was once `"plain" | "random"`, and `"plain"` falls back to what it
+ * meant, `NoteColor.Default`.
  */
 function parseDefaultNoteColor(value: unknown): DefaultNoteColor {
   if (value === "random") return "random";
   return typeof value === "string" && NOTE_COLORS.has(value)
     ? (value as NoteColor)
     : NoteColor.Default;
+}
+
+function parseDefaultNoteFont(value: unknown): DefaultNoteFont {
+  if (value === "random") return "random";
+  return typeof value === "string" && NOTE_FONTS.has(value)
+    ? (value as NoteFont)
+    : NoteFont.Default;
 }
 
 /** Strings only, each once: anything else in a hand-edited blob is dropped. */
@@ -187,138 +188,107 @@ function parseTagList(value: unknown): string[] {
   ];
 }
 
-function parseDecimalSeparator(value: unknown): DecimalSeparator {
-  return typeof value === "string" &&
-    (DECIMAL_SEPARATOR_VALUES as readonly string[]).includes(value)
-    ? (value as DecimalSeparator)
-    : "auto";
+function oneOf<T extends string>(values: readonly T[], fallback: T) {
+  return (value: unknown): T =>
+    typeof value === "string" && (values as readonly string[]).includes(value)
+      ? (value as T)
+      : fallback;
+}
+
+function flag(fallback: boolean) {
+  return (value: unknown): boolean =>
+    typeof value === "boolean" ? value : fallback;
 }
 
 // --- Persisted preferences ---
 
 const PREFS_KEY = "manifesto:prefs";
 
-export interface LoadedPrefs {
-  viewMode: ViewMode;
-  sortMode: SortMode;
-  noteSize: NoteSize;
-  noteScale: NoteScale;
-  theme: ThemeMode;
-  defaultNoteColor: DefaultNoteColor;
-  defaultNoteFont: DefaultNoteFont;
-  locale: Locale;
-  inlineCalculations: boolean;
-  decimalSeparator: DecimalSeparator;
-  noteCorners: NoteCorners;
-  animations: boolean;
-  darkHue: DarkHue;
-  noteQuips: boolean;
-  formattingToolbar: boolean;
+/**
+ * Every preference, as the parser that reads it from the stored blob. A
+ * missing or unrecognised value parses to the default, so the defaults are
+ * `parse(undefined)`. Adding a preference is one line here and one `pref()`
+ * below; loading, saving and adopting another tab's blob all read this table.
+ */
+const PREF_PARSERS = {
+  viewMode: oneOf<ViewMode>(["grid", "list"], "grid"),
+  sortMode: oneOf<SortMode>(["default", "updated", "created"], "default"),
+  noteSize: oneOf<NoteSize>(["fit", "square"], "fit"),
+  noteScale: oneOf<NoteScale>(["big", "small"], "big"),
+  theme: oneOf<ThemeMode>(["system", "light", "dark"], "system"),
+  defaultNoteColor: parseDefaultNoteColor,
+  // `noteFont` is the key's old name.
+  defaultNoteFont: (value: unknown, blob: Record<string, unknown>) =>
+    parseDefaultNoteFont(value ?? blob.noteFont),
+  locale: (value: unknown): Locale =>
+    isLocale(value) ? value : detectBrowserLocale(),
+  inlineCalculations: flag(true),
+  decimalSeparator: oneOf(DECIMAL_SEPARATOR_VALUES, "auto"),
+  noteCorners: oneOf<NoteCorners>(["straight", "rounded"], "straight"),
+  // First-run default follows the OS setting; once the user flips the
+  // toggle, their choice wins.
+  animations: (value: unknown): boolean =>
+    typeof value === "boolean" ? value : !prefersReducedMotion(),
+  darkHue: oneOf(DARK_HUES, "neutral"),
+  noteQuips: flag(true),
+  formattingToolbar: flag(true),
   /**
    * On a phone, whether the top bar stays at the top of the screen while the
    * board scrolls, or scrolls away with it. Wider screens always keep it.
    */
-  stickyTopBar: boolean;
+  stickyTopBar: flag(true),
   /**
    * Tags whose notes stay out of the Notes view. They are still in Tags,
    * Search, Reminders and the rest; this only keeps the main board clear.
    */
-  hiddenTags: string[];
-  confirmBeforeDelete: boolean;
-  defaultEditMode: EditMode;
-  boardColor: BoardColorChoice;
-  boardCustomColor: string;
-  boardTexture: BoardTextureChoice;
+  hiddenTags: parseTagList,
+  confirmBeforeDelete: flag(false),
+  defaultEditMode: oneOf<EditMode>(["normal", "raw"], "normal"),
+  boardColor: parseBoardColor,
+  boardCustomColor: parseHexColor,
+  boardTexture: parseBoardTexture,
   /**
    * Whether the picture on file covers the board, in place of the colour and
    * texture. Those are kept, so turning the picture off brings them back.
    */
-  boardUsePicture: boolean;
+  boardUsePicture: flag(false),
   /**
    * When the board picture was last replaced, or 0 with none on file. The
    * picture is in IndexedDB, which no other tab hears about, so this is what
    * changes in the preferences blob and tells them to load it again.
    */
-  boardImageStamp: number;
-}
+  boardImageStamp: (value: unknown): number =>
+    typeof value === "number" && Number.isFinite(value) ? value : 0,
+} satisfies Record<
+  string,
+  (value: unknown, blob: Record<string, unknown>) => unknown
+>;
+
+type PrefKey = keyof typeof PREF_PARSERS;
+
+export type LoadedPrefs = {
+  [K in PrefKey]: ReturnType<(typeof PREF_PARSERS)[K]>;
+};
+
+const PREF_KEYS = Object.keys(PREF_PARSERS) as PrefKey[];
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
-  let persistedLocale: Locale | undefined;
+  let blob: Record<string, unknown> = {};
   if (raw) {
     try {
-      const parsed = JSON.parse(raw);
-      if (isLocale(parsed.locale)) persistedLocale = parsed.locale;
-      return {
-        viewMode: parsed.viewMode ?? "grid",
-        sortMode: parsed.sortMode ?? "default",
-        noteSize: parsed.noteSize ?? "fit",
-        noteScale: parsed.noteScale === "small" ? "small" : "big",
-        theme: parsed.theme ?? "system",
-        defaultNoteColor: parseDefaultNoteColor(parsed.defaultNoteColor),
-        defaultNoteFont:
-          parsed.defaultNoteFont ?? parsed.noteFont ?? NoteFont.Default,
-        locale: persistedLocale ?? detectBrowserLocale(),
-        inlineCalculations:
-          typeof parsed.inlineCalculations === "boolean"
-            ? parsed.inlineCalculations
-            : true,
-        decimalSeparator: parseDecimalSeparator(parsed.decimalSeparator),
-        noteCorners: parsed.noteCorners === "rounded" ? "rounded" : "straight",
-        animations:
-          typeof parsed.animations === "boolean"
-            ? parsed.animations
-            : !prefersReducedMotion(),
-        darkHue: parseDarkHue(parsed.darkHue),
-        noteQuips:
-          typeof parsed.noteQuips === "boolean" ? parsed.noteQuips : true,
-        formattingToolbar:
-          typeof parsed.formattingToolbar === "boolean"
-            ? parsed.formattingToolbar
-            : true,
-        stickyTopBar: parsed.stickyTopBar !== false,
-        hiddenTags: parseTagList(parsed.hiddenTags),
-        confirmBeforeDelete: parsed.confirmBeforeDelete === true,
-        defaultEditMode: parsed.defaultEditMode === "raw" ? "raw" : "normal",
-        boardColor: parseBoardColor(parsed.boardColor),
-        boardCustomColor: parseHexColor(parsed.boardCustomColor),
-        boardTexture: parseBoardTexture(parsed.boardTexture),
-        boardUsePicture: parsed.boardUsePicture === true,
-        boardImageStamp:
-          typeof parsed.boardImageStamp === "number" &&
-          Number.isFinite(parsed.boardImageStamp)
-            ? parsed.boardImageStamp
-            : 0,
-      };
+      const parsed: unknown = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        blob = parsed as Record<string, unknown>;
+      }
     } catch {
-      // ignore
+      // Unreadable: every preference takes its default.
     }
   }
-  return {
-    viewMode: "grid",
-    sortMode: "default",
-    noteSize: "fit",
-    noteScale: "big",
-    theme: "system",
-    defaultNoteColor: NoteColor.Default,
-    defaultNoteFont: NoteFont.Default,
-    locale: detectBrowserLocale(),
-    inlineCalculations: true,
-    decimalSeparator: "auto",
-    noteCorners: "straight",
-    animations: !prefersReducedMotion(),
-    darkHue: "neutral",
-    noteQuips: true,
-    formattingToolbar: true,
-    stickyTopBar: true,
-    hiddenTags: [],
-    confirmBeforeDelete: false,
-    defaultEditMode: "normal",
-    boardColor: "none",
-    boardCustomColor: DEFAULT_BOARD_CUSTOM_COLOR,
-    boardTexture: "none",
-    boardUsePicture: false,
-    boardImageStamp: 0,
-  };
+  const loaded: Record<string, unknown> = {};
+  for (const key of PREF_KEYS) {
+    loaded[key] = PREF_PARSERS[key](blob[key], blob);
+  }
+  return loaded as LoadedPrefs;
 }
 
 function loadPrefs(): LoadedPrefs {
@@ -329,65 +299,55 @@ function loadPrefs(): LoadedPrefs {
   }
 }
 
-function savePrefs() {
-  localStorage.setItem(
-    PREFS_KEY,
-    JSON.stringify({
-      viewMode: viewMode.value,
-      sortMode: sortMode.value,
-      noteSize: noteSize.value,
-      noteScale: noteScale.value,
-      theme: theme.value,
-      defaultNoteColor: defaultNoteColor.value,
-      defaultNoteFont: defaultNoteFont.value,
-      locale: locale.value,
-      inlineCalculations: inlineCalculations.value,
-      decimalSeparator: decimalSeparator.value,
-      noteCorners: noteCorners.value,
-      animations: animations.value,
-      darkHue: darkHue.value,
-      noteQuips: noteQuips.value,
-      formattingToolbar: formattingToolbar.value,
-      stickyTopBar: stickyTopBar.value,
-      hiddenTags: hiddenTags.value,
-      confirmBeforeDelete: confirmBeforeDelete.value,
-      defaultEditMode: defaultEditMode.value,
-      boardColor: boardColor.value,
-      boardCustomColor: boardCustomColor.value,
-      boardTexture: boardTexture.value,
-      boardUsePicture: boardUsePicture.value,
-      boardImageStamp: boardImageStamp.value,
-    }),
-  );
+const loaded = loadPrefs();
+const prefSignals: Partial<Record<PrefKey, Signal<unknown>>> = {};
+
+/** The signal for one preference, registered for saving and adopting. */
+function pref<K extends PrefKey>(key: K): Signal<LoadedPrefs[K]> {
+  const s = signal(loaded[key]);
+  prefSignals[key] = s as Signal<unknown>;
+  return s;
 }
 
-const prefs = loadPrefs();
+export const viewMode = pref("viewMode");
+export const noteSize = pref("noteSize");
+export const noteScale = pref("noteScale");
+export const sortMode = pref("sortMode");
+export const theme = pref("theme");
+export const defaultNoteColor = pref("defaultNoteColor");
+export const defaultNoteFont = pref("defaultNoteFont");
+export const locale = pref("locale");
+export const inlineCalculations = pref("inlineCalculations");
+export const decimalSeparator = pref("decimalSeparator");
+export const noteCorners = pref("noteCorners");
+export const animations = pref("animations");
+export const darkHue = pref("darkHue");
+export const noteQuips = pref("noteQuips");
+export const formattingToolbar = pref("formattingToolbar");
+export const stickyTopBar = pref("stickyTopBar");
+export const hiddenTags = pref("hiddenTags");
+export const confirmBeforeDelete = pref("confirmBeforeDelete");
+export const defaultEditMode = pref("defaultEditMode");
+export const boardColor = pref("boardColor");
+export const boardCustomColor = pref("boardCustomColor");
+export const boardTexture = pref("boardTexture");
+export const boardUsePicture = pref("boardUsePicture");
+export const boardImageStamp = pref("boardImageStamp");
 
-export const viewMode = signal<ViewMode>(prefs.viewMode);
-export const noteSize = signal<NoteSize>(prefs.noteSize);
-export const noteScale = signal<NoteScale>(prefs.noteScale);
-export const sortMode = signal<SortMode>(prefs.sortMode);
-export const theme = signal<ThemeMode>(prefs.theme);
-export const defaultNoteColor = signal<DefaultNoteColor>(
-  prefs.defaultNoteColor,
-);
-export const defaultNoteFont = signal<DefaultNoteFont>(prefs.defaultNoteFont);
-export const locale = signal<Locale>(prefs.locale);
-export const inlineCalculations = signal<boolean>(prefs.inlineCalculations);
-export const decimalSeparator = signal<DecimalSeparator>(
-  prefs.decimalSeparator,
-);
-export const noteCorners = signal<NoteCorners>(prefs.noteCorners);
-export const animations = signal<boolean>(prefs.animations);
-export const darkHue = signal<DarkHue>(prefs.darkHue);
-export const noteQuips = signal<boolean>(prefs.noteQuips);
-export const formattingToolbar = signal<boolean>(prefs.formattingToolbar);
-export const stickyTopBar = signal<boolean>(prefs.stickyTopBar);
-export const hiddenTags = signal<string[]>(prefs.hiddenTags);
-export const confirmBeforeDelete = signal<boolean>(prefs.confirmBeforeDelete);
-export const defaultEditMode = signal<EditMode>(prefs.defaultEditMode);
-export const boardColor = signal<BoardColorChoice>(prefs.boardColor);
-export const boardCustomColor = signal<string>(prefs.boardCustomColor);
+for (const key of PREF_KEYS) {
+  if (!prefSignals[key]) throw new Error(`Preference "${key}" has no signal`);
+}
+
+function prefSignal(key: PrefKey): Signal<unknown> {
+  return prefSignals[key] as Signal<unknown>;
+}
+
+function savePrefs() {
+  const blob: Record<string, unknown> = {};
+  for (const key of PREF_KEYS) blob[key] = prefSignal(key).value;
+  localStorage.setItem(PREFS_KEY, JSON.stringify(blob));
+}
+
 /** The preset "random" stands for in this tab; see `randomBoardTexture`. */
 const randomBoardColor = signal<BoardColor>(rollBoardColor());
 
@@ -404,7 +364,6 @@ export function rerollBoardColor() {
   while (next === current) next = rollBoardColor();
   randomBoardColor.value = next;
 }
-export const boardTexture = signal<BoardTextureChoice>(prefs.boardTexture);
 /**
  * The texture "random" stands for in this tab. Rolled once per page load,
  * so the board changes between visits but never under the user mid-session,
@@ -426,13 +385,30 @@ export function rerollBoardTexture() {
   while (next === current) next = rollBoardTexture();
   randomBoardTexture.value = next;
 }
-export const boardUsePicture = signal<boolean>(prefs.boardUsePicture);
-export const boardImageStamp = signal<number>(prefs.boardImageStamp);
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
 export function resolvedDecimalSeparator(): "." | "," {
   if (decimalSeparator.value !== "auto") return decimalSeparator.value;
   return locale.value === "fi" ? "," : ".";
+}
+
+const RANDOM_NOTE_COLORS = Object.values(NoteColor).filter(
+  (c) => c !== NoteColor.Default,
+);
+const RANDOM_NOTE_FONTS = Object.values(NoteFont).filter(
+  (f) => f !== NoteFont.Default,
+);
+
+/** The colour a new note gets, with "random" resolved. */
+export function pickDefaultColor(): NoteColor {
+  const choice = defaultNoteColor.value;
+  return choice === "random" ? pickOne(RANDOM_NOTE_COLORS) : choice;
+}
+
+/** The font a new note gets, with "random" resolved. */
+export function pickDefaultFont(): NoteFont {
+  const choice = defaultNoteFont.value;
+  return choice === "random" ? pickOne(RANDOM_NOTE_FONTS) : choice;
 }
 
 /**
@@ -446,34 +422,11 @@ export function resolvedDecimalSeparator(): "." | "," {
 let applyingRemotePrefs = false;
 
 /** Adopts a preferences blob written by another tab. */
-export function applyPrefs(loaded: LoadedPrefs) {
+export function applyPrefs(next: LoadedPrefs) {
   applyingRemotePrefs = true;
   try {
     batch(() => {
-      viewMode.value = loaded.viewMode;
-      sortMode.value = loaded.sortMode;
-      noteSize.value = loaded.noteSize;
-      noteScale.value = loaded.noteScale;
-      theme.value = loaded.theme;
-      defaultNoteColor.value = loaded.defaultNoteColor;
-      defaultNoteFont.value = loaded.defaultNoteFont;
-      locale.value = loaded.locale;
-      inlineCalculations.value = loaded.inlineCalculations;
-      decimalSeparator.value = loaded.decimalSeparator;
-      noteCorners.value = loaded.noteCorners;
-      animations.value = loaded.animations;
-      darkHue.value = loaded.darkHue;
-      noteQuips.value = loaded.noteQuips;
-      formattingToolbar.value = loaded.formattingToolbar;
-      stickyTopBar.value = loaded.stickyTopBar;
-      hiddenTags.value = loaded.hiddenTags;
-      confirmBeforeDelete.value = loaded.confirmBeforeDelete;
-      defaultEditMode.value = loaded.defaultEditMode;
-      boardColor.value = loaded.boardColor;
-      boardCustomColor.value = loaded.boardCustomColor;
-      boardTexture.value = loaded.boardTexture;
-      boardUsePicture.value = loaded.boardUsePicture;
-      boardImageStamp.value = loaded.boardImageStamp;
+      for (const key of PREF_KEYS) prefSignal(key).value = next[key];
     });
   } finally {
     applyingRemotePrefs = false;
@@ -483,32 +436,8 @@ export function applyPrefs(loaded: LoadedPrefs) {
 // Persist preferences when any pref signal changes (debounced)
 let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 effect(() => {
-  // Read all signals to establish dependencies
-  viewMode.value;
-  sortMode.value;
-  noteSize.value;
-  noteScale.value;
-  theme.value;
-  defaultNoteColor.value;
-  defaultNoteFont.value;
-  locale.value;
-  inlineCalculations.value;
-  decimalSeparator.value;
-  noteCorners.value;
-  animations.value;
-  darkHue.value;
-  noteQuips.value;
-  formattingToolbar.value;
-  stickyTopBar.value;
-  hiddenTags.value;
-  confirmBeforeDelete.value;
-  defaultEditMode.value;
-  boardColor.value;
-  boardCustomColor.value;
-  boardTexture.value;
-  boardUsePicture.value;
-  boardImageStamp.value;
-  // The reads above stay unconditional: they are what subscribes this effect.
+  // Read every signal unconditionally: the reads are what subscribe this.
+  for (const key of PREF_KEYS) prefSignal(key).value;
   if (applyingRemotePrefs) return;
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(savePrefs, 50);

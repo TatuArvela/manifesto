@@ -1,5 +1,10 @@
 import type { Note, NoteCreate, NotesResponse } from "@manifesto/shared";
-import { attachmentIdOf, NoteColor, NoteFont } from "@manifesto/shared";
+import {
+  attachmentIdOf,
+  MAX_NOTES_PER_IMPORT,
+  NoteColor,
+  NoteFont,
+} from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   authHeaders,
@@ -309,6 +314,105 @@ describe("notes routes", () => {
     expect(body.error).toMatch(/changed/i);
     expect(body.note.title).toBe("Original");
     expect(body.note.tags).toEqual(["concurrent"]);
+  });
+
+  describe("import", () => {
+    async function importNotes(token: string, notes: unknown[]) {
+      const res = await rig.request("/api/notes/import", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({ notes }),
+      });
+      expect(res.status).toBe(200);
+      return await res.json();
+    }
+
+    async function listIds(token: string): Promise<string[]> {
+      const res = await rig.request("/api/notes", {
+        headers: authHeaders(token),
+      });
+      return ((await res.json()) as NotesResponse).notes.map((n) => n.id);
+    }
+
+    it("keeps the id and creation time, and updates on a second import", async () => {
+      const { token } = await registerTestUser(rig, "alice");
+      const backup = {
+        ...baseNote,
+        id: "01HZZZZZZZZZZZZZZZZZZZZZZZ",
+        createdAt: "2020-01-02T03:04:05.000Z",
+        title: "From a backup",
+      };
+
+      expect(await importNotes(token, [backup])).toEqual({
+        created: 1,
+        updated: 0,
+        skipped: 0,
+      });
+      expect(await importNotes(token, [{ ...backup, title: "Again" }])).toEqual(
+        { created: 0, updated: 1, skipped: 0 },
+      );
+
+      expect(await listIds(token)).toEqual([backup.id]);
+      const res = await rig.request(`/api/notes/${backup.id}`, {
+        headers: authHeaders(token),
+      });
+      const { note } = (await res.json()) as { note: Note };
+      expect(note.title).toBe("Again");
+      expect(note.createdAt).toBe(backup.createdAt);
+    });
+
+    it("gives a new id when the id is someone else's note", async () => {
+      const alice = await registerTestUser(rig, "alice");
+      const bob = await registerTestUser(rig, "bob");
+      const theirs = await createNote(rig, alice.token, { title: "Alice's" });
+
+      expect(
+        await importNotes(bob.token, [{ ...baseNote, id: theirs.id }]),
+      ).toEqual({ created: 1, updated: 0, skipped: 0 });
+
+      const bobs = await listIds(bob.token);
+      expect(bobs).toHaveLength(1);
+      expect(bobs[0]).not.toBe(theirs.id);
+      expect(await listIds(alice.token)).toEqual([theirs.id]);
+    });
+
+    it("refuses more notes than one request may carry", async () => {
+      const { token } = await registerTestUser(rig, "alice");
+      const res = await rig.request("/api/notes/import", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({
+          notes: Array.from(
+            { length: MAX_NOTES_PER_IMPORT + 1 },
+            () => baseNote,
+          ),
+        }),
+      });
+      expect(res.status).toBe(422);
+    });
+  });
+
+  it("deletes every note of the user's and only theirs", async () => {
+    const alice = await registerTestUser(rig, "alice");
+    const bob = await registerTestUser(rig, "bob");
+    await createNote(rig, alice.token);
+    await createNote(rig, alice.token);
+    const kept = await createNote(rig, bob.token);
+
+    const res = await rig.request("/api/notes", {
+      method: "DELETE",
+      headers: authHeaders(alice.token),
+    });
+    expect(res.status).toBe(204);
+
+    const listed = async (token: string) =>
+      (
+        (await (
+          await rig.request("/api/notes", { headers: authHeaders(token) })
+        ).json()) as NotesResponse
+      ).notes.map((n) => n.id);
+    expect(await listed(alice.token)).toEqual([]);
+    expect(await listed(bob.token)).toEqual([kept.id]);
   });
 
   describe("listing", () => {

@@ -16,11 +16,12 @@ const DAY_MS = 24 * HOUR_MS;
  * database forever. Both the inactivity timeout and the absolute lifetime
  * land in `expires_at` (see `auth/session.ts`), so this one sweep covers both.
  */
-export function startSessionCleanup(
-  storage: StorageDriver,
-  intervalMs: number = HOUR_MS,
-  auditRetentionDays = 180,
-): () => void {
+export function startSessionCleanup(deps: {
+  storage: StorageDriver;
+  auditRetentionDays: number;
+  intervalMs?: number;
+}): () => void {
+  const { storage, auditRetentionDays, intervalMs = HOUR_MS } = deps;
   return startPeriodicJob("session cleanup", intervalMs, async () => {
     const now = nowIso();
     const removed = await storage.sessions.deleteExpired(now);

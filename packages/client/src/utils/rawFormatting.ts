@@ -8,11 +8,10 @@ import type {
  *
  * Raw mode edits the note's markdown in a textarea while the rich editor sits
  * hidden beside it, rebuilt from the textarea's text on the way back. The
- * toolbar used to keep talking to that hidden editor: its buttons lit up for
- * wherever the rich cursor had last been, and pressing one changed a document
- * about to be thrown away. Here the same buttons are expressed as edits to the
- * markdown itself, so what the toolbar reports and what it changes are both the
- * text the user is looking at.
+ * toolbar must not talk to that hidden editor, whose document is about to be
+ * thrown away, so here the same buttons are expressed as edits to the markdown
+ * itself: what the toolbar reports and what it changes are both the text the
+ * user is looking at.
  *
  * Everything but {@link applyTextEdit} is pure string work, so it is tested in
  * the Node project.

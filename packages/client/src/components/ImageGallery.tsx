@@ -4,6 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
+import { Backdrop } from "./Backdrop.js";
 import { StoredImage } from "./StoredImage.js";
 
 interface ImageGalleryProps {
@@ -104,12 +105,7 @@ function ImageLightbox({
 
   return createPortal(
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class="fixed inset-0 bg-black/90 z-[100] animate-fade-in"
-        onClick={onClose}
-      />
+      <Backdrop onDismiss={onClose} class="z-[100]" deep />
       <div
         ref={dialogRef}
         role="dialog"

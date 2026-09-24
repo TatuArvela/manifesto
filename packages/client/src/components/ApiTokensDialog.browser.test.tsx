@@ -1,26 +1,24 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
+import { storageConnection } from "../storage/index.js";
 import { ApiTokensDialog } from "./ApiTokensDialog.js";
-
-vi.mock("../state/auth.js", async (original) => ({
-  ...(await original<typeof import("../state/auth.js")>()),
-  SERVER_URL: "https://notes.example",
-  SERVER_ORIGIN: "https://notes.example",
-}));
 
 let host: HTMLDivElement;
 
 describe("ApiTokensDialog", () => {
-  beforeEach(async () => {
-    const { authToken } = await import("../state/auth.js");
-    authToken.value = "session";
+  beforeEach(() => {
+    storageConnection.value = {
+      serverUrl: "https://notes.example",
+      token: "session",
+    };
     host = document.createElement("div");
     document.body.appendChild(host);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    storageConnection.value = { serverUrl: null, token: null };
     render(null, host);
     host.remove();
   });

@@ -3,39 +3,16 @@ import type {
   ApiTokenCreatedResponse,
   ApiTokensResponse,
 } from "@manifesto/shared";
-import { authToken, clearAuthLocal, SERVER_URL } from "./auth.js";
+import { apiFetch } from "../storage/apiRequest.js";
 
 /**
  * The signed-in user's personal API tokens. Each call resolves with what
  * happened rather than rejecting; the dialog says it in its own words.
  */
 
-async function request(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<Response | null> {
-  const token = authToken.value;
-  if (SERVER_URL === null || !token) return null;
-  try {
-    const res = await fetch(`${SERVER_URL}/api/tokens${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(body !== undefined && { "Content-Type": "application/json" }),
-      },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
-    });
-    if (res.status === 401) clearAuthLocal();
-    return res;
-  } catch {
-    return null;
-  }
-}
-
 /** Null if they could not be read. */
 export async function listApiTokens(): Promise<ApiToken[] | null> {
-  const res = await request("GET", "");
+  const res = await apiFetch("GET", "/tokens");
   if (!res?.ok) return null;
   return ((await res.json()) as ApiTokensResponse).tokens;
 }
@@ -49,7 +26,7 @@ export async function createApiToken(
   name: string,
   expiresInDays: number | null,
 ): Promise<CreateApiTokenResult> {
-  const res = await request("POST", "", {
+  const res = await apiFetch("POST", "/tokens", {
     name,
     ...(expiresInDays !== null && { expiresInDays }),
   });
@@ -62,6 +39,6 @@ export async function createApiToken(
 }
 
 export async function revokeApiToken(id: string): Promise<boolean> {
-  const res = await request("DELETE", `/${encodeURIComponent(id)}`);
+  const res = await apiFetch("DELETE", `/tokens/${encodeURIComponent(id)}`);
   return res?.ok === true;
 }

@@ -8,13 +8,13 @@ import {
   type WebSocketEvent,
 } from "@manifesto/shared";
 import { effect, signal, untracked } from "@preact/signals";
-import { loadNotes, notes, receiveNote } from "../state/actions.js";
 import {
   authToken,
   clearAuthLocal,
   isServerMode,
   WS_ORIGIN,
 } from "../state/auth.js";
+import { forgetNote, loadNotes, receiveNote } from "../state/notesStore.js";
 import {
   clearPresence,
   recordPresenceJoin,
@@ -170,7 +170,7 @@ function applyServerEvent(event: WebSocketEvent) {
       receiveNote(event.note);
       break;
     case "note:deleted":
-      notes.value = notes.value.filter((n) => n.id !== event.id);
+      forgetNote(event.id);
       break;
     case "presence:join":
       recordPresenceJoin(event.noteId, event.user);

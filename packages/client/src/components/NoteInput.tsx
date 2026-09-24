@@ -1,15 +1,10 @@
-import type { LinkPreview, Note, NoteColor, NoteFont } from "@manifesto/shared";
+import type { Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { Braces, FileText, ListX, Plus } from "lucide-preact";
 import { createPortal } from "preact/compat";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
+import { useDraftLinkPreviews } from "../hooks/useDraftLinkPreviews.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { holdFocus, useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
@@ -27,8 +22,6 @@ import {
   noteSize,
   pickDefaultColor,
   pickDefaultFont,
-  reportPreviewOverflow,
-  resolveLinkPreview,
   showError,
   viewMode,
 } from "../state/index.js";
@@ -36,13 +29,14 @@ import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
 } from "../utils/importExport.js";
-import { appendStubPreviews, extractUrls } from "../utils/linkPreview.js";
+import { extractUrls } from "../utils/linkPreview.js";
 import {
   isMorphSource,
   morphIn,
   type RectLike,
   viewportSize,
 } from "../utils/morph.js";
+import { Backdrop } from "./Backdrop.js";
 import { gridColumns } from "./gridColumns.js";
 import { NoteEditor } from "./NoteEditor.js";
 
@@ -84,15 +78,8 @@ export function NoteInput() {
   const [pinned, setPinned] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
-  const [linkPreviews, setLinkPreviewsState] = useState<LinkPreview[]>([]);
-  // The draft's previews as of the last change rather than the last render. A
-  // paste and a preview arriving can both land before a render, and building
-  // the second change from render state throws away the first.
-  const linkPreviewsRef = useRef<LinkPreview[]>([]);
-  const setLinkPreviews = (next: LinkPreview[]) => {
-    linkPreviewsRef.current = next;
-    setLinkPreviewsState(next);
-  };
+  const drafts = useDraftLinkPreviews();
+  const linkPreviews = drafts.previews;
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
   const [topCta, setTopCta] = useState(() => randomCta());
@@ -113,12 +100,6 @@ export function NoteInput() {
   const morphFromRef = useRef<{ rect: RectLike; opaque: boolean } | null>(null);
   const [morphing, setMorphing] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  // Previews still loading for this draft. The draft can be saved before they
-  // arrive, and then they are applied to the note it became.
-  const pendingPreviewsRef = useRef(
-    new Map<string, Promise<LinkPreview | null>>(),
-  );
-  const closeModalRef = useRef<() => void>(() => {});
 
   const after = (ms: number, fn: () => void) => {
     timersRef.current.push(setTimeout(fn, ms));
@@ -132,12 +113,6 @@ export function NoteInput() {
     [],
   );
 
-  // Escape closes the editor, saving as clicking outside does. Held in a ref
-  // because it has to be registered up here with the other hooks, above the
-  // early return, while `closeModal` is defined further down with the state it
-  // captures. Anything opened from inside the editor registers later and takes
-  // the key first.
-  useEscapeStack(expanded, () => closeModalRef.current());
   const modalRef = useFocusTrap<HTMLDivElement>(expanded && !closing);
 
   // Layout, not effect, so the panel's first frame is already over its source.
@@ -199,29 +174,6 @@ export function NoteInput() {
     return () => obs.disconnect();
   }, [isList, isActiveView]);
 
-  // Something shared to the installed app from elsewhere opens here as a new
-  // note. Through a ref for the same reason as `closeModalRef`: the handler
-  // needs state setters and helpers defined below the early return.
-  const openShareRef = useRef<(share: IncomingShare) => void>(() => {});
-  const share = incomingShare.value;
-  useEffect(() => {
-    if (!share || !isActiveView || expanded) return;
-    incomingShare.value = null;
-    openShareRef.current(share);
-  }, [share, isActiveView, expanded]);
-
-  // The `c` shortcut: a new note, from the pad where it shows, as a click on it
-  // would open one.
-  const openNewRef = useRef<() => void>(() => {});
-  const newNote = newNoteRequested.value;
-  useEffect(() => {
-    if (!newNote || !isActiveView) return;
-    newNoteRequested.value = false;
-    if (!expanded) openNewRef.current();
-  }, [newNote, isActiveView, expanded]);
-
-  if (!isActiveView) return null;
-
   /** The unsaved composer contents, shaped as a note for the JSON export. */
   const draftNote = (): Note => {
     const now = new Date().toISOString();
@@ -253,47 +205,13 @@ export function NoteInput() {
     setPinned(false);
     setTags([]);
     setImages([]);
-    setLinkPreviews([]);
+    drafts.clear();
   };
 
-  const addLinkPreviews = (urls: string[]) => {
-    const { previews, added, overflow } = appendStubPreviews(
-      linkPreviewsRef.current,
-      urls,
-    );
-    reportPreviewOverflow(overflow);
-    if (added.length === 0) return;
-    setLinkPreviews(previews);
-    const pendingPreviews = pendingPreviewsRef.current;
-    for (const url of added) {
-      const pending = resolveLinkPreview(url);
-      pendingPreviews.set(url, pending);
-      pending.then((resolved) => {
-        // Not in this draft's map any more: the draft was saved or discarded,
-        // and `closeModal` has handed the answer on to the note. It stays in
-        // the map once answered, because the close can still read state from
-        // before this update rendered, and applying it twice is a no-op.
-        if (pendingPreviewsRef.current.get(url) !== pending) return;
-        if (!resolved) return;
-        setLinkPreviews(
-          linkPreviewsRef.current.map((p) => (p.url === url ? resolved : p)),
-        );
-      });
-    }
-  };
-
-  /** Hands the draft's unfinished previews over and starts the next draft
-   * with none. */
-  const takePendingPreviews = () => {
-    const pending = [...pendingPreviewsRef.current.values()];
-    pendingPreviewsRef.current = new Map();
-    return pending;
-  };
-
-  const cycleCta = useCallback(() => {
+  const cycleCta = () => {
     setTopCta(nextCta);
     setNextCta(randomCta(nextCta));
-  }, [nextCta]);
+  };
 
   /** Opens the editor over `rect`, growing out of it if it can be seen. */
   const expandFrom = (rect: RectLike | undefined, opaque: boolean) => {
@@ -381,33 +299,58 @@ export function NoteInput() {
       snap.images.length > 0 ||
       snap.linkPreviews.length > 0
     ) {
-      const pending = takePendingPreviews();
+      const pending = drafts.takePending();
       createNote(snap).then((note) => {
         if (note && pending.length > 0) applyLinkPreviews(note.id, pending);
       });
     } else {
-      takePendingPreviews();
+      drafts.takePending();
     }
     finishClose();
   };
 
   const discardNote = () => {
-    takePendingPreviews();
+    drafts.takePending();
     finishClose();
   };
 
-  closeModalRef.current = closeModal;
-  openNewRef.current = () =>
+  const openNew = () =>
     openModal(topSheetRef.current?.getClientRects().length ? "pad" : "button");
-  openShareRef.current = (incoming) => {
+  const openShare = (incoming: IncomingShare) => {
     setTitle(incoming.title);
     setContent(incoming.content);
     setImages(incoming.images);
-    addLinkPreviews(extractUrls(incoming.content));
+    drafts.add(extractUrls(incoming.content));
     // No gesture to grow out of: the app has just been opened for this.
     setMorphing(false);
     setExpanded(true);
   };
+
+  // Escape closes the editor, saving as clicking outside does. Anything
+  // opened from inside the editor registers later and takes the key first.
+  useEscapeStack(expanded, () => closeModal());
+
+  // Something shared to the installed app from elsewhere opens here as a new
+  // note.
+  const share = incomingShare.value;
+  useEffect(() => {
+    if (!share || !isActiveView || expanded) return;
+    incomingShare.value = null;
+    openShare(share);
+  }, [share, isActiveView, expanded]);
+
+  // The `c` shortcut: a new note, from the pad where it shows, as a click on it
+  // would open one.
+  const newNote = newNoteRequested.value;
+  useEffect(() => {
+    if (!newNote || !isActiveView) return;
+    newNoteRequested.value = false;
+    if (!expanded) openNew();
+  }, [newNote, isActiveView, expanded]);
+
+  // Every hook is above this line: `App` keeps this mounted in views where it
+  // shows nothing, so the same hooks must run in those too.
+  if (!isActiveView) return null;
 
   const topNoteHidden = lifting || (expanded && !closing);
   const topNoteClass = lifting
@@ -499,12 +442,10 @@ export function NoteInput() {
       {expanded &&
         createPortal(
           <>
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-            <div
-              class={`fixed inset-0 bg-black/50 z-40 max-sm:hidden transition-opacity duration-150 ${closing ? "opacity-0" : "animate-fade-in"}`}
-              role="presentation"
-              onClick={() => closeModal()}
-              onKeyDown={() => {}}
+            <Backdrop
+              onDismiss={() => closeModal()}
+              closing={closing}
+              class="z-40 max-sm:hidden"
             />
             <div
               ref={modalRef}
@@ -532,12 +473,8 @@ export function NoteInput() {
                     setImages(images.filter((_, i) => i !== index))
                   }
                   linkPreviews={linkPreviews}
-                  onAddLinkPreviews={addLinkPreviews}
-                  onRemoveLinkPreview={(index) =>
-                    setLinkPreviews(
-                      linkPreviewsRef.current.filter((_, i) => i !== index),
-                    )
-                  }
+                  onAddLinkPreviews={drafts.add}
+                  onRemoveLinkPreview={drafts.remove}
                   pinned={pinned}
                   onPinToggle={() => setPinned(!pinned)}
                   tags={tags}

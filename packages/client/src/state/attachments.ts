@@ -4,11 +4,9 @@ import {
   MAX_IMAGE_SOURCE_BYTES,
   mapPreviewImages,
 } from "@manifesto/shared";
-import { createStorage } from "../storage/index.js";
+import { storage } from "../storage/index.js";
 import { blobToDataUrl } from "../utils/dataUrl.js";
 import { shrinkImage } from "../utils/shrinkImage.js";
-
-const storage = createStorage();
 
 /**
  * Images the server keeps in its attachment store reach a note as

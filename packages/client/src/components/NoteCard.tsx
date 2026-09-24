@@ -38,7 +38,6 @@ import {
   deleteCheckedItems,
   editingNoteId,
   enterSelectMode,
-  hasCheckedItems,
   leavingNotes,
   noteSize,
   permanentlyDeleteNote,
@@ -53,6 +52,7 @@ import {
   viewMode,
 } from "../state/index.js";
 import { extractUrls } from "../utils/linkPreview.js";
+import { hasCheckedItems } from "../utils/markdown.js";
 import {
   isMorphSource,
   MORPH_MS,
@@ -422,11 +422,10 @@ export const NoteCard = memo(function NoteCard({
 
   // `editingNoteId` is the only thing that decides whether this card's modal is
   // up, in both directions: setting it opens the modal, clearing it plays the
-  // close animation and takes it down. The effect used to have no `else`, so
-  // anything that moved editing elsewhere without going through `closeModal` (
-  // a reminder banner opening another note, a notification, a `note:updated`
-  // that trashed this one) left the modal on screen over a note nothing was
-  // editing any more, and a second modal could open behind it.
+  // close animation and takes it down. Editing can move elsewhere without going
+  // through `closeModal` (a reminder banner opening another note, a
+  // notification, a `note:updated` that trashed this one), and the modal must
+  // still come down.
   useEffect(() => {
     if (isEditing) {
       closeRunRef.current++;

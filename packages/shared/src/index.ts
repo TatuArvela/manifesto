@@ -27,7 +27,10 @@ export type {
   ErrorResponse,
   InvitationsResponse,
   LinkPreviewResponse,
+  NoteImport,
   NoteResponse,
+  NotesImportRequest,
+  NotesImportResponse,
   NotesResponse,
   NoteVersionCreateRequest,
   NoteVersionsResponse,
@@ -58,6 +61,7 @@ export {
   AUDIT_ACTIONS,
   DEFAULT_NOTES_PAGE_SIZE,
   MAX_NOTES_PAGE_SIZE,
+  MAX_NOTES_PER_IMPORT,
   WEBHOOK_EVENTS,
 } from "./api.js";
 export type {
@@ -105,4 +109,5 @@ export {
   roleOf,
   SHARE_ROLES,
   SHARED_NOTE_FIELDS,
+  TRASH_RETENTION_DAYS,
 } from "./note.js";

@@ -40,10 +40,9 @@ pnpm monorepo with three packages, plus one build tool:
   the image, page-size and recurrence limits are exported constants, so this package emits
   JavaScript and is not erasable. It has no npm dependencies of its own. Because the client and
   server resolve it through different export conditions, a value added here must be reachable
-  from the build, not just the types. That mismatch once shipped a constant that typechecked
-  green and was `undefined` at runtime. Both vitest configs alias `@manifesto/shared` to
-  `../shared/src/index.ts`, so tests read the same files the compiler checked, which is why
-  nothing caught it. Only a real build plus run exercises `dist`.
+  from the build, not just the types. Both vitest configs alias `@manifesto/shared` to
+  `../shared/src/index.ts`, so tests never exercise `dist`: only a real build plus run catches a
+  value that typechecks and is `undefined` at runtime.
 - **`packages/client`**: Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
 - **`packages/server`**: Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
 - **`packages/build-version`**: build-time only, never shipped. Resolves the version a build
@@ -66,15 +65,21 @@ pnpm monorepo with three packages, plus one build tool:
 
 State lives in `packages/client/src/state/` using @preact/signals:
 
-- **`actions.ts`**: Core signals (`notes`, computed `filteredNotes`/`sortedNotes`/`allTags`), and async action functions (`createNote`, `updateNote`, `trashNote`, `bulkArchive`, etc.). Actions modify both signals and the storage adapter.
+- **`notesStore.ts`**: the `notes` signal and the actions that talk to storage about it
+  (`createNote`, `updateNote`, `deleteNote`, `loadNotes`, `importNotes`, `ensureImages`).
+  `actions.ts` builds the user-level actions on it (trash, archive, pin, tags, bulk, reorder),
+  `views.ts` holds the computed views (`filteredNotes`, `sortedNotes`, `allTags`), and
+  `selection.ts`, `ordering.ts` and `exportNotes.ts` the rest.
   **An action reports its own failure and resolves; it never rejects**, and says whether it worked
   in its return value (`false`, or `null` where a value was expected). The call sites are JSX
   handlers with nowhere to put a `catch`, so a rejection there is an unhandled rejection the user
-  never sees. Group work goes through `asBatch`, which counts failures instead of letting each one
-  raise its own toast and reports the total once.
+  never sees. Group work goes through `asBatch` (`failures.ts`), which hands each action a `Batch`
+  to count its failure in instead of raising its own toast, and reports the total once. The batch
+  is passed explicitly, never held in module state, since two groups can be in flight at once.
   In connected mode a write is local-first: `updateNote` puts the change in the signal before it
   sends. Every copy of a note the server sends back (a reply, a broadcast, a listing) comes in
-  through `receiveNote` / `foldIncomingList` and never through a plain assignment.
+  through `receiveNote` / `receiveNoteList` and never through a plain assignment; a note leaves
+  through `forgetNote`.
   `pendingWrites.ts` replays the writes still outstanding on top of that copy, so a late reply
   cannot revert a newer click. `settle` must get the same `changes` object `begin` did, even
   when a conflict retry sent a merged one. `incomingNote.ts` hands back the held note by
@@ -126,11 +131,11 @@ single-origin deployment a one-line edit with no policy change.
 A relative server value is supported and is the tidiest way to configure a
 single-origin deployment: `/` resolves to the **empty string**, which means this
 page's own origin and is not the same as null, which is open mode. So every
-guard on `SERVER_URL` tests `=== null` and never falsiness. Reading `""` as "no
-server" is exactly the bug this had: `isServerMode` was true so `LoginScreen`
-rendered, while `authRequest`, `currentStorage` and both socket builders took
-the open-mode branch, giving a sign-in form that submitted into nothing and,
-had a token ever arrived, notes written to `localStorage`. A relative base is
+guard on `SERVER_URL` (and on `storageConnection.serverUrl`) tests `=== null`
+and never falsiness; a falsy test sends a same-origin deployment down the
+open-mode branch. Account-level requests (admin, sharing, tokens, webhooks,
+two-factor) go through `storage/apiRequest.ts`, which holds that check once, so
+a new one should too rather than calling `fetch` itself. A relative base is
 right for `fetch` and useless to a `WebSocket`, so `resolveServerOrigin` spells
 it out from `window.location` once and `SERVER_ORIGIN` / `WS_ORIGIN` are what
 the sockets and the "your notes are on <host>" copy read.
@@ -238,7 +243,7 @@ a peer that did not answer the last one, and sends a `heartbeat` event, since a 
 pings. The client gives up on a socket after two and a half beats without a word, but only once it
 has heard a heartbeat, so an older server's quiet socket is not redialled forever. The token effect
 in `startAppSocket` runs its work `untracked`: `setStatus` reaches code that reads signals, and a
-read there once made the outage timer tear the socket down every 4s. The user side of the same
+tracked read there re-runs the effect and tears the socket down. The user side of the same
 moment is `realtime/connectionOutage.ts`: the banner reports `connectionOutage`, which is `connectionStatus` after a delay, never the status
 itself, or every resume announces a reconnect that is already finishing. A deliberate teardown
 (`disconnect`, so a logout or open mode) is `idle` rather than `closed` for that reason, and the
@@ -284,9 +289,8 @@ Two unrelated features make a note more than text, and both run on every render 
   arithmetic (`200+300` at the end of a line), wired in by `extensions/inlineCalculations.ts`. It
   is hand-written rather than `eval`-shaped on purpose, and it accepts the comma decimal separator.
 - `utils/linkPreview.ts` extracts URLs for the preview cards. Its trailing-punctuation regex uses a
-  *bounded* quantifier: the unbounded version backtracked quadratically and froze the tab on a long
-  note, during render, with no user action beyond opening it. Keep quantifiers bounded in anything
-  reachable from a card render.
+  *bounded* quantifier, since an unbounded one backtracks quadratically on a long note and freezes
+  the tab during render. Keep quantifiers bounded in anything reachable from a card render.
 
 ### Link Previews
 
@@ -355,7 +359,7 @@ splash a frame after the first render, on a timer as well as `transitionend`, si
 never arrives in a background tab.
 
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
-toast queue or the catalogue, so the "tell the user" decision stays in `actions.ts`. A refused
+toast queue or the catalogue, so the "tell the user" decision stays in `failures.ts`. A refused
 write is neither retried nor rolled back: the signal keeps the change, so the session continues
 with a note that exists only in this tab.
 
@@ -457,7 +461,7 @@ the owner's; each recipient's `note_shares` row holds their role and their own `
 `archived`, `trashed`, `position`, `tags` and `reminder`. A recipient's trash is theirs alone and
 expires their share, not the note; the owner's trash hides the note from everyone. `SHARED_NOTE_FIELDS` / `PERSONAL_NOTE_FIELDS` in
 `@manifesto/shared` are the one list of which is which, read by the server's `splitChanges`
-(`storage/shareMapping.ts`) and the client's `refusalFor` (`state/actions.ts`). Adding a field to
+(`storage/shareMapping.ts`) and the client's `refusalFor` (`state/notesStore.ts`). Adding a field to
 `Note` means putting it in one of them, or recipients cannot write it at all.
 
 Every write by anyone stamps the note's `updated_at`, a recipient's pin included, so all participants

@@ -7,7 +7,8 @@ import {
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "../storage/index.js";
-import { exportNotes, notes, updateNote } from "./actions.js";
+import { exportNotes } from "./exportNotes.js";
+import { notes, updateNote } from "./notesStore.js";
 import { locale } from "./prefs.js";
 import {
   acceptInvitation,
@@ -173,6 +174,13 @@ describe("sharing a note", () => {
     fetchMock.mockRejectedValueOnce(new TypeError("offline"));
     expect(await findUsers("zed")).toBeNull();
     expect(messages()).toEqual(["Could not look anyone up."]);
+  });
+
+  it("reaches a same-origin server, whose base is the empty string", async () => {
+    storageConnection.value = { serverUrl: "", token: "tok" };
+    fetchMock.mockResolvedValueOnce(json({ users: [] }));
+    expect(await findUsers("zed")).toEqual([]);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/users?q=zed");
   });
 
   it("invites someone and takes the server's copy of the note", async () => {

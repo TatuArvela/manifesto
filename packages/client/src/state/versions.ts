@@ -1,8 +1,6 @@
 import type { NoteVersion } from "@manifesto/shared";
-import { createStorage, storageConnection } from "../storage/index.js";
+import { storage, storageConnection } from "../storage/index.js";
 import { deleteVersions, getVersions } from "../storage/VersionStorage.js";
-
-const storage = createStorage();
 
 /**
  * Keeps the text a note had before an editing session, as a version. Reports

@@ -71,9 +71,7 @@ export function ContentPreview({
               {seg.lines.map((line, j) => {
                 const lineIndex = seg.startLine + j;
                 // One parser, shared with the actions that toggle and delete
-                // these items. Two patterns used to disagree about what a
-                // checklist line is, so the preview could draw a box for a
-                // line `toggleCheckbox` then refused to touch.
+                // these items, so every box drawn here is one they can touch.
                 const item = parseChecklistLine(line);
                 if (!item) return null;
                 return (

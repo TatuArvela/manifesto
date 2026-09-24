@@ -17,10 +17,9 @@ export interface StorageConnection {
 
 /**
  * Set by `state/auth.ts`, which is the module that knows about sessions.
- * Pushed in rather than read out: storage used to import the auth signals
- * directly, which put the bottom layer of the app above one of its own
- * callers and meant anything touching a note pulled the login screen's state
- * in with it.
+ * Pushed in rather than read out, so storage, the bottom layer of the app,
+ * never imports one of its own callers: anything touching a note would pull
+ * the login screen's state in with it.
  */
 export const storageConnection = signal<StorageConnection>({
   serverUrl: null,
@@ -44,26 +43,14 @@ export const currentStorage = computed<StorageAdapter>(() => {
 });
 
 /**
- * Thin shim used by tests and modules that want a plain object. Reads through
- * to the latest reactive adapter on every method call.
+ * The adapter in use at the moment of each call. Every method is looked up on
+ * `currentStorage.value` when it is called, so a module can hold this for its
+ * whole life and still reach the right backend after a login or logout.
  */
-export function createStorage(): StorageAdapter {
-  return {
-    getAll: () => currentStorage.value.getAll(),
-    get: (id) => currentStorage.value.get(id),
-    create: (note) => currentStorage.value.create(note),
-    update: (id, changes, options) =>
-      currentStorage.value.update(id, changes, options),
-    delete: (id) => currentStorage.value.delete(id),
-    deleteAll: () => currentStorage.value.deleteAll(),
-    search: (query) => currentStorage.value.search(query),
-    importAll: (notes) => currentStorage.value.importAll(notes),
-    loadImages: (id) => currentStorage.value.loadImages(id),
-    loadImage: (ref) => currentStorage.value.loadImage(ref),
-    putImage: (image, options) => currentStorage.value.putImage(image, options),
-    listVersions: (noteId) => currentStorage.value.listVersions(noteId),
-    saveVersion: (noteId, version) =>
-      currentStorage.value.saveVersion(noteId, version),
-    fetchLinkPreview: (url) => currentStorage.value.fetchLinkPreview(url),
-  };
-}
+export const storage: StorageAdapter = new Proxy({} as StorageAdapter, {
+  get(_, key) {
+    const adapter = currentStorage.value;
+    const member = adapter[key as keyof StorageAdapter];
+    return typeof member === "function" ? member.bind(adapter) : member;
+  },
+});

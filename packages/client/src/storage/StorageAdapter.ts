@@ -22,7 +22,6 @@ export interface StorageAdapter {
   ): Promise<Note>;
   delete(id: string): Promise<void>;
   deleteAll(): Promise<void>;
-  search(query: string): Promise<Note[]>;
   importAll(notes: Note[]): Promise<void>;
   /**
    * The attachments of one note. Server listings leave them out (they are the

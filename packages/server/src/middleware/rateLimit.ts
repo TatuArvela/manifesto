@@ -128,7 +128,7 @@ function ipv4String(groups: number[]): string {
  * into one shared bucket.
  *
  * Anything that does not parse as an address (a proxy's `unknown`, the `anon`
- * fallback) keys as itself, which is what every value used to do.
+ * fallback) keys as itself.
  */
 export function ipBucketKey(address: string): string {
   const groups = ipv6Groups(address);

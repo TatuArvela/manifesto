@@ -9,8 +9,8 @@ import type {
 import { signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
-import { storageConnection } from "../storage/index.js";
-import { notes, receiveNote } from "./actions.js";
+import { ApiError, apiJson } from "../storage/apiRequest.js";
+import { forgetNote, receiveNote, reviseNote } from "./notesStore.js";
 import { editingNoteId, showError, showSuccess } from "./ui.js";
 
 /**
@@ -32,35 +32,6 @@ export const invitations = signal<ShareInvitation[]>([]);
  */
 export const shareDialog = signal<{ noteId: string } | null>(null);
 
-class SharingRequestError extends Error {
-  constructor(public status: number) {
-    super(`Sharing request failed (${status})`);
-  }
-}
-
-async function request<T>(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<T | null> {
-  const { serverUrl, token, onUnauthorized } = storageConnection.value;
-  if (!serverUrl || !token) throw new SharingRequestError(401);
-  const res = await fetch(`${serverUrl}/api${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!res.ok) {
-    if (res.status === 401) onUnauthorized?.();
-    throw new SharingRequestError(res.status);
-  }
-  if (res.status === 204) return null;
-  return (await res.json()) as T;
-}
-
 /**
  * Say what went wrong. A `fetch` that never reached the server is a network
  * failure, and the fallback is the most honest thing to say about it.
@@ -72,7 +43,7 @@ function report(
   byStatus: Partial<Record<number, MessageKey>> = {},
 ) {
   console.error(context, err);
-  const status = err instanceof SharingRequestError ? err.status : 0;
+  const status = err instanceof ApiError ? err.status : 0;
   if (status === 401) return; // signed out; the login screen says enough
   showError(t(byStatus[status] ?? fallback));
 }
@@ -101,7 +72,7 @@ export function forgetInvitation(noteId: string): void {
 
 export async function loadInvitations(): Promise<boolean> {
   try {
-    const body = await request<InvitationsResponse>("GET", "/invitations");
+    const body = await apiJson<InvitationsResponse>("GET", "/invitations");
     invitations.value = body?.invitations ?? [];
     return true;
   } catch (err) {
@@ -114,7 +85,7 @@ export async function loadInvitations(): Promise<boolean> {
 
 export async function acceptInvitation(noteId: string): Promise<boolean> {
   try {
-    const body = await request<NoteResponse>(
+    const body = await apiJson<NoteResponse>(
       "POST",
       `/invitations/${noteId}/accept`,
     );
@@ -124,7 +95,7 @@ export async function acceptInvitation(noteId: string): Promise<boolean> {
   } catch (err) {
     // Gone: withdrawn, or the note was trashed or deleted in the meantime.
     // There is nothing left to accept, so the offer goes too.
-    if (err instanceof SharingRequestError && err.status === 404) {
+    if (err instanceof ApiError && err.status === 404) {
       forgetInvitation(noteId);
     }
     report(
@@ -141,11 +112,11 @@ export async function acceptInvitation(noteId: string): Promise<boolean> {
 
 export async function declineInvitation(noteId: string): Promise<boolean> {
   try {
-    await request<null>("POST", `/invitations/${noteId}/decline`);
+    await apiJson<null>("POST", `/invitations/${noteId}/decline`);
     forgetInvitation(noteId);
     return true;
   } catch (err) {
-    if (err instanceof SharingRequestError && err.status === 404) {
+    if (err instanceof ApiError && err.status === 404) {
       forgetInvitation(noteId);
       return true;
     }
@@ -169,7 +140,7 @@ export async function findUsers(
   const q = query.trim();
   if (q.length === 0) return [];
   try {
-    const body = await request<UserLookupResponse>(
+    const body = await apiJson<UserLookupResponse>(
       "GET",
       `/users?q=${encodeURIComponent(q)}`,
     );
@@ -186,7 +157,7 @@ export async function shareNote(
   role: ShareRole,
 ): Promise<boolean> {
   try {
-    const body = await request<NoteResponse>(
+    const body = await apiJson<NoteResponse>(
       "POST",
       `/notes/${noteId}/shares`,
       {
@@ -217,7 +188,7 @@ export async function setShareRole(
   role: ShareRole,
 ): Promise<boolean> {
   try {
-    const body = await request<NoteResponse>(
+    const body = await apiJson<NoteResponse>(
       "PUT",
       `/notes/${noteId}/shares/${userId}`,
       { role },
@@ -243,11 +214,11 @@ export async function removeShare(
   userId: string,
 ): Promise<boolean> {
   try {
-    await request<null>("DELETE", `/notes/${noteId}/shares/${userId}`);
+    await apiJson<null>("DELETE", `/notes/${noteId}/shares/${userId}`);
     // The server's `note:updated` says the same a moment later; saying it
     // here keeps the dialog from showing someone who is already gone.
-    notes.value = notes.value.map((note) => {
-      if (note.id !== noteId || !note.sharing) return note;
+    reviseNote(noteId, (note) => {
+      if (!note.sharing) return note;
       const members = note.sharing.members.filter((m) => m.id !== userId);
       if (members.length > 0) {
         return { ...note, sharing: { ...note.sharing, members } };
@@ -278,10 +249,10 @@ export async function leaveNote(
   userId: string,
 ): Promise<boolean> {
   try {
-    await request<null>("DELETE", `/notes/${noteId}/shares/${userId}`);
+    await apiJson<null>("DELETE", `/notes/${noteId}/shares/${userId}`);
   } catch (err) {
     // Already gone is as good as left.
-    if (!(err instanceof SharingRequestError && err.status === 404)) {
+    if (!(err instanceof ApiError && err.status === 404)) {
       report(
         `Failed to leave note ${noteId}:`,
         err,
@@ -291,6 +262,6 @@ export async function leaveNote(
     }
   }
   if (editingNoteId.value === noteId) editingNoteId.value = null;
-  notes.value = notes.value.filter((n) => n.id !== noteId);
+  forgetNote(noteId);
   return true;
 }

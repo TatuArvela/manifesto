@@ -13,6 +13,7 @@ import {
   setWebhookActive,
   testWebhook,
 } from "../state/webhooks.js";
+import { Backdrop } from "./Backdrop.js";
 import { Switch } from "./ToggleSwitch.js";
 
 const inputClass =
@@ -109,12 +110,7 @@ export function WebhooksDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class="fixed inset-0 bg-black/50 z-40 animate-fade-in"
-        onClick={onClose}
-      />
+      <Backdrop onDismiss={onClose} class="z-40" />
       <div
         ref={dialogRef}
         role="dialog"

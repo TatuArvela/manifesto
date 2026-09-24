@@ -24,9 +24,9 @@ vi.mock("../state/auth.js", () => ({
   isServerMode: true,
   WS_ORIGIN: "ws://notes.invalid",
 }));
-vi.mock("../state/actions.js", () => ({
+vi.mock("../state/notesStore.js", () => ({
+  forgetNote: () => {},
   loadNotes,
-  notes: signal([]),
   receiveNote: () => {},
 }));
 vi.mock("../state/presence.js", () => ({

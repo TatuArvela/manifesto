@@ -2,6 +2,7 @@ import type {
   LinkPreview,
   Note,
   NoteColor,
+  NoteCreate,
   NoteFont,
   NoteVersion,
   ShareRole,
@@ -42,6 +43,30 @@ export interface NotesResponse {
 
 export interface NoteResponse {
   note: Note;
+}
+
+/** Notes per `POST /api/notes/import` request; a larger backup is sent in
+ * several. */
+export const MAX_NOTES_PER_IMPORT = 100;
+
+/**
+ * One note of `POST /api/notes/import`: a note as created, with the `id` and
+ * `createdAt` it had where it came from. An `id` this user owns is updated in
+ * place, so importing the same backup twice changes nothing; an `id` taken by
+ * a note this user cannot write gets a new one.
+ */
+export type NoteImport = NoteCreate & { id?: string; createdAt?: string };
+
+/** `POST /api/notes/import`. */
+export interface NotesImportRequest {
+  notes: NoteImport[];
+}
+
+export interface NotesImportResponse {
+  created: number;
+  updated: number;
+  /** Notes shared with this user, which are someone else's to change. */
+  skipped: number;
 }
 
 /** `POST /api/attachments`: the reference to put in a note's `images`. */

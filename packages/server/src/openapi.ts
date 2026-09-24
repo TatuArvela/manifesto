@@ -7,6 +7,7 @@ import {
   authMeUpdateSchema,
   loginSchema,
   noteCreateSchema,
+  notesImportSchema,
   noteUpdateSchema,
   noteVersionCreateSchema,
   passwordChangeSchema,
@@ -254,6 +255,24 @@ export const OPERATIONS: Operation[] = [
     auth: "any",
     body: noteCreateSchema,
     responses: { "201": { description: "Created", schema: "NoteResponse" } },
+  },
+  {
+    method: "post",
+    path: "/api/notes/import",
+    tag: "Notes",
+    summary:
+      "Import up to 100 notes, keeping their ids; the same one twice updates it",
+    auth: "any",
+    body: notesImportSchema,
+    responses: ok("NotesImportResponse"),
+  },
+  {
+    method: "delete",
+    path: "/api/notes",
+    tag: "Notes",
+    summary: "Delete every note the user owns (shared ones stay)",
+    auth: "any",
+    responses: noContent,
   },
   {
     method: "get",
@@ -609,6 +628,11 @@ function components() {
       NotesResponse: shape({
         notes: { type: "array", items: { $ref: "#/components/schemas/Note" } },
         nextCursor: { type: ["string", "null"] },
+      }),
+      NotesImportResponse: shape({
+        created: { type: "integer" },
+        updated: { type: "integer" },
+        skipped: { type: "integer" },
       }),
       Error: shape({ error: { type: "string" }, code: { type: "string" } }),
       Health: shape({ ok: { type: "boolean" }, version: { type: "string" } }),

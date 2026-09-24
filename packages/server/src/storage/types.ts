@@ -225,6 +225,8 @@ export interface NotesRepo {
   getById(id: string, userId: string): Promise<Note | null>;
   /** The user's role on a note they can see, or null. */
   access(id: string, userId: string): Promise<NoteAccess | null>;
+  /** Whether any note, anyone's, has this id. */
+  exists(id: string): Promise<boolean>;
   insert(input: InsertNoteInput): Promise<Note>;
   /**
    * Update a note, optionally constrained by the current `updated_at` for

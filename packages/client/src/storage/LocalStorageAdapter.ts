@@ -305,13 +305,4 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
     return getLocalImage(ref);
   }
-
-  async search(query: string): Promise<Note[]> {
-    const q = query.toLowerCase();
-    return loadNotes().filter(
-      (n) =>
-        n.title.toLowerCase().includes(q) ||
-        n.content.toLowerCase().includes(q),
-    );
-  }
 }

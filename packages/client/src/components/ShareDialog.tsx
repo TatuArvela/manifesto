@@ -12,8 +12,8 @@ import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
-import { notes } from "../state/actions.js";
 import { currentUser, userLookupMode } from "../state/auth.js";
+import { notes } from "../state/notesStore.js";
 import {
   findUsers,
   leaveNote,
@@ -23,6 +23,7 @@ import {
   shareNote,
 } from "../state/sharing.js";
 import { Avatar } from "./Avatar.js";
+import { Backdrop } from "./Backdrop.js";
 import { Tooltip } from "./Tooltip.js";
 
 const primaryButtonClass =
@@ -127,12 +128,7 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
 
   return createPortal(
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      <div
-        class="fixed inset-0 bg-black/50 z-[60] animate-fade-in"
-        onClick={onClose}
-      />
+      <Backdrop onDismiss={onClose} class="z-[60]" />
       <div
         ref={dialogRef}
         role="dialog"

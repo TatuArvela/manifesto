@@ -1,5 +1,5 @@
 import type { Note, NoteCreate } from "@manifesto/shared";
-import { createNote } from "./actions.js";
+import { createNote } from "./notesStore.js";
 
 /**
  * `createNote` resolves `null` rather than rejecting when storage fails; see

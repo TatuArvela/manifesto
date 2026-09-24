@@ -244,6 +244,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
         : null;
     },
 
+    async exists(id: string): Promise<boolean> {
+      return ownerStmt.get(id) !== undefined;
+    },
+
     async insert(input: InsertNoteInput): Promise<Note> {
       insertStmt.run(noteInsertValues(input, "integer"));
       const note = await repo.getById(input.id, input.userId);

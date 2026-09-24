@@ -3,12 +3,9 @@ import type { Note, NoteUpdate } from "@manifesto/shared";
 /**
  * Writes shown to the user before storage has acknowledged them.
  *
- * A connected client used to wait for the server before it changed anything.
- * A pin, a colour or a ticked box did nothing for a round trip and then
- * arrived all at once, which reads as the board stuttering rather than as the
- * note changing; a selection of five archived one card at a time, over more
- * than a second. So the change goes into the signal on the click and the
- * request follows it.
+ * The change goes into the signal on the click and the request follows it, so
+ * a pin, a colour or a ticked box shows at once rather than after a round
+ * trip, and a selection archived together leaves together.
  *
  * What comes back afterwards then has to be folded in without undoing
  * anything newer. Every note the server sends (the response to a write, a
