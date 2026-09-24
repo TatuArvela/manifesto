@@ -16,15 +16,13 @@ const GIF_BYTES = Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (c) =>
 );
 const GIF = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
 
-let loadAttachment: ReturnType<typeof vi.fn>;
+let loadImage: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   forgetAttachmentUrls();
-  loadAttachment = vi.fn(
-    async () => new Blob([GIF_BYTES], { type: "image/gif" }),
-  );
+  loadImage = vi.fn(async () => new Blob([GIF_BYTES], { type: "image/gif" }));
   vi.spyOn(currentStorage, "value", "get").mockReturnValue({
-    loadAttachment,
+    loadImage,
     loadImages: async () => [],
   } as never);
 });
@@ -40,11 +38,11 @@ describe("attachmentObjectUrl", () => {
     const b = await attachmentObjectUrl(REF);
     expect(a).toMatch(/^blob:/);
     expect(b).toBe(a);
-    expect(loadAttachment).toHaveBeenCalledOnce();
+    expect(loadImage).toHaveBeenCalledOnce();
   });
 
   it("tries again after a failure", async () => {
-    loadAttachment.mockRejectedValueOnce(new Error("offline"));
+    loadImage.mockRejectedValueOnce(new Error("offline"));
     expect(await attachmentObjectUrl(REF)).toBeNull();
     expect(await attachmentObjectUrl(REF)).toMatch(/^blob:/);
   });
@@ -56,7 +54,7 @@ describe("inlineImages", () => {
   });
 
   it("gives up rather than drop a picture", async () => {
-    loadAttachment.mockRejectedValue(new Error("gone"));
+    loadImage.mockRejectedValue(new Error("gone"));
     expect(await inlineImages([REF])).toBeNull();
   });
 });

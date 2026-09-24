@@ -20,7 +20,7 @@ A note is the fundamental entity in Manifesto.
 | `trashedAt` | `string \| null` | Yes      | ISO 8601 timestamp when trashed, `null` if not trashed. Server-assigned: it drives hard deletion 30 days later, so `POST`/`PUT` derive it from `trashed` and the server clock and ignore any value a client sends. |
 | `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
-| `images`    | `string[]`       | Yes      | Attached images as `data:` URLs, or in connected mode `attachment:<id>` references; see [Images](#images) |
+| `images`    | `string[]`       | Yes      | References to attached images: `attachment:<id>` in connected mode, `local:<sha256>` in open mode; see [Images](#images) |
 | `linkPreviews` | `LinkPreview[]` | Yes    | Link preview cards attached to the note  |
 | `reminder`  | `NoteReminder \| null` | Yes | Scheduled reminder, or `null` when not set |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
@@ -29,29 +29,29 @@ A note is the fundamental entity in Manifesto.
 
 ### Images
 
-A client attaches images inline, as base64 `data:` URLs, rather than uploading them to a separate endpoint. In open mode they stay that way: the note is self-contained, and there is no server to upload to. In connected mode the server takes the bytes out of every note it is sent and stores them in its attachment store, and `images` holds `attachment:<id>` references to them (matching `ATTACHMENT_REF_PATTERN`). An export always inlines them again, so a file is self-contained in either mode. See [Attachments](features/attachments.md).
+A note holds references to its images, never their bytes: `attachment:<id>` (a ULID, matching
+`ATTACHMENT_REF_PATTERN`) for an image the client uploaded to the server's attachment store, and
+`local:<sha256>` (`LOCAL_IMAGE_REF_PATTERN`) for one open mode keeps in the browser's IndexedDB. A server
+accepts only the first. An export replaces both with `data:` URLs, so a file is self-contained in either
+mode, and an import stores those again. See [Attachments](features/attachments.md).
 
-The accepted form is narrow, and the server enforces it on every write:
+What an image may be, checked by the client before storing and by the server on upload:
 
 | Constraint | Value |
 |------------|-------|
-| Scheme | `data:`, or an `attachment:<id>` reference the writer may read. A remote `http(s)` URL in `images` is rejected. |
-| Media type | `image/png`, `image/jpeg`, `image/jpg`, `image/gif`, `image/webp`, `image/avif` |
-| Encoding | `;base64,` followed by base64-alphabet characters, anchored at both ends |
-| Per-image size | 5 MiB of source image, after the client has shrunk it (photos are kept at 2560 pixels on the long edge, see [Attachments](features/attachments.md)). Enforced on the encoded URL, whose cap is derived from it: base64 emits 4 characters per 3 bytes and the `data:image/…;base64,` prefix counts too, so a hand-rounded encoded cap rejects a full-size image 18 bytes short of the advertised number. |
+| Media type | `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif`; an upload's leading bytes must agree with its type |
+| Per-image size | 5 MiB (`MAX_IMAGE_SOURCE_BYTES`), after the client has shrunk it: photos are kept at 2560 pixels on the long edge |
 | Images per note | 20 |
-| Whole request | 1 MiB on `/api/notes`, since a note carries references; one image upload may be up to the per-image size |
+| Whole request | 1 MiB on `/api/notes`, since a note carries references; one upload may be up to the per-image size |
 
-`image/svg+xml` is **excluded on purpose.** SVG is a document format that happens to have an image media type: it can carry script, so admitting it would let a note ship executable markup into any surface that renders an attachment by URL. The same reasoning excludes every non-image `data:` media type.
+`image/svg+xml` is **excluded on purpose.** SVG is a document format that happens to have an image media type: it can carry script, so admitting it would let a note ship executable markup into any surface that renders an attachment by URL.
 
-The constants are declared once in `@manifesto/shared` (`IMAGE_DATA_URL_PATTERN`, `MAX_IMAGE_DATA_URL_BYTES`, `MAX_IMAGES_PER_NOTE`) and read by the client, the server's validation schemas, and this table.
+In an export or import file an image is a base64 `data:` URL (`IMAGE_DATA_URL_PATTERN`, `MAX_IMAGE_DATA_URL_BYTES`), which is the one place bytes and a note travel together.
 
-Over-cap images are refused by the client before they are attached, so the user gets a message naming the file rather than a `422` from a later save.
+Over-cap images are refused by the client before they are stored, so the user gets a message naming the file rather than an error from a later save.
 
-Being inlined is what makes a note self-contained, and also what makes a list of
-notes large: twenty attachments at 5 MB is a 100 MB note, and a hundred such
-notes is a list response no client wants. So the bytes stay in the note but are
-left out of a *listing*. A note from `GET /api/notes` or `GET /api/search`
+A listing leaves even the references out, so a card fetches only what it
+shows. A note from `GET /api/notes` or `GET /api/search`
 carries `imageCount` and an empty `images`, and `GET /api/notes/:id` returns it
 whole. `imageCount` is derived by the server from `images` on every write and is
 never accepted from a client; in open mode it is absent, because nothing there

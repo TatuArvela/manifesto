@@ -1,13 +1,15 @@
 # Attachments
 
-A note carries up to `MAX_IMAGES_PER_NOTE` images of up to 5 MB each. Open mode keeps them inline in
-the note, as `data:` URLs, because the note in `localStorage` is all there is. Connected mode keeps them
-outside the note, in the server's **attachment store**, and the note refers to each one as
-`attachment:<id>` (`isAttachmentRef` in `@manifesto/shared`).
+A note carries up to `MAX_IMAGES_PER_NOTE` images of up to 5 MB each, and in both modes the note holds
+**references**, never the bytes:
 
-Inline, every note write, every conflict retry, every `GET /api/notes/:id` and every version a client
-keeps would carry the bytes of every image on the note. Referred to, they carry a few dozen bytes each,
-and the bytes travel once.
+- **Connected mode:** `attachment:<id>`, an image in the server's attachment store (below).
+- **Open mode:** `local:<sha256>`, an image in this browser's IndexedDB (`storage/localImages.ts`).
+
+`data:` URLs appear only in export and import files. Inline, every note write, every conflict retry,
+every `GET /api/notes/:id` would carry the bytes of every image on the note, and in open mode a few
+photos filled `localStorage`'s ~5 MB, after which every save failed, text included. Referred to, a note
+carries a few dozen bytes per image. `StoredImage` draws either kind through a `blob:` URL.
 
 ## Shrinking on attach
 
@@ -76,6 +78,18 @@ an image out of a note shared with them); anything else is refused (`attachments
 
 Inline images from before this, which only development databases ever held, were dropped by migration
 `0013-drop-inline-images` rather than moved.
+
+## Open mode
+
+Images go into an IndexedDB store keyed by the SHA-256 of their bytes, so one attached twice is stored
+once. IndexedDB holds binary and gets a share of the disk rather than `localStorage`'s few megabytes. The
+first image stored asks the browser to keep the site's storage persistent
+(`navigator.storage.persist()`), since in open mode it is the only copy. A refusal for want of space is
+reported like a `localStorage` one (`storage/quota.ts`), and the attach stays in the editor with a
+retry. On load, images no note refers to any more (a note deleted for good, an image removed) are
+swept after a day's grace, which spares one just attached to an unsaved draft. Images from before
+this, held inline in notes, are moved into IndexedDB on first load. Like open-mode notes, they belong to
+one browser profile; export and import move them, as `data:` URLs.
 
 ## Storage
 
