@@ -516,6 +516,7 @@ describe("finding people to share with", () => {
       userLookup: "exact",
       webhooks: false,
       passwordReset: false,
+      registration: true,
     });
     await rig.close();
   });
