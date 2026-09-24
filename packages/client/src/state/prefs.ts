@@ -206,6 +206,11 @@ export interface LoadedPrefs {
   darkHue: DarkHue;
   noteQuips: boolean;
   formattingToolbar: boolean;
+  /**
+   * On a phone, whether the top bar stays at the top of the screen while the
+   * board scrolls, or scrolls away with it. Wider screens always keep it.
+   */
+  stickyTopBar: boolean;
   confirmBeforeDelete: boolean;
   defaultEditMode: EditMode;
   boardColor: BoardColorChoice;
@@ -257,6 +262,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
           typeof parsed.formattingToolbar === "boolean"
             ? parsed.formattingToolbar
             : true,
+        stickyTopBar: parsed.stickyTopBar !== false,
         confirmBeforeDelete: parsed.confirmBeforeDelete === true,
         defaultEditMode: parsed.defaultEditMode === "raw" ? "raw" : "normal",
         boardColor: parseBoardColor(parsed.boardColor),
@@ -289,6 +295,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
     darkHue: "neutral",
     noteQuips: true,
     formattingToolbar: true,
+    stickyTopBar: true,
     confirmBeforeDelete: false,
     defaultEditMode: "normal",
     boardColor: "none",
@@ -326,6 +333,7 @@ function savePrefs() {
       darkHue: darkHue.value,
       noteQuips: noteQuips.value,
       formattingToolbar: formattingToolbar.value,
+      stickyTopBar: stickyTopBar.value,
       confirmBeforeDelete: confirmBeforeDelete.value,
       defaultEditMode: defaultEditMode.value,
       boardColor: boardColor.value,
@@ -358,6 +366,7 @@ export const animations = signal<boolean>(prefs.animations);
 export const darkHue = signal<DarkHue>(prefs.darkHue);
 export const noteQuips = signal<boolean>(prefs.noteQuips);
 export const formattingToolbar = signal<boolean>(prefs.formattingToolbar);
+export const stickyTopBar = signal<boolean>(prefs.stickyTopBar);
 export const confirmBeforeDelete = signal<boolean>(prefs.confirmBeforeDelete);
 export const defaultEditMode = signal<EditMode>(prefs.defaultEditMode);
 export const boardColor = signal<BoardColorChoice>(prefs.boardColor);
@@ -439,6 +448,7 @@ export function applyPrefs(loaded: LoadedPrefs) {
       darkHue.value = loaded.darkHue;
       noteQuips.value = loaded.noteQuips;
       formattingToolbar.value = loaded.formattingToolbar;
+      stickyTopBar.value = loaded.stickyTopBar;
       confirmBeforeDelete.value = loaded.confirmBeforeDelete;
       defaultEditMode.value = loaded.defaultEditMode;
       boardColor.value = loaded.boardColor;
@@ -471,6 +481,7 @@ effect(() => {
   darkHue.value;
   noteQuips.value;
   formattingToolbar.value;
+  stickyTopBar.value;
   confirmBeforeDelete.value;
   defaultEditMode.value;
   boardColor.value;

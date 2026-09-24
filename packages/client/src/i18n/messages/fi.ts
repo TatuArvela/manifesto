@@ -301,6 +301,7 @@ export const fi: Messages = {
   "settings.noteQuips": "Hauskat kehotteet",
   "settings.inlineCalculations": "Laskutoimitukset",
   "settings.formattingToolbar": "Muotoilupalkki",
+  "settings.stickyTopBar": "Pidä yläpalkki näkyvissä puhelimella",
   "settings.confirmBeforeDelete": "Vahvista poistot",
   "settings.decimalSeparator": "Desimaalierotin",
   "settings.decimalSeparator.auto": "Automaattinen",

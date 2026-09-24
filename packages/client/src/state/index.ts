@@ -96,6 +96,7 @@ export {
   resolvedDecimalSeparator,
   type SortMode,
   sortMode,
+  stickyTopBar,
   type ThemeMode,
   theme,
   type ViewMode,

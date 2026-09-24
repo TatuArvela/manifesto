@@ -295,6 +295,7 @@ export const en = {
   "settings.noteQuips": "Fun Quips",
   "settings.inlineCalculations": "Inline Calculations",
   "settings.formattingToolbar": "Formatting Toolbar",
+  "settings.stickyTopBar": "Keep Top Bar in View on Phones",
   "settings.confirmBeforeDelete": "Confirm Deletions",
   "settings.decimalSeparator": "Decimal Separator",
   "settings.decimalSeparator.auto": "Auto",
