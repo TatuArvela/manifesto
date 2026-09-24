@@ -15,12 +15,14 @@ script a backup), and for an admin **Download notes** on any account (`GET
 | File | Holds |
 |---|---|
 | `notes.json` | Every note the account owns, the archive and trash included, in the import format above, with images inlined as `data:` URLs. Importing it restores the notes anywhere, open mode included. |
-| `notes/<title>.md` | Each note not in the trash as Markdown, with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`) that the Markdown-folder import reads back, so the zip itself imports too. |
+| `notes/<title>.md` | Each note not in the trash as Markdown, with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`) that the Markdown-folder import reads back, for another tool to open. |
 | `versions.json` | The server's version history of those notes. |
 | `account.json` | The account's username, display name, email address, how it signs in, whether it is an admin and when it was made. |
 
 Notes shared with the account belong to someone else and are not included. It serves a person leaving,
 moving servers, or asking what is held about them; each download is recorded in the audit log.
+Importing the zip as it is restores it from `notes.json` (same ids, so a note already here is merged,
+not duplicated); the Markdown files are the same notes stripped down and are then not read.
 
 ## Import
 
