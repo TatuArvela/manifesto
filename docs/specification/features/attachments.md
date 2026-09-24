@@ -21,10 +21,17 @@ for what is not shrunk.
 
 ## How an image gets there
 
-The client does not upload anything separately. It attaches an image as it always has, inline, and the
-server takes the bytes out on the way in: on `POST /api/notes` and on a `PUT` that sends `images`, each
-`data:` image is put in the store and replaced with its reference before the note is written. Replies,
-broadcasts and listings then carry the reference.
+The client uploads each image as it is attached: `POST /api/attachments` with the raw file (no base64)
+and its type in `Content-Type`, answered with `{ ref: "attachment:<id>" }`. The editor draws the image at
+once from the local file, shows the upload's progress, and puts the reference in the note when it is
+stored. A failed upload stays in the editor, marked, with **Try again** and **Remove**, rather than
+saving a note that refers to nothing; closing the editor cancels what is still uploading. The REST
+adapter also uploads any image that reaches a note write still inline (an import, something shared to
+the app), so what it sends is references.
+
+The server checks an upload's leading bytes against the type it was sent as (PNG, JPEG, GIF, WebP,
+AVIF) and refuses a mismatch with 415, since the file is served back with that type and `nosniff`; over
+the image limit is 413. An upload is stored under the uploader.
 
 - **Content-addressed per owner.** An attachment is keyed by the SHA-256 of its bytes within its
   owner's store, so the same image sent again (a conflict retry, a stale tab, a duplicate note) resolves

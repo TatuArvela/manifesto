@@ -134,6 +134,10 @@ export const en = {
   "editor.font": "Font",
   "editor.changeFont": "Change font",
   "editor.addImage": "Add image",
+  "editor.uploading": "Uploading {name}",
+  "editor.uploadFailed": "{name} could not be stored",
+  "editor.retryUpload": "Try again",
+  "editor.removeUpload": "Remove",
   "editor.imageTooLarge": "{name} is too large to attach (max {size})",
   // Note menu: one kebab menu, shared by the card, the editor and the
   // read-only view.

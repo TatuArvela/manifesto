@@ -1,5 +1,10 @@
 import type { Note, NoteCreate } from "@manifesto/shared";
-import { attachmentIdOf, NoteColor, NoteFont } from "@manifesto/shared";
+import {
+  attachmentIdOf,
+  MAX_IMAGE_SOURCE_BYTES,
+  NoteColor,
+  NoteFont,
+} from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { moveInlineImagesToStore } from "../attachments/store.js";
 import {
@@ -170,5 +175,46 @@ describe("attachments", () => {
     // Not a change to the note: its concurrency token is untouched.
     expect(stored?.updatedAt).toBe(note.updatedAt);
     expect(await moveInlineImagesToStore(rig.storage, NOW)).toBe(0);
+  });
+
+  describe("uploads", () => {
+    const PNG_BYTES = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const upload = (who: Account, body: Uint8Array, type: string) =>
+      rig.request("/api/attachments", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${who.token}`, "Content-Type": type },
+        body: body as BodyInit,
+      });
+
+    it("stores a raw image and answers a reference a note can hold", async () => {
+      const res = await upload(owner, PNG_BYTES, "image/png");
+      expect(res.status).toBe(201);
+      const { ref } = (await res.json()) as { ref: string };
+      expect(ref).toMatch(/^attachment:/);
+      const note = await create(owner, [ref]);
+      expect(note.images).toEqual([ref]);
+      const again = await upload(owner, PNG_BYTES, "image/png");
+      expect(((await again.json()) as { ref: string }).ref).toBe(ref);
+    });
+
+    it("refuses a file that is not the image type it claims", async () => {
+      expect((await upload(owner, PNG_BYTES, "image/jpeg")).status).toBe(415);
+      const html = new TextEncoder().encode("<svg onload=alert(1)>");
+      expect((await upload(owner, html, "image/png")).status).toBe(415);
+      expect((await upload(owner, new Uint8Array(), "image/png")).status).toBe(
+        422,
+      );
+    });
+
+    it("refuses an image over the limit", async () => {
+      const big = Buffer.concat([
+        PNG_BYTES,
+        Buffer.alloc(MAX_IMAGE_SOURCE_BYTES),
+      ]);
+      expect((await upload(owner, big, "image/png")).status).toBe(413);
+    });
   });
 });

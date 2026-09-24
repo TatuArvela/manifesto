@@ -361,6 +361,19 @@ export const OPERATIONS: Operation[] = [
     responses: ok("NotesResponse"),
   },
   {
+    method: "post",
+    path: "/api/attachments",
+    tag: "Notes",
+    summary:
+      "Upload an image (the raw file, its type in Content-Type); answers the attachment: reference",
+    auth: "any",
+    responses: {
+      "201": { description: "Stored", schema: "AttachmentUploadResponse" },
+      "413": { description: "Over the image limit", schema: "Error" },
+      "415": { description: "Not an accepted image type", schema: "Error" },
+    },
+  },
+  {
     method: "get",
     path: "/api/attachments/:id",
     tag: "Notes",
@@ -625,6 +638,7 @@ function components() {
         secret: { type: "string" },
       }),
       AdminUsersResponse: shape({ users: { type: "array" } }),
+      AttachmentUploadResponse: shape({ ref: { type: "string" } }),
       AdminOverviewResponse: shape({
         version: { type: "string" },
         uptimeSeconds: { type: "integer" },

@@ -1,5 +1,14 @@
+import { createHash } from "node:crypto";
+import {
+  ATTACHMENT_REF_PREFIX,
+  type AttachmentUploadResponse,
+  MAX_IMAGE_SOURCE_BYTES,
+} from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
+import { sniffImageType } from "../attachments/sniff.js";
 import type { AuthProvider } from "../auth/types.js";
+import { nowIso } from "../lib/time.js";
+import { newId } from "../lib/ulid.js";
 import {
   type AuthContext,
   createAuthMiddleware,
@@ -14,14 +23,53 @@ interface AttachmentDeps {
 }
 
 /**
- * `GET /api/attachments/:id`: an image a note refers to by `attachment:<id>`.
- * Readable by its owner and by anyone holding an accepted share of a note of
- * theirs that refers to it; to anyone else it does not exist.
+ * `/api/attachments`: the images notes refer to as `attachment:<id>`.
+ *
+ * `POST /` uploads one, as the raw file with its type in `Content-Type`, and
+ * answers the reference to put in a note's `images`. It is stored under the
+ * uploader, deduplicated by content; attaching it to someone else's note
+ * copies it to that note's owner (see `attachments/store.ts`).
+ *
+ * `GET /:id` serves one to its owner and to anyone holding an accepted share
+ * of a note of theirs that refers to it; to anyone else it does not exist.
  */
 export function createAttachmentRoutes(deps: AttachmentDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
   routes.use("*", createAuthMiddleware(deps.authProvider));
   if (deps.rateLimit) routes.use("*", deps.rateLimit);
+
+  routes.post("/", async (c) => {
+    const { userId } = c.get("auth");
+    const declared = (c.req.header("Content-Type") ?? "")
+      .split(";")[0]
+      .trim()
+      .toLowerCase()
+      .replace("image/jpg", "image/jpeg");
+    const data = Buffer.from(await c.req.arrayBuffer());
+    if (data.length === 0) throw new HttpError(422, "The file is empty");
+    if (data.length > MAX_IMAGE_SOURCE_BYTES) {
+      throw new HttpError(413, "The image is too large");
+    }
+    const actual = sniffImageType(data);
+    if (!actual || actual !== declared) {
+      throw new HttpError(
+        415,
+        "Upload a PNG, JPEG, GIF, WebP or AVIF image, sent as its own type",
+      );
+    }
+    const stored = await deps.storage.attachments.put({
+      id: newId(),
+      ownerId: userId,
+      sha256: createHash("sha256").update(data).digest("hex"),
+      contentType: actual,
+      data,
+      createdAt: nowIso(),
+    });
+    const body: AttachmentUploadResponse = {
+      ref: `${ATTACHMENT_REF_PREFIX}${stored.id}`,
+    };
+    return c.json(body, 201);
+  });
 
   routes.get("/:id", async (c) => {
     const { userId } = c.get("auth");

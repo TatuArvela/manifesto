@@ -60,6 +60,7 @@ export function createStorage(): StorageAdapter {
     importAll: (notes) => currentStorage.value.importAll(notes),
     loadImages: (id) => currentStorage.value.loadImages(id),
     loadAttachment: (ref) => currentStorage.value.loadAttachment(ref),
+    putImage: (image, options) => currentStorage.value.putImage(image, options),
     listVersions: (noteId) => currentStorage.value.listVersions(noteId),
     saveVersion: (noteId, version) =>
       currentStorage.value.saveVersion(noteId, version),
