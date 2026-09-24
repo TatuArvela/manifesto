@@ -231,6 +231,11 @@ const DROP_INLINE_PREVIEW_IMAGES = `
 UPDATE notes SET link_previews = '[]' WHERE link_previews LIKE '%"data:%';
 `;
 
+/** See the SQLite copy. */
+const USER_LOCALE = `
+ALTER TABLE users ADD COLUMN locale TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -246,6 +251,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0012-audit-log", sql: AUDIT_LOG },
   { id: "0013-drop-inline-images", sql: DROP_INLINE_IMAGES },
   { id: "0014-drop-inline-preview-images", sql: DROP_INLINE_PREVIEW_IMAGES },
+  { id: "0015-user-locale", sql: USER_LOCALE },
 ];
 
 export async function runMigrations(

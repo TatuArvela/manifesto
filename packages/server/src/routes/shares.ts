@@ -111,7 +111,9 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
       if (deps.mail && recipient.email) {
         const owner = await storage.users.findById(userId);
         const message = shareInvitationMail(
-          mailLocale(c.req.header("Accept-Language")?.slice(0, 2)),
+          // The recipient's language, which their client reported; the
+          // sharer's would be the wrong one whenever the two differ.
+          mailLocale(recipient.locale?.split("-")[0]),
           {
             owner: owner?.displayName || owner?.username || "",
             title: note.title,

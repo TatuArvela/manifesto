@@ -45,6 +45,12 @@ export const registerSchema = authCredentialsSchema.extend({
 
 export const authMeUpdateSchema = z.object({ email: emailSchema.nullable() });
 
+/** A language tag such as `fi` or `en-GB`; mail falls back to English for one
+ * it has no text in. */
+export const authLocaleSchema = z.object({
+  locale: z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{1,8}){0,3}$/),
+});
+
 export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.optional(),
   /** An authenticator code, or a recovery code, when two-factor is on. */

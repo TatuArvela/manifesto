@@ -23,6 +23,7 @@ interface UserRow {
   external_id: string | null;
   is_admin: number;
   must_change_password: number;
+  locale: string | null;
   created_at: string;
 }
 
@@ -61,6 +62,7 @@ function rowToUser(row: UserRow): User {
     passwordHash: row.password_hash,
     isAdmin: row.is_admin === 1,
     mustChangePassword: row.must_change_password === 1,
+    locale: row.locale,
     createdAt: row.created_at,
   };
 }
@@ -111,6 +113,7 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
      ORDER BY username, id LIMIT @limit`,
   );
   const setEmailStmt = db.prepare(`UPDATE users SET email = ? WHERE id = ?`);
+  const setLocaleStmt = db.prepare(`UPDATE users SET locale = ? WHERE id = ?`);
   const findByUsernameStmt = db.prepare(
     `SELECT * FROM users WHERE username = ? COLLATE NOCASE`,
   );
@@ -232,6 +235,10 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
         if (isSqliteUniqueViolation(err, "email")) return "email-taken";
         throw err;
       }
+    },
+
+    async setLocale(id: string, locale: string): Promise<boolean> {
+      return setLocaleStmt.run(locale, id).changes > 0;
     },
 
     async list(): Promise<UserSummary[]> {

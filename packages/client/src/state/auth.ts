@@ -20,6 +20,9 @@ export interface CurrentUser {
   isAdmin: boolean;
   /** Signs in with a password here; absent when the server did not say. */
   hasPassword?: boolean;
+  /** The language the server holds for this account, for mail sent to it;
+   * absent from a server that does not keep one. */
+  locale?: string | null;
 }
 
 interface PersistedAuth {

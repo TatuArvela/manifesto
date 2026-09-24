@@ -370,6 +370,9 @@ export interface AuthUser {
    * it, and use two-factor), rather than through single sign-on. Absent from
    * older servers. */
   hasPassword?: boolean;
+  /** The language the account's client last reported, used for mail sent to
+   * it; null until one has. Absent from older servers. */
+  locale?: string | null;
 }
 
 // --- Administration ---

@@ -277,6 +277,15 @@ const DROP_INLINE_PREVIEW_IMAGES = `
 UPDATE notes SET link_previews = '[]' WHERE link_previews LIKE '%"data:%';
 `;
 
+/**
+ * The language an account's client is set to, which it reports, so mail sent
+ * to them by someone else's action (a share invitation) is in their language
+ * rather than the sender's. Null until a client has said.
+ */
+const USER_LOCALE = `
+ALTER TABLE users ADD COLUMN locale TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -292,6 +301,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0012-audit-log", sql: AUDIT_LOG },
   { id: "0013-drop-inline-images", sql: DROP_INLINE_IMAGES },
   { id: "0014-drop-inline-preview-images", sql: DROP_INLINE_PREVIEW_IMAGES },
+  { id: "0015-user-locale", sql: USER_LOCALE },
 ];
 
 export function runMigrations(

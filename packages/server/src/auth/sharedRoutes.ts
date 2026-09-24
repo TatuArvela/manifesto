@@ -16,7 +16,7 @@ import {
 } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
-import { authMeUpdateSchema } from "../validation/schemas.js";
+import { authLocaleSchema, authMeUpdateSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { AuthProvider, AuthProviderRouter } from "./types.js";
 import { toAuthUser } from "./users.js";
@@ -94,6 +94,26 @@ export function createAuthSharedRoutes(
         user: toAuthUser({ ...user, email }),
       };
       return c.json(body);
+    },
+  );
+
+  /**
+   * The language the client is set to, so mail another account's action sends
+   * this one (a share invitation) is in it. The client reports it when it
+   * differs from what `/me` said, which is on its first start and after the
+   * user changes it.
+   */
+  router.put(
+    "/me/locale",
+    createAuthMiddleware(deps.authProvider),
+    zValidator("json", authLocaleSchema, validatorHook),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const { locale } = c.req.valid("json");
+      if (!(await deps.storage.users.setLocale(userId, locale))) {
+        throw new HttpError(401, "User not found");
+      }
+      return c.body(null, 204);
     },
   );
 
