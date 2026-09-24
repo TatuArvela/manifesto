@@ -1,5 +1,6 @@
 import type { LinkPreview } from "@manifesto/shared";
 import { Link as LinkIcon } from "lucide-preact";
+import { StoredImage } from "./StoredImage.js";
 
 export function LinkPreviewHero({
   preview,
@@ -22,9 +23,10 @@ export function LinkPreviewHero({
       onClick={(e) => e.stopPropagation()}
     >
       {preview.image ? (
-        <img
+        <StoredImage
           src={preview.image}
           alt=""
+          placeholderClass="block"
           class="absolute inset-0 w-full h-full object-cover"
         />
       ) : (
