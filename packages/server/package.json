@@ -20,7 +20,7 @@
     "@manifesto/shared": "workspace:*",
     "argon2": "^0.45.1",
     "better-sqlite3": "^13.0.3",
-    "hono": "^4.13.7",
+    "hono": "^4.13.8",
     "nodemailer": "^10.0.10",
     "openid-client": "^6.8.8",
     "pg": "^8.23.0",
@@ -28,7 +28,7 @@
     "ws": "^8.21.3",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.32",
-    "zod": "^4.6.3"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@hocuspocus/provider": "^4.7.0",

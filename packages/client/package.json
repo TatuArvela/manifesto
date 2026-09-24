@@ -19,7 +19,7 @@
     "@preact/signals": "^2.11.2",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.15",
-    "lucide-preact": "^1.45.0",
+    "lucide-preact": "^1.47.0",
     "lz-string": "^1.5.0",
     "mdast-util-to-markdown": "^2.1.2",
     "preact": "^10.29.8",
