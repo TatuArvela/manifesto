@@ -18,19 +18,23 @@ export function NoteGrid() {
   if (pinned.length === 0 && unpinned.length === 0) {
     const isSearch = activeView.value === "search";
     if (!isSearch && !notesLoaded.value) return null;
+    // On a card of its own, so it stays legible over a board picture or a
+    // busy texture, and not selectable: it is a message, not content.
     return (
-      <div class="flex flex-col items-center justify-center py-20 text-neutral-400 dark:text-neutral-600">
-        {isSearch ? (
-          <Search class="w-12 h-12 mb-4" />
-        ) : (
-          <StickyNote class="w-12 h-12 mb-4" />
-        )}
-        <p class="text-lg">
-          {isSearch ? t("search.empty") : t("noteGrid.empty")}
-        </p>
-        <p class="text-sm">
-          {isSearch ? t("search.emptyHint") : t("noteGrid.emptyHint")}
-        </p>
+      <div class="flex justify-center py-16">
+        <div class="flex flex-col items-center text-center select-none rounded-2xl px-10 py-8 bg-white/85 dark:bg-neutral-800/85 backdrop-blur-sm border border-neutral-200 dark:border-neutral-700 shadow-sm text-neutral-500 dark:text-neutral-400">
+          {isSearch ? (
+            <Search class="w-12 h-12 mb-4" />
+          ) : (
+            <StickyNote class="w-12 h-12 mb-4" />
+          )}
+          <p class="text-lg text-neutral-700 dark:text-neutral-200">
+            {isSearch ? t("search.empty") : t("noteGrid.empty")}
+          </p>
+          <p class="text-sm">
+            {isSearch ? t("search.emptyHint") : t("noteGrid.emptyHint")}
+          </p>
+        </div>
       </div>
     );
   }
