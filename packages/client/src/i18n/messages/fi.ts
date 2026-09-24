@@ -257,6 +257,9 @@ export const fi: Messages = {
   "settings.group.defaults": "Oletukset",
   "settings.group.features": "Ominaisuudet",
   "settings.group.data": "Tiedot",
+  "settings.group.about": "Tietoja",
+  "settings.group.behavior": "Käyttäytyminen",
+  "settings.about.version": "Versio {version}",
   "settings.theme": "Teema",
   "settings.theme.system": "Järjestelmä",
   "settings.theme.light": "Vaalea",
@@ -307,7 +310,7 @@ export const fi: Messages = {
   "settings.boardBackground.texture.hearts": "Sydämet",
   "settings.boardBackground.texture.random": "Satunnainen",
   "settings.boardBackground.picture": "Kuva",
-  "settings.boardBackground.usePicture": "Käytä kuvaa",
+  "settings.boardBackground.mode.compose": "Väri ja pinta",
   "settings.boardBackground.choose": "Valitse kuva…",
   "settings.boardBackground.replace": "Vaihda kuva…",
   "settings.boardBackground.remove": "Poista kuva",
@@ -326,11 +329,17 @@ export const fi: Messages = {
   "settings.language": "Kieli",
   "settings.language.system": "Järjestelmän oletus",
   "settings.data.import": "Tuo muistiinpanot",
-  "settings.data.archive": "Lataa kaikki muistiinpanoni (.zip)",
-  "settings.data.archived": "Muistiinpanosi latautuvat",
-  "settings.data.archiveFailed": "Muistiinpanoja ei saatu ladattua",
-  "settings.data.importHint":
-    "Tuo JSON-viennit, Markdown-tiedostot tai niiden kansion zip-pakettina sekä Google Keepin muistiinpanot (Takeoutin .zip tai sen puretut tiedostot).",
+  "settings.data.exportFailed": "Muistiinpanoja ei saatu vietyä",
+  "settings.data.importHint": "Voit tuoda useita tiedostoja kerralla:",
+  "settings.data.importHint.backup": "{appName}-varmuuskopiot",
+  "settings.data.importHint.backupBody":
+    "Vie muistiinpanot -painikkeella tallennettu .zip tai vanhemman version .json.",
+  "settings.data.importHint.markdown": "Markdown",
+  "settings.data.importHint.markdownBody":
+    ".md-tiedostot tai niitä sisältävä kansio .zip-pakettina (esim. Obsidianista tai Nextcloud Notesista). Kansioista tulee tunnisteita.",
+  "settings.data.importHint.keep": "Google Keep",
+  "settings.data.importHint.keepBody":
+    "Google Takeoutin .zip tai sen sisältämät tiedostot.",
   "settings.data.export": "Vie muistiinpanot",
   "settings.data.deleteAll": "Poista kaikki",
   "settings.data.deleteConfirm":
@@ -371,7 +380,6 @@ export const fi: Messages = {
   "settings.autoNotes.untitled": "(Nimetön)",
   "settings.autoNotes.origin.inline": "Liitetty",
   "settings.autoNotes.origin.url": "URL",
-  "tokens.menu": "API-tunnisteet",
   "tokens.title": "API-tunnisteet",
   "tokens.hint":
     "Tunnisteella skripti, pikakomento tai botti voi käyttää muistiinpanojasi palvelimella {server} ilman salasanaasi. Se voi lukea ja muuttaa muistiinpanoja, mutta ei salasanaasi, tunnisteitasi eikä muita tilejä.",
@@ -400,8 +408,6 @@ export const fi: Messages = {
   "tokens.revoked": "Tunniste peruttu",
   "tokens.tooMany": "Tunnisteita on enimmäismäärä; peru ensin jokin",
   "tokens.failed": "Tunnisteisiin ei saatu yhteyttä; yritä uudelleen",
-  "tokens.close": "Sulje",
-  "webhooks.menu": "Webhookit",
   "webhooks.title": "Webhookit",
   "webhooks.hint":
     "Palvelin lähettää muistiinpanojesi tapahtumat (luotu, muutettu, poistettu) alla oleviin osoitteisiin, esimerkiksi n8n:lle, Home Assistantille tai chat-botille. Jokainen lähetys allekirjoitetaan webhookin salaisuudella.",
@@ -428,8 +434,6 @@ export const fi: Messages = {
   "webhooks.invalidUrl": "Anna http- tai https-osoite",
   "webhooks.tooMany": "Webhookeja on enimmäismäärä; poista ensin jokin",
   "webhooks.failed": "Webhookeihin ei saatu yhteyttä; yritä uudelleen",
-  "webhooks.close": "Sulje",
-  "twoFactor.menu": "Kaksivaiheinen kirjautuminen",
   "twoFactor.title": "Kaksivaiheinen kirjautuminen",
   "twoFactor.hint":
     "Kirjautuessa kysytään salasanan lisäksi todennussovelluksen näyttämä koodi.",
@@ -457,7 +461,6 @@ export const fi: Messages = {
   "twoFactor.wrongPassword": "Salasana ei ole oikea",
   "twoFactor.wrongCode": "Koodi ei ole oikea; tarkista laitteen kellonaika",
   "twoFactor.failed": "Palvelimeen ei saatu yhteyttä; yritä uudelleen",
-  "twoFactor.close": "Sulje",
   "login.oidcNotInGroup":
     "Tililläsi ei voi kirjautua tänne. Kysy palvelimen ylläpitäjältä.",
   "login.oidcNotRegistered":
@@ -566,7 +569,7 @@ export const fi: Messages = {
   "shortcuts.close": "Sulje",
   "settings.about.shortcuts": "Pikanäppäimet",
   "settings.about.repo": "GitHub",
-  "settings.about.welcome": "Tietoja",
+  "settings.about.welcome": "Tervetuloa",
   "settings.about.license": "MIT-lisenssillä",
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
@@ -739,6 +742,7 @@ export const fi: Messages = {
   // Account menu
   "account.menu": "Tili",
   "account.manageUsers": "Hallitse käyttäjiä",
+  "account.settings": "Tilin asetukset",
   "account.changePassword": "Vaihda salasana",
   "account.currentPassword": "Nykyinen salasana",
   "account.passwordChanged":
@@ -746,7 +750,6 @@ export const fi: Messages = {
   "account.wrongPassword": "Nykyinen salasana on väärin",
   "account.samePassword": "Valitse eri salasana kuin nykyinen",
   "account.changeFailed": "Salasanan vaihtaminen epäonnistui. Yritä uudelleen.",
-  "account.cancel": "Peruuta",
   "account.email": "Sähköpostiosoite",
   "account.email.hint":
     "Muut löytävät sinut sen avulla, kun he jakavat sinulle muistiinpanon. Osoitteeseen ei lähetetä mitään.",
@@ -755,6 +758,7 @@ export const fi: Messages = {
   "account.email.removed": "Sähköpostiosoite poistettu.",
   "account.email.invalid": "Anna osoite muodossa nimi@esimerkki.fi",
   "account.email.taken": "Osoite on jo toisen tilin käytössä",
+  "account.email.managed": "Osoitetta hallitaan kirjautumispalvelussasi.",
   "account.email.failed":
     "Osoitteen tallentaminen epäonnistui. Yritä uudelleen.",
 

@@ -56,13 +56,17 @@ an admin, sign in as it, and delete `admin`.
 Whether someone is an admin is read from the database on every admin request, not carried in their
 session, so revoking admin takes effect on their next request.
 
-## The account menu
+## The account menu and account settings
 
 In connected mode the header shows the signed-in user's avatar to the right of the settings button.
-Its menu names the account (with its email address, if it has one) and holds everything about it:
-**Manage users** for admins, **Email address** and **Change password** under local sign-in, and
-**Sign out**. Open mode has no accounts, so the button is not there at all, and the Settings panel
-carries no account section in either mode.
+Its menu names the account (avatar, name, and its email address or else its username) and holds two
+things: **Account settings**, which opens the Settings modal on the account's page, and **Sign out**.
+Open mode has no accounts, so the button is not there at all.
+
+The Settings modal lists the account's pages above the general ones, headed by the user as a profile
+card: **Account** (email address and, under local sign-in, **Change password**), **Two-factor
+sign-in** under local sign-in, **API tokens**, **Webhooks** when the server enables them, and for
+admins **Manage users**, which leaves the modal for `/admin`. Open mode shows only the general pages.
 
 ## Email addresses
 
@@ -72,16 +76,16 @@ verified by sending any.
 
 - **Unique regardless of case.** An address leads to one account. Using one another account holds is
   refused (`409`, `code: "email_taken"`).
-- **Under local sign-in** it can be given when registering, set or removed from the account menu, and
+- **Under local sign-in** it can be given when registering, set or removed on the Account settings page, and
   given or changed by an admin.
 - **Under single sign-on** the identity provider's `email` claim is stored at every sign-in, unless the
   provider marks it `email_verified: false`, or another account already holds it (the sign-in goes
-  ahead and the address is left off). The account menu does not offer to change it. An admin can, but
+  ahead and the address is left off). Account settings shows it read-only. An admin can, but
   the next sign-in puts the provider's address back.
 
 ## The Users view
 
-Admins reach it from the account menu → **Manage users**, at `/admin`. It lists every account with its
+Admins reach it from Settings → **Manage users**, at `/admin`. It lists every account with its
 email address, note count, when it was created, and when one of its sessions was last used. Badges mark admins, the
 viewer's own account, accounts that sign in with single sign-on, and accounts still holding a
 temporary password.
@@ -123,7 +127,7 @@ A temporary password is good for one thing: choosing a real one.
 
 ## Changing your own password
 
-**Change password** in the account menu opens a dialog that asks for the current password and the new
+**Change password** on the Account settings page asks for the current password and the new
 one twice. It is offered only under local sign-in. A successful change keeps the current session and
 ends every other session of the account, including its open sockets.
 
@@ -143,7 +147,7 @@ with it stops receiving note events and stops editing live documents at once.
 
 ## Personal API tokens
 
-Any account can mint API tokens from the account menu (**API tokens**), for scripts, iOS Shortcuts,
+Any account can mint API tokens from Settings (**API tokens**), for scripts, iOS Shortcuts,
 command-line capture or home automation that should not hold a password. A token is named, expires
 after 30, 90 or 365 days or never, is shown once when it is made, and is listed afterwards by its first
 characters and when it was last used. Revoking it closes anything connected with it at once. A token
@@ -151,7 +155,7 @@ reaches notes, never the account's own security or the admin API; see the API do
 
 ## Two-factor sign-in
 
-A local account can turn on two-factor sign-in from the account menu (**Two-factor sign-in**): signing in
+A local account can turn on two-factor sign-in from Settings (**Two-factor sign-in**): signing in
 then asks for a six-digit code from an authenticator app (TOTP, RFC 6238: SHA-1, 30-second steps) after
 the password. Accounts that sign in through single sign-on get this from their identity provider instead.
 
@@ -236,7 +240,7 @@ trash), shares, images and the bytes they take, and saved versions; the same per
 first, with images counted under the owner of the notes they belong to; and every background job (trash,
 sessions, unused images, backups when on) with when it last ran, how long it took and its last error.
 When the update check (`UPDATE_CHECK`, on by default) has found a newer release than the one running,
-the overview says so with a link to its notes, and every admin sees a dot on their avatar and a line in
-the account menu. A build past a release (`0.1.8+14.bf5a6dd`) counts as that release, so only a later
+the overview says so with a link to its notes, and every admin sees a dot on the settings button and a line on
+the About page of Settings. A build past a release (`0.1.8+14.bf5a6dd`) counts as that release, so only a later
 release is news. The counts are plain aggregates in either driver (`maintenance.stats`); job status is kept in memory by
 `startPeriodicJob`, so it describes the running process since it started.

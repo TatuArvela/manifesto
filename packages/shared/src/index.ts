@@ -64,6 +64,12 @@ export {
   MAX_NOTES_PER_IMPORT,
   WEBHOOK_EVENTS,
 } from "./api.js";
+export {
+  EXPORT_NOTES_FILE,
+  EXPORT_VERSIONS_FILE,
+  exportArchiveFiles,
+  noteToMarkdownFile,
+} from "./exportArchive.js";
 export type {
   AutoNoteSource,
   LinkPreview,

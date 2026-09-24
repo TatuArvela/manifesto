@@ -4,30 +4,37 @@ Manifesto supports exporting and importing note data from the Settings dialog. T
 
 ## Export
 
-- **Export**: Downloads all notes as a single JSON file (`manifesto-export-YYYY-MM-DD.json`)
+**Export Notes** in Settings downloads every note as one zip, the same archive in both modes:
 
-### From the server (connected mode)
+- **Connected mode**: the server builds it for the account (`GET /api/export`, which takes any
+  credential, so an API token can script a backup), named `<username>-notes-YYYY-MM-DD.zip`. An admin
+  can download any account's with **Download notes** (`GET /api/admin/users/:id/export`).
+- **Open mode**: the browser builds it from what it holds (`exportArchive`, zipped with the platform's
+  `CompressionStream`), named `manifesto-export-YYYY-MM-DD.zip`.
 
-**Download all my notes (.zip)** in Settings, `GET /api/export` (any credential, so an API token can
-script a backup), and for an admin **Download notes** on any account (`GET
-/api/admin/users/:id/export`) build one zip on the server:
+Both write the layout `exportArchiveFiles` in `@manifesto/shared` defines, so an archive from either
+mode imports into either:
 
 | File | Holds |
 |---|---|
 | `notes.json` | Every note the account owns, the archive and trash included, in the import format above, with images inlined as `data:` URLs. Importing it restores the notes anywhere, open mode included. |
 | `notes/<title>.md` | Each note not in the trash as Markdown, with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`) that the Markdown-folder import reads back, for another tool to open. |
-| `versions.json` | The server's version history of those notes. |
-| `account.json` | The account's username, display name, email address, how it signs in, whether it is an admin and when it was made. |
+| `versions.json` | The version history of those notes. |
+| `account.json` | Connected mode only: the account's username, display name, email address, how it signs in, whether it is an admin and when it was made. |
 
-Notes shared with the account belong to someone else and are not included. It serves a person leaving,
-moving servers, or asking what is held about them; each download is recorded in the audit log.
-Importing the zip as it is restores it from `notes.json` (same ids, so a note already here is merged,
-not duplicated); the Markdown files are the same notes stripped down and are then not read.
+Notes shared with the account belong to someone else and are not included. A server's download serves a
+person leaving, moving servers, or asking what is held about them; each one is recorded in the audit
+log. Importing the zip as it is restores it from `notes.json` (same ids, so a note already here is
+merged, not duplicated); the Markdown files are the same notes stripped down and are then not read.
+`versions.json` is then filed under the notes it belongs to, with the dates the versions were taken:
+only under notes the importing user owns, skipping a version the note already has (so importing the
+same backup twice adds nothing) and one past `NOTE_VERSION_MAX_AGE_DAYS`.
 
 ## Import
 
-- **Import**: Loads notes from a previously exported JSON file, merging them into the existing notes.
-  Import also takes Markdown files (one note each) and Google Keep notes; see below.
+- **Import**: Loads notes from an export zip, or from the JSON file earlier versions exported, merging
+  them into the existing notes. Import also takes Markdown files (one note each) and Google Keep
+  notes; see below.
 
 Import is offered from the Settings dialog and by dropping files anywhere on the board.
 
@@ -80,7 +87,7 @@ budget shared by the whole archive (the 50 MB import cap), so a small archive ca
 
 ## Format
 
-Exported files are human-readable JSON. A full dataset export contains an array of note objects following the schema in [Data Model](../data-model.md), including all fields (color, font, tags, etc.).
+An export's `notes.json` is human-readable JSON: an array of note objects following the schema in [Data Model](../data-model.md), including all fields (color, font, tags, etc.). A bare JSON file of that shape, which earlier versions exported, imports the same way.
 
 ## Validation
 

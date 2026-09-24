@@ -289,9 +289,9 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async saveVersion(
     noteId: string,
-    version: { title: string; content: string },
+    version: { title: string; content: string; timestamp?: string },
   ): Promise<void> {
-    saveVersion(noteId, version.title, version.content);
+    saveVersion(noteId, version.title, version.content, version.timestamp);
   }
 
   /** Kept in IndexedDB; the note holds its `local:` reference. */

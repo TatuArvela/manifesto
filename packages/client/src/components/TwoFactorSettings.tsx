@@ -1,8 +1,6 @@
 import type { TwoFactorStatusResponse } from "@manifesto/shared";
 import { Copy } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import { currentUser } from "../state/auth.js";
 import {
@@ -15,7 +13,6 @@ import {
   twoFactorStatus,
 } from "../state/twoFactor.js";
 import { showSuccess } from "../state/ui.js";
-import { Backdrop } from "./Backdrop.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -42,15 +39,12 @@ const FAILURE_KEYS: Record<string, MessageKey> = {
  * secret into an authenticator, then a code to prove it took), keep the
  * recovery codes it hands out once, or turn it off with the password.
  */
-export function TwoFactorDialog({ onClose }: { onClose: () => void }) {
+export function TwoFactorSettings() {
   const [step, setStep] = useState<Step>({ kind: "loading" });
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEscapeStack(true, onClose);
-  const dialogRef = useFocusTrap<HTMLDivElement>(true);
 
   const load = async () => {
     const status = await twoFactorStatus();
@@ -286,32 +280,11 @@ export function TwoFactorDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <>
-      <Backdrop onDismiss={onClose} class="z-40" />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="two-factor-title"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none animate-scale-in"
-      >
-        <div class="pointer-events-auto w-full max-w-sm max-h-full overflow-y-auto rounded-2xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-xl border border-neutral-200 dark:border-neutral-700 p-6 space-y-4">
-          <div>
-            <h2 id="two-factor-title" class="text-lg font-semibold">
-              {t("twoFactor.title")}
-            </h2>
-            <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-              {t("twoFactor.hint")}
-            </p>
-          </div>
-          {body}
-          <div class="flex justify-end border-t border-neutral-200 dark:border-neutral-700 pt-3">
-            <button type="button" class={secondaryClass} onClick={onClose}>
-              {t("twoFactor.close")}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
+    <div class="space-y-4">
+      <p class="text-sm text-neutral-600 dark:text-neutral-300">
+        {t("twoFactor.hint")}
+      </p>
+      {body}
+    </div>
   );
 }

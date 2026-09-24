@@ -1,7 +1,7 @@
 # Webhooks
 
 Connected mode can post a user's note events to URLs they choose, which is how notes get wired into n8n,
-Home Assistant, a chat bot or a script. Each user manages theirs from the account menu (**Webhooks**),
+Home Assistant, a chat bot or a script. Each user manages theirs from Settings (**Webhooks**),
 which appears only when the server has them on.
 
 ## What is sent

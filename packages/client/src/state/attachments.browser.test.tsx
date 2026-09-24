@@ -94,7 +94,7 @@ describe("exportNotes", () => {
       return new Blob([GIF_BYTES], { type: "image/gif" });
     });
     notes.value = [note];
-    const [exported] = JSON.parse((await exportNotes()) ?? "[]");
+    const [exported] = (await exportNotes()) ?? [];
     expect(exported.images).toEqual([GIF]);
     // A preview image that cannot be read is left out; the card stays.
     expect(exported.linkPreviews).toEqual([

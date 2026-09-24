@@ -1,5 +1,16 @@
-import type { Note, NoteCreate, NoteReminder } from "@manifesto/shared";
-import { NoteColor, NoteFont, REMINDER_RECURRENCES } from "@manifesto/shared";
+import type {
+  Note,
+  NoteCreate,
+  NoteReminder,
+  NoteVersion,
+} from "@manifesto/shared";
+import {
+  EXPORT_NOTES_FILE,
+  EXPORT_VERSIONS_FILE,
+  NoteColor,
+  NoteFont,
+  REMINDER_RECURRENCES,
+} from "@manifesto/shared";
 import { ulid } from "ulid";
 import {
   frontmatterBoolean,
@@ -315,6 +326,8 @@ interface ImportHandlers {
   createNote: (input: Partial<NoteCreate>) => Promise<Note | null>;
   /** Resolves `false` if the merge could not be stored. */
   importBulk: (notes: Note[]) => Promise<boolean>;
+  /** An export's version history, once its notes are stored. Never rejects. */
+  importVersions?: (versions: NoteVersion[]) => Promise<void>;
 }
 
 const textDecoder = new TextDecoder();
@@ -334,12 +347,15 @@ function parseJsonOrNull(text: string): unknown {
  * a vault's settings) is ignored. The byte budget is shared by every entry,
  * so an archive cannot add up to more than one file would be allowed.
  *
- * A server's account download is the exception: its `notes.json` holds every
- * note whole (ids, colors, images, the trash) and its Markdown files are the
- * same notes stripped down for other tools, so when it is there it is the
- * import and the rest of the archive is not read.
+ * An export (either mode's; see `exportArchiveFiles`) is the exception: its
+ * `notes.json` holds every note whole (ids, colors, images, the trash) and its
+ * Markdown files are the same notes stripped down for other tools, so when it
+ * is there it is the import, with `versions.json` beside it, and the rest of
+ * the archive is not read.
  */
-async function notesFromZip(file: File): Promise<Note[]> {
+async function notesFromZip(
+  file: File,
+): Promise<{ notes: Note[]; versions: NoteVersion[] }> {
   if (file.size > MAX_IMPORT_BYTES) {
     throw new Error(`File exceeds ${MAX_IMPORT_BYTES} bytes`);
   }
@@ -353,19 +369,27 @@ async function notesFromZip(file: File): Promise<Note[]> {
   const byDirAndName = new Map<string, ZipEntry>();
   for (const entry of entries) byDirAndName.set(entry.name, entry);
 
-  const accountNotes = entries.find((e) =>
+  const exportedNotes = entries.find((e) =>
     /^([^/]+\/)?notes\.json$/.test(e.name),
   );
-  if (accountNotes) {
-    const data = parseJsonOrNull(textDecoder.decode(await read(accountNotes)));
+  if (exportedNotes) {
+    const data = parseJsonOrNull(textDecoder.decode(await read(exportedNotes)));
     if (
       Array.isArray(data) &&
       data.length > 0 &&
       !data.some((item) => !isValidNoteShape(item))
     ) {
-      return data.map((item: Record<string, unknown>) =>
-        normalizeImportedNote(item),
-      );
+      const dir = exportedNotes.name.slice(0, -EXPORT_NOTES_FILE.length);
+      const history = byDirAndName.get(dir + EXPORT_VERSIONS_FILE);
+      const versions = history
+        ? parseJsonOrNull(textDecoder.decode(await read(history)))
+        : null;
+      return {
+        notes: data.map((item: Record<string, unknown>) =>
+          normalizeImportedNote(item),
+        ),
+        versions: Array.isArray(versions) ? versions.filter(isNoteVersion) : [],
+      };
     }
   }
 
@@ -405,7 +429,23 @@ async function notesFromZip(file: File): Promise<Note[]> {
       }),
     );
   }
-  return notes;
+  return { notes, versions: [] };
+}
+
+/**
+ * A version from an export's `versions.json`, which is only the file's word:
+ * anything not shaped like one is dropped rather than filed.
+ */
+function isNoteVersion(value: unknown): value is NoteVersion {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.noteId === "string" &&
+    typeof v.title === "string" &&
+    typeof v.content === "string" &&
+    typeof v.timestamp === "string" &&
+    !Number.isNaN(Date.parse(v.timestamp))
+  );
 }
 
 /**
@@ -431,12 +471,13 @@ export async function importFiles(
   const keepNotes: Note[] = [];
   let usedImages = false;
 
-  const bulk = async (notes: Note[]) => {
+  const bulk = async (notes: Note[]): Promise<boolean> => {
     if (notes.length > 0 && (await handlers.importBulk(notes))) {
       summary.bulkCount += notes.length;
-    } else {
-      summary.failedCount++;
+      return true;
     }
+    summary.failedCount++;
+    return false;
   };
 
   for (const file of all) {
@@ -447,7 +488,10 @@ export async function importFiles(
     }
     try {
       if (isZipFile(file)) {
-        await bulk(await notesFromZip(file));
+        const archive = await notesFromZip(file);
+        if ((await bulk(archive.notes)) && archive.versions.length > 0) {
+          await handlers.importVersions?.(archive.versions);
+        }
         continue;
       }
       if (

@@ -25,7 +25,7 @@ export {
   trashNote,
   unarchiveNote,
 } from "./actions.js";
-export { exportNotes } from "./exportNotes.js";
+export { downloadExport, exportNotes } from "./exportNotes.js";
 export {
   addLinkPreviews,
   applyLinkPreviews,
@@ -118,9 +118,11 @@ export {
   editingNoteId,
   exitSearch,
   newNoteRequested,
+  openSettings,
   previousView,
   type SearchLocation,
   type SearchType,
+  type SettingsTab,
   searchColors,
   searchInput,
   searchLocations,
@@ -128,6 +130,7 @@ export {
   searchTypes,
   selectedNotes,
   selectMode,
+  settingsTab,
   showError,
   showSettings,
   showShortcuts,

@@ -39,6 +39,7 @@ import {
 } from "../state/index.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { loadInvitations } from "../state/sharing.js";
+import { restoreVersions } from "../state/versions.js";
 import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
 import { AdminView } from "./AdminView.js";
@@ -187,6 +188,7 @@ function MainApp() {
       const summary = await importFiles(files, {
         createNote: (input) => createNote(input),
         importBulk: (n) => importNotes(n),
+        importVersions: (versions) => restoreVersions(versions),
       });
       if (summary.bulkCount > 0) {
         showSuccess(plural("settings.data.importedCount", summary.bulkCount));

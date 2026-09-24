@@ -22,17 +22,22 @@ export async function downloadAccountExport(userId?: string): Promise<boolean> {
       /filename="([^"]+)"/.exec(
         res.headers.get("Content-Disposition") ?? "",
       )?.[1] ?? "notes.zip";
-    const url = URL.createObjectURL(await res.blob());
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    saveFile(await res.blob(), name);
     return true;
   } catch {
     return false;
   }
+}
+
+/** Hands a file to the browser as a download under `name`. */
+export function saveFile(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
