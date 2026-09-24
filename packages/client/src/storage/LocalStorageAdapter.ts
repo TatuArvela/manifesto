@@ -1,4 +1,5 @@
 import {
+  isLocalImageRef,
   type LinkPreview,
   type Note,
   NoteColor,
@@ -8,18 +9,40 @@ import {
   type NoteVersion,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
-import { blobToDataUrl } from "../utils/dataUrl.js";
+import { dataUrlToBlob } from "../utils/dataUrl.js";
+import {
+  clearLocalImages,
+  getLocalImage,
+  putLocalImage,
+  sweepLocalImages,
+} from "./localImages.js";
 import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
 import { getVersions, saveVersion } from "./VersionStorage.js";
 
 const STORAGE_KEY = "manifesto:notes";
 
+/** An image no note refers to is kept this long, sparing a draft's. */
+const LOCAL_IMAGE_GRACE_MS = 24 * 60 * 60 * 1000;
+
+/** Any image still inline, moved to IndexedDB and replaced by its reference. */
+async function storeInline(images: string[]): Promise<string[]> {
+  const out: string[] = [];
+  for (const image of images) {
+    out.push(
+      image.startsWith("data:")
+        ? await putLocalImage(dataUrlToBlob(image))
+        : image,
+    );
+  }
+  return out;
+}
+
 /**
  * The list as last read or written, with the exact string it was stored as.
  *
  * Every write goes through the whole list (read, change one note, write it
- * back), and images live inside it as data URLs, so parsing it again on each
+ * back), and images once lived inside it as data URLs, so parsing it again on each
  * auto-save put megabytes of `JSON.parse` on the main thread every half second
  * while the user typed. The key is still read every time, so a write from
  * another tab or a cleared store is noticed by the string no longer matching;
@@ -101,8 +124,26 @@ export class LocalStorageAdapter implements StorageAdapter {
     return null;
   }
 
+  /**
+   * Every note. Images a note still holds inline, from before they moved to
+   * IndexedDB, are moved there first, once; then images no note refers to
+   * any more are swept, after a day's grace.
+   */
   async getAll(): Promise<Note[]> {
-    return loadNotes();
+    const notes = loadNotes();
+    if (notes.some((n) => n.images.some((i) => i.startsWith("data:")))) {
+      const moved: Note[] = [];
+      for (const note of notes) {
+        moved.push({ ...note, images: await storeInline(note.images) });
+      }
+      saveNotes(moved);
+    }
+    const current = loadNotes();
+    void sweepLocalImages(
+      new Set(current.flatMap((n) => n.images)),
+      LOCAL_IMAGE_GRACE_MS,
+    ).catch(() => {});
+    return current;
   }
 
   async get(id: string): Promise<Note | null> {
@@ -110,6 +151,7 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   async create(input: NoteCreate): Promise<Note> {
+    const images = await storeInline(input.images ?? []);
     const notes = loadNotes();
     const now = new Date().toISOString();
     const note: Note = {
@@ -124,7 +166,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       trashedAt: input.trashedAt ?? null,
       position: input.position ?? Date.now(),
       tags: input.tags ?? [],
-      images: input.images ?? [],
+      images,
       linkPreviews: input.linkPreviews ?? [],
       reminder: input.reminder ?? null,
       createdAt: now,
@@ -136,6 +178,11 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   async update(id: string, changes: NoteUpdate): Promise<Note> {
+    // Stored before the list is read, so the read, change and write below
+    // stay one synchronous step no other write can come between.
+    if (changes.images) {
+      changes = { ...changes, images: await storeInline(changes.images) };
+    }
     const notes = loadNotes();
     const index = notes.findIndex((n) => n.id === id);
     if (index === -1) throw new Error(`Note not found: ${id}`);
@@ -156,9 +203,15 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async deleteAll(): Promise<void> {
     localStorage.removeItem(STORAGE_KEY);
+    await clearLocalImages().catch(() => {});
   }
 
   async importAll(imported: Note[]): Promise<void> {
+    const stored: Note[] = [];
+    for (const note of imported) {
+      stored.push({ ...note, images: await storeInline(note.images) });
+    }
+    imported = stored;
     const existing = loadNotes();
     const existingById = new Map(existing.map((n) => [n.id, n]));
     for (const note of imported) {
@@ -183,16 +236,16 @@ export class LocalStorageAdapter implements StorageAdapter {
     saveVersion(noteId, version.title, version.content);
   }
 
-  /** Kept inline, as a `data:` URL in the note. */
+  /** Kept in IndexedDB; the note holds its `local:` reference. */
   async putImage(image: Blob): Promise<string> {
-    const dataUrl = await blobToDataUrl(image);
-    if (!dataUrl) throw new Error("The image could not be read");
-    return dataUrl;
+    return putLocalImage(image);
   }
 
-  /** Open mode keeps every image inline, so no reference can name one. */
-  async loadAttachment(_ref: string): Promise<Blob> {
-    throw new Error("Open mode has no attachment store");
+  async loadImage(ref: string): Promise<Blob> {
+    if (!isLocalImageRef(ref)) {
+      throw new Error("Open mode keeps its images in this browser");
+    }
+    return getLocalImage(ref);
   }
 
   async search(query: string): Promise<Note[]> {

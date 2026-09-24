@@ -141,7 +141,7 @@ export class RestApiAdapter implements StorageAdapter {
     if (!res.ok) await this.fail(res, "Failed to save version");
   }
 
-  async loadAttachment(ref: string): Promise<Blob> {
+  async loadImage(ref: string): Promise<Blob> {
     const res = await fetch(
       `${this.baseUrl}/api/attachments/${attachmentIdOf(ref)}`,
       { headers: { Authorization: `Bearer ${this.token}` } },

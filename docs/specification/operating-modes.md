@@ -13,7 +13,7 @@ There is no runtime toggle: a build is one mode or the other. To move data betwe
 
 The default. The client is a standalone single-page application; there is no server to deploy or operate.
 
-- All notes live in `localStorage` under the `manifesto:notes` key (JSON).
+- All notes live in `localStorage` under the `manifesto:notes` key (JSON). Their images live in IndexedDB (`manifesto-images`), and a note refers to each as `local:<sha256>`; see [Attachments](features/attachments.md).
 - Version history lives in `localStorage`, one LZ-String compressed key per note (`manifesto:versions:<noteId>`).
 - Preferences live in `localStorage` under `manifesto:prefs`.
 - Sharing works via URL hash payloads, so any two open-mode users can share a note without a server.

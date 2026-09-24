@@ -32,16 +32,16 @@ export interface StorageAdapter {
    */
   loadImages(id: string): Promise<string[]>;
   /**
-   * The bytes of an `attachment:<id>` image. Only connected mode holds such
-   * references (the server stores images outside the note and refers to
-   * them); open mode never does, and rejects.
+   * The bytes an image reference names: an `attachment:<id>` on the server
+   * in connected mode, a `local:<hash>` in this browser's IndexedDB in open
+   * mode. Rejects for the other kind, or bytes that are gone.
    */
-  loadAttachment(ref: string): Promise<Blob>;
+  loadImage(ref: string): Promise<Blob>;
   /**
-   * Stores an image and resolves the value to put in a note's `images`. In
-   * connected mode it is uploaded (`POST /api/attachments`), reporting
-   * progress as a fraction, and the answer is an `attachment:` reference.
-   * Rejects if it could not be stored.
+   * Stores an image and resolves the reference to put in a note's `images`:
+   * uploaded in connected mode (`POST /api/attachments`, reporting progress
+   * as a fraction) for an `attachment:` reference, kept in IndexedDB in open
+   * mode for a `local:` one. Rejects if it could not be stored.
    */
   putImage(
     image: Blob,

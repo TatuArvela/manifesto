@@ -112,6 +112,24 @@ export function isAttachmentRef(image: string): boolean {
   return ATTACHMENT_REF_PATTERN.test(image);
 }
 
+/**
+ * How an open-mode note refers to an image kept in this browser's IndexedDB:
+ * `local:` and the SHA-256 of its bytes, in hex. Never sent to a server; an
+ * export inlines the bytes instead.
+ */
+export const LOCAL_IMAGE_REF_PREFIX = "local:";
+
+export const LOCAL_IMAGE_REF_PATTERN = /^local:[0-9a-f]{64}$/;
+
+export function isLocalImageRef(image: string): boolean {
+  return LOCAL_IMAGE_REF_PATTERN.test(image);
+}
+
+/** Whether an image is a reference (either kind) rather than inline bytes. */
+export function isStoredImageRef(image: string): boolean {
+  return isAttachmentRef(image) || isLocalImageRef(image);
+}
+
 /** The attachment id a reference names. */
 export function attachmentIdOf(ref: string): string {
   return ref.slice(ATTACHMENT_REF_PREFIX.length);

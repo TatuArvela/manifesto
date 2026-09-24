@@ -1,4 +1,4 @@
-import { isAttachmentRef, MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
+import { isStoredImageRef, MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { createStorage } from "../storage/index.js";
 import { shrinkImage } from "../utils/shrinkImage.js";
 
@@ -18,7 +18,7 @@ export function attachmentObjectUrl(ref: string): Promise<string | null> {
   let pending = objectUrls.get(ref);
   if (!pending) {
     pending = storage
-      .loadAttachment(ref)
+      .loadImage(ref)
       .then((blob) => URL.createObjectURL(blob))
       .catch(() => {
         // Not cached: the next card to ask tries again.
@@ -49,12 +49,12 @@ function blobToDataUrl(blob: Blob): Promise<string | null> {
 export async function inlineImages(images: string[]): Promise<string[] | null> {
   const out: string[] = [];
   for (const image of images) {
-    if (!isAttachmentRef(image)) {
+    if (!isStoredImageRef(image)) {
       out.push(image);
       continue;
     }
     try {
-      const dataUrl = await blobToDataUrl(await storage.loadAttachment(image));
+      const dataUrl = await blobToDataUrl(await storage.loadImage(image));
       if (dataUrl === null) return null;
       out.push(dataUrl);
     } catch {
@@ -89,7 +89,7 @@ export async function attachImage(
   const image = await shrinkImage(file);
   if (image.size > MAX_IMAGE_SOURCE_BYTES) throw new ImageTooLargeError();
   const stored = await storage.putImage(image, options);
-  if (isAttachmentRef(stored) && !objectUrls.has(stored)) {
+  if (isStoredImageRef(stored) && !objectUrls.has(stored)) {
     objectUrls.set(stored, Promise.resolve(URL.createObjectURL(image)));
   }
   return stored;

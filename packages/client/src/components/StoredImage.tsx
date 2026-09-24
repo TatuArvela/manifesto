@@ -1,4 +1,4 @@
-import { isAttachmentRef } from "@manifesto/shared";
+import { isStoredImageRef } from "@manifesto/shared";
 import type { JSX } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { attachmentObjectUrl } from "../state/attachments.js";
@@ -18,11 +18,11 @@ export function StoredImage({
   "src" | "alt"
 >) {
   const [resolved, setResolved] = useState<string | null>(() =>
-    isAttachmentRef(src) ? null : src,
+    isStoredImageRef(src) ? null : src,
   );
 
   useEffect(() => {
-    if (!isAttachmentRef(src)) {
+    if (!isStoredImageRef(src)) {
       setResolved(src);
       return;
     }
