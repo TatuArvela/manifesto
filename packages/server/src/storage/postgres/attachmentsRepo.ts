@@ -29,7 +29,7 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
         `INSERT INTO attachments
            (id, owner_id, sha256, content_type, size, data, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (owner_id, sha256) DO NOTHING`,
+         ON CONFLICT (owner_id, sha256) DO UPDATE SET unreferenced_since = NULL`,
         [
           input.id,
           input.ownerId,

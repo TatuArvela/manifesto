@@ -17,7 +17,7 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
     `INSERT INTO attachments
        (id, owner_id, sha256, content_type, size, data, created_at)
      VALUES (@id, @ownerId, @sha256, @contentType, @size, @data, @createdAt)
-     ON CONFLICT (owner_id, sha256) DO NOTHING`,
+     ON CONFLICT (owner_id, sha256) DO UPDATE SET unreferenced_since = NULL`,
   );
   const byHashStmt = db.prepare(
     `SELECT ${ATTACHMENT_META_COLUMNS} FROM attachments
