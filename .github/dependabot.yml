@@ -21,6 +21,11 @@ updates:
         dependency-type: development
         update-types: [minor, patch]
     # Majors come one per PR, ungrouped, since each can need code changes.
+    ignore:
+      # The types describe the runtime, so they move with the Node line in
+      # .tool-versions and the Dockerfile, never ahead of it.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
@@ -40,3 +45,8 @@ updates:
       day: monday
     commit-message:
       prefix: chore(deps)
+    ignore:
+      # Moving to a new Node line is a deliberate choice (LTS lines only,
+      # kept in step with .tool-versions), not a weekly bump.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
