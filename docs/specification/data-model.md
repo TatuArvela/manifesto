@@ -38,7 +38,7 @@ The accepted form is narrow, and the server enforces it on every write:
 | Scheme | `data:`, or an `attachment:<id>` reference the writer may read. A remote `http(s)` URL in `images` is rejected. |
 | Media type | `image/png`, `image/jpeg`, `image/jpg`, `image/gif`, `image/webp`, `image/avif` |
 | Encoding | `;base64,` followed by base64-alphabet characters, anchored at both ends |
-| Per-image size | 1.5 MiB of source image. Enforced on the encoded URL, whose cap is derived from it: base64 emits 4 characters per 3 bytes and the `data:image/…;base64,` prefix counts too, so a hand-rounded encoded cap rejects a full-size image 18 bytes short of the advertised number. |
+| Per-image size | 5 MiB of source image, after the client has shrunk it (photos are kept at 2560 pixels on the long edge, see [Attachments](features/attachments.md)). Enforced on the encoded URL, whose cap is derived from it: base64 emits 4 characters per 3 bytes and the `data:image/…;base64,` prefix counts too, so a hand-rounded encoded cap rejects a full-size image 18 bytes short of the advertised number. |
 | Images per note | 20 |
 | Whole request | 12 MiB on `/api/notes`, which is what bounds a note in aggregate |
 
@@ -49,7 +49,7 @@ The constants are declared once in `@manifesto/shared` (`IMAGE_DATA_URL_PATTERN`
 Over-cap images are refused by the client before they are attached, so the user gets a message naming the file rather than a `422` from a later save.
 
 Being inlined is what makes a note self-contained, and also what makes a list of
-notes large: twenty attachments at 1.5 MB is a 30 MB note, and a hundred such
+notes large: twenty attachments at 5 MB is a 100 MB note, and a hundred such
 notes is a list response no client wants. So the bytes stay in the note but are
 left out of a *listing*. A note from `GET /api/notes` or `GET /api/search`
 carries `imageCount` and an empty `images`, and `GET /api/notes/:id` returns it

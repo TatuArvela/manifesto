@@ -267,7 +267,7 @@ whole.
 
 This is what makes a listing's size a function of how many notes a user has
 rather than of how many pictures they have attached, each of which may be up to
-1.5 MB, inlined as a `data:` URL in the note itself (see
+5 MB, inlined as a `data:` URL in the note itself (see
 [Data Model](data-model.md#images)). A client must therefore not read an empty
 `images` as "this note has no pictures": compare it with `imageCount`, and fetch
 the note before doing anything that needs the bytes: drawing them, exporting

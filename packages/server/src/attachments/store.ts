@@ -14,7 +14,7 @@ import type { StorageDriver } from "../storage/types.js";
  * in the attachment store under the note's owner and replaced by its
  * `attachment:<id>` reference, so the row, every listing and reply, each
  * conflict retry and every version a client keeps carry a few dozen bytes per
- * image instead of up to 1.5 MB.
+ * image instead of up to 5 MB.
  *
  * A reference the owner already holds passes through. One held by someone
  * else is the case of an editor copying an image from another person's note:

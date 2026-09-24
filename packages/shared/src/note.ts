@@ -66,17 +66,19 @@ export const IMAGE_DATA_URL_SUBTYPES = [
 ] as const;
 
 /**
- * Largest source image a user may attach. This is the number the error messages
- * quote ("1.5 MB" in `en.ts`, "1,5 Mt" in `fi.ts`), so the two must move
- * together.
+ * Largest image stored, after the client has shrunk it (`shrinkImage` keeps a
+ * photo at 2560 pixels on its long edge, which is well under this). It is the
+ * ceiling for what is not shrunk: a large screenshot, an animated GIF, an API
+ * client uploading as it likes. The error messages quote it through
+ * `formatFileSize` ("5 MB", "5 Mt").
  *
- * 1.5 MiB rather than a round 1,500,000 because the platforms disagree about
+ * 5 MiB rather than a round 5,000,000 because the platforms disagree about
  * what "MB" means and this is the reading that never rejects a file the user
  * was told would fit: Windows labels MiB as MB, so a file it displays as
- * "1.50 MB" is exactly this and is accepted, while macOS shows the same file as
- * 1.57 MB, which merely admits slightly more than advertised.
+ * "5.00 MB" is exactly this and is accepted, while macOS shows the same file
+ * as 5.24 MB, which merely admits slightly more than advertised.
  */
-export const MAX_IMAGE_SOURCE_BYTES = 1.5 * 1024 * 1024;
+export const MAX_IMAGE_SOURCE_BYTES = 5 * 1024 * 1024;
 
 /**
  * The same cap expressed on the encoded `data:` URL, which is the form that

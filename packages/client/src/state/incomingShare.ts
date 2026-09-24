@@ -13,6 +13,7 @@ import {
   type SharedText,
   sharedTextToDraft,
 } from "../shareTarget.js";
+import { shrinkImage } from "../utils/shrinkImage.js";
 import { activeTag, activeView, showError } from "./ui.js";
 
 export interface IncomingShare {
@@ -72,7 +73,9 @@ export async function takeIncomingShare(): Promise<void> {
       const name = decodeURIComponent(
         response.headers.get("X-File-Name") ?? "",
       );
-      const dataUrl = await blobToDataUrl(await response.blob());
+      const dataUrl = await blobToDataUrl(
+        await shrinkImage(await response.blob()),
+      );
       if (!dataUrl || !IMAGE_DATA_URL_PATTERN.test(dataUrl)) continue;
       if (dataUrl.length > MAX_IMAGE_DATA_URL_BYTES) {
         showError(

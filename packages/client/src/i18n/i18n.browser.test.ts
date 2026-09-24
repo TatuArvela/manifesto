@@ -142,7 +142,7 @@ describe("message shape parity", () => {
 
 describe("formatFileSize()", () => {
   test("renders megabytes with the English unit and separator", () => {
-    expect(formatFileSize(MAX_IMAGE_SOURCE_BYTES)).toBe("1.5 MB");
+    expect(formatFileSize(MAX_IMAGE_SOURCE_BYTES)).toBe("5 MB");
   });
 
   // "Mt" (megatavu) rather than "MB", and a decimal comma. Both come from CLDR
@@ -150,7 +150,7 @@ describe("formatFileSize()", () => {
   // the size through Intl instead of spelling it out in each message.
   test("renders megabytes with the Finnish unit and separator", () => {
     locale.value = "fi";
-    expect(formatFileSize(MAX_IMAGE_SOURCE_BYTES)).toBe("1,5 Mt");
+    expect(formatFileSize(MAX_IMAGE_SOURCE_BYTES)).toBe("5 Mt");
   });
 
   test("the size in the too-large message is the size actually enforced", () => {
@@ -158,6 +158,6 @@ describe("formatFileSize()", () => {
       name: "photo.jpg",
       size: formatFileSize(MAX_IMAGE_SOURCE_BYTES),
     });
-    expect(message).toBe("photo.jpg is too large to attach (max 1.5 MB)");
+    expect(message).toBe("photo.jpg is too large to attach (max 5 MB)");
   });
 });
