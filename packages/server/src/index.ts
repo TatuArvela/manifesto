@@ -10,6 +10,7 @@ import {
 import { loadConfig } from "./config.js";
 import { startAttachmentCleanup } from "./lib/attachmentCleanup.js";
 import { logger } from "./lib/logger.js";
+import { createMetricsApp } from "./lib/metricsServer.js";
 import { startScheduledBackup } from "./lib/scheduledBackup.js";
 import { startSessionCleanup } from "./lib/sessionCleanup.js";
 import { createShutdown } from "./lib/shutdown.js";
@@ -62,6 +63,24 @@ const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
 }) as unknown as HttpServer;
 
 ws.injectWebSocket(server);
+
+// Metrics on a port of their own, which a deployment does not publish: a
+// scraper on the same host or network reaches it, the internet does not.
+const metricsServer = cfg.metricsPort
+  ? (serve(
+      {
+        fetch: createMetricsApp(cfg, VERSION).fetch,
+        port: cfg.metricsPort,
+        hostname: cfg.metricsHost,
+      },
+      (info) => {
+        logger.info("Metrics listening", {
+          host: cfg.metricsHost,
+          port: info.port,
+        });
+      },
+    ) as unknown as HttpServer)
+  : null;
 const yjs = attachYjsSocket({
   httpServer: server,
   storage,
@@ -103,6 +122,7 @@ const shutdown = createShutdown({
     stopAppSocket,
     () => webhooks?.stop(),
     () => updateCheck?.stop(),
+    () => metricsServer?.close(),
   ],
   closeStorage: () => storage.close(),
 });

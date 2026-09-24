@@ -10,8 +10,8 @@ import type { AuthProvider } from "./auth/types.js";
 import { mountClient } from "./client/serveClient.js";
 import type { ServerConfig } from "./config.js";
 import { exportAccount, sendExport } from "./export/userExport.js";
-import { countMetric, renderMetrics } from "./lib/metrics.js";
-import { safeEqual } from "./lib/token.js";
+import { countMetric } from "./lib/metrics.js";
+import { metricsHandler } from "./lib/metricsServer.js";
 import type { UpdateStatus } from "./lib/updateCheck.js";
 import {
   createLinkPreviewFetcher,
@@ -127,24 +127,12 @@ export function createApp(deps: AppDeps): AppHandle {
     );
   });
 
-  // Prometheus scrapes this. Off unless METRICS_TOKEN is set, and then only
-  // for a scraper that sends it: counts of sockets and failures are not for
-  // everyone.
-  app.get("/metrics", async (c) => {
-    if (
-      !cfg.metricsToken ||
-      !safeEqual(
-        c.req.header("Authorization") ?? "",
-        `Bearer ${cfg.metricsToken}`,
-      )
-    ) {
-      throw new HttpError(404, "Not found");
-    }
-    return c.text(await renderMetrics(VERSION), 200, {
-      "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
-      "Cache-Control": "no-store",
-    });
-  });
+  // Prometheus scrapes this. On the public port only with METRICS_TOKEN and
+  // never when METRICS_PORT gives metrics a port of their own: counts of
+  // sockets and failures are not for everyone.
+  if (!cfg.metricsPort) {
+    app.get("/metrics", metricsHandler(cfg, VERSION, true));
+  }
 
   // Cap request bodies on /api/*. Without this, an authenticated user could
   // POST a multi-MB JSON body and exhaust server memory.
