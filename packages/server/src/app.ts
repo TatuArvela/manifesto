@@ -1,3 +1,4 @@
+import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { audit, recordClientAddress } from "./audit/audit.js";
@@ -157,10 +158,17 @@ export function createApp(deps: AppDeps): AppHandle {
     maxSize: NOTE_BODY_LIMIT,
     onError: onBodyTooLarge,
   });
+  // An image upload is one raw file, up to the image limit.
+  const attachmentBodyLimit = bodyLimit({
+    maxSize: MAX_IMAGE_SOURCE_BYTES + 64 * 1024,
+    onError: onBodyTooLarge,
+  });
   app.use("/api/*", (c, next) =>
     c.req.path.startsWith("/api/notes")
       ? noteBodyLimit(c, next)
-      : defaultBodyLimit(c, next),
+      : c.req.path === "/api/attachments"
+        ? attachmentBodyLimit(c, next)
+        : defaultBodyLimit(c, next),
   );
 
   app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));

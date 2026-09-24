@@ -100,10 +100,11 @@ See [Version History](features/version-history.md).
 
 | Method   | Path                     | Description          |
 |----------|--------------------------|----------------------|
+| `POST`   | `/api/attachments`       | Upload an image: the raw file, its type in `Content-Type`; answers `{ ref }` |
 | `GET`    | `/api/attachments/:id`   | The bytes of an image a note refers to as `attachment:<id>` |
 
-`Note.images` accepts image `data:` URLs and `attachment:<id>` references. The server stores every
-inline image it is sent and answers with references; see [Attachments](features/attachments.md).
+A note's `images` holds `attachment:<id>` references from uploads; see
+[Attachments](features/attachments.md).
 
 ### Link previews
 

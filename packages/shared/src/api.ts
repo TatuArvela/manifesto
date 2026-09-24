@@ -44,6 +44,11 @@ export interface NoteResponse {
   note: Note;
 }
 
+/** `POST /api/attachments`: the reference to put in a note's `images`. */
+export interface AttachmentUploadResponse {
+  ref: string;
+}
+
 /** `GET /api/notes/:id/versions`, newest first. */
 export interface NoteVersionsResponse {
   versions: NoteVersion[];

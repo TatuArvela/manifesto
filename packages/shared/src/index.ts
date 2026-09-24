@@ -11,6 +11,7 @@ export type {
   ApiTokenCreatedResponse,
   ApiTokenCreateRequest,
   ApiTokensResponse,
+  AttachmentUploadResponse,
   AuditAction,
   AuditEntry,
   AuditLogResponse,

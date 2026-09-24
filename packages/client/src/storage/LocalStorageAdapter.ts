@@ -8,6 +8,7 @@ import {
   type NoteVersion,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
+import { blobToDataUrl } from "../utils/dataUrl.js";
 import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
 import { getVersions, saveVersion } from "./VersionStorage.js";
@@ -180,6 +181,13 @@ export class LocalStorageAdapter implements StorageAdapter {
     version: { title: string; content: string },
   ): Promise<void> {
     saveVersion(noteId, version.title, version.content);
+  }
+
+  /** Kept inline, as a `data:` URL in the note. */
+  async putImage(image: Blob): Promise<string> {
+    const dataUrl = await blobToDataUrl(image);
+    if (!dataUrl) throw new Error("The image could not be read");
+    return dataUrl;
   }
 
   /** Open mode keeps every image inline, so no reference can name one. */

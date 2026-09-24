@@ -137,6 +137,10 @@ export const fi: Messages = {
   "editor.font": "Fontti",
   "editor.changeFont": "Vaihda fonttia",
   "editor.addImage": "Lisää kuva",
+  "editor.uploading": "Ladataan {name}",
+  "editor.uploadFailed": "Kuvaa {name} ei saatu tallennettua",
+  "editor.retryUpload": "Yritä uudelleen",
+  "editor.removeUpload": "Poista",
   "editor.imageTooLarge":
     "{name} on liian suuri liitettäväksi (enintään {size})",
   // Note menu: one kebab menu, shared by the card, the editor and the

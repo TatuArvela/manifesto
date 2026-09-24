@@ -1,5 +1,6 @@
-import { isAttachmentRef } from "@manifesto/shared";
+import { isAttachmentRef, MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { createStorage } from "../storage/index.js";
+import { shrinkImage } from "../utils/shrinkImage.js";
 
 const storage = createStorage();
 
@@ -61,6 +62,37 @@ export async function inlineImages(images: string[]): Promise<string[] | null> {
     }
   }
   return out;
+}
+
+export class ImageTooLargeError extends Error {
+  constructor() {
+    super("Image too large");
+    this.name = "ImageTooLargeError";
+  }
+}
+
+/**
+ * Makes an attached file into something a note can hold: shrunk to a
+ * sensible size, checked against the limit, and stored (uploaded, in
+ * connected mode, reporting progress). The bytes are remembered under the
+ * reference, so the image the user just attached is drawn from them rather
+ * than fetched straight back. Rejects with `ImageTooLargeError`, an upload
+ * error, or an `AbortError` when `signal` fires.
+ */
+export async function attachImage(
+  file: Blob,
+  options: {
+    onProgress?: (fraction: number) => void;
+    signal?: AbortSignal;
+  } = {},
+): Promise<string> {
+  const image = await shrinkImage(file);
+  if (image.size > MAX_IMAGE_SOURCE_BYTES) throw new ImageTooLargeError();
+  const stored = await storage.putImage(image, options);
+  if (isAttachmentRef(stored) && !objectUrls.has(stored)) {
+    objectUrls.set(stored, Promise.resolve(URL.createObjectURL(image)));
+  }
+  return stored;
 }
 
 /** Test seam: the cache is module state and outlives a test. */

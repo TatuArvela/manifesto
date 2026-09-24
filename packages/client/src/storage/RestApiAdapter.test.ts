@@ -534,3 +534,98 @@ describe("RestApiAdapter", () => {
     });
   });
 });
+
+describe("image uploads", () => {
+  /** A stand-in for XMLHttpRequest that answers every upload with `status`. */
+  function fakeXhr(
+    status: number,
+    ref = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV",
+  ) {
+    const sent: {
+      url: string;
+      headers: Record<string, string>;
+      body: unknown;
+    }[] = [];
+    class FakeXhr {
+      status = 0;
+      responseText = "";
+      upload: { onprogress?: (e: ProgressEvent) => void } = {};
+      onload?: () => void;
+      onerror?: () => void;
+      onabort?: () => void;
+      private url = "";
+      private headers: Record<string, string> = {};
+      open(_method: string, url: string) {
+        this.url = url;
+      }
+      setRequestHeader(name: string, value: string) {
+        this.headers[name] = value;
+      }
+      abort() {
+        this.onabort?.();
+      }
+      send(body: unknown) {
+        sent.push({ url: this.url, headers: this.headers, body });
+        this.upload.onprogress?.({
+          lengthComputable: true,
+          loaded: 1,
+          total: 2,
+        } as ProgressEvent);
+        this.status = status;
+        this.responseText = JSON.stringify({ ref });
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+    vi.stubGlobal("XMLHttpRequest", FakeXhr);
+    return sent;
+  }
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("uploads the raw image with its type and reports progress", async () => {
+    const sent = fakeXhr(201);
+    const adapter = new RestApiAdapter("https://notes.example", "t");
+    const progress: number[] = [];
+    const ref = await adapter.putImage(
+      new Blob([new Uint8Array([1, 2])], { type: "image/png" }),
+      { onProgress: (p) => progress.push(p) },
+    );
+    expect(ref).toBe("attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    expect(sent[0].url).toBe("https://notes.example/api/attachments");
+    expect(sent[0].headers).toMatchObject({
+      Authorization: "Bearer t",
+      "Content-Type": "image/png",
+    });
+    expect(progress).toEqual([0.5]);
+  });
+
+  it("rejects an upload the server refuses", async () => {
+    fakeXhr(415);
+    const adapter = new RestApiAdapter("https://notes.example", "t");
+    await expect(
+      adapter.putImage(new Blob([], { type: "image/png" })),
+    ).rejects.toMatchObject({ status: 415 });
+  });
+
+  it("uploads an image left inline before writing the note", async () => {
+    fakeXhr(201);
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      jsonResponse({ note: makeNote() }, { status: 201 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const adapter = new RestApiAdapter("https://notes.example", "t");
+    const { id: _id, createdAt: _c, updatedAt: _u, ...fields } = makeNote();
+    await adapter.create({
+      ...fields,
+      images: [
+        "data:image/png;base64,AQI=",
+        "attachment:01BBBBBBBBBBBBBBBBBBBBBBBB",
+      ],
+    });
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(body.images).toEqual([
+      "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "attachment:01BBBBBBBBBBBBBBBBBBBBBBBB",
+    ]);
+  });
+});

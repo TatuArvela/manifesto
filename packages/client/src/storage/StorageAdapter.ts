@@ -38,6 +38,16 @@ export interface StorageAdapter {
    */
   loadAttachment(ref: string): Promise<Blob>;
   /**
+   * Stores an image and resolves the value to put in a note's `images`. In
+   * connected mode it is uploaded (`POST /api/attachments`), reporting
+   * progress as a fraction, and the answer is an `attachment:` reference.
+   * Rejects if it could not be stored.
+   */
+  putImage(
+    image: Blob,
+    options?: { onProgress?: (fraction: number) => void; signal?: AbortSignal },
+  ): Promise<string>;
+  /**
    * A note's version history, newest first. Open mode keeps it in this
    * browser; connected mode on the server, so every device shares it.
    */

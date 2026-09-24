@@ -1,4 +1,5 @@
 import type {
+  AttachmentUploadResponse,
   ErrorResponse,
   LinkPreview,
   LinkPreviewResponse,
@@ -12,6 +13,7 @@ import type {
   NoteVersionsResponse,
 } from "@manifesto/shared";
 import { attachmentIdOf, roleOf } from "@manifesto/shared";
+import { dataUrlToBlob } from "../utils/dataUrl.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
 
 export interface RestApiAdapterOptions {
@@ -28,6 +30,14 @@ export class NoteConflictError extends Error {
   constructor(public currentNote: Note) {
     super("Note has changed");
     this.name = "NoteConflictError";
+  }
+}
+
+/** An image upload the server refused (`status`), or that never arrived (0). */
+export class ImageUploadError extends Error {
+  constructor(readonly status: number) {
+    super(`Image upload failed (${status})`);
+    this.name = "ImageUploadError";
   }
 }
 
@@ -150,11 +160,76 @@ export class RestApiAdapter implements StorageAdapter {
     return data.note;
   }
 
+  /**
+   * Uploads one image and resolves its `attachment:` reference. Through
+   * `XMLHttpRequest` rather than `fetch`, since only it reports how much of
+   * the body has gone.
+   */
+  putImage(
+    image: Blob,
+    options: {
+      onProgress?: (fraction: number) => void;
+      signal?: AbortSignal;
+    } = {},
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${this.baseUrl}/api/attachments`);
+      xhr.setRequestHeader("Authorization", `Bearer ${this.token}`);
+      xhr.setRequestHeader("Content-Type", image.type);
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable)
+          options.onProgress?.(event.loaded / event.total);
+      };
+      xhr.onload = () => {
+        if (xhr.status === 401) this.onUnauthorized?.();
+        if (xhr.status !== 201) {
+          reject(new ImageUploadError(xhr.status));
+          return;
+        }
+        try {
+          resolve(
+            (JSON.parse(xhr.responseText) as AttachmentUploadResponse).ref,
+          );
+        } catch {
+          reject(new ImageUploadError(xhr.status));
+        }
+      };
+      xhr.onerror = () => reject(new ImageUploadError(0));
+      xhr.onabort = () => reject(new DOMException("Aborted", "AbortError"));
+      options.signal?.addEventListener("abort", () => xhr.abort(), {
+        once: true,
+      });
+      xhr.send(image);
+    });
+  }
+
+  /**
+   * Any image still inline, uploaded and replaced by its reference: a note
+   * write carries references only. The editor uploads as images are attached;
+   * this catches the rest (an import, something shared to the app).
+   */
+  private async uploadInline(images: string[]): Promise<string[]> {
+    const out: string[] = [];
+    for (const image of images) {
+      out.push(
+        image.startsWith("data:")
+          ? await this.putImage(dataUrlToBlob(image))
+          : image,
+      );
+    }
+    return out;
+  }
+
   async create(note: NoteCreate): Promise<Note> {
     const res = await fetch(`${this.baseUrl}/api/notes`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify(note),
+      body: JSON.stringify(
+        note.images
+          ? { ...note, images: await this.uploadInline(note.images) }
+          : note,
+      ),
     });
     if (!res.ok) await this.fail(res, "Failed to create note");
     const data = (await res.json()) as NoteResponse;
@@ -171,10 +246,14 @@ export class RestApiAdapter implements StorageAdapter {
       Authorization: `Bearer ${this.token}`,
     };
     if (options.ifMatch !== undefined) headers["If-Match"] = options.ifMatch;
+    const body =
+      changes.images === undefined
+        ? changes
+        : { ...changes, images: await this.uploadInline(changes.images) };
     const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
       method: "PUT",
       headers,
-      body: JSON.stringify(changes),
+      body: JSON.stringify(body),
     });
     if (res.status === 412) {
       const data = (await res.json()) as Partial<NoteResponse>;
