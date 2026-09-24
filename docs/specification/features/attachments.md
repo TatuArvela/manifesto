@@ -6,6 +6,11 @@ A note carries up to `MAX_IMAGES_PER_NOTE` images of up to 5 MB each, and in bot
 - **Connected mode:** `attachment:<id>`, an image in the server's attachment store (below).
 - **Open mode:** `local:<sha256>`, an image in this browser's IndexedDB (`storage/localImages.ts`).
 
+A link preview's thumbnail and favicon are held the same way, and everything below applies to them
+too: they are claimed for the note's owner, served to its recipients, swept when no preview or image
+refers to them, and inlined again on export (where one that cannot be read is left out and its card
+kept, since it is a picture of the linked page rather than something the user attached).
+
 `data:` URLs appear only in export and import files. Inline, every note write, every conflict retry,
 every `GET /api/notes/:id` would carry the bytes of every image on the note, and in open mode a few
 photos filled `localStorage`'s ~5 MB, after which every save failed, text included. Referred to, a note

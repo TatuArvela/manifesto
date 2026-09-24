@@ -1,8 +1,6 @@
 import {
   ATTACHMENT_REF_PATTERN,
-  IMAGE_DATA_URL_PATTERN,
   MAX_IMAGES_PER_NOTE,
-  MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES,
   MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
   NoteColor,
@@ -111,16 +109,14 @@ const httpUrlSchema = z
   .regex(/^https?:\/\//i, "URL must use http(s) scheme");
 
 /**
- * A preview's thumbnail or favicon. The client stores a small inlined copy, so
- * viewing a note never makes the viewer's browser contact the linked site (and
- * the client's CSP would refuse a remote image anyway). An http(s) URL is still
- * accepted so a row written before previews were inlined stays updatable.
+ * A preview's thumbnail or favicon: a reference from `POST /api/attachments`,
+ * like `images`, so previews add nothing to a listing but their text. Viewing
+ * a note never makes the viewer's browser contact the linked site (and the
+ * client's CSP would refuse a remote image anyway). An http(s) URL is still
+ * accepted so a row written before previews were stored stays updatable.
  */
 const previewImageSchema = z.union([
-  z
-    .string()
-    .max(MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES)
-    .regex(IMAGE_DATA_URL_PATTERN),
+  z.string().regex(ATTACHMENT_REF_PATTERN, "Upload preview images first"),
   httpUrlSchema,
 ]);
 

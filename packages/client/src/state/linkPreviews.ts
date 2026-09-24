@@ -4,8 +4,12 @@ import {
 } from "@manifesto/shared";
 import { t } from "../i18n/index.js";
 import { createStorage } from "../storage/index.js";
+import { dataUrlToBlob } from "../utils/dataUrl.js";
 import { appendStubPreviews, normalizeDomain } from "../utils/linkPreview.js";
-import { shrinkPreviewImage } from "../utils/previewImage.js";
+import {
+  type PreviewImageKind,
+  shrinkPreviewImage,
+} from "../utils/previewImage.js";
 import { notes, updateNote } from "./actions.js";
 import { showError } from "./ui.js";
 
@@ -46,8 +50,8 @@ async function loadLinkPreview(url: string): Promise<LinkPreview | null> {
   }
   if (!fetched) return null;
   const [image, favicon] = await Promise.all([
-    fetched.image ? shrinkPreviewImage(fetched.image, "thumbnail") : null,
-    fetched.favicon ? shrinkPreviewImage(fetched.favicon, "favicon") : null,
+    fetched.image ? storePreviewImage(fetched.image, "thumbnail") : null,
+    fetched.favicon ? storePreviewImage(fetched.favicon, "favicon") : null,
   ]);
   return {
     url,
@@ -57,6 +61,26 @@ async function loadLinkPreview(url: string): Promise<LinkPreview | null> {
     ...(favicon && { favicon }),
     domain: fetched.domain || normalizeDomain(url),
   };
+}
+
+/**
+ * A fetched preview image, shrunk and stored like any attachment, as the
+ * reference a preview holds; null to go without it. Stored rather than kept
+ * inline, previews add only their text to a note, which travels in every
+ * listing and every write.
+ */
+async function storePreviewImage(
+  source: string,
+  kind: PreviewImageKind,
+): Promise<string | null> {
+  const shrunk = await shrinkPreviewImage(source, kind);
+  if (!shrunk) return null;
+  try {
+    return await storage.putImage(dataUrlToBlob(shrunk));
+  } catch (err) {
+    console.warn("Storing a link preview image failed:", err);
+    return null;
+  }
 }
 
 function samePreview(a: LinkPreview, b: LinkPreview): boolean {

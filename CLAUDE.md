@@ -294,8 +294,11 @@ A pasted link gets a plain card at once (`appendStubPreviews`, all of a paste's 
 write: building each from the same note kept only the last). `state/linkPreviews.ts` then asks
 `storage.fetchLinkPreview`, which is always null in open mode, since its CSP forbids reaching a
 third party. In connected mode the server fetches the page and returns the images raw;
-`utils/previewImage.ts` redraws them through a canvas to fit 64 KB, because previews travel in
-every listing and must render with the CSP's `img-src` unchanged.
+`utils/previewImage.ts` redraws them through a canvas to fit 64 KB, and `state/linkPreviews.ts`
+uploads each as an attachment, so a preview's `image` / `favicon` is a reference like `Note.images`
+(claimed, swept and inlined on export alongside them). Previews travel in every listing and write,
+and inline ones pushed a note past the 1 MiB body limit. Anything that finds what refers to an
+attachment reads both `images` and `link_previews` (`referencesOf` in `storage/attachmentMapping.ts`).
 
 On the server, `src/linkPreview/safeFetch.ts` is an SSRF boundary. It checks *every* resolved
 address with `addressPolicy.ts` and connects to the checked one through a pinned `lookup`. Handing

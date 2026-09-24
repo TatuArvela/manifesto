@@ -1,7 +1,9 @@
 import {
   ATTACHMENT_META_COLUMNS,
   type AttachmentRow,
-  referencedIds,
+  REFERRING_NOTES_WHERE,
+  type ReferringRow,
+  referencesOf,
   refPattern,
   rowToAttachmentMeta,
   rowToStoredAttachment,
@@ -26,13 +28,14 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
     `SELECT ${ATTACHMENT_META_COLUMNS} FROM attachments WHERE id = ?`,
   );
   const sharedRefStmt = db.prepare(
-    `SELECT 1 FROM note_shares s JOIN notes n ON n.id = s.note_id
-     WHERE s.user_id = ? AND s.accepted_at IS NOT NULL
-       AND n.user_id = ? AND n.trashed = 0 AND n.images LIKE ?
-     LIMIT 1`,
+    `SELECT n.images, n.link_previews
+     FROM note_shares s JOIN notes n ON n.id = s.note_id
+     WHERE s.user_id = @userId AND s.accepted_at IS NOT NULL
+       AND n.user_id = @ownerId AND n.trashed = 0
+       AND (n.images LIKE @pattern OR n.link_previews LIKE @pattern)`,
   );
   const referringStmt = db.prepare(
-    `SELECT images FROM notes WHERE images LIKE '%attachment:%'`,
+    `SELECT images, link_previews FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
   );
   const allStmt = db.prepare(`SELECT id, unreferenced_since FROM attachments`);
   const markStmt = db.prepare(
@@ -42,8 +45,8 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
 
   const sweep = db.transaction((now: string, cutoffIso: string) => {
     const referenced = new Set<string>();
-    for (const row of referringStmt.all() as { images: string }[]) {
-      for (const id of referencedIds(row.images)) referenced.add(id);
+    for (const row of referringStmt.all() as ReferringRow[]) {
+      for (const id of referencesOf(row)) referenced.add(id);
     }
     let deleted = 0;
     const rows = allStmt.all() as {
@@ -90,9 +93,12 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
       const row = metaStmt.get(id) as AttachmentRow | undefined;
       if (!row) return false;
       if (row.owner_id === userId) return true;
-      return (
-        sharedRefStmt.get(userId, row.owner_id, refPattern(id)) !== undefined
-      );
+      const candidates = sharedRefStmt.all({
+        userId,
+        ownerId: row.owner_id,
+        pattern: refPattern(id),
+      }) as ReferringRow[];
+      return candidates.some((note) => referencesOf(note).includes(id));
     },
 
     async sweep(now, cutoffIso) {

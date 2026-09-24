@@ -1,6 +1,7 @@
 import {
   attachmentIdOf,
   isAttachmentRef,
+  mapPreviewImages,
   type Note,
   type NoteVersion,
 } from "@manifesto/shared";
@@ -13,7 +14,7 @@ import { buildZip } from "./zip.js";
  * another server, or asking what is held about them:
  *
  * - `notes.json`: every note, the trash and archive included, in the client's
- *   import format with images inlined as `data:` URLs, so importing it
+ *   import format with images (preview images too) inlined as `data:` URLs, so importing it
  *   anywhere (open mode too) restores the notes as they were;
  * - `notes/<title>.md`: each note not in the trash as Markdown, with
  *   frontmatter (tags, pinned, archived, dates) that the client's
@@ -91,18 +92,26 @@ export async function exportAccount(
 async function inlineImages(storage: StorageDriver, note: Note): Promise<Note> {
   const images: string[] = [];
   for (const image of note.images) {
-    if (!isAttachmentRef(image)) {
-      images.push(image);
-      continue;
-    }
-    const stored = await storage.attachments.get(attachmentIdOf(image));
-    if (stored) {
-      images.push(
-        `data:${stored.contentType};base64,${stored.data.toString("base64")}`,
-      );
-    }
+    const inlined = await inline(storage, image);
+    if (inlined) images.push(inlined);
   }
-  return { ...note, images };
+  const linkPreviews = await mapPreviewImages(note.linkPreviews, (image) =>
+    inline(storage, image),
+  );
+  return { ...note, images, linkPreviews };
+}
+
+/** An attachment reference as a `data:` URL; anything else as it is.
+ * Undefined for an attachment that is gone. */
+async function inline(
+  storage: StorageDriver,
+  image: string,
+): Promise<string | undefined> {
+  if (!isAttachmentRef(image)) return image;
+  const stored = await storage.attachments.get(attachmentIdOf(image));
+  return stored
+    ? `data:${stored.contentType};base64,${stored.data.toString("base64")}`
+    : undefined;
 }
 
 function fileNameOf(note: Note): string {

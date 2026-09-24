@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
-import { claimImages } from "../attachments/store.js";
+import { claimImages, claimPreviewImages } from "../attachments/store.js";
 import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
@@ -86,10 +86,22 @@ export function createNotesRoutes(deps: NotesDeps) {
         userId,
         now,
       );
+      const linkPreviews = await claimPreviewImages(
+        deps.storage,
+        fields.linkPreviews,
+        userId,
+        userId,
+        now,
+      );
       const note = await deps.storage.notes.insert({
         id: newId(),
         userId,
-        data: { ...fields, images, trashedAt: fields.trashed ? now : null },
+        data: {
+          ...fields,
+          images,
+          linkPreviews,
+          trashedAt: fields.trashed ? now : null,
+        },
         createdAt: now,
         updatedAt: now,
       });
@@ -107,19 +119,30 @@ export function createNotesRoutes(deps: NotesDeps) {
       const fields = c.req.valid("json");
       const now = nowIso();
       const changes = { ...fields, ...trashStamp(fields.trashed, now) };
-      if (fields.images !== undefined) {
+      if (fields.images !== undefined || fields.linkPreviews !== undefined) {
         // Stored under the note's owner, whoever is writing. A viewer is
         // refused below by the update itself, before anything refers to what
         // this stored, and the sweep collects it.
         const access = await deps.storage.notes.access(id, userId);
         if (access && access.role !== "view") {
-          changes.images = await claimImages(
-            deps.storage,
-            fields.images,
-            access.ownerId,
-            userId,
-            now,
-          );
+          if (fields.images !== undefined) {
+            changes.images = await claimImages(
+              deps.storage,
+              fields.images,
+              access.ownerId,
+              userId,
+              now,
+            );
+          }
+          if (fields.linkPreviews !== undefined) {
+            changes.linkPreviews = await claimPreviewImages(
+              deps.storage,
+              fields.linkPreviews,
+              access.ownerId,
+              userId,
+              now,
+            );
+          }
         }
       }
       const ifMatch = c.req.header("If-Match");

@@ -12,7 +12,7 @@ import type {
   NoteVersionCreateRequest,
   NoteVersionsResponse,
 } from "@manifesto/shared";
-import { attachmentIdOf, roleOf } from "@manifesto/shared";
+import { attachmentIdOf, mapPreviewImages, roleOf } from "@manifesto/shared";
 import { dataUrlToBlob } from "../utils/dataUrl.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
 
@@ -226,15 +226,41 @@ export class RestApiAdapter implements StorageAdapter {
     return out;
   }
 
+  /**
+   * The same for link preview images. One that will not upload is dropped
+   * and the card kept, since the server refuses a preview image held inline.
+   */
+  private async uploadInlinePreviews(
+    previews: LinkPreview[],
+  ): Promise<LinkPreview[]> {
+    return await mapPreviewImages(previews, async (image) => {
+      if (!image.startsWith("data:")) return image;
+      try {
+        return await this.putImage(dataUrlToBlob(image));
+      } catch {
+        return undefined;
+      }
+    });
+  }
+
+  /** A note write with everything inline uploaded first. */
+  private async withUploads<T extends NoteUpdate>(changes: T): Promise<T> {
+    return {
+      ...changes,
+      ...(changes.images && {
+        images: await this.uploadInline(changes.images),
+      }),
+      ...(changes.linkPreviews && {
+        linkPreviews: await this.uploadInlinePreviews(changes.linkPreviews),
+      }),
+    };
+  }
+
   async create(note: NoteCreate): Promise<Note> {
     const res = await fetch(`${this.baseUrl}/api/notes`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify(
-        note.images
-          ? { ...note, images: await this.uploadInline(note.images) }
-          : note,
-      ),
+      body: JSON.stringify(await this.withUploads(note)),
     });
     if (!res.ok) await this.fail(res, "Failed to create note");
     const data = (await res.json()) as NoteResponse;
@@ -251,10 +277,7 @@ export class RestApiAdapter implements StorageAdapter {
       Authorization: `Bearer ${this.token}`,
     };
     if (options.ifMatch !== undefined) headers["If-Match"] = options.ifMatch;
-    const body =
-      changes.images === undefined
-        ? changes
-        : { ...changes, images: await this.uploadInline(changes.images) };
+    const body = await this.withUploads(changes);
     const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
       method: "PUT",
       headers,

@@ -4,19 +4,23 @@ import { useEffect, useState } from "preact/hooks";
 import { attachmentObjectUrl } from "../state/attachments.js";
 
 /**
- * An `<img>` for one of a note's images, whichever way it is held: inline as
- * a `data:` URL, or as a reference to the server's attachment store, which is
- * fetched with the session's credentials first. Until then it is an empty box
+ * An `<img>` for one of a note's images, or a link preview's, whichever way
+ * it is held: inline as a `data:` URL, or as a reference to the server's
+ * attachment store, which is fetched with the session's credentials first. Until then it is an empty box
  * of the same shape, so a card does not jump.
  */
 export function StoredImage({
   src,
   alt,
+  placeholderClass = "block min-h-24",
   ...rest
-}: { src: string; alt: string } & Omit<
-  JSX.ImgHTMLAttributes<HTMLImageElement>,
-  "src" | "alt"
->) {
+}: {
+  src: string;
+  alt: string;
+  /** The empty box's own classes, besides the image's; the default suits a
+   * gallery image, not a small icon. */
+  placeholderClass?: string;
+} & Omit<JSX.ImgHTMLAttributes<HTMLImageElement>, "src" | "alt">) {
   const [resolved, setResolved] = useState<string | null>(() =>
     isStoredImageRef(src) ? null : src,
   );
@@ -38,7 +42,10 @@ export function StoredImage({
 
   if (resolved === null) {
     return (
-      <span aria-hidden="true" class={`block min-h-24 ${rest.class ?? ""}`} />
+      <span
+        aria-hidden="true"
+        class={`${placeholderClass} ${rest.class ?? ""}`}
+      />
     );
   }
   return <img src={resolved} alt={alt} {...rest} />;

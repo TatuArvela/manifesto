@@ -131,7 +131,7 @@ describe("GET /api/link-preview", () => {
 });
 
 describe("note link previews", () => {
-  it("accept an inlined thumbnail and refuse an oversized or scripted one", async () => {
+  it("take a thumbnail only as an uploaded attachment", async () => {
     const app = await boot(async () => null);
     const { token } = await registerTestUser(app);
     const note = (image: string) => ({
@@ -154,14 +154,24 @@ describe("note link previews", () => {
         headers: authHeaders(token),
         body: JSON.stringify(note(image)),
       });
+    const upload = await app.request("/api/attachments", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "image/png",
+      },
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    });
+    const { ref } = (await upload.json()) as { ref: string };
 
-    expect((await post("data:image/png;base64,iVBORw0KGgo=")).status).toBe(201);
-    expect(
-      (await post(`data:image/png;base64,${"A".repeat(70 * 1024)}`)).status,
-    ).toBe(422);
-    expect(
-      (await post("data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=")).status,
-    ).toBe(422);
+    expect((await post(ref)).status).toBe(201);
+    expect((await post("data:image/png;base64,iVBORw0KGgo=")).status).toBe(422);
     expect((await post("javascript:alert(1)")).status).toBe(422);
+    expect((await post("attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV")).status).toBe(
+      422,
+    );
   });
 });

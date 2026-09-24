@@ -1,5 +1,11 @@
-import { isStoredImageRef, MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
+import {
+  isStoredImageRef,
+  type LinkPreview,
+  MAX_IMAGE_SOURCE_BYTES,
+  mapPreviewImages,
+} from "@manifesto/shared";
 import { createStorage } from "../storage/index.js";
+import { blobToDataUrl } from "../utils/dataUrl.js";
 import { shrinkImage } from "../utils/shrinkImage.js";
 
 const storage = createStorage();
@@ -30,16 +36,6 @@ export function attachmentObjectUrl(ref: string): Promise<string | null> {
   return pending;
 }
 
-function blobToDataUrl(blob: Blob): Promise<string | null> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () =>
-      resolve(typeof reader.result === "string" ? reader.result : null);
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(blob);
-  });
-}
-
 /**
  * The images with every reference replaced by its bytes as a `data:` URL, for
  * anything that leaves this session: an export, a JSON download. A file that
@@ -62,6 +58,24 @@ export async function inlineImages(images: string[]): Promise<string[] | null> {
     }
   }
   return out;
+}
+
+/**
+ * The previews with each thumbnail and favicon inlined, for the same reason as
+ * `inlineImages`. One that cannot be read is dropped and the card kept: it is
+ * a picture of the linked page, not something the user attached.
+ */
+export async function inlinePreviewImages(
+  previews: LinkPreview[],
+): Promise<LinkPreview[]> {
+  return await mapPreviewImages(previews, async (image) => {
+    if (!isStoredImageRef(image)) return image;
+    try {
+      return (await blobToDataUrl(await storage.loadImage(image))) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  });
 }
 
 export class ImageTooLargeError extends Error {

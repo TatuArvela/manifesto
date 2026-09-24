@@ -121,4 +121,49 @@ describe("open mode's image store", () => {
     expect(all[0].images).toEqual([broken]);
     expect(isLocalImageRef(all[1].images[0])).toBe(true);
   });
+
+  it("stores an imported preview's images and keeps them through the sweep", async () => {
+    const adapter = new LocalStorageAdapter();
+    await adapter.importAll([
+      {
+        id: "01PREVIEW",
+        title: "",
+        content: "",
+        color: NoteColor.Default,
+        font: NoteFont.Default,
+        pinned: false,
+        archived: false,
+        trashed: false,
+        trashedAt: null,
+        position: 0,
+        tags: [],
+        images: [],
+        linkPreviews: [
+          {
+            url: "https://a.test/",
+            title: "A",
+            image: GIF,
+            favicon: GIF,
+            domain: "a.test",
+          },
+        ],
+        reminder: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    const [note] = await adapter.getAll();
+    const [preview] = note.linkPreviews;
+    expect(isLocalImageRef(preview.image ?? "")).toBe(true);
+    expect(preview.favicon).toBe(preview.image);
+    expect(localStorage.getItem("manifesto:notes")).not.toContain("data:");
+    await sweepLocalImages(
+      new Set([preview.image as string]),
+      0,
+      Date.now() + 1,
+    );
+    expect((await getLocalImage(preview.image as string)).type).toBe(
+      "image/gif",
+    );
+  });
 });

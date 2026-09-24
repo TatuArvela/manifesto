@@ -3,6 +3,8 @@ import {
   ATTACHMENT_REF_PREFIX,
   attachmentIdOf,
   isAttachmentRef,
+  type LinkPreview,
+  mapPreviewImages,
 } from "@manifesto/shared";
 import { newId } from "../lib/ulid.js";
 import { HttpError } from "../middleware/error.js";
@@ -33,6 +35,26 @@ export async function claimImages(
     out.push(await ownedRef(storage, ref, ownerId, writerId, now));
   }
   return out;
+}
+
+/**
+ * The same for the thumbnails and favicons of a note's link previews, which
+ * are attachments like any image. Validation has already limited each to an
+ * attachment reference or, on a row from before previews were stored, a
+ * remote URL, which passes through.
+ */
+export async function claimPreviewImages(
+  storage: StorageDriver,
+  previews: LinkPreview[],
+  ownerId: string,
+  writerId: string,
+  now: string,
+): Promise<LinkPreview[]> {
+  return await mapPreviewImages(previews, async (image) =>
+    isAttachmentRef(image)
+      ? await ownedRef(storage, image, ownerId, writerId, now)
+      : image,
+  );
 }
 
 async function ownedRef(

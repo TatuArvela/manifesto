@@ -103,11 +103,11 @@ A preview card attached to a note for a URL. Created only when a link is inserte
 | `url`         | `string` | Yes      | Original URL, `http` or `https`, at most 2048 characters |
 | `title`       | `string` | Yes      | Page title (falls back to the URL), at most 500 characters |
 | `description` | `string` | No       | Short page description, at most 2000 characters |
-| `image`       | `string` | No       | Thumbnail, inlined as an image `data:` URL of at most 64 KB |
-| `favicon`     | `string` | No       | Site icon, inlined the same way            |
+| `image`       | `string` | No       | Thumbnail, a stored image reference like those in [Images](#images) |
+| `favicon`     | `string` | No       | Site icon, held the same way               |
 | `domain`      | `string` | Yes      | Host portion of the URL, e.g. `www.k-ruoka.fi` |
 
-In open mode a preview is only `url`, `title = url` and `domain`. In connected mode the server reads the page and the client fills in the rest, shrinking the images to fit. `image` and `favicon` accept the same image subtypes as [Images](#images); a server also accepts an `http(s)` URL there, so a row written before previews were inlined stays updatable, but the client never writes one and drops it on import.
+In open mode a preview is only `url`, `title = url` and `domain`. In connected mode the server reads the page and the client fills in the rest, shrinking each image to at most 64 KB and uploading it as an attachment, so `image` and `favicon` are `attachment:` references, and `local:` ones for a preview imported in open mode. As with `images`, a `data:` URL appears only in an export or import file. A server also accepts an `http(s)` URL there, so a row written before previews were stored stays updatable, but the client never writes one and drops it on import.
 
 ## NoteSharing
 

@@ -1,4 +1,4 @@
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { type LinkPreview, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver } from "./types.js";
 
@@ -23,7 +23,12 @@ export function describeAttachmentsContract(
         createdAt: T0,
       });
 
-    const note = (id: string, userId: string, images: string[]) =>
+    const note = (
+      id: string,
+      userId: string,
+      images: string[],
+      linkPreviews: LinkPreview[] = [],
+    ) =>
       storage.notes.insert({
         id,
         userId,
@@ -39,7 +44,7 @@ export function describeAttachmentsContract(
           position: 0,
           tags: [],
           images,
-          linkPreviews: [],
+          linkPreviews,
           reminder: null,
         },
         createdAt: T0,
@@ -111,6 +116,45 @@ export function describeAttachmentsContract(
       );
       expect(await storage.attachments.meta(lost.id)).toBeNull();
       expect(await storage.attachments.meta(kept.id)).not.toBeNull();
+    });
+
+    it("counts a preview's thumbnail and favicon as references", async () => {
+      const thumb = await put("01AAAAAAAAAAAAAAAAAAAAAAAA", "owner", [1]);
+      const icon = await put("01BBBBBBBBBBBBBBBBBBBBBBBB", "owner", [2]);
+      const named = await put("01CCCCCCCCCCCCCCCCCCCCCCCC", "owner", [3]);
+      await note(
+        "n1",
+        "owner",
+        [],
+        [
+          {
+            url: "https://example.com/",
+            // A title is free text: naming an attachment there refers to nothing.
+            title: `attachment:${named.id}`,
+            image: `attachment:${thumb.id}`,
+            favicon: `attachment:${icon.id}`,
+            domain: "example.com",
+          },
+        ],
+      );
+      await storage.shares.create({
+        noteId: "n1",
+        userId: "alice",
+        role: "view",
+        createdAt: T0,
+      });
+      await storage.shares.accept("n1", "alice", T0);
+      expect(await storage.attachments.readableBy(thumb.id, "alice")).toBe(
+        true,
+      );
+      expect(await storage.attachments.readableBy(icon.id, "alice")).toBe(true);
+      expect(await storage.attachments.readableBy(named.id, "alice")).toBe(
+        false,
+      );
+      await storage.attachments.sweep("2026-05-01", "2000-01-01");
+      await storage.attachments.sweep("2026-08-01", "2026-06-01");
+      expect(await storage.attachments.meta(thumb.id)).not.toBeNull();
+      expect(await storage.attachments.meta(icon.id)).not.toBeNull();
     });
   });
 }

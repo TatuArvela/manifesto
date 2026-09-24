@@ -75,14 +75,30 @@ describe("exportNotes", () => {
       tags: [],
       images: [REF],
       imageCount: 1,
-      linkPreviews: [],
+      linkPreviews: [
+        {
+          url: "https://a.test/",
+          title: "A",
+          image: REF,
+          favicon: "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAW",
+          domain: "a.test",
+        },
+      ],
       reminder: null,
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     };
+    loadImage.mockImplementation(async (ref: string) => {
+      if (ref !== REF) throw new Error("gone");
+      return new Blob([GIF_BYTES], { type: "image/gif" });
+    });
     notes.value = [note];
-    const json = await exportNotes();
-    expect(JSON.parse(json ?? "[]")[0].images).toEqual([GIF]);
+    const [exported] = JSON.parse((await exportNotes()) ?? "[]");
+    expect(exported.images).toEqual([GIF]);
+    // A preview image that cannot be read is left out; the card stays.
+    expect(exported.linkPreviews).toEqual([
+      { url: "https://a.test/", title: "A", image: GIF, domain: "a.test" },
+    ]);
   });
 });
 

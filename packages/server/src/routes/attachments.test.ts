@@ -185,6 +185,71 @@ describe("attachments", () => {
     expect(await rig.storage.attachments.sweep(NOW, "2999-01-01")).toBe(0);
   });
 
+  describe("link preview images", () => {
+    const preview = (image: string, title = "Example") => ({
+      url: "https://example.com/",
+      title,
+      image,
+      favicon: image,
+      domain: "example.com",
+    });
+
+    it("stores an editor's thumbnail under the owner, for every recipient", async () => {
+      const note = await create(owner, []);
+      await share(note.id, alice);
+      await share(note.id, mallory, "view");
+      const res = await call(alice, "PUT", `/api/notes/${note.id}`, {
+        linkPreviews: [preview(await uploadAs(alice, GIF))],
+      });
+      expect(res.status).toBe(200);
+      const [stored] = ((await res.json()) as { note: Note }).note.linkPreviews;
+      const ref = stored.image as string;
+      expect(stored.favicon).toBe(ref);
+      const meta = await rig.storage.attachments.meta(attachmentIdOf(ref));
+      expect(meta?.ownerId).toBe(owner.userId);
+      expect((await fetchAs(mallory, ref)).status).toBe(200);
+    });
+
+    it("keeps a thumbnail through the sweep while a preview holds it", async () => {
+      const ref = await uploadAs(owner, PNG);
+      const res = await call(owner, "POST", "/api/notes", {
+        ...baseNote,
+        linkPreviews: [preview(ref)],
+      });
+      const note = ((await res.json()) as { note: Note }).note;
+      const id = attachmentIdOf(ref);
+      const much = "2027-01-01T00:00:00.000Z";
+      await rig.storage.attachments.sweep(NOW, NOW);
+      expect(await rig.storage.attachments.sweep(much, much)).toBe(0);
+      await call(owner, "PUT", `/api/notes/${note.id}`, { linkPreviews: [] });
+      await rig.storage.attachments.sweep(NOW, NOW);
+      expect(await rig.storage.attachments.sweep(much, much)).toBe(1);
+      expect(await rig.storage.attachments.meta(id)).toBeNull();
+    });
+
+    it("refuses a thumbnail the writer cannot read", async () => {
+      const theirs = await create(owner, [PNG]);
+      const res = await call(mallory, "POST", "/api/notes", {
+        ...baseNote,
+        linkPreviews: [preview(theirs.images[0])],
+      });
+      expect(res.status).toBe(422);
+    });
+
+    it("does not serve an attachment a shared preview only names in its title", async () => {
+      const secret = await create(owner, [PNG]);
+      const shared = await call(owner, "POST", "/api/notes", {
+        ...baseNote,
+        linkPreviews: [
+          preview(await uploadAs(owner, GIF), `see ${secret.images[0]}`),
+        ],
+      });
+      const note = ((await shared.json()) as { note: Note }).note;
+      await share(note.id, alice, "view");
+      expect((await fetchAs(alice, secret.images[0])).status).toBe(404);
+    });
+  });
+
   describe("uploads", () => {
     const PNG_BYTES = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
