@@ -116,6 +116,19 @@ describe("LoginScreen with two-factor sign-in", () => {
     await field('input[autocomplete="username"]');
   });
 
+  it("offers to create an account unless the server says it cannot", async () => {
+    render(<LoginScreen />, host);
+    await field('input[autocomplete="username"]');
+    expect(host.textContent).toContain(t("login.tabRegister"));
+    render(null, host);
+
+    methods = { ...methods, registration: false };
+    render(<LoginScreen />, host);
+    await field('input[autocomplete="username"]');
+    expect(host.textContent).not.toContain(t("login.tabRegister"));
+    expect(host.textContent).toContain(t("login.submitSignIn"));
+  });
+
   it("asks for a reset link by mail when the server offers it", async () => {
     methods = { ...methods, passwordReset: true };
     render(<LoginScreen />, host);

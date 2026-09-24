@@ -187,7 +187,7 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 
 | Method   | Path                  | Description                                                              |
 |----------|-----------------------|--------------------------------------------------------------------------|
-| `GET`    | `/api/auth/methods`   | Public: `{ provider: "local" \| "oidc", userLookup: "search" \| "exact" }`. Used by the client to pick the login UI, and how the share dialog finds people. |
+| `GET`    | `/api/auth/methods`   | Public: `{ provider: "local" \| "oidc", userLookup: "search" \| "exact", registration }` (plus the optional fields of `AuthMethodsResponse`). Used by the client to pick the login UI (`registration: false` hides the Create account tab), and how the share dialog finds people. |
 | `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment), and on start to pick up admin rights granted or revoked since sign-in. |
 | `PUT`    | `/api/auth/me`        | Bearer-protected: set or clear (`null`) your own email address with `{ email }`: `{ user: AuthUser }`. An account that signs in with single sign-on is `409`, since the identity provider owns its address. |
 | `PUT`    | `/api/auth/me/locale` | Bearer-protected: record the language your client is set to with `{ locale }` (a tag such as `fi`): `204`. `AuthUser.locale` gives it back. Mail sent to you by someone else's action, a share invitation, is written in it. |

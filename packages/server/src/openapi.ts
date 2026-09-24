@@ -617,6 +617,7 @@ function components() {
         userLookup: { enum: ["search", "exact"] },
         webhooks: { type: "boolean" },
         passwordReset: { type: "boolean" },
+        registration: { type: "boolean" },
         providers: { type: "array", items: { enum: ["local", "oidc"] } },
         passwordForm: { enum: ["shown", "collapsed"] },
       }),

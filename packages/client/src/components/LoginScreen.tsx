@@ -139,6 +139,7 @@ function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
         (showPassword || !oidc ? (
           <LocalLoginForm
             onForgot={methods.passwordReset ? () => setForgot(true) : undefined}
+            canRegister={methods.registration !== false}
           />
         ) : (
           <button
@@ -332,7 +333,17 @@ function ResetPasswordForm({
   );
 }
 
-function LocalLoginForm({ onForgot }: { onForgot?: () => void }) {
+/**
+ * `canRegister` is false only when the server says registration is closed; an
+ * older server does not say, so the tab stays and the server refuses instead.
+ */
+function LocalLoginForm({
+  onForgot,
+  canRegister,
+}: {
+  onForgot?: () => void;
+  canRegister: boolean;
+}) {
   const [mode, setMode] = useState<Mode>("signIn");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -549,28 +560,30 @@ function LocalLoginForm({ onForgot }: { onForgot?: () => void }) {
 
   return (
     <>
-      <div class="flex mb-6 border-b border-neutral-200 dark:border-neutral-700">
-        <button
-          type="button"
-          class={tabClass(mode === "signIn")}
-          onClick={() => {
-            setMode("signIn");
-            setError(null);
-          }}
-        >
-          {t("login.tabSignIn")}
-        </button>
-        <button
-          type="button"
-          class={tabClass(mode === "register")}
-          onClick={() => {
-            setMode("register");
-            setError(null);
-          }}
-        >
-          {t("login.tabRegister")}
-        </button>
-      </div>
+      {canRegister && (
+        <div class="flex mb-6 border-b border-neutral-200 dark:border-neutral-700">
+          <button
+            type="button"
+            class={tabClass(mode === "signIn")}
+            onClick={() => {
+              setMode("signIn");
+              setError(null);
+            }}
+          >
+            {t("login.tabSignIn")}
+          </button>
+          <button
+            type="button"
+            class={tabClass(mode === "register")}
+            onClick={() => {
+              setMode("register");
+              setError(null);
+            }}
+          >
+            {t("login.tabRegister")}
+          </button>
+        </div>
+      )}
 
       <form onSubmit={onSubmit} class="space-y-4">
         <label class="block">

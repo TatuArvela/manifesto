@@ -357,6 +357,10 @@ export interface AuthMethodsResponse {
   webhooks?: boolean;
   /** Whether a forgotten password can be reset by a link sent by mail. */
   passwordReset?: boolean;
+  /** Whether anyone can create an account with a password here. Absent from
+   * older servers, which do not say, so a client offers the form and lets the
+   * server refuse. */
+  registration?: boolean;
 }
 
 export interface AuthUser {
