@@ -138,6 +138,14 @@ export function initAutoNotes(): () => void {
 const DEFAULT_COLOR = "default" as NoteColor;
 const DEFAULT_FONT = "default" as NoteFont;
 
+/**
+ * Where an auto-note that names no position of its own goes: ahead of every
+ * ordinary note, whose new positions count down from minus the clock. Far
+ * enough past that to hold for as long as the clock does, and well inside the
+ * range a double counts exactly.
+ */
+const AUTO_NOTE_HEAD = -1e15;
+
 function toNote(rendered: RenderedNote, index: number): Note {
   const { result, pluginId } = rendered;
   const noteKey = result.key ?? "";
@@ -154,7 +162,7 @@ function toNote(rendered: RenderedNote, index: number): Note {
     archived: override?.archived ?? false,
     trashed: override?.trashed ?? false,
     trashedAt: override?.trashedAt ?? null,
-    position: override?.position ?? result.position ?? -1_000_000 - index,
+    position: override?.position ?? result.position ?? AUTO_NOTE_HEAD - index,
     tags: override?.tags ?? result.tags ?? [],
     images: [],
     linkPreviews: [],

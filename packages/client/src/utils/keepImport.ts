@@ -158,7 +158,7 @@ export async function keepNoteToNote(
     // Keep does not record when a note was trashed. Starting the 30 days now
     // gives the user the full window to change their mind after importing.
     trashedAt: trashed ? now : null,
-    position: Date.parse(createdAt) || Date.now(),
+    position: -(Date.parse(createdAt) || Date.now()),
     tags,
     images: await attachmentsToImages(data.attachments, lookup),
     linkPreviews: parseLinkPreviews(

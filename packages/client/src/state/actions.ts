@@ -496,9 +496,34 @@ export async function ensureImages(id: string): Promise<string[] | null> {
 // The gap a fresh numbering leaves between two notes, so that a note dropped
 // between them has room to take a number of its own rather than making
 // everything after it move up. See `positionBetween`, which is what spends
-// it. Date.now() in createNote is always larger than these spaced positions,
-// so new notes consistently sort to the end of the manual-order list.
+// it.
 const POSITION_STEP = 1000;
+
+/**
+ * A position ahead of every note of the user's own: where a new note goes,
+ * and where a note goes when it is pinned, so either is the first card of
+ * its section rather than the last.
+ *
+ * Minus the clock, so notes created on two devices still come out newest
+ * first once both lists meet, and a step ahead of the lowest note held here
+ * when that is further ahead still (a note dragged to the top a moment ago,
+ * or one from a device whose clock runs fast). Auto-notes are left out: their
+ * default places them ahead of everything, and a new note belongs under them
+ * as it always has. `count` reserves that many slots, the first being the
+ * topmost, for a group that keeps its order among itself.
+ */
+function headPositions(count: number): number[] {
+  let lowest = -Date.now();
+  for (const note of notes.peek()) {
+    if (note.position - POSITION_STEP < lowest) {
+      lowest = note.position - POSITION_STEP;
+    }
+  }
+  return Array.from(
+    { length: count },
+    (_, i) => lowest - (count - 1 - i) * POSITION_STEP,
+  );
+}
 
 export async function createNote(
   input: Partial<NoteCreate>,
@@ -512,7 +537,7 @@ export async function createNote(
     archived: input.archived ?? false,
     trashed: input.trashed ?? false,
     trashedAt: input.trashedAt ?? null,
-    position: input.position ?? Date.now(),
+    position: input.position ?? headPositions(1)[0],
     tags: input.tags ?? [],
     images: input.images ?? [],
     linkPreviews: input.linkPreviews ?? [],
@@ -796,7 +821,12 @@ export async function togglePin(id: string) {
   pinSettleTimer = setTimeout(() => {
     recentlyPinned.value = null;
   }, 500);
-  await updateNote(id, { pinned: !note.pinned });
+  await updateNote(
+    id,
+    note.pinned
+      ? { pinned: false }
+      : { pinned: true, position: headPositions(1)[0] },
+  );
 }
 
 /**
@@ -914,7 +944,19 @@ export async function bulkPin(): Promise<boolean> {
   const allPinned = [...selectedNotes.value].every(
     (id) => notes.value.find((n) => n.id === id)?.pinned,
   );
-  return await bulkApply((id) => updateNote(id, { pinned: !allPinned }));
+  if (allPinned) {
+    return await bulkApply((id) => updateNote(id, { pinned: false }));
+  }
+  // To the head of the pinned section together, in the order they had.
+  const ordered = notes
+    .peek()
+    .filter((n) => selectedNotes.value.has(n.id))
+    .sort(byPosition);
+  const heads = headPositions(ordered.length);
+  const at = new Map(ordered.map((n, i) => [n.id, heads[i]]));
+  return await bulkApply((id) =>
+    updateNote(id, { pinned: true, position: at.get(id) }),
+  );
 }
 
 // One exit for the whole selection: going through `archiveNote` or

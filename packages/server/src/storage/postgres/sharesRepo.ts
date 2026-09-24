@@ -110,7 +110,7 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
         const result = await query(
           `UPDATE note_shares SET accepted_at = $1, color = $2, position = $3
            WHERE note_id = $4 AND user_id = $5 AND accepted_at IS NULL`,
-          [acceptedAt, row.color, Date.parse(acceptedAt), noteId, userId],
+          [acceptedAt, row.color, -Date.parse(acceptedAt), noteId, userId],
         );
         return (result.rowCount ?? 0) > 0;
       });
