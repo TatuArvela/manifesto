@@ -137,7 +137,9 @@ See `packages/server/.env.example` for the full list and defaults.
 | `AUDIT_RETENTION_DAYS` | `180`                  | Days the [audit log](../features/accounts.md#audit-log) keeps an entry. |
 | `UPDATE_CHECK`     | `on`                       | Asks GitHub twice a day for the newest release, so admins are told when there is one (a dot on their avatar, a line in the account menu, a banner in the overview). One request to `api.github.com`, through the same outbound boundary as link previews; `off` makes none. |
 | `UPDATE_CHECK_REPO`| `TatuArvela/manifesto`     | Whose releases the check reads, for a fork that publishes its own. |
-| `METRICS_TOKEN`    | *(unset: off)*             | Turns on `GET /metrics` for a scraper that sends it as a bearer token. See [Metrics](#metrics). |
+| `METRICS_PORT`     | *(unset)*                  | Serves `/metrics` on a port of its own, and never on the public one. See [Metrics](#metrics). |
+| `METRICS_HOST`     | `127.0.0.1`                | Where the `METRICS_PORT` listener binds; `0.0.0.0` for a scraper in another container. |
+| `METRICS_TOKEN`    | *(unset)*                  | Required on the public port to turn metrics on; optional on `METRICS_PORT`. |
 | `CLIENT_DIR`       | `/app/public` in the image, else unset | A built client to serve at the site root beside the API. See [One container](#one-container). |
 | `WEBHOOKS`         | `public`                   | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
@@ -356,18 +358,30 @@ reasons to choose it.
 
 ## Metrics
 
-`/api/health` answers "is it up". `GET /metrics` answers "is it well", in Prometheus's text format, once
-`METRICS_TOKEN` is set; the scraper sends it as a bearer token, and without it (or without the variable)
-the endpoint is a 404. It sits outside `/api`, so a reverse proxy can keep it off the public internet.
+`/api/health` answers "is it up". `GET /metrics` answers "is it well", in Prometheus's text format. It
+is off by default: with neither variable below set, nothing serves it. Two ways to turn it on:
+
+- **On a port of its own, `METRICS_PORT`** (say `9464`): a second listener serving `/metrics` and
+  nothing else, while the public port never serves it. It binds to `127.0.0.1` unless `METRICS_HOST`
+  says otherwise, so only the server's own host reaches it. In Docker, where the scraper usually runs in
+  another container, set `METRICS_HOST=0.0.0.0` and simply do not publish the port: containers on the
+  same network reach it, the internet does not, and no reverse proxy is needed. `METRICS_TOKEN` is
+  optional here; set it too and the scraper has to send it.
+- **On the public port, `METRICS_TOKEN`** alone: `/metrics` answers only a request with that bearer
+  token. It sits outside `/api`, so a reverse proxy can also keep it off the internet.
+
+A refused request gets a 404, the same as a path that does not exist.
 
 ```yaml
 scrape_configs:
   - job_name: manifesto
     metrics_path: /metrics
-    authorization:
-      credentials: <METRICS_TOKEN>
+    # Only if METRICS_TOKEN is set:
+    # authorization:
+    #   credentials: <METRICS_TOKEN>
     static_configs:
-      - targets: ["manifesto-server:3001"]
+      # With METRICS_PORT=9464 and METRICS_HOST=0.0.0.0, not published:
+      - targets: ["manifesto-server:9464"]
 ```
 
 | Metric | |

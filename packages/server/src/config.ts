@@ -100,6 +100,13 @@ export interface ServerConfig {
   clientDir: string | null;
   /** The bearer token `GET /metrics` asks for; null keeps it off. */
   metricsToken: string | null;
+  /**
+   * A port of its own for `/metrics`, off the public one, or null. With it
+   * set, the main port never serves metrics.
+   */
+  metricsPort: number | null;
+  /** Where that listener binds: loopback unless told otherwise. */
+  metricsHost: string;
   /** Scheduled SQLite backups, or null when off (the default). */
   backup: BackupConfig | null;
   /** Days the audit log keeps an entry. */
@@ -331,6 +338,9 @@ export function loadConfig(): ServerConfig {
     mail: loadMailConfig(),
     backup: loadBackupConfig(dataDir),
     metricsToken: process.env.METRICS_TOKEN?.trim() || null,
+    metricsPort:
+      envInt("METRICS_PORT", 0) > 0 ? envInt("METRICS_PORT", 0) : null,
+    metricsHost: process.env.METRICS_HOST?.trim() || "127.0.0.1",
     clientDir: process.env.CLIENT_DIR?.trim() || null,
     auditRetentionDays: envInt("AUDIT_RETENTION_DAYS", 180),
     updateCheckRepo: envBool("UPDATE_CHECK", true)

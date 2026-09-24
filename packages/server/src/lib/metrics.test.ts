@@ -6,6 +6,7 @@ import {
   renderMetrics,
   resetMetrics,
 } from "./metrics.js";
+import { createMetricsApp } from "./metricsServer.js";
 
 describe("metrics", () => {
   afterEach(() => resetMetrics());
@@ -48,5 +49,33 @@ describe("metrics", () => {
       'manifesto_http_requests_total{method="GET",status="2xx"}',
     );
     await on.close();
+  });
+
+  it("moves to its own port with METRICS_PORT, leaving the public one", async () => {
+    const rig = await bootTestAppWith({
+      metricsToken: "scrape-me",
+      metricsPort: 9464,
+    });
+    const onPublic = await rig.request("/metrics", {
+      headers: { Authorization: "Bearer scrape-me" },
+    });
+    expect(onPublic.status).toBe(404);
+    await rig.close();
+  });
+
+  it("serves the separate port without a token, or with one when set", async () => {
+    const open = createMetricsApp({ metricsToken: null }, "1.0.0");
+    expect((await open.request("/metrics")).status).toBe(200);
+    expect((await open.request("/api/health")).status).toBe(404);
+
+    const guarded = createMetricsApp({ metricsToken: "t" }, "1.0.0");
+    expect((await guarded.request("/metrics")).status).toBe(404);
+    expect(
+      (
+        await guarded.request("/metrics", {
+          headers: { Authorization: "Bearer t" },
+        })
+      ).status,
+    ).toBe(200);
   });
 });
