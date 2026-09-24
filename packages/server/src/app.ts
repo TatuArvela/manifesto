@@ -138,24 +138,15 @@ export function createApp(deps: AppDeps): AppHandle {
   // Cap request bodies on /api/*. Without this, an authenticated user could
   // POST a multi-MB JSON body and exhaust server memory.
   //
-  // Two caps, because notes are the only route that legitimately carries bulk:
-  // images are inlined as base64 `data:` URLs, so a note with attachments is
-  // genuinely megabytes. Everything else (auth, search, health) has no reason
-  // to exceed a small body, and holding those to 1 MiB keeps the wide envelope
-  // scoped to the one path that needs it. This body limit, not
-  // MAX_IMAGE_DATA_URL_BYTES, is what bounds a note in aggregate: twenty images
-  // each individually under the per-image cap still cannot add up past this.
+  // Two caps. Image uploads are the one route that carries bulk, a raw file
+  // up to the image limit; everything else, notes included (their images are
+  // references), has no reason to exceed 1 MiB.
   const DEFAULT_BODY_LIMIT = 1024 * 1024;
-  const NOTE_BODY_LIMIT = 12 * 1024 * 1024;
   const onBodyTooLarge = () => {
     throw new HttpError(413, "Request body too large");
   };
   const defaultBodyLimit = bodyLimit({
     maxSize: DEFAULT_BODY_LIMIT,
-    onError: onBodyTooLarge,
-  });
-  const noteBodyLimit = bodyLimit({
-    maxSize: NOTE_BODY_LIMIT,
     onError: onBodyTooLarge,
   });
   // An image upload is one raw file, up to the image limit.
@@ -164,11 +155,9 @@ export function createApp(deps: AppDeps): AppHandle {
     onError: onBodyTooLarge,
   });
   app.use("/api/*", (c, next) =>
-    c.req.path.startsWith("/api/notes")
-      ? noteBodyLimit(c, next)
-      : c.req.path === "/api/attachments"
-        ? attachmentBodyLimit(c, next)
-        : defaultBodyLimit(c, next),
+    c.req.path === "/api/attachments"
+      ? attachmentBodyLimit(c, next)
+      : defaultBodyLimit(c, next),
   );
 
   app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));

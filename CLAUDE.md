@@ -476,9 +476,9 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers, and the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. Two provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/methods` (public discovery) and `GET /api/auth/me` (bearer → current user).
 - **`src/app.ts` / `src/index.ts`**: composition root. Constructs storage, auth provider, broadcaster, then wires the Hono app, the `/api/ws` socket (`ws/appSocket.ts`), and the Yjs collaboration socket (`ws/yjsSocket.ts` + the generic `ws/yjsExtension.ts` Hocuspocus extension that delegates to `storage.yjs`).
 - **Attachments**: in connected mode `Note.images` holds `attachment:<id>` references to the
-  `attachments` table, not bytes. The notes routes turn every inline image they receive into one
-  (`attachments/store.ts`, content-addressed per note owner), and the client draws them through
-  `StoredImage` and inlines them again for anything that leaves the session (`inlineImages`). A new
+  `attachments` table, not bytes: the client uploads each to `POST /api/attachments` first, and note
+  writes refuse anything but a reference (`claimImages` in `attachments/store.ts` makes each the note
+  owner's, content-addressed per owner). The client draws them through `StoredImage` and inlines them again for anything that leaves the session (`inlineImages`). A new
   place that renders a note image must use `StoredImage`, and a new export path must inline.
 - **Webhooks**: `webhooks/dispatcher.ts` subscribes to the broadcaster, so a webhook hears what its
   owner's sockets hear and a new note event needs no webhook code. Deliveries go through `safeFetch`

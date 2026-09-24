@@ -1,5 +1,4 @@
 import { NOTE_VERSION_MAX_AGE_DAYS } from "@manifesto/shared";
-import { moveInlineImagesToStore } from "../attachments/store.js";
 import type { StorageDriver } from "../storage/types.js";
 import { logger } from "./logger.js";
 import { startPeriodicJob } from "./periodic.js";
@@ -17,25 +16,14 @@ export const ATTACHMENT_GRACE_DAYS = NOTE_VERSION_MAX_AGE_DAYS;
 
 /**
  * Deletes attachments no note has referred to for `ATTACHMENT_GRACE_DAYS`.
- * Runs once on startup, then hourly. The first run also moves any image still
- * held inline in a note row, from before the store existed, into it.
+ * Runs once on startup, then hourly.
  */
 export function startAttachmentCleanup(
   storage: StorageDriver,
   intervalMs: number = HOUR_MS,
 ): () => void {
-  let moved = false;
   return startPeriodicJob("attachment cleanup", intervalMs, async () => {
     const now = nowIso();
-    if (!moved) {
-      const count = await moveInlineImagesToStore(storage, now);
-      moved = true;
-      if (count > 0) {
-        logger.info("moved inline images to the attachment store", {
-          notes: count,
-        });
-      }
-    }
     const cutoff = new Date(
       Date.parse(now) - ATTACHMENT_GRACE_DAYS * DAY_MS,
     ).toISOString();

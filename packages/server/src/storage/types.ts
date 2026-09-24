@@ -403,16 +403,6 @@ export interface AttachmentsRepo {
    * how many it deleted.
    */
   sweep(now: string, cutoffIso: string): Promise<number>;
-  /** Up to `limit` notes still holding an inline (`data:`) image. */
-  notesWithInlineImages(
-    limit: number,
-  ): Promise<{ id: string; ownerId: string; images: string[] }[]>;
-  /**
-   * Replaces a note's images without stamping `updated_at`: moving bytes to
-   * the store changes how an image is held, not the note, so it must not
-   * invalidate an `If-Match` token a client is holding.
-   */
-  setNoteImages(id: string, images: string[]): Promise<void>;
 }
 
 /**

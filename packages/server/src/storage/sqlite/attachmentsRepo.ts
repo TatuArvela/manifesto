@@ -7,7 +7,6 @@ import {
   rowToStoredAttachment,
   sweepAction,
 } from "../attachmentMapping.js";
-import { parseJson } from "../noteMapping.js";
 import type { AttachmentsRepo } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
@@ -40,10 +39,6 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
     `UPDATE attachments SET unreferenced_since = ? WHERE id = ?`,
   );
   const deleteStmt = db.prepare(`DELETE FROM attachments WHERE id = ?`);
-  const inlineStmt = db.prepare(
-    `SELECT id, user_id, images FROM notes WHERE images LIKE '%"data:%' LIMIT ?`,
-  );
-  const setImagesStmt = db.prepare(`UPDATE notes SET images = ? WHERE id = ?`);
 
   const sweep = db.transaction((now: string, cutoffIso: string) => {
     const referenced = new Set<string>();
@@ -102,23 +97,6 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
 
     async sweep(now, cutoffIso) {
       return sweep(now, cutoffIso);
-    },
-
-    async notesWithInlineImages(limit) {
-      const rows = inlineStmt.all(limit) as {
-        id: string;
-        user_id: string;
-        images: string;
-      }[];
-      return rows.map((row) => ({
-        id: row.id,
-        ownerId: row.user_id,
-        images: parseJson<string[]>(row.images, []),
-      }));
-    },
-
-    async setNoteImages(id, images) {
-      setImagesStmt.run(JSON.stringify(images), id);
     },
   };
 }

@@ -61,6 +61,18 @@ describe("account export", () => {
     await rig.close();
   });
 
+  const upload = async (token: string) => {
+    const res = await rig.request("/api/attachments", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "image/png",
+      },
+      body: Buffer.from(PNG.slice(PNG.indexOf(",") + 1), "base64"),
+    });
+    return ((await res.json()) as { ref: string }).ref;
+  };
+
   const create = (token: string, body: object) =>
     rig.request("/api/notes", {
       method: "POST",
@@ -74,7 +86,7 @@ describe("account export", () => {
       content: "Pack skis",
       tags: ["travel"],
       pinned: true,
-      images: [PNG],
+      images: [await upload(alice.token)],
     });
     await create(alice.token, { title: "Old", content: "gone", trashed: true });
     const bob = await registerTestUser(rig, "bob");

@@ -36,12 +36,8 @@ the image limit is 413. An upload is stored under the uploader.
 - **Content-addressed per owner.** An attachment is keyed by the SHA-256 of its bytes within its
   owner's store, so the same image sent again (a conflict retry, a stale tab, a duplicate note) resolves
   to the attachment that already holds it rather than a second copy.
-- **Owned by the note's owner.** An editor adding an image to someone else's note stores it under the
-  note's owner, whose notes it belongs to and whose sweep collects it.
-- **References are checked.** A reference the owner already holds passes through. One held by another
-  account is copied into the owner's store if the writer may read it (an editor copying an image out of
-  a note shared with them); otherwise the write is refused with 422, so a crafted reference cannot lend
-  a note someone else's image.
+- **Owned by the note's owner.** An image in a note belongs to the note's owner, whose notes it is swept
+  with; see [Note writes](#note-writes).
 
 ## Reading
 
@@ -69,12 +65,17 @@ and deletes it once it has been unreferenced for 90 days. That matches the clien
 which refers to attachments by id and keeps versions for 90 days, so a version restored within its life
 still finds its images.
 
-## Existing notes
+## Note writes
 
-Images written before the store existed are moved into it by the job's first run at startup,
-(`moveInlineImagesToStore`), a batch at a time. The move does not stamp `updated_at`: it changes how an
-image is held, not the note, and must not invalidate an `If-Match` token a client holds. Until a note
-is moved it is served inline as before, and both forms can sit in one `images` array.
+A note's `images` accepts `attachment:<id>` references only; an inline `data:` image, or anything else,
+is refused with 422 ("Upload images first"). Note writes are therefore held to the same 1 MiB body
+limit as the rest of the API, and uploads (one raw image, up to the image limit) are the only route
+allowed more. A reference the note's owner holds passes through; one held by another account is
+copied into the owner's store if the writer may read it (an editor adding their own upload, or copying
+an image out of a note shared with them); anything else is refused (`attachments/store.ts`).
+
+Inline images from before this, which only development databases ever held, were dropped by migration
+`0013-drop-inline-images` rather than moved.
 
 ## Storage
 

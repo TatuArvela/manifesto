@@ -258,6 +258,15 @@ CREATE INDEX audit_log_actor ON audit_log(actor_id);
 CREATE INDEX audit_log_target ON audit_log(target_id);
 `;
 
+/**
+ * Images are references to the attachment store now, never inline. Nothing
+ * released held inline images, so any a development database has are
+ * dropped rather than moved.
+ */
+const DROP_INLINE_IMAGES = `
+UPDATE notes SET images = '[]', image_count = 0 WHERE images LIKE '%"data:%';
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -271,6 +280,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0010-two-factor", sql: TWO_FACTOR },
   { id: "0011-password-resets", sql: PASSWORD_RESETS },
   { id: "0012-audit-log", sql: AUDIT_LOG },
+  { id: "0013-drop-inline-images", sql: DROP_INLINE_IMAGES },
 ];
 
 export function runMigrations(

@@ -1,8 +1,6 @@
 import {
   ATTACHMENT_REF_PATTERN,
   IMAGE_DATA_URL_PATTERN,
-  MAX_IMAGE_DATA_URL_BYTES,
-  MAX_IMAGE_SOURCE_BYTES,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES,
   MAX_LINK_PREVIEW_URL_LENGTH,
@@ -104,36 +102,13 @@ export const noteFontSchema = z.nativeEnum(NoteFont);
  * arbitrary internal-scheme URLs that could otherwise be used to fingerprint or
  * SSRF-probe a recipient's network when a note is shared via /share/...
  *
- * `Note.images` is deliberately not one of these; see `imageDataUrlSchema`.
+ * `Note.images` is not one of these: it holds `attachment:` references.
  */
 const httpUrlSchema = z
   .string()
   .url()
   .max(MAX_LINK_PREVIEW_URL_LENGTH)
   .regex(/^https?:\/\//i, "URL must use http(s) scheme");
-
-/**
- * Attached images are inlined by the client as `data:` URLs, so they cannot go
- * through `httpUrlSchema`; that schema exists to keep remote-fetching fields
- * (link previews) from being pointed at internal hosts, a concern a `data:` URL
- * does not have. What matters here instead is that the payload is inert image
- * bytes and that one note cannot carry an unbounded write.
- */
-const imageDataUrlSchema = z
-  .string()
-  .max(
-    MAX_IMAGE_DATA_URL_BYTES,
-    // Derived, so the number a client sees can never drift from the one
-    // enforced. This message is not localized: the client refuses over-cap
-    // images before sending, and localizes its own.
-    `Image is too large; attach an image under ${
-      MAX_IMAGE_SOURCE_BYTES / (1024 * 1024)
-    } MB`,
-  )
-  .regex(
-    IMAGE_DATA_URL_PATTERN,
-    "Image must be a PNG, JPEG, GIF, WebP or AVIF data URL",
-  );
 
 /**
  * A preview's thumbnail or favicon. The client stores a small inlined copy, so
@@ -197,10 +172,9 @@ const noteFields = {
   // server clock, and zod strips whatever a client sends.
   position: z.number(),
   tags: z.array(z.string().min(1).max(64)).max(50),
+  // References from `POST /api/attachments`; the bytes never ride in a note.
   images: z
-    .array(
-      z.union([imageDataUrlSchema, z.string().regex(ATTACHMENT_REF_PATTERN)]),
-    )
+    .array(z.string().regex(ATTACHMENT_REF_PATTERN, "Upload images first"))
     .max(MAX_IMAGES_PER_NOTE),
   linkPreviews: z.array(linkPreviewSchema).max(MAX_LINK_PREVIEWS_PER_NOTE),
   reminder: reminderSchema.nullable(),
