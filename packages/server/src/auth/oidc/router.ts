@@ -116,7 +116,10 @@ async function syncEmail(
  * Why a sign-in the identity provider accepted is refused here. Sent back to
  * the client as `#error=<reason>`, which says it in the catalogue's words.
  */
-export type SignInRefusal = "not_in_group" | "not_registered";
+export type SignInRefusal =
+  | "not_in_group"
+  | "not_registered"
+  | "groups_unavailable";
 
 class SignInRefused extends Error {
   constructor(readonly reason: SignInRefusal) {
@@ -341,8 +344,12 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
 
     // Groups only matter when a group is configured. Many identity providers
     // leave them out of the ID token unless asked, so userinfo is asked when
-    // the token does not carry the claim.
+    // the token does not carry the claim. A userinfo that could not be read
+    // leaves them unknown, which is not the same as no groups: it refuses a
+    // sign-in the user group gates and leaves admin as it was, or an outage at
+    // the identity provider would take admin from everyone who signed in.
     let groups: string[] | null = null;
+    let groupsUnknown = false;
     if (adminGroup || userGroup) {
       groups = groupsOf(claims as Record<string, unknown>, groupsClaim);
       if (groups === null) {
@@ -354,12 +361,13 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
           );
           groups = groupsOf(info as Record<string, unknown>, groupsClaim);
         } catch (err) {
+          groupsUnknown = true;
           logger.warn("OIDC userinfo could not be read for groups", {
             error: err instanceof Error ? err.message : String(err),
           });
         }
       }
-      if (groups === null) {
+      if (groups === null && !groupsUnknown) {
         logger.warn("OIDC groups claim missing; treating as no groups", {
           claim: groupsClaim,
         });
@@ -368,6 +376,9 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
 
     let userId: string;
     try {
+      if (userGroup && groupsUnknown) {
+        throw new SignInRefused("groups_unavailable");
+      }
       if (userGroup && !(groups ?? []).includes(userGroup)) {
         throw new SignInRefused("not_in_group");
       }
@@ -386,7 +397,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     // Admin follows the group at every sign-in, both ways, so taking someone
     // out of the group at the identity provider takes admin away here. The
     // last admin is kept, as it is everywhere else.
-    if (adminGroup) {
+    if (adminGroup && !groupsUnknown) {
       const wanted = (groups ?? []).includes(adminGroup);
       const user = await deps.storage.users.findById(userId);
       if (user && user.isAdmin !== wanted) {

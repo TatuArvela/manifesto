@@ -445,6 +445,8 @@ export const fi: Messages = {
     "Tililläsi ei voi kirjautua tänne. Kysy palvelimen ylläpitäjältä.",
   "login.oidcNotRegistered":
     "Sinulle ei ole tiliä täällä, eikä uusia luoda. Kysy palvelimen ylläpitäjältä.",
+  "login.oidcGroupsUnavailable":
+    "Kirjautumispalvelu ei kertonut, mihin ryhmiin kuulut, joten sisäänpääsyä ei voitu sallia. Yritä hetken päästä uudelleen.",
   "login.forgot.link": "Unohtuiko salasana?",
   "login.forgot.title": "Salasanan vaihtaminen",
   "login.forgot.hint":
