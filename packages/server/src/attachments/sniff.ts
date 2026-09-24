@@ -12,8 +12,31 @@ export function sniffImageType(bytes: Uint8Array): string | null {
   if (at(0, 0xff, 0xd8, 0xff)) return "image/jpeg";
   if (ascii(0, "GIF87a") || ascii(0, "GIF89a")) return "image/gif";
   if (ascii(0, "RIFF") && ascii(8, "WEBP")) return "image/webp";
-  if (ascii(4, "ftyp") && (ascii(8, "avif") || ascii(8, "avis"))) {
-    return "image/avif";
-  }
+  if (ascii(4, "ftyp") && isAvifBrand(bytes, ascii)) return "image/avif";
   return null;
+}
+
+/**
+ * Whether an ISO BMFF `ftyp` box names AVIF, as its major brand or among the
+ * compatible ones: an encoder may lead with the generic `mif1` or `miaf` and
+ * list `avif` after it. The box's own size bounds the scan.
+ */
+function isAvifBrand(
+  bytes: Uint8Array,
+  ascii: (offset: number, text: string) => boolean,
+): boolean {
+  const size =
+    ((bytes[0] ?? 0) << 24) |
+    ((bytes[1] ?? 0) << 16) |
+    ((bytes[2] ?? 0) << 8) |
+    (bytes[3] ?? 0);
+  const end = Math.min(size >>> 0, bytes.length, 256);
+  const isAvif = (offset: number) =>
+    ascii(offset, "avif") || ascii(offset, "avis");
+  if (isAvif(8)) return true;
+  // Offset 12 is the minor version; the compatible brands follow it.
+  for (let offset = 16; offset + 4 <= end; offset += 4) {
+    if (isAvif(offset)) return true;
+  }
+  return false;
 }
