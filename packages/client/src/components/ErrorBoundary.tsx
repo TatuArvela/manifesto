@@ -16,8 +16,9 @@ interface State {
 }
 
 /**
- * The stored notes with each `local:` image reference replaced by its bytes
- * from IndexedDB, since a backup of references alone has no pictures. Best
+ * The stored notes with each `local:` image reference, previews' included,
+ * replaced by its bytes from IndexedDB, since a backup of references alone
+ * has no pictures. Best
  * effort: anything unreadable (the JSON, the database, one image) keeps what
  * is on disk, because a backup missing a picture beats no backup.
  */
@@ -33,6 +34,15 @@ async function withImagesInlined(raw: string): Promise<string> {
     if (!note || typeof note !== "object") continue;
     if (Array.isArray(note.images)) {
       note.images = await Promise.all(note.images.map(inlineLocal));
+    }
+    if (Array.isArray(note.linkPreviews)) {
+      for (const preview of note.linkPreviews) {
+        if (!preview || typeof preview !== "object") continue;
+        for (const field of ["image", "favicon"] as const) {
+          if (field in preview)
+            preview[field] = await inlineLocal(preview[field]);
+        }
+      }
     }
   }
   return JSON.stringify(notes);

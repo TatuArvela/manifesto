@@ -187,6 +187,30 @@ describe("RestApiAdapter", () => {
       expect(JSON.parse(init.body as string)).toEqual({ title: "Renamed" });
     });
 
+    it("uploads a preview image still inline, and drops one that will not go", async () => {
+      const GIF = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+      const REF = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV";
+      const putImage = vi
+        .spyOn(adapter, "putImage")
+        .mockResolvedValueOnce(REF)
+        .mockRejectedValueOnce(new Error("offline"));
+      fetchMock.mockResolvedValueOnce(jsonResponse({ note: makeNote() }));
+      const card = {
+        url: "https://a.test/",
+        title: "A",
+        domain: "a.test",
+      };
+
+      await adapter.update("X", {
+        linkPreviews: [{ ...card, image: GIF, favicon: GIF }],
+      });
+
+      expect(putImage).toHaveBeenCalledTimes(2);
+      expect(JSON.parse(lastCallInit(fetchMock).body as string)).toEqual({
+        linkPreviews: [{ ...card, image: REF }],
+      });
+    });
+
     it("throws on failure", async () => {
       fetchMock.mockResolvedValueOnce(new Response("", { status: 404 }));
       await expect(adapter.update("X", { title: "y" })).rejects.toThrow(

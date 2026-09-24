@@ -30,12 +30,15 @@ comes back, whether or not the editor is still open. A page that cannot be read 
 plain, silently: a link to a site that is down is not an error.
 
 The server returns the page's image and favicon as it fetched them. The client redraws each one
-through a canvas into a small copy: a thumbnail of at most 640px, or a 64px favicon. It stores that
-copy in the note as a `data:` URL of at most 64 KB. Two things follow:
+through a canvas into a small copy of at most 64 KB: a thumbnail of at most 640px, or a 64px
+favicon. It uploads that copy as an [attachment](attachments.md), and the preview holds the
+reference. Three things follow:
 
-- **Viewing a note contacts no one.** The images are part of the note, so a card renders offline,
-  keeps its picture when the site changes, and never lets the linked site see who is reading.
+- **Viewing a note contacts no one but its server.** The images are kept with the note, so a card
+  keeps its picture when the site changes and never lets the linked site see who is reading.
 - **What is stored is pixels the client encoded itself**, whatever bytes the site served.
+- **A preview costs a note only its text.** Previews travel in every listing and every write, and
+  twenty inline thumbnails would put a note over the server's 1 MiB limit on a request.
 
 ### What the server fetches
 

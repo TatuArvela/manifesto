@@ -1,4 +1,5 @@
 import {
+  isStoredImageRef,
   type LinkPreview,
   MAX_LINK_PREVIEWS_PER_NOTE,
 } from "@manifesto/shared";
@@ -74,7 +75,7 @@ describe("addLinkPreviews", () => {
     ]);
   });
 
-  it("fills the cards in from the server, with the images shrunk", async () => {
+  it("fills the cards in from the server, with the images shrunk and stored", async () => {
     const png = tinyPng();
     serverAnswers((url) => ({
       url,
@@ -91,8 +92,16 @@ describe("addLinkPreviews", () => {
     const [preview] = notes.value[0].linkPreviews;
     expect(preview.title).toBe("Title of https://a.test/1");
     expect(preview.description).toBe("About it");
-    expect(preview.image).toMatch(/^data:image\/(webp|jpeg|png);base64,/);
-    expect(preview.favicon).toMatch(/^data:image\/png;base64,/);
+    // Stored like an attachment, so a note carries only a reference.
+    expect(isStoredImageRef(preview.image ?? "")).toBe(true);
+    expect(isStoredImageRef(preview.favicon ?? "")).toBe(true);
+    const adapter = new LocalStorageAdapter();
+    expect((await adapter.loadImage(preview.image ?? "")).type).toMatch(
+      /^image\/(webp|jpeg|png)$/,
+    );
+    expect((await adapter.loadImage(preview.favicon ?? "")).type).toBe(
+      "image/png",
+    );
   });
 
   it("keeps the plain card when the server has nothing, or fails", async () => {

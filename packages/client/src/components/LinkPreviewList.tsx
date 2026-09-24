@@ -1,6 +1,7 @@
 import type { LinkPreview } from "@manifesto/shared";
 import { Link as LinkIcon, X } from "lucide-preact";
 import { t } from "../i18n/index.js";
+import { StoredImage } from "./StoredImage.js";
 
 interface LinkPreviewListProps {
   previews: LinkPreview[];
@@ -45,9 +46,19 @@ function LinkPreviewRow({
     >
       <div class="w-20 shrink-0 bg-black/10 dark:bg-white/10 flex items-center justify-center">
         {preview.image ? (
-          <img src={preview.image} alt="" class="w-full h-full object-cover" />
+          <StoredImage
+            src={preview.image}
+            alt=""
+            placeholderClass="block"
+            class="w-full h-full object-cover"
+          />
         ) : preview.favicon ? (
-          <img src={preview.favicon} alt="" class="w-6 h-6 object-contain" />
+          <StoredImage
+            src={preview.favicon}
+            alt=""
+            placeholderClass="block"
+            class="w-6 h-6 object-contain"
+          />
         ) : (
           <LinkIcon class="w-5 h-5 text-neutral-500 dark:text-neutral-400" />
         )}

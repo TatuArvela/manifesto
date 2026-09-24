@@ -1,7 +1,9 @@
 import {
   ATTACHMENT_META_COLUMNS,
   type AttachmentRow,
-  referencedIds,
+  REFERRING_NOTES_WHERE,
+  type ReferringRow,
+  referencesOf,
   refPattern,
   rowToAttachmentMeta,
   rowToStoredAttachment,
@@ -61,23 +63,24 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
       const found = await meta(id);
       if (!found) return false;
       if (found.ownerId === userId) return true;
-      const shared = await pool.query(
-        `SELECT n.id FROM note_shares s JOIN notes n ON n.id = s.note_id
+      const shared = await pool.query<ReferringRow>(
+        `SELECT n.images, n.link_previews
+         FROM note_shares s JOIN notes n ON n.id = s.note_id
          WHERE s.user_id = $1 AND s.accepted_at IS NOT NULL
-           AND n.user_id = $2 AND n.trashed = FALSE AND n.images LIKE $3
-         LIMIT 1`,
+           AND n.user_id = $2 AND n.trashed = FALSE
+           AND (n.images LIKE $3 OR n.link_previews LIKE $3)`,
         [userId, found.ownerId, refPattern(id)],
       );
-      return shared.rows.length > 0;
+      return shared.rows.some((note) => referencesOf(note).includes(id));
     },
 
     async sweep(now, cutoffIso) {
       const referenced = new Set<string>();
-      const notes = await pool.query<{ images: string }>(
-        `SELECT images FROM notes WHERE images LIKE '%attachment:%'`,
+      const notes = await pool.query<ReferringRow>(
+        `SELECT images, link_previews FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
       );
       for (const row of notes.rows) {
-        for (const id of referencedIds(row.images)) referenced.add(id);
+        for (const id of referencesOf(row)) referenced.add(id);
       }
       const rows = await pool.query<{
         id: string;
@@ -100,7 +103,8 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
           // again since the scan above.
           const gone = await pool.query(
             `DELETE FROM attachments WHERE id = $1 AND NOT EXISTS
-               (SELECT 1 FROM notes WHERE images LIKE $2)`,
+               (SELECT 1 FROM notes
+                WHERE images LIKE $2 OR link_previews LIKE $2)`,
             [row.id, refPattern(row.id)],
           );
           deleted += gone.rowCount ?? 0;

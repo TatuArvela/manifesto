@@ -13,7 +13,7 @@ import { noteColorMap } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { holdFocus, useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
-import { inlineImages } from "../state/attachments.js";
+import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
 import { type IncomingShare, incomingShare } from "../state/incomingShare.js";
 import {
   activeView,
@@ -570,6 +570,7 @@ export function NoteInput() {
                         downloadNoteAsJson({
                           ...draftNote(),
                           images: inlined,
+                          linkPreviews: await inlinePreviewImages(linkPreviews),
                         });
                       },
                     },

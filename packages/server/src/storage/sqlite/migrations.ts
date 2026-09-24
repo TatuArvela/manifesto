@@ -267,6 +267,16 @@ const DROP_INLINE_IMAGES = `
 UPDATE notes SET images = '[]', image_count = 0 WHERE images LIKE '%"data:%';
 `;
 
+/**
+ * Link preview thumbnails and favicons are attachment references too now.
+ * Moving an inline one into the attachment store takes more than SQL can do
+ * in both dialects, so, as with images, a note still holding one loses its
+ * preview cards. The links themselves stay in the note's text.
+ */
+const DROP_INLINE_PREVIEW_IMAGES = `
+UPDATE notes SET link_previews = '[]' WHERE link_previews LIKE '%"data:%';
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -281,6 +291,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0011-password-resets", sql: PASSWORD_RESETS },
   { id: "0012-audit-log", sql: AUDIT_LOG },
   { id: "0013-drop-inline-images", sql: DROP_INLINE_IMAGES },
+  { id: "0014-drop-inline-preview-images", sql: DROP_INLINE_PREVIEW_IMAGES },
 ];
 
 export function runMigrations(

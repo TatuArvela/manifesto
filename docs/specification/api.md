@@ -118,7 +118,8 @@ characters, or the server replies `422`. The response is
 (it was down, not HTML, too slow, or on an address that is not public), which is
 an ordinary answer rather than an error. `image` and `favicon` are the source
 images as fetched, inlined as `data:` URLs of up to 1.5 MB, and are **not** the
-form a note stores: the client shrinks them to the 64 KB a note accepts. A
+form a note stores: the client shrinks each to at most 64 KB and uploads it with
+`POST /api/attachments`, and the note holds the reference. A
 server with previews turned off (`LINK_PREVIEWS=off`) replies `404`. Limited to
 40 requests a minute per user, on top of the general API limit. What the server
 will and will not fetch is in [Link Previews](features/link-previews.md#what-the-server-fetches).

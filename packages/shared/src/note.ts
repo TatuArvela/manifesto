@@ -25,11 +25,46 @@ export interface LinkPreview {
   url: string;
   title: string;
   description?: string;
-  /** A small inlined thumbnail, as an image `data:` URL. */
+  /**
+   * A small thumbnail, held like a note's `images`: an `attachment:` reference
+   * in connected mode, `local:` in open mode, and a `data:` URL only in an
+   * export or an import on its way in. Never the linked site's own URL.
+   */
   image?: string;
-  /** The site's icon, inlined the same way. */
+  /** The site's icon, held the same way. */
   favicon?: string;
   domain: string;
+}
+
+/** Every image the previews hold: each thumbnail and favicon. */
+export function previewImages(previews: readonly LinkPreview[]): string[] {
+  const out: string[] = [];
+  for (const preview of previews) {
+    if (preview.image) out.push(preview.image);
+    if (preview.favicon) out.push(preview.favicon);
+  }
+  return out;
+}
+
+/**
+ * The previews with each thumbnail and favicon passed through `map`, in
+ * order; `undefined` from `map` drops that image and keeps the card.
+ */
+export async function mapPreviewImages(
+  previews: readonly LinkPreview[],
+  map: (image: string) => Promise<string | undefined>,
+): Promise<LinkPreview[]> {
+  const out: LinkPreview[] = [];
+  for (const { image, favicon, ...rest } of previews) {
+    const nextImage = image ? await map(image) : undefined;
+    const nextFavicon = favicon ? await map(favicon) : undefined;
+    out.push({
+      ...rest,
+      ...(nextImage && { image: nextImage }),
+      ...(nextFavicon && { favicon: nextFavicon }),
+    });
+  }
+  return out;
 }
 
 /** Maximum number of link previews on one note. */
@@ -39,10 +74,10 @@ export const MAX_LINK_PREVIEWS_PER_NOTE = 20;
 export const MAX_LINK_PREVIEW_URL_LENGTH = 2048;
 
 /**
- * Cap on a stored preview thumbnail or favicon, measured on the encoded
- * `data:` URL. Previews travel with every note in a listing, unlike
- * attachments, so the client shrinks what the server fetched to fit this
- * rather than storing the page's full-size image.
+ * Cap on a preview thumbnail or favicon, measured on the encoded `data:` URL
+ * the client draws it to before storing it. A card shows either at a few dozen
+ * pixels, so the client shrinks what the server fetched to fit this rather
+ * than storing the page's full-size image.
  */
 export const MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES = 64 * 1024;
 

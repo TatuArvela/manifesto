@@ -26,7 +26,7 @@ import {
   removeCheckedItems,
   setChecklistChecked,
 } from "../utils/markdown.js";
-import { inlineImages } from "./attachments.js";
+import { inlineImages, inlinePreviewImages } from "./attachments.js";
 import {
   clearAutoNoteOverride,
   updateAutoNoteOverride,
@@ -1140,7 +1140,11 @@ export async function exportNotes(): Promise<string | null> {
       showError(t("error.exportFailed"));
       return null;
     }
-    plain.push({ ...note, images });
+    plain.push({
+      ...note,
+      images,
+      linkPreviews: await inlinePreviewImages(note.linkPreviews),
+    });
   }
   return JSON.stringify(plain, null, 2);
 }

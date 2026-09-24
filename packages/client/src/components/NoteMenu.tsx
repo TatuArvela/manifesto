@@ -17,7 +17,7 @@ import {
 import type { VNode } from "preact";
 import { t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
-import { inlineImages } from "../state/attachments.js";
+import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
 import { isServerMode } from "../state/auth.js";
 import { confirmDeletion } from "../state/confirm.js";
 import {
@@ -264,7 +264,13 @@ export function noteMenuItems(
         // Auto-note markers are stripped so the export is a static, portable
         // note rather than one that claims a plugin owns it.
         const { readonly: _r, source: _s, imageCount: _c, ...plain } = note;
-        downloadNoteAsJson({ ...plain, title, content, images });
+        downloadNoteAsJson({
+          ...plain,
+          title,
+          content,
+          images,
+          linkPreviews: await inlinePreviewImages(plain.linkPreviews),
+        });
       },
     },
     {

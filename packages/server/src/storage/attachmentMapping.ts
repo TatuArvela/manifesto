@@ -1,4 +1,9 @@
-import { attachmentIdOf, isAttachmentRef } from "@manifesto/shared";
+import {
+  attachmentIdOf,
+  isAttachmentRef,
+  type LinkPreview,
+  previewImages,
+} from "@manifesto/shared";
 import { parseJson } from "./noteMapping.js";
 import type { AttachmentMeta, StoredAttachment } from "./types.js";
 
@@ -40,6 +45,40 @@ export function referencedIds(imagesJson: string | null): string[] {
   return parsed
     .filter((i): i is string => typeof i === "string" && isAttachmentRef(i))
     .map(attachmentIdOf);
+}
+
+/** The attachment ids a note's stored `link_previews` column refers to: each
+ * preview's thumbnail and favicon. */
+export function referencedPreviewIds(previewsJson: string | null): string[] {
+  const parsed = parseJson<unknown>(previewsJson, []);
+  if (!Array.isArray(parsed)) return [];
+  return previewImages(
+    parsed.filter((p): p is LinkPreview => typeof p === "object" && p !== null),
+  )
+    .filter((i) => typeof i === "string" && isAttachmentRef(i))
+    .map(attachmentIdOf);
+}
+
+/** A note row's two image-holding columns, as stored. */
+export interface ReferringRow {
+  images: string;
+  link_previews: string;
+}
+
+/**
+ * Selects the notes that may refer to an attachment. `LIKE` alone decides
+ * nothing: a preview's title is free text and can spell out an id, so a match
+ * is confirmed with `referencesOf` before it counts.
+ */
+export const REFERRING_NOTES_WHERE =
+  "(images LIKE '%attachment:%' OR link_previews LIKE '%attachment:%')";
+
+/** Every attachment id a note row refers to, from its images and previews. */
+export function referencesOf(row: ReferringRow): string[] {
+  return [
+    ...referencedIds(row.images),
+    ...referencedPreviewIds(row.link_previews),
+  ];
 }
 
 /** The `LIKE` pattern finding a note whose images refer to `id`. ULIDs hold

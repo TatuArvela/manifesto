@@ -139,8 +139,8 @@ export function createApp(deps: AppDeps): AppHandle {
   // POST a multi-MB JSON body and exhaust server memory.
   //
   // Two caps. Image uploads are the one route that carries bulk, a raw file
-  // up to the image limit; everything else, notes included (their images are
-  // references), has no reason to exceed 1 MiB.
+  // up to the image limit; everything else, notes included (their images and
+  // preview images are references), has no reason to exceed 1 MiB.
   const DEFAULT_BODY_LIMIT = 1024 * 1024;
   const onBodyTooLarge = () => {
     throw new HttpError(413, "Request body too large");

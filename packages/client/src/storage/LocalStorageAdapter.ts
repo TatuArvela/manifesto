@@ -1,12 +1,14 @@
 import {
   isLocalImageRef,
   type LinkPreview,
+  mapPreviewImages,
   type Note,
   NoteColor,
   type NoteCreate,
   NoteFont,
   type NoteUpdate,
   type NoteVersion,
+  previewImages,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
 import { dataUrlToBlob } from "../utils/dataUrl.js";
@@ -36,6 +38,31 @@ async function storeInline(images: string[]): Promise<string[]> {
     );
   }
   return out;
+}
+
+/**
+ * The same for link preview images, which only an import brings here inline
+ * (open mode never fetches a preview). One that cannot be stored stays
+ * inline, where it still shows.
+ */
+async function storeInlinePreviews(
+  previews: LinkPreview[],
+): Promise<LinkPreview[]> {
+  return await mapPreviewImages(previews, async (image) =>
+    image.startsWith("data:")
+      ? await putLocalImage(dataUrlToBlob(image)).catch(() => image)
+      : image,
+  );
+}
+
+/** Every image a note holds, its previews' included. */
+function imagesOf(note: Note): string[] {
+  return [...note.images, ...previewImages(note.linkPreviews)];
+}
+
+/** Whether a note still holds any image inline. */
+function holdsInline(note: Note): boolean {
+  return imagesOf(note).some((i) => i.startsWith("data:"));
 }
 
 /**
@@ -131,7 +158,7 @@ export class LocalStorageAdapter implements StorageAdapter {
    */
   async getAll(): Promise<Note[]> {
     const notes = loadNotes();
-    if (notes.some((n) => n.images.some((i) => i.startsWith("data:")))) {
+    if (notes.some(holdsInline)) {
       // A note whose images cannot be moved (IndexedDB unavailable or full, a
       // URL that will not decode) keeps them inline, where they still show;
       // the move is tried again on the next load. Failing here would leave an
@@ -139,7 +166,15 @@ export class LocalStorageAdapter implements StorageAdapter {
       const moved: Note[] = [];
       for (const note of notes) {
         try {
-          moved.push({ ...note, images: await storeInline(note.images) });
+          moved.push(
+            holdsInline(note)
+              ? {
+                  ...note,
+                  images: await storeInline(note.images),
+                  linkPreviews: await storeInlinePreviews(note.linkPreviews),
+                }
+              : note,
+          );
         } catch {
           moved.push(note);
         }
@@ -152,7 +187,7 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
     const current = loadNotes();
     void sweepLocalImages(
-      new Set(current.flatMap((n) => n.images)),
+      new Set(current.flatMap(imagesOf)),
       LOCAL_IMAGE_GRACE_MS,
     ).catch(() => {});
     return current;
@@ -164,6 +199,7 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async create(input: NoteCreate): Promise<Note> {
     const images = await storeInline(input.images ?? []);
+    const linkPreviews = await storeInlinePreviews(input.linkPreviews ?? []);
     const notes = loadNotes();
     const now = new Date().toISOString();
     const note: Note = {
@@ -179,7 +215,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       position: input.position ?? Date.now(),
       tags: input.tags ?? [],
       images,
-      linkPreviews: input.linkPreviews ?? [],
+      linkPreviews,
       reminder: input.reminder ?? null,
       createdAt: now,
       updatedAt: now,
@@ -194,6 +230,12 @@ export class LocalStorageAdapter implements StorageAdapter {
     // stay one synchronous step no other write can come between.
     if (changes.images) {
       changes = { ...changes, images: await storeInline(changes.images) };
+    }
+    if (changes.linkPreviews) {
+      changes = {
+        ...changes,
+        linkPreviews: await storeInlinePreviews(changes.linkPreviews),
+      };
     }
     const notes = loadNotes();
     const index = notes.findIndex((n) => n.id === id);
@@ -221,7 +263,11 @@ export class LocalStorageAdapter implements StorageAdapter {
   async importAll(imported: Note[]): Promise<void> {
     const stored: Note[] = [];
     for (const note of imported) {
-      stored.push({ ...note, images: await storeInline(note.images) });
+      stored.push({
+        ...note,
+        images: await storeInline(note.images),
+        linkPreviews: await storeInlinePreviews(note.linkPreviews ?? []),
+      });
     }
     imported = stored;
     const existing = loadNotes();

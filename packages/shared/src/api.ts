@@ -291,8 +291,8 @@ export interface LinkPreviewResponse {
    * What the server could read from the page, or null when it could not be
    * fetched. `image` and `favicon` are the source images as fetched, inlined
    * as `data:` URLs up to `MAX_IMAGE_DATA_URL_BYTES`; they are not yet the
-   * stored form, which the client shrinks to fit
-   * `MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES`.
+   * stored form: the client shrinks each to fit
+   * `MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES` and uploads it as an attachment.
    */
   preview: LinkPreview | null;
 }
