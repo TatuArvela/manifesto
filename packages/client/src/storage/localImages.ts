@@ -20,6 +20,10 @@ const STORE = "images";
 interface StoredImage {
   hash: string;
   blob: Blob;
+  /**
+   * When the image was last stored, not first: attaching an image already
+   * here starts its grace again (see `sweepLocalImages`).
+   */
   createdAt: number;
 }
 
@@ -67,19 +71,24 @@ async function sha256(blob: Blob): Promise<string> {
     .join("");
 }
 
-/** Stores an image and resolves its `local:` reference. */
+/**
+ * Stores an image and resolves its `local:` reference. An image already
+ * stored is written again all the same, to restamp it: it may be one no note
+ * refers to any more, attached now to a draft, and keeping its old stamp would
+ * let the next sweep take it from under that draft.
+ */
 export async function putLocalImage(blob: Blob): Promise<string> {
   const hash = await sha256(blob);
   const existing = await request("readonly", (s) => s.getKey(hash));
+  try {
+    await request("readwrite", (s) =>
+      s.put({ hash, blob, createdAt: Date.now() } satisfies StoredImage),
+    );
+  } catch (err) {
+    if (isQuotaError(err)) reportQuotaRefusal();
+    throw err;
+  }
   if (existing === undefined) {
-    try {
-      await request("readwrite", (s) =>
-        s.put({ hash, blob, createdAt: Date.now() } satisfies StoredImage),
-      );
-    } catch (err) {
-      if (isQuotaError(err)) reportQuotaRefusal();
-      throw err;
-    }
     if (!askedToPersist) {
       askedToPersist = true;
       void navigator.storage?.persist?.().catch(() => false);

@@ -1,5 +1,5 @@
 import { isLocalImageRef, NoteColor, NoteFont } from "@manifesto/shared";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
 import {
   clearLocalImages,
@@ -40,6 +40,21 @@ describe("open mode's image store", () => {
     expect(await sweepLocalImages(new Set([ref]), 0, Date.now() + 1)).toBe(0);
     expect(await sweepLocalImages(new Set(), 0, Date.now() + 1)).toBe(1);
     await expect(getLocalImage(ref)).rejects.toThrow();
+  });
+
+  it("starts the grace again when an image already stored is stored again", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(0);
+      const ref = await putLocalImage(gifBlob());
+      // Two days on, attached to a draft that is not saved yet.
+      vi.setSystemTime(2 * 86_400_000);
+      expect(await putLocalImage(gifBlob())).toBe(ref);
+      expect(await sweepLocalImages(new Set(), 86_400_000)).toBe(0);
+      expect(await getLocalImage(ref)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("keeps a note's images out of localStorage", async () => {

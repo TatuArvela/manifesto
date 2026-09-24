@@ -284,6 +284,21 @@ describe("attachments", () => {
       expect(served.headers.get("Content-Type")).toBe("image/png");
     });
 
+    it("starts the grace again when an image is uploaded again", async () => {
+      const res = await upload(owner, PNG_BYTES, "image/png");
+      const { ref } = (await res.json()) as { ref: string };
+      const id = attachmentIdOf(ref);
+      const later = "2026-09-01T00:00:00.000Z";
+      const much = "2027-01-01T00:00:00.000Z";
+      // Never referred to, so the first sweep marks it.
+      await rig.storage.attachments.sweep(NOW, "2000-01-01T00:00:00.000Z");
+      // Attached again, to an editor that has not saved yet.
+      await upload(owner, PNG_BYTES, "image/png");
+      await rig.storage.attachments.sweep(later, NOW);
+      expect(await rig.storage.attachments.sweep(much, later)).toBe(0);
+      expect(await rig.storage.attachments.meta(id)).not.toBeNull();
+    });
+
     it("refuses a file that is not an image, or is not sent as one", async () => {
       expect((await upload(owner, PNG_BYTES, "text/html")).status).toBe(415);
       const html = new TextEncoder().encode("<svg onload=alert(1)>");
