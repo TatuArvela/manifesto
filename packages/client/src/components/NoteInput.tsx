@@ -13,6 +13,7 @@ import { noteColorMap } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { holdFocus, useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
+import { inlineImages } from "../state/attachments.js";
 import { type IncomingShare, incomingShare } from "../state/incomingShare.js";
 import {
   activeView,
@@ -28,6 +29,7 @@ import {
   pickDefaultFont,
   reportPreviewOverflow,
   resolveLinkPreview,
+  showError,
   viewMode,
 } from "../state/index.js";
 import {
@@ -557,7 +559,19 @@ export function NoteInput() {
                       id: "export-json",
                       icon: <Braces class="w-4 h-4" />,
                       label: t("noteMenu.exportJson"),
-                      onSelect: () => downloadNoteAsJson(draftNote()),
+                      onSelect: async () => {
+                        // The file carries the bytes, not references only
+                        // this browser or server can read.
+                        const inlined = await inlineImages(images);
+                        if (!inlined) {
+                          showError(t("error.exportFailed"));
+                          return;
+                        }
+                        downloadNoteAsJson({
+                          ...draftNote(),
+                          images: inlined,
+                        });
+                      },
                     },
                     { kind: "divider", id: "destructive" },
                     ...(checkedItems.present

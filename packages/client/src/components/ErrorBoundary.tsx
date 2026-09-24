@@ -1,6 +1,9 @@
+import { LOCAL_IMAGE_REF_PREFIX } from "@manifesto/shared";
 import { Component, type ComponentChildren } from "preact";
 import { APP_FILE_SLUG, APP_NAME } from "../config.js";
 import { t } from "../i18n/index.js";
+import { getLocalImage } from "../storage/localImages.js";
+import { blobToDataUrl } from "../utils/dataUrl.js";
 
 const NOTES_KEY = "manifesto:notes";
 
@@ -13,6 +16,40 @@ interface State {
 }
 
 /**
+ * The stored notes with each `local:` image reference replaced by its bytes
+ * from IndexedDB, since a backup of references alone has no pictures. Best
+ * effort: anything unreadable (the JSON, the database, one image) keeps what
+ * is on disk, because a backup missing a picture beats no backup.
+ */
+async function withImagesInlined(raw: string): Promise<string> {
+  let notes: unknown;
+  try {
+    notes = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  if (!Array.isArray(notes)) return raw;
+  for (const note of notes) {
+    if (!note || typeof note !== "object") continue;
+    if (Array.isArray(note.images)) {
+      note.images = await Promise.all(note.images.map(inlineLocal));
+    }
+  }
+  return JSON.stringify(notes);
+}
+
+/** A `local:` reference as a `data:` URL, or anything else as it is. */
+async function inlineLocal(image: unknown): Promise<unknown> {
+  if (typeof image !== "string" || !image.startsWith(LOCAL_IMAGE_REF_PREFIX))
+    return image;
+  try {
+    return (await blobToDataUrl(await getLocalImage(image))) ?? image;
+  } catch {
+    return image;
+  }
+}
+
+/**
  * Catches render-time errors so a single bad note can't white-screen the app.
  *
  * The failure this exists for is persistent, not transient: a note carrying an
@@ -20,7 +57,8 @@ interface State {
  * in `localStorage` it throws again on every subsequent load. So the fallback
  * has to offer a way *out*; reloading alone would trap the user in the same
  * crash forever. The backup button reads `localStorage` directly rather than
- * going through the storage layer, because that layer may be what's broken.
+ * going through the storage layer, because that layer may be what's broken;
+ * only the open-mode images are read from IndexedDB, and only best effort.
  */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
@@ -33,7 +71,7 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error(`${APP_NAME} crashed during render`, error);
   }
 
-  private downloadBackup = (): void => {
+  private downloadBackup = async (): Promise<void> => {
     let raw = "[]";
     try {
       raw = localStorage.getItem(NOTES_KEY) ?? "[]";
@@ -41,6 +79,7 @@ export class ErrorBoundary extends Component<Props, State> {
       // Storage unreadable (private mode, blocked cookies): fall through and
       // hand the user an empty file rather than failing the click silently.
     }
+    raw = await withImagesInlined(raw);
     const url = URL.createObjectURL(
       new Blob([raw], { type: "application/json" }),
     );
