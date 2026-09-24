@@ -4,15 +4,9 @@ import {
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
+  searchPattern,
   splitPage,
 } from "../noteMapping.js";
-import {
-  noteTerms,
-  SEARCH_INDEX_VERSION,
-  type SearchFilter,
-  searchFilter,
-  touchesText,
-} from "../searchTerms.js";
 import {
   attachSharing,
   forbiddenFields,
@@ -56,11 +50,6 @@ const AFTER_CURSOR = `AND (n.updated_at < @afterUpdatedAt
 const MATCHES = `AND (LOWER(n.title) LIKE LOWER(@like)
   OR LOWER(n.content) LIKE LOWER(@like))`;
 
-/** One query word: the note holds a word in its prefix range. */
-const termMatch = (i: number) =>
-  `AND n.id IN (SELECT note_id FROM note_terms
-    WHERE term >= @lo${i} AND term < @hi${i})`;
-
 /** The user's own notes. */
 const OWN_FROM = `SELECT ${LIST_COLUMNS.map((c) => `n.${c}`).join(", ")}
   FROM notes n WHERE n.user_id = @userId`;
@@ -89,7 +78,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     searchAfter: db.prepare(
       `${OWN_FROM} ${MATCHES} ${AFTER_CURSOR} ${PAGE_ORDER}`,
     ),
-    from: OWN_FROM,
   };
   const shared = {
     first: db.prepare(`${SHARED_FROM} ${PAGE_ORDER}`),
@@ -98,41 +86,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     searchAfter: db.prepare(
       `${SHARED_FROM} ${MATCHES} ${AFTER_CURSOR} ${PAGE_ORDER}`,
     ),
-    from: SHARED_FROM,
   };
-
-  const textStmt = db.prepare(`SELECT title, content FROM notes WHERE id = ?`);
-  const clearTermsStmt = db.prepare(`DELETE FROM note_terms WHERE note_id = ?`);
-  const insertTermStmt = db.prepare(
-    `INSERT INTO note_terms (note_id, term, occurrences) VALUES (?, ?, ?)`,
-  );
-  const indexedStmt = db.prepare(
-    `UPDATE notes SET search_version = ? WHERE id = ?`,
-  );
-  const staleStmt = db.prepare(
-    `SELECT id FROM notes WHERE search_version <> ? LIMIT 500`,
-  );
-
-  /** Rewrites one note's words from what is stored now. */
-  const reindex = db.transaction((id: string) => {
-    const row = textStmt.get(id) as
-      | { title: string; content: string }
-      | undefined;
-    if (!row) return;
-    clearTermsStmt.run(id);
-    for (const [term, count] of noteTerms(row.title, row.content)) {
-      insertTermStmt.run(id, term, count);
-    }
-    indexedStmt.run(SEARCH_INDEX_VERSION, id);
-  });
-
-  // Notes written before the index existed, or indexed by an older tokenizer,
-  // or whose write was interrupted between the note and its words.
-  for (;;) {
-    const stale = staleStmt.all(SEARCH_INDEX_VERSION) as { id: string }[];
-    if (stale.length === 0) break;
-    for (const { id } of stale) reindex(id);
-  }
   const getStmt = db.prepare(
     `SELECT n.*, ${SHARE_OVERLAY_COLUMNS}
      FROM notes n
@@ -184,39 +138,26 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
 
   function page(
     userId: string,
-    filter: SearchFilter | null,
+    like: string | null,
     { limit, cursor }: ListNotesOptions,
   ): NotePage {
     // Both halves over-fetch by one, so the presence of a next page is a fact
     // about the rows rather than a second COUNT query.
     const after = cursor ? decodeCursor(cursor) : null;
-    const params: Record<string, unknown> = {
+    const params = {
       userId,
       limit: limit + 1,
-      ...(filter?.kind === "like" && { like: filter.like }),
+      ...(like !== null && { like }),
       ...(after && { afterUpdatedAt: after.updatedAt, afterId: after.id }),
     };
-    if (filter?.kind === "terms") {
-      filter.ranges.forEach(([lo, hi], i) => {
-        params[`lo${i}`] = lo;
-        params[`hi${i}`] = hi;
-      });
-    }
-    // A word search has as many subqueries as the query has words, so it is
-    // prepared per call; the rest are prepared once above.
     const pick = (set: typeof own) =>
-      filter?.kind === "terms"
-        ? db.prepare(
-            `${set.from} ${filter.ranges.map((_, i) => termMatch(i)).join(" ")}
-             ${after ? AFTER_CURSOR : ""} ${PAGE_ORDER}`,
-          )
-        : filter === null
-          ? after
-            ? set.after
-            : set.first
-          : after
-            ? set.searchAfter
-            : set.search;
+      like === null
+        ? after
+          ? set.after
+          : set.first
+        : after
+          ? set.searchAfter
+          : set.search;
     const rows = mergePages(
       pick(own).all(params) as ViewRow[],
       pick(shared).all(params) as ViewRow[],
@@ -257,12 +198,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       const assignments = [...note.columns, "updated_at"].map(
         (column) => `${column} = ?`,
       );
-      if (touchesText(changes)) assignments.push("search_version = 0");
       const info = db
         .prepare(`UPDATE notes SET ${assignments.join(", ")} ${where}`)
         .run(params);
       if (info.changes === 0) return false;
-      if (touchesText(changes)) reindex(id);
 
       const personal = noteUpdateColumns(split.personal, "integer");
       if (personal.columns.length > 0) {
@@ -307,7 +246,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
 
     async insert(input: InsertNoteInput): Promise<Note> {
       insertStmt.run(noteInsertValues(input, "integer"));
-      reindex(input.id);
       const note = await repo.getById(input.id, input.userId);
       if (!note)
         throw new Error(`Failed to retrieve inserted note ${input.id}`);
@@ -337,7 +275,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       const assignments = [...columns, "updated_at"].map(
         (column) => `${column} = ?`,
       );
-      if (touchesText(changes)) assignments.push("search_version = 0");
       const params = [...values, updatedAt, id, userId];
       // Compare-and-set on `updated_at` when the caller passed `If-Match`;
       // collapses the prior read-then-write race into a single atomic write.
@@ -349,7 +286,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       const sql = `UPDATE notes SET ${assignments.join(", ")} ${where}`;
       const info = db.prepare(sql).run(params);
       if (info.changes === 0) return null;
-      if (touchesText(changes)) reindex(id);
       return await repo.getById(id, userId);
     },
 
@@ -363,9 +299,9 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       query: string,
       options: ListNotesOptions,
     ): Promise<NotePage> {
-      const filter = searchFilter(query);
-      if (filter === null) return { notes: [], nextCursor: null };
-      return page(userId, filter, options);
+      const like = searchPattern(query);
+      if (like === null) return { notes: [], nextCursor: null };
+      return page(userId, like, options);
     },
   };
 

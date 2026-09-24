@@ -2,12 +2,10 @@ import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { describeAdminContract } from "../adminContract.js";
 import { describeAttachmentsContract } from "../attachmentsContract.js";
-import { describeSearchContract } from "../searchContract.js";
 import { describeSharingContract } from "../sharingContract.js";
 import { describeStatsContract } from "../statsContract.js";
 import { UsernameTakenError } from "../types.js";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.js";
-import { reindexStaleNotes } from "./notesRepo.js";
 import { newTestPool } from "./testDb.js";
 
 async function bootStorage(): Promise<PostgresStorageDriver> {
@@ -21,11 +19,6 @@ describeAdminContract("postgres (pg-mem)", bootStorage);
 describeSharingContract("postgres (pg-mem)", bootStorage);
 describeAttachmentsContract("postgres (pg-mem)", bootStorage);
 describeStatsContract("postgres (pg-mem)", bootStorage);
-describeSearchContract("postgres (pg-mem)", bootStorage, async (storage) => {
-  const { pool } = storage as PostgresStorageDriver;
-  await pool.query(`DELETE FROM note_terms`);
-  await pool.query(`UPDATE notes SET search_version = 0`);
-});
 
 describe("postgres: audit log", () => {
   it("appends, filters, pages and prunes", async () => {
@@ -270,32 +263,6 @@ describe("postgres: versions", () => {
     expect(kept[0].content).toBe(String(MAX_NOTE_VERSIONS + 1));
     await storage.notes.delete("n1", "u1");
     expect(await storage.versions.list("n1")).toEqual([]);
-    await storage.close();
-  });
-});
-
-describe("postgres: search index backfill", () => {
-  it("indexes stale notes", async () => {
-    const storage = await bootStorage();
-    await storage.users.create({
-      id: "u1",
-      username: "una",
-      passwordHash: "h",
-      displayName: "",
-      avatarColor: "",
-      provider: "local",
-      externalId: null,
-      createdAt: NOW,
-    });
-    await storage.pool.query(
-      `INSERT INTO notes (id, user_id, title, content, color, font, created_at, updated_at)
-       VALUES ('n1', 'u1', 'Old note', 'from before', 'default', 'default', $1, $1)`,
-      [NOW],
-    );
-    expect(await reindexStaleNotes(storage.pool)).toBe(1);
-    const found = await storage.notes.search("u1", "before", PAGE);
-    expect(found.notes.map((n) => n.id)).toEqual(["n1"]);
-    expect(await reindexStaleNotes(storage.pool)).toBe(0);
     await storage.close();
   });
 });

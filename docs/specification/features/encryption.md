@@ -21,8 +21,8 @@ themselves; for an organisation's deployment it is the organisation, which is wh
 End-to-end encryption means the server holds ciphertext it cannot read, and several features exist only
 because it can:
 
-- **Server search**: `/api/search` reads a word index of each note's text
-  ([Search](search.md)). A server that cannot read a note cannot index it.
+- **Server search**: `/api/search` matches against each note's text ([Search](search.md)). A server
+  that cannot read a note cannot search it.
 - **Link previews**: the server fetches the pages a note links to ([Link Previews](link-previews.md)),
   which needs the URLs.
 - **Live collaboration**: Yjs merges edits on the server and stores the document state there

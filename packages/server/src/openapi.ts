@@ -355,7 +355,7 @@ export const OPERATIONS: Operation[] = [
     method: "get",
     path: "/api/search",
     tag: "Notes",
-    summary: "Notes holding every word of q (by word prefix), newest first",
+    summary: "Notes whose title or content contains q, newest first",
     auth: "any",
     query: { q: "Search words", limit: "Page size", cursor: "Next page" },
     responses: ok("NotesResponse"),
