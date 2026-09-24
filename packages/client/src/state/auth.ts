@@ -538,22 +538,27 @@ export function takeResetToken(): string | null {
   return match[1];
 }
 
+export type OidcRefusal =
+  | "not_in_group"
+  | "not_registered"
+  | "groups_unavailable";
+
 /**
  * Why the server turned away a single sign-on the identity provider accepted:
- * not in the group allowed to sign in, or no account while registration is
- * off. Set from the callback's `#error=`, for the login screen to say.
+ * not in the group allowed to sign in, no account while registration is off,
+ * or groups that could not be read. Set from the callback's `#error=`, for
+ * the login screen to say.
  */
-export const oidcRefusal = signal<"not_in_group" | "not_registered" | null>(
-  null,
-);
+export const oidcRefusal = signal<OidcRefusal | null>(null);
 
 export async function consumeOidcRedirect(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (SERVER_URL === null) return false;
   const hash = window.location.hash;
-  const refusal = /^#error=(not_in_group|not_registered)$/.exec(hash);
+  const refusal =
+    /^#error=(not_in_group|not_registered|groups_unavailable)$/.exec(hash);
   if (refusal) {
-    oidcRefusal.value = refusal[1] as "not_in_group" | "not_registered";
+    oidcRefusal.value = refusal[1] as OidcRefusal;
     history.replaceState(
       null,
       "",

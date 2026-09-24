@@ -1,12 +1,13 @@
 import type { AuthMethodsResponse } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
 import { APP_LOGO_URL, APP_NAME } from "../config.js";
-import { t } from "../i18n/index.js";
+import { type MessageKey, t } from "../i18n/index.js";
 import {
   confirmPasswordReset,
   fetchAuthMethods,
   login,
   loginErrorKey,
+  type OidcRefusal,
   oidcLoginUrl,
   oidcRefusal,
   PasswordChangeRequiredError,
@@ -18,6 +19,12 @@ import {
 } from "../state/auth.js";
 import { locale } from "../state/prefs.js";
 import { showSuccess } from "../state/ui.js";
+
+const OIDC_REFUSAL_MESSAGES: Record<OidcRefusal, MessageKey> = {
+  not_in_group: "login.oidcNotInGroup",
+  not_registered: "login.oidcNotRegistered",
+  groups_unavailable: "login.oidcGroupsUnavailable",
+};
 
 /**
  * `changePassword` is the step after signing in with a temporary password an
@@ -156,11 +163,7 @@ function OidcLoginPanel() {
           class="text-sm text-center text-red-600 dark:text-red-400"
           role="alert"
         >
-          {t(
-            refusal === "not_in_group"
-              ? "login.oidcNotInGroup"
-              : "login.oidcNotRegistered",
-          )}
+          {t(OIDC_REFUSAL_MESSAGES[refusal])}
         </p>
       )}
       <p class="text-sm text-center text-neutral-600 dark:text-neutral-300">

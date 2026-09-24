@@ -533,6 +533,29 @@ describe("oidc groups and registration", () => {
     expect(allowed.get("token")).toBeTruthy();
   });
 
+  it("leaves admin as it was when the groups cannot be read", async () => {
+    rig = bootOidcRig({ adminGroup: "admins", groupsClaim: "roles" });
+    await signIn({ sub: "keeper", preferred_username: "keeper" });
+    oidcModule.fetchUserInfo.mockResolvedValueOnce({
+      sub: "s1",
+      roles: ["admins"],
+    } as unknown as Awaited<ReturnType<typeof openid.fetchUserInfo>>);
+    await signIn({ sub: "s1", preferred_username: "alice" });
+    expect((await account("s1"))?.isAdmin).toBe(true);
+    oidcModule.fetchUserInfo.mockRejectedValueOnce(new Error("timeout"));
+    const again = await signIn({ sub: "s1", preferred_username: "alice" });
+    expect(again.get("token")).toBeTruthy();
+    expect((await account("s1"))?.isAdmin).toBe(true);
+  });
+
+  it("refuses a gated sign-in when the groups cannot be read", async () => {
+    rig = bootOidcRig({ userGroup: "notes", groupsClaim: "roles" });
+    oidcModule.fetchUserInfo.mockRejectedValueOnce(new Error("timeout"));
+    const refused = await signIn({ sub: "s1" });
+    expect(refused.get("error")).toBe("groups_unavailable");
+    expect(await account("s1")).toBeNull();
+  });
+
   it("with registration off, lets in only accounts that exist", async () => {
     rig = bootOidcRig({ autoRegister: false });
     await rig.storage.users.create({

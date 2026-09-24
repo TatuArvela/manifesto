@@ -439,6 +439,8 @@ export const en = {
     "Your account is not one allowed to sign in here. Ask whoever runs this server.",
   "login.oidcNotRegistered":
     "There is no account for you here, and new ones are not being made. Ask whoever runs this server.",
+  "login.oidcGroupsUnavailable":
+    "Your sign-in service did not say which groups you are in, so you could not be let in. Try again in a moment.",
   "login.forgot.link": "Forgot your password?",
   "login.forgot.title": "Reset your password",
   "login.forgot.hint":

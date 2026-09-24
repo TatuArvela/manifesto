@@ -177,8 +177,11 @@ The secret is held as is in `user_totp` (it has to be, to compute codes), next t
 With single sign-on, admin can follow a group at the identity provider (`OIDC_ADMIN_GROUP`) instead of
 being granted by hand: it is decided again at every sign-in, both ways, and never takes admin from the
 last admin. `OIDC_USER_GROUP` limits who may sign in at all, and `OIDC_AUTO_REGISTER=off` stops accounts
-being created on first sign-in. A refused sign-in comes back to the client as `#error=not_in_group` or
-`#error=not_registered`, and the sign-in screen says which. See [Server
+being created on first sign-in. Groups the identity provider did not give (the ID token leaves the claim
+out and userinfo cannot be read) are unknown rather than empty: admin stays as it was, and a sign-in the
+user group gates is refused, so an outage at the provider neither strips admins nor lets anyone past the
+gate. A refused sign-in comes back to the client as `#error=not_in_group`, `#error=not_registered` or
+`#error=groups_unavailable`, and the sign-in screen says which. See [Server
 Deployment](../server/deployment.md#oidc-variables-when-auth_provideroidc-or-both).
 
 ## Recovery by mail
