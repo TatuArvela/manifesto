@@ -18,6 +18,13 @@ export interface JobStatus {
  */
 const statuses = new Map<string, JobStatus>();
 
+/**
+ * The longest delay a Node timer takes (2^31 - 1 ms, under 25 days). A longer
+ * one is not refused but set to 1 ms, so a monthly job would run every
+ * millisecond.
+ */
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
 export function jobStatuses(): JobStatus[] {
   return [...statuses.values()].map((status) => ({ ...status }));
 }
@@ -68,9 +75,20 @@ export function startPeriodicJob(
   }
 
   void run();
-  const handle = setInterval(() => {
-    void run();
-  }, intervalMs);
+  // An interval past the timer's limit is counted out in shorter ticks, each
+  // running the job only once it is due. Only then: a tick can land a
+  // millisecond before a wall-clock deadline, and for an ordinary interval
+  // that would skip a whole run.
+  const counted = intervalMs > MAX_TIMER_MS;
+  let due = Date.now() + intervalMs;
+  const handle = setInterval(
+    () => {
+      if (counted && Date.now() < due) return;
+      due = Date.now() + intervalMs;
+      void run();
+    },
+    Math.min(intervalMs, MAX_TIMER_MS),
+  );
   if (typeof handle.unref === "function") handle.unref();
   return () => {
     clearInterval(handle);

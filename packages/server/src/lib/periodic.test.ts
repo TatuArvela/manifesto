@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobStatuses, startPeriodicJob } from "./periodic.js";
 
 describe("job statuses", () => {
@@ -28,6 +28,27 @@ describe("job statuses", () => {
     expect(jobStatuses().find((j) => j.name === "broken")?.lastError).toBe(
       "disk full",
     );
+    stop();
+  });
+});
+
+describe("intervals past the timer's limit", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("runs a monthly job once a month, not every millisecond", async () => {
+    vi.useFakeTimers();
+    const month = 30 * 24 * 60 * 60 * 1000;
+    let runs = 0;
+    const stop = startPeriodicJob("monthly", month, async () => {
+      runs++;
+    });
+    expect(runs).toBe(1);
+    await vi.advanceTimersByTimeAsync(month - 1000);
+    expect(runs).toBe(1);
+    await vi.advanceTimersByTimeAsync(month);
+    expect(runs).toBe(2);
     stop();
   });
 });
