@@ -333,6 +333,11 @@ function parseJsonOrNull(text: string): unknown {
  * attachments. Everything else (other Google products, Keep's `.html` twins,
  * a vault's settings) is ignored. The byte budget is shared by every entry,
  * so an archive cannot add up to more than one file would be allowed.
+ *
+ * A server's account download is the exception: its `notes.json` holds every
+ * note whole (ids, colors, images, the trash) and its Markdown files are the
+ * same notes stripped down for other tools, so when it is there it is the
+ * import and the rest of the archive is not read.
  */
 async function notesFromZip(file: File): Promise<Note[]> {
   if (file.size > MAX_IMPORT_BYTES) {
@@ -347,6 +352,22 @@ async function notesFromZip(file: File): Promise<Note[]> {
   };
   const byDirAndName = new Map<string, ZipEntry>();
   for (const entry of entries) byDirAndName.set(entry.name, entry);
+
+  const accountNotes = entries.find((e) =>
+    /^([^/]+\/)?notes\.json$/.test(e.name),
+  );
+  if (accountNotes) {
+    const data = parseJsonOrNull(textDecoder.decode(await read(accountNotes)));
+    if (
+      Array.isArray(data) &&
+      data.length > 0 &&
+      !data.some((item) => !isValidNoteShape(item))
+    ) {
+      return data.map((item: Record<string, unknown>) =>
+        normalizeImportedNote(item),
+      );
+    }
+  }
 
   // A zipped folder puts every file under that folder's name; it names the
   // archive, not a category, so it is not made a tag.

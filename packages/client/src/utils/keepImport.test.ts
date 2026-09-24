@@ -166,6 +166,43 @@ describe("importFiles with Takeout", () => {
     expect(bulks[0][0].images).toHaveLength(1);
   });
 
+  it("restores a server's account download from its notes.json", async () => {
+    const note = {
+      id: "01HACCOUNT",
+      title: "Kept whole",
+      content: "Body",
+      color: NoteColor.Blue,
+      font: "default",
+      pinned: false,
+      archived: false,
+      trashed: true,
+      trashedAt: "2026-01-02T00:00:00.000Z",
+      position: 0,
+      tags: ["home"],
+      images: [],
+      linkPreviews: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    };
+    const zip = await buildZip({
+      "notes.json": JSON.stringify([note]),
+      "notes/Other.md": "# Other\n\nNot the import",
+      "versions.json": "[]",
+      "account.json": JSON.stringify({ username: "alice" }),
+    });
+    const { bulks, handlers } = collect();
+    const summary = await importFiles(
+      [new File([zip as BlobPart], "notes.zip", { type: "application/zip" })],
+      handlers,
+    );
+    expect(summary).toEqual({ singleCount: 0, bulkCount: 1, failedCount: 0 });
+    expect(bulks[0][0]).toMatchObject({
+      id: "01HACCOUNT",
+      color: NoteColor.Blue,
+      trashed: true,
+    });
+  });
+
   it("fails an archive with nothing to import", async () => {
     const zip = await buildZip({ "readme.txt": "hi" });
     const { handlers } = collect();
