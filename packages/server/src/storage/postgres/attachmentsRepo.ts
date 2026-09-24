@@ -7,7 +7,6 @@ import {
   rowToStoredAttachment,
   sweepAction,
 } from "../attachmentMapping.js";
-import { parseJson } from "../noteMapping.js";
 import type { AttachmentsRepo } from "../types.js";
 import type { PgPool } from "./database.js";
 
@@ -108,30 +107,6 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
         }
       }
       return deleted;
-    },
-
-    async notesWithInlineImages(limit) {
-      const result = await pool.query<{
-        id: string;
-        user_id: string;
-        images: string;
-      }>(
-        `SELECT id, user_id, images FROM notes
-         WHERE images LIKE '%"data:%' LIMIT $1`,
-        [limit],
-      );
-      return result.rows.map((row) => ({
-        id: row.id,
-        ownerId: row.user_id,
-        images: parseJson<string[]>(row.images, []),
-      }));
-    },
-
-    async setNoteImages(id, images) {
-      await pool.query(`UPDATE notes SET images = $1 WHERE id = $2`, [
-        JSON.stringify(images),
-        id,
-      ]);
     },
   };
 }

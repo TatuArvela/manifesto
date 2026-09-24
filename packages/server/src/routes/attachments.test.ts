@@ -6,7 +6,6 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { moveInlineImagesToStore } from "../attachments/store.js";
 import {
   authHeaders,
   bootTestApp,
@@ -63,8 +62,28 @@ describe("attachments", () => {
       ...(body !== undefined && { body: JSON.stringify(body) }),
     });
 
+  /** Uploads a `data:` image as `who` and answers its reference. */
+  async function uploadAs(who: Account, image: string): Promise<string> {
+    if (!image.startsWith("data:")) return image;
+    const res = await rig.request("/api/attachments", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${who.token}`,
+        "Content-Type": image.slice(5, image.indexOf(";")),
+      },
+      body: Buffer.from(image.slice(image.indexOf(",") + 1), "base64"),
+    });
+    expect(res.status).toBe(201);
+    return ((await res.json()) as { ref: string }).ref;
+  }
+
   async function create(who: Account, images: string[]): Promise<Note> {
-    const res = await call(who, "POST", "/api/notes", { ...baseNote, images });
+    const refs = [];
+    for (const image of images) refs.push(await uploadAs(who, image));
+    const res = await call(who, "POST", "/api/notes", {
+      ...baseNote,
+      images: refs,
+    });
     expect(res.status).toBe(201);
     return ((await res.json()) as { note: Note }).note;
   }
@@ -87,7 +106,7 @@ describe("attachments", () => {
     expect(b.images[1]).not.toBe(a.images[0]);
     // The same bytes sent again, as a stale tab would, change nothing.
     const res = await call(owner, "PUT", `/api/notes/${a.id}`, {
-      images: [PNG],
+      images: [await uploadAs(owner, PNG)],
     });
     expect(((await res.json()) as { note: Note }).note.images).toEqual(
       a.images,
@@ -109,7 +128,7 @@ describe("attachments", () => {
     const note = await create(owner, []);
     await share(note.id, alice);
     const res = await call(alice, "PUT", `/api/notes/${note.id}`, {
-      images: [GIF],
+      images: [await uploadAs(alice, GIF)],
     });
     const [ref] = ((await res.json()) as { note: Note }).note.images;
     const meta = await rig.storage.attachments.meta(attachmentIdOf(ref));
@@ -166,17 +185,6 @@ describe("attachments", () => {
     expect(await rig.storage.attachments.sweep(NOW, "2999-01-01")).toBe(0);
   });
 
-  it("moves images written before the store out of their rows", async () => {
-    const note = await create(owner, []);
-    await rig.storage.attachments.setNoteImages(note.id, [PNG, GIF]);
-    expect(await moveInlineImagesToStore(rig.storage, NOW)).toBe(1);
-    const stored = await rig.storage.notes.getById(note.id, owner.userId);
-    expect(stored?.images.every((i) => i.startsWith("attachment:"))).toBe(true);
-    // Not a change to the note: its concurrency token is untouched.
-    expect(stored?.updatedAt).toBe(note.updatedAt);
-    expect(await moveInlineImagesToStore(rig.storage, NOW)).toBe(0);
-  });
-
   describe("uploads", () => {
     const PNG_BYTES = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
@@ -207,6 +215,14 @@ describe("attachments", () => {
       expect((await upload(owner, new Uint8Array(), "image/png")).status).toBe(
         422,
       );
+    });
+
+    it("takes an image of exactly the limit", async () => {
+      const exact = Buffer.concat([
+        PNG_BYTES,
+        Buffer.alloc(MAX_IMAGE_SOURCE_BYTES - PNG_BYTES.length),
+      ]);
+      expect((await upload(owner, exact, "image/png")).status).toBe(201);
     });
 
     it("refuses an image over the limit", async () => {

@@ -1,12 +1,5 @@
 import type { Note, NoteCreate, NotesResponse } from "@manifesto/shared";
-import {
-  attachmentIdOf,
-  isAttachmentRef,
-  MAX_IMAGE_DATA_URL_BYTES,
-  MAX_IMAGE_SOURCE_BYTES,
-  NoteColor,
-  NoteFont,
-} from "@manifesto/shared";
+import { attachmentIdOf, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   authHeaders,
@@ -199,94 +192,26 @@ describe("notes routes", () => {
     expect(res.status).toBe(422);
   });
 
-  it("accepts the data URLs the client actually produces", async () => {
-    const { token } = await registerTestUser(rig, "alice");
-    const png = `data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`;
-    const jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
-    const note = await createNote(rig, token, { images: [png, jpeg] });
-    // Stored outside the row, and referred to from it.
-    expect(note.images).toHaveLength(2);
-    for (const ref of note.images) expect(isAttachmentRef(ref)).toBe(true);
-  });
-
-  it("rejects image values that are not inert image data URLs", async () => {
+  it("refuses an image that is not an attachment reference", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const cases: Array<[string, string]> = [
+      // Bytes never ride in a note; they are uploaded first.
+      [`data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`, "an inline image"],
       ["javascript:alert(1)", "javascript scheme"],
       ["file:///etc/passwd", "file scheme"],
-      ["https://example.com/cat.png", "remote url (images are inlined)"],
+      ["https://example.com/cat.png", "remote url"],
       ["not a url", "not a url at all"],
-      // A document format wearing an image content type. Excluded on purpose:
-      // SVG can carry script into anything that renders an attachment by URL.
-      ["data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=", "svg"],
-      ["data:text/html;base64,PHNjcmlwdD48L3NjcmlwdD4=", "html masquerading"],
-      ["data:image/png,notbase64", "missing base64 marker"],
-      ["data:image/png;base64,not base64!", "outside the base64 alphabet"],
-      // The anchors matter: without them a trailing fragment would ride along.
-      [
-        'data:image/png;base64,aGk="><script>alert(1)</script>',
-        "smuggled suffix",
-      ],
+      ["attachment:../../etc/passwd", "a reference that is not a ULID"],
+      ["local:0123abcd", "an open-mode reference"],
     ];
-    for (const [url, why] of cases) {
+    for (const [image, why] of cases) {
       const res = await rig.request("/api/notes", {
         method: "POST",
         headers: authHeaders(token),
-        body: JSON.stringify({ ...baseNote, images: [url] }),
+        body: JSON.stringify({ ...baseNote, images: [image] }),
       });
       expect(res.status, `expected 422 for ${why}`).toBe(422);
     }
-  });
-
-  // The error messages quote MAX_IMAGE_SOURCE_BYTES, but the schema bounds the
-  // encoded data URL. These pin the two together: an image of exactly the
-  // advertised size must be accepted, in every media type, prefix length
-  // included. Rounding the encoded cap by hand fails this by 18 bytes.
-  it("accepts an image of exactly the advertised size", async () => {
-    const { token } = await registerTestUser(rig, "alice");
-    const payload = Buffer.alloc(MAX_IMAGE_SOURCE_BYTES).toString("base64");
-    for (const mime of ["png", "jpeg", "jpg", "gif", "webp", "avif"]) {
-      const res = await rig.request("/api/notes", {
-        method: "POST",
-        headers: authHeaders(token),
-        body: JSON.stringify({
-          ...baseNote,
-          images: [`data:image/${mime};base64,${payload}`],
-        }),
-      });
-      expect(res.status, `expected 201 for a full-size image/${mime}`).toBe(
-        201,
-      );
-    }
-  });
-
-  it("rejects an image past the advertised size", async () => {
-    const { token } = await registerTestUser(rig, "alice");
-    const payload = Buffer.alloc(MAX_IMAGE_SOURCE_BYTES + 1024).toString(
-      "base64",
-    );
-    const res = await rig.request("/api/notes", {
-      method: "POST",
-      headers: authHeaders(token),
-      body: JSON.stringify({
-        ...baseNote,
-        images: [`data:image/png;base64,${payload}`],
-      }),
-    });
-    expect(res.status).toBe(422);
-  });
-
-  it("rejects an image past the per-image cap with 422", async () => {
-    const { token } = await registerTestUser(rig, "alice");
-    const prefix = "data:image/png;base64,";
-    const oversized =
-      prefix + "A".repeat(MAX_IMAGE_DATA_URL_BYTES - prefix.length + 1);
-    const res = await rig.request("/api/notes", {
-      method: "POST",
-      headers: authHeaders(token),
-      body: JSON.stringify({ ...baseNote, images: [oversized] }),
-    });
-    expect(res.status).toBe(422);
   });
 
   it("rejects too many tags with 422", async () => {
@@ -393,7 +318,16 @@ describe("notes routes", () => {
       // The reason the endpoint is paged at all: an unpaged list of notes each
       // carrying its own pictures is a response with no upper bound.
       const { token } = await registerTestUser(rig, "alice");
-      await createNote(rig, token, { title: "Holiday", images: [PNG] });
+      const uploaded = await rig.request("/api/attachments", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "image/png",
+        },
+        body: Buffer.from(PNG.slice(PNG.indexOf(",") + 1), "base64"),
+      });
+      const { ref: uploadedRef } = (await uploaded.json()) as { ref: string };
+      await createNote(rig, token, { title: "Holiday", images: [uploadedRef] });
 
       const res = await rig.request("/api/notes", {
         headers: authHeaders(token),

@@ -40,7 +40,7 @@ The accepted form is narrow, and the server enforces it on every write:
 | Encoding | `;base64,` followed by base64-alphabet characters, anchored at both ends |
 | Per-image size | 5 MiB of source image, after the client has shrunk it (photos are kept at 2560 pixels on the long edge, see [Attachments](features/attachments.md)). Enforced on the encoded URL, whose cap is derived from it: base64 emits 4 characters per 3 bytes and the `data:image/…;base64,` prefix counts too, so a hand-rounded encoded cap rejects a full-size image 18 bytes short of the advertised number. |
 | Images per note | 20 |
-| Whole request | 12 MiB on `/api/notes`, which is what bounds a note in aggregate |
+| Whole request | 1 MiB on `/api/notes`, since a note carries references; one image upload may be up to the per-image size |
 
 `image/svg+xml` is **excluded on purpose.** SVG is a document format that happens to have an image media type: it can carry script, so admitting it would let a note ship executable markup into any surface that renders an attachment by URL. The same reasoning excludes every non-image `data:` media type.
 

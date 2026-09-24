@@ -112,16 +112,5 @@ export function describeAttachmentsContract(
       expect(await storage.attachments.meta(lost.id)).toBeNull();
       expect(await storage.attachments.meta(kept.id)).not.toBeNull();
     });
-
-    it("finds notes still holding inline images and rewrites them quietly", async () => {
-      const inline = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
-      await note("n1", "owner", [inline]);
-      await note("n2", "owner", []);
-      const found = await storage.attachments.notesWithInlineImages(10);
-      expect(found).toEqual([{ id: "n1", ownerId: "owner", images: [inline] }]);
-      await storage.attachments.setNoteImages("n1", []);
-      expect(await storage.attachments.notesWithInlineImages(10)).toEqual([]);
-      expect((await storage.notes.getById("n1", "owner"))?.updatedAt).toBe(T0);
-    });
   });
 }

@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
-import { storeInlineImages } from "../attachments/store.js";
+import { claimImages } from "../attachments/store.js";
 import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
@@ -79,7 +79,7 @@ export function createNotesRoutes(deps: NotesDeps) {
       const { userId } = c.get("auth");
       const fields = c.req.valid("json");
       const now = nowIso();
-      const images = await storeInlineImages(
+      const images = await claimImages(
         deps.storage,
         fields.images,
         userId,
@@ -113,7 +113,7 @@ export function createNotesRoutes(deps: NotesDeps) {
         // this stored, and the sweep collects it.
         const access = await deps.storage.notes.access(id, userId);
         if (access && access.role !== "view") {
-          changes.images = await storeInlineImages(
+          changes.images = await claimImages(
             deps.storage,
             fields.images,
             access.ownerId,
