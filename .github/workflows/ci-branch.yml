@@ -10,6 +10,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # CI tests on the Node in .tool-versions and the image ships the one in
+      # the Dockerfile, so a green run only vouches for the image if they agree.
+      # A Dependabot bump of the base image fails here until .tool-versions
+      # gets the same version in the same PR.
+      - name: Node version matches the server image
+        run: |
+          want=$(awk '$1 == "nodejs" { print $2 }' .tool-versions)
+          bad=$(grep -E '^FROM node:' packages/server/Dockerfile | grep -v "^FROM node:${want}-alpine" || true)
+          if [ -n "$bad" ]; then
+            echo "::error file=packages/server/Dockerfile::.tool-versions says nodejs ${want}, but the Dockerfile has: ${bad}"
+            exit 1
+          fi
+
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7

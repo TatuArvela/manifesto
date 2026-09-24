@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ── Builder stage ────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:24.21.0-alpine AS builder
 WORKDIR /repo
 
 # pnpm via corepack, pinned to whatever the workspace expects.
@@ -57,7 +57,7 @@ RUN VITE_MANIFESTO_SERVER=/ pnpm --filter @manifesto/client build
 RUN pnpm --filter @manifesto/server deploy --prod --legacy /prod
 
 # ── Runtime stage ───────────────────────────────────────────────────────
-FROM node:22-alpine AS runtime
+FROM node:24.21.0-alpine AS runtime
 WORKDIR /app
 
 # Run as a non-root user so a container escape doesn't write into /etc.
