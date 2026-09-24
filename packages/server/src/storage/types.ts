@@ -26,6 +26,8 @@ export interface User {
   /** The password is a temporary one an admin issued, good for one sign-in
    * that replaces it. */
   mustChangePassword: boolean;
+  /** The language the account's client reported, or null if none has. */
+  locale: string | null;
   createdAt: string;
 }
 
@@ -87,6 +89,8 @@ export interface UsersRepo {
   search(query: string, options: UserSearchOptions): Promise<User[]>;
   /** Set or clear the email address. */
   setEmail(id: string, email: string | null): Promise<SetEmailResult>;
+  /** Record the language the account's client is set to. */
+  setLocale(id: string, locale: string): Promise<boolean>;
   /** Every user, ordered by username. */
   list(): Promise<UserSummary[]>;
   /** Every admin, oldest first. */

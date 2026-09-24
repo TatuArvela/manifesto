@@ -24,6 +24,7 @@ interface UserRow {
   external_id: string | null;
   is_admin: boolean;
   must_change_password: boolean;
+  locale: string | null;
   created_at: string;
 }
 
@@ -54,6 +55,7 @@ function rowToUser(row: UserRow): User {
     passwordHash: row.password_hash,
     isAdmin: row.is_admin,
     mustChangePassword: row.must_change_password,
+    locale: row.locale,
     createdAt: row.created_at,
   };
 }
@@ -247,6 +249,14 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
         if (isPgUniqueViolation(err)) return "email-taken";
         throw err;
       }
+    },
+
+    async setLocale(id: string, locale: string): Promise<boolean> {
+      const result = await pool.query(
+        `UPDATE users SET locale = $1 WHERE id = $2`,
+        [locale, id],
+      );
+      return (result.rowCount ?? 0) > 0;
     },
 
     async list(): Promise<UserSummary[]> {

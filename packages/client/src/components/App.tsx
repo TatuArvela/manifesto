@@ -6,6 +6,7 @@ import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
+import { startAccountLocaleReport } from "../state/accountLocale.js";
 import { checkForUpdate } from "../state/admin.js";
 import {
   authToken,
@@ -131,7 +132,9 @@ function MainApp() {
       void fetchAuthMethods();
       void loadInvitations();
     }
+    const stopLocaleReport = startAccountLocaleReport();
     return () => {
+      stopLocaleReport();
       window.removeEventListener("reminder:open-note", openHandler);
       stopAutoNotes();
       stopBoardBackground();

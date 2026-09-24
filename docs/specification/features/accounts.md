@@ -199,7 +199,10 @@ the address and mails a link to `APP_URL/#reset=<token>`, which opens a form for
 - The mail is in the language the sign-in screen was in (English or Finnish; the server keeps these few
   messages in `mail/templates.ts`).
 
-The same setting mails a share invitation to a recipient who has an address. Mail is a convenience
+The same setting mails a share invitation to a recipient who has an address, in the recipient's
+language rather than the sharer's: each client reports the language it is set to
+(`PUT /api/auth/me/locale`) whenever it differs from what the server holds, and an account no client
+has reported for gets English. Mail is a convenience
 beside something that already happened, so a failure to send is logged and nothing else fails.
 Accounts from single sign-on have no password here and are not offered a reset.
 

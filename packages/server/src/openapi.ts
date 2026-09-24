@@ -3,6 +3,7 @@ import {
   adminCreateUserSchema,
   adminUpdateUserSchema,
   apiTokenCreateSchema,
+  authLocaleSchema,
   authMeUpdateSchema,
   loginSchema,
   noteCreateSchema,
@@ -98,6 +99,15 @@ export const OPERATIONS: Operation[] = [
     auth: "session",
     body: authMeUpdateSchema,
     responses: ok("AuthMeResponse"),
+  },
+  {
+    method: "put",
+    path: "/api/auth/me/locale",
+    tag: "Auth",
+    summary: "Record the language the signed-in user's client is set to",
+    auth: "any",
+    body: authLocaleSchema,
+    responses: noContent,
   },
   {
     method: "post",

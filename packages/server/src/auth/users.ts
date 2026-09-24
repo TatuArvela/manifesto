@@ -29,5 +29,6 @@ export function toAuthUser(user: User): AuthUser {
     email: user.email,
     isAdmin: user.isAdmin,
     hasPassword: user.passwordHash !== null,
+    locale: user.locale,
   };
 }
