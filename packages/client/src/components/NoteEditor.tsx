@@ -42,6 +42,7 @@ import { showError } from "../state/ui.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import { removeCheckedItems } from "../utils/markdown.js";
 import { applyTextEdit } from "../utils/rawFormatting.js";
+import { shrinkImage } from "../utils/shrinkImage.js";
 import { Dropdown } from "./Dropdown.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { ImageGallery } from "./ImageGallery.js";
@@ -189,18 +190,25 @@ export function NoteEditor({
   // into a message naming the file.
   const readFilesAsDataUrls = async (files: File[]): Promise<string[]> => {
     const results = await Promise.all(
-      files.map(
-        (file) =>
-          new Promise<{ name: string; url: string | null }>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () =>
-              resolve({
-                name: file.name,
-                url: typeof reader.result === "string" ? reader.result : null,
-              });
-            reader.onerror = () => resolve({ name: file.name, url: null });
-            reader.readAsDataURL(file);
-          }),
+      files.map(async (file) => ({
+        name: file.name,
+        blob: await shrinkImage(file),
+      })),
+    ).then((shrunk) =>
+      Promise.all(
+        shrunk.map(
+          ({ name, blob }) =>
+            new Promise<{ name: string; url: string | null }>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () =>
+                resolve({
+                  name,
+                  url: typeof reader.result === "string" ? reader.result : null,
+                });
+              reader.onerror = () => resolve({ name, url: null });
+              reader.readAsDataURL(blob);
+            }),
+        ),
       ),
     );
     const accepted: string[] = [];

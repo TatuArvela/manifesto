@@ -1,4 +1,4 @@
-import { type LinkPreview, MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
+import type { LinkPreview } from "@manifesto/shared";
 import { logger } from "../lib/logger.js";
 import {
   MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
@@ -6,6 +6,13 @@ import {
 } from "../validation/schemas.js";
 import { decodeHtml, extractMetadata } from "./parseHtml.js";
 import { type SafeFetchOptions, safeFetch } from "./safeFetch.js";
+
+/**
+ * Most bytes read of a linked page's image. The client shrinks it to a small
+ * thumbnail anyway, so this only bounds the fetch; it is its own number rather
+ * than the attachment limit, which is sized for photos people attach.
+ */
+const MAX_PREVIEW_IMAGE_SOURCE_BYTES = 1.5 * 1024 * 1024;
 
 export type LinkPreviewFetcher = (url: string) => Promise<LinkPreview | null>;
 
@@ -51,7 +58,7 @@ export function createLinkPreviewFetcher(
     );
     const [image, favicon] = await Promise.all([
       metadata.image
-        ? fetchImage(metadata.image, MAX_IMAGE_SOURCE_BYTES, policy)
+        ? fetchImage(metadata.image, MAX_PREVIEW_IMAGE_SOURCE_BYTES, policy)
         : undefined,
       metadata.favicon
         ? fetchImage(metadata.favicon, MAX_FAVICON_BYTES, policy)

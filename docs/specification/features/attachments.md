@@ -1,6 +1,6 @@
 # Attachments
 
-A note carries up to `MAX_IMAGES_PER_NOTE` images of up to 1.5 MB each. Open mode keeps them inline in
+A note carries up to `MAX_IMAGES_PER_NOTE` images of up to 5 MB each. Open mode keeps them inline in
 the note, as `data:` URLs, because the note in `localStorage` is all there is. Connected mode keeps them
 outside the note, in the server's **attachment store**, and the note refers to each one as
 `attachment:<id>` (`isAttachmentRef` in `@manifesto/shared`).
@@ -8,6 +8,16 @@ outside the note, in the server's **attachment store**, and the note refers to e
 Inline, every note write, every conflict retry, every `GET /api/notes/:id` and every version a client
 keeps would carry the bytes of every image on the note. Referred to, they carry a few dozen bytes each,
 and the bytes travel once.
+
+## Shrinking on attach
+
+Before an image is stored, in either mode, the client makes it a sensible size (`utils/shrinkImage.ts`):
+an image larger than 2560 pixels on its long edge is redrawn at 2560 and re-encoded, as WebP (JPEG where
+the browser cannot encode WebP), or as PNG if it was a PNG, so screenshots stay crisp. An image within
+the edge but over a megabyte is re-encoded only if that makes it smaller, and smaller images and GIFs
+(whose animation a redraw would stop) are kept byte for byte. A phone photo usually comes out a few
+hundred kilobytes, and the redraw drops its EXIF data (camera, location). The 5 MB limit is the ceiling
+for what is not shrunk.
 
 ## How an image gets there
 
