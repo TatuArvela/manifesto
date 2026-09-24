@@ -67,14 +67,6 @@ includes `email`. Either way the caller is never among the results, and an empty
 |----------|-------------------|----------------------|
 | `GET`    | `/api/search?q=`  | Search notes, one page at a time |
 
-A note matches when, for every word of `q`, its title or content holds a word that starts with it:
-`mil eg` finds "Milk and eggs", and `ilk` finds nothing, since matching is by word prefix and not
-inside a word. Case folds as JavaScript's `toLowerCase()` does, in every script; accents are kept, so
-`aiti` does not find "äiti". Words are cut per Unicode (UAX #29), which also splits scripts written
-without spaces. A query with no word in it at all (`->`, an emoji) falls back to a case-insensitive
-substring match. Results are paged newest first, like `GET /api/notes`; they are not ranked by
-relevance, because the cursor is a place in the `(updatedAt, id)` order.
-
 ### API tokens
 
 | Method   | Path              | Description          |

@@ -105,20 +105,6 @@ CREATE INDEX note_shares_user ON note_shares(user_id);
 CREATE INDEX note_shares_trashed_expiry ON note_shares(trashed, trashed_at);
 `;
 
-/** See the SQLite copy. `COLLATE "C"` gives the byte order a prefix range
- * scan needs, which a linguistic collation does not. */
-const NOTE_SEARCH_TERMS = `
-CREATE TABLE note_terms (
-  note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-  term        TEXT COLLATE "C" NOT NULL,
-  occurrences INTEGER NOT NULL,
-  PRIMARY KEY (note_id, term)
-);
-CREATE INDEX note_terms_term ON note_terms(term, note_id);
-ALTER TABLE notes ADD COLUMN search_version INTEGER NOT NULL DEFAULT 0;
-CREATE INDEX notes_search_version ON notes(search_version);
-`;
-
 /** See the SQLite copy. */
 const ATTACHMENTS = `
 CREATE TABLE attachments (
@@ -232,14 +218,13 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0003-user-admin", sql: USER_ADMIN },
   { id: "0004-user-email", sql: USER_EMAIL },
   { id: "0005-note-shares", sql: NOTE_SHARES },
-  { id: "0006-note-search-terms", sql: NOTE_SEARCH_TERMS },
-  { id: "0007-attachments", sql: ATTACHMENTS },
-  { id: "0008-note-versions", sql: NOTE_VERSIONS },
-  { id: "0009-api-tokens", sql: API_TOKENS },
-  { id: "0010-webhooks", sql: WEBHOOKS },
-  { id: "0011-two-factor", sql: TWO_FACTOR },
-  { id: "0012-password-resets", sql: PASSWORD_RESETS },
-  { id: "0013-audit-log", sql: AUDIT_LOG },
+  { id: "0006-attachments", sql: ATTACHMENTS },
+  { id: "0007-note-versions", sql: NOTE_VERSIONS },
+  { id: "0008-api-tokens", sql: API_TOKENS },
+  { id: "0009-webhooks", sql: WEBHOOKS },
+  { id: "0010-two-factor", sql: TWO_FACTOR },
+  { id: "0011-password-resets", sql: PASSWORD_RESETS },
+  { id: "0012-audit-log", sql: AUDIT_LOG },
 ];
 
 export async function runMigrations(
