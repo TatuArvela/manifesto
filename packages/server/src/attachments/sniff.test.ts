@@ -21,6 +21,22 @@ describe("sniffImageType", () => {
     expect(sniffImageType(bytes(0, 0, 0, 0x1c, "ftypavif"))).toBe("image/avif");
   });
 
+  it("knows an AVIF that lists its brand among the compatible ones", () => {
+    expect(
+      sniffImageType(
+        bytes(0, 0, 0, 0x20, "ftypmif1", 0, 0, 0, 0, "mif1miafavif"),
+      ),
+    ).toBe("image/avif");
+    // A HEIC shares the container and is not AVIF.
+    expect(
+      sniffImageType(bytes(0, 0, 0, 0x18, "ftypmif1", 0, 0, 0, 0, "heic")),
+    ).toBeNull();
+    // A brand past the end of the box is not one of its brands.
+    expect(
+      sniffImageType(bytes(0, 0, 0, 0x14, "ftypmif1", 0, 0, 0, 0, "mif1avif")),
+    ).toBeNull();
+  });
+
   it("knows nothing else", () => {
     expect(sniffImageType(bytes("<svg"))).toBeNull();
     expect(sniffImageType(bytes())).toBeNull();
