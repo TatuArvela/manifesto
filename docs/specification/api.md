@@ -16,15 +16,26 @@ app registers, so it cannot fall behind. This page stays the prose account of th
 | `GET`    | `/api/notes`     | List notes, one page at a time |
 | `GET`    | `/api/notes/:id` | Get a single note    |
 | `POST`   | `/api/notes`     | Create a note        |
+| `POST`   | `/api/notes/import` | Import up to 100 notes, keeping their ids |
 | `PUT`    | `/api/notes/:id` | Update a note        |
 | `DELETE` | `/api/notes/:id` | Permanently delete   |
+| `DELETE` | `/api/notes`     | Permanently delete every note the user owns |
 
 The notes a user sees are their own and the ones [shared with them](features/sharing-with-people.md)
 that they accepted. A shared note is theirs to read (and, as an editor, to write), and their
 personal fields are theirs to change, `trashed` included. A viewer's `PUT` with a shared field, and
 a recipient's with `readonly` or `source`, is `403` with nothing written. A recipient's `DELETE`
 removes the note from their notes (their share goes, the note stays with everyone else) and answers
-`204`, as emptying it from their own trash.
+`204`, as emptying it from their own trash. `DELETE /api/notes` deletes only the notes the user
+owns; the ones shared with them stay.
+
+`POST /api/notes/import` takes `{ "notes": NoteImport[] }`, at most `MAX_NOTES_PER_IMPORT` (100)
+per request, each a note as `POST /api/notes` takes it plus the `id` and `createdAt` it had where it
+came from. An `id` the user owns is updated in place, so importing the same backup twice changes
+nothing; an `id` shared with them is skipped; an `id` taken by anyone else's note, or absent, gets a
+new one. Images must be attachment references, as for any note write. It answers
+`{ "created": number, "updated": number, "skipped": number }`. A backup larger than one request, by
+count or by the 1 MiB body limit, is sent in several.
 
 ### Sharing
 

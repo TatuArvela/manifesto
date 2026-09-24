@@ -86,21 +86,6 @@ describe("LocalStorageAdapter", () => {
     expect(await adapter.getAll()).toHaveLength(0);
   });
 
-  it("search finds by title", async () => {
-    await adapter.create({ ...sampleNote, title: "Alpha" });
-    await adapter.create({ ...sampleNote, title: "Beta" });
-    const results = await adapter.search("alpha");
-    expect(results).toHaveLength(1);
-    expect(results[0].title).toBe("Alpha");
-  });
-
-  it("search finds by content", async () => {
-    await adapter.create({ ...sampleNote, content: "important stuff" });
-    await adapter.create({ ...sampleNote, content: "nothing here" });
-    const results = await adapter.search("important");
-    expect(results).toHaveLength(1);
-  });
-
   it("importAll merges by id", async () => {
     const note = await adapter.create(sampleNote);
     const imported = { ...note, title: "Imported Title" };

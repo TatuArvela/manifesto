@@ -99,25 +99,28 @@ Shared primitives: `Dropdown`, `Popover`, `Tooltip`, `ToggleSwitch`.
 
 State lives in `packages/client/src/state/` and is reactive via `@preact/signals`.
 
-- **`actions.ts`**: core `notes` signal; computed `filteredNotes` / `sortedNotes` / `pinnedNotes` / `unpinnedNotes` / `allTags`; async action functions (`createNote`, `updateNote`, `trashNote`, `bulkArchive`, `reorderNotes`, `importNotes`, `exportNotes`, …). Actions update both signals and the storage adapter.
+- **`notesStore.ts`**: the `notes` signal and everything that talks to storage about it (`loadNotes`, `createNote`, `updateNote`, `deleteNote`, `importNotes`, `ensureImages`, `expireTrash`). Every copy of a note storage sends back comes in through `receiveNote` / `receiveNoteList`, and a note leaves through `forgetNote`.
+- **`actions.ts`**: the user-level actions built on the store: trash, archive, restore and pin with their exit animations, tags, bulk operations on the selection, `reorderNotes`, checklist toggling.
+- **`views.ts`**: what the current view shows: `filteredNotes`, `sortedNotes`, `pinnedNotes` / `unpinnedNotes`, `allTags`, `tagCounts`, `canReorder`.
+- **`selection.ts`**, **`ordering.ts`** (pure position arithmetic), **`exportNotes.ts`**, and **`failures.ts`** (`reportFailure` and `asBatch`, how actions report without rejecting).
 - **`ui.ts`**: transient UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`, `selectMode`, `selectedNotes`, `showSettings`, plus the toast queue (`toasts`, `showError`, `showSuccess`, `dismissToast`).
 - **`prefs.ts`**: user preferences persisted to `localStorage` under `manifesto:prefs` via a debounced `effect()`. Covers `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`, `defaultEditMode`, `noteCorners`, `animations`, `boardColor`, `boardCustomColor`, `boardTexture`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`, `decimalSeparator`, and `locale`. Also owns the presentation side of those: toggling the `dark` class on `<html>` (and listening for system preference changes), the `notes-rounded` and `no-motion` classes, the `data-dark-hue` attribute the stylesheet derives the dark neutral ramp from, and the `data-board-color` / `data-board-texture` attributes (plus `--board-custom`) that compose the board. `boardCustomColor` is accepted only as a six-digit hex colour, since it is written into a CSS custom property.
 - **`board.ts`**: the board picture. It lives in IndexedDB (`storage/boardImage.ts`), not in the preferences, so `boardImageStamp` changing is how another tab learns to load it again.
-- **`sharing.ts`**: notes shared between accounts in connected mode. Holds the `invitations` signal and `shareDialog` (which note's people are on screen), and the actions that invite, change a role, remove, leave, accept and decline. Like `admin.ts` it maps failures to catalogue messages by status. `updateNote` in `actions.ts` asks the same question the server will, before sending: a viewer's change to the note itself, or a recipient's to what only the owner decides, is refused with a sentence rather than a `403`. A viewer's note opens in `NoteReadonlyView`, whose boxes cannot be ticked, and never joins `/api/yjs`.
+- **`sharing.ts`**: notes shared between accounts in connected mode. Holds the `invitations` signal and `shareDialog` (which note's people are on screen), and the actions that invite, change a role, remove, leave, accept and decline. Like `admin.ts` it maps failures to catalogue messages by status. `updateNote` in `notesStore.ts` asks the same question the server will, before sending: a viewer's change to the note itself, or a recipient's to what only the owner decides, is refused with a sentence rather than a `403`. A viewer's note opens in `NoteReadonlyView`, whose boxes cannot be ticked, and never joins `/api/yjs`.
 - **`reminderScheduler.ts`**: timer loop that fires `reminder:open-note` events when a reminder is due.
 - **`router.ts`**: two-way sync between `activeView` / `activeTag` and the URL hash (see [Routing](#routing)).
 - **`index.ts`**: barrel export of the public state API.
 
 ### Storage Adapters
 
-The client talks to persistence through a `StorageAdapter` interface (`storage/StorageAdapter.ts`) declaring `getAll`, `get`, `create`, `update`, `delete`, `deleteAll`, `search`, `importAll`, `loadImages`.
+The client talks to persistence through a `StorageAdapter` interface (`storage/StorageAdapter.ts`) declaring `getAll`, `get`, `create`, `update`, `delete`, `deleteAll`, `importAll`, `loadImages`, and the image, version and link-preview methods.
 
 - **`LocalStorageAdapter`** (default): stores notes as JSON in `localStorage` under `manifesto:notes`. Generates ULIDs, fills in defaults for newer fields (font, images, link previews, reminder) when reading legacy records. ~5–10 MB limit, single device.
-- **`RestApiAdapter`**: speaks to a Manifesto server over the REST API. `getAll` and `search` follow `nextCursor` until the server stops offering one, so the caller still receives every note: paging bounds a single response, and the app keeps the whole list in memory because tag counts, filtering and search are computed over it.
+- **`RestApiAdapter`**: speaks to a Manifesto server over the REST API. `getAll` follows `nextCursor` until the server stops offering one, so the caller still receives every note: paging bounds a single response, and the app keeps the whole list in memory because tag counts, filtering and search are computed over it.
 
 `loadImages` is the seam for attachments, which a server listing leaves out (see
 [API](../api.md#attachments-are-not-in-a-listing)). `ensureImages(id)` in
-`state/actions.ts` is what callers use: it fetches once per note, folds the
+`state/notesStore.ts` is what callers use: it fetches once per note, folds the
 result into the `notes` signal, and shares one request between concurrent
 askers. `hooks/useNoteImages.ts` hangs that call off an `IntersectionObserver`,
 so a grid downloads the pictures of the cards a reader scrolls past rather than

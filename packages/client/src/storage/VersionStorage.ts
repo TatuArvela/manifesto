@@ -9,12 +9,10 @@ import { isQuotaError, reportQuotaRefusal } from "./quota.js";
 /**
  * One key per note, `manifesto:versions:<id>`, each an LZ-compressed list.
  *
- * All of them used to share `manifesto:versions`, one map for every note, so
- * saving a version decompressed, parsed, re-serialized and re-compressed every
- * other note's history too. LZ-String compresses at a few MB a second, and a
- * well-used history is several MB of JSON, so closing the editor froze the page
- * for half a second, in the middle of the animation that closes it. A save now
- * costs one note's history.
+ * Per note so that saving a version costs one note's history. LZ-String
+ * compresses at a few MB a second and a well-used history is several MB of
+ * JSON, so re-compressing every note's history on each save would freeze the
+ * page as the editor closes.
  */
 const KEY_PREFIX = "manifesto:versions:";
 /** The single shared key the per-note ones replaced; migrated on first use. */

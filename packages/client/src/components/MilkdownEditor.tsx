@@ -436,12 +436,10 @@ export function MilkdownEditor({
 
   // Raw mode edits the note as text while the document stays in the rich
   // editor, and the two are kept in step both ways rather than reconciled on
-  // the way out. They used to be reconciled on toggling back, by writing the
-  // textarea over the whole document, which in collab had two ways to lose
-  // work: a note closed while still in raw mode never reached the shared
-  // fragment at all, so its next opening showed, and saved, the text from
-  // before; and merely looking at a note in raw mode overwrote whatever a
-  // collaborator had written meanwhile.
+  // the way out. Writing the textarea over the whole document on toggling back
+  // loses work in collab: a note closed while still in raw mode would never
+  // reach the shared fragment, and merely looking at a note in raw mode would
+  // overwrite whatever a collaborator had written meanwhile.
   //
   // - Entering reads the text out of the editor, never from the `content`
   //   prop, which in collab can be staler than the shared fragment the editor

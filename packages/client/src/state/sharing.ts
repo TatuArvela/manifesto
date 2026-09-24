@@ -10,7 +10,7 @@ import { signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { ApiError, apiJson } from "../storage/apiRequest.js";
-import { notes, receiveNote } from "./actions.js";
+import { forgetNote, receiveNote, reviseNote } from "./notesStore.js";
 import { editingNoteId, showError, showSuccess } from "./ui.js";
 
 /**
@@ -217,8 +217,8 @@ export async function removeShare(
     await apiJson<null>("DELETE", `/notes/${noteId}/shares/${userId}`);
     // The server's `note:updated` says the same a moment later; saying it
     // here keeps the dialog from showing someone who is already gone.
-    notes.value = notes.value.map((note) => {
-      if (note.id !== noteId || !note.sharing) return note;
+    reviseNote(noteId, (note) => {
+      if (!note.sharing) return note;
       const members = note.sharing.members.filter((m) => m.id !== userId);
       if (members.length > 0) {
         return { ...note, sharing: { ...note.sharing, members } };
@@ -262,6 +262,6 @@ export async function leaveNote(
     }
   }
   if (editingNoteId.value === noteId) editingNoteId.value = null;
-  notes.value = notes.value.filter((n) => n.id !== noteId);
+  forgetNote(noteId);
   return true;
 }

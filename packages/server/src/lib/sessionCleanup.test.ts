@@ -42,7 +42,11 @@ describe("startSessionCleanup", () => {
     await seed("stale", isoMinusDays(1));
     await seed("live", isoPlusDays(1));
 
-    stop = startSessionCleanup(storage, 1_000_000);
+    stop = startSessionCleanup({
+      storage,
+      auditRetentionDays: 180,
+      intervalMs: 1_000_000,
+    });
     // The sweep runs asynchronously on startup; give it a tick.
     await new Promise((r) => setTimeout(r, 10));
 
@@ -54,7 +58,11 @@ describe("startSessionCleanup", () => {
 
   it("re-runs on the configured interval", async () => {
     vi.useFakeTimers();
-    stop = startSessionCleanup(storage, 1000);
+    stop = startSessionCleanup({
+      storage,
+      auditRetentionDays: 180,
+      intervalMs: 1000,
+    });
     await seed("stale", isoMinusDays(1));
     expect(
       await storage.sessions.findByToken(hashToken("stale")),

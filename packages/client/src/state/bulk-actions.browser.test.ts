@@ -10,19 +10,18 @@ import {
   bulkSetColor,
   bulkTrash,
   deleteTag,
-  enterSelectMode,
-  exitSelectMode,
-  notes,
-  notesHiddenByTag,
   permanentlyDeleteNote,
   renameTag,
   reorderNotes,
-  setTagHidden,
-  sortedNotes,
-  tagCounts,
-  toggleSelectNote,
 } from "./actions.js";
+import { asBatch } from "./failures.js";
+import { notes, updateNote } from "./notesStore.js";
 import { hiddenTags, sortMode } from "./prefs.js";
+import {
+  enterSelectMode,
+  exitSelectMode,
+  toggleSelectNote,
+} from "./selection.js";
 import { createNoteOrFail } from "./testSupport.js";
 import {
   activeView,
@@ -31,6 +30,12 @@ import {
   selectMode,
   toasts,
 } from "./ui.js";
+import {
+  notesHiddenByTag,
+  setTagHidden,
+  sortedNotes,
+  tagCounts,
+} from "./views.js";
 
 const baseNote: Note = {
   id: "",
@@ -525,6 +530,29 @@ describe("failure reporting", () => {
 
     expect(toasts.value).toHaveLength(1);
     expect(toasts.value[0].message).toBe(plural("error.bulkFailed", 2));
+  });
+
+  it("reports a lone failure after two groups overlapped", async () => {
+    // Two groups in flight at once, the first finishing first. Each counts
+    // its own failures, so neither can leave a finished group behind to
+    // swallow every failure that follows.
+    const [phantom] = selectPhantomNotes(1);
+    let releaseFirst = () => {};
+    let releaseSecond = () => {};
+    const first = asBatch(
+      () => new Promise<void>((resolve) => (releaseFirst = resolve)),
+    );
+    const second = asBatch(
+      () => new Promise<void>((resolve) => (releaseSecond = resolve)),
+    );
+    releaseFirst();
+    await first;
+    releaseSecond();
+    await second;
+
+    await updateNote(phantom, { title: "Lost" });
+
+    expect(toasts.value).toHaveLength(1);
   });
 
   it("leaves select mode even when everything failed", async () => {

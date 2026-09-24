@@ -136,9 +136,8 @@ function OptionContent<T extends string>({
 /**
  * A select-style field for a settings row: a labelled trigger with a chevron,
  * with its menu on the shared Dropdown. That puts the panel in the top layer,
- * so it is no longer clipped by the settings panel's scroll container, and
- * brings light-dismiss and Escape with it instead of the hand-rolled
- * full-screen backdrop each of these used to render.
+ * so the settings panel's scroll container does not clip it, and brings
+ * light-dismiss and Escape with it.
  */
 function SettingsSelect<T extends string>({
   value,

@@ -1,5 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createAccessChanges } from "../sharing/accessChanges.js";
+import { createNoteEvents } from "../sharing/noteEvents.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import type { StorageDriver } from "../storage/types.js";
 import { type Broadcaster, createBroadcaster } from "../ws/broadcaster.js";
@@ -71,7 +73,16 @@ describe("startTrashCleanup", () => {
       if (event.type === "note:deleted") events.push(event.id);
     });
 
-    stop = startTrashCleanup(storage, broadcaster, 1_000_000);
+    stop = startTrashCleanup({
+      storage,
+      broadcaster,
+      noteEvents: createNoteEvents({
+        storage,
+        broadcaster,
+        accessChanges: createAccessChanges(),
+      }),
+      intervalMs: 1_000_000,
+    });
 
     // The cleanup runs asynchronously on startup; give it a tick.
     await new Promise((r) => setTimeout(r, 10));
@@ -86,7 +97,16 @@ describe("startTrashCleanup", () => {
     broadcaster.subscribe((_uid, event) => {
       if (event.type === "note:deleted") events.push(event.id);
     });
-    stop = startTrashCleanup(storage, broadcaster, 1_000_000);
+    stop = startTrashCleanup({
+      storage,
+      broadcaster,
+      noteEvents: createNoteEvents({
+        storage,
+        broadcaster,
+        accessChanges: createAccessChanges(),
+      }),
+      intervalMs: 1_000_000,
+    });
     await new Promise((r) => setTimeout(r, 10));
     expect(events).toEqual([]);
   });
@@ -98,7 +118,16 @@ describe("startTrashCleanup", () => {
       if (event.type === "note:deleted") events.push(event.id);
     });
 
-    stop = startTrashCleanup(storage, broadcaster, 1000);
+    stop = startTrashCleanup({
+      storage,
+      broadcaster,
+      noteEvents: createNoteEvents({
+        storage,
+        broadcaster,
+        accessChanges: createAccessChanges(),
+      }),
+      intervalMs: 1000,
+    });
 
     const longAgo = new Date(
       Date.now() - 31 * 24 * 60 * 60 * 1000,
@@ -157,7 +186,16 @@ describe("startTrashCleanup", () => {
     broadcaster.subscribe((userId, event) => {
       if (event.type === "note:deleted") events.push({ userId, id: event.id });
     });
-    stop = startTrashCleanup(storage, broadcaster, 1_000_000);
+    stop = startTrashCleanup({
+      storage,
+      broadcaster,
+      noteEvents: createNoteEvents({
+        storage,
+        broadcaster,
+        accessChanges: createAccessChanges(),
+      }),
+      intervalMs: 1_000_000,
+    });
     await new Promise((r) => setTimeout(r, 10));
 
     expect(await storage.notes.getById("shared", "u2")).toBeNull();

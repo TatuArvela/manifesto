@@ -3,12 +3,13 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StoredImage } from "../components/StoredImage.js";
 import { currentStorage } from "../storage/index.js";
-import { exportNotes, notes } from "./actions.js";
 import {
   attachmentObjectUrl,
   forgetAttachmentUrls,
   inlineImages,
 } from "./attachments.js";
+import { exportNotes } from "./exportNotes.js";
+import { notes } from "./notesStore.js";
 
 const REF = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV";
 const GIF_BYTES = Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (c) =>

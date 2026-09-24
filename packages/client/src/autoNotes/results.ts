@@ -69,9 +69,9 @@ function toResult(raw: unknown): AutoNoteResult {
  * Turns whatever the sandbox sent into notes, or throws.
  *
  * This is the trust boundary. The sandbox evaluates code the user pasted in,
- * so nothing it says about its own output can be taken at face value. It
- * used to do this check itself, on the wrong side of the boundary, and a
- * plugin that subverted its frame could hand the app any shape it liked.
+ * so nothing it says about its own output can be taken at face value. The
+ * check lives here, on the app's side: a plugin that subverted its frame
+ * would pass the frame's own checks.
  */
 export function toAutoNoteResults(value: unknown): AutoNoteResult[] {
   const raw = flatten(value, 2);

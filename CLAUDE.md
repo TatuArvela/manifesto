@@ -65,15 +65,21 @@ pnpm monorepo with three packages, plus one build tool:
 
 State lives in `packages/client/src/state/` using @preact/signals:
 
-- **`actions.ts`**: Core signals (`notes`, computed `filteredNotes`/`sortedNotes`/`allTags`), and async action functions (`createNote`, `updateNote`, `trashNote`, `bulkArchive`, etc.). Actions modify both signals and the storage adapter.
+- **`notesStore.ts`**: the `notes` signal and the actions that talk to storage about it
+  (`createNote`, `updateNote`, `deleteNote`, `loadNotes`, `importNotes`, `ensureImages`).
+  `actions.ts` builds the user-level actions on it (trash, archive, pin, tags, bulk, reorder),
+  `views.ts` holds the computed views (`filteredNotes`, `sortedNotes`, `allTags`), and
+  `selection.ts`, `ordering.ts` and `exportNotes.ts` the rest.
   **An action reports its own failure and resolves; it never rejects**, and says whether it worked
   in its return value (`false`, or `null` where a value was expected). The call sites are JSX
   handlers with nowhere to put a `catch`, so a rejection there is an unhandled rejection the user
-  never sees. Group work goes through `asBatch`, which counts failures instead of letting each one
-  raise its own toast and reports the total once.
+  never sees. Group work goes through `asBatch` (`failures.ts`), which hands each action a `Batch`
+  to count its failure in instead of raising its own toast, and reports the total once. The batch
+  is passed explicitly, never held in module state, since two groups can be in flight at once.
   In connected mode a write is local-first: `updateNote` puts the change in the signal before it
   sends. Every copy of a note the server sends back (a reply, a broadcast, a listing) comes in
-  through `receiveNote` / `foldIncomingList` and never through a plain assignment.
+  through `receiveNote` / `receiveNoteList` and never through a plain assignment; a note leaves
+  through `forgetNote`.
   `pendingWrites.ts` replays the writes still outstanding on top of that copy, so a late reply
   cannot revert a newer click. `settle` must get the same `changes` object `begin` did, even
   when a conflict retry sent a merged one. `incomingNote.ts` hands back the held note by
@@ -353,7 +359,7 @@ splash a frame after the first render, on a timer as well as `transitionend`, si
 never arrives in a background tab.
 
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
-toast queue or the catalogue, so the "tell the user" decision stays in `actions.ts`. A refused
+toast queue or the catalogue, so the "tell the user" decision stays in `failures.ts`. A refused
 write is neither retried nor rolled back: the signal keeps the change, so the session continues
 with a note that exists only in this tab.
 
@@ -455,7 +461,7 @@ the owner's; each recipient's `note_shares` row holds their role and their own `
 `archived`, `trashed`, `position`, `tags` and `reminder`. A recipient's trash is theirs alone and
 expires their share, not the note; the owner's trash hides the note from everyone. `SHARED_NOTE_FIELDS` / `PERSONAL_NOTE_FIELDS` in
 `@manifesto/shared` are the one list of which is which, read by the server's `splitChanges`
-(`storage/shareMapping.ts`) and the client's `refusalFor` (`state/actions.ts`). Adding a field to
+(`storage/shareMapping.ts`) and the client's `refusalFor` (`state/notesStore.ts`). Adding a field to
 `Note` means putting it in one of them, or recipients cannot write it at all.
 
 Every write by anyone stamps the note's `updated_at`, a recipient's pin included, so all participants

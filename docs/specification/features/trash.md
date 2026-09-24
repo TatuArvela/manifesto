@@ -10,6 +10,6 @@ Deleting a note is a soft delete: it moves the note to trash rather than permane
 - The trash view shows when each note was trashed
 - A trashed note can be restored to its previous state (active or archived)
 - A trashed note can be permanently deleted from the Trash view
-- Notes in trash auto-expire after 30 days (checked on app initialization)
+- Notes in trash auto-expire after 30 days (`TRASH_RETENTION_DAYS`). In open mode the app checks on start; in connected mode the server does, hourly, and the client leaves it to the server
 - In connected mode, a note [shared with you](sharing-with-people.md#trash) goes to your own trash and leaves nobody else's notes; deleting it permanently takes it out of your notes only. A note its owner trashes disappears for everyone it was shared with
 

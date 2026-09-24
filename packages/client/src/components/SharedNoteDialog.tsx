@@ -5,7 +5,7 @@ import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
 import type { SharedNotePayload } from "../sharing.js";
 import { clearShareHash } from "../sharing.js";
-import { createNote } from "../state/actions.js";
+import { createNote } from "../state/notesStore.js";
 import { showSuccess } from "../state/ui.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
 import { Backdrop } from "./Backdrop.js";

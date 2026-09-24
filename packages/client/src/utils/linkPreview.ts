@@ -50,7 +50,7 @@ export interface AppendedPreviews {
  * Adds a plain card for each new URL, all at once.
  *
  * One paste can carry many links, and building the list per URL from the same
- * starting note is what used to keep only the last of them. Duplicates and
+ * starting note would keep only the last of them. Duplicates and
  * URLs the server would refuse are skipped, and the list stops at the per-note
  * cap, since a note over it fails to save in connected mode.
  */

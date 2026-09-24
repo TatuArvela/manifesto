@@ -1,31 +1,32 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
+import { storageConnection } from "../storage/index.js";
 import { quotaRefusedAt } from "../storage/quota.js";
+import { hasCheckedItems, hasChecklist } from "../utils/markdown.js";
 import {
   archiveNote,
   deleteCheckedItems,
-  expireTrash,
-  filteredNotes,
-  hasCheckedItems,
   leavingNotes,
-  loadNotes,
-  noteHasChecklist,
-  notes,
-  notesLoaded,
   permanentlyDeleteNote,
-  receiveNote,
   restoreNote,
-  sortedNotes,
   toggleCheckbox,
   togglePin,
   trashNote,
   unarchiveNote,
+} from "./actions.js";
+import {
+  expireTrash,
+  loadNotes,
+  notes,
+  notesLoaded,
+  receiveNote,
   updateNote,
   upsertById,
-} from "./actions.js";
+} from "./notesStore.js";
 import { animations, sortMode } from "./prefs.js";
 import { createNoteOrFail } from "./testSupport.js";
 import { activeView, searchLocations, searchQuery, toasts } from "./ui.js";
+import { filteredNotes, sortedNotes } from "./views.js";
 
 describe("state actions", () => {
   beforeEach(() => {
@@ -314,9 +315,9 @@ describe("state actions", () => {
     "- [ ] Another real item",
   ].join("\n");
 
-  it("noteHasChecklist ignores checklist lines inside a code fence", () => {
-    expect(noteHasChecklist(FENCED)).toBe(true);
-    expect(noteHasChecklist("```\n- [ ] Only inside a fence\n```")).toBe(false);
+  it("hasChecklist ignores checklist lines inside a code fence", () => {
+    expect(hasChecklist(FENCED)).toBe(true);
+    expect(hasChecklist("```\n- [ ] Only inside a fence\n```")).toBe(false);
   });
 
   it("hasCheckedItems ignores ticked boxes inside a code fence", () => {
@@ -556,13 +557,31 @@ describe("expireTrash", () => {
     await expireTrash();
     expect(notes.value).toHaveLength(1);
   });
+
+  it("leaves expiry to the server in connected mode", async () => {
+    const note = {
+      ...(await createNoteOrFail({ title: "Old", trashed: true })),
+      trashedAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    notes.value = [note];
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    storageConnection.value = { serverUrl: "", token: "token" };
+    try {
+      await expireTrash();
+    } finally {
+      storageConnection.value = { serverUrl: null, token: null };
+      fetchSpy.mockRestore();
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(notes.value).toEqual([note]);
+  });
 });
 
 describe("the storage quota message", () => {
   // Storage reports a refused write and says nothing about it; this is where
   // the user-facing half of that lives, so this is where it is tested.
   //
-  // The throttle below is module state in `actions.ts`, so each test takes a
+  // The throttle below is module state in `failures.ts`, so each test takes a
   // fresh stretch of the clock rather than reusing `Date.now()` and being
   // silenced by whatever the test before it reported.
   let clock = Date.now();

@@ -1,7 +1,7 @@
 import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import { audit, recordClientAddress } from "./audit/audit.js";
+import { recordClientAddress } from "./audit/audit.js";
 import {
   createSessionRevocations,
   type SessionRevocations,
@@ -10,7 +10,6 @@ import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import { mountClient } from "./client/serveClient.js";
 import type { ServerConfig } from "./config.js";
-import { exportAccount, sendExport } from "./export/userExport.js";
 import { countMetric } from "./lib/metrics.js";
 import { metricsHandler } from "./lib/metricsServer.js";
 import type { UpdateStatus } from "./lib/updateCheck.js";
@@ -19,10 +18,6 @@ import {
   type LinkPreviewFetcher,
 } from "./linkPreview/fetchPreview.js";
 import { createSmtpMailer, type Mailer } from "./mail/mailer.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "./middleware/authBearer.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
@@ -30,10 +25,11 @@ import { requestLog } from "./middleware/requestLog.js";
 import { buildOpenApiDocument } from "./openapi.js";
 import { createAdminRoutes } from "./routes/admin.js";
 import { createAttachmentRoutes } from "./routes/attachments.js";
+import { createExportRoutes } from "./routes/export.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
-import { registerInvitationRoutes } from "./routes/shares.js";
+import { createInvitationRoutes } from "./routes/shares.js";
 import { createTokenRoutes } from "./routes/tokens.js";
 import { createUsersRoutes } from "./routes/users.js";
 import { createWebhookRoutes } from "./routes/webhooks.js";
@@ -66,6 +62,8 @@ export interface AppDeps {
   webhookRetryDelaysMs?: number[];
   /** Test seam: replaces the SMTP mailer `cfg.mail` would build. */
   mailer?: Mailer;
+  /** Log every request. The server turns this on; tests leave it off. */
+  logRequests?: boolean;
   /** What the update check found; index.ts starts it, the overview reads it. */
   updateStatus?: () => UpdateStatus | null;
 }
@@ -101,9 +99,7 @@ export function createApp(deps: AppDeps): AppHandle {
 
   const app = new Hono();
   app.use("*", corsMiddleware(cfg));
-  if (process.env.NODE_ENV !== "test") {
-    app.use("*", requestLog());
-  }
+  if (deps.logRequests) app.use("*", requestLog());
   app.onError(onError);
   app.use("/api/*", recordClientAddress(cfg.trustProxy));
   // Requests by method and status class, and the time they took. The route
@@ -191,33 +187,25 @@ export function createApp(deps: AppDeps): AppHandle {
       mail,
     }),
   );
-  const invitations = new Hono<{ Variables: { auth: AuthContext } }>();
-  invitations.use("*", createAuthMiddleware(authProvider));
-  invitations.use("*", apiRateLimit);
-  registerInvitationRoutes(invitations, {
-    storage,
-    broadcaster,
-    noteEvents,
-    accessChanges,
-  });
-  app.route("/api/invitations", invitations);
+  app.route(
+    "/api/invitations",
+    createInvitationRoutes({
+      storage,
+      authProvider,
+      broadcaster,
+      noteEvents,
+      accessChanges,
+      rateLimit: apiRateLimit,
+    }),
+  );
   app.route(
     "/api/users",
     createUsersRoutes({ cfg, storage, authProvider, rateLimit: apiRateLimit }),
   );
-  // The account's own notes, all of them, as a zip. Any credential will do,
-  // an API token included, so a backup can be scripted.
-  const exportRoute = new Hono<{ Variables: { auth: AuthContext } }>();
-  exportRoute.use("*", createAuthMiddleware(authProvider));
-  exportRoute.use("*", apiRateLimit);
-  exportRoute.get("/", async (c) => {
-    const { userId } = c.get("auth");
-    const zip = await exportAccount(storage, userId);
-    if (!zip) throw new HttpError(401, "User not found");
-    audit(storage, c, { action: "account.exported", actorId: userId });
-    return sendExport(c, zip, (await storage.users.findById(userId))?.username);
-  });
-  app.route("/api/export", exportRoute);
+  app.route(
+    "/api/export",
+    createExportRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
+  );
 
   app.route(
     "/api/tokens",

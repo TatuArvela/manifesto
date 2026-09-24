@@ -132,9 +132,8 @@ export function NoteCardEditor({
   }, []);
 
   // Escape saves and closes. The version panel and any picker opened from
-  // inside the editor register after this one and take the key first. The
-  // version panel had no Escape handling of its own at all, so a press over it
-  // used to close the editor underneath instead.
+  // inside the editor register after this one and take the key first, so a
+  // press over the version panel closes the panel, not the editor.
   useEscapeStack(true, () => saveAndCloseRef.current());
   useEscapeStack(showVersions && !versionsClosing, closeVersions);
   const versionsRef = useFocusTrap<HTMLDivElement>(
@@ -260,9 +259,8 @@ export function NoteCardEditor({
         onReminderChange={(reminder) => updateNote(note.id, { reminder })}
         menuItems={({ checkedItems }) =>
           noteMenuItems(note, {
-            // The live buffer, not the stored note: auto-save is debounced, so
-            // duplicating or sharing right after a keystroke used to copy the
-            // text as it was before it.
+            // The live buffer, not the stored note: auto-save is debounced, and
+            // duplicating or sharing right after a keystroke must copy it.
             draft: { title, content },
             onShowVersions: () => setShowVersions(true),
             checkedItems,

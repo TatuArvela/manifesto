@@ -4,12 +4,8 @@ import { useLayoutEffect, useRef } from "preact/hooks";
  * One document-level Escape listener, dispatching to the most recently
  * registered handler and to no other.
  *
- * Every layer that closes on Escape used to bind its own listener, so one key
- * press reached all of them at once: Escape with the colour picker open both
- * dismissed the picker and closed the editor underneath it. The guards that
- * patched around that (`hasOpenAutoPopover`, `hasOpenCardPopover`) only
- * worked for the layers that remembered to ask, and could not express "the
- * version panel sits above the editor" at all, since both of those are ours.
+ * A listener per layer would hand one key press to all of them at once, so
+ * Escape with the colour picker open would also close the editor underneath.
  *
  * The layer that became active last owns the key. That is the order things
  * appear on screen, because each layer is opened by an action on the one below

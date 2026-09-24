@@ -1,5 +1,4 @@
 import { t } from "../i18n/index.js";
-import { allNotes } from "../state/actions.js";
 import { confirmDeletion } from "../state/confirm.js";
 import {
   activeTag,
@@ -10,6 +9,7 @@ import {
   trashNote,
   unarchiveNote,
 } from "../state/index.js";
+import { allNotes } from "../state/notesStore.js";
 import {
   cardAfterFocused,
   focusedNoteId,

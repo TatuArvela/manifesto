@@ -5,7 +5,7 @@ import { runPlugin } from "../autoNotes/sandbox.js";
 import type { ApproxLabels } from "../autoNotes/stdlib.js";
 import type { AutoNoteResult } from "../autoNotes/types.js";
 import { t } from "../i18n/index.js";
-import { autoNoteOverrides } from "./autoNoteOverrides.js";
+import { autoNoteOverrides, generatedNoteId } from "./autoNoteOverrides.js";
 import { locale } from "./prefs.js";
 
 function buildApproxLabels(): ApproxLabels {
@@ -149,7 +149,7 @@ const AUTO_NOTE_HEAD = -1e15;
 function toNote(rendered: RenderedNote, index: number): Note {
   const { result, pluginId } = rendered;
   const noteKey = result.key ?? "";
-  const id = `generated:${pluginId}:${noteKey || index}`;
+  const id = generatedNoteId(pluginId, noteKey || String(index));
   const override = autoNoteOverrides.value[id];
   const now = new Date().toISOString();
   return {

@@ -258,6 +258,10 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         : { role: parseRole(role), ownerId: note.user_id };
     },
 
+    async exists(id: string): Promise<boolean> {
+      return (await ownerOf(id)) !== null;
+    },
+
     async insert(input: InsertNoteInput): Promise<Note> {
       await pool.query(
         `INSERT INTO notes (${INSERT_COLUMNS.join(", ")})

@@ -42,9 +42,8 @@ export function LinkPreviewHero({
         {/* The domain alone, with no open-in-a-new-tab glyph beside it. Every
             corner of a card that is all hero has an owner already: the select
             checkbox top left, the pin and its badges top right, the card's
-            own buttons along the bottom. The glyph used to sit in the top
-            right, under the pin, and the row of previews below a note has
-            never carried one either. */}
+            own buttons along the bottom, and the row of previews below a
+            note carries no glyph either. */}
         <div class="text-xs opacity-80 mt-0.5 truncate">{preview.domain}</div>
       </div>
     </a>

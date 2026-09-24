@@ -12,8 +12,8 @@ import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
-import { notes } from "../state/actions.js";
 import { currentUser, userLookupMode } from "../state/auth.js";
+import { notes } from "../state/notesStore.js";
 import {
   findUsers,
   leaveNote,

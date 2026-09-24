@@ -5,16 +5,28 @@ import type {
   LinkPreviewResponse,
   Note,
   NoteCreate,
+  NoteImport,
   NoteResponse,
+  NotesImportRequest,
   NotesResponse,
   NoteUpdate,
   NoteVersion,
   NoteVersionCreateRequest,
   NoteVersionsResponse,
 } from "@manifesto/shared";
-import { attachmentIdOf, mapPreviewImages, roleOf } from "@manifesto/shared";
+import {
+  attachmentIdOf,
+  MAX_NOTES_PER_IMPORT,
+  mapPreviewImages,
+} from "@manifesto/shared";
 import { dataUrlToBlob } from "../utils/dataUrl.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
+
+/** Under the server's 1 MiB body limit, with room for the request's own
+ * wrapping. */
+const IMPORT_REQUEST_BYTES = 900 * 1024;
+
+const textEncoder = new TextEncoder();
 
 export interface RestApiAdapterOptions {
   /** Invoked when the server returns 401, before the error is thrown. */
@@ -91,9 +103,8 @@ export class RestApiAdapter implements StorageAdapter {
     const notes: Note[] = [];
     let cursor: string | null = null;
     do {
-      const separator = path.includes("?") ? "&" : "?";
       const url = cursor
-        ? `${this.baseUrl}${path}${separator}cursor=${encodeURIComponent(cursor)}`
+        ? `${this.baseUrl}${path}?cursor=${encodeURIComponent(cursor)}`
         : `${this.baseUrl}${path}`;
       const res: Response = await fetch(url, { headers: this.headers() });
       if (!res.ok) await this.fail(res, failure);
@@ -301,50 +312,54 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async deleteAll(): Promise<void> {
-    // "All your notes": the ones shared with you are someone else's to delete.
-    const notes = (await this.getAll()).filter(
-      (note) => roleOf(note) === "owner",
-    );
-    // Use allSettled so a single failed DELETE (e.g. 404 because another tab
-    // already removed it) doesn't leave the rest of the notes intact. The
-    // caller in actions.ts re-reads from the server after this resolves so
-    // the signal converges regardless of how the delete shook out.
-    const results = await Promise.allSettled(
-      notes.map((n) => this.delete(n.id)),
-    );
-    const failures = results
-      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-      .map((r) => r.reason);
-    if (failures.length > 0) {
-      throw new AggregateError(failures, "Failed to delete some notes");
-    }
+    // The server deletes the notes this user owns; the ones shared with them
+    // are someone else's.
+    const res = await fetch(`${this.baseUrl}/api/notes`, {
+      method: "DELETE",
+      headers: this.headers(),
+    });
+    if (!res.ok) await this.fail(res, "Failed to delete notes");
   }
 
+  /**
+   * Sends a backup in as few requests as the server's limits allow. Each note
+   * keeps its id and creation time, so the server updates the notes it
+   * already has and importing the same file twice changes nothing.
+   */
   async importAll(imported: Note[]): Promise<void> {
-    const existing = await this.getAll();
-    const existingIds = new Set(existing.map((n) => n.id));
-    // A note shared with this user is already here, and belongs to someone
-    // else: importing a backup is not a way to overwrite it.
-    const sharedIds = new Set(
-      existing.filter((n) => roleOf(n) !== "owner").map((n) => n.id),
-    );
+    let chunk: NoteImport[] = [];
+    let chunkBytes = 0;
+    const send = async () => {
+      if (chunk.length === 0) return;
+      const body: NotesImportRequest = { notes: chunk };
+      chunk = [];
+      chunkBytes = 0;
+      const res = await fetch(`${this.baseUrl}/api/notes/import`, {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) await this.fail(res, "Failed to import notes");
+    };
     for (const note of imported) {
-      if (sharedIds.has(note.id)) continue;
-      // Strip server-assigned fields. The server's noteUpdateSchema strips
-      // them anyway, but sending them is misleading and bloats the payload.
       const {
-        id: _id,
-        createdAt: _createdAt,
         updatedAt: _updatedAt,
+        imageCount: _imageCount,
         sharing: _sharing,
         ...payload
       } = note;
-      if (existingIds.has(note.id)) {
-        await this.update(note.id, payload);
-      } else {
-        await this.create(payload);
+      const item = await this.withUploads(payload);
+      const bytes = textEncoder.encode(JSON.stringify(item)).length;
+      if (
+        chunk.length >= MAX_NOTES_PER_IMPORT ||
+        chunkBytes + bytes > IMPORT_REQUEST_BYTES
+      ) {
+        await send();
       }
+      chunk.push(item);
+      chunkBytes += bytes;
     }
+    await send();
   }
 
   async fetchLinkPreview(url: string): Promise<LinkPreview | null> {
@@ -357,12 +372,5 @@ export class RestApiAdapter implements StorageAdapter {
     if (!res.ok) await this.fail(res, "Failed to fetch link preview");
     const data = (await res.json()) as LinkPreviewResponse;
     return data.preview;
-  }
-
-  async search(query: string): Promise<Note[]> {
-    return await this.drainPages(
-      `/api/search?q=${encodeURIComponent(query)}`,
-      "Failed to search notes",
-    );
   }
 }

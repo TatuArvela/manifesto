@@ -7,8 +7,8 @@ import {
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
-import { notes } from "../state/actions.js";
 import { currentUser, userLookupMode } from "../state/auth.js";
+import { notes } from "../state/notesStore.js";
 import { locale } from "../state/prefs.js";
 import { shareDialog } from "../state/sharing.js";
 import { toasts } from "../state/ui.js";

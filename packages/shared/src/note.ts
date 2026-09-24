@@ -356,12 +356,15 @@ export type NoteUpdate = Partial<
   Omit<Note, "id" | "createdAt" | "imageCount" | "sharing">
 >;
 
-/** A snapshot of a note's title and content at a point in time. */
 /** A note's version history keeps at most this many versions... */
 export const MAX_NOTE_VERSIONS = 50;
 /** ...none older than this, in both modes. */
 export const NOTE_VERSION_MAX_AGE_DAYS = 90;
 
+/** How long a note stays in the trash before it is deleted for good. */
+export const TRASH_RETENTION_DAYS = 30;
+
+/** A snapshot of a note's title and content at a point in time. */
 export interface NoteVersion {
   noteId: string;
   timestamp: string;

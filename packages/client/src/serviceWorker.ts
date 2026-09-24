@@ -1,5 +1,5 @@
 import type { NoteReminder } from "@manifesto/shared";
-import { notes, updateNote } from "./state/actions.js";
+import { notes, updateNote } from "./state/notesStore.js";
 import { createUpdateReloader, pageIsIdle } from "./utils/updateReload.js";
 
 interface SwMessage {

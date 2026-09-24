@@ -143,9 +143,8 @@ export function renderMarkdown(md: string): string {
  * paragraph is unwrapped; anything block-shaped keeps its markup, since a
  * label that really does contain a list is better ugly than swallowed.
  *
- * Checklist labels used to be printed as plain text, so `**milk**` in an item
- * showed its asterisks while the same text one line below, outside the list,
- * rendered bold.
+ * Checklist labels go through this so `**milk**` in an item renders bold, as
+ * the same text does outside the list.
  */
 export function renderInlineMarkdown(md: string): string {
   const html = renderMarkdown(md).trim();

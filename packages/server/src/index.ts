@@ -36,6 +36,7 @@ const { app, broadcaster, revocations, accessChanges, noteEvents, webhooks } =
     cfg,
     storage,
     authProvider,
+    logRequests: true,
     updateStatus: () => updateCheck?.status() ?? null,
   });
 
@@ -89,17 +90,15 @@ const yjs = attachYjsSocket({
   accessChanges,
   cfg,
 });
-const stopTrashCleanup = startTrashCleanup(
+const stopTrashCleanup = startTrashCleanup({
   storage,
   broadcaster,
-  undefined,
   noteEvents,
-);
-const stopSessionCleanup = startSessionCleanup(
+});
+const stopSessionCleanup = startSessionCleanup({
   storage,
-  undefined,
-  cfg.auditRetentionDays,
-);
+  auditRetentionDays: cfg.auditRetentionDays,
+});
 const stopAttachmentCleanup = startAttachmentCleanup(storage);
 const stopBackups = cfg.backup
   ? startScheduledBackup(storage, cfg.backup, cfg.dbPath)
