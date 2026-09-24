@@ -206,6 +206,10 @@ export const en = {
   // Note grid
   "noteGrid.empty": "No notes yet",
   "noteGrid.emptyHint": "Time to jot something down!",
+  "noteGrid.hiddenByTag": {
+    one: "{count} note is hidden here by its tags",
+    other: "{count} notes are hidden here by their tags",
+  },
   "noteGrid.pinned": "Pinned",
   "noteGrid.others": "Others",
 
@@ -214,7 +218,18 @@ export const en = {
   "tags.delete": "Delete tag",
   "tags.removeConfirm": "Remove #{tag} from all notes?",
   "tags.confirmDelete": "Delete",
+  "tags.rename": "Rename",
+  "tags.renameLabel": "New name for #{tag}",
+  "tags.renameSubmit": "Rename",
   "tags.cancel": "Cancel",
+  "tags.hideFromNotes": "Hide from Notes",
+  "tags.showInNotes": "Show in Notes",
+  "tags.hidden": "Hidden from Notes",
+  "tags.hiddenHint": "Notes tagged #{tag} are kept out of the Notes view.",
+  "tags.noteCount": {
+    one: "{count} note",
+    other: "{count} notes",
+  },
   "tags.showArchived": "Show archived notes",
   "tags.hideArchived": "Hide archived notes",
   "tags.showTrashed": "Show trashed notes",

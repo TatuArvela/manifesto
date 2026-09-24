@@ -210,6 +210,10 @@ export const fi: Messages = {
   // Note grid
   "noteGrid.empty": "Ei vielä muistiinpanoja",
   "noteGrid.emptyHint": "On aika kirjoittaa jotain!",
+  "noteGrid.hiddenByTag": {
+    one: "{count} muistiinpano on piilotettu täältä tunnisteidensa vuoksi",
+    other: "{count} muistiinpanoa on piilotettu täältä tunnisteidensa vuoksi",
+  },
   "noteGrid.pinned": "Kiinnitetyt",
   "noteGrid.others": "Muut",
 
@@ -218,7 +222,19 @@ export const fi: Messages = {
   "tags.delete": "Poista tunniste",
   "tags.removeConfirm": "Poistetaanko #{tag} kaikista muistiinpanoista?",
   "tags.confirmDelete": "Poista",
+  "tags.rename": "Nimeä uudelleen",
+  "tags.renameLabel": "Uusi nimi tunnisteelle #{tag}",
+  "tags.renameSubmit": "Nimeä",
   "tags.cancel": "Peruuta",
+  "tags.hideFromNotes": "Piilota muistiinpanoista",
+  "tags.showInNotes": "Näytä muistiinpanoissa",
+  "tags.hidden": "Piilotettu muistiinpanoista",
+  "tags.hiddenHint":
+    "Tunnisteella #{tag} merkityt muistiinpanot eivät näy Muistiinpanot-näkymässä.",
+  "tags.noteCount": {
+    one: "{count} muistiinpano",
+    other: "{count} muistiinpanoa",
+  },
   "tags.showArchived": "Näytä arkistoidut",
   "tags.hideArchived": "Piilota arkistoidut",
   "tags.showTrashed": "Näytä roskakorissa olevat",

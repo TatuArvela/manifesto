@@ -39,6 +39,7 @@ import {
   animations,
   defaultNoteColor,
   defaultNoteFont,
+  hiddenTags,
   sortMode,
 } from "./prefs.js";
 import {
@@ -205,12 +206,40 @@ function inViewLocation(
   }
 }
 
+const hiddenTagSet = computed(() => new Set(hiddenTags.value));
+
+function hasHiddenTag(note: Note, hidden: Set<string>): boolean {
+  return hidden.size > 0 && note.tags.some((tag) => hidden.has(tag));
+}
+
+/**
+ * How many notes the Notes view leaves out because of a hidden tag, so an
+ * empty board can say why it is empty rather than claim there are no notes.
+ */
+export const notesHiddenByTag = computed(() => {
+  const hidden = hiddenTagSet.value;
+  if (hidden.size === 0) return 0;
+  return allNotes.value.filter(
+    (n) => !n.archived && !n.trashed && hasHiddenTag(n, hidden),
+  ).length;
+});
+
+/** Keeps a tag's notes out of the Notes view, or lets them back in. */
+export function setTagHidden(tag: string, hide: boolean) {
+  const rest = hiddenTags.value.filter((t) => t !== tag);
+  hiddenTags.value = hide ? [...rest, tag] : rest;
+}
+
 export const filteredNotes = computed(() => {
   let result: Note[] = allNotes.value;
 
   // Filter by view
   switch (activeView.value) {
     case "active":
+      result = result.filter(
+        (n) => inViewLocation(n) && !hasHiddenTag(n, hiddenTagSet.value),
+      );
+      break;
     case "reminders":
     case "autoNotes":
     case "archived":
@@ -324,17 +353,20 @@ export const unpinnedNotes = computed(() =>
   sortedNotes.value.filter((n) => !n.pinned),
 );
 
-export const allTags = computed(() => {
-  const tagSet = new Set<string>();
+/** How many notes, neither archived nor trashed, carry each tag. */
+export const tagCounts = computed(() => {
+  const counts = new Map<string, number>();
   for (const note of allNotes.value) {
     if (!note.trashed && !note.archived) {
       for (const tag of note.tags) {
-        tagSet.add(tag);
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
       }
     }
   }
-  return [...tagSet].sort();
+  return counts;
 });
+
+export const allTags = computed(() => [...tagCounts.value.keys()].sort());
 
 export const editingNote = computed(() =>
   editingNoteId.value
@@ -857,6 +889,41 @@ export async function deleteTag(tag: string): Promise<boolean> {
   });
   if (activeTag.value === tag) {
     activeTag.value = null;
+  }
+  // A tag gone from every note should not hide the next note given it.
+  if (ok) setTagHidden(tag, false);
+  return ok;
+}
+
+/**
+ * Gives every note tagged `from` the tag `to` in its place. A note that has
+ * both already just loses `from`, so the rename can also merge two tags.
+ * `to` is expected normalized the way the tag picker does it.
+ */
+export async function renameTag(from: string, to: string): Promise<boolean> {
+  if (from === to) return true;
+  const affectedIds = notes.value
+    .filter((n) => n.tags.includes(from))
+    .map((n) => n.id);
+  const ok = await asBatch(async () => {
+    await Promise.all(
+      affectedIds.map((id) => {
+        const note = notes.value.find((n) => n.id === id);
+        if (!note) return Promise.resolve(false);
+        const tags = note.tags.includes(to)
+          ? note.tags.filter((t) => t !== from)
+          : note.tags.map((t) => (t === from ? to : t));
+        return updateNote(id, { tags });
+      }),
+    );
+  });
+  if (activeTag.value === from) {
+    activeTag.value = to;
+  }
+  // Hidden under its old name stays hidden under its new one.
+  if (ok && hiddenTags.value.includes(from)) {
+    setTagHidden(from, false);
+    setTagHidden(to, true);
   }
   return ok;
 }
