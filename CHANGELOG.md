@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/TatuArvela/manifesto/compare/v0.2.1...v0.3.0) (2026-09-25)
+
+
+### Features
+
+* tabbed settings modal with account pages, and one export zip in both modes ([#60](https://github.com/TatuArvela/manifesto/issues/60)) ([b80b6ae](https://github.com/TatuArvela/manifesto/commit/b80b6aeee622bbf02f1cc1010b370a95470d2535))
+
 ## [0.2.1](https://github.com/TatuArvela/manifesto/compare/v0.2.0...v0.2.1) (2026-09-24)
 
 
