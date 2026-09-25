@@ -289,7 +289,7 @@ export const en = {
   "settings.boardBackground.custom": "Custom Color",
   "settings.boardBackground.random": "Random",
   "settings.boardBackground.texture": "Texture",
-  "settings.boardBackground.texture.none": "Plain",
+  "settings.boardBackground.texture.none": "No Texture",
   "settings.boardBackground.texture.paper": "Paper",
   "settings.boardBackground.texture.cork": "Cork",
   "settings.boardBackground.texture.felt": "Felt",

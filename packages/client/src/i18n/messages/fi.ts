@@ -296,7 +296,7 @@ export const fi: Messages = {
   "settings.boardBackground.custom": "Oma väri",
   "settings.boardBackground.random": "Satunnainen",
   "settings.boardBackground.texture": "Pinta",
-  "settings.boardBackground.texture.none": "Sileä",
+  "settings.boardBackground.texture.none": "Ei pintaa",
   "settings.boardBackground.texture.paper": "Paperi",
   "settings.boardBackground.texture.cork": "Korkki",
   "settings.boardBackground.texture.felt": "Huopa",

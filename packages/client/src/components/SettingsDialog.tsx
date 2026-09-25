@@ -115,8 +115,8 @@ function SettingsRow({
 }
 
 /**
- * Rows that belong together, on one tinted panel with a line between each,
- * under a heading when the group needs a name.
+ * Rows that belong together, with a line between each, under a heading when
+ * the group needs a name.
  */
 function SettingsGroup({
   title,
@@ -132,7 +132,7 @@ function SettingsGroup({
           {title}
         </h3>
       )}
-      <div class="rounded-xl bg-neutral-100/70 dark:bg-white/[0.05] divide-y divide-neutral-200 dark:divide-white/10">
+      <div class="divide-y divide-neutral-200 dark:divide-white/10">
         {children}
       </div>
     </section>
