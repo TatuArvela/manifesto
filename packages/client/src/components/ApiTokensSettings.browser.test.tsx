@@ -2,11 +2,11 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { storageConnection } from "../storage/index.js";
-import { ApiTokensDialog } from "./ApiTokensDialog.js";
+import { ApiTokensSettings } from "./ApiTokensSettings.js";
 
 let host: HTMLDivElement;
 
-describe("ApiTokensDialog", () => {
+describe("ApiTokensSettings", () => {
   beforeEach(() => {
     storageConnection.value = {
       serverUrl: "https://notes.example",
@@ -46,7 +46,7 @@ describe("ApiTokensDialog", () => {
       return Response.json({ tokens: created ? listed : [] });
     });
 
-    render(<ApiTokensDialog onClose={() => {}} />, host);
+    render(<ApiTokensSettings />, host);
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("tokens.none")),
     );

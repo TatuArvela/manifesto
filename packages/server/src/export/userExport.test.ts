@@ -1,6 +1,6 @@
 import { inflateRawSync } from "node:zlib";
 import type { Note } from "@manifesto/shared";
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { NoteColor, NoteFont, noteToMarkdownFile } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   authHeaders,
@@ -8,7 +8,6 @@ import {
   registerTestUser,
   type TestRig,
 } from "../test/setup.js";
-import { noteToMarkdownFile } from "./userExport.js";
 
 /** Reads the files back out of a zip by its local headers. */
 function unzip(zip: Buffer): Map<string, string> {

@@ -270,6 +270,6 @@ describe("writing a shared note", () => {
   it("leaves who has a note out of an export", async () => {
     notes.value = [makeNote({ sharing: sharedAs("owner") })];
     const exported = await exportNotes();
-    expect(JSON.parse(exported ?? "[]")[0]).not.toHaveProperty("sharing");
+    expect(exported?.[0]).not.toHaveProperty("sharing");
   });
 });

@@ -188,7 +188,7 @@ Because GitHub Pages is a static host, deep-link refreshes would return 404. The
 
 ### Import / Export
 
-`utils/importExport.ts` handles JSON backup roundtrips and per-note drops (Markdown, plain text, image files). `App` registers window-level `dragenter`/`dragover`/`dragleave`/`drop` handlers so files can be dropped anywhere on the window; dropped imports become new notes (or a bulk import for JSON backups).
+`utils/importExport.ts` handles backup roundtrips (the export zip, and the JSON earlier versions wrote) and per-note drops (Markdown, plain text, image files). `App` registers window-level `dragenter`/`dragover`/`dragleave`/`drop` handlers so files can be dropped anywhere on the window; dropped imports become new notes (or a bulk import for JSON backups).
 
 ### Internationalization
 

@@ -26,6 +26,52 @@ function serverHost(url: string | null): string {
 }
 
 /**
+ * Where this deployment keeps notes, which the two operating modes answer
+ * very differently: on this device, or on a named server. The welcome dialog
+ * leads with it and the settings' About page repeats it.
+ */
+export function StorageMode({
+  id,
+  class: extra,
+}: {
+  id?: string;
+  /** Its spacing and background, which depend on what it sits on. */
+  class: string;
+}) {
+  const user = currentUser.value;
+  const mode = isServerMode
+    ? {
+        Icon: Cloud,
+        title: t("welcome.server.title", { host: serverHost(SERVER_ORIGIN) }),
+        body: user
+          ? t("welcome.server.body", {
+              user: user.displayName || user.username,
+            })
+          : t("welcome.server.bodyNoUser"),
+      }
+    : {
+        Icon: HardDrive,
+        title: t("welcome.local.title"),
+        body: t("welcome.local.body"),
+      };
+
+  return (
+    <div id={id} class={`flex gap-3 rounded-lg p-3 ${extra}`}>
+      <mode.Icon
+        class="w-5 h-5 shrink-0 mt-0.5 text-neutral-600 dark:text-neutral-300"
+        aria-hidden="true"
+      />
+      <div class="min-w-0">
+        <p class="text-sm font-medium break-words">{mode.title}</p>
+        <p class="text-sm mt-0.5 text-neutral-600 dark:text-neutral-300">
+          {mode.body}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * A first-time visitor's introduction, and above all the answer to "where do
  * my notes go?". The two operating modes answer that very differently, and
  * nothing else in the interface says which one this is: an open-mode user can
@@ -47,23 +93,6 @@ export function WelcomeDialog() {
 
   useEscapeStack(true, dismiss);
   const dialogRef = useFocusTrap<HTMLDivElement>(!closing);
-
-  const user = currentUser.value;
-  const mode = isServerMode
-    ? {
-        Icon: Cloud,
-        title: t("welcome.server.title", { host: serverHost(SERVER_ORIGIN) }),
-        body: user
-          ? t("welcome.server.body", {
-              user: user.displayName || user.username,
-            })
-          : t("welcome.server.bodyNoUser"),
-      }
-    : {
-        Icon: HardDrive,
-        title: t("welcome.local.title"),
-        body: t("welcome.local.body"),
-      };
 
   return (
     <>
@@ -98,21 +127,10 @@ export function WelcomeDialog() {
               {t("welcome.intro")}
             </p>
 
-            <div
+            <StorageMode
               id="welcome-dialog-mode"
-              class="mt-4 flex gap-3 rounded-lg p-3 bg-white/60 dark:bg-black/20"
-            >
-              <mode.Icon
-                class="w-5 h-5 shrink-0 mt-0.5 text-neutral-600 dark:text-neutral-300"
-                aria-hidden="true"
-              />
-              <div class="min-w-0">
-                <p class="text-sm font-medium break-words">{mode.title}</p>
-                <p class="text-sm mt-0.5 text-neutral-600 dark:text-neutral-300">
-                  {mode.body}
-                </p>
-              </div>
-            </div>
+              class="mt-4 bg-white/60 dark:bg-black/20"
+            />
 
             <div class="mt-5 flex justify-end">
               <button

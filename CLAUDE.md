@@ -278,7 +278,9 @@ The rendered preview still goes through `remarkRenderer`, which sanitizes.
 
 `utils/importExport.ts` handles both directions for Markdown and JSON, single note and bulk. It
 caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
-code runs. Export is one of the three callers that genuinely needs image bytes rather than
+code runs. The full export is a zip in both modes, laid out by `exportArchiveFiles` in
+`@manifesto/shared` so the server's download and open mode's `exportArchive` stay the same archive;
+importing one files its `versions.json` through `restoreVersions`. Export is one of the three callers that genuinely needs image bytes rather than
 `imageCount`; see Pagination below.
 
 ### Notes That Compute
@@ -450,8 +452,10 @@ catalogues, which `AuditLog.test.ts` checks.
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:
 `loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map
-failures to catalogue messages by status. Account actions live in `AccountMenu` in the header, which
-renders nothing in open mode; Settings has no account section.
+failures to catalogue messages by status. `AccountMenu` in the header only names the account, opens
+Settings on its page (`openSettings("account")`) and signs out; the account's pages (`AccountSettings`,
+`TwoFactorSettings`, `ApiTokensSettings`, `WebhooksSettings`) are tabs of `SettingsDialog`, shown only
+when signed in, and a tab that disappears falls back to Appearance.
 
 ### Sharing Between Accounts
 

@@ -23,6 +23,23 @@ export const selectMode = signal(false);
 export const selectedNotes = signal<Set<string>>(new Set());
 export const editingNoteId = signal<string | null>(null);
 export const showSettings = signal(false);
+/** The settings modal's pages; the account ones exist only when signed in. */
+export type SettingsTab =
+  | "account"
+  | "twoFactor"
+  | "tokens"
+  | "webhooks"
+  | "appearance"
+  | "features"
+  | "data"
+  | "about";
+/** The page the settings modal shows, kept between openings. */
+export const settingsTab = signal<SettingsTab>("appearance");
+
+export function openSettings(tab?: SettingsTab) {
+  if (tab) settingsTab.value = tab;
+  showSettings.value = true;
+}
 export const showWelcome = signal(false);
 /** The keyboard shortcut sheet (`?`). */
 export const showShortcuts = signal(false);

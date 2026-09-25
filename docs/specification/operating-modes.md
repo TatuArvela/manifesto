@@ -120,7 +120,7 @@ See [Server Overview](server/index.md#authentication-providers) for details.
 
 There is no in-place upgrade. To move from one mode to another:
 
-1. **Open → Connected**: Settings → Export to download `manifesto-export.json`, build (or visit) the connected client, log in, then Settings → Import.
+1. **Open → Connected**: Settings → Export to download the export zip, build (or visit) the connected client, log in, then Settings → Import.
 2. **Connected → Open**: Same flow in reverse: export from the connected client, switch to an open-mode build, import.
 
 Round-trips preserve every field in the [data model](data-model.md), including version history snapshots referenced via the local `manifesto:versions:<noteId>` keys. Export/import is documented in [Export / Import](features/export-import.md).

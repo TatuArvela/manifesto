@@ -64,7 +64,7 @@ fetches each attachment once per session and shows it through a `blob:` URL (`st
 ## Leaving the session
 
 Anything that leaves the session carries the bytes, never a reference only this server can read: the
-JSON export and a single note's JSON download inline every attachment again, and give up with an error
+export zip and a single note's JSON download inline every attachment again, and give up with an error
 rather than write a file missing a picture. Importing such a file into a server stores the images again.
 
 ## Sweeping

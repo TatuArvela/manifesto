@@ -21,6 +21,8 @@ import {
 import { useEffect, useRef, useState } from "preact/hooks";
 import { APP_LOGO_URL, APP_NAME } from "../config.js";
 import { getColorPickerColors, plural, t } from "../i18n/index.js";
+import { availableUpdate } from "../state/admin.js";
+import { currentUser } from "../state/auth.js";
 import { askConfirmation } from "../state/confirm.js";
 import {
   activeView,
@@ -300,6 +302,10 @@ export function Header() {
 function MainHeader({ covered }: { covered: boolean }) {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showViewMenu, setShowViewMenu] = useState(false);
+  // An admin hears about a new release on the gear, since it is the settings'
+  // About page that links to it.
+  const updateAvailable =
+    currentUser.value?.isAdmin === true && availableUpdate.value !== null;
 
   const sortOptions: { value: SortMode; label: string }[] = [
     { value: "default", label: t("header.sort.manual") },
@@ -581,7 +587,15 @@ function MainHeader({ covered }: { covered: boolean }) {
             }}
             aria-label={t("header.settings")}
           >
-            <Settings class="w-5 h-5" />
+            <span class="relative block">
+              <Settings class="w-5 h-5" />
+              {updateAvailable && (
+                <span
+                  class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-white dark:ring-neutral-900"
+                  aria-hidden="true"
+                />
+              )}
+            </span>
           </button>
         </Tooltip>
         <AccountMenu />

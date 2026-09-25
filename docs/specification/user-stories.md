@@ -15,7 +15,7 @@ As a user, I want to open Manifesto in my browser and start taking notes immedia
 
 As a user, I want to move my data in and out of Manifesto freely.
 
-- I can export all my notes as a single JSON file from the Settings dialog
+- I can export all my notes, with their version history, as one zip from the Settings dialog, in either mode
 - I can import notes from a JSON file, merging them into my existing notes
 - I can bring my notes from Google Keep (a Takeout archive) or a folder of Markdown notes
 - Exported files are human-readable and follow a documented format
@@ -117,8 +117,8 @@ As the person running a server, I want to manage who has an account on it withou
 - With local sign-in, I can reset someone's password: they are signed out everywhere, including open tabs, and get a temporary password
 - I can make other people admins and take it away again, but the server never ends up with no admin
 - I can delete an account along with its notes, after confirming
-- I cannot lock myself out from this screen: my own account is changed from the account menu instead
-- As any user with local sign-in, I can change my own password from the account menu in the header, which signs out my other devices
+- I cannot lock myself out from this screen: my own account is changed from Settings instead
+- As any user with local sign-in, I can change my own password from Settings, which signs out my other devices
 
 ## Archiving
 

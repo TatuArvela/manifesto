@@ -250,6 +250,9 @@ export const en = {
   "settings.group.defaults": "Defaults",
   "settings.group.features": "Features",
   "settings.group.data": "Data",
+  "settings.group.about": "About",
+  "settings.group.behavior": "Behavior",
+  "settings.about.version": "Version {version}",
   "settings.theme": "Theme",
   "settings.theme.system": "System",
   "settings.theme.light": "Light",
@@ -286,7 +289,7 @@ export const en = {
   "settings.boardBackground.custom": "Custom Color",
   "settings.boardBackground.random": "Random",
   "settings.boardBackground.texture": "Texture",
-  "settings.boardBackground.texture.none": "Plain",
+  "settings.boardBackground.texture.none": "No Texture",
   "settings.boardBackground.texture.paper": "Paper",
   "settings.boardBackground.texture.cork": "Cork",
   "settings.boardBackground.texture.felt": "Felt",
@@ -300,7 +303,7 @@ export const en = {
   "settings.boardBackground.texture.hearts": "Hearts",
   "settings.boardBackground.texture.random": "Random",
   "settings.boardBackground.picture": "Picture",
-  "settings.boardBackground.usePicture": "Use Picture",
+  "settings.boardBackground.mode.compose": "Color & Texture",
   "settings.boardBackground.choose": "Choose Picture…",
   "settings.boardBackground.replace": "Replace Picture…",
   "settings.boardBackground.remove": "Remove Picture",
@@ -319,11 +322,17 @@ export const en = {
   "settings.language": "Language",
   "settings.language.system": "System default",
   "settings.data.import": "Import Notes",
-  "settings.data.archive": "Download all my notes (.zip)",
-  "settings.data.archived": "Your notes are downloading",
-  "settings.data.archiveFailed": "The notes could not be downloaded",
-  "settings.data.importHint":
-    "Imports JSON exports, Markdown files or a zipped folder of them, and Google Keep (Takeout .zip or its unpacked files).",
+  "settings.data.exportFailed": "The notes could not be exported",
+  "settings.data.importHint": "You can import several files at once:",
+  "settings.data.importHint.backup": "{appName} backups",
+  "settings.data.importHint.backupBody":
+    "the .zip saved with Export Notes, or a .json file from an older version.",
+  "settings.data.importHint.markdown": "Markdown",
+  "settings.data.importHint.markdownBody":
+    ".md files, or a folder of them as a .zip (from Obsidian or Nextcloud Notes, for example). Folders become tags.",
+  "settings.data.importHint.keep": "Google Keep",
+  "settings.data.importHint.keepBody":
+    "a Google Takeout .zip, or the files inside it.",
   "settings.data.export": "Export Notes",
   "settings.data.deleteAll": "Delete All",
   "settings.data.deleteConfirm":
@@ -364,7 +373,6 @@ export const en = {
   "settings.autoNotes.untitled": "(Untitled)",
   "settings.autoNotes.origin.inline": "Pasted",
   "settings.autoNotes.origin.url": "URL",
-  "tokens.menu": "API tokens",
   "tokens.title": "API tokens",
   "tokens.hint":
     "A token lets a script, a shortcut or a bot use your notes on {server} without your password. It can read and change your notes, but not your password, your tokens or other accounts.",
@@ -393,8 +401,6 @@ export const en = {
   "tokens.revoked": "Token revoked",
   "tokens.tooMany": "You have as many tokens as allowed; revoke one first",
   "tokens.failed": "Tokens could not be reached; try again",
-  "tokens.close": "Close",
-  "webhooks.menu": "Webhooks",
   "webhooks.title": "Webhooks",
   "webhooks.hint":
     "This server posts your note events (created, changed, deleted) to each address below, for n8n, Home Assistant or a chat bot. Each delivery is signed with the webhook's secret.",
@@ -421,8 +427,6 @@ export const en = {
   "webhooks.invalidUrl": "Enter an http or https address",
   "webhooks.tooMany": "You have as many webhooks as allowed; remove one first",
   "webhooks.failed": "Webhooks could not be reached; try again",
-  "webhooks.close": "Close",
-  "twoFactor.menu": "Two-factor sign-in",
   "twoFactor.title": "Two-factor sign-in",
   "twoFactor.hint":
     "Signing in asks for a code from an authenticator app as well as your password.",
@@ -450,7 +454,6 @@ export const en = {
   "twoFactor.wrongCode":
     "That code is not right; check the time on your device",
   "twoFactor.failed": "Could not reach the server; try again",
-  "twoFactor.close": "Close",
   "login.oidcNotInGroup":
     "Your account is not one allowed to sign in here. Ask whoever runs this server.",
   "login.oidcNotRegistered":
@@ -556,7 +559,7 @@ export const en = {
   "shortcuts.close": "Close",
   "settings.about.shortcuts": "Keyboard shortcuts",
   "settings.about.repo": "GitHub",
-  "settings.about.welcome": "About",
+  "settings.about.welcome": "Welcome",
   "settings.about.license": "MIT licensed",
   "storage.quotaExceeded":
     "Browser storage is full. Some changes may not be saved until you free up space.",
@@ -727,6 +730,7 @@ export const en = {
   // Account menu
   "account.menu": "Account",
   "account.manageUsers": "Manage users",
+  "account.settings": "Account settings",
   "account.changePassword": "Change password",
   "account.currentPassword": "Current password",
   "account.passwordChanged":
@@ -734,7 +738,6 @@ export const en = {
   "account.wrongPassword": "Current password is incorrect",
   "account.samePassword": "Choose a password different from the current one",
   "account.changeFailed": "Could not change the password. Please try again.",
-  "account.cancel": "Cancel",
   "account.email": "Email address",
   "account.email.hint":
     "People can find you by it when they share a note with you. Nothing is ever sent to it.",
@@ -743,6 +746,7 @@ export const en = {
   "account.email.removed": "Email address removed.",
   "account.email.invalid": "Enter an address like name@example.com",
   "account.email.taken": "Another account already uses that address",
+  "account.email.managed": "Your sign-in provider manages this address.",
   "account.email.failed": "Could not save the address. Please try again.",
 
   // Login screen

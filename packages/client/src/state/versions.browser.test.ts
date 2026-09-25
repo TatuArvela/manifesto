@@ -2,7 +2,8 @@ import type { NoteVersion } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { currentStorage, storageConnection } from "../storage/index.js";
 import { getVersions, saveVersion } from "../storage/VersionStorage.js";
-import { loadVersions, recordVersion } from "./versions.js";
+import { notes } from "./notesStore.js";
+import { loadVersions, recordVersion, restoreVersions } from "./versions.js";
 
 let saved: { noteId: string; timestamp?: string; content: string }[];
 let listVersions: ReturnType<typeof vi.fn>;
@@ -60,5 +61,49 @@ describe("versions in connected mode", () => {
     } as never);
     vi.spyOn(console, "warn").mockImplementation(() => {});
     await expect(recordVersion("n1", "", "x")).resolves.toBeUndefined();
+  });
+});
+
+describe("restoreVersions", () => {
+  const ago = (days: number) =>
+    new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const version = (noteId: string, content: string, timestamp: string) => ({
+    noteId,
+    title: "",
+    content,
+    timestamp,
+  });
+
+  afterEach(() => {
+    notes.value = [];
+  });
+
+  it("files an export's history under the notes it imported, oldest first", async () => {
+    notes.value = [
+      { id: "mine" },
+      { id: "theirs", sharing: { role: "edit" } },
+    ] as never;
+    const heldAt = ago(3);
+    listVersions.mockResolvedValue([version("mine", "held", heldAt)]);
+
+    await restoreVersions([
+      version("mine", "newer", ago(1)),
+      version("mine", "held", heldAt),
+      version("mine", "older", ago(2)),
+      version("mine", "expired", ago(10_000)),
+      version("theirs", "not mine to add", ago(1)),
+      version("gone", "no such note", ago(1)),
+    ]);
+
+    expect(saved.map((v) => v.content)).toEqual(["older", "newer"]);
+    expect(saved.every((v) => v.noteId === "mine" && v.timestamp)).toBe(true);
+  });
+
+  it("never rejects when the history cannot be filed", async () => {
+    notes.value = [{ id: "mine" }] as never;
+    listVersions.mockRejectedValue(new Error("offline"));
+    await expect(
+      restoreVersions([version("mine", "x", ago(1))]),
+    ).resolves.toBeUndefined();
   });
 });

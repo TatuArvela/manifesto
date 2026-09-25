@@ -1,6 +1,7 @@
-import type { NoteVersion } from "@manifesto/shared";
+import { NOTE_VERSION_MAX_AGE_DAYS, type NoteVersion } from "@manifesto/shared";
 import { storage, storageConnection } from "../storage/index.js";
 import { deleteVersions, getVersions } from "../storage/VersionStorage.js";
+import { notes } from "./notesStore.js";
 
 /**
  * Keeps the text a note had before an editing session, as a version. Reports
@@ -54,4 +55,51 @@ async function bringLocalVersionsAcross(noteId: string): Promise<void> {
     });
   }
   deleteVersions(noteId);
+}
+
+const versionKey = (v: Pick<NoteVersion, "timestamp" | "title" | "content">) =>
+  `${Date.parse(v.timestamp)}\u0000${v.title}\u0000${v.content}`;
+
+/**
+ * Files an export's `versions.json` under the notes it has just imported, in
+ * either mode, with the dates they were taken. Only notes this user owns get
+ * one: a note whose id turned out to be someone else's shared note was not
+ * imported, and must not be given a history from a file. A version the note
+ * already has is skipped, so importing the same backup twice adds nothing,
+ * and so is one past the age limit, which a server would otherwise file as
+ * new. Reports nothing: the notes are what was imported, and a history that
+ * could not be filed does not undo them. Never rejects.
+ */
+export async function restoreVersions(versions: NoteVersion[]): Promise<void> {
+  const cutoff = Date.now() - NOTE_VERSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+  const byNote = new Map<string, NoteVersion[]>();
+  for (const version of versions) {
+    const at = Date.parse(version.timestamp);
+    if (Number.isNaN(at) || at < cutoff || at > Date.now()) continue;
+    const list = byNote.get(version.noteId) ?? [];
+    list.push(version);
+    byNote.set(version.noteId, list);
+  }
+  for (const [noteId, list] of byNote) {
+    const note = notes.value.find((n) => n.id === noteId);
+    if (!note || (note.sharing?.role ?? "owner") !== "owner") continue;
+    try {
+      const held = new Set(
+        (await storage.listVersions(noteId)).map(versionKey),
+      );
+      // Oldest first, so each is filed in the order it happened.
+      list.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+      for (const version of list) {
+        if (held.has(versionKey(version))) continue;
+        held.add(versionKey(version));
+        await storage.saveVersion(noteId, {
+          title: version.title,
+          content: version.content,
+          timestamp: version.timestamp,
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to restore versions:", err);
+    }
+  }
 }

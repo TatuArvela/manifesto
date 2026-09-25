@@ -126,11 +126,9 @@ describe("exportNotes", () => {
     // good.
     notes.value = [listed("a", 1), listed("b", 1)];
 
-    const json = await exportNotes();
+    const exported = await exportNotes();
 
-    expect(json).not.toBeNull();
-    const exported = JSON.parse(json as string) as Note[];
-    expect(exported.map((n) => n.images)).toEqual([[PNG], [PNG]]);
+    expect(exported?.map((n) => n.images)).toEqual([[PNG], [PNG]]);
     expect(loadImages).toHaveBeenCalledTimes(2);
   });
 
@@ -146,9 +144,7 @@ describe("exportNotes", () => {
   it("does not fetch for notes that already have their attachments", async () => {
     notes.value = [{ ...listed("a", 1), images: [PNG] }, listed("b", 0)];
 
-    const json = await exportNotes();
-
-    expect(json).not.toBeNull();
+    expect(await exportNotes()).not.toBeNull();
     expect(loadImages).not.toHaveBeenCalled();
   });
 });

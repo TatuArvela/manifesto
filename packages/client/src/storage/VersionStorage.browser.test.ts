@@ -30,6 +30,22 @@ describe("VersionStorage", () => {
     expect(versions[0].timestamp).toBeTruthy();
   });
 
+  it("files a version brought back from an export at its own time", () => {
+    const day = 24 * 60 * 60 * 1000;
+    saveVersion("note1", "", "today");
+    saveVersion(
+      "note1",
+      "",
+      "last week",
+      new Date(Date.now() - 7 * day).toISOString(),
+    );
+    saveVersion("note1", "", "ancient", new Date(0).toISOString());
+    expect(getVersions("note1").map((v) => v.content)).toEqual([
+      "today",
+      "last week",
+    ]);
+  });
+
   it("returns versions newest first", () => {
     saveVersion("note1", "First", "A");
     saveVersion("note1", "Second", "B");

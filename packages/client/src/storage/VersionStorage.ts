@@ -82,25 +82,35 @@ function load(noteId: string): NoteVersion[] {
   return Array.isArray(versions) ? (versions as NoteVersion[]) : [];
 }
 
+/**
+ * Adds a version, now or, when bringing one back from an export, at the
+ * `timestamp` it was taken. Kept oldest first, so both limits trim from the
+ * front, and a version that is already past the age limit is not kept.
+ */
 export function saveVersion(
   noteId: string,
   title: string,
   content: string,
+  timestamp?: string,
 ): void {
   const now = Date.now();
   const cutoff = now - MAX_AGE_MS;
+  const at = timestamp === undefined ? now : Date.parse(timestamp);
+  if (Number.isNaN(at) || at < cutoff || at > now) return;
 
-  // Stored oldest-first, so both limits trim from the front.
   const fresh = load(noteId).filter(
     (v) => new Date(v.timestamp).getTime() >= cutoff,
   );
 
   fresh.push({
     noteId,
-    timestamp: new Date(now).toISOString(),
+    timestamp: new Date(at).toISOString(),
     title,
     content,
   });
+  if (timestamp !== undefined) {
+    fresh.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+  }
 
   if (fresh.length > MAX_VERSIONS_PER_NOTE) {
     fresh.splice(0, fresh.length - MAX_VERSIONS_PER_NOTE);
