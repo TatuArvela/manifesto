@@ -1411,9 +1411,13 @@ body.note-drag-active .note-select {
   margin-bottom: 0;
 }
 
+/* Every control in a row is centred on its first line, measured in `lh` so
+   the one rule holds for a card's 14/20 text and a phone's 16/24 alike. A
+   fixed em offset put the checkbox a hair above the line on a phone and the
+   touch-sized handle and X six pixels below it. */
 .milkdown-editor li[data-item-type="task"] > label {
   flex-shrink: 0;
-  margin-top: 0.2em;
+  margin-top: calc((1lh - 1rem) / 2);
 }
 
 .milkdown-editor li[data-item-type="task"] > .task-item-content {
@@ -1488,7 +1492,7 @@ body.note-drag-active .note-select {
 .milkdown-editor li[data-item-type="task"] > .task-item-drag-handle {
   position: absolute;
   left: calc(-1 * var(--task-handle-gutter));
-  top: 0.2em;
+  top: calc((1lh - var(--task-handle-size)) / 2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1499,6 +1503,12 @@ body.note-drag-active .note-select {
   transition:
     opacity 0.15s,
     background-color 0.15s;
+}
+
+/* The handle is a drag, never a scroll: left to the browser, a finger moving
+   up or down it pans the editor instead, and the pan cancels the drag. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle {
+  touch-action: none;
 }
 
 /* The handle and the X sit inside the item, so a selection that spans the row
@@ -1564,7 +1574,7 @@ body.note-drag-active .note-select {
 .milkdown-editor li[data-item-type="task"] > .task-item-delete {
   position: absolute;
   right: 0;
-  top: 0.2em;
+  top: calc((1lh - var(--task-delete-size)) / 2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1673,6 +1683,47 @@ body.note-drag-active .note-select {
   border-radius: 50%;
   background: white;
   box-sizing: border-box;
+}
+
+/* The dragged item, following the pointer. It moves sideways in whole
+   indents as the drop's level changes, so it eases there rather than jumping;
+   vertically it tracks the pointer exactly. */
+.task-item-drag-ghost {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: none;
+  opacity: 0.9;
+  transition: left 90ms ease-out;
+}
+
+.task-item-drag-ghost > ul {
+  margin: 0;
+}
+
+.task-item-drag-ghost li[data-item-type="task"] {
+  margin-top: 0;
+  padding: 0.15em 0.4em 0.15em 0;
+  border-radius: 0.375rem;
+  background: var(--color-white);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.08),
+    0 6px 16px rgb(0 0 0 / 0.14);
+}
+
+.dark .task-item-drag-ghost li[data-item-type="task"] {
+  background: var(--color-neutral-800);
+}
+
+/* Its copies of the handle and X are not controls, and would only clutter. */
+.task-item-drag-ghost .task-item-drag-handle,
+.task-item-drag-ghost .task-item-delete {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-item-drag-ghost {
+    transition: none;
+  }
 }
 
 /* Nested task lists: no extra padding (parent's checkbox+gap already
