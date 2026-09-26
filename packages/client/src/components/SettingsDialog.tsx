@@ -271,9 +271,10 @@ function accountTabs(): SettingsTab[] {
 const navItemClass =
   "flex items-center gap-3 shrink-0 sm:w-full px-3 py-2 rounded-lg text-sm text-left whitespace-nowrap cursor-pointer transition-colors";
 
+/** The current page looks as the app's own sidebar marks the current view. */
 function navItemState(active: boolean) {
   return active
-    ? "bg-white dark:bg-neutral-700 shadow-sm font-medium text-neutral-900 dark:text-neutral-100"
+    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
     : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60";
 }
 
@@ -351,7 +352,9 @@ function AccountNavItem({
       <span class="sm:hidden">{t("account.menu")}</span>
       <span class="hidden sm:block min-w-0 flex-1">
         <span class="block text-sm font-medium truncate">{name}</span>
-        <span class="block text-xs font-normal text-neutral-500 dark:text-neutral-400 truncate">
+        <span
+          class={`block text-xs font-normal truncate ${active ? "opacity-75" : "text-neutral-500 dark:text-neutral-400"}`}
+        >
           {user.email ?? user.username}
         </span>
       </span>
