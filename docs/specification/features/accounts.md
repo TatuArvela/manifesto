@@ -65,8 +65,8 @@ Open mode has no accounts, so the button is not there at all.
 
 The Settings modal lists the account's pages above the general ones, headed by the user as a profile
 card: **Account** (email address and, under local sign-in, **Change password**), **Two-factor
-sign-in** under local sign-in, **API tokens**, **Webhooks** when the server enables them, and for
-admins **Manage users**, which leaves the modal for `/admin`. Open mode shows only the general pages.
+sign-in** under local sign-in, **API tokens**, and **Webhooks** when the server enables them. Open
+mode shows only the general pages.
 
 ## Email addresses
 
@@ -85,7 +85,8 @@ verified by sending any.
 
 ## The Users view
 
-Admins reach it from Settings → **Manage users**, at `/admin`. It lists every account with its
+Admins reach it from **Users**, the last entry of the side menu (the top row on a phone), at
+`/admin`; nobody else is shown the entry. It lists every account with its
 email address, note count, when it was created, and when one of its sessions was last used. Badges mark admins, the
 viewer's own account, accounts that sign in with single sign-on, and accounts still holding a
 temporary password.

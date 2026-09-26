@@ -6,8 +6,10 @@ import {
   Sparkles,
   StickyNote,
   Trash2,
+  Users,
 } from "lucide-preact";
 import { t } from "../i18n/index.js";
+import { currentUser, isServerMode } from "../state/auth.js";
 import {
   type AppView,
   activeTag,
@@ -87,6 +89,15 @@ function MobileNavItem({
   );
 }
 
+/**
+ * Whether the Users view is one of the places to go: an admin, on a server.
+ * The same test `App` puts in front of `/admin`, so the entry and the view
+ * appear and disappear together.
+ */
+function showsAdmin(): boolean {
+  return isServerMode && currentUser.value?.isAdmin === true;
+}
+
 export function Sidebar() {
   return (
     <div
@@ -116,6 +127,9 @@ export function Sidebar() {
           view="archived"
         />
         <DesktopNavItem label={t("nav.trash")} icon={Trash2} view="trash" />
+        {showsAdmin() && (
+          <DesktopNavItem label={t("nav.admin")} icon={Users} view="admin" />
+        )}
       </nav>
     </div>
   );
@@ -137,6 +151,9 @@ export function MobileNav() {
       />
       <MobileNavItem label={t("nav.archive")} icon={Archive} view="archived" />
       <MobileNavItem label={t("nav.trash")} icon={Trash2} view="trash" />
+      {showsAdmin() && (
+        <MobileNavItem label={t("nav.admin")} icon={Users} view="admin" />
+      )}
     </nav>
   );
 }

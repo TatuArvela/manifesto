@@ -728,7 +728,6 @@ export const en = {
 
   // Account menu
   "account.menu": "Account",
-  "account.manageUsers": "Manage users",
   "account.settings": "Account settings",
   "account.changePassword": "Change password",
   "account.currentPassword": "Current password",

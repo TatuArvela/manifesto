@@ -740,7 +740,6 @@ export const fi: Messages = {
 
   // Account menu
   "account.menu": "Tili",
-  "account.manageUsers": "Hallitse käyttäjiä",
   "account.settings": "Tilin asetukset",
   "account.changePassword": "Vaihda salasana",
   "account.currentPassword": "Nykyinen salasana",

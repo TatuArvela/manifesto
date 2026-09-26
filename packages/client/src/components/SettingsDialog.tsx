@@ -1,6 +1,5 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import {
-  ArrowRight,
   ArrowUpCircle,
   ChevronDown,
   Database,
@@ -17,7 +16,6 @@ import {
   Sun,
   Trash2,
   Upload,
-  Users,
   Webhook,
   X,
 } from "lucide-preact";
@@ -46,7 +44,6 @@ import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
 import { availableUpdate } from "../state/admin.js";
 import { currentUser, isServerMode, webhooksEnabled } from "../state/auth.js";
 import {
-  activeView,
   animations,
   confirmBeforeDelete,
   createNote,
@@ -435,25 +432,6 @@ export function SettingsDialog() {
                         onSelect={select}
                       />
                     ))}
-                  {user?.isAdmin && (
-                    <button
-                      type="button"
-                      class={`${navItemClass} ${navItemState(false)}`}
-                      onClick={() => {
-                        handleClose();
-                        activeView.value = "admin";
-                      }}
-                    >
-                      <Users class="w-4 h-4 shrink-0" />
-                      <span class="flex-1">{t("account.manageUsers")}</span>
-                      {/* The only row that is not a page of this dialog: it
-                          closes it and goes to the Admin view. */}
-                      <ArrowRight
-                        class="w-4 h-4 shrink-0 text-neutral-400 dark:text-neutral-500"
-                        aria-hidden="true"
-                      />
-                    </button>
-                  )}
                 </NavGroup>
               )}
               <NavGroup>
