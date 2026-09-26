@@ -43,6 +43,7 @@ export function ImageGallery({ images, onDelete, fill }: ImageGalleryProps) {
               <StoredImage
                 src={src}
                 alt=""
+                draggable={false}
                 class={`w-full object-cover block ${fill ? "h-full" : "h-auto max-h-96"}`}
               />
             </button>

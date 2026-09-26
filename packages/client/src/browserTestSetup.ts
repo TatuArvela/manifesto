@@ -13,7 +13,12 @@
  */
 const globals = globalThis as unknown as Record<string, unknown>;
 
-for (const key of ["__APP_NAME__", "__APP_VERSION__", "__APP_WELCOME__"]) {
+for (const key of [
+  "__APP_NAME__",
+  "__APP_VERSION__",
+  "__APP_WELCOME__",
+  "__BRANDING__",
+]) {
   const value = globals[key];
   if (typeof value !== "string") continue;
   try {

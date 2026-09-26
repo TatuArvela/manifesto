@@ -570,7 +570,7 @@ export const fi: Messages = {
   "settings.about.shortcuts": "Pikanäppäimet",
   "settings.about.repo": "GitHub",
   "settings.about.welcome": "Tervetuloa",
-  "settings.about.license": "MIT-lisenssillä",
+  "settings.about.license": "MIT-lisenssi",
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",
@@ -721,7 +721,6 @@ export const fi: Messages = {
   "sharing.card.sharedWith": "Jaettu: {names}.",
   "sharing.card.waiting": "Odottaa hyväksyntää: {names}.",
   "sharing.card.sharedBy": "Jakanut: {name}",
-  "sharing.metadata.sharedBy": "Jakanut: {name}",
   "sharing.viewOnly": "Jakanut: {name}. Voit katsella tätä muistiinpanoa.",
   "sharing.error.ownerOnly": "Vain muistiinpanon omistaja voi tehdä sen.",
   "sharing.error.viewOnly":
@@ -741,7 +740,6 @@ export const fi: Messages = {
 
   // Account menu
   "account.menu": "Tili",
-  "account.manageUsers": "Hallitse käyttäjiä",
   "account.settings": "Tilin asetukset",
   "account.changePassword": "Vaihda salasana",
   "account.currentPassword": "Nykyinen salasana",

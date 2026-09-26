@@ -681,6 +681,10 @@ export const NoteCard = memo(function NoteCard({
           onPointerUp={() => {
             if (!isTouch) document.body.classList.remove("note-drag-active");
           }}
+          // A long press is the card's own gesture on a touch screen. Android
+          // answers one on a link or picture with a menu, which takes the
+          // touch and cancels the hold under it.
+          onContextMenu={isTouch ? (e) => e.preventDefault() : undefined}
           onDragStart={
             isTouch || !onDragStart ? undefined : (e) => onDragStart(e, note.id)
           }
@@ -987,7 +991,7 @@ export const NoteCard = memo(function NoteCard({
               role="dialog"
               aria-modal="true"
               aria-label={note.title || t("editor.titlePlaceholder")}
-              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-100 ease-in ${morphing ? "" : closing ? "opacity-0 sm:scale-[0.98]" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+              class={`phone-sheet fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-100 ease-in ${morphing ? "" : closing ? "opacity-0 sm:scale-[0.98]" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
               <div
                 ref={panelRef}

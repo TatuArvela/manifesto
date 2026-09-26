@@ -17,6 +17,7 @@ import { recordVersion } from "../state/versions.js";
 import { Backdrop } from "./Backdrop.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { noteMenuItems } from "./NoteMenu.js";
+import { SharedPeople } from "./SharedAvatars.js";
 import { VersionHistory } from "./VersionHistory.js";
 
 export function NoteCardEditor({
@@ -272,29 +273,23 @@ export function NoteCardEditor({
         }
         onDone={saveAndClose}
         metadata={
-          <div class="flex gap-3 mt-3 text-xs text-black/40 dark:text-white/40">
-            <span>
-              {t("editor.metadata.created", {
-                date: formatDateTime(note.createdAt),
-              })}
-            </span>
-            {note.updatedAt !== note.createdAt && (
+          <>
+            <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-3 text-xs text-black/40 dark:text-white/40">
               <span>
-                {t("editor.metadata.edited", {
-                  date: formatDateTime(note.updatedAt),
+                {t("editor.metadata.created", {
+                  date: formatDateTime(note.createdAt),
                 })}
               </span>
-            )}
-            {note.sharing && note.sharing.role !== "owner" && (
-              <span>
-                {t("sharing.metadata.sharedBy", {
-                  name:
-                    note.sharing.owner.displayName ||
-                    note.sharing.owner.username,
-                })}
-              </span>
-            )}
-          </div>
+              {note.updatedAt !== note.createdAt && (
+                <span>
+                  {t("editor.metadata.edited", {
+                    date: formatDateTime(note.updatedAt),
+                  })}
+                </span>
+              )}
+            </div>
+            <SharedPeople note={note} />
+          </>
         }
         collab={collab}
       />

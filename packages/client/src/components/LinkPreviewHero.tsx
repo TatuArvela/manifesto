@@ -19,6 +19,9 @@ export function LinkPreviewHero({
       href={preview.url}
       target="_blank"
       rel="noopener noreferrer"
+      // The card is what a drag picks up. A link, or the picture in it, is
+      // draggable by default, and the nearest draggable wins.
+      draggable={false}
       class={`block relative ${fill ? "flex-1 min-h-0" : "aspect-video"} w-full bg-black/70 overflow-hidden no-underline text-white`}
       onClick={(e) => e.stopPropagation()}
     >
@@ -26,6 +29,7 @@ export function LinkPreviewHero({
         <StoredImage
           src={preview.image}
           alt=""
+          draggable={false}
           placeholderClass="block"
           class="absolute inset-0 w-full h-full object-cover"
         />

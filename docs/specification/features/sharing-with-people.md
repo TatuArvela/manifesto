@@ -30,7 +30,7 @@ The owner's trash is different from everyone else's. See [Trash](#trash) below.
 
 ## Inviting
 
-The owner opens **Share with people** from the note's menu (card, editor, or read-only view). It is not offered for an automatic note, which a plugin rewrites in its owner's browser, or for a note in the trash.
+The owner opens **Share with people** from the note's menu (card, editor, or read-only view), or once a note is shared, from the row under an open note that shows everyone else on it with their names; pending invitations there are faded, and only the owner sees them. A recipient's row names the owner and opens the same dialog as **People** in their menu. It is not offered for an automatic note, which a plugin rewrites in its owner's browser, or for a note in the trash.
 
 The dialog lists the owner and everyone the note is shared with. For each person the owner can pick **Can edit** or **Can view**, or remove them. Pending invitations are marked **Invited** and can be withdrawn the same way.
 

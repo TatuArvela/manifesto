@@ -7,6 +7,7 @@ import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
+import { revealApp } from "../splash.js";
 import { startAccountLocaleReport } from "../state/accountLocale.js";
 import { checkForUpdate } from "../state/admin.js";
 import {
@@ -73,8 +74,12 @@ const oidcInFlight =
 
 export function App() {
   const ready = useOidcRedirectOnce(oidcInFlight);
+  const signIn = ready && isServerMode && authToken.value === null;
+  useEffect(() => {
+    if (signIn) revealApp();
+  }, [signIn]);
   if (!ready) return null;
-  if (isServerMode && authToken.value === null) {
+  if (signIn) {
     return <LoginScreen />;
   }
   return <MainApp />;
@@ -110,7 +115,10 @@ function MainApp() {
   useEffect(() => {
     initRouter();
     startAppSocket();
-    loadNotes();
+    // The board is empty until the notes are in, so that, not this render,
+    // is when the loading screen can go. A failed load is ready too: its
+    // toast is what there is to see.
+    void loadNotes().then(revealApp);
     const stopAutoNotes = initAutoNotes();
     const stopBoardBackground = initBoardBackground();
     initReminderScheduler({

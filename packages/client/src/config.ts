@@ -145,9 +145,183 @@ export function toFileSlug(name: string): string {
 export const APP_FILE_SLUG: string = toFileSlug(APP_NAME);
 
 /**
- * The header logo. It lives in `public/` rather than `src/assets/` so that it
- * is a plain file at a predictable path in a built bundle: replacing the brand
- * mark is then the same kind of job as replacing the favicon, with no build
- * step and no content hash to chase. Base-prefixed for subpath deployments.
+ * A branding meta tag's value, or null when the document has none, it is
+ * empty, or it still holds a `%PLACEHOLDER%` because the raw template is being
+ * served.
  */
-export const APP_LOGO_URL: string = `${import.meta.env.BASE_URL}logo.svg`;
+function metaValue(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const content = document
+    .querySelector<HTMLMetaElement>(`meta[name="${name}"]`)
+    ?.content?.trim();
+  if (!content || /^%[A-Z_]+%$/.test(content)) return null;
+  return content;
+}
+
+/**
+ * One of the deployment's own names: the meta tag if it holds one, else what
+ * the build was given, else null for a deployment that did not set it. The
+ * same pair of paths as {@link resolveAppName}, for the same reason.
+ */
+export function resolveBrandText(tag: string, fallback: string): string | null {
+  return metaValue(tag) ?? (fallback.trim() || null);
+}
+
+/**
+ * A branding image as a URL the page can load. A bare file name is one beside
+ * `index.html`, so it is base-prefixed for a subpath deployment; an absolute
+ * path or a `data:` URL is taken as it is. A remote `https:` URL would be too,
+ * and is then refused by the page's `img-src 'self'`, which is why the docs
+ * say to ship the file with the build.
+ */
+export function resolveLogoUrl(
+  value: string | null,
+  base: string = import.meta.env.BASE_URL,
+): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (/^(\/|[a-z][a-z0-9+.-]*:)/i.test(trimmed)) return trimmed;
+  return `${base}${trimmed}`;
+}
+
+/**
+ * A logo in both themes. `dark` is drawn in place of `light` while the app is
+ * dark, if the deployment gave one; without it, `invertInDark` says whether
+ * `light` is inverted there instead (the app's mark is, as a single-colour
+ * shape; an instance's or organisation's logo keeps its colours).
+ */
+export interface Logo {
+  light: string;
+  dark: string | null;
+  invertInDark: boolean;
+}
+
+/**
+ * A logo from its meta tags (`<tag>` and `<tag>-dark`) or the build's values,
+ * or null when there is no light one to draw: a dark variant alone has
+ * nothing to stand in for.
+ */
+export function resolveLogo(
+  tag: string,
+  fallback: { light: string; dark: string },
+  invertInDark: boolean,
+): Logo | null {
+  const light = resolveLogoUrl(metaValue(tag) ?? (fallback.light || null));
+  if (!light) return null;
+  return {
+    light,
+    dark: resolveLogoUrl(metaValue(`${tag}-dark`) ?? (fallback.dark || null)),
+    invertInDark,
+  };
+}
+
+/**
+ * The app's mark: the header, the sign-in screen, the welcome dialog, About. A
+ * plain file at a fixed name beside `index.html` rather than a hashed import,
+ * so replacing it is the same kind of job as replacing the favicon.
+ * `logo.svg` unless `VITE_APP_LOGO` or the `app-logo` meta tag names another.
+ */
+export const APP_LOGO: Logo = resolveLogo(
+  "app-logo",
+  { light: __BRANDING__.appLogo, dark: __BRANDING__.appLogoDark },
+  true,
+) ?? {
+  light: `${import.meta.env.BASE_URL}logo.svg`,
+  dark: null,
+  invertInDark: true,
+};
+
+/**
+ * What this copy is for, when a deployment names it ("Foo QA project"): shown
+ * beside the app's name in the header and the tab, and on the sign-in screen,
+ * so two instances of the same app in one browser can be told apart.
+ */
+export const INSTANCE_NAME: string | null = resolveBrandText(
+  "instance-name",
+  __BRANDING__.instanceName,
+);
+
+/**
+ * The instance's own logo, next to its name in About and, when the top bar
+ * carries the instance (see {@link HEADER_BRAND}), there and in the tab.
+ */
+export const INSTANCE_LOGO: Logo | null = resolveLogo(
+  "instance-logo",
+  { light: __BRANDING__.instanceLogo, dark: __BRANDING__.instanceLogoDark },
+  false,
+);
+
+/** Who owns this copy ("Acme Inc"), on the sign-in screen and in About. */
+export const ORG_NAME: string | null = resolveBrandText(
+  "org-name",
+  __BRANDING__.orgName,
+);
+
+/** The organisation's logo, beside its name. */
+export const ORG_LOGO: Logo | null = resolveLogo(
+  "org-logo",
+  { light: __BRANDING__.orgLogo, dark: __BRANDING__.orgLogoDark },
+  false,
+);
+
+/**
+ * Whose name the top bar carries: `instance` if the `header-brand` meta tag or
+ * `VITE_HEADER_BRAND` says so and there is an instance name to carry, `app`
+ * otherwise. The app keeps its place in About either way.
+ */
+export function resolveHeaderBrand(
+  fallback: string,
+  instanceName: string | null,
+): "app" | "instance" {
+  const wanted = (metaValue("header-brand") ?? fallback).toLowerCase();
+  return wanted === "instance" && instanceName ? "instance" : "app";
+}
+
+/**
+ * The top bar's mark and name on the Notes view. An instance without a logo
+ * shows its name alone.
+ */
+export const HEADER_BRAND: {
+  name: string;
+  logo: Logo | null;
+  /** The instance is the brand, so it is not repeated beside it. */
+  isInstance: boolean;
+} =
+  resolveHeaderBrand(__BRANDING__.headerBrand, INSTANCE_NAME) === "instance"
+    ? { name: INSTANCE_NAME as string, logo: INSTANCE_LOGO, isInstance: true }
+    : { name: APP_NAME, logo: APP_LOGO, isInstance: false };
+
+/**
+ * The tab's icon, when it is not the page's own `favicon.svg`: the instance's
+ * logo, once the instance is the brand the top bar carries. Null otherwise.
+ */
+export const FAVICON: Logo | null = HEADER_BRAND.isInstance
+  ? HEADER_BRAND.logo
+  : null;
+
+/**
+ * Points the page's icon at `logo`. The link's `type` goes, since the logo
+ * need not be an SVG and a wrong one makes the browser skip the icon.
+ *
+ * A dark variant is a second link for the browser's dark scheme. The tab is
+ * the browser's, not the page's, so it follows the browser's scheme rather
+ * than the app's theme setting, which nothing outside the page can see.
+ */
+export function applyFavicon(logo: Logo | null, doc: Document = document) {
+  if (!logo) return;
+  const link = doc.querySelector<HTMLLinkElement>('link[rel="icon"]');
+  if (!link) return;
+  link.removeAttribute("type");
+  link.href = logo.light;
+  if (!logo.dark) return;
+  link.media = "(prefers-color-scheme: light)";
+  const dark = link.cloneNode() as HTMLLinkElement;
+  dark.href = logo.dark;
+  dark.media = "(prefers-color-scheme: dark)";
+  link.after(dark);
+}
+
+/** The window title: the instance first, since that is what tells tabs apart. */
+export const WINDOW_TITLE: string = INSTANCE_NAME
+  ? `${INSTANCE_NAME} · ${APP_NAME}`
+  : APP_NAME;

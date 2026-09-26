@@ -16,6 +16,7 @@ import {
   type EditorView,
   type NodeViewConstructor,
 } from "@milkdown/kit/prose/view";
+import { edgeScroll, scrollParent } from "../utils/edgeScroll.js";
 
 const INDENT_PX = 24;
 const DRAG_THRESHOLD_PX = 4;
@@ -47,6 +48,15 @@ type DragState = {
   atListEnd: boolean;
   targetLevel: number;
   indicator: HTMLElement;
+  /** The item under the finger, drawn at the level it would land on. */
+  ghost: HTMLElement | null;
+  /** Where in the item the pointer took hold of it. */
+  grabOffsetY: number;
+  sourceLabelOffsetX: number;
+  lastX: number;
+  lastY: number;
+  scroller: HTMLElement;
+  scrollFrame: number;
   onMove: (e: PointerEvent) => void;
   onUp: (e: PointerEvent) => void;
   onCancel: (e: PointerEvent) => void;
@@ -245,6 +255,57 @@ function positionIndicator(state: DragState) {
   state.indicator.style.width = `${Math.max(editorRect.right - x - 4, 40)}px`;
 }
 
+/**
+ * A copy of the dragged item that follows the pointer and snaps sideways to
+ * the level it would be dropped at. The line alone says where; on a touch
+ * screen the finger sits on it, and a shift of one indent in a two-pixel line
+ * was all that told a nested drop from a flat one.
+ *
+ * The copy is wrapped in the editor's own class so the task-row rules still
+ * draw it, and takes the note's font from the item itself, since it lives in
+ * `document.body`, outside the note.
+ */
+function createGhost(source: HTMLElement): HTMLElement {
+  const style = getComputedStyle(source);
+  const wrapper = document.createElement("div");
+  wrapper.className = "milkdown-editor task-item-drag-ghost";
+  wrapper.setAttribute("aria-hidden", "true");
+  wrapper.style.font = style.font;
+  wrapper.style.color = style.color;
+  wrapper.style.width = `${source.getBoundingClientRect().width}px`;
+  const list = document.createElement("ul");
+  const copy = source.cloneNode(true) as HTMLElement;
+  copy.classList.remove("task-item-dragging", "task-item-active");
+  // Its handles and X buttons are not controls, and would only clutter.
+  for (const control of copy.querySelectorAll(
+    ".task-item-drag-handle, .task-item-delete",
+  ))
+    control.remove();
+  list.appendChild(copy);
+  wrapper.appendChild(list);
+  return wrapper;
+}
+
+function positionGhost(state: DragState) {
+  if (!state.ghost) return;
+  const x = levelXFor(state.view, state.items, state.targetLevel);
+  state.ghost.style.left = `${x - state.sourceLabelOffsetX}px`;
+  state.ghost.style.top = `${state.lastY - state.grabOffsetY}px`;
+}
+
+/**
+ * Scrolls while the pointer rests near an edge of the scrolling area, and
+ * re-aims the drop as the list moves under it. Runs every frame of a drag;
+ * the item positions are read live, so nothing collected at the start goes
+ * stale.
+ */
+function autoScroll() {
+  const state = dragState;
+  if (!state) return;
+  state.scrollFrame = requestAnimationFrame(autoScroll);
+  if (state.active && edgeScroll(state.scroller, state.lastY)) aim(state);
+}
+
 function createIndicator(): HTMLElement {
   const el = document.createElement("div");
   el.className = "task-item-drop-indicator";
@@ -371,8 +432,10 @@ function endDrag(commit: boolean) {
   const state = dragState;
   dragState = null;
 
+  cancelAnimationFrame(state.scrollFrame);
   state.sourceDom.classList.remove("task-item-dragging");
   state.indicator.remove();
+  state.ghost?.remove();
   document.removeEventListener("pointermove", state.onMove, true);
   document.removeEventListener("pointerup", state.onUp, true);
   document.removeEventListener("pointercancel", state.onCancel, true);
@@ -394,28 +457,39 @@ function onPointerMove(e: PointerEvent) {
   const dx = e.clientX - dragState.startX;
   const dy = e.clientY - dragState.startY;
 
+  dragState.lastX = e.clientX;
+  dragState.lastY = e.clientY;
+
   if (!dragState.active) {
     if (Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD_PX) return;
     dragState.active = true;
+    dragState.ghost = createGhost(dragState.sourceDom);
+    document.body.appendChild(dragState.ghost);
     dragState.sourceDom.classList.add("task-item-dragging");
   }
 
-  dragState.slot = findSlot(dragState.items, e.clientY);
-  dragState.atListEnd = computeAtListEnd(
-    dragState.items,
-    dragState.slot,
-    dragState.sourceIdx,
-    e.clientY,
+  aim(dragState);
+}
+
+/** Works out where the pointer would drop the item, and shows it. */
+function aim(state: DragState) {
+  state.slot = findSlot(state.items, state.lastY);
+  state.atListEnd = computeAtListEnd(
+    state.items,
+    state.slot,
+    state.sourceIdx,
+    state.lastY,
   );
-  dragState.targetLevel = computeTargetLevel(
-    dragState.items,
-    dragState.slot,
-    dragState.sourceIdx,
-    dragState.sourceLevel,
-    e.clientX - dragState.startX,
-    dragState.atListEnd,
+  state.targetLevel = computeTargetLevel(
+    state.items,
+    state.slot,
+    state.sourceIdx,
+    state.sourceLevel,
+    state.lastX - state.startX,
+    state.atListEnd,
   );
-  positionIndicator(dragState);
+  positionIndicator(state);
+  positionGhost(state);
 }
 
 const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
@@ -483,6 +557,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
 
     const indicator = createIndicator();
     document.body.appendChild(indicator);
+    const sourceRect = listItem.getBoundingClientRect();
 
     const onMove = (ev: PointerEvent) => onPointerMove(ev);
     const onUp = (ev: PointerEvent) => {
@@ -513,6 +588,13 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
       atListEnd: false,
       targetLevel: source.level,
       indicator,
+      ghost: null,
+      grabOffsetY: e.clientY - sourceRect.top,
+      sourceLabelOffsetX: source.labelX - sourceRect.left,
+      lastX: e.clientX,
+      lastY: e.clientY,
+      scroller: scrollParent(listItem),
+      scrollFrame: 0,
       onMove,
       onUp,
       onCancel,
@@ -523,6 +605,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
     document.addEventListener("pointerup", onUp, true);
     document.addEventListener("pointercancel", onCancel, true);
     document.addEventListener("keydown", onKeyDown, true);
+    dragState.scrollFrame = requestAnimationFrame(autoScroll);
 
     try {
       handleWrapper.setPointerCapture(e.pointerId);

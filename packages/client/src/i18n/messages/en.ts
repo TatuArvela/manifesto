@@ -711,7 +711,6 @@ export const en = {
   "sharing.card.sharedWith": "Shared with {names}.",
   "sharing.card.waiting": "Waiting for {names} to accept.",
   "sharing.card.sharedBy": "Shared by {name}",
-  "sharing.metadata.sharedBy": "Shared by {name}",
   "sharing.viewOnly": "Shared by {name}. You can view this note.",
   "sharing.error.ownerOnly": "Only the note's owner can do that.",
   "sharing.error.viewOnly": "You can view this note but not change it.",
@@ -729,7 +728,6 @@ export const en = {
 
   // Account menu
   "account.menu": "Account",
-  "account.manageUsers": "Manage users",
   "account.settings": "Account settings",
   "account.changePassword": "Change password",
   "account.currentPassword": "Current password",

@@ -16,14 +16,21 @@ import {
   Sun,
   Trash2,
   Upload,
-  Users,
   Webhook,
   X,
 } from "lucide-preact";
 import type { ComponentChildren, JSX } from "preact";
 import { useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
-import { APP_NAME, WELCOME_ENABLED } from "../config.js";
+import {
+  APP_LOGO,
+  APP_NAME,
+  INSTANCE_LOGO,
+  INSTANCE_NAME,
+  ORG_LOGO,
+  ORG_NAME,
+  WELCOME_ENABLED,
+} from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { usePresence } from "../hooks/usePresence.js";
@@ -39,7 +46,6 @@ import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
 import { availableUpdate } from "../state/admin.js";
 import { currentUser, isServerMode, webhooksEnabled } from "../state/auth.js";
 import {
-  activeView,
   animations,
   confirmBeforeDelete,
   createNote,
@@ -78,7 +84,9 @@ import { ApiTokensSettings } from "./ApiTokensSettings.js";
 import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
+import { BrandLogo } from "./BrandLogo.js";
 import { Dropdown } from "./Dropdown.js";
+import { OrgCredit } from "./OrgCredit.js";
 import { Switch, ThreeWayToggle } from "./ToggleSwitch.js";
 import { TwoFactorSettings } from "./TwoFactorSettings.js";
 import { WebhooksSettings } from "./WebhooksSettings.js";
@@ -264,9 +272,10 @@ function accountTabs(): SettingsTab[] {
 const navItemClass =
   "flex items-center gap-3 shrink-0 sm:w-full px-3 py-2 rounded-lg text-sm text-left whitespace-nowrap cursor-pointer transition-colors";
 
+/** The current page looks as the app's own sidebar marks the current view. */
 function navItemState(active: boolean) {
   return active
-    ? "bg-white dark:bg-neutral-700 shadow-sm font-medium text-neutral-900 dark:text-neutral-100"
+    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
     : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60";
 }
 
@@ -344,7 +353,9 @@ function AccountNavItem({
       <span class="sm:hidden">{t("account.menu")}</span>
       <span class="hidden sm:block min-w-0 flex-1">
         <span class="block text-sm font-medium truncate">{name}</span>
-        <span class="block text-xs font-normal text-neutral-500 dark:text-neutral-400 truncate">
+        <span
+          class={`block text-xs font-normal truncate ${active ? "opacity-75" : "text-neutral-500 dark:text-neutral-400"}`}
+        >
           {user.email ?? user.username}
         </span>
       </span>
@@ -424,19 +435,6 @@ export function SettingsDialog() {
                         onSelect={select}
                       />
                     ))}
-                  {user?.isAdmin && (
-                    <button
-                      type="button"
-                      class={`${navItemClass} ${navItemState(false)}`}
-                      onClick={() => {
-                        handleClose();
-                        activeView.value = "admin";
-                      }}
-                    >
-                      <Users class="w-4 h-4 shrink-0" />
-                      <span class="flex-1">{t("account.manageUsers")}</span>
-                    </button>
-                  )}
                 </NavGroup>
               )}
               <NavGroup>
@@ -903,14 +901,33 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
   const update = user?.isAdmin ? availableUpdate.value : null;
   return (
     <div class="space-y-5">
-      <div>
-        <p class="text-base font-medium">{APP_NAME}</p>
-        <p class="text-sm text-neutral-500 dark:text-neutral-400">
-          {t("settings.about.version", { version: __APP_VERSION__ })}
-          {" · "}
-          {t("settings.about.license")}
-        </p>
+      {/* The app, with its mark and version, then whose copy of it this is.
+          The app is always named here, whatever the top bar carries. */}
+      <div class="flex items-center gap-3">
+        <BrandLogo logo={APP_LOGO} class="w-8 h-8 shrink-0" />
+        <div>
+          <p class="text-base font-medium">{APP_NAME}</p>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+            {t("settings.about.version", { version: __APP_VERSION__ })}
+          </p>
+        </div>
       </div>
+      {(INSTANCE_NAME || INSTANCE_LOGO || ORG_NAME || ORG_LOGO) && (
+        <div class="space-y-1.5">
+          {(INSTANCE_NAME || INSTANCE_LOGO) && (
+            <div class="flex items-center gap-2">
+              {INSTANCE_LOGO && (
+                <BrandLogo
+                  logo={INSTANCE_LOGO}
+                  class="h-6 w-auto max-w-24 object-contain"
+                />
+              )}
+              {INSTANCE_NAME && <p class="text-sm">{INSTANCE_NAME}</p>}
+            </div>
+          )}
+          <OrgCredit class="justify-start" />
+        </div>
+      )}
       <StorageMode class="bg-neutral-100 dark:bg-neutral-700/50" />
       {update && (
         <a
@@ -923,37 +940,43 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
           {t("account.updateAvailable", { version: update.latest })}
         </a>
       )}
-      <div class="divide-y divide-neutral-200 dark:divide-neutral-700">
-        <a
-          class={linkRowClass}
-          href="https://github.com/TatuArvela/manifesto"
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          {t("settings.about.repo")}
-        </a>
-        {WELCOME_ENABLED && (
+      <div>
+        {/* Beside the source it is the licence of. */}
+        <p class="pb-1 text-sm text-neutral-500 dark:text-neutral-400">
+          {t("settings.about.license")}
+        </p>
+        <div class="divide-y divide-neutral-200 dark:divide-neutral-700">
+          <a
+            class={linkRowClass}
+            href="https://github.com/TatuArvela/manifesto"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {t("settings.about.repo")}
+          </a>
+          {WELCOME_ENABLED && (
+            <button
+              type="button"
+              class={linkRowClass}
+              onClick={() => {
+                onClose();
+                showWelcome.value = true;
+              }}
+            >
+              {t("settings.about.welcome")}
+            </button>
+          )}
           <button
             type="button"
             class={linkRowClass}
             onClick={() => {
               onClose();
-              showWelcome.value = true;
+              showShortcuts.value = true;
             }}
           >
-            {t("settings.about.welcome")}
+            {t("settings.about.shortcuts")}
           </button>
-        )}
-        <button
-          type="button"
-          class={linkRowClass}
-          onClick={() => {
-            onClose();
-            showShortcuts.value = true;
-          }}
-        >
-          {t("settings.about.shortcuts")}
-        </button>
+        </div>
       </div>
     </div>
   );

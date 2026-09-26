@@ -24,7 +24,7 @@ Everything the client needs is baked in at build time. `VITE_MANIFESTO_SERVER` i
 | Variable                  | Default | Description                                                                                  |
 |---------------------------|---------|----------------------------------------------------------------------------------------------|
 | `VITE_MANIFESTO_SERVER`   | unset   | Absolute URL of the Manifesto server. Unset → open mode. Set → connected mode. A built bundle can be repointed without a rebuild through the `manifesto-server` meta tag; see [Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server). |
-| `VITE_APP_NAME`           | `Manifesto` | Branding: the product name, description and icons. See [Rebranding](#rebranding).       |
+| `VITE_APP_NAME`           | `Manifesto` | Branding: the app's name, logo, description and icons, and optionally the instance and organisation running it. See [Rebranding](#rebranding). |
 | `VITE_APP_WELCOME`        | on      | The first-visit welcome dialog. See [Welcome dialog](#welcome-dialog).                       |
 | `MANIFESTO_BASE_URL`      | `/`     | The path the site is served from. Set it to `/notes/` to host under a subpath. Not a `VITE_` variable: Vite reads `base` before it loads that set. |
 
@@ -80,11 +80,60 @@ crash-backup filenames, and every translated string, since translations carry an
 `{appName}` placeholder rather than the name itself. The description and the
 brand marks are parameters too.
 
-| What | Variable | Default |
-|---|---|---|
-| Product name | `VITE_APP_NAME` | `Manifesto` |
-| One-line description (PWA manifest + HTML `<meta name="description">`) | `VITE_APP_DESCRIPTION` | `Sticky-note style note-taking app.` |
-| Brand marks | `VITE_APP_ICONS_DIR` | the stock `public/` icons |
+Branding comes in two parts. The **app** is the product: its name and mark,
+Manifesto's unless replaced. The **instance** and **organisation** are who runs
+this particular copy, all optional and shown alongside the app rather than in
+place of it: "Manifesto · Foo QA project", owned by Acme Inc. The organisation
+is shown by its name alone, with no "provided by": owning an instance is not
+the same as providing a service.
+
+| What | Variable | Meta tag | Default |
+|---|---|---|---|
+| App name | `VITE_APP_NAME` | `application-name` | `Manifesto` |
+| App logo | `VITE_APP_LOGO` | `app-logo` | `logo.svg` (the Manifesto mark) |
+| Instance name | `VITE_INSTANCE_NAME` | `instance-name` | none |
+| Instance logo | `VITE_INSTANCE_LOGO` | `instance-logo` | none |
+| Top bar brand: `app` or `instance` | `VITE_HEADER_BRAND` | `header-brand` | `app` |
+| Dark-theme variant of any of the three logos | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` | `app-logo-dark`, `instance-logo-dark`, `org-logo-dark` | none |
+| Organisation name | `VITE_ORG_NAME` | `org-name` | none |
+| Organisation logo | `VITE_ORG_LOGO` | `org-logo` | none |
+| One-line description (PWA manifest + HTML `<meta name="description">`) | `VITE_APP_DESCRIPTION` | `description` | `Sticky-note style note-taking app.` |
+| Favicon, PWA icon, and the stock logo file | `VITE_APP_ICONS_DIR` | | the stock `public/` icons |
+
+Where each one shows up:
+
+| Surface | App name | App logo | Instance | Organisation |
+|---|---|---|---|---|
+| Window title | yes | | first, as "Foo QA project · Manifesto" | |
+| Header (Notes view), `app` brand | yes | yes | beside the name, muted; first to give way on a phone | |
+| Header (Notes view), `instance` brand | | | its logo and name, in place of the app's | |
+| Browser tab icon, `instance` brand | | | its logo, if it has one, in place of `favicon.svg` | |
+| Sign-in screen | heading | yes | under the heading | logo and name at the foot |
+| Settings → About | yes | yes, with the version | logo and name, under the app | logo and name |
+| Authenticator app entry (two-factor) | yes | | as "Manifesto (Foo QA project)" | |
+| Welcome dialog, messages, filenames | yes | yes (dialog) | | |
+
+`VITE_HEADER_BRAND=instance` gives the top bar to the instance: its logo, if it
+has one, and its name, where the app's mark and name were. It needs an instance
+name, and falls back to the app without one. The instance's logo then becomes
+the browser tab's icon too; the installed app's icon (`icon-1024.png`) stays. The app is still named, with its
+mark and version, in Settings → About.
+
+The logo variables take an image file. The build publishes it beside
+`index.html` as `app-logo.<ext>`, `instance-logo.<ext>` or `org-logo.<ext>` and
+writes that name into the meta tag; a path that is not a file is left out with a
+warning. The instance's and the organisation's logos may be wider than tall.
+
+Each logo can have a dark variant, drawn in its place while the app's theme is
+dark (the theme setting, whether chosen or following the system), and published
+as `<name>-dark.<ext>`. Without one, the app logo is inverted in the dark theme,
+like the stock one, so a dark single-colour shape works best there; the
+instance's and the organisation's are drawn as they are. A variant needs its
+light logo: on its own it has nothing to stand in for and is ignored. The tab
+icon takes the instance logo's dark variant from the browser's own colour
+scheme instead, since the tab belongs to the browser, not the page. A meta tag holds a file name
+beside `index.html`, an absolute path, or a `data:` URL. Not a remote URL: the
+page's `img-src 'self'` refuses it.
 
 Not parametrised: the theme colour (`#2563eb`, in `index.html` and
 `manifest.webmanifest`) and the repository link in Settings → About.
@@ -97,6 +146,13 @@ cannot drift apart.
 
 ```bash
 VITE_APP_NAME="Corporate Notes" \
+VITE_APP_LOGO=../acme-brand/notes-mark.svg \
+VITE_INSTANCE_NAME="Foo QA project" \
+VITE_INSTANCE_LOGO=../acme-brand/foo-qa.svg \
+VITE_INSTANCE_LOGO_DARK=../acme-brand/foo-qa-dark.svg \
+VITE_HEADER_BRAND=instance \
+VITE_ORG_NAME="Acme Inc" \
+VITE_ORG_LOGO=../acme-brand/acme.svg \
 VITE_APP_DESCRIPTION="Shared notes for the Acme team." \
 VITE_APP_ICONS_DIR=../acme-brand \
   pnpm --filter @manifesto/client build
@@ -128,10 +184,11 @@ below, which is two edits rather than one.
 
 | File | What to change |
 |---|---|
-| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, and `<meta name="welcome-dialog">` to switch the welcome off |
+| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `org-name` and `org-logo` meta tags (and each logo's `-dark` tag), and `<meta name="welcome-dialog">` to switch the welcome off |
 | `404.html` | the same tags (it is a copy of `index.html` for SPA fallback) |
 | `manifest.webmanifest` | `name`, `short_name`, `description` |
 | `logo.svg`, `favicon.svg`, `icon-1024.png` | overwrite with your own |
+| the instance's or organisation's logo | copy it beside `index.html` and put its file name in `instance-logo` or `org-logo` |
 
 ```bash
 sed -i '' 's/Manifesto/Corporate Notes/g' index.html 404.html manifest.webmanifest

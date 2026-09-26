@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { APP_LOGO_URL, APP_NAME } from "../config.js";
+import { HEADER_BRAND, INSTANCE_NAME } from "../config.js";
 import { getColorPickerColors, plural, t } from "../i18n/index.js";
 import { availableUpdate } from "../state/admin.js";
 import { currentUser } from "../state/auth.js";
@@ -49,6 +49,7 @@ import {
   viewMode,
 } from "../state/index.js";
 import { AccountMenu } from "./AccountMenu.js";
+import { BrandLogo } from "./BrandLogo.js";
 import { Dropdown } from "./Dropdown.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
@@ -316,7 +317,7 @@ function MainHeader({ covered }: { covered: boolean }) {
   const viewTitle = (() => {
     switch (activeView.value) {
       case "active":
-        return APP_NAME;
+        return HEADER_BRAND.name;
       case "tags":
         return t("nav.tags");
       case "reminders":
@@ -350,15 +351,32 @@ function MainHeader({ covered }: { covered: boolean }) {
           on wide viewports, or 11rem on narrow md widths where the search
           bar fills the padded area. */}
       <div class="flex items-center gap-2 z-10 pl-1 md:pl-2 min-w-0 md:max-w-[max(11rem,calc(50vw-19rem))]">
-        {activeView.value === "active" && (
-          <img src={APP_LOGO_URL} alt="" class="h-6 w-6 shrink-0 dark:invert" />
+        {activeView.value === "active" && HEADER_BRAND.logo && (
+          <BrandLogo
+            logo={HEADER_BRAND.logo}
+            // The app's mark is square; an instance's logo may be a wordmark,
+            // so it keeps its own shape up to a limit.
+            class={`h-6 shrink-0 ${HEADER_BRAND.isInstance ? "w-auto max-w-24 object-contain" : "w-6"}`}
+          />
         )}
         <h1
-          class="text-lg font-semibold truncate select-none"
+          class="text-lg font-semibold truncate select-none shrink-0 max-w-full"
           title={viewTitle}
         >
           {viewTitle}
         </h1>
+        {/* Which copy of the app this is, beside its name on the Notes view,
+            where the name is. It gives way first when the header is tight. */}
+        {activeView.value === "active" &&
+          INSTANCE_NAME &&
+          !HEADER_BRAND.isInstance && (
+            <span
+              class="text-sm text-neutral-500 dark:text-neutral-400 truncate select-none min-w-0"
+              title={INSTANCE_NAME}
+            >
+              {INSTANCE_NAME}
+            </span>
+          )}
       </div>
 
       {/* Center: search bar, absolutely positioned for true centering
