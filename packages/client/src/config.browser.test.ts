@@ -20,6 +20,7 @@ import {
   toFileSlug,
   WELCOME_ENABLED,
   WINDOW_TITLE,
+  windowTitle,
 } from "./config.js";
 
 /**
@@ -100,21 +101,33 @@ describe("the tab's icon", () => {
     expect(link?.hasAttribute("type")).toBe(false);
   });
 
-  test("follows the browser's scheme to a dark variant", () => {
+  test("follows the browser's scheme to a dark variant, in one link", () => {
     const doc = document.implementation.createHTMLDocument();
     doc.head.innerHTML = '<link rel="icon" href="/favicon.svg" />';
+    let onChange = () => {};
+    const scheme = {
+      matches: true,
+      addEventListener: (_type: string, listener: () => void) => {
+        onChange = listener;
+      },
+    };
     applyFavicon(
       { light: "/i.svg", dark: "/i-dark.svg", invertInDark: false },
       doc,
+      scheme as unknown as MediaQueryList,
     );
-    const links = [...doc.querySelectorAll("link[rel=icon]")].map((l) => [
-      l.getAttribute("href"),
-      l.getAttribute("media"),
-    ]);
-    expect(links).toEqual([
-      ["/i.svg", "(prefers-color-scheme: light)"],
-      ["/i-dark.svg", "(prefers-color-scheme: dark)"],
-    ]);
+    const hrefs = () =>
+      [...doc.querySelectorAll("link[rel=icon]")].map((l) =>
+        l.getAttribute("href"),
+      );
+    expect(hrefs()).toEqual(["/i-dark.svg"]);
+    expect(doc.querySelector("link[rel=icon]")?.hasAttribute("media")).toBe(
+      false,
+    );
+
+    scheme.matches = false;
+    onChange();
+    expect(hrefs()).toEqual(["/i.svg"]);
   });
 
   test("is left alone with nothing to put there", () => {
@@ -154,6 +167,48 @@ describe("resolveLogo()", () => {
     expect(
       resolveLogo("org-logo", { light: "", dark: "acme-dark.svg" }, false),
     ).toBeNull();
+  });
+});
+
+describe("windowTitle()", () => {
+  test("puts the instance first and the app after it", () => {
+    expect(windowTitle("Manifesto", "Foo QA project", true)).toBe(
+      "Foo QA project · Manifesto",
+    );
+  });
+
+  test("leaves the app's name out when switched off, by build or tag", () => {
+    expect(windowTitle("Manifesto", "Foo QA project", false)).toBe(
+      "Foo QA project",
+    );
+    expect(
+      withMetaTag(
+        "off",
+        () => windowTitle("Manifesto", "Foo QA project", true),
+        "title-app-name",
+      ),
+    ).toBe("Foo QA project");
+    expect(
+      withMetaTag(
+        "on",
+        () => windowTitle("Manifesto", "Foo QA project", false),
+        "title-app-name",
+      ),
+    ).toBe("Foo QA project · Manifesto");
+  });
+
+  test("keeps the build's choice for a placeholder", () => {
+    expect(
+      withMetaTag(
+        "%TITLE_APP_NAME%",
+        () => windowTitle("Manifesto", "Foo QA project", false),
+        "title-app-name",
+      ),
+    ).toBe("Foo QA project");
+  });
+
+  test("is the app's name without an instance, whatever the setting", () => {
+    expect(windowTitle("Manifesto", null, false)).toBe("Manifesto");
   });
 });
 

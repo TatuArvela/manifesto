@@ -303,25 +303,59 @@ export const FAVICON: Logo | null = HEADER_BRAND.isInstance
  * Points the page's icon at `logo`. The link's `type` goes, since the logo
  * need not be an SVG and a wrong one makes the browser skip the icon.
  *
- * A dark variant is a second link for the browser's dark scheme. The tab is
- * the browser's, not the page's, so it follows the browser's scheme rather
- * than the app's theme setting, which nothing outside the page can see.
+ * A dark variant follows the browser's colour scheme, which is what the tab
+ * around the icon follows, by swapping the one link's `href` as the scheme
+ * changes. Not a second link with a `media` attribute: a browser that ignores
+ * `media` on an icon, or finds neither link matching, showed no icon at all.
  */
-export function applyFavicon(logo: Logo | null, doc: Document = document) {
+export function applyFavicon(
+  logo: Logo | null,
+  doc: Document = document,
+  darkScheme: Pick<
+    MediaQueryList,
+    "matches" | "addEventListener"
+  > | null = typeof matchMedia === "function"
+    ? matchMedia("(prefers-color-scheme: dark)")
+    : null,
+) {
   if (!logo) return;
   const link = doc.querySelector<HTMLLinkElement>('link[rel="icon"]');
   if (!link) return;
   link.removeAttribute("type");
   link.href = logo.light;
-  if (!logo.dark) return;
-  link.media = "(prefers-color-scheme: light)";
-  const dark = link.cloneNode() as HTMLLinkElement;
-  dark.href = logo.dark;
-  dark.media = "(prefers-color-scheme: dark)";
-  link.after(dark);
+  const dark = logo.dark;
+  if (!dark || !darkScheme) return;
+  const follow = () => {
+    link.href = darkScheme.matches ? dark : logo.light;
+  };
+  follow();
+  darkScheme.addEventListener("change", follow);
 }
 
-/** The window title: the instance first, since that is what tells tabs apart. */
-export const WINDOW_TITLE: string = INSTANCE_NAME
-  ? `${INSTANCE_NAME} · ${APP_NAME}`
-  : APP_NAME;
+/**
+ * The window title: the instance first, since that is what tells tabs apart,
+ * then the app's name unless `VITE_TITLE_APP_NAME` or the `title-app-name`
+ * meta tag says `off`. With no instance there is only the app's name to use,
+ * whatever the setting says, since a title cannot be empty.
+ */
+export function windowTitle(
+  appName: string,
+  instanceName: string | null,
+  fallbackWithAppName: boolean,
+): string {
+  if (!instanceName) return appName;
+  const tag = metaValue("title-app-name")?.toLowerCase();
+  const withAppName =
+    tag === "off" || tag === "false"
+      ? false
+      : tag === "on" || tag === "true"
+        ? true
+        : fallbackWithAppName;
+  return withAppName ? `${instanceName} · ${appName}` : instanceName;
+}
+
+export const WINDOW_TITLE: string = windowTitle(
+  APP_NAME,
+  INSTANCE_NAME,
+  __BRANDING__.titleAppName,
+);
