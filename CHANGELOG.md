@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/TatuArvela/manifesto/compare/v0.3.1...v0.4.0) (2026-09-26)
+
+
+### Features
+
+* **client:** title the tab by instance alone, and keep its icon in dark mode ([#64](https://github.com/TatuArvela/manifesto/issues/64)) ([36f60ae](https://github.com/TatuArvela/manifesto/commit/36f60ae7c269a2382c332349ded359b8621498fd))
+
 ## [0.3.1](https://github.com/TatuArvela/manifesto/compare/v0.3.0...v0.3.1) (2026-09-26)
 
 

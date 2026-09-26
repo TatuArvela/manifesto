@@ -11,7 +11,7 @@
 
 services:
   manifesto:
-    image: ghcr.io/tatuarvela/manifesto-server:0.3.1 # x-release-please-version
+    image: ghcr.io/tatuarvela/manifesto-server:0.4.0 # x-release-please-version
     restart: unless-stopped
     depends_on:
       postgres:
