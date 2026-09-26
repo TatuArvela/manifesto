@@ -570,7 +570,7 @@ export const fi: Messages = {
   "settings.about.shortcuts": "Pikanäppäimet",
   "settings.about.repo": "GitHub",
   "settings.about.welcome": "Tervetuloa",
-  "settings.about.license": "MIT-lisenssillä",
+  "settings.about.license": "MIT-lisenssi",
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",

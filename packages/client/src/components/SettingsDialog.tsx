@@ -23,7 +23,13 @@ import {
 import type { ComponentChildren, JSX } from "preact";
 import { useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
-import { APP_NAME, INSTANCE_NAME, WELCOME_ENABLED } from "../config.js";
+import {
+  APP_NAME,
+  INSTANCE_NAME,
+  ORG_LOGO_URL,
+  ORG_NAME,
+  WELCOME_ENABLED,
+} from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { usePresence } from "../hooks/usePresence.js";
@@ -904,16 +910,19 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
   const update = user?.isAdmin ? availableUpdate.value : null;
   return (
     <div class="space-y-5">
+      {/* The app and its version, then whose copy of it this is. */}
       <div>
         <p class="text-base font-medium">{APP_NAME}</p>
-        {INSTANCE_NAME && <p class="text-sm">{INSTANCE_NAME}</p>}
         <p class="text-sm text-neutral-500 dark:text-neutral-400">
           {t("settings.about.version", { version: __APP_VERSION__ })}
-          {" · "}
-          {t("settings.about.license")}
         </p>
-        <OrgCredit class="mt-3 justify-start" />
       </div>
+      {(INSTANCE_NAME || ORG_NAME || ORG_LOGO_URL) && (
+        <div class="space-y-1.5">
+          {INSTANCE_NAME && <p class="text-sm">{INSTANCE_NAME}</p>}
+          <OrgCredit class="justify-start" />
+        </div>
+      )}
       <StorageMode class="bg-neutral-100 dark:bg-neutral-700/50" />
       {update && (
         <a
@@ -926,37 +935,43 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
           {t("account.updateAvailable", { version: update.latest })}
         </a>
       )}
-      <div class="divide-y divide-neutral-200 dark:divide-neutral-700">
-        <a
-          class={linkRowClass}
-          href="https://github.com/TatuArvela/manifesto"
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          {t("settings.about.repo")}
-        </a>
-        {WELCOME_ENABLED && (
+      <div>
+        {/* Beside the source it is the licence of. */}
+        <p class="pb-1 text-sm text-neutral-500 dark:text-neutral-400">
+          {t("settings.about.license")}
+        </p>
+        <div class="divide-y divide-neutral-200 dark:divide-neutral-700">
+          <a
+            class={linkRowClass}
+            href="https://github.com/TatuArvela/manifesto"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {t("settings.about.repo")}
+          </a>
+          {WELCOME_ENABLED && (
+            <button
+              type="button"
+              class={linkRowClass}
+              onClick={() => {
+                onClose();
+                showWelcome.value = true;
+              }}
+            >
+              {t("settings.about.welcome")}
+            </button>
+          )}
           <button
             type="button"
             class={linkRowClass}
             onClick={() => {
               onClose();
-              showWelcome.value = true;
+              showShortcuts.value = true;
             }}
           >
-            {t("settings.about.welcome")}
+            {t("settings.about.shortcuts")}
           </button>
-        )}
-        <button
-          type="button"
-          class={linkRowClass}
-          onClick={() => {
-            onClose();
-            showShortcuts.value = true;
-          }}
-        >
-          {t("settings.about.shortcuts")}
-        </button>
+        </div>
       </div>
     </div>
   );
