@@ -6,6 +6,7 @@ import { registerServiceWorker } from "./serviceWorker.js";
 import { capSplash, revealApp } from "./splash.js";
 import { SERVER_URL } from "./state/auth.js";
 import { serverSetupProblem } from "./utils/serverCsp.js";
+import { trackVisualViewport } from "./utils/visualViewport.js";
 import "./assets/fonts/fonts.css";
 import "./styles.css";
 
@@ -26,4 +27,5 @@ if (root)
 // A setup error is the whole page, and ready now; the app says when it is.
 if (setupProblem) revealApp();
 else capSplash();
+trackVisualViewport();
 registerServiceWorker();

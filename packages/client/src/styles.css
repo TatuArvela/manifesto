@@ -1360,6 +1360,26 @@ body.note-drag-active .note-select {
   margin: 0;
 }
 
+/* The phone's full-screen sheets (an open note, the composer) fill what the
+   reader can see rather than the layout viewport, so an on-screen keyboard
+   shortens them and their toolbar rides on it. See utils/visualViewport.ts,
+   which sets the variables; without them the sheet is the whole screen. */
+:root {
+  --sheet-safe-bottom: env(safe-area-inset-bottom);
+}
+
+:root.keyboard-open {
+  --sheet-safe-bottom: 0px;
+}
+
+@media (width < 40rem) {
+  .phone-sheet {
+    top: var(--vv-top, 0px);
+    bottom: auto;
+    height: var(--vv-height, 100%);
+  }
+}
+
 /* Task lists: Milkdown renders task items as `<li data-item-type="task"
    data-checked="true|false">` inside a regular `<ul>`. The NodeView in
    taskItemDraggable.ts provides the drag handle + real checkbox + content DOM. */

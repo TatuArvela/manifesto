@@ -363,6 +363,11 @@ and the fonts that screen asked for have arrived, or at `SPLASH_CAP_MS` after bo
 is removed on a timer as well as `transitionend`, since that event never arrives in a background
 tab.
 
+On a phone the on-screen keyboard shrinks only the visual viewport, so a `fixed inset-0` sheet
+keeps its foot behind the keys. `utils/visualViewport.ts` publishes the visible area as
+`--vv-top` / `--vv-height` (and `keyboard-open` on `<html>`), and a full-screen phone sheet takes
+the `phone-sheet` class to fill it; its home-indicator padding reads `--sheet-safe-bottom`.
+
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
 toast queue or the catalogue, so the "tell the user" decision stays in `failures.ts`. A refused
 write is neither retried nor rolled back: the signal keeps the change, so the session continues

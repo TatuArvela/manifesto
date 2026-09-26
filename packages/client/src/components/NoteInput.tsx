@@ -452,7 +452,7 @@ export function NoteInput() {
               role="dialog"
               aria-modal="true"
               aria-label={t("nav.newNote")}
-              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : morphing ? "" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+              class={`phone-sheet fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : morphing ? "" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
             >
               <div
                 ref={panelRef}
