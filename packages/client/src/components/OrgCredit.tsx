@@ -1,4 +1,5 @@
-import { ORG_LOGO_URL, ORG_NAME } from "../config.js";
+import { ORG_LOGO, ORG_NAME } from "../config.js";
+import { BrandLogo } from "./BrandLogo.js";
 
 /**
  * The organisation that owns this copy of the app, when the deployment says:
@@ -9,11 +10,11 @@ import { ORG_LOGO_URL, ORG_NAME } from "../config.js";
  * labelled by nothing, so it is decorative.
  */
 export function OrgCredit({ class: className = "" }: { class?: string }) {
-  if (!ORG_NAME && !ORG_LOGO_URL) return null;
+  if (!ORG_NAME && !ORG_LOGO) return null;
   return (
     <div class={`flex items-center justify-center gap-2 ${className}`}>
-      {ORG_LOGO_URL && (
-        <img src={ORG_LOGO_URL} alt="" class="h-6 max-w-24 object-contain" />
+      {ORG_LOGO && (
+        <BrandLogo logo={ORG_LOGO} class="h-6 w-auto max-w-24 object-contain" />
       )}
       {ORG_NAME && (
         <span class="text-xs text-neutral-500 dark:text-neutral-400">

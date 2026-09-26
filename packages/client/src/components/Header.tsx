@@ -49,6 +49,7 @@ import {
   viewMode,
 } from "../state/index.js";
 import { AccountMenu } from "./AccountMenu.js";
+import { BrandLogo } from "./BrandLogo.js";
 import { Dropdown } from "./Dropdown.js";
 import { TagPicker } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
@@ -350,13 +351,12 @@ function MainHeader({ covered }: { covered: boolean }) {
           on wide viewports, or 11rem on narrow md widths where the search
           bar fills the padded area. */}
       <div class="flex items-center gap-2 z-10 pl-1 md:pl-2 min-w-0 md:max-w-[max(11rem,calc(50vw-19rem))]">
-        {activeView.value === "active" && HEADER_BRAND.logoUrl && (
-          <img
-            src={HEADER_BRAND.logoUrl}
-            alt=""
+        {activeView.value === "active" && HEADER_BRAND.logo && (
+          <BrandLogo
+            logo={HEADER_BRAND.logo}
             // The app's mark is square; an instance's logo may be a wordmark,
             // so it keeps its own shape up to a limit.
-            class={`h-6 shrink-0 ${HEADER_BRAND.isInstance ? "w-auto max-w-24 object-contain" : "w-6"} ${HEADER_BRAND.invertLogo ? "dark:invert" : ""}`}
+            class={`h-6 shrink-0 ${HEADER_BRAND.isInstance ? "w-auto max-w-24 object-contain" : "w-6"}`}
           />
         )}
         <h1

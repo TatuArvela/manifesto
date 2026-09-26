@@ -2,7 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { Cloud, HardDrive } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
-import { APP_LOGO_URL } from "../config.js";
+import { APP_LOGO } from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
@@ -10,6 +10,7 @@ import { currentUser, isServerMode, SERVER_ORIGIN } from "../state/auth.js";
 import { showWelcome } from "../state/ui.js";
 import { markWelcomed } from "../state/welcome.js";
 import { Backdrop } from "./Backdrop.js";
+import { BrandLogo } from "./BrandLogo.js";
 
 /** How long the fade-out runs; matches the `duration-150` classes below. */
 const CLOSE_MS = 150;
@@ -110,12 +111,7 @@ export function WelcomeDialog() {
           <div
             class={`${colors.bg} note-surface shadow-xl px-6 pt-6 pb-4 text-neutral-900 dark:text-neutral-100`}
           >
-            <img
-              src={APP_LOGO_URL}
-              alt=""
-              class="w-8 h-8 mb-3 dark:invert"
-              aria-hidden="true"
-            />
+            <BrandLogo logo={APP_LOGO} class="w-8 h-8 mb-3" />
             <h2
               id="welcome-dialog-title"
               class="text-2xl leading-tight mb-2"

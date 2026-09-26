@@ -1,18 +1,19 @@
 import { describe, expect, test } from "vitest";
 import {
   APP_FILE_SLUG,
-  APP_LOGO_URL,
+  APP_LOGO,
   APP_NAME,
   applyFavicon,
-  FAVICON_URL,
+  FAVICON,
   HEADER_BRAND,
-  INSTANCE_LOGO_URL,
+  INSTANCE_LOGO,
   INSTANCE_NAME,
-  ORG_LOGO_URL,
+  ORG_LOGO,
   ORG_NAME,
   resolveAppName,
   resolveBrandText,
   resolveHeaderBrand,
+  resolveLogo,
   resolveLogoUrl,
   resolveServerUrl,
   resolveWelcomeEnabled,
@@ -50,12 +51,15 @@ describe("APP_NAME", () => {
   });
 });
 
-describe("APP_LOGO_URL", () => {
+describe("APP_LOGO", () => {
   // The header mark is a plain file at a fixed path rather than a hashed
   // bundled import, so a rebrand can overwrite it in a built bundle.
   test("points at logo.svg under the deployment base", () => {
-    expect(APP_LOGO_URL).toBe(`${import.meta.env.BASE_URL}logo.svg`);
-    expect(APP_LOGO_URL.endsWith("/logo.svg")).toBe(true);
+    expect(APP_LOGO).toEqual({
+      light: `${import.meta.env.BASE_URL}logo.svg`,
+      dark: null,
+      invertInDark: true,
+    });
   });
 });
 
@@ -64,16 +68,15 @@ describe("the deployment's own branding", () => {
   test("is absent unless configured, and the title is the app's name", () => {
     expect(INSTANCE_NAME).toBeNull();
     expect(ORG_NAME).toBeNull();
-    expect(ORG_LOGO_URL).toBeNull();
+    expect(ORG_LOGO).toBeNull();
     expect(WINDOW_TITLE).toBe(APP_NAME);
-    expect(INSTANCE_LOGO_URL).toBeNull();
+    expect(INSTANCE_LOGO).toBeNull();
   });
 
   test("leaves the top bar to the app", () => {
     expect(HEADER_BRAND).toEqual({
       name: APP_NAME,
-      logoUrl: APP_LOGO_URL,
-      invertLogo: true,
+      logo: APP_LOGO,
       isInstance: false,
     });
   });
@@ -81,17 +84,37 @@ describe("the deployment's own branding", () => {
 
 describe("the tab's icon", () => {
   test("stays the page's own while the app is the brand", () => {
-    expect(FAVICON_URL).toBeNull();
+    expect(FAVICON).toBeNull();
   });
 
   test("becomes the instance logo it is handed, whatever its type", () => {
     const doc = document.implementation.createHTMLDocument();
     doc.head.innerHTML =
       '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />';
-    applyFavicon("/instance-logo.png", doc);
+    applyFavicon(
+      { light: "/instance-logo.png", dark: null, invertInDark: false },
+      doc,
+    );
     const link = doc.querySelector("link[rel=icon]");
     expect(link?.getAttribute("href")).toBe("/instance-logo.png");
     expect(link?.hasAttribute("type")).toBe(false);
+  });
+
+  test("follows the browser's scheme to a dark variant", () => {
+    const doc = document.implementation.createHTMLDocument();
+    doc.head.innerHTML = '<link rel="icon" href="/favicon.svg" />';
+    applyFavicon(
+      { light: "/i.svg", dark: "/i-dark.svg", invertInDark: false },
+      doc,
+    );
+    const links = [...doc.querySelectorAll("link[rel=icon]")].map((l) => [
+      l.getAttribute("href"),
+      l.getAttribute("media"),
+    ]);
+    expect(links).toEqual([
+      ["/i.svg", "(prefers-color-scheme: light)"],
+      ["/i-dark.svg", "(prefers-color-scheme: dark)"],
+    ]);
   });
 
   test("is left alone with nothing to put there", () => {
@@ -101,6 +124,36 @@ describe("the tab's icon", () => {
     expect(doc.querySelector("link[rel=icon]")?.getAttribute("href")).toBe(
       "/favicon.svg",
     );
+  });
+});
+
+describe("resolveLogo()", () => {
+  test("pairs a logo with its dark variant, from the tags or the build", () => {
+    expect(
+      resolveLogo(
+        "org-logo",
+        { light: "acme.svg", dark: "acme-dark.svg" },
+        false,
+      ),
+    ).toEqual({
+      light: `${import.meta.env.BASE_URL}acme.svg`,
+      dark: `${import.meta.env.BASE_URL}acme-dark.svg`,
+      invertInDark: false,
+    });
+    expect(
+      withMetaTag(
+        "/brand/dark.svg",
+        () =>
+          resolveLogo("org-logo", { light: "acme.svg", dark: "" }, false)?.dark,
+        "org-logo-dark",
+      ),
+    ).toBe("/brand/dark.svg");
+  });
+
+  test("is nothing without a light logo, whatever the dark one says", () => {
+    expect(
+      resolveLogo("org-logo", { light: "", dark: "acme-dark.svg" }, false),
+    ).toBeNull();
   });
 });
 

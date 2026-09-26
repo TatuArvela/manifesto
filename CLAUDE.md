@@ -98,7 +98,7 @@ State lives in `packages/client/src/state/` using @preact/signals:
 
 The product name is a deployment parameter, never a literal. `src/config.ts`
 exports `APP_NAME` (plus `APP_FILE_SLUG` for download filenames and
-`APP_LOGO_URL` for the header mark), resolved from the `application-name` meta
+`APP_LOGO` for the header mark), resolved from the `application-name` meta
 tag in `index.html` if present, else the build-time `__APP_NAME__` that
 `vite.config.ts` derives from `VITE_APP_NAME`. The meta-tag layer is what lets
 someone rebrand a prebuilt release zip without a toolchain, so keep new
@@ -111,13 +111,15 @@ phrased to leave the placeholder uninflected: Finnish says "Tämä on {appName}"
 never "{appName}on". Reach for a rewording, not a special case, when a
 language wants to bend the name.
 
-Branding has two halves. The app's own name and mark (`APP_NAME`, `APP_LOGO_URL`) replace
-Manifesto's; the deployment's (`INSTANCE_NAME`, `INSTANCE_LOGO_URL`, `ORG_NAME`, `ORG_LOGO_URL`, all null unless set)
+Branding has two halves. The app's own name and mark (`APP_NAME`, `APP_LOGO`) replace
+Manifesto's; the deployment's (`INSTANCE_NAME`, `INSTANCE_LOGO`, `ORG_NAME`, `ORG_LOGO`, all null unless set)
 sit beside the app's; only `HEADER_BRAND` swaps the instance into the top bar, and About
 names the app whatever it says. Every one is a meta tag in `index.html` over a
 build-time value (`__APP_NAME__`, `__BRANDING__`), and the logo variables are files the build
-publishes as `app-logo.<ext>`, `instance-logo.<ext>`, `org-logo.<ext>`. Only the app's logo is
-inverted in dark mode; the others keep their colours.
+publishes as `app-logo.<ext>`, `instance-logo.<ext>`, `org-logo.<ext>`, each with an optional
+`-dark` variant. A logo is a `Logo` (light, dark, `invertInDark`) and is drawn through
+`BrandLogo`, never a bare `<img>`: it picks the variant by the app's `.dark` class, and inverts
+only the app's logo, only when it has no dark variant.
 
 Besides those, two more deployment parameters are read from `index.html`:
 `welcome-dialog` and `manifesto-server` (`resolveServerUrl`, feeding `SERVER_URL` /

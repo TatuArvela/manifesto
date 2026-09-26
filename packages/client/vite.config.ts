@@ -110,6 +110,23 @@ function resolveBranding(env: Record<string, string>) {
     "VITE_INSTANCE_LOGO",
   );
   const orgLogo = brandImage(env.VITE_ORG_LOGO, "org-logo", "VITE_ORG_LOGO");
+  // Each logo's dark-theme variant, drawn in place of it while the app is
+  // dark. The app's logo is inverted there only when it has none.
+  const appLogoDark = brandImage(
+    env.VITE_APP_LOGO_DARK,
+    "app-logo-dark",
+    "VITE_APP_LOGO_DARK",
+  );
+  const instanceLogoDark = brandImage(
+    env.VITE_INSTANCE_LOGO_DARK,
+    "instance-logo-dark",
+    "VITE_INSTANCE_LOGO_DARK",
+  );
+  const orgLogoDark = brandImage(
+    env.VITE_ORG_LOGO_DARK,
+    "org-logo-dark",
+    "VITE_ORG_LOGO_DARK",
+  );
   return {
     appName: pick(env.VITE_APP_NAME, DEFAULT_APP_NAME),
     appDescription: pick(env.VITE_APP_DESCRIPTION, DEFAULT_APP_DESCRIPTION),
@@ -126,6 +143,9 @@ function resolveBranding(env: Record<string, string>) {
     orgName: pick(env.VITE_ORG_NAME, ""),
     appLogo,
     orgLogo,
+    appLogoDark,
+    instanceLogoDark,
+    orgLogoDark,
   };
 }
 
@@ -154,7 +174,10 @@ function applyBranding(
     .replaceAll("%INSTANCE_LOGO%", branding.instanceLogo?.name ?? "")
     .replaceAll("%HEADER_BRAND%", branding.headerBrand)
     .replaceAll("%ORG_NAME%", encode(branding.orgName))
-    .replaceAll("%ORG_LOGO%", branding.orgLogo?.name ?? "");
+    .replaceAll("%ORG_LOGO%", branding.orgLogo?.name ?? "")
+    .replaceAll("%APP_LOGO_DARK%", branding.appLogoDark?.name ?? "")
+    .replaceAll("%INSTANCE_LOGO_DARK%", branding.instanceLogoDark?.name ?? "")
+    .replaceAll("%ORG_LOGO_DARK%", branding.orgLogoDark?.name ?? "");
 }
 
 /**
@@ -230,9 +253,9 @@ function iconOverlay(dir: string | undefined): Plugin {
 }
 
 /**
- * Publishes `VITE_APP_LOGO`, `VITE_INSTANCE_LOGO` and `VITE_ORG_LOGO` beside
- * `index.html`, under
- * the names its meta tags carry (`app-logo.svg`, `org-logo.png`, ...). Plain
+ * Publishes the logo variables (`VITE_APP_LOGO`, `VITE_INSTANCE_LOGO`,
+ * `VITE_ORG_LOGO` and each one's `_DARK`) beside `index.html`, under the names
+ * its meta tags carry (`app-logo.svg`, `org-logo-dark.png`, ...). Plain
  * files at fixed names, like the stock logo, so a release bundle's marks are
  * replaced the same way whichever path built it.
  */
@@ -241,6 +264,9 @@ function brandLogos(branding: Branding): Plugin {
     branding.appLogo,
     branding.instanceLogo,
     branding.orgLogo,
+    branding.appLogoDark,
+    branding.instanceLogoDark,
+    branding.orgLogoDark,
   ].filter((image): image is NonNullable<typeof image> => image !== null);
   let outDir = "dist";
   return {
@@ -336,6 +362,9 @@ export default defineConfig(({ mode }) => {
         headerBrand: branding.headerBrand,
         orgName: branding.orgName,
         orgLogo: branding.orgLogo?.name ?? "",
+        appLogoDark: branding.appLogoDark?.name ?? "",
+        instanceLogoDark: branding.instanceLogoDark?.name ?? "",
+        orgLogoDark: branding.orgLogoDark?.name ?? "",
       }),
     },
     resolve: {

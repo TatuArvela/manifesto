@@ -23,11 +23,11 @@ import type { ComponentChildren, JSX } from "preact";
 import { useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
 import {
-  APP_LOGO_URL,
+  APP_LOGO,
   APP_NAME,
-  INSTANCE_LOGO_URL,
+  INSTANCE_LOGO,
   INSTANCE_NAME,
-  ORG_LOGO_URL,
+  ORG_LOGO,
   ORG_NAME,
   WELCOME_ENABLED,
 } from "../config.js";
@@ -84,6 +84,7 @@ import { ApiTokensSettings } from "./ApiTokensSettings.js";
 import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
+import { BrandLogo } from "./BrandLogo.js";
 import { Dropdown } from "./Dropdown.js";
 import { OrgCredit } from "./OrgCredit.js";
 import { Switch, ThreeWayToggle } from "./ToggleSwitch.js";
@@ -903,7 +904,7 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
       {/* The app, with its mark and version, then whose copy of it this is.
           The app is always named here, whatever the top bar carries. */}
       <div class="flex items-center gap-3">
-        <img src={APP_LOGO_URL} alt="" class="w-8 h-8 shrink-0 dark:invert" />
+        <BrandLogo logo={APP_LOGO} class="w-8 h-8 shrink-0" />
         <div>
           <p class="text-base font-medium">{APP_NAME}</p>
           <p class="text-sm text-neutral-500 dark:text-neutral-400">
@@ -911,14 +912,13 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
           </p>
         </div>
       </div>
-      {(INSTANCE_NAME || INSTANCE_LOGO_URL || ORG_NAME || ORG_LOGO_URL) && (
+      {(INSTANCE_NAME || INSTANCE_LOGO || ORG_NAME || ORG_LOGO) && (
         <div class="space-y-1.5">
-          {(INSTANCE_NAME || INSTANCE_LOGO_URL) && (
+          {(INSTANCE_NAME || INSTANCE_LOGO) && (
             <div class="flex items-center gap-2">
-              {INSTANCE_LOGO_URL && (
-                <img
-                  src={INSTANCE_LOGO_URL}
-                  alt=""
+              {INSTANCE_LOGO && (
+                <BrandLogo
+                  logo={INSTANCE_LOGO}
                   class="h-6 w-auto max-w-24 object-contain"
                 />
               )}

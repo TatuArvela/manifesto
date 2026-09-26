@@ -94,6 +94,7 @@ the same as providing a service.
 | Instance name | `VITE_INSTANCE_NAME` | `instance-name` | none |
 | Instance logo | `VITE_INSTANCE_LOGO` | `instance-logo` | none |
 | Top bar brand: `app` or `instance` | `VITE_HEADER_BRAND` | `header-brand` | `app` |
+| Dark-theme variant of any of the three logos | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` | `app-logo-dark`, `instance-logo-dark`, `org-logo-dark` | none |
 | Organisation name | `VITE_ORG_NAME` | `org-name` | none |
 | Organisation logo | `VITE_ORG_LOGO` | `org-logo` | none |
 | One-line description (PWA manifest + HTML `<meta name="description">`) | `VITE_APP_DESCRIPTION` | `description` | `Sticky-note style note-taking app.` |
@@ -121,9 +122,16 @@ mark and version, in Settings → About.
 The logo variables take an image file. The build publishes it beside
 `index.html` as `app-logo.<ext>`, `instance-logo.<ext>` or `org-logo.<ext>` and
 writes that name into the meta tag; a path that is not a file is left out with a
-warning. The app logo is inverted in dark mode, like the stock one, so a dark
-single-colour shape works best; the instance's and the organisation's are drawn
-as they are, and may be wider than tall. A meta tag holds a file name
+warning. The instance's and the organisation's logos may be wider than tall.
+
+Each logo can have a dark variant, drawn in its place while the app's theme is
+dark (the theme setting, whether chosen or following the system), and published
+as `<name>-dark.<ext>`. Without one, the app logo is inverted in the dark theme,
+like the stock one, so a dark single-colour shape works best there; the
+instance's and the organisation's are drawn as they are. A variant needs its
+light logo: on its own it has nothing to stand in for and is ignored. The tab
+icon takes the instance logo's dark variant from the browser's own colour
+scheme instead, since the tab belongs to the browser, not the page. A meta tag holds a file name
 beside `index.html`, an absolute path, or a `data:` URL. Not a remote URL: the
 page's `img-src 'self'` refuses it.
 
@@ -141,6 +149,7 @@ VITE_APP_NAME="Corporate Notes" \
 VITE_APP_LOGO=../acme-brand/notes-mark.svg \
 VITE_INSTANCE_NAME="Foo QA project" \
 VITE_INSTANCE_LOGO=../acme-brand/foo-qa.svg \
+VITE_INSTANCE_LOGO_DARK=../acme-brand/foo-qa-dark.svg \
 VITE_HEADER_BRAND=instance \
 VITE_ORG_NAME="Acme Inc" \
 VITE_ORG_LOGO=../acme-brand/acme.svg \
@@ -175,7 +184,7 @@ below, which is two edits rather than one.
 
 | File | What to change |
 |---|---|
-| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `org-name` and `org-logo` meta tags, and `<meta name="welcome-dialog">` to switch the welcome off |
+| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `org-name` and `org-logo` meta tags (and each logo's `-dark` tag), and `<meta name="welcome-dialog">` to switch the welcome off |
 | `404.html` | the same tags (it is a copy of `index.html` for SPA fallback) |
 | `manifest.webmanifest` | `name`, `short_name`, `description` |
 | `logo.svg`, `favicon.svg`, `icon-1024.png` | overwrite with your own |

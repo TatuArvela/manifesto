@@ -185,14 +185,51 @@ export function resolveLogoUrl(
 }
 
 /**
- * The app's mark: the header, the sign-in screen, the welcome dialog. A plain
- * file at a fixed name beside `index.html` rather than a hashed import, so
- * replacing it is the same kind of job as replacing the favicon. `logo.svg`
- * unless `VITE_APP_LOGO` or the `app-logo` meta tag names another.
+ * A logo in both themes. `dark` is drawn in place of `light` while the app is
+ * dark, if the deployment gave one; without it, `invertInDark` says whether
+ * `light` is inverted there instead (the app's mark is, as a single-colour
+ * shape; an instance's or organisation's logo keeps its colours).
  */
-export const APP_LOGO_URL: string =
-  resolveLogoUrl(metaValue("app-logo") ?? __BRANDING__.appLogo) ??
-  `${import.meta.env.BASE_URL}logo.svg`;
+export interface Logo {
+  light: string;
+  dark: string | null;
+  invertInDark: boolean;
+}
+
+/**
+ * A logo from its meta tags (`<tag>` and `<tag>-dark`) or the build's values,
+ * or null when there is no light one to draw: a dark variant alone has
+ * nothing to stand in for.
+ */
+export function resolveLogo(
+  tag: string,
+  fallback: { light: string; dark: string },
+  invertInDark: boolean,
+): Logo | null {
+  const light = resolveLogoUrl(metaValue(tag) ?? (fallback.light || null));
+  if (!light) return null;
+  return {
+    light,
+    dark: resolveLogoUrl(metaValue(`${tag}-dark`) ?? (fallback.dark || null)),
+    invertInDark,
+  };
+}
+
+/**
+ * The app's mark: the header, the sign-in screen, the welcome dialog, About. A
+ * plain file at a fixed name beside `index.html` rather than a hashed import,
+ * so replacing it is the same kind of job as replacing the favicon.
+ * `logo.svg` unless `VITE_APP_LOGO` or the `app-logo` meta tag names another.
+ */
+export const APP_LOGO: Logo = resolveLogo(
+  "app-logo",
+  { light: __BRANDING__.appLogo, dark: __BRANDING__.appLogoDark },
+  true,
+) ?? {
+  light: `${import.meta.env.BASE_URL}logo.svg`,
+  dark: null,
+  invertInDark: true,
+};
 
 /**
  * What this copy is for, when a deployment names it ("Foo QA project"): shown
@@ -206,10 +243,12 @@ export const INSTANCE_NAME: string | null = resolveBrandText(
 
 /**
  * The instance's own logo, next to its name in About and, when the top bar
- * carries the instance (see {@link HEADER_BRAND}), there. Drawn as it is.
+ * carries the instance (see {@link HEADER_BRAND}), there and in the tab.
  */
-export const INSTANCE_LOGO_URL: string | null = resolveLogoUrl(
-  metaValue("instance-logo") ?? (__BRANDING__.instanceLogo || null),
+export const INSTANCE_LOGO: Logo | null = resolveLogo(
+  "instance-logo",
+  { light: __BRANDING__.instanceLogo, dark: __BRANDING__.instanceLogoDark },
+  false,
 );
 
 /** Who owns this copy ("Acme Inc"), on the sign-in screen and in About. */
@@ -218,12 +257,11 @@ export const ORG_NAME: string | null = resolveBrandText(
   __BRANDING__.orgName,
 );
 
-/**
- * The organisation's logo. Drawn as it is, never inverted for dark mode as
- * the app's mark is, since an organisation's colours are its own.
- */
-export const ORG_LOGO_URL: string | null = resolveLogoUrl(
-  metaValue("org-logo") ?? (__BRANDING__.orgLogo || null),
+/** The organisation's logo, beside its name. */
+export const ORG_LOGO: Logo | null = resolveLogo(
+  "org-logo",
+  { light: __BRANDING__.orgLogo, dark: __BRANDING__.orgLogoDark },
+  false,
 );
 
 /**
@@ -240,49 +278,47 @@ export function resolveHeaderBrand(
 }
 
 /**
- * The top bar's mark and name on the Notes view. The app's mark is inverted
- * in dark mode, as it always is; an instance's logo keeps its colours, and an
- * instance without one shows its name alone.
+ * The top bar's mark and name on the Notes view. An instance without a logo
+ * shows its name alone.
  */
 export const HEADER_BRAND: {
   name: string;
-  logoUrl: string | null;
-  invertLogo: boolean;
+  logo: Logo | null;
   /** The instance is the brand, so it is not repeated beside it. */
   isInstance: boolean;
 } =
   resolveHeaderBrand(__BRANDING__.headerBrand, INSTANCE_NAME) === "instance"
-    ? {
-        name: INSTANCE_NAME as string,
-        logoUrl: INSTANCE_LOGO_URL,
-        invertLogo: false,
-        isInstance: true,
-      }
-    : {
-        name: APP_NAME,
-        logoUrl: APP_LOGO_URL,
-        invertLogo: true,
-        isInstance: false,
-      };
+    ? { name: INSTANCE_NAME as string, logo: INSTANCE_LOGO, isInstance: true }
+    : { name: APP_NAME, logo: APP_LOGO, isInstance: false };
 
 /**
  * The tab's icon, when it is not the page's own `favicon.svg`: the instance's
  * logo, once the instance is the brand the top bar carries. Null otherwise.
  */
-export const FAVICON_URL: string | null = HEADER_BRAND.isInstance
-  ? HEADER_BRAND.logoUrl
+export const FAVICON: Logo | null = HEADER_BRAND.isInstance
+  ? HEADER_BRAND.logo
   : null;
 
 /**
- * Points the page's icon at `url`. The link's `type` goes, since the logo
+ * Points the page's icon at `logo`. The link's `type` goes, since the logo
  * need not be an SVG and a wrong one makes the browser skip the icon.
+ *
+ * A dark variant is a second link for the browser's dark scheme. The tab is
+ * the browser's, not the page's, so it follows the browser's scheme rather
+ * than the app's theme setting, which nothing outside the page can see.
  */
-export function applyFavicon(url: string | null, doc: Document = document) {
-  if (!url) return;
+export function applyFavicon(logo: Logo | null, doc: Document = document) {
+  if (!logo) return;
   const link = doc.querySelector<HTMLLinkElement>('link[rel="icon"]');
   if (!link) return;
   link.removeAttribute("type");
-  link.href = url;
+  link.href = logo.light;
+  if (!logo.dark) return;
+  link.media = "(prefers-color-scheme: light)";
+  const dark = link.cloneNode() as HTMLLinkElement;
+  dark.href = logo.dark;
+  dark.media = "(prefers-color-scheme: dark)";
+  link.after(dark);
 }
 
 /** The window title: the instance first, since that is what tells tabs apart. */

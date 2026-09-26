@@ -9,4 +9,7 @@ declare const __BRANDING__: {
   headerBrand: string;
   orgName: string;
   orgLogo: string;
+  appLogoDark: string;
+  instanceLogoDark: string;
+  orgLogoDark: string;
 };
