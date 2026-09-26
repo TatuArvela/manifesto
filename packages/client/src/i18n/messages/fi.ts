@@ -721,7 +721,6 @@ export const fi: Messages = {
   "sharing.card.sharedWith": "Jaettu: {names}.",
   "sharing.card.waiting": "Odottaa hyväksyntää: {names}.",
   "sharing.card.sharedBy": "Jakanut: {name}",
-  "sharing.metadata.sharedBy": "Jakanut: {name}",
   "sharing.viewOnly": "Jakanut: {name}. Voit katsella tätä muistiinpanoa.",
   "sharing.error.ownerOnly": "Vain muistiinpanon omistaja voi tehdä sen.",
   "sharing.error.viewOnly":

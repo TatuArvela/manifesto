@@ -30,6 +30,7 @@ import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
+import { SharedPeople } from "./SharedAvatars.js";
 import { TagPickerButton } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -190,11 +191,12 @@ export function NoteReadonlyView({
         )}
 
         {sharedBy && (
-          <div class="mt-4 pt-2 border-t border-black/10 dark:border-white/10 text-xs text-black/40 dark:text-white/40">
-            {t("sharing.viewOnly", {
+          <SharedPeople
+            note={note}
+            label={t("sharing.viewOnly", {
               name: sharedBy.displayName || sharedBy.username,
             })}
-          </div>
+          />
         )}
 
         {pluginLabel && (
