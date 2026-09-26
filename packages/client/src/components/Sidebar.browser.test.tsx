@@ -9,6 +9,8 @@ vi.mock("../state/auth.js", async (importOriginal) => ({
 }));
 
 const { currentUser } = await import("../state/auth.js");
+// Whatever language an earlier test left the page in.
+const { t } = await import("../i18n/index.js");
 const { MobileNav, Sidebar } = await import("./Sidebar.js");
 
 let host: HTMLDivElement;
@@ -46,13 +48,13 @@ describe("the Users entry", () => {
     it(`ends the ${name} for an admin`, () => {
       currentUser.value = { ...user, isAdmin: true };
       render(<Nav />, host);
-      expect(labels().at(-1)).toBe("Users");
+      expect(labels().at(-1)).toBe(t("nav.admin"));
     });
 
     it(`is not in the ${name} for anyone else`, () => {
       currentUser.value = { ...user, isAdmin: false };
       render(<Nav />, host);
-      expect(labels()).not.toContain("Users");
+      expect(labels()).not.toContain(t("nav.admin"));
     });
   }
 });
