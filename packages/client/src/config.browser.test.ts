@@ -3,6 +3,8 @@ import {
   APP_FILE_SLUG,
   APP_LOGO_URL,
   APP_NAME,
+  applyFavicon,
+  FAVICON_URL,
   HEADER_BRAND,
   INSTANCE_LOGO_URL,
   INSTANCE_NAME,
@@ -74,6 +76,31 @@ describe("the deployment's own branding", () => {
       invertLogo: true,
       isInstance: false,
     });
+  });
+});
+
+describe("the tab's icon", () => {
+  test("stays the page's own while the app is the brand", () => {
+    expect(FAVICON_URL).toBeNull();
+  });
+
+  test("becomes the instance logo it is handed, whatever its type", () => {
+    const doc = document.implementation.createHTMLDocument();
+    doc.head.innerHTML =
+      '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />';
+    applyFavicon("/instance-logo.png", doc);
+    const link = doc.querySelector("link[rel=icon]");
+    expect(link?.getAttribute("href")).toBe("/instance-logo.png");
+    expect(link?.hasAttribute("type")).toBe(false);
+  });
+
+  test("is left alone with nothing to put there", () => {
+    const doc = document.implementation.createHTMLDocument();
+    doc.head.innerHTML = '<link rel="icon" href="/favicon.svg" />';
+    applyFavicon(null, doc);
+    expect(doc.querySelector("link[rel=icon]")?.getAttribute("href")).toBe(
+      "/favicon.svg",
+    );
   });
 });
 

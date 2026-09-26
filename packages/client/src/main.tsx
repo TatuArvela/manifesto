@@ -2,7 +2,7 @@ import { render } from "preact";
 import { App } from "./components/App.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { ServerSetupError } from "./components/ServerSetupError.js";
-import { WINDOW_TITLE } from "./config.js";
+import { applyFavicon, FAVICON_URL, WINDOW_TITLE } from "./config.js";
 import { registerServiceWorker } from "./serviceWorker.js";
 import { capSplash, revealApp } from "./splash.js";
 import { SERVER_URL } from "./state/auth.js";
@@ -17,9 +17,10 @@ import "./styles.css";
 // instead of rendering a login screen whose every request dies silently.
 const setupProblem = serverSetupProblem(SERVER_URL);
 
-// The HTML carries the app's name alone; the instance joins it here, so a
-// release bundle's meta tag is the one place to set it.
+// The HTML carries the app's name and icon; the instance's join them here,
+// so a release bundle's meta tags are the one place to set them.
 document.title = WINDOW_TITLE;
+applyFavicon(FAVICON_URL);
 
 const root = document.getElementById("app");
 if (root)

@@ -157,7 +157,7 @@ already saved in a browser.
 | The app's mark in the header, login screen and welcome dialog | `VITE_APP_LOGO` (or `logo.svg` in `VITE_APP_ICONS_DIR`) |
 | Which copy this is, beside the name in the header and tab, on the login screen, in About and the authenticator entry | `VITE_INSTANCE_NAME` |
 | The instance's logo, in About and (with the next row) the header | `VITE_INSTANCE_LOGO` |
-| The instance's logo and name in the header instead of the app's | `VITE_HEADER_BRAND=instance` |
+| The instance's logo and name in the header instead of the app's, and its logo as the tab icon | `VITE_HEADER_BRAND=instance` |
 | The owning organisation's name and logo, on the login screen and in About | `VITE_ORG_NAME`, `VITE_ORG_LOGO` |
 | Export and crash-backup filenames | derived from `VITE_APP_NAME` |
 | PWA manifest description, HTML meta description | `VITE_APP_DESCRIPTION` |

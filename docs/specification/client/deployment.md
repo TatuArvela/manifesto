@@ -106,6 +106,7 @@ Where each one shows up:
 | Window title | yes | | first, as "Foo QA project · Manifesto" | |
 | Header (Notes view), `app` brand | yes | yes | beside the name, muted; first to give way on a phone | |
 | Header (Notes view), `instance` brand | | | its logo and name, in place of the app's | |
+| Browser tab icon, `instance` brand | | | its logo, if it has one, in place of `favicon.svg` | |
 | Sign-in screen | heading | yes | under the heading | logo and name at the foot |
 | Settings → About | yes | yes, with the version | logo and name, under the app | logo and name |
 | Authenticator app entry (two-factor) | yes | | as "Manifesto (Foo QA project)" | |
@@ -113,7 +114,8 @@ Where each one shows up:
 
 `VITE_HEADER_BRAND=instance` gives the top bar to the instance: its logo, if it
 has one, and its name, where the app's mark and name were. It needs an instance
-name, and falls back to the app without one. The app is still named, with its
+name, and falls back to the app without one. The instance's logo then becomes
+the browser tab's icon too; the installed app's icon (`icon-1024.png`) stays. The app is still named, with its
 mark and version, in Settings → About.
 
 The logo variables take an image file. The build publishes it beside

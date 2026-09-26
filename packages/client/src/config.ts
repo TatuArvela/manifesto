@@ -265,6 +265,26 @@ export const HEADER_BRAND: {
         isInstance: false,
       };
 
+/**
+ * The tab's icon, when it is not the page's own `favicon.svg`: the instance's
+ * logo, once the instance is the brand the top bar carries. Null otherwise.
+ */
+export const FAVICON_URL: string | null = HEADER_BRAND.isInstance
+  ? HEADER_BRAND.logoUrl
+  : null;
+
+/**
+ * Points the page's icon at `url`. The link's `type` goes, since the logo
+ * need not be an SVG and a wrong one makes the browser skip the icon.
+ */
+export function applyFavicon(url: string | null, doc: Document = document) {
+  if (!url) return;
+  const link = doc.querySelector<HTMLLinkElement>('link[rel="icon"]');
+  if (!link) return;
+  link.removeAttribute("type");
+  link.href = url;
+}
+
 /** The window title: the instance first, since that is what tells tabs apart. */
 export const WINDOW_TITLE: string = INSTANCE_NAME
   ? `${INSTANCE_NAME} · ${APP_NAME}`
