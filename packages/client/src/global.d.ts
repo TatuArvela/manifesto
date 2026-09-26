@@ -5,6 +5,8 @@ declare const __APP_WELCOME__: boolean;
 declare const __BRANDING__: {
   appLogo: string;
   instanceName: string;
+  instanceLogo: string;
+  headerBrand: string;
   orgName: string;
   orgLogo: string;
 };

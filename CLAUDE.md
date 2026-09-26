@@ -112,11 +112,12 @@ never "{appName}on". Reach for a rewording, not a special case, when a
 language wants to bend the name.
 
 Branding has two halves. The app's own name and mark (`APP_NAME`, `APP_LOGO_URL`) replace
-Manifesto's; the deployment's (`INSTANCE_NAME`, `ORG_NAME`, `ORG_LOGO_URL`, all null unless set)
-sit beside the app's and never replace it. Every one is a meta tag in `index.html` over a
+Manifesto's; the deployment's (`INSTANCE_NAME`, `INSTANCE_LOGO_URL`, `ORG_NAME`, `ORG_LOGO_URL`, all null unless set)
+sit beside the app's; only `HEADER_BRAND` swaps the instance into the top bar, and About
+names the app whatever it says. Every one is a meta tag in `index.html` over a
 build-time value (`__APP_NAME__`, `__BRANDING__`), and the logo variables are files the build
-publishes as `app-logo.<ext>` / `org-logo.<ext>`. The organisation's logo is never inverted in
-dark mode; the app's is.
+publishes as `app-logo.<ext>`, `instance-logo.<ext>`, `org-logo.<ext>`. Only the app's logo is
+inverted in dark mode; the others keep their colours.
 
 Besides those, two more deployment parameters are read from `index.html`:
 `welcome-dialog` and `manifesto-server` (`resolveServerUrl`, feeding `SERVER_URL` /

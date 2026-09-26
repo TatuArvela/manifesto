@@ -204,7 +204,15 @@ export const INSTANCE_NAME: string | null = resolveBrandText(
   __BRANDING__.instanceName,
 );
 
-/** Who runs this copy ("Acme Inc"), on the sign-in screen and in About. */
+/**
+ * The instance's own logo, next to its name in About and, when the top bar
+ * carries the instance (see {@link HEADER_BRAND}), there. Drawn as it is.
+ */
+export const INSTANCE_LOGO_URL: string | null = resolveLogoUrl(
+  metaValue("instance-logo") ?? (__BRANDING__.instanceLogo || null),
+);
+
+/** Who owns this copy ("Acme Inc"), on the sign-in screen and in About. */
 export const ORG_NAME: string | null = resolveBrandText(
   "org-name",
   __BRANDING__.orgName,
@@ -217,6 +225,45 @@ export const ORG_NAME: string | null = resolveBrandText(
 export const ORG_LOGO_URL: string | null = resolveLogoUrl(
   metaValue("org-logo") ?? (__BRANDING__.orgLogo || null),
 );
+
+/**
+ * Whose name the top bar carries: `instance` if the `header-brand` meta tag or
+ * `VITE_HEADER_BRAND` says so and there is an instance name to carry, `app`
+ * otherwise. The app keeps its place in About either way.
+ */
+export function resolveHeaderBrand(
+  fallback: string,
+  instanceName: string | null,
+): "app" | "instance" {
+  const wanted = (metaValue("header-brand") ?? fallback).toLowerCase();
+  return wanted === "instance" && instanceName ? "instance" : "app";
+}
+
+/**
+ * The top bar's mark and name on the Notes view. The app's mark is inverted
+ * in dark mode, as it always is; an instance's logo keeps its colours, and an
+ * instance without one shows its name alone.
+ */
+export const HEADER_BRAND: {
+  name: string;
+  logoUrl: string | null;
+  invertLogo: boolean;
+  /** The instance is the brand, so it is not repeated beside it. */
+  isInstance: boolean;
+} =
+  resolveHeaderBrand(__BRANDING__.headerBrand, INSTANCE_NAME) === "instance"
+    ? {
+        name: INSTANCE_NAME as string,
+        logoUrl: INSTANCE_LOGO_URL,
+        invertLogo: false,
+        isInstance: true,
+      }
+    : {
+        name: APP_NAME,
+        logoUrl: APP_LOGO_URL,
+        invertLogo: true,
+        isInstance: false,
+      };
 
 /** The window title: the instance first, since that is what tells tabs apart. */
 export const WINDOW_TITLE: string = INSTANCE_NAME

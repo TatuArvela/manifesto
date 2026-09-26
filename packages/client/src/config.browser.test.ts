@@ -3,11 +3,14 @@ import {
   APP_FILE_SLUG,
   APP_LOGO_URL,
   APP_NAME,
+  HEADER_BRAND,
+  INSTANCE_LOGO_URL,
   INSTANCE_NAME,
   ORG_LOGO_URL,
   ORG_NAME,
   resolveAppName,
   resolveBrandText,
+  resolveHeaderBrand,
   resolveLogoUrl,
   resolveServerUrl,
   resolveWelcomeEnabled,
@@ -61,6 +64,43 @@ describe("the deployment's own branding", () => {
     expect(ORG_NAME).toBeNull();
     expect(ORG_LOGO_URL).toBeNull();
     expect(WINDOW_TITLE).toBe(APP_NAME);
+    expect(INSTANCE_LOGO_URL).toBeNull();
+  });
+
+  test("leaves the top bar to the app", () => {
+    expect(HEADER_BRAND).toEqual({
+      name: APP_NAME,
+      logoUrl: APP_LOGO_URL,
+      invertLogo: true,
+      isInstance: false,
+    });
+  });
+});
+
+describe("resolveHeaderBrand()", () => {
+  test("gives the top bar to an instance that has a name", () => {
+    expect(resolveHeaderBrand("instance", "Foo QA project")).toBe("instance");
+    expect(
+      withMetaTag(
+        "Instance",
+        () => resolveHeaderBrand("app", "Foo QA project"),
+        "header-brand",
+      ),
+    ).toBe("instance");
+  });
+
+  test("keeps the app there otherwise", () => {
+    // Nothing to put in its place.
+    expect(resolveHeaderBrand("instance", null)).toBe("app");
+    expect(resolveHeaderBrand("app", "Foo QA project")).toBe("app");
+    expect(resolveHeaderBrand("sideways", "Foo QA project")).toBe("app");
+    expect(
+      withMetaTag(
+        "%HEADER_BRAND%",
+        () => resolveHeaderBrand("app", "Foo QA project"),
+        "header-brand",
+      ),
+    ).toBe("app");
   });
 });
 

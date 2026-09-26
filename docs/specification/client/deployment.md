@@ -92,6 +92,8 @@ the same as providing a service.
 | App name | `VITE_APP_NAME` | `application-name` | `Manifesto` |
 | App logo | `VITE_APP_LOGO` | `app-logo` | `logo.svg` (the Manifesto mark) |
 | Instance name | `VITE_INSTANCE_NAME` | `instance-name` | none |
+| Instance logo | `VITE_INSTANCE_LOGO` | `instance-logo` | none |
+| Top bar brand: `app` or `instance` | `VITE_HEADER_BRAND` | `header-brand` | `app` |
 | Organisation name | `VITE_ORG_NAME` | `org-name` | none |
 | Organisation logo | `VITE_ORG_LOGO` | `org-logo` | none |
 | One-line description (PWA manifest + HTML `<meta name="description">`) | `VITE_APP_DESCRIPTION` | `description` | `Sticky-note style note-taking app.` |
@@ -102,17 +104,24 @@ Where each one shows up:
 | Surface | App name | App logo | Instance | Organisation |
 |---|---|---|---|---|
 | Window title | yes | | first, as "Foo QA project · Manifesto" | |
-| Header (Notes view) | yes | yes | beside the name, muted; first to give way on a phone | |
+| Header (Notes view), `app` brand | yes | yes | beside the name, muted; first to give way on a phone | |
+| Header (Notes view), `instance` brand | | | its logo and name, in place of the app's | |
 | Sign-in screen | heading | yes | under the heading | logo and name at the foot |
-| Settings → About | yes | | under the name | logo and name |
+| Settings → About | yes | yes, with the version | logo and name, under the app | logo and name |
 | Authenticator app entry (two-factor) | yes | | as "Manifesto (Foo QA project)" | |
 | Welcome dialog, messages, filenames | yes | yes (dialog) | | |
 
-The two logo variables take an image file. The build publishes it beside
-`index.html` as `app-logo.<ext>` / `org-logo.<ext>` and writes that name into the
-meta tag; a path that is not a file is left out with a warning. The app logo is
-inverted in dark mode, like the stock one, so a dark single-colour shape works
-best; the organisation's logo is drawn as it is. A meta tag holds a file name
+`VITE_HEADER_BRAND=instance` gives the top bar to the instance: its logo, if it
+has one, and its name, where the app's mark and name were. It needs an instance
+name, and falls back to the app without one. The app is still named, with its
+mark and version, in Settings → About.
+
+The logo variables take an image file. The build publishes it beside
+`index.html` as `app-logo.<ext>`, `instance-logo.<ext>` or `org-logo.<ext>` and
+writes that name into the meta tag; a path that is not a file is left out with a
+warning. The app logo is inverted in dark mode, like the stock one, so a dark
+single-colour shape works best; the instance's and the organisation's are drawn
+as they are, and may be wider than tall. A meta tag holds a file name
 beside `index.html`, an absolute path, or a `data:` URL. Not a remote URL: the
 page's `img-src 'self'` refuses it.
 
@@ -129,6 +138,8 @@ cannot drift apart.
 VITE_APP_NAME="Corporate Notes" \
 VITE_APP_LOGO=../acme-brand/notes-mark.svg \
 VITE_INSTANCE_NAME="Foo QA project" \
+VITE_INSTANCE_LOGO=../acme-brand/foo-qa.svg \
+VITE_HEADER_BRAND=instance \
 VITE_ORG_NAME="Acme Inc" \
 VITE_ORG_LOGO=../acme-brand/acme.svg \
 VITE_APP_DESCRIPTION="Shared notes for the Acme team." \
@@ -162,11 +173,11 @@ below, which is two edits rather than one.
 
 | File | What to change |
 |---|---|
-| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `org-name` and `org-logo` meta tags, and `<meta name="welcome-dialog">` to switch the welcome off |
+| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `org-name` and `org-logo` meta tags, and `<meta name="welcome-dialog">` to switch the welcome off |
 | `404.html` | the same tags (it is a copy of `index.html` for SPA fallback) |
 | `manifest.webmanifest` | `name`, `short_name`, `description` |
 | `logo.svg`, `favicon.svg`, `icon-1024.png` | overwrite with your own |
-| your organisation's logo | copy it beside `index.html` and put its file name in `org-logo` |
+| the instance's or organisation's logo | copy it beside `index.html` and put its file name in `instance-logo` or `org-logo` |
 
 ```bash
 sed -i '' 's/Manifesto/Corporate Notes/g' index.html 404.html manifest.webmanifest

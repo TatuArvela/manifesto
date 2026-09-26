@@ -23,7 +23,9 @@ import type { ComponentChildren, JSX } from "preact";
 import { useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
 import {
+  APP_LOGO_URL,
   APP_NAME,
+  INSTANCE_LOGO_URL,
   INSTANCE_NAME,
   ORG_LOGO_URL,
   ORG_NAME,
@@ -898,16 +900,31 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
   const update = user?.isAdmin ? availableUpdate.value : null;
   return (
     <div class="space-y-5">
-      {/* The app and its version, then whose copy of it this is. */}
-      <div>
-        <p class="text-base font-medium">{APP_NAME}</p>
-        <p class="text-sm text-neutral-500 dark:text-neutral-400">
-          {t("settings.about.version", { version: __APP_VERSION__ })}
-        </p>
+      {/* The app, with its mark and version, then whose copy of it this is.
+          The app is always named here, whatever the top bar carries. */}
+      <div class="flex items-center gap-3">
+        <img src={APP_LOGO_URL} alt="" class="w-8 h-8 shrink-0 dark:invert" />
+        <div>
+          <p class="text-base font-medium">{APP_NAME}</p>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+            {t("settings.about.version", { version: __APP_VERSION__ })}
+          </p>
+        </div>
       </div>
-      {(INSTANCE_NAME || ORG_NAME || ORG_LOGO_URL) && (
+      {(INSTANCE_NAME || INSTANCE_LOGO_URL || ORG_NAME || ORG_LOGO_URL) && (
         <div class="space-y-1.5">
-          {INSTANCE_NAME && <p class="text-sm">{INSTANCE_NAME}</p>}
+          {(INSTANCE_NAME || INSTANCE_LOGO_URL) && (
+            <div class="flex items-center gap-2">
+              {INSTANCE_LOGO_URL && (
+                <img
+                  src={INSTANCE_LOGO_URL}
+                  alt=""
+                  class="h-6 w-auto max-w-24 object-contain"
+                />
+              )}
+              {INSTANCE_NAME && <p class="text-sm">{INSTANCE_NAME}</p>}
+            </div>
+          )}
           <OrgCredit class="justify-start" />
         </div>
       )}

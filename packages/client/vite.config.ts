@@ -104,6 +104,11 @@ function resolveBranding(env: Record<string, string>) {
     return trimmed && trimmed.length > 0 ? trimmed : fallback;
   };
   const appLogo = brandImage(env.VITE_APP_LOGO, "app-logo", "VITE_APP_LOGO");
+  const instanceLogo = brandImage(
+    env.VITE_INSTANCE_LOGO,
+    "instance-logo",
+    "VITE_INSTANCE_LOGO",
+  );
   const orgLogo = brandImage(env.VITE_ORG_LOGO, "org-logo", "VITE_ORG_LOGO");
   return {
     appName: pick(env.VITE_APP_NAME, DEFAULT_APP_NAME),
@@ -113,6 +118,11 @@ function resolveBranding(env: Record<string, string>) {
       ? "off"
       : "on",
     instanceName: pick(env.VITE_INSTANCE_NAME, ""),
+    instanceLogo,
+    // Whose name the top bar carries: the app's, or the instance's instead.
+    headerBrand: /^instance$/i.test(env.VITE_HEADER_BRAND?.trim() ?? "")
+      ? "instance"
+      : "app",
     orgName: pick(env.VITE_ORG_NAME, ""),
     appLogo,
     orgLogo,
@@ -141,6 +151,8 @@ function applyBranding(
     .replaceAll("%APP_WELCOME%", branding.appWelcome)
     .replaceAll("%APP_LOGO%", branding.appLogo?.name ?? "logo.svg")
     .replaceAll("%INSTANCE_NAME%", encode(branding.instanceName))
+    .replaceAll("%INSTANCE_LOGO%", branding.instanceLogo?.name ?? "")
+    .replaceAll("%HEADER_BRAND%", branding.headerBrand)
     .replaceAll("%ORG_NAME%", encode(branding.orgName))
     .replaceAll("%ORG_LOGO%", branding.orgLogo?.name ?? "");
 }
@@ -218,15 +230,18 @@ function iconOverlay(dir: string | undefined): Plugin {
 }
 
 /**
- * Publishes `VITE_APP_LOGO` and `VITE_ORG_LOGO` beside `index.html`, under
+ * Publishes `VITE_APP_LOGO`, `VITE_INSTANCE_LOGO` and `VITE_ORG_LOGO` beside
+ * `index.html`, under
  * the names its meta tags carry (`app-logo.svg`, `org-logo.png`, ...). Plain
  * files at fixed names, like the stock logo, so a release bundle's marks are
  * replaced the same way whichever path built it.
  */
 function brandLogos(branding: Branding): Plugin {
-  const images = [branding.appLogo, branding.orgLogo].filter(
-    (image): image is NonNullable<typeof image> => image !== null,
-  );
+  const images = [
+    branding.appLogo,
+    branding.instanceLogo,
+    branding.orgLogo,
+  ].filter((image): image is NonNullable<typeof image> => image !== null);
   let outDir = "dist";
   return {
     name: "brand-logos",
@@ -317,6 +332,8 @@ export default defineConfig(({ mode }) => {
       __BRANDING__: JSON.stringify({
         appLogo: branding.appLogo?.name ?? "logo.svg",
         instanceName: branding.instanceName,
+        instanceLogo: branding.instanceLogo?.name ?? "",
+        headerBrand: branding.headerBrand,
         orgName: branding.orgName,
         orgLogo: branding.orgLogo?.name ?? "",
       }),
