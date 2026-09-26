@@ -303,22 +303,33 @@ export const FAVICON: Logo | null = HEADER_BRAND.isInstance
  * Points the page's icon at `logo`. The link's `type` goes, since the logo
  * need not be an SVG and a wrong one makes the browser skip the icon.
  *
- * A dark variant is a second link for the browser's dark scheme. The tab is
- * the browser's, not the page's, so it follows the browser's scheme rather
- * than the app's theme setting, which nothing outside the page can see.
+ * A dark variant follows the browser's colour scheme, which is what the tab
+ * around the icon follows, by swapping the one link's `href` as the scheme
+ * changes. Not a second link with a `media` attribute: a browser that ignores
+ * `media` on an icon, or finds neither link matching, showed no icon at all.
  */
-export function applyFavicon(logo: Logo | null, doc: Document = document) {
+export function applyFavicon(
+  logo: Logo | null,
+  doc: Document = document,
+  darkScheme: Pick<
+    MediaQueryList,
+    "matches" | "addEventListener"
+  > | null = typeof matchMedia === "function"
+    ? matchMedia("(prefers-color-scheme: dark)")
+    : null,
+) {
   if (!logo) return;
   const link = doc.querySelector<HTMLLinkElement>('link[rel="icon"]');
   if (!link) return;
   link.removeAttribute("type");
   link.href = logo.light;
-  if (!logo.dark) return;
-  link.media = "(prefers-color-scheme: light)";
-  const dark = link.cloneNode() as HTMLLinkElement;
-  dark.href = logo.dark;
-  dark.media = "(prefers-color-scheme: dark)";
-  link.after(dark);
+  const dark = logo.dark;
+  if (!dark || !darkScheme) return;
+  const follow = () => {
+    link.href = darkScheme.matches ? dark : logo.light;
+  };
+  follow();
+  darkScheme.addEventListener("change", follow);
 }
 
 /**

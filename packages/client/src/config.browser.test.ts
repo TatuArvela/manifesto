@@ -101,21 +101,33 @@ describe("the tab's icon", () => {
     expect(link?.hasAttribute("type")).toBe(false);
   });
 
-  test("follows the browser's scheme to a dark variant", () => {
+  test("follows the browser's scheme to a dark variant, in one link", () => {
     const doc = document.implementation.createHTMLDocument();
     doc.head.innerHTML = '<link rel="icon" href="/favicon.svg" />';
+    let onChange = () => {};
+    const scheme = {
+      matches: true,
+      addEventListener: (_type: string, listener: () => void) => {
+        onChange = listener;
+      },
+    };
     applyFavicon(
       { light: "/i.svg", dark: "/i-dark.svg", invertInDark: false },
       doc,
+      scheme as unknown as MediaQueryList,
     );
-    const links = [...doc.querySelectorAll("link[rel=icon]")].map((l) => [
-      l.getAttribute("href"),
-      l.getAttribute("media"),
-    ]);
-    expect(links).toEqual([
-      ["/i.svg", "(prefers-color-scheme: light)"],
-      ["/i-dark.svg", "(prefers-color-scheme: dark)"],
-    ]);
+    const hrefs = () =>
+      [...doc.querySelectorAll("link[rel=icon]")].map((l) =>
+        l.getAttribute("href"),
+      );
+    expect(hrefs()).toEqual(["/i-dark.svg"]);
+    expect(doc.querySelector("link[rel=icon]")?.hasAttribute("media")).toBe(
+      false,
+    );
+
+    scheme.matches = false;
+    onChange();
+    expect(hrefs()).toEqual(["/i.svg"]);
   });
 
   test("is left alone with nothing to put there", () => {
