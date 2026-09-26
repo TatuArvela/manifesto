@@ -1073,6 +1073,17 @@ body.marquee-active {
   }
 }
 
+/* Nothing inside a card is dragged or long-pressed on its own. Links and
+   pictures are draggable by default and the nearest draggable wins, so a
+   card that is mostly link preview handed the drag to its picture; and on a
+   phone the system's long press on a link or image (the drag lift, the link
+   preview, the callout) took the touch away from the card's own hold. The
+   `draggable={false}` on the preview and gallery elements covers Firefox. */
+.note-draggable :is(a, img) {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
 /* A card held under a finger: lifted off the board, waiting to be dragged or
    selected. Small enough not to disturb the masonry column it sits in, since
    `transform` takes no part in layout. */
@@ -1712,12 +1723,6 @@ body.note-drag-active .note-select {
 
 .dark .task-item-drag-ghost li[data-item-type="task"] {
   background: var(--color-neutral-800);
-}
-
-/* Its copies of the handle and X are not controls, and would only clutter. */
-.task-item-drag-ghost .task-item-drag-handle,
-.task-item-drag-ghost .task-item-delete {
-  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

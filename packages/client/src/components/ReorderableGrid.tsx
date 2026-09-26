@@ -2,6 +2,7 @@ import type { Note } from "@manifesto/shared";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useMasonryGrid } from "../hooks/useMasonryGrid.js";
 import { animations, noteSize, viewMode } from "../state/index.js";
+import { edgeScroll, scrollParent } from "../utils/edgeScroll.js";
 import { gridColumns } from "./gridColumns.js";
 import { NoteCard } from "./NoteCard.js";
 
@@ -282,11 +283,42 @@ export function ReorderableGrid({
     startY: number;
   } | null>(null);
 
+  // A finger holding a card cannot also scroll the board, so the board
+  // scrolls itself while the finger rests near its top or bottom edge. The
+  // card under a still finger changes as the board moves, so each frame that
+  // scrolls looks for it again.
+  const touchScroll = useRef<{
+    scroller: HTMLElement;
+    frame: number;
+    coords: { clientX: number; clientY: number };
+  } | null>(null);
+
+  const scrollFrame = () => {
+    const scroll = touchScroll.current;
+    if (!scroll) return;
+    scroll.frame = requestAnimationFrame(scrollFrame);
+    if (edgeScroll(scroll.scroller, scroll.coords.clientY)) {
+      settledAt.current = null;
+      latest.current.moveTo(scroll.coords);
+    }
+  };
+
+  const stopTouchScroll = () => {
+    if (touchScroll.current) cancelAnimationFrame(touchScroll.current.frame);
+    touchScroll.current = null;
+  };
+
   const removeGhost = () => {
     ghostRef.current?.el.remove();
     ghostRef.current = null;
   };
-  useEffect(() => removeGhost, []);
+  useEffect(
+    () => () => {
+      removeGhost();
+      stopTouchScroll();
+    },
+    [],
+  );
 
   const handleTouchDragStart = (e: PointerEvent, id: string) => {
     if (!reorderable) return;
@@ -306,6 +338,12 @@ export function ReorderableGrid({
     ghostRef.current = { el: ghost, startX: e.clientX, startY: e.clientY };
     beginDrag(id);
     target.classList.add("note-dragging");
+    stopTouchScroll();
+    touchScroll.current = {
+      scroller: scrollParent(target),
+      frame: requestAnimationFrame(scrollFrame),
+      coords: { clientX: e.clientX, clientY: e.clientY },
+    };
   };
 
   const handleTouchDragMove = (e: PointerEvent) => {
@@ -314,10 +352,13 @@ export function ReorderableGrid({
     if (ghost) {
       ghost.el.style.translate = `${e.clientX - ghost.startX}px ${e.clientY - ghost.startY}px`;
     }
+    if (touchScroll.current)
+      touchScroll.current.coords = { clientX: e.clientX, clientY: e.clientY };
     scheduleMove(e);
   };
 
   const handleTouchDragEnd = (_e: PointerEvent, didDrag: boolean) => {
+    stopTouchScroll();
     cancelMove();
     removeGhost();
     if (touchDragElRef.current) {

@@ -58,7 +58,7 @@ Notes can be sorted in three modes, selectable from the header:
 - **Updated**: Last updated first.
 - **Created**: Most recently created first.
 
-Pinned and unpinned sections each maintain their own order independently. In default mode, each section has its own drag-and-drop sequence. While a note is dragged, the others move aside to show the order a drop would give: the note takes the place of the note under the pointer, and its own place in the preview is left empty, since the note is shown under the pointer (on a touch screen, a lifted copy that follows the finger). Letting go outside the section puts everything back.
+Pinned and unpinned sections each maintain their own order independently. In default mode, each section has its own drag-and-drop sequence. While a note is dragged, the others move aside to show the order a drop would give: the note takes the place of the note under the pointer, and its own place in the preview is left empty, since the note is shown under the pointer (on a touch screen, a lifted copy that follows the finger). Holding the note near the top or bottom edge of the board scrolls it, for a finger as for a mouse. The whole card is what gets dragged: a link preview or image inside it is not dragged on its own, and a long press on one lifts the card rather than opening the system's link or image menu. Letting go outside the section puts everything back.
 
 In connected mode, manual ordering is per-user: each user has their own arrangement.
 

@@ -16,14 +16,11 @@ import {
   type EditorView,
   type NodeViewConstructor,
 } from "@milkdown/kit/prose/view";
+import { edgeScroll, scrollParent } from "../utils/edgeScroll.js";
 
 const INDENT_PX = 24;
 const DRAG_THRESHOLD_PX = 4;
 const INDICATOR_HEIGHT_PX = 2;
-/** How close to the top or bottom of the scrolling area a drag starts it
- * scrolling, and how fast it goes at the very edge, per frame. */
-const AUTOSCROLL_EDGE_PX = 48;
-const AUTOSCROLL_MAX_PX = 14;
 
 type TaskItemInfo = {
   pos: number;
@@ -279,6 +276,11 @@ function createGhost(source: HTMLElement): HTMLElement {
   const list = document.createElement("ul");
   const copy = source.cloneNode(true) as HTMLElement;
   copy.classList.remove("task-item-dragging", "task-item-active");
+  // Its handles and X buttons are not controls, and would only clutter.
+  for (const control of copy.querySelectorAll(
+    ".task-item-drag-handle, .task-item-delete",
+  ))
+    control.remove();
   list.appendChild(copy);
   wrapper.appendChild(list);
   return wrapper;
@@ -291,59 +293,17 @@ function positionGhost(state: DragState) {
   state.ghost.style.top = `${state.lastY - state.grabOffsetY}px`;
 }
 
-/** The box that scrolls the list: the phone editor's middle, or the page. */
-function scrollParent(el: HTMLElement): HTMLElement {
-  for (let node = el.parentElement; node; node = node.parentElement) {
-    const { overflowY } = getComputedStyle(node);
-    if (
-      (overflowY === "auto" || overflowY === "scroll") &&
-      node.scrollHeight > node.clientHeight
-    )
-      return node;
-  }
-  return (document.scrollingElement as HTMLElement) ?? document.body;
-}
-
 /**
- * Scrolls while the pointer rests near an edge of the scrolling area, faster
- * the closer it is, and re-aims the drop as the list moves under it. Runs
- * every frame of a drag; the item positions are read live, so nothing
- * collected at the start goes stale.
+ * Scrolls while the pointer rests near an edge of the scrolling area, and
+ * re-aims the drop as the list moves under it. Runs every frame of a drag;
+ * the item positions are read live, so nothing collected at the start goes
+ * stale.
  */
 function autoScroll() {
   const state = dragState;
   if (!state) return;
   state.scrollFrame = requestAnimationFrame(autoScroll);
-  if (!state.active) return;
-
-  const box =
-    state.scroller === document.scrollingElement
-      ? { top: 0, bottom: window.innerHeight }
-      : state.scroller.getBoundingClientRect();
-  const top = Math.max(box.top, 0);
-  const bottom = Math.min(box.bottom, window.innerHeight);
-  let step = 0;
-  if (state.lastY < top + AUTOSCROLL_EDGE_PX) {
-    step = -Math.ceil(
-      AUTOSCROLL_MAX_PX *
-        Math.min(
-          1,
-          (top + AUTOSCROLL_EDGE_PX - state.lastY) / AUTOSCROLL_EDGE_PX,
-        ),
-    );
-  } else if (state.lastY > bottom - AUTOSCROLL_EDGE_PX) {
-    step = Math.ceil(
-      AUTOSCROLL_MAX_PX *
-        Math.min(
-          1,
-          (state.lastY - (bottom - AUTOSCROLL_EDGE_PX)) / AUTOSCROLL_EDGE_PX,
-        ),
-    );
-  }
-  if (step === 0) return;
-  const before = state.scroller.scrollTop;
-  state.scroller.scrollTop = before + step;
-  if (state.scroller.scrollTop !== before) aim(state);
+  if (state.active && edgeScroll(state.scroller, state.lastY)) aim(state);
 }
 
 function createIndicator(): HTMLElement {

@@ -394,6 +394,40 @@ describe("ReorderableGrid", () => {
     expect(getComputedStyle(from).visibility).toBe("visible");
   });
 
+  it("scrolls the board while a finger holds a card near its bottom edge", async () => {
+    hoverNone.current = true;
+    viewMode.value = "list";
+    const scroller = document.createElement("div");
+    scroller.style.height = "160px";
+    scroller.style.overflowY = "auto";
+    document.body.appendChild(scroller);
+    scroller.appendChild(host);
+    render(
+      <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
+      host,
+    );
+    const from = articleIn(cards()[0]);
+    const opts = { bubbles: true, pointerId: 1, pointerType: "touch" as const };
+    const start = centreOf(from);
+    from.dispatchEvent(new PointerEvent("pointerdown", { ...opts, ...start }));
+    await new Promise((resolve) => setTimeout(resolve, HOLD_MS));
+    const bottom = scroller.getBoundingClientRect().bottom;
+    const edge = { clientX: start.clientX, clientY: bottom - 4 };
+    from.dispatchEvent(new PointerEvent("pointermove", { ...opts, ...edge }));
+
+    await vi.waitFor(() => expect(scroller.scrollTop).toBeGreaterThan(20));
+
+    from.dispatchEvent(new PointerEvent("pointerup", { ...opts, ...edge }));
+    await tick();
+    // Let go, it stays where it was taken.
+    const stopped = scroller.scrollTop;
+    await nextFrame();
+    await nextFrame();
+    expect(scroller.scrollTop).toBe(stopped);
+    render(null, host);
+    scroller.remove();
+  });
+
   it("does not flip back and forth under a pointer that has not moved", async () => {
     // Cards move under a still pointer when the order changes, and the card
     // now beneath it is not a new target until the pointer travels.

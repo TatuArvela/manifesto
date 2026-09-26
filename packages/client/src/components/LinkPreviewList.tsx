@@ -49,6 +49,7 @@ function LinkPreviewRow({
           <StoredImage
             src={preview.image}
             alt=""
+            draggable={false}
             placeholderClass="block"
             class="w-full h-full object-cover"
           />
@@ -56,6 +57,7 @@ function LinkPreviewRow({
           <StoredImage
             src={preview.favicon}
             alt=""
+            draggable={false}
             placeholderClass="block"
             class="w-6 h-6 object-contain"
           />
@@ -92,6 +94,8 @@ function LinkPreviewRow({
         href={preview.url}
         target="_blank"
         rel="noopener noreferrer"
+        // As on the hero: the card is what a drag picks up.
+        draggable={false}
         class="block no-underline"
         onClick={(e) => e.stopPropagation()}
       >
