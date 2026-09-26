@@ -356,9 +356,12 @@ card the OS took the touch from would stay lifted with nothing holding it.
 both have to be on screen or applied before the bundle exists: launched from a home screen there is
 no browser chrome to look at while it loads. `theme-init.js` duplicates the two reads `prefs.ts`
 makes of `manifesto:prefs` and writes the same `dark` class; it is a separate file rather than an
-inline script because the page's CSP allows scripts from `'self'` only. `main.tsx` removes the
-splash a frame after the first render, on a timer as well as `transitionend`, since that event
-never arrives in a background tab.
+inline script because the page's CSP allows scripts from `'self'` only. The splash comes down
+when the first real screen is there, not on the first render, which is an empty board: `splash.ts`
+fades it once `revealApp()` is called (notes loaded, the sign-in screen, a crash or setup error)
+and the fonts that screen asked for have arrived, or at `SPLASH_CAP_MS` after boot regardless. It
+is removed on a timer as well as `transitionend`, since that event never arrives in a background
+tab.
 
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
 toast queue or the catalogue, so the "tell the user" decision stays in `failures.ts`. A refused

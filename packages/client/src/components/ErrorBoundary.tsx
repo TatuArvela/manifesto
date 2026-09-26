@@ -2,6 +2,7 @@ import { LOCAL_IMAGE_REF_PREFIX } from "@manifesto/shared";
 import { Component, type ComponentChildren } from "preact";
 import { APP_FILE_SLUG, APP_NAME } from "../config.js";
 import { t } from "../i18n/index.js";
+import { revealApp } from "../splash.js";
 import { getLocalImage } from "../storage/localImages.js";
 import { blobToDataUrl } from "../utils/dataUrl.js";
 
@@ -79,6 +80,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error): void {
     console.error(`${APP_NAME} crashed during render`, error);
+    // The fallback, with its backup button, is the screen now.
+    revealApp();
   }
 
   private downloadBackup = async (): Promise<void> => {
