@@ -36,6 +36,13 @@ accounts and no sync.
 The scenario: Acme wants "Corporate Notes" at `notes.acme.internal`, backed by
 their own server, with accounts from their existing identity provider.
 
+Replacing the app's name is optional. A deployment that keeps "Manifesto" and
+only says whose copy it is sets the instance and organisation instead
+(`VITE_INSTANCE_NAME="Foo QA project" VITE_ORG_NAME="Acme Inc"
+VITE_ORG_LOGO=~/acme-brand/acme.svg`), and users see "Manifesto · Foo QA
+project", provided by Acme Inc. The two combine; see
+[Rebranding](client/deployment.md#rebranding) for where each appears.
+
 ### 1. Collect the brand assets
 
 Create a folder anywhere outside the repository, such as `~/acme-brand/`. Include only
@@ -147,6 +154,9 @@ already saved in a browser.
 | Surface | Set by |
 |---|---|
 | Window title, header, login screen, crash screen, PWA name | `VITE_APP_NAME` |
+| The app's mark in the header, login screen and welcome dialog | `VITE_APP_LOGO` (or `logo.svg` in `VITE_APP_ICONS_DIR`) |
+| Which copy this is, beside the name in the header and tab, on the login screen, in About and the authenticator entry | `VITE_INSTANCE_NAME` |
+| "Provided by" with a logo, on the login screen and in About | `VITE_ORG_NAME`, `VITE_ORG_LOGO` |
 | Export and crash-backup filenames | derived from `VITE_APP_NAME` |
 | PWA manifest description, HTML meta description | `VITE_APP_DESCRIPTION` |
 | Header mark, favicon, PWA icon | `VITE_APP_ICONS_DIR` |

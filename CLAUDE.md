@@ -111,10 +111,17 @@ phrased to leave the placeholder uninflected: Finnish says "Tämä on {appName}"
 never "{appName}on". Reach for a rewording, not a special case, when a
 language wants to bend the name.
 
-Three deployment parameters are read from `index.html` this way, not one:
-`application-name`, `welcome-dialog`, and `manifesto-server` (`resolveServerUrl`,
-feeding `SERVER_URL` / `isServerMode` in `state/auth.ts`). The last one is not
-branding and carries a trap the other two do not. The server address and the CSP
+Branding has two halves. The app's own name and mark (`APP_NAME`, `APP_LOGO_URL`) replace
+Manifesto's; the deployment's (`INSTANCE_NAME`, `ORG_NAME`, `ORG_LOGO_URL`, all null unless set)
+sit beside the app's and never replace it. Every one is a meta tag in `index.html` over a
+build-time value (`__APP_NAME__`, `__BRANDING__`), and the logo variables are files the build
+publishes as `app-logo.<ext>` / `org-logo.<ext>`. The organisation's logo is never inverted in
+dark mode; the app's is.
+
+Besides those, two more deployment parameters are read from `index.html`:
+`welcome-dialog` and `manifesto-server` (`resolveServerUrl`, feeding `SERVER_URL` /
+`isServerMode` in `state/auth.ts`). The last one is not branding and carries a trap the others
+do not. The server address and the CSP
 that permits reaching it live in the same file, and the build writes both
 together (`cspForServer` derives `connect-src` from `VITE_MANIFESTO_SERVER`)
 while a hand edit writes one and forgets the other. Forgetting it gives a login

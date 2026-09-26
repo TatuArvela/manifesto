@@ -1,6 +1,6 @@
 import type { AuthMethodsResponse } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
-import { APP_LOGO_URL, APP_NAME } from "../config.js";
+import { APP_LOGO_URL, APP_NAME, INSTANCE_NAME } from "../config.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   confirmPasswordReset,
@@ -19,6 +19,7 @@ import {
 } from "../state/auth.js";
 import { locale } from "../state/prefs.js";
 import { showSuccess } from "../state/ui.js";
+import { OrgCredit } from "./OrgCredit.js";
 
 const OIDC_REFUSAL_MESSAGES: Record<OidcRefusal, MessageKey> = {
   not_in_group: "login.oidcNotInGroup",
@@ -70,9 +71,16 @@ export function LoginScreen() {
         />
         {/* No "Sign in to…" beneath: the name is the heading, and the form
             under it starts with a Sign in tab. */}
-        <h1 class="text-2xl font-semibold text-center mb-6 text-neutral-900 dark:text-neutral-50">
+        <h1
+          class={`text-2xl font-semibold text-center text-neutral-900 dark:text-neutral-50 ${INSTANCE_NAME ? "mb-1" : "mb-6"}`}
+        >
           {APP_NAME}
         </h1>
+        {INSTANCE_NAME && (
+          <p class="text-sm text-center mb-6 text-neutral-500 dark:text-neutral-400">
+            {INSTANCE_NAME}
+          </p>
+        )}
 
         {discovery.kind === "loading" && (
           <p class="text-sm text-center text-neutral-500 dark:text-neutral-400 py-6">
@@ -90,6 +98,8 @@ export function LoginScreen() {
         {discovery.kind === "ready" && (
           <SignInOptions methods={discovery.methods} />
         )}
+
+        <OrgCredit class="mt-6" />
 
         {SERVER_ORIGIN !== null && (
           <p class="mt-6 text-xs text-center text-neutral-400 dark:text-neutral-500 break-all">

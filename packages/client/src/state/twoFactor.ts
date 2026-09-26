@@ -3,7 +3,7 @@ import type {
   TwoFactorSetupResponse,
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
-import { APP_NAME } from "../config.js";
+import { APP_NAME, INSTANCE_NAME } from "../config.js";
 import { apiFetch } from "../storage/apiRequest.js";
 
 /**
@@ -67,13 +67,15 @@ export async function renewRecoveryCodes(
 /**
  * What an authenticator app takes, labelled with this deployment's name: the
  * server does not know what the app is called here, so the link is made on
- * this side.
+ * this side. The instance goes in too when there is one, or two instances of
+ * the same app make two entries nobody can tell apart.
  */
 export function otpauthLink(username: string, secret: string): string {
-  const label = `${encodeURIComponent(APP_NAME)}:${encodeURIComponent(username)}`;
+  const issuer = INSTANCE_NAME ? `${APP_NAME} (${INSTANCE_NAME})` : APP_NAME;
+  const label = `${encodeURIComponent(issuer)}:${encodeURIComponent(username)}`;
   const params = new URLSearchParams({
     secret,
-    issuer: APP_NAME,
+    issuer,
     algorithm: "SHA1",
     digits: "6",
     period: "30",

@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { APP_LOGO_URL, APP_NAME } from "../config.js";
+import { APP_LOGO_URL, APP_NAME, INSTANCE_NAME } from "../config.js";
 import { getColorPickerColors, plural, t } from "../i18n/index.js";
 import { availableUpdate } from "../state/admin.js";
 import { currentUser } from "../state/auth.js";
@@ -354,11 +354,21 @@ function MainHeader({ covered }: { covered: boolean }) {
           <img src={APP_LOGO_URL} alt="" class="h-6 w-6 shrink-0 dark:invert" />
         )}
         <h1
-          class="text-lg font-semibold truncate select-none"
+          class="text-lg font-semibold truncate select-none shrink-0 max-w-full"
           title={viewTitle}
         >
           {viewTitle}
         </h1>
+        {/* Which copy of the app this is, beside its name on the Notes view,
+            where the name is. It gives way first when the header is tight. */}
+        {activeView.value === "active" && INSTANCE_NAME && (
+          <span
+            class="text-sm text-neutral-500 dark:text-neutral-400 truncate select-none min-w-0"
+            title={INSTANCE_NAME}
+          >
+            {INSTANCE_NAME}
+          </span>
+        )}
       </div>
 
       {/* Center: search bar, absolutely positioned for true centering

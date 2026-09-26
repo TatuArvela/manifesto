@@ -3,11 +3,17 @@ import {
   APP_FILE_SLUG,
   APP_LOGO_URL,
   APP_NAME,
+  INSTANCE_NAME,
+  ORG_LOGO_URL,
+  ORG_NAME,
   resolveAppName,
+  resolveBrandText,
+  resolveLogoUrl,
   resolveServerUrl,
   resolveWelcomeEnabled,
   toFileSlug,
   WELCOME_ENABLED,
+  WINDOW_TITLE,
 } from "./config.js";
 
 /**
@@ -45,6 +51,65 @@ describe("APP_LOGO_URL", () => {
   test("points at logo.svg under the deployment base", () => {
     expect(APP_LOGO_URL).toBe(`${import.meta.env.BASE_URL}logo.svg`);
     expect(APP_LOGO_URL.endsWith("/logo.svg")).toBe(true);
+  });
+});
+
+describe("the deployment's own branding", () => {
+  // The test build sets none of it, which is every stock deployment.
+  test("is absent unless configured, and the title is the app's name", () => {
+    expect(INSTANCE_NAME).toBeNull();
+    expect(ORG_NAME).toBeNull();
+    expect(ORG_LOGO_URL).toBeNull();
+    expect(WINDOW_TITLE).toBe(APP_NAME);
+  });
+});
+
+describe("resolveBrandText()", () => {
+  test("prefers the meta tag, then the build's value", () => {
+    expect(
+      withMetaTag(
+        "Foo QA project",
+        () => resolveBrandText("instance-name", "Built"),
+        "instance-name",
+      ),
+    ).toBe("Foo QA project");
+    expect(resolveBrandText("instance-name", "Built")).toBe("Built");
+  });
+
+  test("is null for an unset, empty or placeholder value", () => {
+    expect(resolveBrandText("org-name", "")).toBeNull();
+    expect(
+      withMetaTag(
+        "%ORG_NAME%",
+        () => resolveBrandText("org-name", ""),
+        "org-name",
+      ),
+    ).toBeNull();
+    expect(
+      withMetaTag("  ", () => resolveBrandText("org-name", " "), "org-name"),
+    ).toBeNull();
+  });
+});
+
+describe("resolveLogoUrl()", () => {
+  test("puts a bare file name under the deployment base", () => {
+    expect(resolveLogoUrl("org-logo.png", "/notes/")).toBe(
+      "/notes/org-logo.png",
+    );
+  });
+
+  test("takes an absolute path or a data URL as it is", () => {
+    expect(resolveLogoUrl("/brand/acme.svg", "/notes/")).toBe(
+      "/brand/acme.svg",
+    );
+    expect(resolveLogoUrl("data:image/svg+xml,x", "/")).toBe(
+      "data:image/svg+xml,x",
+    );
+  });
+
+  test("is null for nothing", () => {
+    expect(resolveLogoUrl(null)).toBeNull();
+    expect(resolveLogoUrl("  ")).toBeNull();
   });
 });
 

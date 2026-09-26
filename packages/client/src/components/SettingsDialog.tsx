@@ -23,7 +23,7 @@ import {
 import type { ComponentChildren, JSX } from "preact";
 import { useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
-import { APP_NAME, WELCOME_ENABLED } from "../config.js";
+import { APP_NAME, INSTANCE_NAME, WELCOME_ENABLED } from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { usePresence } from "../hooks/usePresence.js";
@@ -79,6 +79,7 @@ import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
 import { Dropdown } from "./Dropdown.js";
+import { OrgCredit } from "./OrgCredit.js";
 import { Switch, ThreeWayToggle } from "./ToggleSwitch.js";
 import { TwoFactorSettings } from "./TwoFactorSettings.js";
 import { WebhooksSettings } from "./WebhooksSettings.js";
@@ -905,11 +906,13 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
     <div class="space-y-5">
       <div>
         <p class="text-base font-medium">{APP_NAME}</p>
+        {INSTANCE_NAME && <p class="text-sm">{INSTANCE_NAME}</p>}
         <p class="text-sm text-neutral-500 dark:text-neutral-400">
           {t("settings.about.version", { version: __APP_VERSION__ })}
           {" · "}
           {t("settings.about.license")}
         </p>
+        <OrgCredit class="mt-3 justify-start" />
       </div>
       <StorageMode class="bg-neutral-100 dark:bg-neutral-700/50" />
       {update && (

@@ -145,9 +145,80 @@ export function toFileSlug(name: string): string {
 export const APP_FILE_SLUG: string = toFileSlug(APP_NAME);
 
 /**
- * The header logo. It lives in `public/` rather than `src/assets/` so that it
- * is a plain file at a predictable path in a built bundle: replacing the brand
- * mark is then the same kind of job as replacing the favicon, with no build
- * step and no content hash to chase. Base-prefixed for subpath deployments.
+ * A branding meta tag's value, or null when the document has none, it is
+ * empty, or it still holds a `%PLACEHOLDER%` because the raw template is being
+ * served.
  */
-export const APP_LOGO_URL: string = `${import.meta.env.BASE_URL}logo.svg`;
+function metaValue(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const content = document
+    .querySelector<HTMLMetaElement>(`meta[name="${name}"]`)
+    ?.content?.trim();
+  if (!content || /^%[A-Z_]+%$/.test(content)) return null;
+  return content;
+}
+
+/**
+ * One of the deployment's own names: the meta tag if it holds one, else what
+ * the build was given, else null for a deployment that did not set it. The
+ * same pair of paths as {@link resolveAppName}, for the same reason.
+ */
+export function resolveBrandText(tag: string, fallback: string): string | null {
+  return metaValue(tag) ?? (fallback.trim() || null);
+}
+
+/**
+ * A branding image as a URL the page can load. A bare file name is one beside
+ * `index.html`, so it is base-prefixed for a subpath deployment; an absolute
+ * path or a `data:` URL is taken as it is. A remote `https:` URL would be too,
+ * and is then refused by the page's `img-src 'self'`, which is why the docs
+ * say to ship the file with the build.
+ */
+export function resolveLogoUrl(
+  value: string | null,
+  base: string = import.meta.env.BASE_URL,
+): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (/^(\/|[a-z][a-z0-9+.-]*:)/i.test(trimmed)) return trimmed;
+  return `${base}${trimmed}`;
+}
+
+/**
+ * The app's mark: the header, the sign-in screen, the welcome dialog. A plain
+ * file at a fixed name beside `index.html` rather than a hashed import, so
+ * replacing it is the same kind of job as replacing the favicon. `logo.svg`
+ * unless `VITE_APP_LOGO` or the `app-logo` meta tag names another.
+ */
+export const APP_LOGO_URL: string =
+  resolveLogoUrl(metaValue("app-logo") ?? __BRANDING__.appLogo) ??
+  `${import.meta.env.BASE_URL}logo.svg`;
+
+/**
+ * What this copy is for, when a deployment names it ("Foo QA project"): shown
+ * beside the app's name in the header and the tab, and on the sign-in screen,
+ * so two instances of the same app in one browser can be told apart.
+ */
+export const INSTANCE_NAME: string | null = resolveBrandText(
+  "instance-name",
+  __BRANDING__.instanceName,
+);
+
+/** Who runs this copy ("Acme Inc"), on the sign-in screen and in About. */
+export const ORG_NAME: string | null = resolveBrandText(
+  "org-name",
+  __BRANDING__.orgName,
+);
+
+/**
+ * The organisation's logo. Drawn as it is, never inverted for dark mode as
+ * the app's mark is, since an organisation's colours are its own.
+ */
+export const ORG_LOGO_URL: string | null = resolveLogoUrl(
+  metaValue("org-logo") ?? (__BRANDING__.orgLogo || null),
+);
+
+/** The window title: the instance first, since that is what tells tabs apart. */
+export const WINDOW_TITLE: string = INSTANCE_NAME
+  ? `${INSTANCE_NAME} · ${APP_NAME}`
+  : APP_NAME;

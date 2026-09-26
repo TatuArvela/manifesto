@@ -65,16 +65,46 @@ const DEFAULT_APP_NAME = "Manifesto";
 const DEFAULT_APP_DESCRIPTION = "Sticky-note style note-taking app.";
 
 /**
- * The product name and tagline shown to users, and whether the welcome dialog
- * greets them. Resolved once, here, so the bundle (`__APP_NAME__`,
- * `__APP_WELCOME__`), `index.html`, and `manifest.webmanifest` cannot disagree
- * about what the app is called, what it says it does, or how it opens.
+ * An image named by a branding variable, as the build publishes it: the file
+ * on disk, and the name it is served at beside `index.html`. Null when the
+ * variable is unset, or names nothing (with a warning, since a typo there
+ * would otherwise just leave the stock mark in place with no word why).
+ */
+function brandImage(
+  configured: string | undefined,
+  publishedAs: string,
+  variable: string,
+) {
+  const value = configured?.trim();
+  if (!value) return null;
+  const file = path.resolve(process.cwd(), value);
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
+    console.warn(
+      `[branding] ${variable} points at ${file}, which is not a file; leaving it out.`,
+    );
+    return null;
+  }
+  return { file, name: `${publishedAs}${path.extname(file).toLowerCase()}` };
+}
+
+/**
+ * The product and who runs it, and whether the welcome dialog greets users.
+ * Resolved once, here, so the bundle (`__APP_NAME__`, `__BRANDING__`,
+ * `__APP_WELCOME__`), `index.html`, and `manifest.webmanifest` cannot
+ * disagree about any of it.
+ *
+ * Two kinds of name: the app's (its name and mark, "Manifesto" and the stock
+ * logo unless replaced), and the deployment's own, all optional: the
+ * instance ("Foo QA project") and the organisation behind it ("Acme Inc",
+ * with its logo).
  */
 function resolveBranding(env: Record<string, string>) {
   const pick = (configured: string | undefined, fallback: string) => {
     const trimmed = configured?.trim();
     return trimmed && trimmed.length > 0 ? trimmed : fallback;
   };
+  const appLogo = brandImage(env.VITE_APP_LOGO, "app-logo", "VITE_APP_LOGO");
+  const orgLogo = brandImage(env.VITE_ORG_LOGO, "org-logo", "VITE_ORG_LOGO");
   return {
     appName: pick(env.VITE_APP_NAME, DEFAULT_APP_NAME),
     appDescription: pick(env.VITE_APP_DESCRIPTION, DEFAULT_APP_DESCRIPTION),
@@ -82,19 +112,37 @@ function resolveBranding(env: Record<string, string>) {
     appWelcome: /^(off|false|0|no)$/i.test(env.VITE_APP_WELCOME?.trim() ?? "")
       ? "off"
       : "on",
+    instanceName: pick(env.VITE_INSTANCE_NAME, ""),
+    orgName: pick(env.VITE_ORG_NAME, ""),
+    appLogo,
+    orgLogo,
   };
 }
 
 type Branding = ReturnType<typeof resolveBranding>;
 
+/** Enough for a value inside a double-quoted attribute or element text. */
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function applyBranding(
   src: string,
-  { appName, appDescription, appWelcome }: Branding,
+  branding: Branding,
+  encode: (value: string) => string = (value) => value,
 ) {
   return src
-    .replaceAll("%APP_NAME%", appName)
-    .replaceAll("%APP_DESCRIPTION%", appDescription)
-    .replaceAll("%APP_WELCOME%", appWelcome);
+    .replaceAll("%APP_NAME%", encode(branding.appName))
+    .replaceAll("%APP_DESCRIPTION%", encode(branding.appDescription))
+    .replaceAll("%APP_WELCOME%", branding.appWelcome)
+    .replaceAll("%APP_LOGO%", branding.appLogo?.name ?? "logo.svg")
+    .replaceAll("%INSTANCE_NAME%", encode(branding.instanceName))
+    .replaceAll("%ORG_NAME%", encode(branding.orgName))
+    .replaceAll("%ORG_LOGO%", branding.orgLogo?.name ?? "");
 }
 
 /**
@@ -107,7 +155,7 @@ function brandingInHtml(branding: Branding): Plugin {
     name: "branding-in-html",
     transformIndexHtml: {
       order: "pre",
-      handler: (html) => applyBranding(html, branding),
+      handler: (html) => applyBranding(html, branding, escapeHtml),
     },
   };
 }
@@ -164,6 +212,40 @@ function iconOverlay(dir: string | undefined): Plugin {
         const from = path.join(resolveDir(), name);
         if (!fs.statSync(from).isFile()) continue;
         fs.copyFileSync(from, path.resolve(outDir, name));
+      }
+    },
+  };
+}
+
+/**
+ * Publishes `VITE_APP_LOGO` and `VITE_ORG_LOGO` beside `index.html`, under
+ * the names its meta tags carry (`app-logo.svg`, `org-logo.png`, ...). Plain
+ * files at fixed names, like the stock logo, so a release bundle's marks are
+ * replaced the same way whichever path built it.
+ */
+function brandLogos(branding: Branding): Plugin {
+  const images = [branding.appLogo, branding.orgLogo].filter(
+    (image): image is NonNullable<typeof image> => image !== null,
+  );
+  let outDir = "dist";
+  return {
+    name: "brand-logos",
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const name = path.basename(req.url?.split("?")[0] ?? "");
+        const image = images.find((candidate) => candidate.name === name);
+        const type = IMAGE_TYPES[path.extname(name)];
+        if (!image || !type) return next();
+        res.setHeader("Content-Type", type);
+        res.end(fs.readFileSync(image.file));
+      });
+    },
+    closeBundle() {
+      for (const image of images) {
+        fs.copyFileSync(image.file, path.resolve(outDir, image.name));
       }
     },
   };
@@ -232,6 +314,12 @@ export default defineConfig(({ mode }) => {
       ),
       __APP_NAME__: JSON.stringify(branding.appName),
       __APP_WELCOME__: JSON.stringify(branding.appWelcome === "on"),
+      __BRANDING__: JSON.stringify({
+        appLogo: branding.appLogo?.name ?? "logo.svg",
+        instanceName: branding.instanceName,
+        orgName: branding.orgName,
+        orgLogo: branding.orgLogo?.name ?? "",
+      }),
     },
     resolve: {
       alias: {
@@ -277,6 +365,7 @@ export default defineConfig(({ mode }) => {
       githubPagesSpaFallback(),
       finalizeWebManifest(branding),
       iconOverlay(env.VITE_APP_ICONS_DIR),
+      brandLogos(branding),
     ],
     test: {
       // Two projects, chosen by filename. Most of what we test is pure
