@@ -272,7 +272,7 @@ export function NoteCardEditor({
         }
         onDone={saveAndClose}
         metadata={
-          <div class="flex gap-3 mt-3 text-xs text-black/40 dark:text-white/40">
+          <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-3 text-xs text-black/40 dark:text-white/40">
             <span>
               {t("editor.metadata.created", {
                 date: formatDateTime(note.createdAt),

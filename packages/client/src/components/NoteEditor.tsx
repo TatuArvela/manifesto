@@ -545,8 +545,12 @@ export function NoteEditor({
 
         {/* biome-ignore lint/a11y/noStaticElementInteractions: padding-area focus forward; inner contentEditable is the real target */}
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard users tab into the inner contentEditable directly */}
+        {/* Grows to fill a short note's screen, so a tap below the text
+            still lands in it, but never shrinks below the text: the column
+            around it is what scrolls, and a wrapper shorter than its text
+            lets the text run over the timestamps and tags under it. */}
         <div
-          class="max-sm:flex-1 max-sm:min-h-0 max-sm:cursor-text"
+          class="max-sm:flex-1 max-sm:cursor-text"
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
           onClick={(e) => {
             if (e.target !== e.currentTarget) return;
