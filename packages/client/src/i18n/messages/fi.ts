@@ -571,7 +571,6 @@ export const fi: Messages = {
   "settings.about.repo": "GitHub",
   "settings.about.welcome": "Tervetuloa",
   "settings.about.license": "MIT-lisenssillä",
-  "branding.providedBy": "Palveluntarjoaja: {name}",
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",

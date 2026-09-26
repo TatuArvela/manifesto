@@ -83,7 +83,9 @@ brand marks are parameters too.
 Branding comes in two parts. The **app** is the product: its name and mark,
 Manifesto's unless replaced. The **instance** and **organisation** are who runs
 this particular copy, all optional and shown alongside the app rather than in
-place of it: "Manifesto · Foo QA project, provided by Acme Inc".
+place of it: "Manifesto · Foo QA project", owned by Acme Inc. The organisation
+is shown by its name alone, with no "provided by": owning an instance is not
+the same as providing a service.
 
 | What | Variable | Meta tag | Default |
 |---|---|---|---|
@@ -101,8 +103,8 @@ Where each one shows up:
 |---|---|---|---|---|
 | Window title | yes | | first, as "Foo QA project · Manifesto" | |
 | Header (Notes view) | yes | yes | beside the name, muted; first to give way on a phone | |
-| Sign-in screen | heading | yes | under the heading | logo and "Provided by Acme Inc" at the foot |
-| Settings → About | yes | | under the name | logo and "Provided by Acme Inc" |
+| Sign-in screen | heading | yes | under the heading | logo and name at the foot |
+| Settings → About | yes | | under the name | logo and name |
 | Authenticator app entry (two-factor) | yes | | as "Manifesto (Foo QA project)" | |
 | Welcome dialog, messages, filenames | yes | yes (dialog) | | |
 

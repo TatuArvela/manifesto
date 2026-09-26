@@ -561,7 +561,6 @@ export const en = {
   "settings.about.repo": "GitHub",
   "settings.about.welcome": "Welcome",
   "settings.about.license": "MIT licensed",
-  "branding.providedBy": "Provided by {name}",
   "storage.quotaExceeded":
     "Browser storage is full. Some changes may not be saved until you free up space.",
   "dropZone.title": "Drop to import",
