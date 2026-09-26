@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/TatuArvela/manifesto/compare/v0.3.0...v0.3.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **client:** mobile editing and dragging, a loading screen, and instance branding ([#62](https://github.com/TatuArvela/manifesto/issues/62)) ([0fb19a9](https://github.com/TatuArvela/manifesto/commit/0fb19a99b1fcb71b82fa244e8fa1e2746b6b1542))
+
 ## [0.3.0](https://github.com/TatuArvela/manifesto/compare/v0.2.1...v0.3.0) (2026-09-25)
 
 
