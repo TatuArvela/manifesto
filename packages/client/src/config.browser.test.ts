@@ -20,6 +20,7 @@ import {
   toFileSlug,
   WELCOME_ENABLED,
   WINDOW_TITLE,
+  windowTitle,
 } from "./config.js";
 
 /**
@@ -154,6 +155,48 @@ describe("resolveLogo()", () => {
     expect(
       resolveLogo("org-logo", { light: "", dark: "acme-dark.svg" }, false),
     ).toBeNull();
+  });
+});
+
+describe("windowTitle()", () => {
+  test("puts the instance first and the app after it", () => {
+    expect(windowTitle("Manifesto", "Foo QA project", true)).toBe(
+      "Foo QA project · Manifesto",
+    );
+  });
+
+  test("leaves the app's name out when switched off, by build or tag", () => {
+    expect(windowTitle("Manifesto", "Foo QA project", false)).toBe(
+      "Foo QA project",
+    );
+    expect(
+      withMetaTag(
+        "off",
+        () => windowTitle("Manifesto", "Foo QA project", true),
+        "title-app-name",
+      ),
+    ).toBe("Foo QA project");
+    expect(
+      withMetaTag(
+        "on",
+        () => windowTitle("Manifesto", "Foo QA project", false),
+        "title-app-name",
+      ),
+    ).toBe("Foo QA project · Manifesto");
+  });
+
+  test("keeps the build's choice for a placeholder", () => {
+    expect(
+      withMetaTag(
+        "%TITLE_APP_NAME%",
+        () => windowTitle("Manifesto", "Foo QA project", false),
+        "title-app-name",
+      ),
+    ).toBe("Foo QA project");
+  });
+
+  test("is the app's name without an instance, whatever the setting", () => {
+    expect(windowTitle("Manifesto", null, false)).toBe("Manifesto");
   });
 });
 

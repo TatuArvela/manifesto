@@ -94,6 +94,7 @@ the same as providing a service.
 | Instance name | `VITE_INSTANCE_NAME` | `instance-name` | none |
 | Instance logo | `VITE_INSTANCE_LOGO` | `instance-logo` | none |
 | Top bar brand: `app` or `instance` | `VITE_HEADER_BRAND` | `header-brand` | `app` |
+| App name in the window title after the instance's: `on` or `off` | `VITE_TITLE_APP_NAME` | `title-app-name` | `on` |
 | Dark-theme variant of any of the three logos | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` | `app-logo-dark`, `instance-logo-dark`, `org-logo-dark` | none |
 | Organisation name | `VITE_ORG_NAME` | `org-name` | none |
 | Organisation logo | `VITE_ORG_LOGO` | `org-logo` | none |
@@ -104,7 +105,7 @@ Where each one shows up:
 
 | Surface | App name | App logo | Instance | Organisation |
 |---|---|---|---|---|
-| Window title | yes | | first, as "Foo QA project · Manifesto" | |
+| Window title | yes, unless `VITE_TITLE_APP_NAME=off` and there is an instance | | first, as "Foo QA project · Manifesto" | |
 | Header (Notes view), `app` brand | yes | yes | beside the name, muted; first to give way on a phone | |
 | Header (Notes view), `instance` brand | | | its logo and name, in place of the app's | |
 | Browser tab icon, `instance` brand | | | its logo, if it has one, in place of `favicon.svg` | |
@@ -184,7 +185,7 @@ below, which is two edits rather than one.
 
 | File | What to change |
 |---|---|
-| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `org-name` and `org-logo` meta tags (and each logo's `-dark` tag), and `<meta name="welcome-dialog">` to switch the welcome off |
+| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `title-app-name`, `org-name` and `org-logo` meta tags (and each logo's `-dark` tag), and `<meta name="welcome-dialog">` to switch the welcome off |
 | `404.html` | the same tags (it is a copy of `index.html` for SPA fallback) |
 | `manifest.webmanifest` | `name`, `short_name`, `description` |
 | `logo.svg`, `favicon.svg`, `icon-1024.png` | overwrite with your own |

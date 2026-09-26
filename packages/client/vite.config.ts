@@ -135,6 +135,12 @@ function resolveBranding(env: Record<string, string>) {
       ? "off"
       : "on",
     instanceName: pick(env.VITE_INSTANCE_NAME, ""),
+    // Whether the app's name follows the instance's in the window title.
+    titleAppName: /^(off|false|0|no)$/i.test(
+      env.VITE_TITLE_APP_NAME?.trim() ?? "",
+    )
+      ? "off"
+      : "on",
     instanceLogo,
     // Whose name the top bar carries: the app's, or the instance's instead.
     headerBrand: /^instance$/i.test(env.VITE_HEADER_BRAND?.trim() ?? "")
@@ -173,6 +179,7 @@ function applyBranding(
     .replaceAll("%INSTANCE_NAME%", encode(branding.instanceName))
     .replaceAll("%INSTANCE_LOGO%", branding.instanceLogo?.name ?? "")
     .replaceAll("%HEADER_BRAND%", branding.headerBrand)
+    .replaceAll("%TITLE_APP_NAME%", branding.titleAppName)
     .replaceAll("%ORG_NAME%", encode(branding.orgName))
     .replaceAll("%ORG_LOGO%", branding.orgLogo?.name ?? "")
     .replaceAll("%APP_LOGO_DARK%", branding.appLogoDark?.name ?? "")
@@ -360,6 +367,7 @@ export default defineConfig(({ mode }) => {
         instanceName: branding.instanceName,
         instanceLogo: branding.instanceLogo?.name ?? "",
         headerBrand: branding.headerBrand,
+        titleAppName: branding.titleAppName === "on",
         orgName: branding.orgName,
         orgLogo: branding.orgLogo?.name ?? "",
         appLogoDark: branding.appLogoDark?.name ?? "",

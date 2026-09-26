@@ -7,6 +7,7 @@ declare const __BRANDING__: {
   instanceName: string;
   instanceLogo: string;
   headerBrand: string;
+  titleAppName: boolean;
   orgName: string;
   orgLogo: string;
   appLogoDark: string;

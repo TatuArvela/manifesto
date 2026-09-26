@@ -321,7 +321,30 @@ export function applyFavicon(logo: Logo | null, doc: Document = document) {
   link.after(dark);
 }
 
-/** The window title: the instance first, since that is what tells tabs apart. */
-export const WINDOW_TITLE: string = INSTANCE_NAME
-  ? `${INSTANCE_NAME} · ${APP_NAME}`
-  : APP_NAME;
+/**
+ * The window title: the instance first, since that is what tells tabs apart,
+ * then the app's name unless `VITE_TITLE_APP_NAME` or the `title-app-name`
+ * meta tag says `off`. With no instance there is only the app's name to use,
+ * whatever the setting says, since a title cannot be empty.
+ */
+export function windowTitle(
+  appName: string,
+  instanceName: string | null,
+  fallbackWithAppName: boolean,
+): string {
+  if (!instanceName) return appName;
+  const tag = metaValue("title-app-name")?.toLowerCase();
+  const withAppName =
+    tag === "off" || tag === "false"
+      ? false
+      : tag === "on" || tag === "true"
+        ? true
+        : fallbackWithAppName;
+  return withAppName ? `${instanceName} · ${appName}` : instanceName;
+}
+
+export const WINDOW_TITLE: string = windowTitle(
+  APP_NAME,
+  INSTANCE_NAME,
+  __BRANDING__.titleAppName,
+);
