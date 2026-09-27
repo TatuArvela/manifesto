@@ -16,6 +16,10 @@ import {
 } from "../state/auth.js";
 import { forgetNote, loadNotes, receiveNote } from "../state/notesStore.js";
 import {
+  receiveAccountPrefs,
+  refreshAccountPrefs,
+} from "../state/prefsSync.js";
+import {
   clearPresence,
   recordPresenceJoin,
   recordPresenceLeave,
@@ -156,6 +160,12 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
       return isInvitation(v.invitation);
     case "invitation:removed":
       return typeof v.noteId === "string";
+    case "prefs:updated":
+      return (
+        typeof v.prefs === "object" &&
+        v.prefs !== null &&
+        !Array.isArray(v.prefs)
+      );
     case "heartbeat":
       return true;
     default:
@@ -183,6 +193,9 @@ function applyServerEvent(event: WebSocketEvent) {
       break;
     case "invitation:removed":
       forgetInvitation(event.noteId);
+      break;
+    case "prefs:updated":
+      receiveAccountPrefs(event.prefs);
       break;
     case "heartbeat":
       hearsHeartbeats = true;
@@ -264,6 +277,7 @@ function connect(token: string) {
         // action or full reload will retry.
       });
       void loadInvitations();
+      void refreshAccountPrefs();
     } else {
       hasOpenedOnce = true;
     }

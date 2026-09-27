@@ -202,6 +202,8 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 | `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment), and on start to pick up admin rights granted or revoked since sign-in. |
 | `PUT`    | `/api/auth/me`        | Bearer-protected: set or clear (`null`) your own email address with `{ email }`: `{ user: AuthUser }`. An account that signs in with single sign-on is `409`, since the identity provider owns its address. |
 | `GET`    | `/api/auth/me/activity` | A session only: your own lines of the audit log, where you are the actor or the target, newest first, as `AuditLogResponse` (`limit`, `before`). An entry where someone else acted on you has `ip: null`. |
+| `GET`    | `/api/auth/me/prefs`  | Bearer-protected: your [preferences](features/preferences.md) as your clients sent them, `{ prefs }`, where `prefs` is a flat object the server never reads. `{}` until a client has sent any. |
+| `PATCH`  | `/api/auth/me/prefs`  | Bearer-protected: set some preferences with `{ prefs }`, a key set to `null` removing it: `{ prefs }` with the result. At most 100 keys of up to 64 characters; `413` if the result would pass 16 KB as JSON. Every socket of the account hears `prefs:updated`. |
 | `PUT`    | `/api/auth/me/locale` | Bearer-protected: record the language your client is set to with `{ locale }` (a tag such as `fi`): `204`. `AuthUser.locale` gives it back. Mail sent to you by someone else's action, a share invitation, is written in it. |
 
 `AuthUser` is `{ id, username, displayName, avatarColor, email, isAdmin }`, where `email` is a
@@ -309,6 +311,7 @@ A JSON event stream used for fan-out of REST writes and presence tracking.
 | `presence:leave`   | Server → Client  | A user stopped viewing/editing a note    |
 | `invitation:created` | Server → Client | Someone offered this user a note, or changed the offer: `{ invitation: ShareInvitation }` |
 | `invitation:removed` | Server → Client | An invitation is gone (accepted in another tab, declined, withdrawn, the note trashed or deleted): `{ noteId }` |
+| `prefs:updated`    | Server → Client  | The account's preferences changed, on any device: `{ prefs }`, the whole copy |
 | `heartbeat`        | Server → Client  | Sent every 30 seconds; carries nothing   |
 | `presence:update`  | Client → Server  | The client is viewing/editing a note     |
 

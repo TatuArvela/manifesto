@@ -89,6 +89,10 @@ State lives in `packages/client/src/state/` using @preact/signals:
   before it awaits anything.
 - **`ui.ts`**: UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
 - **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
+  In connected mode `prefsSync.ts` also keeps every preference outside `DEVICE_PREFS` on the server
+  (`/api/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
+  added there. Whatever arrives from the server goes through `PREF_PARSERS` like a hand-edited blob,
+  and `adoptAccountPrefs` saves it itself, since the save effect skips a change from elsewhere.
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   Routing below). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.

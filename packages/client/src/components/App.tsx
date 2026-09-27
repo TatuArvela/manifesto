@@ -38,6 +38,7 @@ import {
   updateNote,
   viewMode,
 } from "../state/index.js";
+import { startPrefsSync } from "../state/prefsSync.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { loadInvitations } from "../state/sharing.js";
 import { restoreVersions } from "../state/versions.js";
@@ -115,6 +116,7 @@ function MainApp() {
   useEffect(() => {
     initRouter();
     startAppSocket();
+    if (isServerMode) startPrefsSync();
     // The board is empty until the notes are in, so that, not this render,
     // is when the loading screen can go. A failed load is ready too: its
     // toast is what there is to see.

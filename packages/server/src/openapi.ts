@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  accountPrefsUpdateSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
   apiTokenCreateSchema,
@@ -38,7 +39,7 @@ import {
 type Auth = "none" | "any" | "session";
 
 export interface Operation {
-  method: "get" | "post" | "put" | "delete";
+  method: "get" | "post" | "put" | "patch" | "delete";
   /** Hono's form, `:id`; written as `{id}` in the document. */
   path: string;
   tag: string;
@@ -112,6 +113,26 @@ export const OPERATIONS: Operation[] = [
       before: "An entry id; older entries only",
     },
     responses: ok("AuditLogResponse"),
+  },
+  {
+    method: "get",
+    path: "/api/auth/me/prefs",
+    tag: "Auth",
+    summary: "The signed-in user's preferences, as their clients sent them",
+    auth: "any",
+    responses: ok("AccountPrefsResponse"),
+  },
+  {
+    method: "patch",
+    path: "/api/auth/me/prefs",
+    tag: "Auth",
+    summary: "Set some of the signed-in user's preferences; null removes one",
+    auth: "any",
+    body: accountPrefsUpdateSchema,
+    responses: {
+      ...ok("AccountPrefsResponse"),
+      "413": { description: "Over the size limit", schema: "Error" },
+    },
   },
   {
     method: "put",
@@ -693,6 +714,7 @@ function components() {
         perUser: { type: "array" },
         jobs: { type: "array" },
       }),
+      AccountPrefsResponse: shape({ prefs: { type: "object" } }),
       AuditLogResponse: shape({
         entries: { type: "array" },
         nextBefore: { type: ["string", "null"] },

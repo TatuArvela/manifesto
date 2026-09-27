@@ -286,6 +286,20 @@ const USER_LOCALE = `
 ALTER TABLE users ADD COLUMN locale TEXT;
 `;
 
+/**
+ * Each account's preferences, as one JSON object its clients merge into, so
+ * hidden tags and the rest follow the account rather than staying on one
+ * device. A table of its own rather than a column on `users`, which every
+ * authenticated request reads.
+ */
+const USER_PREFS = `
+CREATE TABLE user_prefs (
+  user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  prefs      TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -302,6 +316,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0013-drop-inline-images", sql: DROP_INLINE_IMAGES },
   { id: "0014-drop-inline-preview-images", sql: DROP_INLINE_PREVIEW_IMAGES },
   { id: "0015-user-locale", sql: USER_LOCALE },
+  { id: "0016-user-prefs", sql: USER_PREFS },
 ];
 
 export function runMigrations(

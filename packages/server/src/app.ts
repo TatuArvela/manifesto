@@ -172,7 +172,7 @@ export function createApp(deps: AppDeps): AppHandle {
   // the provider's own router so Hono's longest-prefix matching reaches them.
   app.route(
     "/api/auth",
-    createAuthSharedRoutes({ cfg, storage, authProvider }),
+    createAuthSharedRoutes({ cfg, storage, authProvider, broadcaster }),
   );
   app.route("/api/auth", authProvider.router({ revocations, mailer }));
   app.route(

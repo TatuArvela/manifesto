@@ -68,6 +68,8 @@ Everything the server stores is readable by whoever runs it:
   shared document state of [collaborative editing](collaborative-editing.md).
 - **Accounts**: usernames, display names, email addresses, the language each client is set to, and
   password hashes (argon2). Sessions and API tokens are stored as hashes.
+- **Preferences** that follow the account ([Preferences](preferences.md)), which include the names
+  of tags hidden from the board.
 - **The audit log**, with client addresses.
 - **Backups**, when `BACKUP_INTERVAL_HOURS` is set: whole copies of all of the above, in `BACKUP_DIR`.
 
@@ -98,4 +100,5 @@ database provides.
   stops the reminders too, but keeps the offline copies, since it can arrive with edits made offline
   that have not reached the server yet.
 - **Preferences** (`manifesto:prefs`) stay after sign-out. They hold settings such as the theme, and
-  the names of tags hidden from the board.
+  the names of tags hidden from the board; in connected mode most of them are also the account's,
+  kept on the server.

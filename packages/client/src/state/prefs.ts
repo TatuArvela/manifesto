@@ -266,11 +266,29 @@ const PREF_PARSERS = {
 
 type PrefKey = keyof typeof PREF_PARSERS;
 
+/**
+ * The preferences that belong to this device rather than the account, and so
+ * never go to the server: the phone's top bar, card size and motion suit this
+ * screen and its OS setting, and the board picture lives in this browser.
+ */
+const DEVICE_PREFS: ReadonlySet<PrefKey> = new Set<PrefKey>([
+  "stickyTopBar",
+  "noteScale",
+  "animations",
+  "boardUsePicture",
+  "boardImageStamp",
+]);
+
 export type LoadedPrefs = {
   [K in PrefKey]: ReturnType<(typeof PREF_PARSERS)[K]>;
 };
 
 const PREF_KEYS = Object.keys(PREF_PARSERS) as PrefKey[];
+
+/** Every preference that follows the account in connected mode. */
+export const ACCOUNT_PREF_KEYS: readonly string[] = PREF_KEYS.filter(
+  (key) => !DEVICE_PREFS.has(key),
+);
 
 export function parsePrefs(raw: string | null): LoadedPrefs {
   let blob: Record<string, unknown> = {};
@@ -430,6 +448,46 @@ export function applyPrefs(next: LoadedPrefs) {
     });
   } finally {
     applyingRemotePrefs = false;
+  }
+}
+
+/** Whether the change being made now came from elsewhere: another tab, or
+ * the account's preferences on the server. `prefsSync.ts` sends neither on. */
+export function isApplyingRemotePrefs(): boolean {
+  return applyingRemotePrefs;
+}
+
+/** The account's preferences as they stand here, for the server. */
+export function accountPrefsSnapshot(): Record<string, unknown> {
+  const snapshot: Record<string, unknown> = {};
+  for (const key of ACCOUNT_PREF_KEYS) {
+    snapshot[key] = prefSignal(key as PrefKey).value;
+  }
+  return snapshot;
+}
+
+/**
+ * Adopts the account's preferences from the server: each key present, and
+ * read by its parser as a hand-edited blob would be, since another client
+ * wrote it. A key the server lacks, or one that belongs to this device, is
+ * left as it is. Saved here, since this tab is the first to hear of it.
+ */
+export function adoptAccountPrefs(blob: Record<string, unknown>) {
+  applyingRemotePrefs = true;
+  try {
+    batch(() => {
+      for (const key of ACCOUNT_PREF_KEYS as PrefKey[]) {
+        if (!(key in blob)) continue;
+        prefSignal(key).value = PREF_PARSERS[key](blob[key], blob);
+      }
+    });
+  } finally {
+    applyingRemotePrefs = false;
+  }
+  try {
+    savePrefs();
+  } catch {
+    // Storage refused: the signals hold them for this session.
   }
 }
 

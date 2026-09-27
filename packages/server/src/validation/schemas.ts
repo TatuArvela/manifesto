@@ -52,6 +52,19 @@ export const authLocaleSchema = z.object({
   locale: z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{1,8}){0,3}$/),
 });
 
+/**
+ * A patch of an account's preferences: up to 100 keys, each set to any JSON
+ * value or to `null` to remove it. The server never reads the values; how
+ * large the whole may grow is checked when it is merged.
+ */
+export const accountPrefsUpdateSchema = z.object({
+  prefs: z
+    .record(z.string().min(1).max(64), z.json())
+    .refine((prefs) => Object.keys(prefs).length <= 100, {
+      message: "At most 100 preferences",
+    }),
+});
+
 export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.optional(),
   /** An authenticator code, or a recovery code, when two-factor is on. */
