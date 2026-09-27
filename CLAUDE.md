@@ -373,6 +373,19 @@ and the fonts that screen asked for have arrived, or at `SPLASH_CAP_MS` after bo
 is removed on a timer as well as `transitionend`, since that event never arrives in a background
 tab.
 
+On a phone, an open note, the composer and a note's history are laid out *in the page*, not fixed
+over it, and go through `NoteSheet`. `utils/phoneSheets.ts` pins `.app-shell` (the board) in place
+while one is up, so the page scrolls the note. That is the one arrangement where iOS keeps the caret
+above the keyboard by scrolling the page rather than sliding the visible area over a fixed sheet.
+Nothing reads `visualViewport`, and that is deliberate: sizing a sheet to it left a sliver of note
+(Safari in a tab reports it too short), padding for the keyboard added blank room past the end, and
+a top bar moved to follow it trailed every scroll by a frame. With the keyboard up in a Safari tab,
+iOS pans the page past the foot of everything laid out, `fixed` layers included, so the page's own
+background shows there; `paintPage` gives it the open note's colour. Anything that
+must show over an open note belongs outside `.app-shell` (App's dialogs, toasts and banners are).
+The open and close morph uncovers the panel with `clip-path` there instead of scaling it
+(`utils/morph.ts`), since a whole screen scaled onto a card squashes its text.
+
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
 toast queue or the catalogue, so the "tell the user" decision stays in `failures.ts`. A refused
 write is neither retried nor rolled back: the signal keeps the change, so the session continues
@@ -422,6 +435,10 @@ call locally, so both modes behave alike.
   dispatcher, not the binding, decides when a key is not a shortcut (typing, an `aria-modal` layer or
   open popover, a modifier), so a new binding only calls `useShortcut(key, run)`. The board's keys and
   the `?` sheet read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
+- **Back** closes the newest `NoteSheet` through `hooks/useBackToClose.ts`: each sheet pushes a
+  same-address history entry and takes it off with `history.back()` when closed another way. The
+  router's own pushes wait for that back to land (`afterHistorySettles`), or they would be what it
+  goes back from.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
   clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
 

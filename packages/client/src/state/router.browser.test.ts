@@ -118,12 +118,18 @@ describe("initRouter", () => {
     expect(activeView.value).toBe("trash");
   });
 
-  it("pushes a new history entry when the view changes", () => {
+  // Checked by going back rather than by `history.length`, which Chromium caps
+  // at 50 and every test file in the run shares.
+  it("pushes a new history entry when the view changes", async () => {
     initRouter();
-    const before = history.length;
     activeView.value = "archived";
     expect(window.location.pathname).toBe("/archived");
-    expect(history.length).toBe(before + 1);
+    const popped = new Promise((resolve) =>
+      window.addEventListener("popstate", resolve, { once: true }),
+    );
+    history.back();
+    await popped;
+    expect(window.location.pathname).toBe("/");
   });
 
   it("writes the tag to the URL", () => {

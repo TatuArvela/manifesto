@@ -1,6 +1,5 @@
 import type { Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { Braces, FileText, ListX, Plus } from "lucide-preact";
-import { createPortal } from "preact/compat";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
@@ -39,6 +38,7 @@ import {
 import { Backdrop } from "./Backdrop.js";
 import { gridColumns } from "./gridColumns.js";
 import { NoteEditor } from "./NoteEditor.js";
+import { NoteSheet } from "./NoteSheet.js";
 
 const ctaKeys: MessageKey[] = [
   "cta.0",
@@ -439,100 +439,94 @@ export function NoteInput() {
         </button>
       )}
 
-      {expanded &&
-        createPortal(
-          <>
+      {expanded && (
+        <NoteSheet
+          label={t("nav.newNote")}
+          dialogRef={modalRef}
+          panelRef={panelRef}
+          layer="z-50"
+          motion={`transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : morphing ? "" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+          backdrop={
             <Backdrop
               onDismiss={() => closeModal()}
               closing={closing}
               class="z-40 max-sm:hidden"
             />
-            <div
-              ref={modalRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label={t("nav.newNote")}
-              class={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : morphing ? "" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
-            >
-              <div
-                ref={panelRef}
-                class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden"
-              >
-                <NoteEditor
-                  title={title}
-                  onTitleChange={setTitle}
-                  content={content}
-                  onContentChange={setContent}
-                  color={color}
-                  onColorChange={setColor}
-                  font={font}
-                  onFontChange={setFont}
-                  images={images}
-                  onAddImages={(urls) => setImages([...images, ...urls])}
-                  onRemoveImage={(index) =>
-                    setImages(images.filter((_, i) => i !== index))
+          }
+          closing={closing}
+          onBack={() => closeModal()}
+        >
+          <NoteEditor
+            title={title}
+            onTitleChange={setTitle}
+            content={content}
+            onContentChange={setContent}
+            color={color}
+            onColorChange={setColor}
+            font={font}
+            onFontChange={setFont}
+            images={images}
+            onAddImages={(urls) => setImages([...images, ...urls])}
+            onRemoveImage={(index) =>
+              setImages(images.filter((_, i) => i !== index))
+            }
+            linkPreviews={linkPreviews}
+            onAddLinkPreviews={drafts.add}
+            onRemoveLinkPreview={drafts.remove}
+            pinned={pinned}
+            onPinToggle={() => setPinned(!pinned)}
+            tags={tags}
+            onAddTag={(tag) =>
+              setTags((current) =>
+                current.includes(tag) ? current : [...current, tag],
+              )
+            }
+            onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
+            menuItems={({ checkedItems }) => [
+              {
+                id: "export-markdown",
+                icon: <FileText class="w-4 h-4" />,
+                label: t("noteMenu.exportMarkdown"),
+                onSelect: () => downloadNoteAsMarkdown({ title, content }),
+              },
+              {
+                id: "export-json",
+                icon: <Braces class="w-4 h-4" />,
+                label: t("noteMenu.exportJson"),
+                onSelect: async () => {
+                  // The file carries the bytes, not references only
+                  // this browser or server can read.
+                  const inlined = await inlineImages(images);
+                  if (!inlined) {
+                    showError(t("error.exportFailed"));
+                    return;
                   }
-                  linkPreviews={linkPreviews}
-                  onAddLinkPreviews={drafts.add}
-                  onRemoveLinkPreview={drafts.remove}
-                  pinned={pinned}
-                  onPinToggle={() => setPinned(!pinned)}
-                  tags={tags}
-                  onAddTag={(tag) =>
-                    setTags((current) =>
-                      current.includes(tag) ? current : [...current, tag],
-                    )
-                  }
-                  onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
-                  menuItems={({ checkedItems }) => [
+                  downloadNoteAsJson({
+                    ...draftNote(),
+                    images: inlined,
+                    linkPreviews: await inlinePreviewImages(linkPreviews),
+                  });
+                },
+              },
+              { kind: "divider", id: "destructive" },
+              ...(checkedItems.present
+                ? [
                     {
-                      id: "export-markdown",
-                      icon: <FileText class="w-4 h-4" />,
-                      label: t("noteMenu.exportMarkdown"),
-                      onSelect: () =>
-                        downloadNoteAsMarkdown({ title, content }),
-                    },
-                    {
-                      id: "export-json",
-                      icon: <Braces class="w-4 h-4" />,
-                      label: t("noteMenu.exportJson"),
-                      onSelect: async () => {
-                        // The file carries the bytes, not references only
-                        // this browser or server can read.
-                        const inlined = await inlineImages(images);
-                        if (!inlined) {
-                          showError(t("error.exportFailed"));
-                          return;
-                        }
-                        downloadNoteAsJson({
-                          ...draftNote(),
-                          images: inlined,
-                          linkPreviews: await inlinePreviewImages(linkPreviews),
-                        });
-                      },
-                    },
-                    { kind: "divider", id: "destructive" },
-                    ...(checkedItems.present
-                      ? [
-                          {
-                            id: "delete-checked",
-                            icon: <ListX class="w-4 h-4" />,
-                            label: t("noteMenu.deleteChecked"),
-                            onSelect: checkedItems.remove,
-                          } as const,
-                        ]
-                      : []),
-                  ]}
-                  onDone={() => closeModal(true)}
-                  onBack={() => closeModal()}
-                  onDelete={discardNote}
-                  deleteLabel={t("editor.discard")}
-                />
-              </div>
-            </div>
-          </>,
-          document.body,
-        )}
+                      id: "delete-checked",
+                      icon: <ListX class="w-4 h-4" />,
+                      label: t("noteMenu.deleteChecked"),
+                      onSelect: checkedItems.remove,
+                    } as const,
+                  ]
+                : []),
+            ]}
+            onDone={() => closeModal(true)}
+            onBack={() => closeModal()}
+            onDelete={discardNote}
+            deleteLabel={t("editor.discard")}
+          />
+        </NoteSheet>
+      )}
     </>
   );
 }

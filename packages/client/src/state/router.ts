@@ -1,4 +1,5 @@
 import { effect } from "@preact/signals";
+import { afterHistorySettles } from "../hooks/useBackToClose.js";
 import { type AppView, activeTag, activeView } from "./ui.js";
 
 export interface Route {
@@ -92,7 +93,11 @@ export function initRouter(): () => void {
       return;
     }
     if (window.location.pathname === next) return;
-    history.pushState(null, "", next);
+    // After a closing sheet's own `history.back()`, or that would go back
+    // from this entry instead of its own.
+    afterHistorySettles(() => {
+      if (window.location.pathname !== next) history.pushState(null, "", next);
+    });
   });
 
   popListener = () => {
