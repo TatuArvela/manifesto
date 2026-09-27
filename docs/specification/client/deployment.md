@@ -299,6 +299,12 @@ Manifesto is a Progressive Web App:
   bundle reaches returning users on their next online visit. `icon-1024.png` is left to the browser, since
   the page never displays it.
 - Installable on mobile and desktop via the browser's "Add to Home Screen" / install prompt.
+- Launches onto its loading screen on iOS too. iOS shows nothing a page can draw while a home-screen app
+  starts, only an `apple-touch-startup-image` it took at install, so in Safari the page draws the loading
+  screen onto a canvas at the device's exact size, once per orientation and system scheme, and links the
+  four PNGs (`launchImage.ts`). Drawn from the served page, they follow a rebranded bundle with no build
+  step. iOS takes them when the app is added, so an install made earlier keeps its blank launch until it
+  is added again.
 - Updates itself. A new worker takes over as soon as it installs, and the page checks for one whenever it
   returns to the foreground and hourly while it stays there, since an installed app resumed from the
   background never navigates and the browser would otherwise never look. Once a new version has taken
