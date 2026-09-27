@@ -430,7 +430,7 @@ export function NoteInput() {
         <button
           ref={fabRef}
           type="button"
-          class="md:hidden fixed right-5 z-10 w-14 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg flex items-center justify-center transition-colors"
+          class="md:hidden fixed right-5 z-20 w-14 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg flex items-center justify-center transition-colors"
           style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
           onClick={() => openModal("button")}
           aria-label={t("nav.newNote")}
