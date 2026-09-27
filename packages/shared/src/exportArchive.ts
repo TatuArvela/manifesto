@@ -10,17 +10,22 @@ import type { Note, NoteVersion } from "./note.js";
  * - `notes/<title>.md`: each note not in the trash as Markdown, with
  *   frontmatter the client's Markdown-folder import reads back, for any other
  *   tool to open;
- * - `versions.json`: the version history of those notes.
+ * - `versions.json`: the version history of those notes;
+ * - `preferences.json`: the settings, when the caller gives them: the
+ *   account's in connected mode, this browser's in open mode. For a person to
+ *   read and keep; importing an archive does not apply them.
  *
  * The caller adds anything of its own (the server's `account.json`), and
  * encodes and zips the text.
  */
 export const EXPORT_NOTES_FILE = "notes.json";
 export const EXPORT_VERSIONS_FILE = "versions.json";
+export const EXPORT_PREFERENCES_FILE = "preferences.json";
 
 export function exportArchiveFiles(
   notes: Note[],
   versions: NoteVersion[],
+  preferences?: Record<string, unknown>,
 ): { name: string; text: string }[] {
   const names = new Set<string>();
   const markdown = notes
@@ -33,6 +38,14 @@ export function exportArchiveFiles(
     { name: EXPORT_NOTES_FILE, text: JSON.stringify(notes, null, 2) },
     ...markdown,
     { name: EXPORT_VERSIONS_FILE, text: JSON.stringify(versions, null, 2) },
+    ...(preferences
+      ? [
+          {
+            name: EXPORT_PREFERENCES_FILE,
+            text: JSON.stringify(preferences, null, 2),
+          },
+        ]
+      : []),
   ];
 }
 

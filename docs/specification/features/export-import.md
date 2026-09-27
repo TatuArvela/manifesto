@@ -22,6 +22,7 @@ mode imports into either:
 | `notes.json` | Every note the account owns, the archive and trash included, in the import format above, with images inlined as `data:` URLs. Importing it restores the notes anywhere, open mode included. |
 | `notes/<title>.md` | Each note not in the trash as Markdown, with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`) that the Markdown-folder import reads back, for another tool to open. |
 | `versions.json` | The version history of those notes. |
+| `preferences.json` | The [preferences](preferences.md): the account's as the server holds them in connected mode, this browser's in open mode. For keeping and reading; importing an archive leaves the settings as they are. |
 | `account.json` | Connected mode only: the account's username, display name, email address, how it signs in, whether it is an admin and when it was made. |
 
 Notes shared with the account belong to someone else and are not included. A server's download serves a

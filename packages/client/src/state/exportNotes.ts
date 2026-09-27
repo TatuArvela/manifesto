@@ -7,6 +7,7 @@ import { writeZip } from "../utils/zip.js";
 import { downloadAccountExport, saveFile } from "./accountExport.js";
 import { inlineImages, inlinePreviewImages } from "./attachments.js";
 import { ensureImages, notes } from "./notesStore.js";
+import { prefsSnapshot } from "./prefs.js";
 import { showError } from "./ui.js";
 
 /**
@@ -57,8 +58,8 @@ export async function exportNotes(): Promise<Note[] | null> {
 }
 
 /**
- * The export archive, built here: `notes.json`, a Markdown copy of each note
- * and `versions.json`, laid out as a server lays out its own (see
+ * The export archive, built here: `notes.json`, a Markdown copy of each note,
+ * `versions.json` and this browser's `preferences.json`, laid out as a server lays out its own (see
  * `exportArchiveFiles`), so either imports anywhere. Null if the notes could
  * not all be gathered, which has already been said.
  */
@@ -77,10 +78,12 @@ export async function exportArchive(): Promise<Blob | null> {
   }
   const encoder = new TextEncoder();
   return writeZip(
-    exportArchiveFiles(backup, versions).map(({ name, text }) => ({
-      name,
-      data: encoder.encode(text),
-    })),
+    exportArchiveFiles(backup, versions, prefsSnapshot()).map(
+      ({ name, text }) => ({
+        name,
+        data: encoder.encode(text),
+      }),
+    ),
   );
 }
 

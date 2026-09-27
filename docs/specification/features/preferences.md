@@ -32,6 +32,8 @@ added there. Open mode has no account and keeps everything on the device.
 - **A change here not yet sent wins** over one that arrives, including the copy read at sign-in, since
   it is the newer one to the person making it.
 - **Offline**, changes stay on the device and are sent on the next change or reconnect.
+- **The export** carries them as `preferences.json` ([Export / Import](export-import.md)); importing
+  an archive does not apply them, so restoring notes never changes the settings under them.
 - **Signing out** leaves this device's copy in `localStorage` as it was; see [Privacy](privacy.md).
 
 What the server sends is read the way a hand-edited `localStorage` blob is: each key through its

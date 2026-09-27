@@ -70,6 +70,7 @@ export {
 } from "./api.js";
 export {
   EXPORT_NOTES_FILE,
+  EXPORT_PREFERENCES_FILE,
   EXPORT_VERSIONS_FILE,
   exportArchiveFiles,
   noteToMarkdownFile,

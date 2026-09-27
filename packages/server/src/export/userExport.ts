@@ -15,8 +15,9 @@ import { buildZip } from "./zip.js";
  * another server, or asking what is held about them. The notes, their
  * Markdown copies and their history are laid out as `exportArchiveFiles`
  * says, the same as an open-mode export, with images (preview images too)
- * inlined so importing it anywhere restores the notes as they were; beside
- * them, `account.json` holds the account's own details.
+ * inlined so importing it anywhere restores the notes as they were, and
+ * `preferences.json` holds the account's preferences; beside them,
+ * `account.json` holds the account's own details.
  *
  * Notes shared with the account are someone else's and stay out.
  */
@@ -51,10 +52,12 @@ export async function exportAccount(
       note,
   );
   return buildZip([
-    ...exportArchiveFiles(plain, versions).map(({ name, text }) => ({
-      name,
-      data: Buffer.from(text),
-    })),
+    ...exportArchiveFiles(plain, versions, await storage.prefs.get(userId)).map(
+      ({ name, text }) => ({
+        name,
+        data: Buffer.from(text),
+      }),
+    ),
     {
       name: "account.json",
       data: Buffer.from(

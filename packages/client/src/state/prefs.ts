@@ -457,6 +457,13 @@ export function isApplyingRemotePrefs(): boolean {
   return applyingRemotePrefs;
 }
 
+/** Every preference as it stands here, for an open-mode export. */
+export function prefsSnapshot(): Record<string, unknown> {
+  const snapshot: Record<string, unknown> = {};
+  for (const key of PREF_KEYS) snapshot[key] = prefSignal(key).value;
+  return snapshot;
+}
+
 /** The account's preferences as they stand here, for the server. */
 export function accountPrefsSnapshot(): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {};

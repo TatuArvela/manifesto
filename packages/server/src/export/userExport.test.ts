@@ -114,6 +114,22 @@ describe("account export", () => {
     );
   });
 
+  it("includes the account's preferences", async () => {
+    await rig.request("/api/auth/me/prefs", {
+      method: "PATCH",
+      headers: authHeaders(alice.token),
+      body: JSON.stringify({ prefs: { theme: "dark", hiddenTags: ["work"] } }),
+    });
+    const res = await rig.request("/api/export", {
+      headers: authHeaders(alice.token),
+    });
+    const files = unzip(Buffer.from(await res.arrayBuffer()));
+    expect(JSON.parse(files.get("preferences.json") ?? "null")).toEqual({
+      theme: "dark",
+      hiddenTags: ["work"],
+    });
+  });
+
   it("refuses an admin another account's notes unless ADMIN_EXPORT is on", async () => {
     const bob = await registerTestUser(rig, "bob");
     const res = await rig.request(`/api/admin/users/${bob.userId}/export`, {
