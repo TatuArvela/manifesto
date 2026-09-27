@@ -310,6 +310,9 @@ Manifesto is a Progressive Web App:
   background never navigates and the browser would otherwise never look. Once a new version has taken
   over, the page reloads onto it the next time it is hidden or shown with no dialog open and nothing being
   typed (`utils/updateReload.ts`), so an open editor is never reloaded out from under its debounced save.
+  Settings > About has a "Force update app" button for when that is not enough: it unregisters the worker,
+  empties every cache but `share-target` and reloads from the network (`forceUpdateApp` in
+  `serviceWorker.ts`). It refuses while offline, since the reload would have nothing to load.
 - Receives shares. The manifest registers a `share_target`, so on a device where the app is installed,
   "Share to..." from another app lists it, and the shared title, text, link and images open in the
   new-note editor. A share is a `POST` to `share-target` under the base URL, which a static host cannot

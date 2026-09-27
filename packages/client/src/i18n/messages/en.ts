@@ -252,6 +252,7 @@ export const en = {
   "settings.group.data": "Data",
   "settings.group.about": "About",
   "settings.group.behavior": "Behavior",
+  "settings.group.general": "General",
   "settings.about.version": "Version {version}",
   "settings.theme": "Theme",
   "settings.theme.system": "System",
@@ -561,6 +562,11 @@ export const en = {
   "settings.about.repo": "GitHub",
   "settings.about.welcome": "Welcome",
   "settings.about.license": "MIT licensed",
+  "settings.about.forceUpdate": "Force update app",
+  "settings.about.forceUpdateHint":
+    "Reloads the app from the server, skipping anything the browser has stored of it. Your notes are not affected.",
+  "settings.about.forceUpdateOffline":
+    "You are offline. Connect to the internet to update.",
   "storage.quotaExceeded":
     "Browser storage is full. Some changes may not be saved until you free up space.",
   "dropZone.title": "Drop to import",

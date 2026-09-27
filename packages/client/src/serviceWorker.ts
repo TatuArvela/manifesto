@@ -1,4 +1,5 @@
 import type { NoteReminder } from "@manifesto/shared";
+import { SHARE_CACHE } from "./shareTarget.js";
 import { notes, updateNote } from "./state/notesStore.js";
 import { createUpdateReloader, pageIsIdle } from "./utils/updateReload.js";
 
@@ -82,4 +83,37 @@ function keepCheckingForUpdates(
   setInterval(() => {
     if (document.visibilityState === "visible") check();
   }, UPDATE_CHECK_INTERVAL_MS);
+}
+
+/**
+ * Throws away the installed app and loads it again from the server: the way
+ * out when an update is stuck, or a cached copy is broken, and waiting for
+ * the next visibility change will not do. The worker is unregistered and its
+ * caches emptied, so the reload asks the network for every file and installs
+ * a fresh worker. A shared item still waiting to be picked up is kept.
+ *
+ * Refuses offline (returns false), since the page it reloads onto would have
+ * nowhere to come from.
+ */
+export async function forceUpdateApp(): Promise<boolean> {
+  if (!navigator.onLine) return false;
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((r) => r.unregister()));
+    }
+    if ("caches" in window) {
+      const names = await caches.keys();
+      await Promise.all(
+        names
+          .filter((name) => name !== SHARE_CACHE)
+          .map((name) => caches.delete(name)),
+      );
+    }
+  } catch (err) {
+    // Reload regardless: the network still serves the page the same way.
+    console.warn("Clearing the installed app failed:", err);
+  }
+  window.location.reload();
+  return true;
 }

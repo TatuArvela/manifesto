@@ -259,6 +259,7 @@ export const fi: Messages = {
   "settings.group.data": "Tiedot",
   "settings.group.about": "Tietoja",
   "settings.group.behavior": "Käyttäytyminen",
+  "settings.group.general": "Yleiset",
   "settings.about.version": "Versio {version}",
   "settings.theme": "Teema",
   "settings.theme.system": "Järjestelmä",
@@ -571,6 +572,11 @@ export const fi: Messages = {
   "settings.about.repo": "GitHub",
   "settings.about.welcome": "Tervetuloa",
   "settings.about.license": "MIT-lisenssi",
+  "settings.about.forceUpdate": "Pakota sovelluksen päivitys",
+  "settings.about.forceUpdateHint":
+    "Lataa sovelluksen uudelleen palvelimelta ohittaen selaimen tallentaman kopion. Muistiinpanoihisi tämä ei vaikuta.",
+  "settings.about.forceUpdateOffline":
+    "Olet offline-tilassa. Yhdistä internetiin päivittääksesi.",
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",
