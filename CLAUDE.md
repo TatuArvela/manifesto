@@ -241,7 +241,9 @@ Server mode runs two sockets, and they carry different things. `realtime/appSock
 Every reconnect *after the first* re-fetches the note list, because writes made on another device
 while this tab was offline arrive nowhere else. `realtime/yjsProvider.ts` holds `/api/yjs`, one
 `HocuspocusProvider` per open note, with `y-indexeddb` underneath so an offline edit survives a
-reload. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding above.
+reload. Those copies outlive the session, so the account menu signs out through `signOut`
+(`state/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
+entry stays free of Yjs); the notes list itself empties on any end of a session, a 401 included. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding above.
 
 Being resumed is a reason to skip the backoff. A frozen page comes back to a socket the browser
 closed for it, and to a backoff its throttled retries may have grown to the ceiling, so a

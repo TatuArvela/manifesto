@@ -92,5 +92,10 @@ database provides.
 - **Open mode** keeps everything in `localStorage` and IndexedDB, as private as the browser profile.
 - **Connected mode** keeps the notes in memory, and an offline copy of each note opened for editing in
   IndexedDB (`manifesto:yjs:<id>`), so an edit made offline survives a reload.
-- **Signing out** does not delete those copies yet, so on a shared computer, signing out is not the
-  same as leaving no trace; clearing the site's data is.
+- **Signing out** leaves none of the account's notes behind: the list leaves memory, the reminders
+  stop (in the page and in the service worker's copy, which is handed an empty list), and the offline
+  copies are deleted. A session that ends because the server refused it (`401`) empties the list and
+  stops the reminders too, but keeps the offline copies, since it can arrive with edits made offline
+  that have not reached the server yet.
+- **Preferences** (`manifesto:prefs`) stay after sign-out. They hold settings such as the theme, and
+  the names of tags hidden from the board.
