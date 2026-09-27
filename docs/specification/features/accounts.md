@@ -221,6 +221,11 @@ and removed, and every admin action (accounts created or deleted, admin granted 
 by `OIDC_ADMIN_GROUP`, email addresses changed, temporary passwords issued). Note contents are never
 recorded.
 
+Every signed-in user reads their own lines of it, where they are the actor or the target, on the
+**Activity** page of Settings (`GET /api/auth/me/activity`), so an admin's action on an account is
+never hidden from its owner. There an address is shown only for what the user did and for failed
+sign-ins on their account; see [Privacy](privacy.md).
+
 Admins read it in the Users view's **Activity** tab, newest first, from `GET /api/admin/audit`
 (`limit`, `before`, `userId`, `action`). The address is the socket peer, or the first `X-Forwarded-For`
 hop with `TRUST_PROXY` on. Actor and target are not foreign keys, so an entry about an account outlives

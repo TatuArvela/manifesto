@@ -15,6 +15,8 @@ notes instead, and what would have to be true to revisit it.
 
 The server operator can read every note on their server. For a self-hosted instance that is the user
 themselves; for an organisation's deployment it is the organisation, which is what managed mode is for.
+Admins, as distinct from the operator, cannot read notes from inside the app unless the server allows
+it; [Privacy](privacy.md) has the details.
 
 ## Why not
 

@@ -135,6 +135,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `SMTP_FROM`        | *(required with `SMTP_URL`)* | The From header: `Notes <notes@example.com>` or a bare address. |
 | `APP_URL`          | *(required with `SMTP_URL`)* | The client's public address, which links in mail point at. |
 | `AUDIT_RETENTION_DAYS` | `180`                  | Days the [audit log](../features/accounts.md#audit-log) keeps an entry. |
+| `ADMIN_EXPORT`     | `off`                      | `on` lets an admin download any account's notes from the Users view (`GET /api/admin/users/:id/export`), for a data request or a move. Off, an admin cannot read another account's notes from inside the app. Each download shows on that account's own Activity page. See [Privacy](../features/privacy.md). |
 | `UPDATE_CHECK`     | `on`                       | Asks GitHub twice a day for the newest release, so admins are told when there is one (a dot on the settings button, a line on the About page of Settings, a banner in the overview). One request to `api.github.com`, through the same outbound boundary as link previews; `off` makes none. |
 | `UPDATE_CHECK_REPO`| `TatuArvela/manifesto`     | Whose releases the check reads, for a fork that publishes its own. |
 | `METRICS_PORT`     | *(unset)*                  | Serves `/metrics` on a port of its own, and never on the public one. See [Metrics](#metrics). |

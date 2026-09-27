@@ -252,7 +252,10 @@ export const AUDIT_ACTIONS = [
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
-/** One line of the audit log, as `GET /api/admin/audit` lists it. */
+/**
+ * One line of the audit log, as `GET /api/admin/audit` lists it, and
+ * `GET /api/auth/me/activity` lists a user's own.
+ */
 export interface AuditEntry {
   id: string;
   at: string;
@@ -302,7 +305,8 @@ export type ErrorCode =
   | "password_change_required"
   | "email_taken"
   | "two_factor_required"
-  | "two_factor_invalid";
+  | "two_factor_invalid"
+  | "admin_export_disabled";
 
 export interface ErrorResponse {
   error: string;
@@ -425,6 +429,9 @@ export interface AdminUser {
 
 export interface AdminUsersResponse {
   users: AdminUser[];
+  /** Whether the server lets an admin download an account's notes
+   * (`ADMIN_EXPORT`). */
+  adminExport: boolean;
 }
 
 export interface AdminUserResponse {

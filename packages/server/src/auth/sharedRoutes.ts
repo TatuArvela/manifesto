@@ -1,10 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
 import type {
+  AuditLogResponse,
   AuthMeResponse,
   AuthMethodsResponse,
   AuthProviderName,
 } from "@manifesto/shared";
 import { Hono } from "hono";
+import { auditPage } from "../audit/auditPage.js";
 import {
   type ServerConfig,
   signsInLocally,
@@ -94,6 +96,27 @@ export function createAuthSharedRoutes(
       const body: AuthMeResponse = {
         user: toAuthUser({ ...user, email }),
       };
+      return c.json(body);
+    },
+  );
+
+  /**
+   * The signed-in user's own lines of the audit log: their sign-ins and
+   * failed ones, changes to how the account is secured, shares, and anything
+   * an admin did to the account, downloading its notes included. What an admin
+   * can see about someone, that person can see too. A session only, like the
+   * other pages about how the account is secured.
+   */
+  router.get(
+    "/me/activity",
+    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const body: AuditLogResponse = await auditPage(
+        deps.storage,
+        { limit: c.req.query("limit"), before: c.req.query("before") },
+        userId,
+      );
       return c.json(body);
     },
   );

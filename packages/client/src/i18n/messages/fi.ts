@@ -521,6 +521,9 @@ export const fi: Messages = {
   "overview.jobLastRun": "Viimeksi ajettu {when}, {ms} ms",
   "admin.tab.users": "Käyttäjät",
   "admin.tab.activity": "Tapahtumat",
+  "activity.title": "Tapahtumat",
+  "activity.hint":
+    "Mitä palvelin {server} on kirjannut tilistäsi: kirjautumiset, muutokset tilin suojaukseen, jaot ja kaiken, mitä ylläpitäjä on tehnyt tilille, kuten muistiinpanojesi lataamisen. Muistiinpanojesi sisältöä ei kirjata.",
   "audit.loading": "Ladataan tapahtumia...",
   "audit.empty": "Mitään ei ole vielä kirjattu",
   "audit.failed": "Tapahtumia ei saatu ladattua",

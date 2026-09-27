@@ -4,6 +4,7 @@ import {
   ChevronDown,
   Database,
   Download,
+  History,
   Info,
   KeySquare,
   type LucideIcon,
@@ -82,6 +83,7 @@ import {
 import { restoreVersions } from "../state/versions.js";
 import { importFiles } from "../utils/importExport.js";
 import { AccountSettings, hasOwnPassword } from "./AccountSettings.js";
+import { ActivitySettings } from "./ActivitySettings.js";
 import { ApiTokensSettings } from "./ApiTokensSettings.js";
 import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
@@ -253,6 +255,7 @@ const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
   twoFactor: { label: "twoFactor.title", icon: ShieldCheck },
   tokens: { label: "tokens.title", icon: KeySquare },
   webhooks: { label: "webhooks.title", icon: Webhook },
+  activity: { label: "activity.title", icon: History },
   appearance: { label: "settings.group.appearance", icon: Palette },
   features: { label: "settings.group.features", icon: Sparkles },
   data: { label: "settings.group.data", icon: Database },
@@ -268,6 +271,7 @@ function accountTabs(): SettingsTab[] {
   if (hasOwnPassword()) tabs.push("twoFactor");
   tabs.push("tokens");
   if (webhooksEnabled.value) tabs.push("webhooks");
+  tabs.push("activity");
   return tabs;
 }
 
@@ -478,6 +482,7 @@ export function SettingsDialog() {
               {tab === "twoFactor" && <TwoFactorSettings />}
               {tab === "tokens" && <ApiTokensSettings />}
               {tab === "webhooks" && <WebhooksSettings />}
+              {tab === "activity" && <ActivitySettings />}
               {tab === "appearance" && <AppearanceSettings />}
               {tab === "features" && <FeaturesSettings />}
               {tab === "data" && <DataSettings />}

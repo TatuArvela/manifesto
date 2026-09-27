@@ -7,8 +7,10 @@ Manifesto supports exporting and importing note data from the Settings dialog. T
 **Export Notes** in Settings downloads every note as one zip, the same archive in both modes:
 
 - **Connected mode**: the server builds it for the account (`GET /api/export`, which takes any
-  credential, so an API token can script a backup), named `<username>-notes-YYYY-MM-DD.zip`. An admin
-  can download any account's with **Download notes** (`GET /api/admin/users/:id/export`).
+  credential, so an API token can script a backup), named `<username>-notes-YYYY-MM-DD.zip`. With
+  `ADMIN_EXPORT` on, an admin can download any account's with **Download notes**
+  (`GET /api/admin/users/:id/export`), and the account's owner sees it on their Activity page
+  ([Privacy](privacy.md)).
 - **Open mode**: the browser builds it from what it holds (`exportArchive`, zipped with the platform's
   `CompressionStream`), named `manifesto-export-YYYY-MM-DD.zip`.
 

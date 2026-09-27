@@ -102,6 +102,18 @@ export const OPERATIONS: Operation[] = [
     responses: ok("AuthMeResponse"),
   },
   {
+    method: "get",
+    path: "/api/auth/me/activity",
+    tag: "Auth",
+    summary: "The signed-in user's own lines of the audit log, newest first",
+    auth: "session",
+    query: {
+      limit: "Entries per page (up to 500)",
+      before: "An entry id; older entries only",
+    },
+    responses: ok("AuditLogResponse"),
+  },
+  {
     method: "put",
     path: "/api/auth/me/locale",
     tag: "Auth",
@@ -513,7 +525,7 @@ export const OPERATIONS: Operation[] = [
     method: "get",
     path: "/api/admin/users/:id/export",
     tag: "Admin",
-    summary: "Every note an account owns, as a zip",
+    summary: "Every note an account owns, as a zip (only with ADMIN_EXPORT on)",
     auth: "session",
     responses: { "200": { description: "application/zip" }, ...notFound },
   },

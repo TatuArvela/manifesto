@@ -477,7 +477,12 @@ revoking one token goes through `revokeApiToken`, which closes its sockets by th
 
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
-catalogues, which `AuditLog.test.ts` checks.
+catalogues, which `AuditLog.test.ts` checks. The request's address is keyed on `c.req`, never
+`c.req.raw`: `bodyLimit` replaces the raw request whenever there is a body. Each user reads their
+own lines on the Activity page of Settings (`/api/auth/me/activity`, built by the same `auditPage`
+as the admin's log), so an admin action that reaches into an account must be audited with that
+account as its target, or its owner never hears of it. An admin reads another account's notes only
+through `ADMIN_EXPORT` (spec: `docs/specification/features/privacy.md`).
 
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:

@@ -16,6 +16,7 @@ import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { formatDate, plural, t } from "../i18n/index.js";
 import { downloadAccountExport } from "../state/accountExport.js";
 import {
+  adminExportEnabled,
   adminUsers,
   createAccount,
   deleteAccount,
@@ -454,19 +455,21 @@ function UserRow({
                 {t("admin.resetPassword")}
               </button>
             )}
-            <button
-              type="button"
-              class={menuItemClass}
-              onClick={() => {
-                setMenuOpen(false);
-                void downloadAccountExport(user.id).then((ok) => {
-                  if (!ok) showError(t("admin.exportFailed"));
-                });
-              }}
-            >
-              <Download class="w-4 h-4" />
-              {t("admin.exportNotes")}
-            </button>
+            {adminExportEnabled.value && (
+              <button
+                type="button"
+                class={menuItemClass}
+                onClick={() => {
+                  setMenuOpen(false);
+                  void downloadAccountExport(user.id).then((ok) => {
+                    if (!ok) showError(t("admin.exportFailed"));
+                  });
+                }}
+              >
+                <Download class="w-4 h-4" />
+                {t("admin.exportNotes")}
+              </button>
+            )}
             <button
               type="button"
               class={`${menuItemClass} text-red-600 dark:text-red-400`}

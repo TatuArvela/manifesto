@@ -111,6 +111,10 @@ export interface ServerConfig {
   backup: BackupConfig | null;
   /** Days the audit log keeps an entry. */
   auditRetentionDays: number;
+  /** Whether an admin may download another account's notes. Off by default,
+   * so an admin cannot read a user's notes from inside the app; the operator
+   * of the database still can. */
+  adminExport: boolean;
   /** The GitHub repository whose releases the update check reads, or null
    * with `UPDATE_CHECK=off`. */
   updateCheckRepo: string | null;
@@ -343,6 +347,7 @@ export function loadConfig(): ServerConfig {
     metricsHost: process.env.METRICS_HOST?.trim() || "127.0.0.1",
     clientDir: process.env.CLIENT_DIR?.trim() || null,
     auditRetentionDays: envInt("AUDIT_RETENTION_DAYS", 180),
+    adminExport: envBool("ADMIN_EXPORT", false),
     updateCheckRepo: envBool("UPDATE_CHECK", true)
       ? process.env.UPDATE_CHECK_REPO?.trim() || "TatuArvela/manifesto"
       : null,

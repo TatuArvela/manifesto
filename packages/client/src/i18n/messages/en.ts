@@ -515,6 +515,9 @@ export const en = {
   "overview.jobLastRun": "Last run {when}, {ms} ms",
   "admin.tab.users": "Users",
   "admin.tab.activity": "Activity",
+  "activity.title": "Activity",
+  "activity.hint":
+    "What {server} has recorded about your account: sign-ins, changes to how it is secured, shares, and anything an admin did to it, such as downloading your notes. What your notes say is never recorded.",
   "audit.loading": "Loading activity...",
   "audit.empty": "Nothing recorded yet",
   "audit.failed": "The activity could not be loaded",
