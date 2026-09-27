@@ -448,7 +448,9 @@ export const fi: Messages = {
   "twoFactor.password": "Salasanasi",
   "twoFactor.continue": "Jatka",
   "twoFactor.addToApp":
-    "Lisää tämä avain todennussovellukseesi (Google Authenticator, 1Password, Bitwarden ja muut) ja anna sen näyttämä koodi.",
+    "Skannaa QR-koodi todennussovelluksellasi (Google Authenticator, 1Password, Bitwarden ja muut) ja anna sovelluksen näyttämä koodi.",
+  "twoFactor.qrLabel": "QR-koodi todennussovellukselle",
+  "twoFactor.orKey": "Tai lisää tämä avain käsin:",
   "twoFactor.openInApp": "Avaa tämän laitteen todennussovelluksessa",
   "twoFactor.code": "Koodi",
   "twoFactor.confirm": "Ota käyttöön",

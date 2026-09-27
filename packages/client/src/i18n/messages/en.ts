@@ -440,7 +440,9 @@ export const en = {
   "twoFactor.password": "Your password",
   "twoFactor.continue": "Continue",
   "twoFactor.addToApp":
-    "Add this key to your authenticator app (Google Authenticator, 1Password, Bitwarden and others), then enter the code it shows.",
+    "Scan the QR code with your authenticator app (Google Authenticator, 1Password, Bitwarden and others), then enter the code the app shows.",
+  "twoFactor.qrLabel": "QR code for your authenticator app",
+  "twoFactor.orKey": "Or add this key by hand:",
   "twoFactor.openInApp": "Open in an authenticator app on this device",
   "twoFactor.code": "Code",
   "twoFactor.confirm": "Turn on",

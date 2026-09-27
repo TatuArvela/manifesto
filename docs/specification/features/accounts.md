@@ -160,8 +160,8 @@ A local account can turn on two-factor sign-in from Settings (**Two-factor sign-
 then asks for a six-digit code from an authenticator app (TOTP, RFC 6238: SHA-1, 30-second steps) after
 the password. Accounts that sign in through single sign-on get this from their identity provider instead.
 
-- **Turning it on** asks for the password, shows a new key (base32, grouped for typing, and as an
-  `otpauth://` link for an authenticator on the same device), and takes effect only once a code from it
+- **Turning it on** asks for the password, shows a new key (as a QR code to scan, in base32
+  grouped for typing, and as an `otpauth://` link for an authenticator on the same device), and takes effect only once a code from it
   is entered. It then shows ten one-time **recovery codes**, once; they are stored hashed.
 - **Signing in** answers `403` with `code: "two_factor_required"` after a right password, and the client
   sends the same request again with `otp`, which may be an authenticator code or a recovery code (case
