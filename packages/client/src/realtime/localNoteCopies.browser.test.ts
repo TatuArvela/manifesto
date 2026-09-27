@@ -12,36 +12,46 @@ function createDatabase(name: string): Promise<void> {
   });
 }
 
-async function names(): Promise<string[]> {
-  return (await indexedDB.databases())
-    .map((db) => db.name ?? "")
-    .filter((name) => name.startsWith("manifesto"))
-    .sort();
+/** Which of `names` exist. Other test files share this origin and make
+ * databases of their own, so only the ones a test created are asked about. */
+async function existing(names: string[]): Promise<string[]> {
+  const all = new Set((await indexedDB.databases()).map((db) => db.name));
+  return names.filter((name) => all.has(name));
 }
 
-afterEach(async () => {
+/** Names no other test file uses. */
+const id = (n: string) =>
+  `copies-test-${n}-${Math.random().toString(36).slice(2)}`;
+
+afterEach(() => {
   vi.restoreAllMocks();
-  await deleteLocalNoteCopies([]);
-  await new Promise<void>((resolve) => {
-    const req = indexedDB.deleteDatabase("manifesto-reminders");
-    req.onsuccess = req.onerror = () => resolve();
-  });
 });
 
 describe("deleteLocalNoteCopies", () => {
   it("deletes every note's offline copy and nothing else", async () => {
-    await createDatabase("manifesto:yjs:n1");
-    await createDatabase("manifesto:yjs:n2");
-    await createDatabase("manifesto-reminders");
+    const copies = [`manifesto:yjs:${id("a")}`, `manifesto:yjs:${id("b")}`];
+    const other = `manifesto-${id("other")}`;
+    for (const name of [...copies, other]) await createDatabase(name);
+    // The real listing, narrowed to this test's databases, so another test
+    // file's open copies in the same origin are not deleted under it.
+    const listAll = indexedDB.databases.bind(indexedDB);
+    vi.spyOn(indexedDB, "databases").mockImplementation(async () =>
+      (await listAll()).filter(
+        (db) => db.name !== undefined && [...copies, other].includes(db.name),
+      ),
+    );
     await deleteLocalNoteCopies([]);
-    expect(await names()).toEqual(["manifesto-reminders"]);
+    vi.restoreAllMocks();
+    expect(await existing([...copies, other])).toEqual([other]);
+    indexedDB.deleteDatabase(other);
   });
 
   it("deletes the notes it is told about where databases cannot be listed", async () => {
-    await createDatabase("manifesto:yjs:n1");
+    const note = id("c");
+    await createDatabase(`manifesto:yjs:${note}`);
     vi.spyOn(indexedDB, "databases").mockRejectedValue(new Error("refused"));
-    await deleteLocalNoteCopies(["n1"]);
+    await deleteLocalNoteCopies([note]);
     vi.restoreAllMocks();
-    expect(await names()).toEqual([]);
+    expect(await existing([`manifesto:yjs:${note}`])).toEqual([]);
   });
 });
