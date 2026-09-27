@@ -17,12 +17,16 @@ import type { StorageDriver } from "../storage/types.js";
  * everyone out.
  */
 
-/** The address of each request, set once by the middleware below. */
-const addresses = new WeakMap<Request, string>();
+/**
+ * The address of each request, set once by the middleware below. Keyed by
+ * `c.req` and not `c.req.raw`: `bodyLimit` swaps the raw request for a new one
+ * when there is a body, so every sign-in and admin action lost its address.
+ */
+const addresses = new WeakMap<object, string>();
 
 export function recordClientAddress(trustProxy: boolean): MiddlewareHandler {
   return async (c, next) => {
-    addresses.set(c.req.raw, clientAddress(c, trustProxy));
+    addresses.set(c.req, clientAddress(c, trustProxy));
     await next();
   };
 }
@@ -37,7 +41,7 @@ export interface AuditInput {
 
 export function audit(
   storage: StorageDriver,
-  c: { req: { raw: Request } } | null,
+  c: { req: object } | null,
   input: AuditInput,
 ): void {
   const record = {
@@ -47,7 +51,7 @@ export function audit(
     actorId: input.actorId ?? null,
     targetId: input.targetId ?? null,
     noteId: input.noteId ?? null,
-    ip: c ? (addresses.get(c.req.raw) ?? null) : null,
+    ip: c ? (addresses.get(c.req) ?? null) : null,
     detail: input.detail ?? {},
   };
   void storage.audit.append(record).catch((err) => {
