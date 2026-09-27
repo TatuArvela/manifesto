@@ -89,6 +89,10 @@ State lives in `packages/client/src/state/` using @preact/signals:
   before it awaits anything.
 - **`ui.ts`**: UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
 - **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
+  In connected mode `prefsSync.ts` also keeps every preference outside `DEVICE_PREFS` on the server
+  (`/api/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
+  added there. Whatever arrives from the server goes through `PREF_PARSERS` like a hand-edited blob,
+  and `adoptAccountPrefs` saves it itself, since the save effect skips a change from elsewhere.
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   Routing below). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.
@@ -241,7 +245,9 @@ Server mode runs two sockets, and they carry different things. `realtime/appSock
 Every reconnect *after the first* re-fetches the note list, because writes made on another device
 while this tab was offline arrive nowhere else. `realtime/yjsProvider.ts` holds `/api/yjs`, one
 `HocuspocusProvider` per open note, with `y-indexeddb` underneath so an offline edit survives a
-reload. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding above.
+reload. Those copies outlive the session, so the account menu signs out through `signOut`
+(`state/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
+entry stays free of Yjs); the notes list itself empties on any end of a session, a 401 included. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding above.
 
 Being resumed is a reason to skip the backoff. A frozen page comes back to a socket the browser
 closed for it, and to a backoff its throttled retries may have grown to the ceiling, so a
@@ -373,10 +379,18 @@ and the fonts that screen asked for have arrived, or at `SPLASH_CAP_MS` after bo
 is removed on a timer as well as `transitionend`, since that event never arrives in a background
 tab.
 
-On a phone the on-screen keyboard shrinks only the visual viewport, so a `fixed inset-0` sheet
-keeps its foot behind the keys. `utils/visualViewport.ts` publishes the visible area as
-`--vv-top` / `--vv-height` (and `keyboard-open` on `<html>`), and a full-screen phone sheet takes
-the `phone-sheet` class to fill it; its home-indicator padding reads `--sheet-safe-bottom`.
+On a phone, an open note, the composer and a note's history are laid out *in the page*, not fixed
+over it, and go through `NoteSheet`. `utils/phoneSheets.ts` pins `.app-shell` (the board) in place
+while one is up, so the page scrolls the note. That is the one arrangement where iOS keeps the caret
+above the keyboard by scrolling the page rather than sliding the visible area over a fixed sheet.
+Nothing reads `visualViewport`, and that is deliberate: sizing a sheet to it left a sliver of note
+(Safari in a tab reports it too short), padding for the keyboard added blank room past the end, and
+a top bar moved to follow it trailed every scroll by a frame. With the keyboard up in a Safari tab,
+iOS pans the page past the foot of everything laid out, `fixed` layers included, so the page's own
+background shows there; `paintPage` gives it the open note's colour. Anything that
+must show over an open note belongs outside `.app-shell` (App's dialogs, toasts and banners are).
+The open and close morph uncovers the panel with `clip-path` there instead of scaling it
+(`utils/morph.ts`), since a whole screen scaled onto a card squashes its text.
 
 `storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
 toast queue or the catalogue, so the "tell the user" decision stays in `failures.ts`. A refused
@@ -427,6 +441,10 @@ call locally, so both modes behave alike.
   dispatcher, not the binding, decides when a key is not a shortcut (typing, an `aria-modal` layer or
   open popover, a modifier), so a new binding only calls `useShortcut(key, run)`. The board's keys and
   the `?` sheet read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
+- **Back** closes the newest `NoteSheet` through `hooks/useBackToClose.ts`: each sheet pushes a
+  same-address history entry and takes it off with `history.back()` when closed another way. The
+  router's own pushes wait for that back to land (`afterHistorySettles`), or they would be what it
+  goes back from.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
   clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
 
@@ -465,7 +483,12 @@ revoking one token goes through `revokeApiToken`, which closes its sockets by th
 
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
-catalogues, which `AuditLog.test.ts` checks.
+catalogues, which `AuditLog.test.ts` checks. The request's address is keyed on `c.req`, never
+`c.req.raw`: `bodyLimit` replaces the raw request whenever there is a body. Each user reads their
+own lines on the Activity page of Settings (`/api/auth/me/activity`, built by the same `auditPage`
+as the admin's log), so an admin action that reaches into an account must be audited with that
+account as its target, or its owner never hears of it. An admin reads another account's notes only
+through `ADMIN_EXPORT` (spec: `docs/specification/features/privacy.md`).
 
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:

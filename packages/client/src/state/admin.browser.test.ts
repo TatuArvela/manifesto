@@ -2,6 +2,7 @@ import type { AdminUser } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "../storage/index.js";
 import {
+  adminExportEnabled,
   adminUsers,
   createAccount,
   deleteAccount,
@@ -73,6 +74,16 @@ describe("admin actions", () => {
     const [url, init] = fetchMock.mock.calls[0] ?? [];
     expect(url).toBe(`${SERVER}/api/admin/users`);
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer tok");
+  });
+
+  it("offers an account's notes for download only when the server allows it", async () => {
+    fetchMock.mockResolvedValueOnce(json({ users: [], adminExport: true }));
+    await loadAdminUsers();
+    expect(adminExportEnabled.value).toBe(true);
+    // An older server does not say; it is not taken as allowing it.
+    fetchMock.mockResolvedValueOnce(json({ users: [] }));
+    await loadAdminUsers();
+    expect(adminExportEnabled.value).toBe(false);
   });
 
   it("reaches a same-origin server, whose base is the empty string", async () => {

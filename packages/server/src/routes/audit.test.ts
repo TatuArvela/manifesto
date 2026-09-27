@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   authHeaders,
   bootTestApp,
+  bootTestAppWith,
   registerTestUser,
   type TestRig,
 } from "../test/setup.js";
@@ -81,6 +82,71 @@ describe("audit log", () => {
   it("is for admins only", async () => {
     const res = await rig.request("/api/admin/audit", {
       headers: authHeaders(bob.token),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  async function activity(token: string) {
+    await settle();
+    const res = await rig.request("/api/auth/me/activity", {
+      headers: authHeaders(token),
+    });
+    expect(res.status).toBe(200);
+    return (await res.json()) as AuditLogResponse;
+  }
+
+  /** A rig that records addresses, which the test app has no socket for. */
+  async function withAddresses() {
+    await rig.close();
+    rig = await bootTestAppWith({ trustProxy: true });
+    admin = await registerTestUser(rig, "alice");
+    bob = await registerTestUser(rig, "bob");
+  }
+
+  const from = (ip: string) => ({ "X-Forwarded-For": ip });
+
+  it("shows a user their own activity, and nobody else's", async () => {
+    await withAddresses();
+    await rig.request("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...from("198.51.100.7") },
+      body: JSON.stringify({ username: "bob", password: "wrong-pass-00" }),
+    });
+    await login("alice", "wrong-pass-00");
+    const { entries } = await activity(bob.token);
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect([entry.actor?.id, entry.target?.id]).toContain(bob.userId);
+    }
+    const failed = entries.find((e) => e.action === "auth.sign_in_failed");
+    // Nobody was signed in, so the address is the one it was tried from.
+    expect(failed?.ip).toBe("198.51.100.7");
+  });
+
+  it("tells a user what an admin did to their account, but not from where", async () => {
+    await withAddresses();
+    await rig.request(`/api/admin/users/${bob.userId}`, {
+      method: "PUT",
+      headers: { ...authHeaders(admin.token), ...from("203.0.113.9") },
+      body: JSON.stringify({ isAdmin: true }),
+    });
+    const { entries } = await activity(bob.token);
+    const granted = entries.find((e) => e.action === "admin.admin_granted");
+    expect(granted?.actor?.username).toBe("alice");
+    expect(granted?.ip).toBeNull();
+    const all = await log(`?userId=${bob.userId}&action=admin.admin_granted`);
+    expect(all.entries[0].ip).toBe("203.0.113.9");
+  });
+
+  it("will not give a user's activity to an API token", async () => {
+    const created = await rig.request("/api/tokens", {
+      method: "POST",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ name: "script" }),
+    });
+    const { secret } = (await created.json()) as { secret: string };
+    const res = await rig.request("/api/auth/me/activity", {
+      headers: authHeaders(secret),
     });
     expect(res.status).toBe(403);
   });

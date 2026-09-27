@@ -1,4 +1,7 @@
 export type {
+  AccountPrefs,
+  AccountPrefsResponse,
+  AccountPrefsUpdate,
   AdminCreateUserRequest,
   AdminOverviewResponse,
   AdminTemporaryPasswordResponse,
@@ -60,12 +63,14 @@ export {
   APP_SOCKET_HEARTBEAT_MS,
   AUDIT_ACTIONS,
   DEFAULT_NOTES_PAGE_SIZE,
+  MAX_ACCOUNT_PREFS_BYTES,
   MAX_NOTES_PAGE_SIZE,
   MAX_NOTES_PER_IMPORT,
   WEBHOOK_EVENTS,
 } from "./api.js";
 export {
   EXPORT_NOTES_FILE,
+  EXPORT_PREFERENCES_FILE,
   EXPORT_VERSIONS_FILE,
   exportArchiveFiles,
   noteToMarkdownFile,

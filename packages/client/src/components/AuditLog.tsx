@@ -1,4 +1,8 @@
-import type { AuditEntry, ShareUser } from "@manifesto/shared";
+import type {
+  AuditEntry,
+  AuditLogResponse,
+  ShareUser,
+} from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
 import { formatDateTime, type MessageKey, t } from "../i18n/index.js";
 import { loadAuditLog } from "../state/admin.js";
@@ -19,10 +23,15 @@ function detailLine(detail: Record<string, string>): string {
 }
 
 /**
- * The admin view's Activity section: the audit log, newest first, a page at
- * a time. Who did what to whom, from where, as the server recorded it.
+ * The audit log, newest first, a page at a time. Who did what to whom, from
+ * where, as the server recorded it. The admin view's Activity section shows
+ * the whole log; Settings shows a user their own lines through `load`.
  */
-export function AuditLog() {
+export function AuditLog({
+  load: fetchPage = loadAuditLog,
+}: {
+  load?: (before?: string) => Promise<AuditLogResponse | null>;
+}) {
   const [entries, setEntries] = useState<AuditEntry[] | null>(null);
   const [next, setNext] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -30,7 +39,7 @@ export function AuditLog() {
 
   const load = async (before?: string) => {
     setBusy(true);
-    const page = await loadAuditLog(before);
+    const page = await fetchPage(before);
     setBusy(false);
     if (!page) {
       setFailed(true);

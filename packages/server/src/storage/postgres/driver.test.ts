@@ -2,6 +2,7 @@ import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { describeAdminContract } from "../adminContract.js";
 import { describeAttachmentsContract } from "../attachmentsContract.js";
+import { describePrefsContract } from "../prefsContract.js";
 import { describeSharingContract } from "../sharingContract.js";
 import { describeStatsContract } from "../statsContract.js";
 import { UsernameTakenError } from "../types.js";
@@ -19,6 +20,7 @@ describeAdminContract("postgres (pg-mem)", bootStorage);
 describeSharingContract("postgres (pg-mem)", bootStorage);
 describeAttachmentsContract("postgres (pg-mem)", bootStorage);
 describeStatsContract("postgres (pg-mem)", bootStorage);
+describePrefsContract("postgres (pg-mem)", bootStorage, { locks: false });
 
 describe("postgres: audit log", () => {
   it("appends, filters, pages and prunes", async () => {

@@ -1,19 +1,17 @@
 import { zValidator } from "@hono/zod-validator";
-import {
-  type AdminOverviewResponse,
-  type AdminTemporaryPasswordResponse,
-  type AdminUpdateResponse,
-  type AdminUser,
-  type AdminUserResponse,
-  type AdminUsersResponse,
-  AUDIT_ACTIONS,
-  type AuditAction,
-  type AuditLogResponse,
-  type ShareUser,
+import type {
+  AdminOverviewResponse,
+  AdminTemporaryPasswordResponse,
+  AdminUpdateResponse,
+  AdminUser,
+  AdminUserResponse,
+  AdminUsersResponse,
+  AuditLogResponse,
 } from "@manifesto/shared";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { audit } from "../audit/audit.js";
+import { auditPage } from "../audit/auditPage.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { endUserSessions } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
@@ -135,7 +133,10 @@ export function createAdminRoutes(deps: AdminDeps) {
 
   admin.get("/users", async (c) => {
     const users = await deps.storage.users.list();
-    const body: AdminUsersResponse = { users: users.map(toAdminUser) };
+    const body: AdminUsersResponse = {
+      users: users.map(toAdminUser),
+      adminExport: deps.cfg.adminExport,
+    };
     return c.json(body);
   });
 
@@ -296,8 +297,18 @@ export function createAdminRoutes(deps: AdminDeps) {
     return c.body(null, 204);
   });
 
-  /** Everything an account owns, as a zip, for a data request or a move. */
+  /**
+   * Everything an account owns, as a zip, for a data request or a move. Only
+   * with `ADMIN_EXPORT` on; the owner hears of it in their own activity.
+   */
   admin.get("/users/:id/export", async (c) => {
+    if (!deps.cfg.adminExport) {
+      throw new HttpError(
+        403,
+        "Downloading another account's notes is turned off on this server",
+        "admin_export_disabled",
+      );
+    }
     const id = c.req.param("id");
     const zip = await exportAccount(deps.storage, id);
     if (!zip) throw new HttpError(404, "User not found");
@@ -357,66 +368,14 @@ export function createAdminRoutes(deps: AdminDeps) {
     return c.json(body);
   });
 
-  /**
-   * The audit log, newest first, a page at a time: `before` an entry id for
-   * older ones, and narrowed to one account (as actor or target) or one
-   * action. Actor and target come with their names while the accounts exist.
-   */
+  /** The audit log, a page at a time; see `auditPage`. */
   admin.get("/audit", async (c) => {
-    const limit = Math.min(
-      Math.max(Number(c.req.query("limit")) || 100, 1),
-      500,
-    );
-    const actionQuery = c.req.query("action");
-    const action = (AUDIT_ACTIONS as readonly string[]).includes(
-      actionQuery ?? "",
-    )
-      ? (actionQuery as AuditAction)
-      : undefined;
-    const records = await deps.storage.audit.list({
-      limit: limit + 1,
-      before: c.req.query("before") || undefined,
-      userId: c.req.query("userId") || undefined,
-      action,
+    const body: AuditLogResponse = await auditPage(deps.storage, {
+      limit: c.req.query("limit"),
+      before: c.req.query("before"),
+      userId: c.req.query("userId"),
+      action: c.req.query("action"),
     });
-    const page = records.slice(0, limit);
-    const ids = new Set(
-      page.flatMap((r) => [r.actorId, r.targetId]).filter(Boolean) as string[],
-    );
-    const people = new Map<string, ShareUser>();
-    for (const id of ids) {
-      const user = await deps.storage.users.findById(id);
-      if (user) {
-        people.set(id, {
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName || user.username,
-          avatarColor: user.avatarColor,
-        });
-      }
-    }
-    const who = (id: string | null) =>
-      id === null
-        ? null
-        : (people.get(id) ?? {
-            id,
-            username: "",
-            displayName: "",
-            avatarColor: "",
-          });
-    const body: AuditLogResponse = {
-      entries: page.map((r) => ({
-        id: r.id,
-        at: r.at,
-        action: r.action,
-        actor: who(r.actorId),
-        target: who(r.targetId),
-        noteId: r.noteId,
-        ip: r.ip,
-        detail: r.detail,
-      })),
-      nextBefore: records.length > limit ? (page.at(-1)?.id ?? null) : null,
-    };
     return c.json(body);
   });
 

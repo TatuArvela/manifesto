@@ -1,7 +1,8 @@
 import { LogOut, UserCog } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
-import { currentUser, isServerMode, logout } from "../state/auth.js";
+import { currentUser, isServerMode } from "../state/auth.js";
+import { signOut } from "../state/signOut.js";
 import { openSettings } from "../state/ui.js";
 import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
@@ -72,7 +73,7 @@ export function AccountMenu() {
         class={menuItemClass}
         onClick={() => {
           setOpen(false);
-          void logout();
+          void signOut();
         }}
       >
         <LogOut class="w-4 h-4" />

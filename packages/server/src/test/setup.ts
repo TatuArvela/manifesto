@@ -35,6 +35,7 @@ export const TEST_CONFIG: ServerConfig = {
   metricsHost: "127.0.0.1",
   clientDir: null,
   auditRetentionDays: 180,
+  adminExport: false,
   // Off: no test should reach GitHub.
   updateCheckRepo: null,
   userLookup: "search",

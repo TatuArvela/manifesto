@@ -4,12 +4,14 @@ import {
   ChevronDown,
   Database,
   Download,
+  History,
   Info,
   KeySquare,
   type LucideIcon,
   Monitor,
   Moon,
   Palette,
+  RefreshCw,
   ShieldCheck,
   Shuffle,
   Sparkles,
@@ -43,6 +45,7 @@ import {
   t,
 } from "../i18n/index.js";
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
+import { forceUpdateApp } from "../serviceWorker.js";
 import { availableUpdate } from "../state/admin.js";
 import { currentUser, isServerMode, webhooksEnabled } from "../state/auth.js";
 import {
@@ -80,6 +83,7 @@ import {
 import { restoreVersions } from "../state/versions.js";
 import { importFiles } from "../utils/importExport.js";
 import { AccountSettings, hasOwnPassword } from "./AccountSettings.js";
+import { ActivitySettings } from "./ActivitySettings.js";
 import { ApiTokensSettings } from "./ApiTokensSettings.js";
 import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
@@ -251,6 +255,7 @@ const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
   twoFactor: { label: "twoFactor.title", icon: ShieldCheck },
   tokens: { label: "tokens.title", icon: KeySquare },
   webhooks: { label: "webhooks.title", icon: Webhook },
+  activity: { label: "activity.title", icon: History },
   appearance: { label: "settings.group.appearance", icon: Palette },
   features: { label: "settings.group.features", icon: Sparkles },
   data: { label: "settings.group.data", icon: Database },
@@ -266,6 +271,7 @@ function accountTabs(): SettingsTab[] {
   if (hasOwnPassword()) tabs.push("twoFactor");
   tabs.push("tokens");
   if (webhooksEnabled.value) tabs.push("webhooks");
+  tabs.push("activity");
   return tabs;
 }
 
@@ -437,7 +443,11 @@ export function SettingsDialog() {
                     ))}
                 </NavGroup>
               )}
-              <NavGroup>
+              <NavGroup
+                title={
+                  account.length > 0 ? t("settings.group.general") : undefined
+                }
+              >
                 {GENERAL_TABS.map((g) => (
                   <NavItem
                     key={g}
@@ -472,6 +482,7 @@ export function SettingsDialog() {
               {tab === "twoFactor" && <TwoFactorSettings />}
               {tab === "tokens" && <ApiTokensSettings />}
               {tab === "webhooks" && <WebhooksSettings />}
+              {tab === "activity" && <ActivitySettings />}
               {tab === "appearance" && <AppearanceSettings />}
               {tab === "features" && <FeaturesSettings />}
               {tab === "data" && <DataSettings />}
@@ -896,6 +907,37 @@ function DataSettings() {
 const linkRowClass =
   "flex items-center gap-2 w-full py-2 text-sm text-left text-blue-700 dark:text-blue-300 hover:underline cursor-pointer";
 
+function ForceUpdate() {
+  const [offline, setOffline] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const handleClick = async () => {
+    setBusy(true);
+    const reloading = await forceUpdateApp();
+    if (!reloading) {
+      setOffline(true);
+      setBusy(false);
+    }
+  };
+  return (
+    <div class="space-y-2">
+      <button
+        type="button"
+        class="px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+        disabled={busy}
+        onClick={handleClick}
+      >
+        <RefreshCw class={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
+        {t("settings.about.forceUpdate")}
+      </button>
+      <p class="text-sm text-neutral-500 dark:text-neutral-400">
+        {offline
+          ? t("settings.about.forceUpdateOffline")
+          : t("settings.about.forceUpdateHint")}
+      </p>
+    </div>
+  );
+}
+
 function AboutSettings({ onClose }: { onClose: () => void }) {
   const user = currentUser.value;
   const update = user?.isAdmin ? availableUpdate.value : null;
@@ -929,6 +971,7 @@ function AboutSettings({ onClose }: { onClose: () => void }) {
         </div>
       )}
       <StorageMode class="bg-neutral-100 dark:bg-neutral-700/50" />
+      <ForceUpdate />
       {update && (
         <a
           class="flex items-center gap-2 p-3 rounded-lg text-sm bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 hover:underline"

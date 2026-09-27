@@ -1360,23 +1360,59 @@ body.note-drag-active .note-select {
   margin: 0;
 }
 
-/* The phone's full-screen sheets (an open note, the composer) fill what the
-   reader can see rather than the layout viewport, so an on-screen keyboard
-   shortens them and their toolbar rides on it. See utils/visualViewport.ts,
-   which sets the variables; without them the sheet is the whole screen. */
-:root {
-  --sheet-safe-bottom: env(safe-area-inset-bottom);
-}
-
-:root.keyboard-open {
-  --sheet-safe-bottom: 0px;
-}
-
+/* The phone's full-screen sheets (an open note, the composer, a note's
+   history) are laid out in the page, and the page is what scrolls them; see
+   utils/phoneSheets.ts, which sets the attributes. The board
+   is pinned where it stands underneath, and a sheet covered by a newer one
+   is pinned over it. A wider screen's dialog is fixed as ever. */
 @media (width < 40rem) {
-  .phone-sheet {
-    top: var(--vv-top, 0px);
-    bottom: auto;
-    height: var(--vv-height, 100%);
+  html.sheet-open .app-shell {
+    position: fixed;
+    inset: 0;
+  }
+
+  .note-sheet[data-sheet="flow"] {
+    position: relative;
+  }
+
+  /* The page takes the open note's colour, for the band iOS shows past the
+     foot of the page with the keyboard up; see `paintPage`. */
+  html.sheet-open body {
+    background-color: var(--sheet-canvas);
+  }
+
+  .note-sheet[data-sheet="covered"] {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  /* The note inside fills at least the screen. Nothing here reads the
+     keyboard: iOS already lets the page scroll the text's end above the keys,
+     and a top bar made to follow the visible area during a scroll trailed it
+     by a frame. */
+  .note-sheet-surface {
+    min-height: 100dvh;
+  }
+
+  /* Its top bar stays on screen as the page scrolls, and its toolbar keeps to
+     the bottom of the screen, under the keyboard while that is up. Both take
+     the note's colour from it, here only: a wider screen's dialog has rounded
+     corners that a painted bar would square off. */
+  .note-sheet-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: inherit;
+    padding-top: calc(0.5rem + env(safe-area-inset-top));
+  }
+
+  .note-sheet-bottom {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background-color: inherit;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
 }
 

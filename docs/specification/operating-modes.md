@@ -53,6 +53,8 @@ The client is built with `VITE_MANIFESTO_SERVER=<url>` and talks to a Manifesto 
 - Writes go through the REST API; the server fans out `note:*` events over the `/api/ws` WebSocket so other devices update live.
 - Per-note collaborative editing runs over a Hocuspocus + Yjs channel at `/api/yjs`, which multiplexes every note over one socket by document name.
 - Tags and manual ordering are scoped per-user.
+- Most [preferences](features/preferences.md) follow the account; a few that suit one screen or one
+  browser stay on the device.
 
 ### Available features
 

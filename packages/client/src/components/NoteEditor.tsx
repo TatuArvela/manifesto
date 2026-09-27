@@ -118,6 +118,8 @@ interface NoteEditorProps {
   /** Discards an unsaved draft. Shown as a toolbar button, not a menu row. */
   onDelete?: () => void;
   deleteLabel?: string;
+  /** Puts the caret in the text once the editor is built. On by default. */
+  autoFocus?: boolean;
   collab?: {
     ydoc: import("yjs").Doc;
     fragmentName?: string;
@@ -155,6 +157,7 @@ export function NoteEditor({
   menuItems,
   onDelete,
   deleteLabel,
+  autoFocus = true,
   collab,
 }: NoteEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -469,11 +472,11 @@ export function NoteEditor({
 
   return (
     <article
-      class={`${colors.bg} ${colors.border} note-surface note-color-transition relative z-10 sm:border sm:shadow-lg max-sm:h-full max-sm:flex max-sm:flex-col max-sm:pt-[env(safe-area-inset-top)] max-sm:pb-[var(--sheet-safe-bottom)]`}
+      class={`${colors.bg} ${colors.border} note-surface note-color-transition relative z-10 sm:border sm:shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col`}
     >
       {/* Top bar: back (mobile only) + pin. On desktop, pin floats absolute
           top-right; on mobile, this is a flex row above the title. */}
-      <div class="max-sm:flex max-sm:items-center max-sm:justify-between max-sm:px-2.5 max-sm:pt-2">
+      <div class="note-sheet-top max-sm:flex max-sm:items-center max-sm:justify-between max-sm:px-2.5">
         <div class="sm:hidden">
           <button
             type="button"
@@ -514,7 +517,7 @@ export function NoteEditor({
         />
       )}
 
-      <div class="p-4 max-sm:px-4 max-sm:pt-2 max-sm:flex-1 max-sm:overflow-y-auto max-sm:min-h-0 max-sm:flex max-sm:flex-col">
+      <div class="p-4 max-sm:px-4 max-sm:pt-2 max-sm:flex-1 max-sm:flex max-sm:flex-col">
         <input
           ref={titleRef}
           type="text"
@@ -569,7 +572,7 @@ export function NoteEditor({
             contentLocked={contentLocked}
             rawMode={rawMode}
             textareaRef={rawTextareaRef}
-            autoFocus
+            autoFocus={autoFocus}
             onEditorReady={setEditor}
             collab={collab}
           />
@@ -642,7 +645,7 @@ export function NoteEditor({
           and everything else. When a phone is too narrow for one row, the
           first group is what gives way, so it moves up a row and the controls
           a thumb reaches for (the menu, undo, done) keep the bottom one. */}
-      <div class="px-3 pt-1.5 pb-2 flex flex-wrap items-center gap-0.5">
+      <div class="note-sheet-bottom px-3 pt-1.5 sm:pb-2 flex flex-wrap items-center gap-0.5">
         <div class="flex items-center gap-0.5">
           <Dropdown
             open={showColorPicker}

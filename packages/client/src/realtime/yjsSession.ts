@@ -2,6 +2,7 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import { IndexeddbPersistence } from "y-indexeddb";
 import type { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
+import { LOCAL_COPY_PREFIX } from "./localNoteCopies.js";
 
 /**
  * Every import of the collaboration stack (Yjs, Hocuspocus, y-indexeddb)
@@ -61,7 +62,7 @@ export function createYjsSession({
   onAuthenticationFailed,
 }: YjsSessionOptions): YjsSession {
   const ydoc = new Y.Doc();
-  const idb = new IndexeddbPersistence(`manifesto:yjs:${noteId}`, ydoc);
+  const idb = new IndexeddbPersistence(`${LOCAL_COPY_PREFIX}${noteId}`, ydoc);
   const provider = new HocuspocusProvider({
     url,
     name: noteId,

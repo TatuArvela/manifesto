@@ -21,6 +21,7 @@ describe("isServerEvent", () => {
     ["note:deleted", { type: "note:deleted", id: "01J" }],
     ["presence:join", { type: "presence:join", noteId: "01J", user }],
     ["presence:leave", { type: "presence:leave", noteId: "01J", userId: "u1" }],
+    ["prefs:updated", { type: "prefs:updated", prefs: { theme: "dark" } }],
   ])("accepts a well-formed %s", (_name, event) => {
     expect(isServerEvent(event)).toBe(true);
   });
@@ -38,6 +39,11 @@ describe("isServerEvent", () => {
       { type: "presence:join", noteId: "01J", user: { id: "u1" } },
     ],
     ["a leave with no userId", { type: "presence:leave", noteId: "01J" }],
+    [
+      "preferences that are not an object",
+      { type: "prefs:updated", prefs: [] },
+    ],
+    ["preferences that are null", { type: "prefs:updated", prefs: null }],
     ["no type at all", { note }],
     ["null", null],
     ["a string", "note:created"],

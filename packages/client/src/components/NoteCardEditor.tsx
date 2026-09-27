@@ -1,5 +1,4 @@
 import type { Note, NoteColor } from "@manifesto/shared";
-import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
@@ -14,9 +13,11 @@ import {
   updateNote,
 } from "../state/index.js";
 import { recordVersion } from "../state/versions.js";
+import { isPhoneLayout } from "../utils/phoneSheets.js";
 import { Backdrop } from "./Backdrop.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { noteMenuItems } from "./NoteMenu.js";
+import { NoteSheet } from "./NoteSheet.js";
 import { SharedPeople } from "./SharedAvatars.js";
 import { VersionHistory } from "./VersionHistory.js";
 
@@ -181,43 +182,40 @@ export function NoteCardEditor({
 
   return (
     <>
-      {showVersions &&
-        createPortal(
-          <>
+      {showVersions && (
+        <NoteSheet
+          label={t("noteMenu.versionHistory")}
+          dialogRef={versionsRef}
+          layer="z-[70]"
+          motion={`transition-all duration-150 ${versionsClosing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+          backdrop={
             <Backdrop
               onDismiss={closeVersions}
               closing={versionsClosing}
               class="z-[60]"
             />
-            <div
-              ref={versionsRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label={t("noteMenu.versionHistory")}
-              class={`fixed inset-0 z-[70] flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-150 ${versionsClosing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
-            >
-              <div class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden">
-                <VersionHistory
-                  noteId={note.id}
-                  color={note.color}
-                  onRestore={(restoredTitle, restoredContent) => {
-                    setTitle(restoredTitle);
-                    setContent(restoredContent);
-                    savedTitleRef.current = restoredTitle;
-                    savedContentRef.current = restoredContent;
-                    updateNote(note.id, {
-                      title: restoredTitle,
-                      content: restoredContent,
-                    });
-                    closeVersions();
-                  }}
-                  onClose={closeVersions}
-                />
-              </div>
-            </div>
-          </>,
-          document.body,
-        )}
+          }
+          closing={versionsClosing}
+          onBack={closeVersions}
+        >
+          <VersionHistory
+            noteId={note.id}
+            color={note.color}
+            onRestore={(restoredTitle, restoredContent) => {
+              setTitle(restoredTitle);
+              setContent(restoredContent);
+              savedTitleRef.current = restoredTitle;
+              savedContentRef.current = restoredContent;
+              updateNote(note.id, {
+                title: restoredTitle,
+                content: restoredContent,
+              });
+              closeVersions();
+            }}
+            onClose={closeVersions}
+          />
+        </NoteSheet>
+      )}
       <NoteEditor
         title={title}
         onTitleChange={setTitle}
@@ -291,6 +289,11 @@ export function NoteCardEditor({
             <SharedPeople note={note} />
           </>
         }
+        // A phone opens a note to read it. The focus would come too late after
+        // the tap for iOS to raise the keyboard, so all it did was send the
+        // caret to the end, where the first tap into the text then had to
+        // move it from. A tap puts it where it lands instead.
+        autoFocus={!isPhoneLayout()}
         collab={collab}
       />
     </>

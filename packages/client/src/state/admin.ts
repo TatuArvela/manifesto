@@ -26,6 +26,10 @@ import { activeView, showError } from "./ui.js";
 /** Every account on the server, or null before the first load finishes. */
 export const adminUsers = signal<AdminUser[] | null>(null);
 
+/** Whether the server lets an admin download an account's notes
+ * (`ADMIN_EXPORT`, off by default). */
+export const adminExportEnabled = signal(false);
+
 /** A password the server has just issued. It is shown once and never fetched
  * again, so it lives here only until the admin dismisses it. */
 export interface IssuedPassword {
@@ -123,6 +127,7 @@ export async function loadAdminUsers(): Promise<boolean> {
   try {
     const body = await request<AdminUsersResponse>("GET", "/users");
     adminUsers.value = body?.users ?? [];
+    adminExportEnabled.value = body?.adminExport === true;
     return true;
   } catch (err) {
     report(err, "admin.error.loadFailed");

@@ -1,4 +1,5 @@
 import type {
+  AccountPrefs,
   ApiToken,
   AuditAction,
   Note,
@@ -545,6 +546,23 @@ export interface AuditRepo {
   deleteBefore(at: string): Promise<number>;
 }
 
+/** Each account's preferences; see `AccountPrefs`. */
+export interface PrefsRepo {
+  /** `{}` for an account that has none stored. */
+  get(userId: string): Promise<AccountPrefs>;
+  /**
+   * Sets each key of `patch`, removing those set to `null`, atomically, and
+   * gives back the result. `tooLarge` when the result would pass
+   * `maxBytes` as JSON, and then nothing is written.
+   */
+  merge(
+    userId: string,
+    patch: AccountPrefs,
+    at: string,
+    maxBytes: number,
+  ): Promise<AccountPrefs | "tooLarge">;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -559,6 +577,7 @@ export interface StorageDriver {
   twoFactor: TwoFactorRepo;
   passwordResets: PasswordResetsRepo;
   audit: AuditRepo;
+  prefs: PrefsRepo;
   /**
    * A consistent copy of the whole database at `path`, taken while it keeps
    * serving. SQLite only; Postgres has `pg_dump` and managed backups.

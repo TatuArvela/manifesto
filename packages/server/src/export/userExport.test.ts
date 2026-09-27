@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   authHeaders,
   bootTestApp,
+  bootTestAppWith,
   registerTestUser,
   type TestRig,
 } from "../test/setup.js";
@@ -113,7 +114,39 @@ describe("account export", () => {
     );
   });
 
-  it("lets an admin export any account, and nobody else", async () => {
+  it("includes the account's preferences", async () => {
+    await rig.request("/api/auth/me/prefs", {
+      method: "PATCH",
+      headers: authHeaders(alice.token),
+      body: JSON.stringify({ prefs: { theme: "dark", hiddenTags: ["work"] } }),
+    });
+    const res = await rig.request("/api/export", {
+      headers: authHeaders(alice.token),
+    });
+    const files = unzip(Buffer.from(await res.arrayBuffer()));
+    expect(JSON.parse(files.get("preferences.json") ?? "null")).toEqual({
+      theme: "dark",
+      hiddenTags: ["work"],
+    });
+  });
+
+  it("refuses an admin another account's notes unless ADMIN_EXPORT is on", async () => {
+    const bob = await registerTestUser(rig, "bob");
+    const res = await rig.request(`/api/admin/users/${bob.userId}/export`, {
+      headers: authHeaders(alice.token),
+    });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: "admin_export_disabled" });
+    const users = await rig.request("/api/admin/users", {
+      headers: authHeaders(alice.token),
+    });
+    expect(await users.json()).toMatchObject({ adminExport: false });
+  });
+
+  it("with ADMIN_EXPORT on, lets an admin export any account, and nobody else", async () => {
+    await rig.close();
+    rig = await bootTestAppWith({ adminExport: true });
+    alice = await registerTestUser(rig, "alice");
     const bob = await registerTestUser(rig, "bob");
     const asAdmin = await rig.request(`/api/admin/users/${bob.userId}/export`, {
       headers: authHeaders(alice.token),

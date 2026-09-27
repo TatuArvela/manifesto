@@ -259,6 +259,7 @@ export const fi: Messages = {
   "settings.group.data": "Tiedot",
   "settings.group.about": "Tietoja",
   "settings.group.behavior": "Käyttäytyminen",
+  "settings.group.general": "Yleiset",
   "settings.about.version": "Versio {version}",
   "settings.theme": "Teema",
   "settings.theme.system": "Järjestelmä",
@@ -447,7 +448,9 @@ export const fi: Messages = {
   "twoFactor.password": "Salasanasi",
   "twoFactor.continue": "Jatka",
   "twoFactor.addToApp":
-    "Lisää tämä avain todennussovellukseesi (Google Authenticator, 1Password, Bitwarden ja muut) ja anna sen näyttämä koodi.",
+    "Skannaa QR-koodi todennussovelluksellasi (Google Authenticator, 1Password, Bitwarden ja muut) ja anna sovelluksen näyttämä koodi.",
+  "twoFactor.qrLabel": "QR-koodi todennussovellukselle",
+  "twoFactor.orKey": "Tai lisää tämä avain käsin:",
   "twoFactor.openInApp": "Avaa tämän laitteen todennussovelluksessa",
   "twoFactor.code": "Koodi",
   "twoFactor.confirm": "Ota käyttöön",
@@ -520,6 +523,9 @@ export const fi: Messages = {
   "overview.jobLastRun": "Viimeksi ajettu {when}, {ms} ms",
   "admin.tab.users": "Käyttäjät",
   "admin.tab.activity": "Tapahtumat",
+  "activity.title": "Tapahtumat",
+  "activity.hint":
+    "Mitä palvelin {server} on kirjannut tilistäsi: kirjautumiset, muutokset tilin suojaukseen, jaot ja kaiken, mitä ylläpitäjä on tehnyt tilille, kuten muistiinpanojesi lataamisen. Muistiinpanojesi sisältöä ei kirjata.",
   "audit.loading": "Ladataan tapahtumia...",
   "audit.empty": "Mitään ei ole vielä kirjattu",
   "audit.failed": "Tapahtumia ei saatu ladattua",
@@ -571,6 +577,11 @@ export const fi: Messages = {
   "settings.about.repo": "GitHub",
   "settings.about.welcome": "Tervetuloa",
   "settings.about.license": "MIT-lisenssi",
+  "settings.about.forceUpdate": "Pakota sovelluksen päivitys",
+  "settings.about.forceUpdateHint":
+    "Lataa sovelluksen uudelleen palvelimelta ohittaen selaimen tallentaman kopion. Muistiinpanoihisi tämä ei vaikuta.",
+  "settings.about.forceUpdateOffline":
+    "Olet offline-tilassa. Yhdistä internetiin päivittääksesi.",
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",

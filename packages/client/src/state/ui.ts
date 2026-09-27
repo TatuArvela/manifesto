@@ -29,6 +29,7 @@ export type SettingsTab =
   | "twoFactor"
   | "tokens"
   | "webhooks"
+  | "activity"
   | "appearance"
   | "features"
   | "data"

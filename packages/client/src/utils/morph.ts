@@ -2,9 +2,11 @@
  * The open and close of a note's editor, drawn as the note itself growing into
  * the editor and shrinking back onto its card: the editor panel is laid out
  * where it belongs and transformed to start (or end) over the rectangle it
- * came from. Transform and opacity only, so it runs on the compositor and the
- * editor inside is never re-laid out mid-flight.
+ * came from, or on a phone uncovered from it (see `morphClip`). Transform,
+ * clip and opacity only, so the editor inside is never re-laid out mid-flight.
  */
+
+import { isPhoneLayout } from "./phoneSheets.js";
 
 export interface RectLike {
   left: number;
@@ -33,6 +35,27 @@ export function morphTransform(from: RectLike, to: RectLike): string {
   const scaleX = to.width > 0 ? from.width / to.width : 1;
   const scaleY = to.height > 0 ? from.height / to.height : 1;
   return `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${scaleX}, ${scaleY})`;
+}
+
+/**
+ * The clip that shows only the part of an element laid out at `to` that lies
+ * over `rect`, with a note's rounded corners.
+ *
+ * A phone's editor is the whole screen and a card is a fraction of it, in
+ * different proportions: scaling one onto the other squashed the note's text
+ * to half its width and a quarter of its height, in plain view for most of a
+ * close. So there the editor is uncovered where it stands instead, from the
+ * card's rectangle out to the screen, and nothing in it changes shape.
+ */
+export function morphClip(rect: RectLike, to: RectLike): string {
+  const top = rect.top - to.top;
+  const right = to.left + to.width - (rect.left + rect.width);
+  const bottom = to.top + to.height - (rect.top + rect.height);
+  const left = rect.left - to.left;
+  const radius = getComputedStyle(document.documentElement)
+    .getPropertyValue("--note-radius")
+    .trim();
+  return `inset(${top}px ${right}px ${bottom}px ${left}px round ${radius || "0px"})`;
 }
 
 /**
@@ -82,13 +105,16 @@ export function morphIn(
   { opaque = false }: { opaque?: boolean } = {},
 ): void {
   settle(panel);
-  const start = morphTransform(from, panel.getBoundingClientRect());
+  const to = panel.getBoundingClientRect();
+  const [start, end] = isPhoneLayout()
+    ? [{ clipPath: morphClip(from, to) }, { clipPath: morphClip(to, to) }]
+    : [{ transform: morphTransform(from, to) }, { transform: "none" }];
   panel.style.transformOrigin = "0 0";
   panel.animate(
     [
-      { transform: start, opacity: opaque ? 1 : 0 },
+      { ...start, opacity: opaque ? 1 : 0 },
       { opacity: 1, offset: FADE_SHARE },
-      { transform: "none", opacity: 1 },
+      { ...end, opacity: 1 },
     ],
     { duration: MORPH_MS, easing: EASING },
   );
@@ -106,9 +132,12 @@ export function morphIn(
  */
 export function morphOut(panel: HTMLElement, to: RectLike): Promise<void> {
   settle(panel);
-  const end = morphTransform(to, panel.getBoundingClientRect());
+  const from = panel.getBoundingClientRect();
+  const keyframes = isPhoneLayout()
+    ? [{ clipPath: morphClip(from, from) }, { clipPath: morphClip(to, from) }]
+    : [{ transform: "none" }, { transform: morphTransform(to, from) }];
   panel.style.transformOrigin = "0 0";
-  const motion = panel.animate([{ transform: "none" }, { transform: end }], {
+  const motion = panel.animate(keyframes, {
     duration: MORPH_MS,
     easing: EASING,
     fill: "forwards",

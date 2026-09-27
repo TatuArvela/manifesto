@@ -1,23 +1,33 @@
 import { zValidator } from "@hono/zod-validator";
-import type {
-  AuthMeResponse,
-  AuthMethodsResponse,
-  AuthProviderName,
+import {
+  type AccountPrefsResponse,
+  type AuditLogResponse,
+  type AuthMeResponse,
+  type AuthMethodsResponse,
+  type AuthProviderName,
+  MAX_ACCOUNT_PREFS_BYTES,
 } from "@manifesto/shared";
 import { Hono } from "hono";
+import { auditPage } from "../audit/auditPage.js";
 import {
   type ServerConfig,
   signsInLocally,
   signsInWithOidc,
 } from "../config.js";
+import { nowIso } from "../lib/time.js";
 import {
   type AuthContext,
   createAuthMiddleware,
 } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
-import { authLocaleSchema, authMeUpdateSchema } from "../validation/schemas.js";
+import {
+  accountPrefsUpdateSchema,
+  authLocaleSchema,
+  authMeUpdateSchema,
+} from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
+import type { Broadcaster } from "../ws/broadcaster.js";
 import type { AuthProvider, AuthProviderRouter } from "./types.js";
 import { toAuthUser } from "./users.js";
 
@@ -25,6 +35,8 @@ interface SharedAuthRoutesDeps {
   cfg: ServerConfig;
   storage: StorageDriver;
   authProvider: AuthProvider;
+  /** Tells the account's other devices when its preferences change. */
+  broadcaster?: Broadcaster;
 }
 
 /**
@@ -94,6 +106,69 @@ export function createAuthSharedRoutes(
       const body: AuthMeResponse = {
         user: toAuthUser({ ...user, email }),
       };
+      return c.json(body);
+    },
+  );
+
+  /**
+   * The signed-in user's own lines of the audit log: their sign-ins and
+   * failed ones, changes to how the account is secured, shares, and anything
+   * an admin did to the account, downloading its notes included. What an admin
+   * can see about someone, that person can see too. A session only, like the
+   * other pages about how the account is secured.
+   */
+  router.get(
+    "/me/activity",
+    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const body: AuditLogResponse = await auditPage(
+        deps.storage,
+        { limit: c.req.query("limit"), before: c.req.query("before") },
+        userId,
+      );
+      return c.json(body);
+    },
+  );
+
+  /**
+   * The account's preferences, so hidden tags and the rest follow it from
+   * device to device. The server keeps what clients send and reads none of
+   * it; each client parses what it gets back. Any credential, since a
+   * preference changes nothing about how the account is secured.
+   */
+  router.get(
+    "/me/prefs",
+    createAuthMiddleware(deps.authProvider),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const body: AccountPrefsResponse = {
+        prefs: await deps.storage.prefs.get(userId),
+      };
+      return c.json(body);
+    },
+  );
+
+  /** Merges in the keys given, `null` removing one; `413` past the limit. */
+  router.patch(
+    "/me/prefs",
+    createAuthMiddleware(deps.authProvider),
+    zValidator("json", accountPrefsUpdateSchema, validatorHook),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const merged = await deps.storage.prefs.merge(
+        userId,
+        c.req.valid("json").prefs,
+        nowIso(),
+        MAX_ACCOUNT_PREFS_BYTES,
+      );
+      if (merged === "tooLarge") {
+        throw new HttpError(413, "Preferences are too large");
+      }
+      // Every socket of the account hears it, the sender's included; it
+      // adopts what it already has, which changes nothing.
+      deps.broadcaster?.emit(userId, { type: "prefs:updated", prefs: merged });
+      const body: AccountPrefsResponse = { prefs: merged };
       return c.json(body);
     },
   );

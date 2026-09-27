@@ -252,6 +252,7 @@ export const en = {
   "settings.group.data": "Data",
   "settings.group.about": "About",
   "settings.group.behavior": "Behavior",
+  "settings.group.general": "General",
   "settings.about.version": "Version {version}",
   "settings.theme": "Theme",
   "settings.theme.system": "System",
@@ -439,7 +440,9 @@ export const en = {
   "twoFactor.password": "Your password",
   "twoFactor.continue": "Continue",
   "twoFactor.addToApp":
-    "Add this key to your authenticator app (Google Authenticator, 1Password, Bitwarden and others), then enter the code it shows.",
+    "Scan the QR code with your authenticator app (Google Authenticator, 1Password, Bitwarden and others), then enter the code the app shows.",
+  "twoFactor.qrLabel": "QR code for your authenticator app",
+  "twoFactor.orKey": "Or add this key by hand:",
   "twoFactor.openInApp": "Open in an authenticator app on this device",
   "twoFactor.code": "Code",
   "twoFactor.confirm": "Turn on",
@@ -514,6 +517,9 @@ export const en = {
   "overview.jobLastRun": "Last run {when}, {ms} ms",
   "admin.tab.users": "Users",
   "admin.tab.activity": "Activity",
+  "activity.title": "Activity",
+  "activity.hint":
+    "What {server} has recorded about your account: sign-ins, changes to how it is secured, shares, and anything an admin did to it, such as downloading your notes. What your notes say is never recorded.",
   "audit.loading": "Loading activity...",
   "audit.empty": "Nothing recorded yet",
   "audit.failed": "The activity could not be loaded",
@@ -561,6 +567,11 @@ export const en = {
   "settings.about.repo": "GitHub",
   "settings.about.welcome": "Welcome",
   "settings.about.license": "MIT licensed",
+  "settings.about.forceUpdate": "Force update app",
+  "settings.about.forceUpdateHint":
+    "Reloads the app from the server, skipping anything the browser has stored of it. Your notes are not affected.",
+  "settings.about.forceUpdateOffline":
+    "You are offline. Connect to the internet to update.",
   "storage.quotaExceeded":
     "Browser storage is full. Some changes may not be saved until you free up space.",
   "dropZone.title": "Drop to import",

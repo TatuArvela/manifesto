@@ -38,6 +38,7 @@ import {
   updateNote,
   viewMode,
 } from "../state/index.js";
+import { startPrefsSync } from "../state/prefsSync.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { loadInvitations } from "../state/sharing.js";
 import { restoreVersions } from "../state/versions.js";
@@ -115,6 +116,7 @@ function MainApp() {
   useEffect(() => {
     initRouter();
     startAppSocket();
+    if (isServerMode) startPrefsSync();
     // The board is empty until the notes are in, so that, not this render,
     // is when the loading screen can go. A failed load is ready too: its
     // toast is what there is to see.
@@ -244,82 +246,86 @@ function MainApp() {
   const isList = viewMode.value === "list";
 
   return (
-    <div class="relative flex flex-col h-dvh overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
-      {/* On a phone with the top bar set to scroll away, it lies over the
+    <>
+      <div class="app-shell relative flex flex-col h-dvh overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+        {/* On a phone with the top bar set to scroll away, it lies over the
           board and `useScrollAwayBar` moves it up as the board scrolls. */}
-      <div
-        ref={topBarRef}
-        class={
-          scrollAway
-            ? "relative z-20 shrink-0 max-md:absolute max-md:inset-x-0 max-md:top-0 max-md:[transform:translateY(calc(-1*var(--bar-shift,0px)))]"
-            : "contents"
-        }
-      >
-        <Header />
-        <MobileNav />
-      </div>
-      <div class="flex flex-1 overflow-hidden relative z-0">
-        <Sidebar />
-        <main
-          ref={mainRef}
-          class={`board flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
+        <div
+          ref={topBarRef}
+          class={
+            scrollAway
+              ? "relative z-20 shrink-0 max-md:absolute max-md:inset-x-0 max-md:top-0 max-md:[transform:translateY(calc(-1*var(--bar-shift,0px)))]"
+              : "contents"
+          }
         >
-          {topBarHeight > 0 && (
-            <div
-              aria-hidden="true"
-              class="md:hidden"
-              style={{ height: `${topBarHeight}px` }}
-            />
-          )}
-          {isAdminView ? (
-            isAdmin && <AdminView />
-          ) : isSearchView ? (
-            isList ? (
-              <div class="max-w-xl mx-auto">
-                <SearchView />
-                <NoteGrid />
-              </div>
-            ) : (
-              <>
-                <SearchView />
-                <NoteGrid />
-              </>
-            )
-          ) : isTagsView ? (
-            isList ? (
-              <div class="max-w-xl mx-auto">
-                <TagsView />
-                <NoteGrid />
-              </div>
-            ) : (
-              <>
-                <TagsView />
-                <NoteGrid />
-              </>
-            )
-          ) : isAutoNotesView ? (
-            isList ? (
-              <div class="max-w-xl mx-auto">
+          <Header />
+          <MobileNav />
+        </div>
+        <div class="flex flex-1 overflow-hidden relative z-0">
+          <Sidebar />
+          <main
+            ref={mainRef}
+            class={`board flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
+          >
+            {topBarHeight > 0 && (
+              <div
+                aria-hidden="true"
+                class="md:hidden"
+                style={{ height: `${topBarHeight}px` }}
+              />
+            )}
+            {isAdminView ? (
+              isAdmin && <AdminView />
+            ) : isSearchView ? (
+              isList ? (
+                <div class="max-w-xl mx-auto">
+                  <SearchView />
+                  <NoteGrid />
+                </div>
+              ) : (
+                <>
+                  <SearchView />
+                  <NoteGrid />
+                </>
+              )
+            ) : isTagsView ? (
+              isList ? (
+                <div class="max-w-xl mx-auto">
+                  <TagsView />
+                  <NoteGrid />
+                </div>
+              ) : (
+                <>
+                  <TagsView />
+                  <NoteGrid />
+                </>
+              )
+            ) : isAutoNotesView ? (
+              isList ? (
+                <div class="max-w-xl mx-auto">
+                  <AutoNotesView />
+                </div>
+              ) : (
                 <AutoNotesView />
+              )
+            ) : isList ? (
+              <div class="max-w-xl mx-auto">
+                <NoteInput />
+                {isActive && <InvitationList />}
+                <NoteGrid />
               </div>
             ) : (
-              <AutoNotesView />
-            )
-          ) : isList ? (
-            <div class="max-w-xl mx-auto">
-              <NoteInput />
-              {isActive && <InvitationList />}
-              <NoteGrid />
-            </div>
-          ) : (
-            <>
-              <NoteInput />
-              {isActive && <InvitationList />}
-              <NoteGrid />
-            </>
-          )}
-        </main>
+              <>
+                <NoteInput />
+                {isActive && <InvitationList />}
+                <NoteGrid />
+              </>
+            )}
+          </main>
+        </div>
       </div>
+      {/* Outside the shell: a phone pins the shell under an open note, and
+          anything inside it would be pinned under the note with it. */}
       {marquee && (
         <div
           aria-hidden="true"
@@ -358,6 +364,6 @@ function MainApp() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

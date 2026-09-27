@@ -42,19 +42,21 @@ export function VersionHistory({
 
   if (selected) {
     return (
-      <article class={`${colors.bg} ${colors.border} border shadow-lg`}>
-        <div class="p-4">
+      <article
+        class={`${colors.bg} ${colors.border} border shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col max-sm:border-0 max-sm:shadow-none`}
+      >
+        <div class="p-4 max-sm:flex-1 max-sm:pt-[calc(1rem+env(safe-area-inset-top))]">
           <div class="text-xs text-black/40 dark:text-white/40 mb-3">
             {formatDateTime(selected.timestamp)}
           </div>
           {selected.title && (
             <h3 class="font-medium text-base mb-2">{selected.title}</h3>
           )}
-          <pre class="whitespace-pre-wrap text-sm max-h-80 overflow-y-auto">
+          <pre class="whitespace-pre-wrap text-sm sm:max-h-80 sm:overflow-y-auto">
             {selected.content || t("versions.emptyContent")}
           </pre>
         </div>
-        <div class="px-3 pt-1.5 pb-2 flex items-center gap-0.5">
+        <div class="note-sheet-bottom px-3 pt-1.5 sm:pb-2 flex items-center gap-0.5">
           <Tooltip label={t("versions.backToList")}>
             <button
               type="button"
@@ -80,8 +82,10 @@ export function VersionHistory({
   }
 
   return (
-    <article class={`${colors.bg} ${colors.border} border shadow-lg`}>
-      <div class="p-4">
+    <article
+      class={`${colors.bg} ${colors.border} border shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col max-sm:border-0 max-sm:shadow-none`}
+    >
+      <div class="p-4 max-sm:flex-1 max-sm:pt-[calc(1rem+env(safe-area-inset-top))]">
         <h3 class="font-medium text-base mb-3">{t("versions.title")}</h3>
         {versions === null ? (
           <p class="text-sm text-black/40 dark:text-white/40">
@@ -92,7 +96,7 @@ export function VersionHistory({
             {t("versions.empty")}
           </p>
         ) : (
-          <div class="flex flex-col gap-1 max-h-80 overflow-y-auto">
+          <div class="flex flex-col gap-1 sm:max-h-80 sm:overflow-y-auto">
             {versions.map((v) => (
               <button
                 key={`${v.timestamp}-${v.content.length}`}
@@ -118,7 +122,7 @@ export function VersionHistory({
           </div>
         )}
       </div>
-      <div class="px-3 pt-1.5 pb-2 flex items-center">
+      <div class="note-sheet-bottom px-3 pt-1.5 sm:pb-2 flex items-center">
         <Tooltip label={t("versions.backToEditor")}>
           <button
             type="button"

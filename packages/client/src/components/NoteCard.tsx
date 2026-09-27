@@ -20,7 +20,7 @@ import {
   Undo2,
   X,
 } from "lucide-preact";
-import { createPortal, memo } from "preact/compat";
+import { memo } from "preact/compat";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { autoNoteColorMap, noteColorMap, noteFontFamilies } from "../colors.js";
@@ -70,6 +70,7 @@ import { NoteCardEditor } from "./NoteCardEditor.js";
 import { iconBtnClass } from "./NoteEditor.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { NoteReadonlyView } from "./NoteReadonlyView.js";
+import { NoteSheet } from "./NoteSheet.js";
 import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
 import { PresenceAvatars } from "./PresenceAvatars.js";
 import { ReminderChip } from "./ReminderChip.js";
@@ -975,38 +976,33 @@ export const NoteCard = memo(function NoteCard({
         )}
       </div>
 
-      {showModal &&
-        createPortal(
-          <>
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
+      {showModal && (
+        <NoteSheet
+          label={note.title || t("editor.titlePlaceholder")}
+          dialogRef={modalRef}
+          panelRef={panelRef}
+          layer="z-50"
+          motion={`transition-all duration-100 ease-in ${morphing ? "" : closing ? "opacity-0 sm:scale-[0.98]" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+          backdrop={
+            // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
+            // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss
             <div
               // In and out over the same time as the panel: the morph's
               // when it morphs, the plain fade's otherwise.
               class={`fixed inset-0 bg-black/50 z-40 max-sm:hidden transition-opacity ease-in ${morphing ? "duration-240" : "duration-100"} ${closing ? "opacity-0" : morphing ? "animate-[fade-in_240ms_ease-out]" : "animate-fade-in"}`}
               onClick={closeModal}
             />
-            <div
-              ref={modalRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label={note.title || t("editor.titlePlaceholder")}
-              class={`phone-sheet fixed inset-0 z-50 flex items-center justify-center sm:p-4 pointer-events-none transition-all duration-100 ease-in ${morphing ? "" : closing ? "opacity-0 sm:scale-[0.98]" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
-            >
-              <div
-                ref={panelRef}
-                class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain max-sm:h-full max-sm:overflow-hidden"
-              >
-                {note.readonly || viewOnly ? (
-                  <NoteReadonlyView note={note} onClose={closeModal} />
-                ) : (
-                  <NoteCardEditor note={note} onClose={closeModal} />
-                )}
-              </div>
-            </div>
-          </>,
-          document.body,
-        )}
+          }
+          closing={closing}
+          onBack={closeModal}
+        >
+          {note.readonly || viewOnly ? (
+            <NoteReadonlyView note={note} onClose={closeModal} />
+          ) : (
+            <NoteCardEditor note={note} onClose={closeModal} />
+          )}
+        </NoteSheet>
+      )}
     </>
   );
 });

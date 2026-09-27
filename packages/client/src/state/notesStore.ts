@@ -6,12 +6,13 @@ import {
   SHARED_NOTE_FIELDS,
   TRASH_RETENTION_DAYS,
 } from "@manifesto/shared";
-import { computed, signal } from "@preact/signals";
+import { computed, effect, signal } from "@preact/signals";
 import type { MessageKey } from "../i18n/index.js";
 import {
   currentStorage,
   LocalStorageAdapter,
   storage,
+  storageConnection,
 } from "../storage/index.js";
 import { subscribeToExternalNotes } from "../storage/LocalStorageAdapter.js";
 import { NoteConflictError } from "../storage/RestApiAdapter.js";
@@ -47,6 +48,21 @@ export const notes = signal<Note[]>([]);
  * there is nothing on it. A failed load leaves it false.
  */
 export const notesLoaded = signal(false);
+
+// When a session ends (a sign-out, or a 401), the account's notes leave
+// memory with it. Emptying the list is also what stops their reminders: the
+// scheduler follows `notes`, and hands the service worker the empty list, so
+// a signed-out browser no longer shows another account's notes as
+// notifications.
+let sessionToken: string | null = null;
+effect(() => {
+  const { serverUrl, token } = storageConnection.value;
+  if (serverUrl !== null && token === null && sessionToken !== null) {
+    notes.value = [];
+    notesLoaded.value = false;
+  }
+  sessionToken = token;
+});
 
 /**
  * All notes visible to the UI: user notes plus plugin-generated read-only

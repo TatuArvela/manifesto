@@ -51,6 +51,10 @@
     <meta name="manifesto-server" content="" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icon-1024.png" />
+    <!-- iOS shows an apple-touch-startup-image only for a page that says it
+         runs as an app. The images themselves are drawn from #splash below
+         by src/launchImage.ts. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#2563eb" />
     <!-- Blocking on purpose: it decides the page's theme, and anything painted

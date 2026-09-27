@@ -7,8 +7,10 @@ Manifesto supports exporting and importing note data from the Settings dialog. T
 **Export Notes** in Settings downloads every note as one zip, the same archive in both modes:
 
 - **Connected mode**: the server builds it for the account (`GET /api/export`, which takes any
-  credential, so an API token can script a backup), named `<username>-notes-YYYY-MM-DD.zip`. An admin
-  can download any account's with **Download notes** (`GET /api/admin/users/:id/export`).
+  credential, so an API token can script a backup), named `<username>-notes-YYYY-MM-DD.zip`. With
+  `ADMIN_EXPORT` on, an admin can download any account's with **Download notes**
+  (`GET /api/admin/users/:id/export`), and the account's owner sees it on their Activity page
+  ([Privacy](privacy.md)).
 - **Open mode**: the browser builds it from what it holds (`exportArchive`, zipped with the platform's
   `CompressionStream`), named `manifesto-export-YYYY-MM-DD.zip`.
 
@@ -20,6 +22,7 @@ mode imports into either:
 | `notes.json` | Every note the account owns, the archive and trash included, in the import format above, with images inlined as `data:` URLs. Importing it restores the notes anywhere, open mode included. |
 | `notes/<title>.md` | Each note not in the trash as Markdown, with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`) that the Markdown-folder import reads back, for another tool to open. |
 | `versions.json` | The version history of those notes. |
+| `preferences.json` | The [preferences](preferences.md): the account's as the server holds them in connected mode, this browser's in open mode. For keeping and reading; importing an archive leaves the settings as they are. |
 | `account.json` | Connected mode only: the account's username, display name, email address, how it signs in, whether it is an admin and when it was made. |
 
 Notes shared with the account belong to someone else and are not included. A server's download serves a
