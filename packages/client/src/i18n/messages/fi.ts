@@ -441,6 +441,15 @@ export const fi: Messages = {
   "tokens.kind": "Käyttötarkoitus",
   "tokens.kindApi": "Skripti, pikakomento tai botti",
   "tokens.kindMcp": "Tekoälyavustaja (MCP)",
+  "tokens.kindCalendar": "Kalenterisyöte",
+  "tokens.calendarHint":
+    "Kalenterisovellus tilaa muistutuksesi osoitteesta, jossa tämä tunnus on. Se avaa vain sen syötteen; mitätöi tunnus lopettaaksesi syötteen.",
+  "tokens.calendarBadge": "Kalenterisyöte",
+  "tokens.calendarSetup":
+    "Tilaa tämä osoite kalenterisovelluksessasi. Se näytetään vain nyt, ja kuka tahansa, jolla se on, voi lukea muistutuksesi.",
+  "tokens.calendarUrl": "Syötteen osoite",
+  "tokens.calendarCopy": "Kopioi syötteen osoite",
+  "tokens.calendarSubscribe": "Avaa tämän laitteen kalenterisovelluksessa",
   "tokens.mcpHint":
     "Avustajan tunniste toimii vain tämän palvelimen MCP-rajapinnan kautta, jonka työkaluilla se voi hakea, lukea, luoda ja muuttaa muistiinpanojasi. Poistaa se ei voi: enintään se siirtää muistiinpanon roskakoriin.",
   "tokens.readOnly":

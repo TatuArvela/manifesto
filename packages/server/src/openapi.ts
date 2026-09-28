@@ -498,6 +498,15 @@ export const OPERATIONS: Operation[] = [
   },
   {
     method: "get",
+    path: "/api/calendar/:file",
+    tag: "Notes",
+    summary:
+      "The reminders as an iCalendar feed, at <calendar token>.ics; no header, the token is the address",
+    auth: "none",
+    responses: { "200": { description: "text/calendar" }, ...notFound },
+  },
+  {
+    method: "get",
     path: "/api/public/:token",
     tag: "Sharing",
     summary:
@@ -881,7 +890,7 @@ function components() {
         type: "http",
         scheme: "bearer",
         description:
-          "A session token from signing in, or a personal API token (mfp_...), which reaches only the operations whose x-token-scope it was granted (a :write scope includes its :read). /api/mcp takes an MCP token (mfm_...) and nothing else.",
+          "A session token from signing in, or a personal API token (mfp_...), which reaches only the operations whose x-token-scope it was granted (a :write scope includes its :read). /api/mcp takes an MCP token (mfm_...) and nothing else, and a calendar token (mfc_...) is not a bearer token at all: it is the address of /api/calendar/<token>.ics.",
       },
     },
     schemas: {

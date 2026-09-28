@@ -146,6 +146,15 @@ or email address, two-factor sign-in, `/api/admin/*`), so a token given to a scr
 take over its account. Minted without `scopes`, a token gets `notes:read` and `notes:write`, which is
 also what every token from before scopes was narrowed to.
 
+A **calendar token** (`kind: "calendar"`, `mfc_`) is not a bearer token at all: nothing accepts it in
+an `Authorization` header. It is the address of the user's reminder feed, `GET
+/api/calendar/<token>.ics`, since a calendar app subscribing to a URL sends no header, and opens that
+and nothing else. It carries no scopes. The feed is iCalendar (`text/calendar`): one event per note
+with a reminder that is not in the trash, at the reminder's time in its timezone (`TZID`), repeating
+as it does (`RRULE`), fifteen minutes long, with an alarm when it starts. It may be cached for five
+minutes; any failure (a wrong, revoked or expired token, or an address without `.ics`) is `404`. See
+[Reminders](features/reminders.md#calendar-feed).
+
 `POST /api/tokens` with `"kind": "mcp"` mints a token for an AI assistant instead: it starts with
 `mfm_`, works at `/api/mcp` and nowhere else (the REST API and both sockets answer `403` or close
 with `4401`), and takes only `notes:read` and `notes:write`; with `notes:read` alone it is read only.

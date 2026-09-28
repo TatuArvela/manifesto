@@ -23,6 +23,10 @@ export const API_TOKEN_PREFIX = "mfp_";
 /** The same for a token only `/api/mcp` accepts, minted for an AI assistant. */
 export const MCP_TOKEN_PREFIX = "mfm_";
 
+/** The same for the secret in a reminder feed's address. Never a bearer
+ * token: `authenticateBySession` does not know this prefix. */
+export const CALENDAR_TOKEN_PREFIX = "mfc_";
+
 export function newApiToken(prefix: string = API_TOKEN_PREFIX): string {
   return `${prefix}${randomBytes(32).toString("base64url")}`;
 }

@@ -9,6 +9,7 @@ import {
 } from "./auth/revocations.js";
 import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
+import { createCalendarRoutes } from "./calendar/routes.js";
 import { mountClient } from "./client/serveClient.js";
 import type { ServerConfig } from "./config.js";
 import type { UpdateStatus } from "./jobs/updateCheck.js";
@@ -290,6 +291,7 @@ export function createApp(deps: AppDeps): AppHandle {
     createSearchRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
   );
   app.route("/api/public", createPublicRoutes({ storage, cfg }));
+  app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
   app.route(
     "/api/teams",
     createTeamRoutes({ storage, authProvider, rateLimit: apiRateLimit }),

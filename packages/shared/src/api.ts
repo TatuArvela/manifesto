@@ -114,9 +114,11 @@ export interface NoteVersionCreateRequest {
  * What a token is for. `api` (`mfp_`) works on the REST API and the sockets,
  * as a session does; `mcp` (`mfm_`) works only at `/api/mcp`, for an AI
  * assistant, so a secret copied into an assistant's settings can do only what
- * its tools do.
+ * its tools do; `calendar` (`mfc_`) is the secret in a reminder feed's
+ * address (`/api/calendar/<token>.ics`), since a calendar app sends no
+ * header, and opens that feed and nothing else.
  */
-export const API_TOKEN_KINDS = ["api", "mcp"] as const;
+export const API_TOKEN_KINDS = ["api", "mcp", "calendar"] as const;
 export type ApiTokenKind = (typeof API_TOKEN_KINDS)[number];
 
 /**

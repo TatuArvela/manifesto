@@ -46,6 +46,7 @@ const sameScopes = (a: readonly ApiTokenScope[], b: readonly ApiTokenScope[]) =>
 
 /** How the list names what a token may reach. */
 function accessLabel(token: ApiToken): string {
+  if (token.kind === "calendar") return t("tokens.calendarBadge");
   if (token.kind === "mcp") {
     return t(
       hasScope(token.scopes, "notes:write")
@@ -101,16 +102,19 @@ export function ApiTokensSettings() {
       setError(t("tokens.nameRequired"));
       return;
     }
+    // A calendar token reaches its feed and no scope; the server keeps none.
     const scopes: readonly ApiTokenScope[] =
-      kind === "mcp"
-        ? readOnly
-          ? ["notes:read"]
-          : ["notes:read", "notes:write"]
-        : access === "full"
-          ? API_TOKEN_SCOPES
-          : access === "read"
-            ? READ_ONLY
-            : custom;
+      kind === "calendar"
+        ? ["notes:read"]
+        : kind === "mcp"
+          ? readOnly
+            ? ["notes:read"]
+            : ["notes:read", "notes:write"]
+          : access === "full"
+            ? API_TOKEN_SCOPES
+            : access === "read"
+              ? READ_ONLY
+              : custom;
     if (scopes.length === 0) {
       setError(t("tokens.scopesRequired"));
       return;
@@ -168,6 +172,8 @@ export function ApiTokensSettings() {
   };
 
   const mcpUrl = `${SERVER_ORIGIN ?? ""}/api/mcp`;
+  const calendarUrl = (token: string) =>
+    `${SERVER_ORIGIN ?? ""}/api/calendar/${token}.ics`;
   const mcpCommand =
     secret &&
     `claude mcp add --transport http ${APP_FILE_SLUG} ${mcpUrl} --header "Authorization: Bearer ${secret}"`;
@@ -198,6 +204,37 @@ export function ApiTokensSettings() {
               <Copy class="w-4 h-4" />
             </button>
           </div>
+          {secretKind === "calendar" && (
+            <>
+              <p class="text-sm">{t("tokens.calendarSetup")}</p>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={calendarUrl(secret)}
+                  aria-label={t("tokens.calendarUrl")}
+                  class={`${inputClass} font-mono text-xs`}
+                  onFocus={(e) =>
+                    (e.currentTarget as HTMLInputElement).select()
+                  }
+                />
+                <button
+                  type="button"
+                  class="shrink-0 px-3 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+                  onClick={() => copy(calendarUrl(secret))}
+                  aria-label={t("tokens.calendarCopy")}
+                >
+                  <Copy class="w-4 h-4" />
+                </button>
+              </div>
+              <a
+                class="text-sm text-blue-600 dark:text-blue-400 underline"
+                href={calendarUrl(secret).replace(/^https?:/, "webcal:")}
+              >
+                {t("tokens.calendarSubscribe")}
+              </a>
+            </>
+          )}
           {secretKind === "mcp" && mcpCommand && (
             <>
               <p class="text-sm">{t("tokens.mcpSetup")}</p>
@@ -230,24 +267,30 @@ export function ApiTokensSettings() {
       )}
 
       <form onSubmit={submit} class="space-y-3">
-        {mcpEnabled.value && (
-          <label class="block">
-            <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
-              {t("tokens.kind")}
-            </span>
-            <select
-              class={inputClass}
-              value={kind}
-              onChange={(e) =>
-                setKind(
-                  (e.currentTarget as HTMLSelectElement).value as ApiTokenKind,
-                )
-              }
-            >
-              <option value="api">{t("tokens.kindApi")}</option>
+        <label class="block">
+          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+            {t("tokens.kind")}
+          </span>
+          <select
+            class={inputClass}
+            value={kind}
+            onChange={(e) =>
+              setKind(
+                (e.currentTarget as HTMLSelectElement).value as ApiTokenKind,
+              )
+            }
+          >
+            <option value="api">{t("tokens.kindApi")}</option>
+            {mcpEnabled.value && (
               <option value="mcp">{t("tokens.kindMcp")}</option>
-            </select>
-          </label>
+            )}
+            <option value="calendar">{t("tokens.kindCalendar")}</option>
+          </select>
+        </label>
+        {kind === "calendar" && (
+          <p class="text-sm text-neutral-600 dark:text-neutral-300">
+            {t("tokens.calendarHint")}
+          </p>
         )}
         {kind === "mcp" && (
           <div class="space-y-2">

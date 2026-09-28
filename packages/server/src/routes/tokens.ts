@@ -13,7 +13,12 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
-import { hashToken, MCP_TOKEN_PREFIX, newApiToken } from "../lib/token.js";
+import {
+  CALENDAR_TOKEN_PREFIX,
+  hashToken,
+  MCP_TOKEN_PREFIX,
+  newApiToken,
+} from "../lib/token.js";
 import { newId } from "../lib/ulid.js";
 import {
   type AuthContext,
@@ -82,12 +87,22 @@ export function createTokenRoutes(deps: TokenDeps) {
       if (existing.length >= MAX_API_TOKENS_PER_USER) {
         throw new HttpError(409, "Revoke a token before creating another");
       }
-      const secret = newApiToken(kind === "mcp" ? MCP_TOKEN_PREFIX : undefined);
-      const now = nowIso();
-      // In the one order the list uses, each once.
-      const granted = API_TOKEN_SCOPES.filter((scope) =>
-        (scopes ?? DEFAULT_API_TOKEN_SCOPES).includes(scope),
+      const secret = newApiToken(
+        kind === "mcp"
+          ? MCP_TOKEN_PREFIX
+          : kind === "calendar"
+            ? CALENDAR_TOKEN_PREFIX
+            : undefined,
       );
+      const now = nowIso();
+      // In the one order the list uses, each once. A calendar token reaches
+      // one feed, which no scope names.
+      const granted =
+        kind === "calendar"
+          ? []
+          : API_TOKEN_SCOPES.filter((scope) =>
+              (scopes ?? DEFAULT_API_TOKEN_SCOPES).includes(scope),
+            );
       const token = {
         id: newId(),
         name,

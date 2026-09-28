@@ -432,6 +432,15 @@ export const en = {
   "tokens.kind": "Used by",
   "tokens.kindApi": "A script, shortcut or bot",
   "tokens.kindMcp": "An AI assistant (MCP)",
+  "tokens.kindCalendar": "Calendar feed",
+  "tokens.calendarHint":
+    "A calendar app subscribes to your reminders at an address that holds this token. It opens that feed and nothing else; revoke it to stop the feed.",
+  "tokens.calendarBadge": "Calendar feed",
+  "tokens.calendarSetup":
+    "Subscribe to this address in your calendar app. It is shown only now, and anyone who has it can read your reminders.",
+  "tokens.calendarUrl": "Feed address",
+  "tokens.calendarCopy": "Copy the feed address",
+  "tokens.calendarSubscribe": "Open in the calendar app on this device",
   "tokens.mcpHint":
     "An assistant's token works only through this server's MCP endpoint, whose tools search, read, create and change your notes. It cannot delete a note: the most it can do is move one to the trash.",
   "tokens.readOnly":

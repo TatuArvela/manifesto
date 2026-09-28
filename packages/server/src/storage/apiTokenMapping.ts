@@ -39,8 +39,11 @@ export function rowToApiToken(row: ApiTokenRow): StoredApiToken {
     id: row.id,
     userId: row.user_id,
     name: row.name,
-    // Only these two are ever written; anything else reads as the narrower.
-    kind: (row.kind === "api" ? "api" : "mcp") satisfies ApiTokenKind,
+    // Anything unknown reads as the narrowest that signs in to nothing
+    // but its own route.
+    kind: (row.kind === "api" || row.kind === "calendar"
+      ? row.kind
+      : "mcp") satisfies ApiTokenKind,
     scopes: parseScopes(row.scopes),
     prefix: row.prefix,
     createdAt: row.created_at,
