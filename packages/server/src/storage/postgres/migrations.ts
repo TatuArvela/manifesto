@@ -251,6 +251,12 @@ ALTER TABLE api_tokens ADD COLUMN kind TEXT NOT NULL DEFAULT 'api';
 ALTER TABLE api_tokens ADD COLUMN read_only BOOLEAN NOT NULL DEFAULT FALSE;
 `;
 
+/** See the SQLite copy. */
+const API_TOKEN_SCOPES = `
+ALTER TABLE api_tokens ADD COLUMN scopes TEXT NOT NULL DEFAULT '["notes:read","notes:write"]';
+UPDATE api_tokens SET scopes = '["notes:read"]' WHERE read_only;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -269,6 +275,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0015-user-locale", sql: USER_LOCALE },
   { id: "0016-user-prefs", sql: USER_PREFS },
   { id: "0017-api-token-kind", sql: API_TOKEN_KIND },
+  { id: "0018-api-token-scopes", sql: API_TOKEN_SCOPES },
 ];
 
 export async function runMigrations(

@@ -1,4 +1,5 @@
 import {
+  type ApiTokenScope,
   MAX_NOTES_PAGE_SIZE,
   type Note,
   NoteColor,
@@ -44,8 +45,9 @@ export interface McpTool {
   title: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  /** Left out of a read-only token's list, and refused to one. */
-  writes: boolean;
+  /** What the token needs for the tool to be offered at all. The REST
+   * routes the tool calls check their own scopes as well. */
+  scope: ApiTokenScope;
   annotations: {
     readOnlyHint: boolean;
     destructiveHint: boolean;
@@ -165,7 +167,7 @@ function defineTool<S extends z.ZodType>(tool: {
   title: string;
   description: string;
   input: S;
-  writes: boolean;
+  scope: ApiTokenScope;
   destructive?: boolean;
   idempotent?: boolean;
   run(args: z.output<S>, rest: RestCall): Promise<ToolResult>;
@@ -178,11 +180,11 @@ function defineTool<S extends z.ZodType>(tool: {
       io: "input",
       target: "draft-2020-12",
     }),
-    writes: tool.writes,
+    scope: tool.scope,
     annotations: {
-      readOnlyHint: !tool.writes,
+      readOnlyHint: tool.scope === "notes:read",
       destructiveHint: tool.destructive ?? false,
-      idempotentHint: tool.idempotent ?? !tool.writes,
+      idempotentHint: tool.idempotent ?? tool.scope === "notes:read",
       openWorldHint: false,
     },
     async call(args, rest) {
@@ -223,7 +225,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
       query: z.string().trim().min(1).max(500).describe("Text to look for"),
       ...pageFields,
     }),
-    writes: false,
+    scope: "notes:read",
     async run({ query, limit, cursor }, rest) {
       const params = new URLSearchParams({
         q: query,
@@ -252,7 +254,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
       tag: z.string().max(64).optional().describe("Only notes with this tag"),
       ...pageFields,
     }),
-    writes: false,
+    scope: "notes:read",
     async run({ view, tag, limit, cursor }, rest) {
       const params = new URLSearchParams({ limit: String(limit ?? 20) });
       if (cursor) params.set("cursor", cursor);
@@ -272,7 +274,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
     title: "Read a note",
     description: "One note in full, by id.",
     input: z.object({ id: idField }),
-    writes: false,
+    scope: "notes:read",
     async run({ id }, rest) {
       const { note }: NoteResponse = expectOk(await rest("GET", notePath(id)));
       return ok({ note: brief(note) });
@@ -285,7 +287,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
     description:
       "Every tag on the user's notes outside the trash, with how many notes carry it, most used first.",
     input: z.object({}),
-    writes: false,
+    scope: "notes:read",
     async run(_args, rest) {
       const counts = new Map<string, number>();
       for (const note of await allNotes(rest)) {
@@ -312,7 +314,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
       tags: tagsField.optional(),
       pinned: z.boolean().optional(),
     }),
-    writes: true,
+    scope: "notes:write",
     idempotent: false,
     async run({ title, content, color, tags, pinned }, rest) {
       const lowest = (await allNotes(rest)).reduce(
@@ -370,7 +372,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
           Object.values(fields).some((value) => value !== undefined),
         { message: "Give at least one field to change" },
       ),
-    writes: true,
+    scope: "notes:write",
     destructive: true,
     idempotent: true,
     async run({ id, updatedAt, ...fields }, rest) {
@@ -387,7 +389,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
     description:
       "Move a note to the trash, where it stays for 30 days and can be restored with update_note. For a note someone shared with you, only your copy goes.",
     input: z.object({ id: idField, updatedAt: updatedAtField.optional() }),
-    writes: true,
+    scope: "notes:write",
     destructive: true,
     idempotent: true,
     async run({ id, updatedAt }, rest) {

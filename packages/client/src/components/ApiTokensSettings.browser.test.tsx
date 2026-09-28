@@ -30,6 +30,8 @@ describe("ApiTokensSettings", () => {
       {
         id: "t1",
         name: "Shortcut",
+        kind: "api",
+        scopes: ["notes:read", "notes:write"],
         prefix: "mfp_abcdef",
         createdAt: "2026-01-01T00:00:00.000Z",
         lastUsedAt: null,
@@ -79,7 +81,7 @@ describe("ApiTokensSettings", () => {
         id: "t2",
         name: "Claude",
         kind: "mcp",
-        readOnly: true,
+        scopes: ["notes:read"],
         prefix: "mfm_abcdef",
         createdAt: "2026-01-01T00:00:00.000Z",
         lastUsedAt: null,
@@ -131,9 +133,90 @@ describe("ApiTokensSettings", () => {
         /^claude mcp add --transport http \S+ \S*\/api\/mcp --header "Authorization: Bearer mfm_abcdef-the-secret"$/,
       ),
     );
-    expect(sent).toMatchObject({ name: "Claude", kind: "mcp", readOnly: true });
+    expect(sent).toMatchObject({
+      name: "Claude",
+      kind: "mcp",
+      scopes: ["notes:read"],
+    });
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("tokens.mcpReadOnlyBadge")),
+    );
+  });
+
+  it("mints a token with the scopes chosen, and names them in the list", async () => {
+    let sent: { scopes?: string[] } | null = null;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (init?.method === "POST") {
+        sent = JSON.parse(init.body as string);
+        const token = {
+          id: "t3",
+          name: "Bot",
+          kind: "api",
+          scopes: sent?.scopes,
+          prefix: "mfp_bot",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          lastUsedAt: null,
+          expiresAt: null,
+        };
+        return Response.json(
+          { token, secret: "mfp_bot-secret" },
+          { status: 201 },
+        );
+      }
+      return Response.json({
+        tokens: sent
+          ? [
+              {
+                id: "t3",
+                name: "Bot",
+                kind: "api",
+                scopes: sent.scopes,
+                prefix: "mfp_bot",
+                createdAt: "2026-01-01T00:00:00.000Z",
+                lastUsedAt: null,
+                expiresAt: null,
+              },
+            ]
+          : [],
+      });
+    });
+
+    render(<ApiTokensSettings />, host);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.none")),
+    );
+    const access = [...host.querySelectorAll("select")].find((s) =>
+      [...s.options].some((o) => o.value === "custom"),
+    ) as HTMLSelectElement;
+    access.value = "custom";
+    access.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.scopeSharing")),
+    );
+    // Every scope starts ticked; keep reading notes and sharing only.
+    for (const label of host.querySelectorAll("fieldset label")) {
+      const keep = [t("tokens.scopeNotesRead"), t("tokens.scopeSharing")];
+      if (!keep.includes(label.textContent ?? "")) {
+        (label.querySelector("input") as HTMLInputElement).click();
+      }
+    }
+    const name = host.querySelector<HTMLInputElement>(
+      `input[placeholder="${t("tokens.namePlaceholder")}"]`,
+    ) as HTMLInputElement;
+    name.value = "Bot";
+    name.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((r) => requestAnimationFrame(r));
+    host
+      .querySelector("form")
+      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() =>
+      expect(sent?.scopes).toEqual(["notes:read", "sharing"]),
+    );
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(
+        `${t("tokens.scopeNotesRead")}, ${t("tokens.scopeSharing")}`,
+      ),
     );
   });
 });

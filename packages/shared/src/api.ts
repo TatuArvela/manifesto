@@ -102,12 +102,45 @@ export interface NoteVersionCreateRequest {
 export const API_TOKEN_KINDS = ["api", "mcp"] as const;
 export type ApiTokenKind = (typeof API_TOKEN_KINDS)[number];
 
+/**
+ * What a token may reach. Each route a token can call names one, and so does
+ * each socket (`/api/ws` reads notes, `/api/yjs` writes them). A `:write`
+ * scope includes its `:read`. A session has them all, and none of them
+ * reaches what only a session may do (passwords, tokens, webhooks, admin).
+ */
+export const API_TOKEN_SCOPES = [
+  "notes:read",
+  "notes:write",
+  "sharing",
+  "account:read",
+  "account:write",
+] as const;
+export type ApiTokenScope = (typeof API_TOKEN_SCOPES)[number];
+
+/** What a token gets when minted without naming any, and what every token
+ * minted before scopes was narrowed to. */
+export const DEFAULT_API_TOKEN_SCOPES: readonly ApiTokenScope[] = [
+  "notes:read",
+  "notes:write",
+];
+
+/** Whether `granted` covers `needed`, a `:write` covering its `:read`. */
+export function hasScope(
+  granted: readonly ApiTokenScope[],
+  needed: ApiTokenScope,
+): boolean {
+  if (granted.includes(needed)) return true;
+  return (
+    needed.endsWith(":read") &&
+    granted.includes(needed.replace(/:read$/, ":write") as ApiTokenScope)
+  );
+}
+
 export interface ApiToken {
   id: string;
   name: string;
   kind: ApiTokenKind;
-  /** An MCP token that is offered only the tools that read. */
-  readOnly: boolean;
+  scopes: ApiTokenScope[];
   /** The secret's first characters, so a user can tell tokens apart. */
   prefix: string;
   createdAt: string;
@@ -124,8 +157,9 @@ export interface ApiTokenCreateRequest {
   name: string;
   /** `api` when left out. */
   kind?: ApiTokenKind;
-  /** Only for an `mcp` token. */
-  readOnly?: boolean;
+  /** `DEFAULT_API_TOKEN_SCOPES` when left out. An `mcp` token takes only
+   * `notes:*`, which is all its tools reach. */
+  scopes?: ApiTokenScope[];
   /** Days until it stops working; left out for a token that does not expire. */
   expiresInDays?: number;
 }

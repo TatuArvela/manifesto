@@ -36,7 +36,7 @@ configuration they document. Examples of what matters most:
 - reading or changing another account's notes, attachments or settings without a share that allows it,
 - script running in the app's origin from a note, a share link, an import or a link preview,
 - an auto-notes plugin reaching anything outside its sandbox,
-- an MCP token (`mfm_`) doing anything its tools do not, or a read-only one changing anything,
+- a token reaching anything its scopes do not name, or an MCP token (`mfm_`) anything its tools do not,
 - the server fetching a private address through link previews, or reaching through a webhook an
   address its `WEBHOOKS` setting refuses (under any setting, that includes link-local addresses such as
   a cloud metadata service).

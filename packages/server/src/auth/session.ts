@@ -60,7 +60,7 @@ async function authenticateByApiToken(
     userId: user.id,
     token,
     via: kind === "mcp" ? "mcp-token" : "api-token",
-    ...(kind === "mcp" && { readOnly: stored.readOnly }),
+    scopes: stored.scopes,
     username: user.username,
     displayName: user.displayName || user.username,
     avatarColor: user.avatarColor,

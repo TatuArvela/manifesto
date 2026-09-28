@@ -1,8 +1,14 @@
-import type { ApiToken, ApiTokenKind } from "@manifesto/shared";
+import {
+  API_TOKEN_SCOPES,
+  type ApiToken,
+  type ApiTokenKind,
+  type ApiTokenScope,
+  hasScope,
+} from "@manifesto/shared";
 import { Copy, Trash2 } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { APP_FILE_SLUG } from "../config.js";
-import { formatDateTime, t } from "../i18n/index.js";
+import { formatDateTime, type MessageKey, t } from "../i18n/index.js";
 import {
   createApiToken,
   listApiTokens,
@@ -17,6 +23,35 @@ const inputClass =
 
 /** Choices for how long a new token lasts; null does not expire. */
 const EXPIRY_DAYS = [30, 90, 365, null] as const;
+
+const SCOPE_LABELS = {
+  "notes:read": "tokens.scopeNotesRead",
+  "notes:write": "tokens.scopeNotesWrite",
+  sharing: "tokens.scopeSharing",
+  "account:read": "tokens.scopeAccountRead",
+  "account:write": "tokens.scopeAccountWrite",
+} as const satisfies Record<ApiTokenScope, MessageKey>;
+
+/** Everything a script's token can be given, or only what reads. */
+const READ_ONLY: readonly ApiTokenScope[] = ["notes:read", "account:read"];
+type Access = "full" | "read" | "custom";
+
+const sameScopes = (a: readonly ApiTokenScope[], b: readonly ApiTokenScope[]) =>
+  a.length === b.length && a.every((scope) => b.includes(scope));
+
+/** How the list names what a token may reach. */
+function accessLabel(token: ApiToken): string {
+  if (token.kind === "mcp") {
+    return t(
+      hasScope(token.scopes, "notes:write")
+        ? "tokens.mcpBadge"
+        : "tokens.mcpReadOnlyBadge",
+    );
+  }
+  if (sameScopes(token.scopes, API_TOKEN_SCOPES)) return t("tokens.accessFull");
+  if (sameScopes(token.scopes, READ_ONLY)) return t("tokens.accessRead");
+  return token.scopes.map((scope) => t(SCOPE_LABELS[scope])).join(", ");
+}
 
 /**
  * Personal API tokens: long-lived keys for scripts, shortcuts and bots, so
@@ -35,6 +70,8 @@ export function ApiTokensSettings() {
   const [expiry, setExpiry] = useState<number | null>(90);
   const [kind, setKind] = useState<ApiTokenKind>("api");
   const [readOnly, setReadOnly] = useState(false);
+  const [access, setAccess] = useState<Access>("full");
+  const [custom, setCustom] = useState<ApiTokenScope[]>([...API_TOKEN_SCOPES]);
   const [secret, setSecret] = useState<string | null>(null);
   const [secretKind, setSecretKind] = useState<ApiTokenKind>("api");
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +94,23 @@ export function ApiTokensSettings() {
       setError(t("tokens.nameRequired"));
       return;
     }
+    const scopes: readonly ApiTokenScope[] =
+      kind === "mcp"
+        ? readOnly
+          ? ["notes:read"]
+          : ["notes:read", "notes:write"]
+        : access === "full"
+          ? API_TOKEN_SCOPES
+          : access === "read"
+            ? READ_ONLY
+            : custom;
+    if (scopes.length === 0) {
+      setError(t("tokens.scopesRequired"));
+      return;
+    }
     setError(null);
     setBusy(true);
-    const result = await createApiToken(name.trim(), expiry, kind, readOnly);
+    const result = await createApiToken(name.trim(), expiry, kind, scopes);
     setBusy(false);
     if (result.kind !== "ok") {
       setError(
@@ -197,6 +248,52 @@ export function ApiTokensSettings() {
             </label>
           </div>
         )}
+        {kind === "api" && (
+          <div class="space-y-2">
+            <label class="block">
+              <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+                {t("tokens.access")}
+              </span>
+              <select
+                class={inputClass}
+                value={access}
+                onChange={(e) =>
+                  setAccess(
+                    (e.currentTarget as HTMLSelectElement).value as Access,
+                  )
+                }
+              >
+                <option value="full">{t("tokens.accessFull")}</option>
+                <option value="read">{t("tokens.accessRead")}</option>
+                <option value="custom">{t("tokens.accessCustom")}</option>
+              </select>
+            </label>
+            {access === "custom" && (
+              <fieldset class="space-y-1">
+                <legend class="sr-only">{t("tokens.access")}</legend>
+                {API_TOKEN_SCOPES.map((scope) => (
+                  <label key={scope} class="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      class="mt-0.5"
+                      checked={custom.includes(scope)}
+                      onChange={(e) => {
+                        const on = (e.currentTarget as HTMLInputElement)
+                          .checked;
+                        setCustom((current) =>
+                          API_TOKEN_SCOPES.filter((s) =>
+                            s === scope ? on : current.includes(s),
+                          ),
+                        );
+                      }}
+                    />
+                    <span>{t(SCOPE_LABELS[scope])}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+          </div>
+        )}
         <label class="block">
           <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
             {t("tokens.name")}
@@ -264,13 +361,9 @@ export function ApiTokensSettings() {
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium truncate">
                     {token.name}
-                    {token.kind === "mcp" && (
-                      <span class="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">
-                        {token.readOnly
-                          ? t("tokens.mcpReadOnlyBadge")
-                          : t("tokens.mcpBadge")}
-                      </span>
-                    )}
+                    <span class="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">
+                      {accessLabel(token)}
+                    </span>
                   </p>
                   <p class="text-xs text-neutral-500 dark:text-neutral-400">
                     <span class="font-mono">{token.prefix}...</span>

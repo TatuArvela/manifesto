@@ -1,7 +1,9 @@
 import { zValidator } from "@hono/zod-validator";
-import type {
-  ApiTokenCreatedResponse,
-  ApiTokensResponse,
+import {
+  API_TOKEN_SCOPES,
+  type ApiTokenCreatedResponse,
+  type ApiTokensResponse,
+  DEFAULT_API_TOKEN_SCOPES,
 } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
 import { audit } from "../audit/audit.js";
@@ -61,12 +63,7 @@ export function createTokenRoutes(deps: TokenDeps) {
     zValidator("json", apiTokenCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      const {
-        name,
-        expiresInDays,
-        kind = "api",
-        readOnly = false,
-      } = c.req.valid("json");
+      const { name, expiresInDays, kind = "api", scopes } = c.req.valid("json");
       if (kind === "mcp" && !deps.mcpEnabled) {
         throw new HttpError(403, "This server has MCP turned off");
       }
@@ -76,11 +73,15 @@ export function createTokenRoutes(deps: TokenDeps) {
       }
       const secret = newApiToken(kind === "mcp" ? MCP_TOKEN_PREFIX : undefined);
       const now = nowIso();
+      // In the one order the list uses, each once.
+      const granted = API_TOKEN_SCOPES.filter((scope) =>
+        (scopes ?? DEFAULT_API_TOKEN_SCOPES).includes(scope),
+      );
       const token = {
         id: newId(),
         name,
         kind,
-        readOnly,
+        scopes: granted,
         prefix: secret.slice(0, SHOWN_PREFIX_LENGTH),
         createdAt: now,
         lastUsedAt: null,
@@ -99,7 +100,7 @@ export function createTokenRoutes(deps: TokenDeps) {
           name,
           prefix: token.prefix,
           kind,
-          readOnly: String(readOnly),
+          scopes: granted.join(" "),
         },
       });
       const body: ApiTokenCreatedResponse = { token, secret };

@@ -58,7 +58,16 @@ describe("MCP endpoint", () => {
   }
 
   const mintMcp = async (readOnly = false, as: string = session) =>
-    (await mint({ name: "assistant", kind: "mcp", readOnly }, as)).secret;
+    (
+      await mint(
+        {
+          name: "assistant",
+          kind: "mcp",
+          ...(readOnly && { scopes: ["notes:read"] }),
+        },
+        as,
+      )
+    ).secret;
 
   function post(token: string | null, body: unknown, headers = {}) {
     return rig.request("/api/mcp", {
@@ -228,11 +237,15 @@ describe("MCP endpoint", () => {
       ).toBe(401);
     });
 
-    it("mints no read-only script token", async () => {
+    it("gives an MCP token the note scopes and nothing more", async () => {
       const res = await rig.request("/api/tokens", {
         method: "POST",
         headers: authHeaders(session),
-        body: JSON.stringify({ name: "script", readOnly: true }),
+        body: JSON.stringify({
+          name: "assistant",
+          kind: "mcp",
+          scopes: ["notes:read", "account:read"],
+        }),
       });
       expect(res.status).toBe(422);
     });

@@ -1,4 +1,8 @@
-import type { ApiTokenKind } from "@manifesto/shared";
+import {
+  API_TOKEN_SCOPES,
+  type ApiTokenKind,
+  type ApiTokenScope,
+} from "@manifesto/shared";
 import type { StoredApiToken } from "./types.js";
 
 export interface ApiTokenRow {
@@ -6,8 +10,8 @@ export interface ApiTokenRow {
   user_id: string;
   name: string;
   kind: string;
-  /** 0 or 1 from SQLite, a boolean from Postgres. */
-  read_only: number | boolean;
+  /** A JSON array of `ApiTokenScope`. */
+  scopes: string;
   prefix: string;
   created_at: string;
   last_used_at: string | null;
@@ -15,7 +19,20 @@ export interface ApiTokenRow {
 }
 
 export const API_TOKEN_COLUMNS =
-  "id, user_id, name, kind, read_only, prefix, created_at, last_used_at, expires_at";
+  "id, user_id, name, kind, scopes, prefix, created_at, last_used_at, expires_at";
+
+/** The scopes a row names, leaving out any this server does not know: a
+ * scope is a grant, so an unreadable one grants nothing. */
+function parseScopes(text: string): ApiTokenScope[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return API_TOKEN_SCOPES.filter((scope) => parsed.includes(scope));
+}
 
 export function rowToApiToken(row: ApiTokenRow): StoredApiToken {
   return {
@@ -24,7 +41,7 @@ export function rowToApiToken(row: ApiTokenRow): StoredApiToken {
     name: row.name,
     // Only these two are ever written; anything else reads as the narrower.
     kind: (row.kind === "api" ? "api" : "mcp") satisfies ApiTokenKind,
-    readOnly: Boolean(row.read_only),
+    scopes: parseScopes(row.scopes),
     prefix: row.prefix,
     createdAt: row.created_at,
     lastUsedAt: row.last_used_at,

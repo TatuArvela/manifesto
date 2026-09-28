@@ -193,6 +193,24 @@ describe("application WebSocket /api/ws", () => {
     expect(closeCode).toBe(4401);
   });
 
+  it("rejects a token that may not read notes (closes with 4401)", async () => {
+    const session = await register(rig, "alice");
+    const created = await fetch(`${rig.baseUrl}/api/tokens`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session}`,
+      },
+      body: JSON.stringify({ name: "profile", scopes: ["account:read"] }),
+    });
+    const { secret } = (await created.json()) as { secret: string };
+    const { ws } = openSocket(rig.wsUrl, secret);
+    const closeCode = await new Promise<number>((resolve) => {
+      ws.once("close", (code) => resolve(code));
+    });
+    expect(closeCode).toBe(4401);
+  });
+
   it("broadcasts note:created from a REST POST", async () => {
     const token = await register(rig, "alice");
     const { ws } = openSocket(rig.wsUrl, token);

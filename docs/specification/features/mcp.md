@@ -51,8 +51,8 @@ An assistant's token (`mfm_...`) is a [personal API token](../api.md#api-tokens)
 
 - It works at `/api/mcp` and nowhere else. The REST API and both WebSockets refuse it, so a secret
   copied out of an assistant's settings can do only what the tools above do.
-- It can be **read only**, chosen when it is minted. The tools that write are then not offered, and
-  refused if called.
+- It can be **read only** (the `notes:read` scope without `notes:write`), chosen when it is minted.
+  The tools that write are then not offered, and the routes they would call refuse it.
 - Everything else is as for an API token: it is stored as a hash, it expires when its owner chose or
   never, it records when it was last used, revoking it in Settings stops it at once, and it ends with
   the user's sessions (a password change, an admin reset).

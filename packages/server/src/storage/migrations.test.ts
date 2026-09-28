@@ -178,6 +178,62 @@ describe("0003-user-admin on a server that already has accounts", () => {
   });
 });
 
+describe("0018-api-token-scopes on a server that already has tokens", () => {
+  // Scopes narrow what a token reaches, so this is the one upgrade that takes
+  // something away: a script's token keeps its notes and loses the account and
+  // sharing routes, and a read-only assistant's token keeps reading only.
+  const columns = `(id, user_id, name, kind, read_only, token_hash, prefix, created_at)`;
+  const expected = [
+    { id: "t-assistant-ro", scopes: '["notes:read"]' },
+    { id: "t-assistant-rw", scopes: '["notes:read","notes:write"]' },
+    { id: "t-script", scopes: '["notes:read","notes:write"]' },
+  ];
+
+  it("narrows them on SQLite", () => {
+    const db = new Database(":memory:");
+    runSqliteMigrations(db, upTo(SQLITE_MIGRATIONS, "0018-api-token-scopes"));
+    db.prepare(
+      `INSERT INTO users (id, username, created_at) VALUES ('u', 'amy', '2026-01-01')`,
+    ).run();
+    const insert = db.prepare(
+      `INSERT INTO api_tokens ${columns} VALUES (?, 'u', 'x', ?, ?, ?, 'p', '2026-01-01')`,
+    );
+    insert.run("t-script", "api", 0, "h1");
+    insert.run("t-assistant-rw", "mcp", 0, "h2");
+    insert.run("t-assistant-ro", "mcp", 1, "h3");
+
+    runSqliteMigrations(db);
+    expect(
+      db.prepare(`SELECT id, scopes FROM api_tokens ORDER BY id`).all(),
+    ).toEqual(expected);
+    db.close();
+  });
+
+  it("narrows them on Postgres", async () => {
+    const pool = newTestPool();
+    await runPgMigrations(pool, upTo(PG_MIGRATIONS, "0018-api-token-scopes"));
+    await pool.query(
+      `INSERT INTO users (id, username, created_at) VALUES ('u', 'amy', '2026-01-01')`,
+    );
+    for (const [id, kind, readOnly, hash] of [
+      ["t-script", "api", false, "h1"],
+      ["t-assistant-rw", "mcp", false, "h2"],
+      ["t-assistant-ro", "mcp", true, "h3"],
+    ]) {
+      await pool.query(
+        `INSERT INTO api_tokens ${columns} VALUES ($1, 'u', 'x', $2, $3, $4, 'p', '2026-01-01')`,
+        [id, kind, readOnly, hash],
+      );
+    }
+
+    await runPgMigrations(pool);
+    const { rows } = await pool.query(
+      `SELECT id, scopes FROM api_tokens ORDER BY id`,
+    );
+    expect(rows).toEqual(expected);
+  });
+});
+
 describe("postgres migration runner", () => {
   const open = newTestPool;
 

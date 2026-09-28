@@ -1,6 +1,7 @@
 import type { NodeWebSocket } from "@hono/node-ws";
 import {
   APP_SOCKET_HEARTBEAT_MS,
+  hasScope,
   type PresenceUser,
   type WebSocketClientEvent,
   type WebSocketEvent,
@@ -316,8 +317,12 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
       return {
         async onOpen(_evt, socket) {
           const identity = await authProvider.authenticate(token);
-          // An MCP token is for `/api/mcp` alone.
-          if (!identity || identity.via === "mcp-token") {
+          // An MCP token is for `/api/mcp` alone, and a socket carries notes.
+          if (
+            !identity ||
+            identity.via === "mcp-token" ||
+            (identity.scopes && !hasScope(identity.scopes, "notes:read"))
+          ) {
             socket.close(4401, "Invalid or expired session");
             return;
           }

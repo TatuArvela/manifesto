@@ -86,18 +86,33 @@ includes `email`. Either way the caller is never among the results, and an empty
 | `POST`   | `/api/tokens`     | Mint one (`ApiTokenCreateRequest`); the response carries the secret, once |
 | `DELETE` | `/api/tokens/:id` | Revoke one; sockets opened with it close with `4401` |
 
-A personal API token is a bearer token like a session, and works on every endpoint a session does,
-the WebSockets included, under either auth provider. It starts with `mfp_`, is stored as a SHA-256
-hash, has no sliding expiry (only the one chosen when minting, or none), and records when it was last
-used. It cannot manage tokens, change a password or email address, or use `/api/admin/*`: those
-answer `403` to a token, so a token given to a script cannot be used to take over its account. Ending
-a user's sessions (a password change, an admin reset) ends their tokens too, since whoever knew the
-password could have minted one. A user holds at most 50.
+A personal API token is a bearer token like a session, under either auth provider. It starts with
+`mfp_`, is stored as a SHA-256 hash, has no sliding expiry (only the one chosen when minting, or none),
+and records when it was last used. Ending a user's sessions (a password change, an admin reset) ends
+their tokens too, since whoever knew the password could have minted one. A user holds at most 50.
+
+A token reaches only what its **scopes** name, chosen when it is minted:
+
+| Scope | Reaches |
+|---|---|
+| `notes:read` | Listing, reading and searching notes, their versions and images, the export, and `/api/ws` |
+| `notes:write` | Creating, changing, importing and deleting notes, uploading images, link previews, and `/api/yjs`; includes `notes:read` |
+| `sharing` | Inviting people to a note, changing or removing them, answering invitations, finding accounts |
+| `account:read` | `GET /api/auth/me` and the account's preferences |
+| `account:write` | Changing the preferences and the recorded language; includes `account:read` |
+
+A request outside its scopes answers `403` naming the scope it lacks, and a socket closes with `4401`.
+Each operation's scope is `x-token-scope` in `/api/openapi.json`, and an operation that names none is
+closed to tokens. No scope reaches what only a session may do (managing tokens and webhooks, a password
+or email address, two-factor sign-in, `/api/admin/*`), so a token given to a script cannot be used to
+take over its account. Minted without `scopes`, a token gets `notes:read` and `notes:write`, which is
+also what every token from before scopes was narrowed to.
 
 `POST /api/tokens` with `"kind": "mcp"` mints a token for an AI assistant instead: it starts with
 `mfm_`, works at `/api/mcp` and nowhere else (the REST API and both sockets answer `403` or close
-with `4401`), and can be `"readOnly": true`. The server refuses one with `403` when it has `MCP` off.
-Every listed token carries its `kind` and `readOnly`.
+with `4401`), and takes only `notes:read` and `notes:write`; with `notes:read` alone it is read only.
+The server refuses one with `403` when it has `MCP` off. Every listed token carries its `kind` and
+`scopes`.
 
 ### MCP
 

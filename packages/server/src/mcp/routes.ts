@@ -1,3 +1,4 @@
+import { hasScope } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
 import type { AuthProvider } from "../auth/types.js";
 import {
@@ -66,7 +67,7 @@ export function createMcpRoutes(deps: McpDeps) {
     createAuthMiddleware(deps.authProvider, { mcpOnly: true }),
     deps.rateLimit ?? noLimit,
     async (c) => {
-      const { readOnly } = c.get("auth");
+      const { scopes = [] } = c.get("auth");
       const reply = (body: JsonRpcResponse, status: 200 | 400 | 415 = 200) =>
         c.json(body, status);
 
@@ -134,7 +135,7 @@ export function createMcpRoutes(deps: McpDeps) {
         return { status: res.status, body: parsed };
       };
       const ctx: McpContext = {
-        tools: readOnly ? MCP_TOOLS.filter((t) => !t.writes) : MCP_TOOLS,
+        tools: MCP_TOOLS.filter((t) => hasScope(scopes, t.scope)),
         rest,
         serverVersion: deps.serverVersion,
       };

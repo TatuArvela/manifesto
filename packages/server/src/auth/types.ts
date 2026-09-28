@@ -1,3 +1,4 @@
+import type { ApiTokenScope } from "@manifesto/shared";
 import type { Hono } from "hono";
 import type { Mailer } from "../mail/mailer.js";
 import type { SessionRevocations } from "./revocations.js";
@@ -16,8 +17,8 @@ export interface AuthIdentity {
   userId: string;
   token: string;
   via: CredentialKind;
-  /** An MCP token offered only the tools that read. */
-  readOnly?: boolean;
+  /** What a token may reach; absent for a session, which may reach it all. */
+  scopes?: readonly ApiTokenScope[];
   username: string;
   displayName: string;
   avatarColor: string;

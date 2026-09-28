@@ -1,13 +1,15 @@
-import type { MiddlewareHandler } from "hono";
+import { type ApiTokenScope, hasScope } from "@manifesto/shared";
+import type { Context, MiddlewareHandler } from "hono";
 import type { AuthProvider, CredentialKind } from "../auth/types.js";
+import { OPERATIONS } from "../openapi.js";
 import { HttpError } from "./error.js";
 
 export interface AuthContext {
   userId: string;
   token: string;
   via: CredentialKind;
-  /** An MCP token offered only the tools that read. */
-  readOnly?: boolean;
+  /** What a token may reach; absent for a session. */
+  scopes?: readonly ApiTokenScope[];
 }
 
 export interface AuthMiddlewareOptions {
@@ -31,7 +33,28 @@ export const MCP_FORWARDED = Symbol("mcp-forwarded");
 
 const BEARER_PREFIX = "Bearer ";
 
-const READS = new Set(["GET", "HEAD"]);
+let scopeByRoute: Map<string, ApiTokenScope | undefined> | undefined;
+
+/**
+ * The scope `OPERATIONS` names for the route that will answer this request,
+ * or undefined if it names none. `found` is false when no route matched, and
+ * the request is on its way to a 404 anyway.
+ */
+function scopeFor(c: Context): { found: boolean; scope?: ApiTokenScope } {
+  // Built on first use rather than at load: `openapi.ts` reaches the
+  // validation schemas, and nothing here should depend on load order.
+  scopeByRoute ??= new Map(
+    OPERATIONS.map((op) => [`${op.method.toUpperCase()} ${op.path}`, op.scope]),
+  );
+  // A router's middleware already knows its handler: the last route matched
+  // that is not middleware (`ALL`).
+  const route = c.req.matchedRoutes.findLast((r) => r.method !== "ALL");
+  if (!route) return { found: false };
+  return {
+    found: true,
+    scope: scopeByRoute.get(`${route.method} ${route.path}`),
+  };
+}
 
 export function createAuthMiddleware(
   authProvider: AuthProvider,
@@ -61,20 +84,26 @@ export function createAuthMiddleware(
       if (!forwarded) {
         throw new HttpError(403, "An MCP token works only at /api/mcp");
       }
-      // The tools list already leaves out what writes; this holds even if a
-      // tool were ever wrong about which it is.
-      if (identity.readOnly && !READS.has(c.req.method)) {
-        throw new HttpError(403, "This MCP token can only read");
-      }
     }
     if (sessionOnly && identity.via !== "session") {
       throw new HttpError(403, "Sign in to do this; an API token cannot");
+    }
+    // A token reaches only what its scopes name, and only routes that name
+    // one: an operation declared without a scope is closed to tokens.
+    if (identity.via !== "session") {
+      const { found, scope } = scopeFor(c);
+      if (found && scope === undefined) {
+        throw new HttpError(403, "Sign in to do this; an API token cannot");
+      }
+      if (scope && !hasScope(identity.scopes ?? [], scope)) {
+        throw new HttpError(403, `This token does not have the ${scope} scope`);
+      }
     }
     c.set("auth", {
       userId: identity.userId,
       token: identity.token,
       via: identity.via,
-      ...(identity.readOnly !== undefined && { readOnly: identity.readOnly }),
+      ...(identity.scopes && { scopes: identity.scopes }),
     });
     await next();
   };

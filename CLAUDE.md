@@ -481,10 +481,15 @@ and `AuthIdentity.via` says which credential it was. Anything that changes how a
 (tokens, password, email, the admin API) mounts `createAuthMiddleware(provider, { sessionOnly: true })`,
 so a token handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
 revoking one token goes through `revokeApiToken`, which closes its sockets by the token's hash.
+A token reaches only what its scopes name (`API_TOKEN_SCOPES` in shared). Each operation's scope is
+declared once, as `scope` in `OPERATIONS` (`openapi.ts`), and `createAuthMiddleware` looks it up from
+the route Hono matched (`c.req.matchedRoutes`), so a new token-reachable route needs a scope there or
+tokens are refused it; `openapi.test.ts` holds every `auth: "any"` operation to having one. The two
+sockets check theirs by hand (`/api/ws` `notes:read`, `/api/yjs` `notes:write`).
 An MCP token (`mfm_`, `kind: "mcp"`) is narrower again: `createAuthMiddleware` takes it only on
 `/api/mcp` (`mcpOnly`) and on the REST requests that endpoint's tools make in-process, whose `env`
-carries `MCP_FORWARDED`, a symbol no request from the network can set. A read-only one is refused
-anything but `GET`, and both sockets refuse it.
+carries `MCP_FORWARDED`, a symbol no request from the network can set. It holds only note scopes,
+its tools are offered by the scope each names, and both sockets refuse it.
 
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both

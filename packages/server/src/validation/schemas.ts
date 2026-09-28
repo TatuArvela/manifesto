@@ -1,5 +1,6 @@
 import {
   API_TOKEN_KINDS,
+  API_TOKEN_SCOPES,
   ATTACHMENT_REF_PATTERN,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_URL_LENGTH,
@@ -225,19 +226,28 @@ export const noteVersionCreateSchema = z.object({
 });
 export const noteUpdateSchema = z.object(noteFields).partial();
 
-/** `POST /api/tokens`. Read-only is a narrowing of the MCP tools, which is
- * all an MCP token can reach; an API token has no tools to narrow. */
+/** `POST /api/tokens`. An MCP token's tools reach notes and nothing else,
+ * so it takes only the note scopes. */
 export const apiTokenCreateSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
     expiresInDays: z.number().int().min(1).max(3650).optional(),
     kind: z.enum(API_TOKEN_KINDS).optional(),
-    readOnly: z.boolean().optional(),
+    scopes: z
+      .array(z.enum(API_TOKEN_SCOPES))
+      .min(1)
+      .max(API_TOKEN_SCOPES.length)
+      .optional(),
   })
-  .refine((body) => !body.readOnly || body.kind === "mcp", {
-    message: "Only an MCP token can be read-only",
-    path: ["readOnly"],
-  });
+  .refine(
+    (body) =>
+      body.kind !== "mcp" ||
+      (body.scopes ?? []).every((scope) => scope.startsWith("notes:")),
+    {
+      message: "An MCP token takes only notes:read and notes:write",
+      path: ["scopes"],
+    },
+  );
 
 /** `POST /api/webhooks`. Where it may point is checked on every delivery,
  * against the resolved address; this only refuses what is never a webhook. */
