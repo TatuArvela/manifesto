@@ -50,6 +50,9 @@ Bearer-protected, and share the per-user API limit.
 | `POST`   | `/api/invitations/:noteId/accept`    | Accept: `{ note }`, the recipient's copy |
 | `POST`   | `/api/invitations/:noteId/decline`   | Decline: `204` |
 | `GET`    | `/api/users?q=`                      | Accounts to share with: `{ users: DirectoryUser[] }` |
+| `GET`    | `/api/notes/:id/links`               | The note's [public links](features/sharing.md#public-links) (owner): `{ links: PublicLink[] }` |
+| `POST`   | `/api/notes/:id/links`               | Publish it: `{ mode, expiresInDays?, password?, maxViews? }`, `201` `{ link }` (owner) |
+| `DELETE` | `/api/notes/:id/links/:token`        | Revoke a link: `204` (owner) |
 
 `role` is `"edit"` or `"view"`. The `{ note }` a share route returns is the owner's copy, with
 `sharing` brought up to date.
@@ -65,6 +68,21 @@ Bearer-protected, and share the per-user API limit.
   the note's text whole, with the owner's color and its font, so the invitation can show the note
   itself. Attachments and link previews come with the note once it is accepted. Invitations to a
   note in the trash are not listed.
+
+A public link is read without an account, and none of these send a bearer token:
+
+| Method   | Path                                   | Description |
+|----------|----------------------------------------|-------------|
+| `GET`    | `/api/public/:token`                   | The note: `{ note: PublicNote, access: null }`, counting a view; `401` `{ passwordRequired: true }` for a link with a password, counting nothing |
+| `POST`   | `/api/public/:token/unlock`            | With `{ password }`: `{ note, access }`, counting a view; `403` for a wrong one |
+| `GET`    | `/api/public/:token/attachments/:id`   | A picture the note shows, and no other; a link with a password needs `X-Link-Access: <access>` |
+
+`mode` is `"live"` or `"snapshot"`. `PublicLink` is `{ token, noteId, mode, expiresAt, hasPassword,
+maxViews, viewCount, lastViewedAt, createdAt }`; `PublicNote` is `{ title, content, color, font,
+images, linkPreviews, updatedAt }`. Every public route answers the same `404` for a link that does not
+open (never made, revoked, expired, used up, its note in the trash, or `PUBLIC_LINKS=off`), sends
+`Cache-Control: no-store` and `X-Robots-Tag: noindex`, and is limited per address; `unlock` also per
+link. The owner routes take the `sharing` token scope, and answer `403` to anyone else on the note.
 
 `GET /api/users` depends on `USER_LOOKUP`. Under `search` (the default) it returns up to 10
 accounts whose username, display name or email contains `q`, regardless of case, each as

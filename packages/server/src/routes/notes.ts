@@ -8,6 +8,7 @@ import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { claimImages, claimPreviewImages } from "../attachments/store.js";
 import type { AuthProvider } from "../auth/types.js";
+import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
 import type { Mailer } from "../mail/mailer.js";
@@ -27,6 +28,7 @@ import {
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
+import { registerPublicLinkRoutes } from "./publicLinks.js";
 import { registerShareRoutes } from "./shares.js";
 import { registerVersionRoutes } from "./versions.js";
 
@@ -41,6 +43,8 @@ interface NotesDeps {
    * bucket map. */
   rateLimit?: MiddlewareHandler;
   mail?: { mailer: Mailer; appUrl: string } | null;
+  /** For the public link routes, which hash passwords and may be off. */
+  cfg: ServerConfig;
 }
 
 /**
@@ -332,6 +336,7 @@ export function createNotesRoutes(deps: NotesDeps) {
   });
 
   registerShareRoutes(notes, deps);
+  registerPublicLinkRoutes(notes, deps);
   registerVersionRoutes(notes, deps);
 
   return notes;

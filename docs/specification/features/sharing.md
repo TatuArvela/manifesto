@@ -2,6 +2,10 @@
 
 Manifesto supports sharing individual notes as self-contained URLs. The note data is encoded entirely in the URL hash fragment, so no server is required; it works with any static host (e.g., GitHub Pages).
 
+A link made that way can never be taken back, since it carries the note itself. In connected mode a
+note can also be published by a [public link](#public-links): a server row the owner can revoke,
+with an expiry, a password and a view limit.
+
 ## How It Works
 
 ### Generating a Share Link
@@ -69,3 +73,36 @@ Most browsers support URLs of at least 2,000 characters. A typical note (title +
 ## Trashed and Archived Notes
 
 Trashed and archived notes can still be shared: the share payload only carries content fields, so the recipient always gets a fresh, active note regardless of the original's state.
+
+## Public Links
+
+In connected mode, a note's owner can publish it by a revocable public link: **Public links** in the
+note's menu. Anyone holding the link reads the note on a page of its own (`/p/<token>` on the app's
+address), with no account. It is off when the server sets `PUBLIC_LINKS=off`, and the menu item is
+not shown then.
+
+- **What it shows**: the title, the text (rendered and sanitized like a card), the colour, the font,
+  the pictures and the link previews. Not the tags, the owner, or anything about the note's place
+  among the owner's notes.
+- **Live or snapshot**: a live link shows the note as it is when opened; a snapshot shows it as it was
+  when the link was made, whatever changes after. A snapshot's pictures are kept for it while it can
+  still be opened, even after the note drops them.
+- **Expiry, password, view limit**: each optional, set when the link is made. A view is counted when
+  the note is handed out, so after the password, and a link past its limit or its expiry no longer
+  opens. The pictures of a note still load for ten minutes after its last view, so a link limited to
+  one view shows them to that one viewer.
+- **Revoking** deletes the link: it stops working at once, for everyone. The dialog lists each link
+  with its view count, its last view and whether it has a password or has stopped.
+- **The note's life decides the link's**: while the note is in the trash its links do not open, and
+  come back if it is restored; deleting the note deletes them.
+- **Only the owner** makes, lists and revokes a note's links; someone it is shared with cannot
+  publish it. Automatic notes and notes in the trash cannot be published.
+- **Every failure looks the same**: a link never made, revoked, expired, used up, or on a note in the
+  trash all say only that the link does not open a note. Wrong passwords are limited per address and
+  per link.
+- **Not for search engines**: the public routes send `X-Robots-Tag: noindex` and `no-store`, and no
+  `Referer` leaves the page.
+
+A link's token is 128 random bits, kept as it is so the owner can copy the link again. Making and
+revoking a link are written to the [audit log](accounts.md). Links that can edit are not offered;
+see the note in `TODO.md`.

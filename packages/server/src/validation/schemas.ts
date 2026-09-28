@@ -6,8 +6,10 @@ import {
   MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
   MAX_NOTES_PER_IMPORT,
+  MAX_PUBLIC_LINK_VIEWS,
   NoteColor,
   NoteFont,
+  PUBLIC_LINK_MODES,
   REMINDER_RECURRENCES,
   SHARE_ROLES,
   WEBHOOK_EVENTS,
@@ -119,6 +121,19 @@ export const shareCreateSchema = z.object({
 });
 
 export const shareUpdateSchema = z.object({ role: shareRoleSchema });
+
+/** `POST /api/notes/:id/links`. */
+export const publicLinkCreateSchema = z.object({
+  mode: z.enum(PUBLIC_LINK_MODES),
+  expiresInDays: z.number().int().min(1).max(3650).optional(),
+  password: z.string().min(1).max(256).optional(),
+  maxViews: z.number().int().min(1).max(MAX_PUBLIC_LINK_VIEWS).optional(),
+});
+
+/** `POST /api/public/:token/unlock`. */
+export const publicLinkUnlockSchema = z.object({
+  password: z.string().min(1).max(256),
+});
 
 export const noteColorSchema = z.nativeEnum(NoteColor);
 export const noteFontSchema = z.nativeEnum(NoteFont);

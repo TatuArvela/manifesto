@@ -8,6 +8,7 @@ import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
 import { createSqlitePasswordResetsRepo } from "./passwordResetsRepo.js";
 import { createSqlitePrefsRepo } from "./prefsRepo.js";
+import { createSqlitePublicLinksRepo } from "./publicLinksRepo.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteSharesRepo } from "./sharesRepo.js";
 import { createSqliteTwoFactorRepo } from "./twoFactorRepo.js";
@@ -37,6 +38,7 @@ export function createSqliteStorage(
     versions: createSqliteVersionsRepo(db),
     apiTokens: createSqliteApiTokensRepo(db),
     webhooks: createSqliteWebhooksRepo(db),
+    publicLinks: createSqlitePublicLinksRepo(db),
     twoFactor: createSqliteTwoFactorRepo(db),
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqlitePasswordResetsRepo(db),

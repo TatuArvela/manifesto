@@ -1,12 +1,14 @@
 import { render } from "preact";
 import { App } from "./components/App.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
+import { PublicNotePage } from "./components/PublicNotePage.js";
 import { ServerSetupError } from "./components/ServerSetupError.js";
 import { applyFavicon, FAVICON, WINDOW_TITLE } from "./config.js";
 import { offerLaunchImage } from "./launchImage.js";
 import { registerServiceWorker } from "./serviceWorker.js";
 import { capSplash, revealApp } from "./splash.js";
 import { SERVER_URL } from "./state/auth.js";
+import { publicLinkToken } from "./state/publicLinks.js";
 import { serverSetupProblem } from "./utils/serverCsp.js";
 import "./assets/fonts/fonts.css";
 import "./styles.css";
@@ -22,11 +24,20 @@ const setupProblem = serverSetupProblem(SERVER_URL);
 document.title = WINDOW_TITLE;
 applyFavicon(FAVICON);
 
+// A public link's page stands alone: no account, no board, one note.
+const publicToken = publicLinkToken(window.location.pathname);
+
 const root = document.getElementById("app");
 if (root)
   render(
     <ErrorBoundary>
-      {setupProblem ? <ServerSetupError problem={setupProblem} /> : <App />}
+      {setupProblem ? (
+        <ServerSetupError problem={setupProblem} />
+      ) : publicToken ? (
+        <PublicNotePage token={publicToken} />
+      ) : (
+        <App />
+      )}
     </ErrorBoundary>,
     root,
   );

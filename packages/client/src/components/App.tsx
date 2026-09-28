@@ -53,6 +53,7 @@ import { InvitationList } from "./InvitationList.js";
 import { LoginScreen } from "./LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
+import { PublicLinksDialogHost } from "./PublicLinksDialog.js";
 import { ReminderBanner } from "./ReminderBanner.js";
 import { SearchView } from "./SearchView.js";
 import { SettingsDialog } from "./SettingsDialog.js";
@@ -340,6 +341,7 @@ function MainApp() {
       )}
       <SettingsDialog />
       <ShareDialogHost />
+      <PublicLinksDialogHost />
       <ConfirmDialogHost />
       <ReminderBanner />
       <ConnectionStatus />

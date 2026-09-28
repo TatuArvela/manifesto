@@ -30,6 +30,7 @@ import { createAttachmentRoutes } from "./routes/attachments.js";
 import { createExportRoutes } from "./routes/export.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
+import { createPublicRoutes } from "./routes/publicLinks.js";
 import { createSearchRoutes } from "./routes/search.js";
 import { createInvitationRoutes } from "./routes/shares.js";
 import { createSyncRoutes } from "./routes/sync.js";
@@ -200,6 +201,7 @@ export function createApp(deps: AppDeps): AppHandle {
       accessChanges,
       rateLimit: apiRateLimit,
       mail,
+      cfg,
     }),
   );
   app.route(
@@ -271,6 +273,7 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/search",
     createSearchRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
   );
+  app.route("/api/public", createPublicRoutes({ storage, cfg }));
   app.route(
     "/api/sync",
     createSyncRoutes({ storage, authProvider, rateLimit: apiRateLimit }),

@@ -145,6 +145,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `WEBHOOKS`         | `public`                   | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`. |
 | `MCP`              | `on`                       | The [MCP endpoint](../features/mcp.md) for AI assistants, `/api/mcp`. It answers only a token a user mints for it in Settings, so on opens nothing by itself. `off` removes the endpoint and the option to mint such a token. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
+| `PUBLIC_LINKS`     | `on`                       | Let owners publish a note by [public link](../features/sharing.md#public-links), readable by anyone holding it, with an optional expiry, password and view limit. Set `off` where nothing may be readable without an account; the routes then answer 404 and the menu item is hidden. |
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.
 

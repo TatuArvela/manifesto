@@ -6,6 +6,8 @@ import type {
   NoteCreate,
   NoteUpdate,
   NoteVersion,
+  PublicLink,
+  PublicNote,
   ShareInvitation,
   ShareRole,
   ShareUser,
@@ -576,6 +578,33 @@ export interface PrefsRepo {
   ): Promise<AccountPrefs | "tooLarge">;
 }
 
+/**
+ * A public link as the server keeps it: what its owner sees, and what only
+ * the server reads (the password hash, and a snapshot link's copy of the note).
+ */
+export interface StoredPublicLink extends PublicLink {
+  ownerId: string;
+  passwordHash: string | null;
+  /** The note as it stood when a `snapshot` link was made; null for `live`. */
+  snapshot: PublicNote | null;
+}
+
+export interface PublicLinksRepo {
+  create(link: StoredPublicLink): Promise<void>;
+  /** A note's links, newest first. */
+  listByNote(noteId: string): Promise<StoredPublicLink[]>;
+  get(token: string): Promise<StoredPublicLink | null>;
+  /** Revoke: the link stops working at once. False if the note has no such
+   * link. */
+  delete(token: string, noteId: string): Promise<boolean>;
+  /**
+   * Count one view, as one statement, if the link can still be viewed at `at`
+   * (not expired, not used up). False when it cannot, so two viewers racing
+   * for a link's last view cannot both have it.
+   */
+  recordView(token: string, at: string): Promise<boolean>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -591,6 +620,7 @@ export interface StorageDriver {
   passwordResets: PasswordResetsRepo;
   audit: AuditRepo;
   prefs: PrefsRepo;
+  publicLinks: PublicLinksRepo;
   /**
    * A consistent copy of the whole database at `path`, taken while it keeps
    * serving. SQLite only; Postgres has `pg_dump` and managed backups.

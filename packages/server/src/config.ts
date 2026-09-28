@@ -83,6 +83,9 @@ export interface ServerConfig {
    * client keeps the plain link card. Off is for deployments with no outbound
    * internet access, or an egress policy that should not be asked. */
   linkPreviews: boolean;
+  /** Whether owners may publish a note by revocable public link, readable by
+   * anyone holding it. Off answers every public link route with 404. */
+  publicLinks: boolean;
   /**
    * Whether users may register webhooks, and where they may point: `public`
    * addresses only (the default, the same rule as link previews), `private`
@@ -343,6 +346,7 @@ export function loadConfig(): ServerConfig {
     trustProxy: envBool("TRUST_PROXY", false),
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
     linkPreviews: envBool("LINK_PREVIEWS", true),
+    publicLinks: envBool("PUBLIC_LINKS", true),
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
     mcp: envBool("MCP", true),
     mail: loadMailConfig(),

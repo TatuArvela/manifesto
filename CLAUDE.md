@@ -314,6 +314,12 @@ against the enums, and anything that fails returns `null` rather than a partly-t
 shows `SharedNoteDialog` when the fragment is present, and the recipient chooses whether to save.
 The rendered preview still goes through `remarkRenderer`, which sanitizes.
 
+Public links (`routes/publicLinks.ts`, `state/publicLinks.ts`) are the revocable, server-side
+counterpart: `/p/<token>` renders `PublicNotePage` in place of the app (`main.tsx`), with no account.
+Every way a link fails answers the same 404, and a view is counted by one conditional `UPDATE`
+(`recordView`), never a read then a write. A snapshot's pictures are referrers for the attachment
+sweep in both drivers, so a new place that keeps attachment references must be added there too.
+
 `utils/importExport.ts` handles both directions for Markdown and JSON, single note and bulk. It
 caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
 code runs. The full export is a zip in both modes, laid out by `exportArchiveFiles` in

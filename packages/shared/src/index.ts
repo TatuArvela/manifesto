@@ -42,6 +42,14 @@ export type {
   PageParams,
   PasswordChangeRequest,
   PresenceUser,
+  PublicLink,
+  PublicLinkCreateRequest,
+  PublicLinkMode,
+  PublicLinkResponse,
+  PublicLinksResponse,
+  PublicNote,
+  PublicNoteLockedResponse,
+  PublicNoteResponse,
   RegisterRequest,
   SearchParams,
   ShareCreateRequest,
@@ -75,6 +83,8 @@ export {
   MAX_ACCOUNT_PREFS_BYTES,
   MAX_NOTES_PAGE_SIZE,
   MAX_NOTES_PER_IMPORT,
+  MAX_PUBLIC_LINK_VIEWS,
+  PUBLIC_LINK_MODES,
   WEBHOOK_EVENTS,
 } from "./api.js";
 export {

@@ -13,6 +13,7 @@ import { runMigrations } from "./migrations.js";
 import { createPostgresNotesRepo } from "./notesRepo.js";
 import { createPostgresPasswordResetsRepo } from "./passwordResetsRepo.js";
 import { createPostgresPrefsRepo } from "./prefsRepo.js";
+import { createPostgresPublicLinksRepo } from "./publicLinksRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
 import { createPostgresSharesRepo } from "./sharesRepo.js";
 import { createPostgresTwoFactorRepo } from "./twoFactorRepo.js";
@@ -54,6 +55,7 @@ export async function createPostgresStorage(
     versions: createPostgresVersionsRepo(pool),
     apiTokens: createPostgresApiTokensRepo(pool),
     webhooks: createPostgresWebhooksRepo(pool),
+    publicLinks: createPostgresPublicLinksRepo(pool),
     twoFactor: createPostgresTwoFactorRepo(pool),
     prefs: createPostgresPrefsRepo(pool),
     passwordResets: createPostgresPasswordResetsRepo(pool),

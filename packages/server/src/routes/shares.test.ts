@@ -518,6 +518,7 @@ describe("finding people to share with", () => {
       passwordForm: "shown",
       userLookup: "exact",
       webhooks: false,
+      publicLinks: true,
       mcp: true,
       passwordReset: false,
       registration: true,

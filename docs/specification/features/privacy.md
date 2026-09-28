@@ -90,6 +90,9 @@ database provides.
   nothing about users or notes.
 - **Share links** ([Sharing](sharing.md)) carry the note in the URL fragment, which the browser does
   not send to any server; whoever holds the link can read the note.
+- **Public links** ([Sharing](sharing.md#public-links)) let anyone holding one read the note it
+  publishes, with no account, until it expires, is used up or is revoked. The server counts the views
+  and keeps the time of the last one, and nothing about who viewed.
 
 ## On the device
 

@@ -332,6 +332,30 @@ const NOTE_MEMBERS_CHANGED = `
 ALTER TABLE notes ADD COLUMN members_changed_at TEXT;
 `;
 
+/**
+ * Revocable public links to a note, read by anyone holding the token. A
+ * `snapshot` link keeps its own copy of the note (JSON of `PublicNote`); a
+ * `live` link reads the note each time. The token is kept as it is, since the
+ * owner copies the link again from here, and whoever can read this table can
+ * read the notes themselves anyway. The links go with their note.
+ */
+const PUBLIC_LINKS = `
+CREATE TABLE public_links (
+  token          TEXT PRIMARY KEY,
+  note_id        TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  owner_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  mode           TEXT NOT NULL,
+  snapshot       TEXT,
+  password_hash  TEXT,
+  expires_at     TEXT,
+  max_views      INTEGER,
+  view_count     INTEGER NOT NULL DEFAULT 0,
+  last_viewed_at TEXT,
+  created_at     TEXT NOT NULL
+);
+CREATE INDEX public_links_note ON public_links(note_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -352,6 +376,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0017-api-token-kind", sql: API_TOKEN_KIND },
   { id: "0018-api-token-scopes", sql: API_TOKEN_SCOPES },
   { id: "0019-note-members-changed", sql: NOTE_MEMBERS_CHANGED },
+  { id: "0020-public-links", sql: PUBLIC_LINKS },
 ];
 
 export function runMigrations(
