@@ -33,7 +33,10 @@ export interface YjsSessionOptions {
   url: string;
   noteId: string;
   token: string;
-  /** Published to other clients as the cursor label; null leaves us anonymous. */
+  /**
+   * Our cursor label. The server replaces it with the account it authenticated
+   * before anyone else sees it, so this only has to be right for this tab.
+   */
   user: YjsSessionUser | null;
   onStatus: (status: YjsConnectionStatus) => void;
   onSynced: () => void;

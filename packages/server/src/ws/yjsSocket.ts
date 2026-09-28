@@ -112,7 +112,46 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
         noteId: documentName,
         ownerId: access.ownerId,
         token,
+        user: {
+          id: identity.userId,
+          name: identity.displayName,
+          color: identity.avatarColor,
+        },
       } satisfies YjsAuthContext;
+    },
+
+    /**
+     * The name and colour at a remote cursor are the account's, not what the
+     * client claims. Each connection publishes its own client ids, and
+     * Hocuspocus records the ones it added; a state for an id another
+     * connection holds is dropped, since publishing it would overwrite that
+     * peer's cursor. What is left is this connection's, and its `user` is
+     * replaced with the authenticated one. The colour goes into the cursor's
+     * inline style, so it must not be the client's text either.
+     *
+     * An honest provider only ever sends its own id: updates it applied from
+     * the server are not echoed back.
+     */
+    beforeHandleAwareness: async ({
+      states,
+      context,
+      document,
+      connection,
+    }) => {
+      if (!context || !connection) return;
+      for (const [clientId, state] of states) {
+        const heldElsewhere = document
+          .getConnections()
+          .some(
+            (other) =>
+              other !== connection && document.getClients(other).has(clientId),
+          );
+        if (heldElsewhere) {
+          states.delete(clientId);
+          continue;
+        }
+        state.user = { ...context.user };
+      }
     },
   });
 

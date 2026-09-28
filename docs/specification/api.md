@@ -371,6 +371,8 @@ A Hocuspocus-backed Yjs channel for per-note collaborative editing. One endpoint
 
 Authentication uses the Hocuspocus `Auth` message, not `Sec-WebSocket-Protocol`: clients send the bearer token as the provider's `token` option. The server's `onAuthenticate` hook resolves the token to a user and then verifies that the user may edit the note named by that document (its owner, or an accepted recipient with the `edit` role), rejecting with a permission-denied message before the document is created or joined. Losing that right closes the user's socket with `4403`. Checking the document name rather than a path segment is what makes the check binding: Hocuspocus keys its document map on the name in the frame and never reads the URL.
 
+Awareness states are rewritten on the way in: each carries the authenticated user as `user` (`{ id, name, color }`, from the account's display name and avatar colour), and a state for a client id another connection already publishes is dropped.
+
 The connection URL carries the client's editor schema version as `?editor=<n>`. A version below the server's `EDITOR_SCHEMA_VERSION`, or one that is not a number, is refused at the `Auth` message with the reason `editor-outdated` (see [Collaborative Editing](features/collaborative-editing.md#editor-versions)). A URL without the parameter counts as version 1.
 
 Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres).

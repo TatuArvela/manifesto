@@ -10,6 +10,11 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  Awareness,
+  applyAwarenessUpdate,
+  encodeAwarenessUpdate,
+} from "y-protocols/awareness";
 import * as Y from "yjs";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
@@ -223,6 +228,25 @@ function refusalReason(client: Client, ms = 5000): Promise<string | null> {
   });
 }
 
+/** The `user` a client sees for another client id, once it has arrived. */
+async function seenUser(
+  watcher: Client,
+  clientId: number,
+  until: (user: Record<string, unknown> | undefined) => boolean,
+  ms = 3000,
+): Promise<Record<string, unknown> | undefined> {
+  const awareness = watcher.provider.awareness;
+  const read = () =>
+    awareness?.getStates().get(clientId)?.user as
+      | Record<string, unknown>
+      | undefined;
+  const deadline = Date.now() + ms;
+  while (!until(read()) && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  return read();
+}
+
 function waitAuthFailed(client: Client, ms = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(false), ms);
@@ -376,6 +400,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
       noteId,
       ownerId: userId,
       token,
+      user: { id: userId, name: "alice", color: "#123456" },
     });
     await conn.transact((doc) => {
       doc.getText("scratch").insert(0, "Hello, world.");
@@ -400,6 +425,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
       noteId,
       ownerId: userId,
       token,
+      user: { id: userId, name: "alice", color: "#123456" },
     });
     await first.transact((doc) => {
       doc.getText("scratch").insert(0, "persisted bytes");
@@ -416,6 +442,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
       noteId,
       ownerId: userId,
       token,
+      user: { id: userId, name: "alice", color: "#123456" },
     });
     let observed = "";
     await second.transact((doc) => {
@@ -498,6 +525,87 @@ describe("Yjs collaboration socket /api/yjs", () => {
     } finally {
       ownerClient.destroy();
       aliceClient.destroy();
+    }
+  });
+
+  it("labels a cursor with the account, whatever the client claims", async () => {
+    const owner = await register(rig, "olivia");
+    const alice = await register(rig, "alice");
+    const noteId = await createNote(rig, owner.token);
+    await shareWith(rig, owner.token, noteId, alice, "edit");
+    const account = await rig.storage.users.findById(alice.userId);
+
+    const ownerClient = connect(rig, noteId, owner.token);
+    const aliceClient = connect(rig, noteId, alice.token);
+    try {
+      expect(await waitSynced(ownerClient)).toBe(true);
+      expect(await waitSynced(aliceClient)).toBe(true);
+
+      aliceClient.provider.awareness?.setLocalStateField("user", {
+        id: owner.userId,
+        name: "olivia",
+        color: "red; background: url(https://example.com/)",
+      });
+
+      const user = await seenUser(
+        ownerClient,
+        aliceClient.doc.clientID,
+        (u) => u !== undefined,
+      );
+      expect(user).toEqual({
+        id: alice.userId,
+        name: account?.displayName,
+        color: account?.avatarColor,
+      });
+    } finally {
+      ownerClient.destroy();
+      aliceClient.destroy();
+    }
+  });
+
+  it("drops a state published for another connection's client id", async () => {
+    const owner = await register(rig, "olivia");
+    const alice = await register(rig, "alice");
+    const noteId = await createNote(rig, owner.token);
+    await shareWith(rig, owner.token, noteId, alice, "edit");
+
+    const ownerClient = connect(rig, noteId, owner.token);
+    const aliceClient = connect(rig, noteId, alice.token);
+    const watcher = connect(rig, noteId, owner.token);
+    try {
+      expect(await waitSynced(ownerClient)).toBe(true);
+      expect(await waitSynced(aliceClient)).toBe(true);
+      expect(await waitSynced(watcher)).toBe(true);
+
+      const ownerId = ownerClient.doc.clientID;
+      ownerClient.provider.awareness?.setLocalStateField("cursor", "mine");
+      expect(
+        (await seenUser(watcher, ownerId, (u) => u !== undefined))?.id,
+      ).toBe(owner.userId);
+
+      // A forged state for the owner's client id, sent over Alice's socket.
+      // The provider sends what it applies from any origin but itself.
+      const forgery = new Awareness(new Y.Doc());
+      forgery.clientID = ownerId;
+      // Set a few times so its clock is ahead of the owner's, and a receiver
+      // would take it.
+      for (let i = 0; i < 3; i++) forgery.setLocalState({ cursor: "forged" });
+      applyAwarenessUpdate(
+        aliceClient.provider.awareness as Awareness,
+        encodeAwarenessUpdate(forgery, [ownerId]),
+        "forger",
+      );
+
+      await new Promise((r) => setTimeout(r, 300));
+      const state = watcher.provider.awareness?.getStates().get(ownerId);
+      expect(state?.cursor).toBe("mine");
+      expect((state?.user as { id?: string } | undefined)?.id).toBe(
+        owner.userId,
+      );
+    } finally {
+      ownerClient.destroy();
+      aliceClient.destroy();
+      watcher.destroy();
     }
   });
 

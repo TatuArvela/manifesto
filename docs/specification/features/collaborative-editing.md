@@ -40,6 +40,10 @@ arriving, or offline typing whose saves failed), and the document still wins.
 
 - Clients see who else is currently viewing or editing a note: the owner and everyone who has accepted it, whatever their role. A presence report for a note the reporting user cannot see is ignored.
 - Presence appears as avatar stacks on the note card and inline cursors in the editor.
+- The name and colour at a remote cursor are the account's. The server replaces the `user` field of
+  every awareness state a connection publishes with the authenticated user's id, display name and
+  avatar colour, and drops any state for a client id that another connection already publishes, so
+  one participant cannot label a cursor as someone else or move another person's cursor.
 - Presence updates flow through the application WebSocket (`/api/ws`) using `presence:join`, `presence:leave`, and `presence:update` events.
 
 ## Offline Support
