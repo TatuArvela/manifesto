@@ -230,6 +230,12 @@ the next save. That is why `useMilkdownEditor` takes a `ready` flag. Open mode i
 build and can never sync, so keeping these three chunks out of the entry is worth ~130 KB
 minified to every user who will never use them.
 
+Adding, removing or changing the attributes of a node or mark (a preset, a plugin, anything in
+`extensions/`) means raising `EDITOR_SCHEMA_VERSION` in `@manifesto/shared`. `/api/yjs` refuses an
+editor older than the server's, and the refused client locks the text behind a reload notice; an
+old editor left in the room drops the nodes it does not know from every participant's copy. No
+test can see a schema change, so this one is on whoever makes it.
+
 ### Auto-notes Plugin Sandbox
 
 Auto-notes run user-supplied JavaScript, so it executes at three removes from the app and each

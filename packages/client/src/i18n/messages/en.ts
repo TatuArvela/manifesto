@@ -165,6 +165,9 @@ export const en = {
   "editor.done": "Done",
   "editor.back": "Back",
   "editor.discard": "Discard",
+  "editor.outdated":
+    "A newer version is in use. Reload to keep editing this note.",
+  "editor.outdated.reload": "Reload",
   "editor.metadata.created": "Created {date}",
   "editor.metadata.edited": "Edited {date}",
   "editor.imageAlt": "Delete image",

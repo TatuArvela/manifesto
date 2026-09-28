@@ -105,6 +105,8 @@ interface NoteEditorProps {
   onBack?: () => void;
   disabled?: boolean;
   contentLocked?: boolean;
+  /** A line about the note's state, shown between the title and the text. */
+  notice?: ComponentChildren;
   metadata?: ComponentChildren;
   /**
    * The rows of the kebab menu. Taken as a builder rather than a list because
@@ -156,6 +158,7 @@ export function NoteEditor({
   onBack,
   disabled,
   contentLocked,
+  notice,
   metadata,
   menuItems,
   onDelete,
@@ -538,6 +541,8 @@ export function NoteEditor({
           disabled={disabled}
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
         />
+
+        {notice}
 
         {/* Shown or hidden for every note at once, from Settings. */}
         {!disabled && !contentLocked && formattingToolbar.value && editor && (

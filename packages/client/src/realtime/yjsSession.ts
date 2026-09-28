@@ -1,4 +1,5 @@
 import { HocuspocusProvider } from "@hocuspocus/provider";
+import { EDITOR_SCHEMA_VERSION } from "@manifesto/shared";
 import { IndexeddbPersistence } from "y-indexeddb";
 import type { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
@@ -36,7 +37,8 @@ export interface YjsSessionOptions {
   user: YjsSessionUser | null;
   onStatus: (status: YjsConnectionStatus) => void;
   onSynced: () => void;
-  onAuthenticationFailed: () => void;
+  /** `reason` is `EDITOR_OUTDATED_REASON` when this build is too old to join. */
+  onAuthenticationFailed: (reason: string) => void;
 }
 
 export interface YjsSession {
@@ -64,13 +66,14 @@ export function createYjsSession({
   const ydoc = new Y.Doc();
   const idb = new IndexeddbPersistence(`${LOCAL_COPY_PREFIX}${noteId}`, ydoc);
   const provider = new HocuspocusProvider({
-    url,
+    // The server refuses an editor older than its own; see EDITOR_SCHEMA_VERSION.
+    url: `${url}?editor=${EDITOR_SCHEMA_VERSION}`,
     name: noteId,
     document: ydoc,
     token,
     onStatus: ({ status }) => onStatus(status),
     onSynced: () => onSynced(),
-    onAuthenticationFailed: () => onAuthenticationFailed(),
+    onAuthenticationFailed: ({ reason }) => onAuthenticationFailed(reason),
   });
 
   if (user) {

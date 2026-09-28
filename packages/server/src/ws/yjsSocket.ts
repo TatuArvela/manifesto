@@ -1,7 +1,11 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { Hocuspocus } from "@hocuspocus/server";
-import { hasScope } from "@manifesto/shared";
+import {
+  EDITOR_OUTDATED_REASON,
+  EDITOR_SCHEMA_VERSION,
+  hasScope,
+} from "@manifesto/shared";
 import type { RawData, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 import type { SessionRevocations } from "../auth/revocations.js";
@@ -77,8 +81,19 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
      * owner and people it is shared with to edit may, and someone who can only
      * view it may not. A viewer reads the note as REST writes and `note:updated`
      * events bring it, and never needs the room.
+     *
+     * An editor older than this server's is refused first, with a reason the
+     * client turns into "reload to keep editing": it would drop whatever
+     * nodes it has no schema for and write the loss back into everyone's copy.
      */
-    onAuthenticate: async ({ token, documentName }) => {
+    onAuthenticate: async ({ token, documentName, requestParameters }) => {
+      if (!editorIsCurrent(requestParameters.get("editor"))) {
+        // Hocuspocus sends a thrown value's `reason` as the refusal.
+        throw Object.assign(new Error("Editor outdated"), {
+          reason: EDITOR_OUTDATED_REASON,
+        });
+      }
+
       const identity = await authProvider.authenticate(token);
       // An MCP token is for `/api/mcp` alone, and joining a note is writing it.
       if (
@@ -193,6 +208,17 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       wss.close();
     },
   };
+}
+
+/**
+ * Whether an editor may join, from the version it sent. A client from before
+ * the check sends none and writes version 1; anything unreadable is refused,
+ * since it cannot be shown to be current.
+ */
+export function editorIsCurrent(sent: string | null): boolean {
+  if (sent === null) return EDITOR_SCHEMA_VERSION <= 1;
+  if (!/^\d{1,6}$/.test(sent)) return false;
+  return Number(sent) >= EDITOR_SCHEMA_VERSION;
 }
 
 /**

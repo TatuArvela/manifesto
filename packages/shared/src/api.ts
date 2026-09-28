@@ -602,6 +602,22 @@ export interface AccountPrefsUpdate {
  */
 export const APP_SOCKET_HEARTBEAT_MS = 30_000;
 
+/**
+ * The version of the document shape the editor writes into a note's shared
+ * Y.Doc on `/api/yjs`. Raise it whenever a node or mark is added, removed or
+ * changes its attributes: an editor that meets a node it has no schema for
+ * drops it, and `ySyncPlugin` then writes the loss back to everyone.
+ *
+ * The client sends its version as the `editor` query parameter of the socket
+ * URL, and the server refuses a lower one than its own with
+ * `EDITOR_OUTDATED_REASON`. A client that sends none is version 1, the shape
+ * from before the check existed.
+ */
+export const EDITOR_SCHEMA_VERSION = 1;
+
+/** The refusal reason `/api/yjs` gives an editor older than the server's. */
+export const EDITOR_OUTDATED_REASON = "editor-outdated";
+
 export interface PresenceUser {
   id: string;
   displayName: string;

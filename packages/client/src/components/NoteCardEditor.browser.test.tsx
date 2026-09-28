@@ -54,11 +54,23 @@ function makeNote(content: string): Note {
 }
 
 function unsynced(ydoc: Y.Doc): NoteYDoc {
-  return { ydoc, awareness: null, status: "connecting", synced: false };
+  return {
+    ydoc,
+    awareness: null,
+    status: "connecting",
+    synced: false,
+    outdated: false,
+  };
 }
 
 function synced(ydoc: Y.Doc): NoteYDoc {
-  return { ydoc, awareness: null, status: "connected", synced: true };
+  return {
+    ydoc,
+    awareness: null,
+    status: "connected",
+    synced: true,
+    outdated: false,
+  };
 }
 
 let host: HTMLDivElement;
@@ -179,12 +191,38 @@ describe("NoteCardEditor collaboration gate", () => {
       awareness: null,
       status: "disabled",
       synced: false,
+      outdated: false,
     };
 
     show(note);
     await vi.waitFor(() => {
       expect(editorText()).toContain("Milk, eggs, coffee");
     });
+  });
+
+  it("locks the text and asks for a reload when the server refuses this editor", async () => {
+    // Saving over REST instead would write this build's reading of the note
+    // over content a newer editor put there.
+    const note = makeNote("Milk, eggs, coffee");
+    storeNote(note);
+    provided.current = {
+      ydoc: null,
+      awareness: null,
+      status: "disconnected",
+      synced: false,
+      outdated: true,
+    };
+
+    show(note);
+    await vi.waitFor(() => {
+      expect(editorText()).toContain("Milk, eggs, coffee");
+      expect(
+        host.querySelector(".ProseMirror")?.getAttribute("contenteditable"),
+      ).toBe("false");
+    });
+    expect(host.querySelector('[role="status"]')?.textContent).toContain(
+      "Reload",
+    );
   });
 });
 
@@ -355,6 +393,7 @@ describe("NoteCardEditor with a row written from outside the document", () => {
       awareness: null,
       status: "disabled",
       synced: false,
+      outdated: false,
     };
     show(note);
     // Restored before the editor has even been built, so nothing but the row

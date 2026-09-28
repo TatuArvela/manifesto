@@ -169,6 +169,9 @@ export const fi: Messages = {
   "editor.done": "Valmis",
   "editor.back": "Takaisin",
   "editor.discard": "Hylkää",
+  "editor.outdated":
+    "Palvelimella on käytössä uudempi versio. Lataa sivu uudelleen, niin voit jatkaa tämän muistiinpanon muokkaamista.",
+  "editor.outdated.reload": "Lataa uudelleen",
   "editor.metadata.created": "Luotu {date}",
   "editor.metadata.edited": "Muokattu {date}",
   "editor.imageAlt": "Poista kuva",

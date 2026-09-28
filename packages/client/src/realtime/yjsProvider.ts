@@ -1,3 +1,4 @@
+import { EDITOR_OUTDATED_REASON } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
@@ -23,6 +24,13 @@ export interface NoteYDoc {
    * writes that emptiness back as the note's content.
    */
   synced: boolean;
+  /**
+   * The server refused this build's editor as older than its own. Editing the
+   * text any other way would write this build's reading of the note over
+   * content it may not understand, so the caller locks the text and asks for
+   * a reload.
+   */
+  outdated: boolean;
 }
 
 const IDLE: NoteYDoc = {
@@ -30,6 +38,7 @@ const IDLE: NoteYDoc = {
   awareness: null,
   status: "disabled",
   synced: false,
+  outdated: false,
 };
 
 function wsUrl(): string | null {
@@ -91,11 +100,12 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
           onSynced: () => {
             setState((prev) => ({ ...prev, synced: true }));
           },
-          onAuthenticationFailed: () => {
+          onAuthenticationFailed: (reason) => {
             setState((prev) => ({
               ...prev,
               status: "disconnected",
               synced: false,
+              outdated: reason === EDITOR_OUTDATED_REASON,
             }));
           },
         });
@@ -104,6 +114,7 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
           awareness: session.awareness,
           status: "connecting",
           synced: false,
+          outdated: false,
         });
       },
       () => {

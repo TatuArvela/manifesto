@@ -48,6 +48,24 @@ arriving, or offline typing whose saves failed), and the document still wins.
 - Queued changes sync when the connection is restored, using the Yjs sync protocol, with no manual reconciliation.
 - The UI surfaces a connection-status indicator when the application socket is disconnected.
 
+## Editor Versions
+
+An editor meeting a node or mark it has no schema for drops it, and the Yjs binding then writes the
+loss back into every participant's copy. So one shared document is only ever edited by editors of
+the same shape or newer:
+
+- `EDITOR_SCHEMA_VERSION` (`@manifesto/shared`) numbers the document shape the editor writes. It is
+  raised whenever a node or mark is added, removed or changes its attributes.
+- The client sends it as the `editor` query parameter of the `/api/yjs` URL. The server refuses a
+  version lower than its own, and one it cannot read, with the refusal reason `editor-outdated`,
+  before it checks the session. A client that sends none counts as version 1, the shape from before
+  the check.
+- A client refused that way locks the note's text, since saving it over REST instead would write
+  its own reading of the note over content it did not understand. The editor says that a newer
+  version is in use and offers a reload, which clears the installed copy first. The title, colour,
+  tags and the rest stay editable.
+- A client newer than the server is admitted: the server stores updates without reading them.
+
 ## Authorization
 
 - Both WebSocket endpoints authenticate via the configured `AuthProvider`. The application socket passes the bearer token in `Sec-WebSocket-Protocol`; the Yjs channel passes it in the Hocuspocus `Auth` message.

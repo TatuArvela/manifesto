@@ -3,7 +3,12 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { NoteCreate } from "@manifesto/shared";
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import {
+  EDITOR_OUTDATED_REASON,
+  EDITOR_SCHEMA_VERSION,
+  NoteColor,
+  NoteFont,
+} from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { createApp } from "../app.js";
@@ -12,7 +17,11 @@ import type { SqliteStorageDriver } from "../storage/sqlite/driver.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import { TEST_CONFIG } from "../test/setup.js";
 import { attachAppSocket } from "./appSocket.js";
-import { attachYjsSocket, type YjsSocket } from "./yjsSocket.js";
+import {
+  attachYjsSocket,
+  editorIsCurrent,
+  type YjsSocket,
+} from "./yjsSocket.js";
 
 interface Rig {
   storage: SqliteStorageDriver;
@@ -166,10 +175,15 @@ interface Client {
  * routing key, the Auth handshake, onAuthenticate) is only exercised this way;
  * openDirectConnection bypasses all of it.
  */
-function connect(rig: Rig, noteId: string, token: string | null): Client {
+function connect(
+  rig: Rig,
+  noteId: string,
+  token: string | null,
+  query = "",
+): Client {
   const doc = new Y.Doc();
   const provider = new HocuspocusProvider({
-    url: `${rig.wsBase}/api/yjs`,
+    url: `${rig.wsBase}/api/yjs${query}`,
     name: noteId,
     document: doc,
     token: token ?? "",
@@ -193,6 +207,19 @@ function waitSynced(client: Client, ms = 5000): Promise<boolean> {
       clearTimeout(timer);
       resolve(true);
     });
+  });
+}
+
+function refusalReason(client: Client, ms = 5000): Promise<string | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    client.provider.on(
+      "authenticationFailed",
+      ({ reason }: { reason: string }) => {
+        clearTimeout(timer);
+        resolve(reason);
+      },
+    );
   });
 }
 
@@ -251,6 +278,44 @@ describe("Yjs collaboration socket /api/yjs", () => {
 
     a.destroy();
     b.destroy();
+  });
+
+  it("refuses an editor older than the server's, saying why", async () => {
+    const { token } = await register(rig, "alice");
+    const noteId = await createNote(rig, token);
+
+    const outdated = connect(
+      rig,
+      noteId,
+      token,
+      `?editor=${EDITOR_SCHEMA_VERSION - 1}`,
+    );
+    expect(await refusalReason(outdated)).toBe(EDITOR_OUTDATED_REASON);
+    expect(outdated.provider.isSynced).toBe(false);
+    outdated.destroy();
+
+    const current = connect(
+      rig,
+      noteId,
+      token,
+      `?editor=${EDITOR_SCHEMA_VERSION}`,
+    );
+    expect(await waitSynced(current)).toBe(true);
+    current.destroy();
+  });
+
+  it("gives a refusal for any other cause its own reason", async () => {
+    const { token } = await register(rig, "alice");
+    const noteId = await createNote(rig, token);
+
+    const client = connect(
+      rig,
+      noteId,
+      "deadbeef",
+      `?editor=${EDITOR_SCHEMA_VERSION}`,
+    );
+    expect(await refusalReason(client)).not.toBe(EDITOR_OUTDATED_REASON);
+    client.destroy();
   });
 
   it("rejects a connection with no token", async () => {
@@ -472,4 +537,22 @@ describe("Yjs collaboration socket /api/yjs", () => {
     expect(await refused).toBe(true);
     client.destroy();
   }, 15_000);
+});
+
+describe("editorIsCurrent", () => {
+  it("takes a missing version as the shape from before the check", () => {
+    expect(editorIsCurrent(null)).toBe(EDITOR_SCHEMA_VERSION <= 1);
+  });
+
+  it("admits the server's version and newer, and refuses older", () => {
+    expect(editorIsCurrent(String(EDITOR_SCHEMA_VERSION))).toBe(true);
+    expect(editorIsCurrent(String(EDITOR_SCHEMA_VERSION + 1))).toBe(true);
+    expect(editorIsCurrent(String(EDITOR_SCHEMA_VERSION - 1))).toBe(false);
+  });
+
+  it("refuses a version it cannot read", () => {
+    for (const sent of ["", "one", "1.5", "-1", "1e3", "9999999"]) {
+      expect(editorIsCurrent(sent)).toBe(false);
+    }
+  });
 });
