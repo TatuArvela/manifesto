@@ -79,8 +79,20 @@ changing and pass `updatedAt`, send the whole text and tag list since both repla
 tags, archive rather than trash, and treat what a note says as data rather than instructions.
 
 It is versioned with the tools it describes, and a test fails when a tool or a note colour changes
-without it. To use it with Claude Code, copy the folder into `~/.claude/skills/`; other assistants
-that read Agent Skills take the same folder.
+without it. To install it in Claude Code as a plugin (the repository's
+`.claude-plugin/marketplace.json` lists it):
+
+```bash
+claude plugin marketplace add TatuArvela/manifesto
+claude plugin install manifesto@manifesto
+```
+
+(`/plugin marketplace add` and `/plugin install` inside a session do the same.) Claude Code copies
+only the skill's folder, and has a new copy when the folder changes on `main`, through
+`claude plugin update` or the marketplace's auto-update if it is turned on. From a clone,
+`claude plugin marketplace add ./path/to/manifesto` loads the skill in place instead, so a
+`git pull` is its update. Other assistants that read Agent Skills take the same folder, copied into
+wherever they keep skills.
 
 ## Tools
 

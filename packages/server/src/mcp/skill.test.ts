@@ -40,4 +40,16 @@ describe("the agent skill", () => {
     const listed = [...line.matchAll(/`([a-z]+)`/g)].map((m) => m[1]);
     expect(listed.sort()).toEqual(Object.values(NoteColor).sort());
   });
+
+  it("is the plugin the repository's Claude Code marketplace installs", () => {
+    const marketplace = JSON.parse(
+      readFileSync(
+        new URL("../../../../.claude-plugin/marketplace.json", import.meta.url),
+        "utf8",
+      ),
+    ) as { plugins: { name: string; source: string }[] };
+    expect(marketplace.plugins).toMatchObject([
+      { name: "manifesto", source: "./skills/manifesto" },
+    ]);
+  });
 });

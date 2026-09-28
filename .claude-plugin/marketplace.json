@@ -1,0 +1,22 @@
+{
+  "name": "manifesto",
+  "description": "The agent skill for Manifesto's MCP tools",
+  "owner": {
+    "name": "Tatu Arvela",
+    "url": "https://github.com/TatuArvela"
+  },
+  "plugins": [
+    {
+      "name": "manifesto",
+      "source": "./skills/manifesto",
+      "description": "Teaches an assistant to work with your notes through a Manifesto server's MCP tools: find the note a change belongs in, read before changing, reuse your tags, archive rather than trash",
+      "author": {
+        "name": "Tatu Arvela"
+      },
+      "homepage": "https://github.com/TatuArvela/manifesto/blob/main/docs/specification/features/mcp.md",
+      "repository": "https://github.com/TatuArvela/manifesto",
+      "license": "MIT",
+      "keywords": ["notes", "mcp", "skill"]
+    }
+  ]
+}
