@@ -159,12 +159,28 @@ minutes; any failure (a wrong, revoked or expired token, or an address without `
 `mfm_`, works at `/api/mcp` and nowhere else (the REST API and both sockets answer `403` or close
 with `4401`), and takes only `notes:read` and `notes:write`; with `notes:read` alone it is read only.
 The server refuses one with `403` when it has `MCP` off. Every listed token carries its `kind` and
-`scopes`.
+`scopes`; one an assistant was given by signing in also carries `oauthClientId`, and its `prefix` is
+that of its first access token only, since each refresh replaces the secret.
 
 ### MCP
 
 `POST /api/mcp`: the Model Context Protocol endpoint for AI assistants, taking an MCP token only. See
 [MCP](features/mcp.md).
+
+An assistant can also be given its token by signing in through the browser (OAuth 2.1), described in
+[MCP](features/mcp.md#signing-in-through-the-browser):
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET`  | `/.well-known/oauth-protected-resource/api/mcp` | Where to sign in for `/api/mcp` (RFC 9728); also without the path |
+| `GET`  | `/.well-known/oauth-authorization-server` | The authorization server's metadata (RFC 8414) |
+| `POST` | `/api/oauth/register` | Register a public client (RFC 7591) |
+| `POST` | `/api/oauth/token` | A form: trade a code and its PKCE verifier, or a refresh token, for an hour's `mfm_` token and the next `mfr_` refresh token |
+| `GET`  | `/api/oauth/client` | Session only: the client a consent is about (`OAuthClientInfo`) |
+| `POST` | `/api/oauth/authorize` | Session only, with the password: agree (`OAuthAuthorizeRequest`), answered with the client's redirect address carrying the code |
+
+The first four answer any origin (CORS `*`), since they carry nothing a browser adds by itself.
+`/api/auth/methods` says whether the server offers this in `mcpSignIn`.
 
 ### Webhooks
 

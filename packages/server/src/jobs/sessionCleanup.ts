@@ -1,6 +1,7 @@
 import { logger } from "../lib/logger.js";
 import { startPeriodicJob } from "../lib/periodic.js";
-import { nowIso } from "../lib/time.js";
+import { isoMinusDays, nowIso } from "../lib/time.js";
+import { UNUSED_CLIENT_DAYS } from "../oauth/routes.js";
 import type { StorageDriver } from "../storage/types.js";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -37,5 +38,9 @@ export function startSessionCleanup(deps: {
     if (tokens > 0) {
       logger.info("session cleanup pruned API tokens", { count: tokens });
     }
+    // A code is good for minutes, and a client that registered and was never
+    // let in is someone's abandoned attempt, or someone filling the table.
+    await storage.oauth.deleteExpiredCodes(now);
+    await storage.oauth.deleteUnusedClients(isoMinusDays(UNUSED_CLIENT_DAYS));
   });
 }

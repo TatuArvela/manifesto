@@ -21,7 +21,7 @@ describe("serving the client", () => {
   });
 
   it("serves the page at the root and for any client route", async () => {
-    for (const path of ["/", "/archived", "/tags/work"]) {
+    for (const path of ["/", "/archived", "/tags/work", "/oauth/authorize"]) {
       const res = await rig.request(path);
       expect(res.status).toBe(200);
       expect(await res.text()).toContain("<p>app</p>");
@@ -45,5 +45,19 @@ describe("serving the client", () => {
     expect(unknown.status).toBe(404);
     expect(await unknown.text()).not.toContain("<p>app</p>");
     expect((await rig.request("/missing.png")).status).toBe(404);
+  });
+
+  it("serves the OAuth metadata, and never the page for another .well-known document", async () => {
+    // Served here, the client is where an assistant's user says yes.
+    const metadata = await rig.request(
+      "/.well-known/oauth-authorization-server",
+    );
+    expect((await metadata.json()).authorization_endpoint).toBe(
+      "http://localhost/oauth/authorize",
+    );
+    expect((await rig.request("/.well-known/security.txt")).status).toBe(404);
+    expect(
+      (await rig.request("/.well-known/openid-configuration")).status,
+    ).toBe(404);
   });
 });

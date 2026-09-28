@@ -105,6 +105,13 @@ export interface ServerConfig {
    */
   mcp: boolean;
   /**
+   * The client's public address (`APP_URL`), without a trailing slash, or
+   * null. Mail links point at it, and an assistant signing in to `/api/mcp`
+   * is sent to its consent page there. With `CLIENT_DIR` and no `APP_URL`
+   * the client is this server's own origin.
+   */
+  appUrl: string | null;
+  /**
    * Outgoing mail, for password reset links and share invitations. Null
    * without `SMTP_URL`, and then an admin's temporary password stays the only
    * way back into a local account.
@@ -254,17 +261,29 @@ function loadBackupConfig(dataDir: string): BackupConfig | null {
   };
 }
 
-function loadMailConfig(): MailConfig | null {
+function loadAppUrl(): string | null {
+  const appUrl = process.env.APP_URL?.trim().replace(/\/+$/, "");
+  if (!appUrl) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(appUrl);
+  } catch {
+    throw new Error("Invalid APP_URL: must be the client's full URL");
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("Invalid APP_URL: must be an http(s) address");
+  }
+  return appUrl;
+}
+
+function loadMailConfig(appUrl: string | null): MailConfig | null {
   const url = process.env.SMTP_URL?.trim();
   if (!url) return null;
   if (!/^smtps?:\/\//i.test(url)) {
     throw new Error("Invalid SMTP_URL: must start with smtp:// or smtps://");
   }
-  const appUrl = envRequired("APP_URL").replace(/\/+$/, "");
-  try {
-    new URL(appUrl);
-  } catch {
-    throw new Error("Invalid APP_URL: must be the client's full URL");
+  if (appUrl === null) {
+    throw new Error("Missing required env var APP_URL");
   }
   return { url, from: envRequired("SMTP_FROM"), appUrl };
 }
@@ -349,6 +368,7 @@ export function loadConfig(): ServerConfig {
   const dataDir = process.env.DATA_DIR ?? DEFAULT_DATA_DIR;
   const authProvider = envEnum("AUTH_PROVIDER", AUTH_MODES, "local");
   const storageDriver = envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite");
+  const appUrl = loadAppUrl();
   return {
     port: envInt("PORT", 3001),
     dataDir,
@@ -370,7 +390,8 @@ export function loadConfig(): ServerConfig {
     publicLinks: envBool("PUBLIC_LINKS", true),
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
     mcp: envBool("MCP", true),
-    mail: loadMailConfig(),
+    appUrl,
+    mail: loadMailConfig(appUrl),
     backup: loadBackupConfig(dataDir),
     metricsToken: process.env.METRICS_TOKEN?.trim() || null,
     metricsPort:
@@ -385,4 +406,15 @@ export function loadConfig(): ServerConfig {
     userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "search"),
     initialAdminPassword: loadInitialAdminPassword(),
   };
+}
+
+/**
+ * Whether an assistant can connect to `/api/mcp` by signing in through the
+ * browser (OAuth): MCP is on, and the client, whose page asks the user, is
+ * somewhere this server can send them (`APP_URL`, or served here).
+ */
+export function offersMcpSignIn(
+  cfg: Pick<ServerConfig, "mcp" | "appUrl" | "clientDir">,
+): boolean {
+  return cfg.mcp && (cfg.appUrl !== null || cfg.clientDir !== null);
 }

@@ -38,6 +38,7 @@ import {
   updateNote,
   viewMode,
 } from "../state/index.js";
+import { takeConsentPage } from "../state/oauth.js";
 import { startPrefsSync } from "../state/prefsSync.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { loadInvitations } from "../state/sharing.js";
@@ -90,7 +91,14 @@ export function App() {
 function useOidcRedirectOnce(blockUntilDone: boolean): boolean {
   const [done, setDone] = useState(!blockUntilDone);
   useEffect(() => {
-    void consumeOidcRedirect().finally(() => setDone(true));
+    void consumeOidcRedirect()
+      .then((signedIn) => {
+        // A sign-in started from an assistant's consent page comes back here,
+        // where the identity provider returns everyone; send it on.
+        const consent = signedIn ? takeConsentPage() : null;
+        if (consent) window.location.replace(consent);
+      })
+      .finally(() => setDone(true));
   }, []);
   return done;
 }

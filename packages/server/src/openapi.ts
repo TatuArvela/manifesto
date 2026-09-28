@@ -14,6 +14,8 @@ import {
   notesImportSchema,
   noteUpdateSchema,
   noteVersionCreateSchema,
+  oauthAuthorizeSchema,
+  oauthRegisterSchema,
   passwordChangeSchema,
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
@@ -857,6 +859,60 @@ export const OPERATIONS: Operation[] = [
       "202": { description: "A notification, accepted" },
     },
   },
+  {
+    method: "post",
+    path: "/api/oauth/register",
+    tag: "MCP",
+    summary:
+      "Register an assistant as an OAuth client (RFC 7591); a public client, answered with client_id",
+    auth: "none",
+    body: oauthRegisterSchema,
+    responses: {
+      "201": { description: "The registered client metadata" },
+      "400": { description: "invalid_redirect_uri or invalid_client_metadata" },
+    },
+  },
+  {
+    method: "post",
+    path: "/api/oauth/token",
+    tag: "MCP",
+    summary:
+      "Trade a code (with its PKCE verifier) or a refresh token for an hour's MCP token and the next refresh token; a form, as RFC 6749 has it",
+    auth: "none",
+    responses: {
+      "200": { description: "access_token, refresh_token, expires_in, scope" },
+      "400": { description: "An OAuth error: invalid_grant and the like" },
+    },
+  },
+  {
+    method: "get",
+    path: "/api/oauth/client",
+    tag: "MCP",
+    summary: "The assistant a consent is about, for the consent page",
+    auth: "session",
+    query: {
+      client_id: "Its client id",
+      redirect_uri: "Where it asked to be sent back",
+      scope: "What it asked for, space-separated",
+    },
+    responses: {
+      ...ok("OAuthClientInfo"),
+      "400": {
+        description: "Unknown client, or an address it did not register",
+        schema: "Error",
+      },
+    },
+  },
+  {
+    method: "post",
+    path: "/api/oauth/authorize",
+    tag: "MCP",
+    summary:
+      "Let an assistant in: a code on its redirect address, to trade at the token endpoint",
+    auth: "session",
+    body: oauthAuthorizeSchema,
+    responses: ok("OAuthAuthorizeResponse"),
+  },
 ];
 
 const noteResponseSchema = noteCreateSchema.extend({
@@ -890,7 +946,7 @@ function components() {
         type: "http",
         scheme: "bearer",
         description:
-          "A session token from signing in, or a personal API token (mfp_...), which reaches only the operations whose x-token-scope it was granted (a :write scope includes its :read). /api/mcp takes an MCP token (mfm_...) and nothing else, and a calendar token (mfc_...) is not a bearer token at all: it is the address of /api/calendar/<token>.ics.",
+          "A session token from signing in, or a personal API token (mfp_...), which reaches only the operations whose x-token-scope it was granted (a :write scope includes its :read). /api/mcp takes an MCP token (mfm_...) and nothing else, minted by hand or given to an assistant through /api/oauth, whose refresh token (mfr_...) is not a bearer token; a calendar token (mfc_...) is not a bearer token at all: it is the address of /api/calendar/<token>.ics.",
       },
     },
     schemas: {
@@ -1011,6 +1067,14 @@ function components() {
       UserLookupResponse: shape({ users: { type: "array" } }),
       LinkPreviewResponse: shape({ preview: { type: ["object", "null"] } }),
       ApiTokensResponse: shape({ tokens: { type: "array" } }),
+      OAuthClientInfo: shape({
+        clientId: { type: "string" },
+        name: { type: "string" },
+        publisher: { type: ["string", "null"] },
+        redirectUri: { type: "string" },
+        scopes: { type: "array" },
+      }),
+      OAuthAuthorizeResponse: shape({ redirectTo: { type: "string" } }),
       ApiTokenCreatedResponse: shape({
         token: { type: "object" },
         secret: { type: "string" },

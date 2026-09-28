@@ -30,6 +30,7 @@ export const TEST_CONFIG: ServerConfig = {
   // storage has closed; the webhook tests switch it on.
   webhooks: "off",
   mcp: true,
+  appUrl: null,
   mail: null,
   backup: null,
   metricsToken: null,

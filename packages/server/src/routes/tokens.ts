@@ -16,8 +16,10 @@ import { isoPlusDays, nowIso } from "../lib/time.js";
 import {
   CALENDAR_TOKEN_PREFIX,
   hashToken,
+  MAX_API_TOKENS_PER_USER,
   MCP_TOKEN_PREFIX,
   newApiToken,
+  SHOWN_PREFIX_LENGTH,
 } from "../lib/token.js";
 import { newId } from "../lib/ulid.js";
 import {
@@ -38,12 +40,6 @@ interface TokenDeps {
   revocations: SessionRevocations;
   rateLimit?: MiddlewareHandler;
 }
-
-/** Enough for any honest set of scripts, and a bound on a runaway one. */
-export const MAX_API_TOKENS_PER_USER = 50;
-
-/** Characters of the secret kept to tell tokens apart: the prefix and six. */
-const SHOWN_PREFIX_LENGTH = 10;
 
 /**
  * `/api/tokens`: a user's personal API tokens, for scripts, shortcuts and
@@ -118,6 +114,7 @@ export function createTokenRoutes(deps: TokenDeps) {
         ...token,
         userId,
         tokenHash: hashToken(secret),
+        accessExpiresAt: null,
       });
       audit(deps.storage, c, {
         action: "token.created",

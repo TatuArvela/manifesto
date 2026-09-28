@@ -12,7 +12,12 @@ import { TEST_CONFIG } from "./test/setup.js";
  */
 describe("OpenAPI document", () => {
   async function registered(): Promise<Set<string>> {
-    const cfg = { ...TEST_CONFIG, webhooks: "public" as const };
+    const cfg = {
+      ...TEST_CONFIG,
+      webhooks: "public" as const,
+      // So the OAuth endpoints that come with it are registered.
+      appUrl: "http://localhost:5173",
+    };
     const storage = await createStorage(cfg);
     const { app, webhooks } = createApp({
       cfg,

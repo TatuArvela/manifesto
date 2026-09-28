@@ -11,6 +11,7 @@ import {
 import { createPostgresMaintenanceRepo } from "./maintenanceRepo.js";
 import { runMigrations } from "./migrations.js";
 import { createPostgresNotesRepo } from "./notesRepo.js";
+import { createPostgresOAuthRepo } from "./oauthRepo.js";
 import { createPostgresPasswordResetsRepo } from "./passwordResetsRepo.js";
 import { createPostgresPrefsRepo } from "./prefsRepo.js";
 import { createPostgresPublicLinksRepo } from "./publicLinksRepo.js";
@@ -55,6 +56,7 @@ export async function createPostgresStorage(
     attachments: createPostgresAttachmentsRepo(pool),
     versions: createPostgresVersionsRepo(pool),
     apiTokens: createPostgresApiTokensRepo(pool),
+    oauth: createPostgresOAuthRepo(pool),
     webhooks: createPostgresWebhooksRepo(pool),
     publicLinks: createPostgresPublicLinksRepo(pool),
     teams: createPostgresTeamsRepo(pool),

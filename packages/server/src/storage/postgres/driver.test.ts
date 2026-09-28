@@ -2,6 +2,7 @@ import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { describeAdminContract } from "../adminContract.js";
 import { describeAttachmentsContract } from "../attachmentsContract.js";
+import { describeOAuthContract } from "../oauthContract.js";
 import { describePrefsContract } from "../prefsContract.js";
 import { describePublicLinksContract } from "../publicLinksContract.js";
 import { describeSharingContract } from "../sharingContract.js";
@@ -26,6 +27,7 @@ describeStatsContract("postgres (pg-mem)", bootStorage);
 describeSyncContract("postgres (pg-mem)", bootStorage);
 describePublicLinksContract("postgres (pg-mem)", bootStorage);
 describeTeamsContract("postgres (pg-mem)", bootStorage);
+describeOAuthContract("postgres (pg-mem)", bootStorage);
 describePrefsContract("postgres (pg-mem)", bootStorage, { locks: false });
 
 describe("postgres: audit log", () => {
@@ -219,6 +221,7 @@ describe("postgres: API tokens", () => {
       createdAt: NOW,
       lastUsedAt: null,
       expiresAt: null,
+      accessExpiresAt: null,
       tokenHash: "hash-1",
     });
     expect((await storage.apiTokens.findByHash("hash-1"))?.userId).toBe("u1");

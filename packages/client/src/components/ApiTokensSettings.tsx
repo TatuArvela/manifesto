@@ -14,7 +14,7 @@ import {
   listApiTokens,
   revokeApiToken,
 } from "../state/apiTokens.js";
-import { mcpEnabled, SERVER_ORIGIN } from "../state/auth.js";
+import { mcpEnabled, mcpSignInEnabled, SERVER_ORIGIN } from "../state/auth.js";
 import { askConfirmation } from "../state/confirm.js";
 import type { ConfirmationRefusal } from "../state/confirmation.js";
 import { showError, showSuccess } from "../state/ui.js";
@@ -297,6 +297,11 @@ export function ApiTokensSettings() {
             <p class="text-sm text-neutral-600 dark:text-neutral-300">
               {t("tokens.mcpHint")}
             </p>
+            {mcpSignInEnabled.value && (
+              <p class="text-sm text-neutral-600 dark:text-neutral-300">
+                {t("tokens.mcpSignInHint", { url: mcpUrl })}
+              </p>
+            )}
             <label class="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
@@ -430,7 +435,11 @@ export function ApiTokensSettings() {
                     </span>
                   </p>
                   <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                    <span class="font-mono">{token.prefix}...</span>
+                    {token.oauthClientId ? (
+                      t("tokens.signedIn")
+                    ) : (
+                      <span class="font-mono">{token.prefix}...</span>
+                    )}
                     {" · "}
                     {token.lastUsedAt
                       ? t("tokens.lastUsed", {

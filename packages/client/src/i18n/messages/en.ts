@@ -467,6 +467,29 @@ export const en = {
     "For another assistant, the MCP server is {url} (HTTP), with this token as a bearer token.",
   "tokens.mcpBadge": "AI assistant",
   "tokens.mcpReadOnlyBadge": "AI assistant, read only",
+  "tokens.mcpSignInHint":
+    "An assistant that can sign in through the browser needs no token: give it {url} and approve it when it asks.",
+  "tokens.signedIn": "connected by signing in",
+  "oauth.title": "Connect {client} to your notes?",
+  "oauth.publisher": "Its details come from {host}.",
+  "oauth.unverified":
+    "It gave this name itself, and {appName} cannot check it.",
+  "oauth.account": "Signed in as {name}",
+  "oauth.access": "It may",
+  "oauth.accessFull": "Search, read, create and change notes",
+  "oauth.accessRead": "Only search and read notes",
+  "oauth.expires": "Stays connected",
+  "oauth.returnTo": "When you answer, you are sent back to {target}.",
+  "oauth.revokeHint":
+    "You can disconnect it at any time under Settings, API tokens. It can never delete a note, only move one to the trash.",
+  "oauth.allow": "Connect",
+  "oauth.deny": "Cancel",
+  "oauth.loading": "Loading...",
+  "oauth.invalid":
+    "This sign-in request cannot be used. Start connecting again from the assistant.",
+  "oauth.done": "Connected. You can close this tab and return to {client}.",
+  "oauth.denied": "Not connected. You can close this tab.",
+  "oauth.failed": "It could not be connected; try again",
   "webhooks.title": "Webhooks",
   "webhooks.hint":
     "This server posts your note events (created, changed, deleted) to each address below, for n8n, Home Assistant or a chat bot. Each delivery is signed with the webhook's secret.",

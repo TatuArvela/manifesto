@@ -10,8 +10,22 @@ import type { SqliteDB } from "./database.js";
 export function createSqliteApiTokensRepo(db: SqliteDB): ApiTokensRepo {
   const insertStmt = db.prepare(
     `INSERT INTO api_tokens
-       (id, user_id, name, kind, scopes, token_hash, prefix, created_at, last_used_at, expires_at)
-     VALUES (@id, @userId, @name, @kind, @scopes, @tokenHash, @prefix, @createdAt, @lastUsedAt, @expiresAt)`,
+       (id, user_id, name, kind, scopes, token_hash, prefix, created_at, last_used_at, expires_at,
+        oauth_client_id, refresh_hash, access_expires_at)
+     VALUES (@id, @userId, @name, @kind, @scopes, @tokenHash, @prefix, @createdAt, @lastUsedAt, @expiresAt,
+        @oauthClientId, @refreshHash, @accessExpiresAt)`,
+  );
+  const byRefreshStmt = db.prepare(
+    `SELECT ${API_TOKEN_COLUMNS} FROM api_tokens WHERE refresh_hash = ?`,
+  );
+  const byPreviousRefreshStmt = db.prepare(
+    `SELECT ${API_TOKEN_COLUMNS} FROM api_tokens WHERE previous_refresh_hash = ?`,
+  );
+  const rotateStmt = db.prepare(
+    `UPDATE api_tokens
+     SET previous_refresh_hash = refresh_hash, refresh_hash = @refreshHash,
+         token_hash = @tokenHash, access_expires_at = @accessExpiresAt
+     WHERE refresh_hash = @current`,
   );
   const byHashStmt = db.prepare(
     `SELECT ${API_TOKEN_COLUMNS} FROM api_tokens WHERE token_hash = ?`,
@@ -35,7 +49,25 @@ export function createSqliteApiTokensRepo(db: SqliteDB): ApiTokensRepo {
 
   return {
     async create(input) {
-      insertStmt.run({ ...input, scopes: JSON.stringify(input.scopes) });
+      insertStmt.run({
+        ...input,
+        scopes: JSON.stringify(input.scopes),
+        oauthClientId: input.oauthClientId ?? null,
+        refreshHash: input.refreshHash ?? null,
+      });
+    },
+    async findByRefreshHash(refreshHash) {
+      const row = byRefreshStmt.get(refreshHash) as ApiTokenRow | undefined;
+      return row ? rowToApiToken(row) : null;
+    },
+    async findByPreviousRefreshHash(refreshHash) {
+      const row = byPreviousRefreshStmt.get(refreshHash) as
+        | ApiTokenRow
+        | undefined;
+      return row ? rowToApiToken(row) : null;
+    },
+    async rotate(current, next) {
+      return rotateStmt.run({ ...next, current }).changes === 1;
     },
     async findByHash(tokenHash) {
       const row = byHashStmt.get(tokenHash) as ApiTokenRow | undefined;

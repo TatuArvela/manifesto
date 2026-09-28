@@ -520,6 +520,7 @@ describe("finding people to share with", () => {
       webhooks: false,
       publicLinks: true,
       mcp: true,
+      mcpSignIn: false,
       passwordReset: false,
       registration: true,
     });

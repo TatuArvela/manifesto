@@ -476,6 +476,30 @@ export const fi: Messages = {
     "Muille avustajille MCP-palvelin on {url} (HTTP), ja tämä tunniste annetaan bearer-tunnisteena.",
   "tokens.mcpBadge": "Tekoälyavustaja",
   "tokens.mcpReadOnlyBadge": "Tekoälyavustaja, vain luku",
+  "tokens.mcpSignInHint":
+    "Selaimen kautta kirjautuva avustaja ei tarvitse tunnistetta: anna sille osoite {url} ja hyväksy yhdistäminen, kun se pyytää.",
+  "tokens.signedIn": "yhdistetty kirjautumalla",
+  "oauth.title": "Yhdistetäänkö {client} muistiinpanoihisi?",
+  "oauth.publisher": "Sen tiedot tulevat osoitteesta {host}.",
+  "oauth.unverified":
+    "Sovellus on antanut tämän nimen itse, eikä {appName} voi tarkistaa sitä.",
+  "oauth.account": "Kirjautuneena: {name}",
+  "oauth.access": "Se saa",
+  "oauth.accessFull": "Hakea, lukea, luoda ja muuttaa muistiinpanoja",
+  "oauth.accessRead": "Vain hakea ja lukea muistiinpanoja",
+  "oauth.expires": "Yhteys on voimassa",
+  "oauth.returnTo": "Kun vastaat, sinut ohjataan takaisin kohteeseen {target}.",
+  "oauth.revokeHint":
+    "Voit katkaista yhteyden milloin tahansa kohdassa Asetukset, API-tunnisteet. Se ei voi koskaan poistaa muistiinpanoa, vain siirtää sen roskakoriin.",
+  "oauth.allow": "Yhdistä",
+  "oauth.deny": "Peruuta",
+  "oauth.loading": "Ladataan...",
+  "oauth.invalid":
+    "Tätä kirjautumispyyntöä ei voi käyttää. Aloita yhdistäminen uudelleen avustajasta.",
+  "oauth.done":
+    "Yhdistetty. Voit sulkea tämän välilehden ja palata avustajaan {client}.",
+  "oauth.denied": "Ei yhdistetty. Voit sulkea tämän välilehden.",
+  "oauth.failed": "Yhdistäminen ei onnistunut; yritä uudelleen",
   "webhooks.title": "Webhookit",
   "webhooks.hint":
     "Palvelin lähettää muistiinpanojesi tapahtumat (luotu, muutettu, poistettu) alla oleviin osoitteisiin, esimerkiksi n8n:lle, Home Assistantille tai chat-botille. Jokainen lähetys allekirjoitetaan webhookin salaisuudella.",

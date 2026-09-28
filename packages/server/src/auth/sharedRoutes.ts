@@ -10,6 +10,7 @@ import {
 import { Hono } from "hono";
 import { auditPage } from "../audit/auditPage.js";
 import {
+  offersMcpSignIn,
   type ServerConfig,
   signsInLocally,
   signsInWithOidc,
@@ -69,6 +70,7 @@ export function createAuthSharedRoutes(
       webhooks: deps.cfg.webhooks !== "off",
       publicLinks: deps.cfg.publicLinks,
       mcp: deps.cfg.mcp,
+      mcpSignIn: offersMcpSignIn(deps.cfg),
       passwordReset: deps.cfg.mail !== null && signsInLocally(deps.cfg),
       registration: signsInLocally(deps.cfg) && deps.cfg.registrationEnabled,
     };

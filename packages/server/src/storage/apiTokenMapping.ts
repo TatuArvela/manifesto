@@ -16,14 +16,16 @@ export interface ApiTokenRow {
   created_at: string;
   last_used_at: string | null;
   expires_at: string | null;
+  oauth_client_id: string | null;
+  access_expires_at: string | null;
 }
 
 export const API_TOKEN_COLUMNS =
-  "id, user_id, name, kind, scopes, prefix, created_at, last_used_at, expires_at";
+  "id, user_id, name, kind, scopes, prefix, created_at, last_used_at, expires_at, oauth_client_id, access_expires_at";
 
 /** The scopes a row names, leaving out any this server does not know: a
  * scope is a grant, so an unreadable one grants nothing. */
-function parseScopes(text: string): ApiTokenScope[] {
+export function parseScopes(text: string): ApiTokenScope[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -49,10 +51,19 @@ export function rowToApiToken(row: ApiTokenRow): StoredApiToken {
     createdAt: row.created_at,
     lastUsedAt: row.last_used_at,
     expiresAt: row.expires_at,
+    accessExpiresAt: row.access_expires_at,
+    ...(row.oauth_client_id !== null && {
+      oauthClientId: row.oauth_client_id,
+    }),
   };
 }
 
-/** A listed token: whose it is goes without saying. */
-export function listedToken({ userId: _userId, ...token }: StoredApiToken) {
+/** A listed token: whose it is goes without saying, and how long a grant's
+ * current secret lasts is the assistant's business. */
+export function listedToken({
+  userId: _userId,
+  accessExpiresAt: _accessExpiresAt,
+  ...token
+}: StoredApiToken) {
   return token;
 }

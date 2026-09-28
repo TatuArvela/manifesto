@@ -306,6 +306,34 @@ CREATE INDEX note_team_shares_team ON note_team_shares(team_id);
 ALTER TABLE note_shares ADD COLUMN via_team TEXT;
 `;
 
+/** See the SQLite copy. */
+const OAUTH = `
+ALTER TABLE api_tokens ADD COLUMN oauth_client_id TEXT;
+ALTER TABLE api_tokens ADD COLUMN refresh_hash TEXT;
+ALTER TABLE api_tokens ADD COLUMN previous_refresh_hash TEXT;
+ALTER TABLE api_tokens ADD COLUMN access_expires_at TEXT;
+CREATE UNIQUE INDEX api_tokens_refresh ON api_tokens(refresh_hash);
+CREATE INDEX api_tokens_previous_refresh ON api_tokens(previous_refresh_hash);
+CREATE TABLE oauth_clients (
+  id            TEXT PRIMARY KEY,
+  name          TEXT NOT NULL,
+  redirect_uris TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  last_used_at  TEXT
+);
+CREATE TABLE oauth_codes (
+  code_hash        TEXT PRIMARY KEY,
+  client_id        TEXT NOT NULL,
+  client_name      TEXT NOT NULL,
+  user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  redirect_uri     TEXT NOT NULL,
+  code_challenge   TEXT NOT NULL,
+  scopes           TEXT NOT NULL,
+  grant_expires_at TEXT,
+  expires_at       TEXT NOT NULL
+);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -328,6 +356,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0019-note-members-changed", sql: NOTE_MEMBERS_CHANGED },
   { id: "0020-public-links", sql: PUBLIC_LINKS },
   { id: "0021-teams", sql: TEAMS },
+  { id: "0022-oauth", sql: OAUTH },
 ];
 
 export async function runMigrations(

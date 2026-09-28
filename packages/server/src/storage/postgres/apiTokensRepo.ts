@@ -12,8 +12,9 @@ export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {
     async create(input) {
       await pool.query(
         `INSERT INTO api_tokens
-           (id, user_id, name, kind, scopes, token_hash, prefix, created_at, last_used_at, expires_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+           (id, user_id, name, kind, scopes, token_hash, prefix, created_at, last_used_at, expires_at,
+            oauth_client_id, refresh_hash, access_expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           input.id,
           input.userId,
@@ -25,8 +26,38 @@ export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {
           input.createdAt,
           input.lastUsedAt,
           input.expiresAt,
+          input.oauthClientId ?? null,
+          input.refreshHash ?? null,
+          input.accessExpiresAt,
         ],
       );
+    },
+    async findByRefreshHash(refreshHash) {
+      const result = await pool.query<ApiTokenRow>(
+        `SELECT ${API_TOKEN_COLUMNS} FROM api_tokens WHERE refresh_hash = $1`,
+        [refreshHash],
+      );
+      const row = result.rows[0];
+      return row ? rowToApiToken(row) : null;
+    },
+    async findByPreviousRefreshHash(refreshHash) {
+      const result = await pool.query<ApiTokenRow>(
+        `SELECT ${API_TOKEN_COLUMNS} FROM api_tokens
+         WHERE previous_refresh_hash = $1`,
+        [refreshHash],
+      );
+      const row = result.rows[0];
+      return row ? rowToApiToken(row) : null;
+    },
+    async rotate(current, next) {
+      const result = await pool.query(
+        `UPDATE api_tokens
+         SET previous_refresh_hash = refresh_hash, refresh_hash = $1,
+             token_hash = $2, access_expires_at = $3
+         WHERE refresh_hash = $4`,
+        [next.refreshHash, next.tokenHash, next.accessExpiresAt, current],
+      );
+      return result.rowCount === 1;
     },
     async findByHash(tokenHash) {
       const result = await pool.query<ApiTokenRow>(

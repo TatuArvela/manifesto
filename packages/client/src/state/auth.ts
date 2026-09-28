@@ -466,6 +466,10 @@ export const webhooksEnabled = signal(false);
 /** Whether this server has an MCP endpoint, for AI assistants. */
 export const mcpEnabled = signal(false);
 
+/** Whether an assistant can connect to it by signing in through the browser
+ * (OAuth) instead of with a token minted in Settings. */
+export const mcpSignInEnabled = signal(false);
+
 /** Whether this server lets owners publish a note by public link. */
 export const publicLinksEnabled = signal(false);
 
@@ -484,6 +488,7 @@ export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
     }
     webhooksEnabled.value = methods.webhooks === true;
     mcpEnabled.value = methods.mcp === true;
+    mcpSignInEnabled.value = methods.mcpSignIn === true;
     publicLinksEnabled.value = methods.publicLinks === true;
     return methods;
   } catch {

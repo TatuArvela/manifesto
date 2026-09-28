@@ -595,6 +595,12 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   `docs/specification/features/mcp.md`. The agent skill that teaches the tools is
   `skills/manifesto/SKILL.md` at the repo root, and `mcp/skill.test.ts` fails until it names a new
   tool (in its `description` too) and stops naming a removed one.
+  An assistant can also sign in by OAuth (`oauth/`): the consent page is the client's
+  (`/oauth/authorize`, `OAuthConsentPage`), since a session is a bearer token the server cannot see
+  on a browser redirect, and a grant is an `mcp` row of `api_tokens` with a refresh token beside it,
+  so listing, revoking and `endUserSessions` cover it with no code of their own. Its expiries are
+  counted from `nowIso()`, which never goes back, so a test that jumps the clock forward carries the
+  jump into every later test; move a row's timestamps instead.
 - **Webhooks**: `webhooks/dispatcher.ts` subscribes to the broadcaster, so a webhook hears what its
   owner's sockets hear and a new note event needs no webhook code. Deliveries go through `safeFetch`
   (POST, no redirects) with the address rule `WEBHOOKS` picks; never call `fetch` for them.

@@ -28,6 +28,7 @@ describe("auth shared routes", () => {
       webhooks: false,
       publicLinks: true,
       mcp: true,
+      mcpSignIn: false,
       passwordReset: false,
       registration: true,
     });

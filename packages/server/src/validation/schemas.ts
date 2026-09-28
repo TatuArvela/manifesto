@@ -294,6 +294,34 @@ export const apiTokenCreateSchema = z
     },
   );
 
+/**
+ * `POST /api/oauth/register`, in the names RFC 7591 gives them. Unknown fields
+ * are dropped; which redirect addresses are allowed is `redirectUriProblem`'s
+ * to say, so the answer can use the error the RFC names.
+ */
+export const oauthRegisterSchema = z.object({
+  redirect_uris: z.array(z.string()).min(1).max(10),
+  client_name: z.string().max(1000).optional(),
+  token_endpoint_auth_method: z.string().max(100).optional(),
+  grant_types: z.array(z.string().max(100)).max(10).optional(),
+  response_types: z.array(z.string().max(100)).max(10).optional(),
+});
+
+/** `POST /api/oauth/authorize`: the consent page's answer. */
+export const oauthAuthorizeSchema = z.object({
+  clientId: z.string().min(1).max(2000),
+  redirectUri: z.string().min(1).max(2000),
+  // A base64url SHA-256, which is 43 characters.
+  codeChallenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  state: z.string().max(2000).optional(),
+  scopes: z
+    .array(z.enum(["notes:read", "notes:write"]))
+    .min(1)
+    .max(2),
+  expiresInDays: z.number().int().min(1).max(3650).optional(),
+  password: confirmationPassword,
+});
+
 /** `POST /api/webhooks`. Where it may point is checked on every delivery,
  * against the resolved address; this only refuses what is never a webhook. */
 export const webhookCreateSchema = z.object({

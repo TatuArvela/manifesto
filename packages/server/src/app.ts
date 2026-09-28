@@ -11,7 +11,7 @@ import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import { createCalendarRoutes } from "./calendar/routes.js";
 import { mountClient } from "./client/serveClient.js";
-import type { ServerConfig } from "./config.js";
+import { offersMcpSignIn, type ServerConfig } from "./config.js";
 import type { UpdateStatus } from "./jobs/updateCheck.js";
 import { countMetric } from "./lib/metrics.js";
 import { metricsHandler } from "./lib/metricsServer.js";
@@ -25,6 +25,15 @@ import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
 import { requestLog } from "./middleware/requestLog.js";
+import {
+  type ClientMetadataFetcher,
+  createClientResolver,
+} from "./oauth/clients.js";
+import {
+  createOAuthRoutes,
+  createWellKnownRoutes,
+  resourceMetadataChallenge,
+} from "./oauth/routes.js";
 import { buildOpenApiDocument } from "./openapi.js";
 import { createAdminRoutes } from "./routes/admin.js";
 import { createAttachmentRoutes } from "./routes/attachments.js";
@@ -68,6 +77,8 @@ export interface AppDeps {
   /** Test seam: which addresses webhooks may reach, and how fast they retry. */
   webhookAddressPolicy?: (address: string) => boolean;
   webhookRetryDelaysMs?: number[];
+  /** Test seam: reads an OAuth client's metadata document. */
+  fetchClientMetadata?: ClientMetadataFetcher;
   /** Test seam: replaces the SMTP mailer `cfg.mail` would build. */
   mailer?: Mailer;
   /** Log every request. The server turns this on; tests leave it off. */
@@ -252,6 +263,25 @@ export function createApp(deps: AppDeps): AppHandle {
       rateLimit: apiRateLimit,
     }),
   );
+  if (offersMcpSignIn(cfg)) {
+    app.route("/.well-known", createWellKnownRoutes(cfg));
+    app.route(
+      "/api/oauth",
+      createOAuthRoutes({
+        storage,
+        authProvider,
+        loginAttempts,
+        revocations,
+        trustProxy: cfg.trustProxy,
+        resolveClient: createClientResolver({
+          storage,
+          fetchMetadata: deps.fetchClientMetadata,
+        }),
+        rateLimit: apiRateLimit,
+      }),
+    );
+    app.use("/api/mcp", resourceMetadataChallenge(cfg.trustProxy));
+  }
   if (cfg.mcp) {
     // Its tools call the routes above through the app itself, so they meet
     // every check a request from the network does.
