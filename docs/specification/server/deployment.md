@@ -228,7 +228,7 @@ All of these are required and validated at boot. The server only reads them when
 
 The login flow:
 
-1. The client fetches `GET /api/auth/methods` and renders a "Continue with single sign-on" button when the response is `{ provider: "oidc" }`.
+1. The client fetches `GET /api/capabilities` and renders a "Continue with single sign-on" button when `auth.providers` includes `oidc`.
 2. The user clicks the button, navigating to `<server>/api/auth/login`. The server stores PKCE state server-side and redirects to the IdP authorization endpoint.
 3. After the user consents, the IdP redirects to `OIDC_REDIRECT_URI` with `code` and `state`.
 4. The server verifies state, exchanges the code (PKCE), reads ID-token claims, just-in-time provisions a user (keyed by `(provider, sub)`), and mints a Manifesto session token.

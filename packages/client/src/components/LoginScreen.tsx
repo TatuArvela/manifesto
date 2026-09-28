@@ -1,5 +1,5 @@
 import type {
-  AuthMethodsResponse,
+  CapabilitiesResponse,
   PasskeyRequestOptions,
 } from "@manifesto/shared";
 import { KeyRound } from "lucide-preact";
@@ -8,7 +8,7 @@ import { APP_LOGO, APP_NAME, INSTANCE_NAME } from "../config.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   confirmPasswordReset,
-  fetchAuthMethods,
+  fetchCapabilities,
   login,
   loginErrorKey,
   type OidcRefusal,
@@ -44,7 +44,7 @@ type Mode = "signIn" | "register" | "changePassword" | "twoFactor";
 
 type DiscoveryState =
   | { kind: "loading" }
-  | { kind: "ready"; methods: AuthMethodsResponse }
+  | { kind: "ready"; auth: CapabilitiesResponse["auth"] }
   | { kind: "unavailable" };
 
 export function LoginScreen() {
@@ -54,13 +54,13 @@ export function LoginScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchAuthMethods().then((methods) => {
+    void fetchCapabilities().then((capabilities) => {
       if (cancelled) return;
-      if (!methods) {
+      if (!capabilities) {
         setDiscovery({ kind: "unavailable" });
         return;
       }
-      setDiscovery({ kind: "ready", methods });
+      setDiscovery({ kind: "ready", auth: capabilities.auth });
     });
     return () => {
       cancelled = true;
@@ -98,9 +98,7 @@ export function LoginScreen() {
             {t("login.serverUnavailable")}
           </p>
         )}
-        {discovery.kind === "ready" && (
-          <SignInOptions methods={discovery.methods} />
-        )}
+        {discovery.kind === "ready" && <SignInOptions auth={discovery.auth} />}
 
         <OrgCredit class="mt-6" />
 
@@ -119,9 +117,9 @@ export function LoginScreen() {
  * and the password form follows it, or waits behind a link when the server
  * keeps local accounts only as a spare key.
  */
-function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
-  const providers = methods.providers ?? [methods.provider];
-  const collapsed = methods.passwordForm === "collapsed";
+function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
+  const { providers } = auth;
+  const collapsed = auth.passwordForm === "collapsed";
   const [showPassword, setShowPassword] = useState(!collapsed);
   const [resetToken, setResetToken] = useState<string | null>(() =>
     takeResetToken(),
@@ -151,9 +149,9 @@ function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
       {local &&
         (showPassword || !oidc ? (
           <LocalLoginForm
-            onForgot={methods.passwordReset ? () => setForgot(true) : undefined}
-            canRegister={methods.registration !== false}
-            passkeys={methods.passkeys === true && passkeysSupported()}
+            onForgot={auth.passwordReset ? () => setForgot(true) : undefined}
+            canRegister={auth.registration}
+            passkeys={auth.passkeys && passkeysSupported()}
           />
         ) : (
           <button

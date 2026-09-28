@@ -3,18 +3,11 @@ import {
   type AccountPrefsResponse,
   type AuditLogResponse,
   type AuthMeResponse,
-  type AuthMethodsResponse,
-  type AuthProviderName,
   MAX_ACCOUNT_PREFS_BYTES,
 } from "@manifesto/shared";
 import { Hono } from "hono";
 import { auditPage } from "../audit/auditPage.js";
-import {
-  offersMcpSignIn,
-  type ServerConfig,
-  signsInLocally,
-  signsInWithOidc,
-} from "../config.js";
+import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
@@ -49,30 +42,6 @@ export function createAuthSharedRoutes(
   deps: SharedAuthRoutesDeps,
 ): AuthProviderRouter {
   const router = new Hono<{ Variables: { auth: AuthContext } }>();
-
-  router.get("/methods", (c) => {
-    const providers: AuthProviderName[] = [
-      ...(signsInLocally(deps.cfg) ? (["local"] as const) : []),
-      ...(signsInWithOidc(deps.cfg) ? (["oidc"] as const) : []),
-    ];
-    const body: AuthMethodsResponse = {
-      // A client from before `providers` reads this alone; with both on,
-      // single sign-on is the way in it can offer.
-      provider: signsInWithOidc(deps.cfg) ? "oidc" : "local",
-      providers,
-      passwordForm:
-        deps.cfg.authProvider === "both" ? deps.cfg.passwordForm : "shown",
-      userLookup: deps.cfg.userLookup,
-      webhooks: deps.cfg.webhooks !== "off",
-      publicLinks: deps.cfg.publicLinks,
-      mcp: deps.cfg.mcp,
-      mcpSignIn: offersMcpSignIn(deps.cfg),
-      passkeys: signsInLocally(deps.cfg),
-      passwordReset: deps.cfg.mail !== null && signsInLocally(deps.cfg),
-      registration: signsInLocally(deps.cfg) && deps.cfg.registrationEnabled,
-    };
-    return c.json(body);
-  });
 
   router.get("/me", async (c) => {
     const { userId } = c.get("auth");

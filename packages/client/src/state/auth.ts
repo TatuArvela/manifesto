@@ -1,8 +1,8 @@
 import type {
   AuthMeResponse,
-  AuthMethodsResponse,
   AuthProviderName,
   AuthSuccessResponse,
+  CapabilitiesResponse,
   ErrorResponse,
   PasskeyAuthenticationResponse,
   PasskeyRequestOptions,
@@ -530,25 +530,28 @@ export const passkeySignInEnabled = signal(false);
 /** Whether this server lets owners publish a note by public link. */
 export const publicLinksEnabled = signal(false);
 
-export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
+/**
+ * What the server offers, read once something needs it (the sign-in screen,
+ * the admin view, the app's start), with the signals the rest of the client
+ * reads set from it. Null when the server cannot be reached.
+ */
+export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> {
   if (SERVER_URL === null) return null;
   try {
-    const res = await fetch(`${SERVER_URL}/api/auth/methods`);
+    const res = await fetch(`${SERVER_URL}/api/capabilities`);
     if (!res.ok) return null;
-    const methods = (await res.json()) as AuthMethodsResponse;
-    authProviderName.value = methods.provider;
-    authProviders.value = methods.providers ?? [methods.provider];
-    passwordFormCollapsed.value = methods.passwordForm === "collapsed";
-    // A server from before sharing does not say, and has no lookup anyway.
-    if (methods.userLookup === "exact" || methods.userLookup === "search") {
-      userLookupMode.value = methods.userLookup;
-    }
-    webhooksEnabled.value = methods.webhooks === true;
-    mcpEnabled.value = methods.mcp === true;
-    mcpSignInEnabled.value = methods.mcpSignIn === true;
-    passkeySignInEnabled.value = methods.passkeys === true;
-    publicLinksEnabled.value = methods.publicLinks === true;
-    return methods;
+    const capabilities = (await res.json()) as CapabilitiesResponse;
+    const { auth, features } = capabilities;
+    authProviderName.value = auth.providers.includes("oidc") ? "oidc" : "local";
+    authProviders.value = auth.providers;
+    passwordFormCollapsed.value = auth.passwordForm === "collapsed";
+    userLookupMode.value = features.userLookup;
+    webhooksEnabled.value = features.webhooks;
+    mcpEnabled.value = features.mcp;
+    mcpSignInEnabled.value = features.mcpSignIn;
+    passkeySignInEnabled.value = auth.passkeys;
+    publicLinksEnabled.value = features.publicLinks;
+    return capabilities;
   } catch {
     return null;
   }

@@ -10,8 +10,12 @@ app registers, so it cannot fall behind. This page stays the prose account of th
 ## Compatibility
 
 Scripts with API tokens, AI assistants, webhook receivers and calendar apps are built against this API
-by people other than whoever runs the server, and they cannot all move when it does. So part of it is
-promised to keep working across releases, even before 1.0.
+by people other than whoever runs the server, and they cannot all move when it does. So from 1.0.0 on,
+part of it is promised to keep working across releases, as below.
+
+**Before 1.0.0, none of it is promised.** Any release may change or remove anything, the public surface
+included, and says so in its release notes. Marking what goes as deprecated first is still the habit
+where it costs little, but it is a courtesy, not a guarantee.
 
 ### What is covered
 
@@ -19,7 +23,7 @@ The **public surface**:
 
 - every operation a personal API token or an MCP token can call (those with an `x-token-scope`), with
   its path, parameters, request and response bodies, status codes and error `code`s;
-- the operations programs call with no credential: `/api/health`, `/api/openapi.json`, the calendar
+- the operations programs call with no credential: `/api/health`, `/api/capabilities`, `/api/openapi.json`, the calendar
   feed (`/api/calendar/<token>.ics`), public links (`/api/public/*`), and OAuth for assistants
   (`/api/oauth/register`, `/api/oauth/token` and the `/.well-known/` documents);
 - `/api/ws` as a token sees it: the handshake, the events and their shapes;
@@ -35,7 +39,7 @@ gate of its own for that: an editor older than the server's schema is refused an
 
 ### What a release may do
 
-Always, within the public surface:
+From 1.0.0, always, within the public surface:
 
 - add operations, MCP tools, webhook events, scopes and token kinds;
 - add optional request fields and parameters, and fields to responses and payloads;
@@ -247,7 +251,7 @@ An assistant can also be given its token by signing in through the browser (OAut
 | `POST` | `/api/oauth/authorize` | Session only, with the password: agree (`OAuthAuthorizeRequest`), answered with the client's redirect address carrying the code |
 
 The first four answer any origin (CORS `*`), since they carry nothing a browser adds by itself.
-`/api/auth/methods` says whether the server offers this in `mcpSignIn`.
+`/api/capabilities` says whether the server offers this, in `features.mcpSignIn`.
 
 ### Webhooks
 
@@ -375,7 +379,6 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 
 | Method   | Path                  | Description                                                              |
 |----------|-----------------------|--------------------------------------------------------------------------|
-| `GET`    | `/api/auth/methods`   | Public: `{ provider: "local" \| "oidc", userLookup: "search" \| "exact", registration }` (plus the optional fields of `AuthMethodsResponse`). Used by the client to pick the login UI (`registration: false` hides the Create account tab), and how the share dialog finds people. |
 | `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment), and on start to pick up admin rights granted or revoked since sign-in. |
 | `PUT`    | `/api/auth/me`        | Bearer-protected: set or clear (`null`) your own email address with `{ email }`: `{ user: AuthUser }`. An account that signs in with single sign-on is `409`, since the identity provider owns its address. |
 | `GET`    | `/api/auth/me/activity` | A session only: your own lines of the audit log, where you are the actor or the target, newest first, as `AuditLogResponse` (`limit`, `before`). An entry where someone else acted on you has `ip: null`. |
@@ -423,6 +426,20 @@ sessions, or `null` when it has none.
 - An unknown id is `404`.
 
 All `/api/notes`, `/api/search`, `/api/invitations` and `/api/users` endpoints require authentication. Requests include a session token in the `Authorization: Bearer <token>` header. The token format and the way it is issued depend on the auth provider; clients treat it as opaque.
+
+### Capabilities
+
+`GET /api/capabilities` is public, and says what the server is and offers, as `CapabilitiesResponse`:
+its `version`, how to sign in (`auth`: the providers, whether the password form is folded away, whether
+registration, reset by mail and passkey sign-in are on), which features are on (`features`: webhooks,
+public links, link previews, MCP and signing in to it, how people are found to share with), the
+`limits` a caller would otherwise meet as a `413`, `409` or `422` (request and image bytes, images and
+link previews per note, notes per page and per import, versions kept and for how long, tokens,
+webhooks and passkeys per account, public link views, preferences bytes), and `editorSchemaVersion`.
+Each value is read from what enforces it, so it cannot drift from the server's behaviour.
+
+The web client reads it before anyone signs in, to choose what to show. It replaced
+`GET /api/auth/methods`, which is gone.
 
 ### Request and Response Format
 

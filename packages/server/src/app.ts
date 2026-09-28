@@ -15,6 +15,7 @@ import { offersMcpSignIn, type ServerConfig } from "./config.js";
 import type { UpdateStatus } from "./jobs/updateCheck.js";
 import { countMetric } from "./lib/metrics.js";
 import { metricsHandler } from "./lib/metricsServer.js";
+import { MAX_REQUEST_BYTES } from "./lib/requestLimits.js";
 import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,
@@ -37,6 +38,7 @@ import {
 import { buildOpenApiDocument } from "./openapi.js";
 import { createAdminRoutes } from "./routes/admin.js";
 import { createAttachmentRoutes } from "./routes/attachments.js";
+import { createCapabilitiesRoutes } from "./routes/capabilities.js";
 import { createExportRoutes } from "./routes/export.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
@@ -165,12 +167,11 @@ export function createApp(deps: AppDeps): AppHandle {
   // Two caps. Image uploads are the one route that carries bulk, a raw file
   // up to the image limit; everything else, notes included (their images and
   // preview images are references), has no reason to exceed 1 MiB.
-  const DEFAULT_BODY_LIMIT = 1024 * 1024;
   const onBodyTooLarge = () => {
     throw new HttpError(413, "Request body too large");
   };
   const defaultBodyLimit = bodyLimit({
-    maxSize: DEFAULT_BODY_LIMIT,
+    maxSize: MAX_REQUEST_BYTES,
     onError: onBodyTooLarge,
   });
   // An image upload is one raw file, up to the image limit.
@@ -185,6 +186,7 @@ export function createApp(deps: AppDeps): AppHandle {
   );
 
   app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));
+  app.route("/api/capabilities", createCapabilitiesRoutes(cfg));
   let openApi: ReturnType<typeof buildOpenApiDocument> | undefined;
   app.get("/api/openapi.json", (c) => {
     openApi ??= buildOpenApiDocument(VERSION);

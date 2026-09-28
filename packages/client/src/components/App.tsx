@@ -14,7 +14,7 @@ import {
   authToken,
   consumeOidcRedirect,
   currentUser,
-  fetchAuthMethods,
+  fetchCapabilities,
   isServerMode,
   refreshCurrentUser,
 } from "../state/auth.js";
@@ -160,7 +160,7 @@ function MainApp() {
     welcomeIfNew();
     if (isServerMode) {
       void refreshCurrentUser().finally(() => setUserChecked(true));
-      void fetchAuthMethods();
+      void fetchCapabilities();
       void loadInvitations();
     }
     const stopLocaleReport = startAccountLocaleReport();

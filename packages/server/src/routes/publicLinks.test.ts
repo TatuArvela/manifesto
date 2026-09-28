@@ -322,8 +322,8 @@ describe("public links turned off", () => {
       });
       expect(publish.status).toBe(404);
       expect((await rig.request("/api/public/anything")).status).toBe(404);
-      const methods = await rig.request("/api/auth/methods");
-      expect(await methods.json()).toMatchObject({ publicLinks: false });
+      const capabilities = await rig.request("/api/capabilities");
+      expect((await capabilities.json()).features.publicLinks).toBe(false);
     } finally {
       await rig.close();
     }

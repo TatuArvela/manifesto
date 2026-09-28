@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type {
   ApiTokensResponse,
-  AuthMethodsResponse,
+  CapabilitiesResponse,
   OAuthAuthorizeResponse,
   OAuthClientInfo,
 } from "@manifesto/shared";
@@ -183,9 +183,9 @@ describe("OAuth for /api/mcp", () => {
 
   it("tells the client it can sign in", async () => {
     const methods = (await (
-      await rig.request("/api/auth/methods")
-    ).json()) as AuthMethodsResponse;
-    expect(methods.mcpSignIn).toBe(true);
+      await rig.request("/api/capabilities")
+    ).json()) as CapabilitiesResponse;
+    expect(methods.features.mcpSignIn).toBe(true);
   });
 
   it("signs an assistant in, lets it reach /api/mcp, and refreshes it", async () => {

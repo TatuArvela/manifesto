@@ -627,37 +627,62 @@ export type AuthProviderName = "local" | "oidc";
  */
 export type UserLookupMode = "search" | "exact";
 
-export interface AuthMethodsResponse {
-  /** The one way in, for clients from before `providers`; `oidc` when both
-   * are on. */
-  provider: AuthProviderName;
-  /** Every way in this server offers. Absent from older servers, which offer
-   * `provider` alone. */
-  providers?: AuthProviderName[];
-  /** With both on, whether the password form is shown or folded behind a
-   * link under the single sign-on button. */
-  passwordForm?: "shown" | "collapsed";
-  userLookup: UserLookupMode;
-  /** Whether this server lets users register webhooks. Absent from servers
-   * from before webhooks, which have none. */
-  webhooks?: boolean;
-  /** Whether this server has an MCP endpoint for AI assistants
-   * (`/api/mcp`). Absent from servers from before it, which have none. */
-  mcp?: boolean;
-  /** Whether an assistant can connect to `/api/mcp` by signing in through the
-   * browser (OAuth) rather than with a token minted by hand. */
-  mcpSignIn?: boolean;
-  /** Whether a local account can sign in with a passkey alone. */
-  passkeys?: boolean;
-  /** Whether a forgotten password can be reset by a link sent by mail. */
-  passwordReset?: boolean;
-  /** Whether anyone can create an account with a password here. Absent from
-   * older servers, which do not say, so a client offers the form and lets the
-   * server refuse. */
-  registration?: boolean;
-  /** Whether notes can be published by revocable public link. Absent from
-   * servers from before them, which cannot. */
-  publicLinks?: boolean;
+/**
+ * `GET /api/capabilities`: what this server is and offers, for a client to
+ * decide what to show before anyone signs in, and for a script to learn its
+ * limits rather than find them. Public, and covered by the compatibility
+ * policy, so fields are only ever added.
+ */
+export interface CapabilitiesResponse {
+  /** The running version, as `/api/health` gives it. */
+  version: string;
+  auth: {
+    /** Every way in: `local` (a password), `oidc` (single sign-on). */
+    providers: AuthProviderName[];
+    /** With both on, whether the password form is shown or folded behind a
+     * link under the single sign-on button. */
+    passwordForm: "shown" | "collapsed";
+    /** Whether anyone can create an account with a password. */
+    registration: boolean;
+    /** Whether a forgotten password can be reset by a link sent by mail. */
+    passwordReset: boolean;
+    /** Whether a local account can sign in with a passkey alone. */
+    passkeys: boolean;
+  };
+  features: {
+    webhooks: boolean;
+    publicLinks: boolean;
+    linkPreviews: boolean;
+    /** The MCP endpoint for AI assistants, `/api/mcp`. */
+    mcp: boolean;
+    /** Whether an assistant can connect to it by signing in (OAuth). */
+    mcpSignIn: boolean;
+    /** How someone sharing a note finds the person to share it with. */
+    userLookup: UserLookupMode;
+  };
+  /** The limits a caller would otherwise meet as a 413, 409 or 422. */
+  limits: {
+    /** Bytes in a request body, attachments aside. */
+    requestBytes: number;
+    /** Bytes in one uploaded image. */
+    imageBytes: number;
+    imagesPerNote: number;
+    linkPreviewsPerNote: number;
+    /** Notes in one page of `/api/notes` or `/api/search`. */
+    notesPerPage: number;
+    notesPerImport: number;
+    /** Versions kept per note, and for how many days. */
+    noteVersions: number;
+    noteVersionDays: number;
+    apiTokensPerUser: number;
+    webhooksPerUser: number;
+    passkeysPerUser: number;
+    publicLinkViews: number;
+    accountPrefsBytes: number;
+  };
+  /** The editor's schema version; `/api/yjs` refuses an editor older than
+   * it (`EDITOR_SCHEMA_VERSION`). */
+  editorSchemaVersion: number;
 }
 
 export interface AuthUser {

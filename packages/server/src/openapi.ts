@@ -81,9 +81,9 @@ export interface Operation {
   /** Registered only under this auth provider. */
   provider?: "local" | "oidc";
   /**
-   * The release that deprecated it, and what to use instead. A deprecated
-   * operation keeps working for at least two minor releases after that one
-   * (the compatibility policy in `api.md`).
+   * The release that deprecated it, and what to use instead. From 1.0.0 a
+   * deprecated operation keeps working for at least two minor releases after
+   * that one (the compatibility policy in `api.md`); before, it is a notice.
    */
   deprecated?: { since: string; use?: string };
 }
@@ -96,6 +96,7 @@ export interface Operation {
  */
 const PUBLIC_WITHOUT_CREDENTIAL = new Set([
   "/api/health",
+  "/api/capabilities",
   "/api/openapi.json",
   "/api/calendar/:file",
   "/api/public/:token",
@@ -136,12 +137,13 @@ export const OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/auth/methods",
-    tag: "Auth",
-    summary: "How to sign in here, and what this server offers",
+    path: "/api/capabilities",
+    tag: "Server",
+    summary:
+      "What this server offers: its version, how to sign in, which features are on, and its limits",
     auth: "none",
     limits: [],
-    responses: ok("AuthMethodsResponse"),
+    responses: ok("CapabilitiesResponse"),
   },
   {
     method: "get",
@@ -1231,20 +1233,18 @@ function components() {
       }),
       Error: shape({ error: { type: "string" }, code: { type: "string" } }),
       Health: shape({ ok: { type: "boolean" }, version: { type: "string" } }),
-      AuthMethodsResponse: shape({
-        provider: { enum: ["local", "oidc"] },
-        userLookup: { enum: ["search", "exact"] },
-        webhooks: { type: "boolean" },
-        passwordReset: { type: "boolean" },
-        registration: { type: "boolean" },
-        providers: { type: "array", items: { enum: ["local", "oidc"] } },
-        passwordForm: { enum: ["shown", "collapsed"] },
-      }),
       AuthSuccess: shape({
         token: { type: "string" },
         user: { type: "object" },
       }),
       AuthMeResponse: shape({ user: { type: "object" } }),
+      CapabilitiesResponse: shape({
+        version: { type: "string" },
+        auth: { type: "object" },
+        features: { type: "object" },
+        limits: { type: "object" },
+        editorSchemaVersion: { type: "integer" },
+      }),
       TwoFactorStatusResponse: shape({
         enabled: { type: "boolean" },
         recoveryCodesRemaining: { type: "integer" },
@@ -1381,7 +1381,7 @@ export function buildOpenApiDocument(version: string) {
       title: "Manifesto API",
       version,
       description:
-        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md. x-stability says whether the compatibility policy in docs/specification/api.md covers an operation (public) or it is the web client's own (client); a deprecated one keeps working for at least two minor releases after x-deprecated-since.",
+        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md. x-stability says whether the compatibility policy in docs/specification/api.md will cover an operation from 1.0.0 (public) or it is the web client's own (client); before 1.0.0 any of it may change.",
       license: { name: "MIT" },
     },
     servers: [{ url: "/" }],

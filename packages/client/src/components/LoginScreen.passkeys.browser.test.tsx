@@ -37,10 +37,14 @@ vi.mock("../state/auth.js", async (original) => {
   const actual = await original<typeof import("../state/auth.js")>();
   return {
     ...actual,
-    fetchAuthMethods: async () => ({
-      provider: "local",
-      userLookup: "search",
-      passkeys: true,
+    fetchCapabilities: async () => ({
+      auth: {
+        providers: ["local"],
+        passwordForm: "shown",
+        registration: true,
+        passwordReset: false,
+        passkeys: true,
+      },
     }),
     login: async (
       _username: string,

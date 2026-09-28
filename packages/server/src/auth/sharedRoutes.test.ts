@@ -1,10 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  bootTestApp,
-  bootTestAppWith,
-  registerTestUser,
-  type TestRig,
-} from "../test/setup.js";
+import { bootTestApp, registerTestUser, type TestRig } from "../test/setup.js";
 
 describe("auth shared routes", () => {
   let rig: TestRig;
@@ -15,41 +10,6 @@ describe("auth shared routes", () => {
 
   afterEach(async () => {
     await rig.close();
-  });
-
-  it("GET /api/auth/methods returns the configured provider name", async () => {
-    const res = await rig.request("/api/auth/methods");
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({
-      provider: "local",
-      providers: ["local"],
-      passwordForm: "shown",
-      userLookup: "search",
-      webhooks: false,
-      publicLinks: true,
-      mcp: true,
-      mcpSignIn: false,
-      passkeys: true,
-      passwordReset: false,
-      registration: true,
-    });
-  });
-
-  it("GET /api/auth/methods says when registration is closed", async () => {
-    const closed = await bootTestAppWith({ registrationEnabled: false });
-    try {
-      const res = await closed.request("/api/auth/methods");
-      expect(
-        ((await res.json()) as { registration: boolean }).registration,
-      ).toBe(false);
-    } finally {
-      await closed.close();
-    }
-  });
-
-  it("GET /api/auth/methods is public (no auth required)", async () => {
-    const res = await rig.request("/api/auth/methods");
-    expect(res.status).toBe(200);
   });
 
   it("GET /api/auth/me returns the current user for a valid token", async () => {
