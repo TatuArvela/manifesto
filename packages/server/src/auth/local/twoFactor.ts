@@ -6,7 +6,6 @@ import type {
 } from "@manifesto/shared";
 import type { Hono } from "hono";
 import { audit } from "../../audit/audit.js";
-import { verifyPassword } from "../../lib/password.js";
 import { nowIso } from "../../lib/time.js";
 import { hashToken } from "../../lib/token.js";
 import {
@@ -20,6 +19,7 @@ import {
   twoFactorPasswordSchema,
 } from "../../validation/schemas.js";
 import { validatorHook } from "../../validation/zValidator.js";
+import { requireConfirmation } from "../confirmation.js";
 import {
   newRecoveryCodes,
   newTotpSecret,
@@ -27,6 +27,7 @@ import {
   verifyTotp,
 } from "../totp.js";
 import type { AuthProvider } from "../types.js";
+import type { LoginAttempts } from "./loginAttempts.js";
 
 /**
  * Checks a second factor at sign-in: an authenticator code, each step usable
@@ -70,6 +71,7 @@ export function registerTwoFactorRoutes(
     storage: StorageDriver;
     authProvider: AuthProvider;
     throttle: Parameters<Hono["use"]>[1];
+    loginAttempts: LoginAttempts;
   },
 ) {
   const { storage } = deps;
@@ -77,13 +79,7 @@ export function registerTwoFactorRoutes(
     sessionOnly: true,
   });
 
-  async function requirePassword(userId: string, password: string) {
-    const user = await storage.users.findById(userId);
-    if (!user?.passwordHash) throw new HttpError(401, "User not found");
-    if (!(await verifyPassword(user.passwordHash, password))) {
-      throw new HttpError(403, "The password is not right");
-    }
-  }
+  const confirmation = { storage, loginAttempts: deps.loginAttempts };
 
   auth.get("/two-factor", session, async (c) => {
     const { userId } = c.get("auth");
@@ -105,7 +101,11 @@ export function registerTwoFactorRoutes(
     zValidator("json", twoFactorPasswordSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      await requirePassword(userId, c.req.valid("json").password);
+      await requireConfirmation(
+        confirmation,
+        c.get("auth"),
+        c.req.valid("json").password,
+      );
       const secret = newTotpSecret();
       if (!(await storage.twoFactor.begin(userId, secret, nowIso()))) {
         throw new HttpError(409, "Two-factor sign-in is already on");
@@ -154,7 +154,11 @@ export function registerTwoFactorRoutes(
     zValidator("json", twoFactorPasswordSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      await requirePassword(userId, c.req.valid("json").password);
+      await requireConfirmation(
+        confirmation,
+        c.get("auth"),
+        c.req.valid("json").password,
+      );
       await storage.twoFactor.disable(userId);
       audit(storage, c, {
         action: "auth.two_factor_disabled",
@@ -171,7 +175,11 @@ export function registerTwoFactorRoutes(
     zValidator("json", twoFactorPasswordSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      await requirePassword(userId, c.req.valid("json").password);
+      await requireConfirmation(
+        confirmation,
+        c.get("auth"),
+        c.req.valid("json").password,
+      );
       const state = await storage.twoFactor.get(userId);
       if (state?.enabledAt == null) {
         throw new HttpError(409, "Two-factor sign-in is off");

@@ -46,7 +46,14 @@ export const registerSchema = authCredentialsSchema.extend({
   email: emailSchema.optional(),
 });
 
-export const authMeUpdateSchema = z.object({ email: emailSchema.nullable() });
+/** The password that confirms an action, where the account has one (see
+ * `auth/confirmation.ts`). Only compared with the stored hash. */
+const confirmationPassword = z.string().max(256).optional();
+
+export const authMeUpdateSchema = z.object({
+  email: emailSchema.nullable(),
+  password: confirmationPassword,
+});
 
 /** A language tag such as `fi` or `en-GB`; mail falls back to English for one
  * it has no text in. */
@@ -238,6 +245,7 @@ export const apiTokenCreateSchema = z
       .min(1)
       .max(API_TOKEN_SCOPES.length)
       .optional(),
+    password: confirmationPassword,
   })
   .refine(
     (body) =>
@@ -262,6 +270,7 @@ export const webhookCreateSchema = z.object({
     .min(1)
     .max(WEBHOOK_EVENTS.length)
     .optional(),
+  password: confirmationPassword,
 });
 
 /** `PUT /api/webhooks/:id`. */

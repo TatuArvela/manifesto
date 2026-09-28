@@ -7,6 +7,8 @@ import {
 } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
 import { audit } from "../audit/audit.js";
+import { requireConfirmation } from "../auth/confirmation.js";
+import type { LoginAttempts } from "../auth/local/loginAttempts.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
@@ -24,6 +26,7 @@ import { validatorHook } from "../validation/zValidator.js";
 
 interface TokenDeps {
   storage: StorageDriver;
+  loginAttempts: LoginAttempts;
   /** Whether the server has `/api/mcp`; without it an MCP token opens nothing. */
   mcpEnabled: boolean;
   authProvider: AuthProvider;
@@ -63,7 +66,15 @@ export function createTokenRoutes(deps: TokenDeps) {
     zValidator("json", apiTokenCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      const { name, expiresInDays, kind = "api", scopes } = c.req.valid("json");
+      const {
+        name,
+        expiresInDays,
+        kind = "api",
+        scopes,
+        password,
+      } = c.req.valid("json");
+      // A token outlives the session that minted it.
+      await requireConfirmation(deps, c.get("auth"), password);
       if (kind === "mcp" && !deps.mcpEnabled) {
         throw new HttpError(403, "This server has MCP turned off");
       }

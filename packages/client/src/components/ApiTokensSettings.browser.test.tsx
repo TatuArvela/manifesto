@@ -1,7 +1,13 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
-import { mcpEnabled } from "../state/auth.js";
+
+vi.mock("../config.js", async (original) => ({
+  ...(await original<typeof import("../config.js")>()),
+  resolveServerUrl: () => "https://notes.example",
+}));
+
+import { currentUser, mcpEnabled } from "../state/auth.js";
 import { storageConnection } from "../storage/index.js";
 import { ApiTokensSettings } from "./ApiTokensSettings.js";
 
@@ -20,6 +26,7 @@ describe("ApiTokensSettings", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     mcpEnabled.value = false;
+    currentUser.value = null;
     storageConnection.value = { serverUrl: null, token: null };
     render(null, host);
     host.remove();
@@ -218,5 +225,88 @@ describe("ApiTokensSettings", () => {
         `${t("tokens.scopeNotesRead")}, ${t("tokens.scopeSharing")}`,
       ),
     );
+  });
+
+  const user = {
+    id: "u",
+    username: "amy",
+    displayName: "Amy",
+    avatarColor: "#000",
+    email: null,
+    isAdmin: false,
+  };
+
+  async function submitNamed(name: string) {
+    const input = host.querySelector<HTMLInputElement>(
+      `input[placeholder="${t("tokens.namePlaceholder")}"]`,
+    ) as HTMLInputElement;
+    input.value = name;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((r) => requestAnimationFrame(r));
+    host
+      .querySelector("form")
+      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  }
+
+  it("asks an account with a password for it, and says when it is wrong", async () => {
+    currentUser.value = { ...user, hasPassword: true };
+    let sent: { password?: string } | null = null;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (init?.method === "POST") {
+        sent = JSON.parse(init.body as string);
+        return Response.json(
+          { error: "The password is not right", code: "password_incorrect" },
+          { status: 403 },
+        );
+      }
+      return Response.json({ tokens: [] });
+    });
+
+    render(<ApiTokensSettings />, host);
+    const field = await vi.waitFor(() => {
+      const input = host.querySelector<HTMLInputElement>(
+        'input[type="password"]',
+      );
+      expect(input).not.toBeNull();
+      return input as HTMLInputElement;
+    });
+    field.value = "not-it-00";
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    await submitNamed("Script");
+
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("confirm.passwordWrong")),
+    );
+    expect(sent).toMatchObject({ password: "not-it-00" });
+  });
+
+  it("sends an account without a password to sign in again", async () => {
+    currentUser.value = { ...user, hasPassword: false };
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) =>
+      init?.method === "POST"
+        ? Response.json(
+            {
+              error: "Sign in again to do this",
+              code: "reauthentication_required",
+            },
+            { status: 403 },
+          )
+        : Response.json({ tokens: [] }),
+    );
+
+    render(<ApiTokensSettings />, host);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.none")),
+    );
+    expect(host.querySelector('input[type="password"]')).toBeNull();
+    await submitNamed("Script");
+
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("confirm.signInAgain")),
+    );
+    const link = [...host.querySelectorAll("a")].find(
+      (a) => a.textContent === t("confirm.signInAgainLink"),
+    );
+    expect(link?.getAttribute("href")).toMatch(/\/api\/auth\/login\?reauth=1$/);
   });
 });

@@ -4,6 +4,10 @@ import type {
   WebhooksResponse,
 } from "@manifesto/shared";
 import { apiFetch } from "../storage/apiRequest.js";
+import {
+  type ConfirmationRefusal,
+  confirmationRefusal,
+} from "./confirmation.js";
 
 /**
  * The signed-in user's webhooks. Like the API token calls, each resolves with
@@ -18,12 +22,21 @@ export async function listWebhooks(): Promise<Webhook[] | null> {
 
 export type CreateWebhookResult =
   | { kind: "ok"; created: WebhookCreatedResponse }
+  | { kind: "refused"; refusal: ConfirmationRefusal }
   | { kind: "invalid" | "too-many" | "failed" };
 
-export async function createWebhook(url: string): Promise<CreateWebhookResult> {
-  const res = await apiFetch("POST", "/webhooks", { url });
+export async function createWebhook(
+  url: string,
+  password: string,
+): Promise<CreateWebhookResult> {
+  const res = await apiFetch("POST", "/webhooks", {
+    url,
+    ...(password && { password }),
+  });
   if (res?.status === 422) return { kind: "invalid" };
   if (res?.status === 409) return { kind: "too-many" };
+  const refusal = res && (await confirmationRefusal(res));
+  if (refusal) return { kind: "refused", refusal };
   if (!res?.ok) return { kind: "failed" };
   return {
     kind: "ok",

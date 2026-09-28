@@ -374,6 +374,13 @@ export const en = {
   "settings.autoNotes.untitled": "(Untitled)",
   "settings.autoNotes.origin.inline": "Pasted",
   "settings.autoNotes.origin.url": "URL",
+  "confirm.password": "Your password, to confirm",
+  "confirm.passwordMissing": "Enter your password to confirm this.",
+  "confirm.passwordWrong": "That password is not right.",
+  "confirm.signInAgain": "For your security, sign in again to do this.",
+  "confirm.signInAgainLink": "Sign in again",
+  "confirm.locked":
+    "Too many wrong passwords. Wait a few minutes and try again.",
   "tokens.title": "API tokens",
   "tokens.hint":
     "A token lets a script, a shortcut or a bot use your notes on {server} without your password. It reaches only what you give it access to, and never your password, your tokens or other accounts.",

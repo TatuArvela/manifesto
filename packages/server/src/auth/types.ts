@@ -1,6 +1,7 @@
 import type { ApiTokenScope } from "@manifesto/shared";
 import type { Hono } from "hono";
 import type { Mailer } from "../mail/mailer.js";
+import type { LoginAttempts } from "./local/loginAttempts.js";
 import type { SessionRevocations } from "./revocations.js";
 
 /**
@@ -19,6 +20,8 @@ export interface AuthIdentity {
   via: CredentialKind;
   /** What a token may reach; absent for a session, which may reach it all. */
   scopes?: readonly ApiTokenScope[];
+  /** When a session was signed in; absent for a token. */
+  signedInAt?: string;
   username: string;
   displayName: string;
   avatarColor: string;
@@ -37,6 +40,9 @@ export interface AuthRouterContext {
   revocations: SessionRevocations;
   /** Null when the server sends no mail. */
   mailer: Mailer | null;
+  /** Wrong passwords per account name, shared by signing in and by
+   * confirming an action (`requireConfirmation`). */
+  loginAttempts: LoginAttempts;
 }
 
 export interface AuthProvider {

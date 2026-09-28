@@ -7,6 +7,8 @@ import {
 } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
 import { audit } from "../audit/audit.js";
+import { requireConfirmation } from "../auth/confirmation.js";
+import type { LoginAttempts } from "../auth/local/loginAttempts.js";
 import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
@@ -29,6 +31,7 @@ interface WebhookDeps {
   authProvider: AuthProvider;
   /** Null when the server has webhooks off: every route then answers 404. */
   dispatcher: WebhookDispatcher | null;
+  loginAttempts: LoginAttempts;
   rateLimit?: MiddlewareHandler;
 }
 
@@ -74,7 +77,9 @@ export function createWebhookRoutes(deps: WebhookDeps) {
     zValidator("json", webhookCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      const { url, events } = c.req.valid("json");
+      const { url, events, password } = c.req.valid("json");
+      // Every note from now on goes wherever this points.
+      await requireConfirmation(deps, c.get("auth"), password);
       const existing = await deps.storage.webhooks.listByUser(userId);
       if (existing.length >= MAX_WEBHOOKS_PER_USER) {
         throw new HttpError(409, "Remove a webhook before adding another");

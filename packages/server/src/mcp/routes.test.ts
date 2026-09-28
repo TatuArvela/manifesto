@@ -51,7 +51,7 @@ describe("MCP endpoint", () => {
     const res = await rig.request("/api/tokens", {
       method: "POST",
       headers: authHeaders(as),
-      body: JSON.stringify(body),
+      body: JSON.stringify({ password: "test-pass-12", ...body }),
     });
     expect(res.status).toBe(201);
     return (await res.json()) as ApiTokenCreatedResponse;
@@ -417,7 +417,11 @@ describe("MCP turned off", () => {
     const mint = await rig.request("/api/tokens", {
       method: "POST",
       headers: authHeaders(session),
-      body: JSON.stringify({ name: "assistant", kind: "mcp" }),
+      body: JSON.stringify({
+        name: "assistant",
+        kind: "mcp",
+        password: "test-pass-12",
+      }),
     });
     expect(mint.status).toBe(403);
     const methods = (await (

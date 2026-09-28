@@ -381,6 +381,14 @@ export const fi: Messages = {
   "settings.autoNotes.untitled": "(Nimetön)",
   "settings.autoNotes.origin.inline": "Liitetty",
   "settings.autoNotes.origin.url": "URL",
+  "confirm.password": "Salasanasi vahvistukseksi",
+  "confirm.passwordMissing": "Vahvista tämä salasanallasi.",
+  "confirm.passwordWrong": "Salasana ei ole oikein.",
+  "confirm.signInAgain":
+    "Turvallisuutesi vuoksi kirjaudu uudelleen tehdäksesi tämän.",
+  "confirm.signInAgainLink": "Kirjaudu uudelleen",
+  "confirm.locked":
+    "Liian monta väärää salasanaa. Odota muutama minuutti ja yritä uudelleen.",
   "tokens.title": "API-tunnisteet",
   "tokens.hint":
     "Tunnisteella skripti, pikakomento tai botti voi käyttää muistiinpanojasi palvelimella {server} ilman salasanaasi. Se ulottuu vain siihen, mihin annat sille oikeuden, eikä koskaan salasanaasi, tunnisteisiisi tai muihin tileihin.",

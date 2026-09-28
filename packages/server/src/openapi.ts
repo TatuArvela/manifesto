@@ -181,6 +181,10 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Start single sign-on (redirects to the identity provider)",
     auth: "none",
+    query: {
+      reauth:
+        "Present: the identity provider asks the user to sign in again (prompt=login), for an action that needs a recent sign-in",
+    },
     responses: { "302": { description: "To the identity provider" } },
     provider: "oidc",
   },

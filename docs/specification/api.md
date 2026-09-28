@@ -281,6 +281,7 @@ All `/api/notes`, `/api/search`, `/api/invitations` and `/api/users` endpoints r
 - List endpoints return `{ "notes": Note[], "nextCursor": string | null }`
 - Single note endpoints return `{ "note": Note }`
 - Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (`password_change_required`, and `email_taken` to tell a taken address from a taken username)
+- `PUT /api/auth/me`, `POST /api/tokens`, `POST /api/webhooks` and the two-factor changes take the account's `password` in the body. Without it they answer `403` with `confirmation_required`, with a wrong one `403` with `password_incorrect`, and after too many wrong ones `429`. An account without a password answers `403` with `reauthentication_required` unless its session was signed in within 15 minutes; `GET /api/auth/login?reauth=1` signs in again. See [Accounts](features/accounts.md#confirming-a-change-from-a-session)
 
 ### Paging the list endpoints
 

@@ -10,6 +10,8 @@ export interface AuthContext {
   via: CredentialKind;
   /** What a token may reach; absent for a session. */
   scopes?: readonly ApiTokenScope[];
+  /** When a session was signed in; absent for a token. */
+  signedInAt?: string;
 }
 
 export interface AuthMiddlewareOptions {
@@ -104,6 +106,7 @@ export function createAuthMiddleware(
       token: identity.token,
       via: identity.via,
       ...(identity.scopes && { scopes: identity.scopes }),
+      ...(identity.signedInAt && { signedInAt: identity.signedInAt }),
     });
     await next();
   };

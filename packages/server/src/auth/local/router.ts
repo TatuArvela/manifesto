@@ -26,7 +26,7 @@ import type { SessionRevocations } from "../revocations.js";
 import { endUserSessions, issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
 import { pickAvatarColor, toAuthUser } from "../users.js";
-import { createLoginAttempts } from "./loginAttempts.js";
+import { createLoginAttempts, type LoginAttempts } from "./loginAttempts.js";
 import { registerPasswordResetRoutes } from "./passwordReset.js";
 import { checkSecondFactor, registerTwoFactorRoutes } from "./twoFactor.js";
 
@@ -37,6 +37,8 @@ interface LocalRouterDeps {
   revocations: SessionRevocations;
   /** Null when the server sends no mail: then there is no reset by mail. */
   mailer?: Mailer | null;
+  /** Shared with confirming actions; a router of its own when left out. */
+  loginAttempts?: LoginAttempts;
 }
 
 export function createLocalAuthRouter(
@@ -55,7 +57,7 @@ export function createLocalAuthRouter(
 
   // A budget per account on top of the budget per address, since an attacker
   // who can move between addresses gets a fresh one of the latter with each.
-  const loginAttempts = createLoginAttempts();
+  const loginAttempts = deps.loginAttempts ?? createLoginAttempts();
 
   // A sign-in for a name nobody holds has to cost what a real one costs, or
   // the time the answer takes reports whether the account exists. Built from
@@ -286,6 +288,7 @@ export function createLocalAuthRouter(
     storage: deps.storage,
     authProvider: deps.authProvider,
     throttle: authThrottle,
+    loginAttempts,
   });
 
   return auth;

@@ -2,6 +2,7 @@ import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { recordClientAddress } from "./audit/audit.js";
+import { createLoginAttempts } from "./auth/local/loginAttempts.js";
 import {
   createSessionRevocations,
   type SessionRevocations,
@@ -85,6 +86,9 @@ export function createApp(deps: AppDeps): AppHandle {
   const revocations = deps.revocations ?? createSessionRevocations();
   const accessChanges = deps.accessChanges ?? createAccessChanges();
   const noteEvents = createNoteEvents({ storage, broadcaster, accessChanges });
+  // One budget of wrong passwords per account name, whether they were typed
+  // to sign in or to confirm an action from a session that is already in.
+  const loginAttempts = createLoginAttempts();
   const mailer = deps.mailer ?? (cfg.mail ? createSmtpMailer(cfg.mail) : null);
   const mail = mailer && cfg.mail ? { mailer, appUrl: cfg.mail.appUrl } : null;
   const webhooks =
@@ -173,9 +177,18 @@ export function createApp(deps: AppDeps): AppHandle {
   // the provider's own router so Hono's longest-prefix matching reaches them.
   app.route(
     "/api/auth",
-    createAuthSharedRoutes({ cfg, storage, authProvider, broadcaster }),
+    createAuthSharedRoutes({
+      cfg,
+      storage,
+      authProvider,
+      broadcaster,
+      loginAttempts,
+    }),
   );
-  app.route("/api/auth", authProvider.router({ revocations, mailer }));
+  app.route(
+    "/api/auth",
+    authProvider.router({ revocations, mailer, loginAttempts }),
+  );
   app.route(
     "/api/notes",
     createNotesRoutes({
@@ -214,6 +227,7 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
       authProvider,
       revocations,
+      loginAttempts,
       mcpEnabled: cfg.mcp,
       rateLimit: apiRateLimit,
     }),
@@ -237,6 +251,7 @@ export function createApp(deps: AppDeps): AppHandle {
     createWebhookRoutes({
       storage,
       authProvider,
+      loginAttempts,
       dispatcher: webhooks,
       rateLimit: apiRateLimit,
     }),

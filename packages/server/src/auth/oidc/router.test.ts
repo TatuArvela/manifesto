@@ -179,6 +179,15 @@ describe("oidc auth router", () => {
       code_challenge_method: "S256",
       state: "test-state-token",
     });
+    expect(built).not.toHaveProperty("prompt");
+  });
+
+  it("asks the IdP to sign the user in again when an action needs a recent sign-in", async () => {
+    await rig.request("/api/auth/login?reauth=1");
+    const built = oidcModule.buildAuthorizationUrl.mock.calls.at(-1)?.[1] as
+      | Record<string, string>
+      | undefined;
+    expect(built?.prompt).toBe("login");
   });
 
   it("on callback, JIT-creates the user and redirects to the post-login URL with a session token in the fragment", async () => {

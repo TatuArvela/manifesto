@@ -491,6 +491,12 @@ An MCP token (`mfm_`, `kind: "mcp"`) is narrower again: `createAuthMiddleware` t
 carries `MCP_FORWARDED`, a symbol no request from the network can set. It holds only note scopes,
 its tools are offered by the scope each names, and both sockets refuse it.
 
+What would let whoever holds a stolen session keep the account or its notes (an email address, a
+token, a webhook, the two-factor changes) also calls `requireConfirmation` (`auth/confirmation.ts`):
+the password, counted against the sign-in budget in the shared `loginAttempts`, or for an account
+without one a sign-in within 15 minutes. A new action of that kind calls it too, and its client form
+uses `ConfirmPasswordField` and `ConfirmationError`.
+
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
 catalogues, which `AuditLog.test.ts` checks. The request's address is keyed on `c.req`, never
@@ -580,6 +586,9 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - Test files are colocated with source (e.g., `actions.browser.test.ts` next to `actions.ts`)
 - Tests use real `localStorage`; clear in `beforeEach`/`afterEach`
 - Signal state is set directly in tests (e.g., `notes.value = []`)
+- A module that a test mocks with a factory calling `importOriginal` must not sit in an import cycle
+  (`state/auth.ts` is mocked so). The original then imports the mocked module back while its factory
+  is still running, and the browser project hangs with no error at all, only files that never report.
 
 ## Code Style
 

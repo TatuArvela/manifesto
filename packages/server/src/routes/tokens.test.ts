@@ -47,7 +47,10 @@ describe("API tokens", () => {
     });
 
   async function mint(body: object = { name: "script" }) {
-    const res = await call(session, "POST", "/api/tokens", body);
+    const res = await call(session, "POST", "/api/tokens", {
+      password: "test-pass-12",
+      ...body,
+    });
     expect(res.status).toBe(201);
     return (await res.json()) as ApiTokenCreatedResponse;
   }

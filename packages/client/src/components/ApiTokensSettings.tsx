@@ -16,7 +16,12 @@ import {
 } from "../state/apiTokens.js";
 import { mcpEnabled, SERVER_ORIGIN } from "../state/auth.js";
 import { askConfirmation } from "../state/confirm.js";
+import type { ConfirmationRefusal } from "../state/confirmation.js";
 import { showError, showSuccess } from "../state/ui.js";
+import {
+  ConfirmationError,
+  ConfirmPasswordField,
+} from "./ConfirmWithPassword.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -75,6 +80,8 @@ export function ApiTokensSettings() {
   const [secret, setSecret] = useState<string | null>(null);
   const [secretKind, setSecretKind] = useState<ApiTokenKind>("api");
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
 
   const reload = async () => {
@@ -109,9 +116,20 @@ export function ApiTokensSettings() {
       return;
     }
     setError(null);
+    setRefusal(null);
     setBusy(true);
-    const result = await createApiToken(name.trim(), expiry, kind, scopes);
+    const result = await createApiToken(
+      name.trim(),
+      expiry,
+      kind,
+      scopes,
+      password,
+    );
     setBusy(false);
+    if (result.kind === "refused") {
+      setRefusal(result.refusal);
+      return;
+    }
     if (result.kind !== "ok") {
       setError(
         t(result.kind === "too-many" ? "tokens.tooMany" : "tokens.failed"),
@@ -121,6 +139,7 @@ export function ApiTokensSettings() {
     setSecret(result.created.secret);
     setSecretKind(kind);
     setName("");
+    setPassword("");
     await reload();
   };
 
@@ -329,6 +348,8 @@ export function ApiTokensSettings() {
             ))}
           </select>
         </label>
+        <ConfirmPasswordField value={password} onInput={setPassword} />
+        {refusal && <ConfirmationError refusal={refusal} />}
         {error && (
           <p class="text-sm text-red-600 dark:text-red-400" role="alert">
             {error}

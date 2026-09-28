@@ -132,6 +132,28 @@ A temporary password is good for one thing: choosing a real one.
 one twice. It is offered only under local sign-in. A successful change keeps the current session and
 ends every other session of the account, including its open sockets.
 
+## Confirming a change from a session
+
+A session can be stolen: a device left signed in, a token lifted from a browser. `sessionOnly` already
+keeps API tokens away from how an account is secured, but not a session that is not its owner's. So
+the changes that would let whoever holds one keep the account or its notes ask again:
+
+- setting or removing the **email address**, since a reset link goes to it,
+- minting an **API token**, which outlives the session that made it,
+- adding a **webhook**, which sends every note from then on to its address,
+- turning **two-factor sign-in** on or off, or replacing its recovery codes (these asked before).
+
+An account with a password confirms with it, typed into the same form. Wrong passwords count against
+the same per-name budget as signing in, ten in fifteen minutes, so a stolen session cannot guess at
+the password any faster than the sign-in form can, and a name locked by either is locked for both.
+
+An account that signs in only through an identity provider has no password to type. Its proof is a
+sign-in within the last 15 minutes. Past that, the form says to sign in again and links to the
+identity provider with `prompt=login` (`/api/auth/login?reauth=1`), which asks for real rather than
+reusing its own session; the action is then repeated from the fresh session.
+
+Changing the password asks for the current one, as it always has.
+
 ## Ending sessions
 
 Deleting session rows stops the next HTTP request, but a WebSocket is authenticated once, when it

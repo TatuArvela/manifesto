@@ -183,7 +183,11 @@ describe("application WebSocket /api/ws", () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session}`,
       },
-      body: JSON.stringify({ name: "assistant", kind: "mcp" }),
+      body: JSON.stringify({
+        password: "password-1234",
+        name: "assistant",
+        kind: "mcp",
+      }),
     });
     const { secret } = (await created.json()) as { secret: string };
     const { ws } = openSocket(rig.wsUrl, secret);
@@ -201,7 +205,11 @@ describe("application WebSocket /api/ws", () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session}`,
       },
-      body: JSON.stringify({ name: "profile", scopes: ["account:read"] }),
+      body: JSON.stringify({
+        password: "password-1234",
+        name: "profile",
+        scopes: ["account:read"],
+      }),
     });
     const { secret } = (await created.json()) as { secret: string };
     const { ws } = openSocket(rig.wsUrl, secret);
@@ -364,7 +372,7 @@ describe("application WebSocket /api/ws", () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session}`,
       },
-      body: JSON.stringify({ name: "script" }),
+      body: JSON.stringify({ password: "password-1234", name: "script" }),
     });
     const { token, secret } = (await created.json()) as {
       token: { id: string };

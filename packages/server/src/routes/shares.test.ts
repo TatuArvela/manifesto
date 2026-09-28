@@ -476,7 +476,10 @@ describe("finding people to share with", () => {
     await rig.request("/api/auth/me", {
       method: "PUT",
       headers: authHeaders(bob.token),
-      body: JSON.stringify({ email: "Robert@Example.com" }),
+      body: JSON.stringify({
+        email: "Robert@Example.com",
+        password: "test-pass-12",
+      }),
     });
     const find = async (q: string) =>
       (
@@ -566,7 +569,7 @@ describe("email addresses on accounts", () => {
       rig.request("/api/auth/me", {
         method: "PUT",
         headers: authHeaders(bob.token),
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password: "test-pass-12" }),
       });
 
     const taken = await put("alice@example.com");

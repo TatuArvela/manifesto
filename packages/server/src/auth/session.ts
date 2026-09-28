@@ -115,6 +115,7 @@ export async function authenticateBySession(
     userId: user.id,
     token,
     via: "session",
+    signedInAt: session.createdAt,
     username: user.username,
     displayName: user.displayName || user.username,
     avatarColor: user.avatarColor,

@@ -28,6 +28,8 @@ import {
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
+import { requireConfirmation } from "./confirmation.js";
+import type { LoginAttempts } from "./local/loginAttempts.js";
 import type { AuthProvider, AuthProviderRouter } from "./types.js";
 import { toAuthUser } from "./users.js";
 
@@ -37,6 +39,7 @@ interface SharedAuthRoutesDeps {
   authProvider: AuthProvider;
   /** Tells the account's other devices when its preferences change. */
   broadcaster?: Broadcaster;
+  loginAttempts: LoginAttempts;
 }
 
 /**
@@ -92,7 +95,7 @@ export function createAuthSharedRoutes(
     zValidator("json", authMeUpdateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      const { email } = c.req.valid("json");
+      const { email, password } = c.req.valid("json");
       const user = await deps.storage.users.findById(userId);
       if (!user) throw new HttpError(401, "User not found");
       if (user.provider !== "local") {
@@ -101,6 +104,9 @@ export function createAuthSharedRoutes(
           "This account's email address comes from single sign-on",
         );
       }
+      // A reset link goes to this address, so whoever sets it can take the
+      // password next.
+      await requireConfirmation(deps, c.get("auth"), password);
       const result = await deps.storage.users.setEmail(userId, email);
       if (result === "not-found") throw new HttpError(401, "User not found");
       if (result === "email-taken") throw emailTaken();

@@ -356,7 +356,12 @@ export type ErrorCode =
   | "email_taken"
   | "two_factor_required"
   | "two_factor_invalid"
-  | "admin_export_disabled";
+  | "admin_export_disabled"
+  /** An action that takes the password was sent without it. */
+  | "confirmation_required"
+  | "password_incorrect"
+  /** An account without a password has to have signed in recently. */
+  | "reauthentication_required";
 
 export interface ErrorResponse {
   error: string;
