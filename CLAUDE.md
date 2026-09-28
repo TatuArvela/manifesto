@@ -554,7 +554,9 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   lifecycle), `tools.ts` (the catalogue), `routes.ts` (HTTP). A tool is REST calls through
   `app.fetch` with the caller's token and never touches storage, so every rule of the routes holds for
   it. A new tool composes routes; one that needs what no route offers needs the route first. Spec:
-  `docs/specification/features/mcp.md`.
+  `docs/specification/features/mcp.md`. The agent skill that teaches the tools is
+  `skills/manifesto/SKILL.md` at the repo root, and `mcp/skill.test.ts` fails until it names a new
+  tool (in its `description` too) and stops naming a removed one.
 - **Webhooks**: `webhooks/dispatcher.ts` subscribes to the broadcaster, so a webhook hears what its
   owner's sockets hear and a new note event needs no webhook code. Deliveries go through `safeFetch`
   (POST, no redirects) with the address rule `WEBHOOKS` picks; never call `fetch` for them.

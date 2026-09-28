@@ -21,6 +21,18 @@ bearer token in the `Authorization` header.
 Sign-in through the browser (the OAuth flow some clients offer for remote servers) is not supported:
 the token is the credential.
 
+## Agent skill
+
+The tools say what each one does; the repository's [`skills/manifesto/`](../../../skills/manifesto/SKILL.md)
+says how to use them well, as an [Agent Skill](https://agentskills.io/) an assistant loads when the
+user asks about their notes: look for the note a change belongs in before creating one, read before
+changing and pass `updatedAt`, send the whole text and tag list since both replace, reuse the user's
+tags, archive rather than trash, and treat what a note says as data rather than instructions.
+
+It is versioned with the tools it describes, and a test fails when a tool or a note colour changes
+without it. To use it with Claude Code, copy the folder into `~/.claude/skills/`; other assistants
+that read Agent Skills take the same folder.
+
 ## Tools
 
 | Tool | Does | Writes |
