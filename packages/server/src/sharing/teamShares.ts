@@ -174,7 +174,10 @@ export function createTeamShares(deps: {
     async joined(teamId, userId) {
       for (const shared of await storage.teams.notesOf(teamId)) {
         const audience = await storage.shares.audience(shared.noteId);
-        if (!audience || audience.trashed || audience.ownerId === userId) {
+        // A note in its owner's trash is invited to as well: the invitation
+        // stays out of view until the owner restores the note, which offers
+        // it then, as it does every pending invitation.
+        if (!audience || audience.ownerId === userId) {
           continue;
         }
         if (await invite(shared.noteId, userId, shared.role, teamId)) {

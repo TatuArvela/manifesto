@@ -19,6 +19,7 @@ import {
   showError,
   togglePin,
   updateNote,
+  updateStoredNote,
 } from "../state/index.js";
 import { recordVersion } from "../state/versions.js";
 import { isPhoneLayout } from "../utils/phoneSheets.js";
@@ -106,9 +107,8 @@ export function NoteCardEditor({
   const saveText = (title: string, content: string) => {
     const records = agreementRef.current;
     records.claim(content);
-    void updateNote(note.id, { title, content }).then((ok) => {
-      const saved = notes.value.find((n) => n.id === note.id);
-      if (ok && saved) records.confirm(saved.updatedAt);
+    void updateStoredNote(note.id, { title, content }).then((saved) => {
+      if (saved) records.confirm(saved.updatedAt);
     });
   };
 

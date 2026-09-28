@@ -534,7 +534,9 @@ function TeamShares({ note }: { note: Note }) {
   const offered = teams.filter((team) =>
     shares.every((share) => share.teamId !== team.id),
   );
-  if (teams.length === 0) return null;
+  // An owner who has left a team still sees the note's share with it, or
+  // nothing would let them end it.
+  if (teams.length === 0 && shares.length === 0) return null;
 
   const run = async (action: () => Promise<TeamShare[] | null>) => {
     setBusy(true);

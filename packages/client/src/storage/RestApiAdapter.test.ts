@@ -139,6 +139,13 @@ describe("RestApiAdapter", () => {
       );
     });
 
+    it("reads a server without the endpoint as keeping no record of change", async () => {
+      fetchMock.mockResolvedValueOnce(
+        new Response("Not Found", { status: 404 }),
+      );
+      expect(await adapter.changesSince(null)).toBeNull();
+    });
+
     it("refuses a last page without a checkpoint", async () => {
       fetchMock.mockResolvedValueOnce(
         jsonResponse({

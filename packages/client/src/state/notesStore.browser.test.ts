@@ -1,7 +1,12 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "../storage/index.js";
-import { notes, notesLoaded } from "./notesStore.js";
+import {
+  notes,
+  notesLoaded,
+  receiveNote,
+  updateStoredNote,
+} from "./notesStore.js";
 
 const note: Note = {
   id: "n1",
@@ -23,6 +28,7 @@ const note: Note = {
 };
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   storageConnection.value = { serverUrl: null, token: null };
   notes.value = [];
   notesLoaded.value = false;
@@ -42,5 +48,39 @@ describe("the end of a session", () => {
     notes.value = [note];
     storageConnection.value = { serverUrl: null, token: null };
     expect(notes.value).toEqual([note]);
+  });
+});
+
+describe("updateStoredNote", () => {
+  it("answers with its own reply, not a copy that arrived while it was read", async () => {
+    storageConnection.value = { serverUrl: "http://server.test", token: "t" };
+    notes.value = [note];
+    const ours = {
+      ...note,
+      content: "Ours",
+      updatedAt: "2026-04-01T00:01:00.000Z",
+    };
+    // Someone else's write, broadcast while the reply's body is still read.
+    const theirs = {
+      ...note,
+      content: "Theirs",
+      updatedAt: "2026-04-01T00:02:00.000Z",
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => {
+          receiveNote(theirs);
+          return { note: ours };
+        },
+      })),
+    );
+
+    const saved = await updateStoredNote(note.id, { content: "Ours" });
+
+    expect(saved?.updatedAt).toBe(ours.updatedAt);
+    expect(notes.value[0].updatedAt).toBe(theirs.updatedAt);
   });
 });

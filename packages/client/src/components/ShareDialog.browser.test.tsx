@@ -301,4 +301,19 @@ describe("sharing with a team", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(dialog().textContent).not.toContain(t("sharing.teams.title"));
   });
+
+  it("still shows a team share to an owner who has left the team, so it can be ended", async () => {
+    teamShares = [{ teamId: "t1", name: "Design", role: "edit" }];
+    notes.value = [makeNote()];
+    shareDialog.value = { noteId: "n1" };
+    render(<ShareDialogHost />, host);
+    await vi.waitFor(() => {
+      expect(
+        button(t("sharing.teams.remove", { team: "Design" })),
+      ).toBeTruthy();
+    });
+    expect(
+      dialog().querySelector(`select[aria-label="${t("sharing.teams.pick")}"]`),
+    ).toBeNull();
+  });
 });

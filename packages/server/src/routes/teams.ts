@@ -200,14 +200,19 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
     return team;
   }
 
-  /** Brings a team's members to `wanted`, through joined/left. */
-  async function setMembers(teamId: string, wanted: string[]): Promise<void> {
-    const want = new Set(wanted);
-    for (const id of want) {
+  /** Refuses a member list naming someone who does not exist. Called before
+   * anything is written, so a refused request leaves no team or name behind. */
+  async function checkMembers(wanted: string[]): Promise<void> {
+    for (const id of new Set(wanted)) {
       if (!(await storage.users.findById(id))) {
         throw new HttpError(404, "User not found");
       }
     }
+  }
+
+  /** Brings a team's members to `wanted`, through joined/left. */
+  async function setMembers(teamId: string, wanted: string[]): Promise<void> {
+    const want = new Set(wanted);
     const current = new Set(await storage.teams.members(teamId));
     for (const id of want) {
       if (current.has(id)) continue;
@@ -236,6 +241,7 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
     zValidator("json", adminTeamCreateSchema, validatorHook),
     async (c) => {
       const { name, memberIds } = c.req.valid("json");
+      if (memberIds) await checkMembers(memberIds);
       const id = newId();
       const created = await storage.teams.create({
         id,
@@ -271,6 +277,7 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
           "This team follows a group at the identity provider",
         );
       }
+      if (memberIds) await checkMembers(memberIds);
       if (name !== undefined && name !== team.name) {
         const renamed = await storage.teams.rename(team.id, name);
         if (renamed === "exists") {

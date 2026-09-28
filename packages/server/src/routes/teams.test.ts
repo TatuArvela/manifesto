@@ -229,6 +229,32 @@ describe("teams as share targets", () => {
     expect(await canRead(alice, note.id)).toBe(false);
   });
 
+  it("invites someone who joined while the note was in the owner's trash once it is restored", async () => {
+    const team = await makeTeam("Design", [owner]);
+    const note = await createNote();
+    await shareWithTeam(note.id, team);
+    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: true });
+
+    await call(admin, "PUT", `/api/admin/teams/${team}`, {
+      memberIds: [owner.userId, alice.userId],
+    });
+    expect(await invitationsOf(alice)).toEqual([]);
+
+    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: false });
+    expect((await invitationsOf(alice))[0]?.noteId).toBe(note.id);
+  });
+
+  it("leaves nothing behind when a member it names does not exist", async () => {
+    const missing = await call(admin, "POST", "/api/admin/teams", {
+      name: "Design",
+      memberIds: [alice.userId, "01J00000000000000000000000"],
+    });
+    expect(missing.status).toBe(404);
+    const listed = await call(admin, "GET", "/api/admin/teams");
+    expect(((await listed.json()) as { teams: unknown[] }).teams).toEqual([]);
+    await makeTeam("Design", [alice]);
+  });
+
   it("takes its notes with it when the team is removed", async () => {
     const team = await makeTeam("Design", [owner, alice]);
     const note = await createNote();

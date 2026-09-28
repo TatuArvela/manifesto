@@ -126,8 +126,11 @@ export class RestApiAdapter implements StorageAdapter {
   /**
    * Every page of one sync. The checkpoint and the ids come on the last page,
    * and the checkpoint is fixed by the server when the first was asked for.
+   *
+   * A server from before `/api/sync` answers 404, which is read as keeping no
+   * record of change: the caller lists everything, as it did then.
    */
-  async changesSince(since: string | null): Promise<NoteChanges> {
+  async changesSince(since: string | null): Promise<NoteChanges | null> {
     const notes: Note[] = [];
     let cursor: string | null = null;
     for (;;) {
@@ -138,6 +141,7 @@ export class RestApiAdapter implements StorageAdapter {
       const res: Response = await fetch(`${this.baseUrl}/api/sync${search}`, {
         headers: this.headers(),
       });
+      if (res.status === 404 && cursor === null) return null;
       if (!res.ok) await this.fail(res, "Failed to sync notes");
       const data = (await res.json()) as SyncResponse;
       notes.push(...data.notes);

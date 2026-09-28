@@ -336,11 +336,25 @@ export async function updateNote(
   changes: NoteUpdate,
   batch?: Batch,
 ): Promise<boolean> {
+  return (await updateStoredNote(id, changes, batch)) !== null;
+}
+
+/**
+ * `updateNote` for a caller that needs the note as this write left it: the
+ * reply to the write itself, never whatever copy the list holds when it
+ * lands. A broadcast of someone else's write can arrive while the reply is
+ * read, and the list then holds that one. `null` when the write failed.
+ */
+export async function updateStoredNote(
+  id: string,
+  changes: NoteUpdate,
+  batch?: Batch,
+): Promise<Note | null> {
   // An auto-note keeps its metadata in the override sidecar; its title and
   // content are the plugin's.
   if (isGeneratedNoteId(id)) {
     updateAutoNoteOverride(id, overrideFrom(changes));
-    return true;
+    return notes.value.find((n) => n.id === id) ?? null;
   }
   const base = notes.value.find((n) => n.id === id) ?? null;
   const refusal = base ? refusalFor(base, changes) : null;
@@ -351,7 +365,7 @@ export async function updateNote(
       refusal,
       batch,
     );
-    return false;
+    return null;
   }
   if (base)
     notes.value = upsertById(notes.value, pendingWrites.begin(base, changes));
@@ -363,7 +377,7 @@ export async function updateNote(
     );
     pendingWrites.settle(id, changes);
     receiveNote(note);
-    return true;
+    return note;
   } catch (err) {
     if (err instanceof NoteConflictError && base) {
       const merged = mergeNoteUpdate(base, changes, err.currentNote);
@@ -373,7 +387,7 @@ export async function updateNote(
         });
         pendingWrites.settle(id, changes);
         receiveNote(note);
-        return true;
+        return note;
       } catch (retryErr) {
         pendingWrites.settle(id, changes);
         receiveNote(
@@ -387,7 +401,7 @@ export async function updateNote(
           "error.saveFailed",
           batch,
         );
-        return false;
+        return null;
       }
     }
     // The write never landed, so neither does what it showed: back to what
@@ -401,7 +415,7 @@ export async function updateNote(
       "error.saveFailed",
       batch,
     );
-    return false;
+    return null;
   }
 }
 
