@@ -320,6 +320,10 @@ Every way a link fails answers the same 404, and a view is counted by one condit
 (`recordView`), never a read then a write. A snapshot's pictures are referrers for the attachment
 sweep in both drivers, so a new place that keeps attachment references must be added there too.
 
+Other apps' formats (Evernote, Joplin, Simplenote, Standard Notes, HTML) are `Importer`s in
+`utils/importers/`, registered in its `index.ts`; `importFiles` offers each file and each archived
+JSON document to them, so a new format is one file there.
+
 `utils/importExport.ts` handles both directions for Markdown and JSON, single note and bulk. It
 caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
 code runs. The full export is a zip in both modes, laid out by `exportArchiveFiles` in

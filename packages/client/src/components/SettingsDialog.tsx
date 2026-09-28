@@ -766,6 +766,20 @@ const IMPORT_FORMATS: [MessageKey, MessageKey][] = [
     "settings.data.importHint.markdownBody",
   ],
   ["settings.data.importHint.keep", "settings.data.importHint.keepBody"],
+  [
+    "settings.data.importHint.evernote",
+    "settings.data.importHint.evernoteBody",
+  ],
+  ["settings.data.importHint.joplin", "settings.data.importHint.joplinBody"],
+  [
+    "settings.data.importHint.simplenote",
+    "settings.data.importHint.simplenoteBody",
+  ],
+  [
+    "settings.data.importHint.standardNotes",
+    "settings.data.importHint.standardNotesBody",
+  ],
+  ["settings.data.importHint.html", "settings.data.importHint.htmlBody"],
 ];
 
 function DataSettings() {
@@ -837,7 +851,7 @@ function DataSettings() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json,.md,.markdown,.zip,image/*"
+          accept=".json,.md,.markdown,.zip,.enex,.jex,.html,.htm,image/*"
           multiple
           class="hidden"
           onChange={handleFileChange}

@@ -82,6 +82,24 @@ a new ID, so importing the same Takeout twice gives two copies.
 A zip is read with the browser's own `DecompressionStream`; entries are inflated against one byte
 budget shared by the whole archive (the 50 MB import cap), so a small archive cannot inflate past it.
 
+## Other Apps
+
+Each of these is recognised by its contents, and imported as a merge of new notes, dated as the source
+dated them. Formats are importers behind one interface (`utils/importers/`), so another is added there
+and nowhere else.
+
+| From | File | What comes across |
+|---|---|---|
+| Evernote | `.enex` | Title, text (its HTML as Markdown, checkboxes as a task list), tags, dates, and image attachments as the note's images. Other attachments (PDFs, audio) have no place on a note. |
+| Joplin | `.jex` | Title, text, tags, dates, and the trash. Notebooks and attachments stay behind; a link to an attachment keeps its words, an embedded image goes. Encrypted items are skipped, and an export of nothing else is refused. |
+| Simplenote | the export `.zip`, or its `source/notes.json` | The first line as the title, the rest as text, tags, the pin, dates, and the trash. |
+| Standard Notes | a decrypted backup's `.json` | Title, text, tags, the pin, archive and trash, dates. An encrypted backup cannot be read here and is refused as one failed file, never as empty notes. |
+| HTML | `.html`, `.htm` | One note per file, titled by the page's title or first heading, its body as Markdown. |
+
+Apple Notes has no export of its own. The tools that export it write HTML or Markdown, which import as
+above. HTML is parsed into an inert document, where no script runs and no image loads, and the note it
+becomes is rendered through the same sanitizer as any other.
+
 ## Use Cases
 
 - Back up and restore data

@@ -344,6 +344,21 @@ export const en = {
   "settings.data.importHint.keep": "Google Keep",
   "settings.data.importHint.keepBody":
     "a Google Takeout .zip, or the files inside it.",
+  "settings.data.importHint.evernote": "Evernote",
+  "settings.data.importHint.evernoteBody":
+    "an .enex export, with its tags and pictures.",
+  "settings.data.importHint.joplin": "Joplin",
+  "settings.data.importHint.joplinBody":
+    "a .jex export, with its tags. Attachments stay behind.",
+  "settings.data.importHint.simplenote": "Simplenote",
+  "settings.data.importHint.simplenoteBody":
+    "the export .zip, or the notes.json inside it.",
+  "settings.data.importHint.standardNotes": "Standard Notes",
+  "settings.data.importHint.standardNotesBody":
+    "a decrypted backup's .json. An encrypted one cannot be read here.",
+  "settings.data.importHint.html": "HTML",
+  "settings.data.importHint.htmlBody":
+    "saved pages, and Apple Notes exported with a tool that writes HTML or Markdown.",
   "settings.data.export": "Export Notes",
   "settings.data.deleteAll": "Delete All",
   "settings.data.deleteConfirm":
@@ -653,7 +668,7 @@ export const en = {
   "storage.quotaExceeded":
     "Browser storage is full. Some changes may not be saved until you free up space.",
   "dropZone.title": "Drop to import",
-  "dropZone.hint": "Markdown or JSON files",
+  "dropZone.hint": "Markdown, JSON, Evernote, Joplin or HTML files",
 
   // Deployment misconfiguration, shown instead of the app at startup
   "setup.title": "{appName} cannot reach its server",

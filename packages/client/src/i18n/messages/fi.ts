@@ -351,6 +351,21 @@ export const fi: Messages = {
   "settings.data.importHint.keep": "Google Keep",
   "settings.data.importHint.keepBody":
     "Google Takeoutin .zip tai sen sisältämät tiedostot.",
+  "settings.data.importHint.evernote": "Evernote",
+  "settings.data.importHint.evernoteBody":
+    ".enex-vienti tunnisteineen ja kuvineen.",
+  "settings.data.importHint.joplin": "Joplin",
+  "settings.data.importHint.joplinBody":
+    ".jex-vienti tunnisteineen. Liitteet jäävät pois.",
+  "settings.data.importHint.simplenote": "Simplenote",
+  "settings.data.importHint.simplenoteBody":
+    "vientitiedosto (.zip) tai sen sisältämä notes.json.",
+  "settings.data.importHint.standardNotes": "Standard Notes",
+  "settings.data.importHint.standardNotesBody":
+    "salaamattoman varmuuskopion .json. Salattua varmuuskopiota ei voi lukea täällä.",
+  "settings.data.importHint.html": "HTML",
+  "settings.data.importHint.htmlBody":
+    "tallennetut sivut sekä Apple Notes, kun se viedään HTML- tai Markdown-muotoon jollakin työkalulla.",
   "settings.data.export": "Vie muistiinpanot",
   "settings.data.deleteAll": "Poista kaikki",
   "settings.data.deleteConfirm":
@@ -665,7 +680,7 @@ export const fi: Messages = {
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",
-  "dropZone.hint": "Markdown- tai JSON-tiedostoja",
+  "dropZone.hint": "Markdown-, JSON-, Evernote-, Joplin- tai HTML-tiedostoja",
 
   // Käyttöönoton virheasetus, näytetään sovelluksen sijaan käynnistyksessä
   "setup.title": "{appName} ei tavoita palvelintaan",

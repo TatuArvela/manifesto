@@ -19,6 +19,11 @@ import {
   frontmatterString,
   splitFrontmatter,
 } from "./frontmatter.js";
+import {
+  importerForFile,
+  MAX_IMPORT_BYTES,
+  notesFromForeignJson,
+} from "./importers/index.js";
 import { isKeepNote, keepNoteToNote } from "./keepImport.js";
 import { parseLinkPreviews } from "./linkPreview.js";
 import { isZipFile, readZip, type ZipEntry } from "./zip.js";
@@ -30,9 +35,6 @@ export type ImportResult =
 const MARKDOWN_EXTS = [".md", ".markdown"];
 const JSON_EXTS = [".json"];
 const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif"];
-
-// Guard against a multi-GB drop locking the tab in JSON.parse.
-const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
 
 function sanitizeFilename(name: string): string {
   const cleaned = name
@@ -297,6 +299,8 @@ export function isImportableFile(file: File): boolean {
   }
   // Takeout: an archive, or an unpacked folder's JSON with its images.
   if (isZipFile(file) || isImageFile(file)) return true;
+  // Another app's export (`importers/`).
+  if (importerForFile(ext)) return true;
   return false;
 }
 
@@ -420,7 +424,12 @@ async function notesFromZip(
   for (const entry of entries) {
     if (fileExtension(entry.name) !== ".json") continue;
     const data = parseJsonOrNull(textDecoder.decode(await read(entry)));
-    if (!isKeepNote(data)) continue;
+    if (!isKeepNote(data)) {
+      // Another app's JSON: Simplenote's export zips its notes this way.
+      const foreign = await notesFromForeignJson(data);
+      if (foreign) notes.push(...foreign);
+      continue;
+    }
     const dir = entry.name.slice(0, entry.name.lastIndexOf("/") + 1);
     notes.push(
       await keepNoteToNote(data as Record<string, unknown>, async (path) => {
@@ -494,11 +503,23 @@ export async function importFiles(
         }
         continue;
       }
+      const foreign = importerForFile(fileExtension(file.name));
+      if (foreign?.fromFile) {
+        const notes = await foreign.fromFile(file);
+        if (notes) await bulk(notes);
+        else summary.failedCount++;
+        continue;
+      }
       if (
         fileExtension(file.name) === ".json" &&
         file.size <= MAX_IMPORT_BYTES
       ) {
         const data = parseJsonOrNull(await file.text());
+        const foreignNotes = await notesFromForeignJson(data);
+        if (foreignNotes) {
+          await bulk(foreignNotes);
+          continue;
+        }
         if (isKeepNote(data)) {
           keepNotes.push(
             await keepNoteToNote(
