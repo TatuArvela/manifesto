@@ -80,6 +80,33 @@ export interface Operation {
   responses: Record<string, { description: string; schema?: string }>;
   /** Registered only under this auth provider. */
   provider?: "local" | "oidc";
+  /**
+   * The release that deprecated it, and what to use instead. A deprecated
+   * operation keeps working for at least two minor releases after that one
+   * (the compatibility policy in `api.md`).
+   */
+  deprecated?: { since: string; use?: string };
+}
+
+/**
+ * The operations anything other than this server's own web client relies on,
+ * which the compatibility policy in `api.md` covers: whatever a token can
+ * call (a scope names it, `/api/mcp` included), and these, which programs
+ * call with no credential. Everything else is the client's own surface.
+ */
+const PUBLIC_WITHOUT_CREDENTIAL = new Set([
+  "/api/health",
+  "/api/openapi.json",
+  "/api/calendar/:file",
+  "/api/public/:token",
+  "/api/public/:token/unlock",
+  "/api/public/:token/attachments/:id",
+  "/api/oauth/register",
+  "/api/oauth/token",
+]);
+
+export function isPublicSurface(op: Operation): boolean {
+  return op.scope !== undefined || PUBLIC_WITHOUT_CREDENTIAL.has(op.path);
 }
 
 const ok = (schema?: string) => ({
@@ -1316,6 +1343,12 @@ export function buildOpenApiDocument(version: string) {
       ...(op.auth === "mcp" && { "x-mcp-only": true }),
       ...(op.limits.length > 0 && { "x-rate-limits": op.limits }),
       ...(op.scope && { "x-token-scope": op.scope }),
+      "x-stability": isPublicSurface(op) ? "public" : "client",
+      ...(op.deprecated && {
+        deprecated: true,
+        "x-deprecated-since": op.deprecated.since,
+        ...(op.deprecated.use && { "x-use-instead": op.deprecated.use }),
+      }),
       ...(parameters.length > 0 && { parameters }),
       ...(op.body && {
         requestBody: {
@@ -1348,7 +1381,7 @@ export function buildOpenApiDocument(version: string) {
       title: "Manifesto API",
       version,
       description:
-        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md.",
+        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md. x-stability says whether the compatibility policy in docs/specification/api.md covers an operation (public) or it is the web client's own (client); a deprecated one keeps working for at least two minor releases after x-deprecated-since.",
       license: { name: "MIT" },
     },
     servers: [{ url: "/" }],

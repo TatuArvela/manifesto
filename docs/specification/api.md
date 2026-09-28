@@ -7,6 +7,70 @@ third-party clients and code generators. Request bodies in it are the zod schema
 with, converted (`src/openapi.ts`), and `openapi.test.ts` holds its list of operations to the routes the
 app registers, so it cannot fall behind. This page stays the prose account of the contract.
 
+## Compatibility
+
+Scripts with API tokens, AI assistants, webhook receivers and calendar apps are built against this API
+by people other than whoever runs the server, and they cannot all move when it does. So part of it is
+promised to keep working across releases, even before 1.0.
+
+### What is covered
+
+The **public surface**:
+
+- every operation a personal API token or an MCP token can call (those with an `x-token-scope`), with
+  its path, parameters, request and response bodies, status codes and error `code`s;
+- the operations programs call with no credential: `/api/health`, `/api/openapi.json`, the calendar
+  feed (`/api/calendar/<token>.ics`), public links (`/api/public/*`), and OAuth for assistants
+  (`/api/oauth/register`, `/api/oauth/token` and the `/.well-known/` documents);
+- `/api/ws` as a token sees it: the handshake, the events and their shapes;
+- the MCP tools: their names, inputs and outputs;
+- webhooks: the events, the `WebhookPayload`, the headers and the signature scheme;
+- the token prefixes (`mfp_`, `mfm_`, `mfr_`, `mfc_`) and the scope names.
+
+The OpenAPI document marks each operation `x-stability: public` or `client`. The **client surface** is
+everything else: what only a session may call (sign-in, the account's security, tokens, webhooks'
+management, `/api/admin/*`) and `/api/yjs`. It exists for this server's own web client, which is
+released with it, and may change in any release, with a note in the release notes. `/api/yjs` has a
+gate of its own for that: an editor older than the server's schema is refused and asked to reload.
+
+### What a release may do
+
+Always, within the public surface:
+
+- add operations, MCP tools, webhook events, scopes and token kinds;
+- add optional request fields and parameters, and fields to responses and payloads;
+- add values to a set a response or payload draws from (an audit action, an event, a note colour);
+- make a limit more generous, or accept what it refused before.
+
+So a program written against it should ignore fields it does not know, and treat a value it does not
+know as it would one it has no use for.
+
+Only after a deprecation:
+
+- remove or rename an operation, a field, an MCP tool, an event, a scope or a header;
+- change what a field means, or its type;
+- make an optional field required, or accept less than before;
+- change a status code or an error `code` a caller acts on;
+- require a scope an operation did not require before.
+
+### Deprecating
+
+What is to go is marked deprecated in the OpenAPI document (`deprecated: true`, with
+`x-deprecated-since` and, when there is one, `x-use-instead`), on this page, and in the release notes
+of the release that deprecates it. It keeps working for at least **two minor releases** after that one,
+and the release that removes it says so in its notes.
+
+Two things do not wait. A security fix may close what it has to at once. Rate limits and size limits
+may tighten to protect a server; both are per deployment anyway, and a caller already has to handle
+`429` and `413`.
+
+### Between the client and the server
+
+The web client is released with the server, but a tab left open, an installed app or a client built
+for another deployment can meet a server of another version. The client reads every field a newer
+server added as optional (the pattern in `api.ts` is "absent from servers from before it"), and turns a
+feature off when the server does not say it has it, rather than trying it and failing.
+
 ## REST API
 
 ### Notes

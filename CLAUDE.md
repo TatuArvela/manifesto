@@ -494,6 +494,11 @@ declared is refused. `/api/ws` checks its own caller in the handshake (`SELF_AUT
 `middleware/protect.test.ts` walks the list against the running app, and pins what secures an account
 to a session.
 
+The public surface (whatever a token can reach, the credential-free routes in `isPublicSurface`,
+webhook payloads, MCP tools) is under the compatibility policy in `api.md`: additions any time,
+removals and changes of meaning only after a deprecation (`deprecated` on the operation) of at least two
+minor releases. The session-only routes are the web client's own and may change with it.
+
 - REST: `/api/notes` (with `/api/notes/:id/shares`), `/api/search`, `/api/invitations`, `/api/users`, `/api/auth/*` (auth routes are owned by the active auth provider)
 - WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes the right to edit the joined document (owner or `edit` recipient) in `onAuthenticate`.
 - All timestamps are ISO 8601 UTC strings

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app.js";
 import { createAuthProvider } from "./auth/index.js";
-import { buildOpenApiDocument, OPERATIONS, openApiPath } from "./openapi.js";
+import {
+  buildOpenApiDocument,
+  isPublicSurface,
+  OPERATIONS,
+  openApiPath,
+} from "./openapi.js";
 import { createStorage } from "./storage/index.js";
 import { TEST_CONFIG } from "./test/setup.js";
 
@@ -69,6 +74,26 @@ describe("OpenAPI document", () => {
       create.requestBody.content["application/json"].schema.required,
     ).toContain("title");
     expect(Object.keys(doc.paths)).toContain(openApiPath("/api/notes/:id"));
+  });
+
+  it("says which operations the compatibility policy covers", () => {
+    const doc = buildOpenApiDocument("test");
+    const stability = (method: string, path: string) =>
+      (doc.paths[openApiPath(path)] as Record<string, Record<string, unknown>>)[
+        method
+      ]["x-stability"];
+    expect(stability("get", "/api/notes")).toBe("public");
+    expect(stability("post", "/api/mcp")).toBe("public");
+    expect(stability("get", "/api/calendar/:file")).toBe("public");
+    expect(stability("get", "/api/tokens")).toBe("client");
+    expect(stability("post", "/api/auth/login")).toBe("client");
+    // Nothing a session alone may call is promised to anything but the client.
+    expect(
+      OPERATIONS.filter(
+        (op) =>
+          (op.auth === "session" || op.auth === "admin") && isPublicSurface(op),
+      ),
+    ).toEqual([]);
   });
 
   it("is served", async () => {
