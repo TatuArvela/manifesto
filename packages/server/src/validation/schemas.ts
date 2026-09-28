@@ -122,6 +122,28 @@ export const shareCreateSchema = z.object({
 
 export const shareUpdateSchema = z.object({ role: shareRoleSchema });
 
+const teamName = z.string().trim().min(1).max(100);
+const teamMemberIds = z.array(z.string().min(1).max(64)).max(1000);
+
+/** `POST /api/admin/teams`. */
+export const adminTeamCreateSchema = z.object({
+  name: teamName,
+  memberIds: teamMemberIds.optional(),
+});
+
+/** `PUT /api/admin/teams/:id`. */
+export const adminTeamUpdateSchema = z
+  .object({ name: teamName.optional(), memberIds: teamMemberIds.optional() })
+  .refine((body) => body.name !== undefined || body.memberIds !== undefined, {
+    message: "Nothing to change",
+  });
+
+/** `POST /api/notes/:id/team-shares`. */
+export const teamShareCreateSchema = z.object({
+  teamId: z.string().min(1).max(64),
+  role: shareRoleSchema,
+});
+
 /** `POST /api/notes/:id/links`. */
 export const publicLinkCreateSchema = z.object({
   mode: z.enum(PUBLIC_LINK_MODES),

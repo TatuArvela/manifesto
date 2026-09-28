@@ -74,6 +74,12 @@ function InvitationCard({ invitation }: { invitation: ShareInvitation }) {
               : "sharing.invitation.view",
             { name },
           )}
+          {invitation.team && (
+            <span class="text-neutral-500 dark:text-neutral-400">
+              {" · "}
+              {t("sharing.viaTeam", { team: invitation.team.name })}
+            </span>
+          )}
         </p>
       </div>
 

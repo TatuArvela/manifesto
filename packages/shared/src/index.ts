@@ -4,6 +4,11 @@ export type {
   AccountPrefsUpdate,
   AdminCreateUserRequest,
   AdminOverviewResponse,
+  AdminTeam,
+  AdminTeamCreateRequest,
+  AdminTeamResponse,
+  AdminTeamsResponse,
+  AdminTeamUpdateRequest,
   AdminTemporaryPasswordResponse,
   AdminUpdateResponse,
   AdminUpdateUserRequest,
@@ -56,6 +61,12 @@ export type {
   ShareInvitation,
   ShareUpdateRequest,
   SyncResponse,
+  Team,
+  TeamShare,
+  TeamShareCreateRequest,
+  TeamSharesResponse,
+  TeamSource,
+  TeamsResponse,
   TwoFactorRecoveryCodesResponse,
   TwoFactorSetupResponse,
   TwoFactorStatusResponse,
@@ -85,6 +96,7 @@ export {
   MAX_NOTES_PER_IMPORT,
   MAX_PUBLIC_LINK_VIEWS,
   PUBLIC_LINK_MODES,
+  TEAM_SOURCES,
   WEBHOOK_EVENTS,
 } from "./api.js";
 export {
@@ -108,6 +120,7 @@ export type {
   ReminderRecurrence,
   ShareRole,
   ShareUser,
+  TeamRef,
 } from "./note.js";
 export {
   ATTACHMENT_REF_PATTERN,

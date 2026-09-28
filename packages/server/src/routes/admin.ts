@@ -31,6 +31,7 @@ import {
 } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
+import type { TeamShares } from "../sharing/teamShares.js";
 import {
   type AdminGuardedResult,
   EmailTakenError,
@@ -44,6 +45,7 @@ import {
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import { VERSION } from "../version.js";
+import { registerAdminTeamRoutes } from "./teams.js";
 
 interface AdminDeps {
   cfg: ServerConfig;
@@ -51,6 +53,7 @@ interface AdminDeps {
   authProvider: AuthProvider;
   revocations: SessionRevocations;
   noteEvents: NoteEvents;
+  teamShares: TeamShares;
   /** What the update check last found. */
   updateStatus?: () => UpdateStatus | null;
   /** The shared per-user limiter, mounted after auth. */
@@ -378,6 +381,8 @@ export function createAdminRoutes(deps: AdminDeps) {
     });
     return c.json(body);
   });
+
+  registerAdminTeamRoutes(admin, deps);
 
   return admin;
 }

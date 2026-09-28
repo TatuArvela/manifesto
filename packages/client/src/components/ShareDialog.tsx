@@ -5,8 +5,10 @@ import {
   roleOf,
   type ShareRole,
   type ShareUser,
+  type Team,
+  type TeamShare,
 } from "@manifesto/shared";
-import { LogOut, UserPlus, X } from "lucide-preact";
+import { LogOut, UserPlus, Users, X } from "lucide-preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
@@ -22,6 +24,14 @@ import {
   shareDialog,
   shareNote,
 } from "../state/sharing.js";
+import {
+  listMyTeams,
+  listTeamShares,
+  removeTeamShare,
+  setTeamShareRole,
+  shareWithTeam,
+} from "../state/teams.js";
+import { showError } from "../state/ui.js";
 import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
 import { Tooltip } from "./Tooltip.js";
@@ -152,6 +162,8 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
               memberIds={new Set(members.map((m) => m.id))}
             />
           )}
+
+          {isOwner && <TeamShares note={note} />}
 
           <ul class="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-700">
             {owner && (
@@ -286,7 +298,14 @@ function MemberRow({
     <PersonRow
       person={member}
       isMe={isMe}
-      secondary={member.accepted ? undefined : t("sharing.invited")}
+      secondary={
+        [
+          member.accepted ? null : t("sharing.invited"),
+          member.team ? t("sharing.viaTeam", { team: member.team.name }) : null,
+        ]
+          .filter((part): part is string => part !== null)
+          .join(" · ") || undefined
+      }
     >
       {canManage ? (
         <>
@@ -483,5 +502,126 @@ function AddPerson({
         </ul>
       )}
     </form>
+  );
+}
+
+/**
+ * The teams a note is shared with, for its owner: offered only their own
+ * teams, and shown nothing at all when they are in none. Sharing with a team
+ * invites each member, and later members as they join.
+ */
+function TeamShares({ note }: { note: Note }) {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [shares, setShares] = useState<TeamShare[]>([]);
+  const [picked, setPicked] = useState("");
+  const [role, setRole] = useState<ShareRole>("edit");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([listMyTeams(), listTeamShares(note.id)]).then(
+      ([mine, current]) => {
+        if (cancelled) return;
+        setTeams(mine ?? []);
+        setShares(current ?? []);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [note.id]);
+
+  const offered = teams.filter((team) =>
+    shares.every((share) => share.teamId !== team.id),
+  );
+  if (teams.length === 0) return null;
+
+  const run = async (action: () => Promise<TeamShare[] | null>) => {
+    setBusy(true);
+    const next = await action();
+    setBusy(false);
+    if (next) setShares(next);
+    else showError(t("sharing.teams.failed"));
+  };
+
+  return (
+    <div class="flex flex-col gap-2">
+      <h3 class="text-sm font-medium">{t("sharing.teams.title")}</h3>
+      {offered.length > 0 && (
+        <div class="flex gap-2">
+          <select
+            class={`${selectClass} flex-1 min-w-0`}
+            value={picked}
+            aria-label={t("sharing.teams.pick")}
+            onChange={(e) =>
+              setPicked((e.currentTarget as HTMLSelectElement).value)
+            }
+          >
+            <option value="">{t("sharing.teams.pick")}</option>
+            {offered.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+          <RoleSelect
+            value={role}
+            onChange={setRole}
+            label={t("sharing.teams.role")}
+          />
+          <button
+            type="button"
+            class={primaryButtonClass}
+            disabled={busy || !picked}
+            onClick={() =>
+              run(async () => {
+                const next = await shareWithTeam(note.id, picked, role);
+                if (next) setPicked("");
+                return next;
+              })
+            }
+          >
+            {t("sharing.teams.add")}
+          </button>
+        </div>
+      )}
+      {shares.length > 0 && (
+        <ul class="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-700">
+          {shares.map((share) => (
+            <li key={share.teamId} class="flex items-center gap-3 py-2">
+              <Users class="w-4 h-4 text-neutral-500 shrink-0" />
+              <span class="flex-1 min-w-0 text-sm font-medium truncate">
+                {share.name}
+              </span>
+              <RoleSelect
+                value={share.role}
+                label={t("sharing.role.label", { name: share.name })}
+                disabled={busy}
+                onChange={(next) =>
+                  run(() => setTeamShareRole(note.id, share.teamId, next))
+                }
+              />
+              <Tooltip label={t("sharing.teams.remove", { team: share.name })}>
+                <button
+                  type="button"
+                  class="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-60 cursor-pointer"
+                  disabled={busy}
+                  aria-label={t("sharing.teams.remove", { team: share.name })}
+                  onClick={() =>
+                    run(async () =>
+                      (await removeTeamShare(note.id, share.teamId))
+                        ? shares.filter((s) => s.teamId !== share.teamId)
+                        : null,
+                    )
+                  }
+                >
+                  <X class="w-4 h-4" />
+                </button>
+              </Tooltip>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

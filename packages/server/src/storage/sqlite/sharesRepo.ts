@@ -14,14 +14,16 @@ import type {
 } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
-const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at`;
+const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team`;
 
 const INVITATION_SELECT = `
   SELECT s.note_id, s.role, s.created_at, n.title, n.content, n.color, n.font,
-         n.user_id AS owner_id, u.username, u.display_name, u.avatar_color
+         n.user_id AS owner_id, u.username, u.display_name, u.avatar_color,
+         s.via_team, t.name AS team_name
   FROM note_shares s
   JOIN notes n ON n.id = s.note_id
   JOIN users u ON u.id = n.user_id
+  LEFT JOIN teams t ON t.id = s.via_team
   WHERE s.user_id = ? AND s.accepted_at IS NULL AND n.trashed = 0`;
 
 function isPrimaryKeyViolation(err: unknown): boolean {
@@ -43,8 +45,11 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
     `SELECT ${SHARE_COLUMNS} FROM note_shares WHERE note_id = ? AND user_id = ?`,
   );
   const insertStmt = db.prepare(
-    `INSERT INTO note_shares (note_id, user_id, role, created_at)
-     VALUES (?, ?, ?, ?)`,
+    `INSERT INTO note_shares (note_id, user_id, role, created_at, via_team)
+     VALUES (?, ?, ?, ?, ?)`,
+  );
+  const setViaTeamStmt = db.prepare(
+    `UPDATE note_shares SET via_team = ? WHERE note_id = ? AND user_id = ?`,
   );
   const setRoleStmt = db.prepare(
     `UPDATE note_shares SET role = ? WHERE note_id = ? AND user_id = ?`,
@@ -67,7 +72,7 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
     `SELECT ${SHARE_COLUMNS} FROM note_shares WHERE user_id = ?`,
   );
   const byOwnerStmt = db.prepare(
-    `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at
+    `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at, s.via_team
      FROM note_shares s JOIN notes n ON n.id = s.note_id
      WHERE n.user_id = ?`,
   );
@@ -118,7 +123,13 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
 
     async create(input: CreateShareInput): Promise<"ok" | "exists"> {
       try {
-        insertStmt.run(input.noteId, input.userId, input.role, input.createdAt);
+        insertStmt.run(
+          input.noteId,
+          input.userId,
+          input.role,
+          input.createdAt,
+          input.viaTeam ?? null,
+        );
         membersChangedStmt.run(input.createdAt, input.noteId);
         return "ok";
       } catch (err) {
@@ -133,6 +144,14 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
       role: ShareRole,
     ): Promise<boolean> {
       if (setRoleStmt.run(role, noteId, userId).changes === 0) return false;
+      membersChangedStmt.run(membersChangedAt(), noteId);
+      return true;
+    },
+
+    async setViaTeam(noteId, userId, teamId) {
+      if (setViaTeamStmt.run(teamId, noteId, userId).changes === 0) {
+        return false;
+      }
       membersChangedStmt.run(membersChangedAt(), noteId);
       return true;
     },

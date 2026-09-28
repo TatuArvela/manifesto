@@ -16,6 +16,12 @@ export interface OidcConfig {
   adminGroup: string | null;
   /** When set, only members may sign in at all. */
   userGroup: string | null;
+  /**
+   * The groups mirrored as teams (`OIDC_TEAM_GROUPS`): these names, every
+   * group (`*`), or none (null, the default), since a directory's groups can
+   * run to hundreds and most mean nothing to note sharing.
+   */
+  teamGroups: string[] | "*" | null;
   /** When false, only identities that already have an account sign in. */
   autoRegister: boolean;
 }
@@ -279,8 +285,23 @@ function loadOidcConfig(): OidcConfig {
     groupsClaim: process.env.OIDC_GROUPS_CLAIM?.trim() || "groups",
     adminGroup: process.env.OIDC_ADMIN_GROUP?.trim() || null,
     userGroup: process.env.OIDC_USER_GROUP?.trim() || null,
+    teamGroups: parseTeamGroups(process.env.OIDC_TEAM_GROUPS),
     autoRegister: envBool("OIDC_AUTO_REGISTER", true),
   };
+}
+
+/** `OIDC_TEAM_GROUPS`: a comma-separated list of group names, or `*`. */
+export function parseTeamGroups(
+  raw: string | undefined,
+): string[] | "*" | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  if (value === "*") return "*";
+  const names = value
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+  return names.length > 0 ? names : null;
 }
 
 /**

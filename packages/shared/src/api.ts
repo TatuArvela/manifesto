@@ -7,6 +7,7 @@ import type {
   NoteVersion,
   ShareRole,
   ShareUser,
+  TeamRef,
 } from "./note.js";
 
 // --- Pagination ---
@@ -308,6 +309,9 @@ export const AUDIT_ACTIONS = [
   "share.created",
   "share.role_changed",
   "share.removed",
+  "share.team_added",
+  "share.team_role_changed",
+  "share.team_removed",
   "link.created",
   "link.revoked",
   "admin.user_created",
@@ -317,6 +321,9 @@ export const AUDIT_ACTIONS = [
   "admin.email_changed",
   "admin.password_reset",
   "admin.user_exported",
+  "admin.team_created",
+  "admin.team_updated",
+  "admin.team_deleted",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -585,10 +592,75 @@ export interface ShareInvitation {
   color: NoteColor;
   font: NoteFont;
   invitedAt: string;
+  /** The team the note was shared with, when it came that way. */
+  team?: TeamRef;
 }
 
 export interface InvitationsResponse {
   invitations: ShareInvitation[];
+}
+
+// --- Teams ---
+
+/**
+ * Where a team's members come from: `local` teams are made and filled by an
+ * admin; `oidc` teams mirror a group at the identity provider, and their
+ * members change only when someone signs in.
+ */
+export const TEAM_SOURCES = ["local", "oidc"] as const;
+export type TeamSource = (typeof TEAM_SOURCES)[number];
+
+/** A team as one of its members sees it. */
+export interface Team {
+  id: string;
+  name: string;
+  source: TeamSource;
+  memberCount: number;
+}
+
+/** A team as the admin view shows it, members and all. */
+export interface AdminTeam extends Team {
+  members: ShareUser[];
+  createdAt: string;
+}
+
+export interface TeamsResponse {
+  teams: Team[];
+}
+
+export interface AdminTeamsResponse {
+  teams: AdminTeam[];
+}
+
+export interface AdminTeamResponse {
+  team: AdminTeam;
+}
+
+export interface AdminTeamCreateRequest {
+  name: string;
+  memberIds?: string[];
+}
+
+/** Members only for a `local` team; an `oidc` team's are the provider's. */
+export interface AdminTeamUpdateRequest {
+  name?: string;
+  memberIds?: string[];
+}
+
+/** A note shared with a team, as its owner sees it. */
+export interface TeamShare {
+  teamId: string;
+  name: string;
+  role: ShareRole;
+}
+
+export interface TeamSharesResponse {
+  teamShares: TeamShare[];
+}
+
+export interface TeamShareCreateRequest {
+  teamId: string;
+  role: ShareRole;
 }
 
 // --- Public links ---

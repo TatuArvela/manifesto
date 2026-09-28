@@ -15,6 +15,7 @@ const both: Partial<ServerConfig> = {
     groupsClaim: "groups",
     adminGroup: null,
     userGroup: null,
+    teamGroups: null,
     autoRegister: true,
   },
 };

@@ -3,6 +3,8 @@ import {
   NoteColor,
   NoteFont,
   type NoteSharing,
+  type Team,
+  type TeamShare,
 } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -63,6 +65,8 @@ function json(body: unknown, status = 200): Response {
 }
 
 const fetchMock = vi.fn<typeof fetch>();
+let teams: Team[] = [];
+let teamShares: TeamShare[] = [];
 let host: HTMLDivElement;
 
 beforeEach(() => {
@@ -70,7 +74,21 @@ beforeEach(() => {
   host = document.createElement("div");
   document.body.appendChild(host);
   fetchMock.mockReset();
-  vi.stubGlobal("fetch", fetchMock);
+  teams = [];
+  teamShares = [];
+  // The team section asks for the owner's teams and the note's team shares
+  // as it opens. Answered here, so each test's queued answers go to the
+  // requests it is about.
+  vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/teams")) {
+      return Promise.resolve(json({ teams }));
+    }
+    if (url.endsWith("/team-shares") && (init?.method ?? "GET") === "GET") {
+      return Promise.resolve(json({ teamShares }));
+    }
+    return fetchMock(input, init);
+  });
   storageConnection.value = { serverUrl: SERVER, token: "tok" };
   currentUser.value = olivia;
   userLookupMode.value = "search";
@@ -209,5 +227,78 @@ describe("the share dialog", () => {
     await vi.waitFor(() => {
       expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
+  });
+});
+
+describe("sharing with a team", () => {
+  it("offers the owner's teams, shares with one, and names the team on its members", async () => {
+    teams = [{ id: "t1", name: "Design", source: "local", memberCount: 3 }];
+    notes.value = [
+      makeNote({
+        role: "owner",
+        owner: {
+          id: olivia.id,
+          username: olivia.username,
+          displayName: olivia.displayName,
+          avatarColor: olivia.avatarColor,
+        },
+        members: [
+          {
+            ...alice,
+            role: "edit",
+            accepted: false,
+            team: { id: "t1", name: "Design" },
+          },
+        ],
+      }),
+    ];
+    shareDialog.value = { noteId: "n1" };
+    render(<ShareDialogHost />, host);
+
+    await vi.waitFor(() => {
+      expect(dialog().textContent).toContain(t("sharing.teams.title"));
+    });
+    expect(dialog().textContent).toContain(
+      t("sharing.viaTeam", { team: "Design" }),
+    );
+
+    const select = dialog().querySelector<HTMLSelectElement>(
+      `select[aria-label="${t("sharing.teams.pick")}"]`,
+    ) as HTMLSelectElement;
+    select.value = "t1";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    fetchMock.mockResolvedValueOnce(
+      json(
+        { teamShares: [{ teamId: "t1", name: "Design", role: "edit" }] },
+        201,
+      ),
+    );
+    await vi.waitFor(() => {
+      expect(button(t("sharing.teams.add")).disabled).toBe(false);
+    });
+    button(t("sharing.teams.add")).click();
+
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(String(url)).toBe(`${SERVER}/api/notes/n1/team-shares`);
+    expect(JSON.parse(String(init?.body))).toEqual({
+      teamId: "t1",
+      role: "edit",
+    });
+    await vi.waitFor(() => {
+      expect(
+        button(t("sharing.teams.remove", { team: "Design" })),
+      ).toBeTruthy();
+    });
+  });
+
+  it("shows no team section to someone in no team", async () => {
+    notes.value = [makeNote()];
+    shareDialog.value = { noteId: "n1" };
+    render(<ShareDialogHost />, host);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(dialog().textContent).not.toContain(t("sharing.teams.title"));
   });
 });

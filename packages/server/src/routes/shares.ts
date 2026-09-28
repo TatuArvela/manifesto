@@ -93,7 +93,29 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
         createdAt: nowIso(),
       });
       if (created === "exists") {
-        throw new HttpError(409, "The note is already shared with this user");
+        // Someone who has the note through a team can be given it directly,
+        // which takes it out of the team's hands: removing the team share no
+        // longer removes them. A direct share already there is a conflict.
+        const existing = (await storage.shares.audience(noteId))?.shares.find(
+          (share) => share.userId === recipientId,
+        );
+        if (!existing?.viaTeam) {
+          throw new HttpError(409, "The note is already shared with this user");
+        }
+        await storage.shares.setViaTeam(noteId, recipientId, null);
+        if (existing.role !== role) {
+          await storage.shares.setRole(noteId, recipientId, role);
+          await announceRole(noteId, recipientId, existing.acceptedAt, role);
+        }
+        audit(storage, c, {
+          action: "share.created",
+          actorId: userId,
+          targetId: recipientId,
+          noteId,
+          detail: { role, from: "team" },
+        });
+        await noteEvents.changed(noteId);
+        return c.json(await ownerView(noteId, userId), 201);
       }
       const invitation = await storage.shares.getInvitation(
         noteId,

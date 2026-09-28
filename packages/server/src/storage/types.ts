@@ -11,6 +11,7 @@ import type {
   ShareInvitation,
   ShareRole,
   ShareUser,
+  TeamSource,
   Webhook,
   WebhookEventName,
 } from "@manifesto/shared";
@@ -281,6 +282,8 @@ export interface NoteShare {
   role: ShareRole;
   createdAt: string;
   acceptedAt: string | null;
+  /** The team it came through; null for a share made to the user directly. */
+  viaTeam: string | null;
 }
 
 /** Everyone with a stake in one note, for deciding who hears about it. */
@@ -297,6 +300,8 @@ export interface CreateShareInput {
   userId: string;
   role: ShareRole;
   createdAt: string;
+  /** The team it comes through, if it does. */
+  viaTeam?: string | null;
 }
 
 export interface SharesRepo {
@@ -306,6 +311,12 @@ export interface SharesRepo {
    * and nothing was written. */
   create(input: CreateShareInput): Promise<"ok" | "exists">;
   setRole(noteId: string, userId: string, role: ShareRole): Promise<boolean>;
+  /** Which team a share comes through, or null to make it a direct one. */
+  setViaTeam(
+    noteId: string,
+    userId: string,
+    teamId: string | null,
+  ): Promise<boolean>;
   /**
    * Accept an invitation to a note that is not in its owner's trash. The
    * recipient starts with the note's color and at the end of their manual
@@ -605,6 +616,56 @@ export interface PublicLinksRepo {
   recordView(token: string, at: string): Promise<boolean>;
 }
 
+export interface StoredTeam {
+  id: string;
+  name: string;
+  source: TeamSource;
+  createdAt: string;
+  memberCount: number;
+}
+
+/** A note shared with a team. */
+export interface NoteTeamShare {
+  noteId: string;
+  teamId: string;
+  role: ShareRole;
+  createdAt: string;
+}
+
+/**
+ * Teams, their members, and the notes shared with them. Only the rows: what a
+ * team share means for each member's own share is `sharing/teamShares.ts`.
+ */
+export interface TeamsRepo {
+  /** `exists` when the source already has a team by that name. */
+  create(team: Omit<StoredTeam, "memberCount">): Promise<"ok" | "exists">;
+  get(id: string): Promise<StoredTeam | null>;
+  findByName(source: TeamSource, name: string): Promise<StoredTeam | null>;
+  /** Every team, by name. */
+  list(): Promise<StoredTeam[]>;
+  /** The teams a user is in, by name. */
+  listForUser(userId: string): Promise<StoredTeam[]>;
+  rename(id: string, name: string): Promise<"ok" | "exists" | "missing">;
+  delete(id: string): Promise<boolean>;
+  members(teamId: string): Promise<string[]>;
+  /** False when they were already in it. */
+  addMember(teamId: string, userId: string): Promise<boolean>;
+  /** False when they were not in it. */
+  removeMember(teamId: string, userId: string): Promise<boolean>;
+  /** False when the note is already shared with the team. */
+  shareNote(share: NoteTeamShare): Promise<boolean>;
+  setNoteRole(
+    noteId: string,
+    teamId: string,
+    role: ShareRole,
+  ): Promise<boolean>;
+  unshareNote(noteId: string, teamId: string): Promise<boolean>;
+  /** The teams a note is shared with, oldest first. */
+  sharesOfNote(noteId: string): Promise<NoteTeamShare[]>;
+  /** The notes shared with a team. */
+  notesOf(teamId: string): Promise<NoteTeamShare[]>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -621,6 +682,7 @@ export interface StorageDriver {
   audit: AuditRepo;
   prefs: PrefsRepo;
   publicLinks: PublicLinksRepo;
+  teams: TeamsRepo;
   /**
    * A consistent copy of the whole database at `path`, taken while it keeps
    * serving. SQLite only; Postgres has `pg_dump` and managed backups.

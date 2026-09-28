@@ -324,6 +324,7 @@ describe("admin routes under single sign-on", () => {
         groupsClaim: "groups",
         adminGroup: null,
         userGroup: null,
+        teamGroups: null,
         autoRegister: true,
       },
     });

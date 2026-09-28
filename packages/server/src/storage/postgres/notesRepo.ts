@@ -56,8 +56,10 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     const ids = rows.map((row) => row.id);
     const members = await pool.query<MemberRow>(
       `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at,
-              u.username, u.display_name, u.avatar_color
+              u.username, u.display_name, u.avatar_color,
+              s.via_team, t.name AS team_name
        FROM note_shares s JOIN users u ON u.id = s.user_id
+       LEFT JOIN teams t ON t.id = s.via_team
        WHERE s.note_id IN (${placeholders(1, ids.length)})`,
       ids,
     );

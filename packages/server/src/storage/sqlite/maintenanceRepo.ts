@@ -32,7 +32,7 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
        WHERE trashed = 1
          AND trashed_at IS NOT NULL
          AND trashed_at < ?
-     RETURNING note_id, user_id, role, created_at, accepted_at`,
+     RETURNING note_id, user_id, role, created_at, accepted_at, via_team`,
   );
 
   const membersChangedStmt = db.prepare(

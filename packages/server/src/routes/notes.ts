@@ -19,6 +19,7 @@ import {
 import { HttpError } from "../middleware/error.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
+import type { TeamShares } from "../sharing/teamShares.js";
 import { NoteAccessError, type StorageDriver } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
 import {
@@ -30,6 +31,7 @@ import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
 import { registerPublicLinkRoutes } from "./publicLinks.js";
 import { registerShareRoutes } from "./shares.js";
+import { registerTeamShareRoutes } from "./teams.js";
 import { registerVersionRoutes } from "./versions.js";
 
 interface NotesDeps {
@@ -45,6 +47,7 @@ interface NotesDeps {
   mail?: { mailer: Mailer; appUrl: string } | null;
   /** For the public link routes, which hash passwords and may be off. */
   cfg: ServerConfig;
+  teamShares: TeamShares;
 }
 
 /**
@@ -337,6 +340,7 @@ export function createNotesRoutes(deps: NotesDeps) {
 
   registerShareRoutes(notes, deps);
   registerPublicLinkRoutes(notes, deps);
+  registerTeamShareRoutes(notes, deps);
   registerVersionRoutes(notes, deps);
 
   return notes;

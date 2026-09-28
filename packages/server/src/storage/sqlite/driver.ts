@@ -11,6 +11,7 @@ import { createSqlitePrefsRepo } from "./prefsRepo.js";
 import { createSqlitePublicLinksRepo } from "./publicLinksRepo.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteSharesRepo } from "./sharesRepo.js";
+import { createSqliteTeamsRepo } from "./teamsRepo.js";
 import { createSqliteTwoFactorRepo } from "./twoFactorRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
 import { createSqliteVersionsRepo } from "./versionsRepo.js";
@@ -39,6 +40,7 @@ export function createSqliteStorage(
     apiTokens: createSqliteApiTokensRepo(db),
     webhooks: createSqliteWebhooksRepo(db),
     publicLinks: createSqlitePublicLinksRepo(db),
+    teams: createSqliteTeamsRepo(db),
     twoFactor: createSqliteTwoFactorRepo(db),
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqlitePasswordResetsRepo(db),

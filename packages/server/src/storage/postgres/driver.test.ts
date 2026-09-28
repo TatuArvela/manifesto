@@ -7,6 +7,7 @@ import { describePublicLinksContract } from "../publicLinksContract.js";
 import { describeSharingContract } from "../sharingContract.js";
 import { describeStatsContract } from "../statsContract.js";
 import { describeSyncContract } from "../syncContract.js";
+import { describeTeamsContract } from "../teamsContract.js";
 import { UsernameTakenError } from "../types.js";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.js";
 import { newTestPool } from "./testDb.js";
@@ -24,6 +25,7 @@ describeAttachmentsContract("postgres (pg-mem)", bootStorage);
 describeStatsContract("postgres (pg-mem)", bootStorage);
 describeSyncContract("postgres (pg-mem)", bootStorage);
 describePublicLinksContract("postgres (pg-mem)", bootStorage);
+describeTeamsContract("postgres (pg-mem)", bootStorage);
 describePrefsContract("postgres (pg-mem)", bootStorage, { locks: false });
 
 describe("postgres: audit log", () => {

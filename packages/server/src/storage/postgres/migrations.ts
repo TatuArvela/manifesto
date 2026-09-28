@@ -280,6 +280,32 @@ CREATE TABLE public_links (
 CREATE INDEX public_links_note ON public_links(note_id);
 `;
 
+/** See the SQLite copy. */
+const TEAMS = `
+CREATE TABLE teams (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  source     TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (source, name)
+);
+CREATE TABLE team_members (
+  team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (team_id, user_id)
+);
+CREATE INDEX team_members_user ON team_members(user_id);
+CREATE TABLE note_team_shares (
+  note_id    TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  team_id    TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  role       TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (note_id, team_id)
+);
+CREATE INDEX note_team_shares_team ON note_team_shares(team_id);
+ALTER TABLE note_shares ADD COLUMN via_team TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -301,6 +327,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0018-api-token-scopes", sql: API_TOKEN_SCOPES },
   { id: "0019-note-members-changed", sql: NOTE_MEMBERS_CHANGED },
   { id: "0020-public-links", sql: PUBLIC_LINKS },
+  { id: "0021-teams", sql: TEAMS },
 ];
 
 export async function runMigrations(

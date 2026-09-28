@@ -55,13 +55,14 @@ export function createOidcAuthProvider(
       return authenticateBySession(storage, cfg, token);
     },
 
-    router(): AuthProviderRouter {
+    router(context): AuthProviderRouter {
       return createOidcAuthRouter({
         storage,
         authProvider: provider,
         cfg,
         oidc,
         discoveryClient,
+        teamSync: context?.teamSync,
       });
     },
   };

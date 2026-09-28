@@ -30,6 +30,7 @@ interface OidcRouterDeps {
   cfg: ServerConfig;
   oidc: OidcConfig;
   discoveryClient: OidcDiscoveryClient;
+  teamSync?: (userId: string, groups: string[]) => Promise<void>;
 }
 
 interface PendingFlow {
@@ -344,7 +345,8 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     }
 
     const target = new URL(deps.oidc.postLoginRedirect);
-    const { adminGroup, userGroup, groupsClaim } = deps.oidc;
+    const { adminGroup, userGroup, groupsClaim, teamGroups } = deps.oidc;
+    const mirrorsTeams = teamGroups !== null && deps.teamSync !== undefined;
 
     // Groups only matter when a group is configured. Many identity providers
     // leave them out of the ID token unless asked, so userinfo is asked when
@@ -354,7 +356,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     // the identity provider would take admin from everyone who signed in.
     let groups: string[] | null = null;
     let groupsUnknown = false;
-    if (adminGroup || userGroup) {
+    if (adminGroup || userGroup || mirrorsTeams) {
       groups = groupsOf(claims as Record<string, unknown>, groupsClaim);
       if (groups === null) {
         try {
@@ -418,6 +420,25 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
             userId,
           });
         }
+      }
+    }
+
+    // Teams follow the groups at every sign-in, as admin does. Groups that
+    // could not be read leave the teams as they were rather than empty them.
+    if (mirrorsTeams && !groupsUnknown && deps.teamSync) {
+      const named = groups ?? [];
+      const mirrored =
+        teamGroups === "*"
+          ? named
+          : named.filter((group) => teamGroups?.includes(group));
+      try {
+        await deps.teamSync(userId, mirrored);
+      } catch (err) {
+        // The sign-in stands; the teams catch up next time.
+        logger.warn("OIDC team sync failed", {
+          userId,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 

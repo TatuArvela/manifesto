@@ -7,6 +7,7 @@ import type {
   ShareInvitation,
   ShareRole,
   ShareUser,
+  TeamRef,
 } from "@manifesto/shared";
 import {
   PERSONAL_NOTE_FIELDS,
@@ -73,13 +74,15 @@ export interface ShareRow {
   role: string;
   created_at: string;
   accepted_at: string | null;
+  via_team?: string | null;
 }
 
-/** A share with the account it belongs to. */
+/** A share with the account it belongs to, and the team it came through. */
 export interface MemberRow extends ShareRow {
   username: string;
   display_name: string;
   avatar_color: string;
+  team_name?: string | null;
 }
 
 export interface UserBriefRow {
@@ -101,6 +104,8 @@ export interface InvitationRow {
   username: string;
   display_name: string;
   avatar_color: string;
+  via_team?: string | null;
+  team_name?: string | null;
 }
 
 /** A role read from the database. Anything unknown is the lesser one. */
@@ -119,7 +124,18 @@ export function rowToShare(row: ShareRow): NoteShare {
     role: parseRole(row.role),
     createdAt: row.created_at,
     acceptedAt: row.accepted_at,
+    viaTeam: row.via_team ?? null,
   };
+}
+
+/** The team a row came through, as a note or an invitation names it. */
+function teamOf(row: {
+  via_team?: string | null;
+  team_name?: string | null;
+}): { team: TeamRef } | Record<string, never> {
+  return row.via_team
+    ? { team: { id: row.via_team, name: row.team_name ?? "" } }
+    : {};
 }
 
 export function toShareUser(row: UserBriefRow): ShareUser {
@@ -146,6 +162,7 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
     color: parseColor(row.color),
     font: parseFont(row.font),
     invitedAt: row.created_at,
+    ...teamOf(row),
   };
 }
 
@@ -208,6 +225,7 @@ export function attachSharing(
       }),
       role: parseRole(m.role),
       accepted: m.accepted_at !== null,
+      ...teamOf(m),
     }));
     return {
       ...note,

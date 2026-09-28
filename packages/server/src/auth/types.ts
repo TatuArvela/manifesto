@@ -43,6 +43,11 @@ export interface AuthRouterContext {
   /** Wrong passwords per account name, shared by signing in and by
    * confirming an action (`requireConfirmation`). */
   loginAttempts: LoginAttempts;
+  /**
+   * Brings a user's teams from the identity provider in step with the groups
+   * it just named for them (`OIDC_TEAM_GROUPS`). Absent where nothing listens.
+   */
+  teamSync?: (userId: string, groups: string[]) => Promise<void>;
 }
 
 export interface AuthProvider {

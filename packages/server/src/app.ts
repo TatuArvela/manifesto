@@ -34,6 +34,7 @@ import { createPublicRoutes } from "./routes/publicLinks.js";
 import { createSearchRoutes } from "./routes/search.js";
 import { createInvitationRoutes } from "./routes/shares.js";
 import { createSyncRoutes } from "./routes/sync.js";
+import { createTeamRoutes } from "./routes/teams.js";
 import { createTokenRoutes } from "./routes/tokens.js";
 import { createUsersRoutes } from "./routes/users.js";
 import { createWebhookRoutes } from "./routes/webhooks.js";
@@ -42,6 +43,8 @@ import {
   createAccessChanges,
 } from "./sharing/accessChanges.js";
 import { createNoteEvents, type NoteEvents } from "./sharing/noteEvents.js";
+import { createTeamShares } from "./sharing/teamShares.js";
+import { syncOidcTeams } from "./sharing/teamSync.js";
 import type { StorageDriver } from "./storage/types.js";
 import { VERSION } from "./version.js";
 import {
@@ -88,6 +91,12 @@ export function createApp(deps: AppDeps): AppHandle {
   const revocations = deps.revocations ?? createSessionRevocations();
   const accessChanges = deps.accessChanges ?? createAccessChanges();
   const noteEvents = createNoteEvents({ storage, broadcaster, accessChanges });
+  const teamShares = createTeamShares({
+    storage,
+    broadcaster,
+    noteEvents,
+    accessChanges,
+  });
   // One budget of wrong passwords per account name, whether they were typed
   // to sign in or to confirm an action from a session that is already in.
   const loginAttempts = createLoginAttempts();
@@ -189,7 +198,13 @@ export function createApp(deps: AppDeps): AppHandle {
   );
   app.route(
     "/api/auth",
-    authProvider.router({ revocations, mailer, loginAttempts }),
+    authProvider.router({
+      revocations,
+      mailer,
+      loginAttempts,
+      teamSync: (userId, groups) =>
+        syncOidcTeams(storage, teamShares, userId, groups),
+    }),
   );
   app.route(
     "/api/notes",
@@ -202,6 +217,7 @@ export function createApp(deps: AppDeps): AppHandle {
       rateLimit: apiRateLimit,
       mail,
       cfg,
+      teamShares,
     }),
   );
   app.route(
@@ -275,6 +291,10 @@ export function createApp(deps: AppDeps): AppHandle {
   );
   app.route("/api/public", createPublicRoutes({ storage, cfg }));
   app.route(
+    "/api/teams",
+    createTeamRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
+  );
+  app.route(
     "/api/sync",
     createSyncRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
   );
@@ -293,6 +313,7 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/admin",
     createAdminRoutes({
       cfg,
+      teamShares,
       storage,
       authProvider,
       revocations,

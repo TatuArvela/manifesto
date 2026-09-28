@@ -50,6 +50,11 @@ Bearer-protected, and share the per-user API limit.
 | `POST`   | `/api/invitations/:noteId/accept`    | Accept: `{ note }`, the recipient's copy |
 | `POST`   | `/api/invitations/:noteId/decline`   | Decline: `204` |
 | `GET`    | `/api/users?q=`                      | Accounts to share with: `{ users: DirectoryUser[] }` |
+| `GET`    | `/api/teams`                         | The teams the signed-in user is in: `{ teams: Team[] }` |
+| `GET`    | `/api/notes/:id/team-shares`         | The teams the note is shared with (owner): `{ teamShares: TeamShare[] }` |
+| `POST`   | `/api/notes/:id/team-shares`         | Share with a team the owner is in: `{ teamId, role }`, `201` `{ teamShares }`; its members are invited |
+| `PUT`    | `/api/notes/:id/team-shares/:teamId` | Change the team's role, and its members' with it: `{ role }`, `{ teamShares }` |
+| `DELETE` | `/api/notes/:id/team-shares/:teamId` | Stop sharing with the team, taking the note from those who had it through it: `204` |
 | `GET`    | `/api/notes/:id/links`               | The note's [public links](features/sharing.md#public-links) (owner): `{ links: PublicLink[] }` |
 | `POST`   | `/api/notes/:id/links`               | Publish it: `{ mode, expiresInDays?, password?, maxViews? }`, `201` `{ link }` (owner) |
 | `DELETE` | `/api/notes/:id/links/:token`        | Revoke a link: `204` (owner) |
@@ -83,6 +88,13 @@ images, linkPreviews, updatedAt }`. Every public route answers the same `404` fo
 open (never made, revoked, expired, used up, its note in the trash, or `PUBLIC_LINKS=off`), sends
 `Cache-Control: no-store` and `X-Robots-Tag: noindex`, and is limited per address; `unlock` also per
 link. The owner routes take the `sharing` token scope, and answer `403` to anyone else on the note.
+
+A team the owner is not in answers `404`, as does one that does not exist. `Team` is `{ id, name,
+source, memberCount }`, `source` being `local` (an admin's) or `oidc` (a group at the identity
+provider); `TeamShare` is `{ teamId, name, role }`. A share or invitation that came through a team
+names it: `NoteMember.team` and `ShareInvitation.team` are `{ id, name }`, absent for a direct share.
+The rules for what a team share does to each member are in
+[Sharing with people](features/sharing-with-people.md#teams).
 
 `GET /api/users` depends on `USER_LOOKUP`. Under `search` (the default) it returns up to 10
 accounts whose username, display name or email contains `q`, regardless of case, each as

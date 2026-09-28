@@ -136,8 +136,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     const members = db
       .prepare(
         `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at,
-                u.username, u.display_name, u.avatar_color
+                u.username, u.display_name, u.avatar_color,
+                s.via_team, t.name AS team_name
          FROM note_shares s JOIN users u ON u.id = s.user_id
+         LEFT JOIN teams t ON t.id = s.via_team
          WHERE s.note_id IN (${placeholders(ids.length)})`,
       )
       .all(ids) as MemberRow[];

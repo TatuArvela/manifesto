@@ -561,6 +561,13 @@ away from someone (removal, a role drop to `view`, the owner trashing it) also g
 stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
 `storage/sharingContract.ts` runs the rules against both drivers.
 
+A share to a team (spec: the Teams section of the same file) expands into one ordinary `note_shares`
+row per member, marked with `via_team`, so every access check keeps reading `note_shares` alone.
+`sharing/teamShares.ts` is the only code that understands teams: sharing, a team's role, members
+joining and leaving (admin edits, and `syncOidcTeams` at an OIDC sign-in) all go through it. A direct
+share is never touched by a team, and a share that loses its team passes to another the member is in
+before it is removed.
+
 ### Server Architecture
 
 Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUTH_PROVIDER`):
