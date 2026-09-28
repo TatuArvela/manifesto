@@ -3,7 +3,7 @@
 Connected mode offers an endpoint for AI assistants that speak the
 [Model Context Protocol](https://modelcontextprotocol.io/) (Claude Code, Claude Desktop, Cursor and
 others), so a user can ask an assistant to find, read, write or tidy their notes. Each user connects
-theirs from Settings (**API tokens**, "Used by: An AI assistant"), which offers it only when the server
+theirs from Settings (**API tokens**, "Used by: An AI assistant (MCP)"), which offers it only when the server
 has MCP on.
 
 ## Connecting an assistant
