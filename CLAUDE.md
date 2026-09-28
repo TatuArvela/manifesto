@@ -212,6 +212,13 @@ fragment from the note *only* when it is empty, and it holds the editor unbuilt 
 at mount, after `ySyncPlugin` has rendered the shared document, so an effect that pushes local
 content must first establish that it is reacting to a change and not to the editor's arrival.
 
+The row can still be newer than the document, when something wrote it without the editor (MCP,
+the REST API, a restored version). `realtime/contentAgreement.ts` tells that apart from a row that is
+merely behind: the document records a hash of each text an editor sends (claimed *before* the send)
+and the `updatedAt` of the last save that landed, and `NoteCardEditor` writes an unclaimed, newer row
+in from the one client with the lowest awareness id. Every save of the editor's text goes through
+its `saveText`, or that text is not claimed and comes back as an outside write over later typing.
+
 The collaboration stack is loaded on demand and that is a correctness constraint, not only a size
 one. `realtime/yjsSession.ts` holds every Yjs/Hocuspocus/y-indexeddb import and is reached only
 through `import()` in `useNoteYDoc`; `extensions/yjsCollab.ts` fetches `y-prosemirror` through

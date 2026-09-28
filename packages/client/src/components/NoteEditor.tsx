@@ -120,6 +120,9 @@ interface NoteEditorProps {
   deleteLabel?: string;
   /** Puts the caret in the text once the editor is built. On by default. */
   autoFocus?: boolean;
+  /** The editor instance, each time one is built (it is rebuilt when
+   * collaboration arrives). */
+  onEditorReady?: (editor: Editor) => void;
   collab?: {
     ydoc: import("yjs").Doc;
     fragmentName?: string;
@@ -158,6 +161,7 @@ export function NoteEditor({
   onDelete,
   deleteLabel,
   autoFocus = true,
+  onEditorReady,
   collab,
 }: NoteEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -573,7 +577,10 @@ export function NoteEditor({
             rawMode={rawMode}
             textareaRef={rawTextareaRef}
             autoFocus={autoFocus}
-            onEditorReady={setEditor}
+            onEditorReady={(instance) => {
+              setEditor(instance);
+              onEditorReady?.(instance);
+            }}
             collab={collab}
           />
         </div>

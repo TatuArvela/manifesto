@@ -1,13 +1,20 @@
 import type { Note, NoteColor } from "@manifesto/shared";
-import { useEffect, useRef, useState } from "preact/hooks";
+import type { Editor } from "@milkdown/kit/core";
+import { replaceAll } from "@milkdown/kit/utils";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { formatDateTime, t } from "../i18n/index.js";
+import {
+  localAgreement,
+  sharedAgreement,
+} from "../realtime/contentAgreement.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
 import {
   addLinkPreviews,
   addTag,
   ensureImages,
+  notes,
   showError,
   togglePin,
   updateNote,
@@ -15,11 +22,21 @@ import {
 import { recordVersion } from "../state/versions.js";
 import { isPhoneLayout } from "../utils/phoneSheets.js";
 import { Backdrop } from "./Backdrop.js";
+import { getEditorMarkdown } from "./MilkdownEditor.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { noteMenuItems } from "./NoteMenu.js";
 import { NoteSheet } from "./NoteSheet.js";
 import { SharedPeople } from "./SharedAvatars.js";
 import { VersionHistory } from "./VersionHistory.js";
+
+/**
+ * How long a changed row waits before it is judged to have come from outside
+ * the document. Another tab's save reaches this one twice, as a broadcast
+ * over `/api/ws` and as its claim over `/api/yjs`, and nothing orders the two
+ * sockets; judged before the claim arrives, that save would look like an
+ * outside write and be written in over whatever was typed since.
+ */
+const PEER_RECORD_DELAY_MS = 1000;
 
 export function NoteCardEditor({
   note,
@@ -35,6 +52,15 @@ export function NoteCardEditor({
   // keys the editor on this, so it remounts once collaboration is ready.
   const collab =
     ydoc && synced ? { ydoc, awareness: awareness ?? undefined } : undefined;
+  // Which texts of the row came from the document; see `contentAgreement`.
+  const agreement = useMemo(
+    () =>
+      ydoc && synced ? sharedAgreement(ydoc, awareness) : localAgreement(),
+    [ydoc, awareness, synced],
+  );
+  const agreementRef = useRef(agreement);
+  agreementRef.current = agreement;
+  const [editor, setEditor] = useState<Editor | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const [showVersions, setShowVersions] = useState(false);
   const [versionsClosing, setVersionsClosing] = useState(false);
@@ -68,6 +94,17 @@ export function NoteCardEditor({
 
   const savedRef = useRef(false);
 
+  /** Every save of what the editor holds goes through here, so the document
+   * records each text it sent and each save that landed. */
+  const saveText = (title: string, content: string) => {
+    const records = agreementRef.current;
+    records.claim(content);
+    void updateNote(note.id, { title, content }).then((ok) => {
+      const saved = notes.value.find((n) => n.id === note.id);
+      if (ok && saved) records.confirm(saved.updatedAt);
+    });
+  };
+
   const maybeSaveVersion = () => {
     if (
       title !== originalTitleRef.current ||
@@ -95,7 +132,7 @@ export function NoteCardEditor({
     ) {
       savedTitleRef.current = title;
       savedContentRef.current = content;
-      updateNote(note.id, { title, content });
+      saveText(title, content);
     }
     maybeSaveVersion();
     savedRef.current = true;
@@ -114,10 +151,7 @@ export function NoteCardEditor({
       ) {
         savedTitleRef.current = titleRef.current;
         savedContentRef.current = contentRef.current;
-        updateNote(note.id, {
-          title: titleRef.current,
-          content: contentRef.current,
-        });
+        saveText(titleRef.current, contentRef.current);
       }
       // Save version if content changed during this editing session
       if (
@@ -176,9 +210,51 @@ export function NoteCardEditor({
     saveTimeoutRef.current = setTimeout(() => {
       savedTitleRef.current = title;
       savedContentRef.current = content;
-      updateNote(note.id, { title, content });
+      saveText(title, content);
     }, 500);
   }, [title, content]);
+
+  // A row written from outside the document (an assistant, a script on the
+  // REST API, a restored version) is written into it, by one client only, and
+  // not saved back: the row already holds it, so it is claimed instead. When
+  // the document also held text never saved, that text is kept as a version
+  // before it is replaced. Judged at once when an editor arrives, since the
+  // records came with the sync; later changes wait for peers' records.
+  const judgedEditorRef = useRef<Editor | null>(null);
+  useEffect(() => {
+    if (!editor) return;
+    const first = judgedEditorRef.current !== editor;
+    judgedEditorRef.current = editor;
+    const timer = setTimeout(
+      () => {
+        const row = notes.value.find((n) => n.id === note.id);
+        if (!row) return;
+        const records = agreementRef.current;
+        const documentText = getEditorMarkdown(editor);
+        if (!records.isOutside(row, documentText)) {
+          if (records.wasClaimed(documentText) || !records.leads()) return;
+          // Row and document agree: a document from before the records
+          // starts keeping them here.
+          if (documentText.trimEnd() === row.content.trimEnd()) {
+            records.claim(row.content);
+            records.confirm(row.updatedAt);
+          }
+          return;
+        }
+        if (!records.leads()) return;
+        if (!records.wasClaimed(documentText)) {
+          void recordVersion(note.id, titleRef.current, documentText);
+        }
+        records.claim(row.content);
+        editor.action(replaceAll(row.content));
+        const adopted = getEditorMarkdown(editor);
+        savedContentRef.current = adopted;
+        setContent(adopted);
+      },
+      first || !collab ? 0 : PEER_RECORD_DELAY_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [editor, note.content, note.updatedAt, agreement]);
 
   return (
     <>
@@ -294,6 +370,7 @@ export function NoteCardEditor({
         // caret to the end, where the first tap into the text then had to
         // move it from. A tap puts it where it lands instead.
         autoFocus={!isPhoneLayout()}
+        onEditorReady={setEditor}
         collab={collab}
       />
     </>
