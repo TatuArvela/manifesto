@@ -1,9 +1,9 @@
 import { mkdir, readdir, rename, rm, stat, statfs } from "node:fs/promises";
 import { join } from "node:path";
 import type { BackupConfig } from "../config.js";
+import { logger } from "../lib/logger.js";
+import { startPeriodicJob } from "../lib/periodic.js";
 import type { StorageDriver } from "../storage/types.js";
-import { logger } from "./logger.js";
-import { startPeriodicJob } from "./periodic.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const NAME = /^manifesto-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.db$/;

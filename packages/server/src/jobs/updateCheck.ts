@@ -1,7 +1,7 @@
+import { logger } from "../lib/logger.js";
+import { startPeriodicJob } from "../lib/periodic.js";
+import { nowIso } from "../lib/time.js";
 import { safeFetch } from "../linkPreview/safeFetch.js";
-import { logger } from "./logger.js";
-import { startPeriodicJob } from "./periodic.js";
-import { nowIso } from "./time.js";
 
 const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
 

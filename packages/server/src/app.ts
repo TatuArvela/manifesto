@@ -10,9 +10,9 @@ import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import { mountClient } from "./client/serveClient.js";
 import type { ServerConfig } from "./config.js";
+import type { UpdateStatus } from "./jobs/updateCheck.js";
 import { countMetric } from "./lib/metrics.js";
 import { metricsHandler } from "./lib/metricsServer.js";
-import type { UpdateStatus } from "./lib/updateCheck.js";
 import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,

@@ -443,8 +443,8 @@ call locally, so both modes behave alike.
   the `?` sheet read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
 - **Back** closes the newest `NoteSheet` through `hooks/useBackToClose.ts`: each sheet pushes a
   same-address history entry and takes it off with `history.back()` when closed another way. The
-  router's own pushes wait for that back to land (`afterHistorySettles`), or they would be what it
-  goes back from.
+  entries are kept in `state/sheetHistory.ts`, and the router's own pushes wait for that back to land
+  (`afterHistorySettles`), or they would be what it goes back from.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
   clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
 
@@ -539,7 +539,7 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - **Serving the client**: with `CLIENT_DIR` set (it is, in the image) `client/serveClient.ts` serves
   a built client at the root, mounted last in `app.ts` so every API route answers first; the image's
   client is built with `VITE_MANIFESTO_SERVER=/`.
-- **Background work**: `lib/trashCleanup.ts` and `lib/sessionCleanup.ts` both run on `lib/periodic.ts`'s `startPeriodicJob`, once at startup, then hourly. Each goes through a repo method (`storage.maintenance.cleanupTrashedBefore()` and `cleanupTrashedSharesBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
+- **Background work**: the jobs in `jobs/` (`trashCleanup.ts`, `sessionCleanup.ts`, `attachmentCleanup.ts`, `scheduledBackup.ts`, `updateCheck.ts`) run on `lib/periodic.ts`'s `startPeriodicJob`, once at startup, then on their interval. Each cleanup goes through a repo method (`storage.maintenance.cleanupTrashedBefore()` and `cleanupTrashedSharesBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
 - **Counting against a key**: `lib/expiringCounter.ts` is the one bounded map behind both throttles,
   `middleware/rateLimit.ts` (per address, per user) and `auth/local/loginAttempts.ts` (failed
   sign-ins per account name). Sweeping expired keys bounds the map only while they expire faster
@@ -568,6 +568,14 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 ## Code Style
 
 - Biome for linting and formatting (not ESLint/Prettier)
+- Import direction between source folders is a lint rule: the `overrides` in `biome.json` give each
+  folder a `noRestrictedImports` list of the folders it may not import, with the reason as the
+  message. Client, bottom up: `utils/`; then `storage/` and `autoNotes/`; `state/` (whose
+  `prefs.ts` alone `i18n/` may read), `realtime/`, `extensions/`; `hooks/`; `components/`. Server:
+  `lib/` knows nothing of notes or accounts, `storage/` imports only `lib/`, and only `app.ts`
+  imports `routes/`. Tests are exempt. A new folder needs a line in the list of its layer, or nothing
+  keeps it in place. The patterns match relative specifiers, not resolved paths, so a folder with
+  subfolders lists `../../x/**` beside `../x/**`.
 - TypeScript strict mode in all packages
 - `type: "module"` (ESM) throughout
 - No em dashes (—) anywhere: docs, comments, UI strings, test names, commit messages and PR

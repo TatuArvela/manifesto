@@ -8,14 +8,14 @@ import {
   ensureInitialAdmin,
 } from "./auth/initialAdmin.js";
 import { loadConfig } from "./config.js";
-import { startAttachmentCleanup } from "./lib/attachmentCleanup.js";
+import { startAttachmentCleanup } from "./jobs/attachmentCleanup.js";
+import { startScheduledBackup } from "./jobs/scheduledBackup.js";
+import { startSessionCleanup } from "./jobs/sessionCleanup.js";
+import { startTrashCleanup } from "./jobs/trashCleanup.js";
+import { startUpdateCheck } from "./jobs/updateCheck.js";
 import { logger } from "./lib/logger.js";
 import { createMetricsApp } from "./lib/metricsServer.js";
-import { startScheduledBackup } from "./lib/scheduledBackup.js";
-import { startSessionCleanup } from "./lib/sessionCleanup.js";
 import { createShutdown } from "./lib/shutdown.js";
-import { startTrashCleanup } from "./lib/trashCleanup.js";
-import { startUpdateCheck } from "./lib/updateCheck.js";
 import { createStorage } from "./storage/index.js";
 import { VERSION } from "./version.js";
 import { attachAppSocket } from "./ws/appSocket.js";

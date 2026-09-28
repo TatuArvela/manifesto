@@ -69,7 +69,7 @@ rather than write a file missing a picture. Importing such a file into a server 
 
 ## Sweeping
 
-`attachments.sweep` runs hourly on `startPeriodicJob` (`lib/attachmentCleanup.ts`). It marks an
+`attachments.sweep` runs hourly on `startPeriodicJob` (`jobs/attachmentCleanup.ts`). It marks an
 attachment no note refers to with the time it noticed, clears the mark when a note refers to it again,
 and deletes it once it has been unreferenced for 90 days. That matches the client's version history,
 which refers to attachments by id and keeps versions for 90 days, so a version restored within its life

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FormatType } from "../components/FormattingToolbar.js";
+import type { FormatType } from "./formatTypes.js";
 import {
   applyRawFormat,
   applyRawLink,

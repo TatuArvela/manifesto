@@ -18,13 +18,13 @@ import type { AuthProvider } from "../auth/types.js";
 import { pickAvatarColor } from "../auth/users.js";
 import { type ServerConfig, signsInLocally } from "../config.js";
 import { exportAccount, sendExport } from "../export/userExport.js";
+import type { UpdateStatus } from "../jobs/updateCheck.js";
 import { logger } from "../lib/logger.js";
 import { hashPassword } from "../lib/password.js";
 import { jobStatuses } from "../lib/periodic.js";
 import { newTemporaryPassword } from "../lib/temporaryPassword.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
-import type { UpdateStatus } from "../lib/updateCheck.js";
 import {
   type AuthContext,
   createAuthMiddleware,
