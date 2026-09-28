@@ -82,7 +82,11 @@ State lives in `packages/client/src/state/` using @preact/signals:
   through `receiveNote` / `receiveNoteList` and never through a plain assignment; a note leaves
   through `forgetNote`.
   `pendingWrites.ts` replays the writes still outstanding on top of that copy, so a late reply
-  cannot revert a newer click. `settle` must get the same `changes` object `begin` did, even
+  cannot revert a newer click. A copy older (by `updatedAt`) than the last one taken in is replaced
+  by that one, since a 412's body or a slow reply can arrive after a newer broadcast, and a failed
+  write falls back to that last confirmed copy, never to the note as it was clicked.
+  `pendingWrites.property.browser.test.ts` drives all of this against a fake `If-Match` server over
+  generated interleavings; run it after touching any of them. `settle` must get the same `changes` object `begin` did, even
   when a conflict retry sent a merged one. `incomingNote.ts` hands back the held note by
   reference when nothing changed. That keeps a client's own write, which it hears twice (as the
   reply and as the broadcast), and a reconnect's re-fetch from repainting the board or dropping

@@ -49,6 +49,22 @@ export const notes = signal<Note[]>([]);
  */
 export const notesLoaded = signal(false);
 
+/**
+ * Each note as storage last sent it, before the writes still outstanding were
+ * replayed on top. A write that fails goes back to this, not to the note as
+ * the board showed it when clicked: a newer copy may have arrived since, and
+ * putting the older one back would leave the board behind the server until
+ * something else touched the note.
+ */
+const confirmed = new Map<string, Note>();
+
+/**
+ * Where the last read of the whole list left off, in connected mode, so the
+ * next can ask for what changed since rather than for everything. Null until
+ * a read has set it, and whenever the list stops being a known copy.
+ */
+let syncCheckpoint: string | null = null;
+
 // When a session ends (a sign-out, or a 401), the account's notes leave
 // memory with it. Emptying the list is also what stops their reminders: the
 // scheduler follows `notes`, and hands the service worker the empty list, so
@@ -58,6 +74,7 @@ let sessionToken: string | null = null;
 effect(() => {
   const { serverUrl, token } = storageConnection.value;
   if (serverUrl !== null && token === null && sessionToken !== null) {
+    confirmed.clear();
     notes.value = [];
     notesLoaded.value = false;
   }
@@ -65,13 +82,6 @@ effect(() => {
   if (token !== sessionToken) syncCheckpoint = null;
   sessionToken = token;
 });
-
-/**
- * Where the last read of the whole list left off, in connected mode, so the
- * next can ask for what changed since rather than for everything. Null until
- * a read has set it, and whenever the list stops being a known copy.
- */
-let syncCheckpoint: string | null = null;
 
 /**
  * All notes visible to the UI: user notes plus plugin-generated read-only
@@ -99,11 +109,29 @@ export function upsertById(list: Note[], note: Note): Note[] {
 const pendingWrites = createPendingWrites();
 
 /**
+ * The newer of a copy of a note and the one already taken in. Replies and
+ * broadcasts travel separately (HTTP and the socket), and a 412 carries the
+ * note as it stood when it was refused, so an older copy can arrive after a
+ * newer one; taken in, it would put the board back behind the server.
+ * `updatedAt` is the server's version of the note, the same for everyone on
+ * it and never going backwards (`nowIso` is monotonic in its one process), so
+ * comparing it says which copy is newer.
+ */
+function newer(note: Note): Note {
+  const known = confirmed.get(note.id);
+  return known !== undefined && note.updatedAt < known.updatedAt ? known : note;
+}
+
+/**
  * Take in a note as storage has it. A copy that says nothing new is dropped
  * rather than written, so hearing about our own change twice (the reply and
  * the broadcast) costs one render.
  */
-export function receiveNote(note: Note): void {
+export function receiveNote(incoming: Note): void {
+  // Even a stale copy redraws, from the newer one: a write that just settled
+  // must stop being replayed either way.
+  const note = newer(incoming);
+  confirmed.set(note.id, note);
   const list = notes.peek();
   const held = list.find((n) => n.id === note.id);
   const next = pendingWrites.replay(foldIncoming(held, note));
@@ -115,7 +143,11 @@ export function receiveNote(note: Note): void {
  * Take in a whole listing as storage has it. Notes that did not change keep
  * their identity, so a re-fetch of an unchanged board costs no render.
  */
-export function receiveNoteList(incoming: Note[]): void {
+export function receiveNoteList(listed: Note[]): void {
+  // A copy newer than the listing may have arrived while it was on its way.
+  const incoming = listed.map(newer);
+  confirmed.clear();
+  for (const note of incoming) confirmed.set(note.id, note);
   const held = notes.peek();
   let next = foldIncomingList(held, incoming);
   if (next.some((n) => pendingWrites.pending(n.id))) {
@@ -126,6 +158,7 @@ export function receiveNoteList(incoming: Note[]): void {
 
 /** Drop a note that storage no longer has, or this user can no longer see. */
 export function forgetNote(id: string): void {
+  confirmed.delete(id);
   const held = notes.peek();
   if (held.some((n) => n.id === id)) {
     notes.value = held.filter((n) => n.id !== id);
@@ -343,7 +376,11 @@ export async function updateNote(
         return true;
       } catch (retryErr) {
         pendingWrites.settle(id, changes);
-        receiveNote(base);
+        receiveNote(
+          retryErr instanceof NoteConflictError
+            ? retryErr.currentNote
+            : (confirmed.get(id) ?? err.currentNote),
+        );
         reportFailure(
           `Conflict retry failed for note ${id}:`,
           retryErr,
@@ -356,7 +393,8 @@ export async function updateNote(
     // The write never landed, so neither does what it showed: back to what
     // storage last confirmed, with any newer local write still on top.
     pendingWrites.settle(id, changes);
-    if (base) receiveNote(base);
+    const truth = confirmed.get(id) ?? base;
+    if (truth) receiveNote(truth);
     reportFailure(
       `Failed to update note ${id}:`,
       err,
