@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Manifesto is a free, open-source note-taking app with a sticky note interface. It's MIT licensed. The full spec lives in `docs/specification/`.
+Manifesto is a free, open-source note-taking app with a sticky note interface. It's MIT licensed. The full spec lives in `docs/specification/`,
+and what it has decided against in `docs/specification/non-goals.md`: check there before proposing a feature.
 
 Server env vars are documented in `docs/specification/server/deployment.md` and rebranding in
 `docs/specification/custom-instances.md`. Both are the source of truth, so configure from there

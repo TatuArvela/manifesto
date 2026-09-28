@@ -88,6 +88,8 @@ budget shared by the whole archive (the 50 MB import cap), so a small archive ca
 - Move between browsers or devices
 - Migrate from local storage to a server (or vice versa)
 
+There is no print layout or PDF export; the browser's own print covers a note (see [Non-goals](../non-goals.md)).
+
 ## Format
 
 An export's `notes.json` is human-readable JSON: an array of note objects following the schema in [Data Model](../data-model.md), including all fields (color, font, tags, etc.). A bare JSON file of that shape, which earlier versions exported, imports the same way.

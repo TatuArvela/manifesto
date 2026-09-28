@@ -18,6 +18,8 @@ The name references three things:
 - **Simple**: sticky note interface that gets out of your way
 - **Lightweight**: minimal dependencies, fast load times
 
+What Manifesto has decided not to do, and why, is in [Non-goals](non-goals.md).
+
 ## Specifications
 
 ### Use Cases
@@ -25,6 +27,7 @@ The name references three things:
 - [User Stories](user-stories.md): Scenarios and acceptance criteria
 - [Operating Modes](operating-modes.md): Open vs connected, storage and auth options, decision matrix
 - [Custom Instances](custom-instances.md): Deploying Manifesto under your own name, icons and description
+- [Non-goals](non-goals.md): Features and architecture Manifesto has decided against
 
 ### Shared Contract
 
@@ -53,7 +56,7 @@ The name references three things:
 - [MCP](features/mcp.md): Tools for AI assistants over the Model Context Protocol (connected mode)
 - [Preferences](features/preferences.md): Settings kept on the device, and in connected mode following the account
 - [Privacy](features/privacy.md): Who can read notes, what admins see, and what a user can see about their own account
-- [Encryption](features/encryption.md): What protects notes, and why end-to-end encryption is a non-goal
+- [Encryption](features/encryption.md): What protects notes today, and what end-to-end encryption has to settle before 1.0.0
 - [Account Administration](features/accounts.md): Admins, temporary passwords and the Users view (connected mode)
 
 ### Client
