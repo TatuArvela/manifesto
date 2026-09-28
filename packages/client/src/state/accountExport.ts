@@ -1,4 +1,4 @@
-import { storageConnection } from "../storage/index.js";
+import { apiFetch } from "../storage/apiRequest.js";
 
 /**
  * Downloads a zip of every note an account owns, as the server builds it
@@ -7,17 +7,12 @@ import { storageConnection } from "../storage/index.js";
  * not be fetched, for the caller to say so.
  */
 export async function downloadAccountExport(userId?: string): Promise<boolean> {
-  const { serverUrl, token, onUnauthorized } = storageConnection.value;
-  if (serverUrl === null || !token) return false;
   const path = userId
-    ? `/api/admin/users/${encodeURIComponent(userId)}/export`
-    : "/api/export";
+    ? `/admin/users/${encodeURIComponent(userId)}/export`
+    : "/export";
+  const res = await apiFetch("GET", path);
+  if (!res?.ok) return false;
   try {
-    const res = await fetch(`${serverUrl}${path}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.status === 401) onUnauthorized?.();
-    if (!res.ok) return false;
     const name =
       /filename="([^"]+)"/.exec(
         res.headers.get("Content-Disposition") ?? "",

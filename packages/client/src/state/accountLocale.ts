@@ -1,5 +1,7 @@
 import { effect, untracked } from "@preact/signals";
-import { authToken, currentUser, SERVER_URL } from "./auth.js";
+import { apiFetch } from "../storage/apiRequest.js";
+import { storageConnection } from "../storage/index.js";
+import { currentUser } from "./auth.js";
 import { locale } from "./prefs.js";
 
 let reportingLocale: string | null = null;
@@ -15,10 +17,12 @@ let stop: (() => void) | null = null;
  */
 export function startAccountLocaleReport(): () => void {
   stop ??= effect(() => {
-    const token = authToken.value;
+    // The connection, not `authToken`: `apiFetch` sends what it holds, and
+    // it is written from the token by an effect of its own.
+    const { serverUrl, token } = storageConnection.value;
     const user = currentUser.value;
     const wanted = locale.value;
-    if (SERVER_URL === null || !token || !user) return;
+    if (serverUrl === null || !token || !user) return;
     if (user.locale === undefined || user.locale === wanted) return;
     if (reportingLocale === wanted) return;
     reportingLocale = wanted;
@@ -31,22 +35,11 @@ export function startAccountLocaleReport(): () => void {
 }
 
 async function reportLocale(token: string, wanted: string): Promise<void> {
-  try {
-    const res = await fetch(`${SERVER_URL}/api/auth/me/locale`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ locale: wanted }),
-    });
-    const user = currentUser.value;
-    if (res.ok && authToken.value === token && user) {
-      currentUser.value = { ...user, locale: wanted };
-    }
-  } catch {
-    // offline: the next start reports it again
-  } finally {
-    if (reportingLocale === wanted) reportingLocale = null;
+  // Offline, the next start reports it again.
+  const res = await apiFetch("PUT", "/auth/me/locale", { locale: wanted });
+  const user = currentUser.value;
+  if (res?.ok && storageConnection.value.token === token && user) {
+    currentUser.value = { ...user, locale: wanted };
   }
+  if (reportingLocale === wanted) reportingLocale = null;
 }

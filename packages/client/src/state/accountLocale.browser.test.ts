@@ -52,6 +52,14 @@ describe("reporting the app's language", () => {
     expect(JSON.parse(init.body as string)).toEqual({ locale: "fi" });
   });
 
+  it("ends the session when the server no longer knows it", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }));
+    authToken.value = "t";
+    currentUser.value = { ...user, locale: null };
+    await vi.waitFor(() => expect(authToken.value).toBeNull());
+    expect(currentUser.value).toBeNull();
+  });
+
   it("asks nothing of a server that does not keep one", async () => {
     authToken.value = "t";
     currentUser.value = { ...user };
