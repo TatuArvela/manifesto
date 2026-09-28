@@ -108,11 +108,12 @@ describe("contentAgreement", () => {
     expect(sharedAgreement(ydoc, awareness).leads()).toBe(false);
   });
 
-  it("keeps records for an editor with no shared document", () => {
-    const records = localAgreement();
-    records.claim("Milk");
-    records.confirm(SAVED_AT);
+  it("starts an editor with no shared document from the row it opened", () => {
+    const records = localAgreement({ content: "Milk", updatedAt: SAVED_AT });
     expect(records.leads()).toBe(true);
+    expect(
+      records.isOutside({ content: "Milk", updatedAt: LATER }, "Milk, eggs"),
+    ).toBe(false);
     expect(
       records.isOutside({ content: "Milk, eggs", updatedAt: LATER }, "Milk"),
     ).toBe(true);

@@ -53,9 +53,15 @@ export function NoteCardEditor({
   const collab =
     ydoc && synced ? { ydoc, awareness: awareness ?? undefined } : undefined;
   // Which texts of the row came from the document; see `contentAgreement`.
+  const openedRowRef = useRef({
+    content: note.content,
+    updatedAt: note.updatedAt,
+  });
   const agreement = useMemo(
     () =>
-      ydoc && synced ? sharedAgreement(ydoc, awareness) : localAgreement(),
+      ydoc && synced
+        ? sharedAgreement(ydoc, awareness)
+        : localAgreement(openedRowRef.current),
     [ydoc, awareness, synced],
   );
   const agreementRef = useRef(agreement);

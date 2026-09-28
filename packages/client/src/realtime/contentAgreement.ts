@@ -144,11 +144,16 @@ export function sharedAgreement(
 }
 
 /** For an editor with no shared document: open mode, a viewer, or a server
- * whose collaboration stack could not be reached. Only this editor writes. */
-export function localAgreement(): ContentAgreement {
-  let savedAt: string | null = null;
+ * whose collaboration stack could not be reached. Only this editor writes.
+ *
+ * Starts from the row the editor was built from, which it holds by
+ * construction. Left to be recorded by the first check instead, a row that
+ * changed before that check (a restore in the first moments) found no
+ * records and was kept out. */
+export function localAgreement(opened: RowContent): ContentAgreement {
+  let savedAt: string | null = opened.updatedAt;
   return agreement({
-    claims: new Map<string, number>(),
+    claims: new Map([[contentHash(opened.content), Date.now()]]),
     savedAt: () => savedAt,
     setSavedAt: (at) => {
       savedAt = at;

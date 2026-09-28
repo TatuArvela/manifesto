@@ -357,10 +357,8 @@ describe("NoteCardEditor with a row written from outside the document", () => {
       synced: false,
     };
     show(note);
-    await vi.waitFor(() => {
-      expect(editorText()).toContain("Milk, eggs, coffee");
-    });
-
+    // Restored before the editor has even been built, so nothing but the row
+    // it was opened with can say this one is newer.
     const restored = writtenLater("Milk");
     notes.value = [restored];
     show(restored);
