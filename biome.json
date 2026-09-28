@@ -44,5 +44,334 @@
       "!packages/**/dist",
       "!packages/**/node_modules"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "packages/client/src/utils/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "../state/**",
+                      "../storage/**",
+                      "../realtime/**",
+                      "../hooks/**",
+                      "../components/**",
+                      "../extensions/**",
+                      "../autoNotes/**",
+                      "../i18n/**"
+                    ],
+                    "message": "utils/ is the bottom of the client: it imports packages and other utils, never the folders built on it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/storage/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "../state/**",
+                      "../realtime/**",
+                      "../hooks/**",
+                      "../components/**",
+                      "../extensions/**",
+                      "../autoNotes/**",
+                      "../i18n/**"
+                    ],
+                    "message": "storage/ sits under state/: it may import utils/, never what calls it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/autoNotes/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "../state/**",
+                      "../storage/**",
+                      "../realtime/**",
+                      "../hooks/**",
+                      "../components/**",
+                      "../extensions/**",
+                      "../i18n/**"
+                    ],
+                    "message": "autoNotes/ sits under state/: it may import utils/, never what calls it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/i18n/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "../storage/**",
+                      "../../storage/**",
+                      "../realtime/**",
+                      "../../realtime/**",
+                      "../hooks/**",
+                      "../../hooks/**",
+                      "../components/**",
+                      "../../components/**",
+                      "../extensions/**",
+                      "../../extensions/**",
+                      "../autoNotes/**",
+                      "../../autoNotes/**",
+                      "../utils/**",
+                      "../../utils/**",
+                      "../state/**",
+                      "!../state/prefs.js",
+                      "../../state/**",
+                      "!../../state/prefs.js"
+                    ],
+                    "message": "i18n/ may read only the locale preference (state/prefs.ts), which imports nothing from i18n/ but locales.ts."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/state/**",
+        "packages/client/src/realtime/**",
+        "packages/client/src/extensions/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../hooks/**", "../components/**"],
+                    "message": "Hooks and components are UI, built on state/, realtime/ and extensions/: move what they share down, as state/sheetHistory.ts did."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/hooks/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../components/**"],
+                    "message": "hooks/ are used by components/, never the reverse: move what they share down."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/server/src/lib/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "../attachments/**",
+                      "../audit/**",
+                      "../auth/**",
+                      "../client/**",
+                      "../export/**",
+                      "../jobs/**",
+                      "../linkPreview/**",
+                      "../mail/**",
+                      "../mcp/**",
+                      "../middleware/**",
+                      "../routes/**",
+                      "../sharing/**",
+                      "../storage/**",
+                      "../test/**",
+                      "../validation/**",
+                      "../webhooks/**",
+                      "../ws/**"
+                    ],
+                    "message": "lib/ holds plumbing that knows nothing of notes, accounts or sockets: code that does belongs in the folder for its subject (a background job goes in jobs/)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/server/src/storage/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "../attachments/**",
+                      "../../attachments/**",
+                      "../audit/**",
+                      "../../audit/**",
+                      "../auth/**",
+                      "../../auth/**",
+                      "../client/**",
+                      "../../client/**",
+                      "../export/**",
+                      "../../export/**",
+                      "../jobs/**",
+                      "../../jobs/**",
+                      "../linkPreview/**",
+                      "../../linkPreview/**",
+                      "../mail/**",
+                      "../../mail/**",
+                      "../mcp/**",
+                      "../middleware/**",
+                      "../../mcp/**",
+                      "../../middleware/**",
+                      "../routes/**",
+                      "../../routes/**",
+                      "../sharing/**",
+                      "../../sharing/**",
+                      "../test/**",
+                      "../../test/**",
+                      "../validation/**",
+                      "../../validation/**",
+                      "../webhooks/**",
+                      "../../webhooks/**",
+                      "../ws/**",
+                      "../../ws/**"
+                    ],
+                    "message": "storage/ is under everything but lib/: a rule both drivers must keep belongs in the repos, and anything else in the caller."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/server/src/attachments/**",
+        "packages/server/src/audit/**",
+        "packages/server/src/auth/**",
+        "packages/server/src/client/**",
+        "packages/server/src/export/**",
+        "packages/server/src/jobs/**",
+        "packages/server/src/linkPreview/**",
+        "packages/server/src/mail/**",
+        "packages/server/src/mcp/**",
+        "packages/server/src/middleware/**",
+        "packages/server/src/sharing/**",
+        "packages/server/src/test/**",
+        "packages/server/src/validation/**",
+        "packages/server/src/webhooks/**",
+        "packages/server/src/ws/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../routes/**", "../../routes/**"],
+                    "message": "Only app.ts mounts routes/: move what the route and this file share out of routes/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

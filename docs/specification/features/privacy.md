@@ -17,7 +17,7 @@ operator, not only the code.
 | **Connected, own server** | Its operator, which is the user. |
 | **Connected, someone else's server** | The operator, through the database or its backups. Admins, only with `ADMIN_EXPORT` on (below). The people a note is [shared with](sharing-with-people.md). |
 
-Notes are not end-to-end encrypted; [Encryption](encryption.md) says why and what would change that.
+Notes are not end-to-end encrypted yet; [Encryption](encryption.md) says what is planned and what it has to settle.
 Anyone who needs notes the server cannot read should use open mode, or run their own server.
 
 ## What an admin can see
@@ -83,6 +83,8 @@ database provides.
   note links to. Those sites see the server's address, not the user's, and the URL, not the note.
   Open mode never does this; its CSP forbids it.
 - **Webhooks**: a user's own [webhooks](webhooks.md) post note events to the URLs they chose.
+- **AI assistants**: whatever a user's own assistant reads through the [MCP endpoint](mcp.md) goes
+  wherever that assistant runs, usually its vendor's service. Only a token the user minted opens it.
 - **Mail**, with `SMTP_URL` set: password reset links and share invitations go through that relay.
 - **The update check** (`UPDATE_CHECK`): the server asks GitHub for the newest release. It sends
   nothing about users or notes.

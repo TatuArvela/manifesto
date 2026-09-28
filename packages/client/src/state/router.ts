@@ -1,5 +1,5 @@
 import { effect } from "@preact/signals";
-import { afterHistorySettles } from "../hooks/useBackToClose.js";
+import { afterHistorySettles } from "./sheetHistory.js";
 import { type AppView, activeTag, activeView } from "./ui.js";
 
 export interface Route {

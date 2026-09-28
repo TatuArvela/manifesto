@@ -13,6 +13,8 @@ export type {
   ApiToken,
   ApiTokenCreatedResponse,
   ApiTokenCreateRequest,
+  ApiTokenKind,
+  ApiTokenScope,
   ApiTokensResponse,
   AttachmentUploadResponse,
   AuditAction,
@@ -60,9 +62,13 @@ export type {
   WebSocketEvent,
 } from "./api.js";
 export {
+  API_TOKEN_KINDS,
+  API_TOKEN_SCOPES,
   APP_SOCKET_HEARTBEAT_MS,
   AUDIT_ACTIONS,
+  DEFAULT_API_TOKEN_SCOPES,
   DEFAULT_NOTES_PAGE_SIZE,
+  hasScope,
   MAX_ACCOUNT_PREFS_BYTES,
   MAX_NOTES_PAGE_SIZE,
   MAX_NOTES_PER_IMPORT,

@@ -206,8 +206,10 @@ describe("postgres: API tokens", () => {
     await storage.apiTokens.create({
       id: "t1",
       userId: "u1",
-      name: "script",
-      prefix: "mfp_abc",
+      name: "assistant",
+      kind: "mcp",
+      scopes: ["notes:read"],
+      prefix: "mfm_abc",
       createdAt: NOW,
       lastUsedAt: null,
       expiresAt: null,
@@ -217,8 +219,10 @@ describe("postgres: API tokens", () => {
     await storage.apiTokens.touch("t1", NOW);
     expect((await storage.apiTokens.listByUser("u1"))[0]).toEqual({
       id: "t1",
-      name: "script",
-      prefix: "mfp_abc",
+      name: "assistant",
+      kind: "mcp",
+      scopes: ["notes:read"],
+      prefix: "mfm_abc",
       createdAt: NOW,
       lastUsedAt: NOW,
       expiresAt: null,

@@ -143,6 +143,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `METRICS_TOKEN`    | *(unset)*                  | Required on the public port to turn metrics on; optional on `METRICS_PORT`. |
 | `CLIENT_DIR`       | `/app/public` in the image, else unset | A built client to serve at the site root beside the API. See [One container](#one-container). |
 | `WEBHOOKS`         | `public`                   | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`. |
+| `MCP`              | `on`                       | The [MCP endpoint](../features/mcp.md) for AI assistants, `/api/mcp`. It answers only a token a user mints for it in Settings, so on opens nothing by itself. `off` removes the endpoint and the option to mint such a token. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.

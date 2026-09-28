@@ -7,8 +7,13 @@ import {
   currentUser,
   updateEmail,
 } from "../state/auth.js";
+import type { ConfirmationRefusal } from "../state/confirmation.js";
 import { showSuccess } from "../state/ui.js";
 import { Avatar } from "./Avatar.js";
+import {
+  ConfirmationError,
+  ConfirmPasswordField,
+} from "./ConfirmWithPassword.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-neutral-100 dark:read-only:bg-neutral-800 read-only:text-neutral-600 dark:read-only:text-neutral-300";
@@ -125,6 +130,8 @@ export function AccountSettings() {
 function EmailForm({ current }: { current: string | null }) {
   const [email, setEmail] = useState(current ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
   const unchanged = email.trim() === (current ?? "");
 
@@ -137,11 +144,22 @@ function EmailForm({ current }: { current: string | null }) {
       return;
     }
     setError(null);
+    setRefusal(null);
     setBusy(true);
-    const result = await updateEmail(next.length > 0 ? next : null);
+    const result = await updateEmail(next.length > 0 ? next : null, password);
     setBusy(false);
     if (result === "ok") {
       showSuccess(t(next ? "account.email.saved" : "account.email.removed"));
+      setPassword("");
+      return;
+    }
+    if (
+      result === "password-missing" ||
+      result === "password-wrong" ||
+      result === "sign-in-again" ||
+      result === "locked"
+    ) {
+      setRefusal(result);
       return;
     }
     setError(
@@ -170,6 +188,10 @@ function EmailForm({ current }: { current: string | null }) {
       <p class="text-sm text-neutral-500 dark:text-neutral-400">
         {t("account.email.hint")}
       </p>
+      {!unchanged && (
+        <ConfirmPasswordField value={password} onInput={setPassword} />
+      )}
+      {refusal && <ConfirmationError refusal={refusal} />}
       {error && (
         <p class="text-sm text-red-600 dark:text-red-400" role="alert">
           {error}

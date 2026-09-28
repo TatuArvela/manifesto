@@ -1,6 +1,7 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { Hocuspocus } from "@hocuspocus/server";
+import { hasScope } from "@manifesto/shared";
 import type { RawData, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 import type { SessionRevocations } from "../auth/revocations.js";
@@ -79,7 +80,14 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
      */
     onAuthenticate: async ({ token, documentName }) => {
       const identity = await authProvider.authenticate(token);
-      if (!identity) throw new Error("Invalid or expired session");
+      // An MCP token is for `/api/mcp` alone, and joining a note is writing it.
+      if (
+        !identity ||
+        identity.via === "mcp-token" ||
+        (identity.scopes && !hasScope(identity.scopes, "notes:write"))
+      ) {
+        throw new Error("Invalid or expired session");
+      }
 
       const access = await storage.notes.access(documentName, identity.userId);
       if (!access || access.role === "view") throw new Error("Forbidden");

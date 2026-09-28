@@ -1,6 +1,11 @@
 import type { ServerConfig } from "../config.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
-import { API_TOKEN_PREFIX, hashToken, newSessionToken } from "../lib/token.js";
+import {
+  API_TOKEN_PREFIX,
+  hashToken,
+  MCP_TOKEN_PREFIX,
+  newSessionToken,
+} from "../lib/token.js";
 import type { Session, StorageDriver } from "../storage/types.js";
 import type { SessionRevocations } from "./revocations.js";
 import type { AuthIdentity } from "./types.js";
@@ -32,9 +37,9 @@ function absoluteExpiryOf(session: Session, days: number): string | null {
 }
 
 /**
- * A personal API token (`POST /api/tokens`). It has no sliding expiry, only
- * the one its owner chose, and records when it was last used so a forgotten
- * one can be found and revoked.
+ * A personal API token or MCP token (`POST /api/tokens`). It has no sliding
+ * expiry, only the one its owner chose, and records when it was last used so
+ * a forgotten one can be found and revoked.
  */
 async function authenticateByApiToken(
   storage: StorageDriver,
@@ -42,6 +47,10 @@ async function authenticateByApiToken(
 ): Promise<AuthIdentity | null> {
   const stored = await storage.apiTokens.findByHash(hashToken(token));
   if (!stored) return null;
+  // The prefix is only what the secret was minted with; the row decides. A
+  // prefix that disagrees with it is a secret nobody was given.
+  const kind = token.startsWith(MCP_TOKEN_PREFIX) ? "mcp" : "api";
+  if (stored.kind !== kind) return null;
   const now = nowIso();
   if (stored.expiresAt !== null && stored.expiresAt < now) return null;
   const user = await storage.users.findById(stored.userId);
@@ -50,7 +59,8 @@ async function authenticateByApiToken(
   return {
     userId: user.id,
     token,
-    via: "api-token",
+    via: kind === "mcp" ? "mcp-token" : "api-token",
+    scopes: stored.scopes,
     username: user.username,
     displayName: user.displayName || user.username,
     avatarColor: user.avatarColor,
@@ -59,7 +69,7 @@ async function authenticateByApiToken(
 
 /**
  * The identity behind a bearer token: a session, or, for a token with the API
- * token prefix, a personal API token. Both providers authenticate through
+ * or MCP token prefix, a personal token. Both providers authenticate through
  * this, so tokens work the same under local and single sign-on.
  */
 export async function authenticateBySession(
@@ -68,7 +78,10 @@ export async function authenticateBySession(
   token: string,
 ): Promise<AuthIdentity | null> {
   if (!token) return null;
-  if (token.startsWith(API_TOKEN_PREFIX)) {
+  if (
+    token.startsWith(API_TOKEN_PREFIX) ||
+    token.startsWith(MCP_TOKEN_PREFIX)
+  ) {
     return authenticateByApiToken(storage, token);
   }
   const hashed = hashToken(token);
@@ -102,6 +115,7 @@ export async function authenticateBySession(
     userId: user.id,
     token,
     via: "session",
+    signedInAt: session.createdAt,
     username: user.username,
     displayName: user.displayName || user.username,
     avatarColor: user.avatarColor,

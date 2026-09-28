@@ -292,6 +292,10 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
       state,
+      // An action that needs a recent sign-in (`auth/confirmation.ts`) sends
+      // the user back here with `reauth`: the identity provider has to ask
+      // again, not wave them through on the session it already holds.
+      ...(c.req.query("reauth") !== undefined && { prompt: "login" }),
     });
     return c.redirect(authorizationUrl.toString(), 302);
   });

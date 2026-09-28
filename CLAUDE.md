@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Manifesto is a free, open-source note-taking app with a sticky note interface. It's MIT licensed. The full spec lives in `docs/specification/`.
+Manifesto is a free, open-source note-taking app with a sticky note interface. It's MIT licensed. The full spec lives in `docs/specification/`,
+and what it has decided against in `docs/specification/non-goals.md`: check there before proposing a feature.
 
 Server env vars are documented in `docs/specification/server/deployment.md` and rebranding in
 `docs/specification/custom-instances.md`. Both are the source of truth, so configure from there
@@ -210,6 +211,13 @@ fragment from the note *only* when it is empty, and it holds the editor unbuilt 
 `loadYjsCollab()` resolves. Any effect with `editor` in its dep array also runs
 at mount, after `ySyncPlugin` has rendered the shared document, so an effect that pushes local
 content must first establish that it is reacting to a change and not to the editor's arrival.
+
+The row can still be newer than the document, when something wrote it without the editor (MCP,
+the REST API, a restored version). `realtime/contentAgreement.ts` tells that apart from a row that is
+merely behind: the document records a hash of each text an editor sends (claimed *before* the send)
+and the `updatedAt` of the last save that landed, and `NoteCardEditor` writes an unclaimed, newer row
+in from the one client with the lowest awareness id. Every save of the editor's text goes through
+its `saveText`, or that text is not claimed and comes back as an outside write over later typing.
 
 The collaboration stack is loaded on demand and that is a correctness constraint, not only a size
 one. `realtime/yjsSession.ts` holds every Yjs/Hocuspocus/y-indexeddb import and is reached only
@@ -443,8 +451,8 @@ call locally, so both modes behave alike.
   the `?` sheet read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
 - **Back** closes the newest `NoteSheet` through `hooks/useBackToClose.ts`: each sheet pushes a
   same-address history entry and takes it off with `history.back()` when closed another way. The
-  router's own pushes wait for that back to land (`afterHistorySettles`), or they would be what it
-  goes back from.
+  entries are kept in `state/sheetHistory.ts`, and the router's own pushes wait for that back to land
+  (`afterHistorySettles`), or they would be what it goes back from.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
   clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
 
@@ -480,6 +488,21 @@ and `AuthIdentity.via` says which credential it was. Anything that changes how a
 (tokens, password, email, the admin API) mounts `createAuthMiddleware(provider, { sessionOnly: true })`,
 so a token handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
 revoking one token goes through `revokeApiToken`, which closes its sockets by the token's hash.
+A token reaches only what its scopes name (`API_TOKEN_SCOPES` in shared). Each operation's scope is
+declared once, as `scope` in `OPERATIONS` (`openapi.ts`), and `createAuthMiddleware` looks it up from
+the route Hono matched (`c.req.matchedRoutes`), so a new token-reachable route needs a scope there or
+tokens are refused it; `openapi.test.ts` holds every `auth: "any"` operation to having one. The two
+sockets check theirs by hand (`/api/ws` `notes:read`, `/api/yjs` `notes:write`).
+An MCP token (`mfm_`, `kind: "mcp"`) is narrower again: `createAuthMiddleware` takes it only on
+`/api/mcp` (`mcpOnly`) and on the REST requests that endpoint's tools make in-process, whose `env`
+carries `MCP_FORWARDED`, a symbol no request from the network can set. It holds only note scopes,
+its tools are offered by the scope each names, and both sockets refuse it.
+
+What would let whoever holds a stolen session keep the account or its notes (an email address, a
+token, a webhook, the two-factor changes) also calls `requireConfirmation` (`auth/confirmation.ts`):
+the password, counted against the sign-in budget in the shared `loginAttempts`, or for an account
+without one a sign-in within 15 minutes. A new action of that kind calls it too, and its client form
+uses `ConfirmPasswordField` and `ConfirmationError`.
 
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
@@ -533,13 +556,21 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   writes refuse anything but a reference (`claimImages` in `attachments/store.ts` makes each the note
   owner's, content-addressed per owner). The client draws them through `StoredImage` and inlines them again for anything that leaves the session (`inlineImages`). A new
   place that renders a note image must use `StoredImage`, and a new export path must inline.
+- **MCP**: `mcp/` is a stateless MCP server written here rather than taken from the SDK, whose
+  dependencies (express among them) outweigh four JSON-RPC methods: `protocol.ts` (JSON-RPC and the
+  lifecycle), `tools.ts` (the catalogue), `routes.ts` (HTTP). A tool is REST calls through
+  `app.fetch` with the caller's token and never touches storage, so every rule of the routes holds for
+  it. A new tool composes routes; one that needs what no route offers needs the route first. Spec:
+  `docs/specification/features/mcp.md`. The agent skill that teaches the tools is
+  `skills/manifesto/SKILL.md` at the repo root, and `mcp/skill.test.ts` fails until it names a new
+  tool (in its `description` too) and stops naming a removed one.
 - **Webhooks**: `webhooks/dispatcher.ts` subscribes to the broadcaster, so a webhook hears what its
   owner's sockets hear and a new note event needs no webhook code. Deliveries go through `safeFetch`
   (POST, no redirects) with the address rule `WEBHOOKS` picks; never call `fetch` for them.
 - **Serving the client**: with `CLIENT_DIR` set (it is, in the image) `client/serveClient.ts` serves
   a built client at the root, mounted last in `app.ts` so every API route answers first; the image's
   client is built with `VITE_MANIFESTO_SERVER=/`.
-- **Background work**: `lib/trashCleanup.ts` and `lib/sessionCleanup.ts` both run on `lib/periodic.ts`'s `startPeriodicJob`, once at startup, then hourly. Each goes through a repo method (`storage.maintenance.cleanupTrashedBefore()` and `cleanupTrashedSharesBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
+- **Background work**: the jobs in `jobs/` (`trashCleanup.ts`, `sessionCleanup.ts`, `attachmentCleanup.ts`, `scheduledBackup.ts`, `updateCheck.ts`) run on `lib/periodic.ts`'s `startPeriodicJob`, once at startup, then on their interval. Each cleanup goes through a repo method (`storage.maintenance.cleanupTrashedBefore()` and `cleanupTrashedSharesBefore()`, `storage.sessions.deleteExpired()`) rather than touching the DB directly, so both work for any storage driver.
 - **Counting against a key**: `lib/expiringCounter.ts` is the one bounded map behind both throttles,
   `middleware/rateLimit.ts` (per address, per user) and `auth/local/loginAttempts.ts` (failed
   sign-ins per account name). Sweeping expired keys bounds the map only while they expire faster
@@ -564,10 +595,21 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - Test files are colocated with source (e.g., `actions.browser.test.ts` next to `actions.ts`)
 - Tests use real `localStorage`; clear in `beforeEach`/`afterEach`
 - Signal state is set directly in tests (e.g., `notes.value = []`)
+- A module that a test mocks with a factory calling `importOriginal` must not sit in an import cycle
+  (`state/auth.ts` is mocked so). The original then imports the mocked module back while its factory
+  is still running, and the browser project hangs with no error at all, only files that never report.
 
 ## Code Style
 
 - Biome for linting and formatting (not ESLint/Prettier)
+- Import direction between source folders is a lint rule: the `overrides` in `biome.json` give each
+  folder a `noRestrictedImports` list of the folders it may not import, with the reason as the
+  message. Client, bottom up: `utils/`; then `storage/` and `autoNotes/`; `state/` (whose
+  `prefs.ts` alone `i18n/` may read), `realtime/`, `extensions/`; `hooks/`; `components/`. Server:
+  `lib/` knows nothing of notes or accounts, `storage/` imports only `lib/`, and only `app.ts`
+  imports `routes/`. Tests are exempt. A new folder needs a line in the list of its layer, or nothing
+  keeps it in place. The patterns match relative specifiers, not resolved paths, so a folder with
+  subfolders lists `../../x/**` beside `../x/**`.
 - TypeScript strict mode in all packages
 - `type: "module"` (ESM) throughout
 - No em dashes (—) anywhere: docs, comments, UI strings, test names, commit messages and PR

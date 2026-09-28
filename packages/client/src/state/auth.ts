@@ -10,6 +10,10 @@ import { effect, signal } from "@preact/signals";
 import { resolveServerOrigin, resolveServerUrl } from "../config.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { storageConnection } from "../storage/index.js";
+import {
+  type ConfirmationRefusal,
+  confirmationRefusal,
+} from "./confirmation.js";
 
 export interface CurrentUser {
   id: string;
@@ -380,7 +384,12 @@ export async function logout(): Promise<void> {
   }
 }
 
-export type UpdateEmailResult = "ok" | "taken" | "invalid" | "failed";
+export type UpdateEmailResult =
+  | "ok"
+  | "taken"
+  | "invalid"
+  | "failed"
+  | ConfirmationRefusal;
 
 /**
  * Set or clear (`null`) the signed-in user's email address. Resolves with what
@@ -388,6 +397,7 @@ export type UpdateEmailResult = "ok" | "taken" | "invalid" | "failed";
  */
 export async function updateEmail(
   email: string | null,
+  password: string,
 ): Promise<UpdateEmailResult> {
   const token = authToken.value;
   if (SERVER_URL === null || !token) return "failed";
@@ -398,10 +408,12 @@ export async function updateEmail(
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, ...(password && { password }) }),
     });
     if (res.status === 401) clearAuthLocal();
     if (res.status === 409) return "taken";
+    const refusal = await confirmationRefusal(res);
+    if (refusal) return refusal;
     if (res.status === 422) return "invalid";
     if (!res.ok) return "failed";
     const body = (await res.json()) as AuthMeResponse;
@@ -451,6 +463,9 @@ export const passwordFormCollapsed = signal(false);
 /** Whether this server lets users register webhooks. */
 export const webhooksEnabled = signal(false);
 
+/** Whether this server has an MCP endpoint, for AI assistants. */
+export const mcpEnabled = signal(false);
+
 export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
   if (SERVER_URL === null) return null;
   try {
@@ -465,6 +480,7 @@ export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
       userLookupMode.value = methods.userLookup;
     }
     webhooksEnabled.value = methods.webhooks === true;
+    mcpEnabled.value = methods.mcp === true;
     return methods;
   } catch {
     return null;
@@ -477,6 +493,12 @@ export function buildOidcLoginUrl(): string | null {
 }
 
 export const oidcLoginUrl = buildOidcLoginUrl();
+
+/** Signs in through the identity provider again, which asks for real rather
+ * than reusing its own session: what an account without a password is sent to
+ * when an action needs a recent sign-in. */
+export const oidcReauthUrl =
+  oidcLoginUrl === null ? null : `${oidcLoginUrl}?reauth=1`;
 
 /**
  * After an OIDC callback the server redirects to the client with the session

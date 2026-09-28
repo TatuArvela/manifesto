@@ -1,0 +1,48 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # The query packs grow between runs, so code nobody touched can still gain
+  # a finding. A weekly run catches those without waiting for a push.
+  schedule:
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # `actions` checks the workflows themselves (untrusted input in `run:`,
+        # over-broad tokens), which matters since image-publish.yml pushes images.
+        language: [javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@v7
+
+      # Neither language needs a build: CodeQL reads TypeScript from source,
+      # so there is no pnpm install here.
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          # Tests stand up loopback servers and open the SSRF seams
+          # (`isAllowedAddress`, `allowAnyPort`) on purpose; findings there
+          # are noise, not vulnerabilities.
+          config: |
+            paths-ignore:
+              - "**/*.test.ts"
+              - "**/*.test.tsx"
+              - "packages/server/src/test"
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}

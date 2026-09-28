@@ -1,4 +1,6 @@
 import {
+  API_TOKEN_KINDS,
+  API_TOKEN_SCOPES,
   ATTACHMENT_REF_PATTERN,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_URL_LENGTH,
@@ -44,7 +46,14 @@ export const registerSchema = authCredentialsSchema.extend({
   email: emailSchema.optional(),
 });
 
-export const authMeUpdateSchema = z.object({ email: emailSchema.nullable() });
+/** The password that confirms an action, where the account has one (see
+ * `auth/confirmation.ts`). Only compared with the stored hash. */
+const confirmationPassword = z.string().max(256).optional();
+
+export const authMeUpdateSchema = z.object({
+  email: emailSchema.nullable(),
+  password: confirmationPassword,
+});
 
 /** A language tag such as `fi` or `en-GB`; mail falls back to English for one
  * it has no text in. */
@@ -224,11 +233,29 @@ export const noteVersionCreateSchema = z.object({
 });
 export const noteUpdateSchema = z.object(noteFields).partial();
 
-/** `POST /api/tokens`. */
-export const apiTokenCreateSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  expiresInDays: z.number().int().min(1).max(3650).optional(),
-});
+/** `POST /api/tokens`. An MCP token's tools reach notes and nothing else,
+ * so it takes only the note scopes. */
+export const apiTokenCreateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    expiresInDays: z.number().int().min(1).max(3650).optional(),
+    kind: z.enum(API_TOKEN_KINDS).optional(),
+    scopes: z
+      .array(z.enum(API_TOKEN_SCOPES))
+      .min(1)
+      .max(API_TOKEN_SCOPES.length)
+      .optional(),
+    password: confirmationPassword,
+  })
+  .refine(
+    (body) =>
+      body.kind !== "mcp" ||
+      (body.scopes ?? []).every((scope) => scope.startsWith("notes:")),
+    {
+      message: "An MCP token takes only notes:read and notes:write",
+      path: ["scopes"],
+    },
+  );
 
 /** `POST /api/webhooks`. Where it may point is checked on every delivery,
  * against the resolved address; this only refuses what is never a webhook. */
@@ -243,6 +270,7 @@ export const webhookCreateSchema = z.object({
     .min(1)
     .max(WEBHOOK_EVENTS.length)
     .optional(),
+  password: confirmationPassword,
 });
 
 /** `PUT /api/webhooks/:id`. */

@@ -300,6 +300,27 @@ CREATE TABLE user_prefs (
 );
 `;
 
+/**
+ * What a personal token is for: `api` for scripts, `mcp` for an AI
+ * assistant, which only `/api/mcp` accepts. `read_only` narrows an MCP token
+ * to the tools that read. Every token minted before this is a script's.
+ */
+const API_TOKEN_KIND = `
+ALTER TABLE api_tokens ADD COLUMN kind TEXT NOT NULL DEFAULT 'api';
+ALTER TABLE api_tokens ADD COLUMN read_only INTEGER NOT NULL DEFAULT 0;
+`;
+
+/**
+ * What each token may reach, as a JSON array of `ApiTokenScope`. A token
+ * minted before this is narrowed to reading and writing notes: the sharing and
+ * account routes it could reach until now it no longer can. A read-only MCP
+ * token reads notes only. `read_only` is left in place and no longer read.
+ */
+const API_TOKEN_SCOPES = `
+ALTER TABLE api_tokens ADD COLUMN scopes TEXT NOT NULL DEFAULT '["notes:read","notes:write"]';
+UPDATE api_tokens SET scopes = '["notes:read"]' WHERE read_only = 1;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -317,6 +338,8 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0014-drop-inline-preview-images", sql: DROP_INLINE_PREVIEW_IMAGES },
   { id: "0015-user-locale", sql: USER_LOCALE },
   { id: "0016-user-prefs", sql: USER_PREFS },
+  { id: "0017-api-token-kind", sql: API_TOKEN_KIND },
+  { id: "0018-api-token-scopes", sql: API_TOKEN_SCOPES },
 ];
 
 export function runMigrations(

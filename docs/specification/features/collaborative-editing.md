@@ -9,6 +9,33 @@ In connected mode, several people can edit the same note simultaneously, with ch
 - Conflicting edits are resolved by the Yjs CRDT: concurrent insertions and deletions converge without data loss.
 - REST writes (`PUT /api/notes/<id>`) remain the authoritative path for note metadata (color, tags, archived/trashed). Optimistic concurrency on REST is enforced via `If-Match: <updatedAt>` and a 412 + 3-way merge on the client.
 
+## Content Written Outside the Document
+
+The note row's `content` and the shared document are two copies of the text. The editor keeps the row
+up to date by saving what the document holds, and once a note has a document the editor shows the
+document, not the row. Some writes reach only the row: an assistant's `update_note`
+([MCP](mcp.md)), a script on the [REST API](../api.md), a restored [version](version-history.md). An
+editor that showed the document then would show the text from before, and its next save would write
+that back over the change.
+
+So the document records which texts came from it: before an editor sends the text, a hash of it
+(the newest 50), and the row's `updatedAt` once a save has landed (`savedAt`). A row counts as written
+outside when it is newer than `savedAt`, holds a text the document never sent, and differs from what
+the document now says. Anything else is a row that is behind the document (another tab's save still
+arriving, or offline typing whose saves failed), and the document still wins.
+
+- An outside row is written into the document when an editor opens the note, and while one is open.
+  A change that arrives while it is open waits a second first, since another tab's save and its record
+  arrive over two sockets in no fixed order.
+- Only one client writes it in: of those with the document open, the one with the lowest Yjs client
+  id. Two writing it in would put the text in twice.
+- If the document also held text that was never saved, that text is kept as a version first.
+- It is not saved back to the row, which already holds it; the document records it as its own.
+- A document from before these records never judges a row outside, and starts keeping them the first
+  time an editor finds row and document agreeing.
+- An editor with no shared document (open mode, a viewer) keeps the same records in memory, so a
+  version restored while it is open still shows.
+
 ## Presence
 
 - Clients see who else is currently viewing or editing a note: the owner and everyone who has accepted it, whatever their role. A presence report for a note the reporting user cannot see is ignored.

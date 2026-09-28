@@ -1,8 +1,10 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
 import { DEFAULT_FRAGMENT_NAME } from "../extensions/yjsCollab.js";
+import { sharedAgreement } from "../realtime/contentAgreement.js";
 import type { NoteYDoc } from "../realtime/yjsProvider.js";
 
 /**
@@ -182,6 +184,187 @@ describe("NoteCardEditor collaboration gate", () => {
     show(note);
     await vi.waitFor(() => {
       expect(editorText()).toContain("Milk, eggs, coffee");
+    });
+  });
+});
+
+/**
+ * A row written from outside the document: an assistant's `update_note`, a
+ * script on the REST API, a restored version. None of them touch Yjs, so the
+ * document still holds the text from before, and without these the editor
+ * showed that and saved it back over the change.
+ */
+describe("NoteCardEditor with a row written from outside the document", () => {
+  const SAVED_AT = "2026-01-01T00:00:00.000Z";
+  const LATER = "2026-01-01T00:05:00.000Z";
+
+  /** A document that last saved `text`, as the editor records it. */
+  function savedDocument(text: string): Y.Doc {
+    const ydoc = new Y.Doc();
+    const paragraph = new Y.XmlElement("paragraph");
+    paragraph.insert(0, [new Y.XmlText(text)]);
+    fragment(ydoc).insert(0, [paragraph]);
+    const records = sharedAgreement(ydoc, null);
+    records.claim(text);
+    records.confirm(SAVED_AT);
+    return ydoc;
+  }
+
+  function writtenLater(content: string): Note {
+    return { ...makeNote(content), updatedAt: LATER };
+  }
+
+  const versionsSaved = () =>
+    localStorage.getItem(`manifesto:versions:${NOTE_ID}`) !== null;
+
+  it("takes the row in when the editor opens", async () => {
+    const note = writtenLater("Milk, eggs, coffee, and oat milk");
+    storeNote(note);
+    const ydoc = savedDocument("Milk, eggs, coffee");
+    provided.current = synced(ydoc);
+
+    show(note);
+
+    await vi.waitFor(() => {
+      expect(editorText()).toContain("and oat milk");
+    });
+    expect(fragment(ydoc).toString()).toContain("and oat milk");
+    // The document held nothing unsaved, so there was nothing to keep.
+    expect(versionsSaved()).toBe(false);
+  });
+
+  it("keeps the document when the row is a text it sent itself", async () => {
+    // Another tab's save that reached the row, claimed before it was sent,
+    // while this document has moved on since.
+    const ydoc = savedDocument("Milk, eggs, coffee, and rye bread");
+    sharedAgreement(ydoc, null).claim("Milk, eggs, coffee");
+    const note = writtenLater("Milk, eggs, coffee");
+    storeNote(note);
+    provided.current = synced(ydoc);
+
+    show(note);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(editorText()).toContain("and rye bread");
+  });
+
+  it("keeps text the document never saved as a version before replacing it", async () => {
+    const ydoc = savedDocument("Milk, eggs, coffee");
+    // Typed offline: in the document, never in the row.
+    const paragraph = new Y.XmlElement("paragraph");
+    paragraph.insert(0, [new Y.XmlText("and rye bread")]);
+    fragment(ydoc).insert(1, [paragraph]);
+    const note = writtenLater("Milk, eggs, coffee, and oat milk");
+    storeNote(note);
+    provided.current = synced(ydoc);
+
+    show(note);
+
+    await vi.waitFor(() => {
+      expect(editorText()).toContain("and oat milk");
+    });
+    await vi.waitFor(() => {
+      expect(versionsSaved()).toBe(true);
+    });
+    expect(localStorage.getItem(`manifesto:versions:${NOTE_ID}`)).not.toBe(
+      null,
+    );
+  });
+
+  it("leaves the change to the client that leads", async () => {
+    const note = writtenLater("Milk, eggs, coffee, and oat milk");
+    storeNote(note);
+    const ydoc = savedDocument("Milk, eggs, coffee");
+    const awareness = new Awareness(ydoc);
+    // Another client with the document open, and a lower id.
+    awareness.states.set(ydoc.clientID - 1, {});
+    provided.current = { ...synced(ydoc), awareness };
+
+    show(note);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(editorText()).not.toContain("oat milk");
+  });
+
+  it("takes in a row changed while the editor is open", async () => {
+    const note = makeNote("Milk, eggs, coffee");
+    storeNote(note);
+    const ydoc = savedDocument("Milk, eggs, coffee");
+    provided.current = synced(ydoc);
+    show(note);
+    await vi.waitFor(() => {
+      expect(editorText()).toContain("Milk, eggs, coffee");
+    });
+
+    const changed = writtenLater("Milk, eggs, coffee, and oat milk");
+    notes.value = [changed];
+    show(changed);
+
+    await vi.waitFor(
+      () => {
+        expect(editorText()).toContain("and oat milk");
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it("never takes its own saves for outside writes while typing", async () => {
+    // Each save changes the row under the editor, which by then has moved on.
+    // Taken in, it would undo whatever was typed after it.
+    const note = makeNote("Milk, eggs, coffee");
+    storeNote(note);
+    const ydoc = savedDocument("Milk, eggs, coffee");
+    provided.current = synced(ydoc);
+    // As the board does: the card hands the editor the row as it now stands.
+    function Live() {
+      const row = notes.value.find((n) => n.id === NOTE_ID);
+      return row ? <NoteCardEditor note={row} onClose={() => {}} /> : null;
+    }
+    render(<Live />, host);
+    await vi.waitFor(() => {
+      expect(editorText()).toContain("Milk, eggs, coffee");
+    });
+
+    const view = host.querySelector(".ProseMirror") as HTMLElement;
+    view.focus();
+    // One word, saved, and then steady typing: the auto-save waits for a
+    // pause, so the row stands still while the document runs ahead of it,
+    // and the row is judged in the middle of that.
+    document.execCommand("insertText", false, "and ");
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    for (const char of "rye bread ") {
+      document.execCommand("insertText", false, char);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // The caret starts where the focus left it; what matters is that every
+    // word is still there, on screen and in the row.
+    for (const text of [editorText(), notes.value[0].content]) {
+      expect(text).toMatch(/and\s+rye\s+bread/);
+      expect(text).toContain("Milk, eggs, coffee");
+    }
+  });
+
+  it("takes in a restored version with no shared document at all", async () => {
+    // Open mode, or a viewer: the editor's own records, kept in memory.
+    const note = makeNote("Milk, eggs, coffee");
+    storeNote(note);
+    provided.current = {
+      ydoc: null,
+      awareness: null,
+      status: "disabled",
+      synced: false,
+    };
+    show(note);
+    // Restored before the editor has even been built, so nothing but the row
+    // it was opened with can say this one is newer.
+    const restored = writtenLater("Milk");
+    notes.value = [restored];
+    show(restored);
+
+    await vi.waitFor(() => {
+      expect(editorText()).toBe("Milk");
     });
   });
 });

@@ -109,6 +109,7 @@ describe("webhooks", () => {
   async function addWebhook(token: string, body: object = {}) {
     const res = await call(token, "POST", "/api/webhooks", {
       url: receiverUrl,
+      password: "test-pass-12",
       ...body,
     });
     expect(res.status).toBe(201);
@@ -198,6 +199,7 @@ describe("webhooks", () => {
     const token = await signUp("alice");
     const res = await call(token, "POST", "/api/webhooks", {
       url: "http://10.0.0.1/hook",
+      password: "test-pass-12",
     });
     const { webhook } = (await res.json()) as WebhookCreatedResponse;
     const ping = await call(token, "POST", `/api/webhooks/${webhook.id}/test`);
@@ -207,7 +209,10 @@ describe("webhooks", () => {
 
   it("is session-only", async () => {
     const token = await signUp("alice");
-    const minted = await call(token, "POST", "/api/tokens", { name: "x" });
+    const minted = await call(token, "POST", "/api/tokens", {
+      name: "x",
+      password: "test-pass-12",
+    });
     const { secret } = (await minted.json()) as { secret: string };
     expect((await call(secret, "GET", "/api/webhooks")).status).toBe(403);
   });

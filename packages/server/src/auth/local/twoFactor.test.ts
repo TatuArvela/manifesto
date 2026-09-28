@@ -128,7 +128,10 @@ describe("two-factor sign-in", () => {
   });
 
   it("is refused to an API token", async () => {
-    const minted = await call("POST", "/api/tokens", { name: "x" });
+    const minted = await call("POST", "/api/tokens", {
+      name: "x",
+      password: PASSWORD,
+    });
     const { secret } = (await minted.json()) as { secret: string };
     expect(
       (await call("GET", "/api/auth/two-factor", undefined, secret)).status,

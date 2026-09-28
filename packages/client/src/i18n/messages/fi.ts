@@ -381,9 +381,17 @@ export const fi: Messages = {
   "settings.autoNotes.untitled": "(Nimetön)",
   "settings.autoNotes.origin.inline": "Liitetty",
   "settings.autoNotes.origin.url": "URL",
+  "confirm.password": "Salasanasi vahvistukseksi",
+  "confirm.passwordMissing": "Vahvista tämä salasanallasi.",
+  "confirm.passwordWrong": "Salasana ei ole oikein.",
+  "confirm.signInAgain":
+    "Turvallisuutesi vuoksi kirjaudu uudelleen tehdäksesi tämän.",
+  "confirm.signInAgainLink": "Kirjaudu uudelleen",
+  "confirm.locked":
+    "Liian monta väärää salasanaa. Odota muutama minuutti ja yritä uudelleen.",
   "tokens.title": "API-tunnisteet",
   "tokens.hint":
-    "Tunnisteella skripti, pikakomento tai botti voi käyttää muistiinpanojasi palvelimella {server} ilman salasanaasi. Se voi lukea ja muuttaa muistiinpanoja, mutta ei salasanaasi, tunnisteitasi eikä muita tilejä.",
+    "Tunnisteella skripti, pikakomento tai botti voi käyttää muistiinpanojasi palvelimella {server} ilman salasanaasi. Se ulottuu vain siihen, mihin annat sille oikeuden, eikä koskaan salasanaasi, tunnisteisiisi tai muihin tileihin.",
   "tokens.name": "Nimi",
   "tokens.namePlaceholder": "Mikä sitä käyttää?",
   "tokens.nameRequired": "Anna tunnisteelle nimi",
@@ -409,6 +417,31 @@ export const fi: Messages = {
   "tokens.revoked": "Tunniste peruttu",
   "tokens.tooMany": "Tunnisteita on enimmäismäärä; peru ensin jokin",
   "tokens.failed": "Tunnisteisiin ei saatu yhteyttä; yritä uudelleen",
+  "tokens.access": "Käyttöoikeus",
+  "tokens.accessFull": "Täysi käyttöoikeus",
+  "tokens.accessRead": "Vain luku",
+  "tokens.accessCustom": "Mukautettu",
+  "tokens.scopeNotesRead": "Lukea muistiinpanoja",
+  "tokens.scopeNotesWrite": "Lukea ja muuttaa muistiinpanoja",
+  "tokens.scopeSharing": "Jakaa muistiinpanoja ja vastata kutsuihin",
+  "tokens.scopeAccountRead": "Lukea profiiliasi ja asetuksiasi",
+  "tokens.scopeAccountWrite": "Muuttaa asetuksiasi",
+  "tokens.scopesRequired":
+    "Valitse vähintään yksi asia, jonka tunniste saa tehdä",
+  "tokens.kind": "Käyttötarkoitus",
+  "tokens.kindApi": "Skripti, pikakomento tai botti",
+  "tokens.kindMcp": "Tekoälyavustaja (MCP)",
+  "tokens.mcpHint":
+    "Avustajan tunniste toimii vain tämän palvelimen MCP-rajapinnan kautta, jonka työkaluilla se voi hakea, lukea, luoda ja muuttaa muistiinpanojasi. Poistaa se ei voi: enintään se siirtää muistiinpanon roskakoriin.",
+  "tokens.readOnly":
+    "Vain luku: se voi hakea ja lukea muistiinpanoja mutta ei muuttaa niitä",
+  "tokens.mcpSetup": "Yhdistä Claude Code ajamalla:",
+  "tokens.mcpCommand": "Komento, joka yhdistää Claude Coden",
+  "tokens.mcpCopyCommand": "Kopioi komento",
+  "tokens.mcpOther":
+    "Muille avustajille MCP-palvelin on {url} (HTTP), ja tämä tunniste annetaan bearer-tunnisteena.",
+  "tokens.mcpBadge": "Tekoälyavustaja",
+  "tokens.mcpReadOnlyBadge": "Tekoälyavustaja, vain luku",
   "webhooks.title": "Webhookit",
   "webhooks.hint":
     "Palvelin lähettää muistiinpanojesi tapahtumat (luotu, muutettu, poistettu) alla oleviin osoitteisiin, esimerkiksi n8n:lle, Home Assistantille tai chat-botille. Jokainen lähetys allekirjoitetaan webhookin salaisuudella.",

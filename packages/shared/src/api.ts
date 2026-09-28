@@ -93,9 +93,54 @@ export interface NoteVersionCreateRequest {
  * A personal API token as listed: never the secret, which is shown once, in
  * the response that created it.
  */
+/**
+ * What a token is for. `api` (`mfp_`) works on the REST API and the sockets,
+ * as a session does; `mcp` (`mfm_`) works only at `/api/mcp`, for an AI
+ * assistant, so a secret copied into an assistant's settings can do only what
+ * its tools do.
+ */
+export const API_TOKEN_KINDS = ["api", "mcp"] as const;
+export type ApiTokenKind = (typeof API_TOKEN_KINDS)[number];
+
+/**
+ * What a token may reach. Each route a token can call names one, and so does
+ * each socket (`/api/ws` reads notes, `/api/yjs` writes them). A `:write`
+ * scope includes its `:read`. A session has them all, and none of them
+ * reaches what only a session may do (passwords, tokens, webhooks, admin).
+ */
+export const API_TOKEN_SCOPES = [
+  "notes:read",
+  "notes:write",
+  "sharing",
+  "account:read",
+  "account:write",
+] as const;
+export type ApiTokenScope = (typeof API_TOKEN_SCOPES)[number];
+
+/** What a token gets when minted without naming any, and what every token
+ * minted before scopes was narrowed to. */
+export const DEFAULT_API_TOKEN_SCOPES: readonly ApiTokenScope[] = [
+  "notes:read",
+  "notes:write",
+];
+
+/** Whether `granted` covers `needed`, a `:write` covering its `:read`. */
+export function hasScope(
+  granted: readonly ApiTokenScope[],
+  needed: ApiTokenScope,
+): boolean {
+  if (granted.includes(needed)) return true;
+  return (
+    needed.endsWith(":read") &&
+    granted.includes(needed.replace(/:read$/, ":write") as ApiTokenScope)
+  );
+}
+
 export interface ApiToken {
   id: string;
   name: string;
+  kind: ApiTokenKind;
+  scopes: ApiTokenScope[];
   /** The secret's first characters, so a user can tell tokens apart. */
   prefix: string;
   createdAt: string;
@@ -110,6 +155,11 @@ export interface ApiTokensResponse {
 
 export interface ApiTokenCreateRequest {
   name: string;
+  /** `api` when left out. */
+  kind?: ApiTokenKind;
+  /** `DEFAULT_API_TOKEN_SCOPES` when left out. An `mcp` token takes only
+   * `notes:*`, which is all its tools reach. */
+  scopes?: ApiTokenScope[];
   /** Days until it stops working; left out for a token that does not expire. */
   expiresInDays?: number;
 }
@@ -306,7 +356,12 @@ export type ErrorCode =
   | "email_taken"
   | "two_factor_required"
   | "two_factor_invalid"
-  | "admin_export_disabled";
+  | "admin_export_disabled"
+  /** An action that takes the password was sent without it. */
+  | "confirmation_required"
+  | "password_incorrect"
+  /** An account without a password has to have signed in recently. */
+  | "reauthentication_required";
 
 export interface ErrorResponse {
   error: string;
@@ -384,6 +439,9 @@ export interface AuthMethodsResponse {
   /** Whether this server lets users register webhooks. Absent from servers
    * from before webhooks, which have none. */
   webhooks?: boolean;
+  /** Whether this server has an MCP endpoint for AI assistants
+   * (`/api/mcp`). Absent from servers from before it, which have none. */
+  mcp?: boolean;
   /** Whether a forgotten password can be reset by a link sent by mail. */
   passwordReset?: boolean;
   /** Whether anyone can create an account with a password here. Absent from

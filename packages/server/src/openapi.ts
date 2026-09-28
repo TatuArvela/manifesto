@@ -1,3 +1,4 @@
+import type { ApiTokenScope } from "@manifesto/shared";
 import { z } from "zod";
 import {
   accountPrefsUpdateSchema,
@@ -36,7 +37,7 @@ import {
  * name and shape.
  */
 
-type Auth = "none" | "any" | "session";
+type Auth = "none" | "any" | "session" | "mcp";
 
 export interface Operation {
   method: "get" | "post" | "put" | "patch" | "delete";
@@ -44,8 +45,15 @@ export interface Operation {
   path: string;
   tag: string;
   summary: string;
-  /** `session`: a sign-in session only, refused to an API token. */
+  /** `session`: a sign-in session only, refused to an API token. `mcp`: an
+   * MCP token only. */
   auth: Auth;
+  /**
+   * What a token needs to call it. Required where `auth` is `any` or `mcp`
+   * (`openapi.test.ts` holds to that); a token is refused an operation that
+   * names none, so a route added without one is closed to tokens, not open.
+   */
+  scope?: ApiTokenScope;
   body?: z.ZodType;
   query?: Record<string, string>;
   /** Status to description; `schema` names a component. */
@@ -91,6 +99,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "The signed-in user",
     auth: "any",
+    scope: "account:read",
     responses: ok("AuthMeResponse"),
   },
   {
@@ -120,6 +129,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "The signed-in user's preferences, as their clients sent them",
     auth: "any",
+    scope: "account:read",
     responses: ok("AccountPrefsResponse"),
   },
   {
@@ -128,6 +138,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Set some of the signed-in user's preferences; null removes one",
     auth: "any",
+    scope: "account:write",
     body: accountPrefsUpdateSchema,
     responses: {
       ...ok("AccountPrefsResponse"),
@@ -140,6 +151,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Record the language the signed-in user's client is set to",
     auth: "any",
+    scope: "account:write",
     body: authLocaleSchema,
     responses: noContent,
   },
@@ -169,6 +181,10 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Start single sign-on (redirects to the identity provider)",
     auth: "none",
+    query: {
+      reauth:
+        "Present: the identity provider asks the user to sign in again (prompt=login), for an action that needs a recent sign-in",
+    },
     responses: { "302": { description: "To the identity provider" } },
     provider: "oidc",
   },
@@ -186,7 +202,7 @@ export const OPERATIONS: Operation[] = [
     path: "/api/auth/logout",
     tag: "Auth",
     summary: "End this session",
-    auth: "any",
+    auth: "session",
     responses: noContent,
   },
   {
@@ -277,6 +293,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "One page of the user's notes, newest first, without images",
     auth: "any",
+    scope: "notes:read",
     query: { limit: "Page size", cursor: "From the previous page" },
     responses: ok("NotesResponse"),
   },
@@ -286,6 +303,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Create a note",
     auth: "any",
+    scope: "notes:write",
     body: noteCreateSchema,
     responses: { "201": { description: "Created", schema: "NoteResponse" } },
   },
@@ -296,6 +314,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Import up to 100 notes, keeping their ids; the same one twice updates it",
     auth: "any",
+    scope: "notes:write",
     body: notesImportSchema,
     responses: ok("NotesImportResponse"),
   },
@@ -305,6 +324,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Delete every note the user owns (shared ones stay)",
     auth: "any",
+    scope: "notes:write",
     responses: noContent,
   },
   {
@@ -313,6 +333,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "One note, with its images",
     auth: "any",
+    scope: "notes:read",
     responses: { ...ok("NoteResponse"), ...notFound },
   },
   {
@@ -321,6 +342,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Change a note; send If-Match for a compare-and-set",
     auth: "any",
+    scope: "notes:write",
     body: noteUpdateSchema,
     responses: {
       ...ok("NoteResponse"),
@@ -335,6 +357,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Delete a note (a recipient leaves it instead)",
     auth: "any",
+    scope: "notes:write",
     responses: { ...noContent, ...notFound },
   },
   {
@@ -343,6 +366,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "The note's version history, newest first",
     auth: "any",
+    scope: "notes:read",
     responses: ok("NoteVersionsResponse"),
   },
   {
@@ -351,6 +375,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Add a version (owner and editors)",
     auth: "any",
+    scope: "notes:write",
     body: noteVersionCreateSchema,
     responses: { "201": { description: "Added" } },
   },
@@ -360,6 +385,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Invite an account to the note (owner)",
     auth: "any",
+    scope: "sharing",
     body: shareCreateSchema,
     responses: { "201": { description: "Invited", schema: "NoteResponse" } },
   },
@@ -369,6 +395,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Change someone's role (owner)",
     auth: "any",
+    scope: "sharing",
     body: shareUpdateSchema,
     responses: ok("NoteResponse"),
   },
@@ -378,6 +405,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Remove someone, or leave the note yourself",
     auth: "any",
+    scope: "sharing",
     responses: noContent,
   },
   {
@@ -386,6 +414,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Notes offered to the user",
     auth: "any",
+    scope: "sharing",
     responses: ok("InvitationsResponse"),
   },
   {
@@ -394,6 +423,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Accept an invitation",
     auth: "any",
+    scope: "sharing",
     responses: ok("NoteResponse"),
   },
   {
@@ -402,6 +432,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Decline an invitation",
     auth: "any",
+    scope: "sharing",
     responses: noContent,
   },
   {
@@ -410,6 +441,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Find accounts to share with",
     auth: "any",
+    scope: "sharing",
     query: { q: "Name, username or email address" },
     responses: ok("UserLookupResponse"),
   },
@@ -419,6 +451,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Notes whose title or content contains q, newest first",
     auth: "any",
+    scope: "notes:read",
     query: { q: "Search words", limit: "Page size", cursor: "Next page" },
     responses: ok("NotesResponse"),
   },
@@ -429,6 +462,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Upload an image (the raw file, its type in Content-Type); answers the attachment: reference",
     auth: "any",
+    scope: "notes:write",
     responses: {
       "201": { description: "Stored", schema: "AttachmentUploadResponse" },
       "413": { description: "Over the image limit", schema: "Error" },
@@ -441,6 +475,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "The bytes of an image a note refers to as attachment:<id>",
     auth: "any",
+    scope: "notes:read",
     responses: {
       "200": { description: "The image, with its media type" },
       ...notFound,
@@ -452,6 +487,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "What the server could read from a linked page",
     auth: "any",
+    scope: "notes:write",
     query: { url: "An http(s) URL" },
     responses: ok("LinkPreviewResponse"),
   },
@@ -461,6 +497,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Every note the account owns, as a zip of JSON and Markdown",
     auth: "any",
+    scope: "notes:read",
     responses: { "200": { description: "application/zip" } },
   },
   {
@@ -619,6 +656,19 @@ export const OPERATIONS: Operation[] = [
     auth: "session",
     responses: noContent,
   },
+  {
+    method: "post",
+    path: "/api/mcp",
+    tag: "MCP",
+    summary:
+      "Model Context Protocol for AI assistants: JSON-RPC over Streamable HTTP, stateless",
+    auth: "mcp",
+    scope: "notes:read",
+    responses: {
+      "200": { description: "The JSON-RPC answer" },
+      "202": { description: "A notification, accepted" },
+    },
+  },
 ];
 
 const noteResponseSchema = noteCreateSchema.extend({
@@ -652,7 +702,7 @@ function components() {
         type: "http",
         scheme: "bearer",
         description:
-          "A session token from signing in, or a personal API token (mfp_...).",
+          "A session token from signing in, or a personal API token (mfp_...), which reaches only the operations whose x-token-scope it was granted (a :write scope includes its :read). /api/mcp takes an MCP token (mfm_...) and nothing else.",
       },
     },
     schemas: {
@@ -762,6 +812,8 @@ export function buildOpenApiDocument(version: string) {
       ...(op.auth === "session" && {
         "x-session-only": true,
       }),
+      ...(op.auth === "mcp" && { "x-mcp-only": true }),
+      ...(op.scope && { "x-token-scope": op.scope }),
       ...(parameters.length > 0 && { parameters }),
       ...(op.body && {
         requestBody: {
@@ -794,7 +846,7 @@ export function buildOpenApiDocument(version: string) {
       title: "Manifesto API",
       version,
       description:
-        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token.",
+        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md.",
       license: { name: "MIT" },
     },
     servers: [{ url: "/" }],

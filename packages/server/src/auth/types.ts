@@ -1,19 +1,27 @@
+import type { ApiTokenScope } from "@manifesto/shared";
 import type { Hono } from "hono";
 import type { Mailer } from "../mail/mailer.js";
+import type { LoginAttempts } from "./local/loginAttempts.js";
 import type { SessionRevocations } from "./revocations.js";
 
 /**
- * What a bearer token turned out to be: a session from signing in, or a
- * personal API token. Anything that changes how an account is secured
- * (passwords, tokens, admin actions) asks for a session, so a token handed to
- * a script cannot be used to take over the account it belongs to.
+ * What a bearer token turned out to be: a session from signing in, a
+ * personal API token, or an MCP token. Anything that changes how an account
+ * is secured (passwords, tokens, admin actions) asks for a session, so a
+ * token handed to a script cannot be used to take over the account it belongs
+ * to. An MCP token is narrower still: only `/api/mcp` takes it, and the REST
+ * calls its tools make in-process (see `createAuthMiddleware`).
  */
-export type CredentialKind = "session" | "api-token";
+export type CredentialKind = "session" | "api-token" | "mcp-token";
 
 export interface AuthIdentity {
   userId: string;
   token: string;
   via: CredentialKind;
+  /** What a token may reach; absent for a session, which may reach it all. */
+  scopes?: readonly ApiTokenScope[];
+  /** When a session was signed in; absent for a token. */
+  signedInAt?: string;
   username: string;
   displayName: string;
   avatarColor: string;
@@ -32,6 +40,9 @@ export interface AuthRouterContext {
   revocations: SessionRevocations;
   /** Null when the server sends no mail. */
   mailer: Mailer | null;
+  /** Wrong passwords per account name, shared by signing in and by
+   * confirming an action (`requireConfirmation`). */
+  loginAttempts: LoginAttempts;
 }
 
 export interface AuthProvider {

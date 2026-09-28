@@ -2,6 +2,7 @@ import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { recordClientAddress } from "./audit/audit.js";
+import { createLoginAttempts } from "./auth/local/loginAttempts.js";
 import {
   createSessionRevocations,
   type SessionRevocations,
@@ -10,14 +11,15 @@ import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
 import { mountClient } from "./client/serveClient.js";
 import type { ServerConfig } from "./config.js";
+import type { UpdateStatus } from "./jobs/updateCheck.js";
 import { countMetric } from "./lib/metrics.js";
 import { metricsHandler } from "./lib/metricsServer.js";
-import type { UpdateStatus } from "./lib/updateCheck.js";
 import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,
 } from "./linkPreview/fetchPreview.js";
 import { createSmtpMailer, type Mailer } from "./mail/mailer.js";
+import { createMcpRoutes } from "./mcp/routes.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
@@ -84,6 +86,9 @@ export function createApp(deps: AppDeps): AppHandle {
   const revocations = deps.revocations ?? createSessionRevocations();
   const accessChanges = deps.accessChanges ?? createAccessChanges();
   const noteEvents = createNoteEvents({ storage, broadcaster, accessChanges });
+  // One budget of wrong passwords per account name, whether they were typed
+  // to sign in or to confirm an action from a session that is already in.
+  const loginAttempts = createLoginAttempts();
   const mailer = deps.mailer ?? (cfg.mail ? createSmtpMailer(cfg.mail) : null);
   const mail = mailer && cfg.mail ? { mailer, appUrl: cfg.mail.appUrl } : null;
   const webhooks =
@@ -172,9 +177,18 @@ export function createApp(deps: AppDeps): AppHandle {
   // the provider's own router so Hono's longest-prefix matching reaches them.
   app.route(
     "/api/auth",
-    createAuthSharedRoutes({ cfg, storage, authProvider, broadcaster }),
+    createAuthSharedRoutes({
+      cfg,
+      storage,
+      authProvider,
+      broadcaster,
+      loginAttempts,
+    }),
   );
-  app.route("/api/auth", authProvider.router({ revocations, mailer }));
+  app.route(
+    "/api/auth",
+    authProvider.router({ revocations, mailer, loginAttempts }),
+  );
   app.route(
     "/api/notes",
     createNotesRoutes({
@@ -213,14 +227,31 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
       authProvider,
       revocations,
+      loginAttempts,
+      mcpEnabled: cfg.mcp,
       rateLimit: apiRateLimit,
     }),
   );
+  if (cfg.mcp) {
+    // Its tools call the routes above through the app itself, so they meet
+    // every check a request from the network does.
+    app.route(
+      "/api/mcp",
+      createMcpRoutes({
+        authProvider,
+        corsOrigins: cfg.corsOrigins,
+        serverVersion: VERSION,
+        forward: (request, env) => app.fetch(request, env),
+        rateLimit: apiRateLimit,
+      }),
+    );
+  }
   app.route(
     "/api/webhooks",
     createWebhookRoutes({
       storage,
       authProvider,
+      loginAttempts,
       dispatcher: webhooks,
       rateLimit: apiRateLimit,
     }),

@@ -10,8 +10,8 @@ import type { SqliteDB } from "./database.js";
 export function createSqliteApiTokensRepo(db: SqliteDB): ApiTokensRepo {
   const insertStmt = db.prepare(
     `INSERT INTO api_tokens
-       (id, user_id, name, token_hash, prefix, created_at, last_used_at, expires_at)
-     VALUES (@id, @userId, @name, @tokenHash, @prefix, @createdAt, @lastUsedAt, @expiresAt)`,
+       (id, user_id, name, kind, scopes, token_hash, prefix, created_at, last_used_at, expires_at)
+     VALUES (@id, @userId, @name, @kind, @scopes, @tokenHash, @prefix, @createdAt, @lastUsedAt, @expiresAt)`,
   );
   const byHashStmt = db.prepare(
     `SELECT ${API_TOKEN_COLUMNS} FROM api_tokens WHERE token_hash = ?`,
@@ -35,7 +35,7 @@ export function createSqliteApiTokensRepo(db: SqliteDB): ApiTokensRepo {
 
   return {
     async create(input) {
-      insertStmt.run(input);
+      insertStmt.run({ ...input, scopes: JSON.stringify(input.scopes) });
     },
     async findByHash(tokenHash) {
       const row = byHashStmt.get(tokenHash) as ApiTokenRow | undefined;

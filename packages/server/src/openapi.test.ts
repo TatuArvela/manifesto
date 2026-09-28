@@ -42,6 +42,13 @@ describe("OpenAPI document", () => {
     expect(extra).toEqual([]);
   });
 
+  it("names the scope a token needs wherever a token may go, and nowhere else", () => {
+    const wrong = OPERATIONS.filter(
+      (o) => (o.auth === "any" || o.auth === "mcp") !== (o.scope !== undefined),
+    ).map((o) => `${o.method} ${o.path}`);
+    expect(wrong).toEqual([]);
+  });
+
   it("resolves every reference and carries the zod request schemas", () => {
     const doc = buildOpenApiDocument("test");
     const json = JSON.stringify(doc);

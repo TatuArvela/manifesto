@@ -1,15 +1,19 @@
 import { zValidator } from "@hono/zod-validator";
-import type {
-  ApiTokenCreatedResponse,
-  ApiTokensResponse,
+import {
+  API_TOKEN_SCOPES,
+  type ApiTokenCreatedResponse,
+  type ApiTokensResponse,
+  DEFAULT_API_TOKEN_SCOPES,
 } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
 import { audit } from "../audit/audit.js";
+import { requireConfirmation } from "../auth/confirmation.js";
+import type { LoginAttempts } from "../auth/local/loginAttempts.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
-import { hashToken, newApiToken } from "../lib/token.js";
+import { hashToken, MCP_TOKEN_PREFIX, newApiToken } from "../lib/token.js";
 import { newId } from "../lib/ulid.js";
 import {
   type AuthContext,
@@ -22,6 +26,9 @@ import { validatorHook } from "../validation/zValidator.js";
 
 interface TokenDeps {
   storage: StorageDriver;
+  loginAttempts: LoginAttempts;
+  /** Whether the server has `/api/mcp`; without it an MCP token opens nothing. */
+  mcpEnabled: boolean;
   authProvider: AuthProvider;
   revocations: SessionRevocations;
   rateLimit?: MiddlewareHandler;
@@ -59,16 +66,33 @@ export function createTokenRoutes(deps: TokenDeps) {
     zValidator("json", apiTokenCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      const { name, expiresInDays } = c.req.valid("json");
+      const {
+        name,
+        expiresInDays,
+        kind = "api",
+        scopes,
+        password,
+      } = c.req.valid("json");
+      // A token outlives the session that minted it.
+      await requireConfirmation(deps, c.get("auth"), password);
+      if (kind === "mcp" && !deps.mcpEnabled) {
+        throw new HttpError(403, "This server has MCP turned off");
+      }
       const existing = await deps.storage.apiTokens.listByUser(userId);
       if (existing.length >= MAX_API_TOKENS_PER_USER) {
         throw new HttpError(409, "Revoke a token before creating another");
       }
-      const secret = newApiToken();
+      const secret = newApiToken(kind === "mcp" ? MCP_TOKEN_PREFIX : undefined);
       const now = nowIso();
+      // In the one order the list uses, each once.
+      const granted = API_TOKEN_SCOPES.filter((scope) =>
+        (scopes ?? DEFAULT_API_TOKEN_SCOPES).includes(scope),
+      );
       const token = {
         id: newId(),
         name,
+        kind,
+        scopes: granted,
         prefix: secret.slice(0, SHOWN_PREFIX_LENGTH),
         createdAt: now,
         lastUsedAt: null,
@@ -83,7 +107,12 @@ export function createTokenRoutes(deps: TokenDeps) {
       audit(deps.storage, c, {
         action: "token.created",
         actorId: userId,
-        detail: { name, prefix: token.prefix },
+        detail: {
+          name,
+          prefix: token.prefix,
+          kind,
+          scopes: granted.join(" "),
+        },
       });
       const body: ApiTokenCreatedResponse = { token, secret };
       return c.json(body, 201);

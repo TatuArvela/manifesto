@@ -1,9 +1,17 @@
+import {
+  API_TOKEN_SCOPES,
+  type ApiTokenKind,
+  type ApiTokenScope,
+} from "@manifesto/shared";
 import type { StoredApiToken } from "./types.js";
 
 export interface ApiTokenRow {
   id: string;
   user_id: string;
   name: string;
+  kind: string;
+  /** A JSON array of `ApiTokenScope`. */
+  scopes: string;
   prefix: string;
   created_at: string;
   last_used_at: string | null;
@@ -11,13 +19,29 @@ export interface ApiTokenRow {
 }
 
 export const API_TOKEN_COLUMNS =
-  "id, user_id, name, prefix, created_at, last_used_at, expires_at";
+  "id, user_id, name, kind, scopes, prefix, created_at, last_used_at, expires_at";
+
+/** The scopes a row names, leaving out any this server does not know: a
+ * scope is a grant, so an unreadable one grants nothing. */
+function parseScopes(text: string): ApiTokenScope[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return API_TOKEN_SCOPES.filter((scope) => parsed.includes(scope));
+}
 
 export function rowToApiToken(row: ApiTokenRow): StoredApiToken {
   return {
     id: row.id,
     userId: row.user_id,
     name: row.name,
+    // Only these two are ever written; anything else reads as the narrower.
+    kind: (row.kind === "api" ? "api" : "mcp") satisfies ApiTokenKind,
+    scopes: parseScopes(row.scopes),
     prefix: row.prefix,
     createdAt: row.created_at,
     lastUsedAt: row.last_used_at,

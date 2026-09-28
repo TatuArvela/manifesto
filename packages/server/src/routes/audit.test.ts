@@ -142,7 +142,7 @@ describe("audit log", () => {
     const created = await rig.request("/api/tokens", {
       method: "POST",
       headers: authHeaders(bob.token),
-      body: JSON.stringify({ name: "script" }),
+      body: JSON.stringify({ name: "script", password: "test-pass-12" }),
     });
     const { secret } = (await created.json()) as { secret: string };
     const res = await rig.request("/api/auth/me/activity", {

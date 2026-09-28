@@ -24,13 +24,18 @@ export function createLocalAuthProvider(
       return authenticateBySession(storage, cfg, token);
     },
 
-    router({ revocations, mailer }: AuthRouterContext): AuthProviderRouter {
+    router({
+      revocations,
+      mailer,
+      loginAttempts,
+    }: AuthRouterContext): AuthProviderRouter {
       return createLocalAuthRouter({
         storage,
         authProvider: provider,
         cfg,
         revocations,
         mailer,
+        loginAttempts,
       });
     },
   };

@@ -1,7 +1,4 @@
-import type {
-  ActiveFormats,
-  FormatType,
-} from "../components/FormattingToolbar.js";
+import type { ActiveFormats, FormatType } from "./formatTypes.js";
 
 /**
  * The formatting toolbar in raw mode.

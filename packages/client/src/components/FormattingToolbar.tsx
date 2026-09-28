@@ -40,6 +40,7 @@ import {
   toggleUnderlineCommand,
 } from "../extensions/manifestoInlineMarks.js";
 import { t } from "../i18n/index.js";
+import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
 import {
   applyRawFormat,
   applyRawLink,
@@ -49,37 +50,6 @@ import {
 } from "../utils/rawFormatting.js";
 import { Dropdown } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
-
-export type FormatType =
-  | "heading"
-  | "bold"
-  | "italic"
-  | "quote"
-  | "code"
-  | "link"
-  | "numberedList"
-  | "unorderedList"
-  | "checklist"
-  | "strikethrough"
-  | "underline"
-  | "subscript"
-  | "superscript";
-
-export interface ActiveFormats {
-  heading: number | false;
-  bold: boolean;
-  italic: boolean;
-  quote: boolean;
-  code: boolean;
-  link: boolean;
-  numberedList: boolean;
-  unorderedList: boolean;
-  checklist: boolean;
-  strikethrough: boolean;
-  underline: boolean;
-  subscript: boolean;
-  superscript: boolean;
-}
 
 export const emptyFormats: ActiveFormats = {
   heading: false,
