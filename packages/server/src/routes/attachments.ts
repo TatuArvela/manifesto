@@ -4,22 +4,16 @@ import {
   type AttachmentUploadResponse,
   MAX_IMAGE_SOURCE_BYTES,
 } from "@manifesto/shared";
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import { sniffImageType } from "../attachments/sniff.js";
-import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 
 interface AttachmentDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
-  rateLimit?: MiddlewareHandler;
 }
 
 /**
@@ -35,8 +29,6 @@ interface AttachmentDeps {
  */
 export function createAttachmentRoutes(deps: AttachmentDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
-  routes.use("*", createAuthMiddleware(deps.authProvider));
-  if (deps.rateLimit) routes.use("*", deps.rateLimit);
 
   routes.post("/", async (c) => {
     const { userId } = c.get("auth");

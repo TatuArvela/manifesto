@@ -141,7 +141,10 @@ A token reaches only what its **scopes** name, chosen when it is minted:
 
 A request outside its scopes answers `403` naming the scope it lacks, and a socket closes with `4401`.
 Each operation's scope is `x-token-scope` in `/api/openapi.json`, and an operation that names none is
-closed to tokens. No scope reaches what only a session may do (managing tokens and webhooks, a password
+closed to tokens. The same document marks what only a session may call (`x-session-only`), what only an
+admin may (`x-admin-only`), and the rate limits an operation counts against (`x-rate-limits`): the
+server enforces each route's protection from that one list, so the document cannot say one thing and
+the route do another. No scope reaches what only a session may do (managing tokens and webhooks, a password
 or email address, two-factor sign-in, `/api/admin/*`), so a token given to a script cannot be used to
 take over its account. Minted without `scopes`, a token gets `notes:read` and `notes:write`, which is
 also what every token from before scopes was narrowed to.

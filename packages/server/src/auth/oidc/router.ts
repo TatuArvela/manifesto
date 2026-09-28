@@ -6,12 +6,8 @@ import type { OidcConfig, ServerConfig } from "../../config.js";
 import { logger } from "../../lib/logger.js";
 import { nowIso } from "../../lib/time.js";
 import { newId, newShortSuffix } from "../../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../../middleware/authBearer.js";
+import type { AuthContext } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
-import { rateLimit } from "../../middleware/rateLimit.js";
 import {
   type CreateUserInput,
   EmailTakenError,
@@ -20,13 +16,12 @@ import {
 } from "../../storage/types.js";
 import { emailSchema } from "../../validation/schemas.js";
 import { issueSession, revokeSession } from "../session.js";
-import type { AuthProvider, AuthProviderRouter } from "../types.js";
+import type { AuthProviderRouter } from "../types.js";
 import { pickAvatarColor } from "../users.js";
 import type { OidcDiscoveryClient } from "./provider.js";
 
 interface OidcRouterDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
   cfg: ServerConfig;
   oidc: OidcConfig;
   discoveryClient: OidcDiscoveryClient;
@@ -233,18 +228,6 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
   );
   const pending = new Map<string, PendingFlow>();
 
-  // Per-IP budget on the two unauthenticated endpoints. `/login` mints a
-  // pending flow and `/callback` spends discovery and a token exchange, so
-  // without this an anonymous caller sets the memory and outbound-request
-  // cost of the process. Looser than the local provider's 10, which is sized
-  // against password spraying: there is no password here, a single sign-in
-  // costs two requests, and SSO users routinely share an egress IP.
-  const authThrottle = rateLimit({
-    limit: 30,
-    windowMs: 15 * 60 * 1000,
-    trustProxy: deps.cfg.trustProxy,
-  });
-
   let sinceSweep = 0;
 
   function rememberFlow(state: string, codeVerifier: string): void {
@@ -270,7 +253,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     return flow;
   }
 
-  auth.get("/login", authThrottle, async (c) => {
+  auth.get("/login", async (c) => {
     const config = await deps.discoveryClient.getConfig();
     const codeVerifier = openid.randomPKCECodeVerifier();
     const codeChallenge = await openid.calculatePKCECodeChallenge(codeVerifier);
@@ -301,7 +284,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     return c.redirect(authorizationUrl.toString(), 302);
   });
 
-  auth.get("/callback", authThrottle, async (c) => {
+  auth.get("/callback", async (c) => {
     const url = new URL(c.req.url);
     const state = url.searchParams.get("state") ?? "";
     if (!state) {
@@ -454,7 +437,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     return c.redirect(target.toString(), 302);
   });
 
-  auth.post("/logout", createAuthMiddleware(deps.authProvider), async (c) => {
+  auth.post("/logout", async (c) => {
     const { token } = c.get("auth");
     await revokeSession(deps.storage, token);
     return c.body(null, 204);

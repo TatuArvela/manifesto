@@ -4,18 +4,13 @@ import {
   type NotesImportResponse,
   roleOf,
 } from "@manifesto/shared";
-import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { claimImages, claimPreviewImages } from "../attachments/store.js";
-import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
 import type { Mailer } from "../mail/mailer.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
@@ -36,14 +31,12 @@ import { registerVersionRoutes } from "./versions.js";
 
 interface NotesDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
   broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
   /** Optional per-user limiter, mounted after auth. Defined in app.ts so
    * it shares state with /api/search rather than maintaining a per-router
    * bucket map. */
-  rateLimit?: MiddlewareHandler;
   mail?: { mailer: Mailer; appUrl: string } | null;
   /** For the public link routes, which hash passwords and may be off. */
   cfg: ServerConfig;
@@ -99,9 +92,6 @@ export function createNotesRoutes(deps: NotesDeps) {
     } while (cursor !== undefined);
     return ids;
   }
-
-  notes.use("*", createAuthMiddleware(deps.authProvider));
-  if (deps.rateLimit) notes.use("*", deps.rateLimit);
 
   notes.get("/", async (c) => {
     const { userId } = c.get("auth");

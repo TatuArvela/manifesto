@@ -9,15 +9,11 @@ import type {
   TeamSharesResponse,
   TeamsResponse,
 } from "@manifesto/shared";
-import { type Context, Hono, type MiddlewareHandler } from "hono";
+import { type Context, Hono } from "hono";
 import { audit } from "../audit/audit.js";
-import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { TeamShares } from "../sharing/teamShares.js";
 import type { StorageDriver, StoredTeam } from "../storage/types.js";
@@ -46,14 +42,8 @@ function toTeam(team: StoredTeam): Team {
 }
 
 /** `GET /api/teams`: the teams the signed-in user is in, to share with. */
-export function createTeamRoutes(deps: {
-  storage: StorageDriver;
-  authProvider: AuthProvider;
-  rateLimit?: MiddlewareHandler;
-}) {
+export function createTeamRoutes(deps: { storage: StorageDriver }) {
   const routes: AuthedApp = new Hono();
-  routes.use("*", createAuthMiddleware(deps.authProvider));
-  if (deps.rateLimit) routes.use("*", deps.rateLimit);
 
   routes.get("/", async (c) => {
     const teams = await deps.storage.teams.listForUser(c.get("auth").userId);

@@ -11,7 +11,6 @@ import { requireConfirmation } from "../auth/confirmation.js";
 import type { LoginAttempts } from "../auth/local/loginAttempts.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
-import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
 import { publicOrigin } from "../lib/origin.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
@@ -25,12 +24,8 @@ import {
   safeEqual,
 } from "../lib/token.js";
 import { newId } from "../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
-import { rateLimit } from "../middleware/rateLimit.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
   oauthAuthorizeSchema,
@@ -153,13 +148,9 @@ function earlier(a: string, b: string | null): string {
 
 interface OAuthDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
   loginAttempts: LoginAttempts;
   revocations: SessionRevocations;
-  trustProxy: boolean;
   resolveClient: (clientId: string) => Promise<ResolvedClient | null>;
-  /** Per user, after sign-in: the consent page's two calls. */
-  rateLimit?: MiddlewareHandler;
 }
 
 /**
@@ -177,10 +168,6 @@ interface OAuthDeps {
 export function createOAuthRoutes(deps: OAuthDeps) {
   const { storage } = deps;
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
-  const noLimit: MiddlewareHandler = (_c, next) => next();
-  const session = createAuthMiddleware(deps.authProvider, {
-    sessionOnly: true,
-  });
 
   /** An error in the shape RFC 6749 gives a token endpoint. */
   const oauthError = (
@@ -193,142 +180,124 @@ export function createOAuthRoutes(deps: OAuthDeps) {
     return c.json({ error, error_description: description }, status);
   };
 
-  routes.post(
-    "/register",
-    rateLimit({
-      limit: 20,
-      windowMs: 60 * 60 * 1000,
-      trustProxy: deps.trustProxy,
-      name: "oauth-register",
-    }),
-    async (c) => {
-      let raw: unknown;
-      try {
-        raw = await c.req.json();
-      } catch {
-        return oauthError(c, 400, "invalid_client_metadata", "Send JSON");
-      }
-      const parsed = oauthRegisterSchema.safeParse(raw);
-      if (!parsed.success) {
-        return oauthError(
-          c,
-          400,
-          "invalid_client_metadata",
-          parsed.error.issues[0]?.message ?? "Invalid metadata",
-        );
-      }
-      const meta = parsed.data;
-      for (const uri of meta.redirect_uris) {
-        const problem = redirectUriProblem(uri);
-        if (problem) {
-          return oauthError(
-            c,
-            400,
-            "invalid_redirect_uri",
-            `${uri.slice(0, 200)} ${problem}`,
-          );
-        }
-      }
-      if (
-        meta.grant_types &&
-        (!meta.grant_types.includes("authorization_code") ||
-          meta.grant_types.some((type) => !GRANT_TYPES.includes(type)))
-      ) {
-        return oauthError(
-          c,
-          400,
-          "invalid_client_metadata",
-          "Only authorization_code and refresh_token are granted",
-        );
-      }
-      if (meta.response_types?.some((type) => type !== "code")) {
-        return oauthError(
-          c,
-          400,
-          "invalid_client_metadata",
-          "Only the code response type is supported",
-        );
-      }
-      // Every client here is a public one: an assistant on someone's computer
-      // cannot keep a secret. RFC 7591 lets the server answer with the method
-      // it will use instead of the one asked for.
-      const client = {
-        id: newId(),
-        name:
-          meta.client_name?.trim().slice(0, MAX_CLIENT_NAME_LENGTH) ||
-          UNNAMED_CLIENT,
-        redirectUris: meta.redirect_uris,
-        createdAt: nowIso(),
-        lastUsedAt: null,
-      };
-      await storage.oauth.createClient(client);
-      return c.json(
-        {
-          client_id: client.id,
-          client_id_issued_at: Math.floor(Date.parse(client.createdAt) / 1000),
-          client_name: client.name,
-          redirect_uris: client.redirectUris,
-          grant_types: GRANT_TYPES,
-          response_types: ["code"],
-          token_endpoint_auth_method: "none",
-        },
-        201,
-      );
-    },
-  );
-
-  routes.post(
-    "/token",
-    rateLimit({
-      limit: 60,
-      windowMs: 60 * 1000,
-      trustProxy: deps.trustProxy,
-      name: "oauth-token",
-    }),
-    async (c) => {
-      let form: Record<string, unknown>;
-      try {
-        form = await c.req.parseBody();
-      } catch {
-        return oauthError(
-          c,
-          400,
-          "invalid_request",
-          "Send a form (application/x-www-form-urlencoded)",
-        );
-      }
-      const field = (name: string) => {
-        const value = form[name];
-        return typeof value === "string" && value !== "" ? value : undefined;
-      };
-      const clientId = field("client_id") ?? basicClientId(c);
-      if (!clientId) {
-        return oauthError(c, 401, "invalid_client", "client_id is missing");
-      }
-      const resource = field("resource");
-      if (resource !== undefined && !namesMcp(resource)) {
-        return oauthError(
-          c,
-          400,
-          "invalid_target",
-          "A grant here reaches /api/mcp and nothing else",
-        );
-      }
-      const grantType = field("grant_type");
-      if (grantType === "authorization_code") {
-        return redeemCode(c, clientId, field);
-      }
-      if (grantType === "refresh_token") {
-        return refresh(c, clientId, field("refresh_token"));
-      }
+  routes.post("/register", async (c) => {
+    let raw: unknown;
+    try {
+      raw = await c.req.json();
+    } catch {
+      return oauthError(c, 400, "invalid_client_metadata", "Send JSON");
+    }
+    const parsed = oauthRegisterSchema.safeParse(raw);
+    if (!parsed.success) {
       return oauthError(
         c,
         400,
-        "unsupported_grant_type",
-        "grant_type is authorization_code or refresh_token",
+        "invalid_client_metadata",
+        parsed.error.issues[0]?.message ?? "Invalid metadata",
       );
-    },
-  );
+    }
+    const meta = parsed.data;
+    for (const uri of meta.redirect_uris) {
+      const problem = redirectUriProblem(uri);
+      if (problem) {
+        return oauthError(
+          c,
+          400,
+          "invalid_redirect_uri",
+          `${uri.slice(0, 200)} ${problem}`,
+        );
+      }
+    }
+    if (
+      meta.grant_types &&
+      (!meta.grant_types.includes("authorization_code") ||
+        meta.grant_types.some((type) => !GRANT_TYPES.includes(type)))
+    ) {
+      return oauthError(
+        c,
+        400,
+        "invalid_client_metadata",
+        "Only authorization_code and refresh_token are granted",
+      );
+    }
+    if (meta.response_types?.some((type) => type !== "code")) {
+      return oauthError(
+        c,
+        400,
+        "invalid_client_metadata",
+        "Only the code response type is supported",
+      );
+    }
+    // Every client here is a public one: an assistant on someone's computer
+    // cannot keep a secret. RFC 7591 lets the server answer with the method
+    // it will use instead of the one asked for.
+    const client = {
+      id: newId(),
+      name:
+        meta.client_name?.trim().slice(0, MAX_CLIENT_NAME_LENGTH) ||
+        UNNAMED_CLIENT,
+      redirectUris: meta.redirect_uris,
+      createdAt: nowIso(),
+      lastUsedAt: null,
+    };
+    await storage.oauth.createClient(client);
+    return c.json(
+      {
+        client_id: client.id,
+        client_id_issued_at: Math.floor(Date.parse(client.createdAt) / 1000),
+        client_name: client.name,
+        redirect_uris: client.redirectUris,
+        grant_types: GRANT_TYPES,
+        response_types: ["code"],
+        token_endpoint_auth_method: "none",
+      },
+      201,
+    );
+  });
+
+  routes.post("/token", async (c) => {
+    let form: Record<string, unknown>;
+    try {
+      form = await c.req.parseBody();
+    } catch {
+      return oauthError(
+        c,
+        400,
+        "invalid_request",
+        "Send a form (application/x-www-form-urlencoded)",
+      );
+    }
+    const field = (name: string) => {
+      const value = form[name];
+      return typeof value === "string" && value !== "" ? value : undefined;
+    };
+    const clientId = field("client_id") ?? basicClientId(c);
+    if (!clientId) {
+      return oauthError(c, 401, "invalid_client", "client_id is missing");
+    }
+    const resource = field("resource");
+    if (resource !== undefined && !namesMcp(resource)) {
+      return oauthError(
+        c,
+        400,
+        "invalid_target",
+        "A grant here reaches /api/mcp and nothing else",
+      );
+    }
+    const grantType = field("grant_type");
+    if (grantType === "authorization_code") {
+      return redeemCode(c, clientId, field);
+    }
+    if (grantType === "refresh_token") {
+      return refresh(c, clientId, field("refresh_token"));
+    }
+    return oauthError(
+      c,
+      400,
+      "unsupported_grant_type",
+      "grant_type is authorization_code or refresh_token",
+    );
+  });
 
   /** The client id of HTTP Basic credentials, which some clients send even
    * without a secret. */
@@ -514,7 +483,7 @@ export function createOAuthRoutes(deps: OAuthDeps) {
     return client;
   }
 
-  routes.get("/client", session, deps.rateLimit ?? noLimit, async (c) => {
+  routes.get("/client", async (c) => {
     const redirectUri = c.req.query("redirect_uri");
     const client = await consentClient(c.req.query("client_id"), redirectUri);
     const scopes = requestedScopes(c.req.query("scope"));
@@ -533,8 +502,6 @@ export function createOAuthRoutes(deps: OAuthDeps) {
 
   routes.post(
     "/authorize",
-    session,
-    deps.rateLimit ?? noLimit,
     zValidator("json", oauthAuthorizeSchema, validatorHook),
     async (c) => {
       const auth = c.get("auth");

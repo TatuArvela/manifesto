@@ -1,11 +1,6 @@
 import { hasScope } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
-import type { AuthProvider } from "../auth/types.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-  MCP_FORWARDED,
-} from "../middleware/authBearer.js";
+import { type AuthContext, MCP_FORWARDED } from "../middleware/authBearer.js";
 import {
   errorResponse,
   handleMessage,
@@ -17,13 +12,11 @@ import {
 import { MCP_TOOLS, type RestCall } from "./tools.js";
 
 interface McpDeps {
-  authProvider: AuthProvider;
   /** The origins a browser may call from (`CORS_ORIGINS`). */
   corsOrigins: string[];
   serverVersion: string;
   /** Runs a request through the whole app, as `app.fetch` does. */
   forward: (request: Request, env: object) => Response | Promise<Response>;
-  rateLimit?: MiddlewareHandler;
 }
 
 /**
@@ -59,109 +52,97 @@ export function createMcpRoutes(deps: McpDeps) {
     await next();
   };
 
-  const noLimit: MiddlewareHandler = (_c, next) => next();
+  routes.post("/", checkOrigin, async (c) => {
+    const { scopes = [] } = c.get("auth");
+    const reply = (body: JsonRpcResponse, status: 200 | 400 | 415 = 200) =>
+      c.json(body, status);
 
-  routes.post(
-    "/",
-    checkOrigin,
-    createAuthMiddleware(deps.authProvider, { mcpOnly: true }),
-    deps.rateLimit ?? noLimit,
-    async (c) => {
-      const { scopes = [] } = c.get("auth");
-      const reply = (body: JsonRpcResponse, status: 200 | 400 | 415 = 200) =>
-        c.json(body, status);
+    if (!c.req.header("Content-Type")?.includes("application/json")) {
+      return reply(
+        errorResponse(
+          null,
+          JSON_RPC_ERRORS.invalidRequest,
+          "Send JSON (Content-Type: application/json)",
+        ),
+        415,
+      );
+    }
+    // Only sent after `initialize`; absent means the client did not say.
+    const version = c.req.header("MCP-Protocol-Version");
+    if (version && !PROTOCOL_VERSIONS.some((v) => v === version)) {
+      return reply(
+        errorResponse(
+          null,
+          JSON_RPC_ERRORS.invalidRequest,
+          `Unsupported protocol version ${version}; this server speaks ${PROTOCOL_VERSIONS.join(", ")}`,
+        ),
+        400,
+      );
+    }
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return reply(
+        errorResponse(null, JSON_RPC_ERRORS.parse, "Not valid JSON"),
+        400,
+      );
+    }
 
-      if (!c.req.header("Content-Type")?.includes("application/json")) {
-        return reply(
-          errorResponse(
-            null,
-            JSON_RPC_ERRORS.invalidRequest,
-            "Send JSON (Content-Type: application/json)",
-          ),
-          415,
-        );
+    const authorization = c.req.header("Authorization") ?? "";
+    const forwardedFor = c.req.header("X-Forwarded-For");
+    const rest: RestCall = async (method, path, options = {}) => {
+      const headers = new Headers({ Authorization: authorization });
+      if (options.body !== undefined) {
+        headers.set("Content-Type", "application/json");
       }
-      // Only sent after `initialize`; absent means the client did not say.
-      const version = c.req.header("MCP-Protocol-Version");
-      if (version && !PROTOCOL_VERSIONS.some((v) => v === version)) {
-        return reply(
-          errorResponse(
-            null,
-            JSON_RPC_ERRORS.invalidRequest,
-            `Unsupported protocol version ${version}; this server speaks ${PROTOCOL_VERSIONS.join(", ")}`,
-          ),
-          400,
-        );
+      if (options.ifMatch !== undefined) {
+        headers.set("If-Match", options.ifMatch);
       }
-      let body: unknown;
-      try {
-        body = await c.req.json();
-      } catch {
-        return reply(
-          errorResponse(null, JSON_RPC_ERRORS.parse, "Not valid JSON"),
-          400,
-        );
-      }
-
-      const authorization = c.req.header("Authorization") ?? "";
-      const forwardedFor = c.req.header("X-Forwarded-For");
-      const rest: RestCall = async (method, path, options = {}) => {
-        const headers = new Headers({ Authorization: authorization });
-        if (options.body !== undefined) {
-          headers.set("Content-Type", "application/json");
-        }
-        if (options.ifMatch !== undefined) {
-          headers.set("If-Match", options.ifMatch);
-        }
-        // So the rate limit and any audit line see the assistant's address.
-        if (forwardedFor) headers.set("X-Forwarded-For", forwardedFor);
-        const res = await deps.forward(
-          new Request(new URL(path, c.req.url), {
-            method,
-            headers,
-            ...(options.body !== undefined && {
-              body: JSON.stringify(options.body),
-            }),
+      // So the rate limit and any audit line see the assistant's address.
+      if (forwardedFor) headers.set("X-Forwarded-For", forwardedFor);
+      const res = await deps.forward(
+        new Request(new URL(path, c.req.url), {
+          method,
+          headers,
+          ...(options.body !== undefined && {
+            body: JSON.stringify(options.body),
           }),
-          { ...(c.env as object | undefined), [MCP_FORWARDED]: true },
-        );
-        const text = await res.text();
-        let parsed: unknown = null;
-        try {
-          parsed = text ? JSON.parse(text) : null;
-        } catch {
-          parsed = text;
-        }
-        return { status: res.status, body: parsed };
-      };
-      const ctx: McpContext = {
-        tools: MCP_TOOLS.filter((t) => hasScope(scopes, t.scope)),
-        rest,
-        serverVersion: deps.serverVersion,
-      };
-
-      if (Array.isArray(body)) {
-        if (body.length === 0) {
-          return reply(
-            errorResponse(
-              null,
-              JSON_RPC_ERRORS.invalidRequest,
-              "An empty batch",
-            ),
-            400,
-          );
-        }
-        const answers: JsonRpcResponse[] = [];
-        for (const message of body) {
-          const answer = await handleMessage(message, ctx);
-          if (answer) answers.push(answer);
-        }
-        return answers.length > 0 ? c.json(answers) : c.body(null, 202);
+        }),
+        { ...(c.env as object | undefined), [MCP_FORWARDED]: true },
+      );
+      const text = await res.text();
+      let parsed: unknown = null;
+      try {
+        parsed = text ? JSON.parse(text) : null;
+      } catch {
+        parsed = text;
       }
-      const answer = await handleMessage(body, ctx);
-      return answer ? reply(answer) : c.body(null, 202);
-    },
-  );
+      return { status: res.status, body: parsed };
+    };
+    const ctx: McpContext = {
+      tools: MCP_TOOLS.filter((t) => hasScope(scopes, t.scope)),
+      rest,
+      serverVersion: deps.serverVersion,
+    };
+
+    if (Array.isArray(body)) {
+      if (body.length === 0) {
+        return reply(
+          errorResponse(null, JSON_RPC_ERRORS.invalidRequest, "An empty batch"),
+          400,
+        );
+      }
+      const answers: JsonRpcResponse[] = [];
+      for (const message of body) {
+        const answer = await handleMessage(message, ctx);
+        if (answer) answers.push(answer);
+      }
+      return answers.length > 0 ? c.json(answers) : c.body(null, 202);
+    }
+    const answer = await handleMessage(body, ctx);
+    return answer ? reply(answer) : c.body(null, 202);
+  });
 
   routes.all("/", (c) =>
     c.json(

@@ -1,5 +1,6 @@
 import type { ApiTokenScope } from "@manifesto/shared";
 import { z } from "zod";
+import type { Bucket } from "./middleware/protect.js";
 import {
   accountPrefsUpdateSchema,
   adminCreateUserSchema,
@@ -46,7 +47,7 @@ import {
  * name and shape.
  */
 
-type Auth = "none" | "any" | "session" | "mcp";
+type Auth = "none" | "any" | "session" | "mcp" | "admin";
 
 export interface Operation {
   method: "get" | "post" | "put" | "patch" | "delete";
@@ -54,9 +55,19 @@ export interface Operation {
   path: string;
   tag: string;
   summary: string;
-  /** `session`: a sign-in session only, refused to an API token. `mcp`: an
-   * MCP token only. */
+  /**
+   * Who may call it, enforced from here by `middleware/protect.ts`: `none`,
+   * anyone; `any`, any credential (a session, or a token within `scope`);
+   * `session`, a sign-in session only, refused to an API token; `admin`, an
+   * admin's session; `mcp`, an MCP token only.
+   */
   auth: Auth;
+  /**
+   * The rate-limit buckets it draws from (`BUCKETS` in `middleware/protect.ts`),
+   * also enforced from here. Required, so a route cannot be added without
+   * saying; an empty list says it has none.
+   */
+  limits: readonly Bucket[];
   /**
    * What a token needs to call it. Required where `auth` is `any` or `mcp`
    * (`openapi.test.ts` holds to that); a token is refused an operation that
@@ -84,6 +95,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Server",
     summary: "Liveness, and the running version",
     auth: "none",
+    limits: [],
     responses: ok("Health"),
   },
   {
@@ -92,6 +104,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Server",
     summary: "This document",
     auth: "none",
+    limits: [],
     responses: ok(),
   },
   {
@@ -100,6 +113,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "How to sign in here, and what this server offers",
     auth: "none",
+    limits: [],
     responses: ok("AuthMethodsResponse"),
   },
   {
@@ -108,6 +122,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "The signed-in user",
     auth: "any",
+    limits: [],
     scope: "account:read",
     responses: ok("AuthMeResponse"),
   },
@@ -117,6 +132,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Set or clear the signed-in user's email address",
     auth: "session",
+    limits: [],
     body: authMeUpdateSchema,
     responses: ok("AuthMeResponse"),
   },
@@ -126,6 +142,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "The signed-in user's own lines of the audit log, newest first",
     auth: "session",
+    limits: [],
     query: {
       limit: "Entries per page (up to 500)",
       before: "An entry id; older entries only",
@@ -138,6 +155,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "The signed-in user's preferences, as their clients sent them",
     auth: "any",
+    limits: [],
     scope: "account:read",
     responses: ok("AccountPrefsResponse"),
   },
@@ -147,6 +165,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Set some of the signed-in user's preferences; null removes one",
     auth: "any",
+    limits: [],
     scope: "account:write",
     body: accountPrefsUpdateSchema,
     responses: {
@@ -160,6 +179,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Record the language the signed-in user's client is set to",
     auth: "any",
+    limits: [],
     scope: "account:write",
     body: authLocaleSchema,
     responses: noContent,
@@ -170,6 +190,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Create an account (local sign-in, when registration is open)",
     auth: "none",
+    limits: ["sign-in"],
     body: registerSchema,
     responses: { "201": { description: "Signed in", schema: "AuthSuccess" } },
     provider: "local",
@@ -180,6 +201,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Sign in with a username and password",
     auth: "none",
+    limits: ["sign-in"],
     body: loginSchema,
     responses: ok("AuthSuccess"),
     provider: "local",
@@ -190,6 +212,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Start single sign-on (redirects to the identity provider)",
     auth: "none",
+    limits: ["oidc"],
     query: {
       reauth:
         "Present: the identity provider asks the user to sign in again (prompt=login), for an action that needs a recent sign-in",
@@ -203,6 +226,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Where the identity provider returns to",
     auth: "none",
+    limits: ["oidc"],
     responses: { "302": { description: "To the client, with a token" } },
     provider: "oidc",
   },
@@ -212,6 +236,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "End this session",
     auth: "session",
+    limits: [],
     responses: noContent,
   },
   {
@@ -220,6 +245,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Change the signed-in user's password; other sessions end",
     auth: "session",
+    limits: ["sign-in"],
     body: passwordChangeSchema,
     responses: noContent,
     provider: "local",
@@ -230,6 +256,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Mail a reset link to a local account's address; always 204",
     auth: "none",
+    limits: ["sign-in"],
     body: passwordResetRequestSchema,
     responses: noContent,
     provider: "local",
@@ -240,6 +267,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Set a new password with a link's token; ends every session",
     auth: "none",
+    limits: ["sign-in"],
     body: passwordResetConfirmSchema,
     responses: {
       ...noContent,
@@ -253,6 +281,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Whether two-factor sign-in is on, and recovery codes left",
     auth: "session",
+    limits: [],
     responses: ok("TwoFactorStatusResponse"),
     provider: "local",
   },
@@ -262,6 +291,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Start turning two-factor on: a new authenticator secret",
     auth: "session",
+    limits: ["sign-in"],
     body: twoFactorPasswordSchema,
     responses: ok("TwoFactorSetupResponse"),
     provider: "local",
@@ -272,6 +302,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Confirm with a code; answers the recovery codes, once",
     auth: "session",
+    limits: ["sign-in"],
     body: twoFactorEnableSchema,
     responses: ok("TwoFactorRecoveryCodesResponse"),
     provider: "local",
@@ -282,6 +313,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Turn two-factor off",
     auth: "session",
+    limits: ["sign-in"],
     body: twoFactorPasswordSchema,
     responses: noContent,
     provider: "local",
@@ -292,6 +324,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Replace the recovery codes",
     auth: "session",
+    limits: ["sign-in"],
     body: twoFactorPasswordSchema,
     responses: ok("TwoFactorRecoveryCodesResponse"),
     provider: "local",
@@ -302,6 +335,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "The account's passkeys, without their keys",
     auth: "session",
+    limits: [],
     responses: ok("PasskeysResponse"),
     provider: "local",
   },
@@ -312,6 +346,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Start adding a passkey, with the password: options for navigator.credentials.create()",
     auth: "session",
+    limits: ["sign-in"],
     body: twoFactorPasswordSchema,
     responses: ok("PasskeyOptionsResponse"),
     provider: "local",
@@ -323,6 +358,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Add the passkey the browser made; answers the recovery codes when it is the first second factor",
     auth: "session",
+    limits: ["sign-in"],
     body: passkeyAddSchema,
     responses: {
       "201": { description: "Added", schema: "PasskeyAddedResponse" },
@@ -335,6 +371,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Remove a passkey, with the password",
     auth: "session",
+    limits: ["sign-in"],
     body: twoFactorPasswordSchema,
     responses: { ...noContent, ...notFound },
     provider: "local",
@@ -346,6 +383,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "A challenge to sign in with a passkey alone, for navigator.credentials.get()",
     auth: "none",
+    limits: ["passkey-sign-in"],
     responses: ok("PasskeySignInOptionsResponse"),
     provider: "local",
   },
@@ -355,6 +393,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Sign in with a passkey's answer to that challenge",
     auth: "none",
+    limits: ["passkey-sign-in"],
     body: passkeyLoginSchema,
     responses: ok("AuthSuccess"),
     provider: "local",
@@ -365,6 +404,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "One page of the user's notes, newest first, without images",
     auth: "any",
+    limits: ["user"],
     scope: "notes:read",
     query: { limit: "Page size", cursor: "From the previous page" },
     responses: ok("NotesResponse"),
@@ -375,6 +415,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Create a note",
     auth: "any",
+    limits: ["user"],
     scope: "notes:write",
     body: noteCreateSchema,
     responses: { "201": { description: "Created", schema: "NoteResponse" } },
@@ -386,6 +427,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Import up to 100 notes, keeping their ids; the same one twice updates it",
     auth: "any",
+    limits: ["user"],
     scope: "notes:write",
     body: notesImportSchema,
     responses: ok("NotesImportResponse"),
@@ -396,6 +438,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Delete every note the user owns (shared ones stay)",
     auth: "any",
+    limits: ["user"],
     scope: "notes:write",
     responses: noContent,
   },
@@ -405,6 +448,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "One note, with its images",
     auth: "any",
+    limits: ["user"],
     scope: "notes:read",
     responses: { ...ok("NoteResponse"), ...notFound },
   },
@@ -414,6 +458,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Change a note; send If-Match for a compare-and-set",
     auth: "any",
+    limits: ["user"],
     scope: "notes:write",
     body: noteUpdateSchema,
     responses: {
@@ -429,6 +474,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Delete a note (a recipient leaves it instead)",
     auth: "any",
+    limits: ["user"],
     scope: "notes:write",
     responses: { ...noContent, ...notFound },
   },
@@ -438,6 +484,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "The note's version history, newest first",
     auth: "any",
+    limits: ["user"],
     scope: "notes:read",
     responses: ok("NoteVersionsResponse"),
   },
@@ -447,6 +494,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Add a version (owner and editors)",
     auth: "any",
+    limits: ["user"],
     scope: "notes:write",
     body: noteVersionCreateSchema,
     responses: { "201": { description: "Added" } },
@@ -457,6 +505,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Invite an account to the note (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     body: shareCreateSchema,
     responses: { "201": { description: "Invited", schema: "NoteResponse" } },
@@ -467,6 +516,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Change someone's role (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     body: shareUpdateSchema,
     responses: ok("NoteResponse"),
@@ -477,6 +527,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Remove someone, or leave the note yourself",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: noContent,
   },
@@ -486,6 +537,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "The teams the user is in, to share notes with",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: ok("TeamsResponse"),
   },
@@ -495,6 +547,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "The teams the note is shared with (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: { ...ok("TeamSharesResponse"), ...notFound },
   },
@@ -505,6 +558,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Share the note with a team the owner is in, inviting its members (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     body: teamShareCreateSchema,
     responses: {
@@ -518,6 +572,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Change the role a team has, and its members' with it (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     body: shareUpdateSchema,
     responses: { ...ok("TeamSharesResponse"), ...notFound },
@@ -528,6 +583,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Stop sharing the note with a team (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: { ...noContent, ...notFound },
   },
@@ -537,6 +593,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "The note's public links, with their view counts (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: { ...ok("PublicLinksResponse"), ...notFound },
   },
@@ -547,6 +604,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Publish the note by a revocable public link, live or as a snapshot (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     body: publicLinkCreateSchema,
     responses: {
@@ -560,6 +618,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Revoke a public link (owner)",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: { ...noContent, ...notFound },
   },
@@ -570,6 +629,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "The reminders as an iCalendar feed, at <calendar token>.ics; no header, the token is the address",
     auth: "none",
+    limits: ["calendar"],
     responses: { "200": { description: "text/calendar" }, ...notFound },
   },
   {
@@ -579,6 +639,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "A note by public link, counting a view; 401 with passwordRequired when it has a password",
     auth: "none",
+    limits: ["public-links"],
     responses: {
       ...ok("PublicNoteResponse"),
       "401": {
@@ -594,6 +655,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "A note by public link with a password, counting a view",
     auth: "none",
+    limits: ["public-links", "public-link-unlock"],
     body: publicLinkUnlockSchema,
     responses: {
       ...ok("PublicNoteResponse"),
@@ -608,6 +670,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "A picture the linked note shows; send X-Link-Access for a link with a password",
     auth: "none",
+    limits: ["public-links"],
     responses: { "200": { description: "The image" }, ...notFound },
   },
   {
@@ -616,6 +679,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Notes offered to the user",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: ok("InvitationsResponse"),
   },
@@ -625,6 +689,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Accept an invitation",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: ok("NoteResponse"),
   },
@@ -634,6 +699,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Decline an invitation",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     responses: noContent,
   },
@@ -643,6 +709,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Find accounts to share with",
     auth: "any",
+    limits: ["user"],
     scope: "sharing",
     query: { q: "Name, username or email address" },
     responses: ok("UserLookupResponse"),
@@ -654,6 +721,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "The notes changed since a checkpoint, and on the last page every visible id and the next checkpoint",
     auth: "any",
+    limits: ["user"],
     scope: "notes:read",
     query: {
       since: "The checkpoint of the previous sync; omit for everything",
@@ -668,6 +736,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "Notes whose title or content contains q, newest first",
     auth: "any",
+    limits: ["user"],
     scope: "notes:read",
     query: { q: "Search words", limit: "Page size", cursor: "Next page" },
     responses: ok("NotesResponse"),
@@ -679,6 +748,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Upload an image (the raw file, its type in Content-Type); answers the attachment: reference",
     auth: "any",
+    limits: ["attachments"],
     scope: "notes:write",
     responses: {
       "201": { description: "Stored", schema: "AttachmentUploadResponse" },
@@ -692,6 +762,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "The bytes of an image a note refers to as attachment:<id>",
     auth: "any",
+    limits: ["attachments"],
     scope: "notes:read",
     responses: {
       "200": { description: "The image, with its media type" },
@@ -704,6 +775,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "What the server could read from a linked page",
     auth: "any",
+    limits: ["user", "link-preview"],
     scope: "notes:write",
     query: { url: "An http(s) URL" },
     responses: ok("LinkPreviewResponse"),
@@ -714,6 +786,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Every note the account owns, as a zip of JSON and Markdown",
     auth: "any",
+    limits: ["user"],
     scope: "notes:read",
     responses: { "200": { description: "application/zip" } },
   },
@@ -723,6 +796,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "The user's personal API tokens, without secrets",
     auth: "session",
+    limits: ["user"],
     responses: ok("ApiTokensResponse"),
   },
   {
@@ -731,6 +805,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Mint an API token; the secret is in this response only",
     auth: "session",
+    limits: ["user"],
     body: apiTokenCreateSchema,
     responses: {
       "201": { description: "Created", schema: "ApiTokenCreatedResponse" },
@@ -742,6 +817,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Revoke an API token",
     auth: "session",
+    limits: ["user"],
     responses: { ...noContent, ...notFound },
   },
   {
@@ -750,6 +826,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "The user's webhooks, without secrets",
     auth: "session",
+    limits: ["user"],
     responses: ok("WebhooksResponse"),
   },
   {
@@ -758,6 +835,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Add a webhook; the signing secret is in this response only",
     auth: "session",
+    limits: ["user"],
     body: webhookCreateSchema,
     responses: {
       "201": { description: "Created", schema: "WebhookCreatedResponse" },
@@ -769,6 +847,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Turn a webhook on or off",
     auth: "session",
+    limits: ["user"],
     body: webhookUpdateSchema,
     responses: ok(),
   },
@@ -778,6 +857,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Remove a webhook",
     auth: "session",
+    limits: ["user"],
     responses: noContent,
   },
   {
@@ -786,6 +866,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Send a ping and report what came back",
     auth: "session",
+    limits: ["user"],
     responses: ok(),
   },
   {
@@ -793,7 +874,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/teams",
     tag: "Admin",
     summary: "Every team, with its members",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     responses: ok("AdminTeamsResponse"),
   },
   {
@@ -801,7 +883,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/teams",
     tag: "Admin",
     summary: "Make a team, optionally with members",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     body: adminTeamCreateSchema,
     responses: {
       "201": { description: "Made", schema: "AdminTeamResponse" },
@@ -814,7 +897,8 @@ export const OPERATIONS: Operation[] = [
     tag: "Admin",
     summary:
       "Rename a team or set its members; a team from the identity provider is refused",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     body: adminTeamUpdateSchema,
     responses: { ...ok("AdminTeamResponse"), ...notFound },
   },
@@ -823,7 +907,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/teams/:id",
     tag: "Admin",
     summary: "Remove a team, and the notes that came through it",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     responses: { ...noContent, ...notFound },
   },
   {
@@ -831,7 +916,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/users",
     tag: "Admin",
     summary: "Every account",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     responses: ok("AdminUsersResponse"),
   },
   {
@@ -839,7 +925,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/users/:id/export",
     tag: "Admin",
     summary: "Every note an account owns, as a zip (only with ADMIN_EXPORT on)",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     responses: { "200": { description: "application/zip" }, ...notFound },
   },
   {
@@ -847,7 +934,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/update",
     tag: "Admin",
     summary: "The running version, and the newest release if the check is on",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     responses: ok(),
   },
   {
@@ -855,7 +943,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/overview",
     tag: "Admin",
     summary: "What the server holds, and how its background jobs last ran",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     responses: ok("AdminOverviewResponse"),
   },
   {
@@ -863,7 +952,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/audit",
     tag: "Admin",
     summary: "The audit log, newest first",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     query: {
       limit: "Entries per page (up to 500)",
       before: "An entry id; older entries only",
@@ -877,7 +967,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/users",
     tag: "Admin",
     summary: "Create an account with a temporary password",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     body: adminCreateUserSchema,
     responses: {
       "201": {
@@ -891,7 +982,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/users/:id",
     tag: "Admin",
     summary: "Grant or take admin, or set an email address",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     body: adminUpdateUserSchema,
     responses: ok("AdminUserResponse"),
   },
@@ -900,7 +992,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/users/:id/password",
     tag: "Admin",
     summary: "Issue a temporary password; the user's sessions end",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     responses: ok("AdminTemporaryPasswordResponse"),
   },
   {
@@ -908,7 +1001,8 @@ export const OPERATIONS: Operation[] = [
     path: "/api/admin/users/:id",
     tag: "Admin",
     summary: "Delete an account and its notes",
-    auth: "session",
+    auth: "admin",
+    limits: ["user"],
     responses: noContent,
   },
   {
@@ -918,6 +1012,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Model Context Protocol for AI assistants: JSON-RPC over Streamable HTTP, stateless",
     auth: "mcp",
+    limits: ["user"],
     scope: "notes:read",
     responses: {
       "200": { description: "The JSON-RPC answer" },
@@ -931,6 +1026,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Register an assistant as an OAuth client (RFC 7591); a public client, answered with client_id",
     auth: "none",
+    limits: ["oauth-register"],
     body: oauthRegisterSchema,
     responses: {
       "201": { description: "The registered client metadata" },
@@ -944,6 +1040,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Trade a code (with its PKCE verifier) or a refresh token for an hour's MCP token and the next refresh token; a form, as RFC 6749 has it",
     auth: "none",
+    limits: ["oauth-token"],
     responses: {
       "200": { description: "access_token, refresh_token, expires_in, scope" },
       "400": { description: "An OAuth error: invalid_grant and the like" },
@@ -955,6 +1052,7 @@ export const OPERATIONS: Operation[] = [
     tag: "MCP",
     summary: "The assistant a consent is about, for the consent page",
     auth: "session",
+    limits: ["user"],
     query: {
       client_id: "Its client id",
       redirect_uri: "Where it asked to be sent back",
@@ -975,6 +1073,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Let an assistant in: a code on its redirect address, to trade at the token endpoint",
     auth: "session",
+    limits: ["user"],
     body: oauthAuthorizeSchema,
     responses: ok("OAuthAuthorizeResponse"),
   },
@@ -1210,10 +1309,12 @@ export function buildOpenApiDocument(version: string) {
         description: `Only when the server signs in with AUTH_PROVIDER=${op.provider}.`,
       }),
       security: op.auth === "none" ? [] : [{ bearer: [] }],
-      ...(op.auth === "session" && {
+      ...((op.auth === "session" || op.auth === "admin") && {
         "x-session-only": true,
       }),
+      ...(op.auth === "admin" && { "x-admin-only": true }),
       ...(op.auth === "mcp" && { "x-mcp-only": true }),
+      ...(op.limits.length > 0 && { "x-rate-limits": op.limits }),
       ...(op.scope && { "x-token-scope": op.scope }),
       ...(parameters.length > 0 && { parameters }),
       ...(op.body && {

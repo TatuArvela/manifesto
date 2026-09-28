@@ -22,10 +22,7 @@ import type { ServerConfig } from "../../config.js";
 import { publicOrigin } from "../../lib/origin.js";
 import { nowIso } from "../../lib/time.js";
 import { newId } from "../../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../../middleware/authBearer.js";
+import type { AuthContext } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
 import { listedPasskey } from "../../storage/passkeyMapping.js";
 import type { StorageDriver, StoredPasskey } from "../../storage/types.js";
@@ -37,7 +34,6 @@ import {
 import { validatorHook } from "../../validation/zValidator.js";
 import { requireConfirmation } from "../confirmation.js";
 import { issueSession } from "../session.js";
-import type { AuthProvider } from "../types.js";
 import { toAuthUser } from "../users.js";
 import type { LoginAttempts } from "./loginAttempts.js";
 import { hasSecondFactor, issueRecoveryCodes } from "./twoFactor.js";
@@ -258,20 +254,12 @@ export function registerPasskeyRoutes(
   auth: Hono<{ Variables: { auth: AuthContext } }>,
   deps: {
     storage: StorageDriver;
-    authProvider: AuthProvider;
     cfg: ServerConfig;
     challenges: PasskeyChallenges;
-    throttle: Parameters<Hono["use"]>[1];
-    /** Looser than the password one: a passkey cannot be guessed at, so this
-     * bounds the challenges an address can have issued. */
-    signInThrottle: Parameters<Hono["use"]>[1];
     loginAttempts: LoginAttempts;
   },
 ) {
   const { storage, challenges } = deps;
-  const session = createAuthMiddleware(deps.authProvider, {
-    sessionOnly: true,
-  });
   const confirmation = { storage, loginAttempts: deps.loginAttempts };
 
   /** The signed-in local account, which has a password to confirm with. */
@@ -287,7 +275,7 @@ export function registerPasskeyRoutes(
     return user;
   }
 
-  auth.get("/passkeys", session, async (c) => {
+  auth.get("/passkeys", async (c) => {
     const { userId } = c.get("auth");
     const body: PasskeysResponse = {
       passkeys: (await storage.passkeys.listByUser(userId)).map(listedPasskey),
@@ -297,8 +285,6 @@ export function registerPasskeyRoutes(
 
   auth.post(
     "/passkeys/options",
-    deps.throttle,
-    session,
     zValidator("json", twoFactorPasswordSchema, validatorHook),
     async (c) => {
       const auth = c.get("auth");
@@ -344,8 +330,6 @@ export function registerPasskeyRoutes(
 
   auth.post(
     "/passkeys",
-    deps.throttle,
-    session,
     zValidator("json", passkeyAddSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
@@ -406,8 +390,6 @@ export function registerPasskeyRoutes(
 
   auth.delete(
     "/passkeys/:id",
-    deps.throttle,
-    session,
     zValidator("json", twoFactorPasswordSchema, validatorHook),
     async (c) => {
       const auth = c.get("auth");
@@ -434,7 +416,7 @@ export function registerPasskeyRoutes(
     },
   );
 
-  auth.post("/passkey/options", deps.signInThrottle, async (c) => {
+  auth.post("/passkey/options", async (c) => {
     const ceremony = ceremonyOf(c, deps.cfg);
     const options = await generateAuthenticationOptions({
       rpID: ceremony.rpId,
@@ -455,7 +437,6 @@ export function registerPasskeyRoutes(
 
   auth.post(
     "/passkey/login",
-    deps.signInThrottle,
     zValidator("json", passkeyLoginSchema, validatorHook),
     async (c) => {
       const ceremony = ceremonyOf(c, deps.cfg);

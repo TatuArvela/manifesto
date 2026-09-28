@@ -5,13 +5,12 @@ import {
   type ApiTokensResponse,
   DEFAULT_API_TOKEN_SCOPES,
 } from "@manifesto/shared";
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import { audit } from "../audit/audit.js";
 import { requireConfirmation } from "../auth/confirmation.js";
 import type { LoginAttempts } from "../auth/local/loginAttempts.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
-import type { AuthProvider } from "../auth/types.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
 import {
   CALENDAR_TOKEN_PREFIX,
@@ -22,10 +21,7 @@ import {
   SHOWN_PREFIX_LENGTH,
 } from "../lib/token.js";
 import { newId } from "../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 import { apiTokenCreateSchema } from "../validation/schemas.js";
@@ -36,9 +32,7 @@ interface TokenDeps {
   loginAttempts: LoginAttempts;
   /** Whether the server has `/api/mcp`; without it an MCP token opens nothing. */
   mcpEnabled: boolean;
-  authProvider: AuthProvider;
   revocations: SessionRevocations;
-  rateLimit?: MiddlewareHandler;
 }
 
 /**
@@ -48,11 +42,6 @@ interface TokenDeps {
  */
 export function createTokenRoutes(deps: TokenDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
-  routes.use(
-    "*",
-    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
-  );
-  if (deps.rateLimit) routes.use("*", deps.rateLimit);
 
   routes.get("/", async (c) => {
     const { userId } = c.get("auth");

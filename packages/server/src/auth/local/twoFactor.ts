@@ -8,10 +8,7 @@ import type { Hono } from "hono";
 import { audit } from "../../audit/audit.js";
 import { nowIso } from "../../lib/time.js";
 import { hashToken } from "../../lib/token.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../../middleware/authBearer.js";
+import type { AuthContext } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
 import type { StorageDriver } from "../../storage/types.js";
 import {
@@ -26,7 +23,6 @@ import {
   normalizeRecoveryCode,
   verifyTotp,
 } from "../totp.js";
-import type { AuthProvider } from "../types.js";
 import type { LoginAttempts } from "./loginAttempts.js";
 
 /**
@@ -82,19 +78,14 @@ export function registerTwoFactorRoutes(
   auth: Hono<{ Variables: { auth: AuthContext } }>,
   deps: {
     storage: StorageDriver;
-    authProvider: AuthProvider;
-    throttle: Parameters<Hono["use"]>[1];
     loginAttempts: LoginAttempts;
   },
 ) {
   const { storage } = deps;
-  const session = createAuthMiddleware(deps.authProvider, {
-    sessionOnly: true,
-  });
 
   const confirmation = { storage, loginAttempts: deps.loginAttempts };
 
-  auth.get("/two-factor", session, async (c) => {
+  auth.get("/two-factor", async (c) => {
     const { userId } = c.get("auth");
     const state = await storage.twoFactor.get(userId);
     const authenticator = state?.enabledAt != null;
@@ -112,8 +103,6 @@ export function registerTwoFactorRoutes(
 
   auth.post(
     "/two-factor/setup",
-    deps.throttle,
-    session,
     zValidator("json", twoFactorPasswordSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
@@ -133,8 +122,6 @@ export function registerTwoFactorRoutes(
 
   auth.post(
     "/two-factor/enable",
-    deps.throttle,
-    session,
     zValidator("json", twoFactorEnableSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
@@ -168,8 +155,6 @@ export function registerTwoFactorRoutes(
 
   auth.post(
     "/two-factor/disable",
-    deps.throttle,
-    session,
     zValidator("json", twoFactorPasswordSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
@@ -194,8 +179,6 @@ export function registerTwoFactorRoutes(
 
   auth.post(
     "/two-factor/recovery-codes",
-    deps.throttle,
-    session,
     zValidator("json", twoFactorPasswordSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");

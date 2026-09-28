@@ -17,7 +17,6 @@ import { hashPassword, verifyPassword } from "../lib/password.js";
 import { nowIso } from "../lib/time.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
-import { rateLimit } from "../middleware/rateLimit.js";
 import { referencesOf } from "../storage/attachmentMapping.js";
 import type { StorageDriver, StoredPublicLink } from "../storage/types.js";
 import {
@@ -211,15 +210,6 @@ export function createPublicRoutes({ storage, cfg }: PublicLinkDeps) {
     c.header("X-Robots-Tag", "noindex, nofollow");
     c.header("Referrer-Policy", "no-referrer");
   });
-  routes.use(
-    "*",
-    rateLimit({
-      limit: 120,
-      windowMs: 60 * 1000,
-      trustProxy: cfg.trustProxy,
-      name: "public-links",
-    }),
-  );
 
   const notFound = () => new HttpError(404, "Link not found");
 
@@ -261,12 +251,6 @@ export function createPublicRoutes({ storage, cfg }: PublicLinkDeps) {
 
   routes.post(
     "/:token/unlock",
-    rateLimit({
-      limit: 10,
-      windowMs: 15 * 60 * 1000,
-      trustProxy: cfg.trustProxy,
-      name: "public-link-unlock",
-    }),
     zValidator("json", publicLinkUnlockSchema, validatorHook),
     async (c) => {
       const now = nowIso();

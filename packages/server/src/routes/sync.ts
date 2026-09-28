@@ -1,18 +1,12 @@
 import type { SyncResponse } from "@manifesto/shared";
-import { Hono, type MiddlewareHandler } from "hono";
-import type { AuthProvider } from "../auth/types.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import { Hono } from "hono";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
 
 interface SyncDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
-  rateLimit?: MiddlewareHandler;
 }
 
 /**
@@ -84,8 +78,6 @@ function decodeSyncCursor(
  */
 export function createSyncRoutes(deps: SyncDeps) {
   const sync = new Hono<{ Variables: { auth: AuthContext } }>();
-  sync.use("*", createAuthMiddleware(deps.authProvider));
-  if (deps.rateLimit) sync.use("*", deps.rateLimit);
 
   sync.get("/", async (c) => {
     const { userId } = c.get("auth");

@@ -23,7 +23,7 @@ import { createSmtpMailer, type Mailer } from "./mail/mailer.js";
 import { createMcpRoutes } from "./mcp/routes.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
-import { perUserApiRateLimit } from "./middleware/rateLimit.js";
+import { createProtection } from "./middleware/protect.js";
 import { requestLog } from "./middleware/requestLog.js";
 import {
   type ClientMetadataFetcher,
@@ -191,10 +191,17 @@ export function createApp(deps: AppDeps): AppHandle {
     return c.json(openApi);
   });
 
-  // Single shared per-user rate limiter for the data-plane endpoints. Sharing
-  // one instance across both routers means a user spamming a mix of
-  // /api/notes and /api/search can't dodge throttling by alternating.
-  const apiRateLimit = perUserApiRateLimit();
+  // Before the protection below, so it sees the 401 that refuses a request
+  // without a token, and says where an assistant can sign in.
+  if (offersMcpSignIn(cfg)) {
+    app.use("/api/mcp", resourceMetadataChallenge(cfg.trustProxy));
+  }
+  // Who may call each route and how often, as `OPERATIONS` declares it.
+  // Routers mount none of this themselves.
+  app.use(
+    "/api/*",
+    createProtection({ authProvider, storage, trustProxy: cfg.trustProxy }),
+  );
 
   // Provider-agnostic auth routes (/methods, /me) must be registered BEFORE
   // the provider's own router so Hono's longest-prefix matching reaches them.
@@ -203,7 +210,6 @@ export function createApp(deps: AppDeps): AppHandle {
     createAuthSharedRoutes({
       cfg,
       storage,
-      authProvider,
       broadcaster,
       loginAttempts,
     }),
@@ -222,11 +228,9 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/notes",
     createNotesRoutes({
       storage,
-      authProvider,
       broadcaster,
       noteEvents,
       accessChanges,
-      rateLimit: apiRateLimit,
       mail,
       cfg,
       teamShares,
@@ -236,31 +240,21 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/invitations",
     createInvitationRoutes({
       storage,
-      authProvider,
       broadcaster,
       noteEvents,
       accessChanges,
-      rateLimit: apiRateLimit,
     }),
   );
-  app.route(
-    "/api/users",
-    createUsersRoutes({ cfg, storage, authProvider, rateLimit: apiRateLimit }),
-  );
-  app.route(
-    "/api/export",
-    createExportRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
-  );
+  app.route("/api/users", createUsersRoutes({ cfg, storage }));
+  app.route("/api/export", createExportRoutes({ storage }));
 
   app.route(
     "/api/tokens",
     createTokenRoutes({
       storage,
-      authProvider,
       revocations,
       loginAttempts,
       mcpEnabled: cfg.mcp,
-      rateLimit: apiRateLimit,
     }),
   );
   if (offersMcpSignIn(cfg)) {
@@ -269,18 +263,14 @@ export function createApp(deps: AppDeps): AppHandle {
       "/api/oauth",
       createOAuthRoutes({
         storage,
-        authProvider,
         loginAttempts,
         revocations,
-        trustProxy: cfg.trustProxy,
         resolveClient: createClientResolver({
           storage,
           fetchMetadata: deps.fetchClientMetadata,
         }),
-        rateLimit: apiRateLimit,
       }),
     );
-    app.use("/api/mcp", resourceMetadataChallenge(cfg.trustProxy));
   }
   if (cfg.mcp) {
     // Its tools call the routes above through the app itself, so they meet
@@ -288,56 +278,37 @@ export function createApp(deps: AppDeps): AppHandle {
     app.route(
       "/api/mcp",
       createMcpRoutes({
-        authProvider,
         corsOrigins: cfg.corsOrigins,
         serverVersion: VERSION,
         forward: (request, env) => app.fetch(request, env),
-        rateLimit: apiRateLimit,
       }),
     );
   }
-  app.route(
-    "/api/webhooks",
-    createWebhookRoutes({
-      storage,
-      authProvider,
-      loginAttempts,
-      dispatcher: webhooks,
-      rateLimit: apiRateLimit,
-    }),
-  );
+  // Off, there are no routes to answer, so a request is a 404 before it is
+  // asked to sign in.
+  if (webhooks) {
+    app.route(
+      "/api/webhooks",
+      createWebhookRoutes({ storage, loginAttempts, dispatcher: webhooks }),
+    );
+  }
   app.route(
     "/api/attachments",
     createAttachmentRoutes({
       storage,
-      authProvider,
-      // Its own bucket, and a wider one: a grid of notes asks for an image per
-      // card, and each is fetched once per session and then cached.
-      rateLimit: perUserApiRateLimit(1200),
     }),
   );
-  app.route(
-    "/api/search",
-    createSearchRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
-  );
+  app.route("/api/search", createSearchRoutes({ storage }));
   app.route("/api/public", createPublicRoutes({ storage, cfg }));
   app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
-  app.route(
-    "/api/teams",
-    createTeamRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
-  );
-  app.route(
-    "/api/sync",
-    createSyncRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
-  );
+  app.route("/api/teams", createTeamRoutes({ storage }));
+  app.route("/api/sync", createSyncRoutes({ storage }));
   app.route(
     "/api/link-preview",
     createLinkPreviewRoutes({
-      authProvider,
       fetchPreview: cfg.linkPreviews
         ? (deps.fetchLinkPreview ?? createLinkPreviewFetcher())
         : null,
-      rateLimit: apiRateLimit,
     }),
   );
 
@@ -347,11 +318,9 @@ export function createApp(deps: AppDeps): AppHandle {
       cfg,
       teamShares,
       storage,
-      authProvider,
       revocations,
       noteEvents,
       updateStatus: deps.updateStatus,
-      rateLimit: apiRateLimit,
     }),
   );
 

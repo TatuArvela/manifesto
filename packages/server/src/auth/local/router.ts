@@ -12,12 +12,8 @@ import { hashPassword, verifyPassword } from "../../lib/password.js";
 import { nowIso } from "../../lib/time.js";
 import { newId } from "../../lib/ulid.js";
 import type { Mailer } from "../../mail/mailer.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../../middleware/authBearer.js";
+import type { AuthContext } from "../../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../../middleware/error.js";
-import { rateLimit } from "../../middleware/rateLimit.js";
 import type { StorageDriver } from "../../storage/types.js";
 import { EmailTakenError } from "../../storage/types.js";
 import {
@@ -28,7 +24,7 @@ import {
 import { validatorHook } from "../../validation/zValidator.js";
 import type { SessionRevocations } from "../revocations.js";
 import { endUserSessions, issueSession, revokeSession } from "../session.js";
-import type { AuthProvider, AuthProviderRouter } from "../types.js";
+import type { AuthProviderRouter } from "../types.js";
 import { pickAvatarColor, toAuthUser } from "../users.js";
 import { createLoginAttempts, type LoginAttempts } from "./loginAttempts.js";
 import {
@@ -41,7 +37,6 @@ import { checkSecondFactor, registerTwoFactorRoutes } from "./twoFactor.js";
 
 interface LocalRouterDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
   cfg: ServerConfig;
   revocations: SessionRevocations;
   /** Null when the server sends no mail: then there is no reset by mail. */
@@ -54,15 +49,6 @@ export function createLocalAuthRouter(
   deps: LocalRouterDeps,
 ): AuthProviderRouter {
   const auth = new Hono<{ Variables: { auth: AuthContext } }>();
-
-  // Tight per-IP throttling on the unauthenticated endpoints slows down
-  // password-spraying attacks. Production defaults are 10 requests / 15 minutes
-  // per IP.
-  const authThrottle = rateLimit({
-    limit: 10,
-    windowMs: 15 * 60 * 1000,
-    trustProxy: deps.cfg.trustProxy,
-  });
 
   // A budget per account on top of the budget per address, since an attacker
   // who can move between addresses gets a fresh one of the latter with each.
@@ -95,7 +81,6 @@ export function createLocalAuthRouter(
 
   auth.post(
     "/register",
-    authThrottle,
     zValidator("json", registerSchema, validatorHook),
     async (c) => {
       if (!deps.cfg.registrationEnabled) {
@@ -139,7 +124,6 @@ export function createLocalAuthRouter(
 
   auth.post(
     "/login",
-    authThrottle,
     zValidator("json", loginSchema, validatorHook),
     async (c) => {
       const { username, password, newPassword, otp, passkey } =
@@ -262,7 +246,7 @@ export function createLocalAuthRouter(
     },
   );
 
-  auth.post("/logout", createAuthMiddleware(deps.authProvider), async (c) => {
+  auth.post("/logout", async (c) => {
     const { token } = c.get("auth");
     await revokeSession(deps.storage, token);
     audit(deps.storage, c, {
@@ -276,8 +260,6 @@ export function createLocalAuthRouter(
     "/password",
     // Throttled like sign-in: a session is enough to guess at the current
     // password here, and a stolen one should not make that cheap.
-    authThrottle,
-    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
     zValidator("json", passwordChangeSchema, validatorHook),
     async (c) => {
       const { userId, token } = c.get("auth");
@@ -321,26 +303,15 @@ export function createLocalAuthRouter(
     cfg: deps.cfg,
     revocations: deps.revocations,
     mailer: deps.mailer ?? null,
-    throttle: authThrottle,
   });
   registerTwoFactorRoutes(auth, {
     storage: deps.storage,
-    authProvider: deps.authProvider,
-    throttle: authThrottle,
     loginAttempts,
   });
   registerPasskeyRoutes(auth, {
     storage: deps.storage,
-    authProvider: deps.authProvider,
     cfg: deps.cfg,
     challenges: passkeyChallenges,
-    throttle: authThrottle,
-    signInThrottle: rateLimit({
-      limit: 60,
-      windowMs: 15 * 60 * 1000,
-      trustProxy: deps.cfg.trustProxy,
-      name: "passkey",
-    }),
     loginAttempts,
   });
 

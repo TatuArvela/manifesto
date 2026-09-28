@@ -4,7 +4,6 @@ import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { CALENDAR_TOKEN_PREFIX, hashToken } from "../lib/token.js";
 import { HttpError } from "../middleware/error.js";
-import { rateLimit } from "../middleware/rateLimit.js";
 import type { StorageDriver } from "../storage/types.js";
 import { remindersCalendar } from "./ics.js";
 
@@ -24,16 +23,6 @@ export function createCalendarRoutes(deps: {
 }) {
   const { storage, cfg } = deps;
   const routes = new Hono();
-  routes.use(
-    "*",
-    rateLimit({
-      limit: 60,
-      windowMs: 60 * 1000,
-      trustProxy: cfg.trustProxy,
-      name: "calendar",
-    }),
-  );
-
   routes.get("/:file", async (c) => {
     const notFound = new HttpError(404, "Not found");
     const file = c.req.param("file");
@@ -43,7 +32,7 @@ export function createCalendarRoutes(deps: {
 
     const token = await storage.apiTokens.findByHash(hashToken(secret));
     const now = nowIso();
-    if (!token || token.kind !== "calendar") throw notFound;
+    if (token?.kind !== "calendar") throw notFound;
     if (token.expiresAt !== null && token.expiresAt < now) throw notFound;
     const user = await storage.users.findById(token.userId);
     if (!user) throw notFound;

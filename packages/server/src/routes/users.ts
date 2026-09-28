@@ -1,18 +1,12 @@
 import type { DirectoryUser, UserLookupResponse } from "@manifesto/shared";
-import { Hono, type MiddlewareHandler } from "hono";
-import type { AuthProvider } from "../auth/types.js";
+import { Hono } from "hono";
 import type { ServerConfig } from "../config.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import type { StorageDriver, User } from "../storage/types.js";
 
 interface UsersDeps {
   cfg: ServerConfig;
   storage: StorageDriver;
-  authProvider: AuthProvider;
-  rateLimit?: MiddlewareHandler;
 }
 
 /** How many accounts a search offers. Enough to pick from while typing. */
@@ -39,8 +33,6 @@ function toDirectoryUser(user: User, withEmail: boolean): DirectoryUser {
  */
 export function createUsersRoutes(deps: UsersDeps) {
   const users = new Hono<{ Variables: { auth: AuthContext } }>();
-  users.use("*", createAuthMiddleware(deps.authProvider));
-  if (deps.rateLimit) users.use("*", deps.rateLimit);
 
   users.get("/", async (c) => {
     const { userId } = c.get("auth");

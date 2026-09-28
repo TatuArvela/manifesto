@@ -58,7 +58,6 @@ export function createOidcAuthProvider(
     router(context): AuthProviderRouter {
       return createOidcAuthRouter({
         storage,
-        authProvider: provider,
         cfg,
         oidc,
         discoveryClient,

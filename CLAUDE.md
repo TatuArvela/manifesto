@@ -486,6 +486,14 @@ call locally, so both modes behave alike.
 `GET /api/openapi.json` is generated from `src/openapi.ts`, whose request bodies are the validation
 schemas; a new route must be added to `OPERATIONS` there, or `openapi.test.ts` fails.
 
+`OPERATIONS` is also every route's protection, and nothing else is: each declares `auth` (`none`,
+`any`, `session`, `admin`, `mcp`) and its rate-limit `limits` (`BUCKETS` in `middleware/protect.ts`,
+required, `[]` for none), and one middleware on `/api/*` (`createProtection`) applies them from the
+route Hono matched. Routers mount no auth or rate limit of their own, and a matched route nobody
+declared is refused. `/api/ws` checks its own caller in the handshake (`SELF_AUTHENTICATED`).
+`middleware/protect.test.ts` walks the list against the running app, and pins what secures an account
+to a session.
+
 - REST: `/api/notes` (with `/api/notes/:id/shares`), `/api/search`, `/api/invitations`, `/api/users`, `/api/auth/*` (auth routes are owned by the active auth provider)
 - WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes the right to edit the joined document (owner or `edit` recipient) in `onAuthenticate`.
 - All timestamps are ISO 8601 UTC strings
@@ -509,8 +517,8 @@ only a message the peer may ignore.
 
 Personal API tokens (`mfp_`, `/api/tokens`) authenticate through the same `authenticateBySession`,
 and `AuthIdentity.via` says which credential it was. Anything that changes how an account is secured
-(tokens, password, email, the admin API) mounts `createAuthMiddleware(provider, { sessionOnly: true })`,
-so a token handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
+(tokens, password, email, the admin API) is declared `auth: "session"` (or `"admin"`), so a token
+handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
 revoking one token goes through `revokeApiToken`, which closes its sockets by the token's hash.
 A token reaches only what its scopes name (`API_TOKEN_SCOPES` in shared). Each operation's scope is
 declared once, as `scope` in `OPERATIONS` (`openapi.ts`), and `createAuthMiddleware` looks it up from
