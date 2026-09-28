@@ -316,7 +316,8 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
       return {
         async onOpen(_evt, socket) {
           const identity = await authProvider.authenticate(token);
-          if (!identity) {
+          // An MCP token is for `/api/mcp` alone.
+          if (!identity || identity.via === "mcp-token") {
             socket.close(4401, "Invalid or expired session");
             return;
           }

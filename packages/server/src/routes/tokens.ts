@@ -9,7 +9,7 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
-import { hashToken, newApiToken } from "../lib/token.js";
+import { hashToken, MCP_TOKEN_PREFIX, newApiToken } from "../lib/token.js";
 import { newId } from "../lib/ulid.js";
 import {
   type AuthContext,
@@ -22,6 +22,8 @@ import { validatorHook } from "../validation/zValidator.js";
 
 interface TokenDeps {
   storage: StorageDriver;
+  /** Whether the server has `/api/mcp`; without it an MCP token opens nothing. */
+  mcpEnabled: boolean;
   authProvider: AuthProvider;
   revocations: SessionRevocations;
   rateLimit?: MiddlewareHandler;
@@ -59,16 +61,26 @@ export function createTokenRoutes(deps: TokenDeps) {
     zValidator("json", apiTokenCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      const { name, expiresInDays } = c.req.valid("json");
+      const {
+        name,
+        expiresInDays,
+        kind = "api",
+        readOnly = false,
+      } = c.req.valid("json");
+      if (kind === "mcp" && !deps.mcpEnabled) {
+        throw new HttpError(403, "This server has MCP turned off");
+      }
       const existing = await deps.storage.apiTokens.listByUser(userId);
       if (existing.length >= MAX_API_TOKENS_PER_USER) {
         throw new HttpError(409, "Revoke a token before creating another");
       }
-      const secret = newApiToken();
+      const secret = newApiToken(kind === "mcp" ? MCP_TOKEN_PREFIX : undefined);
       const now = nowIso();
       const token = {
         id: newId(),
         name,
+        kind,
+        readOnly,
         prefix: secret.slice(0, SHOWN_PREFIX_LENGTH),
         createdAt: now,
         lastUsedAt: null,
@@ -83,7 +95,12 @@ export function createTokenRoutes(deps: TokenDeps) {
       audit(deps.storage, c, {
         action: "token.created",
         actorId: userId,
-        detail: { name, prefix: token.prefix },
+        detail: {
+          name,
+          prefix: token.prefix,
+          kind,
+          readOnly: String(readOnly),
+        },
       });
       const body: ApiTokenCreatedResponse = { token, secret };
       return c.json(body, 201);

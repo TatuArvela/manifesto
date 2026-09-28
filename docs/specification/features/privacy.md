@@ -83,6 +83,8 @@ database provides.
   note links to. Those sites see the server's address, not the user's, and the URL, not the note.
   Open mode never does this; its CSP forbids it.
 - **Webhooks**: a user's own [webhooks](webhooks.md) post note events to the URLs they chose.
+- **AI assistants**: whatever a user's own assistant reads through the [MCP endpoint](mcp.md) goes
+  wherever that assistant runs, usually its vendor's service. Only a token the user minted opens it.
 - **Mail**, with `SMTP_URL` set: password reset links and share invitations go through that relay.
 - **The update check** (`UPDATE_CHECK`): the server asks GitHub for the newest release. It sends
   nothing about users or notes.

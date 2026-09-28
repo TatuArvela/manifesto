@@ -3,17 +3,21 @@ import type { Mailer } from "../mail/mailer.js";
 import type { SessionRevocations } from "./revocations.js";
 
 /**
- * What a bearer token turned out to be: a session from signing in, or a
- * personal API token. Anything that changes how an account is secured
- * (passwords, tokens, admin actions) asks for a session, so a token handed to
- * a script cannot be used to take over the account it belongs to.
+ * What a bearer token turned out to be: a session from signing in, a
+ * personal API token, or an MCP token. Anything that changes how an account
+ * is secured (passwords, tokens, admin actions) asks for a session, so a
+ * token handed to a script cannot be used to take over the account it belongs
+ * to. An MCP token is narrower still: only `/api/mcp` takes it, and the REST
+ * calls its tools make in-process (see `createAuthMiddleware`).
  */
-export type CredentialKind = "session" | "api-token";
+export type CredentialKind = "session" | "api-token" | "mcp-token";
 
 export interface AuthIdentity {
   userId: string;
   token: string;
   via: CredentialKind;
+  /** An MCP token offered only the tools that read. */
+  readOnly?: boolean;
   username: string;
   displayName: string;
   avatarColor: string;

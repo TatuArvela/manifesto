@@ -94,6 +94,16 @@ answer `403` to a token, so a token given to a script cannot be used to take ove
 a user's sessions (a password change, an admin reset) ends their tokens too, since whoever knew the
 password could have minted one. A user holds at most 50.
 
+`POST /api/tokens` with `"kind": "mcp"` mints a token for an AI assistant instead: it starts with
+`mfm_`, works at `/api/mcp` and nowhere else (the REST API and both sockets answer `403` or close
+with `4401`), and can be `"readOnly": true`. The server refuses one with `403` when it has `MCP` off.
+Every listed token carries its `kind` and `readOnly`.
+
+### MCP
+
+`POST /api/mcp`: the Model Context Protocol endpoint for AI assistants, taking an MCP token only. See
+[MCP](features/mcp.md).
+
 ### Webhooks
 
 `/api/webhooks`: see [Webhooks](features/webhooks.md).

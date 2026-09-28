@@ -8,7 +8,7 @@
 A free, open-source note-taking app with a simple sticky note interface.
 
 - [Local-first](docs/specification/operating-modes.md#open-mode): works in the browser with no server required
-- Optionally [self-host a server](docs/specification/operating-modes.md#connected-mode) for multi-device sync, [accounts with admin tools](docs/specification/features/accounts.md), [live collaboration](docs/specification/features/collaborative-editing.md) and [link previews](docs/specification/features/link-previews.md)
+- Optionally [self-host a server](docs/specification/operating-modes.md#connected-mode) for multi-device sync, [accounts with admin tools](docs/specification/features/accounts.md), [live collaboration](docs/specification/features/collaborative-editing.md), [link previews](docs/specification/features/link-previews.md) and an [MCP endpoint](docs/specification/features/mcp.md) for AI assistants
 - [Markdown](docs/specification/features/notes.md#editing-a-note) and interactive [checklists](docs/specification/features/checklists.md)
 - [Tags](docs/specification/features/tags.md), [colors](docs/specification/features/notes.md#colors), [pinning](docs/specification/features/notes.md#pinning), [archiving](docs/specification/features/archiving.md), [reminders](docs/specification/features/reminders.md), [version history](docs/specification/features/version-history.md)
 - [Full-text search](docs/specification/features/search.md), [link sharing](docs/specification/features/sharing.md) and plugin-generated [auto-notes](docs/specification/features/auto-notes.md)

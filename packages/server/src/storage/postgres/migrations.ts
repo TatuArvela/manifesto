@@ -245,6 +245,12 @@ CREATE TABLE user_prefs (
 );
 `;
 
+/** See the SQLite copy. */
+const API_TOKEN_KIND = `
+ALTER TABLE api_tokens ADD COLUMN kind TEXT NOT NULL DEFAULT 'api';
+ALTER TABLE api_tokens ADD COLUMN read_only BOOLEAN NOT NULL DEFAULT FALSE;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -262,6 +268,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0014-drop-inline-preview-images", sql: DROP_INLINE_PREVIEW_IMAGES },
   { id: "0015-user-locale", sql: USER_LOCALE },
   { id: "0016-user-prefs", sql: USER_PREFS },
+  { id: "0017-api-token-kind", sql: API_TOKEN_KIND },
 ];
 
 export async function runMigrations(

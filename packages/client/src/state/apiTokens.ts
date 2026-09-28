@@ -1,6 +1,7 @@
 import type {
   ApiToken,
   ApiTokenCreatedResponse,
+  ApiTokenKind,
   ApiTokensResponse,
 } from "@manifesto/shared";
 import { apiFetch } from "../storage/apiRequest.js";
@@ -22,13 +23,18 @@ export type CreateApiTokenResult =
   | { kind: "too-many" }
   | { kind: "failed" };
 
+/** A script's token unless `kind` says otherwise; only an MCP token can be
+ * read-only. */
 export async function createApiToken(
   name: string,
   expiresInDays: number | null,
+  kind: ApiTokenKind = "api",
+  readOnly = false,
 ): Promise<CreateApiTokenResult> {
   const res = await apiFetch("POST", "/tokens", {
     name,
     ...(expiresInDays !== null && { expiresInDays }),
+    ...(kind === "mcp" && { kind, readOnly }),
   });
   if (res?.status === 409) return { kind: "too-many" };
   if (!res?.ok) return { kind: "failed" };

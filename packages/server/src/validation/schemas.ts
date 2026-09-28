@@ -1,4 +1,5 @@
 import {
+  API_TOKEN_KINDS,
   ATTACHMENT_REF_PATTERN,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_URL_LENGTH,
@@ -224,11 +225,19 @@ export const noteVersionCreateSchema = z.object({
 });
 export const noteUpdateSchema = z.object(noteFields).partial();
 
-/** `POST /api/tokens`. */
-export const apiTokenCreateSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  expiresInDays: z.number().int().min(1).max(3650).optional(),
-});
+/** `POST /api/tokens`. Read-only is a narrowing of the MCP tools, which is
+ * all an MCP token can reach; an API token has no tools to narrow. */
+export const apiTokenCreateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    expiresInDays: z.number().int().min(1).max(3650).optional(),
+    kind: z.enum(API_TOKEN_KINDS).optional(),
+    readOnly: z.boolean().optional(),
+  })
+  .refine((body) => !body.readOnly || body.kind === "mcp", {
+    message: "Only an MCP token can be read-only",
+    path: ["readOnly"],
+  });
 
 /** `POST /api/webhooks`. Where it may point is checked on every delivery,
  * against the resolved address; this only refuses what is never a webhook. */

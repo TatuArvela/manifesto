@@ -20,8 +20,11 @@ export function hashToken(token: string): string {
  */
 export const API_TOKEN_PREFIX = "mfp_";
 
-export function newApiToken(): string {
-  return `${API_TOKEN_PREFIX}${randomBytes(32).toString("base64url")}`;
+/** The same for a token only `/api/mcp` accepts, minted for an AI assistant. */
+export const MCP_TOKEN_PREFIX = "mfm_";
+
+export function newApiToken(prefix: string = API_TOKEN_PREFIX): string {
+  return `${prefix}${randomBytes(32).toString("base64url")}`;
 }
 
 /** Compares two secrets in time that does not depend on where they differ. */

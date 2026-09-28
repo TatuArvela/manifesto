@@ -1,6 +1,7 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
+import { mcpEnabled } from "../state/auth.js";
 import { storageConnection } from "../storage/index.js";
 import { ApiTokensSettings } from "./ApiTokensSettings.js";
 
@@ -18,6 +19,7 @@ describe("ApiTokensSettings", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    mcpEnabled.value = false;
     storageConnection.value = { serverUrl: null, token: null };
     render(null, host);
     host.remove();
@@ -68,5 +70,70 @@ describe("ApiTokensSettings", () => {
       ).toBe("mfp_abcdef-the-secret"),
     );
     await vi.waitFor(() => expect(host.textContent).toContain("mfp_abcdef..."));
+  });
+
+  it("mints an assistant's token and hands over the command that connects it", async () => {
+    mcpEnabled.value = true;
+    const listed = [
+      {
+        id: "t2",
+        name: "Claude",
+        kind: "mcp",
+        readOnly: true,
+        prefix: "mfm_abcdef",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        lastUsedAt: null,
+        expiresAt: null,
+      },
+    ];
+    let sent: Record<string, unknown> | null = null;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (init?.method === "POST") {
+        sent = JSON.parse(init.body as string);
+        return Response.json(
+          { token: listed[0], secret: "mfm_abcdef-the-secret" },
+          { status: 201 },
+        );
+      }
+      return Response.json({ tokens: sent ? listed : [] });
+    });
+
+    render(<ApiTokensSettings />, host);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.none")),
+    );
+    const kind = host.querySelector("select") as HTMLSelectElement;
+    kind.value = "mcp";
+    kind.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.readOnly")),
+    );
+    const readOnly = host.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
+    ) as HTMLInputElement;
+    readOnly.click();
+    const name = host.querySelector<HTMLInputElement>(
+      `input[placeholder="${t("tokens.namePlaceholder")}"]`,
+    ) as HTMLInputElement;
+    name.value = "Claude";
+    name.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((r) => requestAnimationFrame(r));
+    host
+      .querySelector("form")
+      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() =>
+      expect(
+        host.querySelector<HTMLTextAreaElement>(
+          `textarea[aria-label="${t("tokens.mcpCommand")}"]`,
+        )?.value,
+      ).toMatch(
+        /^claude mcp add --transport http \S+ \S*\/api\/mcp --header "Authorization: Bearer mfm_abcdef-the-secret"$/,
+      ),
+    );
+    expect(sent).toMatchObject({ name: "Claude", kind: "mcp", readOnly: true });
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.mcpReadOnlyBadge")),
+    );
   });
 });

@@ -79,7 +79,10 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
      */
     onAuthenticate: async ({ token, documentName }) => {
       const identity = await authProvider.authenticate(token);
-      if (!identity) throw new Error("Invalid or expired session");
+      // An MCP token is for `/api/mcp` alone.
+      if (!identity || identity.via === "mcp-token") {
+        throw new Error("Invalid or expired session");
+      }
 
       const access = await storage.notes.access(documentName, identity.userId);
       if (!access || access.role === "view") throw new Error("Forbidden");

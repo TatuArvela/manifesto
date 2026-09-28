@@ -480,6 +480,10 @@ and `AuthIdentity.via` says which credential it was. Anything that changes how a
 (tokens, password, email, the admin API) mounts `createAuthMiddleware(provider, { sessionOnly: true })`,
 so a token handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
 revoking one token goes through `revokeApiToken`, which closes its sockets by the token's hash.
+An MCP token (`mfm_`, `kind: "mcp"`) is narrower again: `createAuthMiddleware` takes it only on
+`/api/mcp` (`mcpOnly`) and on the REST requests that endpoint's tools make in-process, whose `env`
+carries `MCP_FORWARDED`, a symbol no request from the network can set. A read-only one is refused
+anything but `GET`, and both sockets refuse it.
 
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
@@ -533,6 +537,12 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   writes refuse anything but a reference (`claimImages` in `attachments/store.ts` makes each the note
   owner's, content-addressed per owner). The client draws them through `StoredImage` and inlines them again for anything that leaves the session (`inlineImages`). A new
   place that renders a note image must use `StoredImage`, and a new export path must inline.
+- **MCP**: `mcp/` is a stateless MCP server written here rather than taken from the SDK, whose
+  dependencies (express among them) outweigh four JSON-RPC methods: `protocol.ts` (JSON-RPC and the
+  lifecycle), `tools.ts` (the catalogue), `routes.ts` (HTTP). A tool is REST calls through
+  `app.fetch` with the caller's token and never touches storage, so every rule of the routes holds for
+  it. A new tool composes routes; one that needs what no route offers needs the route first. Spec:
+  `docs/specification/features/mcp.md`.
 - **Webhooks**: `webhooks/dispatcher.ts` subscribes to the broadcaster, so a webhook hears what its
   owner's sockets hear and a new note event needs no webhook code. Deliveries go through `safeFetch`
   (POST, no redirects) with the address rule `WEBHOOKS` picks; never call `fetch` for them.

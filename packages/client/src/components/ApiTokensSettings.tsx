@@ -1,13 +1,14 @@
-import type { ApiToken } from "@manifesto/shared";
+import type { ApiToken, ApiTokenKind } from "@manifesto/shared";
 import { Copy, Trash2 } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
+import { APP_FILE_SLUG } from "../config.js";
 import { formatDateTime, t } from "../i18n/index.js";
 import {
   createApiToken,
   listApiTokens,
   revokeApiToken,
 } from "../state/apiTokens.js";
-import { SERVER_ORIGIN } from "../state/auth.js";
+import { mcpEnabled, SERVER_ORIGIN } from "../state/auth.js";
 import { askConfirmation } from "../state/confirm.js";
 import { showError, showSuccess } from "../state/ui.js";
 
@@ -22,13 +23,20 @@ const EXPIRY_DAYS = [30, 90, 365, null] as const;
  * they need no password. A new token's secret is shown once, here, and never
  * again; the list names each by its first characters and when it was last
  * used, so a forgotten one can be found and revoked.
+ *
+ * A token for an AI assistant is another kind (`mfm_`): it works only at the
+ * server's MCP endpoint, so the tab hands over the command that connects an
+ * assistant along with the secret.
  */
 export function ApiTokensSettings() {
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [name, setName] = useState("");
   const [expiry, setExpiry] = useState<number | null>(90);
+  const [kind, setKind] = useState<ApiTokenKind>("api");
+  const [readOnly, setReadOnly] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
+  const [secretKind, setSecretKind] = useState<ApiTokenKind>("api");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -51,7 +59,7 @@ export function ApiTokensSettings() {
     }
     setError(null);
     setBusy(true);
-    const result = await createApiToken(name.trim(), expiry);
+    const result = await createApiToken(name.trim(), expiry, kind, readOnly);
     setBusy(false);
     if (result.kind !== "ok") {
       setError(
@@ -60,6 +68,7 @@ export function ApiTokensSettings() {
       return;
     }
     setSecret(result.created.secret);
+    setSecretKind(kind);
     setName("");
     await reload();
   };
@@ -79,15 +88,19 @@ export function ApiTokensSettings() {
     }
   };
 
-  const copySecret = async () => {
-    if (!secret) return;
+  const copy = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(secret);
+      await navigator.clipboard.writeText(text);
       showSuccess(t("tokens.copied"));
     } catch {
       // The field is selectable; copying by hand still works.
     }
   };
+
+  const mcpUrl = `${SERVER_ORIGIN ?? ""}/api/mcp`;
+  const mcpCommand =
+    secret &&
+    `claude mcp add --transport http ${APP_FILE_SLUG} ${mcpUrl} --header "Authorization: Bearer ${secret}"`;
 
   return (
     <div class="space-y-4">
@@ -109,16 +122,81 @@ export function ApiTokensSettings() {
             <button
               type="button"
               class="shrink-0 px-3 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
-              onClick={copySecret}
+              onClick={() => copy(secret)}
               aria-label={t("tokens.copy")}
             >
               <Copy class="w-4 h-4" />
             </button>
           </div>
+          {secretKind === "mcp" && mcpCommand && (
+            <>
+              <p class="text-sm">{t("tokens.mcpSetup")}</p>
+              <div class="flex gap-2">
+                <textarea
+                  readOnly
+                  rows={3}
+                  value={mcpCommand}
+                  aria-label={t("tokens.mcpCommand")}
+                  class={`${inputClass} font-mono text-xs resize-none`}
+                  onFocus={(e) =>
+                    (e.currentTarget as HTMLTextAreaElement).select()
+                  }
+                />
+                <button
+                  type="button"
+                  class="shrink-0 px-3 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+                  onClick={() => copy(mcpCommand)}
+                  aria-label={t("tokens.mcpCopyCommand")}
+                >
+                  <Copy class="w-4 h-4" />
+                </button>
+              </div>
+              <p class="text-xs text-neutral-600 dark:text-neutral-300">
+                {t("tokens.mcpOther", { url: mcpUrl })}
+              </p>
+            </>
+          )}
         </div>
       )}
 
       <form onSubmit={submit} class="space-y-3">
+        {mcpEnabled.value && (
+          <label class="block">
+            <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+              {t("tokens.kind")}
+            </span>
+            <select
+              class={inputClass}
+              value={kind}
+              onChange={(e) =>
+                setKind(
+                  (e.currentTarget as HTMLSelectElement).value as ApiTokenKind,
+                )
+              }
+            >
+              <option value="api">{t("tokens.kindApi")}</option>
+              <option value="mcp">{t("tokens.kindMcp")}</option>
+            </select>
+          </label>
+        )}
+        {kind === "mcp" && (
+          <div class="space-y-2">
+            <p class="text-sm text-neutral-600 dark:text-neutral-300">
+              {t("tokens.mcpHint")}
+            </p>
+            <label class="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                class="mt-0.5"
+                checked={readOnly}
+                onChange={(e) =>
+                  setReadOnly((e.currentTarget as HTMLInputElement).checked)
+                }
+              />
+              <span>{t("tokens.readOnly")}</span>
+            </label>
+          </div>
+        )}
         <label class="block">
           <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
             {t("tokens.name")}
@@ -184,7 +262,16 @@ export function ApiTokensSettings() {
             {tokens.map((token) => (
               <li key={token.id} class="flex items-start gap-2">
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium truncate">{token.name}</p>
+                  <p class="text-sm font-medium truncate">
+                    {token.name}
+                    {token.kind === "mcp" && (
+                      <span class="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">
+                        {token.readOnly
+                          ? t("tokens.mcpReadOnlyBadge")
+                          : t("tokens.mcpBadge")}
+                      </span>
+                    )}
+                  </p>
                   <p class="text-xs text-neutral-500 dark:text-neutral-400">
                     <span class="font-mono">{token.prefix}...</span>
                     {" · "}

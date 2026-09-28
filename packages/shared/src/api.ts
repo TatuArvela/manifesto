@@ -93,9 +93,21 @@ export interface NoteVersionCreateRequest {
  * A personal API token as listed: never the secret, which is shown once, in
  * the response that created it.
  */
+/**
+ * What a token is for. `api` (`mfp_`) works on the REST API and the sockets,
+ * as a session does; `mcp` (`mfm_`) works only at `/api/mcp`, for an AI
+ * assistant, so a secret copied into an assistant's settings can do only what
+ * its tools do.
+ */
+export const API_TOKEN_KINDS = ["api", "mcp"] as const;
+export type ApiTokenKind = (typeof API_TOKEN_KINDS)[number];
+
 export interface ApiToken {
   id: string;
   name: string;
+  kind: ApiTokenKind;
+  /** An MCP token that is offered only the tools that read. */
+  readOnly: boolean;
   /** The secret's first characters, so a user can tell tokens apart. */
   prefix: string;
   createdAt: string;
@@ -110,6 +122,10 @@ export interface ApiTokensResponse {
 
 export interface ApiTokenCreateRequest {
   name: string;
+  /** `api` when left out. */
+  kind?: ApiTokenKind;
+  /** Only for an `mcp` token. */
+  readOnly?: boolean;
   /** Days until it stops working; left out for a token that does not expire. */
   expiresInDays?: number;
 }
@@ -384,6 +400,9 @@ export interface AuthMethodsResponse {
   /** Whether this server lets users register webhooks. Absent from servers
    * from before webhooks, which have none. */
   webhooks?: boolean;
+  /** Whether this server has an MCP endpoint for AI assistants
+   * (`/api/mcp`). Absent from servers from before it, which have none. */
+  mcp?: boolean;
   /** Whether a forgotten password can be reset by a link sent by mail. */
   passwordReset?: boolean;
   /** Whether anyone can create an account with a password here. Absent from

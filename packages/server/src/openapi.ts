@@ -36,7 +36,7 @@ import {
  * name and shape.
  */
 
-type Auth = "none" | "any" | "session";
+type Auth = "none" | "any" | "session" | "mcp";
 
 export interface Operation {
   method: "get" | "post" | "put" | "patch" | "delete";
@@ -44,7 +44,8 @@ export interface Operation {
   path: string;
   tag: string;
   summary: string;
-  /** `session`: a sign-in session only, refused to an API token. */
+  /** `session`: a sign-in session only, refused to an API token. `mcp`: an
+   * MCP token only. */
   auth: Auth;
   body?: z.ZodType;
   query?: Record<string, string>;
@@ -619,6 +620,18 @@ export const OPERATIONS: Operation[] = [
     auth: "session",
     responses: noContent,
   },
+  {
+    method: "post",
+    path: "/api/mcp",
+    tag: "MCP",
+    summary:
+      "Model Context Protocol for AI assistants: JSON-RPC over Streamable HTTP, stateless",
+    auth: "mcp",
+    responses: {
+      "200": { description: "The JSON-RPC answer" },
+      "202": { description: "A notification, accepted" },
+    },
+  },
 ];
 
 const noteResponseSchema = noteCreateSchema.extend({
@@ -652,7 +665,7 @@ function components() {
         type: "http",
         scheme: "bearer",
         description:
-          "A session token from signing in, or a personal API token (mfp_...).",
+          "A session token from signing in, or a personal API token (mfp_...). /api/mcp takes an MCP token (mfm_...) and nothing else.",
       },
     },
     schemas: {
@@ -762,6 +775,7 @@ export function buildOpenApiDocument(version: string) {
       ...(op.auth === "session" && {
         "x-session-only": true,
       }),
+      ...(op.auth === "mcp" && { "x-mcp-only": true }),
       ...(parameters.length > 0 && { parameters }),
       ...(op.body && {
         requestBody: {
@@ -794,7 +808,7 @@ export function buildOpenApiDocument(version: string) {
       title: "Manifesto API",
       version,
       description:
-        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token.",
+        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md.",
       license: { name: "MIT" },
     },
     servers: [{ url: "/" }],

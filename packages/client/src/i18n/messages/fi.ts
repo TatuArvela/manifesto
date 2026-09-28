@@ -409,6 +409,20 @@ export const fi: Messages = {
   "tokens.revoked": "Tunniste peruttu",
   "tokens.tooMany": "Tunnisteita on enimmäismäärä; peru ensin jokin",
   "tokens.failed": "Tunnisteisiin ei saatu yhteyttä; yritä uudelleen",
+  "tokens.kind": "Käyttötarkoitus",
+  "tokens.kindApi": "Skripti, pikakomento tai botti",
+  "tokens.kindMcp": "Tekoälyavustaja (MCP)",
+  "tokens.mcpHint":
+    "Avustajan tunniste toimii vain tämän palvelimen MCP-rajapinnan kautta, jonka työkaluilla se voi hakea, lukea, luoda ja muuttaa muistiinpanojasi. Poistaa se ei voi: enintään se siirtää muistiinpanon roskakoriin.",
+  "tokens.readOnly":
+    "Vain luku: se voi hakea ja lukea muistiinpanoja mutta ei muuttaa niitä",
+  "tokens.mcpSetup": "Yhdistä Claude Code ajamalla:",
+  "tokens.mcpCommand": "Komento, joka yhdistää Claude Coden",
+  "tokens.mcpCopyCommand": "Kopioi komento",
+  "tokens.mcpOther":
+    "Muille avustajille MCP-palvelin on {url} (HTTP), ja tämä tunniste annetaan bearer-tunnisteena.",
+  "tokens.mcpBadge": "Tekoälyavustaja",
+  "tokens.mcpReadOnlyBadge": "Tekoälyavustaja, vain luku",
   "webhooks.title": "Webhookit",
   "webhooks.hint":
     "Palvelin lähettää muistiinpanojesi tapahtumat (luotu, muutettu, poistettu) alla oleviin osoitteisiin, esimerkiksi n8n:lle, Home Assistantille tai chat-botille. Jokainen lähetys allekirjoitetaan webhookin salaisuudella.",

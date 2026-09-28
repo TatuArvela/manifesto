@@ -96,6 +96,8 @@ describe("API tokens", () => {
       id: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       userId,
       name: "old",
+      kind: "api",
+      readOnly: false,
       prefix: "mfp_old",
       createdAt: "2020-01-01T00:00:00.000Z",
       lastUsedAt: null,

@@ -402,6 +402,20 @@ export const en = {
   "tokens.revoked": "Token revoked",
   "tokens.tooMany": "You have as many tokens as allowed; revoke one first",
   "tokens.failed": "Tokens could not be reached; try again",
+  "tokens.kind": "Used by",
+  "tokens.kindApi": "A script, shortcut or bot",
+  "tokens.kindMcp": "An AI assistant (MCP)",
+  "tokens.mcpHint":
+    "An assistant's token works only through this server's MCP endpoint, whose tools search, read, create and change your notes. It cannot delete a note: the most it can do is move one to the trash.",
+  "tokens.readOnly":
+    "Read only: it can search and read notes, but not change them",
+  "tokens.mcpSetup": "To connect Claude Code, run:",
+  "tokens.mcpCommand": "Command that connects Claude Code",
+  "tokens.mcpCopyCommand": "Copy command",
+  "tokens.mcpOther":
+    "For another assistant, the MCP server is {url} (HTTP), with this token as a bearer token.",
+  "tokens.mcpBadge": "AI assistant",
+  "tokens.mcpReadOnlyBadge": "AI assistant, read only",
   "webhooks.title": "Webhooks",
   "webhooks.hint":
     "This server posts your note events (created, changed, deleted) to each address below, for n8n, Home Assistant or a chat bot. Each delivery is signed with the webhook's secret.",

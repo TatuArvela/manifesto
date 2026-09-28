@@ -26,6 +26,7 @@ describe("auth shared routes", () => {
       passwordForm: "shown",
       userLookup: "search",
       webhooks: false,
+      mcp: true,
       passwordReset: false,
       registration: true,
     });

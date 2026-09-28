@@ -18,6 +18,7 @@ import {
   type LinkPreviewFetcher,
 } from "./linkPreview/fetchPreview.js";
 import { createSmtpMailer, type Mailer } from "./mail/mailer.js";
+import { createMcpRoutes } from "./mcp/routes.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
 import { perUserApiRateLimit } from "./middleware/rateLimit.js";
@@ -213,9 +214,24 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
       authProvider,
       revocations,
+      mcpEnabled: cfg.mcp,
       rateLimit: apiRateLimit,
     }),
   );
+  if (cfg.mcp) {
+    // Its tools call the routes above through the app itself, so they meet
+    // every check a request from the network does.
+    app.route(
+      "/api/mcp",
+      createMcpRoutes({
+        authProvider,
+        corsOrigins: cfg.corsOrigins,
+        serverVersion: VERSION,
+        forward: (request, env) => app.fetch(request, env),
+        rateLimit: apiRateLimit,
+      }),
+    );
+  }
   app.route(
     "/api/webhooks",
     createWebhookRoutes({

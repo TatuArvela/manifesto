@@ -12,12 +12,14 @@ export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {
     async create(input) {
       await pool.query(
         `INSERT INTO api_tokens
-           (id, user_id, name, token_hash, prefix, created_at, last_used_at, expires_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           (id, user_id, name, kind, read_only, token_hash, prefix, created_at, last_used_at, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           input.id,
           input.userId,
           input.name,
+          input.kind,
+          input.readOnly,
           input.tokenHash,
           input.prefix,
           input.createdAt,

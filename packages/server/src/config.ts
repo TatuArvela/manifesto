@@ -91,6 +91,11 @@ export interface ServerConfig {
    */
   webhooks: WebhookMode;
   /**
+   * Whether `/api/mcp` is there for AI assistants. On opens nothing by
+   * itself: it answers only an MCP token, which a user has to mint.
+   */
+  mcp: boolean;
+  /**
    * Outgoing mail, for password reset links and share invitations. Null
    * without `SMTP_URL`, and then an admin's temporary password stays the only
    * way back into a local account.
@@ -339,6 +344,7 @@ export function loadConfig(): ServerConfig {
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
     linkPreviews: envBool("LINK_PREVIEWS", true),
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
+    mcp: envBool("MCP", true),
     mail: loadMailConfig(),
     backup: loadBackupConfig(dataDir),
     metricsToken: process.env.METRICS_TOKEN?.trim() || null,
