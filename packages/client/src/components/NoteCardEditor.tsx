@@ -1,5 +1,5 @@
 import type { Note, NoteColor } from "@manifesto/shared";
-import type { Editor } from "@milkdown/kit/core";
+import { type Editor, EditorStatus } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
@@ -233,6 +233,10 @@ export function NoteCardEditor({
     judgedEditorRef.current = editor;
     const timer = setTimeout(
       () => {
+        // The editor this was scheduled for may be gone by now: the solo one
+        // is torn down when collaboration arrives, and a destroyed editor
+        // throws on every read of its view.
+        if (editor.status !== EditorStatus.Created) return;
         const row = notes.value.find((n) => n.id === note.id);
         if (!row) return;
         const records = agreementRef.current;
