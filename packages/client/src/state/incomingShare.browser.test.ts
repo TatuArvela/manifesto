@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  bookmarkletHref,
   SHARE_CACHE,
   SHARE_IMAGE_KEY_PREFIX,
   SHARE_TARGET_PARAM,
@@ -64,5 +65,53 @@ describe("takeIncomingShare", () => {
     history.replaceState(null, "", `?${SHARE_TARGET_PARAM}`);
     await takeIncomingShare();
     expect(incomingShare.value).toBeNull();
+  });
+
+  it("takes a bookmarklet's page from the query, and leaves no trace of it", async () => {
+    await park({ title: "Parked", text: "", url: "" });
+    const query = new URLSearchParams({
+      title: "An article",
+      url: "https://example.com/a",
+      text: "the part worth keeping",
+    });
+    history.replaceState(null, "", `?${SHARE_TARGET_PARAM}&${query}`);
+    await takeIncomingShare();
+    expect(incomingShare.value).toEqual({
+      title: "An article",
+      content: "the part worth keeping\n\nhttps://example.com/a",
+      images: [],
+    });
+    expect(window.location.search).toBe("");
+  });
+});
+
+describe("the bookmarklet", () => {
+  it("opens the app with the page's title, address and selection", () => {
+    const opened = vi.spyOn(window, "open").mockReturnValue(null);
+    const range = document.createRange();
+    const selected = document.createElement("p");
+    selected.textContent = "chosen words";
+    document.body.appendChild(selected);
+    range.selectNodeContents(selected);
+    getSelection()?.removeAllRanges();
+    getSelection()?.addRange(range);
+    try {
+      const href = bookmarkletHref("https://notes.example.com/");
+      expect(href.startsWith("javascript:")).toBe(true);
+      new Function(href.slice("javascript:".length))();
+
+      const [url, target] = opened.mock.calls[0] ?? [];
+      const sent = new URL(String(url));
+      expect(sent.origin + sent.pathname).toBe("https://notes.example.com/");
+      expect(sent.searchParams.has(SHARE_TARGET_PARAM)).toBe(true);
+      expect(sent.searchParams.get("title")).toBe(document.title);
+      expect(sent.searchParams.get("url")).toBe(window.location.href);
+      expect(sent.searchParams.get("text")).toBe("chosen words");
+      expect(target).toBe("_blank");
+    } finally {
+      getSelection()?.removeAllRanges();
+      selected.remove();
+      opened.mockRestore();
+    }
   });
 });

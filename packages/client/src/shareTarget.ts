@@ -47,3 +47,22 @@ export function sharedTextFromForm(form: FormData): SharedText {
   };
   return { title: field("title"), text: field("text"), url: field("url") };
 }
+
+/** Most selected text a bookmarklet carries; the address it rides in has a
+ * length limit, and servers and browsers disagree about where it lies. */
+export const BOOKMARKLET_MAX_TEXT = 4000;
+
+/**
+ * A bookmarklet that sends the page it is clicked on here, as a share: its
+ * title, address and any selected text, in the query of `?share-target`
+ * (`takeIncomingShare` reads them there). For browsers and pages the share
+ * sheet does not reach, a desktop browser above all.
+ *
+ * It opens the app in a new tab rather than posting anything, so it needs no
+ * permission on the page and sends nothing anywhere but the app's own
+ * address; nothing is saved until the new note is.
+ */
+export function bookmarkletHref(appUrl: string): string {
+  const code = `(()=>{const q=new URLSearchParams({title:document.title,url:location.href,text:String(getSelection()).slice(0,${BOOKMARKLET_MAX_TEXT})});open(${JSON.stringify(appUrl)}+"?${SHARE_TARGET_PARAM}&"+q,"_blank","noopener")})()`;
+  return `javascript:${code}`;
+}

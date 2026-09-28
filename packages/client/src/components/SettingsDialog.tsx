@@ -88,6 +88,7 @@ import { ApiTokensSettings } from "./ApiTokensSettings.js";
 import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
+import { Bookmarklet } from "./Bookmarklet.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { Dropdown } from "./Dropdown.js";
 import { OrgCredit } from "./OrgCredit.js";
@@ -900,6 +901,7 @@ function DataSettings() {
           </p>
         )}
       </div>
+      <Bookmarklet />
     </div>
   );
 }

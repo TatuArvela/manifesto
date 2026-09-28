@@ -333,6 +333,12 @@ export const fi: Messages = {
   "settings.decimalSeparator.comma": "Pilkku",
   "settings.language": "Kieli",
   "settings.language.system": "Järjestelmän oletus",
+  "settings.clip.title": "Tallenna sivuja selaimesta",
+  "settings.clip.explain":
+    "Vedä tämä linkki kirjanmerkkipalkkiin. Kun napsautat sitä millä tahansa sivulla, se avaa uuden muistiinpanon sivun otsikolla, osoitteella ja valitsemallasi tekstillä.",
+  "settings.clip.link": "Tallenna: {appName}",
+  "settings.clip.dragHint":
+    "Vedä se kirjanmerkkipalkkiin ja napsauta sitä sivulla, jonka haluat tallentaa.",
   "settings.data.import": "Tuo muistiinpanot",
   "settings.data.exportFailed": "Muistiinpanoja ei saatu vietyä",
   "settings.data.importHint": "Voit tuoda useita tiedostoja kerralla:",
