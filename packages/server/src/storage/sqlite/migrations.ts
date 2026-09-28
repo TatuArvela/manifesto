@@ -429,6 +429,30 @@ CREATE TABLE oauth_codes (
 );
 `;
 
+/**
+ * Passkeys (WebAuthn credentials): a second factor beside the authenticator
+ * app, and a way to sign in alone. `credential_id` and `public_key` (a COSE
+ * key) are base64url, `transports` a JSON array, and `rp_id` the host the
+ * passkey was made for, since one only works on the address it was made on.
+ * `counter` is the authenticator's signature count, which only goes up.
+ */
+const PASSKEYS = `
+CREATE TABLE passkeys (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  credential_id TEXT NOT NULL UNIQUE,
+  public_key    TEXT NOT NULL,
+  counter       INTEGER NOT NULL,
+  transports    TEXT NOT NULL,
+  rp_id         TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  synced        INTEGER NOT NULL,
+  created_at    TEXT NOT NULL,
+  last_used_at  TEXT
+);
+CREATE INDEX passkeys_user ON passkeys(user_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -452,6 +476,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0020-public-links", sql: PUBLIC_LINKS },
   { id: "0021-teams", sql: TEAMS },
   { id: "0022-oauth", sql: OAUTH },
+  { id: "0023-passkeys", sql: PASSKEYS },
 ];
 
 export function runMigrations(

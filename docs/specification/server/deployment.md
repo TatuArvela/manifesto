@@ -195,7 +195,7 @@ docker exec manifesto-server node dist/cli.js create-admin rescue     # a new lo
 ```
 
 `reset-password` also ends the account's sessions and API tokens and turns off its two-factor sign-in,
-as an admin's reset does. Each command is recorded in the audit log. A socket the running server
+passkeys included, as an admin's reset does. Each command is recorded in the audit log. A socket the running server
 already holds for an ended session stays open until it reconnects; restart the server to close it at
 once. Outside Docker, run `node dist/cli.js` from `packages/server` with the same environment.
 

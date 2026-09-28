@@ -76,10 +76,60 @@ export const accountPrefsUpdateSchema = z.object({
     }),
 });
 
+/** A WebAuthn binary value in its JSON form. */
+const base64url = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .regex(/^[A-Za-z0-9_-]*$/);
+
+/** The browser's answer to a passkey sign-in, as `PublicKeyCredential.toJSON()`
+ * gives it. What it proves is `@simplewebauthn/server`'s to check. */
+export const passkeyAuthenticationSchema = z.object({
+  id: base64url(1024),
+  rawId: base64url(1024),
+  type: z.literal("public-key"),
+  response: z.object({
+    clientDataJSON: base64url(8192),
+    authenticatorData: base64url(8192),
+    signature: base64url(2048),
+    userHandle: base64url(512).optional(),
+  }),
+  authenticatorAttachment: z.string().max(50).optional(),
+  clientExtensionResults: z.record(z.string(), z.unknown()),
+});
+
+/** The browser's answer to making a passkey. */
+export const passkeyRegistrationSchema = z.object({
+  id: base64url(1024),
+  rawId: base64url(1024),
+  type: z.literal("public-key"),
+  response: z.object({
+    clientDataJSON: base64url(8192),
+    attestationObject: base64url(65536),
+    transports: z.array(z.string().max(50)).max(10).optional(),
+  }),
+  authenticatorAttachment: z.string().max(50).optional(),
+  clientExtensionResults: z.record(z.string(), z.unknown()),
+});
+
 export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.optional(),
   /** An authenticator code, or a recovery code, when two-factor is on. */
   otp: z.string().trim().min(1).max(32).optional(),
+  /** Or a passkey's answer to the challenge the first attempt was given. */
+  passkey: passkeyAuthenticationSchema.optional(),
+});
+
+/** `POST /api/auth/passkeys`. */
+export const passkeyAddSchema = z.object({
+  name: z.string().trim().max(100).optional(),
+  response: passkeyRegistrationSchema,
+});
+
+/** `POST /api/auth/passkey/login`. */
+export const passkeyLoginSchema = z.object({
+  response: passkeyAuthenticationSchema,
 });
 
 /** Re-entering the password guards the two-factor switches: a session left

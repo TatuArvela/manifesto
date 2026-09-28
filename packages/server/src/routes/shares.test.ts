@@ -521,6 +521,7 @@ describe("finding people to share with", () => {
       publicLinks: true,
       mcp: true,
       mcpSignIn: false,
+      passkeys: true,
       passwordReset: false,
       registration: true,
     });

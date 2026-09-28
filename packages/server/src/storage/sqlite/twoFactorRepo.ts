@@ -71,6 +71,9 @@ export function createSqliteTwoFactorRepo(db: SqliteDB): TwoFactorRepo {
     async disable(userId) {
       disable(userId);
     },
+    async removeAuthenticator(userId) {
+      disableStmt.run(userId);
+    },
     async advanceStep(userId, step) {
       return advanceStmt.run(step, userId, step).changes > 0;
     },

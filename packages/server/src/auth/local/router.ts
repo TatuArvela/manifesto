@@ -1,6 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import type { AuthSuccessResponse } from "@manifesto/shared";
+import type {
+  AuthSuccessResponse,
+  TwoFactorRequiredResponse,
+} from "@manifesto/shared";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { Hono } from "hono";
 import { audit } from "../../audit/audit.js";
 import type { ServerConfig } from "../../config.js";
@@ -27,6 +31,11 @@ import { endUserSessions, issueSession, revokeSession } from "../session.js";
 import type { AuthProvider, AuthProviderRouter } from "../types.js";
 import { pickAvatarColor, toAuthUser } from "../users.js";
 import { createLoginAttempts, type LoginAttempts } from "./loginAttempts.js";
+import {
+  createPasskeyChallenges,
+  createPasskeySecondFactor,
+  registerPasskeyRoutes,
+} from "./passkeys.js";
 import { registerPasswordResetRoutes } from "./passwordReset.js";
 import { checkSecondFactor, registerTwoFactorRoutes } from "./twoFactor.js";
 
@@ -58,6 +67,12 @@ export function createLocalAuthRouter(
   // A budget per account on top of the budget per address, since an attacker
   // who can move between addresses gets a fresh one of the latter with each.
   const loginAttempts = deps.loginAttempts ?? createLoginAttempts();
+  const passkeyChallenges = createPasskeyChallenges();
+  const passkeySecondFactor = createPasskeySecondFactor({
+    storage: deps.storage,
+    cfg: deps.cfg,
+    challenges: passkeyChallenges,
+  });
 
   // A sign-in for a name nobody holds has to cost what a real one costs, or
   // the time the answer takes reports whether the account exists. Built from
@@ -127,7 +142,8 @@ export function createLocalAuthRouter(
     authThrottle,
     zValidator("json", loginSchema, validatorHook),
     async (c) => {
-      const { username, password, newPassword, otp } = c.req.valid("json");
+      const { username, password, newPassword, otp, passkey } =
+        c.req.valid("json");
       const wait = loginAttempts.retryAfter(username);
       if (wait > 0) {
         // Ahead of the lookup and the verify, so a guessing run that has used
@@ -160,17 +176,38 @@ export function createLocalAuthRouter(
       // wrong guess nothing, and on the same per-account budget, so six
       // digits cannot be walked through.
       const totp = await deps.storage.twoFactor.get(user.id);
-      if (totp?.enabledAt != null) {
-        if (otp === undefined) {
-          throw new HttpError(
-            403,
-            "Enter the code from your authenticator",
-            "two_factor_required",
-          );
+      const authenticator = totp?.enabledAt != null;
+      const passkeys = await deps.storage.passkeys.listByUser(user.id);
+      const twoFactor = authenticator || passkeys.length > 0;
+      if (twoFactor) {
+        if (otp === undefined && passkey === undefined) {
+          // Which factors there are, and a challenge for the passkeys, so the
+          // client can offer each without another round of the password.
+          const body: TwoFactorRequiredResponse = {
+            error: "Confirm with your second factor",
+            code: "two_factor_required",
+            twoFactor: {
+              authenticator,
+              passkey: await passkeySecondFactor.options(c, user.id, passkeys),
+            },
+          };
+          return c.json(body, 403);
         }
-        if (
-          !(await checkSecondFactor(deps.storage, user.id, totp.secret, otp))
-        ) {
+        const passed =
+          otp !== undefined
+            ? await checkSecondFactor(
+                deps.storage,
+                user.id,
+                authenticator ? (totp?.secret ?? null) : null,
+                otp,
+              )
+            : await passkeySecondFactor.verify(
+                c,
+                user.id,
+                passkeys,
+                passkey as AuthenticationResponseJSON,
+              );
+        if (!passed) {
           loginAttempts.fail(username);
           audit(deps.storage, c, {
             action: "auth.sign_in_failed",
@@ -215,7 +252,9 @@ export function createLocalAuthRouter(
         actorId: user.id,
         detail: {
           method: "password",
-          ...(totp?.enabledAt != null && { twoFactor: "yes" }),
+          ...(twoFactor && {
+            twoFactor: otp !== undefined ? "yes" : "passkey",
+          }),
         },
       });
       const body: AuthSuccessResponse = { token, user: toAuthUser(user) };
@@ -288,6 +327,20 @@ export function createLocalAuthRouter(
     storage: deps.storage,
     authProvider: deps.authProvider,
     throttle: authThrottle,
+    loginAttempts,
+  });
+  registerPasskeyRoutes(auth, {
+    storage: deps.storage,
+    authProvider: deps.authProvider,
+    cfg: deps.cfg,
+    challenges: passkeyChallenges,
+    throttle: authThrottle,
+    signInThrottle: rateLimit({
+      limit: 60,
+      windowMs: 15 * 60 * 1000,
+      trustProxy: deps.cfg.trustProxy,
+      name: "passkey",
+    }),
     loginAttempts,
   });
 

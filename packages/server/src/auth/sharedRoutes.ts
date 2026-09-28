@@ -71,6 +71,7 @@ export function createAuthSharedRoutes(
       publicLinks: deps.cfg.publicLinks,
       mcp: deps.cfg.mcp,
       mcpSignIn: offersMcpSignIn(deps.cfg),
+      passkeys: signsInLocally(deps.cfg),
       passwordReset: deps.cfg.mail !== null && signsInLocally(deps.cfg),
       registration: signsInLocally(deps.cfg) && deps.cfg.registrationEnabled,
     };

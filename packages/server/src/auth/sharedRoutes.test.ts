@@ -29,6 +29,7 @@ describe("auth shared routes", () => {
       publicLinks: true,
       mcp: true,
       mcpSignIn: false,
+      passkeys: true,
       passwordReset: false,
       registration: true,
     });

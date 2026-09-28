@@ -41,7 +41,7 @@ account's notes. Two actions come close, and both are visible to the account's o
   `admin.user_exported`.
 - **Issuing a temporary password** (local sign-in only). An admin who used it to sign in as someone
   would first have to choose a new password, which signs the owner out everywhere, turns off their
-  two-factor sign-in, and leaves their own password not working. It is recorded as
+  two-factor sign-in and removes their passkeys, and leaves their own password not working. It is recorded as
   `admin.password_reset`.
 
 ## What a user can see about their account

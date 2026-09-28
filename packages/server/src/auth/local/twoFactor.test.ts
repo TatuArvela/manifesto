@@ -96,7 +96,11 @@ describe("two-factor sign-in", () => {
     const status = (await (
       await call("GET", "/api/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
-    expect(status).toEqual({ enabled: true, recoveryCodesRemaining: 9 });
+    expect(status).toEqual({
+      enabled: true,
+      authenticator: true,
+      recoveryCodesRemaining: 9,
+    });
   });
 
   it("needs the password to turn it off, and then asks for no code", async () => {

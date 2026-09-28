@@ -7,6 +7,7 @@ import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
 import { createSqliteOAuthRepo } from "./oauthRepo.js";
+import { createSqlitePasskeysRepo } from "./passkeysRepo.js";
 import { createSqlitePasswordResetsRepo } from "./passwordResetsRepo.js";
 import { createSqlitePrefsRepo } from "./prefsRepo.js";
 import { createSqlitePublicLinksRepo } from "./publicLinksRepo.js";
@@ -44,6 +45,7 @@ export function createSqliteStorage(
     publicLinks: createSqlitePublicLinksRepo(db),
     teams: createSqliteTeamsRepo(db),
     twoFactor: createSqliteTwoFactorRepo(db),
+    passkeys: createSqlitePasskeysRepo(db),
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqlitePasswordResetsRepo(db),
     audit: createSqliteAuditRepo(db),

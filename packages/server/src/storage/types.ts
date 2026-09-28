@@ -7,6 +7,7 @@ import type {
   NoteCreate,
   NoteUpdate,
   NoteVersion,
+  Passkey,
   PublicLink,
   PublicNote,
   ShareInvitation,
@@ -584,7 +585,11 @@ export interface TwoFactorRepo {
   begin(userId: string, secret: string, at: string): Promise<boolean>;
   /** Confirms a setup, recording the step of the code that confirmed it. */
   enable(userId: string, at: string, step: number): Promise<void>;
+  /** Removes the authenticator and the recovery codes. */
   disable(userId: string): Promise<void>;
+  /** Removes the authenticator and keeps the recovery codes, which passkeys
+   * share. */
+  removeAuthenticator(userId: string): Promise<void>;
   /**
    * Records `step` as used if it is later than the last one, atomically, and
    * says whether it was. False is a code used before: refuse it.
@@ -594,6 +599,31 @@ export interface TwoFactorRepo {
   /** Spends one unused recovery code; false if there is no such code. */
   useRecoveryCode(userId: string, hash: string, at: string): Promise<boolean>;
   remainingRecoveryCodes(userId: string): Promise<number>;
+}
+
+/** A passkey as stored: the public half of the credential and whose it is. */
+export interface StoredPasskey extends Passkey {
+  userId: string;
+  /** base64url, as the browser names it. */
+  credentialId: string;
+  /** The COSE public key, base64url. */
+  publicKey: string;
+  counter: number;
+  transports: string[];
+  /** The host it was made for. */
+  rpId: string;
+}
+
+export interface PasskeysRepo {
+  create(passkey: StoredPasskey): Promise<void>;
+  /** Oldest first. */
+  listByUser(userId: string): Promise<StoredPasskey[]>;
+  findByCredentialId(credentialId: string): Promise<StoredPasskey | null>;
+  /** Records a sign-in with it: the authenticator's new counter, and when. */
+  recordUse(id: string, counter: number, at: string): Promise<void>;
+  /** The user's passkey, so one user cannot remove another's. */
+  delete(id: string, userId: string): Promise<boolean>;
+  deleteByUser(userId: string): Promise<number>;
 }
 
 /** Password reset links sent by mail, keyed by the token's SHA-256. */
@@ -748,6 +778,7 @@ export interface StorageDriver {
   oauth: OAuthRepo;
   webhooks: WebhooksRepo;
   twoFactor: TwoFactorRepo;
+  passkeys: PasskeysRepo;
   passwordResets: PasswordResetsRepo;
   audit: AuditRepo;
   prefs: PrefsRepo;

@@ -13,6 +13,7 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
+import { publicOrigin } from "../lib/origin.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
 import {
   hashToken,
@@ -61,23 +62,6 @@ const CODE_TTL_MS = 2 * 60 * 1000;
 export const UNUSED_CLIENT_DAYS = 1;
 
 const GRANT_TYPES = ["authorization_code", "refresh_token"];
-
-/**
- * This server's own address as the client reached it. Behind a proxy with
- * `TRUST_PROXY` on, the scheme and host the proxy was reached at, since an
- * assistant that asked `https://notes.example` for metadata refuses an issuer
- * named `http://10.0.0.5:3001`.
- */
-export function publicOrigin(c: Context, trustProxy: boolean): string {
-  const url = new URL(c.req.url);
-  if (trustProxy) {
-    const proto = c.req.header("X-Forwarded-Proto")?.split(",")[0].trim();
-    const host = c.req.header("X-Forwarded-Host")?.split(",")[0].trim();
-    if (proto === "https" || proto === "http") url.protocol = `${proto}:`;
-    if (host) url.host = host;
-  }
-  return url.origin;
-}
 
 /**
  * `notes:read`, with `notes:write` when it was asked for, from a space-separated

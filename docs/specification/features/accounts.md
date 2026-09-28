@@ -141,7 +141,8 @@ the changes that would let whoever holds one keep the account or its notes ask a
 - setting or removing the **email address**, since a reset link goes to it,
 - minting an **API token**, which outlives the session that made it,
 - adding a **webhook**, which sends every note from then on to its address,
-- turning **two-factor sign-in** on or off, or replacing its recovery codes (these asked before).
+- turning **two-factor sign-in** on or off, adding or removing a **passkey**, or replacing the recovery
+  codes (these asked before).
 
 An account with a password confirms with it, typed into the same form. Wrong passwords count against
 the same per-name budget as signing in, ten in fifteen minutes, so a stolen session cannot guess at
@@ -178,26 +179,47 @@ reaches notes, never the account's own security or the admin API; see the API do
 
 ## Two-factor sign-in
 
-A local account can turn on two-factor sign-in from Settings (**Two-factor sign-in**): signing in
-then asks for a six-digit code from an authenticator app (TOTP, RFC 6238: SHA-1, 30-second steps) after
-the password. Accounts that sign in through single sign-on get this from their identity provider instead.
+A local account can turn on two-factor sign-in from Settings (**Two-factor sign-in**): signing in then
+asks for a second factor after the password, from an **authenticator app**, a **passkey**, or either
+when the account has both. Accounts that sign in through single sign-on get this from their identity
+provider instead, and can add neither.
 
-- **Turning it on** asks for the password, shows a new key (as a QR code to scan, in base32
-  grouped for typing, and as an `otpauth://` link for an authenticator on the same device), and takes effect only once a code from it
-  is entered. It then shows ten one-time **recovery codes**, once; they are stored hashed.
-- **Signing in** answers `403` with `code: "two_factor_required"` after a right password, and the client
-  sends the same request again with `otp`, which may be an authenticator code or a recovery code (case
-  and separators ignored). The code is checked only after the password, so a wrong guess learns nothing
-  about the account, and a wrong code counts against the same per-account sign-in budget as a wrong
-  password, so six digits cannot be walked through. Each code's time step is accepted once (the server
-  keeps the last one used), and a recovery code once.
-- **Turning it off** or **replacing the recovery codes** asks for the password again, and all of it is
-  session-only: an API token cannot touch it.
-- **Lost everything**: an admin issuing a temporary password (see above) also turns two-factor off, since
-  that is the recovery path; the user can turn it on again after signing in.
+- **An authenticator app** (TOTP, RFC 6238: SHA-1, 30-second steps): setting it up asks for the password,
+  shows a new key (as a QR code to scan, in base32 grouped for typing, and as an `otpauth://` link for an
+  authenticator on the same device), and takes effect only once a code from it is entered.
+- **A passkey** (WebAuthn): adding one asks for the password, then the browser's own prompt makes it on
+  the device, in a password manager, or on a security key. Each is named, listed with whether it is
+  synced between devices and when it was last used, and removed with the password. A passkey belongs to
+  the address of the page that made it (its relying party is that host), so one made on one address of
+  a server does not work on another. Browsers offer passkeys only on `https` pages (and `localhost`), so
+  a client served over plain `http` shows none of this. At most 20.
+- **Recovery codes**: the first second factor of either kind brings ten one-time recovery codes, shown
+  once and stored hashed. One set covers every factor: adding a second one keeps them, and removing a
+  factor keeps them while another is left. Removing the last turns two-factor off and the codes with it.
+- **Signing in** answers `403` with `code: "two_factor_required"` after a right password, saying which
+  factors the account has and carrying a challenge for its passkeys on this address. The client sends the
+  same request again with `otp` (an authenticator code, or a recovery code, case and separators ignored)
+  or `passkey` (the browser's answer to the challenge). The factor is checked only after the password, so
+  a wrong guess learns nothing about the account, and a wrong code counts against the same per-account
+  sign-in budget as a wrong password, so six digits cannot be walked through. Each code's time step is
+  accepted once (the server keeps the last one used), a recovery code once, and a challenge once.
+- **Changes** to any of it ask for the password again, and all of it is session-only: an API token
+  cannot touch it.
+- **Lost everything**: an admin issuing a temporary password (see above) also turns two-factor off,
+  passkeys included, since that is the recovery path; the user can set it up again after signing in.
+  A password change or a reset by mail leaves it as it is.
 
-The secret is held as is in `user_totp` (it has to be, to compute codes), next to the password hash;
-`totp_recovery_codes` holds the hashed recovery codes.
+The authenticator's secret is held as is in `user_totp` (it has to be, to compute codes), next to the
+password hash; `totp_recovery_codes` holds the hashed recovery codes, and `passkeys` each passkey's
+public key, which is no secret.
+
+## Signing in with a passkey
+
+On a local account, a passkey also signs in on its own: **Sign in with a passkey** on the sign-in screen
+asks the browser for any passkey it holds for this address, with no name or password, and the device
+checks that its owner is using it (a fingerprint, a face, a PIN). That check is the second factor, so no
+code is asked after it. Passkeys made here are discoverable for this reason. A passkey whose account now
+holds a temporary password, or has none, signs in to nothing; every failure is the same `401`.
 
 ## Admins and sign-up under single sign-on
 
@@ -237,8 +259,9 @@ Accounts from single sign-on have no password here and are not offered a reset.
 
 The server records who did what to which account or note, and from where, in `audit_log`: sign-ins
 (with the method, and whether two-factor was used), failed sign-ins (with the name tried and why:
-unknown account, wrong password, wrong code, or single sign-on refused), sign-outs, password changes and
-resets, two-factor turned on or off, API tokens and webhooks created or removed, shares created, changed
+unknown account, wrong password, wrong code, a passkey refused, or single sign-on refused), sign-outs, password changes and
+resets, two-factor turned on or off, passkeys added or removed, API tokens and webhooks created or
+removed, shares created, changed
 and removed, and every admin action (accounts created or deleted, admin granted or taken away, including
 by `OIDC_ADMIN_GROUP`, email addresses changed, temporary passwords issued). Note contents are never
 recorded.

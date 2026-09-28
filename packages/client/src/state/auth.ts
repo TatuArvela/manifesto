@@ -4,12 +4,17 @@ import type {
   AuthProviderName,
   AuthSuccessResponse,
   ErrorResponse,
+  PasskeyAuthenticationResponse,
+  PasskeyRequestOptions,
+  PasskeySignInOptionsResponse,
+  TwoFactorRequiredResponse,
   UserLookupMode,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
 import { resolveServerOrigin, resolveServerUrl } from "../config.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { storageConnection } from "../storage/index.js";
+import { getPasskey } from "../utils/webauthn.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
@@ -185,10 +190,17 @@ export class PasswordChangeRequiredError extends AuthRequestError {
 
 /**
  * The password was right and the account has two-factor sign-in on: the same
- * request has to be sent again with a code.
+ * request has to be sent again with a code, or with a passkey's answer to
+ * `passkey`, the challenge this sign-in was given (null when the account has
+ * no passkey for this address). A server from before passkeys says neither,
+ * and has only codes.
  */
 export class TwoFactorRequiredError extends AuthRequestError {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    public authenticator = true,
+    public passkey: PasskeyRequestOptions | null = null,
+  ) {
     super(403, message, "two_factor_required");
     this.name = "TwoFactorRequiredError";
   }
@@ -198,10 +210,12 @@ export class TwoFactorRequiredError extends AuthRequestError {
 async function throwForResponse(res: Response): Promise<never> {
   let message = `Request failed (${res.status})`;
   let code: ErrorResponse["code"];
+  let twoFactor: TwoFactorRequiredResponse["twoFactor"];
   try {
-    const data = (await res.json()) as Partial<ErrorResponse>;
+    const data = (await res.json()) as Partial<TwoFactorRequiredResponse>;
     if (typeof data.error === "string") message = data.error;
     code = data.code;
+    twoFactor = data.twoFactor;
   } catch {
     // non-JSON body, leave default
   }
@@ -209,7 +223,11 @@ async function throwForResponse(res: Response): Promise<never> {
     throw new PasswordChangeRequiredError(message);
   }
   if (code === "two_factor_required") {
-    throw new TwoFactorRequiredError(message);
+    throw new TwoFactorRequiredError(
+      message,
+      twoFactor?.authenticator ?? true,
+      twoFactor?.passkey ?? null,
+    );
   }
   throw new AuthRequestError(res.status, message, code);
 }
@@ -280,15 +298,51 @@ export async function login(
   password: string,
   newPassword?: string,
   otp?: string,
+  passkey?: PasskeyAuthenticationResponse,
 ): Promise<void> {
   const result = await authRequest("/api/auth/login", {
     username,
     password,
     ...(newPassword === undefined ? {} : { newPassword }),
     ...(otp === undefined ? {} : { otp }),
+    ...(passkey === undefined ? {} : { passkey }),
   });
   authToken.value = result.token;
   currentUser.value = result.user;
+}
+
+/**
+ * Signs in with a passkey alone: a challenge from the server, the browser's
+ * prompt, and the answer back. Resolves with what happened; `unknown` is a
+ * passkey this server does not know or would not take.
+ */
+export async function signInWithPasskey(): Promise<
+  "ok" | "cancelled" | "unknown" | "failed"
+> {
+  if (SERVER_URL === null) return "failed";
+  try {
+    const started = await fetch(`${SERVER_URL}/api/auth/passkey/options`, {
+      method: "POST",
+    });
+    if (!started.ok) return "failed";
+    const { options } = (await started.json()) as PasskeySignInOptionsResponse;
+    const answer = await getPasskey(options);
+    if (answer === "cancelled") return "cancelled";
+    if (typeof answer === "string") return "failed";
+    const res = await fetch(`${SERVER_URL}/api/auth/passkey/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ response: answer }),
+    });
+    if (res.status === 401) return "unknown";
+    if (!res.ok) return "failed";
+    const result = (await res.json()) as AuthSuccessResponse;
+    authToken.value = result.token;
+    currentUser.value = result.user;
+    return "ok";
+  } catch {
+    return "failed";
+  }
 }
 
 export type ChangePasswordResult =
@@ -470,6 +524,9 @@ export const mcpEnabled = signal(false);
  * (OAuth) instead of with a token minted in Settings. */
 export const mcpSignInEnabled = signal(false);
 
+/** Whether a local account can sign in here with a passkey alone. */
+export const passkeySignInEnabled = signal(false);
+
 /** Whether this server lets owners publish a note by public link. */
 export const publicLinksEnabled = signal(false);
 
@@ -489,6 +546,7 @@ export async function fetchAuthMethods(): Promise<AuthMethodsResponse | null> {
     webhooksEnabled.value = methods.webhooks === true;
     mcpEnabled.value = methods.mcp === true;
     mcpSignInEnabled.value = methods.mcpSignIn === true;
+    passkeySignInEnabled.value = methods.passkeys === true;
     publicLinksEnabled.value = methods.publicLinks === true;
     return methods;
   } catch {

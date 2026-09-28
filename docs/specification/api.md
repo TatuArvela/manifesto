@@ -235,6 +235,22 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 | `POST`   | `/api/auth/login`     | Log in               |
 | `POST`   | `/api/auth/logout`    | Log out              |
 | `POST`   | `/api/auth/password`  | Change your own password |
+| `GET`    | `/api/auth/two-factor` | Whether two-factor is on, whether an authenticator app is set up, and recovery codes left |
+| `POST`   | `/api/auth/two-factor/setup`, `/enable`, `/disable`, `/recovery-codes` | The authenticator app, and replacing the recovery codes |
+| `GET`    | `/api/auth/passkeys`  | Your passkeys (`PasskeysResponse`), never their keys |
+| `POST`   | `/api/auth/passkeys/options` | With `{ password }`: options for `navigator.credentials.create()` |
+| `POST`   | `/api/auth/passkeys`  | `{ name?, response }`: add the passkey the browser made; `recoveryCodes` when it is the first second factor |
+| `DELETE` | `/api/auth/passkeys/:id` | With `{ password }`: remove one |
+| `POST`   | `/api/auth/passkey/options` | Public: a challenge to sign in with a passkey alone |
+| `POST`   | `/api/auth/passkey/login` | Public: `{ response }`, the browser's answer; `AuthSuccessResponse` |
+
+Passkey options and answers are WebAuthn's JSON forms, binary values as base64url. A ceremony is
+accepted only from a page this server's client is served from (an `Origin` in `CORS_ORIGINS`, that of
+`APP_URL`, or this server's own), whose host is the relying party ID; any other is `400`. Each challenge
+is good once, for five minutes, and for the purpose and account it was issued to. Signing in with a
+passkey alone wants the device to have verified its user, is throttled at 60 requests per 15 minutes
+per address, and answers any failure with the same `401`. See
+[Accounts](features/accounts.md#two-factor-sign-in).
 
 `POST /api/auth/login` takes `{ username, password }`, and an optional
 `newPassword` that is read only when the account holds a temporary password an
@@ -244,6 +260,12 @@ with it (at least 8 characters, and different from the temporary one) the server
 sets the new password and signs in. A wrong password is `401` either way, so
 the flag is never disclosed to a guess. See
 [Account Administration](features/accounts.md#temporary-passwords).
+
+With two-factor sign-in on, a right password answers `403` with
+`code: "two_factor_required"` and `twoFactor: { authenticator, passkey }`: whether
+the account has an authenticator app, and a challenge for its passkeys on this
+address (null when it has none there). The same request sent again with `otp`
+(an authenticator or recovery code) or `passkey` (the browser's answer) signs in.
 
 Sign-in is budgeted twice over, and either budget answers `429` with a
 `Retry-After` header. Per source address, 10 requests every 15 minutes, shared
