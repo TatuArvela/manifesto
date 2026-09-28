@@ -1,6 +1,7 @@
 import type { ShareInvitation, ShareRole } from "@manifesto/shared";
 import {
   type InvitationRow,
+  membersChangedAt,
   rowToInvitation,
   rowToShare,
   type ShareRow,
@@ -55,6 +56,9 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
   const deleteStmt = db.prepare(
     `DELETE FROM note_shares WHERE note_id = ? AND user_id = ?`,
   );
+  const membersChangedStmt = db.prepare(
+    `UPDATE notes SET members_changed_at = ? WHERE id = ?`,
+  );
   const invitationsStmt = db.prepare(
     `${INVITATION_SELECT} ORDER BY s.created_at DESC, s.note_id DESC`,
   );
@@ -82,7 +86,9 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
         noteId,
         userId,
       );
-      return info.changes > 0;
+      if (info.changes === 0) return false;
+      membersChangedStmt.run(acceptedAt, noteId);
+      return true;
     },
   );
 
@@ -91,6 +97,7 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
       const row = findStmt.get(noteId, userId) as ShareRow | undefined;
       if (!row) return null;
       deleteStmt.run(noteId, userId);
+      membersChangedStmt.run(membersChangedAt(), noteId);
       return rowToShare(row);
     },
   );
@@ -112,6 +119,7 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
     async create(input: CreateShareInput): Promise<"ok" | "exists"> {
       try {
         insertStmt.run(input.noteId, input.userId, input.role, input.createdAt);
+        membersChangedStmt.run(input.createdAt, input.noteId);
         return "ok";
       } catch (err) {
         if (isPrimaryKeyViolation(err)) return "exists";
@@ -124,7 +132,9 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
       userId: string,
       role: ShareRole,
     ): Promise<boolean> {
-      return setRoleStmt.run(role, noteId, userId).changes > 0;
+      if (setRoleStmt.run(role, noteId, userId).changes === 0) return false;
+      membersChangedStmt.run(membersChangedAt(), noteId);
+      return true;
     },
 
     async accept(

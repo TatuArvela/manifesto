@@ -75,10 +75,13 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
    * One half of a listing: the user's own notes, or those shared with them.
    * Over-fetched by one, as the SQLite copy explains.
    */
+  /** Narrows a listing to a search (`like`) or to changes (`since`). */
+  type Filter = { like: string } | { since: string } | null;
+
   async function half(
     kind: "own" | "shared",
     userId: string,
-    like: string | null,
+    filter: Filter,
     { limit, cursor }: ListNotesOptions,
   ): Promise<ViewRow[]> {
     const params: unknown[] = [userId];
@@ -93,10 +96,13 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
            FROM note_shares s JOIN notes n ON n.id = s.note_id
            WHERE s.user_id = $1 AND s.accepted_at IS NOT NULL
              AND n.trashed = FALSE`;
-    if (like !== null) {
-      const p = param(like);
+    if (filter && "like" in filter) {
+      const p = param(filter.like);
       sql += ` AND (LOWER(n.title) LIKE LOWER(${p})
                  OR LOWER(n.content) LIKE LOWER(${p}))`;
+    } else if (filter) {
+      const p = param(filter.since);
+      sql += ` AND (n.updated_at > ${p} OR n.members_changed_at > ${p})`;
     }
     const after = cursor ? decodeCursor(cursor) : null;
     if (after) {
@@ -110,12 +116,12 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
 
   async function page(
     userId: string,
-    like: string | null,
+    filter: Filter,
     options: ListNotesOptions,
   ): Promise<NotePage> {
     const [own, shared] = await Promise.all([
-      half("own", userId, like, options),
-      half("shared", userId, like, options),
+      half("own", userId, filter, options),
+      half("shared", userId, filter, options),
     ]);
     const { page: kept, nextCursor } = splitPage(
       mergePages(own, shared, options.limit),
@@ -220,6 +226,26 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       options: ListNotesOptions,
     ): Promise<NotePage> {
       return page(userId, null, options);
+    },
+
+    async listChanged(
+      userId: string,
+      since: string,
+      options: ListNotesOptions,
+    ): Promise<NotePage> {
+      return page(userId, { since }, options);
+    },
+
+    async visibleIds(userId: string): Promise<string[]> {
+      const result = await pool.query<{ id: string }>(
+        `SELECT id FROM notes WHERE user_id = $1
+         UNION ALL
+         SELECT n.id FROM note_shares s JOIN notes n ON n.id = s.note_id
+         WHERE s.user_id = $1 AND s.accepted_at IS NOT NULL
+           AND n.trashed = FALSE`,
+        [userId],
+      );
+      return result.rows.map((row) => row.id);
     },
 
     async getById(id: string, userId: string): Promise<Note | null> {
@@ -327,7 +353,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     ): Promise<NotePage> {
       const like = searchPattern(query);
       if (like === null) return { notes: [], nextCursor: null };
-      return page(userId, like, options);
+      return page(userId, { like }, options);
     },
   };
 

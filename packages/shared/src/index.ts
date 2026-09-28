@@ -47,6 +47,7 @@ export type {
   ShareCreateRequest,
   ShareInvitation,
   ShareUpdateRequest,
+  SyncResponse,
   TwoFactorRecoveryCodesResponse,
   TwoFactorSetupResponse,
   TwoFactorStatusResponse,

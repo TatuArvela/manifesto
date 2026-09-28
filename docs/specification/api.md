@@ -78,6 +78,14 @@ includes `email`. Either way the caller is never among the results, and an empty
 |----------|-------------------|----------------------|
 | `GET`    | `/api/search?q=`  | Search notes, one page at a time |
 
+### Sync
+
+| Method   | Path              | Description          |
+|----------|-------------------|----------------------|
+| `GET`    | `/api/sync?since=` | The notes changed since a checkpoint, one page at a time, and on the last page every visible id and the next checkpoint |
+
+See [Catching up after a reconnect](#catching-up-after-a-reconnect).
+
 ### API tokens
 
 | Method   | Path              | Description          |
@@ -302,6 +310,38 @@ The first-party client drains every page on load: it keeps all of a user's notes
 in memory, because tag counts, filtering and open-mode search are computed over
 the whole list. Paging bounds any single response; it does not change what the
 client holds.
+
+### Catching up after a reconnect
+
+`GET /api/sync` answers "what changed since I last looked", so a client that was
+offline reads what it missed rather than every note it has. It pages like the
+list endpoints (`?limit=`, `?cursor=`, the same order) and returns the notes
+whose row or members changed after `?since=`, without their attachments. Leave
+`since` out for everything.
+
+The last page, and only the last, also carries:
+
+- **`checkpoint`**: opaque; send it back as `since` next time. It is fixed when
+  the first page is asked for, so whatever changes while a client pages is in
+  the next sync rather than lost between pages. It sits two minutes before the
+  moment it was taken, because a write is stamped when its request starts and
+  may commit after a sync has read: every sync therefore reads the last two
+  minutes again, and a client must take a note it already holds unchanged
+  without fuss. A checkpoint the server did not write is refused with `400`.
+- **`ids`**: every note the user can see, changed or not. Deletions are not
+  recorded, so this is how a client learns that a note it holds was deleted,
+  emptied from the trash, or taken away from it (its share removed, or the note
+  trashed by its owner). It may drop such a note, but only one it held before
+  sending the request: a note that reached it since may be newer than the ids.
+
+A note counts as changed when its `updatedAt` moves (any write by anyone,
+including a recipient's personal fields) or when its members change: someone
+invited, accepting, given another role, removed, or leaving by their share
+expiring from their trash. The second does not move `updatedAt`, since that is
+the `If-Match` token and a membership change is no reason to fail someone's
+write.
+
+The checkpoint is kept by the client. The server stores nothing per device.
 
 ### Attachments are not in a listing
 

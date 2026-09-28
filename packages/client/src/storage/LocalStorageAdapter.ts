@@ -19,7 +19,7 @@ import {
   sweepLocalImages,
 } from "./localImages.js";
 import { isQuotaError, reportQuotaRefusal } from "./quota.js";
-import type { StorageAdapter } from "./StorageAdapter.js";
+import type { NoteChanges, StorageAdapter } from "./StorageAdapter.js";
 import { getVersions, saveVersion } from "./VersionStorage.js";
 
 const STORAGE_KEY = "manifesto:notes";
@@ -156,6 +156,10 @@ export class LocalStorageAdapter implements StorageAdapter {
    * IndexedDB, are moved there first, once; then images no note refers to
    * any more are swept, after a day's grace.
    */
+  async changesSince(): Promise<NoteChanges | null> {
+    return null;
+  }
+
   async getAll(): Promise<Note[]> {
     const notes = loadNotes();
     if (notes.some(holdsInline)) {

@@ -256,10 +256,14 @@ remove is load-bearing:
 
 Server mode runs two sockets, and they carry different things. `realtime/appSocket.ts` holds
 `/api/ws` (note events and presence) and reconnects with exponential backoff to a 30s ceiling.
-Every reconnect *after the first* re-fetches the note list, because writes made on another device
-while this tab was offline arrive nowhere else. `realtime/yjsProvider.ts` holds `/api/yjs`, one
-`HocuspocusProvider` per open note, with `y-indexeddb` underneath so an offline edit survives a
-reload. Those copies outlive the session, so the account menu signs out through `signOut`
+Every reconnect *after the first* catches up through `syncNotes`, because writes made on another
+device while this tab was offline arrive nowhere else. It asks `GET /api/sync` for what changed since
+the checkpoint `loadNotes` left, and drops a held note missing from the returned ids only if it was
+held before the request went out. A membership change stamps `notes.members_changed_at`, never
+`updated_at` (the `If-Match` token), so a new way of joining or leaving a note must stamp it in both
+drivers or recipients' devices never hear of it (`storage/syncContract.ts`).
+`realtime/yjsProvider.ts` holds `/api/yjs`, one `HocuspocusProvider` per open note, with
+`y-indexeddb` underneath so an offline edit survives a reload. Those copies outlive the session, so the account menu signs out through `signOut`
 (`state/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
 entry stays free of Yjs); the notes list itself empties on any end of a session, a 401 included. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding above.
 

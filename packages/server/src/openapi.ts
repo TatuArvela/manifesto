@@ -447,6 +447,21 @@ export const OPERATIONS: Operation[] = [
   },
   {
     method: "get",
+    path: "/api/sync",
+    tag: "Notes",
+    summary:
+      "The notes changed since a checkpoint, and on the last page every visible id and the next checkpoint",
+    auth: "any",
+    scope: "notes:read",
+    query: {
+      since: "The checkpoint of the previous sync; omit for everything",
+      limit: "Page size",
+      cursor: "From the previous page",
+    },
+    responses: ok("SyncResponse"),
+  },
+  {
+    method: "get",
     path: "/api/search",
     tag: "Notes",
     summary: "Notes whose title or content contains q, newest first",
@@ -711,6 +726,12 @@ function components() {
       NotesResponse: shape({
         notes: { type: "array", items: { $ref: "#/components/schemas/Note" } },
         nextCursor: { type: ["string", "null"] },
+      }),
+      SyncResponse: shape({
+        notes: { type: "array", items: { $ref: "#/components/schemas/Note" } },
+        nextCursor: { type: ["string", "null"] },
+        ids: { type: ["array", "null"], items: { type: "string" } },
+        checkpoint: { type: ["string", "null"] },
       }),
       NotesImportResponse: shape({
         created: { type: "integer" },

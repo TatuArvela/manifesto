@@ -32,6 +32,7 @@ import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createSearchRoutes } from "./routes/search.js";
 import { createInvitationRoutes } from "./routes/shares.js";
+import { createSyncRoutes } from "./routes/sync.js";
 import { createTokenRoutes } from "./routes/tokens.js";
 import { createUsersRoutes } from "./routes/users.js";
 import { createWebhookRoutes } from "./routes/webhooks.js";
@@ -269,6 +270,10 @@ export function createApp(deps: AppDeps): AppHandle {
   app.route(
     "/api/search",
     createSearchRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
+  );
+  app.route(
+    "/api/sync",
+    createSyncRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
   );
   app.route(
     "/api/link-preview",

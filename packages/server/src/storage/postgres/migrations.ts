@@ -257,6 +257,11 @@ ALTER TABLE api_tokens ADD COLUMN scopes TEXT NOT NULL DEFAULT '["notes:read","n
 UPDATE api_tokens SET scopes = '["notes:read"]' WHERE read_only;
 `;
 
+/** See the SQLite copy. */
+const NOTE_MEMBERS_CHANGED = `
+ALTER TABLE notes ADD COLUMN members_changed_at TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -276,6 +281,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0016-user-prefs", sql: USER_PREFS },
   { id: "0017-api-token-kind", sql: API_TOKEN_KIND },
   { id: "0018-api-token-scopes", sql: API_TOKEN_SCOPES },
+  { id: "0019-note-members-changed", sql: NOTE_MEMBERS_CHANGED },
 ];
 
 export async function runMigrations(

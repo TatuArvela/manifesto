@@ -13,6 +13,7 @@ import {
   SHARE_ROLES,
   SHARED_NOTE_FIELDS,
 } from "@manifesto/shared";
+import { nowIso } from "../lib/time.js";
 import {
   asBoolean,
   type NoteRow,
@@ -281,4 +282,14 @@ export function mergePages(
   limit: number,
 ): ViewRow[] {
   return [...own, ...shared].sort(newerFirst).slice(0, limit + 1);
+}
+
+/**
+ * The time a membership change is stamped with, as `notes.members_changed_at`.
+ * Taken here rather than from the caller because only `GET /api/sync` reads
+ * it, and a removal or a role change has no other time of its own to pass
+ * down. The clock is the one `updated_at` is stamped from.
+ */
+export function membersChangedAt(): string {
+  return nowIso();
 }

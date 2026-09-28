@@ -1,6 +1,7 @@
 import type { ShareInvitation, ShareRole } from "@manifesto/shared";
 import {
   type InvitationRow,
+  membersChangedAt,
   rowToInvitation,
   rowToShare,
   type ShareRow,
@@ -48,6 +49,18 @@ async function inTransaction<T>(
   }
 }
 
+/** Marks the note's members as changed; see `members_changed_at`. */
+async function stampMembers(
+  query: PgPool["query"],
+  noteId: string,
+  at: string,
+): Promise<void> {
+  await query(`UPDATE notes SET members_changed_at = $1 WHERE id = $2`, [
+    at,
+    noteId,
+  ]);
+}
+
 export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
   return {
     async audience(noteId: string): Promise<NoteAudience | null> {
@@ -76,6 +89,11 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
            VALUES ($1, $2, $3, $4)`,
           [input.noteId, input.userId, input.role, input.createdAt],
         );
+        await stampMembers(
+          pool.query.bind(pool),
+          input.noteId,
+          input.createdAt,
+        );
         return "ok";
       } catch (err) {
         if (isUniqueViolation(err)) return "exists";
@@ -92,7 +110,9 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
         `UPDATE note_shares SET role = $1 WHERE note_id = $2 AND user_id = $3`,
         [role, noteId, userId],
       );
-      return (result.rowCount ?? 0) > 0;
+      if ((result.rowCount ?? 0) === 0) return false;
+      await stampMembers(pool.query.bind(pool), noteId, membersChangedAt());
+      return true;
     },
 
     async accept(
@@ -112,7 +132,9 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
            WHERE note_id = $4 AND user_id = $5 AND accepted_at IS NULL`,
           [acceptedAt, row.color, -Date.parse(acceptedAt), noteId, userId],
         );
-        return (result.rowCount ?? 0) > 0;
+        if ((result.rowCount ?? 0) === 0) return false;
+        await stampMembers(query, noteId, acceptedAt);
+        return true;
       });
     },
 
@@ -129,6 +151,7 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
           `DELETE FROM note_shares WHERE note_id = $1 AND user_id = $2`,
           [noteId, userId],
         );
+        await stampMembers(query, noteId, membersChangedAt());
         return rowToShare(row);
       });
     },

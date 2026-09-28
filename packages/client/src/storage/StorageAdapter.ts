@@ -11,8 +11,25 @@ export interface UpdateOptions {
   ifMatch?: string;
 }
 
+/** What changed since a checkpoint; see `StorageAdapter.changesSince`. */
+export interface NoteChanges {
+  /** The notes that changed, without their attachments, as a listing has them. */
+  notes: Note[];
+  /** Every note the user can see now, changed or not. */
+  ids: string[];
+  /** Where this left off: the `since` of the next call. */
+  checkpoint: string;
+}
+
 export interface StorageAdapter {
   getAll(): Promise<Note[]>;
+  /**
+   * The notes that changed since `since` (null for everything), or null when
+   * this storage keeps no record of change and the caller should list it all.
+   * A server does (`GET /api/sync`); a browser's own storage has no one else
+   * writing to it.
+   */
+  changesSince(since: string | null): Promise<NoteChanges | null>;
   get(id: string): Promise<Note | null>;
   create(note: NoteCreate): Promise<Note>;
   update(

@@ -6,7 +6,7 @@ import {
   SHARED_NOTE_FIELDS,
   TRASH_RETENTION_DAYS,
 } from "@manifesto/shared";
-import { computed, effect, signal } from "@preact/signals";
+import { batch, computed, effect, signal } from "@preact/signals";
 import type { MessageKey } from "../i18n/index.js";
 import {
   currentStorage,
@@ -61,8 +61,17 @@ effect(() => {
     notes.value = [];
     notesLoaded.value = false;
   }
+  // A checkpoint says what this list already holds of one account's notes.
+  if (token !== sessionToken) syncCheckpoint = null;
   sessionToken = token;
 });
+
+/**
+ * Where the last read of the whole list left off, in connected mode, so the
+ * next can ask for what changed since rather than for everything. Null until
+ * a read has set it, and whenever the list stops being a known copy.
+ */
+let syncCheckpoint: string | null = null;
 
 /**
  * All notes visible to the UI: user notes plus plugin-generated read-only
@@ -142,7 +151,13 @@ if (typeof window !== "undefined") {
 
 export async function loadNotes(): Promise<boolean> {
   try {
-    receiveNoteList(await storage.getAll());
+    const changes = await storage.changesSince(null);
+    if (changes) {
+      receiveNoteList(changes.notes);
+      syncCheckpoint = changes.checkpoint;
+    } else {
+      receiveNoteList(await storage.getAll());
+    }
     notesLoaded.value = true;
     await expireTrash();
     return true;
@@ -150,6 +165,45 @@ export async function loadNotes(): Promise<boolean> {
     reportFailure("Failed to load notes:", err, "error.loadFailed");
     return false;
   }
+}
+
+/**
+ * Catch up with what changed while the list was not listening: a reconnect,
+ * where writes made on another device arrived nowhere else. Asks only for
+ * what changed since the last read, and reads everything when there is no
+ * checkpoint, the storage keeps none, or the catch-up fails.
+ *
+ * A held note missing from the ids was deleted or taken away, but only a note
+ * held before the request went out can be judged by them. One that arrived
+ * since (a reply to a create, a broadcast) may be newer than the server's
+ * answer, and dropping it would lose a note that exists.
+ */
+export async function syncNotes(): Promise<boolean> {
+  const since = syncCheckpoint;
+  if (since === null) return loadNotes();
+  const heldBefore = notes.peek().map((n) => n.id);
+  let changes: Awaited<ReturnType<typeof storage.changesSince>>;
+  try {
+    changes = await storage.changesSince(since);
+  } catch {
+    changes = null;
+  }
+  if (!changes) {
+    syncCheckpoint = null;
+    return loadNotes();
+  }
+  const visible = new Set(changes.ids);
+  batch(() => {
+    for (const note of (changes as NonNullable<typeof changes>).notes) {
+      receiveNote(note);
+    }
+    for (const id of heldBefore) {
+      if (!visible.has(id)) forgetNote(id);
+    }
+  });
+  syncCheckpoint = changes.checkpoint;
+  await expireTrash();
+  return true;
 }
 
 /** Concurrent callers share one request: a card and the editor over it ask at

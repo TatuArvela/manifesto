@@ -222,6 +222,19 @@ export interface NotesRepo {
   /** One page of the notes the user can see, newest first, without
    * attachments. */
   listByUser(userId: string, options: ListNotesOptions): Promise<NotePage>;
+  /**
+   * One page of the notes the user can see whose row or members changed after
+   * `since` (an ISO timestamp), newest first, without attachments. A shared
+   * note's personal fields need no column of their own: a recipient's write
+   * stamps the note's `updated_at` like any other.
+   */
+  listChanged(
+    userId: string,
+    since: string,
+    options: ListNotesOptions,
+  ): Promise<NotePage>;
+  /** The ids of every note the user can see, in no particular order. */
+  visibleIds(userId: string): Promise<string[]>;
   /** A single note the user can see, attachments and all. */
   getById(id: string, userId: string): Promise<Note | null>;
   /** The user's role on a note they can see, or null. */

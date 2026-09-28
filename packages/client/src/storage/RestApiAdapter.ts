@@ -13,6 +13,7 @@ import type {
   NoteVersion,
   NoteVersionCreateRequest,
   NoteVersionsResponse,
+  SyncResponse,
 } from "@manifesto/shared";
 import {
   attachmentIdOf,
@@ -20,7 +21,7 @@ import {
   mapPreviewImages,
 } from "@manifesto/shared";
 import { dataUrlToBlob } from "../utils/dataUrl.js";
-import type { StorageAdapter } from "./StorageAdapter.js";
+import type { NoteChanges, StorageAdapter } from "./StorageAdapter.js";
 
 /** Under the server's 1 MiB body limit, with room for the request's own
  * wrapping. */
@@ -120,6 +121,36 @@ export class RestApiAdapter implements StorageAdapter {
 
   async getAll(): Promise<Note[]> {
     return await this.drainPages("/api/notes", "Failed to fetch notes");
+  }
+
+  /**
+   * Every page of one sync. The checkpoint and the ids come on the last page,
+   * and the checkpoint is fixed by the server when the first was asked for.
+   */
+  async changesSince(since: string | null): Promise<NoteChanges> {
+    const notes: Note[] = [];
+    let cursor: string | null = null;
+    for (;;) {
+      const query = new URLSearchParams();
+      if (since !== null) query.set("since", since);
+      if (cursor !== null) query.set("cursor", cursor);
+      const search = query.size > 0 ? `?${query}` : "";
+      const res: Response = await fetch(`${this.baseUrl}/api/sync${search}`, {
+        headers: this.headers(),
+      });
+      if (!res.ok) await this.fail(res, "Failed to sync notes");
+      const data = (await res.json()) as SyncResponse;
+      notes.push(...data.notes);
+      if (data.nextCursor === null) {
+        if (data.ids === null || data.checkpoint === null) {
+          throw new Error("Sync ended without a checkpoint");
+        }
+        return { notes, ids: data.ids, checkpoint: data.checkpoint };
+      }
+      // A cursor handed back unchanged would spin here, as in `drainPages`.
+      if (data.nextCursor === cursor) throw new Error("Sync did not advance");
+      cursor = data.nextCursor;
+    }
   }
 
   /**

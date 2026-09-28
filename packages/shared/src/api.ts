@@ -41,6 +41,22 @@ export interface NotesResponse {
   nextCursor: string | null;
 }
 
+/**
+ * One page of `GET /api/sync`: the notes that changed since a checkpoint.
+ * Page through it as through `/api/notes`; `checkpoint` and `ids` come on the
+ * last page only, and the next sync sends that checkpoint back as `since`.
+ */
+export interface SyncResponse extends NotesResponse {
+  /**
+   * Every note the user can see, changed or not. A note the client holds
+   * whose id is missing here was deleted, or taken away from them, since.
+   * Null on every page but the last.
+   */
+  ids: string[] | null;
+  /** Opaque. Pass back as `since` next time; null on every page but the last. */
+  checkpoint: string | null;
+}
+
 export interface NoteResponse {
   note: Note;
 }

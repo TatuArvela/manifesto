@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  */
 const authToken = signal<string | null>(null);
 const editingNoteId = signal<string | null>(null);
-const loadNotes = vi.fn(async () => {});
+const syncNotes = vi.fn(async () => {});
 
 vi.mock("../state/auth.js", () => ({
   authToken,
@@ -26,7 +26,7 @@ vi.mock("../state/auth.js", () => ({
 }));
 vi.mock("../state/notesStore.js", () => ({
   forgetNote: () => {},
-  loadNotes,
+  syncNotes,
   receiveNote: () => {},
 }));
 vi.mock("../state/presence.js", () => ({
@@ -194,14 +194,14 @@ describe("an outage that outlasts the banner's wait", () => {
     // again every 4s and forgot the socket had been open, so the reconnect
     // skipped the fetch of what changed meanwhile.
     const socket = signedIn();
-    loadNotes.mockClear();
+    syncNotes.mockClear();
     socket.die();
 
     vi.advanceTimersByTime(10_000);
     expect(dialled).toHaveLength(2);
 
     dialled[1]?.answer();
-    expect(loadNotes).toHaveBeenCalledTimes(1);
+    expect(syncNotes).toHaveBeenCalledTimes(1);
   });
 });
 
