@@ -9,6 +9,7 @@ import {
   selectMode,
   viewMode,
 } from "../state/index.js";
+import { defined } from "../test/defined.js";
 import "../styles.css";
 
 /**
@@ -93,6 +94,10 @@ afterEach(() => {
  */
 function cards(): HTMLElement[] {
   return [...host.querySelectorAll<HTMLElement>(".note-draggable-wrapper")];
+}
+
+function card(i: number): HTMLElement {
+  return defined(cards()[i], `card ${i}`);
 }
 
 /** Centre of a card, in client coordinates. */
@@ -197,7 +202,7 @@ describe("ReorderableGrid", () => {
       host,
     );
 
-    await mouseDrag(cards()[0], afterEdgeOf(cards()[2]));
+    await mouseDrag(card(0), afterEdgeOf(card(2)));
 
     expect(onReorder).toHaveBeenCalledWith(
       three.map((n) => n.id),
@@ -214,7 +219,7 @@ describe("ReorderableGrid", () => {
       host,
     );
 
-    await touchDrag(cards()[0], afterEdgeOf(cards()[2]));
+    await touchDrag(card(0), afterEdgeOf(card(2)));
 
     expect(onReorder).toHaveBeenCalledWith(
       three.map((n) => n.id),
@@ -231,14 +236,12 @@ describe("ReorderableGrid", () => {
       host,
     );
 
-    await touchDrag(cards()[0], afterEdgeOf(cards()[2]), { hold: false });
+    await touchDrag(card(0), afterEdgeOf(card(2)), { hold: false });
 
     // The swipe belonged to the page: the card was never picked up, so it was
     // never dimmed on the way past and nothing was reordered behind it.
     expect(onReorder).not.toHaveBeenCalled();
-    expect(articleIn(cards()[0]).classList.contains("note-dragging")).toBe(
-      false,
-    );
+    expect(articleIn(card(0)).classList.contains("note-dragging")).toBe(false);
     expect(document.body.classList.contains("note-drag-active")).toBe(false);
   });
 
@@ -249,7 +252,7 @@ describe("ReorderableGrid", () => {
       host,
     );
 
-    await mouseDrag(cards()[1], centreOf(cards()[1]));
+    await mouseDrag(card(1), centreOf(card(1)));
 
     expect(onReorder).not.toHaveBeenCalled();
   });
@@ -265,7 +268,7 @@ describe("ReorderableGrid", () => {
       host,
     );
 
-    await mouseDrag(cards()[0], afterEdgeOf(cards()[2]));
+    await mouseDrag(card(0), afterEdgeOf(card(2)));
 
     expect(onReorder).not.toHaveBeenCalled();
     expect(document.body.classList.contains("note-drag-active")).toBe(false);
@@ -302,7 +305,7 @@ describe("ReorderableGrid", () => {
     const grid = host.querySelector<HTMLElement>('[role="list"]');
     expect(getComputedStyle(grid as HTMLElement).display).toBe("grid");
 
-    await mouseDrag(cards()[2], centreOf(cards()[1]));
+    await mouseDrag(card(2), centreOf(card(1)));
 
     expect(onReorder).toHaveBeenCalledWith(
       three.map((n) => n.id),
@@ -318,7 +321,7 @@ describe("ReorderableGrid", () => {
       <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
       host,
     );
-    const [alpha, bravo, charlie] = cards();
+    const [alpha, bravo, charlie] = [card(0), card(1), card(2)];
     const from = articleIn(alpha);
     const dataTransfer = new DataTransfer();
     from.dispatchEvent(
@@ -341,7 +344,7 @@ describe("ReorderableGrid", () => {
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await tick();
 
-    expect([alpha, bravo, charlie].map((c) => c.style.order)).toEqual([
+    expect([alpha, bravo, charlie].map((c) => c?.style.order)).toEqual([
       "2",
       "0",
       "1",
@@ -350,8 +353,8 @@ describe("ReorderableGrid", () => {
     for (const card of cards()) {
       for (const shift of card.getAnimations()) shift.finish();
     }
-    expect(alpha.getBoundingClientRect().left).toBeCloseTo(charlieWas.left, 0);
-    expect(bravo.getBoundingClientRect().left).toBeCloseTo(alphaWas.left, 0);
+    expect(alpha?.getBoundingClientRect().left).toBeCloseTo(charlieWas.left, 0);
+    expect(bravo?.getBoundingClientRect().left).toBeCloseTo(alphaWas.left, 0);
 
     // Let go outside the grid: nothing moves, and the preview goes back.
     from.dispatchEvent(
@@ -367,7 +370,7 @@ describe("ReorderableGrid", () => {
       <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
       host,
     );
-    const from = articleIn(cards()[0]);
+    const from = articleIn(card(0));
     const opts = { bubbles: true, pointerId: 1, pointerType: "touch" as const };
     const start = centreOf(from);
     from.dispatchEvent(new PointerEvent("pointerdown", { ...opts, ...start }));
@@ -375,7 +378,7 @@ describe("ReorderableGrid", () => {
     // The drag starts on the first move past the threshold, from there.
     const picked = { clientX: start.clientX + 20, clientY: start.clientY };
     from.dispatchEvent(new PointerEvent("pointermove", { ...opts, ...picked }));
-    const to = centreOf(cards()[2]);
+    const to = centreOf(card(2));
     from.dispatchEvent(new PointerEvent("pointermove", { ...opts, ...to }));
     await nextFrame();
 
@@ -406,7 +409,7 @@ describe("ReorderableGrid", () => {
       <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
       host,
     );
-    const from = articleIn(cards()[0]);
+    const from = articleIn(card(0));
     const opts = { bubbles: true, pointerId: 1, pointerType: "touch" as const };
     const start = centreOf(from);
     from.dispatchEvent(new PointerEvent("pointerdown", { ...opts, ...start }));
@@ -436,7 +439,7 @@ describe("ReorderableGrid", () => {
       <ReorderableGrid notes={three} reorderable onReorder={onReorder} />,
       host,
     );
-    const from = articleIn(cards()[0]);
+    const from = articleIn(card(0));
     const grid = host.querySelector('[role="list"]') as HTMLElement;
     const dataTransfer = new DataTransfer();
     from.dispatchEvent(
@@ -447,7 +450,7 @@ describe("ReorderableGrid", () => {
       }),
     );
     await tick();
-    const over = centreOf(cards()[1]);
+    const over = centreOf(card(1));
     for (let i = 0; i < 4; i++) {
       grid.dispatchEvent(
         new DragEvent("dragover", { bubbles: true, dataTransfer, ...over }),
@@ -481,20 +484,20 @@ describe("ReorderableGrid", () => {
       host,
     );
     const spanOf = (i: number) =>
-      Number(/span (\d+)/.exec(cards()[i].style.gridRowEnd)?.[1] ?? 0);
+      Number(/span (\d+)/.exec(card(i).style.gridRowEnd)?.[1] ?? 0);
     const before = spanOf(0);
     expect(before).toBeGreaterThan(0);
 
     const grown = document.createElement("div");
     grown.style.height = "400px";
-    articleIn(cards()[0]).appendChild(grown);
+    articleIn(card(0)).appendChild(grown);
 
     await vi.waitFor(() => {
       expect(spanOf(0)).toBeGreaterThan(before + 300);
     });
     // And the card below it moved down rather than being overlapped.
-    expect(cards()[0].getBoundingClientRect().bottom).toBeLessThanOrEqual(
-      cards()[0].getBoundingClientRect().top + spanOf(0),
+    expect(card(0).getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      card(0).getBoundingClientRect().top + spanOf(0),
     );
   });
 
@@ -508,7 +511,7 @@ describe("ReorderableGrid", () => {
         <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
         host,
       );
-      cards()[0].style.transform = "scale(1.045) rotate(-0.9deg)";
+      card(0).style.transform = "scale(1.045) rotate(-0.9deg)";
       render(
         <ReorderableGrid
           notes={[...three].reverse()}
@@ -551,12 +554,12 @@ describe("ReorderableGrid", () => {
         host,
       );
       rendered.length = 0;
-      selectedNotes.value = new Set([three[1].id]);
+      selectedNotes.value = new Set([defined(three[1]).id]);
       await tick();
       expect(rendered).toEqual(["Bravo"]);
 
       rendered.length = 0;
-      const from = articleIn(cards()[0]);
+      const from = articleIn(card(0));
       const dataTransfer = new DataTransfer();
       from.dispatchEvent(
         new DragEvent("dragstart", {
@@ -570,7 +573,7 @@ describe("ReorderableGrid", () => {
         new DragEvent("dragover", {
           bubbles: true,
           dataTransfer,
-          ...afterEdgeOf(cards()[2]),
+          ...afterEdgeOf(card(2)),
         }),
       );
       // The previewed order is put on the cards' styles, not their props, so
@@ -580,7 +583,8 @@ describe("ReorderableGrid", () => {
       expect(rendered).toEqual([]);
       from.dispatchEvent(new DragEvent("dragend", { bubbles: true }));
     } finally {
-      options.diffed = previous;
+      if (previous) options.diffed = previous;
+      else delete options.diffed;
       selectedNotes.value = new Set();
       selectMode.value = false;
     }
@@ -595,7 +599,7 @@ describe("ReorderableGrid", () => {
       host,
     );
     const spanOf = (i: number) =>
-      Number(/span (\d+)/.exec(cards()[i].style.gridRowEnd)?.[1] ?? 0);
+      Number(/span (\d+)/.exec(card(i).style.gridRowEnd)?.[1] ?? 0);
     // Let the observer's first delivery pass before watching for writes.
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await tick();
@@ -610,16 +614,16 @@ describe("ReorderableGrid", () => {
 
     const grown = document.createElement("div");
     grown.style.height = "400px";
-    articleIn(cards()[0]).appendChild(grown);
+    articleIn(card(0)).appendChild(grown);
 
     await vi.waitFor(() => {
       expect(spanOf(0)).toBeGreaterThan(before + 300);
     });
     for (const record of watcher.takeRecords()) touched.add(record.target);
     watcher.disconnect();
-    expect(touched.has(cards()[0])).toBe(true);
-    expect(touched.has(cards()[1])).toBe(false);
-    expect(touched.has(cards()[2])).toBe(false);
+    expect(touched.has(card(0))).toBe(true);
+    expect(touched.has(card(1))).toBe(false);
+    expect(touched.has(card(2))).toBe(false);
   });
 
   it("lays the list view out without masonry spans", () => {
@@ -645,13 +649,13 @@ describe("ReorderableGrid", () => {
       />,
       host,
     );
-    const container = cards()[0].parentElement as HTMLElement;
+    const container = card(0).parentElement as HTMLElement;
     expect(getComputedStyle(container).flexDirection).toBe("column");
     for (const card of cards()) {
       expect(card.style.gridRowEnd).toBe("");
     }
 
-    await mouseDrag(cards()[0], afterEdgeOf(cards()[2]));
+    await mouseDrag(card(0), afterEdgeOf(card(2)));
 
     expect(onReorder).toHaveBeenCalledWith(
       three.map((n) => n.id),

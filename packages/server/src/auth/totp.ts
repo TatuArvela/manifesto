@@ -63,7 +63,7 @@ export function hotp(secret: Buffer, counter: number, digits = DIGITS): string {
   const message = Buffer.alloc(8);
   message.writeBigUInt64BE(BigInt(counter));
   const mac = createHmac("sha1", secret).update(message).digest();
-  const offset = mac[mac.length - 1] & 0x0f;
+  const offset = mac.readUInt8(mac.length - 1) & 0x0f;
   const binary = mac.readUInt32BE(offset) & 0x7fffffff;
   return String(binary % 10 ** digits).padStart(digits, "0");
 }

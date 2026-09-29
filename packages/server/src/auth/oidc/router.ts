@@ -25,7 +25,7 @@ interface OidcRouterDeps {
   cfg: ServerConfig;
   oidc: OidcConfig;
   discoveryClient: OidcDiscoveryClient;
-  teamSync?: (userId: string, groups: string[]) => Promise<void>;
+  teamSync?: ((userId: string, groups: string[]) => Promise<void>) | undefined;
 }
 
 interface PendingFlow {

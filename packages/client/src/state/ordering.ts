@@ -22,6 +22,17 @@ export function byPosition(a: Note, b: Note): number {
   return a.position - b.position || a.id.localeCompare(b.id);
 }
 
+/** The position that puts one note ahead of all of `held`; see {@link headPositions}. */
+export function headPosition(held: readonly Note[]): number {
+  let lowest = -Date.now();
+  for (const note of held) {
+    if (note.position - POSITION_STEP < lowest) {
+      lowest = note.position - POSITION_STEP;
+    }
+  }
+  return lowest;
+}
+
 /**
  * `count` positions ahead of every note in `held`: where new notes go, and
  * where a note goes when pinned. Minus the clock, so notes created on two
@@ -30,12 +41,7 @@ export function byPosition(a: Note, b: Note): number {
  * topmost, so a group keeps its order among itself.
  */
 export function headPositions(held: readonly Note[], count: number): number[] {
-  let lowest = -Date.now();
-  for (const note of held) {
-    if (note.position - POSITION_STEP < lowest) {
-      lowest = note.position - POSITION_STEP;
-    }
-  }
+  const lowest = headPosition(held);
   return Array.from(
     { length: count },
     (_, i) => lowest - (count - 1 - i) * POSITION_STEP,

@@ -103,7 +103,7 @@ function clientFromDocument(
  */
 export function createClientResolver(deps: {
   storage: StorageDriver;
-  fetchMetadata?: ClientMetadataFetcher;
+  fetchMetadata?: ClientMetadataFetcher | undefined;
 }): (clientId: string) => Promise<ResolvedClient | null> {
   const fetchMetadata = deps.fetchMetadata ?? fetchClientMetadata;
   const cache = new Map<string, { client: ResolvedClient; at: number }>();

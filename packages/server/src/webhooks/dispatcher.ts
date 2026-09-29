@@ -63,9 +63,9 @@ export interface WebhookDispatcherDeps {
   broadcaster: Broadcaster;
   mode: Exclude<WebhookMode, "off">;
   /** Test seam: the address rule, which production takes from `mode`. */
-  isAllowedAddress?: (address: string) => boolean;
+  isAllowedAddress?: ((address: string) => boolean) | undefined;
   /** Test seam: shortens the waits between attempts. */
-  retryDelaysMs?: number[];
+  retryDelaysMs?: number[] | undefined;
 }
 
 function eventName(event: WebSocketEvent): WebhookEventName | null {

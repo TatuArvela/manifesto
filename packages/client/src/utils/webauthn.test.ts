@@ -41,7 +41,7 @@ describe("passkey JSON", () => {
       userVerification: "required",
     });
     expect(request.challenge).toEqual(Uint8Array.from([8, 9]));
-    expect(request.allowCredentials?.[0].id).toEqual(Uint8Array.from([10]));
+    expect(request.allowCredentials?.[0]?.id).toEqual(Uint8Array.from([10]));
     expect(request.userVerification).toBe("required");
   });
 });

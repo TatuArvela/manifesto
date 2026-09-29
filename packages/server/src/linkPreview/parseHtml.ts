@@ -42,8 +42,8 @@ export function extractMetadata(html: string, pageUrl: URL): PageMetadata {
   const touchIcons: string[] = [];
 
   for (const match of head.matchAll(TAG_RE)) {
-    const tag = match[1].toLowerCase();
-    const attrs = parseAttributes(match[2]);
+    const tag = match[1]?.toLowerCase();
+    const attrs = parseAttributes(match[2] ?? "");
     if (tag === "meta") {
       const key = (attrs.property ?? attrs.name)?.toLowerCase();
       const content = attrs.content;
@@ -99,8 +99,8 @@ export function extractMetadata(html: string, pageUrl: URL): PageMetadata {
 function parseAttributes(source: string): Record<string, string> {
   const attrs: Record<string, string> = {};
   for (const m of source.matchAll(ATTR_RE)) {
-    const name = m[1].toLowerCase();
-    if (name in attrs) continue;
+    const name = m[1]?.toLowerCase();
+    if (name === undefined || name in attrs) continue;
     attrs[name] = decodeEntities(m[2] ?? m[3] ?? m[4] ?? "");
   }
   return attrs;

@@ -86,8 +86,8 @@ function collectTaskItems(view: EditorView): TaskItemInfo[] {
 }
 
 function findSlot(items: TaskItemInfo[], y: number): number {
-  for (let i = 0; i < items.length; i++) {
-    const rect = items[i].label.getBoundingClientRect();
+  for (const [i, item] of items.entries()) {
+    const rect = item.label.getBoundingClientRect();
     if (y < rect.top + rect.height / 2) return i;
   }
   return items.length;
@@ -116,9 +116,9 @@ function computeAtListEnd(
 ): boolean {
   const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
   const belowIdx = effectiveNeighborIdx(slot, sourceIdx, "below");
-  if (aboveIdx < 0 || belowIdx >= items.length) return false;
   const above = items[aboveIdx];
   const below = items[belowIdx];
+  if (!above || !below) return false;
   if (above.outerListPos < 0 || below.outerListPos < 0) return false;
   if (above.outerListPos === below.outerListPos) return false;
   const aboveBottom = above.dom.getBoundingClientRect().bottom;
@@ -182,14 +182,14 @@ function slotY(
         ref.dom.getBoundingClientRect().bottom,
       );
   }
-  if (slot >= items.length) {
-    const last = items[items.length - 1];
-    return Math.max(
-      last.label.getBoundingClientRect().bottom,
-      last.dom.getBoundingClientRect().bottom,
-    );
-  }
-  return items[slot].label.getBoundingClientRect().top;
+  const next = items[slot];
+  if (next) return next.label.getBoundingClientRect().top;
+  const last = items.at(-1);
+  if (!last) return 0;
+  return Math.max(
+    last.label.getBoundingClientRect().bottom,
+    last.dom.getBoundingClientRect().bottom,
+  );
 }
 
 function positionIndicator(state: DragState) {
@@ -277,6 +277,8 @@ function applyDrop(state: DragState) {
 
   let insertAt: number;
   let startLevel: number;
+  const next = items[slot];
+  const last = items.at(-1);
   if (atListEnd) {
     const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
     const above = aboveIdx >= 0 ? items[aboveIdx] : null;
@@ -285,12 +287,11 @@ function applyDrop(state: DragState) {
     if (end < 0) return;
     insertAt = end;
     startLevel = 1;
-  } else if (slot < items.length) {
-    const next = items[slot];
+  } else if (next) {
     insertAt = next.pos;
     startLevel = next.level;
   } else {
-    const last = items[items.length - 1];
+    if (!last) return;
     const end = endOfOuterList(doc, last.pos);
     if (end < 0) return;
     insertAt = end;
@@ -426,8 +427,8 @@ export function startTaskItemDrag(
       i.pos >= sourceRaw.pos + sourceRaw.nodeSize,
   );
   const sourceIdx = items.findIndex((i) => i.pos === pos);
-  if (sourceIdx < 0) return;
   const source = items[sourceIdx];
+  if (!source) return;
 
   const indicator = createIndicator();
   document.body.appendChild(indicator);

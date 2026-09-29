@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 import { resetSandbox, runPlugin } from "./sandbox.js";
 import type { ApproxLabels } from "./stdlib.js";
 
@@ -37,8 +38,8 @@ describe("sandbox", () => {
     `;
     const notes = await runPlugin(src, CTX);
     expect(notes).toHaveLength(1);
-    expect(notes[0].title).toBe("Hi");
-    expect(notes[0].content).toBe("hello 2026-04-23");
+    expect(notes[0]?.title).toBe("Hi");
+    expect(notes[0]?.content).toBe("hello 2026-04-23");
   });
 
   it("supports an array of plugin functions", async () => {
@@ -50,8 +51,8 @@ describe("sandbox", () => {
     `;
     const notes = await runPlugin(src, CTX);
     expect(notes).toHaveLength(2);
-    expect(notes[0].title).toBe("A");
-    expect(notes[1].title).toBe("B");
+    expect(notes[0]?.title).toBe("A");
+    expect(notes[1]?.title).toBe("B");
   });
 
   it("exposes stdlib functions bound to the locale", async () => {
@@ -62,7 +63,7 @@ describe("sandbox", () => {
       });
     `;
     const notes = await runPlugin(src, CTX);
-    expect(notes[0].content).toBe("Tomorrow");
+    expect(notes[0]?.content).toBe("Tomorrow");
   });
 
   it("surfaces plugin exceptions as rejected promises", async () => {
@@ -94,7 +95,7 @@ describe("sandbox", () => {
     // tearing down the frame took its spinning worker with it.
     const okSrc = `_default = () => ({ title: "ok", content: "still here" });`;
     const notes = await runPlugin(okSrc, CTX);
-    expect(notes[0].title).toBe("ok");
+    expect(notes[0]?.title).toBe("ok");
   }, 10_000);
 
   it("leaves the host's event loop running while a plugin spins", async () => {
@@ -118,7 +119,7 @@ describe("sandbox", () => {
       _default = () => ({ title: "t", content: "c", color: "hotpink" });
     `;
     const notes = await runPlugin(src, CTX);
-    expect(notes[0].color).toBeUndefined();
+    expect(defined(notes[0]).color).toBeUndefined();
   });
 
   it("keeps a note whose sibling fields are not serializable", async () => {
@@ -129,7 +130,7 @@ describe("sandbox", () => {
       _default = () => ({ title: "t", content: "c", render: () => 1 });
     `;
     const notes = await runPlugin(src, CTX);
-    expect(notes[0].title).toBe("t");
+    expect(notes[0]?.title).toBe("t");
   });
 
   it("refuses a run that returns more notes than the cap", async () => {

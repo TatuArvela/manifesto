@@ -73,7 +73,7 @@ export function AppearanceSettings() {
             trackClass={toggleTrackClass}
             value={themeModes.indexOf(theme.value)}
             onChange={(i) => {
-              theme.value = themeModes[i];
+              theme.value = themeModes[i] ?? theme.value;
             }}
             options={[
               {

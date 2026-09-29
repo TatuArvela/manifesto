@@ -249,7 +249,7 @@ function PersonRow({
 }: {
   person: ShareUser;
   isMe: boolean;
-  secondary?: string;
+  secondary?: string | undefined;
   children?: preact.ComponentChildren;
 }) {
   const name = person.displayName || person.username;

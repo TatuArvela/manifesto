@@ -21,7 +21,7 @@ export function ReminderChip({
 }: {
   reminder: NoteReminder;
   onClick?: (e: MouseEvent) => void;
-  onClear?: (e: MouseEvent) => void;
+  onClear?: ((e: MouseEvent) => void) | undefined;
   anchorRef?: Ref<HTMLButtonElement>;
 }) {
   const isPast =
@@ -61,7 +61,7 @@ export function ReminderChip({
   if (onClick) {
     return (
       <button
-        ref={anchorRef}
+        ref={anchorRef ?? null}
         type="button"
         class={cls}
         onClick={(e) => {

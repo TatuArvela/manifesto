@@ -5,6 +5,7 @@ import { asBatch, type Batch } from "./failures.js";
 import { allNotes, deleteNote, notes, updateNote } from "./notesStore.js";
 import {
   byPosition,
+  headPosition,
   headPositions,
   POSITION_STEP,
   positionBetween,
@@ -142,7 +143,7 @@ export async function togglePin(id: string) {
     id,
     note.pinned
       ? { pinned: false }
-      : { pinned: true, position: headPositions(notes.peek(), 1)[0] },
+      : { pinned: true, position: headPosition(notes.peek()) },
   );
 }
 
@@ -264,9 +265,14 @@ export async function bulkPin(): Promise<boolean> {
     .sort(byPosition);
   const heads = headPositions(notes.peek(), ordered.length);
   const at = new Map(ordered.map((n, i) => [n.id, heads[i]]));
-  return await bulkApply((id, batch) =>
-    updateNote(id, { pinned: true, position: at.get(id) }, batch),
-  );
+  return await bulkApply((id, batch) => {
+    const position = at.get(id);
+    return updateNote(
+      id,
+      position === undefined ? { pinned: true } : { pinned: true, position },
+      batch,
+    );
+  });
 }
 
 // One exit for the whole selection: going through `archiveNote` or

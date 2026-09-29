@@ -87,9 +87,10 @@ function ImageLightbox({
   onClose: () => void;
 }) {
   const hasMultiple = images.length > 1;
-  const showPrev = () =>
-    onChangeIndex((index - 1 + images.length) % images.length);
-  const showNext = () => onChangeIndex((index + 1) % images.length);
+  const step = (by: number) =>
+    onChangeIndex((index + by + images.length) % images.length);
+  const showPrev = () => step(-1);
+  const showNext = () => step(1);
 
   useEscapeStack(true, onClose);
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
@@ -97,12 +98,15 @@ function ImageLightbox({
   useEffect(() => {
     if (!hasMultiple) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") showPrev();
-      else if (e.key === "ArrowRight") showNext();
+      const by = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+      if (by !== 0) onChangeIndex((index + by + images.length) % images.length);
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [hasMultiple, index, images.length]);
+  }, [hasMultiple, index, images.length, onChangeIndex]);
+
+  const shown = images[index];
+  if (shown === undefined) return null;
 
   return createPortal(
     <>
@@ -115,7 +119,7 @@ function ImageLightbox({
         class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none animate-fade-in"
       >
         <StoredImage
-          src={images[index]}
+          src={shown}
           alt=""
           class="pointer-events-auto max-h-full max-w-full object-contain select-none"
         />

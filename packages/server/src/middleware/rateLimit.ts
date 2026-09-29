@@ -33,8 +33,20 @@ function socketAddress(c: Parameters<MiddlewareHandler>[0]): string {
   return incoming?.socket?.remoteAddress ?? "anon";
 }
 
+type Ipv4Bytes = [number, number, number, number];
+type Ipv6Groups = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+];
+
 /** The four bytes of a dotted-quad IPv4 address, or null. */
-function ipv4Bytes(text: string): number[] | null {
+function ipv4Bytes(text: string): Ipv4Bytes | null {
   const parts = text.split(".");
   if (parts.length !== 4) return null;
   const bytes: number[] = [];
@@ -44,7 +56,7 @@ function ipv4Bytes(text: string): number[] | null {
     if (byte > 255) return null;
     bytes.push(byte);
   }
-  return bytes;
+  return bytes as Ipv4Bytes;
 }
 
 /** One side of a `::` as 16-bit groups, or null if any part is not one. */
@@ -72,26 +84,30 @@ function expandGroups(half: string): number[] | null {
  * same, or `2001:db8::1` and `2001:0db8:0000:0000:0:0:0:1` would be keyed as
  * two networks.
  */
-function ipv6Groups(address: string): number[] | null {
+function ipv6Groups(address: string): Ipv6Groups | null {
   // A link-local address carries the interface it arrived on. That names a
   // route, not a network, so it is not part of the key.
   const zone = address.indexOf("%");
   const bare = zone === -1 ? address : address.slice(0, zone);
   if (!bare.includes(":")) return null;
-  const halves = bare.split("::");
-  if (halves.length > 2) return null;
-  const head = expandGroups(halves[0]);
-  const tail = halves.length === 2 ? expandGroups(halves[1]) : [];
+  const [headPart = "", tailPart, ...rest] = bare.split("::");
+  if (rest.length > 0) return null;
+  const head = expandGroups(headPart);
+  const tail = tailPart === undefined ? [] : expandGroups(tailPart);
   if (!head || !tail) return null;
-  if (halves.length === 1) return head.length === 8 ? head : null;
+  if (tailPart === undefined) return eightGroups(head);
   const gap = 8 - head.length - tail.length;
   // `::` stands for at least one group of zeros.
   if (gap < 1) return null;
-  return [...head, ...Array<number>(gap).fill(0), ...tail];
+  return eightGroups([...head, ...Array<number>(gap).fill(0), ...tail]);
+}
+
+function eightGroups(groups: number[]): Ipv6Groups | null {
+  return groups.length === 8 ? (groups as Ipv6Groups) : null;
 }
 
 /** `::ffff:a.b.c.d`: an IPv4 client reaching a dual-stack listener. */
-function isIpv4Mapped(groups: number[]): boolean {
+function isIpv4Mapped(groups: Ipv6Groups): boolean {
   return (
     groups[0] === 0 &&
     groups[1] === 0 &&
@@ -102,7 +118,7 @@ function isIpv4Mapped(groups: number[]): boolean {
   );
 }
 
-function ipv4String(groups: number[]): string {
+function ipv4String(groups: Ipv6Groups): string {
   const bytes = [
     groups[6] >> 8,
     groups[6] & 0xff,
@@ -152,9 +168,15 @@ export function clientAddress(
 ): string {
   if (trustProxy) {
     const fwd = c.req.header("x-forwarded-for");
-    if (fwd) return fwd.split(",")[0].trim();
+    if (fwd) return firstHop(fwd);
   }
   return socketAddress(c);
+}
+
+/** The client's own entry in an `X-Forwarded-For` list. */
+function firstHop(forwardedFor: string): string {
+  const [first = ""] = forwardedFor.split(",");
+  return first.trim();
 }
 
 function makeDefaultKey(
@@ -163,7 +185,7 @@ function makeDefaultKey(
   if (!trustProxy) return (c) => ipBucketKey(socketAddress(c));
   return (c) => {
     const fwd = c.req.header("x-forwarded-for");
-    if (fwd) return ipBucketKey(fwd.split(",")[0].trim());
+    if (fwd) return ipBucketKey(firstHop(fwd));
     return ipBucketKey(socketAddress(c));
   };
 }

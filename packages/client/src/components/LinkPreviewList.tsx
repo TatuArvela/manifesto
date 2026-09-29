@@ -37,7 +37,7 @@ function LinkPreviewRow({
 }: {
   preview: LinkPreview;
   variant: "editor" | "card";
-  onRemove?: () => void;
+  onRemove?: (() => void) | undefined;
 }) {
   const clickable = variant === "card";
   const content = (

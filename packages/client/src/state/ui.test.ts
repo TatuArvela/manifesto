@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../test/defined.js";
 import {
   activeView,
   dismissToast,
@@ -27,22 +28,22 @@ describe("error notifications", () => {
   it("showError adds an error to the list", () => {
     showError("Something went wrong");
     expect(toasts.value).toHaveLength(1);
-    expect(toasts.value[0].message).toBe("Something went wrong");
+    expect(toasts.value[0]?.message).toBe("Something went wrong");
   });
 
   it("showError assigns unique ids", () => {
     showError("Error 1");
     showError("Error 2");
-    expect(toasts.value[0].id).not.toBe(toasts.value[1].id);
+    expect(defined(toasts.value[0]).id).not.toBe(toasts.value[1]?.id);
   });
 
   it("dismissToast removes a specific error", () => {
     showError("Error 1");
     showError("Error 2");
-    const id = toasts.value[0].id;
+    const id = defined(toasts.value[0]).id;
     dismissToast(id);
     expect(toasts.value).toHaveLength(1);
-    expect(toasts.value[0].message).toBe("Error 2");
+    expect(toasts.value[0]?.message).toBe("Error 2");
   });
 
   it("errors auto-dismiss after 5 seconds", () => {
@@ -59,7 +60,7 @@ describe("error notifications", () => {
     expect(toasts.value).toHaveLength(2);
     vi.advanceTimersByTime(3000); // 5s after Error 1
     expect(toasts.value).toHaveLength(1);
-    expect(toasts.value[0].message).toBe("Error 2");
+    expect(toasts.value[0]?.message).toBe("Error 2");
     vi.advanceTimersByTime(2000); // 5s after Error 2
     expect(toasts.value).toHaveLength(0);
   });

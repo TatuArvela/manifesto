@@ -104,7 +104,9 @@ function parseBoardTexture(value: unknown): BoardTextureChoice {
 }
 
 export function pickOne<T>(list: readonly T[]): T {
-  return list[Math.floor(Math.random() * list.length)];
+  const picked = list[Math.floor(Math.random() * list.length)];
+  if (picked === undefined) throw new Error("Nothing to pick from");
+  return picked;
 }
 
 /** What "random" stands for, which is anything but plain. */

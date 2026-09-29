@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { useEffect, useRef } from "preact/hooks";
+import { useCallback, useEffect, useRef } from "preact/hooks";
 
 let nextId = 0;
 
@@ -56,12 +56,12 @@ export function Tooltip({
   const popoverRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const cancelPending = () => {
+  const cancelPending = useCallback(() => {
     if (timeoutRef.current === undefined) return;
     clearTimeout(timeoutRef.current);
     pendingTimers.delete(timeoutRef.current);
     timeoutRef.current = undefined;
-  };
+  }, []);
 
   const show = () => {
     cancelPending();
@@ -79,7 +79,7 @@ export function Tooltip({
     popoverRef.current?.hidePopover();
   };
 
-  useEffect(() => cancelPending, []);
+  useEffect(() => cancelPending, [cancelPending]);
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: tooltip wrapper needs span

@@ -87,7 +87,7 @@ describe("useNoteImages", () => {
       expect(loadImages).toHaveBeenCalledWith(note.id);
     });
     await vi.waitFor(() => {
-      expect(notes.value[0].images).toEqual([PNG]);
+      expect(notes.value[0]?.images).toEqual([PNG]);
     });
   });
 

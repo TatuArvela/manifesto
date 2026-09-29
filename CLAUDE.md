@@ -697,9 +697,27 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   read); `console` only `error` and `warn`; no default exports outside `*.config.ts`; nothing but
   tests imports `src/test/`. `biome-plugins/` holds the two rules Biome has no built-in for:
   `endUserSessions.grit` and `noteEvents.grit`.
-- `tsconfig.base.json` adds `verbatimModuleSyntax`, `noImplicitOverride` and `noImplicitReturns`
-  to strict mode. The server builds from `tsconfig.build.json`, which leaves out tests,
-  `storage/contracts/` and `src/test/`, so none of them ship in the image.
+- `tsconfig.base.json` adds `verbatimModuleSyntax`, `noImplicitOverride`, `noImplicitReturns`,
+  `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` to strict mode. The server builds from
+  `tsconfig.build.json`, which leaves out tests, `storage/contracts/` and `src/test/`, so none of
+  them ship in the image.
+- `exactOptionalPropertyTypes` keeps "absent" and "present but `undefined`" apart. The wire types
+  in `@manifesto/shared` stay `?: T`, since JSON cannot carry an `undefined`, so a request schema
+  uses zod's `.exactOptional()` (and `exactPartial` in `validation/schemas.ts`), never `.optional()`
+  or `.partial()`, which `validation/wireTypes.ts` would refuse. An internal option or a prop that
+  callers pass through from somewhere optional is declared `?: T | undefined`.
+- `noUncheckedIndexedAccess` types every `list[i]` and regex group as possibly `undefined`, and
+  there are no `!` assertions to wave that away. Destructure with a default
+  (`const [first = ""] = s.split(",")`), iterate with `entries()`, or read `.at(-1)` and test the
+  result. In a test, `list[0]?.field` inside an `expect` is fine, but not with a negative matcher
+  (`not.toBeNull()` passes on `undefined`) or where the value is passed on; there use `defined()`
+  from `src/test/defined.ts`, which fails the test instead.
+- `useExhaustiveDependencies` is on for the client's hooks, with unnecessary dependencies not
+  reported: a signal read into a local (`const x = sig.value`) looks constant to Biome, but is
+  exactly what an effect has to re-run on. A function an effect calls is made stable with
+  `useCallback`, or read from a ref when its identity must not re-run the effect.
+- `noFloatingPromises` (nursery) is on. Actions never reject, so a handler that does not await one
+  marks it `void`.
 
 ## Rules
 

@@ -2,6 +2,7 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cdp, page } from "vitest/browser";
 import { MilkdownEditor } from "../components/MilkdownEditor.js";
+import { defined } from "../test/defined.js";
 import "../styles.css";
 
 /**
@@ -85,14 +86,14 @@ describe("a checklist row on a touch screen", () => {
 
   it("keeps a drag from its handle away from the scroller", async () => {
     await mount("- [ ] Milk");
-    const handle = rows()[0].querySelector(".task-item-drag-handle");
+    const handle = rows()[0]?.querySelector(".task-item-drag-handle");
     if (!handle) throw new Error("no handle");
     expect(getComputedStyle(handle).touchAction).toBe("none");
   });
 
   it("shows the item under the finger, snapped to the level it would land on", async () => {
     await mount("- [ ] Milk\n- [ ] Bread");
-    const [, bread] = rows();
+    const bread = defined(rows()[1]);
     const handle = bread.querySelector(".task-item-drag-handle");
     if (!handle) throw new Error("no handle");
     const start = handle.getBoundingClientRect();

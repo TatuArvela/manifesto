@@ -42,7 +42,10 @@ let scopeByRoute: Map<string, ApiTokenScope | undefined> | undefined;
  * or undefined if it names none. `found` is false when no route matched, and
  * the request is on its way to a 404 anyway.
  */
-function scopeFor(c: Context): { found: boolean; scope?: ApiTokenScope } {
+function scopeFor(c: Context): {
+  found: boolean;
+  scope?: ApiTokenScope | undefined;
+} {
   // Built on first use rather than at load: `openapi.ts` reaches the
   // validation schemas, and nothing here should depend on load order.
   scopeByRoute ??= new Map(

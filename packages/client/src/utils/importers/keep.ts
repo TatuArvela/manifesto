@@ -102,7 +102,7 @@ async function attachmentsToImages(
     // Keep also attaches voice recordings (audio/3gp); only images have a
     // place on a note.
     const match = /^image\/([a-z0-9+.-]+)$/i.exec(a.mimetype);
-    const subtype = match?.[1].toLowerCase();
+    const subtype = match?.[1]?.toLowerCase();
     if (!subtype || !IMAGE_SUBTYPES.has(subtype)) continue;
     const bytes = await lookup(a.filePath);
     if (!bytes || bytes.length === 0 || bytes.length > MAX_IMAGE_SOURCE_BYTES) {
@@ -148,9 +148,9 @@ export async function keepNoteToNote(
     title: typeof data.title === "string" ? data.title.trim() : "",
     content,
     color:
-      typeof data.color === "string" && Object.hasOwn(KEEP_COLORS, data.color)
+      (typeof data.color === "string" && Object.hasOwn(KEEP_COLORS, data.color)
         ? KEEP_COLORS[data.color]
-        : NoteColor.Default,
+        : undefined) ?? NoteColor.Default,
     font: NoteFont.Default,
     pinned: data.isPinned === true,
     archived: data.isArchived === true,

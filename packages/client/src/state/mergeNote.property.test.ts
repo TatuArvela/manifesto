@@ -65,8 +65,10 @@ describe("mergeNoteUpdate, over generated pairs of writers", () => {
       for (const seed of SEEDS) {
         const random = seeded(seed);
         const base = makeNote({ [field]: random.subset(POOL) });
-        const a = { [field]: edit(random, base[field]) };
-        const b = { [field]: edit(random, base[field]) };
+        const aList = edit(random, base[field]);
+        const bList = edit(random, base[field]);
+        const a = { [field]: aList };
+        const b = { [field]: bList };
 
         const ab = race(base, a, b)[field];
         const ba = race(base, b, a)[field];
@@ -74,10 +76,10 @@ describe("mergeNoteUpdate, over generated pairs of writers", () => {
 
         // Both writers' additions, less both writers' removals.
         const removed = base[field].filter(
-          (x) => !a[field].includes(x) || !b[field].includes(x),
+          (x) => !aList.includes(x) || !bList.includes(x),
         );
         const expected = [
-          ...new Set([...base[field], ...a[field], ...b[field]]),
+          ...new Set([...base[field], ...aList, ...bList]),
         ].filter((x) => !removed.includes(x));
 
         expect(sorted(ab), JSON.stringify(context)).toEqual(sorted(expected));

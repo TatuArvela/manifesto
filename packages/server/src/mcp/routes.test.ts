@@ -201,7 +201,7 @@ describe("MCP endpoint", () => {
         ["GET", "/api/auth/me"],
         ["GET", "/api/tokens"],
         ["GET", "/api/export"],
-      ]) {
+      ] as const) {
         const res = await rig.request(path, {
           method,
           headers: authHeaders(token),
@@ -279,7 +279,7 @@ describe("MCP endpoint", () => {
         title: "Shopping",
       });
       expect(stale.isError).toBe(true);
-      expect(stale.content[0].text).toContain("changed since you read it");
+      expect(stale.content[0]?.text).toContain("changed since you read it");
 
       const trashed = await noteFrom(token, "trash_note", { id: created.id });
       expect(trashed.trashed).toBe(true);
@@ -330,7 +330,7 @@ describe("MCP endpoint", () => {
       const token = await mintMcp();
       const result = await tool(token, "update_note", { id: "x" });
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain("at least one field");
+      expect(result.content[0]?.text).toContain("at least one field");
     });
 
     it("offer a read-only token only what reads, and refuse it the rest", async () => {
@@ -389,7 +389,7 @@ describe("MCP endpoint", () => {
         content: "overwritten",
       });
       expect(refused.isError).toBe(true);
-      expect(refused.content[0].text).toContain("403");
+      expect(refused.content[0]?.text).toContain("403");
     });
   });
 });

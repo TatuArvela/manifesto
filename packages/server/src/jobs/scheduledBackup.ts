@@ -34,7 +34,8 @@ export function backupName(at: Date): string {
 export function backupTime(name: string): number | null {
   const m = NAME.exec(name);
   if (!m) return null;
-  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  const [, year, month, day, hour, minute, second] = m.map(Number);
+  return Date.UTC(year ?? 0, (month ?? 0) - 1, day, hour, minute, second);
 }
 
 export interface BackupEnvironment {

@@ -3,6 +3,7 @@ import { createApp } from "../../app.js";
 import { createMemoryMailer } from "../../mail/mailer.js";
 import { createStorage } from "../../storage/index.js";
 import type { StorageDriver } from "../../storage/types.js";
+import { defined } from "../../test/defined.js";
 import { authHeaders, TEST_CONFIG } from "../../test/setup.js";
 import { createAuthProvider } from "../index.js";
 
@@ -71,9 +72,9 @@ describe("password reset by mail", () => {
     ).toBe(204);
     await settle();
     expect(mailer.sent).toHaveLength(1);
-    expect(mailer.sent[0].to).toBe("ALICE@example.com");
-    expect(mailer.sent[0].text).toContain("https://notes.example/#reset=");
-    const token = tokenFrom(mailer.sent[0].text);
+    expect(mailer.sent[0]?.to).toBe("ALICE@example.com");
+    expect(mailer.sent[0]?.text).toContain("https://notes.example/#reset=");
+    const token = tokenFrom(defined(mailer.sent[0]).text);
 
     const confirm = { token, newPassword: "brand-new-pass" };
     expect(
@@ -119,7 +120,7 @@ describe("password reset by mail", () => {
       locale: "fi",
     });
     await settle();
-    expect(mailer.sent[0].subject).toBe("Salasanan vaihtaminen");
+    expect(mailer.sent[0]?.subject).toBe("Salasanan vaihtaminen");
   });
 
   it("refuses a made-up token", async () => {

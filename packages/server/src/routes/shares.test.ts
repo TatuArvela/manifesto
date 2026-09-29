@@ -70,7 +70,7 @@ describe("sharing notes between accounts", () => {
     return rig.request(path, {
       method,
       headers: authHeaders(who.token),
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? null : JSON.stringify(body),
     });
   }
 

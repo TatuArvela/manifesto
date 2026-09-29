@@ -10,6 +10,7 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { defined } from "../../test/defined.js";
 import {
   authHeaders,
   bootTestApp,
@@ -192,7 +193,7 @@ describe("passkeys", () => {
     expect(
       (await call("GET", "/api/notes", undefined, { as: body.token })).status,
     ).toBe(200);
-    const [stored] = await rig.storage.passkeys.listByUser(userId);
+    const stored = defined((await rig.storage.passkeys.listByUser(userId))[0]);
     expect(stored.counter).toBe(1);
     expect(stored.lastUsedAt).not.toBeNull();
     // Replayed, its challenge is spent.

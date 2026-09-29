@@ -101,8 +101,8 @@ describe("a share invitation by mail", () => {
     expect(shared.status).toBe(201);
     await settle();
     expect(mailer.sent).toHaveLength(1);
-    expect(mailer.sent[0].to).toBe("bob@example.com");
-    expect(mailer.sent[0].subject).toBe("olivia jakoi kanssasi muistiinpanon");
+    expect(mailer.sent[0]?.to).toBe("bob@example.com");
+    expect(mailer.sent[0]?.subject).toBe("olivia jakoi kanssasi muistiinpanon");
   });
 
   it("refuses something that is not a language tag", async () => {

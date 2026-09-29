@@ -65,7 +65,7 @@ const CLOSE_MS = 150;
 function randomCta(exclude?: string): string {
   const all = ctaKeys.map((k) => t(k));
   const pool = exclude ? all.filter((m) => m !== exclude) : all;
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[Math.floor(Math.random() * pool.length)] ?? "";
 }
 
 export function NoteInput() {
@@ -300,17 +300,18 @@ export function NoteInput() {
       snap.linkPreviews.length > 0
     ) {
       const pending = drafts.takePending();
-      createNote(snap).then((note) => {
-        if (note && pending.length > 0) applyLinkPreviews(note.id, pending);
+      void createNote(snap).then((note) => {
+        if (note && pending.length > 0)
+          void applyLinkPreviews(note.id, pending);
       });
     } else {
-      drafts.takePending();
+      void drafts.takePending();
     }
     finishClose();
   };
 
   const discardNote = () => {
-    drafts.takePending();
+    void drafts.takePending();
     finishClose();
   };
 
@@ -325,6 +326,10 @@ export function NoteInput() {
     setMorphing(false);
     setExpanded(true);
   };
+  // Read by the effects below at the moment a request arrives, so they need
+  // not run again whenever the handlers are rebuilt.
+  const openersRef = useRef({ openNew, openShare });
+  openersRef.current = { openNew, openShare };
 
   // Escape closes the editor, saving as clicking outside does. Anything
   // opened from inside the editor registers later and takes the key first.
@@ -336,7 +341,7 @@ export function NoteInput() {
   useEffect(() => {
     if (!share || !isActiveView || expanded) return;
     incomingShare.value = null;
-    openShare(share);
+    openersRef.current.openShare(share);
   }, [share, isActiveView, expanded]);
 
   // The `c` shortcut: a new note, from the pad where it shows, as a click on it
@@ -345,7 +350,7 @@ export function NoteInput() {
   useEffect(() => {
     if (!newNote || !isActiveView) return;
     newNoteRequested.value = false;
-    if (!expanded) openNew();
+    if (!expanded) openersRef.current.openNew();
   }, [newNote, isActiveView, expanded]);
 
   // Every hook is above this line: `App` keeps this mounted in views where it

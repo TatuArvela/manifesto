@@ -40,9 +40,9 @@ export function ContentPreview({
 
   // Count leading/trailing empty lines per segment for spacing
   const hasLeadingBlank = (seg: (typeof segments)[number]) =>
-    seg.lines.length > 0 && seg.lines[0].trim() === "";
+    seg.lines[0]?.trim() === "";
   const hasTrailingBlank = (seg: (typeof segments)[number]) =>
-    seg.lines.length > 0 && seg.lines[seg.lines.length - 1].trim() === "";
+    seg.lines.at(-1)?.trim() === "";
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: stops a link's click reaching the card

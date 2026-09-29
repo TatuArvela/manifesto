@@ -31,9 +31,9 @@ interface TouchGestureOptions {
   onHoldEnd?: () => void;
   /** A hold released without ever becoming a drag. */
   onLongPress?: (e: PointerEvent) => void;
-  onDragStart?: (e: PointerEvent) => void;
-  onDragMove?: (e: PointerEvent) => void;
-  onDragEnd?: (e: PointerEvent, didDrag: boolean) => void;
+  onDragStart?: ((e: PointerEvent) => void) | undefined;
+  onDragMove?: ((e: PointerEvent) => void) | undefined;
+  onDragEnd?: ((e: PointerEvent, didDrag: boolean) => void) | undefined;
 }
 
 /**

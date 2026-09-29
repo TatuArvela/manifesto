@@ -6,6 +6,7 @@ import {
   noteToMarkdownFile,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 import { buildZip } from "../test/zipTestSupport.js";
 import { importFiles } from "./importExport.js";
 import { markdownFileToNote } from "./importedNote.js";
@@ -121,7 +122,7 @@ describe("exportArchiveFiles", () => {
       "versions.json",
     ]);
     // The trash still travels whole in notes.json.
-    expect(JSON.parse(files[0].text)).toHaveLength(3);
+    expect(JSON.parse(defined(files[0]).text)).toHaveLength(3);
   });
 
   it("names files safely and never lets two notes share one", () => {
@@ -201,7 +202,7 @@ describe("exportArchiveFiles", () => {
       },
     );
     expect(summary).toEqual({ singleCount: 0, bulkCount: 2, failedCount: 0 });
-    expect(bulks[0].map((n) => [n.title, n.color, n.trashed])).toEqual([
+    expect(bulks[0]?.map((n) => [n.title, n.color, n.trashed])).toEqual([
       ["One", NoteColor.Blue, false],
       ["Two", NoteColor.Default, true],
     ]);
@@ -227,7 +228,7 @@ describe("exportArchiveFiles", () => {
       },
     });
     expect(
-      bulks[0].map((n) => ({
+      bulks[0]?.map((n) => ({
         title: n.title,
         content: n.content,
         tags: n.tags,

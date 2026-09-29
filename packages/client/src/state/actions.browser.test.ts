@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { storageConnection } from "../storage/index.js";
 import { quotaRefusedAt } from "../storage/quota.js";
+import { defined } from "../test/defined.js";
 import { createNoteOrFail } from "../test/testSupport.js";
 import { hasCheckedItems, hasChecklist } from "../utils/markdown.js";
 import {
@@ -45,7 +46,7 @@ describe("state actions", () => {
     const note = await createNoteOrFail({ title: "Hello" });
     expect(note.title).toBe("Hello");
     expect(notes.value).toHaveLength(1);
-    expect(notes.value[0].id).toBe(note.id);
+    expect(notes.value[0]?.id).toBe(note.id);
   });
 
   it("createNote does not duplicate a note already added by a WS echo", async () => {
@@ -62,32 +63,32 @@ describe("state actions", () => {
     const note = await createNoteOrFail({ title: "First" });
     notes.value = upsertById(notes.value, { ...note, title: "Edited" });
     expect(notes.value).toHaveLength(1);
-    expect(notes.value[0].title).toBe("Edited");
+    expect(notes.value[0]?.title).toBe("Edited");
   });
 
   it("updateNote modifies a note", async () => {
     const note = await createNoteOrFail({ title: "Original" });
     await updateNote(note.id, { title: "Updated" });
-    expect(notes.value[0].title).toBe("Updated");
+    expect(notes.value[0]?.title).toBe("Updated");
   });
 
   it("updateNote shows the change before storage has answered", async () => {
     const note = await createNoteOrFail({ title: "Original" });
     // Not awaited: what the user sees between the click and the answer.
     const saved = updateNote(note.id, { title: "Updated" });
-    expect(notes.value[0].title).toBe("Updated");
+    expect(notes.value[0]?.title).toBe("Updated");
     expect(await saved).toBe(true);
-    expect(notes.value[0].title).toBe("Updated");
+    expect(notes.value[0]?.title).toBe("Updated");
   });
 
   it("updateNote takes the change back when the write fails", async () => {
     await createNoteOrFail({ title: "Original" });
     // A note storage has never heard of: the write cannot land.
-    notes.value = [{ ...notes.value[0], id: "does-not-exist" }];
+    notes.value = [{ ...defined(notes.value[0]), id: "does-not-exist" }];
     const shown = updateNote("does-not-exist", { title: "Updated" });
-    expect(notes.value[0].title).toBe("Updated");
+    expect(notes.value[0]?.title).toBe("Updated");
     expect(await shown).toBe(false);
-    expect(notes.value[0].title).toBe("Original");
+    expect(notes.value[0]?.title).toBe("Original");
   });
 
   it("receiveNote ignores a copy that says nothing new", async () => {
@@ -102,13 +103,13 @@ describe("state actions", () => {
     const saved = updateNote(note.id, { pinned: true });
     // Another device renames the note while our pin is still in the air.
     receiveNote({
-      ...notes.value[0],
+      ...defined(notes.value[0]),
       pinned: false,
       title: "Renamed elsewhere",
       updatedAt: "2099-01-01T00:00:00.000Z",
     });
-    expect(notes.value[0].title).toBe("Renamed elsewhere");
-    expect(notes.value[0].pinned).toBe(true);
+    expect(notes.value[0]?.title).toBe("Renamed elsewhere");
+    expect(notes.value[0]?.pinned).toBe(true);
     await saved;
   });
 
@@ -129,9 +130,9 @@ describe("state actions", () => {
   it("trashNote sets trashed flag", async () => {
     const note = await createNoteOrFail({ title: "Trash me" });
     await trashNote(note.id);
-    expect(notes.value[0].trashed).toBe(true);
-    expect(notes.value[0].trashedAt).toBeTruthy();
-    expect(notes.value[0].archived).toBe(false);
+    expect(notes.value[0]?.trashed).toBe(true);
+    expect(notes.value[0]?.trashedAt).toBeTruthy();
+    expect(notes.value[0]?.archived).toBe(false);
   });
 
   it("trashNote lets the card animate out before the note leaves the grid", async () => {
@@ -160,7 +161,7 @@ describe("state actions", () => {
       const done = trashNote(note.id);
       expect(leavingNotes.value.size).toBe(0);
       await done;
-      expect(notes.value[0].trashed).toBe(true);
+      expect(notes.value[0]?.trashed).toBe(true);
     } finally {
       animations.value = previous;
     }
@@ -190,7 +191,7 @@ describe("state actions", () => {
       expect(leavingNotes.value.get(note.id)).toBe("archive");
       await done;
       expect(leavingNotes.value.size).toBe(0);
-      expect(notes.value[0].archived).toBe(true);
+      expect(notes.value[0]?.archived).toBe(true);
     } finally {
       animations.value = previous;
     }
@@ -245,33 +246,33 @@ describe("state actions", () => {
     const note = await createNoteOrFail({ title: "Restore me" });
     await trashNote(note.id);
     await restoreNote(note.id);
-    expect(notes.value[0].trashed).toBe(false);
-    expect(notes.value[0].trashedAt).toBeNull();
+    expect(notes.value[0]?.trashed).toBe(false);
+    expect(notes.value[0]?.trashedAt).toBeNull();
   });
 
   it("archiveNote and unarchiveNote toggle archived", async () => {
     const note = await createNoteOrFail({ title: "Archive" });
     await archiveNote(note.id);
-    expect(notes.value[0].archived).toBe(true);
+    expect(notes.value[0]?.archived).toBe(true);
     await unarchiveNote(note.id);
-    expect(notes.value[0].archived).toBe(false);
+    expect(notes.value[0]?.archived).toBe(false);
   });
 
   it("togglePin flips the pinned flag", async () => {
     const note = await createNoteOrFail({ title: "Pin me" });
-    expect(notes.value[0].pinned).toBe(false);
+    expect(notes.value[0]?.pinned).toBe(false);
     await togglePin(note.id);
-    expect(notes.value[0].pinned).toBe(true);
+    expect(notes.value[0]?.pinned).toBe(true);
     await togglePin(note.id);
-    expect(notes.value[0].pinned).toBe(false);
+    expect(notes.value[0]?.pinned).toBe(false);
   });
 
   it("toggleCheckbox flips checkbox state", async () => {
     const note = await createNoteOrFail({ content: "- [ ] A\n- [x] B" });
     await toggleCheckbox(note.id, 0);
-    expect(notes.value[0].content).toBe("- [x] A\n- [x] B");
+    expect(notes.value[0]?.content).toBe("- [x] A\n- [x] B");
     await toggleCheckbox(note.id, 1);
-    expect(notes.value[0].content).toBe("- [x] A\n- [ ] B");
+    expect(notes.value[0]?.content).toBe("- [x] A\n- [ ] B");
   });
 
   it("toggleCheckbox cascades to nested descendants", async () => {
@@ -280,11 +281,11 @@ describe("state actions", () => {
         "- [ ] Parent\n  - [ ] Child\n    - [ ] Grandchild\n  - [x] Child2\n- [ ] Sibling",
     });
     await toggleCheckbox(note.id, 0);
-    expect(notes.value[0].content).toBe(
+    expect(notes.value[0]?.content).toBe(
       "- [x] Parent\n  - [x] Child\n    - [x] Grandchild\n  - [x] Child2\n- [ ] Sibling",
     );
     await toggleCheckbox(note.id, 0);
-    expect(notes.value[0].content).toBe(
+    expect(notes.value[0]?.content).toBe(
       "- [ ] Parent\n  - [ ] Child\n    - [ ] Grandchild\n  - [ ] Child2\n- [ ] Sibling",
     );
   });
@@ -294,7 +295,7 @@ describe("state actions", () => {
       content: "- [ ] Parent\n  - [ ] Child1\n  - [ ] Child2",
     });
     await toggleCheckbox(note.id, 1);
-    expect(notes.value[0].content).toBe(
+    expect(notes.value[0]?.content).toBe(
       "- [ ] Parent\n  - [x] Child1\n  - [ ] Child2",
     );
   });
@@ -331,7 +332,7 @@ describe("state actions", () => {
 
     await deleteCheckedItems(note.id);
 
-    expect(notes.value[0].content).toBe(
+    expect(notes.value[0]?.content).toBe(
       [
         "",
         "```markdown",
@@ -353,7 +354,7 @@ describe("state actions", () => {
 
     await deleteCheckedItems(note.id);
 
-    expect(notes.value[0].content).toBe(
+    expect(notes.value[0]?.content).toBe(
       ["```", "  indented code", "```"].join("\n"),
     );
   });
@@ -364,7 +365,7 @@ describe("state actions", () => {
 
     await toggleCheckbox(note.id, 1);
 
-    expect(notes.value[0].content).toBe(content);
+    expect(notes.value[0]?.content).toBe(content);
   });
 
   it("loadNotes reads from storage", async () => {
@@ -373,7 +374,7 @@ describe("state actions", () => {
     expect(notes.value).toHaveLength(0);
     await loadNotes();
     expect(notes.value).toHaveLength(1);
-    expect(notes.value[0].title).toBe("Persisted");
+    expect(notes.value[0]?.title).toBe("Persisted");
   });
 
   it("loadNotes marks the list as known, so the board may call it empty", async () => {
@@ -402,7 +403,7 @@ describe("filteredNotes", () => {
     await createNoteOrFail({ title: "Trashed", trashed: true });
     activeView.value = "active";
     expect(filteredNotes.value).toHaveLength(1);
-    expect(filteredNotes.value[0].title).toBe("Active");
+    expect(filteredNotes.value[0]?.title).toBe("Active");
   });
 
   it("trash view shows only trashed notes", async () => {
@@ -411,7 +412,7 @@ describe("filteredNotes", () => {
     await trashNote(trashed.id);
     activeView.value = "trash";
     expect(filteredNotes.value).toHaveLength(1);
-    expect(filteredNotes.value[0].title).toBe("Trashed");
+    expect(filteredNotes.value[0]?.title).toBe("Trashed");
   });
 
   it("archived view shows only archived (not trashed)", async () => {
@@ -422,7 +423,7 @@ describe("filteredNotes", () => {
     await trashNote(n2.id);
     activeView.value = "archived";
     expect(filteredNotes.value).toHaveLength(1);
-    expect(filteredNotes.value[0].title).toBe("Archived");
+    expect(filteredNotes.value[0]?.title).toBe("Archived");
   });
 
   it("search filters by title and content", async () => {
@@ -487,7 +488,7 @@ describe("sortedNotes", () => {
     await new Promise((r) => setTimeout(r, 5));
     await createNoteOrFail({ title: "Second" });
     sortMode.value = "created";
-    expect(sortedNotes.value[0].title).toBe("Second");
+    expect(sortedNotes.value[0]?.title).toBe("Second");
   });
 
   it("orders by time, not by the text of timestamps written differently", async () => {
@@ -608,7 +609,7 @@ describe("the storage quota message", () => {
   it("tells the user when a write was refused for space", () => {
     quotaRefusedAt.value = nextMinute();
     expect(quotaToasts()).toHaveLength(1);
-    expect(quotaToasts()[0].type).toBe("error");
+    expect(quotaToasts()[0]?.type).toBe("error");
   });
 
   it("says it once a minute, not once per refused write", () => {

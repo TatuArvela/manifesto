@@ -2,6 +2,7 @@ import type { Note } from "@manifesto/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   byPosition,
+  headPosition,
   headPositions,
   POSITION_STEP,
   positionBetween,
@@ -91,9 +92,9 @@ describe("headPositions", () => {
   it("counts down from minus the clock, so a later note on another device goes first", () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000_000);
-    const [early] = headPositions([], 1);
+    const early = headPosition([]);
     vi.setSystemTime(2_000_000);
-    const [late] = headPositions([], 1);
+    const late = headPosition([]);
     expect(early).toBe(-1_000_000);
     expect(late).toBeLessThan(early);
   });

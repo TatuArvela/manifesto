@@ -148,7 +148,7 @@ export function renderMarkdown(md: string): string {
  */
 export function renderInlineMarkdown(md: string): string {
   const html = renderMarkdown(md).trim();
-  const single = /^<p>([\s\S]*)<\/p>$/.exec(html);
-  if (!single || single[1].includes("<p>")) return html;
-  return single[1];
+  const inner = /^<p>([\s\S]*)<\/p>$/.exec(html)?.[1];
+  if (inner === undefined || inner.includes("<p>")) return html;
+  return inner;
 }

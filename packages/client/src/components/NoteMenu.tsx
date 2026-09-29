@@ -76,10 +76,10 @@ function withoutStrayDividers(items: NoteMenuItem[]): NoteMenuItem[] {
       continue;
     }
     if (kept.length === 0) continue;
-    if (kept[kept.length - 1].kind === "divider") continue;
+    if (kept.at(-1)?.kind === "divider") continue;
     kept.push(item);
   }
-  while (kept.length > 0 && kept[kept.length - 1].kind === "divider") {
+  while (kept.at(-1)?.kind === "divider") {
     kept.pop();
   }
   return kept;
@@ -247,7 +247,7 @@ export function noteMenuItems(
       icon: <Copy class="w-4 h-4" />,
       label: t("noteMenu.duplicate"),
       onSelect: () => {
-        createNote({
+        void createNote({
           title,
           content,
           color: note.color,
@@ -301,9 +301,9 @@ export function noteMenuItems(
       label: note.archived ? t("noteMenu.unarchive") : t("noteMenu.archive"),
       onSelect: () => {
         if (note.archived) {
-          unarchiveNote(note.id);
+          void unarchiveNote(note.id);
         } else {
-          archiveNote(note.id);
+          void archiveNote(note.id);
         }
         onDismiss?.();
       },
@@ -337,7 +337,7 @@ export function noteMenuItems(
       label: note.trashed ? t("noteMenu.undelete") : t("noteMenu.delete"),
       onSelect: async () => {
         if (note.trashed) {
-          restoreNote(note.id);
+          void restoreNote(note.id);
           onDismiss?.();
           return;
         }
@@ -350,7 +350,7 @@ export function noteMenuItems(
           confirmLabel: t("confirm.trash.action"),
         });
         if (!ok) return;
-        trashNote(note.id);
+        void trashNote(note.id);
         onDismiss?.();
       },
     });

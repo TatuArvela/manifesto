@@ -91,12 +91,14 @@ describe("splitChanges", () => {
   });
 
   it("skips a field whose value is undefined, and keeps null and false", () => {
+    // Past the types, which no longer let a key hold `undefined`: the check
+    // is for a caller that builds its changes some other way.
     const split = splitChanges({
       title: undefined,
       reminder: null,
       pinned: false,
       readonly: undefined,
-    });
+    } as unknown as NoteUpdate);
     expect(split).toEqual({
       shared: {},
       personal: { reminder: null, pinned: false },
@@ -134,7 +136,10 @@ describe("forbiddenFields", () => {
       expect(
         forbiddenFields(
           role,
-          splitChanges({ readonly: true, source: undefined }),
+          splitChanges({
+            readonly: true,
+            source: undefined,
+          } as unknown as NoteUpdate),
         ),
       ).toEqual(["readonly"]);
     }
@@ -283,18 +288,20 @@ describe("attachSharing", () => {
       members,
       users,
     );
-    expect(note.sharing?.role).toBe("owner");
-    expect(note.sharing?.members.map((m) => [m.username, m.accepted])).toEqual([
-      ["tim", true],
-      ["pat", false],
-      ["bob", true],
-    ]);
-    expect(note.sharing?.members[0].team).toEqual({
+    expect(note?.sharing?.role).toBe("owner");
+    expect(note?.sharing?.members.map((m) => [m.username, m.accepted])).toEqual(
+      [
+        ["tim", true],
+        ["pat", false],
+        ["bob", true],
+      ],
+    );
+    expect(note?.sharing?.members[0]?.team).toEqual({
       id: "team1",
       name: "Crew",
     });
     // A member with no display name goes by their username.
-    expect(note.sharing?.members[2].displayName).toBe("bob");
+    expect(note?.sharing?.members[2]?.displayName).toBe("bob");
   });
 
   it("shows a recipient only the people who accepted", () => {
@@ -306,9 +313,9 @@ describe("attachSharing", () => {
       members,
       users,
     );
-    expect(note.sharing?.role).toBe("edit");
-    expect(note.sharing?.owner.displayName).toBe("Olga");
-    expect(note.sharing?.members.map((m) => m.username)).toEqual([
+    expect(note?.sharing?.role).toBe("edit");
+    expect(note?.sharing?.owner.displayName).toBe("Olga");
+    expect(note?.sharing?.members.map((m) => m.username)).toEqual([
       "tim",
       "bob",
     ]);

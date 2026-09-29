@@ -50,7 +50,7 @@ export function useDraftLinkPreviews(): DraftLinkPreviews {
       for (const url of added) {
         const resolving = resolveLinkPreview(url);
         draft.set(url, resolving);
-        resolving.then((resolved) => {
+        void resolving.then((resolved) => {
           // Not this draft's any more: it was saved or discarded, and the
           // answer went to the note along with the rest.
           if (pending.current.get(url) !== resolving || !resolved) return;

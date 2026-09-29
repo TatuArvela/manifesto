@@ -1,5 +1,11 @@
 import type { Note } from "@manifesto/shared";
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { useMasonryGrid } from "../hooks/useMasonryGrid.js";
 import { animations, noteSize, viewMode } from "../state/index.js";
 import { edgeScroll, scrollParent } from "../utils/edgeScroll.js";
@@ -159,7 +165,7 @@ export function ReorderableGrid({
       );
       shift.id = "reorder-shift";
     }
-  }, [preview]);
+  }, [gridRef, preview]);
 
   const beginDrag = (id: string) => {
     dragSourceId.current = id;
@@ -303,21 +309,21 @@ export function ReorderableGrid({
     }
   };
 
-  const stopTouchScroll = () => {
+  const stopTouchScroll = useCallback(() => {
     if (touchScroll.current) cancelAnimationFrame(touchScroll.current.frame);
     touchScroll.current = null;
-  };
+  }, []);
 
-  const removeGhost = () => {
+  const removeGhost = useCallback(() => {
     ghostRef.current?.el.remove();
     ghostRef.current = null;
-  };
+  }, []);
   useEffect(
     () => () => {
       removeGhost();
       stopTouchScroll();
     },
-    [],
+    [removeGhost, stopTouchScroll],
   );
 
   const handleTouchDragStart = (e: PointerEvent, id: string) => {

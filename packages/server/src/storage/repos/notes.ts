@@ -30,7 +30,7 @@ export interface NotePage {
 export interface ListNotesOptions {
   limit: number;
   /** The `nextCursor` of the previous page. */
-  cursor?: string;
+  cursor?: string | undefined;
 }
 
 /**

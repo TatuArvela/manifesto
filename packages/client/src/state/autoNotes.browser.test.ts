@@ -48,10 +48,10 @@ describe("state/autoNotes", () => {
     await waitFor(() => generatedNotes.value.length === 1);
 
     const note = generatedNotes.value[0];
-    expect(note.title).toBe("Hello");
-    expect(note.content).toBe("world");
-    expect(note.readonly).toBe(true);
-    expect(note.id.startsWith("generated:")).toBe(true);
+    expect(note?.title).toBe("Hello");
+    expect(note?.content).toBe("world");
+    expect(note?.readonly).toBe(true);
+    expect(note?.id.startsWith("generated:")).toBe(true);
   });
 
   it("returning an array yields multiple notes", async () => {
@@ -86,8 +86,8 @@ describe("state/autoNotes", () => {
 
     await waitFor(() => generatedNotes.value.length === 1);
     const note = generatedNotes.value[0];
-    expect(note.title).toMatch(/Bad/);
-    expect(note.content).toMatch(/nope/);
+    expect(note?.title).toMatch(/Bad/);
+    expect(note?.content).toMatch(/nope/);
   });
 
   it("removing a plugin drops its notes", async () => {

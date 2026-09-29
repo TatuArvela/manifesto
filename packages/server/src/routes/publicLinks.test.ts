@@ -65,7 +65,7 @@ describe("public links", () => {
           : { "Content-Type": "application/json" }),
         ...headers,
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? null : JSON.stringify(body),
     });
   }
 

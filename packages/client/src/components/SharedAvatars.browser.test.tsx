@@ -85,10 +85,8 @@ describe("the people on an open note", () => {
   });
 
   it("shows nothing on a note shared with nobody else", () => {
-    render(
-      <SharedPeople note={{ ...sharedNote(), sharing: undefined }} />,
-      host,
-    );
+    const { sharing: _, ...unshared } = sharedNote();
+    render(<SharedPeople note={unshared} />, host);
     expect(host.childElementCount).toBe(0);
   });
 });

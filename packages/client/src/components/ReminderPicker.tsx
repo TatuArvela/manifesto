@@ -142,17 +142,17 @@ export function ReminderPickerPanel({
       setTriedSave(true);
       return;
     }
-    commit(date, hour, minute, recurrence);
+    void commit(date, hour, minute, recurrence);
   };
 
   const saveTomorrow = () => {
     const { date: d, hour: h, minute: m } = tomorrowAt8();
-    commit(d, h, m, "none");
+    void commit(d, h, m, "none");
   };
 
   const saveNextWeek = () => {
     const { date: d, hour: h, minute: m } = nextMondayAt8();
-    commit(d, h, m, "none");
+    void commit(d, h, m, "none");
   };
 
   const handleClear = () => {
@@ -257,7 +257,12 @@ export function ReminderPickerPanel({
             const [h, m] = (e.target as HTMLInputElement).value
               .split(":")
               .map(Number);
-            if (!Number.isNaN(h) && !Number.isNaN(m)) {
+            if (
+              h !== undefined &&
+              m !== undefined &&
+              !Number.isNaN(h) &&
+              !Number.isNaN(m)
+            ) {
               setHour(h);
               setMinute(m);
             }

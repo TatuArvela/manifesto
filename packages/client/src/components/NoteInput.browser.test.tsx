@@ -250,7 +250,7 @@ describe("NoteInput link previews", () => {
       ) as HTMLElement
     ).click();
     await vi.waitFor(() => expect(notes.value).toHaveLength(1));
-    expect(notes.value[0].linkPreviews[0].title).toBe("https://slow.test");
+    expect(notes.value[0]?.linkPreviews[0]?.title).toBe("https://slow.test");
 
     answer({
       url: "https://slow.test",
@@ -259,7 +259,7 @@ describe("NoteInput link previews", () => {
     });
 
     await vi.waitFor(() =>
-      expect(notes.value[0].linkPreviews[0].title).toBe("Slow page"),
+      expect(notes.value[0]?.linkPreviews[0]?.title).toBe("Slow page"),
     );
   });
 });
@@ -332,8 +332,8 @@ describe("NoteInput with something shared to the app", () => {
     expect(incomingShare.value).toBeNull();
     done.click();
     await vi.waitFor(() => expect(notes.value).toHaveLength(1));
-    expect(notes.value[0].title).toBe("Shared page");
-    expect(notes.value[0].linkPreviews.map((p) => p.url)).toEqual([
+    expect(notes.value[0]?.title).toBe("Shared page");
+    expect(notes.value[0]?.linkPreviews.map((p) => p.url)).toEqual([
       "https://example.com/a",
     ]);
   });

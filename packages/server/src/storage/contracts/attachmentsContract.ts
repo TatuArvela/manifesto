@@ -56,7 +56,7 @@ export function describeAttachmentsContract(
       for (const [id, username] of [
         ["owner", "olivia"],
         ["alice", "alice"],
-      ]) {
+      ] as const) {
         await storage.users.create({
           id,
           username,

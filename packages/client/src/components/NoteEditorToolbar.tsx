@@ -61,8 +61,8 @@ export function NoteEditorToolbar({
   onFontChange: (font: NoteFont) => void;
   tags: string[];
   onAddTag: (tag: string) => void;
-  reminder?: NoteReminder | null;
-  onReminderChange?: (reminder: NoteReminder | null) => void;
+  reminder?: NoteReminder | null | undefined;
+  onReminderChange?: ((reminder: NoteReminder | null) => void) | undefined;
   onFilesSelected: (files: FileList | null) => void;
   rawMode: boolean;
   onToggleRawMode: () => void;
@@ -71,10 +71,10 @@ export function NoteEditorToolbar({
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
-  onDelete?: () => void;
-  deleteLabel?: string;
+  onDelete?: (() => void) | undefined;
+  deleteLabel?: string | undefined;
   onDone: () => void;
-  disabled?: boolean;
+  disabled?: boolean | undefined;
 }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontPicker, setShowFontPicker] = useState(false);

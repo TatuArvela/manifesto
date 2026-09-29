@@ -19,7 +19,7 @@ export function extractPluginTitle(source: string): string {
     if (line.trim() === "") continue;
     const match = line.match(TITLE_RE);
     if (!match) throw new MissingTitleError();
-    return match[1];
+    return match[1] ?? "";
   }
   throw new MissingTitleError();
 }

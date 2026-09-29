@@ -95,9 +95,9 @@ describe("exportNotes", () => {
     });
     notes.value = [note];
     const [exported] = (await exportNotes()) ?? [];
-    expect(exported.images).toEqual([GIF]);
+    expect(exported?.images).toEqual([GIF]);
     // A preview image that cannot be read is left out; the card stays.
-    expect(exported.linkPreviews).toEqual([
+    expect(exported?.linkPreviews).toEqual([
       { url: "https://a.test/", title: "A", image: GIF, domain: "a.test" },
     ]);
   });

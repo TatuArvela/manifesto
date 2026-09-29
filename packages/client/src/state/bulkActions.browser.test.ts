@@ -1,6 +1,7 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { plural } from "../i18n/index.js";
+import { defined } from "../test/defined.js";
 import { createNoteOrFail } from "../test/testSupport.js";
 import {
   addTagToNotes,
@@ -182,7 +183,7 @@ describe("bulk operations", () => {
     toggleSelectNote(n2.id);
     await bulkDelete();
     expect(notes.value).toHaveLength(1);
-    expect(notes.value[0].title).toBe("C");
+    expect(notes.value[0]?.title).toBe("C");
   });
 
   it("bulkSetColor changes color of all selected notes", async () => {
@@ -213,7 +214,7 @@ describe("bulk operations", () => {
     // Should not throw
     await bulkArchive();
     expect(notes.value).toHaveLength(1);
-    expect(notes.value[0].archived).toBe(true);
+    expect(notes.value[0]?.archived).toBe(true);
   });
 });
 
@@ -233,22 +234,22 @@ describe("tag operations", () => {
     const n1 = await createNoteOrFail({ title: "A" });
     const n2 = await createNoteOrFail({ title: "B" });
     await addTagToNotes("work", new Set([n1.id, n2.id]));
-    expect(notes.value[0].tags).toContain("work");
-    expect(notes.value[1].tags).toContain("work");
+    expect(notes.value[0]?.tags).toContain("work");
+    expect(notes.value[1]?.tags).toContain("work");
   });
 
   it("addTagToNotes does not duplicate existing tag", async () => {
     const n1 = await createNoteOrFail({ title: "A", tags: ["work"] });
     await addTagToNotes("work", new Set([n1.id]));
-    expect(notes.value[0].tags.filter((t) => t === "work")).toHaveLength(1);
+    expect(notes.value[0]?.tags.filter((t) => t === "work")).toHaveLength(1);
   });
 
   it("deleteTag removes tag from all notes", async () => {
     await createNoteOrFail({ title: "A", tags: ["work", "personal"] });
     await createNoteOrFail({ title: "B", tags: ["work"] });
     await deleteTag("work");
-    expect(notes.value[0].tags).toEqual(["personal"]);
-    expect(notes.value[1].tags).toEqual([]);
+    expect(notes.value[0]?.tags).toEqual(["personal"]);
+    expect(notes.value[1]?.tags).toEqual([]);
   });
 
   it("deleteTag stops hiding the tag it deleted", async () => {
@@ -379,7 +380,7 @@ describe("reorderNotes", () => {
 
     const moved = notes.value.filter((n) => before.get(n.id) !== n.position);
     expect(moved).toHaveLength(1);
-    expect(moved[0].id).toBe(ids[5]);
+    expect(moved[0]?.id).toBe(ids[5]);
     expect(order()).toEqual(["N0", "N5", "N1", "N2", "N3", "N4"]);
   });
 
@@ -493,7 +494,7 @@ describe("failure reporting", () => {
 
     expect(ok).toBe(false);
     expect(toasts.value).toHaveLength(1);
-    expect(toasts.value[0].message).toBe(plural("error.bulkFailed", 3));
+    expect(toasts.value[0]?.message).toBe(plural("error.bulkFailed", 3));
   });
 
   it("says nothing when a bulk operation succeeds", async () => {
@@ -518,7 +519,7 @@ describe("failure reporting", () => {
     await bulkTrash();
 
     expect(toasts.value).toHaveLength(1);
-    expect(toasts.value[0].message).toBe(plural("error.bulkFailed", 2));
+    expect(toasts.value[0]?.message).toBe(plural("error.bulkFailed", 2));
     expect(notes.value.find((n) => n.id === real.id)?.trashed).toBe(true);
   });
 
@@ -529,14 +530,14 @@ describe("failure reporting", () => {
     await bulkAddTag("shopping");
 
     expect(toasts.value).toHaveLength(1);
-    expect(toasts.value[0].message).toBe(plural("error.bulkFailed", 2));
+    expect(toasts.value[0]?.message).toBe(plural("error.bulkFailed", 2));
   });
 
   it("reports a lone failure after two groups overlapped", async () => {
     // Two groups in flight at once, the first finishing first. Each counts
     // its own failures, so neither can leave a finished group behind to
     // swallow every failure that follows.
-    const [phantom] = selectPhantomNotes(1);
+    const phantom = defined(selectPhantomNotes(1)[0]);
     let releaseFirst = () => {};
     let releaseSecond = () => {};
     const first = asBatch(

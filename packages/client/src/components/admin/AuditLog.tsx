@@ -3,7 +3,7 @@ import type {
   AuditLogResponse,
   ShareUser,
 } from "@manifesto/shared";
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { formatDateTime, type MessageKey, t } from "../../i18n/index.js";
 import { loadAuditLog } from "../../state/admin.js";
 
@@ -37,25 +37,28 @@ export function AuditLog({
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const load = async (before?: string) => {
-    setBusy(true);
-    const page = await fetchPage(before);
-    setBusy(false);
-    if (!page) {
-      setFailed(true);
-      if (!before) setEntries([]);
-      return;
-    }
-    setFailed(false);
-    setEntries((current) =>
-      before ? [...(current ?? []), ...page.entries] : page.entries,
-    );
-    setNext(page.nextBefore);
-  };
+  const load = useCallback(
+    async (before?: string) => {
+      setBusy(true);
+      const page = await fetchPage(before);
+      setBusy(false);
+      if (!page) {
+        setFailed(true);
+        if (!before) setEntries([]);
+        return;
+      }
+      setFailed(false);
+      setEntries((current) =>
+        before ? [...(current ?? []), ...page.entries] : page.entries,
+      );
+      setNext(page.nextBefore);
+    },
+    [fetchPage],
+  );
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   if (entries === null) {
     return (

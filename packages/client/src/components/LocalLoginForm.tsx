@@ -34,7 +34,7 @@ export function LocalLoginForm({
   canRegister,
   passkeys,
 }: {
-  onForgot?: () => void;
+  onForgot?: (() => void) | undefined;
   canRegister: boolean;
   /** Whether the server and this browser can sign in with a passkey. */
   passkeys: boolean;

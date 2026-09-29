@@ -1,6 +1,6 @@
 import type { TwoFactorStatusResponse } from "@manifesto/shared";
 import { Copy } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { type MessageKey, t } from "../../i18n/index.js";
 import { currentUser } from "../../state/auth.js";
 import { serverFeature } from "../../state/serverFeatures.js";
@@ -50,7 +50,7 @@ export function TwoFactorSettings() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const status = await twoFactorStatus();
     if (status) setStep({ kind: "status", status });
     else {
@@ -60,11 +60,11 @@ export function TwoFactorSettings() {
         status: { enabled: false, recoveryCodesRemaining: 0 },
       });
     }
-  };
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   const run = async <T extends { kind: string }>(
     action: () => Promise<T>,

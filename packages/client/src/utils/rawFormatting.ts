@@ -49,7 +49,7 @@ function enclosingLink(
     // A caret on either outer edge is beside the link, not in it.
     const inside =
       start === end ? start > from && start < to : start >= from && end <= to;
-    if (inside) return { from, to, text: m[1] };
+    if (inside) return { from, to, text: m[1] ?? "" };
   }
   return null;
 }

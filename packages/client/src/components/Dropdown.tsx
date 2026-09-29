@@ -119,7 +119,7 @@ export function Dropdown({
   onClose: () => void;
   trigger: ComponentChildren;
   children: ComponentChildren;
-  panelClass?: string;
+  panelClass?: string | undefined;
   placement?: DropdownPlacement;
 }) {
   const idRef = useRef("");

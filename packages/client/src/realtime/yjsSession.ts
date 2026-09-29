@@ -97,7 +97,7 @@ export function createYjsSession({
       window.removeEventListener("pagehide", onPageHide);
       provider.awareness?.setLocalState(null);
       provider.destroy();
-      idb.destroy();
+      void idb.destroy();
       ydoc.destroy();
     },
   };

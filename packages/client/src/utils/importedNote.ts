@@ -41,7 +41,7 @@ export function parseMarkdownToNote(text: string): Partial<NoteCreate> {
   if (heading !== null && (!titled || (title !== "" && heading === title))) {
     title = heading;
     contentStart = 1;
-    while (contentStart < lines.length && lines[contentStart].trim() === "") {
+    while (lines[contentStart]?.trim() === "") {
       contentStart++;
     }
   }

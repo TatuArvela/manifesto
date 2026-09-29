@@ -30,8 +30,9 @@ export function isNewer(latest: string, running: string): boolean {
   const a = releaseCore(latest);
   const b = releaseCore(running);
   if (!a || !b) return false;
-  for (let i = 0; i < 3; i++) {
-    if (a[i] !== b[i]) return a[i] > b[i];
+  for (const [i, part] of a.entries()) {
+    const other = b[i] ?? 0;
+    if (part !== other) return part > other;
   }
   return false;
 }

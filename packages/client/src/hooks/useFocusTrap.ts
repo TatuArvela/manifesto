@@ -111,12 +111,12 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
       if (event.key !== "Tab" || event.defaultPrevented) return;
       if (openTraps[openTraps.length - 1] !== trap) return;
       const stops = tabbable(container);
-      if (stops.length === 0) {
+      const first = stops[0];
+      const last = stops.at(-1);
+      if (!first || !last) {
         event.preventDefault();
         return;
       }
-      const first = stops[0];
-      const last = stops[stops.length - 1];
       // Focus outside the modal at all (a click on the page behind, or a
       // browser-restored position) comes back to the near end rather than
       // being left to wander.

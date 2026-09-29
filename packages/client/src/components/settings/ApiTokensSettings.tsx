@@ -6,7 +6,7 @@ import {
   hasScope,
 } from "@manifesto/shared";
 import { Copy, Trash2 } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { APP_FILE_SLUG } from "../../config.js";
 import { formatDateTime, type MessageKey, t } from "../../i18n/index.js";
 import {
@@ -98,15 +98,15 @@ export function ApiTokensSettings() {
   const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     const listed = await listApiTokens();
     setFailed(listed === null);
     setTokens(listed ?? []);
-  };
+  }, []);
 
   useEffect(() => {
     void reload();
-  }, []);
+  }, [reload]);
 
   const submit = async (event: Event) => {
     event.preventDefault();

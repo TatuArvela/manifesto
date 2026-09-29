@@ -52,7 +52,8 @@ export function normalizeDomain(url: string): string {
   try {
     return new URL(url).host;
   } catch {
-    return url.replace(/^https?:\/\//, "").split(/[/?#]/)[0];
+    const [host = ""] = url.replace(/^https?:\/\//, "").split(/[/?#]/);
+    return host;
   }
 }
 

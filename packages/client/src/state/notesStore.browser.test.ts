@@ -81,6 +81,6 @@ describe("updateStoredNote", () => {
     const saved = await updateStoredNote(note.id, { content: "Ours" });
 
     expect(saved?.updatedAt).toBe(ours.updatedAt);
-    expect(notes.value[0].updatedAt).toBe(theirs.updatedAt);
+    expect(notes.value[0]?.updatedAt).toBe(theirs.updatedAt);
   });
 });

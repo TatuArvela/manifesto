@@ -1,6 +1,6 @@
 import type { Passkey } from "@manifesto/shared";
 import { KeyRound, Trash2 } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { formatDateTime, type MessageKey, t } from "../../i18n/index.js";
 import {
   type AddPasskeyResult,
@@ -57,15 +57,15 @@ export function PasskeySettings({
   const [busy, setBusy] = useState(false);
   const supported = passkeysSupported();
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     const listed = await listPasskeys();
     setPasskeys(listed ?? []);
     if (listed === null) setError(t("passkeys.failed"));
-  };
+  }, []);
 
   useEffect(() => {
     void reload();
-  }, []);
+  }, [reload]);
 
   const close = () => {
     setForm({ kind: "none" });

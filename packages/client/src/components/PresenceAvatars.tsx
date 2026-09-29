@@ -1,10 +1,9 @@
 import { presenceByNote } from "../state/presence.js";
 
 function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const [first = "", ...rest] = name.trim().split(/\s+/);
+  const last = rest.at(-1) ?? "";
+  return (first.slice(0, 1) + last.slice(0, 1)).toUpperCase();
 }
 
 /**

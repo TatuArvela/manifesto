@@ -75,7 +75,6 @@ describe("overrideFrom", () => {
         tags: ["t"],
         position: 3,
         trashed: false,
-        archived: undefined,
       }),
     ).toEqual({
       pinned: true,

@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { animations, editingNoteId } from "../state/index.js";
 import {
   isMorphSource,
@@ -53,11 +59,11 @@ export function useCardModal(isEditing: boolean) {
   const [morphing, setMorphing] = useState(false);
 
   /** The card's rectangle, if the editor can be seen to morph to or from it. */
-  const morphSource = (): RectLike | null => {
+  const morphSource = useCallback((): RectLike | null => {
     if (!animations.peek()) return null;
     const rect = cardRef.current?.getBoundingClientRect();
     return isMorphSource(rect, viewportSize()) ? rect : null;
-  };
+  }, []);
 
   useEffect(() => {
     if (isEditing) {
@@ -101,7 +107,7 @@ export function useCardModal(isEditing: boolean) {
     } else {
       closeTimerRef.current = setTimeout(takeDown, MODAL_CLOSE_MS);
     }
-  }, [isEditing, showModal, closing]);
+  }, [isEditing, showModal, closing, morphSource]);
 
   // Layout, not effect: the panel's first frame has to be the one over the
   // card, or it paints once in its final place first.

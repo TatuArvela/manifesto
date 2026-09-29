@@ -111,17 +111,17 @@ describe("readZip", () => {
       );
       const entries = await readZip(new Blob([zip as BlobPart]));
       expect(entries.map((e) => e.name)).toEqual(["a/b.txt", "c.bin"]);
-      expect(new TextDecoder().decode(await entries[0].read(100))).toBe(
+      expect(new TextDecoder().decode(await entries[0]?.read(100))).toBe(
         "hello",
       );
-      expect(await entries[1].read(100)).toEqual(PNG);
+      expect(await entries[1]?.read(100)).toEqual(PNG);
     }
   });
 
   it("refuses an entry larger than the limit", async () => {
     const zip = await buildZip({ "big.txt": "x".repeat(1000) });
     const [entry] = await readZip(new Blob([zip as BlobPart]));
-    await expect(entry.read(10)).rejects.toThrow();
+    await expect(entry?.read(10)).rejects.toThrow();
   });
 
   it("rejects something that is not a zip", async () => {
@@ -145,8 +145,8 @@ describe("importFiles with Takeout", () => {
       handlers,
     );
     expect(summary).toEqual({ singleCount: 0, bulkCount: 2, failedCount: 0 });
-    expect(bulks[0].map((n) => n.title).sort()).toEqual(["", "Shopping"]);
-    expect(bulks[0].find((n) => n.title === "Shopping")?.images).toHaveLength(
+    expect(bulks[0]?.map((n) => n.title).sort()).toEqual(["", "Shopping"]);
+    expect(bulks[0]?.find((n) => n.title === "Shopping")?.images).toHaveLength(
       1,
     );
   });
@@ -163,7 +163,7 @@ describe("importFiles with Takeout", () => {
     );
     expect(summary).toEqual({ singleCount: 0, bulkCount: 2, failedCount: 0 });
     expect(bulks).toHaveLength(1);
-    expect(bulks[0][0].images).toHaveLength(1);
+    expect(bulks[0]?.[0]?.images).toHaveLength(1);
   });
 
   it("restores a server's account download from its notes.json", async () => {
@@ -196,7 +196,7 @@ describe("importFiles with Takeout", () => {
       handlers,
     );
     expect(summary).toEqual({ singleCount: 0, bulkCount: 1, failedCount: 0 });
-    expect(bulks[0][0]).toMatchObject({
+    expect(bulks[0]?.[0]).toMatchObject({
       id: "01HACCOUNT",
       color: NoteColor.Blue,
       trashed: true,

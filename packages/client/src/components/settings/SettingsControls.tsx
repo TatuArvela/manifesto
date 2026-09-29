@@ -30,7 +30,7 @@ export function SettingsGroup({
   title,
   children,
 }: {
-  title?: string;
+  title?: string | undefined;
   children: ComponentChildren;
 }) {
   return (
@@ -58,7 +58,7 @@ export type SettingsOption<T extends string> = {
   /** Rendered ahead of the label, e.g. a colour swatch. */
   preview?: JSX.Element;
   /** Applied to the label, e.g. to show a font in the font it picks. */
-  labelStyle?: JSX.CSSProperties;
+  labelStyle?: JSX.CSSProperties | undefined;
 };
 
 /** The shared innards of the trigger and every menu item. */

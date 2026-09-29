@@ -96,7 +96,7 @@ describe("attaching an image", () => {
       ) as HTMLElement
     ).click();
     await vi.waitFor(() => expect(notes.value).toHaveLength(1));
-    expect(notes.value[0].images).toEqual([REF]);
+    expect(notes.value[0]?.images).toEqual([REF]);
   });
 
   it("keeps a failed upload marked, and tries again on request", async () => {

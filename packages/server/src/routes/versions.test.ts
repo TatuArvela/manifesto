@@ -109,7 +109,7 @@ describe("version routes", () => {
       content: "old",
       timestamp: then,
     });
-    expect((await versions(owner))[0].timestamp).toBe(then);
+    expect((await versions(owner))[0]?.timestamp).toBe(then);
   });
 
   it("keeps the newest versions only", async () => {
@@ -125,7 +125,7 @@ describe("version routes", () => {
     }
     const kept = await versions(owner);
     expect(kept).toHaveLength(MAX_NOTE_VERSIONS);
-    expect(kept[0].content).toBe(String(MAX_NOTE_VERSIONS + 2));
+    expect(kept[0]?.content).toBe(String(MAX_NOTE_VERSIONS + 2));
   });
 
   it("goes with the note", async () => {

@@ -52,7 +52,13 @@
         "noUnusedVariables": "error",
         "noUnusedFunctionParameters": "error",
         "noUnusedPrivateClassMembers": "error",
-        "noUndeclaredDependencies": "error"
+        "noUndeclaredDependencies": "error",
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            "reportUnnecessaryDependencies": false
+          }
+        }
       },
       "suspicious": {
         "noImportCycles": "error",
@@ -70,7 +76,8 @@
         "noBlankTarget": "error"
       },
       "nursery": {
-        "useIframeSandbox": "error"
+        "useIframeSandbox": "error",
+        "noFloatingPromises": "error"
       }
     }
   },

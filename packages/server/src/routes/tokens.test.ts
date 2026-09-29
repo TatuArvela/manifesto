@@ -4,6 +4,7 @@ import type {
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { hashToken } from "../lib/token.js";
+import { defined } from "../test/defined.js";
 import {
   authHeaders,
   bootTestApp,
@@ -93,7 +94,11 @@ describe("API tokens", () => {
     });
     const res = await call(session, "GET", "/api/tokens");
     const { tokens } = (await res.json()) as ApiTokensResponse;
-    expect(tokens[0].scopes).toEqual(["notes:read", "sharing", "account:read"]);
+    expect(tokens[0]?.scopes).toEqual([
+      "notes:read",
+      "sharing",
+      "account:read",
+    ]);
   });
 
   it("refuses a scope it does not know, and a token with none", async () => {
@@ -113,7 +118,7 @@ describe("API tokens", () => {
     const { tokens } = (await res.json()) as ApiTokensResponse;
     expect(tokens).toHaveLength(1);
     expect(JSON.stringify(tokens)).not.toContain(secret);
-    expect(tokens[0].lastUsedAt).not.toBeNull();
+    expect(defined(tokens[0]).lastUsedAt).not.toBeNull();
   });
 
   it("keeps a token away from the account's own security", async () => {

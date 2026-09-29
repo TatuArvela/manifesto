@@ -158,10 +158,10 @@ async function notesFromZip(
   );
   const firstDir = (name: string) =>
     name.includes("/") ? name.slice(0, name.indexOf("/") + 1) : "";
+  const [first] = markdown;
   const root =
-    markdown.length > 0 &&
-    markdown.every((e) => firstDir(e.name) === firstDir(markdown[0].name))
-      ? firstDir(markdown[0].name)
+    first && markdown.every((e) => firstDir(e.name) === firstDir(first.name))
+      ? firstDir(first.name)
       : "";
 
   const notes: Note[] = [];
