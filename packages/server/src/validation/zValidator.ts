@@ -13,4 +13,5 @@ export function validatorHook(result: ValidatorResult, c: Context) {
     const error = path ? `${path}: ${detail}` : detail;
     return c.json({ error }, 422);
   }
+  return undefined;
 }

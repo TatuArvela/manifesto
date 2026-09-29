@@ -1,5 +1,10 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "assist": {
     "actions": {
       "source": {
@@ -24,7 +29,33 @@
         "useKeyWithClickEvents": "warn"
       },
       "style": {
-        "noNonNullAssertion": "warn"
+        "noNonNullAssertion": "warn",
+        "useThrowOnlyError": "error",
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 1000
+          }
+        }
+      },
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error",
+        "noUnusedFunctionParameters": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUndeclaredDependencies": "error"
+      },
+      "suspicious": {
+        "noImportCycles": "error",
+        "noFocusedTests": "error",
+        "noSkippedTests": "error",
+        "noTsIgnore": "error"
+      },
+      "security": {
+        "noBlankTarget": "error"
+      },
+      "nursery": {
+        "useIframeSandbox": "error"
       }
     }
   },
@@ -268,7 +299,8 @@
                       "../test/**",
                       "../validation/**",
                       "../webhooks/**",
-                      "../ws/**"
+                      "../ws/**",
+                      "../openapi/**"
                     ],
                     "message": "lib/ holds plumbing that knows nothing of notes, accounts or sockets: code that does belongs in the folder for its subject (a background job goes in jobs/)."
                   }
@@ -327,7 +359,9 @@
                       "../webhooks/**",
                       "../../webhooks/**",
                       "../ws/**",
-                      "../../ws/**"
+                      "../../ws/**",
+                      "../openapi/**",
+                      "../../openapi/**"
                     ],
                     "message": "storage/ is under everything but lib/: a rule both drivers must keep belongs in the repos, and anything else in the caller."
                   }
@@ -373,6 +407,69 @@
                 ]
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/server/src/openapi/**",
+        "packages/server/src/audit/**",
+        "packages/server/src/auth/**",
+        "packages/server/src/client/**",
+        "packages/server/src/export/**",
+        "packages/server/src/jobs/**",
+        "packages/server/src/linkPreview/**",
+        "packages/server/src/mail/**",
+        "packages/server/src/mcp/**",
+        "packages/server/src/oauth/**",
+        "packages/server/src/middleware/**",
+        "packages/server/src/sharing/**",
+        "packages/server/src/test/**",
+        "packages/server/src/validation/**",
+        "packages/server/src/webhooks/**",
+        "packages/server/src/ws/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../routes/**", "../../routes/**"],
+                    "message": "Only app.ts mounts routes/: move what the route and this file share out of routes/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/client/src/**", "!**/*.test.ts", "!**/*.test.tsx"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/i18n/messages/**",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noExcessiveLinesPerFile": "off"
           }
         }
       }

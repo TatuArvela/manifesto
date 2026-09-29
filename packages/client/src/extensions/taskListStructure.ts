@@ -112,6 +112,7 @@ export function docHasCheckedItems(doc: ProseNode): boolean {
       found = true;
       return false;
     }
+    return true;
   });
   return found;
 }
@@ -132,6 +133,7 @@ export function deleteCheckedItemsIn(view: EditorView): void {
         targetSize = node.nodeSize;
         return false;
       }
+      return true;
     });
     if (targetPos < 0) break;
     const range = getDeletionRange(doc, targetPos, targetSize);

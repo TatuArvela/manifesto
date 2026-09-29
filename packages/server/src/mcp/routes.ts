@@ -49,7 +49,7 @@ export function createMcpRoutes(deps: McpDeps) {
         return c.json({ error: "Origin not allowed" }, 403);
       }
     }
-    await next();
+    return next();
   };
 
   routes.post("/", checkOrigin, async (c) => {

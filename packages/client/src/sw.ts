@@ -346,7 +346,8 @@ self.addEventListener("notificationclick", (event) => {
       for (const client of clientList) {
         if ("focus" in client) {
           client.postMessage({ type: "open-note", noteId });
-          return client.focus();
+          await client.focus();
+          return;
         }
       }
       if (self.clients.openWindow) {

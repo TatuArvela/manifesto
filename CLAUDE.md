@@ -683,6 +683,12 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - No em dashes (—) anywhere: docs, comments, UI strings, test names, commit messages and PR
   descriptions. Use whichever punctuation fits the sentence: a colon, a semicolon, a comma,
   parentheses, or a full stop. A term followed by its definition in a list is `**Term**: text`.
+  `pnpm lint` fails on one (`lint:dashes`), and on any Biome warning, not only errors.
+- A source file stops at 1000 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
+  exempt). Split along a seam rather than raising the limit.
+- `tsconfig.base.json` adds `verbatimModuleSyntax`, `noImplicitOverride` and `noImplicitReturns`
+  to strict mode. The server builds from `tsconfig.build.json`, which leaves out tests,
+  `storage/contracts/` and `src/test/`, so none of them ship in the image.
 
 ## Rules
 

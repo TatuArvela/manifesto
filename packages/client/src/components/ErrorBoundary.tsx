@@ -72,9 +72,9 @@ async function inlineLocal(image: unknown): Promise<unknown> {
  * only the open-mode images are read from IndexedDB, and only best effort.
  */
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  override state: State = { error: null };
 
-  static getDerivedStateFromError(error: Error): State {
+  static override getDerivedStateFromError(error: Error): State {
     return { error };
   }
 
