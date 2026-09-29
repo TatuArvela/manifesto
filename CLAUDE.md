@@ -58,7 +58,8 @@ pnpm test             # Run all tests (Vitest)
 
 The client's browser project drives real Chromium, so a fresh clone needs the browser binary
 once: `pnpm --filter @manifesto/client exec playwright install --with-deps chromium`. CI gates
-on exactly `lint`, `typecheck`, `test`, then both builds.
+on exactly `lint`, `typecheck`, `test`, then both builds, and a PR on its title and commit subjects
+(`scripts/check-titles.mjs`, which `pnpm install` also wires in as the `commit-msg` hook).
 
 Run for a single package with `pnpm --filter @manifesto/<client|server|shared> <script>`.
 
