@@ -4,27 +4,75 @@ export function currentTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-export function parseLocalISO(iso: string): Date {
-  const m = iso.match(
-    /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?$/,
-  );
-  if (!m) return new Date(iso);
-  const [, y, mo, d, h = "0", mi = "0", s = "0"] = m;
-  return new Date(
-    Number(y),
-    Number(mo) - 1,
-    Number(d),
-    Number(h),
-    Number(mi),
-    Number(s),
-  );
+const LOCAL_ISO = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?$/;
+
+/** A local wall-clock time as its written parts, month zero-based. */
+interface ClockParts {
+  y: number;
+  mo: number;
+  d: number;
+  h: number;
+  mi: number;
+  s: number;
 }
 
+function partsOf(iso: string): ClockParts {
+  const m = LOCAL_ISO.exec(iso);
+  if (m) {
+    const [, y, mo, d, h = "0", mi = "0", s = "0"] = m;
+    return {
+      y: Number(y),
+      mo: Number(mo) - 1,
+      d: Number(d),
+      h: Number(h),
+      mi: Number(mi),
+      s: Number(s),
+    };
+  }
+  const date = new Date(iso);
+  return {
+    y: date.getFullYear(),
+    mo: date.getMonth(),
+    d: date.getDate(),
+    h: date.getHours(),
+    mi: date.getMinutes(),
+    s: date.getSeconds(),
+  };
+}
+
+export function parseLocalISO(iso: string): Date {
+  if (!LOCAL_ISO.test(iso)) return new Date(iso);
+  const { y, mo, d, h, mi, s } = partsOf(iso);
+  return new Date(y, mo, d, h, mi, s);
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
 export function formatLocalISO(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
   return (
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
     `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+}
+
+/**
+ * A date at a wall-clock time, written as given. The date is normalised
+ * through a `Date` at noon, which no daylight saving change reaches, and the
+ * clock is kept even on a day it does not exist (02:30 when the clocks jump
+ * from 02:00 to 03:00): `parseLocalISO` then lands that one fire just after
+ * the gap, and the step after starts from the reminder's own hour again.
+ * Read back from a `Date`, the hour came out as 03 and stayed there.
+ */
+function atClock(
+  y: number,
+  mo: number,
+  d: number,
+  { h, mi, s }: Pick<ClockParts, "h" | "mi" | "s">,
+): string {
+  const date = new Date(y, mo, d, 12);
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(h)}:${pad(mi)}:${pad(s)}`
   );
 }
 
@@ -40,34 +88,23 @@ export function nextOccurrence(
   day?: number,
 ): string | null {
   if (recurrence === "none") return null;
-  const src = parseLocalISO(time);
-  const y = src.getFullYear();
-  const mo = src.getMonth();
-  const d = day ?? src.getDate();
-  const h = src.getHours();
-  const mi = src.getMinutes();
-  const s = src.getSeconds();
-  let next: Date;
+  const src = partsOf(time);
+  const { y, mo } = src;
+  const d = day ?? src.d;
   switch (recurrence) {
     case "daily":
-      next = new Date(y, mo, d + 1, h, mi, s);
-      break;
+      return atClock(y, mo, d + 1, src);
     case "weekly":
-      next = new Date(y, mo, d + 7, h, mi, s);
-      break;
+      return atClock(y, mo, d + 7, src);
     case "monthly": {
-      const targetMonth = mo + 1;
-      const lastDay = new Date(y, targetMonth + 1, 0).getDate();
-      next = new Date(y, targetMonth, Math.min(d, lastDay), h, mi, s);
-      break;
+      const lastDay = new Date(y, mo + 2, 0, 12).getDate();
+      return atClock(y, mo + 1, Math.min(d, lastDay), src);
     }
     case "yearly": {
-      const lastDay = new Date(y + 1, mo + 1, 0).getDate();
-      next = new Date(y + 1, mo, Math.min(d, lastDay), h, mi, s);
-      break;
+      const lastDay = new Date(y + 1, mo + 1, 0, 12).getDate();
+      return atClock(y + 1, mo, Math.min(d, lastDay), src);
     }
   }
-  return formatLocalISO(next);
 }
 
 export function snapToFuture(

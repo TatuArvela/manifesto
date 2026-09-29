@@ -110,6 +110,22 @@ describe("a recurring reminder over many fires", () => {
     ]);
   });
 
+  // 02:30 does not exist on 8 March 2026 in New York, nor 03:30 on 29 March
+  // 2026 in Helsinki: read back through a Date, the hour came out an hour
+  // late and every later occurrence kept it.
+  it("keeps its hour through a daylight saving gap, in any zone", () => {
+    expect(fires("2026-03-07T02:30:00", "daily", 2)).toEqual([
+      "2026-03-07T02:30:00",
+      "2026-03-08T02:30:00",
+      "2026-03-09T02:30:00",
+    ]);
+    expect(fires("2026-03-22T03:30:00", "weekly", 2)).toEqual([
+      "2026-03-22T03:30:00",
+      "2026-03-29T03:30:00",
+      "2026-04-05T03:30:00",
+    ]);
+  });
+
   it("keeps the 30th through February and a leap year", () => {
     expect(fires("2028-01-30T09:00:00", "monthly", 3)).toEqual([
       "2028-01-30T09:00:00",
