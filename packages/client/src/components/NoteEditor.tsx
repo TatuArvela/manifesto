@@ -1,80 +1,44 @@
-import type { LinkPreview, NoteReminder } from "@manifesto/shared";
-import {
-  MAX_IMAGE_SOURCE_BYTES,
-  type NoteColor,
+import type {
+  LinkPreview,
+  NoteColor,
   NoteFont,
+  NoteReminder,
 } from "@manifesto/shared";
 import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
 import { redoCommand, undoCommand } from "@milkdown/kit/plugin/history";
 import { redoDepth, undoDepth } from "@milkdown/kit/prose/history";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { callCommand } from "@milkdown/kit/utils";
-import {
-  ArrowLeft,
-  Check,
-  Code,
-  EllipsisVertical,
-  Eye,
-  Image as ImageIcon,
-  Palette,
-  Pin,
-  PinOff,
-  Redo,
-  Type,
-  Undo,
-  X,
-} from "lucide-preact";
+import { ArrowLeft, Pin, PinOff } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
-import { getDeletionRange } from "../extensions/taskItemDraggable.js";
-import { usePresence } from "../hooks/usePresence.js";
 import {
-  formatFileSize,
-  getColorPickerColors,
-  getFontLabel,
-  t,
-} from "../i18n/index.js";
-import { attachImage, ImageTooLargeError } from "../state/attachments.js";
+  deleteCheckedItemsIn,
+  docHasCheckedItems,
+} from "../extensions/taskListStructure.js";
+import { useImageUploads } from "../hooks/useImageUploads.js";
+import { usePresence } from "../hooks/usePresence.js";
+import { t } from "../i18n/index.js";
 import { defaultEditMode, formattingToolbar } from "../state/prefs.js";
-import { showError } from "../state/ui.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import {
   removeCheckedItems,
   hasCheckedItems as textHasCheckedItems,
 } from "../utils/markdown.js";
 import { applyTextEdit } from "../utils/rawFormatting.js";
-import { Dropdown } from "./Dropdown.js";
+import { editorBtnClass, editorIconClass } from "./editorButtons.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { ImageGallery } from "./ImageGallery.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
-import {
-  menuDividerClass,
-  menuItemClass,
-  menuPanelClass,
-  NoteMenu,
-  type NoteMenuItem,
-} from "./NoteMenu.js";
+import { NoteEditorToolbar } from "./NoteEditorToolbar.js";
+import type { NoteMenuItem } from "./NoteMenu.js";
+import { PendingUploads } from "./PendingUploads.js";
 import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
-import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
-import { TagPickerButton } from "./TagPicker.js";
+import { ReminderPickerPanel } from "./ReminderPicker.js";
 import { Tooltip } from "./Tooltip.js";
-
-const iconBtnClass =
-  "p-1.5 max-sm:p-2.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
-
-/**
- * The open note's buttons and icons. A fifth larger than a card's on a phone,
- * where the editor fills the screen and is worked with a thumb: 36px targets
- * become 43px.
- */
-const editorBtnClass =
-  "p-1.5 max-sm:p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
-const editorIconClass = "w-4 h-4 max-sm:w-[1.2rem] max-sm:h-[1.2rem]";
-
-export { editorBtnClass, editorIconClass, iconBtnClass };
 
 interface NoteEditorProps {
   title: string;
@@ -167,9 +131,6 @@ export function NoteEditor({
   onEditorReady,
   collab,
 }: NoteEditorProps) {
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showFontPicker, setShowFontPicker] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
   const reminderChipPicker = usePresence(
     showReminderChipPicker || null,
@@ -185,7 +146,6 @@ export function NoteEditor({
   // state and toolbar active-format refresh.
   const [txCount, setTxCount] = useState(0);
   const titleRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
   const rawTextareaRef = useRef<HTMLTextAreaElement>(null);
   // The textarea is always mounted, only hidden, so this is the one switch for
@@ -193,96 +153,8 @@ export function NoteEditor({
   // and the rich editor behind it is rebuilt from it on the way back.
   const rawTextarea = rawMode ? rawTextareaRef.current : null;
 
-  // Attached files become pending uploads: drawn at once from the local file,
-  // stored (uploaded, in connected mode, with progress), and handed to
-  // `onAddImages` as the reference once stored. A failed one stays, marked,
-  // with a retry, rather than a note that points at nothing. Closing the
-  // editor cancels whatever is still uploading.
-  const [uploads, setUploads] = useState<PendingUpload[]>([]);
-  const uploadsRef = useRef<PendingUpload[]>([]);
-  uploadsRef.current = uploads;
-  const onAddImagesRef = useRef(onAddImages);
-  onAddImagesRef.current = onAddImages;
-
-  useEffect(
-    () => () => {
-      for (const upload of uploadsRef.current) {
-        upload.controller.abort();
-        URL.revokeObjectURL(upload.preview);
-      }
-    },
-    [],
-  );
-
-  const patchUpload = (key: string, patch: Partial<PendingUpload>) =>
-    setUploads((list) =>
-      list.map((u) => (u.key === key ? { ...u, ...patch } : u)),
-    );
-
-  const dropUpload = (key: string) =>
-    setUploads((list) => {
-      const upload = list.find((u) => u.key === key);
-      if (upload) {
-        upload.controller.abort();
-        URL.revokeObjectURL(upload.preview);
-      }
-      return list.filter((u) => u.key !== key);
-    });
-
-  const runUpload = (upload: PendingUpload) => {
-    attachImage(upload.file, {
-      signal: upload.controller.signal,
-      onProgress: (progress) => patchUpload(upload.key, { progress }),
-    })
-      .then((stored) => {
-        // Closed or removed while it finished: the image belongs to nothing.
-        if (upload.controller.signal.aborted) return;
-        dropUpload(upload.key);
-        onAddImagesRef.current([stored]);
-      })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        if (err instanceof ImageTooLargeError) {
-          showError(
-            t("editor.imageTooLarge", {
-              name: upload.file.name,
-              size: formatFileSize(MAX_IMAGE_SOURCE_BYTES),
-            }),
-          );
-          dropUpload(upload.key);
-          return;
-        }
-        patchUpload(upload.key, { failed: true });
-      });
-  };
-
-  const attachFiles = (files: File[]) => {
-    const added = files.map(
-      (file): PendingUpload => ({
-        key: `${Date.now()}-${Math.random()}`,
-        file,
-        preview: URL.createObjectURL(file),
-        progress: 0,
-        failed: false,
-        controller: new AbortController(),
-      }),
-    );
-    setUploads((list) => [...list, ...added]);
-    for (const upload of added) runUpload(upload);
-  };
-
-  const retryUpload = (key: string) => {
-    const upload = uploadsRef.current.find((u) => u.key === key);
-    if (!upload) return;
-    const fresh = {
-      ...upload,
-      progress: 0,
-      failed: false,
-      controller: new AbortController(),
-    };
-    setUploads((list) => list.map((u) => (u.key === key ? fresh : u)));
-    runUpload(fresh);
-  };
+  const { uploads, attachFiles, retryUpload, dropUpload } =
+    useImageUploads(onAddImages);
 
   const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -382,13 +254,6 @@ export function NoteEditor({
   };
 
   const colors = noteColorMap[color];
-  const pickerColors = getColorPickerColors();
-
-  const closeAllMenus = () => {
-    setShowColorPicker(false);
-    setShowFontPicker(false);
-    setShowMenu(false);
-  };
 
   // Read straight off the editor on every render rather than memoised: the
   // `txCount` bump in `dispatchTransaction` is what schedules that render, so
@@ -409,18 +274,7 @@ export function NoteEditor({
   const hasCheckedItems = rawTextarea
     ? textHasCheckedItems(rawTextarea.value)
     : editor
-      ? editor.action((ctx) => {
-          const state = ctx.get(editorStateCtx);
-          let found = false;
-          state.doc.descendants((node) => {
-            if (found) return false;
-            if (node.type.name === "list_item" && node.attrs.checked === true) {
-              found = true;
-              return false;
-            }
-          });
-          return found;
-        })
+      ? editor.action((ctx) => docHasCheckedItems(ctx.get(editorStateCtx).doc))
       : false;
 
   const deleteCheckedItems = () => {
@@ -437,45 +291,12 @@ export function NoteEditor({
     if (!editor) return;
     editor.action((ctx) => {
       const view = ctx.get(editorViewCtx);
-      // Delete one checked item at a time so getDeletionRange re-evaluates
-      // ancestor lists after each removal (emptied single-child lists get
-      // pruned on the next pass).
-      while (true) {
-        const { doc } = view.state;
-        let targetPos = -1;
-        let targetSize = 0;
-        doc.descendants((node, pos) => {
-          if (targetPos >= 0) return false;
-          if (node.type.name === "list_item" && node.attrs.checked === true) {
-            targetPos = pos;
-            targetSize = node.nodeSize;
-            return false;
-          }
-        });
-        if (targetPos < 0) break;
-        const range = getDeletionRange(doc, targetPos, targetSize);
-        view.dispatch(view.state.tr.delete(range.from, range.to));
-      }
+      deleteCheckedItemsIn(view);
       view.focus();
     });
   };
 
   const checkedItems = { present: hasCheckedItems, remove: deleteCheckedItems };
-
-  // Rendered in one of two places, see the toolbar below.
-  const imageButton = (
-    <Tooltip label={t("editor.addImage")}>
-      <button
-        type="button"
-        class={editorBtnClass}
-        onClick={() => fileInputRef.current?.click()}
-        aria-label={t("editor.addImage")}
-        disabled={disabled}
-      >
-        <ImageIcon class={editorIconClass} />
-      </button>
-    </Tooltip>
-  );
 
   return (
     <article
@@ -653,344 +474,28 @@ export function NoteEditor({
         )}
       </div>
 
-      {/* The bottom toolbar. Two groups that wrap as units: the first tools,
-          and everything else. When a phone is too narrow for one row, the
-          first group is what gives way, so it moves up a row and the controls
-          a thumb reaches for (the menu, undo, done) keep the bottom one. */}
-      <div class="note-sheet-bottom px-3 pt-1.5 sm:pb-2 flex flex-wrap items-center gap-0.5">
-        <div class="flex items-center gap-0.5">
-          <Dropdown
-            open={showColorPicker}
-            onClose={() => setShowColorPicker(false)}
-            trigger={
-              <Tooltip label={t("editor.color")}>
-                <button
-                  type="button"
-                  class={editorBtnClass}
-                  onClick={() => {
-                    setShowColorPicker(!showColorPicker);
-                    setShowMenu(false);
-                    setShowFontPicker(false);
-                  }}
-                  aria-label={t("editor.changeColor")}
-                >
-                  <Palette class={editorIconClass} />
-                </button>
-              </Tooltip>
-            }
-            placement="top-start"
-            panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
-          >
-            {pickerColors.map((c) => (
-              <Tooltip key={c.value} label={c.label}>
-                <button
-                  type="button"
-                  class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                  onClick={() => onColorChange(c.value)}
-                  aria-label={c.label}
-                />
-              </Tooltip>
-            ))}
-          </Dropdown>
-
-          {/* Font picker (desktop only; on mobile, fonts live in the kebab menu) */}
-          <div class="max-sm:hidden flex">
-            <Dropdown
-              open={showFontPicker}
-              onClose={() => setShowFontPicker(false)}
-              trigger={
-                <Tooltip label={t("editor.font")}>
-                  <button
-                    type="button"
-                    class={editorBtnClass}
-                    onClick={() => {
-                      setShowFontPicker(!showFontPicker);
-                      setShowColorPicker(false);
-                      setShowMenu(false);
-                    }}
-                    aria-label={t("editor.changeFont")}
-                  >
-                    <Type class={editorIconClass} />
-                  </button>
-                </Tooltip>
-              }
-              placement="top-start"
-              panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
-            >
-              {Object.values(NoteFont).map((f) => {
-                const label = getFontLabel(f);
-                return (
-                  <Tooltip key={f} label={label}>
-                    <button
-                      type="button"
-                      class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                      style={{
-                        fontFamily: noteFontFamilies[f] || undefined,
-                      }}
-                      onClick={() => onFontChange(f)}
-                      aria-label={label}
-                    >
-                      Aa
-                    </button>
-                  </Tooltip>
-                );
-              })}
-            </Dropdown>
-          </div>
-
-          {/* The second tool on a phone. A new note has no reminder, so there
-              the image button takes its place. */}
-          {onReminderChange ? (
-            <ReminderPicker
-              reminder={reminder ?? null}
-              onChange={onReminderChange}
-              triggerClass={editorBtnClass}
-              iconClass={editorIconClass}
-            />
-          ) : (
-            imageButton
-          )}
-        </div>
-
-        {/* `grow` so that on a row of its own it still spans the bar. It does
-            not wrap inside itself, so it only ever moves as a whole. */}
-        <div class="grow flex items-center gap-0.5">
-          {onReminderChange && imageButton}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            class="hidden"
-            onChange={(e) => {
-              const input = e.target as HTMLInputElement;
-              handleFilesSelected(input.files);
-              input.value = "";
-            }}
-          />
-
-          <TagPickerButton
-            tags={tags}
-            onAddTag={onAddTag}
-            triggerClass={editorBtnClass}
-            iconClass={editorIconClass}
-          />
-
-          <Dropdown
-            open={showMenu}
-            onClose={() => setShowMenu(false)}
-            trigger={
-              <Tooltip label={t("noteMenu.more")}>
-                <button
-                  type="button"
-                  class={editorBtnClass}
-                  onClick={() => {
-                    setShowMenu(!showMenu);
-                    setShowColorPicker(false);
-                    setShowFontPicker(false);
-                  }}
-                  aria-label={t("noteMenu.moreOptions")}
-                >
-                  <EllipsisVertical class={editorIconClass} />
-                </button>
-              </Tooltip>
-            }
-            placement="top-start"
-            panelClass={menuPanelClass}
-          >
-            <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
-              {t("editor.font")}
-            </div>
-            <div class="sm:hidden flex gap-1 px-3 pb-2">
-              {Object.values(NoteFont).map((f) => {
-                const label = getFontLabel(f);
-                return (
-                  <button
-                    key={f}
-                    type="button"
-                    class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                    style={{ fontFamily: noteFontFamilies[f] || undefined }}
-                    onClick={() => onFontChange(f)}
-                    aria-label={label}
-                  >
-                    Aa
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Raw / Normal mode toggle (mobile only) */}
-            <button
-              type="button"
-              class={`sm:hidden ${menuItemClass}`}
-              onClick={() => {
-                setRawMode(!rawMode);
-                closeAllMenus();
-              }}
-            >
-              {rawMode ? <Eye class="w-4 h-4" /> : <Code class="w-4 h-4" />}
-              {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
-            </button>
-
-            <div class={`sm:hidden ${menuDividerClass}`} />
-
-            <NoteMenu
-              items={menuItems?.({ checkedItems }) ?? []}
-              onClose={() => setShowMenu(false)}
-            />
-          </Dropdown>
-
-          {/* Normal / Raw mode toggle (desktop only; on mobile, lives in the kebab menu) */}
-          <div class="max-sm:hidden flex">
-            <Tooltip
-              label={rawMode ? t("editor.normalMode") : t("editor.rawMode")}
-            >
-              <button
-                type="button"
-                class={editorBtnClass}
-                onClick={() => setRawMode(!rawMode)}
-                aria-label={
-                  rawMode ? t("editor.normalMode") : t("editor.rawMode")
-                }
-              >
-                {rawMode ? (
-                  <Eye class={editorIconClass} />
-                ) : (
-                  <Code class={editorIconClass} />
-                )}
-              </button>
-            </Tooltip>
-          </div>
-
-          {/* Centered between the tools and Done on a phone, inline on desktop. */}
-          <div class="flex-1 sm:hidden" />
-
-          <div class="flex items-center gap-0.5">
-            <Tooltip label={t("editor.undo")}>
-              <button
-                type="button"
-                class={`${editorBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
-                onClick={() => editor?.action(callCommand(undoCommand.key))}
-                aria-label={t("editor.undo")}
-                disabled={!canUndo}
-              >
-                <Undo class={editorIconClass} />
-              </button>
-            </Tooltip>
-            <Tooltip label={t("editor.redo")}>
-              <button
-                type="button"
-                class={`${editorBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
-                onClick={() => editor?.action(callCommand(redoCommand.key))}
-                aria-label={t("editor.redo")}
-                disabled={!canRedo}
-              >
-                <Redo class={editorIconClass} />
-              </button>
-            </Tooltip>
-          </div>
-
-          <div class="flex-1" />
-
-          {onDelete && deleteLabel && (
-            <Tooltip label={deleteLabel}>
-              <button
-                type="button"
-                class={editorBtnClass}
-                onClick={onDelete}
-                aria-label={deleteLabel}
-              >
-                <X class={editorIconClass} />
-              </button>
-            </Tooltip>
-          )}
-
-          <Tooltip label={t("editor.done")}>
-            <button
-              type="button"
-              class={editorBtnClass}
-              onClick={onDone}
-              aria-label={t("editor.done")}
-            >
-              <Check class={editorIconClass} />
-            </button>
-          </Tooltip>
-        </div>
-      </div>
+      <NoteEditorToolbar
+        color={color}
+        onColorChange={onColorChange}
+        font={font}
+        onFontChange={onFontChange}
+        tags={tags}
+        onAddTag={onAddTag}
+        reminder={reminder}
+        onReminderChange={onReminderChange}
+        onFilesSelected={handleFilesSelected}
+        rawMode={rawMode}
+        onToggleRawMode={() => setRawMode(!rawMode)}
+        menuItems={menuItems?.({ checkedItems }) ?? []}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={() => editor?.action(callCommand(undoCommand.key))}
+        onRedo={() => editor?.action(callCommand(redoCommand.key))}
+        onDelete={onDelete}
+        deleteLabel={deleteLabel}
+        onDone={onDone}
+        disabled={disabled}
+      />
     </article>
-  );
-}
-
-interface PendingUpload {
-  key: string;
-  file: File;
-  /** A `blob:` URL of the file, drawn while it is on its way. */
-  preview: string;
-  /** 0 to 1. */
-  progress: number;
-  failed: boolean;
-  controller: AbortController;
-}
-
-/** Images being stored: the file as it was picked, with progress, or marked
- * as failed with a retry. */
-function PendingUploads({
-  uploads,
-  onRetry,
-  onRemove,
-}: {
-  uploads: PendingUpload[];
-  onRetry: (key: string) => void;
-  onRemove: (key: string) => void;
-}) {
-  return (
-    <div class="flex flex-col">
-      {uploads.map((upload) => (
-        <div key={upload.key} class="relative bg-black/5 dark:bg-white/5">
-          <img
-            src={upload.preview}
-            alt=""
-            class={`w-full h-auto max-h-96 object-cover block ${upload.failed ? "opacity-40" : "opacity-70"}`}
-          />
-          {upload.failed ? (
-            <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center">
-              <p class="text-sm font-medium text-red-700 dark:text-red-300 bg-white/80 dark:bg-black/60 rounded px-2 py-1">
-                {t("editor.uploadFailed", { name: upload.file.name })}
-              </p>
-              <div class="flex gap-2">
-                <button
-                  type="button"
-                  class="px-3 py-1 text-sm rounded-full bg-white/90 dark:bg-neutral-800/90 hover:bg-white dark:hover:bg-neutral-700 cursor-pointer"
-                  onClick={() => onRetry(upload.key)}
-                >
-                  {t("editor.retryUpload")}
-                </button>
-                <button
-                  type="button"
-                  class="px-3 py-1 text-sm rounded-full bg-white/90 dark:bg-neutral-800/90 hover:bg-white dark:hover:bg-neutral-700 cursor-pointer"
-                  onClick={() => onRemove(upload.key)}
-                >
-                  {t("editor.removeUpload")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div
-              class="absolute inset-x-0 bottom-0 h-1 bg-black/10"
-              role="progressbar"
-              aria-label={t("editor.uploading", { name: upload.file.name })}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(upload.progress * 100)}
-            >
-              <div
-                class="h-full bg-blue-500 transition-[width] duration-150"
-                style={{ width: `${Math.round(upload.progress * 100)}%` }}
-              />
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
   );
 }

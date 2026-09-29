@@ -5,7 +5,6 @@ import { APP_NAME } from "../config.js";
 import { t } from "../i18n/index.js";
 import { revealApp } from "../splash.js";
 import { authToken, currentUser, isServerMode } from "../state/auth.js";
-import type { ConfirmationRefusal } from "../state/confirmation.js";
 import {
   type AuthorizeRequest,
   allowClient,
@@ -16,6 +15,7 @@ import {
   rememberConsentPage,
   returnTarget,
 } from "../state/oauth.js";
+import type { ConfirmationRefusal } from "../state/passwordConfirmation.js";
 import {
   ConfirmationError,
   ConfirmPasswordField,

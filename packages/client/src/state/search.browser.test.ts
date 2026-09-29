@@ -1,9 +1,9 @@
 import { NoteColor } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createNoteOrFail } from "../test/testSupport.js";
 import { hasChecklist } from "../utils/markdown.js";
 import { notes, updateNote } from "./notesStore.js";
 import { sortMode } from "./prefs.js";
-import { createNoteOrFail } from "./testSupport.js";
 import {
   activeView,
   clearSearchFilters,

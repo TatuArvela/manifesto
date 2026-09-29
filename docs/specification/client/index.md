@@ -30,7 +30,7 @@ The Manifesto client is a static single-page application built with Preact and T
 ### Why Tailwind v4
 
 - Utility classes directly in markup for rapid development
-- CSS-first configuration via `@theme` in `styles.css`, no `tailwind.config.ts`
+- CSS-first configuration via `@theme` in `styles/setup.css` (imported by `styles.css`), no `tailwind.config.ts`
 - Built-in dark mode via the `dark:` variant
 - Production purge: only ships CSS that's actually used
 
@@ -39,16 +39,19 @@ The Manifesto client is a static single-page application built with Preact and T
 ```
 packages/client/src/
 ├── main.tsx              # Entry: mounts <App />, registers service worker
-├── styles.css            # Tailwind v4 entry + @theme tokens
+├── styles.css            # Tailwind v4 entry: imports the partials in styles/, in cascade order
+├── styles/               # The stylesheet by subject (@theme tokens in setup.css)
 ├── colors.ts             # NoteColor → Tailwind class maps (light + dark)
-├── sharing.ts            # Encode/decode shared-note URL payloads (LZ-String)
 ├── components/           # All UI components (see hierarchy below)
+│   ├── admin/            # AdminView and its pages (overview, teams, audit log)
+│   └── settings/         # SettingsDialog, one file per tab, and the rows and selects they share
 ├── extensions/           # ProseMirror/Milkdown extensions
 ├── hooks/                # Preact hooks (currently: useMilkdownEditor)
 ├── i18n/                 # Translation framework + en/fi message bundles
 ├── state/                # Signals, actions, preferences, reminder scheduler
 ├── storage/              # StorageAdapter interface + Local/Rest implementations
-├── utils/                # importExport, linkPreview, markdown helpers, remarkRenderer
+├── test/                 # Helpers only tests import, and the browser project's setup file
+├── utils/                # importExport, linkPreview, shareLink, markdown helpers, remarkRenderer
 ├── serviceWorker.ts      # PWA registration glue
 └── sw.ts                 # Service worker source (Workbox precache + runtime)
 ```
@@ -61,9 +64,10 @@ packages/client/src/
 App
 ├── Header
 │   ├── Search input
-│   ├── View toggle (grid/list)
-│   ├── Sort menu (default / updated / created)
-│   └── Settings button
+│   ├── ViewMenu           (grid/list, card shape and size)
+│   ├── SortMenu           (default / updated / created)
+│   ├── Settings button
+│   └── SelectionToolbar   (laid over the header while notes are selected)
 ├── Sidebar (desktop rail + MobileNav horizontal bar)
 │   ├── Notes
 │   ├── Tags (→ TagsView)
@@ -88,7 +92,7 @@ App
 │       └── VersionHistory      (opened from kebab menu)
 ├── SharedNoteDialog       (when a share URL hash is present)
 ├── ShareDialogHost        (who has a note: invite, roles, remove, leave; connected mode)
-├── SettingsDialog         (theme, defaults, language, import/export/delete all)
+├── SettingsDialog         (components/settings/: one file per tab, the account's pages included)
 ├── ReminderBanner         (fires when a reminder is due)
 └── Toasts                 (success + error notifications)
 ```
@@ -144,11 +148,12 @@ Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM p
 Custom ProseMirror behavior lives in `packages/client/src/extensions/`:
 
 - **`manifestoInlineMarks`**: adds underline / subscript / superscript marks that round-trip through markdown as `<u>`/`<sub>`/`<sup>` tags.
-- **`taskItemDraggable`**: drag-and-drop reordering and indent/outdent for checklist items.
+- **`taskItemDraggable`**: drag-and-drop reordering and indent/outdent for checklist items (the drag itself in `taskItemDrag.ts`, list structure in `taskListStructure.ts`).
+- **`richFormatting`**: which formats the selection has and applying one, for the formatting toolbar; `utils/rawFormatting.ts` does the same for raw mode's textarea.
 
 Read-only previews (inside `NoteCard` and shared-note dialogs) are rendered by `utils/remarkRenderer.ts`, a `unified` pipeline of `remark-parse` → `remark-gfm` → `remark-breaks` → `remark-rehype` → `rehype-stringify`, with output sanitized via DOMPurify before being inserted.
 
-`MilkdownEditor` reads the markdown back out via `getMarkdown()` and post-processes it (`unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with the preview renderer.
+`MilkdownEditor` reads the markdown back out via `getMarkdown()` and post-processes it (`normalizeMarkdown` in `utils/editorMarkdown.ts`: `unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with the preview renderer.
 
 ### Version History
 
@@ -187,11 +192,11 @@ Because GitHub Pages is a static host, deep-link refreshes would return 404. The
 
 ### Sharing
 
-`sharing.ts` encodes a note payload into a compact URL hash (`#share=…`) using LZ-String compression. When `App` mounts it checks `window.location.hash` and, if a share payload is present, shows `SharedNoteDialog` with a preview and the option to import it as a new note.
+`utils/shareLink.ts` encodes a note payload into a compact URL hash (`#share=…`) using LZ-String compression. When `App` mounts it checks `window.location.hash` and, if a share payload is present, shows `SharedNoteDialog` with a preview and the option to import it as a new note.
 
 ### Import / Export
 
-`utils/importExport.ts` handles backup roundtrips (the export zip, and the JSON earlier versions wrote) and per-note drops (Markdown, plain text, image files). `App` registers window-level `dragenter`/`dragover`/`dragleave`/`drop` handlers so files can be dropped anywhere on the window; dropped imports become new notes (or a bulk import for JSON backups).
+`utils/importExport.ts` (with `importedNote.ts` for turning file contents into notes, and `noteDownload.ts` for saving one) handles backup roundtrips (the export zip, and the JSON earlier versions wrote) and per-note drops (Markdown, plain text, image files). `App` registers window-level `dragenter`/`dragover`/`dragleave`/`drop` handlers so files can be dropped anywhere on the window; dropped imports become new notes (or a bulk import for JSON backups).
 
 ### Internationalization
 

@@ -27,7 +27,8 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
-    "lint": "biome check .",
+    "lint": "biome check --error-on-warnings . && pnpm lint:dashes",
+    "lint:dashes": "! git grep --untracked -nIP '\\x{2014}' -- ':!CLAUDE.md'",
     "lint:fix": "biome check --write .",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @manifesto/shared build && pnpm -r test"

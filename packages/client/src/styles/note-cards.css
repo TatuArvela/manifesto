@@ -1,0 +1,388 @@
+/* Note cards and the composer's sticky-note stack: transitions, pinning, leaving, selecting and dragging. */
+
+/* Changing a note's colour fades the sheet into the new one instead of
+   swapping it in a frame. A card also animates its selection ring, shadow and
+   editing opacity, quicker; listing the colours last lets them keep their own
+   duration. Utilities rather than plain rules so they sit in the same layer as
+   the rest of the element's classes and do not outrank them. */
+@utility note-color-transition {
+  transition-property: background-color, border-color;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
+}
+
+/* Named rather than `all`: a card's padding and size change too (an image-only
+   card drops its padding), and animating those resized the card on every frame
+   of the transition, each one a masonry re-measure. */
+@utility note-card-transition {
+  transition:
+    opacity 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    outline-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    outline-offset 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 300ms ease,
+    border-color 300ms ease;
+}
+
+/* Sticky note stack.
+
+   The stack is a pad of paper: two full sheets (`-next` behind `-top`) sitting
+   on a visible block of page edges (`-base`). The paper look comes from a
+   tiled grain applied to the sheets and banding on the base, both drawn in
+   pseudo-elements so the colour classes on the elements themselves are
+   untouched. */
+
+/* Tiled fractal noise, used as paper grain. One rasterised tile, repeated. */
+:root {
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+.note-stack {
+  position: relative;
+  perspective: 600px;
+  border-radius: var(--note-radius);
+  /* Layered rather than a single blur: a tight contact shadow to seat the pad
+     on the page, and a wider soft one for its bulk. */
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.07),
+    0 5px 14px -4px rgba(0, 0, 0, 0.12);
+}
+
+/* Paper grain over both sheets. Behind the note's text (negative z-index
+   within the sheet's own stacking context) so it never tints the type. */
+.note-stack-top::before,
+.note-stack-next::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: var(--paper-grain);
+  /* Multiply at a very low opacity: it has to darken slightly to register on a
+     white sheet at all; soft-light and overlay both leave pure white
+     untouched, and the default note colour is white. */
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+/* On a dark sheet, multiplying grain just muddies it, so lighten instead, and
+   more faintly, since dark paper shows less tooth. */
+.dark .note-stack-top::before,
+.dark .note-stack-next::before {
+  /* A dark sheet needs lightening rather than darkening to show any tooth. */
+  opacity: 0.07;
+  mix-blend-mode: screen;
+}
+
+/* Top note: the interactive peeling sheet. Rounded on all four corners: it is
+   a sheet of paper in its own right, and its bottom corners sit in full view
+   against the darker base below. */
+.note-stack-top {
+  position: relative;
+  border-radius: var(--note-radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transform-origin: center top;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  z-index: 1;
+}
+
+.note-stack:hover {
+  .note-stack-top:not(.note-lift-off):not(.note-hidden) {
+    position: relative;
+    transform: rotateX(22deg);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Lift-off: the sheet is pulled off the pad, and only then does the editor
+   grow out of it (NoteInput.tsx waits out `LIFT_MS`, which is this duration).
+   It starts at the same 22deg the hover state holds, so clicking a hovered
+   stack continues the peel rather than snapping flat first. The sheet then
+   comes free: it springs flat and comes up off the pad towards the viewer,
+   larger and casting a deeper shadow. Growing from its top edge (the
+   `transform-origin` above) and drifting down rather than up keeps it clear
+   of the scroll container's top, which would clip it. It stays opaque throughout, because
+   the editor takes over from it in place.
+
+   Activating by keyboard, where there is no hover, begins with a small jump to
+   that angle: the far less common path, and the peel carries it straight on. */
+@keyframes note-lift-off {
+  0% {
+    transform: rotateX(22deg) translateY(0) scale(1);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  }
+  55% {
+    transform: rotateX(-5deg) translateY(4px) scale(1.035);
+    box-shadow: 0 20px 38px rgba(0, 0, 0, 0.2);
+  }
+  100% {
+    transform: rotateX(0deg) translateY(6px) scale(1.04);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
+  }
+}
+
+.note-lift-off {
+  animation: note-lift-off 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: none;
+}
+
+/* Hidden while modal is open */
+.note-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Next note in stack: full-size note behind the top note. `z-index: 0` gives
+   it a stacking context of its own so its grain pseudo-element stays behind
+   its text instead of escaping behind the sheet entirely. */
+.note-stack-next {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--note-radius);
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease;
+}
+
+/* Stack base: the pad's visible thickness. Carries the bottom corners so the
+   sheets above it can keep square bottoms and the whole stack reads as one
+   block. */
+.note-stack-base {
+  position: relative;
+  /* Tucked up behind the sheets by exactly the corner radius, and made that
+     much taller so the stack's overall height is unchanged. Without this the
+     base's square top corners sit beside the top sheet's rounded ones and
+     leave a notch at each side; overlapping puts the base *under* that curve,
+     so the page edges peek around the sheet's corners the way a real pad's do.
+     At zero radius this collapses to the original flush block. */
+  z-index: -1;
+  margin-top: calc(-1 * var(--note-radius));
+  height: calc(14px + var(--note-radius));
+  border-radius: 0 0 var(--note-radius) var(--note-radius);
+  overflow: hidden;
+  filter: brightness(88%);
+  transition: background-color 0.4s ease;
+}
+
+/* The edges of the individual sheets making up the pad: fine horizontal
+   banding, tightening towards the bottom so the block reads as compressed
+   paper rather than a solid slab. A slight darkening towards the foot seats
+   it against the page. */
+.note-stack-base::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.06) 0px,
+      rgba(0, 0, 0, 0.06) 0.5px,
+      rgba(255, 255, 255, 0.13) 0.5px,
+      rgba(255, 255, 255, 0.13) 2px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.13));
+}
+
+.dark .note-stack-base {
+  filter: brightness(78%);
+}
+
+.dark .note-stack-base::before {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.2) 0px,
+      rgba(0, 0, 0, 0.2) 0.5px,
+      rgba(255, 255, 255, 0.05) 0.5px,
+      rgba(255, 255, 255, 0.05) 2px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.24));
+}
+
+/* Fade-out for overflowing content in square notes */
+.note-content-fade {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+}
+
+/* Pinning.
+
+   Pinning moves a card between the pinned and unpinned grids, so it unmounts
+   and remounts somewhere else entirely; with nothing to soften it, the card
+   just teleports. The arriving card plays a short settle instead: it lands
+   slightly large and a touch askew, then straightens, as though it had been
+   pressed onto the board. */
+/* The selection bar (Header.tsx) drops in over the header and fades back
+   out onto it. The exit's duration is SELECTION_BAR_LEAVE_MS there. */
+@keyframes selection-bar-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.5rem;
+  }
+}
+
+@keyframes selection-bar-out {
+  to {
+    opacity: 0;
+    translate: 0 -0.5rem;
+  }
+}
+
+.selection-bar {
+  animation: selection-bar-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.selection-bar[data-leaving="true"] {
+  animation: selection-bar-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes note-pin-settle {
+  0% {
+    opacity: 0.4;
+    transform: scale(1.045) rotate(-0.9deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.995) rotate(0.25deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.note-pin-settle {
+  animation: note-pin-settle 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Leaving the view: trashing, archiving and restoring. Each accelerates away
+   rather than easing to a stop, since the card is leaving rather than
+   arriving, and the grid closes the gap once it is gone. `forwards` keeps it
+   invisible through a slow server response, and `leavingNotes` in
+   state/actions.ts clears the attribute if the change fails, which brings the
+   card back. The duration is `LEAVE_MS` there.
+
+   Trashed or deleted, the card drops a little and shrinks away. */
+@keyframes note-leave {
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+}
+
+/* Archived, it is lifted up and off the board, to be put away. */
+@keyframes note-leave-archive {
+  to {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+}
+
+/* Undeleted or unarchived, it swells a touch as it fades: going back to the
+   notes rather than away from them. */
+@keyframes note-leave-restore {
+  to {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+.note-leaving {
+  animation: note-leave 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+.note-leaving[data-leaving="archive"] {
+  animation-name: note-leave-archive;
+}
+
+.note-leaving[data-leaving="restore"] {
+  animation-name: note-leave-restore;
+}
+
+/* Drag-to-select (hooks/useMarqueeSelection.ts). Without this, dragging the
+   box across the page also drags out a text selection. */
+body.marquee-active {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Drag-and-drop reorder */
+/* The card being dragged holds the place it would drop into, and the others
+   make room around it, but it is not drawn there: the only copy on screen is
+   the one under the pointer, the browser's drag image with a mouse and
+   `.note-drag-ghost` under a finger. `visibility`, not `display`, so it keeps
+   its space in the grid. */
+.note-dragging {
+  visibility: hidden;
+}
+
+/* The copy of a card that follows a finger (ReorderableGrid.tsx), lifted as a
+   held card is. */
+.note-drag-ghost {
+  position: fixed;
+  margin: 0;
+  z-index: 60;
+  pointer-events: none;
+  transform: scale(1.03);
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.25),
+    0 8px 10px -6px rgb(0 0 0 / 0.2);
+}
+
+/* On a touch screen a card stays pannable, so a swipe that starts on one
+   scrolls the board like a swipe anywhere else. Reordering is reached by
+   holding the card first, and a held card cancels the pan itself; see
+   hooks/useTouchGesture.ts for why `touch-action` cannot do that part. */
+@media (hover: none) {
+  .note-draggable {
+    touch-action: pan-y;
+  }
+}
+
+/* Nothing inside a card is dragged or long-pressed on its own. Links and
+   pictures are draggable by default and the nearest draggable wins, so a
+   card that is mostly link preview handed the drag to its picture; and on a
+   phone the system's long press on a link or image (the drag lift, the link
+   preview, the callout) took the touch away from the card's own hold. The
+   `draggable={false}` on the preview and gallery elements covers Firefox. */
+.note-draggable :is(a, img) {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* A card held under a finger: lifted off the board, waiting to be dragged or
+   selected. Small enough not to disturb the masonry column it sits in, since
+   `transform` takes no part in layout. */
+.note-held {
+  transform: scale(1.03);
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.25),
+    0 8px 10px -6px rgb(0 0 0 / 0.2);
+  z-index: 20;
+}
+
+/* Hide selection checkboxes on all cards while any drag is in progress.
+   We toggle `note-drag-active` on <body> synchronously in dragstart so the
+   drag-ghost snapshot already has the checkbox hidden (the `.note-dragging`
+   class is applied via rAF and arrives too late for the ghost). */
+body.note-drag-active .note-select {
+  /* biome-ignore lint/complexity/noImportantStyles: the card's own hover rule
+     sets this opacity, and the ghost snapshot is taken before we could unset
+     it any other way. */
+  opacity: 0 !important;
+  pointer-events: none;
+}

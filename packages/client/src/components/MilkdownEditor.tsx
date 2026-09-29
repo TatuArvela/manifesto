@@ -3,18 +3,16 @@ import {
   Editor,
   editorViewCtx,
   editorViewOptionsCtx,
-  prosePluginsCtx,
   remarkStringifyOptionsCtx,
   rootCtx,
 } from "@milkdown/kit/core";
-import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { clipboard } from "@milkdown/kit/plugin/clipboard";
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import type { Node as ProseNode } from "@milkdown/kit/prose/model";
-import { Plugin, TextSelection } from "@milkdown/kit/prose/state";
+import { TextSelection } from "@milkdown/kit/prose/state";
 import { getMarkdown, replaceAll } from "@milkdown/kit/utils";
 import type { RefObject } from "preact";
 import {
@@ -25,6 +23,7 @@ import {
   useState,
 } from "preact/hooks";
 import type * as Y from "yjs";
+import { documentWatcher } from "../extensions/documentWatcher.js";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { linkTooltip } from "../extensions/linkTooltip.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
@@ -35,114 +34,15 @@ import {
   type YjsCollabFactory,
 } from "../extensions/yjsCollab.js";
 import { useMilkdownEditor } from "../hooks/useMilkdownEditor.js";
-import { markFencedLines } from "../utils/markdown.js";
+import {
+  normalizeMarkdown,
+  replaceTextareaText,
+} from "../utils/editorMarkdown.js";
 import { rebaseEdit } from "../utils/textMerge.js";
 
-/** prosemirror-markdown escapes `[` `]` per CommonMark; our content uses literal
- * brackets (e.g. "Post [ ] Maa"), so we unescape them on readout.
- *
- * Not inside a code block: there the backslash is content, and a note showing
- * how to escape a bracket had its own example silently corrected. Code spans
- * are left alone for the same reason. */
-function unescapeBrackets(md: string): string {
-  const lines = md.split("\n");
-  const fenced = markFencedLines(lines);
-  return lines
-    .map((line, i) => (fenced[i] ? line : line.replace(/\\([[\]])/g, "$1")))
-    .join("\n");
-}
-
-const LIST_LINE_RE = /^\s*(?:[-*+] |\d+[.)] )/;
-
-/** mdast's "spread" lists insert blank lines between items on stringify. Our
- * preview treats each blank line as a segment gap, which balloons a simple
- * checklist into disconnected blocks. Collapse blank lines that only sit
- * between two list items, never inside a fence, where a blank line between
- * two lines that happen to start with `-` is part of the code. */
-function collapseListSpread(md: string): string {
-  const lines = md.split("\n");
-  const fenced = markFencedLines(lines);
-  const out: string[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    if (lines[i].trim() === "" && out.length > 0 && !fenced[i]) {
-      const prev = out[out.length - 1];
-      let j = i;
-      while (j < lines.length && lines[j].trim() === "" && !fenced[j]) j++;
-      const next = lines[j] ?? "";
-      if (!fenced[j] && LIST_LINE_RE.test(prev) && LIST_LINE_RE.test(next)) {
-        i = j;
-        continue;
-      }
-    }
-    out.push(lines[i]);
-    i++;
-  }
-  return out.join("\n");
-}
-
-/**
- * The two post-processing passes above, in the order `getMarkdown` needs
- * them. Exported so they can be tested without standing up an editor.
- */
-export function normalizeMarkdown(md: string): string {
-  return collapseListSpread(unescapeBrackets(md));
-}
-
+/** The editor's document as markdown, normalized as `normalizeMarkdown` says. */
 export function getEditorMarkdown(editor: Editor): string {
   return normalizeMarkdown(editor.action(getMarkdown()));
-}
-
-/**
- * Calls `onChange` after every transaction that changes the document, whatever
- * its origin, including the ones the markdown listener ignores.
- */
-function documentWatcher(onChange: () => void): MilkdownPlugin {
-  return (ctx) => () => {
-    ctx.update(prosePluginsCtx, (plugins) => [
-      ...plugins,
-      new Plugin({
-        view: () => ({
-          update: (view, prevState) => {
-            if (view.state.doc !== prevState.doc) onChange();
-          },
-        }),
-      }),
-    ]);
-  };
-}
-
-/**
- * Replaces a textarea's text with a change made elsewhere, keeping the caret
- * on the same text: before the change it stays put, after it moves with it.
- */
-function replaceTextareaText(
-  textarea: HTMLTextAreaElement | null,
-  next: string,
-): void {
-  if (!textarea) return;
-  const old = textarea.value;
-  const focused = document.activeElement === textarea;
-  const { selectionStart, selectionEnd } = textarea;
-  let prefix = 0;
-  const max = Math.min(old.length, next.length);
-  while (prefix < max && old[prefix] === next[prefix]) prefix++;
-  let suffix = 0;
-  while (
-    suffix < max - prefix &&
-    old[old.length - 1 - suffix] === next[next.length - 1 - suffix]
-  ) {
-    suffix++;
-  }
-  const map = (pos: number) =>
-    pos <= prefix
-      ? pos
-      : pos >= old.length - suffix
-        ? pos + next.length - old.length
-        : next.length - suffix;
-  textarea.value = next;
-  if (focused)
-    textarea.setSelectionRange(map(selectionStart), map(selectionEnd));
 }
 
 interface MilkdownEditorProps {

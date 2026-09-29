@@ -1,15 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { buildZip } from "../test/zipTestSupport.js";
 import {
   frontmatterDate,
   frontmatterList,
   splitFrontmatter,
 } from "./frontmatter.js";
-import {
-  importFiles,
-  markdownFileToNote,
-  parseMarkdownToNote,
-} from "./importExport.js";
-import { buildZip } from "./zipTestSupport.js";
+import { importFiles } from "./importExport.js";
+import { markdownFileToNote, parseMarkdownToNote } from "./importedNote.js";
 
 describe("splitFrontmatter", () => {
   it("reads scalars, inline lists and block lists", () => {
@@ -61,8 +58,25 @@ describe("parseMarkdownToNote with frontmatter", () => {
     });
   });
 
-  it("prefers a heading to a frontmatter title", () => {
-    expect(parseMarkdownToNote("---\ntitle: a\n---\n# b\n\nc").title).toBe("b");
+  it("prefers a frontmatter title, and keeps a heading that differs", () => {
+    expect(parseMarkdownToNote("---\ntitle: a\n---\n# b\n\nc")).toEqual({
+      title: "a",
+      content: "# b\n\nc",
+    });
+  });
+
+  it("drops a leading heading that only repeats the frontmatter title", () => {
+    expect(parseMarkdownToNote("---\ntitle: a\n---\n# a\n\nc")).toEqual({
+      title: "a",
+      content: "c",
+    });
+  });
+
+  it("takes a leading heading as the title when the frontmatter has none", () => {
+    expect(parseMarkdownToNote("---\ntags: [x]\n---\n# b\n\nc")).toMatchObject({
+      title: "b",
+      content: "c",
+    });
   });
 });
 

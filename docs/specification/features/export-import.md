@@ -49,8 +49,12 @@ content. YAML frontmatter, as Obsidian, SilverBullet and Nextcloud Notes write i
 subset is understood; a block with anything else in it, or a note that merely opens with a `---`
 rule, stays in the content untouched.
 
+A frontmatter `title` wins over a heading, even an empty one, since that is how the Markdown export
+writes a note: a note whose body opens with a heading, or an untitled one, comes back as it left. A
+leading heading that only repeats the frontmatter title is dropped rather than kept twice.
+
 A **folder of Markdown notes** imports as a `.zip`. Every `.md` file in it becomes a note in one
-merge, titled after its file when it has no heading or frontmatter title, and tagged with the
+merge, titled after its file when it has no heading and no `title` in its frontmatter, and tagged with the
 folders it sits in (the zipped folder itself, which every entry shares, is not a tag). `created` /
 `date` and `updated` / `modified` / `lastmod` in the frontmatter become `createdAt` / `updatedAt`.
 `.obsidian/`, `.trash/` and `.git/` are skipped, as is anything that is not Markdown.

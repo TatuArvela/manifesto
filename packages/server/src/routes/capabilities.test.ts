@@ -1,5 +1,5 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
-import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
+import { MAX_IMAGE_SOURCE_BYTES, SERVER_FEATURES } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import { bootTestAppWith } from "../test/setup.js";
 import { VERSION } from "../version.js";
@@ -25,10 +25,17 @@ describe("GET /api/capabilities", () => {
       passkeys: true,
     });
     expect(body.features).toEqual({
-      webhooks: false,
+      sharing: true,
+      teams: true,
       publicLinks: true,
       linkPreviews: true,
+      calendar: true,
+      apiTokens: true,
       mcp: true,
+      webhooks: false,
+      passkeys: true,
+      twoFactor: true,
+      adminExport: false,
       mcpSignIn: false,
       userLookup: "search",
     });
@@ -49,6 +56,28 @@ describe("GET /api/capabilities", () => {
       mcpSignIn: true,
     });
     expect(body.auth.registration).toBe(false);
+  });
+
+  it("reports every feature of the registry, requirements included", async () => {
+    const { body } = await capabilities({
+      sharing: false,
+      passkeys: false,
+      mcp: false,
+      appUrl: "https://notes.example",
+    });
+    expect(body.features).toMatchObject({
+      sharing: false,
+      // On by its own switch, off because sharing is.
+      teams: false,
+      passkeys: false,
+      mcp: false,
+      // Signing in to MCP needs MCP.
+      mcpSignIn: false,
+    });
+    expect(body.auth.passkeys).toBe(false);
+    for (const feature of SERVER_FEATURES) {
+      expect(typeof body.features[feature]).toBe("boolean");
+    }
   });
 
   it("refuses a request body over the limit it states", async () => {

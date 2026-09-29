@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { storageConnection } from "../storage/index.js";
 import { quotaRefusedAt } from "../storage/quota.js";
+import { createNoteOrFail } from "../test/testSupport.js";
 import { hasCheckedItems, hasChecklist } from "../utils/markdown.js";
 import {
   archiveNote,
@@ -24,7 +25,6 @@ import {
   upsertById,
 } from "./notesStore.js";
 import { animations, sortMode } from "./prefs.js";
-import { createNoteOrFail } from "./testSupport.js";
 import { activeView, searchLocations, searchQuery, toasts } from "./ui.js";
 import { filteredNotes, sortedNotes } from "./views.js";
 

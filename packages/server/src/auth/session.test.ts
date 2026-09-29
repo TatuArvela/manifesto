@@ -6,10 +6,7 @@ import type { StorageDriver } from "../storage/types.js";
 import { TEST_CONFIG } from "../test/setup.js";
 import { authenticateBySession, issueSession } from "./session.js";
 
-const CFG = {
-  sessionTtlDays: TEST_CONFIG.sessionTtlDays,
-  sessionAbsoluteTtlDays: TEST_CONFIG.sessionAbsoluteTtlDays,
-};
+const CFG = TEST_CONFIG;
 
 describe("session lifetime", () => {
   let storage: StorageDriver;

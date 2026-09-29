@@ -81,6 +81,25 @@ describe("two-factor sign-in", () => {
     expect((await res.json()).code).toBeUndefined();
   });
 
+  it("with TWO_FACTOR off, still asks an account that has it, and lets it leave", async () => {
+    const { secret } = await turnOn();
+    // As the next start with `TWO_FACTOR=off` would be.
+    rig.cfg.twoFactor = false;
+    expect((await login()).status).toBe(403);
+    expect((await login({ otp: codeAt(secret) })).status).toBe(200);
+    // Nobody can turn it on,
+    const setup = await call("POST", "/api/auth/two-factor/setup", {
+      password: PASSWORD,
+    });
+    expect(setup.status).toBe(404);
+    // but the account that has it can turn it off.
+    const off = await call("POST", "/api/auth/two-factor/disable", {
+      password: PASSWORD,
+    });
+    expect(off.status).toBe(204);
+    expect((await login()).status).toBe(200);
+  });
+
   it("takes each code once", async () => {
     const { secret } = await turnOn();
     const code = codeAt(secret);

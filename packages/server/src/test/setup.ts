@@ -24,12 +24,18 @@ export const TEST_CONFIG: ServerConfig = {
   postgres: null,
   trustProxy: false,
   registrationEnabled: true,
+  sharing: true,
+  teams: true,
   linkPreviews: true,
   publicLinks: true,
+  calendar: true,
+  apiTokens: true,
   // Off, so the rest of the suite does not deliver to nothing after a test's
   // storage has closed; the webhook tests switch it on.
   webhooks: "off",
   mcp: true,
+  passkeys: true,
+  twoFactor: true,
   appUrl: null,
   mail: null,
   backup: null,
@@ -74,7 +80,9 @@ export interface TestRig {
 }
 
 export async function bootTestApp(): Promise<TestRig> {
-  const cfg = TEST_CONFIG;
+  // A copy, so a test that switches a feature on `rig.cfg` (as a restart with
+  // a different setting would) leaves the next test's server as it was.
+  const cfg = { ...TEST_CONFIG };
   const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
   const { app, broadcaster } = createApp({ cfg, storage, authProvider });

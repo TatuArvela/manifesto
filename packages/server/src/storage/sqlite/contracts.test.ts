@@ -1,11 +1,11 @@
-import { describeAttachmentsContract } from "../attachmentsContract.js";
-import { describeOAuthContract } from "../oauthContract.js";
-import { describePasskeysContract } from "../passkeysContract.js";
-import { describePrefsContract } from "../prefsContract.js";
-import { describePublicLinksContract } from "../publicLinksContract.js";
-import { describeStatsContract } from "../statsContract.js";
-import { describeSyncContract } from "../syncContract.js";
-import { describeTeamsContract } from "../teamsContract.js";
+import { describeAttachmentsContract } from "../contracts/attachmentsContract.js";
+import { describeOAuthContract } from "../contracts/oauthContract.js";
+import { describePasskeysContract } from "../contracts/passkeysContract.js";
+import { describePrefsContract } from "../contracts/prefsContract.js";
+import { describePublicLinksContract } from "../contracts/publicLinksContract.js";
+import { describeStatsContract } from "../contracts/statsContract.js";
+import { describeSyncContract } from "../contracts/syncContract.js";
+import { describeTeamsContract } from "../contracts/teamsContract.js";
 import { createSqliteStorage } from "./driver.js";
 
 describeAttachmentsContract("sqlite", async () =>

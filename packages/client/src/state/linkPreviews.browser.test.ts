@@ -6,6 +6,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { LocalStorageAdapter } from "../storage/index.js";
+import { createNoteOrFail } from "../test/testSupport.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
 import {
   addLinkPreviews,
@@ -13,7 +14,6 @@ import {
   resolveLinkPreview,
 } from "./linkPreviews.js";
 import { notes, updateNote } from "./notesStore.js";
-import { createNoteOrFail } from "./testSupport.js";
 import { toasts } from "./ui.js";
 
 function tinyPng(): string {

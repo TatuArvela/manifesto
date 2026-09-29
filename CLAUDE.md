@@ -94,6 +94,7 @@ State lives in `packages/client/src/state/` using @preact/signals:
   before it awaits anything.
 - **`ui.ts`**: UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
 - **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
+  What each may hold and how a stored value is read back (`PREF_PARSERS`, `DEVICE_PREFS`) is `prefParsers.ts`.
   In connected mode `prefsSync.ts` also keeps every preference outside `DEVICE_PREFS` on the server
   (`/api/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
   added there. Whatever arrives from the server goes through `PREF_PARSERS` like a hand-edited blob,
@@ -101,7 +102,7 @@ State lives in `packages/client/src/state/` using @preact/signals:
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   Routing below). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.
-- **`auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` reads `/api/capabilities` (`fetchCapabilities`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
+- **`auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` reads `/api/capabilities` (`fetchCapabilities`, which also fills `serverFeatures`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
 
 ### Branding
 
@@ -194,9 +195,9 @@ Notes have persistent version history. Versions are saved automatically when the
 
 ### Editor
 
-Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor instance is wired up in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (called via `callCommand(undoCommand)` / `redoCommand`); there is no separate undo/redo hook. Custom ProseMirror behavior lives in `packages/client/src/extensions/` (`manifestoInlineMarks` for inline marks, `taskItemDraggable` for drag-and-drop checklist items). Read-only previews are rendered by `utils/remarkRenderer.ts` (remark → rehype → sanitized HTML via DOMPurify).
+Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor instance is wired up in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (called via `callCommand(undoCommand)` / `redoCommand`); there is no separate undo/redo hook. Custom ProseMirror behavior lives in `packages/client/src/extensions/` (`manifestoInlineMarks` for inline marks, `taskItemDraggable` for drag-and-drop checklist items, whose drag is `taskItemDrag.ts` and whose list helpers are `taskListStructure.ts`; `richFormatting` for what the formatting toolbar reads and applies). Read-only previews are rendered by `utils/remarkRenderer.ts` (remark → rehype → sanitized HTML via DOMPurify).
 
-`MilkdownEditor` reads markdown via `getMarkdown()` and post-processes it (`unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with our preview.
+`MilkdownEditor` reads markdown via `getMarkdown()` and post-processes it (`normalizeMarkdown` in `utils/editorMarkdown.ts`: `unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with our preview.
 
 The `listener` plugin serializes on a 200ms debounce it gives no way to cancel, and the timer
 throws `Context "editorView" not found` if the editor is gone when it fires. `useMilkdownEditor`
@@ -265,7 +266,7 @@ device while this tab was offline arrive nowhere else. It asks `GET /api/sync` f
 the checkpoint `loadNotes` left, and drops a held note missing from the returned ids only if it was
 held before the request went out. A membership change stamps `notes.members_changed_at`, never
 `updated_at` (the `If-Match` token), so a new way of joining or leaving a note must stamp it in both
-drivers or recipients' devices never hear of it (`storage/syncContract.ts`).
+drivers or recipients' devices never hear of it (`storage/contracts/syncContract.ts`).
 `realtime/yjsProvider.ts` holds `/api/yjs`, one `HocuspocusProvider` per open note, with
 `y-indexeddb` underneath so an offline edit survives a reload. Those copies outlive the session, so the account menu signs out through `signOut`
 (`state/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
@@ -307,7 +308,7 @@ catch-up for a missed fire is one hour. `state/reminderTime.ts` owns recurrence 
 
 ### Sharing, Import and Export
 
-`sharing.ts` encodes a note into the URL fragment (LZ-String over a five-field JSON payload),
+`utils/shareLink.ts` encodes a note into the URL fragment (LZ-String over a five-field JSON payload),
 so a share link needs no server and no account. The fragment is attacker-controlled, so
 `decodeSharePayload` is a total type guard, not a cast: every field is checked, color and font
 against the enums, and anything that fails returns `null` rather than a partly-trusted note. `App`
@@ -324,7 +325,8 @@ Other apps' formats (Evernote, Joplin, Simplenote, Standard Notes, HTML) are `Im
 `utils/importers/`, registered in its `index.ts`; `importFiles` offers each file and each archived
 JSON document to them, so a new format is one file there.
 
-`utils/importExport.ts` handles both directions for Markdown and JSON, single note and bulk. It
+`utils/importExport.ts` reads files in, for Markdown and JSON, single note and bulk; `utils/importedNote.ts`
+turns their contents into notes, and `utils/noteDownload.ts` saves one note out. It
 caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
 code runs. The full export is a zip in both modes, laid out by `exportArchiveFiles` in
 `@manifesto/shared` so the server's download and open mode's `exportArchive` stay the same archive;
@@ -478,13 +480,15 @@ call locally, so both modes behave alike.
   entries are kept in `state/sheetHistory.ts`, and the router's own pushes wait for that back to land
   (`afterHistorySettles`), or they would be what it goes back from.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
-  clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
+  clearing the signal; `NoteCard`'s `useCardModal` plays the animation and takes the modal down.
 
 ### API Contract
 
-`packages/shared/src/api.ts` declares the wire types and `docs/specification/api.md` is the source of truth.
+`packages/shared/src/api.ts` declares the wire types (one module per area in `src/api/`, all re-exported from
+it) and `docs/specification/api.md` is the source of truth.
 `GET /api/openapi.json` is generated from `src/openapi.ts`, whose request bodies are the validation
-schemas; a new route must be added to `OPERATIONS` there, or `openapi.test.ts` fails.
+schemas; a new route must be added to `OPERATIONS` there (through its area's list in `src/openapi/`),
+or `openapi.test.ts` fails.
 
 `OPERATIONS` is also every route's protection, and nothing else is: each declares `auth` (`none`,
 `any`, `session`, `admin`, `mcp`) and its rate-limit `limits` (`BUCKETS` in `middleware/protect.ts`,
@@ -493,6 +497,16 @@ route Hono matched. Routers mount no auth or rate limit of their own, and a matc
 declared is refused. `/api/ws` checks its own caller in the handshake (`SELF_AUTHENTICATED`).
 `middleware/protect.test.ts` walks the list against the running app, and pins what secures an account
 to a session.
+
+What a host can switch off is one registry, `FEATURES` in `features.ts` (its env var, default and
+what it requires; `SERVER_FEATURES` in shared names them). An operation of one says so as `feature`
+in `OPERATIONS`, and `createProtection` answers it with the app's own 404 before anything else, so an
+off feature looks absent; never add an `if (!cfg.x) throw 404` to a route. What no route decides (a
+token's kind, a socket, a job, OIDC team sync) asks `isFeatureOn`, which also applies requirements.
+The ways out of a feature (removing a share, a passkey, two-factor, a token) carry no `feature` and
+stay open. `/api/capabilities` reports the registry and the client reads it through
+`serverFeature()` (`state/serverFeatures.ts`); a new feature is an entry in both lists, its tags,
+and a line in the deployment doc's "Turning features off", which `features.test.ts` checks.
 
 The public surface (whatever a token can reach, the credential-free routes in `isPublicSurface`,
 webhook payloads, MCP tools) will be under the compatibility policy in `api.md` from 1.0.0: additions
@@ -509,7 +523,7 @@ routes are the web client's own and may change with it either way.
 
 Connected mode has admins (spec: `docs/specification/features/accounts.md`). Three rules live in the
 `users` repository rather than in routes, so both drivers enforce them and
-`storage/adminContract.ts` tests each: the first account is the admin unless `isAdmin` says otherwise
+`storage/contracts/adminContract.ts` tests each: the first account is the admin unless `isAdmin` says otherwise
 (decided inside the `INSERT`), and `setAdmin` / `delete` never remove the last admin (a locked count,
 not a read-then-write). Under local sign-in that first-account rule never fires in production:
 `ensureInitialAdmin` (`auth/initialAdmin.ts`) creates `admin` with a printed temporary password before
@@ -556,7 +570,8 @@ request carries `newPassword`. The client never shows a server's `error` text, w
 `loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map
 failures to catalogue messages by status. `AccountMenu` in the header only names the account, opens
 Settings on its page (`openSettings("account")`) and signs out; the account's pages (`AccountSettings`,
-`TwoFactorSettings`, `ApiTokensSettings`, `WebhooksSettings`) are tabs of `SettingsDialog`, shown only
+`TwoFactorSettings`, `ApiTokensSettings`, `WebhooksSettings`) are tabs of `SettingsDialog`, which lives in
+`components/settings/` with one file per tab and the rows and selects they share; they are shown only
 when signed in, and a tab that disappears falls back to Appearance.
 
 ### Sharing Between Accounts
@@ -577,7 +592,7 @@ participant sees different personal fields and a different `sharing.role`. Anyth
 away from someone (removal, a role drop to `view`, the owner trashing it) also goes through
 `sharing/accessChanges.ts`, for the same reason as `endUserSessions`: sockets authorized at connect
 stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
-`storage/sharingContract.ts` runs the rules against both drivers.
+`storage/contracts/sharingContract.ts` runs the rules against both drivers.
 
 A share to a team (spec: the Teams section of the same file) expands into one ordinary `note_shares`
 row per member, marked with `via_team`, so every access check keeps reading `note_shares` alone.
@@ -590,7 +605,7 @@ before it is removed.
 
 Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUTH_PROVIDER`):
 
-- **`src/storage/`**: `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional. SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
+- **`src/storage/`**: `StorageDriver` interface in `types.ts`, each repository's interface in `repos/` (re-exported from `types.ts`, so import from there). Bundles `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional. SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
 - **`src/auth/`**: `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. Two providers ship, and `AUTH_PROVIDER=both` mounts them side by side (`auth/index.ts`; ask
   `signsInLocally` / `signsInWithOidc` in `config.ts`, never compare `authProvider` to a name):
   `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers, and the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. The provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/me` (bearer → current user) and its siblings under `/api/auth/me/*`. What the server offers, sign-in methods included, is `GET /api/capabilities` (`routes/capabilities.ts`).
@@ -644,6 +659,8 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   keeps the pure majority (parsers, mergers, schedulers, formatters) fast. The server's suite is
   Node-only.
 - Test files are colocated with source (e.g., `actions.browser.test.ts` next to `actions.ts`)
+- Helpers that only tests import live in `src/test/` in both packages, and the storage contract
+  suites in `server/src/storage/contracts/`, which is what keeps all three out of the server build.
 - Tests use real `localStorage`; clear in `beforeEach`/`afterEach`
 - Signal state is set directly in tests (e.g., `notes.value = []`)
 - A module that a test mocks with a factory calling `importOriginal` must not sit in an import cycle
@@ -666,6 +683,19 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - No em dashes (—) anywhere: docs, comments, UI strings, test names, commit messages and PR
   descriptions. Use whichever punctuation fits the sentence: a colon, a semicolon, a comma,
   parentheses, or a full stop. A term followed by its definition in a list is `**Term**: text`.
+  `pnpm lint` fails on one (`lint:dashes`), and on any Biome warning, not only errors.
+- A source file stops at 1000 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
+  exempt). Split along a seam rather than raising the limit.
+- Several rules in this file are lint errors rather than prose, with their exceptions listed as
+  overrides in `biome.json`: `fetch` in the client only in `storage/`,
+  `state/auth.ts`, `state/publicLinks.ts` and `autoNotes/registry.ts`; `process.env` only in
+  `config.ts` and `lib/logger.ts` (so `configDocs.test.ts` can hold `deployment.md` to every variable
+  read); `console` only `error` and `warn`; no default exports outside `*.config.ts`; nothing but
+  tests imports `src/test/`. `biome-plugins/` holds the two rules Biome has no built-in for:
+  `endUserSessions.grit` and `noteEvents.grit`.
+- `tsconfig.base.json` adds `verbatimModuleSyntax`, `noImplicitOverride` and `noImplicitReturns`
+  to strict mode. The server builds from `tsconfig.build.json`, which leaves out tests,
+  `storage/contracts/` and `src/test/`, so none of them ship in the image.
 
 ## Rules
 

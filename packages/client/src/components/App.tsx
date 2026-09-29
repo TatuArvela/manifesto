@@ -6,7 +6,6 @@ import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
-import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
 import { revealApp } from "../splash.js";
 import { startAccountLocaleReport } from "../state/accountLocale.js";
 import { checkForUpdate } from "../state/admin.js";
@@ -45,8 +44,12 @@ import { loadInvitations } from "../state/sharing.js";
 import { restoreVersions } from "../state/versions.js";
 import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
-import { AdminView } from "./AdminView.js";
+import {
+  decodeShareFromHash,
+  type SharedNotePayload,
+} from "../utils/shareLink.js";
 import { AutoNotesView } from "./AutoNotesView.js";
+import { AdminView } from "./admin/AdminView.js";
 import { ConfirmDialogHost } from "./ConfirmDialog.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
 import { Header } from "./Header.js";
@@ -57,11 +60,11 @@ import { NoteInput } from "./NoteInput.js";
 import { PublicLinksDialogHost } from "./PublicLinksDialog.js";
 import { ReminderBanner } from "./ReminderBanner.js";
 import { SearchView } from "./SearchView.js";
-import { SettingsDialog } from "./SettingsDialog.js";
 import { ShareDialogHost } from "./ShareDialog.js";
 import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { ShortcutsDialog } from "./ShortcutsDialog.js";
 import { MobileNav, Sidebar } from "./Sidebar.js";
+import { SettingsDialog } from "./settings/SettingsDialog.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 import { WelcomeDialog } from "./WelcomeDialog.js";
@@ -160,8 +163,8 @@ function MainApp() {
     welcomeIfNew();
     if (isServerMode) {
       void refreshCurrentUser().finally(() => setUserChecked(true));
-      void fetchCapabilities();
-      void loadInvitations();
+      // After the capabilities, which say whether sharing is on at all.
+      void fetchCapabilities().then(() => loadInvitations());
     }
     const stopLocaleReport = startAccountLocaleReport();
     return () => {

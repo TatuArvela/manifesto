@@ -11,6 +11,7 @@ import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { ApiError, apiJson } from "../storage/apiRequest.js";
 import { forgetNote, receiveNote, reviseNote } from "./notesStore.js";
+import { serverFeature } from "./serverFeatures.js";
 import { editingNoteId, showError, showSuccess } from "./ui.js";
 
 /**
@@ -42,7 +43,7 @@ function report(
   fallback: MessageKey,
   byStatus: Partial<Record<number, MessageKey>> = {},
 ) {
-  console.error(context, err);
+  console.error("%s", context, err);
   const status = err instanceof ApiError ? err.status : 0;
   if (status === 401) return; // signed out; the login screen says enough
   showError(t(byStatus[status] ?? fallback));
@@ -71,6 +72,11 @@ export function forgetInvitation(noteId: string): void {
 }
 
 export async function loadInvitations(): Promise<boolean> {
+  // A server with sharing off has no invitations to ask about.
+  if (!serverFeature("sharing")) {
+    invitations.value = [];
+    return true;
+  }
   try {
     const body = await apiJson<InvitationsResponse>("GET", "/invitations");
     invitations.value = body?.invitations ?? [];

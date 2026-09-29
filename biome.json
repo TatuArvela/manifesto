@@ -1,5 +1,10 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "assist": {
     "actions": {
       "source": {
@@ -24,7 +29,48 @@
         "useKeyWithClickEvents": "warn"
       },
       "style": {
-        "noNonNullAssertion": "warn"
+        "noNonNullAssertion": "warn",
+        "useThrowOnlyError": "error",
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 1000
+          }
+        },
+        "noDefaultExport": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": {
+            "strictCase": false,
+            "requireAscii": true,
+            "filenameCases": ["camelCase", "PascalCase"]
+          }
+        }
+      },
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error",
+        "noUnusedFunctionParameters": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUndeclaredDependencies": "error"
+      },
+      "suspicious": {
+        "noImportCycles": "error",
+        "noFocusedTests": "error",
+        "noSkippedTests": "error",
+        "noTsIgnore": "error",
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": ["error", "warn"]
+          }
+        }
+      },
+      "security": {
+        "noBlankTarget": "error"
+      },
+      "nursery": {
+        "useIframeSandbox": "error"
       }
     }
   },
@@ -71,6 +117,14 @@
                       "../i18n/**"
                     ],
                     "message": "utils/ is the bottom of the client: it imports packages and other utils, never the folders built on it."
+                  },
+                  {
+                    "group": [
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
               }
@@ -103,6 +157,14 @@
                       "../i18n/**"
                     ],
                     "message": "storage/ sits under state/: it may import utils/, never what calls it."
+                  },
+                  {
+                    "group": [
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
               }
@@ -135,6 +197,14 @@
                       "../i18n/**"
                     ],
                     "message": "autoNotes/ sits under state/: it may import utils/, never what calls it."
+                  },
+                  {
+                    "group": [
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
               }
@@ -178,6 +248,14 @@
                       "!../../state/prefs.js"
                     ],
                     "message": "i18n/ may read only the locale preference (state/prefs.ts), which imports nothing from i18n/ but locales.ts."
+                  },
+                  {
+                    "group": [
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
               }
@@ -204,6 +282,14 @@
                   {
                     "group": ["../hooks/**", "../components/**"],
                     "message": "Hooks and components are UI, built on state/, realtime/ and extensions/: move what they share down, as state/sheetHistory.ts did."
+                  },
+                  {
+                    "group": [
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
               }
@@ -228,6 +314,14 @@
                   {
                     "group": ["../components/**"],
                     "message": "hooks/ are used by components/, never the reverse: move what they share down."
+                  },
+                  {
+                    "group": [
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
               }
@@ -268,9 +362,18 @@
                       "../test/**",
                       "../validation/**",
                       "../webhooks/**",
-                      "../ws/**"
+                      "../ws/**",
+                      "../openapi/**"
                     ],
                     "message": "lib/ holds plumbing that knows nothing of notes, accounts or sockets: code that does belongs in the folder for its subject (a background job goes in jobs/)."
+                  },
+                  {
+                    "group": [
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
               }
@@ -327,9 +430,19 @@
                       "../webhooks/**",
                       "../../webhooks/**",
                       "../ws/**",
-                      "../../ws/**"
+                      "../../ws/**",
+                      "../openapi/**",
+                      "../../openapi/**"
                     ],
                     "message": "storage/ is under everything but lib/: a rule both drivers must keep belongs in the repos, and anything else in the caller."
+                  },
+                  {
+                    "group": [
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
               }
@@ -349,8 +462,9 @@
         "packages/server/src/linkPreview/**",
         "packages/server/src/mail/**",
         "packages/server/src/mcp/**",
-        "packages/server/src/oauth/**",
         "packages/server/src/middleware/**",
+        "packages/server/src/oauth/**",
+        "packages/server/src/openapi/**",
         "packages/server/src/sharing/**",
         "packages/server/src/test/**",
         "packages/server/src/validation/**",
@@ -376,6 +490,159 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/client/src/**", "!**/*.test.ts", "!**/*.test.tsx"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/i18n/messages/**",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noExcessiveLinesPerFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/components/**",
+        "packages/client/src/*.ts",
+        "packages/client/src/*.tsx",
+        "packages/server/src/calendar/**",
+        "packages/server/src/routes/**",
+        "packages/server/src/*.ts",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "./test/**",
+                      "../test/**",
+                      "../../test/**",
+                      "../../../test/**"
+                    ],
+                    "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/client/src/**",
+        "!packages/client/src/storage/**",
+        "!packages/client/src/state/auth.ts",
+        "!packages/client/src/state/publicLinks.ts",
+        "!packages/client/src/autoNotes/registry.ts",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "fetch": "Requests go through storage/apiRequest.ts (or a storage adapter), which holds the server-URL and session checks once."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/server/src/**",
+        "packages/client/src/**",
+        "packages/shared/src/**",
+        "!packages/server/src/config.ts",
+        "!packages/server/src/lib/logger.ts",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noProcessEnv": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/server/src/cli.ts",
+        "packages/server/src/lib/logger.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.config.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/vite-env.d.ts", "**/*.css", "docs/examples/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/server/src/**",
+        "!packages/server/src/auth/session.ts",
+        "!packages/server/src/storage/contracts/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "plugins": ["./biome-plugins/endUserSessions.grit"]
+    },
+    {
+      "includes": [
+        "packages/server/src/**",
+        "!packages/server/src/sharing/noteEvents.ts",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "plugins": ["./biome-plugins/noteEvents.grit"]
     }
   ]
 }

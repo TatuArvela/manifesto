@@ -26,7 +26,7 @@ export function reportFailure(
   message: MessageKey,
   batch?: Batch,
 ): void {
-  console.error(context, err);
+  console.error("%s", context, err);
   if (batch) {
     batch.failures++;
     return;

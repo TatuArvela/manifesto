@@ -72,14 +72,14 @@ async function inlineLocal(image: unknown): Promise<unknown> {
  * only the open-mode images are read from IndexedDB, and only best effort.
  */
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  override state: State = { error: null };
 
-  static getDerivedStateFromError(error: Error): State {
+  static override getDerivedStateFromError(error: Error): State {
     return { error };
   }
 
-  componentDidCatch(error: Error): void {
-    console.error(`${APP_NAME} crashed during render`, error);
+  override componentDidCatch(error: Error): void {
+    console.error("%s crashed during render", APP_NAME, error);
     // The fallback, with its backup button, is the screen now.
     revealApp();
   }

@@ -100,7 +100,6 @@ export function registerPublicLinkRoutes(
   { storage, cfg }: PublicLinkDeps,
 ): void {
   async function ownNote(c: Context, noteId: string): Promise<Note> {
-    if (!cfg.publicLinks) throw new HttpError(404, "Not found");
     const { userId } = c.get("auth") as AuthContext;
     const access = await storage.notes.access(noteId, userId);
     if (!access) throw new HttpError(404, "Note not found");
@@ -192,11 +191,14 @@ export function registerPublicLinkRoutes(
  * the token, with no account.
  *
  * Every way a link can fail (never made, revoked, expired, used up, its note
- * in the trash or gone, or the feature off) answers the same 404, so a caller
- * learns nothing about which. Nothing here is cached: a view is counted when
- * the note is handed out, and a revoked link must stop at once.
+ * in the trash or gone) answers the same 404, so a caller learns nothing
+ * about which. With `PUBLIC_LINKS=off` the protection answers first, with the
+ * 404 of a route that does not exist. Nothing here is cached: a view is
+ * counted when the note is handed out, and a revoked link must stop at once.
  */
-export function createPublicRoutes({ storage, cfg }: PublicLinkDeps) {
+export function createPublicRoutes({
+  storage,
+}: Pick<PublicLinkDeps, "storage">) {
   const routes = new Hono();
   const unlockFailures = createExpiringCounter({
     windowMs: 60 * 60 * 1000,
@@ -204,7 +206,6 @@ export function createPublicRoutes({ storage, cfg }: PublicLinkDeps) {
   });
 
   routes.use("*", async (c, next) => {
-    if (!cfg.publicLinks) throw new HttpError(404, "Not found");
     await next();
     c.header("Cache-Control", "no-store");
     c.header("X-Robots-Tag", "noindex, nofollow");

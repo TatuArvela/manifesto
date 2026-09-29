@@ -8,7 +8,7 @@ import { apiFetch } from "../storage/apiRequest.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./confirmation.js";
+} from "./passwordConfirmation.js";
 
 /**
  * The consent page an AI assistant sends the browser to when it signs in to

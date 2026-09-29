@@ -1,0 +1,10 @@
+language js
+
+// CLAUDE.md, Accounts and Admins: sockets authenticate once, at connect, so
+// deleting a user's session rows leaves their sockets live.
+`$storage.sessions.deleteByUser($args)` where {
+  register_diagnostic(
+    span=$storage,
+    message="End a user's sessions through endUserSessions (auth/session.ts): deleting the rows alone leaves their sockets open."
+  )
+}

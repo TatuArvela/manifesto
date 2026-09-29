@@ -16,6 +16,7 @@ import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
 import { currentUser, userLookupMode } from "../state/auth.js";
 import { notes } from "../state/notesStore.js";
+import { serverFeature } from "../state/serverFeatures.js";
 import {
   findUsers,
   leaveNote,
@@ -156,7 +157,7 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
             </p>
           </div>
 
-          {isOwner && (
+          {isOwner && serverFeature("sharing") && (
             <AddPerson
               note={note}
               memberIds={new Set(members.map((m) => m.id))}
@@ -312,7 +313,8 @@ function MemberRow({
           <RoleSelect
             value={member.role}
             label={t("sharing.role.label", { name })}
-            disabled={busy}
+            // Sharing off on the server: people can be taken off, not changed.
+            disabled={busy || !serverFeature("sharing")}
             onChange={(role) =>
               act(() => setShareRole(note.id, member.id, role))
             }
@@ -508,7 +510,8 @@ function AddPerson({
 /**
  * The teams a note is shared with, for its owner: offered only their own
  * teams, and shown nothing at all when they are in none. Sharing with a team
- * invites each member, and later members as they join.
+ * invites each member, and later members as they join. With teams off on
+ * the server, only the shares already made, to take them off.
  */
 function TeamShares({ note }: { note: Note }) {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -516,10 +519,12 @@ function TeamShares({ note }: { note: Note }) {
   const [picked, setPicked] = useState("");
   const [role, setRole] = useState<ShareRole>("edit");
   const [busy, setBusy] = useState(false);
+  const teamsOn = serverFeature("teams");
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([listMyTeams(), listTeamShares(note.id)]).then(
+    const mine = teamsOn ? listMyTeams() : Promise.resolve([]);
+    void Promise.all([mine, listTeamShares(note.id)]).then(
       ([mine, current]) => {
         if (cancelled) return;
         setTeams(mine ?? []);
@@ -529,7 +534,7 @@ function TeamShares({ note }: { note: Note }) {
     return () => {
       cancelled = true;
     };
-  }, [note.id]);
+  }, [note.id, teamsOn]);
 
   const offered = teams.filter((team) =>
     shares.every((share) => share.teamId !== team.id),
@@ -598,7 +603,7 @@ function TeamShares({ note }: { note: Note }) {
               <RoleSelect
                 value={share.role}
                 label={t("sharing.role.label", { name: share.name })}
-                disabled={busy}
+                disabled={busy || !teamsOn}
                 onChange={(next) =>
                   run(() => setTeamShareRole(note.id, share.teamId, next))
                 }

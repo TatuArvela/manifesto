@@ -11,6 +11,8 @@ import { requireConfirmation } from "../auth/confirmation.js";
 import type { LoginAttempts } from "../auth/local/loginAttempts.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { revokeApiToken } from "../auth/session.js";
+import type { ServerConfig } from "../config.js";
+import { isFeatureOn, TOKEN_FEATURES } from "../features.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
 import {
   CALENDAR_TOKEN_PREFIX,
@@ -30,8 +32,8 @@ import { validatorHook } from "../validation/zValidator.js";
 interface TokenDeps {
   storage: StorageDriver;
   loginAttempts: LoginAttempts;
-  /** Whether the server has `/api/mcp`; without it an MCP token opens nothing. */
-  mcpEnabled: boolean;
+  /** Which kinds of token the server's features allow (`TOKEN_FEATURES`). */
+  cfg: ServerConfig;
   revocations: SessionRevocations;
 }
 
@@ -39,6 +41,10 @@ interface TokenDeps {
  * `/api/tokens`: a user's personal API tokens, for scripts, shortcuts and
  * bots that should not hold a password. Managed with a session only, so a
  * token cannot mint more of itself or outlive its own revocation.
+ *
+ * The page belongs to no one feature: it holds three kinds of token, each
+ * minted only while its own feature is on, and listing and revoking stay
+ * open whatever is off, so a token can always be taken back.
  */
 export function createTokenRoutes(deps: TokenDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -63,11 +69,11 @@ export function createTokenRoutes(deps: TokenDeps) {
         scopes,
         password,
       } = c.req.valid("json");
+      if (!isFeatureOn(deps.cfg, TOKEN_FEATURES[kind])) {
+        throw new HttpError(403, "This server has that kind of token off");
+      }
       // A token outlives the session that minted it.
       await requireConfirmation(deps, c.get("auth"), password);
-      if (kind === "mcp" && !deps.mcpEnabled) {
-        throw new HttpError(403, "This server has MCP turned off");
-      }
       const existing = await deps.storage.apiTokens.listByUser(userId);
       if (existing.length >= MAX_API_TOKENS_PER_USER) {
         throw new HttpError(409, "Revoke a token before creating another");

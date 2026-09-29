@@ -135,8 +135,8 @@ describe("account export", () => {
     const res = await rig.request(`/api/admin/users/${bob.userId}/export`, {
       headers: authHeaders(alice.token),
     });
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ code: "admin_export_disabled" });
+    // As if the route were not there at all (`features.ts`).
+    expect(res.status).toBe(404);
     const users = await rig.request("/api/admin/users", {
       headers: authHeaders(alice.token),
     });

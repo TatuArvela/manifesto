@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from "vitest";
 import {
   appendStubPreviews,
+  contentIsOnlyPreviewUrls,
   extractUrls,
   makeStubPreview,
   normalizeDomain,
@@ -215,5 +216,37 @@ describe("parseLinkPreviews", () => {
   it("reads anything but an array as no previews", () => {
     expect(parseLinkPreviews({ url: "https://a.test" })).toEqual([]);
     expect(parseLinkPreviews(undefined)).toEqual([]);
+  });
+});
+
+describe("contentIsOnlyPreviewUrls", () => {
+  const previews = [
+    makeStubPreview("https://example.com/a"),
+    makeStubPreview("https://example.com/b"),
+  ];
+
+  it("accepts text that is only the previewed links", () => {
+    expect(contentIsOnlyPreviewUrls("https://example.com/a", previews)).toBe(
+      true,
+    );
+    expect(
+      contentIsOnlyPreviewUrls(
+        "<https://example.com/a>\n  https://example.com/b",
+        previews,
+      ),
+    ).toBe(true);
+  });
+
+  it("refuses empty text, other words, or a link without a preview", () => {
+    expect(contentIsOnlyPreviewUrls("   ", previews)).toBe(false);
+    expect(
+      contentIsOnlyPreviewUrls("read https://example.com/a", previews),
+    ).toBe(false);
+    expect(
+      contentIsOnlyPreviewUrls("[x](https://example.com/b)", previews),
+    ).toBe(false);
+    expect(contentIsOnlyPreviewUrls("https://other.example/", previews)).toBe(
+      false,
+    );
   });
 });

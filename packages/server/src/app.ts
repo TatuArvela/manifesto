@@ -12,6 +12,7 @@ import type { AuthProvider } from "./auth/types.js";
 import { createCalendarRoutes } from "./calendar/routes.js";
 import { mountClient } from "./client/serveClient.js";
 import { offersMcpSignIn, type ServerConfig } from "./config.js";
+import { isFeatureOn } from "./features.js";
 import type { UpdateStatus } from "./jobs/updateCheck.js";
 import { countMetric } from "./lib/metrics.js";
 import { metricsHandler } from "./lib/metricsServer.js";
@@ -198,12 +199,10 @@ export function createApp(deps: AppDeps): AppHandle {
   if (offersMcpSignIn(cfg)) {
     app.use("/api/mcp", resourceMetadataChallenge(cfg.trustProxy));
   }
-  // Who may call each route and how often, as `OPERATIONS` declares it.
-  // Routers mount none of this themselves.
-  app.use(
-    "/api/*",
-    createProtection({ authProvider, storage, trustProxy: cfg.trustProxy }),
-  );
+  // Who may call each route and how often, as `OPERATIONS` declares it, and
+  // a 404 for the routes of a feature that is off (`features.ts`). Routers
+  // mount none of this themselves.
+  app.use("/api/*", createProtection({ authProvider, storage, cfg }));
 
   // Provider-agnostic auth routes (/methods, /me) must be registered BEFORE
   // the provider's own router so Hono's longest-prefix matching reaches them.
@@ -222,8 +221,13 @@ export function createApp(deps: AppDeps): AppHandle {
       revocations,
       mailer,
       loginAttempts,
-      teamSync: (userId, groups) =>
-        syncOidcTeams(storage, teamShares, userId, groups),
+      // With teams off, a sign-in leaves membership as it was: no route
+      // decides this one, so it asks the registry itself.
+      teamSync: async (userId, groups) => {
+        if (isFeatureOn(cfg, "teams")) {
+          await syncOidcTeams(storage, teamShares, userId, groups);
+        }
+      },
     }),
   );
   app.route(
@@ -256,7 +260,7 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
       revocations,
       loginAttempts,
-      mcpEnabled: cfg.mcp,
+      cfg,
     }),
   );
   if (offersMcpSignIn(cfg)) {
@@ -274,20 +278,19 @@ export function createApp(deps: AppDeps): AppHandle {
       }),
     );
   }
-  if (cfg.mcp) {
-    // Its tools call the routes above through the app itself, so they meet
-    // every check a request from the network does.
-    app.route(
-      "/api/mcp",
-      createMcpRoutes({
-        corsOrigins: cfg.corsOrigins,
-        serverVersion: VERSION,
-        forward: (request, env) => app.fetch(request, env),
-      }),
-    );
-  }
-  // Off, there are no routes to answer, so a request is a 404 before it is
-  // asked to sign in.
+  // Its tools call the routes above through the app itself, so they meet
+  // every check a request from the network does. With `MCP=off` the
+  // protection answers 404 before any of it.
+  app.route(
+    "/api/mcp",
+    createMcpRoutes({
+      corsOrigins: cfg.corsOrigins,
+      serverVersion: VERSION,
+      forward: (request, env) => app.fetch(request, env),
+    }),
+  );
+  // Off, there is no dispatcher to hand the routes, so they are not mounted;
+  // the protection would answer them with the same 404 if they were.
   if (webhooks) {
     app.route(
       "/api/webhooks",
@@ -301,16 +304,14 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
   app.route("/api/search", createSearchRoutes({ storage }));
-  app.route("/api/public", createPublicRoutes({ storage, cfg }));
+  app.route("/api/public", createPublicRoutes({ storage }));
   app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
   app.route("/api/teams", createTeamRoutes({ storage }));
   app.route("/api/sync", createSyncRoutes({ storage }));
   app.route(
     "/api/link-preview",
     createLinkPreviewRoutes({
-      fetchPreview: cfg.linkPreviews
-        ? (deps.fetchLinkPreview ?? createLinkPreviewFetcher())
-        : null,
+      fetchPreview: deps.fetchLinkPreview ?? createLinkPreviewFetcher(),
     }),
   );
 

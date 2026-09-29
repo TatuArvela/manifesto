@@ -1,4 +1,10 @@
 import { readFileSync } from "node:fs";
+import {
+  FEATURES,
+  type FeatureToggles,
+  isFeatureOn,
+  loadFeatureToggles,
+} from "./features.js";
 export type StorageDriverName = "sqlite" | "postgres";
 export type AuthProviderName = "local" | "oidc";
 export type UserLookupMode = "search" | "exact";
@@ -46,7 +52,12 @@ export interface PostgresConfig {
   connectionString: string;
 }
 
-export interface ServerConfig {
+/**
+ * The server's settings. The features a host can turn off are held under
+ * their own names (`FeatureToggles`, described in `features.ts`), and are
+ * asked about through `isFeatureOn`, which also knows what each requires.
+ */
+export interface ServerConfig extends FeatureToggles {
   port: number;
   dataDir: string;
   dbPath: string;
@@ -85,25 +96,13 @@ export interface ServerConfig {
    * preserve open-signup behavior; set to false for managed-mode deployments
    * where accounts are provisioned out-of-band. */
   registrationEnabled: boolean;
-  /** When false, the server never fetches a URL for a link preview, and the
-   * client keeps the plain link card. Off is for deployments with no outbound
-   * internet access, or an egress policy that should not be asked. */
-  linkPreviews: boolean;
-  /** Whether owners may publish a note by revocable public link, readable by
-   * anyone holding it. Off answers every public link route with 404. */
-  publicLinks: boolean;
   /**
    * Whether users may register webhooks, and where they may point: `public`
    * addresses only (the default, the same rule as link previews), `private`
    * to also reach the local network (a Home Assistant or n8n beside the
-   * server), or `off`.
+   * server), or `off`. The one feature of `FEATURES` with modes.
    */
   webhooks: WebhookMode;
-  /**
-   * Whether `/api/mcp` is there for AI assistants. On opens nothing by
-   * itself: it answers only an MCP token, which a user has to mint.
-   */
-  mcp: boolean;
   /**
    * The client's public address (`APP_URL`), without a trailing slash, or
    * null. Mail links point at it, and an assistant signing in to `/api/mcp`
@@ -132,10 +131,6 @@ export interface ServerConfig {
   backup: BackupConfig | null;
   /** Days the audit log keeps an entry. */
   auditRetentionDays: number;
-  /** Whether an admin may download another account's notes. Off by default,
-   * so an admin cannot read a user's notes from inside the app; the operator
-   * of the database still can. */
-  adminExport: boolean;
   /** The GitHub repository whose releases the update check reads, or null
    * with `UPDATE_CHECK=off`. */
   updateCheckRepo: string | null;
@@ -369,6 +364,11 @@ export function loadConfig(): ServerConfig {
   const authProvider = envEnum("AUTH_PROVIDER", AUTH_MODES, "local");
   const storageDriver = envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite");
   const appUrl = loadAppUrl();
+  const webhooks = envEnum(
+    FEATURES.webhooks.env,
+    WEBHOOK_MODES,
+    FEATURES.webhooks.default as WebhookMode,
+  );
   return {
     port: envInt("PORT", 3001),
     dataDir,
@@ -386,10 +386,8 @@ export function loadConfig(): ServerConfig {
     postgres: storageDriver === "postgres" ? loadPostgresConfig() : null,
     trustProxy: envBool("TRUST_PROXY", false),
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
-    linkPreviews: envBool("LINK_PREVIEWS", true),
-    publicLinks: envBool("PUBLIC_LINKS", true),
-    webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
-    mcp: envBool("MCP", true),
+    webhooks,
+    ...loadFeatureToggles(process.env, envBool, webhooks !== "off"),
     appUrl,
     mail: loadMailConfig(appUrl),
     backup: loadBackupConfig(dataDir),
@@ -399,7 +397,6 @@ export function loadConfig(): ServerConfig {
     metricsHost: process.env.METRICS_HOST?.trim() || "127.0.0.1",
     clientDir: process.env.CLIENT_DIR?.trim() || null,
     auditRetentionDays: envInt("AUDIT_RETENTION_DAYS", 180),
-    adminExport: envBool("ADMIN_EXPORT", false),
     updateCheckRepo: envBool("UPDATE_CHECK", true)
       ? process.env.UPDATE_CHECK_REPO?.trim() || "TatuArvela/manifesto"
       : null,
@@ -413,8 +410,8 @@ export function loadConfig(): ServerConfig {
  * browser (OAuth): MCP is on, and the client, whose page asks the user, is
  * somewhere this server can send them (`APP_URL`, or served here).
  */
-export function offersMcpSignIn(
-  cfg: Pick<ServerConfig, "mcp" | "appUrl" | "clientDir">,
-): boolean {
-  return cfg.mcp && (cfg.appUrl !== null || cfg.clientDir !== null);
+export function offersMcpSignIn(cfg: ServerConfig): boolean {
+  return (
+    isFeatureOn(cfg, "mcp") && (cfg.appUrl !== null || cfg.clientDir !== null)
+  );
 }

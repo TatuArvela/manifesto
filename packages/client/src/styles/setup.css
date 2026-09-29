@@ -1,0 +1,61 @@
+/* Tailwind variants and theme, shared keyframes and animation utilities, and page-wide base rules. */
+
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant touch (@media (hover: none));
+
+@theme {
+  --breakpoint-3xl: 1920px;
+  --breakpoint-4xl: 2240px;
+  --breakpoint-5xl: 2560px;
+  --breakpoint-6xl: 2880px;
+  --breakpoint-7xl: 3200px;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-fade-in {
+  animation: fade-in 100ms ease-out;
+}
+
+@utility animate-scale-in {
+  animation: scale-in 100ms ease-out;
+}
+
+/* `type="search"` makes WebKit and Blink draw their own clear button. In the
+   header the field already has our own X while the search view is open, so
+   the native one is a confusing second control, so suppress it there.
+
+   Scoped to the header deliberately: the search view's mobile input draws no
+   clear button of its own, so there the native control is the only way to
+   empty the field by tapping. */
+header input[type="search"]::-webkit-search-cancel-button,
+header input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}

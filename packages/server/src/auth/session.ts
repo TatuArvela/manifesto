@@ -1,4 +1,9 @@
 import type { ServerConfig } from "../config.js";
+import {
+  isFeatureOn,
+  TOKEN_FEATURES,
+  type ToggleFeature,
+} from "../features.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
 import {
   API_TOKEN_PREFIX,
@@ -18,6 +23,11 @@ type SessionTtlConfig = Pick<
   ServerConfig,
   "sessionTtlDays" | "sessionAbsoluteTtlDays"
 >;
+
+/** What a bearer token is checked against: the session clocks, and which
+ * kinds of token the server's features still accept. */
+type BearerConfig = SessionTtlConfig &
+  Pick<ServerConfig, ToggleFeature | "webhooks">;
 
 /** The earlier of two ISO timestamps. Both come from `toISOString()`, whose
  * fixed-width UTC format sorts lexicographically. */
@@ -39,17 +49,21 @@ function absoluteExpiryOf(session: Session, days: number): string | null {
 /**
  * A personal API token or MCP token (`POST /api/tokens`). It has no sliding
  * expiry, only the one its owner chose, and records when it was last used so
- * a forgotten one can be found and revoked.
+ * a forgotten one can be found and revoked. Refused while its kind's feature
+ * is off (`API_TOKENS`, `MCP`), which covers both sockets too, since they
+ * authenticate through here.
  */
 async function authenticateByApiToken(
   storage: StorageDriver,
+  cfg: BearerConfig,
   token: string,
 ): Promise<AuthIdentity | null> {
-  const stored = await storage.apiTokens.findByHash(hashToken(token));
-  if (!stored) return null;
   // The prefix is only what the secret was minted with; the row decides. A
   // prefix that disagrees with it is a secret nobody was given.
   const kind = token.startsWith(MCP_TOKEN_PREFIX) ? "mcp" : "api";
+  if (!isFeatureOn(cfg, TOKEN_FEATURES[kind])) return null;
+  const stored = await storage.apiTokens.findByHash(hashToken(token));
+  if (!stored) return null;
   if (stored.kind !== kind) return null;
   const now = nowIso();
   if (stored.expiresAt !== null && stored.expiresAt < now) return null;
@@ -79,7 +93,7 @@ async function authenticateByApiToken(
  */
 export async function authenticateBySession(
   storage: StorageDriver,
-  cfg: SessionTtlConfig,
+  cfg: BearerConfig,
   token: string,
 ): Promise<AuthIdentity | null> {
   if (!token) return null;
@@ -87,7 +101,7 @@ export async function authenticateBySession(
     token.startsWith(API_TOKEN_PREFIX) ||
     token.startsWith(MCP_TOKEN_PREFIX)
   ) {
-    return authenticateByApiToken(storage, token);
+    return authenticateByApiToken(storage, cfg, token);
   }
   const hashed = hashToken(token);
   const session = await storage.sessions.findByToken(hashed);

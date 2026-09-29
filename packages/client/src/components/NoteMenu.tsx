@@ -17,9 +17,8 @@ import {
 } from "lucide-preact";
 import type { VNode } from "preact";
 import { t } from "../i18n/index.js";
-import { buildShareUrl } from "../sharing.js";
 import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
-import { isServerMode, publicLinksEnabled } from "../state/auth.js";
+import { isServerMode } from "../state/auth.js";
 import { confirmDeletion } from "../state/confirm.js";
 import {
   archiveNote,
@@ -31,12 +30,14 @@ import {
   unarchiveNote,
 } from "../state/index.js";
 import { publicLinksDialog } from "../state/publicLinks.js";
+import { serverFeature } from "../state/serverFeatures.js";
 import { shareDialog } from "../state/sharing.js";
 import { showSuccess } from "../state/ui.js";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
-} from "../utils/importExport.js";
+} from "../utils/noteDownload.js";
+import { buildShareUrl } from "../utils/shareLink.js";
 
 /**
  * The panel a kebab menu draws itself on. `Dropdown` takes it as `panelClass`;
@@ -188,7 +189,11 @@ export function noteMenuItems(
   // rewritten by a plugin in its owner's browser and has nothing to offer
   // anyone else, and a trashed one is on its way out.
   if (isServerMode && !note.readonly) {
-    if (role === "owner" && !note.trashed) {
+    // With sharing off on the server, only to take people off a note it
+    // was already shared with.
+    const shareable =
+      serverFeature("sharing") || (note.sharing?.members.length ?? 0) > 0;
+    if (role === "owner" && !note.trashed && shareable) {
       items.push({
         id: "share-people",
         icon: <UserPlus class="w-4 h-4" />,
@@ -198,7 +203,7 @@ export function noteMenuItems(
         },
       });
     }
-    if (role === "owner" && !note.trashed && publicLinksEnabled.value) {
+    if (role === "owner" && !note.trashed && serverFeature("publicLinks")) {
       items.push({
         id: "public-links",
         icon: <Globe class="w-4 h-4" />,

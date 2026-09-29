@@ -3,8 +3,10 @@ import type {
   TwoFactorSetupResponse,
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
+import { signal } from "@preact/signals";
 import { APP_NAME, INSTANCE_NAME } from "../config.js";
 import { apiFetch } from "../storage/apiRequest.js";
+import { currentUser } from "./auth.js";
 
 /**
  * Two-factor sign-in for the signed-in local account. Each call resolves with
@@ -20,9 +22,33 @@ function failureOf(res: Response | null): Failure {
   return { kind: "failed" };
 }
 
+/**
+ * Whether an account signs in with a second factor (an authenticator, a
+ * passkey or both), as the last status read for it said. Kept with the
+ * account's id, so another account signing in on this tab never inherits it.
+ */
+const secondFactor = signal<{ userId: string; enabled: boolean } | null>(null);
+
+/**
+ * Whether the signed-in account has a second factor. Settings keeps its
+ * two-factor page for such an account even when the server has turned both
+ * halves off: sign-in still asks for the factor, and that page is the only
+ * way to remove it or replace the recovery codes.
+ */
+export function hasSecondFactor(): boolean {
+  const known = secondFactor.value;
+  return (
+    known !== null && known.userId === currentUser.value?.id && known.enabled
+  );
+}
+
 export async function twoFactorStatus(): Promise<TwoFactorStatusResponse | null> {
+  const userId = currentUser.value?.id;
   const res = await apiFetch("GET", "/auth/two-factor");
-  return res?.ok ? ((await res.json()) as TwoFactorStatusResponse) : null;
+  if (!res?.ok) return null;
+  const status = (await res.json()) as TwoFactorStatusResponse;
+  if (userId) secondFactor.value = { userId, enabled: status.enabled };
+  return status;
 }
 
 export async function beginTwoFactor(

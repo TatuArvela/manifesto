@@ -1,0 +1,187 @@
+/* Tooltips, dropdown panels and card popovers, in the top layer. */
+
+.tooltip[popover] {
+  position: fixed;
+  inset: auto;
+  width: max-content;
+  max-width: 200px;
+  margin: 0;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-50);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  pointer-events: none;
+  z-index: 50;
+}
+
+@supports (position-area: bottom) {
+  .tooltip[popover] {
+    position-area: bottom;
+    justify-self: anchor-center;
+    margin-block: 4px;
+    /* Flip above the trigger near the bottom edge, and slide along the inline
+       axis rather than overflowing at the left or right edge. */
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+    position-visibility: anchors-visible;
+  }
+}
+
+.dark .tooltip[popover] {
+  background-color: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+/* Dropdown panel: rendered in the top layer via Popover API, anchor-positioned
+   to its trigger so it is never clipped by ancestor `overflow: hidden`. We hide
+   closed panels via `:not([data-open="true"])` (and not while `data-leaving`
+   says the exit is still playing) so the panelClass utilities
+   (display, padding, border) can take effect when open, since a plain
+   `display: block` default would override `flex` in panelClass. `data-open` is
+   mirrored from the component's `open` prop as a guard against browsers where
+   the UA `[popover]:not(:popover-open)` hide rule doesn't apply. */
+.dropdown-panel {
+  inset: auto;
+  margin: 0;
+}
+.dropdown-panel:not([data-open="true"]):not([data-leaving="true"]) {
+  display: none;
+}
+
+/* Opening and closing, in one transition rather than two keyframe animations,
+   because a menu re-opened while it is still fading out has to reverse from
+   where it stands instead of starting over.
+
+   The component keeps a closing panel in the top layer until the exit has
+   played (DROPDOWN_EXIT_MS in Dropdown.tsx) and only then hides the popover,
+   so the exit does not depend on transitioning `overlay` or `display`, which
+   only Chromium can. `@starting-style` supplies the other end of the entry,
+   which a panel that was `display: none` a moment ago has no previous value
+   for.
+
+   The panel slides from the side its trigger is on, so it reads as coming out
+   of the button rather than drifting in. Only a translation, never a scale: the
+   browsers without anchor positioning place the panel from a measured
+   `getBoundingClientRect`, and a scaled box measures smaller than it lands.
+
+   Closing retraces the opening: the same path, the same duration and the
+   same curves, so it moves from its first frame. The opening's curves played
+   backwards were tried, and held the panel almost still until it vanished,
+   which read as no animation at all. */
+.dropdown-panel {
+  --dd-slide: -0.25rem;
+  opacity: 0;
+  translate: 0 var(--dd-slide);
+  transition:
+    opacity 140ms ease-out,
+    translate 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.dropdown-panel[data-placement^="top"] {
+  --dd-slide: 0.25rem;
+}
+
+.dropdown-panel[data-open="true"] {
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    opacity 140ms ease-out,
+    translate 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@starting-style {
+  .dropdown-panel[data-open="true"] {
+    opacity: 0;
+    translate: 0 var(--dd-slide);
+  }
+}
+
+/* The card popovers (colour picker, kebab menu, reminder and tag panels) are
+   mounted while open, so the entry is a keyframe animation rather than the
+   dropdown's transition. It waits for `data-placed`, which the component sets
+   once it has measured where the panel goes: animating before that would play
+   the whole thing in the top-left corner, where the panel sits until it is
+   placed. The exit retraces the entry on the same curve while `usePresence`
+   holds the panel on screen; its duration is CARD_POPOVER_EXIT_MS. */
+.card-popover[data-placed="true"] {
+  animation: dropdown-in 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.card-popover[data-placed="true"][data-leaving="true"] {
+  animation: card-popover-out 140ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes card-popover-out {
+  to {
+    opacity: 0;
+    translate: 0 -0.25rem;
+  }
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.25rem;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* The UA stylesheet gives every `[popover]` `color: CanvasText`, and a
+   declaration beats inheritance, so a panel that doesn't name a text colour
+   renders black, unreadable on the dark panel background in dark mode. Put
+   the default back to inheriting from the page. Layered in `base` so a panel
+   that *does* name one still wins: the header's menus have to, because they
+   are declared inside white-on-blue text. */
+@layer base {
+  .dropdown-panel {
+    color: inherit;
+  }
+}
+
+@supports (position-area: block-end) {
+  .dropdown-panel[popover] {
+    /* Margin on both block edges, not just the requested side: a panel that
+       flips keeps its gap from the trigger either way. */
+    margin-block: 0.25rem;
+    /* Flip to the opposite side of the trigger rather than running off the
+       viewport: a `bottom-end` menu near the foot of the window opens
+       upwards instead of being cut off. */
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+    /* Don't leave the panel floating over the page once its trigger has been
+       scrolled out of sight. */
+    position-visibility: anchors-visible;
+  }
+  .dropdown-panel[popover][data-placement="bottom-start"] {
+    position-area: block-end span-inline-end;
+  }
+  .dropdown-panel[popover][data-placement="bottom-end"] {
+    position-area: block-end span-inline-start;
+  }
+  .dropdown-panel[popover][data-placement="top-start"] {
+    position-area: block-start span-inline-end;
+  }
+  .dropdown-panel[popover][data-placement="top-end"] {
+    position-area: block-start span-inline-start;
+  }
+}
+
+/* Without anchor positioning the panel is placed by script (see Dropdown.tsx),
+   which writes `left`/`top` directly. */
+@supports not (position-area: block-end) {
+  .dropdown-panel[popover] {
+    position: fixed;
+    max-height: calc(100dvh - 8px);
+    overflow-y: auto;
+  }
+}

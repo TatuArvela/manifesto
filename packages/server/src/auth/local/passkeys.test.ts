@@ -136,6 +136,34 @@ describe("passkeys", () => {
     expect((await login({ passkey: answer })).status).toBe(401);
   });
 
+  it("with PASSKEYS off, still asks for a passkey already added, and adds none", async () => {
+    const { device } = await addPasskey();
+    // As the next start with `PASSKEYS=off` would be.
+    rig.cfg.passkeys = false;
+    const asked = await login();
+    expect(asked.status).toBe(403);
+    const options = ((await asked.json()) as TwoFactorRequiredResponse)
+      .twoFactor?.passkey;
+    const answer = device.get(options as NonNullable<typeof options>);
+    expect((await login({ passkey: answer })).status).toBe(200);
+    expect(
+      (
+        await call("POST", "/api/auth/passkeys/options", {
+          password: PASSWORD,
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (await call("POST", "/api/auth/passkey/options", undefined, { as: null }))
+        .status,
+    ).toBe(404);
+    // The account can still see and remove it.
+    const listed = (await (
+      await call("GET", "/api/auth/passkeys")
+    ).json()) as PasskeysResponse;
+    expect(listed.passkeys).toHaveLength(1);
+  });
+
   it("offers no passkey challenge to a page elsewhere, whose passkeys are not these", async () => {
     await addPasskey();
     const res = await rig.request("/api/auth/login", {

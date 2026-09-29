@@ -153,7 +153,8 @@ A public link is read without an account, and none of these send a bearer token:
 `mode` is `"live"` or `"snapshot"`. `PublicLink` is `{ token, noteId, mode, expiresAt, hasPassword,
 maxViews, viewCount, lastViewedAt, createdAt }`; `PublicNote` is `{ title, content, color, font,
 images, linkPreviews, updatedAt }`. Every public route answers the same `404` for a link that does not
-open (never made, revoked, expired, used up, its note in the trash, or `PUBLIC_LINKS=off`), sends
+open (never made, revoked, expired, used up, its note in the trash; with `PUBLIC_LINKS=off`, the 404 of
+a route that does not exist), sends
 `Cache-Control: no-store` and `X-Robots-Tag: noindex`, and is limited per address; `unlock` also per
 link. The owner routes take the `sharing` token scope, and answer `403` to anyone else on the note.
 
@@ -290,7 +291,7 @@ an ordinary answer rather than an error. `image` and `favicon` are the source
 images as fetched, inlined as `data:` URLs of up to 1.5 MB, and are **not** the
 form a note stores: the client shrinks each to at most 64 KB and uploads it with
 `POST /api/attachments`, and the note holds the reference. A
-server with previews turned off (`LINK_PREVIEWS=off`) replies `404`. Limited to
+server with previews turned off (`LINK_PREVIEWS=off`) replies `404`, as for a route it does not have. Limited to
 40 requests a minute per user, on top of the general API limit. What the server
 will and will not fetch is in [Link Previews](features/link-previews.md#what-the-server-fetches).
 
@@ -407,7 +408,7 @@ database on every request (`403` otherwise). Shares the per-user API limit. See
 | `PUT`    | `/api/admin/users/:id`            | Grant or revoke admin with `{ isAdmin }`, set or clear the address with `{ email }`, or both: `{ user }` |
 | `POST`   | `/api/admin/users/:id/password`   | Reset the password and end every session of the account: `{ user, temporaryPassword }` |
 | `DELETE` | `/api/admin/users/:id`            | Delete the account with its notes and sessions: `204` |
-| `GET`    | `/api/admin/users/:id/export`     | Everything the account owns, as the zip `GET /api/export` gives its owner. Only with `ADMIN_EXPORT` on; otherwise `403` with `code: "admin_export_disabled"` |
+| `GET`    | `/api/admin/users/:id/export`     | Everything the account owns, as the zip `GET /api/export` gives its owner. Only with `ADMIN_EXPORT` on; otherwise `404`, as for a route that does not exist |
 
 `AdminUser` is `{ id, username, displayName, avatarColor, email, isAdmin, provider,
 mustChangePassword, noteCount, createdAt, lastSeenAt }`, where `provider` is
@@ -431,8 +432,9 @@ All `/api/notes`, `/api/search`, `/api/invitations` and `/api/users` endpoints r
 
 `GET /api/capabilities` is public, and says what the server is and offers, as `CapabilitiesResponse`:
 its `version`, how to sign in (`auth`: the providers, whether the password form is folded away, whether
-registration, reset by mail and passkey sign-in are on), which features are on (`features`: webhooks,
-public links, link previews, MCP and signing in to it, how people are found to share with), the
+registration, reset by mail and passkey sign-in are on), which features are on (`features`: one
+boolean for each feature a host can turn off, below, plus `mcpSignIn` and `userLookup`, how people
+are found to share with), the
 `limits` a caller would otherwise meet as a `413`, `409` or `422` (request and image bytes, images and
 link previews per note, notes per page and per import, versions kept and for how long, tokens,
 webhooks and passkeys per account, public link views, preferences bytes), and `editorSchemaVersion`.
@@ -440,6 +442,23 @@ Each value is read from what enforces it, so it cannot drift from the server's b
 
 The web client reads it before anyone signs in, to choose what to show. It replaced
 `GET /api/auth/methods`, which is gone.
+
+### Features a host can turn off
+
+`features` names each of them, as `SERVER_FEATURES` in `@manifesto/shared` lists them: `sharing`,
+`teams`, `publicLinks`, `linkPreviews`, `calendar`, `apiTokens`, `mcp`, `webhooks`, `passkeys`,
+`twoFactor` and `adminExport`. The variable that switches each, and what it covers, is in
+[Deployment](server/deployment.md#turning-features-off). `teams` needs `sharing`, and is reported
+off with it.
+
+An operation that belongs to one is marked `x-feature` in `/api/openapi.json`. While the feature is
+off, it answers the same `404` as a path the server has no route for, before authentication, so a
+caller cannot tell a feature that is off from one the server never had. The ways out of a feature are
+never marked and stay open: `DELETE /api/notes/:id/shares/:userId`, the team shares' listing and
+`DELETE`, the passkeys' listing and `DELETE`, the two-factor status, `disable` and new recovery codes,
+and the tokens' listing and `DELETE`. A personal API token (`apiTokens`) or an MCP token (`mcp`)
+whose feature is off is refused wherever it is presented, as an unknown token is, and `POST
+/api/tokens` answers `403` for a kind whose feature is off.
 
 ### Request and Response Format
 

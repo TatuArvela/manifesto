@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { describeAdminContract } from "../adminContract.js";
+import { describeAdminContract } from "../contracts/adminContract.js";
 import { UsernameTakenError, type UsersRepo } from "../types.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteStorage } from "./driver.js";
