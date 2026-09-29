@@ -114,4 +114,21 @@ describe("the bookmarklet", () => {
       opened.mockRestore();
     }
   });
+
+  it("keeps an address with a percent escape in it one string", () => {
+    // A browser percent-decodes a `javascript:` URL before running it, so an
+    // escaped quote in the address must not come out as a real one.
+    const opened = vi.spyOn(window, "open").mockReturnValue(null);
+    try {
+      const href = bookmarkletHref("https://notes.example.com/a%22b/");
+      new Function(decodeURIComponent(href.slice("javascript:".length)))();
+
+      const sent = new URL(String(opened.mock.calls[0]?.[0]));
+      expect(sent.origin + sent.pathname).toBe(
+        "https://notes.example.com/a%22b/",
+      );
+    } finally {
+      opened.mockRestore();
+    }
+  });
 });

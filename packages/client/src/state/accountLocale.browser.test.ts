@@ -29,6 +29,9 @@ describe("reporting the app's language", () => {
   });
   afterEach(() => {
     stop();
+    // Back to English before the storage goes: the debounced save still to
+    // come would otherwise leave Finnish for the next file to start with.
+    locale.value = "en";
     authToken.value = null;
     currentUser.value = null;
     fetchMock.mockClear();

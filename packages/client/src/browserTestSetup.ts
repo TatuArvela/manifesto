@@ -8,8 +8,7 @@
  * correct one. The build and `pnpm dev` are unaffected.
  *
  * Only a value that is still JSON-encoded is decoded, so this goes quiet once
- * Vitest decodes its defines again, and can then be deleted along with the
- * `setupFiles` entry in `vite.config.ts`.
+ * Vitest decodes its defines again, and this loop can then be deleted.
  */
 const globals = globalThis as unknown as Record<string, unknown>;
 
@@ -27,3 +26,21 @@ for (const key of [
     // Already decoded: a bare string such as `Manifesto` is not JSON.
   }
 }
+
+/**
+ * Every test file runs in a frame of its own, but the frames share one origin
+ * and so one `localStorage`, and a write in one reaches the others as a
+ * `storage` event. `prefs.ts` and `auth.ts` act on those as another tab's
+ * change, so a file that sets the locale to Finnish turns every file running
+ * beside it Finnish mid-test. Only the browser's own events come from another
+ * frame; a test that means to simulate one constructs it, which is untrusted,
+ * so those still arrive. Registered before any module listens, in the capture
+ * phase, so it runs first.
+ */
+window.addEventListener(
+  "storage",
+  (event) => {
+    if (event.isTrusted) event.stopImmediatePropagation();
+  },
+  true,
+);

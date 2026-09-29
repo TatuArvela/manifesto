@@ -63,6 +63,20 @@ export const BOOKMARKLET_MAX_TEXT = 4000;
  * address; nothing is saved until the new note is.
  */
 export function bookmarkletHref(appUrl: string): string {
-  const code = `(()=>{const q=new URLSearchParams({title:document.title,url:location.href,text:String(getSelection()).slice(0,${BOOKMARKLET_MAX_TEXT})});open(${JSON.stringify(appUrl)}+"?${SHARE_TARGET_PARAM}&"+q,"_blank","noopener")})()`;
+  const code = `(()=>{const q=new URLSearchParams({title:document.title,url:location.href,text:String(getSelection()).slice(0,${BOOKMARKLET_MAX_TEXT})});open(${scriptString(appUrl)}+"?${SHARE_TARGET_PARAM}&"+q,"_blank","noopener")})()`;
   return `javascript:${code}`;
+}
+
+/**
+ * A string as a script literal that survives being a `javascript:` URL. The
+ * browser percent-decodes such a URL before it runs it, so a `%22` in the
+ * string would become a quote that ends the literal early; `JSON.stringify`
+ * cannot know that. Writing `%` (and the characters that end a script or a
+ * line elsewhere) as `\u` escapes leaves nothing for the decoding to touch.
+ */
+function scriptString(value: string): string {
+  return JSON.stringify(value).replace(
+    /[%<>/\u2028\u2029]/g,
+    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
 }
