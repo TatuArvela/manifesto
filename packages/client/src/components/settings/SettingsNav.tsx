@@ -17,6 +17,7 @@ import {
   offeredTokenKinds,
   serverFeature,
 } from "../../state/serverFeatures.js";
+import { hasSecondFactor } from "../../state/twoFactor.js";
 import { Avatar } from "../Avatar.js";
 import { hasOwnPassword } from "./AccountSettings.js";
 
@@ -43,19 +44,22 @@ export const GENERAL_TABS: SettingsTab[] = [
   "about",
 ];
 
+/** Whether the server lets an account add a second factor of either kind. */
+export function secondFactorOffered(): boolean {
+  return serverFeature("twoFactor") || serverFeature("passkeys");
+}
+
 /**
  * The account's pages this user has: none in open mode or signed out, and
  * none for a feature the server has off (`serverFeature`). Two-factor stays
- * while either of its halves is on; with both off, an account that has one
- * still signs in with it.
+ * while either of its halves is on, and with both off for an account that
+ * already has one: sign-in still asks for it, and this page is the only way
+ * to remove it.
  */
 export function accountTabs(): SettingsTab[] {
   if (!isServerMode || !currentUser.value) return [];
   const tabs: SettingsTab[] = ["account"];
-  if (
-    hasOwnPassword() &&
-    (serverFeature("twoFactor") || serverFeature("passkeys"))
-  ) {
+  if (hasOwnPassword() && (secondFactorOffered() || hasSecondFactor())) {
     tabs.push("twoFactor");
   }
   if (offeredTokenKinds().length > 0) tabs.push("tokens");

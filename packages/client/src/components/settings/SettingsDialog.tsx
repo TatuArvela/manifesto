@@ -1,18 +1,20 @@
 import { X } from "lucide-preact";
+import { useEffect } from "preact/hooks";
 import { useEscapeStack } from "../../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../../hooks/useFocusTrap.js";
 import { usePresence } from "../../hooks/usePresence.js";
 import { t } from "../../i18n/index.js";
 import { availableUpdate } from "../../state/admin.js";
-import { currentUser } from "../../state/auth.js";
+import { currentUser, isServerMode } from "../../state/auth.js";
 import {
   type SettingsTab,
   settingsTab,
   showSettings,
 } from "../../state/index.js";
+import { twoFactorStatus } from "../../state/twoFactor.js";
 import { Backdrop } from "../Backdrop.js";
 import { AboutSettings } from "./AboutSettings.js";
-import { AccountSettings } from "./AccountSettings.js";
+import { AccountSettings, hasOwnPassword } from "./AccountSettings.js";
 import { ActivitySettings } from "./ActivitySettings.js";
 import { ApiTokensSettings } from "./ApiTokensSettings.js";
 import { AppearanceSettings } from "./AppearanceSettings.js";
@@ -24,6 +26,7 @@ import {
   GENERAL_TABS,
   NavGroup,
   NavItem,
+  secondFactorOffered,
   TABS,
 } from "./SettingsNav.js";
 import { TwoFactorSettings } from "./TwoFactorSettings.js";
@@ -43,6 +46,18 @@ export function SettingsDialog() {
   // A select menu inside the modal registers after it and closes alone.
   useEscapeStack(isOpen, handleClose);
   const dialogRef = useFocusTrap<HTMLDivElement>(isOpen);
+
+  // With both halves of two-factor off on the server, its page is only for an
+  // account that already has one, and only the server knows whether it does.
+  const askForSecondFactor =
+    isOpen &&
+    isServerMode &&
+    currentUser.value !== null &&
+    hasOwnPassword() &&
+    !secondFactorOffered();
+  useEffect(() => {
+    if (askForSecondFactor) void twoFactorStatus();
+  }, [askForSecondFactor]);
 
   if (!shown) return null;
 

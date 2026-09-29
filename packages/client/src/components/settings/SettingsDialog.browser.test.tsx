@@ -15,6 +15,7 @@ import {
   serverFeatures,
 } from "../../state/serverFeatures.js";
 import { settingsTab, showSettings } from "../../state/ui.js";
+import { storageConnection } from "../../storage/index.js";
 import { SettingsDialog } from "./SettingsDialog.js";
 
 let host: HTMLDivElement;
@@ -77,6 +78,33 @@ describe("SettingsDialog account pages", () => {
     expect(pages()).not.toContain(t("webhooks.title"));
     expect(pages()).not.toContain(t("tokens.title"));
     expect(pages()).not.toContain(t("twoFactor.title"));
+  });
+
+  it("keeps the two-factor page for an account that has one when both halves are off", async () => {
+    // Sign-in still asks for the factor, so the page that removes it stays.
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ enabled: true, recoveryCodesRemaining: 8 }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    storageConnection.value = {
+      serverUrl: "https://notes.example",
+      token: "tok",
+    };
+    try {
+      open({ twoFactor: false, passkeys: false });
+      await vi.waitFor(() => expect(pages()).toContain(t("twoFactor.title")));
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://notes.example/api/auth/two-factor",
+        expect.anything(),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+      storageConnection.value = { serverUrl: null, token: null };
+    }
   });
 
   it("keeps a page while any of what it holds is on", async () => {
