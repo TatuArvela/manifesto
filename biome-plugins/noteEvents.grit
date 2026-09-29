@@ -1,6 +1,6 @@
 language js
 
-// CLAUDE.md, Sharing Between Accounts: each participant sees different
+// .claude/rules/sharing.md: each participant sees different
 // personal fields and a different sharing.role, so the writer's copy of a
 // note must never be broadcast as it is.
 `{ type: "note:updated", $props }` as $event where {

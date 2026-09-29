@@ -30,6 +30,7 @@
     "lint": "biome check --error-on-warnings . && pnpm lint:dashes",
     "lint:dashes": "! git grep --untracked -nIP '\\x{2014}' -- ':!CLAUDE.md'",
     "lint:fix": "biome check --write .",
+    "prepare": "node -e \"try { require('node:child_process').execFileSync('git', ['config', '--local', 'core.hooksPath', '.githooks'], { stdio: 'ignore' }) } catch {}\"",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @manifesto/shared build && pnpm -r test"
   }

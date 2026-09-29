@@ -1,6 +1,6 @@
 language js
 
-// CLAUDE.md, Accounts and Admins: sockets authenticate once, at connect, so
+// .claude/rules/accounts.md: sockets authenticate once, at connect, so
 // deleting a user's session rows leaves their sockets live.
 `$storage.sessions.deleteByUser($args)` where {
   register_diagnostic(

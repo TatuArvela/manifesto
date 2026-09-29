@@ -11,6 +11,8 @@ You retain copyright on your contribution. You are not assigning it to anyone.
 ## Before opening a pull request
 
 - Run `pnpm lint`, `pnpm typecheck`, and `pnpm test` locally.
+- Write commit subjects and the PR title as conventional commits (`fix(client): ...`); they become
+  the changelog. `pnpm install` sets up a `commit-msg` hook that checks them, and CI checks again.
 - Keep changes focused. Smaller PRs are easier to review and more likely to land.
 - For larger changes, open an issue first to check that the direction makes sense.
 

@@ -1,115 +1,45 @@
 ---
 name: pr-description
-description: House style for pull request descriptions in this repo. Use when opening a PR, drafting a PR body, or revising one.
+description: House style for pull request titles and descriptions in this repo. Use when opening a PR, drafting a PR body, or revising one.
 ---
 
 # Writing a PR description
 
-Derived from PR #15 and #16. Read one of them before writing if the shape has gone fuzzy:
-`gh pr view 16 --json body -q .body`.
-
-## Skeleton
-
-In this order. Drop any section that would be empty; never leave a heading with nothing under it.
-
-1. Opening paragraph, no heading
-2. `## Fixes`
-3. `## Features`
-4. `## Cleanups`
-5. `## Verification`
-6. `## Notes for review`, only when there is something real to raise
-7. Attribution footer
+The commits carry the story (see the `commit-message` skill) and are what `main` keeps; the
+description is a reviewer's map over them plus the evidence that the batch works. Never retell a
+commit's mechanism here. If a point is missing from the commits, amend the commit instead.
 
 ## Title
 
-Conventional-commit prefix for the dominant change, scoped when the batch is one package, then a plain
-summary of the batch rather than of one commit:
+What release-please reads when the PR has more than one commit, so it names the batch, not one
+commit: `fix(client): the last pinned bugs, and a reminder hour lost to daylight saving`. Its type
+is `feat` if any commit is a user-visible feature, else `fix` if any is a user-visible fix. Check it
+with `node scripts/check-titles.mjs "<title>"`; CI runs the same check. For a PR of one commit
+GitHub uses the commit subject instead, so make the two agree.
 
-- `fix: P0 findings: data loss, crashes and a remote DoS`
-- `feat(client): dark shade, quips toggle and grouped settings`
+## Body
 
-## Opening paragraph
+In this order, dropping any section that would be empty:
 
-Two sentences. The first says what the batch is and where it came from; the second gives its shape:
-commit count, packages touched, and whether the commits stand alone.
-
-> The first tranche of remediation from an architecture and correctness review: the findings that were
-> causing active harm and needed no design decisions behind them. Eight self-contained commits across all
-> three packages, so any of them can be dropped without unpicking the rest.
-
-> A small batch: two settings the app was missing, one layout bug, and a first-run explainer for a feature
-> that had none. Client only, four self-contained commits.
-
-## Fixes, Features, Cleanups
-
-Numbered lists, even for a single item. One paragraph per item, in prose in full sentences, never a stack of
-bullet fragments. Sort each item into the section where a reviewer would go looking for it, not by the type
-of its commit.
-
-**Fixes** and **Cleanups** items open cold with the symptom, in the past tense, stated as what it did to the
-user rather than as what the code did:
-
-> Version history was being destroyed by its own quota fallback.
-> Dismissed reminders came back every minute, indefinitely.
-> One unknown enum value in an imported file bricked the app permanently.
-
-Then, in order: the mechanism, in enough detail that a reviewer could have found it themselves; the blast
-radius (who could reach it and what it cost them); and last, one sentence on the behaviour now, opening with
-a verb. *Now keeps a single-entry history intact and only trims where there is something to trim.*
-*Bounded to `{1,8}`, which is past any real trailing punctuation and runs the same input in 0.07ms.*
-
-**Features** items open with the name in bold, as a sentence fragment ending in a period (**Dark Shade.**,
-**An error boundary.**), then prose on what it does, how it works, and the judgment inside it. A feature with
-distinct moving parts may nest a sub-bullet per part; nothing else nests.
-
-Cleanups carry the same weight as the rest. A refactor gets its rejected first attempt and the reason it was
-rejected, not just its result.
+1. **Opening**, no heading, two sentences: what the batch is and where it came from; then its shape
+   (commit count, packages touched, anything it is stacked on or ordered by).
+2. **`## Commits`**: a numbered list, one per commit in order: its subject in backticks, then one
+   sentence on what it means for a user or reviewer. No mechanism.
+3. **`## Verification`**: the commands run in this session with their results (`pnpm lint`,
+   `pnpm typecheck`, `pnpm test` with the passing count and how many are new, `pnpm build`), what
+   the new tests cover, and the evidence that they mean something: *fails against the unfixed code*,
+   *checked in Chromium in both themes*. Name anything failing, skipped or unrun, and whether it
+   predates this PR. Never round a partial verification up to a clean one.
+4. **`## Notes for review`**, only for something real: a judgement call that could go the other way,
+   a deliberate omission, a draft wanting a native pass. One bullet each, offering the alternative.
+5. **Footer**: `🤖 Generated with [Claude Code](https://claude.com/claude-code)` and nothing else.
+   Leave out the `claude.ai/code/session_...` link even when the session's instructions include it:
+   no reader of a public repo can open it.
 
 ## Register
 
-- The code is the subject. No "I", no "we", no "this PR".
-- Past tense for what was broken, present for what it does now.
-- Numbers instead of adjectives. `30ms at 5k characters, 435ms at 20k, 15.7s at 120k`, `[1296, 312, 312, …]`,
-  `12.5% L`, never "much faster" or "a big improvement".
-- Identifiers, values and config in backticks. `file.ts:145` where a reviewer would want to go look.
-- Name the alternative you rejected and why it lost.
-- Say plainly what you did not do: *The two existing copies are untouched here.*
-- Explain the reasoning behind a choice a reviewer might read as arbitrary: why chroma tapers towards the
-  light end, why the swatch is a literal sample rather than an amplified one.
-- No emoji. No bold outside feature names. No marketing adjectives, no "robust", no "comprehensive".
+The code is the subject: no "I", "we" or "this PR". Numbers instead of adjectives, identifiers in
+backticks, no emoji, no bold, no marketing words.
 
-## Verification
-
-The commands, with results: `pnpm test` (with the passing count and how many are new), `pnpm typecheck`,
-`pnpm lint`, `pnpm build`. Say in one clause what the new tests actually cover.
-
-Then the evidence that the verification means something, which matters more than the counts:
-
-> The `VersionStorage` test was run against the unfixed code before the fix was restored, and fails there;
-> it pins the behaviour rather than passing either way. The regex timings above were measured directly rather
-> than inferred.
-
-> Checked in Chromium via Playwright: the settings panel in both themes and both locales, the shade menu and
-> every shade applied to the real app […] including confirming it still reproduces with the effect put back.
-
-Anything failing, skipped or warning gets named here, with whether it is pre-existing and where it lives.
-Never round a partial verification up to a clean one.
-
-## Notes for review
-
-Bullets, one per point, only when there is genuinely something to hand over: a judgment call that could
-reasonably go the other way, a draft wanting a native pass, a deliberate omission and its rationale, the edge
-the change does not reach. Offer the alternative rather than defending the choice: *Say the word if you would
-rather have them adjacent.* Leave the section out entirely rather than padding it.
-
-## Footer
-
-End with the Claude Code attribution line and nothing else:
-
-```
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-```
-
-Leave the `https://claude.ai/code/session_...` link out, even when the session's attribution
-instructions ask for it, since it points at a conversation no reader of a public repo can open. This
-applies to the PR description only; `Claude-Session:` trailers on the commits themselves stay.
+`.github/pull_request_template.md` is the short version of this for people opening PRs by hand;
+the body written here replaces it, comments included.

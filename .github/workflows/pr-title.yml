@@ -1,0 +1,31 @@
+name: PR title
+
+# A squash merge writes the PR title (or the commit subject, for a PR of one
+# commit) into main, where release-please reads it for the version bump and the
+# changelog. Its own trigger, so editing the title re-runs only this check.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  titles:
+    # Dependabot and release-please write their own titles.
+    if: github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Through env, never interpolated into the script: a title is attacker-controlled.
+      - name: Title and commit subjects are conventional commits
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+        run: |
+          node scripts/check-titles.mjs "$TITLE"
+          node scripts/check-titles.mjs --commits "$RANGE"
