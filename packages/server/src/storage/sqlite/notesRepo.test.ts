@@ -1,5 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { claimed } from "../contracts/claimed.js";
 import type { NotesRepo } from "../types.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
@@ -64,7 +65,7 @@ describe("sqlite notesRepo", () => {
     const note = await repo.insert({
       id: "n1",
       userId: "u1",
-      data: { ...baseNoteData, title: "Hello" },
+      data: claimed({ ...baseNoteData, title: "Hello" }),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -78,14 +79,14 @@ describe("sqlite notesRepo", () => {
     await repo.insert({
       id: "n-u1",
       userId: "u1",
-      data: baseNoteData,
+      data: claimed(baseNoteData),
       createdAt: NOW,
       updatedAt: NOW,
     });
     await repo.insert({
       id: "n-u2",
       userId: "u2",
-      data: baseNoteData,
+      data: claimed(baseNoteData),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -102,7 +103,7 @@ describe("sqlite notesRepo", () => {
     await repo.insert({
       id: "n1",
       userId: "u1",
-      data: baseNoteData,
+      data: claimed(baseNoteData),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -123,7 +124,7 @@ describe("sqlite notesRepo", () => {
     await repo.insert({
       id: "n1",
       userId: "u1",
-      data: baseNoteData,
+      data: claimed(baseNoteData),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -142,7 +143,7 @@ describe("sqlite notesRepo", () => {
     await repo.insert({
       id: "n1",
       userId: "u1",
-      data: baseNoteData,
+      data: claimed(baseNoteData),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -155,18 +156,22 @@ describe("sqlite notesRepo", () => {
     await repo.insert({
       id: "n1",
       userId: "u1",
-      data: {
+      data: claimed({
         ...baseNoteData,
         title: "Shopping list",
         content: "Eggs and milk",
-      },
+      }),
       createdAt: NOW,
       updatedAt: NOW,
     });
     await repo.insert({
       id: "n2",
       userId: "u1",
-      data: { ...baseNoteData, title: "Trip notes", content: "fly to LAX" },
+      data: claimed({
+        ...baseNoteData,
+        title: "Trip notes",
+        content: "fly to LAX",
+      }),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -183,7 +188,7 @@ describe("sqlite notesRepo", () => {
     const note = await repo.insert({
       id: "n1",
       userId: "u1",
-      data: baseNoteData,
+      data: claimed(baseNoteData),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -194,14 +199,14 @@ describe("sqlite notesRepo", () => {
     const note = await repo.insert({
       id: "n1",
       userId: "u1",
-      data: {
+      data: claimed({
         ...baseNoteData,
         reminder: {
           time: "2026-04-10T08:00:00",
           recurrence: "weekly",
           timezone: "Europe/Helsinki",
         },
-      },
+      }),
       createdAt: NOW,
       updatedAt: NOW,
     });

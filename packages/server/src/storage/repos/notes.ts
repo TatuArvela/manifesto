@@ -1,4 +1,5 @@
 import type {
+  LinkPreview,
   Note,
   NoteCreate,
   NoteUpdate,
@@ -8,10 +9,39 @@ import type {
 
 // Notes and what hangs off them: collaborative state, attachments, versions.
 
+declare const claimed: unique symbol;
+
+/**
+ * A note's image references once `claimImages` (in `attachments/store.ts`)
+ * has made each one the note owner's. Only that function makes one, so a
+ * write that skipped it does not typecheck: a reference straight from a
+ * request could name someone else's attachment, and the note would lend it
+ * to whoever can read the note.
+ */
+export type ClaimedImages = string[] & { readonly [claimed]: "images" };
+
+/** The same for the thumbnails and favicons of a note's link previews,
+ * which `claimPreviewImages` makes. */
+export type ClaimedPreviews = LinkPreview[] & {
+  readonly [claimed]: "previews";
+};
+
+/** A new note as storage takes it: its images claimed. */
+export type StoredNoteCreate = Omit<NoteCreate, "images" | "linkPreviews"> & {
+  images: ClaimedImages;
+  linkPreviews: ClaimedPreviews;
+};
+
+/** A change to a note as storage takes it: any images it sets, claimed. */
+export type StoredNoteUpdate = Omit<NoteUpdate, "images" | "linkPreviews"> & {
+  images?: ClaimedImages;
+  linkPreviews?: ClaimedPreviews;
+};
+
 export interface InsertNoteInput {
   id: string;
   userId: string;
-  data: NoteCreate;
+  data: StoredNoteCreate;
   createdAt: string;
   updatedAt: string;
 }
@@ -102,7 +132,7 @@ export interface NotesRepo {
   update(
     id: string,
     userId: string,
-    changes: NoteUpdate,
+    changes: StoredNoteUpdate,
     updatedAt: string,
     expectedUpdatedAt?: string,
   ): Promise<Note | null>;

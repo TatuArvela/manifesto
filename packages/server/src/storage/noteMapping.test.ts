@@ -5,6 +5,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { claimed, claimedImages } from "./contracts/claimed.js";
 import { createPostgresStorage } from "./postgres/driver.js";
 import { newTestPool } from "./postgres/testDb.js";
 import { createSqliteStorage } from "./sqlite/driver.js";
@@ -96,7 +97,7 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
     const note = await storage.notes.insert({
       id: "n1",
       userId: "u1",
-      data: fullNote,
+      data: claimed(fullNote),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -116,7 +117,7 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
     const note = await storage.notes.insert({
       id: "n1",
       userId: "u1",
-      data: plain,
+      data: claimed(plain),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -136,7 +137,11 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
     await storage.notes.insert({
       id: "n1",
       userId: "u1",
-      data: { ...fullNote, title: "ÄITI JA ÖLJY", content: "Ostoslista" },
+      data: claimed({
+        ...fullNote,
+        title: "ÄITI JA ÖLJY",
+        content: "Ostoslista",
+      }),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -152,7 +157,7 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
     await storage.notes.insert({
       id: "n1",
       userId: "u1",
-      data: fullNote,
+      data: claimed(fullNote),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -182,7 +187,7 @@ describe("the two drivers agree", () => {
       await storage.notes.insert({
         id: "n1",
         userId: "u1",
-        data: fullNote,
+        data: claimed(fullNote),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -222,7 +227,7 @@ describe.each(drivers)("$name listings", ({ open }) => {
       await storage.notes.insert({
         id: `n${String(i).padStart(2, "0")}`,
         userId: "u1",
-        data: { ...fullNote, title: `Note ${i}`, ...extra },
+        data: claimed({ ...fullNote, title: `Note ${i}`, ...extra }),
         createdAt: at,
         updatedAt: at,
       });
@@ -258,7 +263,7 @@ describe.each(drivers)("$name listings", ({ open }) => {
       await storage.notes.insert({
         id: `same-${i}`,
         userId: "u1",
-        data: { ...fullNote, title: `Note ${i}` },
+        data: claimed({ ...fullNote, title: `Note ${i}` }),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -298,7 +303,7 @@ describe.each(drivers)("$name listings", ({ open }) => {
     await storage.notes.update(
       "n00",
       "u1",
-      { images: [] },
+      { images: claimedImages() },
       "2026-05-01T00:00:00.000Z",
     );
     const { notes: listed } = await storage.notes.listByUser("u1", {

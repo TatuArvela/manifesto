@@ -6,6 +6,7 @@ import {
   NoteAccessError,
   type StorageDriver,
 } from "../types.js";
+import { claimed } from "./claimed.js";
 
 /**
  * What both drivers must do for sharing notes between accounts, run against
@@ -71,7 +72,7 @@ export function describeSharingContract(
       await storage.notes.insert({
         id: "n1",
         userId: "owner",
-        data: noteData,
+        data: claimed(noteData),
         createdAt: T0,
         updatedAt: T0,
       });
@@ -184,7 +185,7 @@ export function describeSharingContract(
       await storage.notes.insert({
         id: "n2",
         userId: "owner",
-        data: noteData,
+        data: claimed(noteData),
         createdAt: T0,
         updatedAt: T0,
       });
@@ -361,7 +362,7 @@ export function describeSharingContract(
         await storage.notes.insert({
           id,
           userId: "alice",
-          data: noteData,
+          data: claimed(noteData),
           createdAt: at,
           updatedAt: at,
         });

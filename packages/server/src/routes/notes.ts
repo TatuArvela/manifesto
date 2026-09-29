@@ -15,7 +15,11 @@ import { HttpError } from "../middleware/error.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { TeamShares } from "../sharing/teamShares.js";
-import { NoteAccessError, type StorageDriver } from "../storage/types.js";
+import {
+  NoteAccessError,
+  type StorageDriver,
+  type StoredNoteUpdate,
+} from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
 import {
   noteCreateSchema,
@@ -219,31 +223,44 @@ export function createNotesRoutes(deps: NotesDeps) {
       const id = c.req.param("id") as string;
       const fields = c.req.valid("json");
       const now = nowIso();
-      const changes = { ...fields, ...trashStamp(fields.trashed, now) };
-      if (fields.images !== undefined || fields.linkPreviews !== undefined) {
-        // Stored under the note's owner, whoever is writing. A viewer is
-        // refused below by the update itself, before anything refers to what
-        // this stored, and the sweep collects it.
+      const { images, linkPreviews, ...rest } = fields;
+      const changes: StoredNoteUpdate = {
+        ...rest,
+        ...trashStamp(fields.trashed, now),
+      };
+      if (images !== undefined || linkPreviews !== undefined) {
+        // Stored under the note's owner, whoever is writing. Refused here
+        // with the answers the update would give, since references nobody
+        // claimed never reach it.
         const access = await deps.storage.notes.access(id, userId);
-        if (access && access.role !== "view") {
-          if (fields.images !== undefined) {
-            changes.images = await claimImages(
-              deps.storage,
-              fields.images,
-              access.ownerId,
-              userId,
-              now,
-            );
-          }
-          if (fields.linkPreviews !== undefined) {
-            changes.linkPreviews = await claimPreviewImages(
-              deps.storage,
-              fields.linkPreviews,
-              access.ownerId,
-              userId,
-              now,
-            );
-          }
+        if (!access) throw new HttpError(404, "Note not found");
+        if (access.role === "view") {
+          const named = [
+            ...(images !== undefined ? ["images"] : []),
+            ...(linkPreviews !== undefined ? ["linkPreviews"] : []),
+          ];
+          throw new HttpError(
+            403,
+            `Your role on this note does not allow changing ${named.join(", ")}`,
+          );
+        }
+        if (images !== undefined) {
+          changes.images = await claimImages(
+            deps.storage,
+            images,
+            access.ownerId,
+            userId,
+            now,
+          );
+        }
+        if (linkPreviews !== undefined) {
+          changes.linkPreviews = await claimPreviewImages(
+            deps.storage,
+            linkPreviews,
+            access.ownerId,
+            userId,
+            now,
+          );
         }
       }
       const ifMatch = c.req.header("If-Match");
