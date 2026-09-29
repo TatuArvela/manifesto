@@ -3,6 +3,7 @@ import { Copy } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { type MessageKey, t } from "../i18n/index.js";
 import { currentUser } from "../state/auth.js";
+import { serverFeature } from "../state/serverFeatures.js";
 import {
   beginTwoFactor,
   disableTwoFactor,
@@ -169,13 +170,17 @@ export function TwoFactorSettings() {
               {t("twoFactor.turnOff")}
             </button>
           ) : (
-            <button
-              type="button"
-              class={primaryClass}
-              onClick={() => setStep({ kind: "password", purpose: "begin" })}
-            >
-              {t("twoFactor.turnOn")}
-            </button>
+            // Off on the server, nobody can turn it on; an account that has
+            // it keeps the button above to turn it off.
+            serverFeature("twoFactor") && (
+              <button
+                type="button"
+                class={primaryClass}
+                onClick={() => setStep({ kind: "password", purpose: "begin" })}
+              >
+                {t("twoFactor.turnOn")}
+              </button>
+            )
           )}
         </div>
         {step.status.authenticator !== undefined && (

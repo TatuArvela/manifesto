@@ -19,6 +19,7 @@ import {
   type ConfirmationRefusal,
   confirmationRefusal,
 } from "./confirmation.js";
+import { adoptServerFeatures } from "./serverFeatures.js";
 
 export interface CurrentUser {
   id: string;
@@ -514,26 +515,11 @@ export const authProviders = signal<AuthProviderName[]>([]);
 /** With both kinds on, whether the password form is folded behind a link. */
 export const passwordFormCollapsed = signal(false);
 
-/** Whether this server lets users register webhooks. */
-export const webhooksEnabled = signal(false);
-
-/** Whether this server has an MCP endpoint, for AI assistants. */
-export const mcpEnabled = signal(false);
-
-/** Whether an assistant can connect to it by signing in through the browser
- * (OAuth) instead of with a token minted in Settings. */
-export const mcpSignInEnabled = signal(false);
-
-/** Whether a local account can sign in here with a passkey alone. */
-export const passkeySignInEnabled = signal(false);
-
-/** Whether this server lets owners publish a note by public link. */
-export const publicLinksEnabled = signal(false);
-
 /**
  * What the server offers, read once something needs it (the sign-in screen,
  * the admin view, the app's start), with the signals the rest of the client
- * reads set from it. Null when the server cannot be reached.
+ * reads set from it: which features are on goes to `serverFeatures`. Null
+ * when the server cannot be reached.
  */
 export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> {
   if (SERVER_URL === null) return null;
@@ -546,11 +532,7 @@ export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> 
     authProviders.value = auth.providers;
     passwordFormCollapsed.value = auth.passwordForm === "collapsed";
     userLookupMode.value = features.userLookup;
-    webhooksEnabled.value = features.webhooks;
-    mcpEnabled.value = features.mcp;
-    mcpSignInEnabled.value = features.mcpSignIn;
-    passkeySignInEnabled.value = auth.passkeys;
-    publicLinksEnabled.value = features.publicLinks;
+    adoptServerFeatures(features);
     return capabilities;
   } catch {
     return null;

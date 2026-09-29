@@ -109,7 +109,8 @@ With Compose, list `MANIFESTO_VERSION` under `build.args` and export it before `
 
 ## Environment Variables
 
-See `packages/server/.env.example` for the full list and defaults.
+See `packages/server/.env.example` for the full list and defaults. The features a host can switch off
+have a table of their own, under [Turning features off](#turning-features-off).
 
 | Variable           | Default                    | Description                              |
 |--------------------|----------------------------|------------------------------------------|
@@ -135,19 +136,45 @@ See `packages/server/.env.example` for the full list and defaults.
 | `SMTP_FROM`        | *(required with `SMTP_URL`)* | The From header: `Notes <notes@example.com>` or a bare address. |
 | `APP_URL`          | *(required with `SMTP_URL`)* | The client's public address (its full URL, with the base path it is served under). Links in mail point at it, and an [AI assistant signing in](../features/mcp.md#signing-in-through-the-browser) is sent to its consent page there. Not needed for that when the server serves the client itself (`CLIENT_DIR`). |
 | `AUDIT_RETENTION_DAYS` | `180`                  | Days the [audit log](../features/accounts.md#audit-log) keeps an entry. |
-| `ADMIN_EXPORT`     | `off`                      | `on` lets an admin download any account's notes from the Users view (`GET /api/admin/users/:id/export`), for a data request or a move. Off, an admin cannot read another account's notes from inside the app. Each download shows on that account's own Activity page. See [Privacy](../features/privacy.md). |
 | `UPDATE_CHECK`     | `on`                       | Asks GitHub twice a day for the newest release, so admins are told when there is one (a dot on the settings button, a line on the About page of Settings, a banner in the overview). One request to `api.github.com`, through the same outbound boundary as link previews; `off` makes none. |
 | `UPDATE_CHECK_REPO`| `TatuArvela/manifesto`     | Whose releases the check reads, for a fork that publishes its own. |
 | `METRICS_PORT`     | *(unset)*                  | Serves `/metrics` on a port of its own, and never on the public one. See [Metrics](#metrics). |
 | `METRICS_HOST`     | `127.0.0.1`                | Where the `METRICS_PORT` listener binds; `0.0.0.0` for a scraper in another container. |
 | `METRICS_TOKEN`    | *(unset)*                  | Required on the public port to turn metrics on; optional on `METRICS_PORT`. |
 | `CLIENT_DIR`       | `/app/public` in the image, else unset | A built client to serve at the site root beside the API. See [One container](#one-container). |
-| `WEBHOOKS`         | `public`                   | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`. |
-| `MCP`              | `on`                       | The [MCP endpoint](../features/mcp.md) for AI assistants, `/api/mcp`. It answers only a token a user mints for it in Settings or agrees to give an assistant that signs in through the browser, so on opens nothing by itself. Signing in is offered when the server knows where its client is (`APP_URL` or `CLIENT_DIR`). `off` removes the endpoint, the sign-in and the option to mint such a token. |
-| `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
-| `PUBLIC_LINKS`     | `on`                       | Let owners publish a note by [public link](../features/sharing.md#public-links), readable by anyone holding it, with an optional expiry, password and view limit. Set `off` where nothing may be readable without an account; the routes then answer 404 and the menu item is hidden. |
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.
+
+### Turning features off
+
+Each of these features is switched by one variable, from one registry in the server
+(`packages/server/src/features.ts`). A feature that is off is not there: every route it has
+answers the same 404 as a route the server never had, before anyone is asked to sign in, and
+`GET /api/capabilities` reports it off, so the client hides it (its menu items, settings pages
+and dialog sections). Open mode, with no server, is unaffected by any of them.
+
+Turning a feature off never takes away the way out of it. Removing a person or a team from a
+note, leaving a note, removing a passkey, turning two-factor off and revoking a token all stay
+open, so nobody is left holding something they can no longer undo, and an account that already
+has a second factor is still asked for it at every sign-in.
+
+| Variable        | Default  | What it switches |
+|-----------------|----------|------------------|
+| `SHARING`       | `on`     | [Sharing a note with other accounts](../features/sharing-with-people.md): invitations, finding people (`/api/users`), and changing what someone may do. Off, a note already shared stays shared; its owner can still take people off it, and they can still leave. |
+| `TEAMS`         | `on`     | [Teams](../features/sharing-with-people.md#teams): the admin's Teams page, single sign-on groups mirrored as teams, and sharing a note with a whole team. Needs `SHARING`. Off, sign-in no longer updates membership, and a note already shared with a team stays shared and can still be taken off it. |
+| `PUBLIC_LINKS`  | `on`     | Let owners publish a note by [public link](../features/sharing.md#public-links), readable by anyone holding it, with an optional expiry, password and view limit. Set `off` where nothing may be readable without an account; every link, those already made included, then answers 404 and the menu item is hidden. |
+| `LINK_PREVIEWS` | `on`     | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
+| `CALENDAR`      | `on`     | The [reminders calendar feed](../features/reminders.md#calendar-feed), which a calendar app subscribes to by a secret address. Off, feeds already subscribed to answer 404 and Settings offers no new feed token. |
+| `API_TOKENS`    | `on`     | Personal API tokens for scripts and bots. Off, none can be made and those already made are refused wherever they are presented, both sockets included. MCP and calendar tokens follow `MCP` and `CALENDAR`. |
+| `MCP`           | `on`     | The [MCP endpoint](../features/mcp.md) for AI assistants, `/api/mcp`. It answers only a token a user mints for it in Settings or agrees to give an assistant that signs in through the browser, so on opens nothing by itself. Signing in is offered when the server knows where its client is (`APP_URL` or `CLIENT_DIR`). `off` removes the endpoint and the sign-in, refuses MCP tokens already made, and mints no more. |
+| `WEBHOOKS`      | `public` | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`, which also stops every delivery. |
+| `PASSKEYS`      | `on`     | Adding [passkeys](../features/accounts.md#signing-in-with-a-passkey), and signing in with a passkey alone. Off, nobody can add one or sign in with one alone, but a passkey already added is still asked for as a second factor and can be removed. |
+| `TWO_FACTOR`    | `on`     | Turning on [two-factor sign-in](../features/accounts.md#two-factor-sign-in) with an authenticator app. Off, nobody can turn it on, but an account that has it is still asked for its code, and can turn it off or replace its recovery codes. With `PASSKEYS` off as well, Settings has no two-factor page. |
+| `ADMIN_EXPORT`  | `off`    | `on` lets an admin download any account's notes from the Users view (`GET /api/admin/users/:id/export`), for a data request or a move. Off, an admin cannot read another account's notes from inside the app. Each download shows on that account's own Activity page. See [Privacy](../features/privacy.md). |
+
+A feature whose requirement is off is off too. When its own variable is unset that is implied
+(`SHARING=off` alone turns teams off); when it says `on` anyway (`SHARING=off` with `TEAMS=on`),
+the server refuses to start rather than guess which was meant.
 
 ### Secrets from files
 

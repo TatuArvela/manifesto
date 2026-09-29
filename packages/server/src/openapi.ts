@@ -1,4 +1,4 @@
-import type { ApiTokenScope } from "@manifesto/shared";
+import type { ApiTokenScope, ServerFeature } from "@manifesto/shared";
 import { z } from "zod";
 import type { Bucket } from "./middleware/protect.js";
 import {
@@ -74,6 +74,14 @@ export interface Operation {
    * names none, so a route added without one is closed to tokens, not open.
    */
   scope?: ApiTokenScope;
+  /**
+   * The feature it belongs to (`FEATURES` in `features.ts`). While that is
+   * off, `middleware/protect.ts` answers it with the 404 of a route that does
+   * not exist, before anything else. Left off the ways out of a feature
+   * (taking someone off a note, removing a passkey, turning two-factor off),
+   * which stay open whatever the switch says.
+   */
+  feature?: ServerFeature;
   body?: z.ZodType;
   query?: Record<string, string>;
   /** Status to description; `schema` names a component. */
@@ -320,6 +328,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Start turning two-factor on: a new authenticator secret",
     auth: "session",
+    feature: "twoFactor",
     limits: ["sign-in"],
     body: twoFactorPasswordSchema,
     responses: ok("TwoFactorSetupResponse"),
@@ -331,6 +340,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Confirm with a code; answers the recovery codes, once",
     auth: "session",
+    feature: "twoFactor",
     limits: ["sign-in"],
     body: twoFactorEnableSchema,
     responses: ok("TwoFactorRecoveryCodesResponse"),
@@ -375,6 +385,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Start adding a passkey, with the password: options for navigator.credentials.create()",
     auth: "session",
+    feature: "passkeys",
     limits: ["sign-in"],
     body: twoFactorPasswordSchema,
     responses: ok("PasskeyOptionsResponse"),
@@ -387,6 +398,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Add the passkey the browser made; answers the recovery codes when it is the first second factor",
     auth: "session",
+    feature: "passkeys",
     limits: ["sign-in"],
     body: passkeyAddSchema,
     responses: {
@@ -412,6 +424,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "A challenge to sign in with a passkey alone, for navigator.credentials.get()",
     auth: "none",
+    feature: "passkeys",
     limits: ["passkey-sign-in"],
     responses: ok("PasskeySignInOptionsResponse"),
     provider: "local",
@@ -422,6 +435,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Auth",
     summary: "Sign in with a passkey's answer to that challenge",
     auth: "none",
+    feature: "passkeys",
     limits: ["passkey-sign-in"],
     body: passkeyLoginSchema,
     responses: ok("AuthSuccess"),
@@ -534,6 +548,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Invite an account to the note (owner)",
     auth: "any",
+    feature: "sharing",
     limits: ["user"],
     scope: "sharing",
     body: shareCreateSchema,
@@ -545,6 +560,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Change someone's role (owner)",
     auth: "any",
+    feature: "sharing",
     limits: ["user"],
     scope: "sharing",
     body: shareUpdateSchema,
@@ -566,6 +582,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "The teams the user is in, to share notes with",
     auth: "any",
+    feature: "teams",
     limits: ["user"],
     scope: "sharing",
     responses: ok("TeamsResponse"),
@@ -587,6 +604,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Share the note with a team the owner is in, inviting its members (owner)",
     auth: "any",
+    feature: "teams",
     limits: ["user"],
     scope: "sharing",
     body: teamShareCreateSchema,
@@ -601,6 +619,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Change the role a team has, and its members' with it (owner)",
     auth: "any",
+    feature: "teams",
     limits: ["user"],
     scope: "sharing",
     body: shareUpdateSchema,
@@ -622,6 +641,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "The note's public links, with their view counts (owner)",
     auth: "any",
+    feature: "publicLinks",
     limits: ["user"],
     scope: "sharing",
     responses: { ...ok("PublicLinksResponse"), ...notFound },
@@ -633,6 +653,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Publish the note by a revocable public link, live or as a snapshot (owner)",
     auth: "any",
+    feature: "publicLinks",
     limits: ["user"],
     scope: "sharing",
     body: publicLinkCreateSchema,
@@ -647,6 +668,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Revoke a public link (owner)",
     auth: "any",
+    feature: "publicLinks",
     limits: ["user"],
     scope: "sharing",
     responses: { ...noContent, ...notFound },
@@ -658,6 +680,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "The reminders as an iCalendar feed, at <calendar token>.ics; no header, the token is the address",
     auth: "none",
+    feature: "calendar",
     limits: ["calendar"],
     responses: { "200": { description: "text/calendar" }, ...notFound },
   },
@@ -668,6 +691,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "A note by public link, counting a view; 401 with passwordRequired when it has a password",
     auth: "none",
+    feature: "publicLinks",
     limits: ["public-links"],
     responses: {
       ...ok("PublicNoteResponse"),
@@ -684,6 +708,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "A note by public link with a password, counting a view",
     auth: "none",
+    feature: "publicLinks",
     limits: ["public-links", "public-link-unlock"],
     body: publicLinkUnlockSchema,
     responses: {
@@ -699,6 +724,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "A picture the linked note shows; send X-Link-Access for a link with a password",
     auth: "none",
+    feature: "publicLinks",
     limits: ["public-links"],
     responses: { "200": { description: "The image" }, ...notFound },
   },
@@ -708,6 +734,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Notes offered to the user",
     auth: "any",
+    feature: "sharing",
     limits: ["user"],
     scope: "sharing",
     responses: ok("InvitationsResponse"),
@@ -718,6 +745,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Accept an invitation",
     auth: "any",
+    feature: "sharing",
     limits: ["user"],
     scope: "sharing",
     responses: ok("NoteResponse"),
@@ -728,6 +756,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Decline an invitation",
     auth: "any",
+    feature: "sharing",
     limits: ["user"],
     scope: "sharing",
     responses: noContent,
@@ -738,6 +767,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Sharing",
     summary: "Find accounts to share with",
     auth: "any",
+    feature: "sharing",
     limits: ["user"],
     scope: "sharing",
     query: { q: "Name, username or email address" },
@@ -804,6 +834,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Notes",
     summary: "What the server could read from a linked page",
     auth: "any",
+    feature: "linkPreviews",
     limits: ["user", "link-preview"],
     scope: "notes:write",
     query: { url: "An http(s) URL" },
@@ -855,6 +886,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "The user's webhooks, without secrets",
     auth: "session",
+    feature: "webhooks",
     limits: ["user"],
     responses: ok("WebhooksResponse"),
   },
@@ -864,6 +896,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Add a webhook; the signing secret is in this response only",
     auth: "session",
+    feature: "webhooks",
     limits: ["user"],
     body: webhookCreateSchema,
     responses: {
@@ -876,6 +909,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Turn a webhook on or off",
     auth: "session",
+    feature: "webhooks",
     limits: ["user"],
     body: webhookUpdateSchema,
     responses: ok(),
@@ -886,6 +920,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Remove a webhook",
     auth: "session",
+    feature: "webhooks",
     limits: ["user"],
     responses: noContent,
   },
@@ -895,6 +930,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Account",
     summary: "Send a ping and report what came back",
     auth: "session",
+    feature: "webhooks",
     limits: ["user"],
     responses: ok(),
   },
@@ -904,6 +940,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Admin",
     summary: "Every team, with its members",
     auth: "admin",
+    feature: "teams",
     limits: ["user"],
     responses: ok("AdminTeamsResponse"),
   },
@@ -913,6 +950,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Admin",
     summary: "Make a team, optionally with members",
     auth: "admin",
+    feature: "teams",
     limits: ["user"],
     body: adminTeamCreateSchema,
     responses: {
@@ -927,6 +965,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Rename a team or set its members; a team from the identity provider is refused",
     auth: "admin",
+    feature: "teams",
     limits: ["user"],
     body: adminTeamUpdateSchema,
     responses: { ...ok("AdminTeamResponse"), ...notFound },
@@ -937,6 +976,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Admin",
     summary: "Remove a team, and the notes that came through it",
     auth: "admin",
+    feature: "teams",
     limits: ["user"],
     responses: { ...noContent, ...notFound },
   },
@@ -955,6 +995,7 @@ export const OPERATIONS: Operation[] = [
     tag: "Admin",
     summary: "Every note an account owns, as a zip (only with ADMIN_EXPORT on)",
     auth: "admin",
+    feature: "adminExport",
     limits: ["user"],
     responses: { "200": { description: "application/zip" }, ...notFound },
   },
@@ -1041,6 +1082,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Model Context Protocol for AI assistants: JSON-RPC over Streamable HTTP, stateless",
     auth: "mcp",
+    feature: "mcp",
     limits: ["user"],
     scope: "notes:read",
     responses: {
@@ -1055,6 +1097,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Register an assistant as an OAuth client (RFC 7591); a public client, answered with client_id",
     auth: "none",
+    feature: "mcp",
     limits: ["oauth-register"],
     body: oauthRegisterSchema,
     responses: {
@@ -1069,6 +1112,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Trade a code (with its PKCE verifier) or a refresh token for an hour's MCP token and the next refresh token; a form, as RFC 6749 has it",
     auth: "none",
+    feature: "mcp",
     limits: ["oauth-token"],
     responses: {
       "200": { description: "access_token, refresh_token, expires_in, scope" },
@@ -1081,6 +1125,7 @@ export const OPERATIONS: Operation[] = [
     tag: "MCP",
     summary: "The assistant a consent is about, for the consent page",
     auth: "session",
+    feature: "mcp",
     limits: ["user"],
     query: {
       client_id: "Its client id",
@@ -1102,6 +1147,7 @@ export const OPERATIONS: Operation[] = [
     summary:
       "Let an assistant in: a code on its redirect address, to trade at the token endpoint",
     auth: "session",
+    feature: "mcp",
     limits: ["user"],
     body: oauthAuthorizeSchema,
     responses: ok("OAuthAuthorizeResponse"),
@@ -1343,6 +1389,7 @@ export function buildOpenApiDocument(version: string) {
       ...(op.auth === "mcp" && { "x-mcp-only": true }),
       ...(op.limits.length > 0 && { "x-rate-limits": op.limits }),
       ...(op.scope && { "x-token-scope": op.scope }),
+      ...(op.feature && { "x-feature": op.feature }),
       "x-stability": isPublicSurface(op) ? "public" : "client",
       ...(op.deprecated && {
         deprecated: true,
@@ -1381,7 +1428,7 @@ export function buildOpenApiDocument(version: string) {
       title: "Manifesto API",
       version,
       description:
-        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md. x-stability says whether the compatibility policy in docs/specification/api.md will cover an operation from 1.0.0 (public) or it is the web client's own (client); before 1.0.0 any of it may change.",
+        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md. An operation marked x-feature belongs to a feature the host can turn off, and answers 404 while it is (features in /api/capabilities). x-stability says whether the compatibility policy in docs/specification/api.md will cover an operation from 1.0.0 (public) or it is the web client's own (client); before 1.0.0 any of it may change.",
       license: { name: "MIT" },
     },
     servers: [{ url: "/" }],

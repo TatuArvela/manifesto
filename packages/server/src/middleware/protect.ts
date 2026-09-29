@@ -1,5 +1,7 @@
 import type { Context, MiddlewareHandler } from "hono";
 import type { AuthProvider } from "../auth/types.js";
+import type { ServerConfig } from "../config.js";
+import { isFeatureOn } from "../features.js";
 import { OPERATIONS, type Operation } from "../openapi.js";
 import type { StorageDriver } from "../storage/types.js";
 import { type AuthContext, createAuthMiddleware } from "./authBearer.js";
@@ -73,11 +75,15 @@ const SELF_AUTHENTICATED = new Set(["GET /api/ws"]);
  * A route that matched but is not declared is refused, whatever it is:
  * forgetting to declare one closes it rather than opening it.
  * `openapi.test.ts` fails on it before it ships.
+ *
+ * Before any of that, an operation of a feature the host turned off answers
+ * the app's own 404 for a route that does not exist, so nobody, signed in or
+ * not, can tell a feature that is off from one this server never had.
  */
 export function createProtection(deps: {
   authProvider: AuthProvider;
   storage: StorageDriver;
-  trustProxy: boolean;
+  cfg: ServerConfig;
 }): MiddlewareHandler<{ Variables: { auth: AuthContext } }> {
   const limiters = Object.fromEntries(
     Object.entries(BUCKETS).map(([name, bucket]) => [
@@ -87,7 +93,7 @@ export function createProtection(deps: {
         : rateLimit({
             limit: bucket.limit,
             windowMs: bucket.windowMs,
-            trustProxy: deps.trustProxy,
+            trustProxy: deps.cfg.trustProxy,
             name,
           }),
     ]),
@@ -125,6 +131,7 @@ export function createProtection(deps: {
     if (op === undefined) {
       throw new HttpError(403, "This route declares no protection");
     }
+    if (op.feature && !isFeatureOn(deps.cfg, op.feature)) return c.notFound();
     for (const bucket of op.limits) {
       if (BUCKETS[bucket].per === "address") await limiters[bucket](c, noop);
     }

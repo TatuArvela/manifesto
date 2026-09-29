@@ -7,7 +7,11 @@ vi.mock("../config.js", async (original) => ({
   resolveServerUrl: () => "https://notes.example",
 }));
 
-import { currentUser, mcpEnabled } from "../state/auth.js";
+import { currentUser } from "../state/auth.js";
+import {
+  DEFAULT_SERVER_FEATURES,
+  serverFeatures,
+} from "../state/serverFeatures.js";
 import { storageConnection } from "../storage/index.js";
 import { ApiTokensSettings } from "./ApiTokensSettings.js";
 
@@ -25,7 +29,7 @@ describe("ApiTokensSettings", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    mcpEnabled.value = false;
+    serverFeatures.value = DEFAULT_SERVER_FEATURES;
     currentUser.value = null;
     storageConnection.value = { serverUrl: null, token: null };
     render(null, host);
@@ -82,7 +86,7 @@ describe("ApiTokensSettings", () => {
   });
 
   it("mints an assistant's token and hands over the command that connects it", async () => {
-    mcpEnabled.value = true;
+    serverFeatures.value = { ...DEFAULT_SERVER_FEATURES, mcp: true };
     const listed = [
       {
         id: "t2",

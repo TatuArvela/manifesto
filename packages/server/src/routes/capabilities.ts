@@ -20,6 +20,7 @@ import {
   signsInLocally,
   signsInWithOidc,
 } from "../config.js";
+import { featureStates, isFeatureOn } from "../features.js";
 import { MAX_REQUEST_BYTES } from "../lib/requestLimits.js";
 import { MAX_API_TOKENS_PER_USER } from "../lib/token.js";
 import { VERSION } from "../version.js";
@@ -45,13 +46,10 @@ export function createCapabilitiesRoutes(cfg: ServerConfig) {
         passwordForm: cfg.authProvider === "both" ? cfg.passwordForm : "shown",
         registration: signsInLocally(cfg) && cfg.registrationEnabled,
         passwordReset: cfg.mail !== null && signsInLocally(cfg),
-        passkeys: signsInLocally(cfg),
+        passkeys: signsInLocally(cfg) && isFeatureOn(cfg, "passkeys"),
       },
       features: {
-        webhooks: cfg.webhooks !== "off",
-        publicLinks: cfg.publicLinks,
-        linkPreviews: cfg.linkPreviews,
-        mcp: cfg.mcp,
+        ...featureStates(cfg),
         mcpSignIn: offersMcpSignIn(cfg),
         userLookup: cfg.userLookup,
       },

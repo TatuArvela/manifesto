@@ -47,7 +47,7 @@ import {
 import { type Locale, SUPPORTED_LOCALES } from "../i18n/locales.js";
 import { forceUpdateApp } from "../serviceWorker.js";
 import { availableUpdate } from "../state/admin.js";
-import { currentUser, isServerMode, webhooksEnabled } from "../state/auth.js";
+import { currentUser, isServerMode } from "../state/auth.js";
 import {
   animations,
   confirmBeforeDelete,
@@ -80,6 +80,7 @@ import {
   type ThemeMode,
   theme,
 } from "../state/index.js";
+import { offeredTokenKinds, serverFeature } from "../state/serverFeatures.js";
 import { restoreVersions } from "../state/versions.js";
 import { importFiles } from "../utils/importExport.js";
 import { AccountSettings, hasOwnPassword } from "./AccountSettings.js";
@@ -265,13 +266,23 @@ const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
 
 const GENERAL_TABS: SettingsTab[] = ["appearance", "features", "data", "about"];
 
-/** The account's pages this user has: none in open mode or signed out. */
+/**
+ * The account's pages this user has: none in open mode or signed out, and
+ * none for a feature the server has off (`serverFeature`). Two-factor stays
+ * while either of its halves is on; with both off, an account that has one
+ * still signs in with it.
+ */
 function accountTabs(): SettingsTab[] {
   if (!isServerMode || !currentUser.value) return [];
   const tabs: SettingsTab[] = ["account"];
-  if (hasOwnPassword()) tabs.push("twoFactor");
-  tabs.push("tokens");
-  if (webhooksEnabled.value) tabs.push("webhooks");
+  if (
+    hasOwnPassword() &&
+    (serverFeature("twoFactor") || serverFeature("passkeys"))
+  ) {
+    tabs.push("twoFactor");
+  }
+  if (offeredTokenKinds().length > 0) tabs.push("tokens");
+  if (serverFeature("webhooks")) tabs.push("webhooks");
   tabs.push("activity");
   return tabs;
 }

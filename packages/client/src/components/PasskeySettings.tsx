@@ -8,6 +8,7 @@ import {
   listPasskeys,
   removePasskey,
 } from "../state/passkeys.js";
+import { serverFeature } from "../state/serverFeatures.js";
 import { showSuccess } from "../state/ui.js";
 import { passkeysSupported } from "../utils/webauthn.js";
 
@@ -229,7 +230,9 @@ export function PasskeySettings({
       ) : (
         <>
           {errorLine}
-          {supported ? (
+          {/* Off on the server: passkeys already added are still listed and
+              can be removed, but no new one can be added. */}
+          {!serverFeature("passkeys") ? null : supported ? (
             <div class="flex justify-end">
               <button
                 type="button"

@@ -14,9 +14,10 @@ import {
   listApiTokens,
   revokeApiToken,
 } from "../state/apiTokens.js";
-import { mcpEnabled, mcpSignInEnabled, SERVER_ORIGIN } from "../state/auth.js";
+import { SERVER_ORIGIN } from "../state/auth.js";
 import { askConfirmation } from "../state/confirm.js";
 import type { ConfirmationRefusal } from "../state/confirmation.js";
+import { offeredTokenKinds, serverFeature } from "../state/serverFeatures.js";
 import { showError, showSuccess } from "../state/ui.js";
 import {
   ConfirmationError,
@@ -25,6 +26,12 @@ import {
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+const KIND_LABELS: Record<ApiTokenKind, MessageKey> = {
+  api: "tokens.kindApi",
+  mcp: "tokens.kindMcp",
+  calendar: "tokens.kindCalendar",
+};
 
 /** Choices for how long a new token lasts; null does not expire. */
 const EXPIRY_DAYS = [30, 90, 365, null] as const;
@@ -74,7 +81,10 @@ export function ApiTokensSettings() {
   const [failed, setFailed] = useState(false);
   const [name, setName] = useState("");
   const [expiry, setExpiry] = useState<number | null>(90);
-  const [kind, setKind] = useState<ApiTokenKind>("api");
+  // Only the kinds the server's features allow; the page itself stays for
+  // the tokens already made, which can always be revoked.
+  const kinds = offeredTokenKinds();
+  const [kind, setKind] = useState<ApiTokenKind>(kinds[0] ?? "api");
   const [readOnly, setReadOnly] = useState(false);
   const [access, setAccess] = useState<Access>("full");
   const [custom, setCustom] = useState<ApiTokenScope[]>([...API_TOKEN_SCOPES]);
@@ -280,11 +290,11 @@ export function ApiTokensSettings() {
               )
             }
           >
-            <option value="api">{t("tokens.kindApi")}</option>
-            {mcpEnabled.value && (
-              <option value="mcp">{t("tokens.kindMcp")}</option>
-            )}
-            <option value="calendar">{t("tokens.kindCalendar")}</option>
+            {kinds.map((offered) => (
+              <option key={offered} value={offered}>
+                {t(KIND_LABELS[offered])}
+              </option>
+            ))}
           </select>
         </label>
         {kind === "calendar" && (
@@ -297,7 +307,7 @@ export function ApiTokensSettings() {
             <p class="text-sm text-neutral-600 dark:text-neutral-300">
               {t("tokens.mcpHint")}
             </p>
-            {mcpSignInEnabled.value && (
+            {serverFeature("mcpSignIn") && (
               <p class="text-sm text-neutral-600 dark:text-neutral-300">
                 {t("tokens.mcpSignInHint", { url: mcpUrl })}
               </p>

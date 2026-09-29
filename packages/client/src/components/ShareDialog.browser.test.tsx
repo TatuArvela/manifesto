@@ -12,6 +12,10 @@ import { t } from "../i18n/index.js";
 import { currentUser, userLookupMode } from "../state/auth.js";
 import { notes } from "../state/notesStore.js";
 import { locale } from "../state/prefs.js";
+import {
+  DEFAULT_SERVER_FEATURES,
+  serverFeatures,
+} from "../state/serverFeatures.js";
 import { shareDialog } from "../state/sharing.js";
 import { toasts } from "../state/ui.js";
 import { storageConnection } from "../storage/index.js";
@@ -315,5 +319,44 @@ describe("sharing with a team", () => {
     expect(
       dialog().querySelector(`select[aria-label="${t("sharing.teams.pick")}"]`),
     ).toBeNull();
+  });
+});
+
+describe("on a server with sharing turned off", () => {
+  afterEach(() => {
+    serverFeatures.value = DEFAULT_SERVER_FEATURES;
+  });
+
+  it("offers nobody new, and still lets the owner take people off", async () => {
+    serverFeatures.value = {
+      ...DEFAULT_SERVER_FEATURES,
+      sharing: false,
+      teams: false,
+    };
+    teams = [{ id: "t1", name: "Design" } as Team];
+    teamShares = [{ teamId: "t1", name: "Design", role: "edit" }];
+    notes.value = [
+      makeNote({
+        role: "owner",
+        owner: olivia,
+        members: [{ ...alice, role: "view", accepted: true }],
+      }),
+    ];
+    shareDialog.value = { noteId: "n1" };
+    render(<ShareDialogHost />, host);
+    await vi.waitFor(() => {
+      expect(
+        button(t("sharing.teams.remove", { team: "Design" })),
+      ).toBeTruthy();
+    });
+    // No search box, no team to pick, no role to change.
+    expect(dialog().querySelector("input")).toBeNull();
+    expect(
+      dialog().querySelector(`select[aria-label="${t("sharing.teams.pick")}"]`),
+    ).toBeNull();
+    for (const select of dialog().querySelectorAll("select")) {
+      expect(select.disabled).toBe(true);
+    }
+    expect(button(t("sharing.remove", { name: "Alice" }))).toBeTruthy();
   });
 });

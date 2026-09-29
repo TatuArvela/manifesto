@@ -160,8 +160,8 @@ function MainApp() {
     welcomeIfNew();
     if (isServerMode) {
       void refreshCurrentUser().finally(() => setUserChecked(true));
-      void fetchCapabilities();
-      void loadInvitations();
+      // After the capabilities, which say whether sharing is on at all.
+      void fetchCapabilities().then(() => loadInvitations());
     }
     const stopLocaleReport = startAccountLocaleReport();
     return () => {

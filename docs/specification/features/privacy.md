@@ -36,8 +36,8 @@ account's notes. Two actions come close, and both are visible to the account's o
 
 - **Downloading an account's notes** (`GET /api/admin/users/:id/export`), for a data request or a
   move to another server. It is off unless the server sets `ADMIN_EXPORT=on`
-  ([Server Deployment](../server/deployment.md)), and it answers `403` with
-  `code: "admin_export_disabled"` otherwise. When it is on, each download is recorded as
+  ([Server Deployment](../server/deployment.md#turning-features-off)), and it answers `404`, as a
+  route that does not exist, otherwise. When it is on, each download is recorded as
   `admin.user_exported`.
 - **Issuing a temporary password** (local sign-in only). An admin who used it to sign in as someone
   would first have to choose a new password, which signs the owner out everywhere, turns off their

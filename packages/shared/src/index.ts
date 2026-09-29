@@ -71,6 +71,7 @@ export type {
   PublicNoteResponse,
   RegisterRequest,
   SearchParams,
+  ServerFeature,
   ShareCreateRequest,
   ShareInvitation,
   ShareUpdateRequest,
@@ -111,6 +112,7 @@ export {
   MAX_NOTES_PER_IMPORT,
   MAX_PUBLIC_LINK_VIEWS,
   PUBLIC_LINK_MODES,
+  SERVER_FEATURES,
   TEAM_SOURCES,
   WEBHOOK_EVENTS,
 } from "./api.js";

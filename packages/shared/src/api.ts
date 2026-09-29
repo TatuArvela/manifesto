@@ -558,7 +558,6 @@ export type ErrorCode =
   | "email_taken"
   | "two_factor_required"
   | "two_factor_invalid"
-  | "admin_export_disabled"
   /** An action that takes the password was sent without it. */
   | "confirmation_required"
   | "password_incorrect"
@@ -628,6 +627,27 @@ export type AuthProviderName = "local" | "oidc";
 export type UserLookupMode = "search" | "exact";
 
 /**
+ * The features a host can turn off, each with an environment variable. The
+ * server's registry (`features.ts`) says which variable and what each covers;
+ * `GET /api/capabilities` reports them, so a client hides what is off.
+ */
+export const SERVER_FEATURES = [
+  "sharing",
+  "teams",
+  "publicLinks",
+  "linkPreviews",
+  "calendar",
+  "apiTokens",
+  "mcp",
+  "webhooks",
+  "passkeys",
+  "twoFactor",
+  "adminExport",
+] as const;
+
+export type ServerFeature = (typeof SERVER_FEATURES)[number];
+
+/**
  * `GET /api/capabilities`: what this server is and offers, for a client to
  * decide what to show before anyone signs in, and for a script to learn its
  * limits rather than find them. Public, and covered by the compatibility
@@ -649,13 +669,13 @@ export interface CapabilitiesResponse {
     /** Whether a local account can sign in with a passkey alone. */
     passkeys: boolean;
   };
-  features: {
-    webhooks: boolean;
-    publicLinks: boolean;
-    linkPreviews: boolean;
-    /** The MCP endpoint for AI assistants, `/api/mcp`. */
-    mcp: boolean;
-    /** Whether an assistant can connect to it by signing in (OAuth). */
+  /**
+   * Which of the features a host can turn off are on (`SERVER_FEATURES`), and
+   * two answers derived from them. An operation of a feature that is off
+   * answers 404, as a route that does not exist would.
+   */
+  features: Record<ServerFeature, boolean> & {
+    /** Whether an assistant can connect to `/api/mcp` by signing in (OAuth). */
     mcpSignIn: boolean;
     /** How someone sharing a note finds the person to share it with. */
     userLookup: UserLookupMode;

@@ -16,6 +16,7 @@ import { endUserSessions } from "../auth/session.js";
 import { pickAvatarColor } from "../auth/users.js";
 import { type ServerConfig, signsInLocally } from "../config.js";
 import { exportAccount, sendExport } from "../export/userExport.js";
+import { isFeatureOn } from "../features.js";
 import type { UpdateStatus } from "../jobs/updateCheck.js";
 import { logger } from "../lib/logger.js";
 import { hashPassword } from "../lib/password.js";
@@ -116,7 +117,7 @@ export function createAdminRoutes(deps: AdminDeps) {
     const users = await deps.storage.users.list();
     const body: AdminUsersResponse = {
       users: users.map(toAdminUser),
-      adminExport: deps.cfg.adminExport,
+      adminExport: isFeatureOn(deps.cfg, "adminExport"),
     };
     return c.json(body);
   });
@@ -281,16 +282,10 @@ export function createAdminRoutes(deps: AdminDeps) {
 
   /**
    * Everything an account owns, as a zip, for a data request or a move. Only
-   * with `ADMIN_EXPORT` on; the owner hears of it in their own activity.
+   * with `ADMIN_EXPORT` on (off, the protection answers 404 before this);
+   * the owner hears of it in their own activity.
    */
   admin.get("/users/:id/export", async (c) => {
-    if (!deps.cfg.adminExport) {
-      throw new HttpError(
-        403,
-        "Downloading another account's notes is turned off on this server",
-        "admin_export_disabled",
-      );
-    }
     const id = c.req.param("id");
     const zip = await exportAccount(deps.storage, id);
     if (!zip) throw new HttpError(404, "User not found");

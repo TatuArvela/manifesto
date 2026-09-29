@@ -101,7 +101,7 @@ State lives in `packages/client/src/state/` using @preact/signals:
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   Routing below). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.
-- **`auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` reads `/api/capabilities` (`fetchCapabilities`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
+- **`auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` reads `/api/capabilities` (`fetchCapabilities`, which also fills `serverFeatures`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
 
 ### Branding
 
@@ -493,6 +493,16 @@ route Hono matched. Routers mount no auth or rate limit of their own, and a matc
 declared is refused. `/api/ws` checks its own caller in the handshake (`SELF_AUTHENTICATED`).
 `middleware/protect.test.ts` walks the list against the running app, and pins what secures an account
 to a session.
+
+What a host can switch off is one registry, `FEATURES` in `features.ts` (its env var, default and
+what it requires; `SERVER_FEATURES` in shared names them). An operation of one says so as `feature`
+in `OPERATIONS`, and `createProtection` answers it with the app's own 404 before anything else, so an
+off feature looks absent; never add an `if (!cfg.x) throw 404` to a route. What no route decides (a
+token's kind, a socket, a job, OIDC team sync) asks `isFeatureOn`, which also applies requirements.
+The ways out of a feature (removing a share, a passkey, two-factor, a token) carry no `feature` and
+stay open. `/api/capabilities` reports the registry and the client reads it through
+`serverFeature()` (`state/serverFeatures.ts`); a new feature is an entry in both lists, its tags,
+and a line in the deployment doc's "Turning features off", which `features.test.ts` checks.
 
 The public surface (whatever a token can reach, the credential-free routes in `isPublicSurface`,
 webhook payloads, MCP tools) will be under the compatibility policy in `api.md` from 1.0.0: additions
