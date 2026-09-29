@@ -351,10 +351,12 @@ export async function updateStoredNote(
   batch?: Batch,
 ): Promise<Note | null> {
   // An auto-note keeps its metadata in the override sidecar; its title and
-  // content are the plugin's.
+  // content are the plugin's. It lives in `generatedNotes`, never in `notes`,
+  // and reads back there with the override laid over it: null only when the
+  // plugin no longer makes the note.
   if (isGeneratedNoteId(id)) {
     updateAutoNoteOverride(id, overrideFrom(changes));
-    return notes.value.find((n) => n.id === id) ?? null;
+    return generatedNotes.value.find((n) => n.id === id) ?? null;
   }
   const base = notes.value.find((n) => n.id === id) ?? null;
   const refusal = base ? refusalFor(base, changes) : null;

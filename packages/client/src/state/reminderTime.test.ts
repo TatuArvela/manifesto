@@ -110,6 +110,22 @@ describe("a recurring reminder over many fires", () => {
     ]);
   });
 
+  // 02:30 does not exist on 8 March 2026 in New York, nor 03:30 on 29 March
+  // 2026 in Helsinki: read back through a Date, the hour came out an hour
+  // late and every later occurrence kept it.
+  it("keeps its hour through a daylight saving gap, in any zone", () => {
+    expect(fires("2026-03-07T02:30:00", "daily", 2)).toEqual([
+      "2026-03-07T02:30:00",
+      "2026-03-08T02:30:00",
+      "2026-03-09T02:30:00",
+    ]);
+    expect(fires("2026-03-22T03:30:00", "weekly", 2)).toEqual([
+      "2026-03-22T03:30:00",
+      "2026-03-29T03:30:00",
+      "2026-04-05T03:30:00",
+    ]);
+  });
+
   it("keeps the 30th through February and a leap year", () => {
     expect(fires("2028-01-30T09:00:00", "monthly", 3)).toEqual([
       "2028-01-30T09:00:00",
@@ -222,12 +238,44 @@ describe("snapToFuture", () => {
     );
   });
 
-  // Bug: the loop gives up after 1000 steps, so a daily reminder last set
-  // more than about three years ago is still in the past after the snap the
-  // scheduler makes, and reaches today only over several snaps and writes.
-  it.fails("reaches the future from a daily reminder years behind", () => {
-    const snapped = snapToFuture("2020-01-01T09:00:00", "daily", now);
-    expect(parseLocalISO(snapped).getTime()).toBeGreaterThan(now.getTime());
+  it("reaches the first occurrence after now from a reminder years behind", () => {
+    // Walking a step at a time, the loop gave up after 1000 days.
+    expect(snapToFuture("2020-01-01T09:00:00", "daily", now)).toBe(
+      "2026-06-16T09:00:00",
+    );
+    expect(snapToFuture("2020-01-01T13:00:00", "daily", now)).toBe(
+      "2026-06-15T13:00:00",
+    );
+    // 2020-01-06 was a Monday, and so is 2026-06-15; noon has passed.
+    expect(snapToFuture("2020-01-06T09:00:00", "weekly", now)).toBe(
+      "2026-06-22T09:00:00",
+    );
+    expect(snapToFuture("2020-01-06T13:00:00", "weekly", now)).toBe(
+      "2026-06-15T13:00:00",
+    );
+  });
+
+  it("gives the same answer as stepping, across daylight saving changes", () => {
+    const stepped = (time: string, recurrence: "daily" | "weekly") => {
+      let current = time;
+      while (parseLocalISO(current).getTime() <= now.getTime()) {
+        current = nextOccurrence(current, recurrence) ?? current;
+      }
+      return current;
+    };
+    for (const time of [
+      "2025-10-20T02:30:00",
+      "2026-03-01T23:59:59",
+      "2026-06-14T12:00:00",
+      "2026-06-08T12:00:01",
+    ]) {
+      for (const recurrence of ["daily", "weekly"] as const) {
+        expect(
+          snapToFuture(time, recurrence, now),
+          `${time} ${recurrence}`,
+        ).toBe(stepped(time, recurrence));
+      }
+    }
   });
 });
 
