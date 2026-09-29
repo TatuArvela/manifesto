@@ -686,6 +686,13 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   `pnpm lint` fails on one (`lint:dashes`), and on any Biome warning, not only errors.
 - A source file stops at 1000 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
   exempt). Split along a seam rather than raising the limit.
+- Several rules in this file are lint errors rather than prose, with their exceptions listed as
+  overrides in `biome.json`: `fetch` in the client only in `storage/`,
+  `state/auth.ts`, `state/publicLinks.ts` and `autoNotes/registry.ts`; `process.env` only in
+  `config.ts` and `lib/logger.ts` (so `configDocs.test.ts` can hold `deployment.md` to every variable
+  read); `console` only `error` and `warn`; no default exports outside `*.config.ts`; nothing but
+  tests imports `src/test/`. `biome-plugins/` holds the two rules Biome has no built-in for:
+  `endUserSessions.grit` and `noteEvents.grit`.
 - `tsconfig.base.json` adds `verbatimModuleSyntax`, `noImplicitOverride` and `noImplicitReturns`
   to strict mode. The server builds from `tsconfig.build.json`, which leaves out tests,
   `storage/contracts/` and `src/test/`, so none of them ship in the image.
