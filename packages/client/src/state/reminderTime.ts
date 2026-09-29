@@ -107,6 +107,32 @@ export function nextOccurrence(
   }
 }
 
+/**
+ * A daily or weekly reminder moved forward in whole steps to the last one
+ * that starts at least a day before `now`, at once rather than a step at a
+ * time: those steps have a fixed length in days. One years behind would
+ * otherwise walk thousands of them. Monthly and yearly steps vary in length,
+ * and 1000 of them already span 83 years.
+ */
+function skipAhead(
+  time: string,
+  recurrence: ReminderRecurrence,
+  now: Date,
+): string {
+  const step = recurrence === "daily" ? 1 : recurrence === "weekly" ? 7 : 0;
+  if (step === 0) return time;
+  const from = partsOf(time);
+  // Local calendar dates as day counts, so they subtract in whole days
+  // whatever daylight saving does between them.
+  const days =
+    (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+      Date.UTC(from.y, from.mo, from.d)) /
+    86_400_000;
+  const steps = Math.floor((days - 1) / step);
+  if (steps <= 0) return time;
+  return atClock(from.y, from.mo, from.d + steps * step, from);
+}
+
 export function snapToFuture(
   time: string,
   recurrence: ReminderRecurrence,
@@ -114,7 +140,7 @@ export function snapToFuture(
   day?: number,
 ): string {
   if (recurrence === "none") return time;
-  let current = time;
+  let current = skipAhead(time, recurrence, now);
   // Cap iterations defensively so a non-advancing nextOccurrence (e.g. an edge
   // case in the monthly clamp) can never lock the tab.
   for (let i = 0; i < 1000; i++) {
