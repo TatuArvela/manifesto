@@ -7,22 +7,25 @@ import {
 } from "@manifesto/shared";
 import { Copy, Trash2 } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
-import { APP_FILE_SLUG } from "../config.js";
-import { formatDateTime, type MessageKey, t } from "../i18n/index.js";
+import { APP_FILE_SLUG } from "../../config.js";
+import { formatDateTime, type MessageKey, t } from "../../i18n/index.js";
 import {
   createApiToken,
   listApiTokens,
   revokeApiToken,
-} from "../state/apiTokens.js";
-import { SERVER_ORIGIN } from "../state/auth.js";
-import { askConfirmation } from "../state/confirm.js";
-import type { ConfirmationRefusal } from "../state/confirmation.js";
-import { offeredTokenKinds, serverFeature } from "../state/serverFeatures.js";
-import { showError, showSuccess } from "../state/ui.js";
+} from "../../state/apiTokens.js";
+import { SERVER_ORIGIN } from "../../state/auth.js";
+import { askConfirmation } from "../../state/confirm.js";
+import type { ConfirmationRefusal } from "../../state/confirmation.js";
+import {
+  offeredTokenKinds,
+  serverFeature,
+} from "../../state/serverFeatures.js";
+import { showError, showSuccess } from "../../state/ui.js";
 import {
   ConfirmationError,
   ConfirmPasswordField,
-} from "./ConfirmWithPassword.js";
+} from "../ConfirmWithPassword.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

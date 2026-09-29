@@ -1,7 +1,7 @@
-import { t } from "../i18n/index.js";
-import { loadAccountActivity } from "../state/accountActivity.js";
-import { SERVER_ORIGIN } from "../state/auth.js";
-import { AuditLog } from "./AuditLog.js";
+import { t } from "../../i18n/index.js";
+import { loadAccountActivity } from "../../state/accountActivity.js";
+import { SERVER_ORIGIN } from "../../state/auth.js";
+import { AuditLog } from "../AuditLog.js";
 
 /**
  * The account's Activity page: the lines of the audit log about this user,

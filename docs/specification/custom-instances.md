@@ -181,7 +181,7 @@ Not parametrised, both one-line source edits:
   (`<meta name="theme-color">`) and `packages/client/public/manifest.webmanifest`
   (`theme_color`).
 - **The repository link** in Settings → About, in
-  `packages/client/src/components/SettingsDialog.tsx`.
+  `packages/client/src/components/settings/AboutSettings.tsx`.
 
 Deliberately left alone: the `manifesto:` `localStorage` keys and the
 `@manifesto/*` workspace package names. They are internal identifiers, and

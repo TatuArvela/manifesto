@@ -1,0 +1,106 @@
+import {
+  apiTokenCreateSchema,
+  webhookCreateSchema,
+  webhookUpdateSchema,
+} from "../validation/schemas.js";
+import { noContent, notFound, type Operation, ok } from "./operation.js";
+
+/**
+ * What an account keeps beside its notes: the export, API tokens and webhooks.
+ */
+export const ACCOUNT_OPERATIONS: Operation[] = [
+  {
+    method: "get",
+    path: "/api/export",
+    tag: "Account",
+    summary: "Every note the account owns, as a zip of JSON and Markdown",
+    auth: "any",
+    limits: ["user"],
+    scope: "notes:read",
+    responses: { "200": { description: "application/zip" } },
+  },
+  {
+    method: "get",
+    path: "/api/tokens",
+    tag: "Account",
+    summary: "The user's personal API tokens, without secrets",
+    auth: "session",
+    limits: ["user"],
+    responses: ok("ApiTokensResponse"),
+  },
+  {
+    method: "post",
+    path: "/api/tokens",
+    tag: "Account",
+    summary: "Mint an API token; the secret is in this response only",
+    auth: "session",
+    limits: ["user"],
+    body: apiTokenCreateSchema,
+    responses: {
+      "201": { description: "Created", schema: "ApiTokenCreatedResponse" },
+    },
+  },
+  {
+    method: "delete",
+    path: "/api/tokens/:id",
+    tag: "Account",
+    summary: "Revoke an API token",
+    auth: "session",
+    limits: ["user"],
+    responses: { ...noContent, ...notFound },
+  },
+  {
+    method: "get",
+    path: "/api/webhooks",
+    tag: "Account",
+    summary: "The user's webhooks, without secrets",
+    auth: "session",
+    feature: "webhooks",
+    limits: ["user"],
+    responses: ok("WebhooksResponse"),
+  },
+  {
+    method: "post",
+    path: "/api/webhooks",
+    tag: "Account",
+    summary: "Add a webhook; the signing secret is in this response only",
+    auth: "session",
+    feature: "webhooks",
+    limits: ["user"],
+    body: webhookCreateSchema,
+    responses: {
+      "201": { description: "Created", schema: "WebhookCreatedResponse" },
+    },
+  },
+  {
+    method: "put",
+    path: "/api/webhooks/:id",
+    tag: "Account",
+    summary: "Turn a webhook on or off",
+    auth: "session",
+    feature: "webhooks",
+    limits: ["user"],
+    body: webhookUpdateSchema,
+    responses: ok(),
+  },
+  {
+    method: "delete",
+    path: "/api/webhooks/:id",
+    tag: "Account",
+    summary: "Remove a webhook",
+    auth: "session",
+    feature: "webhooks",
+    limits: ["user"],
+    responses: noContent,
+  },
+  {
+    method: "post",
+    path: "/api/webhooks/:id/test",
+    tag: "Account",
+    summary: "Send a ping and report what came back",
+    auth: "session",
+    feature: "webhooks",
+    limits: ["user"],
+    responses: ok(),
+  },
+];

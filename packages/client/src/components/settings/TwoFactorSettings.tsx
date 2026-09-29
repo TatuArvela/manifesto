@@ -1,9 +1,9 @@
 import type { TwoFactorStatusResponse } from "@manifesto/shared";
 import { Copy } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
-import { type MessageKey, t } from "../i18n/index.js";
-import { currentUser } from "../state/auth.js";
-import { serverFeature } from "../state/serverFeatures.js";
+import { type MessageKey, t } from "../../i18n/index.js";
+import { currentUser } from "../../state/auth.js";
+import { serverFeature } from "../../state/serverFeatures.js";
 import {
   beginTwoFactor,
   disableTwoFactor,
@@ -12,10 +12,10 @@ import {
   otpauthLink,
   renewRecoveryCodes,
   twoFactorStatus,
-} from "../state/twoFactor.js";
-import { showSuccess } from "../state/ui.js";
+} from "../../state/twoFactor.js";
+import { showSuccess } from "../../state/ui.js";
+import { QrCode } from "../QrCode.js";
 import { PasskeySettings } from "./PasskeySettings.js";
-import { QrCode } from "./QrCode.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

@@ -1,11 +1,11 @@
 import { Ban, ChevronDown, ImagePlus, Shuffle, Trash2 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { t } from "../i18n/index.js";
+import { t } from "../../i18n/index.js";
 import {
   boardImageUrl,
   removeBoardImage,
   setBoardImage,
-} from "../state/board.js";
+} from "../../state/board.js";
 import {
   BOARD_COLORS,
   BOARD_TEXTURES,
@@ -20,7 +20,7 @@ import {
   rerollBoardTexture,
   resolvedBoardColor,
   resolvedBoardTexture,
-} from "../state/index.js";
+} from "../../state/index.js";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =

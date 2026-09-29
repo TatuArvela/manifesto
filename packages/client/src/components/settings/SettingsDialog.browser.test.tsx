@@ -1,20 +1,20 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../i18n/index.js";
+import { t } from "../../i18n/index.js";
 
-vi.mock("../config.js", async (original) => ({
-  ...(await original<typeof import("../config.js")>()),
+vi.mock("../../config.js", async (original) => ({
+  ...(await original<typeof import("../../config.js")>()),
   resolveServerUrl: () => "https://notes.example",
 }));
 
-import { currentUser } from "../state/auth.js";
+import { currentUser } from "../../state/auth.js";
 import {
   adoptServerFeatures,
   DEFAULT_SERVER_FEATURES,
   type ServerFeatures,
   serverFeatures,
-} from "../state/serverFeatures.js";
-import { settingsTab, showSettings } from "../state/ui.js";
+} from "../../state/serverFeatures.js";
+import { settingsTab, showSettings } from "../../state/ui.js";
 import { SettingsDialog } from "./SettingsDialog.js";
 
 let host: HTMLDivElement;
