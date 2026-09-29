@@ -142,6 +142,7 @@ A scheduled reminder attached to a note. See [Reminders](features/reminders.md) 
 |---------------|-----------------------|----------|---------------------------------------------|
 | `time`        | `string`              | Yes      | ISO 8601 local-wall-clock datetime when the reminder next fires |
 | `recurrence`  | `ReminderRecurrence`  | Yes      | `none` \| `daily` \| `weekly` \| `monthly` \| `yearly` |
+| `day`         | `number`              | No       | 1 to 31: the day of the month a monthly or yearly reminder repeats on, present only while a shorter month has clamped `time` to another ([Recurrence](features/reminders.md#recurrence)) |
 | `timezone`    | `string`              | Yes      | IANA timezone captured at creation          |
 | `lastFiredAt` | `string`              | No       | ISO 8601 of the last actual fire, used for cross-tab / service-worker dedupe |
 

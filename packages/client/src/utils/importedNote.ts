@@ -106,6 +106,9 @@ function parseReminder(raw: unknown): NoteReminder | null {
       typeof r.recurrence === "string" && RECURRENCES.has(r.recurrence)
         ? (r.recurrence as NoteReminder["recurrence"])
         : "none",
+    ...(Number.isInteger(r.day) && Number(r.day) >= 1 && Number(r.day) <= 31
+      ? { day: Number(r.day) }
+      : {}),
     timezone: typeof r.timezone === "string" ? r.timezone : "UTC",
     ...(typeof r.lastFiredAt === "string"
       ? { lastFiredAt: r.lastFiredAt }

@@ -1,7 +1,11 @@
 import type { Note, NoteReminder } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
-import { nextOccurrence, parseLocalISO, snapToFuture } from "./reminderTime.js";
+import {
+  advanceReminder,
+  parseLocalISO,
+  snapReminderToFuture,
+} from "./reminderTime.js";
 import { showError } from "./ui.js";
 
 export {
@@ -9,6 +13,7 @@ export {
   formatLocalISO,
   nextOccurrence,
   parseLocalISO,
+  pickedReminder,
   snapToFuture,
 } from "./reminderTime.js";
 
@@ -163,10 +168,8 @@ export async function showReminderNotification(
 
 function scheduleNext(note: Note, reminder: NoteReminder) {
   const nowIso = new Date().toISOString();
-  const next = nextOccurrence(reminder.time, reminder.recurrence);
-  const updated: NoteReminder = next
-    ? { ...reminder, time: next, lastFiredAt: nowIso }
-    : { ...reminder, lastFiredAt: nowIso };
+  const next = advanceReminder(reminder);
+  const updated: NoteReminder = { ...(next ?? reminder), lastFiredAt: nowIso };
   updateNoteFn?.(note.id, { reminder: updated });
 }
 
@@ -193,8 +196,7 @@ function scheduleForNote(note: Note) {
       queueMicrotask(() => fire(note));
     } else if (reminder.recurrence !== "none") {
       // Very old recurring reminder → snap forward without firing.
-      const snapped = snapToFuture(reminder.time, reminder.recurrence);
-      updateNoteFn?.(note.id, { reminder: { ...reminder, time: snapped } });
+      updateNoteFn?.(note.id, { reminder: snapReminderToFuture(reminder) });
     }
     return;
   }
@@ -233,6 +235,7 @@ function syncToServiceWorker(all: Note[]) {
         noteId: n.id,
         time: n.reminder.time,
         recurrence: n.reminder.recurrence,
+        ...(n.reminder.day !== undefined && { day: n.reminder.day }),
         title: n.title.trim() || t("reminder.untitled"),
         body: n.content.replace(/\s+/g, " ").trim().slice(0, 140),
         lastFiredAt: n.reminder.lastFiredAt ?? null,

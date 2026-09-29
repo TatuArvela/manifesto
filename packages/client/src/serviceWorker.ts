@@ -1,6 +1,7 @@
 import type { NoteReminder } from "@manifesto/shared";
 import { SHARE_CACHE } from "./shareTarget.js";
 import { notes, updateNote } from "./state/notesStore.js";
+import { reminderAt } from "./state/reminderTime.js";
 import { createUpdateReloader, pageIsIdle } from "./utils/updateReload.js";
 
 interface SwMessage {
@@ -19,13 +20,14 @@ export function registerServiceWorker(): void {
     if (data.type === "reminder-fired" && data.noteId) {
       const note = notes.value.find((n) => n.id === data.noteId);
       if (!note?.reminder) return;
-      const updated: NoteReminder = data.nextTime
-        ? {
-            ...note.reminder,
-            time: data.nextTime,
-            lastFiredAt: new Date().toISOString(),
-          }
-        : { ...note.reminder, lastFiredAt: new Date().toISOString() };
+      // The worker says when; the note's own reminder keeps the day it repeats
+      // on, which the worker's copy may predate.
+      const updated: NoteReminder = {
+        ...(data.nextTime
+          ? reminderAt(note.reminder, data.nextTime)
+          : note.reminder),
+        lastFiredAt: new Date().toISOString(),
+      };
       void updateNote(note.id, { reminder: updated });
     } else if (data.type === "open-note" && data.noteId) {
       window.dispatchEvent(
