@@ -33,6 +33,7 @@ are here because breaking one fails silently, often from a file the guide is not
   both catalogues); one a stolen session could abuse also calls `requireConfirmation`.
 - Server-side outbound requests to user-supplied addresses go through `safeFetch`, never `fetch`.
 - Quantifiers stay bounded in anything reachable from a card render.
+- Commit messages follow the `commit-message` skill, PR descriptions the `pr-description` skill.
 - When a change alters what an area guide says, update the guide in the same commit.
 
 ## Project Overview
