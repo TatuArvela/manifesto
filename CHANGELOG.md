@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/TatuArvela/manifesto/compare/v0.4.0...v0.5.0) (2026-09-29)
+
+
+### Features
+
+* switchable server features, stricter checks and smaller files ([#71](https://github.com/TatuArvela/manifesto/issues/71)) ([bb9b6a0](https://github.com/TatuArvela/manifesto/commit/bb9b6a0dd02976ee2488d8b50ad2d91dc19952e2))
+
+
+### Bug Fixes
+
+* **client:** the last pinned bugs, and a reminder hour lost to daylight saving ([#73](https://github.com/TatuArvela/manifesto/issues/73)) ([726df61](https://github.com/TatuArvela/manifesto/commit/726df6180fda1ba4da907215044b6e2c74ca9174))
+* reminders keep the day they were set for ([#72](https://github.com/TatuArvela/manifesto/issues/72)) ([7084c2a](https://github.com/TatuArvela/manifesto/commit/7084c2a77702ab09ad05e9365acc969ed566ccfa))
+
 ## [0.4.0](https://github.com/TatuArvela/manifesto/compare/v0.3.1...v0.4.0) (2026-09-29)
 
 
