@@ -24,6 +24,23 @@ rests on changes. A proposal to revisit one should say what changed.
 - **Folders**: a note in one folder is a note filed in exactly one place, which is what tags avoid. A
   tag already groups notes, a note can carry several, and [tags](features/tags.md) are how the sidebar
   is organized.
+- **Notion-style structure**: databases and typed properties on notes, pages nested in pages, and
+  block tools in the editor (a `/` command menu, callouts, collapsible toggles). The first two turn a
+  sticky note into a record or a page in a tree, which tags and the board already answer. The block
+  tools each add an editor node that raises `EDITOR_SCHEMA_VERSION` and needs a Markdown form in
+  export, for notes short enough not to need them.
+- **Reminders, priorities or locations on a checklist item**: a checklist is a GFM task list in the
+  note's Markdown ([Checklists](features/checklists.md)), and its items have no identity for a
+  scheduler to name. A reminder belongs to the note, and a date on an item belongs in the item's text.
+- **Two-way CalDAV for checklists** (items as `VTODO`s a phone's reminders app edits): the protocol is
+  the small part. An edit coming back names an item that has no stable ID, and would have to be merged
+  into the collaborative document by guessing which line it meant. The
+  [calendar feed](features/reminders.md) publishes reminders read-only.
+- **App-store builds** (Capacitor or any native shell): the app is a PWA served from its own origin,
+  and a shell runs it from another one, so `SERVER_URL` could never be same-origin, every custom
+  instance would need its own store build to carry its branding, and each release would pass through
+  store review. What a shell would add, reminders that arrive with the app closed, comes from Web Push
+  for a connected installed PWA.
 
 ## Architecture
 
