@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0](https://github.com/TatuArvela/manifesto/compare/v0.3.1...v0.4.0) (2026-09-29)
+
+
+### Features
+
+* an Activity page, preferences that follow the account, and a phone note the page scrolls ([#66](https://github.com/TatuArvela/manifesto/issues/66)) ([f062567](https://github.com/TatuArvela/manifesto/commit/f06256753ab7639df033a87ce88368e9991af609))
+* **client:** title the tab by instance alone, and keep its icon in dark mode ([#64](https://github.com/TatuArvela/manifesto/issues/64)) ([36f60ae](https://github.com/TatuArvela/manifesto/commit/36f60ae7c269a2382c332349ded359b8621498fd))
+* MCP endpoint, scoped tokens and password confirmation from peer comparisons ([#67](https://github.com/TatuArvela/manifesto/issues/67)) ([975e996](https://github.com/TatuArvela/manifesto/commit/975e99660f6093a8043770c6e7a5f191555afb33))
+* passkeys, sign-in for AI assistants, teams and public links from peer comparisons ([#70](https://github.com/TatuArvela/manifesto/issues/70)) ([d42547f](https://github.com/TatuArvela/manifesto/commit/d42547fd630946d14a2fe02eae2dc68aac144c2d))
+
 ## [0.3.1](https://github.com/TatuArvela/manifesto/compare/v0.3.0...v0.3.1) (2026-09-26)
 
 
