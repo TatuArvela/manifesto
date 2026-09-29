@@ -48,6 +48,7 @@ const OIDC_CONFIG: OidcConfig = {
   groupsClaim: "groups",
   adminGroup: null,
   userGroup: null,
+  teamGroups: null,
   autoRegister: true,
 };
 

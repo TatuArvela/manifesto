@@ -9,11 +9,13 @@ import {
 } from "./auth/revocations.js";
 import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
 import type { AuthProvider } from "./auth/types.js";
+import { createCalendarRoutes } from "./calendar/routes.js";
 import { mountClient } from "./client/serveClient.js";
-import type { ServerConfig } from "./config.js";
+import { offersMcpSignIn, type ServerConfig } from "./config.js";
 import type { UpdateStatus } from "./jobs/updateCheck.js";
 import { countMetric } from "./lib/metrics.js";
 import { metricsHandler } from "./lib/metricsServer.js";
+import { MAX_REQUEST_BYTES } from "./lib/requestLimits.js";
 import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,
@@ -22,16 +24,29 @@ import { createSmtpMailer, type Mailer } from "./mail/mailer.js";
 import { createMcpRoutes } from "./mcp/routes.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
-import { perUserApiRateLimit } from "./middleware/rateLimit.js";
+import { createProtection } from "./middleware/protect.js";
 import { requestLog } from "./middleware/requestLog.js";
+import {
+  type ClientMetadataFetcher,
+  createClientResolver,
+} from "./oauth/clients.js";
+import {
+  createOAuthRoutes,
+  createWellKnownRoutes,
+  resourceMetadataChallenge,
+} from "./oauth/routes.js";
 import { buildOpenApiDocument } from "./openapi.js";
 import { createAdminRoutes } from "./routes/admin.js";
 import { createAttachmentRoutes } from "./routes/attachments.js";
+import { createCapabilitiesRoutes } from "./routes/capabilities.js";
 import { createExportRoutes } from "./routes/export.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
+import { createPublicRoutes } from "./routes/publicLinks.js";
 import { createSearchRoutes } from "./routes/search.js";
 import { createInvitationRoutes } from "./routes/shares.js";
+import { createSyncRoutes } from "./routes/sync.js";
+import { createTeamRoutes } from "./routes/teams.js";
 import { createTokenRoutes } from "./routes/tokens.js";
 import { createUsersRoutes } from "./routes/users.js";
 import { createWebhookRoutes } from "./routes/webhooks.js";
@@ -40,6 +55,8 @@ import {
   createAccessChanges,
 } from "./sharing/accessChanges.js";
 import { createNoteEvents, type NoteEvents } from "./sharing/noteEvents.js";
+import { createTeamShares } from "./sharing/teamShares.js";
+import { syncOidcTeams } from "./sharing/teamSync.js";
 import type { StorageDriver } from "./storage/types.js";
 import { VERSION } from "./version.js";
 import {
@@ -62,6 +79,8 @@ export interface AppDeps {
   /** Test seam: which addresses webhooks may reach, and how fast they retry. */
   webhookAddressPolicy?: (address: string) => boolean;
   webhookRetryDelaysMs?: number[];
+  /** Test seam: reads an OAuth client's metadata document. */
+  fetchClientMetadata?: ClientMetadataFetcher;
   /** Test seam: replaces the SMTP mailer `cfg.mail` would build. */
   mailer?: Mailer;
   /** Log every request. The server turns this on; tests leave it off. */
@@ -86,6 +105,12 @@ export function createApp(deps: AppDeps): AppHandle {
   const revocations = deps.revocations ?? createSessionRevocations();
   const accessChanges = deps.accessChanges ?? createAccessChanges();
   const noteEvents = createNoteEvents({ storage, broadcaster, accessChanges });
+  const teamShares = createTeamShares({
+    storage,
+    broadcaster,
+    noteEvents,
+    accessChanges,
+  });
   // One budget of wrong passwords per account name, whether they were typed
   // to sign in or to confirm an action from a session that is already in.
   const loginAttempts = createLoginAttempts();
@@ -142,12 +167,11 @@ export function createApp(deps: AppDeps): AppHandle {
   // Two caps. Image uploads are the one route that carries bulk, a raw file
   // up to the image limit; everything else, notes included (their images and
   // preview images are references), has no reason to exceed 1 MiB.
-  const DEFAULT_BODY_LIMIT = 1024 * 1024;
   const onBodyTooLarge = () => {
     throw new HttpError(413, "Request body too large");
   };
   const defaultBodyLimit = bodyLimit({
-    maxSize: DEFAULT_BODY_LIMIT,
+    maxSize: MAX_REQUEST_BYTES,
     onError: onBodyTooLarge,
   });
   // An image upload is one raw file, up to the image limit.
@@ -162,16 +186,24 @@ export function createApp(deps: AppDeps): AppHandle {
   );
 
   app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));
+  app.route("/api/capabilities", createCapabilitiesRoutes(cfg));
   let openApi: ReturnType<typeof buildOpenApiDocument> | undefined;
   app.get("/api/openapi.json", (c) => {
     openApi ??= buildOpenApiDocument(VERSION);
     return c.json(openApi);
   });
 
-  // Single shared per-user rate limiter for the data-plane endpoints. Sharing
-  // one instance across both routers means a user spamming a mix of
-  // /api/notes and /api/search can't dodge throttling by alternating.
-  const apiRateLimit = perUserApiRateLimit();
+  // Before the protection below, so it sees the 401 that refuses a request
+  // without a token, and says where an assistant can sign in.
+  if (offersMcpSignIn(cfg)) {
+    app.use("/api/mcp", resourceMetadataChallenge(cfg.trustProxy));
+  }
+  // Who may call each route and how often, as `OPERATIONS` declares it.
+  // Routers mount none of this themselves.
+  app.use(
+    "/api/*",
+    createProtection({ authProvider, storage, trustProxy: cfg.trustProxy }),
+  );
 
   // Provider-agnostic auth routes (/methods, /me) must be registered BEFORE
   // the provider's own router so Hono's longest-prefix matching reaches them.
@@ -180,104 +212,105 @@ export function createApp(deps: AppDeps): AppHandle {
     createAuthSharedRoutes({
       cfg,
       storage,
-      authProvider,
       broadcaster,
       loginAttempts,
     }),
   );
   app.route(
     "/api/auth",
-    authProvider.router({ revocations, mailer, loginAttempts }),
+    authProvider.router({
+      revocations,
+      mailer,
+      loginAttempts,
+      teamSync: (userId, groups) =>
+        syncOidcTeams(storage, teamShares, userId, groups),
+    }),
   );
   app.route(
     "/api/notes",
     createNotesRoutes({
       storage,
-      authProvider,
       broadcaster,
       noteEvents,
       accessChanges,
-      rateLimit: apiRateLimit,
       mail,
+      cfg,
+      teamShares,
     }),
   );
   app.route(
     "/api/invitations",
     createInvitationRoutes({
       storage,
-      authProvider,
       broadcaster,
       noteEvents,
       accessChanges,
-      rateLimit: apiRateLimit,
     }),
   );
-  app.route(
-    "/api/users",
-    createUsersRoutes({ cfg, storage, authProvider, rateLimit: apiRateLimit }),
-  );
-  app.route(
-    "/api/export",
-    createExportRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
-  );
+  app.route("/api/users", createUsersRoutes({ cfg, storage }));
+  app.route("/api/export", createExportRoutes({ storage }));
 
   app.route(
     "/api/tokens",
     createTokenRoutes({
       storage,
-      authProvider,
       revocations,
       loginAttempts,
       mcpEnabled: cfg.mcp,
-      rateLimit: apiRateLimit,
     }),
   );
+  if (offersMcpSignIn(cfg)) {
+    app.route("/.well-known", createWellKnownRoutes(cfg));
+    app.route(
+      "/api/oauth",
+      createOAuthRoutes({
+        storage,
+        loginAttempts,
+        revocations,
+        resolveClient: createClientResolver({
+          storage,
+          fetchMetadata: deps.fetchClientMetadata,
+        }),
+      }),
+    );
+  }
   if (cfg.mcp) {
     // Its tools call the routes above through the app itself, so they meet
     // every check a request from the network does.
     app.route(
       "/api/mcp",
       createMcpRoutes({
-        authProvider,
         corsOrigins: cfg.corsOrigins,
         serverVersion: VERSION,
         forward: (request, env) => app.fetch(request, env),
-        rateLimit: apiRateLimit,
       }),
     );
   }
-  app.route(
-    "/api/webhooks",
-    createWebhookRoutes({
-      storage,
-      authProvider,
-      loginAttempts,
-      dispatcher: webhooks,
-      rateLimit: apiRateLimit,
-    }),
-  );
+  // Off, there are no routes to answer, so a request is a 404 before it is
+  // asked to sign in.
+  if (webhooks) {
+    app.route(
+      "/api/webhooks",
+      createWebhookRoutes({ storage, loginAttempts, dispatcher: webhooks }),
+    );
+  }
   app.route(
     "/api/attachments",
     createAttachmentRoutes({
       storage,
-      authProvider,
-      // Its own bucket, and a wider one: a grid of notes asks for an image per
-      // card, and each is fetched once per session and then cached.
-      rateLimit: perUserApiRateLimit(1200),
     }),
   );
-  app.route(
-    "/api/search",
-    createSearchRoutes({ storage, authProvider, rateLimit: apiRateLimit }),
-  );
+  app.route("/api/search", createSearchRoutes({ storage }));
+  app.route("/api/public", createPublicRoutes({ storage, cfg }));
+  app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
+  app.route("/api/teams", createTeamRoutes({ storage }));
+  app.route("/api/sync", createSyncRoutes({ storage }));
   app.route(
     "/api/link-preview",
     createLinkPreviewRoutes({
-      authProvider,
       fetchPreview: cfg.linkPreviews
         ? (deps.fetchLinkPreview ?? createLinkPreviewFetcher())
         : null,
-      rateLimit: apiRateLimit,
     }),
   );
 
@@ -285,12 +318,11 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/admin",
     createAdminRoutes({
       cfg,
+      teamShares,
       storage,
-      authProvider,
       revocations,
       noteEvents,
       updateStatus: deps.updateStatus,
-      rateLimit: apiRateLimit,
     }),
   );
 

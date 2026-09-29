@@ -53,6 +53,11 @@ async function authenticateByApiToken(
   if (stored.kind !== kind) return null;
   const now = nowIso();
   if (stored.expiresAt !== null && stored.expiresAt < now) return null;
+  // An OAuth grant's access token lapses within the hour; its refresh token
+  // (`oauth/tokenEndpoint.ts`) is how the assistant gets the next one.
+  if (stored.accessExpiresAt !== null && stored.accessExpiresAt < now) {
+    return null;
+  }
   const user = await storage.users.findById(stored.userId);
   if (!user) return null;
   await storage.apiTokens.touch(stored.id, now);

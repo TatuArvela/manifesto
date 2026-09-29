@@ -4,20 +4,17 @@ import {
   type NotesImportResponse,
   roleOf,
 } from "@manifesto/shared";
-import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { claimImages, claimPreviewImages } from "../attachments/store.js";
-import type { AuthProvider } from "../auth/types.js";
+import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
 import type { Mailer } from "../mail/mailer.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
+import type { TeamShares } from "../sharing/teamShares.js";
 import { NoteAccessError, type StorageDriver } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
 import {
@@ -27,20 +24,23 @@ import {
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
+import { registerPublicLinkRoutes } from "./publicLinks.js";
 import { registerShareRoutes } from "./shares.js";
+import { registerTeamShareRoutes } from "./teams.js";
 import { registerVersionRoutes } from "./versions.js";
 
 interface NotesDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
   broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
   /** Optional per-user limiter, mounted after auth. Defined in app.ts so
    * it shares state with /api/search rather than maintaining a per-router
    * bucket map. */
-  rateLimit?: MiddlewareHandler;
   mail?: { mailer: Mailer; appUrl: string } | null;
+  /** For the public link routes, which hash passwords and may be off. */
+  cfg: ServerConfig;
+  teamShares: TeamShares;
 }
 
 /**
@@ -92,9 +92,6 @@ export function createNotesRoutes(deps: NotesDeps) {
     } while (cursor !== undefined);
     return ids;
   }
-
-  notes.use("*", createAuthMiddleware(deps.authProvider));
-  if (deps.rateLimit) notes.use("*", deps.rateLimit);
 
   notes.get("/", async (c) => {
     const { userId } = c.get("auth");
@@ -332,6 +329,8 @@ export function createNotesRoutes(deps: NotesDeps) {
   });
 
   registerShareRoutes(notes, deps);
+  registerPublicLinkRoutes(notes, deps);
+  registerTeamShareRoutes(notes, deps);
   registerVersionRoutes(notes, deps);
 
   return notes;

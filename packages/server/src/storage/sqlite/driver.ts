@@ -6,10 +6,14 @@ import { createSqliteAuditRepo } from "./auditRepo.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
+import { createSqliteOAuthRepo } from "./oauthRepo.js";
+import { createSqlitePasskeysRepo } from "./passkeysRepo.js";
 import { createSqlitePasswordResetsRepo } from "./passwordResetsRepo.js";
 import { createSqlitePrefsRepo } from "./prefsRepo.js";
+import { createSqlitePublicLinksRepo } from "./publicLinksRepo.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteSharesRepo } from "./sharesRepo.js";
+import { createSqliteTeamsRepo } from "./teamsRepo.js";
 import { createSqliteTwoFactorRepo } from "./twoFactorRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
 import { createSqliteVersionsRepo } from "./versionsRepo.js";
@@ -36,8 +40,12 @@ export function createSqliteStorage(
     attachments: createSqliteAttachmentsRepo(db),
     versions: createSqliteVersionsRepo(db),
     apiTokens: createSqliteApiTokensRepo(db),
+    oauth: createSqliteOAuthRepo(db),
     webhooks: createSqliteWebhooksRepo(db),
+    publicLinks: createSqlitePublicLinksRepo(db),
+    teams: createSqliteTeamsRepo(db),
     twoFactor: createSqliteTwoFactorRepo(db),
+    passkeys: createSqlitePasskeysRepo(db),
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqlitePasswordResetsRepo(db),
     audit: createSqliteAuditRepo(db),

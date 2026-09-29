@@ -228,6 +228,12 @@ export interface ShareUser {
 }
 
 /** Someone a note is shared with. */
+/** A team as a note or an invitation names it. */
+export interface TeamRef {
+  id: string;
+  name: string;
+}
+
 export interface NoteMember extends ShareUser {
   role: ShareRole;
   /**
@@ -235,6 +241,9 @@ export interface NoteMember extends ShareUser {
    * about those; everyone else sees the people who accepted.
    */
   accepted: boolean;
+  /** The team this person has the note through; absent when shared with
+   * them directly. */
+  team?: TeamRef;
 }
 
 /**

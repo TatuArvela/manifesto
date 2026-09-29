@@ -1,14 +1,19 @@
 import type {
   AccountPrefs,
   ApiToken,
+  ApiTokenScope,
   AuditAction,
   Note,
   NoteCreate,
   NoteUpdate,
   NoteVersion,
+  Passkey,
+  PublicLink,
+  PublicNote,
   ShareInvitation,
   ShareRole,
   ShareUser,
+  TeamSource,
   Webhook,
   WebhookEventName,
 } from "@manifesto/shared";
@@ -222,6 +227,19 @@ export interface NotesRepo {
   /** One page of the notes the user can see, newest first, without
    * attachments. */
   listByUser(userId: string, options: ListNotesOptions): Promise<NotePage>;
+  /**
+   * One page of the notes the user can see whose row or members changed after
+   * `since` (an ISO timestamp), newest first, without attachments. A shared
+   * note's personal fields need no column of their own: a recipient's write
+   * stamps the note's `updated_at` like any other.
+   */
+  listChanged(
+    userId: string,
+    since: string,
+    options: ListNotesOptions,
+  ): Promise<NotePage>;
+  /** The ids of every note the user can see, in no particular order. */
+  visibleIds(userId: string): Promise<string[]>;
   /** A single note the user can see, attachments and all. */
   getById(id: string, userId: string): Promise<Note | null>;
   /** The user's role on a note they can see, or null. */
@@ -266,6 +284,8 @@ export interface NoteShare {
   role: ShareRole;
   createdAt: string;
   acceptedAt: string | null;
+  /** The team it came through; null for a share made to the user directly. */
+  viaTeam: string | null;
 }
 
 /** Everyone with a stake in one note, for deciding who hears about it. */
@@ -282,6 +302,8 @@ export interface CreateShareInput {
   userId: string;
   role: ShareRole;
   createdAt: string;
+  /** The team it comes through, if it does. */
+  viaTeam?: string | null;
 }
 
 export interface SharesRepo {
@@ -291,6 +313,12 @@ export interface SharesRepo {
    * and nothing was written. */
   create(input: CreateShareInput): Promise<"ok" | "exists">;
   setRole(noteId: string, userId: string, role: ShareRole): Promise<boolean>;
+  /** Which team a share comes through, or null to make it a direct one. */
+  setViaTeam(
+    noteId: string,
+    userId: string,
+    teamId: string | null,
+  ): Promise<boolean>;
   /**
    * Accept an invitation to a note that is not in its owner's trash. The
    * recipient starts with the note's color and at the end of their manual
@@ -432,12 +460,40 @@ export interface VersionsRepo {
 
 export interface StoredApiToken extends ApiToken {
   userId: string;
+  /** When an OAuth grant's current access token lapses; null for a token
+   * minted by hand, whose secret lasts as long as the token. */
+  accessExpiresAt: string | null;
 }
 
-/** Personal API tokens, keyed by the SHA-256 of the secret. */
+/** An OAuth grant's secrets, replaced together at every refresh. */
+export interface OAuthGrantSecrets {
+  tokenHash: string;
+  refreshHash: string;
+  accessExpiresAt: string;
+}
+
+/**
+ * Personal API tokens, keyed by the SHA-256 of the secret. An assistant's
+ * OAuth grant is one of them (`oauthClientId` set), with a refresh token
+ * beside the access token.
+ */
 export interface ApiTokensRepo {
-  create(input: StoredApiToken & { tokenHash: string }): Promise<void>;
+  create(
+    input: StoredApiToken & { tokenHash: string; refreshHash?: string },
+  ): Promise<void>;
   findByHash(tokenHash: string): Promise<StoredApiToken | null>;
+  /** The grant whose current refresh token this is. */
+  findByRefreshHash(refreshHash: string): Promise<StoredApiToken | null>;
+  /** The grant whose refresh token this was until its last refresh. */
+  findByPreviousRefreshHash(
+    refreshHash: string,
+  ): Promise<StoredApiToken | null>;
+  /**
+   * Replace a grant's secrets, if `refreshHash` is still its refresh token.
+   * One statement, so of two refreshes with the same token only one wins.
+   * The old refresh token is kept as the previous one.
+   */
+  rotate(refreshHash: string, next: OAuthGrantSecrets): Promise<boolean>;
   listByUser(userId: string): Promise<ApiToken[]>;
   /** The user's token, so one user cannot revoke another's. Returns the
    * deleted token's hash, which names the sockets it opened, or null. */
@@ -445,6 +501,46 @@ export interface ApiTokensRepo {
   deleteByUser(userId: string): Promise<number>;
   touch(id: string, lastUsedAt: string): Promise<void>;
   deleteExpired(nowIso: string): Promise<number>;
+}
+
+/** An OAuth client that registered itself (`POST /api/oauth/register`). */
+export interface StoredOAuthClient {
+  id: string;
+  name: string;
+  redirectUris: string[];
+  createdAt: string;
+  /** When it was last given a grant; null until the first. */
+  lastUsedAt: string | null;
+}
+
+/** What a consent hands out: good once, until `expiresAt`. */
+export interface StoredOAuthCode {
+  codeHash: string;
+  clientId: string;
+  /** Kept for the grant's name, since a client that identifies itself by
+   * its metadata document is not stored. */
+  clientName: string;
+  userId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  scopes: ApiTokenScope[];
+  /** When the grant it becomes ends; null for never. */
+  grantExpiresAt: string | null;
+  expiresAt: string;
+}
+
+/** The OAuth server's own rows; the grants themselves are API tokens. */
+export interface OAuthRepo {
+  createClient(client: StoredOAuthClient): Promise<void>;
+  getClient(id: string): Promise<StoredOAuthClient | null>;
+  touchClient(id: string, lastUsedAt: string): Promise<void>;
+  /** Clients registered before `createdBefore` and never given a grant. */
+  deleteUnusedClients(createdBefore: string): Promise<number>;
+  createCode(code: StoredOAuthCode): Promise<void>;
+  /** Takes a code out: a second redemption finds nothing. An expired code is
+   * taken out too, and comes back null. */
+  redeemCode(codeHash: string, nowIso: string): Promise<StoredOAuthCode | null>;
+  deleteExpiredCodes(nowIso: string): Promise<number>;
 }
 
 export interface StoredWebhook extends Webhook {
@@ -489,7 +585,11 @@ export interface TwoFactorRepo {
   begin(userId: string, secret: string, at: string): Promise<boolean>;
   /** Confirms a setup, recording the step of the code that confirmed it. */
   enable(userId: string, at: string, step: number): Promise<void>;
+  /** Removes the authenticator and the recovery codes. */
   disable(userId: string): Promise<void>;
+  /** Removes the authenticator and keeps the recovery codes, which passkeys
+   * share. */
+  removeAuthenticator(userId: string): Promise<void>;
   /**
    * Records `step` as used if it is later than the last one, atomically, and
    * says whether it was. False is a code used before: refuse it.
@@ -499,6 +599,31 @@ export interface TwoFactorRepo {
   /** Spends one unused recovery code; false if there is no such code. */
   useRecoveryCode(userId: string, hash: string, at: string): Promise<boolean>;
   remainingRecoveryCodes(userId: string): Promise<number>;
+}
+
+/** A passkey as stored: the public half of the credential and whose it is. */
+export interface StoredPasskey extends Passkey {
+  userId: string;
+  /** base64url, as the browser names it. */
+  credentialId: string;
+  /** The COSE public key, base64url. */
+  publicKey: string;
+  counter: number;
+  transports: string[];
+  /** The host it was made for. */
+  rpId: string;
+}
+
+export interface PasskeysRepo {
+  create(passkey: StoredPasskey): Promise<void>;
+  /** Oldest first. */
+  listByUser(userId: string): Promise<StoredPasskey[]>;
+  findByCredentialId(credentialId: string): Promise<StoredPasskey | null>;
+  /** Records a sign-in with it: the authenticator's new counter, and when. */
+  recordUse(id: string, counter: number, at: string): Promise<void>;
+  /** The user's passkey, so one user cannot remove another's. */
+  delete(id: string, userId: string): Promise<boolean>;
+  deleteByUser(userId: string): Promise<number>;
 }
 
 /** Password reset links sent by mail, keyed by the token's SHA-256. */
@@ -563,6 +688,83 @@ export interface PrefsRepo {
   ): Promise<AccountPrefs | "tooLarge">;
 }
 
+/**
+ * A public link as the server keeps it: what its owner sees, and what only
+ * the server reads (the password hash, and a snapshot link's copy of the note).
+ */
+export interface StoredPublicLink extends PublicLink {
+  ownerId: string;
+  passwordHash: string | null;
+  /** The note as it stood when a `snapshot` link was made; null for `live`. */
+  snapshot: PublicNote | null;
+}
+
+export interface PublicLinksRepo {
+  create(link: StoredPublicLink): Promise<void>;
+  /** A note's links, newest first. */
+  listByNote(noteId: string): Promise<StoredPublicLink[]>;
+  get(token: string): Promise<StoredPublicLink | null>;
+  /** Revoke: the link stops working at once. False if the note has no such
+   * link. */
+  delete(token: string, noteId: string): Promise<boolean>;
+  /**
+   * Count one view, as one statement, if the link can still be viewed at `at`
+   * (not expired, not used up). False when it cannot, so two viewers racing
+   * for a link's last view cannot both have it.
+   */
+  recordView(token: string, at: string): Promise<boolean>;
+}
+
+export interface StoredTeam {
+  id: string;
+  name: string;
+  source: TeamSource;
+  createdAt: string;
+  memberCount: number;
+}
+
+/** A note shared with a team. */
+export interface NoteTeamShare {
+  noteId: string;
+  teamId: string;
+  role: ShareRole;
+  createdAt: string;
+}
+
+/**
+ * Teams, their members, and the notes shared with them. Only the rows: what a
+ * team share means for each member's own share is `sharing/teamShares.ts`.
+ */
+export interface TeamsRepo {
+  /** `exists` when the source already has a team by that name. */
+  create(team: Omit<StoredTeam, "memberCount">): Promise<"ok" | "exists">;
+  get(id: string): Promise<StoredTeam | null>;
+  findByName(source: TeamSource, name: string): Promise<StoredTeam | null>;
+  /** Every team, by name. */
+  list(): Promise<StoredTeam[]>;
+  /** The teams a user is in, by name. */
+  listForUser(userId: string): Promise<StoredTeam[]>;
+  rename(id: string, name: string): Promise<"ok" | "exists" | "missing">;
+  delete(id: string): Promise<boolean>;
+  members(teamId: string): Promise<string[]>;
+  /** False when they were already in it. */
+  addMember(teamId: string, userId: string): Promise<boolean>;
+  /** False when they were not in it. */
+  removeMember(teamId: string, userId: string): Promise<boolean>;
+  /** False when the note is already shared with the team. */
+  shareNote(share: NoteTeamShare): Promise<boolean>;
+  setNoteRole(
+    noteId: string,
+    teamId: string,
+    role: ShareRole,
+  ): Promise<boolean>;
+  unshareNote(noteId: string, teamId: string): Promise<boolean>;
+  /** The teams a note is shared with, oldest first. */
+  sharesOfNote(noteId: string): Promise<NoteTeamShare[]>;
+  /** The notes shared with a team. */
+  notesOf(teamId: string): Promise<NoteTeamShare[]>;
+}
+
 export interface StorageDriver {
   users: UsersRepo;
   sessions: SessionsRepo;
@@ -573,11 +775,15 @@ export interface StorageDriver {
   attachments: AttachmentsRepo;
   versions: VersionsRepo;
   apiTokens: ApiTokensRepo;
+  oauth: OAuthRepo;
   webhooks: WebhooksRepo;
   twoFactor: TwoFactorRepo;
+  passkeys: PasskeysRepo;
   passwordResets: PasswordResetsRepo;
   audit: AuditRepo;
   prefs: PrefsRepo;
+  publicLinks: PublicLinksRepo;
+  teams: TeamsRepo;
   /**
    * A consistent copy of the whole database at `path`, taken while it keeps
    * serving. SQLite only; Postgres has `pg_dump` and managed backups.

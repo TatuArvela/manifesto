@@ -47,6 +47,8 @@ const LIST_COLUMNS = INSERT_COLUMNS.filter((c) => c !== "images");
 const PAGE_ORDER = `ORDER BY n.updated_at DESC, n.id DESC LIMIT @limit`;
 const AFTER_CURSOR = `AND (n.updated_at < @afterUpdatedAt
   OR (n.updated_at = @afterUpdatedAt AND n.id < @afterId))`;
+/** Row or members changed after `@since`; see `members_changed_at`. */
+const CHANGED = `AND (n.updated_at > @since OR n.members_changed_at > @since)`;
 const MATCHES = `AND (LOWER(n.title) LIKE LOWER(@like)
   OR LOWER(n.content) LIKE LOWER(@like))`;
 
@@ -78,6 +80,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     searchAfter: db.prepare(
       `${OWN_FROM} ${MATCHES} ${AFTER_CURSOR} ${PAGE_ORDER}`,
     ),
+    changed: db.prepare(`${OWN_FROM} ${CHANGED} ${PAGE_ORDER}`),
+    changedAfter: db.prepare(
+      `${OWN_FROM} ${CHANGED} ${AFTER_CURSOR} ${PAGE_ORDER}`,
+    ),
   };
   const shared = {
     first: db.prepare(`${SHARED_FROM} ${PAGE_ORDER}`),
@@ -86,7 +92,17 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     searchAfter: db.prepare(
       `${SHARED_FROM} ${MATCHES} ${AFTER_CURSOR} ${PAGE_ORDER}`,
     ),
+    changed: db.prepare(`${SHARED_FROM} ${CHANGED} ${PAGE_ORDER}`),
+    changedAfter: db.prepare(
+      `${SHARED_FROM} ${CHANGED} ${AFTER_CURSOR} ${PAGE_ORDER}`,
+    ),
   };
+  const visibleIdsStmt = db.prepare(
+    `SELECT id FROM notes WHERE user_id = @userId
+     UNION ALL
+     SELECT n.id FROM note_shares s JOIN notes n ON n.id = s.note_id
+     WHERE s.user_id = @userId AND s.accepted_at IS NOT NULL AND n.trashed = 0`,
+  );
   const getStmt = db.prepare(
     `SELECT n.*, ${SHARE_OVERLAY_COLUMNS}
      FROM notes n
@@ -120,8 +136,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     const members = db
       .prepare(
         `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at,
-                u.username, u.display_name, u.avatar_color
+                u.username, u.display_name, u.avatar_color,
+                s.via_team, t.name AS team_name
          FROM note_shares s JOIN users u ON u.id = s.user_id
+         LEFT JOIN teams t ON t.id = s.via_team
          WHERE s.note_id IN (${placeholders(ids.length)})`,
       )
       .all(ids) as MemberRow[];
@@ -136,9 +154,12 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     return attachSharing(rows, notes, viewerId, members, users);
   }
 
+  /** Narrows a listing to a search (`like`) or to changes (`since`). */
+  type Filter = { like: string } | { since: string } | null;
+
   function page(
     userId: string,
-    like: string | null,
+    filter: Filter,
     { limit, cursor }: ListNotesOptions,
   ): NotePage {
     // Both halves over-fetch by one, so the presence of a next page is a fact
@@ -147,17 +168,21 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     const params = {
       userId,
       limit: limit + 1,
-      ...(like !== null && { like }),
+      ...filter,
       ...(after && { afterUpdatedAt: after.updatedAt, afterId: after.id }),
     };
     const pick = (set: typeof own) =>
-      like === null
+      filter === null
         ? after
           ? set.after
           : set.first
-        : after
-          ? set.searchAfter
-          : set.search;
+        : "like" in filter
+          ? after
+            ? set.searchAfter
+            : set.search
+          : after
+            ? set.changedAfter
+            : set.changed;
     const rows = mergePages(
       pick(own).all(params) as ViewRow[],
       pick(shared).all(params) as ViewRow[],
@@ -222,6 +247,20 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       options: ListNotesOptions,
     ): Promise<NotePage> {
       return page(userId, null, options);
+    },
+
+    async listChanged(
+      userId: string,
+      since: string,
+      options: ListNotesOptions,
+    ): Promise<NotePage> {
+      return page(userId, { since }, options);
+    },
+
+    async visibleIds(userId: string): Promise<string[]> {
+      return (visibleIdsStmt.all({ userId }) as { id: string }[]).map(
+        (row) => row.id,
+      );
     },
 
     async getById(id: string, userId: string): Promise<Note | null> {
@@ -305,7 +344,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     ): Promise<NotePage> {
       const like = searchPattern(query);
       if (like === null) return { notes: [], nextCursor: null };
-      return page(userId, like, options);
+      return page(userId, { like }, options);
     },
   };
 

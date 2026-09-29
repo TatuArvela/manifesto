@@ -15,6 +15,7 @@ const both: Partial<ServerConfig> = {
     groupsClaim: "groups",
     adminGroup: null,
     userGroup: null,
+    teamGroups: null,
     autoRegister: true,
   },
 };
@@ -31,9 +32,8 @@ describe("local and single sign-on side by side", () => {
   });
 
   it("offers both, and says how to show the password form", async () => {
-    const methods = await (await rig.request("/api/auth/methods")).json();
-    expect(methods).toMatchObject({
-      provider: "oidc",
+    const { auth } = await (await rig.request("/api/capabilities")).json();
+    expect(auth).toMatchObject({
       providers: ["local", "oidc"],
       passwordForm: "collapsed",
     });

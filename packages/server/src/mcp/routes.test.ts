@@ -1,6 +1,6 @@
 import type {
   ApiTokenCreatedResponse,
-  AuthMethodsResponse,
+  CapabilitiesResponse,
   Note,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -424,9 +424,9 @@ describe("MCP turned off", () => {
       }),
     });
     expect(mint.status).toBe(403);
-    const methods = (await (
-      await rig.request("/api/auth/methods")
-    ).json()) as AuthMethodsResponse;
-    expect(methods.mcp).toBe(false);
+    const { features } = (await (
+      await rig.request("/api/capabilities")
+    ).json()) as CapabilitiesResponse;
+    expect(features.mcp).toBe(false);
   });
 });

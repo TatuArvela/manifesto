@@ -1,6 +1,7 @@
 import type { ShareInvitation, ShareRole } from "@manifesto/shared";
 import {
   type InvitationRow,
+  membersChangedAt,
   rowToInvitation,
   rowToShare,
   type ShareRow,
@@ -15,14 +16,16 @@ import type { PgPool } from "./database.js";
 
 /** See the SQLite copy: same queries, same reasons. */
 
-const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at`;
+const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team`;
 
 const INVITATION_SELECT = `
   SELECT s.note_id, s.role, s.created_at, n.title, n.content, n.color, n.font,
-         n.user_id AS owner_id, u.username, u.display_name, u.avatar_color
+         n.user_id AS owner_id, u.username, u.display_name, u.avatar_color,
+         s.via_team, t.name AS team_name
   FROM note_shares s
   JOIN notes n ON n.id = s.note_id
   JOIN users u ON u.id = n.user_id
+  LEFT JOIN teams t ON t.id = s.via_team
   WHERE s.user_id = $1 AND s.accepted_at IS NULL AND n.trashed = FALSE`;
 
 /** SQLSTATE 23505, as `usersRepo` reads it. */
@@ -46,6 +49,18 @@ async function inTransaction<T>(
   } finally {
     client.release();
   }
+}
+
+/** Marks the note's members as changed; see `members_changed_at`. */
+async function stampMembers(
+  query: PgPool["query"],
+  noteId: string,
+  at: string,
+): Promise<void> {
+  await query(`UPDATE notes SET members_changed_at = $1 WHERE id = $2`, [
+    at,
+    noteId,
+  ]);
 }
 
 export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
@@ -72,9 +87,20 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
     async create(input: CreateShareInput): Promise<"ok" | "exists"> {
       try {
         await pool.query(
-          `INSERT INTO note_shares (note_id, user_id, role, created_at)
-           VALUES ($1, $2, $3, $4)`,
-          [input.noteId, input.userId, input.role, input.createdAt],
+          `INSERT INTO note_shares (note_id, user_id, role, created_at, via_team)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            input.noteId,
+            input.userId,
+            input.role,
+            input.createdAt,
+            input.viaTeam ?? null,
+          ],
+        );
+        await stampMembers(
+          pool.query.bind(pool),
+          input.noteId,
+          input.createdAt,
         );
         return "ok";
       } catch (err) {
@@ -92,7 +118,19 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
         `UPDATE note_shares SET role = $1 WHERE note_id = $2 AND user_id = $3`,
         [role, noteId, userId],
       );
-      return (result.rowCount ?? 0) > 0;
+      if ((result.rowCount ?? 0) === 0) return false;
+      await stampMembers(pool.query.bind(pool), noteId, membersChangedAt());
+      return true;
+    },
+
+    async setViaTeam(noteId, userId, teamId) {
+      const result = await pool.query(
+        `UPDATE note_shares SET via_team = $1 WHERE note_id = $2 AND user_id = $3`,
+        [teamId, noteId, userId],
+      );
+      if ((result.rowCount ?? 0) === 0) return false;
+      await stampMembers(pool.query.bind(pool), noteId, membersChangedAt());
+      return true;
     },
 
     async accept(
@@ -112,7 +150,9 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
            WHERE note_id = $4 AND user_id = $5 AND accepted_at IS NULL`,
           [acceptedAt, row.color, -Date.parse(acceptedAt), noteId, userId],
         );
-        return (result.rowCount ?? 0) > 0;
+        if ((result.rowCount ?? 0) === 0) return false;
+        await stampMembers(query, noteId, acceptedAt);
+        return true;
       });
     },
 
@@ -129,6 +169,7 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
           `DELETE FROM note_shares WHERE note_id = $1 AND user_id = $2`,
           [noteId, userId],
         );
+        await stampMembers(query, noteId, membersChangedAt());
         return rowToShare(row);
       });
     },
@@ -163,7 +204,7 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
 
     async listByOwner(ownerId: string): Promise<NoteShare[]> {
       const result = await pool.query<ShareRow>(
-        `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at
+        `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at, s.via_team
          FROM note_shares s JOIN notes n ON n.id = s.note_id
          WHERE n.user_id = $1`,
         [ownerId],

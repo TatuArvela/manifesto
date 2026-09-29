@@ -3,22 +3,13 @@ import {
   type AccountPrefsResponse,
   type AuditLogResponse,
   type AuthMeResponse,
-  type AuthMethodsResponse,
-  type AuthProviderName,
   MAX_ACCOUNT_PREFS_BYTES,
 } from "@manifesto/shared";
 import { Hono } from "hono";
 import { auditPage } from "../audit/auditPage.js";
-import {
-  type ServerConfig,
-  signsInLocally,
-  signsInWithOidc,
-} from "../config.js";
+import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
@@ -30,13 +21,12 @@ import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
 import { requireConfirmation } from "./confirmation.js";
 import type { LoginAttempts } from "./local/loginAttempts.js";
-import type { AuthProvider, AuthProviderRouter } from "./types.js";
+import type { AuthProviderRouter } from "./types.js";
 import { toAuthUser } from "./users.js";
 
 interface SharedAuthRoutesDeps {
   cfg: ServerConfig;
   storage: StorageDriver;
-  authProvider: AuthProvider;
   /** Tells the account's other devices when its preferences change. */
   broadcaster?: Broadcaster;
   loginAttempts: LoginAttempts;
@@ -53,28 +43,7 @@ export function createAuthSharedRoutes(
 ): AuthProviderRouter {
   const router = new Hono<{ Variables: { auth: AuthContext } }>();
 
-  router.get("/methods", (c) => {
-    const providers: AuthProviderName[] = [
-      ...(signsInLocally(deps.cfg) ? (["local"] as const) : []),
-      ...(signsInWithOidc(deps.cfg) ? (["oidc"] as const) : []),
-    ];
-    const body: AuthMethodsResponse = {
-      // A client from before `providers` reads this alone; with both on,
-      // single sign-on is the way in it can offer.
-      provider: signsInWithOidc(deps.cfg) ? "oidc" : "local",
-      providers,
-      passwordForm:
-        deps.cfg.authProvider === "both" ? deps.cfg.passwordForm : "shown",
-      userLookup: deps.cfg.userLookup,
-      webhooks: deps.cfg.webhooks !== "off",
-      mcp: deps.cfg.mcp,
-      passwordReset: deps.cfg.mail !== null && signsInLocally(deps.cfg),
-      registration: signsInLocally(deps.cfg) && deps.cfg.registrationEnabled,
-    };
-    return c.json(body);
-  });
-
-  router.get("/me", createAuthMiddleware(deps.authProvider), async (c) => {
+  router.get("/me", async (c) => {
     const { userId } = c.get("auth");
     const user = await deps.storage.users.findById(userId);
     if (!user) {
@@ -91,7 +60,6 @@ export function createAuthSharedRoutes(
    */
   router.put(
     "/me",
-    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
     zValidator("json", authMeUpdateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
@@ -124,19 +92,15 @@ export function createAuthSharedRoutes(
    * can see about someone, that person can see too. A session only, like the
    * other pages about how the account is secured.
    */
-  router.get(
-    "/me/activity",
-    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
-    async (c) => {
-      const { userId } = c.get("auth");
-      const body: AuditLogResponse = await auditPage(
-        deps.storage,
-        { limit: c.req.query("limit"), before: c.req.query("before") },
-        userId,
-      );
-      return c.json(body);
-    },
-  );
+  router.get("/me/activity", async (c) => {
+    const { userId } = c.get("auth");
+    const body: AuditLogResponse = await auditPage(
+      deps.storage,
+      { limit: c.req.query("limit"), before: c.req.query("before") },
+      userId,
+    );
+    return c.json(body);
+  });
 
   /**
    * The account's preferences, so hidden tags and the rest follow it from
@@ -144,22 +108,17 @@ export function createAuthSharedRoutes(
    * it; each client parses what it gets back. Any credential, since a
    * preference changes nothing about how the account is secured.
    */
-  router.get(
-    "/me/prefs",
-    createAuthMiddleware(deps.authProvider),
-    async (c) => {
-      const { userId } = c.get("auth");
-      const body: AccountPrefsResponse = {
-        prefs: await deps.storage.prefs.get(userId),
-      };
-      return c.json(body);
-    },
-  );
+  router.get("/me/prefs", async (c) => {
+    const { userId } = c.get("auth");
+    const body: AccountPrefsResponse = {
+      prefs: await deps.storage.prefs.get(userId),
+    };
+    return c.json(body);
+  });
 
   /** Merges in the keys given, `null` removing one; `413` past the limit. */
   router.patch(
     "/me/prefs",
-    createAuthMiddleware(deps.authProvider),
     zValidator("json", accountPrefsUpdateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
@@ -188,7 +147,6 @@ export function createAuthSharedRoutes(
    */
   router.put(
     "/me/locale",
-    createAuthMiddleware(deps.authProvider),
     zValidator("json", authLocaleSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");

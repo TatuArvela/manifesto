@@ -1,5 +1,5 @@
 import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { APP_NAME } from "../config.js";
 import { locale } from "../state/prefs.js";
 import { detectBrowserLocale } from "./detect.js";
@@ -14,6 +14,12 @@ import { en } from "./messages/en.js";
 import { fi } from "./messages/fi.js";
 
 beforeEach(() => {
+  locale.value = "en";
+});
+
+// The debounced save persists whatever the last test chose, and the next file
+// to start reads it; leave English there.
+afterEach(() => {
   locale.value = "en";
 });
 

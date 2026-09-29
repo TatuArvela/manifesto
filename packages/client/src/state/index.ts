@@ -44,6 +44,7 @@ export {
   notesLoaded,
   receiveNote,
   updateNote,
+  updateStoredNote,
 } from "./notesStore.js";
 export {
   animations,

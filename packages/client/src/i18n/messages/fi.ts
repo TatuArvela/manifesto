@@ -151,6 +151,7 @@ export const fi: Messages = {
   "noteMenu.reminder": "Muistuta minua",
   "noteMenu.versionHistory": "Versiohistoria",
   "noteMenu.shareLink": "Jaa linkkinä",
+  "noteMenu.publicLinks": "Julkiset linkit",
   "noteMenu.duplicate": "Monista",
   "noteMenu.exportMarkdown": "Lataa Markdownina",
   "noteMenu.exportJson": "Lataa JSON-tiedostona",
@@ -169,6 +170,9 @@ export const fi: Messages = {
   "editor.done": "Valmis",
   "editor.back": "Takaisin",
   "editor.discard": "Hylkää",
+  "editor.outdated":
+    "Palvelimella on käytössä uudempi versio. Lataa sivu uudelleen, niin voit jatkaa tämän muistiinpanon muokkaamista.",
+  "editor.outdated.reload": "Lataa uudelleen",
   "editor.metadata.created": "Luotu {date}",
   "editor.metadata.edited": "Muokattu {date}",
   "editor.imageAlt": "Poista kuva",
@@ -329,6 +333,12 @@ export const fi: Messages = {
   "settings.decimalSeparator.comma": "Pilkku",
   "settings.language": "Kieli",
   "settings.language.system": "Järjestelmän oletus",
+  "settings.clip.title": "Tallenna sivuja selaimesta",
+  "settings.clip.explain":
+    "Vedä tämä linkki kirjanmerkkipalkkiin. Kun napsautat sitä millä tahansa sivulla, se avaa uuden muistiinpanon sivun otsikolla, osoitteella ja valitsemallasi tekstillä.",
+  "settings.clip.link": "Tallenna: {appName}",
+  "settings.clip.dragHint":
+    "Vedä se kirjanmerkkipalkkiin ja napsauta sitä sivulla, jonka haluat tallentaa.",
   "settings.data.import": "Tuo muistiinpanot",
   "settings.data.exportFailed": "Muistiinpanoja ei saatu vietyä",
   "settings.data.importHint": "Voit tuoda useita tiedostoja kerralla:",
@@ -341,6 +351,21 @@ export const fi: Messages = {
   "settings.data.importHint.keep": "Google Keep",
   "settings.data.importHint.keepBody":
     "Google Takeoutin .zip tai sen sisältämät tiedostot.",
+  "settings.data.importHint.evernote": "Evernote",
+  "settings.data.importHint.evernoteBody":
+    ".enex-vienti tunnisteineen ja kuvineen.",
+  "settings.data.importHint.joplin": "Joplin",
+  "settings.data.importHint.joplinBody":
+    ".jex-vienti tunnisteineen. Liitteet jäävät pois.",
+  "settings.data.importHint.simplenote": "Simplenote",
+  "settings.data.importHint.simplenoteBody":
+    "vientitiedosto (.zip) tai sen sisältämä notes.json.",
+  "settings.data.importHint.standardNotes": "Standard Notes",
+  "settings.data.importHint.standardNotesBody":
+    "salaamattoman varmuuskopion .json. Salattua varmuuskopiota ei voi lukea täällä.",
+  "settings.data.importHint.html": "HTML",
+  "settings.data.importHint.htmlBody":
+    "tallennetut sivut sekä Apple Notes, kun se viedään HTML- tai Markdown-muotoon jollakin työkalulla.",
   "settings.data.export": "Vie muistiinpanot",
   "settings.data.deleteAll": "Poista kaikki",
   "settings.data.deleteConfirm":
@@ -431,6 +456,15 @@ export const fi: Messages = {
   "tokens.kind": "Käyttötarkoitus",
   "tokens.kindApi": "Skripti, pikakomento tai botti",
   "tokens.kindMcp": "Tekoälyavustaja (MCP)",
+  "tokens.kindCalendar": "Kalenterisyöte",
+  "tokens.calendarHint":
+    "Kalenterisovellus tilaa muistutuksesi osoitteesta, jossa tämä tunnus on. Se avaa vain sen syötteen; mitätöi tunnus lopettaaksesi syötteen.",
+  "tokens.calendarBadge": "Kalenterisyöte",
+  "tokens.calendarSetup":
+    "Tilaa tämä osoite kalenterisovelluksessasi. Se näytetään vain nyt, ja kuka tahansa, jolla se on, voi lukea muistutuksesi.",
+  "tokens.calendarUrl": "Syötteen osoite",
+  "tokens.calendarCopy": "Kopioi syötteen osoite",
+  "tokens.calendarSubscribe": "Avaa tämän laitteen kalenterisovelluksessa",
   "tokens.mcpHint":
     "Avustajan tunniste toimii vain tämän palvelimen MCP-rajapinnan kautta, jonka työkaluilla se voi hakea, lukea, luoda ja muuttaa muistiinpanojasi. Poistaa se ei voi: enintään se siirtää muistiinpanon roskakoriin.",
   "tokens.readOnly":
@@ -442,6 +476,30 @@ export const fi: Messages = {
     "Muille avustajille MCP-palvelin on {url} (HTTP), ja tämä tunniste annetaan bearer-tunnisteena.",
   "tokens.mcpBadge": "Tekoälyavustaja",
   "tokens.mcpReadOnlyBadge": "Tekoälyavustaja, vain luku",
+  "tokens.mcpSignInHint":
+    "Selaimen kautta kirjautuva avustaja ei tarvitse tunnistetta: anna sille osoite {url} ja hyväksy yhdistäminen, kun se pyytää.",
+  "tokens.signedIn": "yhdistetty kirjautumalla",
+  "oauth.title": "Yhdistetäänkö {client} muistiinpanoihisi?",
+  "oauth.publisher": "Sen tiedot tulevat osoitteesta {host}.",
+  "oauth.unverified":
+    "Sovellus on antanut tämän nimen itse, eikä {appName} voi tarkistaa sitä.",
+  "oauth.account": "Kirjautuneena: {name}",
+  "oauth.access": "Se saa",
+  "oauth.accessFull": "Hakea, lukea, luoda ja muuttaa muistiinpanoja",
+  "oauth.accessRead": "Vain hakea ja lukea muistiinpanoja",
+  "oauth.expires": "Yhteys on voimassa",
+  "oauth.returnTo": "Kun vastaat, sinut ohjataan takaisin kohteeseen {target}.",
+  "oauth.revokeHint":
+    "Voit katkaista yhteyden milloin tahansa kohdassa Asetukset, API-tunnisteet. Se ei voi koskaan poistaa muistiinpanoa, vain siirtää sen roskakoriin.",
+  "oauth.allow": "Yhdistä",
+  "oauth.deny": "Peruuta",
+  "oauth.loading": "Ladataan...",
+  "oauth.invalid":
+    "Tätä kirjautumispyyntöä ei voi käyttää. Aloita yhdistäminen uudelleen avustajasta.",
+  "oauth.done":
+    "Yhdistetty. Voit sulkea tämän välilehden ja palata avustajaan {client}.",
+  "oauth.denied": "Ei yhdistetty. Voit sulkea tämän välilehden.",
+  "oauth.failed": "Yhdistäminen ei onnistunut; yritä uudelleen",
   "webhooks.title": "Webhookit",
   "webhooks.hint":
     "Palvelin lähettää muistiinpanojesi tapahtumat (luotu, muutettu, poistettu) alla oleviin osoitteisiin, esimerkiksi n8n:lle, Home Assistantille tai chat-botille. Jokainen lähetys allekirjoitetaan webhookin salaisuudella.",
@@ -470,13 +528,13 @@ export const fi: Messages = {
   "webhooks.failed": "Webhookeihin ei saatu yhteyttä; yritä uudelleen",
   "twoFactor.title": "Kaksivaiheinen kirjautuminen",
   "twoFactor.hint":
-    "Kirjautuessa kysytään salasanan lisäksi todennussovelluksen näyttämä koodi.",
+    "Kirjautuessa kysytään salasanan lisäksi toinen tunnistautumistapa: todennussovelluksen koodi tai pääsyavain.",
   "twoFactor.loading": "Ladataan...",
   "twoFactor.isOff": "Kaksivaiheinen kirjautuminen on pois päältä.",
   "twoFactor.isOn":
     "Kaksivaiheinen kirjautuminen on päällä. Palautuskoodeja jäljellä: {count}.",
-  "twoFactor.turnOn": "Ota käyttöön",
-  "twoFactor.turnOff": "Poista käytöstä",
+  "twoFactor.turnOn": "Ota todennussovellus käyttöön",
+  "twoFactor.turnOff": "Poista todennussovellus",
   "twoFactor.newCodes": "Uudet palautuskoodit",
   "twoFactor.password": "Salasanasi",
   "twoFactor.continue": "Jatka",
@@ -488,15 +546,40 @@ export const fi: Messages = {
   "twoFactor.code": "Koodi",
   "twoFactor.confirm": "Ota käyttöön",
   "twoFactor.recoveryHint":
-    "Säilytä nämä palautuskoodit turvassa. Kullakin pääsee kirjautumaan kerran, jos todennussovellus katoaa. Niitä ei näytetä uudelleen.",
+    "Säilytä nämä palautuskoodit turvassa. Kullakin pääsee kirjautumaan kerran, jos todennussovellus ja pääsyavaimet katoavat. Niitä ei näytetä uudelleen.",
   "twoFactor.copy": "Kopioi",
   "twoFactor.copied": "Palautuskoodit kopioitu",
   "twoFactor.saved": "Olen tallentanut ne",
-  "twoFactor.turnedOn": "Kaksivaiheinen kirjautuminen on päällä",
-  "twoFactor.turnedOff": "Kaksivaiheinen kirjautuminen on pois päältä",
+  "twoFactor.turnedOn": "Todennussovellus on käytössä",
+  "twoFactor.turnedOff": "Todennussovellus on poistettu",
   "twoFactor.wrongPassword": "Salasana ei ole oikea",
   "twoFactor.wrongCode": "Koodi ei ole oikea; tarkista laitteen kellonaika",
   "twoFactor.failed": "Palvelimeen ei saatu yhteyttä; yritä uudelleen",
+  "passkeys.title": "Pääsyavaimet",
+  "passkeys.hint":
+    "Pääsyavainta säilyttää laitteesi, salasanojen hallintasovellus tai turva-avain, ja se avataan sormenjäljellä, kasvoilla tai PIN-koodilla. Se käy toiseksi tunnistautumistavaksi salasanan jälkeen, tai sillä voi kirjautua pelkästään. Pääsyavain toimii vain osoitteessa, jossa se on luotu.",
+  "passkeys.none": "Ei vielä pääsyavaimia.",
+  "passkeys.synced": "synkronoitu",
+  "passkeys.device": "yhdellä laitteella",
+  "passkeys.lastUsed": "käytetty viimeksi {when}",
+  "passkeys.neverUsed": "ei käytetty",
+  "passkeys.name": "Nimi",
+  "passkeys.namePlaceholder": "Mikä laite tai salasanojen hallintasovellus?",
+  "passkeys.addStart": "Lisää pääsyavain",
+  "passkeys.add": "Lisää",
+  "passkeys.added": "Pääsyavain lisätty",
+  "passkeys.remove": "Poista",
+  "passkeys.removeNamed": "Poista {name}",
+  "passkeys.removeConfirm":
+    "Poistetaanko {name}? Sillä ei enää pääse kirjautumaan.",
+  "passkeys.removed": "Pääsyavain poistettu",
+  "passkeys.unsupported": "Tällä selaimella ei voi luoda pääsyavaimia.",
+  "passkeys.cancelled":
+    "Pääsyavainta ei luotu. Yritä uudelleen, kun olet valmis.",
+  "passkeys.exists": "Tällä laitteella on jo pääsyavain tälle tilille",
+  "passkeys.tooMany":
+    "Sinulla on jo enimmäismäärä pääsyavaimia; poista ensin jokin",
+  "passkeys.failed": "Pääsyavainta ei voitu lisätä; yritä uudelleen",
   "login.oidcNotInGroup":
     "Tililläsi ei voi kirjautua tänne. Kysy palvelimen ylläpitäjältä.",
   "login.oidcNotRegistered":
@@ -516,13 +599,21 @@ export const fi: Messages = {
   "login.reset.expired": "Linkki on vanhentunut tai jo käytetty. Pyydä uusi.",
   "login.or": "tai",
   "login.withPassword": "Kirjaudu mieluummin salasanalla",
-  "login.twoFactor.title": "Anna koodi",
+  "login.twoFactor.title": "Vahvista henkilöllisyytesi",
   "login.twoFactor.hint":
     "Anna todennussovelluksen näyttämä koodi tai jokin palautuskoodeistasi.",
   "login.twoFactor.code": "Koodi",
   "login.twoFactor.submit": "Kirjaudu",
   "login.twoFactorRequired": "Anna koodi",
   "login.twoFactorInvalid": "Koodi ei ole oikea",
+  "login.twoFactor.recoveryHint":
+    "Käytä jotakin pääsyavaimistasi tai anna jokin palautuskoodeistasi.",
+  "login.twoFactor.recoveryCode": "Palautuskoodi",
+  "login.twoFactor.usePasskey": "Käytä pääsyavainta",
+  "login.withPasskey": "Kirjaudu pääsyavaimella",
+  "login.passkeyUnknown":
+    "Tällä pääsyavaimella ei kirjauduta mihinkään tiliin täällä",
+  "login.passkeyFailed": "Pääsyavain ei toiminut; yritä uudelleen",
   "account.updateAvailable": "Versio {version} on saatavilla",
   "overview.updateAvailable": "Versio {version} on julkaistu.",
   "overview.updateNotes": "Mitä muuttui",
@@ -555,6 +646,26 @@ export const fi: Messages = {
   "overview.jobNever": "Ei vielä ajettu",
   "overview.jobLastRun": "Viimeksi ajettu {when}, {ms} ms",
   "admin.tab.users": "Käyttäjät",
+  "admin.tab.teams": "Tiimit",
+  "admin.teams.explain":
+    "Kun muistiinpano jaetaan tiimille, jokainen jäsen kutsutaan siihen, samoin myöhemmin liittyvät. Tiimistä lähtevä menettää muistiinpanot, jotka tulivat hänelle tiimin kautta.",
+  "admin.teams.name": "Tiimin nimi",
+  "admin.teams.create": "Luo tiimi",
+  "admin.teams.none": "Ei vielä tiimejä.",
+  "admin.teams.loadFailed": "Tiimejä ei voitu ladata",
+  "admin.teams.saveFailed": "Tiimin tallennus epäonnistui",
+  "admin.teams.nameTaken": "Samanniminen tiimi on jo olemassa",
+  "admin.teams.members": {
+    one: "{count} jäsen",
+    other: "{count} jäsentä",
+  },
+  "admin.teams.fromProvider": "tunnistuspalvelusta",
+  "admin.teams.editMembers": "Jäsenet",
+  "admin.teams.save": "Tallenna",
+  "admin.teams.delete": "Poista tiimi",
+  "admin.teams.delete.title": "Poistetaanko tiimi {name}?",
+  "admin.teams.delete.body":
+    "Sen jäsenet menettävät muistiinpanot, jotka tulivat heille tiimin kautta, ellei jokin toinen heidän tiimeistään jaa niitä.",
   "admin.tab.activity": "Tapahtumat",
   "activity.title": "Tapahtumat",
   "activity.hint":
@@ -579,6 +690,8 @@ export const fi: Messages = {
     "Kaksivaiheinen kirjautuminen otettu käyttöön",
   "audit.action.auth.two_factor_disabled":
     "Kaksivaiheinen kirjautuminen poistettu käytöstä",
+  "audit.action.auth.passkey_added": "Pääsyavain lisätty",
+  "audit.action.auth.passkey_removed": "Pääsyavain poistettu",
   "audit.action.token.created": "API-tunniste luotu",
   "audit.action.token.revoked": "API-tunniste peruttu",
   "audit.action.webhook.created": "Webhook lisätty",
@@ -586,6 +699,11 @@ export const fi: Messages = {
   "audit.action.share.created": "Muistiinpano jaettu",
   "audit.action.share.role_changed": "Jaon rooli muutettu",
   "audit.action.share.removed": "Jako poistettu",
+  "audit.action.share.team_added": "Muistiinpano jaettu tiimille",
+  "audit.action.share.team_role_changed": "Tiimin rooli muutettu",
+  "audit.action.share.team_removed": "Tiimin jako poistettu",
+  "audit.action.link.created": "Julkinen linkki luotu",
+  "audit.action.link.revoked": "Julkinen linkki mitätöity",
   "audit.action.admin.user_created": "Ylläpitäjä loi tilin",
   "audit.action.admin.user_deleted": "Tili poistettu",
   "audit.action.admin.admin_granted": "Tehty ylläpitäjäksi",
@@ -593,6 +711,9 @@ export const fi: Messages = {
   "audit.action.admin.email_changed": "Ylläpitäjä muutti sähköpostiosoitteen",
   "audit.action.admin.password_reset": "Väliaikainen salasana annettu",
   "audit.action.admin.user_exported": "Ylläpitäjä latasi tilin muistiinpanot",
+  "audit.action.admin.team_created": "Tiimi luotu",
+  "audit.action.admin.team_updated": "Tiimiä muutettu",
+  "audit.action.admin.team_deleted": "Tiimi poistettu",
   "shortcuts.title": "Pikanäppäimet",
   "shortcuts.newNote": "Uusi muistiinpano",
   "shortcuts.search": "Haku",
@@ -618,7 +739,7 @@ export const fi: Messages = {
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",
-  "dropZone.hint": "Markdown- tai JSON-tiedostoja",
+  "dropZone.hint": "Markdown-, JSON-, Evernote-, Joplin- tai HTML-tiedostoja",
 
   // Käyttöönoton virheasetus, näytetään sovelluksen sijaan käynnistyksessä
   "setup.title": "{appName} ei tavoita palvelintaan",
@@ -732,8 +853,67 @@ export const fi: Messages = {
   "sharing.dialog.nobody":
     "Muistiinpano ei ole vielä kenelläkään muulla. Kutsumasi näkevät sen hyväksyttyään kutsun.",
   "sharing.untitled": "Nimetön muistiinpano",
+  "publicLink.dialog.title": "Julkiset linkit",
+  "publicLink.dialog.explain":
+    "Kuka tahansa linkin saanut voi lukea tämän muistiinpanon ilman tiliä. Mitätöity linkki lakkaa toimimasta heti.",
+  "publicLink.dialog.none": "Ei vielä julkisia linkkejä.",
+  "publicLink.dialog.done": "Valmis",
+  "publicLink.form.mode": "Näyttää",
+  "publicLink.mode.live": "Ajantasaisen muistiinpanon",
+  "publicLink.mode.snapshot": "Tilannekuvan",
+  "publicLink.mode.liveHint":
+    "Lukija näkee muistiinpanon sellaisena kuin se on avatessa, myöhemmät muokkauksesi mukaan lukien.",
+  "publicLink.mode.snapshotHint":
+    "Lukija näkee muistiinpanon sellaisena kuin se on nyt, vaikka muuttaisit sitä myöhemmin.",
+  "publicLink.form.expires": "Vanhenee",
+  "publicLink.form.never": "Ei koskaan",
+  "publicLink.form.days": {
+    one: "{count} päivän päästä",
+    other: "{count} päivän päästä",
+  },
+  "publicLink.form.maxViews": "Katselukertoja enintään",
+  "publicLink.form.unlimited": "Ei rajaa",
+  "publicLink.form.password": "Salasana",
+  "publicLink.form.optional": "Valinnainen",
+  "publicLink.form.create": "Luo ja kopioi linkki",
+  "publicLink.views": {
+    one: "{count} katselu",
+    other: "{count} katselua",
+  },
+  "publicLink.viewsOf": {
+    one: "{count}/{max} katselua",
+    other: "{count}/{max} katselua",
+  },
+  "publicLink.expires": "Vanhenee {date}",
+  "publicLink.noExpiry": "Ei vanhene",
+  "publicLink.stopped": "Ei enää avaudu",
+  "publicLink.hasPassword": "Salasanasuojattu",
+  "publicLink.copy": "Kopioi linkki",
+  "publicLink.copyFailed": "Linkin kopiointi epäonnistui",
+  "publicLink.revoke": "Mitätöi",
+  "publicLink.revoke.title": "Mitätöidäänkö linkki?",
+  "publicLink.revoke.body": "Se lakkaa toimimasta heti kaikilta, joilla se on.",
+  "publicLink.revokeFailed": "Linkin mitätöinti epäonnistui",
+  "publicLink.createFailed": "Linkin luonti epäonnistui",
+  "publicLink.loadFailed": "Muistiinpanon linkkejä ei voitu ladata",
+  "publicLink.page.gone":
+    "Tämä linkki ei avaa muistiinpanoa. Se on ehkä vanhentunut tai mitätöity.",
+  "publicLink.page.failed":
+    "Muistiinpanoa ei voitu ladata. Tarkista yhteys ja yritä uudelleen.",
+  "publicLink.page.passwordPrompt": "Tämä muistiinpano on suojattu salasanalla",
+  "publicLink.page.wrongPassword": "Salasana ei ole oikein.",
+  "publicLink.page.tooMany": "Liian monta yritystä. Yritä myöhemmin uudelleen.",
+  "publicLink.page.open": "Avaa muistiinpano",
+  "publicLink.page.footer": "Jaettu palvelulla {appName}",
   "sharing.you": "{name} (sinä)",
   "sharing.invited": "Kutsuttu",
+  "sharing.viaTeam": "tiimin {team} kautta",
+  "sharing.teams.title": "Tiimit",
+  "sharing.teams.pick": "Valitse tiimi",
+  "sharing.teams.role": "Tiimin rooli",
+  "sharing.teams.add": "Jaa",
+  "sharing.teams.remove": "Lopeta jakaminen tiimille {team}",
+  "sharing.teams.failed": "Tiimin käyttöoikeutta ei voitu muuttaa",
   "sharing.role.owner": "Omistaja",
   "sharing.role.edit": "Voi muokata",
   "sharing.role.view": "Voi katsella",

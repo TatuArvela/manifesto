@@ -1,4 +1,8 @@
-import { rowToShare, type ShareRow } from "../shareMapping.js";
+import {
+  membersChangedAt,
+  rowToShare,
+  type ShareRow,
+} from "../shareMapping.js";
 import { composeStats } from "../statsMapping.js";
 import type {
   ExpiredTrashedNote,
@@ -50,9 +54,17 @@ export function createPostgresMaintenanceRepo(pool: PgPool): MaintenanceRepo {
            WHERE trashed = TRUE
              AND trashed_at IS NOT NULL
              AND trashed_at < $1
-         RETURNING note_id, user_id, role, created_at, accepted_at`,
+         RETURNING note_id, user_id, role, created_at, accepted_at, via_team`,
         [cutoffIso],
       );
+      // An expired share leaves the note's members, as a removal does.
+      const at = membersChangedAt();
+      for (const noteId of new Set(result.rows.map((row) => row.note_id))) {
+        await pool.query(
+          `UPDATE notes SET members_changed_at = $1 WHERE id = $2`,
+          [at, noteId],
+        );
+      }
       return result.rows.map(rowToShare);
     },
 

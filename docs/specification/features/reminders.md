@@ -47,6 +47,24 @@ Arithmetic operates on local components, so a reminder at 08:00 local stays at 0
 
 See [Data Model: NoteReminder](../data-model.md#notereminder).
 
+## Calendar Feed
+
+In connected mode, a user's reminders can show in any calendar app that subscribes to a feed (a phone's
+calendar, Thunderbird, Google Calendar by URL). In Settings → API tokens, a **Calendar feed** token
+gives an address to subscribe to, and a `webcal:` link that opens the device's calendar app with it.
+
+- Each note with a reminder is an event at the reminder's time, in its timezone, repeating daily,
+  weekly, monthly or yearly as the reminder does, with an alarm when it is due. A note in the trash is
+  left out. The event is named by the note's title, or its first line when it has none, and holds its
+  text.
+- The feed is read-only: moving an event in the calendar does not move the reminder.
+- The address is the secret. It is shown once, when the token is made, and anyone who has it can read
+  the reminders; revoking the token in Settings stops the feed. It opens nothing else, and is not a
+  sign-in token anywhere.
+- Calendar apps fetch the feed on their own schedule, often every few hours, so a changed reminder can
+  take that long to show there. The app's own notifications stay the ones that arrive on time.
+- The calendar is named after the token, so two devices can each have their own.
+
 ## Limitations
 
 - Without a server and Web Push, reminders while the tab is closed depend on the browser waking the service worker. This is best-effort; if the browser is fully closed, reminders queue until the next app open and fire on visibility change

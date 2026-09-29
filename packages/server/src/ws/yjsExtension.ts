@@ -16,6 +16,15 @@ export interface YjsAuthContext {
   /** The bearer token the connection authenticated with, so ending a session
    * can find the sockets it opened. */
   token: string;
+  /** Who this connection is, as the `user` field of its awareness states. */
+  user: AwarenessUser;
+}
+
+/** The label at a remote cursor, in the shape `yCursorPlugin` reads. */
+export interface AwarenessUser {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export class YjsPersistenceExtension implements Extension {

@@ -2,9 +2,23 @@ import type { MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import type { ServerConfig } from "../config.js";
 
+/**
+ * What an assistant calls to sign in to `/api/mcp`, some from a web page (the
+ * MCP Inspector, a browser-based agent). None of it carries a credential the
+ * browser would add on its own, so any page may call it: the metadata, and
+ * the endpoints a public client registers and trades codes at.
+ */
+function isOpenToAnyOrigin(path: string): boolean {
+  return (
+    path.startsWith("/.well-known/oauth-") ||
+    path === "/api/oauth/register" ||
+    path === "/api/oauth/token"
+  );
+}
+
 export function corsMiddleware(cfg: ServerConfig): MiddlewareHandler {
   const origins = cfg.corsOrigins;
-  return cors({
+  const configured = cors({
     origin: (incoming) => {
       if (!incoming) return null;
       return origins.includes(incoming) ? incoming : null;
@@ -17,4 +31,13 @@ export function corsMiddleware(cfg: ServerConfig): MiddlewareHandler {
     credentials: false,
     maxAge: 600,
   });
+  const open = cors({
+    origin: "*",
+    allowHeaders: ["Authorization", "Content-Type", "MCP-Protocol-Version"],
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    credentials: false,
+    maxAge: 600,
+  });
+  return (c, next) =>
+    isOpenToAnyOrigin(c.req.path) ? open(c, next) : configured(c, next);
 }

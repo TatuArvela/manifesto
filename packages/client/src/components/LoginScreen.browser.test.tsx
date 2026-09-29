@@ -1,3 +1,4 @@
+import type { CapabilitiesResponse } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
@@ -7,16 +8,20 @@ const calls: { password: string; otp?: string }[] = [];
 let resetToken: string | null = null;
 const resets: { token: string; password: string }[] = [];
 const requested: string[] = [];
-let methods: Record<string, unknown> = {
-  provider: "local",
-  userLookup: "search",
+const LOCAL: CapabilitiesResponse["auth"] = {
+  providers: ["local"],
+  passwordForm: "shown",
+  registration: true,
+  passwordReset: false,
+  passkeys: false,
 };
+let auth = LOCAL;
 
 vi.mock("../state/auth.js", async (original) => {
   const actual = await original<typeof import("../state/auth.js")>();
   return {
     ...actual,
-    fetchAuthMethods: async () => methods,
+    fetchCapabilities: async () => ({ auth }),
     takeResetToken: () => resetToken,
     requestPasswordReset: async (email: string) => {
       requested.push(email);
@@ -58,7 +63,7 @@ const field = (selector: string) =>
 describe("LoginScreen with two-factor sign-in", () => {
   beforeEach(() => {
     calls.length = 0;
-    methods = { provider: "local", userLookup: "search" };
+    auth = LOCAL;
     resetToken = null;
     resets.length = 0;
     requested.length = 0;
@@ -98,11 +103,10 @@ describe("LoginScreen with two-factor sign-in", () => {
   });
 
   it("offers single sign-on first and folds the password form away", async () => {
-    methods = {
-      provider: "oidc",
+    auth = {
+      ...LOCAL,
       providers: ["local", "oidc"],
       passwordForm: "collapsed",
-      userLookup: "search",
     };
     render(<LoginScreen />, host);
     await vi.waitFor(() =>
@@ -122,7 +126,7 @@ describe("LoginScreen with two-factor sign-in", () => {
     expect(host.textContent).toContain(t("login.tabRegister"));
     render(null, host);
 
-    methods = { ...methods, registration: false };
+    auth = { ...auth, registration: false };
     render(<LoginScreen />, host);
     await field('input[autocomplete="username"]');
     expect(host.textContent).not.toContain(t("login.tabRegister"));
@@ -130,7 +134,7 @@ describe("LoginScreen with two-factor sign-in", () => {
   });
 
   it("asks for a reset link by mail when the server offers it", async () => {
-    methods = { ...methods, passwordReset: true };
+    auth = { ...auth, passwordReset: true };
     render(<LoginScreen />, host);
     const link = await vi.waitFor(() => {
       const button = [...host.querySelectorAll("button")].find(

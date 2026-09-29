@@ -3,8 +3,18 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { NoteCreate } from "@manifesto/shared";
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import {
+  EDITOR_OUTDATED_REASON,
+  EDITOR_SCHEMA_VERSION,
+  NoteColor,
+  NoteFont,
+} from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  Awareness,
+  applyAwarenessUpdate,
+  encodeAwarenessUpdate,
+} from "y-protocols/awareness";
 import * as Y from "yjs";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
@@ -12,7 +22,11 @@ import type { SqliteStorageDriver } from "../storage/sqlite/driver.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import { TEST_CONFIG } from "../test/setup.js";
 import { attachAppSocket } from "./appSocket.js";
-import { attachYjsSocket, type YjsSocket } from "./yjsSocket.js";
+import {
+  attachYjsSocket,
+  editorIsCurrent,
+  type YjsSocket,
+} from "./yjsSocket.js";
 
 interface Rig {
   storage: SqliteStorageDriver;
@@ -166,10 +180,15 @@ interface Client {
  * routing key, the Auth handshake, onAuthenticate) is only exercised this way;
  * openDirectConnection bypasses all of it.
  */
-function connect(rig: Rig, noteId: string, token: string | null): Client {
+function connect(
+  rig: Rig,
+  noteId: string,
+  token: string | null,
+  query = "",
+): Client {
   const doc = new Y.Doc();
   const provider = new HocuspocusProvider({
-    url: `${rig.wsBase}/api/yjs`,
+    url: `${rig.wsBase}/api/yjs${query}`,
     name: noteId,
     document: doc,
     token: token ?? "",
@@ -194,6 +213,38 @@ function waitSynced(client: Client, ms = 5000): Promise<boolean> {
       resolve(true);
     });
   });
+}
+
+function refusalReason(client: Client, ms = 5000): Promise<string | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    client.provider.on(
+      "authenticationFailed",
+      ({ reason }: { reason: string }) => {
+        clearTimeout(timer);
+        resolve(reason);
+      },
+    );
+  });
+}
+
+/** The `user` a client sees for another client id, once it has arrived. */
+async function seenUser(
+  watcher: Client,
+  clientId: number,
+  until: (user: Record<string, unknown> | undefined) => boolean,
+  ms = 3000,
+): Promise<Record<string, unknown> | undefined> {
+  const awareness = watcher.provider.awareness;
+  const read = () =>
+    awareness?.getStates().get(clientId)?.user as
+      | Record<string, unknown>
+      | undefined;
+  const deadline = Date.now() + ms;
+  while (!until(read()) && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  return read();
 }
 
 function waitAuthFailed(client: Client, ms = 5000): Promise<boolean> {
@@ -251,6 +302,44 @@ describe("Yjs collaboration socket /api/yjs", () => {
 
     a.destroy();
     b.destroy();
+  });
+
+  it("refuses an editor older than the server's, saying why", async () => {
+    const { token } = await register(rig, "alice");
+    const noteId = await createNote(rig, token);
+
+    const outdated = connect(
+      rig,
+      noteId,
+      token,
+      `?editor=${EDITOR_SCHEMA_VERSION - 1}`,
+    );
+    expect(await refusalReason(outdated)).toBe(EDITOR_OUTDATED_REASON);
+    expect(outdated.provider.isSynced).toBe(false);
+    outdated.destroy();
+
+    const current = connect(
+      rig,
+      noteId,
+      token,
+      `?editor=${EDITOR_SCHEMA_VERSION}`,
+    );
+    expect(await waitSynced(current)).toBe(true);
+    current.destroy();
+  });
+
+  it("gives a refusal for any other cause its own reason", async () => {
+    const { token } = await register(rig, "alice");
+    const noteId = await createNote(rig, token);
+
+    const client = connect(
+      rig,
+      noteId,
+      "deadbeef",
+      `?editor=${EDITOR_SCHEMA_VERSION}`,
+    );
+    expect(await refusalReason(client)).not.toBe(EDITOR_OUTDATED_REASON);
+    client.destroy();
   });
 
   it("rejects a connection with no token", async () => {
@@ -311,6 +400,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
       noteId,
       ownerId: userId,
       token,
+      user: { id: userId, name: "alice", color: "#123456" },
     });
     await conn.transact((doc) => {
       doc.getText("scratch").insert(0, "Hello, world.");
@@ -335,6 +425,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
       noteId,
       ownerId: userId,
       token,
+      user: { id: userId, name: "alice", color: "#123456" },
     });
     await first.transact((doc) => {
       doc.getText("scratch").insert(0, "persisted bytes");
@@ -351,6 +442,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
       noteId,
       ownerId: userId,
       token,
+      user: { id: userId, name: "alice", color: "#123456" },
     });
     let observed = "";
     await second.transact((doc) => {
@@ -436,6 +528,87 @@ describe("Yjs collaboration socket /api/yjs", () => {
     }
   });
 
+  it("labels a cursor with the account, whatever the client claims", async () => {
+    const owner = await register(rig, "olivia");
+    const alice = await register(rig, "alice");
+    const noteId = await createNote(rig, owner.token);
+    await shareWith(rig, owner.token, noteId, alice, "edit");
+    const account = await rig.storage.users.findById(alice.userId);
+
+    const ownerClient = connect(rig, noteId, owner.token);
+    const aliceClient = connect(rig, noteId, alice.token);
+    try {
+      expect(await waitSynced(ownerClient)).toBe(true);
+      expect(await waitSynced(aliceClient)).toBe(true);
+
+      aliceClient.provider.awareness?.setLocalStateField("user", {
+        id: owner.userId,
+        name: "olivia",
+        color: "red; background: url(https://example.com/)",
+      });
+
+      const user = await seenUser(
+        ownerClient,
+        aliceClient.doc.clientID,
+        (u) => u !== undefined,
+      );
+      expect(user).toEqual({
+        id: alice.userId,
+        name: account?.displayName,
+        color: account?.avatarColor,
+      });
+    } finally {
+      ownerClient.destroy();
+      aliceClient.destroy();
+    }
+  });
+
+  it("drops a state published for another connection's client id", async () => {
+    const owner = await register(rig, "olivia");
+    const alice = await register(rig, "alice");
+    const noteId = await createNote(rig, owner.token);
+    await shareWith(rig, owner.token, noteId, alice, "edit");
+
+    const ownerClient = connect(rig, noteId, owner.token);
+    const aliceClient = connect(rig, noteId, alice.token);
+    const watcher = connect(rig, noteId, owner.token);
+    try {
+      expect(await waitSynced(ownerClient)).toBe(true);
+      expect(await waitSynced(aliceClient)).toBe(true);
+      expect(await waitSynced(watcher)).toBe(true);
+
+      const ownerId = ownerClient.doc.clientID;
+      ownerClient.provider.awareness?.setLocalStateField("cursor", "mine");
+      expect(
+        (await seenUser(watcher, ownerId, (u) => u !== undefined))?.id,
+      ).toBe(owner.userId);
+
+      // A forged state for the owner's client id, sent over Alice's socket.
+      // The provider sends what it applies from any origin but itself.
+      const forgery = new Awareness(new Y.Doc());
+      forgery.clientID = ownerId;
+      // Set a few times so its clock is ahead of the owner's, and a receiver
+      // would take it.
+      for (let i = 0; i < 3; i++) forgery.setLocalState({ cursor: "forged" });
+      applyAwarenessUpdate(
+        aliceClient.provider.awareness as Awareness,
+        encodeAwarenessUpdate(forgery, [ownerId]),
+        "forger",
+      );
+
+      await new Promise((r) => setTimeout(r, 300));
+      const state = watcher.provider.awareness?.getStates().get(ownerId);
+      expect(state?.cursor).toBe("mine");
+      expect((state?.user as { id?: string } | undefined)?.id).toBe(
+        owner.userId,
+      );
+    } finally {
+      ownerClient.destroy();
+      aliceClient.destroy();
+      watcher.destroy();
+    }
+  });
+
   it("keeps someone who can only view a note out of its document", async () => {
     const owner = await register(rig, "olivia");
     const alice = await register(rig, "alice");
@@ -472,4 +645,22 @@ describe("Yjs collaboration socket /api/yjs", () => {
     expect(await refused).toBe(true);
     client.destroy();
   }, 15_000);
+});
+
+describe("editorIsCurrent", () => {
+  it("takes a missing version as the shape from before the check", () => {
+    expect(editorIsCurrent(null)).toBe(EDITOR_SCHEMA_VERSION <= 1);
+  });
+
+  it("admits the server's version and newer, and refuses older", () => {
+    expect(editorIsCurrent(String(EDITOR_SCHEMA_VERSION))).toBe(true);
+    expect(editorIsCurrent(String(EDITOR_SCHEMA_VERSION + 1))).toBe(true);
+    expect(editorIsCurrent(String(EDITOR_SCHEMA_VERSION - 1))).toBe(false);
+  });
+
+  it("refuses a version it cannot read", () => {
+    for (const sent of ["", "one", "1.5", "-1", "1e3", "9999999"]) {
+      expect(editorIsCurrent(sent)).toBe(false);
+    }
+  });
 });

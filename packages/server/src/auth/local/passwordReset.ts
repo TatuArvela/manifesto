@@ -44,7 +44,6 @@ export function registerPasswordResetRoutes(
     cfg: ServerConfig;
     revocations: SessionRevocations;
     mailer: Mailer | null;
-    throttle: Parameters<Hono["use"]>[1];
   },
 ) {
   const { storage, mailer } = deps;
@@ -91,7 +90,6 @@ export function registerPasswordResetRoutes(
 
   auth.post(
     "/password-reset",
-    deps.throttle,
     zValidator("json", passwordResetRequestSchema, validatorHook),
     async (c) => {
       requireMail();
@@ -107,7 +105,6 @@ export function registerPasswordResetRoutes(
 
   auth.post(
     "/password-reset/confirm",
-    deps.throttle,
     zValidator("json", passwordResetConfirmSchema, validatorHook),
     async (c) => {
       requireMail();

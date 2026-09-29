@@ -228,8 +228,8 @@ describe("webhooks switched off", () => {
       authProvider: createAuthProvider(cfg, storage),
     });
     expect((await app.request("/api/webhooks")).status).toBe(404);
-    const methods = await (await app.request("/api/auth/methods")).json();
-    expect(methods.webhooks).toBe(false);
+    const { features } = await (await app.request("/api/capabilities")).json();
+    expect(features.webhooks).toBe(false);
     await storage.close();
   });
 });

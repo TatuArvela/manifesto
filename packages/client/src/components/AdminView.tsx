@@ -27,9 +27,14 @@ import {
   setAccountAdmin,
   setAccountEmail,
 } from "../state/admin.js";
-import { authProviders, currentUser, fetchAuthMethods } from "../state/auth.js";
+import {
+  authProviders,
+  currentUser,
+  fetchCapabilities,
+} from "../state/auth.js";
 import { showError } from "../state/ui.js";
 import { AdminOverview } from "./AdminOverview.js";
+import { AdminTeams } from "./AdminTeams.js";
 import { AuditLog } from "./AuditLog.js";
 import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
@@ -58,9 +63,9 @@ export function AdminView() {
   const passwordsHere = providers.includes("local");
   const [loadFailed, setLoadFailed] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [section, setSection] = useState<"users" | "overview" | "activity">(
-    "users",
-  );
+  const [section, setSection] = useState<
+    "users" | "teams" | "overview" | "activity"
+  >("users");
 
   const load = () => {
     setLoadFailed(false);
@@ -69,7 +74,7 @@ export function AdminView() {
 
   useEffect(() => {
     load();
-    if (authProviders.value.length === 0) void fetchAuthMethods();
+    if (authProviders.value.length === 0) void fetchCapabilities();
     // A temporary password is shown once; leaving the view is dismissing it.
     return () => {
       issuedPassword.value = null;
@@ -85,7 +90,7 @@ export function AdminView() {
         class="flex gap-1 self-start rounded-lg bg-neutral-100 dark:bg-neutral-800 p-1"
         role="tablist"
       >
-        {(["users", "overview", "activity"] as const).map((tab) => (
+        {(["users", "teams", "overview", "activity"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -105,6 +110,8 @@ export function AdminView() {
 
       {section === "activity" ? (
         <AuditLog />
+      ) : section === "teams" ? (
+        <AdminTeams />
       ) : section === "overview" ? (
         <AdminOverview />
       ) : (

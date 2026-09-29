@@ -82,7 +82,11 @@ State lives in `packages/client/src/state/` using @preact/signals:
   through `receiveNote` / `receiveNoteList` and never through a plain assignment; a note leaves
   through `forgetNote`.
   `pendingWrites.ts` replays the writes still outstanding on top of that copy, so a late reply
-  cannot revert a newer click. `settle` must get the same `changes` object `begin` did, even
+  cannot revert a newer click. A copy older (by `updatedAt`) than the last one taken in is replaced
+  by that one, since a 412's body or a slow reply can arrive after a newer broadcast, and a failed
+  write falls back to that last confirmed copy, never to the note as it was clicked.
+  `pendingWrites.property.browser.test.ts` drives all of this against a fake `If-Match` server over
+  generated interleavings; run it after touching any of them. `settle` must get the same `changes` object `begin` did, even
   when a conflict retry sent a merged one. `incomingNote.ts` hands back the held note by
   reference when nothing changed. That keeps a client's own write, which it hears twice (as the
   reply and as the broadcast), and a reconnect's re-fetch from repainting the board or dropping
@@ -97,7 +101,7 @@ State lives in `packages/client/src/state/` using @preact/signals:
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   Routing below). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.
-- **`auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` queries `/api/auth/methods` on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
+- **`auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` reads `/api/capabilities` (`fetchCapabilities`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL.
 
 ### Branding
 
@@ -230,6 +234,12 @@ the next save. That is why `useMilkdownEditor` takes a `ready` flag. Open mode i
 build and can never sync, so keeping these three chunks out of the entry is worth ~130 KB
 minified to every user who will never use them.
 
+Adding, removing or changing the attributes of a node or mark (a preset, a plugin, anything in
+`extensions/`) means raising `EDITOR_SCHEMA_VERSION` in `@manifesto/shared`. `/api/yjs` refuses an
+editor older than the server's, and the refused client locks the text behind a reload notice; an
+old editor left in the room drops the nodes it does not know from every participant's copy. No
+test can see a schema change, so this one is on whoever makes it.
+
 ### Auto-notes Plugin Sandbox
 
 Auto-notes run user-supplied JavaScript, so it executes at three removes from the app and each
@@ -250,10 +260,14 @@ remove is load-bearing:
 
 Server mode runs two sockets, and they carry different things. `realtime/appSocket.ts` holds
 `/api/ws` (note events and presence) and reconnects with exponential backoff to a 30s ceiling.
-Every reconnect *after the first* re-fetches the note list, because writes made on another device
-while this tab was offline arrive nowhere else. `realtime/yjsProvider.ts` holds `/api/yjs`, one
-`HocuspocusProvider` per open note, with `y-indexeddb` underneath so an offline edit survives a
-reload. Those copies outlive the session, so the account menu signs out through `signOut`
+Every reconnect *after the first* catches up through `syncNotes`, because writes made on another
+device while this tab was offline arrive nowhere else. It asks `GET /api/sync` for what changed since
+the checkpoint `loadNotes` left, and drops a held note missing from the returned ids only if it was
+held before the request went out. A membership change stamps `notes.members_changed_at`, never
+`updated_at` (the `If-Match` token), so a new way of joining or leaving a note must stamp it in both
+drivers or recipients' devices never hear of it (`storage/syncContract.ts`).
+`realtime/yjsProvider.ts` holds `/api/yjs`, one `HocuspocusProvider` per open note, with
+`y-indexeddb` underneath so an offline edit survives a reload. Those copies outlive the session, so the account menu signs out through `signOut`
 (`state/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
 entry stays free of Yjs); the notes list itself empties on any end of a session, a 401 included. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding above.
 
@@ -299,6 +313,16 @@ so a share link needs no server and no account. The fragment is attacker-control
 against the enums, and anything that fails returns `null` rather than a partly-trusted note. `App`
 shows `SharedNoteDialog` when the fragment is present, and the recipient chooses whether to save.
 The rendered preview still goes through `remarkRenderer`, which sanitizes.
+
+Public links (`routes/publicLinks.ts`, `state/publicLinks.ts`) are the revocable, server-side
+counterpart: `/p/<token>` renders `PublicNotePage` in place of the app (`main.tsx`), with no account.
+Every way a link fails answers the same 404, and a view is counted by one conditional `UPDATE`
+(`recordView`), never a read then a write. A snapshot's pictures are referrers for the attachment
+sweep in both drivers, so a new place that keeps attachment references must be added there too.
+
+Other apps' formats (Evernote, Joplin, Simplenote, Standard Notes, HTML) are `Importer`s in
+`utils/importers/`, registered in its `index.ts`; `importFiles` offers each file and each archived
+JSON document to them, so a new format is one file there.
 
 `utils/importExport.ts` handles both directions for Markdown and JSON, single note and bulk. It
 caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
@@ -462,6 +486,20 @@ call locally, so both modes behave alike.
 `GET /api/openapi.json` is generated from `src/openapi.ts`, whose request bodies are the validation
 schemas; a new route must be added to `OPERATIONS` there, or `openapi.test.ts` fails.
 
+`OPERATIONS` is also every route's protection, and nothing else is: each declares `auth` (`none`,
+`any`, `session`, `admin`, `mcp`) and its rate-limit `limits` (`BUCKETS` in `middleware/protect.ts`,
+required, `[]` for none), and one middleware on `/api/*` (`createProtection`) applies them from the
+route Hono matched. Routers mount no auth or rate limit of their own, and a matched route nobody
+declared is refused. `/api/ws` checks its own caller in the handshake (`SELF_AUTHENTICATED`).
+`middleware/protect.test.ts` walks the list against the running app, and pins what secures an account
+to a session.
+
+The public surface (whatever a token can reach, the credential-free routes in `isPublicSurface`,
+webhook payloads, MCP tools) will be under the compatibility policy in `api.md` from 1.0.0: additions
+any time, removals and changes of meaning only after a deprecation (`deprecated` on the operation) of at
+least two minor releases. Before 1.0.0 every contract may change, with a release note. The session-only
+routes are the web client's own and may change with it either way.
+
 - REST: `/api/notes` (with `/api/notes/:id/shares`), `/api/search`, `/api/invitations`, `/api/users`, `/api/auth/*` (auth routes are owned by the active auth provider)
 - WebSockets: `/api/ws` (application events, presence) and `/api/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/yjs` authenticates in the Hocuspocus `Auth` message and authorizes the right to edit the joined document (owner or `edit` recipient) in `onAuthenticate`.
 - All timestamps are ISO 8601 UTC strings
@@ -485,8 +523,8 @@ only a message the peer may ignore.
 
 Personal API tokens (`mfp_`, `/api/tokens`) authenticate through the same `authenticateBySession`,
 and `AuthIdentity.via` says which credential it was. Anything that changes how an account is secured
-(tokens, password, email, the admin API) mounts `createAuthMiddleware(provider, { sessionOnly: true })`,
-so a token handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
+(tokens, password, email, the admin API) is declared `auth: "session"` (or `"admin"`), so a token
+handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
 revoking one token goes through `revokeApiToken`, which closes its sockets by the token's hash.
 A token reaches only what its scopes name (`API_TOKEN_SCOPES` in shared). Each operation's scope is
 declared once, as `scope` in `OPERATIONS` (`openapi.ts`), and `createAuthMiddleware` looks it up from
@@ -541,6 +579,13 @@ away from someone (removal, a role drop to `view`, the owner trashing it) also g
 stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
 `storage/sharingContract.ts` runs the rules against both drivers.
 
+A share to a team (spec: the Teams section of the same file) expands into one ordinary `note_shares`
+row per member, marked with `via_team`, so every access check keeps reading `note_shares` alone.
+`sharing/teamShares.ts` is the only code that understands teams: sharing, a team's role, members
+joining and leaving (admin edits, and `syncOidcTeams` at an OIDC sign-in) all go through it. A direct
+share is never touched by a team, and a share that loses its team passes to another the member is in
+before it is removed.
+
 ### Server Architecture
 
 Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUTH_PROVIDER`):
@@ -548,7 +593,7 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
 - **`src/storage/`**: `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional. SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
 - **`src/auth/`**: `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. Two providers ship, and `AUTH_PROVIDER=both` mounts them side by side (`auth/index.ts`; ask
   `signsInLocally` / `signsInWithOidc` in `config.ts`, never compare `authProvider` to a name):
-  `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers, and the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. Two provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/methods` (public discovery) and `GET /api/auth/me` (bearer → current user).
+  `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers, and the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. The provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/me` (bearer → current user) and its siblings under `/api/auth/me/*`. What the server offers, sign-in methods included, is `GET /api/capabilities` (`routes/capabilities.ts`).
 - **`src/app.ts` / `src/index.ts`**: composition root. Constructs storage, auth provider, broadcaster, then wires the Hono app, the `/api/ws` socket (`ws/appSocket.ts`), and the Yjs collaboration socket (`ws/yjsSocket.ts` + the generic `ws/yjsExtension.ts` Hocuspocus extension that delegates to `storage.yjs`).
 - **Attachments**: `Note.images` holds references in both modes: `local:<sha256>` in open mode (IndexedDB,
   `storage/localImages.ts`) and in connected mode `attachment:<id>` references to the
@@ -564,6 +609,12 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   `docs/specification/features/mcp.md`. The agent skill that teaches the tools is
   `skills/manifesto/SKILL.md` at the repo root, and `mcp/skill.test.ts` fails until it names a new
   tool (in its `description` too) and stops naming a removed one.
+  An assistant can also sign in by OAuth (`oauth/`): the consent page is the client's
+  (`/oauth/authorize`, `OAuthConsentPage`), since a session is a bearer token the server cannot see
+  on a browser redirect, and a grant is an `mcp` row of `api_tokens` with a refresh token beside it,
+  so listing, revoking and `endUserSessions` cover it with no code of their own. Its expiries are
+  counted from `nowIso()`, which never goes back, so a test that jumps the clock forward carries the
+  jump into every later test; move a row's timestamps instead.
 - **Webhooks**: `webhooks/dispatcher.ts` subscribes to the broadcaster, so a webhook hears what its
   owner's sockets hear and a new note event needs no webhook code. Deliveries go through `safeFetch`
   (POST, no redirects) with the address rule `WEBHOOKS` picks; never call `fetch` for them.

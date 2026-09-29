@@ -7,12 +7,14 @@ import type {
   ShareInvitation,
   ShareRole,
   ShareUser,
+  TeamRef,
 } from "@manifesto/shared";
 import {
   PERSONAL_NOTE_FIELDS,
   SHARE_ROLES,
   SHARED_NOTE_FIELDS,
 } from "@manifesto/shared";
+import { nowIso } from "../lib/time.js";
 import {
   asBoolean,
   type NoteRow,
@@ -72,13 +74,15 @@ export interface ShareRow {
   role: string;
   created_at: string;
   accepted_at: string | null;
+  via_team?: string | null;
 }
 
-/** A share with the account it belongs to. */
+/** A share with the account it belongs to, and the team it came through. */
 export interface MemberRow extends ShareRow {
   username: string;
   display_name: string;
   avatar_color: string;
+  team_name?: string | null;
 }
 
 export interface UserBriefRow {
@@ -100,6 +104,8 @@ export interface InvitationRow {
   username: string;
   display_name: string;
   avatar_color: string;
+  via_team?: string | null;
+  team_name?: string | null;
 }
 
 /** A role read from the database. Anything unknown is the lesser one. */
@@ -118,7 +124,18 @@ export function rowToShare(row: ShareRow): NoteShare {
     role: parseRole(row.role),
     createdAt: row.created_at,
     acceptedAt: row.accepted_at,
+    viaTeam: row.via_team ?? null,
   };
+}
+
+/** The team a row came through, as a note or an invitation names it. */
+function teamOf(row: {
+  via_team?: string | null;
+  team_name?: string | null;
+}): { team: TeamRef } | Record<string, never> {
+  return row.via_team
+    ? { team: { id: row.via_team, name: row.team_name ?? "" } }
+    : {};
 }
 
 export function toShareUser(row: UserBriefRow): ShareUser {
@@ -145,6 +162,7 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
     color: parseColor(row.color),
     font: parseFont(row.font),
     invitedAt: row.created_at,
+    ...teamOf(row),
   };
 }
 
@@ -207,6 +225,7 @@ export function attachSharing(
       }),
       role: parseRole(m.role),
       accepted: m.accepted_at !== null,
+      ...teamOf(m),
     }));
     return {
       ...note,
@@ -281,4 +300,14 @@ export function mergePages(
   limit: number,
 ): ViewRow[] {
   return [...own, ...shared].sort(newerFirst).slice(0, limit + 1);
+}
+
+/**
+ * The time a membership change is stamped with, as `notes.members_changed_at`.
+ * Taken here rather than from the caller because only `GET /api/sync` reads
+ * it, and a removal or a role change has no other time of its own to pass
+ * down. The clock is the one `updated_at` is stamped from.
+ */
+export function membersChangedAt(): string {
+  return nowIso();
 }

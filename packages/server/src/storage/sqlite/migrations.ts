@@ -321,6 +321,138 @@ ALTER TABLE api_tokens ADD COLUMN scopes TEXT NOT NULL DEFAULT '["notes:read","n
 UPDATE api_tokens SET scopes = '["notes:read"]' WHERE read_only = 1;
 `;
 
+/**
+ * When a note's members last changed: someone invited, accepted, given another
+ * role or removed. That changes `sharing` for everyone on the note without
+ * touching `updated_at`, which is the note's concurrency token and must not
+ * move for it, so `GET /api/sync` reads this beside it. Null until the first
+ * change after this migration.
+ */
+const NOTE_MEMBERS_CHANGED = `
+ALTER TABLE notes ADD COLUMN members_changed_at TEXT;
+`;
+
+/**
+ * Revocable public links to a note, read by anyone holding the token. A
+ * `snapshot` link keeps its own copy of the note (JSON of `PublicNote`); a
+ * `live` link reads the note each time. The token is kept as it is, since the
+ * owner copies the link again from here, and whoever can read this table can
+ * read the notes themselves anyway. The links go with their note.
+ */
+const PUBLIC_LINKS = `
+CREATE TABLE public_links (
+  token          TEXT PRIMARY KEY,
+  note_id        TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  owner_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  mode           TEXT NOT NULL,
+  snapshot       TEXT,
+  password_hash  TEXT,
+  expires_at     TEXT,
+  max_views      INTEGER,
+  view_count     INTEGER NOT NULL DEFAULT 0,
+  last_viewed_at TEXT,
+  created_at     TEXT NOT NULL
+);
+CREATE INDEX public_links_note ON public_links(note_id);
+`;
+
+/**
+ * Teams, as share targets. A `local` team is an admin's to fill; an `oidc`
+ * team mirrors a group at the identity provider, named as the provider names
+ * it, so the name is unique within its source rather than across both.
+ * Sharing a note with a team is a `note_team_shares` row, and one
+ * `note_shares` row for each member, marked with the team it came through in
+ * `via_team`; a direct share leaves it null. Every access check keeps reading
+ * `note_shares` alone.
+ */
+const TEAMS = `
+CREATE TABLE teams (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  source     TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (source, name)
+);
+CREATE TABLE team_members (
+  team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (team_id, user_id)
+);
+CREATE INDEX team_members_user ON team_members(user_id);
+CREATE TABLE note_team_shares (
+  note_id    TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  team_id    TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  role       TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (note_id, team_id)
+);
+CREATE INDEX note_team_shares_team ON note_team_shares(team_id);
+ALTER TABLE note_shares ADD COLUMN via_team TEXT;
+`;
+
+/**
+ * Assistants signing in to `/api/mcp` by OAuth. A grant is an `mcp` row of
+ * `api_tokens`, so it is listed, revoked and ended with the user's sessions
+ * like any token: `token_hash` is its current access token, which lapses at
+ * `access_expires_at`, and `refresh_hash` the refresh token that replaces
+ * both. The one before is kept in `previous_refresh_hash`, since a refresh
+ * token that comes back after it was replaced has been copied, and ends the
+ * grant. `oauth_clients` are the clients that registered themselves here
+ * (a client identified by its metadata document's address is not stored), and
+ * `oauth_codes` the codes a consent hands out, each good once, for a minute.
+ * `redirect_uris` and `scopes` are JSON arrays.
+ */
+const OAUTH = `
+ALTER TABLE api_tokens ADD COLUMN oauth_client_id TEXT;
+ALTER TABLE api_tokens ADD COLUMN refresh_hash TEXT;
+ALTER TABLE api_tokens ADD COLUMN previous_refresh_hash TEXT;
+ALTER TABLE api_tokens ADD COLUMN access_expires_at TEXT;
+CREATE UNIQUE INDEX api_tokens_refresh ON api_tokens(refresh_hash);
+CREATE INDEX api_tokens_previous_refresh ON api_tokens(previous_refresh_hash);
+CREATE TABLE oauth_clients (
+  id            TEXT PRIMARY KEY,
+  name          TEXT NOT NULL,
+  redirect_uris TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  last_used_at  TEXT
+);
+CREATE TABLE oauth_codes (
+  code_hash        TEXT PRIMARY KEY,
+  client_id        TEXT NOT NULL,
+  client_name      TEXT NOT NULL,
+  user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  redirect_uri     TEXT NOT NULL,
+  code_challenge   TEXT NOT NULL,
+  scopes           TEXT NOT NULL,
+  grant_expires_at TEXT,
+  expires_at       TEXT NOT NULL
+);
+`;
+
+/**
+ * Passkeys (WebAuthn credentials): a second factor beside the authenticator
+ * app, and a way to sign in alone. `credential_id` and `public_key` (a COSE
+ * key) are base64url, `transports` a JSON array, and `rp_id` the host the
+ * passkey was made for, since one only works on the address it was made on.
+ * `counter` is the authenticator's signature count, which only goes up.
+ */
+const PASSKEYS = `
+CREATE TABLE passkeys (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  credential_id TEXT NOT NULL UNIQUE,
+  public_key    TEXT NOT NULL,
+  counter       INTEGER NOT NULL,
+  transports    TEXT NOT NULL,
+  rp_id         TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  synced        INTEGER NOT NULL,
+  created_at    TEXT NOT NULL,
+  last_used_at  TEXT
+);
+CREATE INDEX passkeys_user ON passkeys(user_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -340,6 +472,11 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0016-user-prefs", sql: USER_PREFS },
   { id: "0017-api-token-kind", sql: API_TOKEN_KIND },
   { id: "0018-api-token-scopes", sql: API_TOKEN_SCOPES },
+  { id: "0019-note-members-changed", sql: NOTE_MEMBERS_CHANGED },
+  { id: "0020-public-links", sql: PUBLIC_LINKS },
+  { id: "0021-teams", sql: TEAMS },
+  { id: "0022-oauth", sql: OAUTH },
+  { id: "0023-passkeys", sql: PASSKEYS },
 ];
 
 export function runMigrations(

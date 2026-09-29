@@ -9,6 +9,10 @@ import {
   rowToStoredAttachment,
   sweepAction,
 } from "../attachmentMapping.js";
+import {
+  snapshotReferences,
+  usableSnapshotsWhere,
+} from "../publicLinkMapping.js";
 import type { AttachmentsRepo } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
@@ -37,6 +41,9 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
   const referringStmt = db.prepare(
     `SELECT images, link_previews FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
   );
+  const snapshotsStmt = db.prepare(
+    `SELECT snapshot FROM public_links WHERE ${usableSnapshotsWhere("?")}`,
+  );
   const allStmt = db.prepare(`SELECT id, unreferenced_since FROM attachments`);
   const markStmt = db.prepare(
     `UPDATE attachments SET unreferenced_since = ? WHERE id = ?`,
@@ -47,6 +54,11 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
     const referenced = new Set<string>();
     for (const row of referringStmt.all() as ReferringRow[]) {
       for (const id of referencesOf(row)) referenced.add(id);
+    }
+    // A snapshot link shows the note as it was, pictures the note has since
+    // let go of included.
+    for (const row of snapshotsStmt.all(now) as { snapshot: string }[]) {
+      for (const id of snapshotReferences(row.snapshot)) referenced.add(id);
     }
     let deleted = 0;
     const rows = allStmt.all() as {

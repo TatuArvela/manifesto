@@ -150,6 +150,68 @@ describe("ApiTokensSettings", () => {
     );
   });
 
+  it("mints a calendar token and hands over the feed's address", async () => {
+    const listed = [
+      {
+        id: "t3",
+        name: "Phone",
+        kind: "calendar",
+        scopes: [],
+        prefix: "mfc_abcdef",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        lastUsedAt: null,
+        expiresAt: null,
+      },
+    ];
+    let sent: Record<string, unknown> | null = null;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (init?.method === "POST") {
+        sent = JSON.parse(init.body as string);
+        return Response.json(
+          { token: listed[0], secret: "mfc_abcdef-the-secret" },
+          { status: 201 },
+        );
+      }
+      return Response.json({ tokens: sent ? listed : [] });
+    });
+
+    render(<ApiTokensSettings />, host);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.none")),
+    );
+    const kind = host.querySelector("select") as HTMLSelectElement;
+    kind.value = "calendar";
+    kind.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.calendarHint")),
+    );
+    const name = host.querySelector<HTMLInputElement>(
+      `input[placeholder="${t("tokens.namePlaceholder")}"]`,
+    ) as HTMLInputElement;
+    name.value = "Phone";
+    name.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((r) => requestAnimationFrame(r));
+    host
+      .querySelector("form")
+      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() =>
+      expect(
+        host.querySelector<HTMLInputElement>(
+          `input[aria-label="${t("tokens.calendarUrl")}"]`,
+        )?.value,
+      ).toMatch(/\/api\/calendar\/mfc_abcdef-the-secret\.ics$/),
+    );
+    expect(sent).toMatchObject({ name: "Phone", kind: "calendar" });
+    const subscribe = [...host.querySelectorAll("a")].find(
+      (a) => a.textContent === t("tokens.calendarSubscribe"),
+    );
+    expect(subscribe?.getAttribute("href")).toMatch(/^webcal:\/\//);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("tokens.calendarBadge")),
+    );
+  });
+
   it("mints a token with the scopes chosen, and names them in the list", async () => {
     let sent: { scopes?: string[] } | null = null;
     vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {

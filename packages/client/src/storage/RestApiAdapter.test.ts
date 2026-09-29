@@ -96,6 +96,69 @@ describe("RestApiAdapter", () => {
     });
   });
 
+  describe("changesSince", () => {
+    it("drains the pages of one sync, sending the checkpoint and cursor", async () => {
+      const a = makeNote({ id: "A" });
+      const b = makeNote({ id: "B" });
+      fetchMock
+        .mockResolvedValueOnce(
+          jsonResponse({
+            notes: [a],
+            nextCursor: "c1",
+            ids: null,
+            checkpoint: null,
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            notes: [b],
+            nextCursor: null,
+            ids: ["A", "B", "C"],
+            checkpoint: "k2",
+          }),
+        );
+
+      expect(await adapter.changesSince("k1")).toEqual({
+        notes: [a, b],
+        ids: ["A", "B", "C"],
+        checkpoint: "k2",
+      });
+      expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+        "https://api.example.com/api/sync?since=k1",
+        "https://api.example.com/api/sync?since=k1&cursor=c1",
+      ]);
+    });
+
+    it("asks for everything without a checkpoint", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ notes: [], nextCursor: null, ids: [], checkpoint: "k" }),
+      );
+      await adapter.changesSince(null);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.example.com/api/sync",
+      );
+    });
+
+    it("reads a server without the endpoint as keeping no record of change", async () => {
+      fetchMock.mockResolvedValueOnce(
+        new Response("Not Found", { status: 404 }),
+      );
+      expect(await adapter.changesSince(null)).toBeNull();
+    });
+
+    it("refuses a last page without a checkpoint", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({
+          notes: [],
+          nextCursor: null,
+          ids: null,
+          checkpoint: null,
+        }),
+      );
+      await expect(adapter.changesSince("k")).rejects.toThrow();
+    });
+  });
+
   describe("getAll", () => {
     it("returns the notes array from the response envelope", async () => {
       const notes = [makeNote({ id: "A" }), makeNote({ id: "B" })];

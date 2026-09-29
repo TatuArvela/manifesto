@@ -16,6 +16,12 @@ export interface OidcConfig {
   adminGroup: string | null;
   /** When set, only members may sign in at all. */
   userGroup: string | null;
+  /**
+   * The groups mirrored as teams (`OIDC_TEAM_GROUPS`): these names, every
+   * group (`*`), or none (null, the default), since a directory's groups can
+   * run to hundreds and most mean nothing to note sharing.
+   */
+  teamGroups: string[] | "*" | null;
   /** When false, only identities that already have an account sign in. */
   autoRegister: boolean;
 }
@@ -83,6 +89,9 @@ export interface ServerConfig {
    * client keeps the plain link card. Off is for deployments with no outbound
    * internet access, or an egress policy that should not be asked. */
   linkPreviews: boolean;
+  /** Whether owners may publish a note by revocable public link, readable by
+   * anyone holding it. Off answers every public link route with 404. */
+  publicLinks: boolean;
   /**
    * Whether users may register webhooks, and where they may point: `public`
    * addresses only (the default, the same rule as link previews), `private`
@@ -95,6 +104,13 @@ export interface ServerConfig {
    * itself: it answers only an MCP token, which a user has to mint.
    */
   mcp: boolean;
+  /**
+   * The client's public address (`APP_URL`), without a trailing slash, or
+   * null. Mail links point at it, and an assistant signing in to `/api/mcp`
+   * is sent to its consent page there. With `CLIENT_DIR` and no `APP_URL`
+   * the client is this server's own origin.
+   */
+  appUrl: string | null;
   /**
    * Outgoing mail, for password reset links and share invitations. Null
    * without `SMTP_URL`, and then an admin's temporary password stays the only
@@ -245,17 +261,29 @@ function loadBackupConfig(dataDir: string): BackupConfig | null {
   };
 }
 
-function loadMailConfig(): MailConfig | null {
+function loadAppUrl(): string | null {
+  const appUrl = process.env.APP_URL?.trim().replace(/\/+$/, "");
+  if (!appUrl) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(appUrl);
+  } catch {
+    throw new Error("Invalid APP_URL: must be the client's full URL");
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("Invalid APP_URL: must be an http(s) address");
+  }
+  return appUrl;
+}
+
+function loadMailConfig(appUrl: string | null): MailConfig | null {
   const url = process.env.SMTP_URL?.trim();
   if (!url) return null;
   if (!/^smtps?:\/\//i.test(url)) {
     throw new Error("Invalid SMTP_URL: must start with smtp:// or smtps://");
   }
-  const appUrl = envRequired("APP_URL").replace(/\/+$/, "");
-  try {
-    new URL(appUrl);
-  } catch {
-    throw new Error("Invalid APP_URL: must be the client's full URL");
+  if (appUrl === null) {
+    throw new Error("Missing required env var APP_URL");
   }
   return { url, from: envRequired("SMTP_FROM"), appUrl };
 }
@@ -276,8 +304,23 @@ function loadOidcConfig(): OidcConfig {
     groupsClaim: process.env.OIDC_GROUPS_CLAIM?.trim() || "groups",
     adminGroup: process.env.OIDC_ADMIN_GROUP?.trim() || null,
     userGroup: process.env.OIDC_USER_GROUP?.trim() || null,
+    teamGroups: parseTeamGroups(process.env.OIDC_TEAM_GROUPS),
     autoRegister: envBool("OIDC_AUTO_REGISTER", true),
   };
+}
+
+/** `OIDC_TEAM_GROUPS`: a comma-separated list of group names, or `*`. */
+export function parseTeamGroups(
+  raw: string | undefined,
+): string[] | "*" | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  if (value === "*") return "*";
+  const names = value
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+  return names.length > 0 ? names : null;
 }
 
 /**
@@ -325,6 +368,7 @@ export function loadConfig(): ServerConfig {
   const dataDir = process.env.DATA_DIR ?? DEFAULT_DATA_DIR;
   const authProvider = envEnum("AUTH_PROVIDER", AUTH_MODES, "local");
   const storageDriver = envEnum("STORAGE_DRIVER", STORAGE_DRIVERS, "sqlite");
+  const appUrl = loadAppUrl();
   return {
     port: envInt("PORT", 3001),
     dataDir,
@@ -343,9 +387,11 @@ export function loadConfig(): ServerConfig {
     trustProxy: envBool("TRUST_PROXY", false),
     registrationEnabled: envBool("REGISTRATION_ENABLED", true),
     linkPreviews: envBool("LINK_PREVIEWS", true),
+    publicLinks: envBool("PUBLIC_LINKS", true),
     webhooks: envEnum("WEBHOOKS", WEBHOOK_MODES, "public"),
     mcp: envBool("MCP", true),
-    mail: loadMailConfig(),
+    appUrl,
+    mail: loadMailConfig(appUrl),
     backup: loadBackupConfig(dataDir),
     metricsToken: process.env.METRICS_TOKEN?.trim() || null,
     metricsPort:
@@ -360,4 +406,15 @@ export function loadConfig(): ServerConfig {
     userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "search"),
     initialAdminPassword: loadInitialAdminPassword(),
   };
+}
+
+/**
+ * Whether an assistant can connect to `/api/mcp` by signing in through the
+ * browser (OAuth): MCP is on, and the client, whose page asks the user, is
+ * somewhere this server can send them (`APP_URL`, or served here).
+ */
+export function offersMcpSignIn(
+  cfg: Pick<ServerConfig, "mcp" | "appUrl" | "clientDir">,
+): boolean {
+  return cfg.mcp && (cfg.appUrl !== null || cfg.clientDir !== null);
 }

@@ -9,6 +9,10 @@ import {
   rowToStoredAttachment,
   sweepAction,
 } from "../attachmentMapping.js";
+import {
+  snapshotReferences,
+  usableSnapshotsWhere,
+} from "../publicLinkMapping.js";
 import type { AttachmentsRepo } from "../types.js";
 import type { PgPool } from "./database.js";
 
@@ -81,6 +85,13 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
       );
       for (const row of notes.rows) {
         for (const id of referencesOf(row)) referenced.add(id);
+      }
+      const snapshots = await pool.query<{ snapshot: string }>(
+        `SELECT snapshot FROM public_links WHERE ${usableSnapshotsWhere("$1")}`,
+        [now],
+      );
+      for (const row of snapshots.rows) {
+        for (const id of snapshotReferences(row.snapshot)) referenced.add(id);
       }
       const rows = await pool.query<{
         id: string;

@@ -1,18 +1,12 @@
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import { audit } from "../audit/audit.js";
-import type { AuthProvider } from "../auth/types.js";
 import { exportAccount, sendExport } from "../export/userExport.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 
 interface ExportDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
-  rateLimit?: MiddlewareHandler;
 }
 
 /**
@@ -21,8 +15,6 @@ interface ExportDeps {
  */
 export function createExportRoutes(deps: ExportDeps) {
   const exportRoute = new Hono<{ Variables: { auth: AuthContext } }>();
-  exportRoute.use("*", createAuthMiddleware(deps.authProvider));
-  if (deps.rateLimit) exportRoute.use("*", deps.rateLimit);
   exportRoute.get("/", async (c) => {
     const { userId } = c.get("auth");
     const zip = await exportAccount(deps.storage, userId);

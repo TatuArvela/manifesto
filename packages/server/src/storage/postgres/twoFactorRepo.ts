@@ -48,6 +48,9 @@ export function createPostgresTwoFactorRepo(pool: PgPool): TwoFactorRepo {
         userId,
       ]);
     },
+    async removeAuthenticator(userId) {
+      await pool.query(`DELETE FROM user_totp WHERE user_id = $1`, [userId]);
+    },
     async advanceStep(userId, step) {
       const result = await pool.query(
         `UPDATE user_totp SET last_step = $1 WHERE user_id = $2 AND last_step < $1`,

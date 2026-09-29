@@ -55,6 +55,33 @@ A recipient lets go of a note by deleting it, as they would a note of their own:
 
 When the owner removes someone, or they leave, the note disappears from their grid at once, their open editor closes, and the collaboration socket stops accepting their edits.
 
+## Teams
+
+A note can also be shared with a team, and each member is then invited to it as if one by one.
+
+- **Where teams come from**: an admin makes them and chooses their members (**Teams** in the admin
+  view), or, with single sign-on and `OIDC_TEAM_GROUPS` set, a team mirrors a group at the identity
+  provider. A mirrored team is made the first time someone in the group signs in, and its members
+  follow the group at every sign-in; an admin can delete it but not change its members.
+- **Who may share with a team**: its members only, and the owner of the note alone, as for sharing
+  with one person. The dialog offers the owner only their own teams, and shows no team section to
+  someone in none; nobody learns of teams they are not in.
+- **Members get invitations**, each accepted or declined on its own, and each saying which team it
+  came through. The owner is never invited to their own note.
+- **Joining and leaving follow**: someone who joins a team is invited to the notes shared with it, and
+  someone who leaves loses the ones that reached them through it. Declining or leaving a note is not
+  undone by anything but joining the team again, or the note being shared with the team again.
+- **The team's role is its members'**: changing it changes theirs, and stopping sharing with the team
+  takes the note from everyone who had it through the team.
+- **Direct shares win**: someone the note was shared with directly keeps their own role, and keeps
+  the note when the team share goes. Inviting someone directly who already has the note through a
+  team makes their share a direct one.
+- **Two teams, one share**: someone who has the note through two teams holds it once, through the
+  first; when that one lets go, the share passes to the other, with its role.
+- **Deleting a team** takes its notes from its members first, the same way.
+
+In the note's People list, a member who has it through a team is shown "through {team}".
+
 ## Trash
 
 Everyone has a trash of their own, and a shared note can be in any of them.

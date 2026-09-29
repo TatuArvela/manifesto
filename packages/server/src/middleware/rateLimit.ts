@@ -174,14 +174,17 @@ function makeDefaultKey(
  * AFTER auth. 300 requests/minute is generous for normal use and catches
  * runaway clients / misuse without paging legitimate users.
  */
-export function perUserApiRateLimit(limit = 300): MiddlewareHandler<{
+export function perUserApiRateLimit(
+  limit = 300,
+  name = "per-user",
+): MiddlewareHandler<{
   Variables: { auth: { userId: string } };
 }> {
   return rateLimit({
     limit,
     windowMs: 60 * 1000,
     keyFor: (c) => `user:${c.get("auth").userId}`,
-    name: "per-user",
+    name,
   });
 }
 

@@ -11,10 +11,14 @@ import {
 import { createPostgresMaintenanceRepo } from "./maintenanceRepo.js";
 import { runMigrations } from "./migrations.js";
 import { createPostgresNotesRepo } from "./notesRepo.js";
+import { createPostgresOAuthRepo } from "./oauthRepo.js";
+import { createPostgresPasskeysRepo } from "./passkeysRepo.js";
 import { createPostgresPasswordResetsRepo } from "./passwordResetsRepo.js";
 import { createPostgresPrefsRepo } from "./prefsRepo.js";
+import { createPostgresPublicLinksRepo } from "./publicLinksRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
 import { createPostgresSharesRepo } from "./sharesRepo.js";
+import { createPostgresTeamsRepo } from "./teamsRepo.js";
 import { createPostgresTwoFactorRepo } from "./twoFactorRepo.js";
 import { createPostgresUsersRepo } from "./usersRepo.js";
 import { createPostgresVersionsRepo } from "./versionsRepo.js";
@@ -53,8 +57,12 @@ export async function createPostgresStorage(
     attachments: createPostgresAttachmentsRepo(pool),
     versions: createPostgresVersionsRepo(pool),
     apiTokens: createPostgresApiTokensRepo(pool),
+    oauth: createPostgresOAuthRepo(pool),
     webhooks: createPostgresWebhooksRepo(pool),
+    publicLinks: createPostgresPublicLinksRepo(pool),
+    teams: createPostgresTeamsRepo(pool),
     twoFactor: createPostgresTwoFactorRepo(pool),
+    passkeys: createPostgresPasskeysRepo(pool),
     prefs: createPostgresPrefsRepo(pool),
     passwordResets: createPostgresPasswordResetsRepo(pool),
     audit: createPostgresAuditRepo(pool),

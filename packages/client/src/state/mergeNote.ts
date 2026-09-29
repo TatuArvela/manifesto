@@ -1,4 +1,5 @@
 import type { LinkPreview, Note, NoteUpdate } from "@manifesto/shared";
+import { sameValue } from "./incomingNote.js";
 
 function mergeStringArray(
   base: string[],
@@ -22,15 +23,18 @@ function mergeLinkPreviews(
   desired: LinkPreview[],
   current: LinkPreview[],
 ): LinkPreview[] {
-  const baseUrls = new Set(base.map((p) => p.url));
+  const baseByUrl = new Map(base.map((p) => [p.url, p]));
   const desiredUrls = new Set(desired.map((p) => p.url));
   const removed = base.filter((p) => !desiredUrls.has(p.url));
   const removedSet = new Set(removed.map((p) => p.url));
   const result = current.filter((p) => !removedSet.has(p.url));
   for (const preview of desired) {
-    if (baseUrls.has(preview.url)) {
-      // The user updated metadata on an existing preview, so overwrite the
-      // server's copy so the edit isn't silently dropped.
+    const before = baseByUrl.get(preview.url);
+    if (before) {
+      // Only a preview this writer changed (a stub filled in, a title edited)
+      // overwrites the server's copy. One it kept as it was must not: the
+      // other writer may have filled it in, and the stale copy would undo that.
+      if (sameValue(before, preview)) continue;
       const idx = result.findIndex((p) => p.url === preview.url);
       if (idx !== -1) result[idx] = preview;
       continue;

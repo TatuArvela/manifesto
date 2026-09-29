@@ -114,7 +114,7 @@ Both providers expose the same `AuthProvider` interface. Only the login step dif
 - **`local`** *(default)*: username + argon2id password, sessions stored server-side. Mounts `POST /api/auth/{register,login,logout}`.
 - **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, …). Mounts `GET /api/auth/login` (302 to IdP), `GET /api/auth/callback`, `POST /api/auth/logout`. Users are JIT-provisioned by `(provider, sub)`.
 
-The client decides which login UI to render by hitting the public `GET /api/auth/methods` endpoint on mount, so a single client build works against either provider.
+The client decides which login UI to render by reading the public `GET /api/capabilities` on mount (`auth.providers`), so a single client build works against either provider.
 
 See [Server Overview](server/index.md#authentication-providers) for details.
 

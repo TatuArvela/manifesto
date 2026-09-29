@@ -6,8 +6,10 @@ import {
   MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
   MAX_NOTES_PER_IMPORT,
+  MAX_PUBLIC_LINK_VIEWS,
   NoteColor,
   NoteFont,
+  PUBLIC_LINK_MODES,
   REMINDER_RECURRENCES,
   SHARE_ROLES,
   WEBHOOK_EVENTS,
@@ -74,10 +76,60 @@ export const accountPrefsUpdateSchema = z.object({
     }),
 });
 
+/** A WebAuthn binary value in its JSON form. */
+const base64url = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .regex(/^[A-Za-z0-9_-]*$/);
+
+/** The browser's answer to a passkey sign-in, as `PublicKeyCredential.toJSON()`
+ * gives it. What it proves is `@simplewebauthn/server`'s to check. */
+export const passkeyAuthenticationSchema = z.object({
+  id: base64url(1024),
+  rawId: base64url(1024),
+  type: z.literal("public-key"),
+  response: z.object({
+    clientDataJSON: base64url(8192),
+    authenticatorData: base64url(8192),
+    signature: base64url(2048),
+    userHandle: base64url(512).optional(),
+  }),
+  authenticatorAttachment: z.string().max(50).optional(),
+  clientExtensionResults: z.record(z.string(), z.unknown()),
+});
+
+/** The browser's answer to making a passkey. */
+export const passkeyRegistrationSchema = z.object({
+  id: base64url(1024),
+  rawId: base64url(1024),
+  type: z.literal("public-key"),
+  response: z.object({
+    clientDataJSON: base64url(8192),
+    attestationObject: base64url(65536),
+    transports: z.array(z.string().max(50)).max(10).optional(),
+  }),
+  authenticatorAttachment: z.string().max(50).optional(),
+  clientExtensionResults: z.record(z.string(), z.unknown()),
+});
+
 export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.optional(),
   /** An authenticator code, or a recovery code, when two-factor is on. */
   otp: z.string().trim().min(1).max(32).optional(),
+  /** Or a passkey's answer to the challenge the first attempt was given. */
+  passkey: passkeyAuthenticationSchema.optional(),
+});
+
+/** `POST /api/auth/passkeys`. */
+export const passkeyAddSchema = z.object({
+  name: z.string().trim().max(100).optional(),
+  response: passkeyRegistrationSchema,
+});
+
+/** `POST /api/auth/passkey/login`. */
+export const passkeyLoginSchema = z.object({
+  response: passkeyAuthenticationSchema,
 });
 
 /** Re-entering the password guards the two-factor switches: a session left
@@ -119,6 +171,41 @@ export const shareCreateSchema = z.object({
 });
 
 export const shareUpdateSchema = z.object({ role: shareRoleSchema });
+
+const teamName = z.string().trim().min(1).max(100);
+const teamMemberIds = z.array(z.string().min(1).max(64)).max(1000);
+
+/** `POST /api/admin/teams`. */
+export const adminTeamCreateSchema = z.object({
+  name: teamName,
+  memberIds: teamMemberIds.optional(),
+});
+
+/** `PUT /api/admin/teams/:id`. */
+export const adminTeamUpdateSchema = z
+  .object({ name: teamName.optional(), memberIds: teamMemberIds.optional() })
+  .refine((body) => body.name !== undefined || body.memberIds !== undefined, {
+    message: "Nothing to change",
+  });
+
+/** `POST /api/notes/:id/team-shares`. */
+export const teamShareCreateSchema = z.object({
+  teamId: z.string().min(1).max(64),
+  role: shareRoleSchema,
+});
+
+/** `POST /api/notes/:id/links`. */
+export const publicLinkCreateSchema = z.object({
+  mode: z.enum(PUBLIC_LINK_MODES),
+  expiresInDays: z.number().int().min(1).max(3650).optional(),
+  password: z.string().min(1).max(256).optional(),
+  maxViews: z.number().int().min(1).max(MAX_PUBLIC_LINK_VIEWS).optional(),
+});
+
+/** `POST /api/public/:token/unlock`. */
+export const publicLinkUnlockSchema = z.object({
+  password: z.string().min(1).max(256),
+});
 
 export const noteColorSchema = z.nativeEnum(NoteColor);
 export const noteFontSchema = z.nativeEnum(NoteFont);
@@ -256,6 +343,34 @@ export const apiTokenCreateSchema = z
       path: ["scopes"],
     },
   );
+
+/**
+ * `POST /api/oauth/register`, in the names RFC 7591 gives them. Unknown fields
+ * are dropped; which redirect addresses are allowed is `redirectUriProblem`'s
+ * to say, so the answer can use the error the RFC names.
+ */
+export const oauthRegisterSchema = z.object({
+  redirect_uris: z.array(z.string()).min(1).max(10),
+  client_name: z.string().max(1000).optional(),
+  token_endpoint_auth_method: z.string().max(100).optional(),
+  grant_types: z.array(z.string().max(100)).max(10).optional(),
+  response_types: z.array(z.string().max(100)).max(10).optional(),
+});
+
+/** `POST /api/oauth/authorize`: the consent page's answer. */
+export const oauthAuthorizeSchema = z.object({
+  clientId: z.string().min(1).max(2000),
+  redirectUri: z.string().min(1).max(2000),
+  // A base64url SHA-256, which is 43 characters.
+  codeChallenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  state: z.string().max(2000).optional(),
+  scopes: z
+    .array(z.enum(["notes:read", "notes:write"]))
+    .min(1)
+    .max(2),
+  expiresInDays: z.number().int().min(1).max(3650).optional(),
+  password: confirmationPassword,
+});
 
 /** `POST /api/webhooks`. Where it may point is checked on every delivery,
  * against the resolved address; this only refuses what is never a webhook. */

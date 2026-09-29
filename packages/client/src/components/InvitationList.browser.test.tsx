@@ -53,4 +53,10 @@ describe("an invitation", () => {
       noteColorMap[NoteColor.Green].bg.split(" ")[0],
     );
   });
+
+  it("says when it came through a team", () => {
+    invitations.value = [{ ...invitation, team: { id: "t1", name: "Design" } }];
+    render(<InvitationList />, host);
+    expect(host.textContent).toContain("through Design");
+  });
 });

@@ -6,6 +6,7 @@ import {
   Braces,
   Copy,
   FileText,
+  Globe,
   History,
   Link,
   ListX,
@@ -18,7 +19,7 @@ import type { VNode } from "preact";
 import { t } from "../i18n/index.js";
 import { buildShareUrl } from "../sharing.js";
 import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
-import { isServerMode } from "../state/auth.js";
+import { isServerMode, publicLinksEnabled } from "../state/auth.js";
 import { confirmDeletion } from "../state/confirm.js";
 import {
   archiveNote,
@@ -29,6 +30,7 @@ import {
   trashNote,
   unarchiveNote,
 } from "../state/index.js";
+import { publicLinksDialog } from "../state/publicLinks.js";
 import { shareDialog } from "../state/sharing.js";
 import { showSuccess } from "../state/ui.js";
 import {
@@ -195,7 +197,18 @@ export function noteMenuItems(
           shareDialog.value = { noteId: note.id };
         },
       });
-    } else if (role !== "owner") {
+    }
+    if (role === "owner" && !note.trashed && publicLinksEnabled.value) {
+      items.push({
+        id: "public-links",
+        icon: <Globe class="w-4 h-4" />,
+        label: t("noteMenu.publicLinks"),
+        onSelect: () => {
+          publicLinksDialog.value = { noteId: note.id };
+        },
+      });
+    }
+    if (role !== "owner") {
       items.push({
         id: "people",
         icon: <Users class="w-4 h-4" />,

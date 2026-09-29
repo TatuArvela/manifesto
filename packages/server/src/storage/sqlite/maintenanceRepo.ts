@@ -1,4 +1,8 @@
-import { rowToShare, type ShareRow } from "../shareMapping.js";
+import {
+  membersChangedAt,
+  rowToShare,
+  type ShareRow,
+} from "../shareMapping.js";
 import { composeStats } from "../statsMapping.js";
 import type {
   ExpiredTrashedNote,
@@ -28,8 +32,21 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
        WHERE trashed = 1
          AND trashed_at IS NOT NULL
          AND trashed_at < ?
-     RETURNING note_id, user_id, role, created_at, accepted_at`,
+     RETURNING note_id, user_id, role, created_at, accepted_at, via_team`,
   );
+
+  const membersChangedStmt = db.prepare(
+    `UPDATE notes SET members_changed_at = ? WHERE id = ?`,
+  );
+  // An expired share leaves the note's members, as a removal does.
+  const cleanupSharesTx = db.transaction((cutoffIso: string): ShareRow[] => {
+    const rows = cleanupSharesStmt.all(cutoffIso) as ShareRow[];
+    const at = membersChangedAt();
+    for (const noteId of new Set(rows.map((row) => row.note_id))) {
+      membersChangedStmt.run(at, noteId);
+    }
+    return rows;
+  });
 
   const count = (sql: string) => (db.prepare(sql).get() as { n: number }).n;
 
@@ -62,7 +79,7 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
     },
 
     async cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]> {
-      return (cleanupSharesStmt.all(cutoffIso) as ShareRow[]).map(rowToShare);
+      return cleanupSharesTx.immediate(cutoffIso).map(rowToShare);
     },
 
     async cleanupTrashedBefore(

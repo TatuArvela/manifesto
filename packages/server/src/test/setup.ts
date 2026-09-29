@@ -25,10 +25,12 @@ export const TEST_CONFIG: ServerConfig = {
   trustProxy: false,
   registrationEnabled: true,
   linkPreviews: true,
+  publicLinks: true,
   // Off, so the rest of the suite does not deliver to nothing after a test's
   // storage has closed; the webhook tests switch it on.
   webhooks: "off",
   mcp: true,
+  appUrl: null,
   mail: null,
   backup: null,
   metricsToken: null,

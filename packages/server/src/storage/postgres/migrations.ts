@@ -257,6 +257,101 @@ ALTER TABLE api_tokens ADD COLUMN scopes TEXT NOT NULL DEFAULT '["notes:read","n
 UPDATE api_tokens SET scopes = '["notes:read"]' WHERE read_only;
 `;
 
+/** See the SQLite copy. */
+const NOTE_MEMBERS_CHANGED = `
+ALTER TABLE notes ADD COLUMN members_changed_at TEXT;
+`;
+
+/** See the SQLite copy. */
+const PUBLIC_LINKS = `
+CREATE TABLE public_links (
+  token          TEXT PRIMARY KEY,
+  note_id        TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  owner_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  mode           TEXT NOT NULL,
+  snapshot       TEXT,
+  password_hash  TEXT,
+  expires_at     TEXT,
+  max_views      INTEGER,
+  view_count     INTEGER NOT NULL DEFAULT 0,
+  last_viewed_at TEXT,
+  created_at     TEXT NOT NULL
+);
+CREATE INDEX public_links_note ON public_links(note_id);
+`;
+
+/** See the SQLite copy. */
+const TEAMS = `
+CREATE TABLE teams (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  source     TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (source, name)
+);
+CREATE TABLE team_members (
+  team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (team_id, user_id)
+);
+CREATE INDEX team_members_user ON team_members(user_id);
+CREATE TABLE note_team_shares (
+  note_id    TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  team_id    TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  role       TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (note_id, team_id)
+);
+CREATE INDEX note_team_shares_team ON note_team_shares(team_id);
+ALTER TABLE note_shares ADD COLUMN via_team TEXT;
+`;
+
+/** See the SQLite copy. */
+const OAUTH = `
+ALTER TABLE api_tokens ADD COLUMN oauth_client_id TEXT;
+ALTER TABLE api_tokens ADD COLUMN refresh_hash TEXT;
+ALTER TABLE api_tokens ADD COLUMN previous_refresh_hash TEXT;
+ALTER TABLE api_tokens ADD COLUMN access_expires_at TEXT;
+CREATE UNIQUE INDEX api_tokens_refresh ON api_tokens(refresh_hash);
+CREATE INDEX api_tokens_previous_refresh ON api_tokens(previous_refresh_hash);
+CREATE TABLE oauth_clients (
+  id            TEXT PRIMARY KEY,
+  name          TEXT NOT NULL,
+  redirect_uris TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  last_used_at  TEXT
+);
+CREATE TABLE oauth_codes (
+  code_hash        TEXT PRIMARY KEY,
+  client_id        TEXT NOT NULL,
+  client_name      TEXT NOT NULL,
+  user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  redirect_uri     TEXT NOT NULL,
+  code_challenge   TEXT NOT NULL,
+  scopes           TEXT NOT NULL,
+  grant_expires_at TEXT,
+  expires_at       TEXT NOT NULL
+);
+`;
+
+/** See the SQLite copy. `counter` is a BIGINT, since it can pass 2^31. */
+const PASSKEYS = `
+CREATE TABLE passkeys (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  credential_id TEXT NOT NULL UNIQUE,
+  public_key    TEXT NOT NULL,
+  counter       BIGINT NOT NULL,
+  transports    TEXT NOT NULL,
+  rp_id         TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  synced        BOOLEAN NOT NULL,
+  created_at    TEXT NOT NULL,
+  last_used_at  TEXT
+);
+CREATE INDEX passkeys_user ON passkeys(user_id);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -276,6 +371,11 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0016-user-prefs", sql: USER_PREFS },
   { id: "0017-api-token-kind", sql: API_TOKEN_KIND },
   { id: "0018-api-token-scopes", sql: API_TOKEN_SCOPES },
+  { id: "0019-note-members-changed", sql: NOTE_MEMBERS_CHANGED },
+  { id: "0020-public-links", sql: PUBLIC_LINKS },
+  { id: "0021-teams", sql: TEAMS },
+  { id: "0022-oauth", sql: OAUTH },
+  { id: "0023-passkeys", sql: PASSKEYS },
 ];
 
 export async function runMigrations(

@@ -133,7 +133,7 @@ See `packages/server/.env.example` for the full list and defaults.
 | `USER_LOOKUP`      | `search`                   | How someone [sharing a note](../features/sharing-with-people.md) finds the person to share it with. `search` suggests accounts by username, display name or email as they type, showing the address. `exact` finds an account only by its whole username or email address and never shows the address, so the list of accounts cannot be browsed. |
 | `SMTP_URL`         | *(unset)*                  | Outgoing mail, for password reset links and share invitations: `smtp://user:pass@host:587` (STARTTLS when offered) or `smtps://...:465`. Unset, the server sends no mail and an admin's temporary password stays the only way back into a local account. |
 | `SMTP_FROM`        | *(required with `SMTP_URL`)* | The From header: `Notes <notes@example.com>` or a bare address. |
-| `APP_URL`          | *(required with `SMTP_URL`)* | The client's public address, which links in mail point at. |
+| `APP_URL`          | *(required with `SMTP_URL`)* | The client's public address (its full URL, with the base path it is served under). Links in mail point at it, and an [AI assistant signing in](../features/mcp.md#signing-in-through-the-browser) is sent to its consent page there. Not needed for that when the server serves the client itself (`CLIENT_DIR`). |
 | `AUDIT_RETENTION_DAYS` | `180`                  | Days the [audit log](../features/accounts.md#audit-log) keeps an entry. |
 | `ADMIN_EXPORT`     | `off`                      | `on` lets an admin download any account's notes from the Users view (`GET /api/admin/users/:id/export`), for a data request or a move. Off, an admin cannot read another account's notes from inside the app. Each download shows on that account's own Activity page. See [Privacy](../features/privacy.md). |
 | `UPDATE_CHECK`     | `on`                       | Asks GitHub twice a day for the newest release, so admins are told when there is one (a dot on the settings button, a line on the About page of Settings, a banner in the overview). One request to `api.github.com`, through the same outbound boundary as link previews; `off` makes none. |
@@ -143,8 +143,9 @@ See `packages/server/.env.example` for the full list and defaults.
 | `METRICS_TOKEN`    | *(unset)*                  | Required on the public port to turn metrics on; optional on `METRICS_PORT`. |
 | `CLIENT_DIR`       | `/app/public` in the image, else unset | A built client to serve at the site root beside the API. See [One container](#one-container). |
 | `WEBHOOKS`         | `public`                   | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`. |
-| `MCP`              | `on`                       | The [MCP endpoint](../features/mcp.md) for AI assistants, `/api/mcp`. It answers only a token a user mints for it in Settings, so on opens nothing by itself. `off` removes the endpoint and the option to mint such a token. |
+| `MCP`              | `on`                       | The [MCP endpoint](../features/mcp.md) for AI assistants, `/api/mcp`. It answers only a token a user mints for it in Settings or agrees to give an assistant that signs in through the browser, so on opens nothing by itself. Signing in is offered when the server knows where its client is (`APP_URL` or `CLIENT_DIR`). `off` removes the endpoint, the sign-in and the option to mint such a token. |
 | `LINK_PREVIEWS`    | `on`                       | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
+| `PUBLIC_LINKS`     | `on`                       | Let owners publish a note by [public link](../features/sharing.md#public-links), readable by anyone holding it, with an optional expiry, password and view limit. Set `off` where nothing may be readable without an account; the routes then answer 404 and the menu item is hidden. |
 
 Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown value fails fast with a clear error.
 
@@ -194,7 +195,7 @@ docker exec manifesto-server node dist/cli.js create-admin rescue     # a new lo
 ```
 
 `reset-password` also ends the account's sessions and API tokens and turns off its two-factor sign-in,
-as an admin's reset does. Each command is recorded in the audit log. A socket the running server
+passkeys included, as an admin's reset does. Each command is recorded in the audit log. A socket the running server
 already holds for an ended session stays open until it reconnects; restart the server to close it at
 once. Outside Docker, run `node dist/cli.js` from `packages/server` with the same environment.
 
@@ -222,11 +223,12 @@ All of these are required and validated at boot. The server only reads them when
 | `OIDC_GROUPS_CLAIM`         | The claim holding the user's groups (default `groups`). Read from the ID token, or from userinfo when the token leaves it out. A list, or one group as a string. |
 | `OIDC_USER_GROUP`           | Optional. Only members may sign in; anyone else is sent back to the sign-in screen with a message. |
 | `OIDC_ADMIN_GROUP`          | Optional. Members are admins and non-members are not, decided again at every sign-in, so removing someone from the group at the identity provider takes admin away at their next sign-in. The last admin is never demoted. Leave unset to grant admin by hand. |
+| `OIDC_TEAM_GROUPS`          | Optional. Groups to mirror as [teams](../features/sharing-with-people.md#teams), comma-separated, or `*` for every group. Each becomes a team the first time a member signs in, and its members follow the group at every sign-in. Unset, no group becomes a team; admins can still make teams by hand. |
 | `OIDC_AUTO_REGISTER`        | `on` (default) creates an account the first time someone signs in. `off` lets in only identities that already have one, and sends anyone else back with a message. |
 
 The login flow:
 
-1. The client fetches `GET /api/auth/methods` and renders a "Continue with single sign-on" button when the response is `{ provider: "oidc" }`.
+1. The client fetches `GET /api/capabilities` and renders a "Continue with single sign-on" button when `auth.providers` includes `oidc`.
 2. The user clicks the button, navigating to `<server>/api/auth/login`. The server stores PKCE state server-side and redirects to the IdP authorization endpoint.
 3. After the user consents, the IdP redirects to `OIDC_REDIRECT_URI` with `code` and `state`.
 4. The server verifies state, exchanges the code (PKCE), reads ID-token claims, just-in-time provisions a user (keyed by `(provider, sub)`), and mints a Manifesto session token.

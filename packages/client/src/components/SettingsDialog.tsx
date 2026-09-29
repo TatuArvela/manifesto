@@ -88,6 +88,7 @@ import { ApiTokensSettings } from "./ApiTokensSettings.js";
 import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
+import { Bookmarklet } from "./Bookmarklet.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { Dropdown } from "./Dropdown.js";
 import { OrgCredit } from "./OrgCredit.js";
@@ -765,6 +766,20 @@ const IMPORT_FORMATS: [MessageKey, MessageKey][] = [
     "settings.data.importHint.markdownBody",
   ],
   ["settings.data.importHint.keep", "settings.data.importHint.keepBody"],
+  [
+    "settings.data.importHint.evernote",
+    "settings.data.importHint.evernoteBody",
+  ],
+  ["settings.data.importHint.joplin", "settings.data.importHint.joplinBody"],
+  [
+    "settings.data.importHint.simplenote",
+    "settings.data.importHint.simplenoteBody",
+  ],
+  [
+    "settings.data.importHint.standardNotes",
+    "settings.data.importHint.standardNotesBody",
+  ],
+  ["settings.data.importHint.html", "settings.data.importHint.htmlBody"],
 ];
 
 function DataSettings() {
@@ -836,7 +851,7 @@ function DataSettings() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json,.md,.markdown,.zip,image/*"
+          accept=".json,.md,.markdown,.zip,.enex,.jex,.html,.htm,image/*"
           multiple
           class="hidden"
           onChange={handleFileChange}
@@ -900,6 +915,7 @@ function DataSettings() {
           </p>
         )}
       </div>
+      <Bookmarklet />
     </div>
   );
 }

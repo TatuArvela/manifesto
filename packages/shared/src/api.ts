@@ -7,6 +7,7 @@ import type {
   NoteVersion,
   ShareRole,
   ShareUser,
+  TeamRef,
 } from "./note.js";
 
 // --- Pagination ---
@@ -39,6 +40,22 @@ export interface NotesResponse {
   notes: Note[];
   /** Pass back as `cursor` for the next page; null on the last one. */
   nextCursor: string | null;
+}
+
+/**
+ * One page of `GET /api/sync`: the notes that changed since a checkpoint.
+ * Page through it as through `/api/notes`; `checkpoint` and `ids` come on the
+ * last page only, and the next sync sends that checkpoint back as `since`.
+ */
+export interface SyncResponse extends NotesResponse {
+  /**
+   * Every note the user can see, changed or not. A note the client holds
+   * whose id is missing here was deleted, or taken away from them, since.
+   * Null on every page but the last.
+   */
+  ids: string[] | null;
+  /** Opaque. Pass back as `since` next time; null on every page but the last. */
+  checkpoint: string | null;
 }
 
 export interface NoteResponse {
@@ -97,9 +114,11 @@ export interface NoteVersionCreateRequest {
  * What a token is for. `api` (`mfp_`) works on the REST API and the sockets,
  * as a session does; `mcp` (`mfm_`) works only at `/api/mcp`, for an AI
  * assistant, so a secret copied into an assistant's settings can do only what
- * its tools do.
+ * its tools do; `calendar` (`mfc_`) is the secret in a reminder feed's
+ * address (`/api/calendar/<token>.ics`), since a calendar app sends no
+ * header, and opens that feed and nothing else.
  */
-export const API_TOKEN_KINDS = ["api", "mcp"] as const;
+export const API_TOKEN_KINDS = ["api", "mcp", "calendar"] as const;
 export type ApiTokenKind = (typeof API_TOKEN_KINDS)[number];
 
 /**
@@ -147,6 +166,12 @@ export interface ApiToken {
   lastUsedAt: string | null;
   /** Null for a token that does not expire. */
   expiresAt: string | null;
+  /**
+   * For an assistant's token given by signing in through the browser (OAuth),
+   * the client it was given to; absent for one minted by hand. Such a grant
+   * hands out a new secret every hour, so `prefix` names only its first.
+   */
+  oauthClientId?: string;
 }
 
 export interface ApiTokensResponse {
@@ -168,6 +193,47 @@ export interface ApiTokenCreatedResponse {
   token: ApiToken;
   /** The bearer token itself. Shown this once; the server keeps only a hash. */
   secret: string;
+}
+
+/**
+ * An assistant asking to be let in by OAuth (`GET /api/oauth/client`), as the
+ * consent screen shows it. The client id is the address of the client's own
+ * metadata document, or one this server gave out when the client registered.
+ */
+export interface OAuthClientInfo {
+  clientId: string;
+  /** What the client calls itself. */
+  name: string;
+  /**
+   * The host that published the client's metadata document, which vouches
+   * for the name; null for a client that registered itself here, whose name
+   * nobody vouches for.
+   */
+  publisher: string | null;
+  /** Where the browser goes once the user answers. */
+  redirectUri: string;
+  /** What it asked for, of what an assistant can be given. */
+  scopes: ApiTokenScope[];
+}
+
+/** `POST /api/oauth/authorize`: the signed-in user lets the client in. */
+export interface OAuthAuthorizeRequest {
+  clientId: string;
+  redirectUri: string;
+  /** PKCE, S256 only. */
+  codeChallenge: string;
+  /** The client's, handed back to it untouched. */
+  state?: string;
+  /** What the user granted: `notes:read`, with or without `notes:write`. */
+  scopes: ApiTokenScope[];
+  /** Days until the grant ends; left out for one that does not. */
+  expiresInDays?: number;
+  password?: string;
+}
+
+export interface OAuthAuthorizeResponse {
+  /** The client's redirect address with the code on it, to send the browser to. */
+  redirectTo: string;
 }
 
 /** The note events a webhook can be sent. */
@@ -285,6 +351,8 @@ export const AUDIT_ACTIONS = [
   "auth.password_reset",
   "auth.two_factor_enabled",
   "auth.two_factor_disabled",
+  "auth.passkey_added",
+  "auth.passkey_removed",
   "token.created",
   "token.revoked",
   "webhook.created",
@@ -292,6 +360,11 @@ export const AUDIT_ACTIONS = [
   "share.created",
   "share.role_changed",
   "share.removed",
+  "share.team_added",
+  "share.team_role_changed",
+  "share.team_removed",
+  "link.created",
+  "link.revoked",
   "admin.user_created",
   "admin.user_deleted",
   "admin.admin_granted",
@@ -299,6 +372,9 @@ export const AUDIT_ACTIONS = [
   "admin.email_changed",
   "admin.password_reset",
   "admin.user_exported",
+  "admin.team_created",
+  "admin.team_updated",
+  "admin.team_deleted",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -328,9 +404,133 @@ export interface AuditLogResponse {
 
 /** `GET /api/auth/two-factor`. */
 export interface TwoFactorStatusResponse {
+  /** Whether sign-in asks for a second factor: an authenticator app, a
+   * passkey, or both. */
   enabled: boolean;
+  /** Whether an authenticator app is set up. Absent from servers from before
+   * passkeys, where it is `enabled`. */
+  authenticator?: boolean;
   /** Unused recovery codes left; 0 when two-factor is off. */
   recoveryCodesRemaining: number;
+}
+
+/**
+ * WebAuthn's options and answers in their JSON form (WebAuthn Level 3), with
+ * every binary value as base64url. The server builds and checks them; the
+ * client only turns them into the browser's binary shapes and back.
+ */
+export interface PasskeyCredentialDescriptor {
+  id: string;
+  type: "public-key";
+  transports?: string[];
+}
+
+export interface PasskeyCreationOptions {
+  challenge: string;
+  rp: { id?: string; name: string };
+  user: { id: string; name: string; displayName: string };
+  pubKeyCredParams: { alg: number; type: "public-key" }[];
+  timeout?: number;
+  excludeCredentials?: PasskeyCredentialDescriptor[];
+  authenticatorSelection?: {
+    authenticatorAttachment?: string;
+    residentKey?: string;
+    requireResidentKey?: boolean;
+    userVerification?: string;
+  };
+  hints?: string[];
+  attestation?: string;
+  extensions?: Record<string, unknown>;
+}
+
+export interface PasskeyRequestOptions {
+  challenge: string;
+  rpId?: string;
+  timeout?: number;
+  allowCredentials?: PasskeyCredentialDescriptor[];
+  userVerification?: string;
+  hints?: string[];
+  extensions?: Record<string, unknown>;
+}
+
+export interface PasskeyRegistrationResponse {
+  id: string;
+  rawId: string;
+  type: "public-key";
+  response: {
+    clientDataJSON: string;
+    attestationObject: string;
+    transports?: string[];
+  };
+  authenticatorAttachment?: string;
+  clientExtensionResults: Record<string, unknown>;
+}
+
+export interface PasskeyAuthenticationResponse {
+  id: string;
+  rawId: string;
+  type: "public-key";
+  response: {
+    clientDataJSON: string;
+    authenticatorData: string;
+    signature: string;
+    userHandle?: string;
+  };
+  authenticatorAttachment?: string;
+  clientExtensionResults: Record<string, unknown>;
+}
+
+/** A passkey as listed in Settings: never its key. */
+export interface Passkey {
+  id: string;
+  name: string;
+  /** Whether the passkey is synced between devices (a password manager's or
+   * a platform's), rather than held by one device or security key. */
+  synced: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+/** `GET /api/auth/passkeys`. */
+export interface PasskeysResponse {
+  passkeys: Passkey[];
+}
+
+/** `POST /api/auth/passkeys/options`, with the password. */
+export interface PasskeyOptionsResponse {
+  options: PasskeyCreationOptions;
+}
+
+/** `POST /api/auth/passkeys`: the browser's answer, and what to call it. */
+export interface PasskeyAddRequest {
+  name?: string;
+  response: PasskeyRegistrationResponse;
+}
+
+/**
+ * The passkey added, and the recovery codes when it is the account's first
+ * second factor (shown once, as when an authenticator is set up first).
+ */
+export interface PasskeyAddedResponse {
+  passkey: Passkey;
+  recoveryCodes: string[] | null;
+}
+
+/** `POST /api/auth/passkey/options`: a challenge to sign in with a passkey. */
+export interface PasskeySignInOptionsResponse {
+  options: PasskeyRequestOptions;
+}
+
+/**
+ * The 403 `two_factor_required` answer to a sign-in: which second factors
+ * the account has, and a challenge for its passkeys on this address.
+ */
+export interface TwoFactorRequiredResponse extends ErrorResponse {
+  code: "two_factor_required";
+  twoFactor?: {
+    authenticator: boolean;
+    passkey: PasskeyRequestOptions | null;
+  };
 }
 
 /**
@@ -342,7 +542,9 @@ export interface TwoFactorSetupResponse {
   secret: string;
 }
 
-/** Shown once, when two-factor is turned on or the codes are replaced. */
+/** Shown once, when two-factor is turned on or the codes are replaced.
+ * Empty when an authenticator is added to an account whose passkeys
+ * already have codes, which it shares. */
 export interface TwoFactorRecoveryCodesResponse {
   recoveryCodes: string[];
 }
@@ -425,29 +627,62 @@ export type AuthProviderName = "local" | "oidc";
  */
 export type UserLookupMode = "search" | "exact";
 
-export interface AuthMethodsResponse {
-  /** The one way in, for clients from before `providers`; `oidc` when both
-   * are on. */
-  provider: AuthProviderName;
-  /** Every way in this server offers. Absent from older servers, which offer
-   * `provider` alone. */
-  providers?: AuthProviderName[];
-  /** With both on, whether the password form is shown or folded behind a
-   * link under the single sign-on button. */
-  passwordForm?: "shown" | "collapsed";
-  userLookup: UserLookupMode;
-  /** Whether this server lets users register webhooks. Absent from servers
-   * from before webhooks, which have none. */
-  webhooks?: boolean;
-  /** Whether this server has an MCP endpoint for AI assistants
-   * (`/api/mcp`). Absent from servers from before it, which have none. */
-  mcp?: boolean;
-  /** Whether a forgotten password can be reset by a link sent by mail. */
-  passwordReset?: boolean;
-  /** Whether anyone can create an account with a password here. Absent from
-   * older servers, which do not say, so a client offers the form and lets the
-   * server refuse. */
-  registration?: boolean;
+/**
+ * `GET /api/capabilities`: what this server is and offers, for a client to
+ * decide what to show before anyone signs in, and for a script to learn its
+ * limits rather than find them. Public, and covered by the compatibility
+ * policy, so fields are only ever added.
+ */
+export interface CapabilitiesResponse {
+  /** The running version, as `/api/health` gives it. */
+  version: string;
+  auth: {
+    /** Every way in: `local` (a password), `oidc` (single sign-on). */
+    providers: AuthProviderName[];
+    /** With both on, whether the password form is shown or folded behind a
+     * link under the single sign-on button. */
+    passwordForm: "shown" | "collapsed";
+    /** Whether anyone can create an account with a password. */
+    registration: boolean;
+    /** Whether a forgotten password can be reset by a link sent by mail. */
+    passwordReset: boolean;
+    /** Whether a local account can sign in with a passkey alone. */
+    passkeys: boolean;
+  };
+  features: {
+    webhooks: boolean;
+    publicLinks: boolean;
+    linkPreviews: boolean;
+    /** The MCP endpoint for AI assistants, `/api/mcp`. */
+    mcp: boolean;
+    /** Whether an assistant can connect to it by signing in (OAuth). */
+    mcpSignIn: boolean;
+    /** How someone sharing a note finds the person to share it with. */
+    userLookup: UserLookupMode;
+  };
+  /** The limits a caller would otherwise meet as a 413, 409 or 422. */
+  limits: {
+    /** Bytes in a request body, attachments aside. */
+    requestBytes: number;
+    /** Bytes in one uploaded image. */
+    imageBytes: number;
+    imagesPerNote: number;
+    linkPreviewsPerNote: number;
+    /** Notes in one page of `/api/notes` or `/api/search`. */
+    notesPerPage: number;
+    notesPerImport: number;
+    /** Versions kept per note, and for how many days. */
+    noteVersions: number;
+    noteVersionDays: number;
+    apiTokensPerUser: number;
+    webhooksPerUser: number;
+    passkeysPerUser: number;
+    publicLinkViews: number;
+    accountPrefsBytes: number;
+  };
+  /** The editor's schema version; `/api/yjs` refuses an editor older than
+   * it (`EDITOR_SCHEMA_VERSION`). */
+  editorSchemaVersion: number;
 }
 
 export interface AuthUser {
@@ -564,10 +799,151 @@ export interface ShareInvitation {
   color: NoteColor;
   font: NoteFont;
   invitedAt: string;
+  /** The team the note was shared with, when it came that way. */
+  team?: TeamRef;
 }
 
 export interface InvitationsResponse {
   invitations: ShareInvitation[];
+}
+
+// --- Teams ---
+
+/**
+ * Where a team's members come from: `local` teams are made and filled by an
+ * admin; `oidc` teams mirror a group at the identity provider, and their
+ * members change only when someone signs in.
+ */
+export const TEAM_SOURCES = ["local", "oidc"] as const;
+export type TeamSource = (typeof TEAM_SOURCES)[number];
+
+/** A team as one of its members sees it. */
+export interface Team {
+  id: string;
+  name: string;
+  source: TeamSource;
+  memberCount: number;
+}
+
+/** A team as the admin view shows it, members and all. */
+export interface AdminTeam extends Team {
+  members: ShareUser[];
+  createdAt: string;
+}
+
+export interface TeamsResponse {
+  teams: Team[];
+}
+
+export interface AdminTeamsResponse {
+  teams: AdminTeam[];
+}
+
+export interface AdminTeamResponse {
+  team: AdminTeam;
+}
+
+export interface AdminTeamCreateRequest {
+  name: string;
+  memberIds?: string[];
+}
+
+/** Members only for a `local` team; an `oidc` team's are the provider's. */
+export interface AdminTeamUpdateRequest {
+  name?: string;
+  memberIds?: string[];
+}
+
+/** A note shared with a team, as its owner sees it. */
+export interface TeamShare {
+  teamId: string;
+  name: string;
+  role: ShareRole;
+}
+
+export interface TeamSharesResponse {
+  teamShares: TeamShare[];
+}
+
+export interface TeamShareCreateRequest {
+  teamId: string;
+  role: ShareRole;
+}
+
+// --- Public links ---
+
+/**
+ * What a public link shows: `live` follows the note as it changes, `snapshot`
+ * keeps the note as it was when the link was made.
+ */
+export const PUBLIC_LINK_MODES = ["live", "snapshot"] as const;
+export type PublicLinkMode = (typeof PUBLIC_LINK_MODES)[number];
+
+/** Most views a link can be limited to; past it, a limit means nothing. */
+export const MAX_PUBLIC_LINK_VIEWS = 10_000;
+
+/** A public link as its owner sees it. The token is the link. */
+export interface PublicLink {
+  token: string;
+  noteId: string;
+  mode: PublicLinkMode;
+  /** Null for a link that does not expire. */
+  expiresAt: string | null;
+  hasPassword: boolean;
+  /** Null for no limit. */
+  maxViews: number | null;
+  viewCount: number;
+  lastViewedAt: string | null;
+  createdAt: string;
+}
+
+export interface PublicLinkCreateRequest {
+  mode: PublicLinkMode;
+  /** Days from now until it stops working; left out, it does not expire. */
+  expiresInDays?: number;
+  /** Asked of every viewer before the note is shown. */
+  password?: string;
+  maxViews?: number;
+}
+
+export interface PublicLinkResponse {
+  link: PublicLink;
+}
+
+export interface PublicLinksResponse {
+  links: PublicLink[];
+}
+
+/**
+ * A note as a public link shows it to anyone holding the link: the text and
+ * how it looks, and nothing about who wrote it, its tags or its place among
+ * the owner's notes. `images` and link preview pictures are `attachment:`
+ * references, served by `GET /api/public/:token/attachments/:id`.
+ */
+export interface PublicNote {
+  title: string;
+  content: string;
+  color: NoteColor;
+  font: NoteFont;
+  images: string[];
+  linkPreviews: LinkPreview[];
+  /** When the text shown last changed: the note's, or the snapshot's. */
+  updatedAt: string;
+}
+
+export interface PublicNoteResponse {
+  note: PublicNote;
+  /**
+   * For a link with a password, what the attachment requests carry as
+   * `X-Link-Access`, so the password is checked once and not per image.
+   * Null for a link without one.
+   */
+  access: string | null;
+}
+
+/** `GET /api/public/:token` of a link with a password, before it is given. */
+export interface PublicNoteLockedResponse {
+  passwordRequired: true;
 }
 
 // --- Preferences ---
@@ -601,6 +977,22 @@ export interface AccountPrefsUpdate {
  * these is how each side learns it is talking to nobody.
  */
 export const APP_SOCKET_HEARTBEAT_MS = 30_000;
+
+/**
+ * The version of the document shape the editor writes into a note's shared
+ * Y.Doc on `/api/yjs`. Raise it whenever a node or mark is added, removed or
+ * changes its attributes: an editor that meets a node it has no schema for
+ * drops it, and `ySyncPlugin` then writes the loss back to everyone.
+ *
+ * The client sends its version as the `editor` query parameter of the socket
+ * URL, and the server refuses a lower one than its own with
+ * `EDITOR_OUTDATED_REASON`. A client that sends none is version 1, the shape
+ * from before the check existed.
+ */
+export const EDITOR_SCHEMA_VERSION = 1;
+
+/** The refusal reason `/api/yjs` gives an editor older than the server's. */
+export const EDITOR_OUTDATED_REASON = "editor-outdated";
 
 export interface PresenceUser {
   id: string;

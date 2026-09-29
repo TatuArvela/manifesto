@@ -6,12 +6,8 @@ import type { OidcConfig, ServerConfig } from "../../config.js";
 import { logger } from "../../lib/logger.js";
 import { nowIso } from "../../lib/time.js";
 import { newId, newShortSuffix } from "../../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../../middleware/authBearer.js";
+import type { AuthContext } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
-import { rateLimit } from "../../middleware/rateLimit.js";
 import {
   type CreateUserInput,
   EmailTakenError,
@@ -20,16 +16,16 @@ import {
 } from "../../storage/types.js";
 import { emailSchema } from "../../validation/schemas.js";
 import { issueSession, revokeSession } from "../session.js";
-import type { AuthProvider, AuthProviderRouter } from "../types.js";
+import type { AuthProviderRouter } from "../types.js";
 import { pickAvatarColor } from "../users.js";
 import type { OidcDiscoveryClient } from "./provider.js";
 
 interface OidcRouterDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
   cfg: ServerConfig;
   oidc: OidcConfig;
   discoveryClient: OidcDiscoveryClient;
+  teamSync?: (userId: string, groups: string[]) => Promise<void>;
 }
 
 interface PendingFlow {
@@ -232,18 +228,6 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
   );
   const pending = new Map<string, PendingFlow>();
 
-  // Per-IP budget on the two unauthenticated endpoints. `/login` mints a
-  // pending flow and `/callback` spends discovery and a token exchange, so
-  // without this an anonymous caller sets the memory and outbound-request
-  // cost of the process. Looser than the local provider's 10, which is sized
-  // against password spraying: there is no password here, a single sign-in
-  // costs two requests, and SSO users routinely share an egress IP.
-  const authThrottle = rateLimit({
-    limit: 30,
-    windowMs: 15 * 60 * 1000,
-    trustProxy: deps.cfg.trustProxy,
-  });
-
   let sinceSweep = 0;
 
   function rememberFlow(state: string, codeVerifier: string): void {
@@ -269,7 +253,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     return flow;
   }
 
-  auth.get("/login", authThrottle, async (c) => {
+  auth.get("/login", async (c) => {
     const config = await deps.discoveryClient.getConfig();
     const codeVerifier = openid.randomPKCECodeVerifier();
     const codeChallenge = await openid.calculatePKCECodeChallenge(codeVerifier);
@@ -300,7 +284,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     return c.redirect(authorizationUrl.toString(), 302);
   });
 
-  auth.get("/callback", authThrottle, async (c) => {
+  auth.get("/callback", async (c) => {
     const url = new URL(c.req.url);
     const state = url.searchParams.get("state") ?? "";
     if (!state) {
@@ -344,7 +328,8 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     }
 
     const target = new URL(deps.oidc.postLoginRedirect);
-    const { adminGroup, userGroup, groupsClaim } = deps.oidc;
+    const { adminGroup, userGroup, groupsClaim, teamGroups } = deps.oidc;
+    const mirrorsTeams = teamGroups !== null && deps.teamSync !== undefined;
 
     // Groups only matter when a group is configured. Many identity providers
     // leave them out of the ID token unless asked, so userinfo is asked when
@@ -354,7 +339,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     // the identity provider would take admin from everyone who signed in.
     let groups: string[] | null = null;
     let groupsUnknown = false;
-    if (adminGroup || userGroup) {
+    if (adminGroup || userGroup || mirrorsTeams) {
       groups = groupsOf(claims as Record<string, unknown>, groupsClaim);
       if (groups === null) {
         try {
@@ -421,6 +406,25 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       }
     }
 
+    // Teams follow the groups at every sign-in, as admin does. Groups that
+    // could not be read leave the teams as they were rather than empty them.
+    if (mirrorsTeams && !groupsUnknown && deps.teamSync) {
+      const named = groups ?? [];
+      const mirrored =
+        teamGroups === "*"
+          ? named
+          : named.filter((group) => teamGroups?.includes(group));
+      try {
+        await deps.teamSync(userId, mirrored);
+      } catch (err) {
+        // The sign-in stands; the teams catch up next time.
+        logger.warn("OIDC team sync failed", {
+          userId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
     const { token } = await issueSession(deps.storage, deps.cfg, userId);
     audit(deps.storage, c, {
       action: "auth.signed_in",
@@ -433,7 +437,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     return c.redirect(target.toString(), 302);
   });
 
-  auth.post("/logout", createAuthMiddleware(deps.authProvider), async (c) => {
+  auth.post("/logout", async (c) => {
     const { token } = c.get("auth");
     await revokeSession(deps.storage, token);
     return c.body(null, 204);

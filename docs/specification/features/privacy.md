@@ -41,7 +41,7 @@ account's notes. Two actions come close, and both are visible to the account's o
   `admin.user_exported`.
 - **Issuing a temporary password** (local sign-in only). An admin who used it to sign in as someone
   would first have to choose a new password, which signs the owner out everywhere, turns off their
-  two-factor sign-in, and leaves their own password not working. It is recorded as
+  two-factor sign-in and removes their passkeys, and leaves their own password not working. It is recorded as
   `admin.password_reset`.
 
 ## What a user can see about their account
@@ -90,6 +90,9 @@ database provides.
   nothing about users or notes.
 - **Share links** ([Sharing](sharing.md)) carry the note in the URL fragment, which the browser does
   not send to any server; whoever holds the link can read the note.
+- **Public links** ([Sharing](sharing.md#public-links)) let anyone holding one read the note it
+  publishes, with no account, until it expires, is used up or is revoked. The server counts the views
+  and keeps the time of the last one, and nothing about who viewed.
 
 ## On the device
 

@@ -163,6 +163,7 @@ describe("API tokens", () => {
       createdAt: "2020-01-01T00:00:00.000Z",
       lastUsedAt: null,
       expiresAt: "2020-01-02T00:00:00.000Z",
+      accessExpiresAt: null,
       tokenHash: hashToken("mfp_old-secret"),
     });
     expect((await call("mfp_old-secret", "GET", "/api/notes")).status).toBe(

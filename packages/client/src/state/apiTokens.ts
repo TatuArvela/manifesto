@@ -41,8 +41,10 @@ export async function createApiToken(
   const res = await apiFetch("POST", "/tokens", {
     name,
     ...(expiresInDays !== null && { expiresInDays }),
-    ...(kind === "mcp" && { kind }),
-    scopes,
+    // `api` is what a server takes when none is named, older ones included.
+    ...(kind !== "api" && { kind }),
+    // A calendar token reaches its feed, which no scope names.
+    ...(kind !== "calendar" && { scopes }),
     ...(password && { password }),
   });
   if (res?.status === 409) return { kind: "too-many" };

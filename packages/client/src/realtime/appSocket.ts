@@ -14,7 +14,7 @@ import {
   isServerMode,
   WS_ORIGIN,
 } from "../state/auth.js";
-import { forgetNote, loadNotes, receiveNote } from "../state/notesStore.js";
+import { forgetNote, receiveNote, syncNotes } from "../state/notesStore.js";
 import {
   receiveAccountPrefs,
   refreshAccountPrefs,
@@ -268,11 +268,12 @@ function connect(token: string) {
     }
     if (hasOpenedOnce) {
       // Reconnect path: only WS-bound state caught up via fan-out events. We
-      // missed everything that happened while offline, so refetch the full
-      // notes list. `foldIncomingList` keeps the notes that did not change,
-      // and `receiveNote` handles any racing events that arrive between this
-      // fire and the response.
-      loadNotes().catch(() => {
+      // missed everything that happened while offline, so ask for what
+      // changed since the last read (`syncNotes`, which lists everything when
+      // it cannot). `receiveNote` keeps the notes that did not change and
+      // handles any racing events that arrive between this fire and the
+      // response.
+      syncNotes().catch(() => {
         // Network blip during the catch-up fetch is fine; the next user
         // action or full reload will retry.
       });

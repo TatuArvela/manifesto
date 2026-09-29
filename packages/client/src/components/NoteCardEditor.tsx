@@ -10,6 +10,7 @@ import {
   sharedAgreement,
 } from "../realtime/contentAgreement.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
+import { forceUpdateApp } from "../serviceWorker.js";
 import {
   addLinkPreviews,
   addTag,
@@ -18,6 +19,7 @@ import {
   showError,
   togglePin,
   updateNote,
+  updateStoredNote,
 } from "../state/index.js";
 import { recordVersion } from "../state/versions.js";
 import { isPhoneLayout } from "../utils/phoneSheets.js";
@@ -47,7 +49,7 @@ export function NoteCardEditor({
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const { ydoc, awareness, synced } = useNoteYDoc(note.id);
+  const { ydoc, awareness, synced, outdated } = useNoteYDoc(note.id);
   // Withheld until the provider has synced; see NoteYDoc.synced. NoteEditor
   // keys the editor on this, so it remounts once collaboration is ready.
   const collab =
@@ -105,9 +107,8 @@ export function NoteCardEditor({
   const saveText = (title: string, content: string) => {
     const records = agreementRef.current;
     records.claim(content);
-    void updateNote(note.id, { title, content }).then((ok) => {
-      const saved = notes.value.find((n) => n.id === note.id);
-      if (ok && saved) records.confirm(saved.updatedAt);
+    void updateStoredNote(note.id, { title, content }).then((saved) => {
+      if (saved) records.confirm(saved.updatedAt);
     });
   };
 
@@ -382,7 +383,32 @@ export function NoteCardEditor({
         autoFocus={!isPhoneLayout()}
         onEditorReady={setEditor}
         collab={collab}
+        // The server refused this build's editor. Saving the text over REST
+        // instead would write this build's reading of it over whatever newer
+        // content it failed to understand, so the text waits for a reload.
+        contentLocked={outdated}
+        notice={outdated && <OutdatedEditorNotice />}
       />
     </>
+  );
+}
+
+function OutdatedEditorNotice() {
+  return (
+    <div
+      role="status"
+      class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-black/5 px-3 py-2 text-sm dark:bg-white/10"
+    >
+      <span class="flex-1">{t("editor.outdated")}</span>
+      <button
+        type="button"
+        class="font-medium underline underline-offset-2"
+        // The installed copy is what is out of date, so an ordinary reload
+        // could come back to the same one.
+        onClick={() => void forceUpdateApp()}
+      >
+        {t("editor.outdated.reload")}
+      </button>
+    </div>
   );
 }

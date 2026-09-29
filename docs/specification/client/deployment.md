@@ -321,4 +321,10 @@ Manifesto is a Progressive Web App:
   (`shareTarget.ts`, `state/incomingShare.ts`). The link gets a link preview as a pasted one does; images
   over the attachment limit are dropped with the usual message. The worker is in control of every
   installed app, so the static host never sees that request.
+- Takes pages from a bookmarklet, for browsers the share sheet does not reach. Settings → Data offers a
+  link to drag to the bookmarks bar; clicked on a page, it opens the app in a new tab at
+  `?share-target&title=&url=&text=` with the page's title, address and selected text (at most 4,000
+  characters of it), and the page opens those in the new-note editor as it does a share, removing them
+  from the address first. Nothing is saved until the note is, and the bookmarklet sends nothing
+  anywhere but the app's own address (`bookmarkletHref` in `shareTarget.ts`).
 - Open-mode builds work fully offline. Connected-mode builds load from cache when offline but cannot read or write notes until the network returns.

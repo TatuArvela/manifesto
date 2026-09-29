@@ -428,6 +428,7 @@ export function describeSharingContract(
             role: "edit",
             createdAt: T1,
             acceptedAt: T2,
+            viaTeam: null,
           },
           {
             noteId: "n1",
@@ -435,6 +436,7 @@ export function describeSharingContract(
             role: "view",
             createdAt: T1,
             acceptedAt: null,
+            viaTeam: null,
           },
         ],
       });

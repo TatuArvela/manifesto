@@ -8,13 +8,11 @@ import type {
   AdminUsersResponse,
   AuditLogResponse,
 } from "@manifesto/shared";
-import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { audit } from "../audit/audit.js";
 import { auditPage } from "../audit/auditPage.js";
 import type { SessionRevocations } from "../auth/revocations.js";
 import { endUserSessions } from "../auth/session.js";
-import type { AuthProvider } from "../auth/types.js";
 import { pickAvatarColor } from "../auth/users.js";
 import { type ServerConfig, signsInLocally } from "../config.js";
 import { exportAccount, sendExport } from "../export/userExport.js";
@@ -25,12 +23,10 @@ import { jobStatuses } from "../lib/periodic.js";
 import { newTemporaryPassword } from "../lib/temporaryPassword.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
+import type { TeamShares } from "../sharing/teamShares.js";
 import {
   type AdminGuardedResult,
   EmailTakenError,
@@ -44,17 +40,16 @@ import {
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import { VERSION } from "../version.js";
+import { registerAdminTeamRoutes } from "./teams.js";
 
 interface AdminDeps {
   cfg: ServerConfig;
   storage: StorageDriver;
-  authProvider: AuthProvider;
   revocations: SessionRevocations;
   noteEvents: NoteEvents;
+  teamShares: TeamShares;
   /** What the update check last found. */
   updateStatus?: () => UpdateStatus | null;
-  /** The shared per-user limiter, mounted after auth. */
-  rateLimit?: MiddlewareHandler;
 }
 
 function toAdminUser(user: UserSummary): AdminUser {
@@ -85,8 +80,9 @@ function refuseGuarded(result: AdminGuardedResult): void {
 /**
  * `/api/admin`: account management for admins.
  *
- * Whether the caller is an admin is read from storage on every request rather
- * than carried in the session, so revoking admin takes effect on the next
+ * Whether the caller is an admin is read from storage on every request
+ * (`middleware/protect.ts`, from `auth: "admin"`) rather than carried in the
+ * session, so revoking admin takes effect on the next
  * request and not whenever the session happens to end.
  *
  * An admin manages other people's accounts, never their own: removing your own
@@ -96,21 +92,6 @@ function refuseGuarded(result: AdminGuardedResult): void {
  */
 export function createAdminRoutes(deps: AdminDeps) {
   const admin = new Hono<{ Variables: { auth: AuthContext } }>();
-  // A session only: an admin's API token must not be a standing key to every
-  // account on the server.
-  admin.use(
-    "*",
-    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
-  );
-  if (deps.rateLimit) admin.use("*", deps.rateLimit);
-  admin.use("*", async (c, next) => {
-    const caller = await deps.storage.users.findById(c.get("auth").userId);
-    if (!caller?.isAdmin) {
-      throw new HttpError(403, "Admin access required");
-    }
-    await next();
-  });
-
   /** Where local accounts can sign in, and so an admin can create one or
    * give one a password. */
   function requireLocalProvider(): void {
@@ -251,9 +232,10 @@ export function createAdminRoutes(deps: AdminDeps) {
     // A reset is often because someone else has the password, so whoever is
     // signed in with it now is signed out, sockets included. It is also how
     // someone who lost their authenticator and their recovery codes gets back
-    // in, so two-factor goes too; they can turn it on again.
+    // in, so two-factor goes too, passkeys included; they can add them again.
     await endUserSessions(deps.storage, deps.revocations, id);
     await deps.storage.twoFactor.disable(id);
+    await deps.storage.passkeys.deleteByUser(id);
     logger.info("Admin reset a password", {
       adminId: c.get("auth").userId,
       userId: id,
@@ -378,6 +360,8 @@ export function createAdminRoutes(deps: AdminDeps) {
     });
     return c.json(body);
   });
+
+  registerAdminTeamRoutes(admin, deps);
 
   return admin;
 }

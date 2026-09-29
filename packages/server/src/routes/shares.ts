@@ -4,16 +4,12 @@ import type {
   NoteResponse,
   ShareRole,
 } from "@manifesto/shared";
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import { audit } from "../audit/audit.js";
-import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import type { Mailer } from "../mail/mailer.js";
 import { mailLocale, shareInvitationMail } from "../mail/templates.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
@@ -93,7 +89,29 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
         createdAt: nowIso(),
       });
       if (created === "exists") {
-        throw new HttpError(409, "The note is already shared with this user");
+        // Someone who has the note through a team can be given it directly,
+        // which takes it out of the team's hands: removing the team share no
+        // longer removes them. A direct share already there is a conflict.
+        const existing = (await storage.shares.audience(noteId))?.shares.find(
+          (share) => share.userId === recipientId,
+        );
+        if (!existing?.viaTeam) {
+          throw new HttpError(409, "The note is already shared with this user");
+        }
+        await storage.shares.setViaTeam(noteId, recipientId, null);
+        if (existing.role !== role) {
+          await storage.shares.setRole(noteId, recipientId, role);
+          await announceRole(noteId, recipientId, existing.acceptedAt, role);
+        }
+        audit(storage, c, {
+          action: "share.created",
+          actorId: userId,
+          targetId: recipientId,
+          noteId,
+          detail: { role, from: "team" },
+        });
+        await noteEvents.changed(noteId);
+        return c.json(await ownerView(noteId, userId), 201);
       }
       const invitation = await storage.shares.getInvitation(
         noteId,
@@ -215,19 +233,15 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
 
 interface InvitationRoutesDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
   broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
-  rateLimit?: MiddlewareHandler;
 }
 
 /** `/api/invitations`: notes offered to the signed-in user. */
 export function createInvitationRoutes(deps: InvitationRoutesDeps) {
   const { storage, broadcaster, noteEvents, accessChanges } = deps;
   const invitations: AuthedApp = new Hono();
-  invitations.use("*", createAuthMiddleware(deps.authProvider));
-  if (deps.rateLimit) invitations.use("*", deps.rateLimit);
 
   invitations.get("/", async (c) => {
     const { userId } = c.get("auth");

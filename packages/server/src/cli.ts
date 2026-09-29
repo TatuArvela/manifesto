@@ -90,6 +90,7 @@ export async function runCli(
       );
       await endUserSessions(storage, createSessionRevocations(), user.id);
       await storage.twoFactor.disable(user.id);
+      await storage.passkeys.deleteByUser(user.id);
       audit(storage, null, {
         action: "admin.password_reset",
         targetId: user.id,

@@ -511,17 +511,8 @@ describe("finding people to share with", () => {
     const byEmail = await find("robert@example.com");
     expect(byEmail).toMatchObject([{ username: "bob" }]);
     expect(byEmail[0]).not.toHaveProperty("email");
-    const methods = await (await rig.request("/api/auth/methods")).json();
-    expect(methods).toEqual({
-      provider: "local",
-      providers: ["local"],
-      passwordForm: "shown",
-      userLookup: "exact",
-      webhooks: false,
-      mcp: true,
-      passwordReset: false,
-      registration: true,
-    });
+    const { features } = await (await rig.request("/api/capabilities")).json();
+    expect(features.userLookup).toBe("exact");
     await rig.close();
   });
 });

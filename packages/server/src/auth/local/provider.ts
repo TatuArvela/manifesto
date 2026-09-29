@@ -31,7 +31,6 @@ export function createLocalAuthProvider(
     }: AuthRouterContext): AuthProviderRouter {
       return createLocalAuthRouter({
         storage,
-        authProvider: provider,
         cfg,
         revocations,
         mailer,

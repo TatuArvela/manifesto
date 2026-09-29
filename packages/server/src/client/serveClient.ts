@@ -57,7 +57,11 @@ export function mountClient(app: Hono, dir: string): void {
 
   app.get("*", (c, next) => {
     const path = c.req.path;
-    if (isApi(path) || /\.[^/]+$/.test(path)) return next();
+    // A `.well-known` document the server does not serve (the OAuth ones
+    // with MCP off) is a 404, never the page: a client reading it as JSON
+    // should hear that there is none.
+    if (isApi(path) || path.startsWith("/.well-known/")) return next();
+    if (/\.[^/]+$/.test(path)) return next();
     return c.body(new Uint8Array(index), 200, {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-cache",

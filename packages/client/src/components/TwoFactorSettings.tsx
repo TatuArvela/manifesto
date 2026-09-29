@@ -13,6 +13,7 @@ import {
   twoFactorStatus,
 } from "../state/twoFactor.js";
 import { showSuccess } from "../state/ui.js";
+import { PasskeySettings } from "./PasskeySettings.js";
 import { QrCode } from "./QrCode.js";
 
 const inputClass =
@@ -36,9 +37,10 @@ const FAILURE_KEYS: Record<string, MessageKey> = {
 };
 
 /**
- * Two-factor sign-in for a local account: turn it on (password, then the
- * secret into an authenticator, then a code to prove it took), keep the
- * recovery codes it hands out once, or turn it off with the password.
+ * Two-factor sign-in for a local account: an authenticator app (password,
+ * then the secret into the app, then a code to prove it took), passkeys, or
+ * both, with one set of recovery codes handed out once with the first of
+ * them, and the password asked again to remove either.
  */
 export function TwoFactorSettings() {
   const [step, setStep] = useState<Step>({ kind: "loading" });
@@ -117,10 +119,10 @@ export function TwoFactorSettings() {
       () => enableTwoFactor(code.trim()),
       (r) => {
         showSuccess(t("twoFactor.turnedOn"));
-        setStep({
-          kind: "codes",
-          codes: (r as { recoveryCodes: string[] }).recoveryCodes,
-        });
+        const codes = (r as { recoveryCodes: string[] }).recoveryCodes;
+        // Passkeys already had codes, which cover the app too.
+        if (codes.length === 0) void load();
+        else setStep({ kind: "codes", codes });
       },
     );
   };
@@ -138,6 +140,8 @@ export function TwoFactorSettings() {
     body = <p class="text-sm text-neutral-500">{t("twoFactor.loading")}</p>;
   } else if (step.kind === "status") {
     const { enabled, recoveryCodesRemaining } = step.status;
+    // A server from before passkeys has only the app, so on means the app.
+    const authenticator = step.status.authenticator ?? enabled;
     body = (
       <div class="space-y-3">
         <p class="text-sm">
@@ -147,25 +151,23 @@ export function TwoFactorSettings() {
         </p>
         {errorLine}
         <div class="flex flex-wrap justify-end gap-2">
-          {enabled ? (
-            <>
-              <button
-                type="button"
-                class={secondaryClass}
-                onClick={() => setStep({ kind: "password", purpose: "renew" })}
-              >
-                {t("twoFactor.newCodes")}
-              </button>
-              <button
-                type="button"
-                class={secondaryClass}
-                onClick={() =>
-                  setStep({ kind: "password", purpose: "disable" })
-                }
-              >
-                {t("twoFactor.turnOff")}
-              </button>
-            </>
+          {enabled && (
+            <button
+              type="button"
+              class={secondaryClass}
+              onClick={() => setStep({ kind: "password", purpose: "renew" })}
+            >
+              {t("twoFactor.newCodes")}
+            </button>
+          )}
+          {authenticator ? (
+            <button
+              type="button"
+              class={secondaryClass}
+              onClick={() => setStep({ kind: "password", purpose: "disable" })}
+            >
+              {t("twoFactor.turnOff")}
+            </button>
           ) : (
             <button
               type="button"
@@ -176,6 +178,12 @@ export function TwoFactorSettings() {
             </button>
           )}
         </div>
+        {step.status.authenticator !== undefined && (
+          <PasskeySettings
+            onChange={() => void load()}
+            onRecoveryCodes={(codes) => setStep({ kind: "codes", codes })}
+          />
+        )}
       </div>
     );
   } else if (step.kind === "password") {

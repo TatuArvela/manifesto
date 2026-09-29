@@ -5,17 +5,13 @@ import {
   type WebhookCreatedResponse,
   type WebhooksResponse,
 } from "@manifesto/shared";
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import { audit } from "../audit/audit.js";
 import { requireConfirmation } from "../auth/confirmation.js";
 import type { LoginAttempts } from "../auth/local/loginAttempts.js";
-import type { AuthProvider } from "../auth/types.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
-import {
-  type AuthContext,
-  createAuthMiddleware,
-} from "../middleware/authBearer.js";
+import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 import { listedWebhook } from "../storage/webhookMapping.js";
@@ -28,11 +24,8 @@ import type { WebhookDispatcher } from "../webhooks/dispatcher.js";
 
 interface WebhookDeps {
   storage: StorageDriver;
-  authProvider: AuthProvider;
-  /** Null when the server has webhooks off: every route then answers 404. */
-  dispatcher: WebhookDispatcher | null;
+  dispatcher: WebhookDispatcher;
   loginAttempts: LoginAttempts;
-  rateLimit?: MiddlewareHandler;
 }
 
 export const MAX_WEBHOOKS_PER_USER = 10;
@@ -44,18 +37,6 @@ export const MAX_WEBHOOKS_PER_USER = 10;
  */
 export function createWebhookRoutes(deps: WebhookDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
-  routes.use("*", async (_c, next) => {
-    if (!deps.dispatcher) {
-      throw new HttpError(404, "Webhooks are not enabled on this server");
-    }
-    await next();
-  });
-  routes.use(
-    "*",
-    createAuthMiddleware(deps.authProvider, { sessionOnly: true }),
-  );
-  if (deps.rateLimit) routes.use("*", deps.rateLimit);
-
   const owned = async (id: string, userId: string) => {
     const webhook = await deps.storage.webhooks.get(id, userId);
     if (!webhook) throw new HttpError(404, "Webhook not found");
@@ -147,7 +128,7 @@ export function createWebhookRoutes(deps: WebhookDeps) {
   routes.post("/:id/test", async (c) => {
     const { userId } = c.get("auth");
     const webhook = await owned(c.req.param("id"), userId);
-    const result = await (deps.dispatcher as WebhookDispatcher).ping(webhook);
+    const result = await deps.dispatcher.ping(webhook);
     return c.json(result);
   });
 

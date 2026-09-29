@@ -1,10 +1,14 @@
-import type { AuthMethodsResponse } from "@manifesto/shared";
+import type {
+  CapabilitiesResponse,
+  PasskeyRequestOptions,
+} from "@manifesto/shared";
+import { KeyRound } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { APP_LOGO, APP_NAME, INSTANCE_NAME } from "../config.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   confirmPasswordReset,
-  fetchAuthMethods,
+  fetchCapabilities,
   login,
   loginErrorKey,
   type OidcRefusal,
@@ -14,11 +18,13 @@ import {
   register,
   requestPasswordReset,
   SERVER_ORIGIN,
+  signInWithPasskey,
   TwoFactorRequiredError,
   takeResetToken,
 } from "../state/auth.js";
 import { locale } from "../state/prefs.js";
 import { showSuccess } from "../state/ui.js";
+import { getPasskey, passkeysSupported } from "../utils/webauthn.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { OrgCredit } from "./OrgCredit.js";
 
@@ -38,7 +44,7 @@ type Mode = "signIn" | "register" | "changePassword" | "twoFactor";
 
 type DiscoveryState =
   | { kind: "loading" }
-  | { kind: "ready"; methods: AuthMethodsResponse }
+  | { kind: "ready"; auth: CapabilitiesResponse["auth"] }
   | { kind: "unavailable" };
 
 export function LoginScreen() {
@@ -48,13 +54,13 @@ export function LoginScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchAuthMethods().then((methods) => {
+    void fetchCapabilities().then((capabilities) => {
       if (cancelled) return;
-      if (!methods) {
+      if (!capabilities) {
         setDiscovery({ kind: "unavailable" });
         return;
       }
-      setDiscovery({ kind: "ready", methods });
+      setDiscovery({ kind: "ready", auth: capabilities.auth });
     });
     return () => {
       cancelled = true;
@@ -92,9 +98,7 @@ export function LoginScreen() {
             {t("login.serverUnavailable")}
           </p>
         )}
-        {discovery.kind === "ready" && (
-          <SignInOptions methods={discovery.methods} />
-        )}
+        {discovery.kind === "ready" && <SignInOptions auth={discovery.auth} />}
 
         <OrgCredit class="mt-6" />
 
@@ -113,9 +117,9 @@ export function LoginScreen() {
  * and the password form follows it, or waits behind a link when the server
  * keeps local accounts only as a spare key.
  */
-function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
-  const providers = methods.providers ?? [methods.provider];
-  const collapsed = methods.passwordForm === "collapsed";
+function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
+  const { providers } = auth;
+  const collapsed = auth.passwordForm === "collapsed";
   const [showPassword, setShowPassword] = useState(!collapsed);
   const [resetToken, setResetToken] = useState<string | null>(() =>
     takeResetToken(),
@@ -145,8 +149,9 @@ function SignInOptions({ methods }: { methods: AuthMethodsResponse }) {
       {local &&
         (showPassword || !oidc ? (
           <LocalLoginForm
-            onForgot={methods.passwordReset ? () => setForgot(true) : undefined}
-            canRegister={methods.registration !== false}
+            onForgot={auth.passwordReset ? () => setForgot(true) : undefined}
+            canRegister={auth.registration}
+            passkeys={auth.passkeys && passkeysSupported()}
           />
         ) : (
           <button
@@ -347,9 +352,12 @@ function ResetPasswordForm({
 function LocalLoginForm({
   onForgot,
   canRegister,
+  passkeys,
 }: {
   onForgot?: () => void;
   canRegister: boolean;
+  /** Whether the server and this browser can sign in with a passkey. */
+  passkeys: boolean;
 }) {
   const [mode, setMode] = useState<Mode>("signIn");
   const [username, setUsername] = useState("");
@@ -358,6 +366,12 @@ function LocalLoginForm({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
+  // What the two-factor step can take: the app's codes (recovery codes are
+  // always typed), and a challenge for the account's passkeys here.
+  const [secondFactor, setSecondFactor] = useState<{
+    authenticator: boolean;
+    passkey: PasskeyRequestOptions | null;
+  }>({ authenticator: true, passkey: null });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -415,6 +429,10 @@ function LocalLoginForm({
       }
       if (err instanceof TwoFactorRequiredError) {
         setOtp("");
+        setSecondFactor({
+          authenticator: err.authenticator,
+          passkey: err.passkey,
+        });
         setMode("twoFactor");
         return;
       }
@@ -422,6 +440,55 @@ function LocalLoginForm({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  /** The second factor by passkey, answering the challenge the password got. */
+  async function answerWithPasskey() {
+    const options = secondFactor.passkey;
+    if (!options || submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const answer = await getPasskey(options);
+      // A dismissed prompt leaves the challenge unspent, to try again.
+      if (answer === "cancelled") return;
+      if (typeof answer === "string") {
+        setError(t("login.passkeyFailed"));
+        return;
+      }
+      await login(username, password, undefined, undefined, answer);
+    } catch (err) {
+      if (err instanceof PasswordChangeRequiredError) {
+        setNewPassword("");
+        setConfirmPassword("");
+        setMode("changePassword");
+        return;
+      }
+      setError(t("login.passkeyFailed"));
+      // That challenge is spent; the password again brings a fresh one.
+      try {
+        await login(username, password);
+      } catch (again) {
+        if (again instanceof TwoFactorRequiredError) {
+          setSecondFactor({
+            authenticator: again.authenticator,
+            passkey: again.passkey,
+          });
+        }
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function passkeySignIn() {
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    const result = await signInWithPasskey();
+    setSubmitting(false);
+    if (result === "unknown") setError(t("login.passkeyUnknown"));
+    else if (result === "failed") setError(t("login.passkeyFailed"));
   }
 
   function tabClass(active: boolean): string {
@@ -441,12 +508,37 @@ function LocalLoginForm({
             {t("login.twoFactor.title")}
           </h2>
           <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-            {t("login.twoFactor.hint")}
+            {t(
+              secondFactor.authenticator
+                ? "login.twoFactor.hint"
+                : "login.twoFactor.recoveryHint",
+            )}
           </p>
         </div>
+        {secondFactor.passkey && passkeysSupported() && (
+          <>
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => void answerWithPasskey()}
+              class={submitClass}
+            >
+              {t("login.twoFactor.usePasskey")}
+            </button>
+            <div class="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
+              <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
+              {t("login.or")}
+              <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
+            </div>
+          </>
+        )}
         <label class="block">
           <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
-            {t("login.twoFactor.code")}
+            {t(
+              secondFactor.authenticator
+                ? "login.twoFactor.code"
+                : "login.twoFactor.recoveryCode",
+            )}
           </span>
           <input
             type="text"
@@ -661,6 +753,17 @@ function LocalLoginForm({
               ? t("login.submitSignIn")
               : t("login.submitRegister")}
         </button>
+        {mode === "signIn" && passkeys && (
+          <button
+            type="button"
+            disabled={submitting}
+            class={`${quietClass} inline-flex items-center justify-center gap-1.5`}
+            onClick={() => void passkeySignIn()}
+          >
+            <KeyRound class="w-4 h-4" />
+            {t("login.withPasskey")}
+          </button>
+        )}
         {mode === "signIn" && onForgot && (
           <button type="button" class={quietClass} onClick={onForgot}>
             {t("login.forgot.link")}

@@ -6,6 +6,7 @@ import {
 import { signal } from "@preact/signals";
 import { formatFileSize, t } from "../i18n/index.js";
 import {
+  MAX_SHARED_TEXT,
   SHARE_CACHE,
   SHARE_IMAGE_KEY_PREFIX,
   SHARE_TARGET_PARAM,
@@ -48,7 +49,21 @@ export async function takeIncomingShare(): Promise<void> {
   const url = new URL(window.location.href);
   if (!url.searchParams.has(SHARE_TARGET_PARAM)) return;
   url.searchParams.delete(SHARE_TARGET_PARAM);
+  // A bookmarklet sends the page in the query rather than through the
+  // service worker (`bookmarkletHref`).
+  const fields = ["title", "text", "url"] as const;
+  const inQuery = fields.some((field) => url.searchParams.has(field));
+  const queried: SharedText = {
+    title: (url.searchParams.get("title") ?? "").slice(0, MAX_SHARED_TEXT),
+    text: (url.searchParams.get("text") ?? "").slice(0, MAX_SHARED_TEXT),
+    url: (url.searchParams.get("url") ?? "").slice(0, MAX_SHARED_TEXT),
+  };
+  for (const field of fields) url.searchParams.delete(field);
   history.replaceState(history.state, "", url.href);
+  if (inQuery) {
+    openShare(sharedTextToDraft(queried), []);
+    return;
+  }
   if (!("caches" in window)) return;
 
   const scope = new URL(import.meta.env.BASE_URL, window.location.origin);
@@ -101,8 +116,15 @@ export async function takeIncomingShare(): Promise<void> {
         url: String(shared.url ?? ""),
       })
     : { title: "", content: "" };
+  openShare(draft, images);
+}
+
+/** Opens a share as a new note, on the notes view where that editor lives. */
+function openShare(
+  draft: { title: string; content: string },
+  images: string[],
+) {
   if (!draft.title && !draft.content && images.length === 0) return;
-  // The new-note editor lives on the notes view.
   activeView.value = "active";
   activeTag.value = null;
   incomingShare.value = { ...draft, images };
