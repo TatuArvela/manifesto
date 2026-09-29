@@ -16,14 +16,12 @@ import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { StorageDriver } from "../storage/types.js";
 import { shareCreateSchema, shareUpdateSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
-import type { Broadcaster } from "../ws/broadcaster.js";
 
 export interface ShareRoutesDeps {
   /** Sends the invitation by mail too, when the server has mail and the
    * recipient an address. */
   mail?: { mailer: Mailer; appUrl: string } | null;
   storage: StorageDriver;
-  broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
 }
@@ -39,7 +37,7 @@ type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
  * leaves a note.
  */
 export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
-  const { storage, broadcaster, noteEvents, accessChanges } = deps;
+  const { storage, noteEvents, accessChanges } = deps;
 
   async function requireOwner(noteId: string, userId: string): Promise<void> {
     const access = await storage.notes.access(noteId, userId);
@@ -113,16 +111,7 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
         await noteEvents.changed(noteId);
         return c.json(await ownerView(noteId, userId), 201);
       }
-      const invitation = await storage.shares.getInvitation(
-        noteId,
-        recipientId,
-      );
-      if (invitation) {
-        broadcaster.emit(recipientId, {
-          type: "invitation:created",
-          invitation,
-        });
-      }
+      await noteEvents.invited(noteId, recipientId);
       audit(storage, c, {
         action: "share.created",
         actorId: userId,
@@ -188,16 +177,7 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
     role: ShareRole,
   ): Promise<void> {
     if (acceptedAt === null) {
-      const invitation = await storage.shares.getInvitation(
-        noteId,
-        recipientId,
-      );
-      if (invitation) {
-        broadcaster.emit(recipientId, {
-          type: "invitation:created",
-          invitation,
-        });
-      }
+      await noteEvents.invited(noteId, recipientId);
       return;
     }
     // Still a reader, no longer a writer: the live document is what they
@@ -233,14 +213,13 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
 
 interface InvitationRoutesDeps {
   storage: StorageDriver;
-  broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
 }
 
 /** `/api/invitations`: notes offered to the signed-in user. */
 export function createInvitationRoutes(deps: InvitationRoutesDeps) {
-  const { storage, broadcaster, noteEvents, accessChanges } = deps;
+  const { storage, noteEvents, accessChanges } = deps;
   const invitations: AuthedApp = new Hono();
 
   invitations.get("/", async (c) => {
@@ -260,7 +239,7 @@ export function createInvitationRoutes(deps: InvitationRoutesDeps) {
     const note = await storage.notes.getById(noteId, userId);
     if (!note) throw new HttpError(404, "Invitation not found");
     // The user's other tabs still show the invitation.
-    broadcaster.emit(userId, { type: "invitation:removed", noteId });
+    noteEvents.answered(noteId, userId);
     await noteEvents.changed(noteId);
     // Whoever is looking at the note right now shows up for them at once.
     accessChanges.announce({ noteId, userIds: [userId], change: "gained" });

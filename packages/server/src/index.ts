@@ -92,7 +92,6 @@ const yjs = attachYjsSocket({
 });
 const stopTrashCleanup = startTrashCleanup({
   storage,
-  broadcaster,
   noteEvents,
 });
 const stopSessionCleanup = startSessionCleanup({

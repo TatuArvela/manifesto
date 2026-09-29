@@ -23,7 +23,6 @@ import {
   noteUpdateSchema,
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
-import type { Broadcaster } from "../ws/broadcaster.js";
 import { registerPublicLinkRoutes } from "./publicLinks.js";
 import { registerShareRoutes } from "./shares.js";
 import { registerTeamShareRoutes } from "./teams.js";
@@ -31,7 +30,6 @@ import { registerVersionRoutes } from "./versions.js";
 
 interface NotesDeps {
   storage: StorageDriver;
-  broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
   /** Optional per-user limiter, mounted after auth. Defined in app.ts so
@@ -71,8 +69,7 @@ export function createNotesRoutes(deps: NotesDeps) {
     // Read before the delete, which takes the shares with it by cascade.
     const shares = (await deps.storage.shares.audience(id))?.shares ?? [];
     if (!(await deps.storage.notes.delete(id, userId))) return false;
-    deps.broadcaster.emit(userId, { type: "note:deleted", id });
-    deps.noteEvents.ended(shares);
+    deps.noteEvents.deleted(id, userId, shares);
     return true;
   }
 
@@ -142,7 +139,7 @@ export function createNotesRoutes(deps: NotesDeps) {
         createdAt: now,
         updatedAt: now,
       });
-      deps.broadcaster.emit(userId, { type: "note:created", note });
+      deps.noteEvents.created(note, userId);
       return c.json({ note }, 201);
     },
   );
@@ -204,7 +201,7 @@ export function createNotesRoutes(deps: NotesDeps) {
           createdAt: createdAt ? new Date(createdAt).toISOString() : now,
           updatedAt: now,
         });
-        deps.broadcaster.emit(userId, { type: "note:created", note });
+        deps.noteEvents.created(note, userId);
         result.created++;
       }
       return c.json(result);

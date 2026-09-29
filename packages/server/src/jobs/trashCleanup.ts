@@ -4,15 +4,13 @@ import { startPeriodicJob } from "../lib/periodic.js";
 import { isoMinusDays } from "../lib/time.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { StorageDriver } from "../storage/types.js";
-import type { Broadcaster } from "../ws/broadcaster.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
  * Hard-deletes trashed notes whose trashed_at is older than
- * `TRASH_RETENTION_DAYS`. Runs once on startup, then every hour. Broadcasts
- * note:deleted to each affected user's connected clients so their UI drops
- * the row.
+ * `TRASH_RETENTION_DAYS`. Runs once on startup, then every hour. Each owner's
+ * connected clients are told, so their UI drops the row.
  *
  * A note shared with someone who put it in their own trash expires for them
  * the same way: their share is removed, and the note stays with everyone else.
@@ -20,18 +18,18 @@ const HOUR_MS = 60 * 60 * 1000;
  */
 export function startTrashCleanup(deps: {
   storage: StorageDriver;
-  broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   intervalMs?: number;
 }): () => void {
-  const { storage, broadcaster, noteEvents, intervalMs = HOUR_MS } = deps;
+  const { storage, noteEvents, intervalMs = HOUR_MS } = deps;
   return startPeriodicJob("trash cleanup", intervalMs, async () => {
     const cutoff = isoMinusDays(TRASH_RETENTION_DAYS);
     const removed = await storage.maintenance.cleanupTrashedBefore(cutoff);
     if (removed.length > 0) {
       logger.info("trash cleanup pruned notes", { count: removed.length });
       for (const row of removed) {
-        broadcaster.emit(row.userId, { type: "note:deleted", id: row.id });
+        // Trashed, the note had already left everyone it was shared with.
+        noteEvents.deleted(row.id, row.userId, []);
       }
     }
     const left = await storage.maintenance.cleanupTrashedSharesBefore(cutoff);

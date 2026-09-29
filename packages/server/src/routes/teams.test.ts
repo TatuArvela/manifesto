@@ -286,7 +286,6 @@ describe("teams as share targets", () => {
       });
       return createTeamShares({
         storage: rig.storage,
-        broadcaster: rig.broadcaster,
         noteEvents,
         accessChanges,
       });

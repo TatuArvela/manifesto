@@ -112,7 +112,6 @@ export function createApp(deps: AppDeps): AppHandle {
   const noteEvents = createNoteEvents({ storage, broadcaster, accessChanges });
   const teamShares = createTeamShares({
     storage,
-    broadcaster,
     noteEvents,
     accessChanges,
   });
@@ -240,7 +239,6 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/notes",
     createNotesRoutes({
       storage,
-      broadcaster,
       noteEvents,
       accessChanges,
       mail,
@@ -252,7 +250,6 @@ export function createApp(deps: AppDeps): AppHandle {
     "/api/invitations",
     createInvitationRoutes({
       storage,
-      broadcaster,
       noteEvents,
       accessChanges,
     }),

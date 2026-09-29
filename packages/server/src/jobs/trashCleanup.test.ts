@@ -75,7 +75,6 @@ describe("startTrashCleanup", () => {
 
     stop = startTrashCleanup({
       storage,
-      broadcaster,
       noteEvents: createNoteEvents({
         storage,
         broadcaster,
@@ -99,7 +98,6 @@ describe("startTrashCleanup", () => {
     });
     stop = startTrashCleanup({
       storage,
-      broadcaster,
       noteEvents: createNoteEvents({
         storage,
         broadcaster,
@@ -120,7 +118,6 @@ describe("startTrashCleanup", () => {
 
     stop = startTrashCleanup({
       storage,
-      broadcaster,
       noteEvents: createNoteEvents({
         storage,
         broadcaster,
@@ -188,7 +185,6 @@ describe("startTrashCleanup", () => {
     });
     stop = startTrashCleanup({
       storage,
-      broadcaster,
       noteEvents: createNoteEvents({
         storage,
         broadcaster,

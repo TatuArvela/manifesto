@@ -25,8 +25,11 @@ expires their share, not the note; the owner's trash hides the note from everyon
 
 Every write by anyone stamps the note's `updated_at`, a recipient's pin included, so all participants
 share one `If-Match` token and a listing merges own and shared notes in one `(updatedAt, id)` order.
-Broadcast through `sharing/noteEvents.ts`, never `broadcaster.emit` with the writer's copy: each
-participant sees different personal fields and a different `sharing.role`. Anything that takes a note
+Every note and invitation event (`note:created`, `note:updated`, `note:deleted`,
+`invitation:created`, `invitation:removed`) goes out through `sharing/noteEvents.ts`, never
+`broadcaster.emit` with the writer's copy: each participant sees different personal fields and a
+different `sharing.role`, and the sockets and webhooks both hear what the broadcaster carries.
+`biome-plugins/noteEvents.grit` refuses one of those events built anywhere else. Anything that takes a note
 away from someone (removal, a role drop to `view`, the owner trashing it) also goes through
 `sharing/accessChanges.ts`, for the same reason as `endUserSessions`: sockets authorized at connect
 stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
