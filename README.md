@@ -51,6 +51,7 @@ Each release ships a client bundle and a server image. The client's [operating m
 - Notes are [isolated per user](docs/specification/server/index.md#multi-user), and collaborative editing checks note ownership
 - [Link previews](docs/specification/features/link-previews.md#what-the-server-fetches) are fetched by the server from public addresses only, and their images are stored in the note, so viewing one contacts no third party. `LINK_PREVIEWS=off` disables fetching
 - A new server's [initial admin](docs/specification/features/accounts.md#the-initial-admin) gets a random password printed at boot, never a default. Admin-issued passwords are single-use, and a reset signs the account out everywhere, open sockets included
+- Server images are [signed and carry an SBOM and build provenance](docs/specification/server/deployment.md#what-is-in-an-image), and are scanned for known vulnerabilities weekly
 - In production, set `REGISTRATION_ENABLED=false` if accounts should only come from an admin, and `TRUST_PROXY=true` only behind a trusted [reverse proxy](docs/specification/server/deployment.md#reverse-proxy)
 
 If you have found a vulnerability and wish to report it, please [contribute](CONTRIBUTING.md).
