@@ -41,6 +41,20 @@ docker buildx imagetools inspect ghcr.io/tatuarvela/manifesto-server:X.Y.Z --for
 
 Images from releases before this was added carry neither.
 
+Release images are also signed with [cosign](https://docs.sigstore.dev/cosign/), keyless: the
+signature names the workflow that built the image rather than a key, so there is no key to publish or
+lose. To check that an image came from this repository's release workflow:
+
+```bash
+cosign verify ghcr.io/tatuarvela/manifesto-server:X.Y.Z \
+  --certificate-identity https://github.com/TatuArvela/manifesto/.github/workflows/image-publish.yml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+An admission policy (Kyverno, the Sigstore policy controller) checks the same two values. The
+signature is on the multi-arch index, which is what a tag resolves to. Images from releases before
+signing was added are not signed.
+
 ### Compose files
 
 The repository root has two, kept at the current release by release-please along with the packages:

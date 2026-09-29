@@ -1,0 +1,40 @@
+name: Image scan
+
+# Trivy lists the known vulnerabilities in the published server image, most of
+# them in the Alpine base and Node rather than in our dependencies. It runs on a
+# schedule rather than at release because that is when they appear: an image
+# nobody rebuilt gains findings as advisories are published. Findings go to code
+# scanning and never fail a run, since a CVE with no fixed version yet is not
+# something a release could be held for.
+
+on:
+  schedule:
+    - cron: "57 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Image tag to scan
+        default: latest
+        type: string
+
+permissions: {}
+
+jobs:
+  trivy:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/tatuarvela/manifesto-server:${{ inputs.tag || 'latest' }}
+          format: sarif
+          output: trivy.sarif
+          # Only what a rebuild or an upgrade can fix is worth an alert.
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+
+      - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-image

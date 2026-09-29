@@ -20,6 +20,11 @@ Dependabot opens grouped pull requests every Monday (`.github/dependabot.yml`): 
 updates of runtime dependencies, one for development ones, one for GitHub Actions, and a pull request of
 its own for each major update or base image. They run the same CI as any other pull request.
 
+Actions in `.github/workflows/` are pinned to a commit, with the release it is in as a comment
+(`uses: actions/checkout@<sha> # v7.0.1`), because a tag can be moved to other code after it is
+reviewed. Dependabot updates both together. `zizmor` audits the workflows on every change to them
+(`.github/workflows/zizmor.yml`); it does not fail the run, and its findings land in code scanning.
+
 ## Scope
 
 Manifesto is intentionally small. The maintainer is not committing to active development, so:
