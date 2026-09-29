@@ -1,5 +1,6 @@
-import type { AdminUser } from "@manifesto/shared";
+import { type AdminUser, PROXY_PROBE_ADDRESS } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { t } from "../i18n/index.js";
 import { storageConnection } from "../storage/index.js";
 import {
   adminUsers,
@@ -7,7 +8,9 @@ import {
   deleteAccount,
   issuedPassword,
   loadAdminUsers,
+  loadSetupChecks,
   resetAccountPassword,
+  sendTestMail,
   setAccountAdmin,
 } from "./admin.js";
 import { locale } from "./prefs.js";
@@ -182,5 +185,46 @@ describe("admin actions", () => {
     fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
     expect(await setAccountAdmin("u-bob", true)).toBe(false);
     expect(toasts.value[0]?.message).toBe("Could not change admin rights.");
+  });
+});
+
+describe("setup checks", () => {
+  it("sends the proxy probe, which the browser lets a page set", async () => {
+    // A header the browser forbids is dropped from a request without a word,
+    // and the check would then read every proxy as one that removes it.
+    const probe = new Request(SERVER, {
+      headers: { "X-Forwarded-For": PROXY_PROBE_ADDRESS },
+    });
+    expect(probe.headers.get("X-Forwarded-For")).toBe(PROXY_PROBE_ADDRESS);
+
+    fetchMock.mockResolvedValueOnce(
+      json({
+        appUrl: null,
+        trustProxy: false,
+        proxy: "untouched",
+        backup: null,
+        mail: null,
+      }),
+    );
+    expect((await loadSetupChecks())?.proxy).toBe("untouched");
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe(`${SERVER}/api/admin/checks`);
+    const headers = new Headers(init?.headers);
+    expect(headers.get("X-Forwarded-For")).toBe(PROXY_PROBE_ADDRESS);
+    expect(headers.get("Authorization")).toBe("Bearer tok");
+  });
+
+  it("says whether the test email went, and why it could not", async () => {
+    fetchMock.mockResolvedValueOnce(json({ sent: true }));
+    expect(await sendTestMail()).toBe(true);
+    expect(toasts.value.at(-1)?.message).toBe(t("checks.mail.testSent"));
+
+    fetchMock.mockResolvedValueOnce(json({ sent: false }));
+    expect(await sendTestMail()).toBe(false);
+    expect(toasts.value.at(-1)?.message).toBe(t("checks.mail.testFailed"));
+
+    fetchMock.mockResolvedValueOnce(json({ error: "no address" }, 409));
+    expect(await sendTestMail()).toBe(false);
+    expect(toasts.value.at(-1)?.message).toBe(t("checks.mail.noAddress"));
   });
 });

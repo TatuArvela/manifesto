@@ -645,6 +645,58 @@ export const fi: Messages = {
   "overview.jobFailed": "Epäonnistui",
   "overview.jobNever": "Ei vielä ajettu",
   "overview.jobLastRun": "Viimeksi ajettu {when}, {ms} ms",
+  "checks.title": "Asennuksen tarkistukset",
+  "checks.failed": "Asennuksen tarkistuksia ei saatu ladattua",
+  "checks.docs": "Näin korjaat sen",
+  "checks.status.ok": "Kunnossa",
+  "checks.status.info": "Hyvä tietää",
+  "checks.status.warn": "Vaatii huomiota",
+  "checks.https.title": "HTTPS",
+  "checks.https.ok": "Tämä sivu tuli HTTPS-yhteydellä.",
+  "checks.https.local":
+    "Pelkkä HTTP tällä tietokoneella. Kokeiluun se riittää; lisää HTTPS eteen ennen kuin muut kirjautuvat.",
+  "checks.https.warn":
+    "Tämä sivu tuli pelkällä HTTP-yhteydellä, joten salasanat ja muistiinpanot kulkevat verkossa luettavina. Laita palvelimen eteen käänteinen välityspalvelin, joka hoitaa HTTPS:n.",
+  "checks.appUrl.title": "APP_URL",
+  "checks.appUrl.ok": "APP_URL on osoite, jossa olet.",
+  "checks.appUrl.unset":
+    "APP_URL ei ole asetettu. Sähköposti tarvitsee sen, samoin avustajan kirjautuminen, kun asiakassovellus on eri palvelimella.",
+  "checks.appUrl.mismatch":
+    "APP_URL on {appUrl}, mutta olet osoitteessa {origin}. Sähköpostien linkit ja avustajan kirjautuminen vievät osoitteeseen {appUrl}.",
+  "checks.proxy.title": "Käänteinen välityspalvelin ja TRUST_PROXY",
+  "checks.proxy.none":
+    "Mikään palvelimen edessä ei aseta X-Forwarded-For-otsaketta, ja TRUST_PROXY on pois päältä, kuten kuuluukin.",
+  "checks.proxy.trusted":
+    "Välityspalvelin korvaa X-Forwarded-For-otsakkeen ja TRUST_PROXY on päällä, joten jokaista asiakasta rajoitetaan sen omalla osoitteella.",
+  "checks.proxy.notTrusted":
+    "Edessä oleva välityspalvelin asettaa X-Forwarded-For-otsakkeen, mutta TRUST_PROXY on pois päältä, joten kaikilla asiakkailla on yhteinen kirjautumisrajoitus. Laita TRUST_PROXY päälle, jos palvelimelle ei pääse muuta kautta kuin välityspalvelimen.",
+  "checks.proxy.appends":
+    "Välityspalvelin lisää X-Forwarded-For-otsakkeeseen sen korvaamisen sijaan. Se ei haittaa, kun TRUST_PROXY on pois päältä; aseta välityspalvelin korvaamaan otsake ennen kuin laitat sen päälle.",
+  "checks.proxy.appendsTrusted":
+    "Välityspalvelin lisää X-Forwarded-For-otsakkeeseen sen korvaamisen sijaan, ja TRUST_PROXY on päällä, joten kirjautumisrajoitus laskee osoitetta, jonka asiakas on itse valinnut. Aseta välityspalvelin korvaamaan otsake.",
+  "checks.proxy.bypassed":
+    "TRUST_PROXY on päällä, mutta tämän sivun keksimä osoite tuli palvelimelle sellaisenaan. Joko palvelimelle pääsee ohi välityspalvelimen, tai välityspalvelin välittää otsakkeen koskematta siihen, ja asiakas voi valita osoitteen, jolla sitä rajoitetaan.",
+  "checks.proxy.missingHeader":
+    "TRUST_PROXY on päällä, mutta X-Forwarded-For-otsaketta ei tule, joten kaikkia asiakkaita rajoitetaan välityspalvelimen osoitteella. Aseta välityspalvelin lähettämään otsake.",
+  "checks.backup.title": "Varmuuskopiot",
+  "checks.backup.off":
+    "Ajastettuja varmuuskopioita ei ole. Se käy, jos tietokanta varmuuskopioidaan muulla tavoin; muuten aseta BACKUP_INTERVAL_HOURS.",
+  "checks.backup.failed":
+    "Viimeisin ajastettu varmuuskopio epäonnistui: {error}",
+  "checks.backup.pending": "Ajastettu, ei vielä ajettu.",
+  "checks.backup.ok": "Viimeksi varmuuskopioitu {when}.",
+  "checks.mail.title": "Sähköposti",
+  "checks.mail.off":
+    "Sähköposti ei ole käytössä, joten unohtuneen salasanan voi vaihtaa vain ylläpitäjä, eikä jakokutsuja lähetetä sähköpostilla.",
+  "checks.mail.untested":
+    "Mitään ei ole lähetetty palvelimen käynnistymisen jälkeen.",
+  "checks.mail.ok": "Viimeisin sähköposti lähti {when}.",
+  "checks.mail.failed":
+    "Viimeisintä sähköpostia ei saatu lähetettyä ({when}). Palvelimen loki kertoo syyn.",
+  "checks.mail.test": "Lähetä minulle testiviesti",
+  "checks.mail.testSent": "Testiviesti lähetetty. Katso saapuneet viestit.",
+  "checks.mail.testFailed": "Testiviestiä ei saatu lähetettyä",
+  "checks.mail.noAddress": "Lisää ensin tilillesi sähköpostiosoite",
   "admin.tab.users": "Käyttäjät",
   "admin.tab.teams": "Tiimit",
   "admin.teams.explain":

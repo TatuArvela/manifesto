@@ -25,6 +25,7 @@ export async function apiFetch(
   method: string,
   path: string,
   body?: unknown,
+  headers?: Record<string, string>,
 ): Promise<Response | null> {
   const { serverUrl, token, onUnauthorized } = storageConnection.value;
   // `=== null`, not falsiness: a same-origin deployment's base is "".
@@ -33,6 +34,7 @@ export async function apiFetch(
     const res = await fetch(`${serverUrl}/api${path}`, {
       method,
       headers: {
+        ...headers,
         Authorization: `Bearer ${token}`,
         ...(body !== undefined && { "Content-Type": "application/json" }),
       },
@@ -53,10 +55,11 @@ export async function apiJson<T>(
   method: string,
   path: string,
   body?: unknown,
+  headers?: Record<string, string>,
 ): Promise<T | null> {
   const { serverUrl, token } = storageConnection.value;
   if (serverUrl === null || !token) throw new ApiError(401);
-  const res = await apiFetch(method, path, body);
+  const res = await apiFetch(method, path, body, headers);
   if (!res) throw new ApiError(0);
   if (!res.ok) {
     let code: ErrorResponse["code"];

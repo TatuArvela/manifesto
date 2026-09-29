@@ -632,6 +632,56 @@ export const en = {
   "overview.jobFailed": "Failed",
   "overview.jobNever": "Not run yet",
   "overview.jobLastRun": "Last run {when}, {ms} ms",
+  "checks.title": "Setup checks",
+  "checks.failed": "The setup checks could not be loaded",
+  "checks.docs": "How to fix it",
+  "checks.status.ok": "Fine",
+  "checks.status.info": "Worth knowing",
+  "checks.status.warn": "Needs attention",
+  "checks.https.title": "HTTPS",
+  "checks.https.ok": "This page came over HTTPS.",
+  "checks.https.local":
+    "Plain HTTP on this computer. Fine for trying it out; put HTTPS in front before anyone else signs in.",
+  "checks.https.warn":
+    "This page came over plain HTTP, so passwords and notes cross the network readable. Put a reverse proxy that terminates HTTPS in front of the server.",
+  "checks.appUrl.title": "APP_URL",
+  "checks.appUrl.ok": "APP_URL is the address you are on.",
+  "checks.appUrl.unset":
+    "APP_URL is not set. Email needs it, and so does an assistant's sign-in when the client is hosted apart from the server.",
+  "checks.appUrl.mismatch":
+    "APP_URL is {appUrl}, but you are on {origin}. Links in email and an assistant's sign-in lead to {appUrl}.",
+  "checks.proxy.title": "Reverse proxy and TRUST_PROXY",
+  "checks.proxy.none":
+    "Nothing in front of the server sets X-Forwarded-For, and TRUST_PROXY is off, as it should be.",
+  "checks.proxy.trusted":
+    "The proxy replaces X-Forwarded-For and TRUST_PROXY is on, so each client is throttled by its own address.",
+  "checks.proxy.notTrusted":
+    "A proxy in front sets X-Forwarded-For, but TRUST_PROXY is off, so every client shares one sign-in throttle. Turn TRUST_PROXY on if nothing reaches the server except through the proxy.",
+  "checks.proxy.appends":
+    "The proxy adds to X-Forwarded-For instead of replacing it. Harmless while TRUST_PROXY is off; set the proxy to replace the header before turning it on.",
+  "checks.proxy.appendsTrusted":
+    "The proxy adds to X-Forwarded-For instead of replacing it, and TRUST_PROXY is on, so the sign-in throttle counts an address the client chose. Set the proxy to replace the header.",
+  "checks.proxy.bypassed":
+    "TRUST_PROXY is on, but an address this page made up reached the server as it was sent. Either the server can be reached without the proxy, or the proxy passes the header on untouched, and a client can choose the address it is throttled by.",
+  "checks.proxy.missingHeader":
+    "TRUST_PROXY is on, but no X-Forwarded-For arrives, so every client is throttled as the proxy's address. Have the proxy set the header.",
+  "checks.backup.title": "Backups",
+  "checks.backup.off":
+    "No scheduled backups. Fine if the database is backed up some other way; otherwise set BACKUP_INTERVAL_HOURS.",
+  "checks.backup.failed": "The last scheduled backup failed: {error}",
+  "checks.backup.pending": "Scheduled, not run yet.",
+  "checks.backup.ok": "Last backed up {when}.",
+  "checks.mail.title": "Email",
+  "checks.mail.off":
+    "Email is not set up, so a forgotten password can only be reset by an admin, and share invitations are not mailed.",
+  "checks.mail.untested": "Nothing has been sent since the server started.",
+  "checks.mail.ok": "The last email went {when}.",
+  "checks.mail.failed":
+    "The last email could not be sent ({when}). The server log says why.",
+  "checks.mail.test": "Send me a test email",
+  "checks.mail.testSent": "Test email sent. Check your inbox.",
+  "checks.mail.testFailed": "The test email could not be sent",
+  "checks.mail.noAddress": "Add an email address to your account first",
   "admin.tab.users": "Users",
   "admin.tab.teams": "Teams",
   "admin.teams.explain":

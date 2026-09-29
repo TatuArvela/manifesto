@@ -43,6 +43,13 @@ vi.mock("../../state/admin.js", async (original) => ({
       },
     ],
   }),
+  loadSetupChecks: async () => ({
+    appUrl: null,
+    trustProxy: true,
+    proxy: "appended",
+    backup: { scheduled: false, lastFinishedAt: null, lastError: null },
+    mail: { lastSentAt: null, lastFailedAt: null },
+  }),
 }));
 
 describe("AdminOverview", () => {
@@ -66,5 +73,24 @@ describe("AdminOverview", () => {
     expect(host.textContent).toContain(
       t("overview.updateAvailable", { version: "1.3.0" }),
     );
+  });
+
+  it("lists the setup checks, with a way to test mail", async () => {
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    render(<AdminOverview />, host);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("checks.title")),
+    );
+    expect(host.textContent).toContain(t("checks.proxy.appendsTrusted"));
+    expect(host.textContent).toContain(t("checks.backup.off"));
+    expect(host.textContent).toContain(t("checks.mail.test"));
+    expect(host.querySelectorAll('[data-status="warn"]')).toHaveLength(1);
+    expect(
+      host
+        .querySelector('[data-status="warn"] a')
+        ?.getAttribute("href")
+        ?.endsWith("#x-forwarded-for-must-be-overwritten-not-appended"),
+    ).toBe(true);
   });
 });

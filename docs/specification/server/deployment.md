@@ -448,7 +448,9 @@ WebSocket upgrades through for `/api/ws` (application events) and `/api/yjs`
 (collaborative editing); most proxies do that on their own for a proxied route,
 so the two rarely need blocks of their own.
 
-Two things below are easy to get wrong in ways nothing reports.
+Two things below are easy to get wrong in ways nothing else reports. The admin overview's
+[setup checks](../features/accounts.md#setup-checks) look for both from the admin's own request, along with
+HTTPS, `APP_URL`, backups and mail.
 
 ### `X-Forwarded-For` must be overwritten, not appended
 

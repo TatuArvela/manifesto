@@ -295,3 +295,29 @@ the overview says so with a link to its notes, and every admin sees a dot on the
 the About page of Settings. A build past a release (`0.1.8+14.bf5a6dd`) counts as that release, so only a later
 release is news. The counts are plain aggregates in either driver (`maintenance.stats`); job status is kept in memory by
 `startPeriodicJob`, so it describes the running process since it started.
+
+### Setup checks
+
+The overview also lists **setup checks**: the settings that go wrong without anything saying so. Each is
+fine, worth knowing, or needs attention, with a line on what it means and, where there is something to
+change, a link to the section of [Server Deployment](../server/deployment.md) that says how.
+
+- **HTTPS**: whether the page came over HTTPS. Plain HTTP on `localhost` is only worth knowing.
+- **`APP_URL`**: whether it is the address the admin is on. Unset is worth knowing (email needs it); a
+  different address needs attention, since links in email and an assistant's sign-in lead there.
+- **The proxy and `TRUST_PROXY`**: the client sends the request with a made-up `X-Forwarded-For` (a
+  documentation address, `PROXY_PROBE_ADDRESS`), and the server reports what reached it: the probe as
+  sent (no proxy set the header), a single other address (a proxy replaced it), the probe with
+  addresses after it (a proxy appended), or nothing. Trusting the header is right exactly when a proxy
+  replaces it. Trusting one that appends, or a probe that arrived untouched, lets a client choose the
+  address it is throttled by; not trusting a proxy that replaces it puts every client in one bucket.
+  The check sees only the path the admin's own request took: a port published beside the proxy is
+  found only when that is the way the admin came in.
+- **Backups** (SQLite only; Postgres backups are its own): off is worth knowing, a failed last run
+  needs attention.
+- **Email**: off is worth knowing. With `SMTP_URL`, when mail last went or last failed since the server
+  started (in memory, like job status; why a send failed is in the server log), and a button that sends
+  the admin a test message at their own address.
+
+HTTPS and `APP_URL` are judged in the browser, which alone knows the address it used; the rest comes
+from `GET /api/admin/checks`.
