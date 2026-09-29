@@ -197,6 +197,35 @@ describe("notes routes", () => {
     expect(res.status).toBe(422);
   });
 
+  it("keeps the day a monthly reminder repeats on, and refuses one no month has", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token);
+    // A reminder set for the 31st, clamped to February: the schema used to
+    // strip `day`, so the next month stepped from the 28th.
+    const reminder = {
+      time: "2026-02-28T09:00:00",
+      recurrence: "monthly",
+      day: 31,
+      timezone: "Europe/Helsinki",
+    };
+    const updated = await putNote(rig, token, note.id, { reminder });
+    expect(updated.reminder).toEqual(reminder);
+    const read = await rig.request(`/api/notes/${note.id}`, {
+      headers: authHeaders(token),
+    });
+    expect(((await read.json()) as { note: Note }).note.reminder).toEqual(
+      reminder,
+    );
+    for (const day of [0, 32, 1.5]) {
+      const res = await rig.request(`/api/notes/${note.id}`, {
+        method: "PUT",
+        headers: authHeaders(token),
+        body: JSON.stringify({ reminder: { ...reminder, day } }),
+      });
+      expect(res.status, String(day)).toBe(422);
+    }
+  });
+
   it("refuses an image that is not an attachment reference", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const cases: Array<[string, string]> = [

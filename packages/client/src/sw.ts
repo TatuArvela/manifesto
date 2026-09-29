@@ -16,9 +16,9 @@ import {
   sharedTextFromForm,
 } from "./shareTarget.js";
 import {
-  nextOccurrence,
+  advanceReminder,
   parseLocalISO,
-  snapToFuture,
+  snapReminderToFuture,
 } from "./state/reminderTime.js";
 
 declare const self: ServiceWorkerGlobalScope & {
@@ -113,6 +113,9 @@ interface StoredReminder {
   noteId: string;
   time: string;
   recurrence: ReminderRecurrence;
+  /** The day a monthly or yearly reminder repeats on, when `time` shows
+   * another (`NoteReminder.day`). */
+  day?: number;
   title: string;
   body: string;
   lastFiredAt: string | null;
@@ -127,6 +130,11 @@ function isValidStoredReminder(v: unknown): v is StoredReminder {
   if (typeof r.time !== "string") return false;
   if (Number.isNaN(new Date(r.time).getTime())) return false;
   if (typeof r.recurrence !== "string" || !VALID_RECURRENCES.has(r.recurrence))
+    return false;
+  if (
+    r.day !== undefined &&
+    !(Number.isInteger(r.day) && Number(r.day) >= 1 && Number(r.day) <= 31)
+  )
     return false;
   if (typeof r.title !== "string") return false;
   if (typeof r.body !== "string") return false;
@@ -219,10 +227,7 @@ async function fireDue(): Promise<void> {
     // one per poll. A stale one-shot reminder is simply dropped, as on the client.
     if (dueMs < -CATCHUP_WINDOW_MS) {
       if (item.recurrence !== "none") {
-        await putOne({
-          ...item,
-          time: snapToFuture(item.time, item.recurrence),
-        });
+        await putOne(snapReminderToFuture(item));
       }
       continue;
     }
@@ -244,13 +249,17 @@ async function fireDue(): Promise<void> {
       continue;
     }
     const nowIso = new Date().toISOString();
-    const next = nextOccurrence(item.time, item.recurrence);
+    const next = advanceReminder(item);
     if (next) {
-      await putOne({ ...item, time: next, lastFiredAt: nowIso });
+      await putOne({ ...next, lastFiredAt: nowIso });
     } else {
       await putOne({ ...item, lastFiredAt: nowIso });
     }
-    broadcast({ type: "reminder-fired", noteId: item.noteId, nextTime: next });
+    broadcast({
+      type: "reminder-fired",
+      noteId: item.noteId,
+      nextTime: next?.time ?? null,
+    });
   }
 }
 

@@ -1,16 +1,22 @@
+import type { NoteReminder } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import {
+  advanceReminder,
   formatLocalISO,
   nextOccurrence,
   parseLocalISO,
+  pickedReminder,
+  reminderAt,
+  snapReminderToFuture,
   snapToFuture,
 } from "./reminderTime.js";
 
 /**
  * The recurrence maths on its own, in the Node project. The scheduler's
  * browser test covers each recurrence's single step; these follow a reminder
- * over many fires, which is what the scheduler does: each fire stores the next
- * occurrence as the reminder's new time and steps from that.
+ * over many fires, which is what the scheduler does: each fire stores the
+ * advanced reminder (its next time, and the day it repeats on when a short
+ * month hides it) and steps from that.
  */
 
 /** The times a recurring reminder is set to over `count` fires. */
@@ -20,11 +26,14 @@ function fires(
   count: number,
 ): string[] {
   const out = [time];
-  let current = time;
+  let current: Pick<NoteReminder, "time" | "recurrence" | "day"> = {
+    time,
+    recurrence,
+  };
   for (let i = 0; i < count; i++) {
-    const next = nextOccurrence(current, recurrence);
+    const next = advanceReminder(current);
     if (!next) break;
-    out.push(next);
+    out.push(next.time);
     current = next;
   }
   return out;
@@ -81,11 +90,7 @@ describe("a recurring reminder over many fires", () => {
     );
   });
 
-  // Bug: the scheduler stores each next occurrence as the reminder's time
-  // (reminderScheduler.ts `scheduleNext`), and `nextOccurrence` steps from
-  // that clamped day, so a reminder on the 31st moves to the 28th in February
-  // and stays there for good.
-  it.fails("comes back to the 31st after a shorter month", () => {
+  it("comes back to the 31st after a shorter month", () => {
     const times = fires("2026-01-31T09:00:00", "monthly", 3);
     expect(times).toEqual([
       "2026-01-31T09:00:00",
@@ -95,11 +100,89 @@ describe("a recurring reminder over many fires", () => {
     ]);
   });
 
-  // Bug: the same for a yearly reminder on 29 February, which falls back to
-  // the 28th in 2025 and never returns to the 29th in a leap year.
-  it.fails("comes back to 29 February in the next leap year", () => {
-    const times = fires("2024-02-29T09:00:00", "yearly", 4);
-    expect(times.at(-1)).toBe("2028-02-29T09:00:00");
+  it("comes back to 29 February in the next leap year", () => {
+    expect(fires("2024-02-29T09:00:00", "yearly", 4)).toEqual([
+      "2024-02-29T09:00:00",
+      "2025-02-28T09:00:00",
+      "2026-02-28T09:00:00",
+      "2027-02-28T09:00:00",
+      "2028-02-29T09:00:00",
+    ]);
+  });
+
+  it("keeps the 30th through February and a leap year", () => {
+    expect(fires("2028-01-30T09:00:00", "monthly", 3)).toEqual([
+      "2028-01-30T09:00:00",
+      "2028-02-29T09:00:00",
+      "2028-03-30T09:00:00",
+      "2028-04-30T09:00:00",
+    ]);
+  });
+});
+
+describe("the day a reminder repeats on", () => {
+  it("is stored only while a short month hides it", () => {
+    const feb = advanceReminder({
+      time: "2026-01-31T09:00:00",
+      recurrence: "monthly",
+    });
+    expect(feb).toEqual({
+      time: "2026-02-28T09:00:00",
+      recurrence: "monthly",
+      day: 31,
+    });
+    expect(feb && advanceReminder(feb)).toEqual({
+      time: "2026-03-31T09:00:00",
+      recurrence: "monthly",
+    });
+  });
+
+  it("is never stored for a reminder no month clamps", () => {
+    for (const recurrence of [
+      "daily",
+      "weekly",
+      "monthly",
+      "yearly",
+    ] as const) {
+      const next = advanceReminder({ time: "2026-01-15T09:00:00", recurrence });
+      expect(next, recurrence).not.toHaveProperty("day");
+    }
+  });
+
+  it("follows a reminder moved to a time, and leaves one that does not repeat by date", () => {
+    const clamped = {
+      time: "2026-02-28T09:00:00",
+      recurrence: "monthly",
+      day: 31,
+    } as const;
+    expect(reminderAt(clamped, "2026-04-30T10:00:00")).toEqual({
+      time: "2026-04-30T10:00:00",
+      recurrence: "monthly",
+      day: 31,
+    });
+    expect(
+      reminderAt({ ...clamped, recurrence: "weekly" }, "2026-03-07T09:00:00"),
+    ).toEqual({ time: "2026-03-07T09:00:00", recurrence: "weekly" });
+  });
+
+  it("survives a snap past missed occurrences", () => {
+    const snapped = snapReminderToFuture(
+      { time: "2026-01-31T09:00:00", recurrence: "monthly" },
+      parseLocalISO("2026-03-01T00:00:00"),
+    );
+    expect(snapped).toEqual({
+      time: "2026-03-31T09:00:00",
+      recurrence: "monthly",
+    });
+    const intoApril = snapReminderToFuture(
+      { time: "2026-01-31T09:00:00", recurrence: "monthly" },
+      parseLocalISO("2026-04-01T00:00:00"),
+    );
+    expect(intoApril).toEqual({
+      time: "2026-04-30T09:00:00",
+      recurrence: "monthly",
+      day: 31,
+    });
   });
 });
 
@@ -145,5 +228,39 @@ describe("snapToFuture", () => {
   it.fails("reaches the future from a daily reminder years behind", () => {
     const snapped = snapToFuture("2020-01-01T09:00:00", "daily", now);
     expect(parseLocalISO(snapped).getTime()).toBeGreaterThan(now.getTime());
+  });
+});
+
+describe("pickedReminder", () => {
+  const now = parseLocalISO("2026-02-10T12:00:00");
+  const clamped = {
+    time: "2026-02-28T09:00:00",
+    recurrence: "monthly",
+    day: 31,
+  } as const;
+
+  it("keeps a clamped reminder's day when only its hour changes", () => {
+    expect(
+      pickedReminder(clamped, "2026-02-28T18:30:00", "monthly", now),
+    ).toEqual({ time: "2026-02-28T18:30:00", recurrence: "monthly", day: 31 });
+  });
+
+  it("starts from the date picked when the date or the recurrence changes", () => {
+    expect(
+      pickedReminder(clamped, "2026-02-27T09:00:00", "monthly", now),
+    ).toEqual({ time: "2026-02-27T09:00:00", recurrence: "monthly" });
+    expect(
+      pickedReminder(clamped, "2026-02-28T09:00:00", "weekly", now),
+    ).toEqual({ time: "2026-02-28T09:00:00", recurrence: "weekly" });
+  });
+
+  it("moves a recurring time already past to its next occurrence, keeping its day", () => {
+    expect(pickedReminder(null, "2026-01-31T09:00:00", "monthly", now)).toEqual(
+      { time: "2026-02-28T09:00:00", recurrence: "monthly", day: 31 },
+    );
+    expect(pickedReminder(null, "2026-01-31T09:00:00", "none", now)).toEqual({
+      time: "2026-01-31T09:00:00",
+      recurrence: "none",
+    });
   });
 });

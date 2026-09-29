@@ -1,6 +1,6 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { escapeText, foldLine, remindersCalendar } from "./ics.js";
+import { escapeText, foldLine, remindersCalendar, rruleOf } from "./ics.js";
 
 function note(overrides: Partial<Note>): Note {
   return {
@@ -112,6 +112,46 @@ describe("remindersCalendar", () => {
     expect(all).toContain("DTSTART:20260501T090000");
     expect(ics).not.toContain("X-INJECT");
     expect(all).toContain("DESCRIPTION:- [ ] Call back\\, today\\nmore");
+  });
+});
+
+describe("rruleOf", () => {
+  it("repeats plainly on a day every month has", () => {
+    expect(
+      rruleOf({ time: "2026-05-15T09:00:00", recurrence: "monthly" }),
+    ).toBe("FREQ=MONTHLY");
+    expect(rruleOf({ time: "2026-05-28T09:00:00", recurrence: "yearly" })).toBe(
+      "FREQ=YEARLY",
+    );
+    expect(rruleOf({ time: "2026-05-31T09:00:00", recurrence: "weekly" })).toBe(
+      "FREQ=WEEKLY",
+    );
+    expect(rruleOf({ time: "2026-05-31T09:00:00", recurrence: "none" })).toBe(
+      null,
+    );
+  });
+
+  // FREQ=MONTHLY alone would skip every month without a 31st, where the app
+  // fires on the month's last day.
+  it("takes a short month's last day for a day past the 28th, as the app does", () => {
+    expect(
+      rruleOf({ time: "2026-01-31T09:00:00", recurrence: "monthly" }),
+    ).toBe("FREQ=MONTHLY;BYMONTHDAY=28,29,30,31;BYSETPOS=-1");
+    expect(
+      rruleOf({ time: "2026-01-29T09:00:00", recurrence: "monthly" }),
+    ).toBe("FREQ=MONTHLY;BYMONTHDAY=28,29;BYSETPOS=-1");
+    expect(rruleOf({ time: "2024-02-29T09:00:00", recurrence: "yearly" })).toBe(
+      "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=28,29;BYSETPOS=-1",
+    );
+  });
+
+  it("repeats on the day a reminder was set for, not the day a short month moved it to", () => {
+    expect(
+      rruleOf({ time: "2026-02-28T09:00:00", recurrence: "monthly", day: 31 }),
+    ).toBe("FREQ=MONTHLY;BYMONTHDAY=28,29,30,31;BYSETPOS=-1");
+    expect(
+      rruleOf({ time: "2025-02-28T09:00:00", recurrence: "yearly", day: 29 }),
+    ).toBe("FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=28,29;BYSETPOS=-1");
   });
 });
 

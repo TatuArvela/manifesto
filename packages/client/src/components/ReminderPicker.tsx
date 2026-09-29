@@ -14,7 +14,7 @@ import {
   ensureNotificationPermission,
   notifyPermissionDenied,
   parseLocalISO,
-  snapToFuture,
+  pickedReminder,
 } from "../state/reminderScheduler.js";
 import { Dropdown } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
@@ -126,18 +126,14 @@ export function ReminderPickerPanel({
     nextMinute: number,
     nextRecurrence: ReminderRecurrence,
   ) => {
-    let finalISO = composeISO(nextDate, nextHour, nextMinute);
-    const past = parseLocalISO(finalISO).getTime() <= Date.now();
-    if (nextRecurrence !== "none" && past) {
-      finalISO = snapToFuture(finalISO, nextRecurrence);
-    }
+    const settled = pickedReminder(
+      reminder,
+      composeISO(nextDate, nextHour, nextMinute),
+      nextRecurrence,
+    );
     const perm = await ensureNotificationPermission();
     if (perm === "denied") notifyPermissionDenied();
-    onChange({
-      time: finalISO,
-      recurrence: nextRecurrence,
-      timezone: currentTimezone(),
-    });
+    onChange({ ...settled, timezone: currentTimezone() });
     onDone();
   };
 

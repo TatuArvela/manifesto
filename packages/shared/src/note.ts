@@ -197,6 +197,12 @@ export interface NoteReminder {
   /** ISO 8601 local-wall-clock datetime when the reminder next fires. */
   time: string;
   recurrence: ReminderRecurrence;
+  /**
+   * The day of the month a monthly or yearly reminder repeats on, present
+   * only while `time` shows another: a reminder set for the 31st fires on the
+   * 28th in February and must still return to the 31st in March.
+   */
+  day?: number;
   /** IANA timezone captured at creation so DST/travel behaves predictably. */
   timezone: string;
   /** ISO of the last real fire; used for cross-tab / service-worker dedupe. */

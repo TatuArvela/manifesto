@@ -256,6 +256,7 @@ const reminderRecurrenceSchema = z.enum(REMINDER_RECURRENCES);
 const reminderSchema = z.object({
   time: z.string(),
   recurrence: reminderRecurrenceSchema,
+  day: z.number().int().min(1).max(31).optional(),
   timezone: z.string(),
   lastFiredAt: z.string().optional(),
 });

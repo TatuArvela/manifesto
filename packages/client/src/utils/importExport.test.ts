@@ -328,4 +328,21 @@ describe("parseNoteJson bulk normalization", () => {
     if (result.kind !== "bulk") throw new Error("expected bulk");
     expect(result.notes[0].reminder?.recurrence).toBe("none");
   });
+
+  it("keeps the day a reminder repeats on, and drops one no month has", () => {
+    const reminder = {
+      time: "2026-02-28T09:00:00",
+      recurrence: "monthly",
+      timezone: "UTC",
+    };
+    const result = parseNoteJson(
+      JSON.stringify([
+        { ...baseNote, reminder: { ...reminder, day: 31 } },
+        { ...baseNote, reminder: { ...reminder, day: 40 } },
+      ]),
+    );
+    if (result.kind !== "bulk") throw new Error("expected bulk");
+    expect(result.notes[0].reminder).toEqual({ ...reminder, day: 31 });
+    expect(result.notes[1].reminder).toEqual(reminder);
+  });
 });

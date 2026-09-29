@@ -32,8 +32,13 @@ When a recurring reminder fires, the stored `time` is advanced to the next occur
 
 - `daily`: +1 day
 - `weekly`: +7 days
-- `monthly`: `setMonth(+1)` (clamps to the last day of shorter months)
-- `yearly`: `setFullYear(+1)` (Feb 29 on non-leap years falls back to Feb 28)
+- `monthly`: the same day next month, or that month's last day when it is shorter
+- `yearly`: the same date next year, with 29 February falling back to the 28th outside a leap year
+
+A shorter month moves one occurrence, not the reminder: each step starts from the day the reminder was
+set for, so the 31st goes to 28 February and back to 31 March, and 29 February returns in the next leap
+year. While a clamped `time` hides that day, the reminder carries it as `day`; it is dropped again once
+`time` shows it. Changing only the hour in the picker keeps it; a new date or recurrence starts over.
 
 Arithmetic operates on local components, so a reminder at 08:00 local stays at 08:00 across DST transitions.
 
@@ -54,7 +59,10 @@ calendar, Thunderbird, Google Calendar by URL). In Settings → API tokens, a **
 gives an address to subscribe to, and a `webcal:` link that opens the device's calendar app with it.
 
 - Each note with a reminder is an event at the reminder's time, in its timezone, repeating daily,
-  weekly, monthly or yearly as the reminder does, with an alarm when it is due. A note in the trash is
+  weekly, monthly or yearly as the reminder does, with an alarm when it is due. A monthly or yearly
+  reminder past the 28th repeats on "the last of the 28th to its day" (`BYMONTHDAY` with
+  `BYSETPOS=-1`), since `FREQ=MONTHLY` alone skips the months without its date where the app fires
+  on their last day. A note in the trash is
   left out. The event is named by the note's title, or its first line when it has none, and holds its
   text.
 - The feed is read-only: moving an event in the calendar does not move the reminder.
