@@ -19,14 +19,26 @@ export interface Frontmatter {
 const KEY_LINE = /^([A-Za-z_][\w-]*):(?:\s+(.*))?$/;
 const ITEM_LINE = /^\s+-\s+(.*)$/;
 
+/**
+ * A YAML scalar's quotes, undone as YAML reads them: a double-quoted string
+ * takes backslash escapes (our own export writes it with `JSON.stringify`),
+ * and a single-quoted one doubles its quote. An escape JSON cannot read is
+ * kept as written rather than refused.
+ */
 function unquote(value: string): string {
   const v = value.trim();
-  if (
-    v.length >= 2 &&
-    ((v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'")))
-  ) {
+  if (v.length < 2) return v;
+  if (v.startsWith('"') && v.endsWith('"')) {
+    try {
+      const parsed: unknown = JSON.parse(v);
+      if (typeof parsed === "string") return parsed;
+    } catch {
+      // Not JSON-shaped (a YAML-only escape): fall back to the bare text.
+    }
     return v.slice(1, -1);
+  }
+  if (v.startsWith("'") && v.endsWith("'")) {
+    return v.slice(1, -1).replaceAll("''", "'");
   }
   return v;
 }

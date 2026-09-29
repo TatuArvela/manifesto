@@ -24,17 +24,22 @@ export type ImportResult =
   | { kind: "bulk"; notes: Note[] };
 
 /**
- * One Markdown file as a note. A leading `# ` heading is the title; YAML
- * frontmatter, as Obsidian and other Markdown note apps write it, can give
- * the title, `tags` (or `tag`) and the pinned / archived flags too.
+ * One Markdown file as a note. YAML frontmatter, as Obsidian and other
+ * Markdown note apps write it (and this app's own export), can give the
+ * title, `tags` (or `tag`) and the pinned / archived flags. A `title` there
+ * wins, even an empty one: a leading heading is then the note's own content,
+ * and is dropped only when it repeats the title. With no `title`, a leading
+ * `# ` heading is the title and leaves the body.
  */
 export function parseMarkdownToNote(text: string): Partial<NoteCreate> {
   const { data, body } = splitFrontmatter(text.replace(/^\uFEFF/, ""));
   const lines = body.split(/\r?\n/);
+  const titled = typeof data.title === "string";
   let title = frontmatterString(data.title) ?? "";
   let contentStart = 0;
-  if (lines[0]?.startsWith("# ")) {
-    title = lines[0].slice(2).trim();
+  const heading = lines[0]?.startsWith("# ") ? lines[0].slice(2).trim() : null;
+  if (heading !== null && (!titled || (title !== "" && heading === title))) {
+    title = heading;
     contentStart = 1;
     while (contentStart < lines.length && lines[contentStart].trim() === "") {
       contentStart++;
@@ -64,6 +69,9 @@ export function markdownFileToNote(
 ): Note {
   const note = parseMarkdownToNote(text);
   const { data } = splitFrontmatter(text.replace(/^\uFEFF/, ""));
+  // An empty `title:` says the note has none, as this app's export writes an
+  // untitled note; only a file that does not say is named after itself.
+  const titled = typeof data.title === "string";
   const segments = path.split("/").filter((s) => s !== "");
   const file = segments.pop() ?? "";
   const stem = file.replace(/\.(md|markdown)$/i, "");
@@ -75,7 +83,7 @@ export function markdownFileToNote(
   return normalizeImportedNote({
     ...note,
     id: ulid(),
-    title: note.title || stem,
+    title: titled ? (note.title ?? "") : note.title || stem,
     tags: [...new Set([...(note.tags ?? []), ...segments])],
     // Newest first, as notes written here are.
     position: -Date.parse(createdAt),
