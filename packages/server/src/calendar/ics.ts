@@ -1,4 +1,4 @@
-import type { Note, ReminderRecurrence } from "@manifesto/shared";
+import type { Note, NoteReminder, ReminderRecurrence } from "@manifesto/shared";
 
 /**
  * A user's reminders as an iCalendar feed (RFC 5545), for a calendar app to
@@ -17,6 +17,30 @@ const RRULES: Record<ReminderRecurrence, string | null> = {
   monthly: "FREQ=MONTHLY",
   yearly: "FREQ=YEARLY",
 };
+
+/**
+ * The RRULE for a reminder. `FREQ=MONTHLY` alone repeats on the start date
+ * and skips a month that has none (RFC 5545 3.3.10), where the app fires on
+ * the month's last day instead. So a monthly or yearly reminder past the 28th
+ * asks for the last of the days from the 28th to its own (`BYSETPOS=-1`):
+ * its day where the month has it, the month's last day where it does not.
+ */
+export function rruleOf(
+  reminder: Pick<NoteReminder, "time" | "recurrence" | "day">,
+): string | null {
+  const base = RRULES[reminder.recurrence] ?? null;
+  if (reminder.recurrence !== "monthly" && reminder.recurrence !== "yearly") {
+    return base;
+  }
+  const date = /^\d{4}-(\d{2})-(\d{2})/.exec(reminder.time);
+  if (!date) return base;
+  const day = reminder.day ?? Number(date[2]);
+  if (!Number.isInteger(day) || day <= 28 || day > 31) return base;
+  const days = Array.from({ length: day - 27 }, (_, i) => 28 + i).join(",");
+  const month =
+    reminder.recurrence === "yearly" ? `;BYMONTH=${Number(date[1])}` : "";
+  return `${base}${month};BYMONTHDAY=${days};BYSETPOS=-1`;
+}
 
 /** How long an event is drawn; a reminder is a moment, but a calendar needs
  * something to show. */
@@ -134,7 +158,7 @@ export function remindersCalendar(
     const start = startOf(reminder.time, reminder.timezone);
     if (!start) continue;
     const summary = escapeText(summaryOf(note) || options.untitled);
-    const rrule = RRULES[reminder.recurrence] ?? null;
+    const rrule = rruleOf(reminder);
     const description = note.content.trim().slice(0, MAX_DESCRIPTION);
     lines.push(
       "BEGIN:VEVENT",

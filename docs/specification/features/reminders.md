@@ -59,7 +59,10 @@ calendar, Thunderbird, Google Calendar by URL). In Settings → API tokens, a **
 gives an address to subscribe to, and a `webcal:` link that opens the device's calendar app with it.
 
 - Each note with a reminder is an event at the reminder's time, in its timezone, repeating daily,
-  weekly, monthly or yearly as the reminder does, with an alarm when it is due. A note in the trash is
+  weekly, monthly or yearly as the reminder does, with an alarm when it is due. A monthly or yearly
+  reminder past the 28th repeats on "the last of the 28th to its day" (`BYMONTHDAY` with
+  `BYSETPOS=-1`), since `FREQ=MONTHLY` alone skips the months without its date where the app fires
+  on their last day. A note in the trash is
   left out. The event is named by the note's title, or its first line when it has none, and holds its
   text.
 - The feed is read-only: moving an event in the calendar does not move the reminder.
