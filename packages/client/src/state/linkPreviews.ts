@@ -43,7 +43,7 @@ async function loadLinkPreview(url: string): Promise<LinkPreview | null> {
   try {
     fetched = await storage.fetchLinkPreview(url);
   } catch (err) {
-    console.warn(`Link preview for ${url} failed:`, err);
+    console.warn("Link preview for %s failed:", url, err);
     return null;
   }
   if (!fetched) return null;

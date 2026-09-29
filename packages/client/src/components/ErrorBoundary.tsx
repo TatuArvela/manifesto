@@ -78,8 +78,8 @@ export class ErrorBoundary extends Component<Props, State> {
     return { error };
   }
 
-  componentDidCatch(error: Error): void {
-    console.error(`${APP_NAME} crashed during render`, error);
+  override componentDidCatch(error: Error): void {
+    console.error("%s crashed during render", APP_NAME, error);
     // The fallback, with its backup button, is the screen now.
     revealApp();
   }

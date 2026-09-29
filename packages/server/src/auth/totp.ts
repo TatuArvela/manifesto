@@ -1,4 +1,9 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  createHmac,
+  randomBytes,
+  randomInt,
+  timingSafeEqual,
+} from "node:crypto";
 
 /**
  * Time-based one-time passwords (RFC 6238 over RFC 4226), the six-digit codes
@@ -113,9 +118,11 @@ const RECOVERY_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 
 export function newRecoveryCodes(count = 10): string[] {
   return Array.from({ length: count }, () => {
-    const bytes = randomBytes(8);
-    const chars = [...bytes].map(
-      (b) => RECOVERY_ALPHABET[b % RECOVERY_ALPHABET.length],
+    // `randomInt` rejects rather than folds, so every character is equally
+    // likely: 256 is not a multiple of the alphabet's 31.
+    const chars = Array.from(
+      { length: 8 },
+      () => RECOVERY_ALPHABET[randomInt(RECOVERY_ALPHABET.length)],
     );
     return `${chars.slice(0, 4).join("")}-${chars.slice(4).join("")}`;
   });

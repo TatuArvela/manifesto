@@ -42,7 +42,7 @@ function report(
   fallback: MessageKey,
   byStatus: Partial<Record<number, MessageKey>> = {},
 ) {
-  console.error(context, err);
+  console.error("%s", context, err);
   const status = err instanceof ApiError ? err.status : 0;
   if (status === 401) return; // signed out; the login screen says enough
   showError(t(byStatus[status] ?? fallback));
