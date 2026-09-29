@@ -12,9 +12,9 @@ import {
   UserPlus,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { formatDate, plural, t } from "../i18n/index.js";
-import { downloadAccountExport } from "../state/accountExport.js";
+import { useEscapeStack } from "../../hooks/useEscapeStack.js";
+import { formatDate, plural, t } from "../../i18n/index.js";
+import { downloadAccountExport } from "../../state/accountExport.js";
 import {
   adminUsers,
   createAccount,
@@ -25,20 +25,20 @@ import {
   resetAccountPassword,
   setAccountAdmin,
   setAccountEmail,
-} from "../state/admin.js";
+} from "../../state/admin.js";
 import {
   authProviders,
   currentUser,
   fetchCapabilities,
-} from "../state/auth.js";
-import { serverFeature } from "../state/serverFeatures.js";
-import { showError } from "../state/ui.js";
+} from "../../state/auth.js";
+import { serverFeature } from "../../state/serverFeatures.js";
+import { showError } from "../../state/ui.js";
+import { Avatar } from "../Avatar.js";
+import { Dropdown } from "../Dropdown.js";
+import { menuItemClass, menuPanelClass } from "../NoteMenu.js";
 import { AdminOverview } from "./AdminOverview.js";
 import { AdminTeams } from "./AdminTeams.js";
 import { AuditLog } from "./AuditLog.js";
-import { Avatar } from "./Avatar.js";
-import { Dropdown } from "./Dropdown.js";
-import { menuItemClass, menuPanelClass } from "./NoteMenu.js";
 
 const primaryButtonClass =
   "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";

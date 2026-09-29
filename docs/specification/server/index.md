@@ -86,7 +86,7 @@ Implements the endpoints defined in [API](../api.md). The auth provider owns `/a
 
 `/api/admin` (`src/routes/admin.ts`) lets admins list, create, reset, promote and delete accounts; see [Account Administration](../features/accounts.md). It is provider-agnostic, except that creating accounts and resetting passwords exist only under `AUTH_PROVIDER=local`.
 
-The rules that must hold whatever calls them live in the `users` repository, so both drivers enforce them and a shared contract test (`src/storage/adminContract.ts`) runs against each:
+The rules that must hold whatever calls them live in the `users` repository, so both drivers enforce them and a shared contract test (`src/storage/contracts/adminContract.ts`) runs against each:
 
 - `create` makes an account admin when asked to, or otherwise exactly when it is the first, decided inside the `INSERT`. Under single sign-on the first sign-in is how a server gets its admin.
 - `setAdmin` and `delete` refuse to remove the last admin. SQLite runs the count and the write in an immediate transaction; Postgres locks every admin row (`FOR UPDATE`, in id order) before counting, so two admins demoting each other at once cannot both succeed.
@@ -118,7 +118,7 @@ accepted (`null` while it is an invitation), and their own copy of the personal 
 - **Sockets.** `src/sharing/accessChanges.ts` announces lost access the way `auth/revocations.ts`
   announces ended sessions. `/api/yjs` closes the affected sockets; `/api/ws` stops showing the person
   on the note and stops telling them who else is.
-- **Contract.** `src/storage/sharingContract.ts` runs the same rules against both drivers: an
+- **Contract.** `src/storage/contracts/sharingContract.ts` runs the same rules against both drivers: an
   invitation grants nothing, personal fields stay apart, viewers cannot write the note, the owner's
   trash hides a note from recipients while a recipient's is their own, an expired recipient trash
   removes only their share, cascades take shares along.

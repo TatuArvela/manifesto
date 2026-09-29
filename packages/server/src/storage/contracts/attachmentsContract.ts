@@ -1,6 +1,6 @@
 import { type LinkPreview, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver } from "./types.js";
+import type { StorageDriver } from "../types.js";
 
 /** The attachment store's rules, run against both drivers. */
 

@@ -1,6 +1,7 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { plural } from "../i18n/index.js";
+import { createNoteOrFail } from "../test/testSupport.js";
 import {
   addTagToNotes,
   bulkAddTag,
@@ -22,7 +23,6 @@ import {
   exitSelectMode,
   toggleSelectNote,
 } from "./selection.js";
-import { createNoteOrFail } from "./testSupport.js";
 import {
   activeView,
   searchQuery,

@@ -7,7 +7,7 @@ import {
   currentUser,
   updateEmail,
 } from "../../state/auth.js";
-import type { ConfirmationRefusal } from "../../state/confirmation.js";
+import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
 import { showSuccess } from "../../state/ui.js";
 import { Avatar } from "../Avatar.js";
 import {

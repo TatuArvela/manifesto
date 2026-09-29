@@ -5,7 +5,7 @@ import {
   EmailTakenError,
   NoteAccessError,
   type StorageDriver,
-} from "./types.js";
+} from "../types.js";
 
 /**
  * What both drivers must do for sharing notes between accounts, run against

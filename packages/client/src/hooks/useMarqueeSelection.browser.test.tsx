@@ -3,13 +3,13 @@ import { render } from "preact";
 import { useRef } from "preact/hooks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { notes } from "../state/notesStore.js";
-import { createNoteOrFail } from "../state/testSupport.js";
 import {
   activeView,
   searchQuery,
   selectedNotes,
   selectMode,
 } from "../state/ui.js";
+import { createNoteOrFail } from "../test/testSupport.js";
 import { useMarqueeSelection } from "./useMarqueeSelection.js";
 
 function Grid({ ids }: { ids: string[] }) {

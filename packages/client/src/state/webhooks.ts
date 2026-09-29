@@ -7,7 +7,7 @@ import { apiFetch } from "../storage/apiRequest.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./confirmation.js";
+} from "./passwordConfirmation.js";
 
 /**
  * The signed-in user's webhooks. Like the API token calls, each resolves with

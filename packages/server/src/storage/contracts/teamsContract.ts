@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver } from "./types.js";
+import type { StorageDriver } from "../types.js";
 
 /**
  * Teams, the same in both drivers: names unique within a source, members

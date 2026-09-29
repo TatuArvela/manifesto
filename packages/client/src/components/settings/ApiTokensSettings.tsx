@@ -16,7 +16,7 @@ import {
 } from "../../state/apiTokens.js";
 import { SERVER_ORIGIN } from "../../state/auth.js";
 import { askConfirmation } from "../../state/confirm.js";
-import type { ConfirmationRefusal } from "../../state/confirmation.js";
+import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
 import {
   offeredTokenKinds,
   serverFeature,

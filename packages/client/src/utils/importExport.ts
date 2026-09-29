@@ -14,7 +14,7 @@ import {
   MAX_IMPORT_BYTES,
   notesFromForeignJson,
 } from "./importers/index.js";
-import { isKeepNote, keepNoteToNote } from "./keepImport.js";
+import { isKeepNote, keepNoteToNote } from "./importers/keep.js";
 import { isZipFile, readZip, type ZipEntry } from "./zip.js";
 
 export type { ImportResult } from "./importedNote.js";

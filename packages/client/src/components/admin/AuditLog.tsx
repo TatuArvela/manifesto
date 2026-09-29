@@ -4,8 +4,8 @@ import type {
   ShareUser,
 } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
-import { formatDateTime, type MessageKey, t } from "../i18n/index.js";
-import { loadAuditLog } from "../state/admin.js";
+import { formatDateTime, type MessageKey, t } from "../../i18n/index.js";
+import { loadAuditLog } from "../../state/admin.js";
 
 const secondaryButtonClass =
   "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 disabled:opacity-60 cursor-pointer";

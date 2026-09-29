@@ -6,8 +6,8 @@ import {
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "../storage/index.js";
+import { type Random, SEEDS, seeded } from "../test/testRandom.js";
 import { forgetNote, notes, receiveNote, updateNote } from "./notesStore.js";
-import { type Random, SEEDS, seeded } from "./testRandom.js";
 
 /**
  * Clicks on one note, sent while earlier ones are still in the air, against a

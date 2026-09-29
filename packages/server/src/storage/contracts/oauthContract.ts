@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver, StoredOAuthCode } from "./types.js";
+import type { StorageDriver, StoredOAuthCode } from "../types.js";
 
 /**
  * The OAuth rows, the same in both drivers: a code is good once and not after

@@ -18,7 +18,7 @@ import { getPasskey } from "../utils/webauthn.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./confirmation.js";
+} from "./passwordConfirmation.js";
 import { adoptServerFeatures } from "./serverFeatures.js";
 
 export interface CurrentUser {

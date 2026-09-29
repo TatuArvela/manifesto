@@ -6,7 +6,6 @@ import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
-import { decodeShareFromHash, type SharedNotePayload } from "../sharing.js";
 import { revealApp } from "../splash.js";
 import { startAccountLocaleReport } from "../state/accountLocale.js";
 import { checkForUpdate } from "../state/admin.js";
@@ -45,8 +44,12 @@ import { loadInvitations } from "../state/sharing.js";
 import { restoreVersions } from "../state/versions.js";
 import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
-import { AdminView } from "./AdminView.js";
+import {
+  decodeShareFromHash,
+  type SharedNotePayload,
+} from "../utils/shareLink.js";
 import { AutoNotesView } from "./AutoNotesView.js";
+import { AdminView } from "./admin/AdminView.js";
 import { ConfirmDialogHost } from "./ConfirmDialog.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
 import { Header } from "./Header.js";

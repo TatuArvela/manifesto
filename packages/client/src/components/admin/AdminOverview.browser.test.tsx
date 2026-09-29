@@ -1,10 +1,10 @@
 import { render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { t } from "../i18n/index.js";
+import { t } from "../../i18n/index.js";
 import { AdminOverview } from "./AdminOverview.js";
 
-vi.mock("../state/admin.js", async (original) => ({
-  ...(await original<typeof import("../state/admin.js")>()),
+vi.mock("../../state/admin.js", async (original) => ({
+  ...(await original<typeof import("../../state/admin.js")>()),
   loadAdminOverview: async () => ({
     version: "1.2.3",
     uptimeSeconds: 90_000,

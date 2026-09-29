@@ -17,7 +17,6 @@ import {
 } from "lucide-preact";
 import type { VNode } from "preact";
 import { t } from "../i18n/index.js";
-import { buildShareUrl } from "../sharing.js";
 import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
 import { isServerMode } from "../state/auth.js";
 import { confirmDeletion } from "../state/confirm.js";
@@ -38,6 +37,7 @@ import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
 } from "../utils/noteDownload.js";
+import { buildShareUrl } from "../utils/shareLink.js";
 
 /**
  * The panel a kebab menu draws itself on. `Dropdown` takes it as `panelClass`;

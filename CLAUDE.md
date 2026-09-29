@@ -266,7 +266,7 @@ device while this tab was offline arrive nowhere else. It asks `GET /api/sync` f
 the checkpoint `loadNotes` left, and drops a held note missing from the returned ids only if it was
 held before the request went out. A membership change stamps `notes.members_changed_at`, never
 `updated_at` (the `If-Match` token), so a new way of joining or leaving a note must stamp it in both
-drivers or recipients' devices never hear of it (`storage/syncContract.ts`).
+drivers or recipients' devices never hear of it (`storage/contracts/syncContract.ts`).
 `realtime/yjsProvider.ts` holds `/api/yjs`, one `HocuspocusProvider` per open note, with
 `y-indexeddb` underneath so an offline edit survives a reload. Those copies outlive the session, so the account menu signs out through `signOut`
 (`state/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
@@ -308,7 +308,7 @@ catch-up for a missed fire is one hour. `state/reminderTime.ts` owns recurrence 
 
 ### Sharing, Import and Export
 
-`sharing.ts` encodes a note into the URL fragment (LZ-String over a five-field JSON payload),
+`utils/shareLink.ts` encodes a note into the URL fragment (LZ-String over a five-field JSON payload),
 so a share link needs no server and no account. The fragment is attacker-controlled, so
 `decodeSharePayload` is a total type guard, not a cast: every field is checked, color and font
 against the enums, and anything that fails returns `null` rather than a partly-trusted note. `App`
@@ -523,7 +523,7 @@ routes are the web client's own and may change with it either way.
 
 Connected mode has admins (spec: `docs/specification/features/accounts.md`). Three rules live in the
 `users` repository rather than in routes, so both drivers enforce them and
-`storage/adminContract.ts` tests each: the first account is the admin unless `isAdmin` says otherwise
+`storage/contracts/adminContract.ts` tests each: the first account is the admin unless `isAdmin` says otherwise
 (decided inside the `INSERT`), and `setAdmin` / `delete` never remove the last admin (a locked count,
 not a read-then-write). Under local sign-in that first-account rule never fires in production:
 `ensureInitialAdmin` (`auth/initialAdmin.ts`) creates `admin` with a printed temporary password before
@@ -592,7 +592,7 @@ participant sees different personal fields and a different `sharing.role`. Anyth
 away from someone (removal, a role drop to `view`, the owner trashing it) also goes through
 `sharing/accessChanges.ts`, for the same reason as `endUserSessions`: sockets authorized at connect
 stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
-`storage/sharingContract.ts` runs the rules against both drivers.
+`storage/contracts/sharingContract.ts` runs the rules against both drivers.
 
 A share to a team (spec: the Teams section of the same file) expands into one ordinary `note_shares`
 row per member, marked with `via_team`, so every access check keeps reading `note_shares` alone.
@@ -659,6 +659,8 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   keeps the pure majority (parsers, mergers, schedulers, formatters) fast. The server's suite is
   Node-only.
 - Test files are colocated with source (e.g., `actions.browser.test.ts` next to `actions.ts`)
+- Helpers that only tests import live in `src/test/` in both packages, and the storage contract
+  suites in `server/src/storage/contracts/`, which is what keeps all three out of the server build.
 - Tests use real `localStorage`; clear in `beforeEach`/`afterEach`
 - Signal state is set directly in tests (e.g., `notes.value = []`)
 - A module that a test mocks with a factory calling `importOriginal` must not sit in an import cycle

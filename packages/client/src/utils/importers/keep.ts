@@ -7,7 +7,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
-import { parseLinkPreviews } from "./linkPreview.js";
+import { parseLinkPreviews } from "../linkPreview.js";
 
 /**
  * Google Keep, as Google Takeout exports it: one JSON file per note in

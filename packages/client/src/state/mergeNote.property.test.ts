@@ -6,8 +6,8 @@ import {
   type NoteUpdate,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
+import { type Random, SEEDS, seeded } from "../test/testRandom.js";
 import { mergeNoteUpdate } from "./mergeNote.js";
-import { type Random, SEEDS, seeded } from "./testRandom.js";
 
 /**
  * Two writers change the same note from the same starting point. The server

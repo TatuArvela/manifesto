@@ -42,14 +42,16 @@ packages/client/src/
 ├── styles.css            # Tailwind v4 entry: imports the partials in styles/, in cascade order
 ├── styles/               # The stylesheet by subject (@theme tokens in setup.css)
 ├── colors.ts             # NoteColor → Tailwind class maps (light + dark)
-├── sharing.ts            # Encode/decode shared-note URL payloads (LZ-String)
 ├── components/           # All UI components (see hierarchy below)
+│   ├── admin/            # AdminView and its pages (overview, teams, audit log)
+│   └── settings/         # SettingsDialog, one file per tab, and the rows and selects they share
 ├── extensions/           # ProseMirror/Milkdown extensions
 ├── hooks/                # Preact hooks (currently: useMilkdownEditor)
 ├── i18n/                 # Translation framework + en/fi message bundles
 ├── state/                # Signals, actions, preferences, reminder scheduler
 ├── storage/              # StorageAdapter interface + Local/Rest implementations
-├── utils/                # importExport, linkPreview, markdown helpers, remarkRenderer
+├── test/                 # Helpers only tests import, and the browser project's setup file
+├── utils/                # importExport, linkPreview, shareLink, markdown helpers, remarkRenderer
 ├── serviceWorker.ts      # PWA registration glue
 └── sw.ts                 # Service worker source (Workbox precache + runtime)
 ```
@@ -90,7 +92,7 @@ App
 │       └── VersionHistory      (opened from kebab menu)
 ├── SharedNoteDialog       (when a share URL hash is present)
 ├── ShareDialogHost        (who has a note: invite, roles, remove, leave; connected mode)
-├── SettingsDialog         (theme, defaults, language, import/export/delete all)
+├── SettingsDialog         (components/settings/: one file per tab, the account's pages included)
 ├── ReminderBanner         (fires when a reminder is due)
 └── Toasts                 (success + error notifications)
 ```
@@ -190,7 +192,7 @@ Because GitHub Pages is a static host, deep-link refreshes would return 404. The
 
 ### Sharing
 
-`sharing.ts` encodes a note payload into a compact URL hash (`#share=…`) using LZ-String compression. When `App` mounts it checks `window.location.hash` and, if a share payload is present, shows `SharedNoteDialog` with a preview and the option to import it as a new note.
+`utils/shareLink.ts` encodes a note payload into a compact URL hash (`#share=…`) using LZ-String compression. When `App` mounts it checks `window.location.hash` and, if a share payload is present, shows `SharedNoteDialog` with a preview and the option to import it as a new note.
 
 ### Import / Export
 

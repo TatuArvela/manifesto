@@ -1,10 +1,10 @@
 import type { Note } from "@manifesto/shared";
 import { NoteColor } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { importFiles } from "./importExport.js";
-import { isKeepNote, keepNoteToNote } from "./keepImport.js";
-import { readZip } from "./zip.js";
-import { buildZip } from "./zipTestSupport.js";
+import { buildZip } from "../../test/zipTestSupport.js";
+import { importFiles } from "../importExport.js";
+import { readZip } from "../zip.js";
+import { isKeepNote, keepNoteToNote } from "./keep.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
 

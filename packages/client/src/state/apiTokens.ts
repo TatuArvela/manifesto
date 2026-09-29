@@ -9,7 +9,7 @@ import { apiFetch } from "../storage/apiRequest.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./confirmation.js";
+} from "./passwordConfirmation.js";
 
 /**
  * The signed-in user's personal API tokens. Each call resolves with what

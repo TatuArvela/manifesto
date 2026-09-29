@@ -1,7 +1,7 @@
 import type { Note } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
+import { buildZip } from "../../test/zipTestSupport.js";
 import { importFiles } from "../importExport.js";
-import { buildZip } from "../zipTestSupport.js";
 import { evernoteImporter } from "./evernote.js";
 import { htmlImporter } from "./html.js";
 import { htmlToMarkdown } from "./htmlToMarkdown.js";
