@@ -16,7 +16,7 @@ In connected mode every preference follows the account except the ones that belo
 | `animations` | Starts from this device's reduced-motion setting. |
 | `boardUsePicture`, `boardImageStamp` | The board picture is kept in this browser's IndexedDB and never uploaded. |
 
-The list is `DEVICE_PREFS` in `state/prefs.ts`; a new preference follows the account unless it is
+The list is `DEVICE_PREFS` in `state/prefParsers.ts`; a new preference follows the account unless it is
 added there. Open mode has no account and keeps everything on the device.
 
 ## How they move

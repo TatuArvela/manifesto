@@ -30,7 +30,7 @@ The Manifesto client is a static single-page application built with Preact and T
 ### Why Tailwind v4
 
 - Utility classes directly in markup for rapid development
-- CSS-first configuration via `@theme` in `styles.css`, no `tailwind.config.ts`
+- CSS-first configuration via `@theme` in `styles/setup.css` (imported by `styles.css`), no `tailwind.config.ts`
 - Built-in dark mode via the `dark:` variant
 - Production purge: only ships CSS that's actually used
 
@@ -39,7 +39,8 @@ The Manifesto client is a static single-page application built with Preact and T
 ```
 packages/client/src/
 ├── main.tsx              # Entry: mounts <App />, registers service worker
-├── styles.css            # Tailwind v4 entry + @theme tokens
+├── styles.css            # Tailwind v4 entry: imports the partials in styles/, in cascade order
+├── styles/               # The stylesheet by subject (@theme tokens in setup.css)
 ├── colors.ts             # NoteColor → Tailwind class maps (light + dark)
 ├── sharing.ts            # Encode/decode shared-note URL payloads (LZ-String)
 ├── components/           # All UI components (see hierarchy below)
@@ -61,9 +62,10 @@ packages/client/src/
 App
 ├── Header
 │   ├── Search input
-│   ├── View toggle (grid/list)
-│   ├── Sort menu (default / updated / created)
-│   └── Settings button
+│   ├── ViewMenu           (grid/list, card shape and size)
+│   ├── SortMenu           (default / updated / created)
+│   ├── Settings button
+│   └── SelectionToolbar   (laid over the header while notes are selected)
 ├── Sidebar (desktop rail + MobileNav horizontal bar)
 │   ├── Notes
 │   ├── Tags (→ TagsView)
@@ -144,11 +146,12 @@ Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM p
 Custom ProseMirror behavior lives in `packages/client/src/extensions/`:
 
 - **`manifestoInlineMarks`**: adds underline / subscript / superscript marks that round-trip through markdown as `<u>`/`<sub>`/`<sup>` tags.
-- **`taskItemDraggable`**: drag-and-drop reordering and indent/outdent for checklist items.
+- **`taskItemDraggable`**: drag-and-drop reordering and indent/outdent for checklist items (the drag itself in `taskItemDrag.ts`, list structure in `taskListStructure.ts`).
+- **`richFormatting`**: which formats the selection has and applying one, for the formatting toolbar; `utils/rawFormatting.ts` does the same for raw mode's textarea.
 
 Read-only previews (inside `NoteCard` and shared-note dialogs) are rendered by `utils/remarkRenderer.ts`, a `unified` pipeline of `remark-parse` → `remark-gfm` → `remark-breaks` → `remark-rehype` → `rehype-stringify`, with output sanitized via DOMPurify before being inserted.
 
-`MilkdownEditor` reads the markdown back out via `getMarkdown()` and post-processes it (`unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with the preview renderer.
+`MilkdownEditor` reads the markdown back out via `getMarkdown()` and post-processes it (`normalizeMarkdown` in `utils/editorMarkdown.ts`: `unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with the preview renderer.
 
 ### Version History
 
@@ -191,7 +194,7 @@ Because GitHub Pages is a static host, deep-link refreshes would return 404. The
 
 ### Import / Export
 
-`utils/importExport.ts` handles backup roundtrips (the export zip, and the JSON earlier versions wrote) and per-note drops (Markdown, plain text, image files). `App` registers window-level `dragenter`/`dragover`/`dragleave`/`drop` handlers so files can be dropped anywhere on the window; dropped imports become new notes (or a bulk import for JSON backups).
+`utils/importExport.ts` (with `importedNote.ts` for turning file contents into notes, and `noteDownload.ts` for saving one) handles backup roundtrips (the export zip, and the JSON earlier versions wrote) and per-note drops (Markdown, plain text, image files). `App` registers window-level `dragenter`/`dragover`/`dragleave`/`drop` handlers so files can be dropped anywhere on the window; dropped imports become new notes (or a bulk import for JSON backups).
 
 ### Internationalization
 

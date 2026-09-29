@@ -26,6 +26,28 @@ export function extractUrls(text: string): string[] {
   return out;
 }
 
+/**
+ * Whether a note's text is nothing but the links its previews already show
+ * (autolinks and link syntax included), so the card can be drawn as the
+ * preview alone.
+ */
+export function contentIsOnlyPreviewUrls(
+  content: string,
+  previews: LinkPreview[],
+): boolean {
+  const trimmed = content.trim();
+  if (!trimmed) return false;
+  const contentUrls = extractUrls(trimmed);
+  if (contentUrls.length === 0) return false;
+  const previewUrls = new Set(previews.map((p) => p.url));
+  if (!contentUrls.every((u) => previewUrls.has(u))) return false;
+  // Strip URLs and any surrounding markdown syntax (autolinks, link wrappers);
+  // if nothing meaningful remains, treat it as link-only.
+  let remaining = trimmed;
+  for (const u of contentUrls) remaining = remaining.split(u).join("");
+  return remaining.replace(/[<>[\]()\s`*_]/g, "") === "";
+}
+
 export function normalizeDomain(url: string): string {
   try {
     return new URL(url).host;

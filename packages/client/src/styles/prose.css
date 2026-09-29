@@ -1,0 +1,183 @@
+/* Markdown content, alike in a card's preview and in the editor. */
+
+/* Prose heading styles for markdown content */
+.prose h1,
+.milkdown-editor h1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.3;
+}
+
+.prose h2,
+.milkdown-editor h2 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.3;
+}
+
+.prose h3,
+.milkdown-editor h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+}
+
+.prose h4,
+.prose h5,
+.prose h6,
+.milkdown-editor h4 {
+  font-size: 1em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+}
+
+/* GFM task list checkboxes rendered by marked */
+.prose ul,
+.milkdown-editor ul {
+  list-style: disc;
+  padding-left: 1.5em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose ol,
+.milkdown-editor ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose li,
+.milkdown-editor li {
+  margin-top: 0.125em;
+  margin-bottom: 0.125em;
+}
+
+/* Task list items: remove bullet; keep nested lists flowing below */
+.prose .task-list-item {
+  list-style: none;
+  margin-left: -1.5em;
+}
+
+/* The same gap between tasks as the editor and the card preview leave. */
+.prose .task-list-item + .task-list-item {
+  margin-top: 0.5rem;
+}
+
+.prose .task-list-item > input[type="checkbox"] {
+  margin-right: 0.4em;
+  position: relative;
+  top: 1px;
+}
+
+/* Custom checkbox checkmark */
+.checkbox-custom:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Blockquotes */
+.prose blockquote,
+.milkdown-editor blockquote {
+  border-left: 3px solid var(--color-neutral-300);
+  padding-left: 0.75em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  color: var(--color-neutral-500);
+}
+
+.dark .prose blockquote,
+.dark .milkdown-editor blockquote {
+  border-left-color: var(--color-neutral-600);
+  color: var(--color-neutral-400);
+}
+
+/* Code */
+.prose code,
+.milkdown-editor code {
+  font-size: 0.875em;
+  background-color: var(--color-neutral-100);
+  padding: 0.125em 0.25em;
+  border-radius: 0.25em;
+}
+
+.prose pre,
+.milkdown-editor pre {
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-50);
+  padding: 0.75em 1em;
+  border-radius: 0.375em;
+  overflow-x: auto;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Inside a fenced block the `pre` provides the background, so the chip above
+   is reset, once for each theme. The dark reset is not redundant: its two
+   classes are what let it outrank `.dark … code`, which would otherwise paint
+   the inline chip behind every line of a code block. Specificity decides
+   that, not source order. */
+.prose pre code,
+.milkdown-editor pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.dark .prose code,
+.dark .milkdown-editor code {
+  background-color: var(--color-neutral-700);
+}
+
+.dark .prose pre code,
+.dark .milkdown-editor pre code {
+  background: none;
+}
+
+/* Paragraph spacing */
+.prose p,
+.milkdown-editor p {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Horizontal rule */
+.prose hr,
+.milkdown-editor hr {
+  border: none;
+  border-top: 1px solid var(--color-neutral-400);
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+/* Strong and emphasis */
+.prose strong,
+.milkdown-editor strong {
+  font-weight: 600;
+}
+
+/* Links: underlined in the note's own text colour, alike on the card, in
+   read-only views and in the editor. A blue link fought every note colour and
+   read as a different thing on a card than in its own editor; and a checklist
+   label, rendered outside `.prose`, had no underline at all, so a link there
+   looked like plain text. */
+.prose a,
+.milkdown-editor a,
+.note-inline-markdown a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

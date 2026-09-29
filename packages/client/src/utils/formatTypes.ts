@@ -34,3 +34,10 @@ export interface ActiveFormats {
   subscript: boolean;
   superscript: boolean;
 }
+
+/** A change to a text field's value, with where its selection ends up. */
+export interface TextEdit {
+  value: string;
+  selectionStart: number;
+  selectionEnd: number;
+}

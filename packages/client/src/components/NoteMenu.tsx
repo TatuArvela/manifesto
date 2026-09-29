@@ -37,7 +37,7 @@ import { showSuccess } from "../state/ui.js";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
-} from "../utils/importExport.js";
+} from "../utils/noteDownload.js";
 
 /**
  * The panel a kebab menu draws itself on. `Dropdown` takes it as `panelClass`;

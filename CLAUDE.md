@@ -94,6 +94,7 @@ State lives in `packages/client/src/state/` using @preact/signals:
   before it awaits anything.
 - **`ui.ts`**: UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
 - **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
+  What each may hold and how a stored value is read back (`PREF_PARSERS`, `DEVICE_PREFS`) is `prefParsers.ts`.
   In connected mode `prefsSync.ts` also keeps every preference outside `DEVICE_PREFS` on the server
   (`/api/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
   added there. Whatever arrives from the server goes through `PREF_PARSERS` like a hand-edited blob,
@@ -194,9 +195,9 @@ Notes have persistent version history. Versions are saved automatically when the
 
 ### Editor
 
-Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor instance is wired up in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (called via `callCommand(undoCommand)` / `redoCommand`); there is no separate undo/redo hook. Custom ProseMirror behavior lives in `packages/client/src/extensions/` (`manifestoInlineMarks` for inline marks, `taskItemDraggable` for drag-and-drop checklist items). Read-only previews are rendered by `utils/remarkRenderer.ts` (remark → rehype → sanitized HTML via DOMPurify).
+Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor instance is wired up in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (called via `callCommand(undoCommand)` / `redoCommand`); there is no separate undo/redo hook. Custom ProseMirror behavior lives in `packages/client/src/extensions/` (`manifestoInlineMarks` for inline marks, `taskItemDraggable` for drag-and-drop checklist items, whose drag is `taskItemDrag.ts` and whose list helpers are `taskListStructure.ts`; `richFormatting` for what the formatting toolbar reads and applies). Read-only previews are rendered by `utils/remarkRenderer.ts` (remark → rehype → sanitized HTML via DOMPurify).
 
-`MilkdownEditor` reads markdown via `getMarkdown()` and post-processes it (`unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with our preview.
+`MilkdownEditor` reads markdown via `getMarkdown()` and post-processes it (`normalizeMarkdown` in `utils/editorMarkdown.ts`: `unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with our preview.
 
 The `listener` plugin serializes on a 200ms debounce it gives no way to cancel, and the timer
 throws `Context "editorView" not found` if the editor is gone when it fires. `useMilkdownEditor`
@@ -324,7 +325,8 @@ Other apps' formats (Evernote, Joplin, Simplenote, Standard Notes, HTML) are `Im
 `utils/importers/`, registered in its `index.ts`; `importFiles` offers each file and each archived
 JSON document to them, so a new format is one file there.
 
-`utils/importExport.ts` handles both directions for Markdown and JSON, single note and bulk. It
+`utils/importExport.ts` reads files in, for Markdown and JSON, single note and bulk; `utils/importedNote.ts`
+turns their contents into notes, and `utils/noteDownload.ts` saves one note out. It
 caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
 code runs. The full export is a zip in both modes, laid out by `exportArchiveFiles` in
 `@manifesto/shared` so the server's download and open mode's `exportArchive` stay the same archive;
@@ -478,7 +480,7 @@ call locally, so both modes behave alike.
   entries are kept in `state/sheetHistory.ts`, and the router's own pushes wait for that back to land
   (`afterHistorySettles`), or they would be what it goes back from.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
-  clearing the signal; `NoteCard`'s effect plays the animation and takes the modal down.
+  clearing the signal; `NoteCard`'s `useCardModal` plays the animation and takes the modal down.
 
 ### API Contract
 
@@ -600,7 +602,7 @@ before it is removed.
 
 Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUTH_PROVIDER`):
 
-- **`src/storage/`**: `StorageDriver` interface in `types.ts`. Bundles `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional. SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
+- **`src/storage/`**: `StorageDriver` interface in `types.ts`, each repository's interface in `repos/` (re-exported from `types.ts`, so import from there). Bundles `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance` repos. Two drivers: `src/storage/sqlite/` (sync `better-sqlite3` wrapped in async-typed methods) and `src/storage/postgres/` (`pg` Pool, true-async). Schema parity is intentional. SQLite uses `INTEGER` booleans and `BLOB`s, Postgres uses native `BOOLEAN` and `BYTEA`, but the typed `Note`/`User`/etc. shapes returned to callers are identical. Tests for the Postgres driver run against `pg-mem`, so CI doesn't need a real Postgres. Storage construction is async (`await createStorage(cfg)`) since Postgres migrations require a query round-trip.
 - **`src/auth/`**: `AuthProvider` interface in `types.ts`. Each provider exposes `authenticate(token)` for middleware/WS handshakes and owns its own `/api/auth/*` router. Two providers ship, and `AUTH_PROVIDER=both` mounts them side by side (`auth/index.ts`; ask
   `signsInLocally` / `signsInWithOidc` in `config.ts`, never compare `authProvider` to a name):
   `src/auth/local/` (username + argon2) and `src/auth/oidc/` (OAuth 2.0 Authorization Code + PKCE via `openid-client`, with JIT user provisioning by `(provider, sub)`). Both share `src/auth/session.ts` for session mint and bearer-token validation, so `authenticate()` is identical across providers, and the IdP only matters at login time. The `users` schema has nullable `password_hash` plus `provider` and `external_id` columns so SSO and local users coexist in the same table. The provider-agnostic endpoints live in `src/auth/sharedRoutes.ts` and are mounted alongside the active provider: `GET /api/auth/me` (bearer → current user) and its siblings under `/api/auth/me/*`. What the server offers, sign-in methods included, is `GET /api/capabilities` (`routes/capabilities.ts`).

@@ -24,10 +24,6 @@ import {
   showError,
   viewMode,
 } from "../state/index.js";
-import {
-  downloadNoteAsJson,
-  downloadNoteAsMarkdown,
-} from "../utils/importExport.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import {
   isMorphSource,
@@ -35,6 +31,10 @@ import {
   type RectLike,
   viewportSize,
 } from "../utils/morph.js";
+import {
+  downloadNoteAsJson,
+  downloadNoteAsMarkdown,
+} from "../utils/noteDownload.js";
 import { Backdrop } from "./Backdrop.js";
 import { gridColumns } from "./gridColumns.js";
 import { NoteEditor } from "./NoteEditor.js";

@@ -1,0 +1,438 @@
+/* Checklist rows in the editor: the checkbox, the drag handle and delete button, and the drag itself. */
+
+/* Task lists: Milkdown renders task items as `<li data-item-type="task"
+   data-checked="true|false">` inside a regular `<ul>`. The NodeView in
+   taskItemDraggable.ts provides the drag handle + real checkbox + content DOM. */
+/* The geometry of a task row's two gutter controls, in one place because four
+   rules have to agree on it: the control's own size, the gutter it is pulled
+   out into, and the padding the text keeps clear so it never runs underneath.
+
+   A pointer device gets the smaller pair, since the controls only appear under
+   the cursor that is already on them. A finger gets targets it can actually
+   hit, and the list indents to make room rather than letting the handle sit
+   over the note's own padding. */
+.milkdown-editor {
+  --task-handle-size: 1em;
+  --task-handle-gutter: 1.1em;
+  --task-delete-size: 1.2em;
+  --task-delete-gutter: 1.4em;
+}
+
+@media (hover: none) {
+  .milkdown-editor {
+    --task-handle-size: 1.9em;
+    --task-handle-gutter: 2em;
+    --task-delete-size: 1.9em;
+    --task-delete-gutter: 2.1em;
+  }
+}
+
+.milkdown-editor ul:has(> li[data-item-type="task"]) {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Room for the handle, only where it is drawn at all times and so cannot
+   borrow the note's padding. A nested list keeps none of it: its items are
+   already indented by their parent's checkbox, and indenting again per level
+   would walk a deep checklist off the right of a phone. */
+@media (hover: none) {
+  .milkdown-editor
+    .ProseMirror[contenteditable="true"]
+    ul:has(> li[data-item-type="task"]) {
+    padding-left: var(--task-handle-gutter);
+  }
+
+  .milkdown-editor
+    .ProseMirror[contenteditable="true"]
+    ul:has(> li[data-item-type="task"])
+    ul:has(> li[data-item-type="task"]) {
+    padding-left: 0;
+  }
+}
+
+.milkdown-editor li[data-item-type="task"] {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4em;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+/* Every control in a row is centred on its first line, measured in `lh` so
+   the one rule holds for a card's 14/20 text and a phone's 16/24 alike. A
+   fixed em offset put the checkbox a hair above the line on a phone and the
+   touch-sized handle and X six pixels below it. */
+.milkdown-editor li[data-item-type="task"] > label {
+  flex-shrink: 0;
+  margin-top: calc((1lh - 1rem) / 2);
+}
+
+.milkdown-editor li[data-item-type="task"] > .task-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.milkdown-editor li[data-item-type="task"] > label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  appearance: none;
+  border: 2px solid var(--color-neutral-500);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+  display: block;
+  margin: 0;
+}
+
+.milkdown-editor
+  li[data-item-type="task"]
+  > label
+  input[type="checkbox"]:hover {
+  border-color: var(--color-neutral-600);
+}
+
+.dark
+  .milkdown-editor
+  li[data-item-type="task"]
+  > label
+  input[type="checkbox"] {
+  border-color: var(--color-neutral-400);
+}
+
+.dark
+  .milkdown-editor
+  li[data-item-type="task"]
+  > label
+  input[type="checkbox"]:hover {
+  border-color: var(--color-neutral-300);
+}
+
+.milkdown-editor
+  li[data-item-type="task"]
+  > label
+  input[type="checkbox"]:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.milkdown-editor
+  li[data-item-type="task"][data-checked="true"]
+  > .task-item-content {
+  text-decoration: line-through;
+  color: var(--color-neutral-400);
+}
+
+.dark
+  .milkdown-editor
+  li[data-item-type="task"][data-checked="true"]
+  > .task-item-content {
+  color: var(--color-neutral-500);
+}
+
+/* Drag handle: absolute-positioned in the gutter, only visible on hover. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle {
+  position: absolute;
+  left: calc(-1 * var(--task-handle-gutter));
+  top: calc((1lh - var(--task-handle-size)) / 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--task-handle-size);
+  height: var(--task-handle-size);
+  border-radius: 0.25em;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
+}
+
+/* The handle is a drag, never a scroll: left to the browser, a finger moving
+   up or down it pans the editor instead, and the pan cancels the drag. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle {
+  touch-action: none;
+}
+
+/* The handle and the X sit inside the item, so a selection that spans the row
+   paints over them too: a stray blue block in each gutter, one per line, which
+   is what a selected checklist looked like on a phone. They are not text and
+   cannot be selected, so they take no part in the highlight. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle,
+.milkdown-editor li[data-item-type="task"] > .task-item-delete,
+.milkdown-editor li[data-item-type="task"] > label {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The icon is authored at 14px; the touch-sized handle scales it with the box
+   rather than leaving a small glyph adrift in a large target. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle > svg,
+.milkdown-editor li[data-item-type="task"] > .task-item-delete > svg {
+  width: 1em;
+  height: 1em;
+}
+
+@media (hover: none) {
+  .milkdown-editor li[data-item-type="task"] > .task-item-drag-handle > svg,
+  .milkdown-editor li[data-item-type="task"] > .task-item-delete > svg {
+    width: 1.25em;
+    height: 1.25em;
+  }
+}
+
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark
+  .milkdown-editor
+  li[data-item-type="task"]
+  > .task-item-drag-handle:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.milkdown-editor li[data-item-type="task"]:hover > .task-item-drag-handle {
+  opacity: 1;
+}
+
+/* Nothing hovers on a touch screen, so a handle that waits for a cursor is a
+   handle that is never there. Drawn faintly at all times instead, only while
+   the note is editable, which is the only time it does anything. */
+@media (hover: none) {
+  .milkdown-editor
+    .ProseMirror[contenteditable="true"]
+    li[data-item-type="task"]
+    > .task-item-drag-handle {
+    opacity: 0.6;
+  }
+}
+
+.milkdown-editor li[data-item-type="task"].task-item-dragging {
+  opacity: 0.4;
+}
+
+/* Delete button: absolute-positioned at the right edge, only visible on
+   hover or when the cursor is within the item. */
+.milkdown-editor li[data-item-type="task"] > .task-item-delete {
+  position: absolute;
+  right: 0;
+  top: calc((1lh - var(--task-delete-size)) / 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 0.25em;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
+  width: var(--task-delete-size);
+  height: var(--task-delete-size);
+}
+
+/* The button floats over the item's right edge, so the text keeps clear of it
+   or a long item runs underneath the X. Only while editable, since that is the
+   only time the button is drawn. A nested list is pulled back out by the same
+   amount: its items' buttons then share their parent's right edge, where the
+   rule below shows one X at a time, instead of stepping inwards per level. */
+.milkdown-editor
+  .ProseMirror[contenteditable="true"]
+  li[data-item-type="task"]
+  > .task-item-content {
+  padding-right: var(--task-delete-gutter);
+}
+
+.milkdown-editor
+  .ProseMirror[contenteditable="true"]
+  li[data-item-type="task"]
+  > .task-item-content
+  > :is(ul, ol) {
+  margin-right: calc(-1 * var(--task-delete-gutter));
+}
+
+.milkdown-editor li[data-item-type="task"] > .task-item-delete:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .milkdown-editor li[data-item-type="task"] > .task-item-delete:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Only show the X on the innermost hovered/active item so nested levels
+   don't stack delete buttons at the same right edge. The `.task-item-active`
+   class is applied via a ProseMirror decoration on the task item containing
+   the selection, because a plain `:focus-within` would match every ancestor, since
+   ProseMirror keeps focus on the root contenteditable. */
+@media (hover: hover) {
+  .milkdown-editor
+    li[data-item-type="task"]:hover:not(:has(li[data-item-type="task"]:hover))
+    > .task-item-delete {
+    opacity: 1;
+  }
+
+  /* The caret's own item, but only while the pointer is over none of them.
+     Hover and caret are two answers to "which row is this X for", and a reader
+     whose caret sat in one row while the pointer rested on another was shown
+     both at once with nothing to say which button belonged to which. The
+     pointer is the more immediate of the two, so it wins while it is over the
+     list and this rule stands down. */
+  .milkdown-editor:not(:has(li[data-item-type="task"]:hover))
+    li[data-item-type="task"].task-item-active:not(
+      :has(li[data-item-type="task"].task-item-active)
+    )
+    > .task-item-delete {
+    opacity: 1;
+  }
+}
+
+/* Where there is no pointer the caret is the only answer, so the rule above
+   carries no hover guard at all. It cannot: a touch screen leaves `:hover` on
+   the row it was last tapped, which is the row the caret is in, so a guard
+   that stands down for a hovered row would hide every X the moment one was
+   wanted. */
+@media (hover: none) {
+  .milkdown-editor
+    li[data-item-type="task"].task-item-active:not(
+      :has(li[data-item-type="task"].task-item-active)
+    )
+    > .task-item-delete {
+    opacity: 1;
+  }
+}
+
+/* Floating drop indicator, positioned in document body during drag */
+.task-item-drop-indicator {
+  position: fixed;
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+.task-item-drop-indicator::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #3b82f6;
+  border-radius: 50%;
+  background: white;
+  box-sizing: border-box;
+}
+
+/* The dragged item, following the pointer. It moves sideways in whole
+   indents as the drop's level changes, so it eases there rather than jumping;
+   vertically it tracks the pointer exactly. */
+.task-item-drag-ghost {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: none;
+  opacity: 0.9;
+  transition: left 90ms ease-out;
+}
+
+.task-item-drag-ghost > ul {
+  margin: 0;
+}
+
+.task-item-drag-ghost li[data-item-type="task"] {
+  margin-top: 0;
+  padding: 0.15em 0.4em 0.15em 0;
+  border-radius: 0.375rem;
+  background: var(--color-white);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.08),
+    0 6px 16px rgb(0 0 0 / 0.14);
+}
+
+.dark .task-item-drag-ghost li[data-item-type="task"] {
+  background: var(--color-neutral-800);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-item-drag-ghost {
+    transition: none;
+  }
+}
+
+/* Nested task lists: no extra padding (parent's checkbox+gap already
+   shifts content right) and no vertical margin so nesting depth doesn't
+   add cumulative top/bottom space. */
+.milkdown-editor
+  ul:has(> li[data-item-type="task"])
+  ul:has(> li[data-item-type="task"]) {
+  padding-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Placeholder (empty editor) */
+.milkdown-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-neutral-400);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* Inline calculation preview (rendered as a ProseMirror widget decoration
+   immediately after the cursor when an `expression=` pattern is detected). */
+.inline-calc-preview {
+  display: inline;
+  opacity: 0.45;
+  user-select: none;
+  pointer-events: none;
+}
+/* ProseMirror inserts a trailing <br> at the end of a paragraph that ends
+   with our widget; it renders as an extra visual line. Hide it, since the
+   real paragraph content ("2+2=") already provides the line height. */
+.milkdown-editor p:has(.inline-calc-preview) > br {
+  display: none;
+}
+
+/* y-prosemirror remote-cursor decorations.
+   The user's color is set inline by yCursorPlugin via the local awareness
+   state; the styles below give the caret a thin tinted body and put a
+   floating name label above. */
+.milkdown-editor .ProseMirror-yjs-cursor {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid;
+  border-right: 0;
+  word-break: normal;
+  pointer-events: none;
+}
+.milkdown-editor .ProseMirror-yjs-cursor > div {
+  position: absolute;
+  top: -1.4em;
+  left: -2px;
+  font-size: 11px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  line-height: normal;
+  user-select: none;
+  color: white;
+  padding: 1px 4px;
+  white-space: nowrap;
+  border-radius: 4px 4px 4px 0;
+}
+.milkdown-editor ::selection {
+  background-color: rgba(99, 102, 241, 0.18);
+}

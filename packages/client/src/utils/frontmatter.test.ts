@@ -4,11 +4,8 @@ import {
   frontmatterList,
   splitFrontmatter,
 } from "./frontmatter.js";
-import {
-  importFiles,
-  markdownFileToNote,
-  parseMarkdownToNote,
-} from "./importExport.js";
+import { importFiles } from "./importExport.js";
+import { markdownFileToNote, parseMarkdownToNote } from "./importedNote.js";
 import { buildZip } from "./zipTestSupport.js";
 
 describe("splitFrontmatter", () => {
