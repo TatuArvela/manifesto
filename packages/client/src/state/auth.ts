@@ -612,7 +612,7 @@ export function takeResetToken(): string | null {
     "",
     `${window.location.pathname}${window.location.search}`,
   );
-  return match[1];
+  return match[1] ?? null;
 }
 
 export type OidcRefusal =

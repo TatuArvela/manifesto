@@ -31,7 +31,7 @@ export interface RestAnswer {
 export type RestCall = (
   method: "GET" | "POST" | "PUT",
   path: string,
-  options?: { body?: unknown; ifMatch?: string },
+  options?: { body?: unknown; ifMatch?: string | undefined },
 ) => Promise<RestAnswer>;
 
 export interface ToolResult {
@@ -149,12 +149,12 @@ const pageFields = {
     .int()
     .min(1)
     .max(100)
-    .optional()
+    .exactOptional()
     .describe("Notes per page, 20 when left out"),
   cursor: z
     .string()
     .max(200)
-    .optional()
+    .exactOptional()
     .describe("The nextCursor of the previous page"),
 };
 const tagsField = z
@@ -247,11 +247,15 @@ export const MCP_TOOLS: readonly McpTool[] = [
     input: z.object({
       view: z
         .enum(["active", "archived", "trashed", "all"])
-        .optional()
+        .exactOptional()
         .describe(
           "Which notes: active (the default), archived, trashed or all",
         ),
-      tag: z.string().max(64).optional().describe("Only notes with this tag"),
+      tag: z
+        .string()
+        .max(64)
+        .exactOptional()
+        .describe("Only notes with this tag"),
       ...pageFields,
     }),
     scope: "notes:read",
@@ -308,11 +312,11 @@ export const MCP_TOOLS: readonly McpTool[] = [
     description:
       "Add a note at the top of the board. Content is Markdown; `- [ ] item` lines make a checklist.",
     input: z.object({
-      title: z.string().max(500).optional(),
+      title: z.string().max(500).exactOptional(),
       content: z.string().max(100_000).describe("The note's text, in Markdown"),
-      color: noteColorSchema.optional().describe("The card's colour"),
-      tags: tagsField.optional(),
-      pinned: z.boolean().optional(),
+      color: noteColorSchema.exactOptional().describe("The card's colour"),
+      tags: tagsField.exactOptional(),
+      pinned: z.boolean().exactOptional(),
     }),
     scope: "notes:write",
     idempotent: false,
@@ -351,20 +355,20 @@ export const MCP_TOOLS: readonly McpTool[] = [
     input: z
       .object({
         id: idField,
-        updatedAt: updatedAtField.optional(),
-        title: z.string().max(500).optional(),
+        updatedAt: updatedAtField.exactOptional(),
+        title: z.string().max(500).exactOptional(),
         content: z
           .string()
           .max(100_000)
-          .optional()
+          .exactOptional()
           .describe("The whole new text, in Markdown"),
-        color: noteColorSchema.optional(),
-        tags: tagsField.optional(),
-        pinned: z.boolean().optional(),
-        archived: z.boolean().optional(),
+        color: noteColorSchema.exactOptional(),
+        tags: tagsField.exactOptional(),
+        pinned: z.boolean().exactOptional(),
+        archived: z.boolean().exactOptional(),
         trashed: z
           .literal(false)
-          .optional()
+          .exactOptional()
           .describe("false restores the note from the trash"),
       })
       .refine(
@@ -388,7 +392,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
     title: "Move a note to the trash",
     description:
       "Move a note to the trash, where it stays for 30 days and can be restored with update_note. For a note someone shared with you, only your copy goes.",
-    input: z.object({ id: idField, updatedAt: updatedAtField.optional() }),
+    input: z.object({ id: idField, updatedAt: updatedAtField.exactOptional() }),
     scope: "notes:write",
     destructive: true,
     idempotent: true,

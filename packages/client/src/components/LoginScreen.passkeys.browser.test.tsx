@@ -25,7 +25,10 @@ const ANSWER: PasskeyAuthenticationResponse = {
   clientExtensionResults: {},
 };
 
-const logins: { otp?: string; passkey?: PasskeyAuthenticationResponse }[] = [];
+const logins: {
+  otp: string | undefined;
+  passkey: PasskeyAuthenticationResponse | undefined;
+}[] = [];
 let passkeySignIns = 0;
 
 vi.mock("../utils/webauthn.js", () => ({

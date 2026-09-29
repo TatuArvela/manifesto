@@ -89,11 +89,13 @@ interface NoteEditorProps {
   /** The editor instance, each time one is built (it is rebuilt when
    * collaboration arrives). */
   onEditorReady?: (editor: Editor) => void;
-  collab?: {
-    ydoc: import("yjs").Doc;
-    fragmentName?: string;
-    awareness?: import("y-protocols/awareness").Awareness;
-  };
+  collab?:
+    | {
+        ydoc: import("yjs").Doc;
+        fragmentName?: string;
+        awareness?: import("y-protocols/awareness").Awareness | undefined;
+      }
+    | undefined;
 }
 
 export function NoteEditor({
@@ -191,7 +193,7 @@ export function NoteEditor({
     };
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
-  }, [disabled, onAddLinkPreviews]);
+  }, [disabled, onAddLinkPreviews, attachFiles]);
 
   useEffect(() => {
     if (!editor) return;

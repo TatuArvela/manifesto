@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 import {
   isChecklistLine,
   markFencedLines,
@@ -125,7 +126,7 @@ describe("checklist merge scenarios", () => {
 
     if (clSegIdx === -1) return null;
 
-    const clSeg = newSegments[clSegIdx];
+    const clSeg = defined(newSegments[clSegIdx]);
     const lineInSeg = absLine - clSeg.startLine;
     return {
       segIndex: clSegIdx,
@@ -386,7 +387,7 @@ describe("fenced code", () => {
       startLine: 0,
       lines: ["- [ ] real"],
     });
-    expect(segments[1].type).toBe("text");
+    expect(segments[1]?.type).toBe("text");
   });
 
   it("does not let a tilde fence close a backtick one", () => {

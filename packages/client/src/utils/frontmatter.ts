@@ -68,14 +68,14 @@ export function splitFrontmatter(text: string): Frontmatter {
     const item = ITEM_LINE.exec(line);
     if (item && listKey !== null) {
       const list = data[listKey];
-      const value = unquote(item[1]);
+      const value = unquote(item[1] ?? "");
       if (Array.isArray(list)) list.push(value);
       else data[listKey] = value === "" ? [] : [value];
       continue;
     }
     const key = KEY_LINE.exec(line);
     if (!key) return { data: {}, body: text };
-    const [, name, value] = key;
+    const [, name = "", value] = key;
     if (value === undefined || value.trim() === "") {
       data[name] = [];
       listKey = name;

@@ -50,7 +50,7 @@ interface FormattingToolbarProps {
    */
   rawTextarea?: HTMLTextAreaElement | null;
   tick: number;
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   onAddLink?: (url: string) => void;
 }
 

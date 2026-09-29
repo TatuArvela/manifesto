@@ -173,7 +173,7 @@ export function SelectionToolbar({ leaving }: { leaving: boolean }) {
               <TagPicker
                 tags={[]}
                 onAddTag={(tag) => {
-                  bulkAddTag(tag);
+                  void bulkAddTag(tag);
                   setShowTagPicker(false);
                 }}
               />
@@ -217,7 +217,7 @@ export function SelectionToolbar({ leaving }: { leaving: boolean }) {
                     type="button"
                     class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch}`}
                     onClick={() => {
-                      bulkSetColor(c.value as NoteColor);
+                      void bulkSetColor(c.value as NoteColor);
                       setShowColorPicker(false);
                     }}
                     aria-label={c.label}

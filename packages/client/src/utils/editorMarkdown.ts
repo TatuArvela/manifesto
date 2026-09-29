@@ -29,18 +29,19 @@ function collapseListSpread(md: string): string {
   const fenced = markFencedLines(lines);
   const out: string[] = [];
   let i = 0;
+  const blankAt = (k: number) => lines[k]?.trim() === "" && !fenced[k];
   while (i < lines.length) {
-    if (lines[i].trim() === "" && out.length > 0 && !fenced[i]) {
-      const prev = out[out.length - 1];
+    const prev = out.at(-1);
+    if (prev !== undefined && blankAt(i)) {
       let j = i;
-      while (j < lines.length && lines[j].trim() === "" && !fenced[j]) j++;
+      while (blankAt(j)) j++;
       const next = lines[j] ?? "";
       if (!fenced[j] && LIST_LINE_RE.test(prev) && LIST_LINE_RE.test(next)) {
         i = j;
         continue;
       }
     }
-    out.push(lines[i]);
+    out.push(lines[i] ?? "");
     i++;
   }
   return out.join("\n");

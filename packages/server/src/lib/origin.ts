@@ -10,8 +10,8 @@ import type { Context } from "hono";
 export function publicOrigin(c: Context, trustProxy: boolean): string {
   const url = new URL(c.req.url);
   if (trustProxy) {
-    const proto = c.req.header("X-Forwarded-Proto")?.split(",")[0].trim();
-    const host = c.req.header("X-Forwarded-Host")?.split(",")[0].trim();
+    const proto = c.req.header("X-Forwarded-Proto")?.split(",")[0]?.trim();
+    const host = c.req.header("X-Forwarded-Host")?.split(",")[0]?.trim();
     if (proto === "https" || proto === "http") url.protocol = `${proto}:`;
     if (host) url.host = host;
   }

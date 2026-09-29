@@ -1,6 +1,6 @@
 import type { Webhook } from "@manifesto/shared";
 import { Copy, Send, Trash2 } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { formatDateTime, t } from "../../i18n/index.js";
 import { askConfirmation } from "../../state/confirm.js";
 import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
@@ -47,15 +47,15 @@ export function WebhooksSettings() {
   const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     const listed = await listWebhooks();
     setFailed(listed === null);
     setWebhooks(listed ?? []);
-  };
+  }, []);
 
   useEffect(() => {
     void reload();
-  }, []);
+  }, [reload]);
 
   const submit = async (event: Event) => {
     event.preventDefault();

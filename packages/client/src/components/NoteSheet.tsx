@@ -46,7 +46,7 @@ export function NoteSheet({
   useLayoutEffect(() => {
     const el = dialogRef.current;
     return el ? openSheet(el) : undefined;
-  }, []);
+  }, [dialogRef]);
 
   useBackToClose(!closing, onBack);
 
@@ -61,7 +61,7 @@ export function NoteSheet({
         class={`note-sheet ${layer} sm:fixed sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4 pointer-events-none ${motion}`}
       >
         <div
-          ref={panelRef}
+          ref={panelRef ?? null}
           class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain"
         >
           {children}

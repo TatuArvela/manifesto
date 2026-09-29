@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../test/defined.js";
 import { requestLog } from "./requestLog.js";
 
 function buildApp() {
@@ -25,16 +26,16 @@ describe("requestLog", () => {
     await buildApp().request("/api/search?q=my%20private%20note");
 
     expect(spy).toHaveBeenCalledTimes(1);
-    const entry = JSON.parse(spy.mock.calls[0][0] as string);
+    const entry = JSON.parse(defined(spy.mock.calls[0])[0] as string);
     expect(entry.path).toBe("/api/search");
-    expect(spy.mock.calls[0][0]).not.toContain("private");
+    expect(defined(spy.mock.calls[0])[0]).not.toContain("private");
   });
 
   it("keeps an OIDC authorization code out of the log", async () => {
     const spy = captureLog();
     await buildApp().request("/api/auth/callback?code=super-secret&state=abc");
 
-    const line = spy.mock.calls[0][0] as string;
+    const line = defined(spy.mock.calls[0])[0] as string;
     expect(line).not.toContain("super-secret");
     expect(line).not.toContain("state");
     expect(JSON.parse(line).path).toBe("/api/auth/callback");
@@ -44,7 +45,7 @@ describe("requestLog", () => {
     const spy = captureLog();
     await buildApp().request("/api/boom");
 
-    const entry = JSON.parse(spy.mock.calls[0][0] as string);
+    const entry = JSON.parse(defined(spy.mock.calls[0])[0] as string);
     expect(entry).toMatchObject({
       message: "request",
       method: "GET",

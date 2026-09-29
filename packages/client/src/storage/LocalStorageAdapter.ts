@@ -243,9 +243,10 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
     const notes = loadNotes();
     const index = notes.findIndex((n) => n.id === id);
-    if (index === -1) throw new Error(`Note not found: ${id}`);
+    const current = notes[index];
+    if (!current) throw new Error(`Note not found: ${id}`);
     const updated: Note = {
-      ...notes[index],
+      ...current,
       ...changes,
       updatedAt: new Date().toISOString(),
     };

@@ -21,13 +21,13 @@ const OPEN_TAG_RE = /^<(u|sub|sup)(?:\s[^>]*)?>$/i;
 const CLOSE_TAG_RE = /^<\/(u|sub|sup)\s*>$/i;
 
 function matchOpenTag(value: string): InlineTag | null {
-  const m = OPEN_TAG_RE.exec(value.trim());
-  return m ? (m[1].toLowerCase() as InlineTag) : null;
+  const tag = OPEN_TAG_RE.exec(value.trim())?.[1];
+  return tag ? (tag.toLowerCase() as InlineTag) : null;
 }
 
 function matchCloseTag(value: string): InlineTag | null {
-  const m = CLOSE_TAG_RE.exec(value.trim());
-  return m ? (m[1].toLowerCase() as InlineTag) : null;
+  const tag = CLOSE_TAG_RE.exec(value.trim())?.[1];
+  return tag ? (tag.toLowerCase() as InlineTag) : null;
 }
 
 type AnyNode = { type: string; value?: string; children?: AnyNode[] };
@@ -37,6 +37,7 @@ function pairChildren(children: AnyNode[]): AnyNode[] {
   let i = 0;
   while (i < children.length) {
     const node = children[i];
+    if (!node) break;
     if (node.type === "html" && typeof node.value === "string") {
       const open = matchOpenTag(node.value);
       if (open) {
@@ -44,7 +45,7 @@ function pairChildren(children: AnyNode[]): AnyNode[] {
         let j = i + 1;
         for (; j < children.length; j++) {
           const c = children[j];
-          if (c.type !== "html" || typeof c.value !== "string") continue;
+          if (c?.type !== "html" || typeof c.value !== "string") continue;
           if (matchOpenTag(c.value) === open) depth++;
           else if (matchCloseTag(c.value) === open) {
             depth--;

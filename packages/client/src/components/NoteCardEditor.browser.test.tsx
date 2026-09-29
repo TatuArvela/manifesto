@@ -378,7 +378,7 @@ describe("NoteCardEditor with a row written from outside the document", () => {
 
     // The caret starts where the focus left it; what matters is that every
     // word is still there, on screen and in the row.
-    for (const text of [editorText(), notes.value[0].content]) {
+    for (const text of [editorText(), notes.value[0]?.content]) {
       expect(text).toMatch(/and\s+rye\s+bread/);
       expect(text).toContain("Milk, eggs, coffee");
     }

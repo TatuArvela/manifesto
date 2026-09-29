@@ -19,7 +19,7 @@ export interface SafeFetchOptions {
   timeoutMs?: number;
   maxRedirects?: number;
   /** Test seam. Production refuses anything but public addresses. */
-  isAllowedAddress?: (address: string) => boolean;
+  isAllowedAddress?: ((address: string) => boolean) | undefined;
   /** Test seam. Production accepts only a scheme's default port. */
   allowAnyPort?: boolean;
   /** GET unless given. A request with a body is never redirected: a 3xx is
@@ -171,10 +171,11 @@ async function resolveAllowed(
       ).map((entry) => entry.address);
   // Every answer must pass, not just the first: which one a later lookup
   // would have used is not something to leave to chance.
-  if (addresses.length === 0 || !addresses.every(isAllowed)) {
+  const [first] = addresses;
+  if (first === undefined || !addresses.every(isAllowed)) {
     throw new FetchRefused("Address is not public");
   }
-  return addresses[0];
+  return first;
 }
 
 function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {

@@ -149,7 +149,7 @@ describe("NoteCard editing modal", () => {
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       expect(running).toHaveLength(1);
-      expect(running[0].playState).toBe("running");
+      expect(running[0]?.playState).toBe("running");
     } finally {
       animations.value = previous;
     }
@@ -189,7 +189,7 @@ describe("NoteCard editing modal", () => {
       expect(editingNoteId.value).toBe(null);
       expect(modalIsUp()).toBe(false);
     });
-    expect(notes.value[0].archived).toBe(true);
+    expect(notes.value[0]?.archived).toBe(true);
   });
 
   it("gives Escape to the colour picker, not to the editor under it", async () => {
@@ -317,7 +317,7 @@ describe("the card menu", () => {
       ...document.querySelectorAll<HTMLElement>(".card-popover"),
     ].filter((el) => el.dataset.leaving !== "true");
     expect(open).toHaveLength(1);
-    expect(open[0].textContent).toContain(t("reminder.header"));
+    expect(open[0]?.textContent).toContain(t("reminder.header"));
     await pressEscape();
   });
 });

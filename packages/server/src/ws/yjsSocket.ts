@@ -313,5 +313,5 @@ function nodeToWebRequest(req: IncomingMessage): Request {
       headers.set(key, value);
     }
   }
-  return new Request(url, { method: req.method, headers });
+  return new Request(url, { method: req.method ?? "GET", headers });
 }

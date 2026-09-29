@@ -67,7 +67,8 @@ export function FeaturesSettings() {
               trackClass={toggleTrackClass}
               value={decimalSeparators.indexOf(decimalSeparator.value)}
               onChange={(i) => {
-                decimalSeparator.value = decimalSeparators[i];
+                decimalSeparator.value =
+                  decimalSeparators[i] ?? decimalSeparator.value;
               }}
               options={[
                 {

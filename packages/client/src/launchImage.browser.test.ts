@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { offerLaunchImage } from "./launchImage.js";
+import { defined } from "./test/defined.js";
 
 // A solid black square, as the stock logo is a solid black shape.
 const LOGO = `data:image/svg+xml,${encodeURIComponent(
@@ -80,7 +81,9 @@ describe("the launch image", () => {
     if (!logoBox) throw new Error("no logo");
     offerLaunchImage(0);
     await expect.poll(() => launchLinks().length).toBe(4);
-    const [light, , dark] = launchLinks();
+    const [lightLink, , darkLink] = launchLinks();
+    const light = defined(lightLink, "light launch image");
+    const dark = defined(darkLink, "dark launch image");
 
     const scale = window.devicePixelRatio;
     const width = Math.min(screen.width, screen.height);

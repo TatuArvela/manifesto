@@ -7,10 +7,10 @@ import {
 import type { StorageDriver } from "../storage/types.js";
 
 export interface AuditPageQuery {
-  limit?: string;
-  before?: string;
-  userId?: string;
-  action?: string;
+  limit?: string | undefined;
+  before?: string | undefined;
+  userId?: string | undefined;
+  action?: string | undefined;
 }
 
 /**

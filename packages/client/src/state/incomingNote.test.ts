@@ -114,7 +114,7 @@ describe("foldIncomingList", () => {
     const next = foldIncomingList(held, listed);
     expect(next).not.toBe(held);
     expect(next[0]).toBe(held[0]);
-    expect(next[1].title).toBe("Renamed");
+    expect(next[1]?.title).toBe("Renamed");
   });
 
   it("notices a note that is no longer listed", () => {

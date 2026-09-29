@@ -9,6 +9,7 @@ import {
   selectedNotes,
   selectMode,
 } from "../state/ui.js";
+import { defined } from "../test/defined.js";
 import { createNoteOrFail } from "../test/testSupport.js";
 import { useMarqueeSelection } from "./useMarqueeSelection.js";
 
@@ -103,7 +104,7 @@ describe("useMarqueeSelection", () => {
     pointer("pointermove", 180, 150);
     pointer("pointermove", 300, 150);
     await frame();
-    expect([...selectedNotes.value]).toEqual([created[0].id, created[1].id]);
+    expect([...selectedNotes.value]).toEqual([created[0]?.id, created[1]?.id]);
     expect(selectMode.value).toBe(true);
     pointer("pointerup", 300, 150);
     expect(selectedNotes.value.size).toBe(2);
@@ -118,7 +119,7 @@ describe("useMarqueeSelection", () => {
   });
 
   it("clears the selection on a click on empty space", async () => {
-    selectedNotes.value = new Set([created[2].id]);
+    selectedNotes.value = new Set([defined(created[2]).id]);
     selectMode.value = true;
     pointer("pointerdown", 70, 60);
     pointer("pointermove", 72, 61);
@@ -128,7 +129,7 @@ describe("useMarqueeSelection", () => {
   });
 
   it("clears it on a tap too, but not when the touch scrolls", async () => {
-    selectedNotes.value = new Set([created[2].id]);
+    selectedNotes.value = new Set([defined(created[2]).id]);
     selectMode.value = true;
     const touch = { pointerType: "touch" };
     pointer("pointerdown", 70, 60, touch);
@@ -142,46 +143,46 @@ describe("useMarqueeSelection", () => {
   });
 
   it("keeps the selection on a Shift-click on empty space", async () => {
-    selectedNotes.value = new Set([created[2].id]);
+    selectedNotes.value = new Set([defined(created[2]).id]);
     selectMode.value = true;
     pointer("pointerdown", 70, 60, { shiftKey: true });
     pointer("pointerup", 70, 60, { shiftKey: true });
-    expect([...selectedNotes.value]).toEqual([created[2].id]);
+    expect([...selectedNotes.value]).toEqual([created[2]?.id]);
   });
 
   it("keeps the selection on a click on a card", async () => {
-    selectedNotes.value = new Set([created[2].id]);
+    selectedNotes.value = new Set([defined(created[2]).id]);
     selectMode.value = true;
     pointer("pointerdown", 150, 150);
     pointer("pointerup", 150, 150);
-    expect([...selectedNotes.value]).toEqual([created[2].id]);
+    expect([...selectedNotes.value]).toEqual([created[2]?.id]);
   });
 
   it("adds to the selection with Shift held", async () => {
-    selectedNotes.value = new Set([created[2].id]);
+    selectedNotes.value = new Set([defined(created[2]).id]);
     selectMode.value = true;
     pointer("pointerdown", 70, 60, { shiftKey: true });
     pointer("pointermove", 180, 150);
     await frame();
     pointer("pointerup", 180, 150);
     expect(new Set(selectedNotes.value)).toEqual(
-      new Set([created[2].id, created[0].id]),
+      new Set([created[2]?.id, created[0]?.id]),
     );
   });
 
   it("puts the earlier selection back on Escape", async () => {
-    selectedNotes.value = new Set([created[2].id]);
+    selectedNotes.value = new Set([defined(created[2]).id]);
     selectMode.value = true;
     pointer("pointerdown", 70, 60);
     pointer("pointermove", 180, 150);
     await frame();
     await vi.waitFor(() =>
-      expect([...selectedNotes.value]).toEqual([created[0].id]),
+      expect([...selectedNotes.value]).toEqual([created[0]?.id]),
     );
     // The Escape layer registers once the box has rendered.
     await frame();
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    expect([...selectedNotes.value]).toEqual([created[2].id]);
+    expect([...selectedNotes.value]).toEqual([created[2]?.id]);
     expect(selectMode.value).toBe(true);
     pointer("pointerup", 180, 150);
   });

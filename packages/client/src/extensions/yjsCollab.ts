@@ -14,7 +14,7 @@ export const DEFAULT_FRAGMENT_NAME = "prosemirror";
 export interface YjsCollabOptions {
   ydoc: Y.Doc;
   fragmentName?: string;
-  awareness?: Awareness;
+  awareness?: Awareness | undefined;
 }
 
 export type YjsCollabFactory = (options: YjsCollabOptions) => MilkdownPlugin;

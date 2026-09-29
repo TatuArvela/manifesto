@@ -5,7 +5,7 @@ export type PgPool = pg.Pool;
 export interface PostgresOpenOptions {
   connectionString: string;
   // Test seam: lets pg-mem inject its own pg-compatible Pool implementation.
-  poolFactory?: (connectionString: string) => PgPool;
+  poolFactory?: ((connectionString: string) => PgPool) | undefined;
 }
 
 export function openPostgres(opts: PostgresOpenOptions): PgPool {

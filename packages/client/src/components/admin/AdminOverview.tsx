@@ -17,6 +17,11 @@ const JOB_NAMES: Record<string, MessageKey> = {
   "update check": "overview.job.update",
 };
 
+function jobLabel(name: string): string {
+  const key = JOB_NAMES[name];
+  return key ? t(key) : name;
+}
+
 function uptime(seconds: number): string {
   const days = Math.floor(seconds / 86_400);
   const hours = Math.floor((seconds % 86_400) / 3600);
@@ -141,9 +146,7 @@ export function AdminOverview() {
           {overview.jobs.map((job) => (
             <li key={job.name} class="px-3 py-2 text-sm">
               <div class="flex flex-wrap justify-between gap-x-3">
-                <span class="font-medium">
-                  {JOB_NAMES[job.name] ? t(JOB_NAMES[job.name]) : job.name}
-                </span>
+                <span class="font-medium">{jobLabel(job.name)}</span>
                 <span
                   class={
                     job.lastError

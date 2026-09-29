@@ -42,6 +42,7 @@ export function NoteCardBody({
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentClipped, setContentClipped] = useState(false);
   const hasLinkPreviews = note.linkPreviews.length > 0;
+  const hero = note.linkPreviews[0];
 
   useEffect(() => {
     const el = contentRef.current;
@@ -87,9 +88,9 @@ export function NoteCardBody({
         </div>
       )}
 
-      {isLinkOnly ? (
+      {isLinkOnly && hero ? (
         <>
-          <LinkPreviewHero preview={note.linkPreviews[0]} fill={isSquare} />
+          <LinkPreviewHero preview={hero} fill={isSquare} />
           {note.linkPreviews.length > 1 && (
             <div class="p-3">
               <LinkPreviewList

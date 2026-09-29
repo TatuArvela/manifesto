@@ -15,7 +15,7 @@ describe("writeZip", () => {
       "notes.json",
       "notes/Ääkköset.md",
     ]);
-    expect(decoder.decode(await entries[1].read(10_000))).toBe(
+    expect(decoder.decode(await entries[1]?.read(10_000))).toBe(
       "# Hei\n".repeat(50),
     );
   });

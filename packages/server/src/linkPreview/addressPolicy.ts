@@ -57,8 +57,8 @@ export function isPublicAddress(address: string): boolean {
   const family = isIP(address);
   if (family === 4) return !blocked.check(address, "ipv4");
   if (family !== 6) return false;
-  const mapped = MAPPED_IPV4.exec(address);
-  if (mapped) return !blocked.check(mapped[1], "ipv4");
+  const [, mapped] = MAPPED_IPV4.exec(address) ?? [];
+  if (mapped !== undefined) return !blocked.check(mapped, "ipv4");
   if (!ipv6GlobalUnicast.check(address, "ipv6")) return false;
   return !blocked.check(address, "ipv6");
 }
@@ -87,7 +87,7 @@ export function isLocalNetworkAddress(address: string): boolean {
   const family = isIP(address);
   if (family === 4) return localNetwork.check(address, "ipv4");
   if (family !== 6) return false;
-  const mapped = MAPPED_IPV4.exec(address);
-  if (mapped) return localNetwork.check(mapped[1], "ipv4");
+  const [, mapped] = MAPPED_IPV4.exec(address) ?? [];
+  if (mapped !== undefined) return localNetwork.check(mapped, "ipv4");
   return localNetwork.check(address, "ipv6");
 }

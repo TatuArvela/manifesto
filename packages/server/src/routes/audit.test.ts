@@ -57,9 +57,9 @@ describe("audit log", () => {
       "auth.signed_in",
       "auth.sign_in_failed",
     ]);
-    expect(entries[0].actor?.username).toBe("alice");
-    expect(entries[0].target?.username).toBe("bob");
-    expect(entries[2].detail).toEqual({ username: "bob", reason: "password" });
+    expect(entries[0]?.actor?.username).toBe("alice");
+    expect(entries[0]?.target?.username).toBe("bob");
+    expect(entries[2]?.detail).toEqual({ username: "bob", reason: "password" });
   });
 
   it("narrows to one account, one action, and pages", async () => {
@@ -135,7 +135,7 @@ describe("audit log", () => {
     expect(granted?.actor?.username).toBe("alice");
     expect(granted?.ip).toBeNull();
     const all = await log(`?userId=${bob.userId}&action=admin.admin_granted`);
-    expect(all.entries[0].ip).toBe("203.0.113.9");
+    expect(all.entries[0]?.ip).toBe("203.0.113.9");
   });
 
   it("will not give a user's activity to an API token", async () => {

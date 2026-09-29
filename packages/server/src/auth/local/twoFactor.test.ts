@@ -4,6 +4,7 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { defined } from "../../test/defined.js";
 import {
   authHeaders,
   bootTestApp,
@@ -109,7 +110,7 @@ describe("two-factor sign-in", () => {
 
   it("takes a recovery code once, however it is typed", async () => {
     const { recoveryCodes } = await turnOn();
-    const typed = recoveryCodes[0].toUpperCase().replace("-", " ");
+    const typed = defined(recoveryCodes[0]).toUpperCase().replace("-", " ");
     expect((await login({ otp: typed })).status).toBe(200);
     expect((await login({ otp: recoveryCodes[0] })).status).toBe(401);
     const status = (await (

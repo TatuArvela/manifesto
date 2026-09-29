@@ -2,9 +2,10 @@ import type { CapabilitiesResponse } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
+import { defined } from "../test/defined.js";
 import { LoginScreen } from "./LoginScreen.js";
 
-const calls: { password: string; otp?: string }[] = [];
+const calls: { password: string; otp: string | undefined }[] = [];
 let resetToken: string | null = null;
 const resets: { token: string; password: string }[] = [];
 const requested: string[] = [];
@@ -164,8 +165,8 @@ describe("LoginScreen with two-factor sign-in", () => {
         'input[autocomplete="new-password"]',
       ),
     ];
-    type(next, "brand-new-pass");
-    type(confirm, "brand-new-pass");
+    type(defined(next), "brand-new-pass");
+    type(defined(confirm), "brand-new-pass");
     await tick();
     host.querySelector("form")?.requestSubmit();
     await vi.waitFor(() =>

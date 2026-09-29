@@ -15,7 +15,7 @@ export function detectBrowserLocale(candidates?: readonly string[]): Locale {
           : []
       : []);
   for (const lang of langs) {
-    const base = lang.split(/[-_]/)[0].toLowerCase();
+    const [base = ""] = lang.toLowerCase().split(/[-_]/);
     if ((SUPPORTED_LOCALES as readonly string[]).includes(base)) {
       return base as Locale;
     }

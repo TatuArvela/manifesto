@@ -10,6 +10,7 @@ import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import { hashToken } from "../lib/token.js";
 import { createStorage } from "../storage/index.js";
+import { defined } from "../test/defined.js";
 import {
   authHeaders,
   bootTestAppWith,
@@ -265,7 +266,7 @@ describe("OAuth for /api/mcp", () => {
     const listed = (await (
       await rig.request("/api/tokens", { headers: authHeaders(session) })
     ).json()) as ApiTokensResponse;
-    await rig.request(`/api/tokens/${listed.tokens[0].id}`, {
+    await rig.request(`/api/tokens/${defined(listed.tokens[0]).id}`, {
       method: "DELETE",
       headers: authHeaders(session),
     });

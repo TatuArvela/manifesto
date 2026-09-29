@@ -14,7 +14,7 @@ export function describeStatsContract(
       for (const [id, username] of [
         ["u1", "una"],
         ["u2", "ursula"],
-      ]) {
+      ] as const) {
         await storage.users.create({
           id,
           username,

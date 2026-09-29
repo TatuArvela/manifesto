@@ -1,5 +1,6 @@
 import type { NoteReminder } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 import {
   advanceReminder,
   formatLocalISO,
@@ -74,7 +75,7 @@ describe("a recurring reminder over many fires", () => {
 
   it("keeps its weekday every week", () => {
     const times = fires("2026-01-05T09:00:00", "weekly", 60);
-    const day = parseLocalISO(times[0]).getDay();
+    const day = parseLocalISO(defined(times[0])).getDay();
     for (const t of times) expect(parseLocalISO(t).getDay()).toBe(day);
   });
 

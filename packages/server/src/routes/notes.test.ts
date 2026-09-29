@@ -6,6 +6,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 import {
   authHeaders,
   bootTestApp,
@@ -466,16 +467,16 @@ describe("notes routes", () => {
         headers: authHeaders(token),
       });
       const body = (await res.json()) as NotesResponse;
-      expect(body.notes[0].images).toEqual([]);
-      expect(body.notes[0].imageCount).toBe(1);
+      expect(body.notes[0]?.images).toEqual([]);
+      expect(body.notes[0]?.imageCount).toBe(1);
 
       // Reading the one note gives the reference, and that the bytes.
-      const one = await rig.request(`/api/notes/${body.notes[0].id}`, {
+      const one = await rig.request(`/api/notes/${defined(body.notes[0]).id}`, {
         headers: authHeaders(token),
       });
       const [ref] = ((await one.json()) as { note: Note }).note.images;
       const bytes = await rig.request(
-        `/api/attachments/${attachmentIdOf(ref)}`,
+        `/api/attachments/${attachmentIdOf(defined(ref))}`,
         { headers: authHeaders(token) },
       );
       expect(bytes.headers.get("Content-Type")).toBe("image/png");

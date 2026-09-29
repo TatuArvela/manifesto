@@ -6,6 +6,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 import {
   authHeaders,
   bootTestApp,
@@ -97,7 +98,7 @@ describe("attachments", () => {
   }
 
   const fetchAs = (who: Account, ref: string) =>
-    call(who, "GET", `/api/attachments/${attachmentIdOf(ref)}`);
+    call(who, "GET", `/api/attachments/${attachmentIdOf(defined(ref))}`);
 
   it("stores the same image once per owner", async () => {
     const a = await create(owner, [PNG]);
@@ -116,12 +117,12 @@ describe("attachments", () => {
   it("serves a recipient and nobody else", async () => {
     const note = await create(owner, [PNG]);
     await share(note.id, alice, "view");
-    expect((await fetchAs(owner, note.images[0])).status).toBe(200);
-    expect((await fetchAs(alice, note.images[0])).status).toBe(200);
-    expect((await fetchAs(mallory, note.images[0])).status).toBe(404);
+    expect((await fetchAs(owner, defined(note.images[0]))).status).toBe(200);
+    expect((await fetchAs(alice, defined(note.images[0]))).status).toBe(200);
+    expect((await fetchAs(mallory, defined(note.images[0]))).status).toBe(404);
     // The owner trashing the note takes it away from the recipient.
     await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: true });
-    expect((await fetchAs(alice, note.images[0])).status).toBe(404);
+    expect((await fetchAs(alice, defined(note.images[0]))).status).toBe(404);
   });
 
   it("stores an editor's image under the note's owner", async () => {
@@ -131,17 +132,19 @@ describe("attachments", () => {
       images: [await uploadAs(alice, GIF)],
     });
     const [ref] = ((await res.json()) as { note: Note }).note.images;
-    const meta = await rig.storage.attachments.meta(attachmentIdOf(ref));
+    const meta = await rig.storage.attachments.meta(
+      attachmentIdOf(defined(ref)),
+    );
     expect(meta?.ownerId).toBe(owner.userId);
   });
 
   it("copies an image an editor may read into their own note", async () => {
     const shared = await create(owner, [PNG]);
     await share(shared.id, alice);
-    const mine = await create(alice, [shared.images[0]]);
+    const mine = await create(alice, [defined(shared.images[0])]);
     expect(mine.images[0]).not.toBe(shared.images[0]);
     const meta = await rig.storage.attachments.meta(
-      attachmentIdOf(mine.images[0]),
+      attachmentIdOf(defined(mine.images[0])),
     );
     expect(meta?.ownerId).toBe(alice.userId);
   });
@@ -162,7 +165,7 @@ describe("attachments", () => {
 
   it("sweeps an image once nothing has referred to it for the grace period", async () => {
     const note = await create(owner, [PNG]);
-    const id = attachmentIdOf(note.images[0]);
+    const id = attachmentIdOf(defined(note.images[0]));
     await call(owner, "PUT", `/api/notes/${note.id}`, { images: [] });
 
     const later = "2026-09-01T00:00:00.000Z";
@@ -203,9 +206,11 @@ describe("attachments", () => {
       });
       expect(res.status).toBe(200);
       const [stored] = ((await res.json()) as { note: Note }).note.linkPreviews;
-      const ref = stored.image as string;
-      expect(stored.favicon).toBe(ref);
-      const meta = await rig.storage.attachments.meta(attachmentIdOf(ref));
+      const ref = defined(stored).image as string;
+      expect(stored?.favicon).toBe(ref);
+      const meta = await rig.storage.attachments.meta(
+        attachmentIdOf(defined(ref)),
+      );
       expect(meta?.ownerId).toBe(owner.userId);
       expect((await fetchAs(mallory, ref)).status).toBe(200);
     });
@@ -217,7 +222,7 @@ describe("attachments", () => {
         linkPreviews: [preview(ref)],
       });
       const note = ((await res.json()) as { note: Note }).note;
-      const id = attachmentIdOf(ref);
+      const id = attachmentIdOf(defined(ref));
       const much = "2027-01-01T00:00:00.000Z";
       await rig.storage.attachments.sweep(NOW, NOW);
       expect(await rig.storage.attachments.sweep(much, much)).toBe(0);
@@ -231,7 +236,7 @@ describe("attachments", () => {
       const theirs = await create(owner, [PNG]);
       const res = await call(mallory, "POST", "/api/notes", {
         ...baseNote,
-        linkPreviews: [preview(theirs.images[0])],
+        linkPreviews: [preview(defined(theirs.images[0]))],
       });
       expect(res.status).toBe(422);
     });
@@ -246,7 +251,9 @@ describe("attachments", () => {
       });
       const note = ((await shared.json()) as { note: Note }).note;
       await share(note.id, alice, "view");
-      expect((await fetchAs(alice, secret.images[0])).status).toBe(404);
+      expect((await fetchAs(alice, defined(secret.images[0]))).status).toBe(
+        404,
+      );
     });
   });
 
@@ -287,7 +294,7 @@ describe("attachments", () => {
     it("starts the grace again when an image is uploaded again", async () => {
       const res = await upload(owner, PNG_BYTES, "image/png");
       const { ref } = (await res.json()) as { ref: string };
-      const id = attachmentIdOf(ref);
+      const id = attachmentIdOf(defined(ref));
       const later = "2026-09-01T00:00:00.000Z";
       const much = "2027-01-01T00:00:00.000Z";
       // Never referred to, so the first sweep marks it.

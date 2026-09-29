@@ -56,7 +56,10 @@ export const standardNotesImporter: Importer = {
         importedNote({
           title: typeof content.title === "string" ? content.title : "",
           content: typeof content.text === "string" ? content.text : "",
-          tags: typeof item.uuid === "string" ? tagsByNote.get(item.uuid) : [],
+          tags:
+            typeof item.uuid === "string"
+              ? (tagsByNote.get(item.uuid) ?? [])
+              : [],
           pinned: content.pinned === true,
           archived: content.archived === true,
           trashed: content.trashed === true,

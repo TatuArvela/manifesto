@@ -1,5 +1,6 @@
 import { isLocalImageRef, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../test/defined.js";
 import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
 import {
   clearLocalImages,
@@ -74,9 +75,11 @@ describe("open mode's image store", () => {
       linkPreviews: [],
       reminder: null,
     });
-    expect(isLocalImageRef(note.images[0])).toBe(true);
+    expect(isLocalImageRef(defined(note.images[0]))).toBe(true);
     expect(localStorage.getItem("manifesto:notes")).not.toContain("data:");
-    expect((await adapter.loadImage(note.images[0])).type).toBe("image/gif");
+    expect((await adapter.loadImage(defined(note.images[0]))).type).toBe(
+      "image/gif",
+    );
   });
 
   it("moves images a note held inline before, on first load", async () => {
@@ -104,7 +107,7 @@ describe("open mode's image store", () => {
       ]),
     );
     const [note] = await new LocalStorageAdapter().getAll();
-    expect(isLocalImageRef(note.images[0])).toBe(true);
+    expect(isLocalImageRef(defined(note?.images[0]))).toBe(true);
     expect(localStorage.getItem("manifesto:notes")).not.toContain("data:");
   });
   it("keeps a note's images inline, and loads the board, when they cannot move", async () => {
@@ -133,8 +136,8 @@ describe("open mode's image store", () => {
     );
     const all = await new LocalStorageAdapter().getAll();
     expect(all.map((n) => n.id)).toEqual(["01BAD", "01GOOD"]);
-    expect(all[0].images).toEqual([broken]);
-    expect(isLocalImageRef(all[1].images[0])).toBe(true);
+    expect(all[0]?.images).toEqual([broken]);
+    expect(isLocalImageRef(defined(all[1]?.images[0]))).toBe(true);
   });
 
   it("stores an imported preview's images and keeps them through the sweep", async () => {
@@ -168,16 +171,16 @@ describe("open mode's image store", () => {
       },
     ]);
     const [note] = await adapter.getAll();
-    const [preview] = note.linkPreviews;
-    expect(isLocalImageRef(preview.image ?? "")).toBe(true);
-    expect(preview.favicon).toBe(preview.image);
+    const [preview] = defined(note).linkPreviews;
+    expect(isLocalImageRef(preview?.image ?? "")).toBe(true);
+    expect(preview?.favicon).toBe(preview?.image);
     expect(localStorage.getItem("manifesto:notes")).not.toContain("data:");
     await sweepLocalImages(
-      new Set([preview.image as string]),
+      new Set([defined(preview).image as string]),
       0,
       Date.now() + 1,
     );
-    expect((await getLocalImage(preview.image as string)).type).toBe(
+    expect((await getLocalImage(preview?.image as string)).type).toBe(
       "image/gif",
     );
   });

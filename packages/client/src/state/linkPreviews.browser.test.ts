@@ -6,6 +6,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { LocalStorageAdapter } from "../storage/index.js";
+import { defined } from "../test/defined.js";
 import { createNoteOrFail } from "../test/testSupport.js";
 import { makeStubPreview } from "../utils/linkPreview.js";
 import {
@@ -70,7 +71,7 @@ describe("addLinkPreviews", () => {
   it("leaves plain cards in open mode", async () => {
     const note = await createNoteOrFail({});
     await addLinkPreviews(note.id, ["https://www.a.test/x"]);
-    expect(notes.value[0].linkPreviews).toEqual([
+    expect(notes.value[0]?.linkPreviews).toEqual([
       makeStubPreview("https://www.a.test/x"),
     ]);
   });
@@ -89,17 +90,17 @@ describe("addLinkPreviews", () => {
 
     expect(await addLinkPreviews(note.id, ["https://a.test/1"])).toBe(true);
 
-    const [preview] = notes.value[0].linkPreviews;
-    expect(preview.title).toBe("Title of https://a.test/1");
-    expect(preview.description).toBe("About it");
+    const [preview] = defined(notes.value[0]).linkPreviews;
+    expect(preview?.title).toBe("Title of https://a.test/1");
+    expect(preview?.description).toBe("About it");
     // Stored like an attachment, so a note carries only a reference.
-    expect(isStoredImageRef(preview.image ?? "")).toBe(true);
-    expect(isStoredImageRef(preview.favicon ?? "")).toBe(true);
+    expect(isStoredImageRef(preview?.image ?? "")).toBe(true);
+    expect(isStoredImageRef(preview?.favicon ?? "")).toBe(true);
     const adapter = new LocalStorageAdapter();
-    expect((await adapter.loadImage(preview.image ?? "")).type).toMatch(
+    expect((await adapter.loadImage(preview?.image ?? "")).type).toMatch(
       /^image\/(webp|jpeg|png)$/,
     );
-    expect((await adapter.loadImage(preview.favicon ?? "")).type).toBe(
+    expect((await adapter.loadImage(preview?.favicon ?? "")).type).toBe(
       "image/png",
     );
   });
@@ -117,7 +118,7 @@ describe("addLinkPreviews", () => {
       "https://broken.test",
     ]);
 
-    expect(notes.value[0].linkPreviews).toEqual([
+    expect(notes.value[0]?.linkPreviews).toEqual([
       makeStubPreview("https://none.test"),
       makeStubPreview("https://broken.test"),
     ]);
@@ -134,7 +135,7 @@ describe("addLinkPreviews", () => {
 
     await addLinkPreviews(note.id, urls);
 
-    expect(notes.value[0].linkPreviews).toHaveLength(
+    expect(notes.value[0]?.linkPreviews).toHaveLength(
       MAX_LINK_PREVIEWS_PER_NOTE,
     );
     expect(toasts.value.map((toast) => toast.message)).toEqual([
@@ -159,7 +160,7 @@ describe("applyLinkPreviews", () => {
     answer({ url: "https://a.test", title: "Late", domain: "a.test" });
 
     expect(await applied).toBe(true);
-    expect(notes.value[0].linkPreviews).toEqual([]);
+    expect(notes.value[0]?.linkPreviews).toEqual([]);
   });
 
   it("writes nothing when the preview is already in place", async () => {

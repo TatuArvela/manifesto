@@ -92,7 +92,7 @@ describe("LocalStorageAdapter", () => {
     await adapter.importAll([imported]);
     const all = await adapter.getAll();
     expect(all).toHaveLength(1);
-    expect(all[0].title).toBe("Imported Title");
+    expect(all[0]?.title).toBe("Imported Title");
   });
 
   it("importAll adds new notes", async () => {
@@ -138,7 +138,7 @@ describe("LocalStorageAdapter", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([oldNote]));
     const freshAdapter = new LocalStorageAdapter();
     const notes = await freshAdapter.getAll();
-    expect(notes[0].font).toBe(NoteFont.Default);
+    expect(notes[0]?.font).toBe(NoteFont.Default);
   });
 
   it("does not parse the stored list again for a write of its own", async () => {
@@ -237,7 +237,7 @@ describe("cross-tab note changes", () => {
     }
 
     expect(seen).toHaveLength(1);
-    expect(seen[0].find((n) => n.id === trashed.id)?.trashed).toBe(true);
+    expect(seen[0]?.find((n) => n.id === trashed.id)?.trashed).toBe(true);
   });
 
   it("reports an empty list when the whole store is cleared", () => {

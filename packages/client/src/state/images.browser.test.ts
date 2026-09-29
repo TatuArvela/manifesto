@@ -62,8 +62,8 @@ describe("ensureImages", () => {
     notes.value = [listed("a", 1)];
 
     expect(await ensureImages("a")).toEqual([PNG]);
-    expect(notes.value[0].images).toEqual([PNG]);
-    expect(notes.value[0].imageCount).toBe(1);
+    expect(notes.value[0]?.images).toEqual([PNG]);
+    expect(notes.value[0]?.imageCount).toBe(1);
   });
 
   it("does not fetch for a note whose attachments are already there", async () => {
@@ -102,8 +102,8 @@ describe("ensureImages", () => {
     notes.value = [listed("a", 2)];
 
     expect(await ensureImages("a")).toBeNull();
-    expect(notes.value[0].images).toEqual([]);
-    expect(notes.value[0].imageCount).toBe(2);
+    expect(notes.value[0]?.images).toEqual([]);
+    expect(notes.value[0]?.imageCount).toBe(2);
   });
 
   it("answers null for a failure and [] for a note with no attachments", async () => {

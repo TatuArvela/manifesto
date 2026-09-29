@@ -214,7 +214,7 @@ export function CardActions({
                   body: t("confirm.delete.body"),
                   confirmLabel: t("confirm.delete.action"),
                 });
-                if (ok) permanentlyDeleteNote(note.id);
+                if (ok) void permanentlyDeleteNote(note.id);
               }}
               aria-label={t("noteCard.deletePermanently")}
             >

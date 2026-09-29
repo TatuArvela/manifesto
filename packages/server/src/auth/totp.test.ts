@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 import {
   base32Decode,
   base32Encode,
@@ -63,7 +64,7 @@ describe("recovery codes", () => {
     expect(new Set(codes).size).toBe(10);
     expect(codes[0]).toMatch(/^[a-z2-9]{4}-[a-z2-9]{4}$/);
     expect(
-      normalizeRecoveryCode(codes[0].toUpperCase().replace("-", " ")),
+      normalizeRecoveryCode(defined(codes[0]).toUpperCase().replace("-", " ")),
     ).toBe(codes[0]);
   });
 });

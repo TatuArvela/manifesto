@@ -14,8 +14,15 @@ const PRECEDENCE: Record<Operator, number> = {
 };
 const UNARY_PRECEDENCE = 3;
 
-function isDigit(c: string): boolean {
-  return c >= "0" && c <= "9";
+function isDigit(c: string | undefined): boolean {
+  return c !== undefined && c >= "0" && c <= "9";
+}
+
+/** Whether `top`, on the operator stack, is applied before `op` is pushed. */
+function popsBefore(top: Token | undefined, op: Operator): boolean {
+  if (top?.kind === "unary-minus") return UNARY_PRECEDENCE > PRECEDENCE[op];
+  if (top?.kind === "op") return PRECEDENCE[top.value] >= PRECEDENCE[op];
+  return false;
 }
 
 /**
@@ -98,8 +105,9 @@ function toRpn(tokens: Token[]): Token[] | null {
         prev === null || prev.kind === "op" || prev.kind === "lparen";
       if (inUnaryPosition) {
         if (tok.value === "-") {
-          normalized.push({ kind: "unary-minus" });
-          prev = normalized[normalized.length - 1];
+          const unary: Token = { kind: "unary-minus" };
+          normalized.push(unary);
+          prev = unary;
           continue;
         }
         // Unary + or any binary op in a unary slot is invalid.
@@ -111,9 +119,8 @@ function toRpn(tokens: Token[]): Token[] | null {
   }
 
   // A trailing operator (binary or unary) is invalid.
-  if (normalized.length === 0) return null;
-  const last = normalized[normalized.length - 1];
-  if (last.kind === "op" || last.kind === "unary-minus") return null;
+  const last = normalized.at(-1);
+  if (!last || last.kind === "op" || last.kind === "unary-minus") return null;
 
   for (const tok of normalized) {
     if (tok.kind === "number") {
@@ -122,17 +129,8 @@ function toRpn(tokens: Token[]): Token[] | null {
       // Right-associative, highest precedence: don't pop anything.
       stack.push(tok);
     } else if (tok.kind === "op") {
-      while (stack.length) {
-        const top = stack[stack.length - 1];
-        if (top.kind === "unary-minus") {
-          if (UNARY_PRECEDENCE > PRECEDENCE[tok.value]) {
-            output.push(stack.pop() as Token);
-          } else break;
-        } else if (top.kind === "op") {
-          if (PRECEDENCE[top.value] >= PRECEDENCE[tok.value]) {
-            output.push(stack.pop() as Token);
-          } else break;
-        } else break;
+      while (popsBefore(stack.at(-1), tok.value)) {
+        output.push(stack.pop() as Token);
       }
       stack.push(tok);
     } else if (tok.kind === "lparen") {
@@ -192,8 +190,8 @@ function evalRpn(rpn: Token[]): number | null {
       return null;
     }
   }
-  if (stack.length !== 1) return null;
-  const result = stack[0];
+  const [result] = stack;
+  if (stack.length !== 1 || result === undefined) return null;
   return Number.isFinite(result) ? result : null;
 }
 

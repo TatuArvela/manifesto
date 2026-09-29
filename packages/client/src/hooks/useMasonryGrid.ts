@@ -31,12 +31,12 @@ function applyMasonrySpans(container: HTMLElement, square: boolean) {
   // Measured only after every child has been let go, so one card's span can't
   // constrain the next one's measurement.
   const spans = children.map((child) => spanOf(child, square));
-  for (let i = 0; i < children.length; i++) {
+  for (const [i, child] of children.entries()) {
     // Every child is written back, including the ones whose span is unchanged
     // because they are all sitting at `span 9999` right now. The release and the
     // restore happen inside one synchronous pass, so nothing is painted in
     // between and a pass that changes nothing leaves the frame as it found it.
-    children[i].style.gridRowEnd = spans[i];
+    child.style.gridRowEnd = spans[i] ?? "";
   }
   return spans.some((span, i) => span !== before[i]);
 }

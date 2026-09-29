@@ -13,7 +13,7 @@ export interface SessionRevocation {
   userId: string;
   /** A raw bearer token whose connections survive: the session that asked for
    * the change, when a user changes their own password. */
-  keepToken?: string;
+  keepToken?: string | undefined;
   /**
    * Only the connections opened with this credential, by the SHA-256 of the
    * raw token (`hashToken`): revoking one API token, whose raw form the

@@ -58,9 +58,10 @@ export function NoteReadonlyView({
     note.sharing && note.sharing.role !== "owner" ? note.sharing.owner : null;
 
   // A listing leaves the attachments behind; an automatic note has none.
+  const unloadedImages = hasUnloadedImages(note);
   useEffect(() => {
-    if (hasUnloadedImages(note)) void ensureImages(note.id);
-  }, [note.id]);
+    if (unloadedImages) void ensureImages(note.id);
+  }, [note.id, unloadedImages]);
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -260,7 +261,7 @@ export function NoteReadonlyView({
                 type="button"
                 class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${note.color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
                 onClick={() => {
-                  updateNote(note.id, { color: c.value as NoteColor });
+                  void updateNote(note.id, { color: c.value as NoteColor });
                   setShowColorPicker(false);
                 }}
                 aria-label={c.label}

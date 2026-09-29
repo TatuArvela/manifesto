@@ -1,7 +1,13 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import { type Editor, EditorStatus } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { formatDateTime, t } from "../i18n/index.js";
@@ -54,6 +60,7 @@ export function NoteCardEditor({
   // keys the editor on this, so it remounts once collaboration is ready.
   const collab =
     ydoc && synced ? { ydoc, awareness: awareness ?? undefined } : undefined;
+  const collaborating = collab !== undefined;
   // Which texts of the row came from the document; see `contentAgreement`.
   const openedRowRef = useRef({
     content: note.content,
@@ -104,13 +111,16 @@ export function NoteCardEditor({
 
   /** Every save of what the editor holds goes through here, so the document
    * records each text it sent and each save that landed. */
-  const saveText = (title: string, content: string) => {
-    const records = agreementRef.current;
-    records.claim(content);
-    void updateStoredNote(note.id, { title, content }).then((saved) => {
-      if (saved) records.confirm(saved.updatedAt);
-    });
-  };
+  const saveText = useCallback(
+    (title: string, content: string) => {
+      const records = agreementRef.current;
+      records.claim(content);
+      void updateStoredNote(note.id, { title, content }).then((saved) => {
+        if (saved) records.confirm(saved.updatedAt);
+      });
+    },
+    [note.id],
+  );
 
   const maybeSaveVersion = () => {
     if (
@@ -172,7 +182,7 @@ export function NoteCardEditor({
         );
       }
     };
-  }, []);
+  }, [note.id, saveText]);
 
   // Escape saves and closes. The version panel and any picker opened from
   // inside the editor register after this one and take the key first, so a
@@ -219,7 +229,7 @@ export function NoteCardEditor({
       savedContentRef.current = content;
       saveText(title, content);
     }, 500);
-  }, [title, content]);
+  }, [title, content, saveText]);
 
   // A row written from outside the document (an assistant, a script on the
   // REST API, a restored version) is written into it, by one client only, and
@@ -262,10 +272,10 @@ export function NoteCardEditor({
         savedContentRef.current = adopted;
         setContent(adopted);
       },
-      first || !collab ? 0 : PEER_RECORD_DELAY_MS,
+      first || !collaborating ? 0 : PEER_RECORD_DELAY_MS,
     );
     return () => clearTimeout(timer);
-  }, [editor, note.content, note.updatedAt, agreement]);
+  }, [editor, note.id, note.content, note.updatedAt, agreement, collaborating]);
 
   return (
     <>
@@ -293,7 +303,7 @@ export function NoteCardEditor({
               setContent(restoredContent);
               savedTitleRef.current = restoredTitle;
               savedContentRef.current = restoredContent;
-              updateNote(note.id, {
+              void updateNote(note.id, {
                 title: restoredTitle,
                 content: restoredContent,
               });

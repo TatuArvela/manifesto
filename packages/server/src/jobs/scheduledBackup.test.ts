@@ -7,6 +7,7 @@ import {
   createSqliteStorage,
   type SqliteStorageDriver,
 } from "../storage/sqlite/driver.js";
+import { defined } from "../test/defined.js";
 import {
   BACKUP_FREE_RESERVE_BYTES,
   type BackupEnvironment,
@@ -57,7 +58,7 @@ describe("scheduled backups", () => {
       "manifesto-20260923-020000.db",
       "manifesto-20260923-030000.db",
     ]);
-    const copy = new Database(join(dir, files[1]), { readonly: true });
+    const copy = new Database(join(dir, defined(files[1])), { readonly: true });
     expect(
       (copy.prepare("SELECT username FROM users").get() as { username: string })
         .username,

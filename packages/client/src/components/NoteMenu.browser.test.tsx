@@ -161,7 +161,7 @@ describe("the note menu across its three surfaces", () => {
     clickRow(t("noteMenu.archive"));
 
     await vi.waitFor(() => {
-      expect(notes.value[0].archived).toBe(true);
+      expect(notes.value[0]?.archived).toBe(true);
     });
     expect(onClose).toHaveBeenCalled();
   });
@@ -245,7 +245,7 @@ describe("the tag button", () => {
       await addTagThroughButton("Errands ");
 
       await vi.waitFor(() => {
-        expect(notes.value[0].tags).toEqual(["home", "errands"]);
+        expect(notes.value[0]?.tags).toEqual(["home", "errands"]);
       });
     });
   }

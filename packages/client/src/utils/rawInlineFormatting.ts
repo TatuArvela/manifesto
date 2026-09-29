@@ -24,6 +24,10 @@ const EDGE_MARKUP_START = /^(?:<(?:u|sub|sup)>|[*_~`])+/;
 const EDGE_MARKUP_END = /(?:<\/(?:u|sub|sup)>|[*_~`])+$/;
 const MARKUP_TOKEN = /<(?:u|sub|sup)>|([*_~`])\1*/g;
 const MARKER_CHARS = "*_~`";
+
+function isMarker(char: string | undefined): boolean {
+  return char !== undefined && MARKER_CHARS.includes(char);
+}
 const OPEN_TAG_BEFORE = /<(?:u|sub|sup)>$/;
 const CLOSE_TAG_AFTER = /^<\/(?:u|sub|sup)>/;
 
@@ -42,7 +46,7 @@ function tokensBefore(value: string, pos: number): Token[] {
     let from = pos - 1;
     if (tag) {
       from = pos - tag[0].length;
-    } else if (MARKER_CHARS.includes(value[pos - 1])) {
+    } else if (isMarker(value[pos - 1])) {
       while (from > 0 && value[from - 1] === value[pos - 1]) from--;
     } else {
       break;
@@ -61,7 +65,7 @@ function tokensAfter(value: string, pos: number): Token[] {
     let to = pos + 1;
     if (tag) {
       to = pos + tag[0].length;
-    } else if (MARKER_CHARS.includes(value[pos])) {
+    } else if (isMarker(value[pos])) {
       while (to < value.length && value[to] === value[pos]) to++;
     } else {
       break;
@@ -110,14 +114,14 @@ export function inlineRange(
   end: number,
 ): [number, number] {
   if (start !== end) {
-    while (start < end && /\s/.test(value[start])) start++;
-    while (end > start && /\s/.test(value[end - 1])) end--;
+    while (start < end && /\s/.test(value.charAt(start))) start++;
+    while (end > start && /\s/.test(value.charAt(end - 1))) end--;
     return peelMarkup(value, start, end);
   }
   let from = start;
   let to = start;
-  while (from > 0 && !/\s/.test(value[from - 1])) from--;
-  while (to < value.length && !/\s/.test(value[to])) to++;
+  while (from > 0 && !/\s/.test(value.charAt(from - 1))) from--;
+  while (to < value.length && !/\s/.test(value.charAt(to))) to++;
   if (from === to) return [start, start];
   const word = value.slice(from, to);
   const lead = EDGE_MARKUP_START.exec(word)?.[0].length ?? 0;

@@ -8,6 +8,7 @@ import {
   openApiPath,
 } from "./openapi.js";
 import { createStorage } from "./storage/index.js";
+import { defined } from "./test/defined.js";
 import { TEST_CONFIG } from "./test/setup.js";
 
 /**
@@ -63,9 +64,9 @@ describe("OpenAPI document", () => {
     const doc = buildOpenApiDocument("test");
     const json = JSON.stringify(doc);
     for (const [, name] of json.matchAll(/#\/components\/schemas\/(\w+)/g)) {
-      expect(doc.components.schemas).toHaveProperty(name);
+      expect(doc.components.schemas).toHaveProperty(defined(name));
     }
-    const create = doc.paths["/api/notes"].post as {
+    const create = defined(doc.paths["/api/notes"]).post as {
       requestBody: {
         content: { "application/json": { schema: { required: string[] } } };
       };
@@ -81,7 +82,7 @@ describe("OpenAPI document", () => {
     const stability = (method: string, path: string) =>
       (doc.paths[openApiPath(path)] as Record<string, Record<string, unknown>>)[
         method
-      ]["x-stability"];
+      ]?.["x-stability"];
     expect(stability("get", "/api/notes")).toBe("public");
     expect(stability("post", "/api/mcp")).toBe("public");
     expect(stability("get", "/api/calendar/:file")).toBe("public");

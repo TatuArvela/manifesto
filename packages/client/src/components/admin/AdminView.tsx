@@ -11,7 +11,7 @@ import {
   Trash2,
   UserPlus,
 } from "lucide-preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { useEscapeStack } from "../../hooks/useEscapeStack.js";
 import { formatDate, plural, t } from "../../i18n/index.js";
 import { downloadAccountExport } from "../../state/accountExport.js";
@@ -71,10 +71,10 @@ export function AdminView() {
     (tab) => tab !== "teams" || serverFeature("teams"),
   );
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoadFailed(false);
     void loadAdminUsers().then((ok) => setLoadFailed(!ok));
-  };
+  }, []);
 
   useEffect(() => {
     load();
@@ -83,7 +83,7 @@ export function AdminView() {
     return () => {
       issuedPassword.value = null;
     };
-  }, []);
+  }, [load]);
 
   return (
     <div

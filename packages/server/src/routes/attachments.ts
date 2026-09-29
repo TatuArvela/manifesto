@@ -32,10 +32,8 @@ export function createAttachmentRoutes(deps: AttachmentDeps) {
 
   routes.post("/", async (c) => {
     const { userId } = c.get("auth");
-    const declared = (c.req.header("Content-Type") ?? "")
-      .split(";")[0]
-      .trim()
-      .toLowerCase();
+    const [mediaType = ""] = (c.req.header("Content-Type") ?? "").split(";");
+    const declared = mediaType.trim().toLowerCase();
     const data = Buffer.from(await c.req.arrayBuffer());
     if (data.length === 0) throw new HttpError(422, "The file is empty");
     if (data.length > MAX_IMAGE_SOURCE_BYTES) {

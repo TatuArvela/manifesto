@@ -43,6 +43,7 @@ export function moveCardFocus(delta: number): void {
     index === -1
       ? cards[0]
       : cards[Math.min(cards.length - 1, Math.max(0, index + delta))];
+  if (!next) return;
   next.focus();
   next.scrollIntoView({ block: "nearest" });
 }

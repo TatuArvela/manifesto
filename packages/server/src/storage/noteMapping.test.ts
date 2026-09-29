@@ -285,8 +285,8 @@ describe.each(drivers)("$name listings", ({ open }) => {
     const { notes: listed } = await storage.notes.listByUser("u1", {
       limit: 10,
     });
-    expect(listed[0].images).toEqual([]);
-    expect(listed[0].imageCount).toBe(fullNote.images.length);
+    expect(listed[0]?.images).toEqual([]);
+    expect(listed[0]?.imageCount).toBe(fullNote.images.length);
 
     // The single-note read is where the bytes live.
     const full = await storage.notes.getById("n00", "u1");
@@ -304,7 +304,7 @@ describe.each(drivers)("$name listings", ({ open }) => {
     const { notes: listed } = await storage.notes.listByUser("u1", {
       limit: 10,
     });
-    expect(listed[0].imageCount).toBe(0);
+    expect(listed[0]?.imageCount).toBe(0);
   });
 
   it("pages search results the same way", async () => {
@@ -312,7 +312,7 @@ describe.each(drivers)("$name listings", ({ open }) => {
     const first = await storage.notes.search("u1", "Note", { limit: 2 });
     expect(first.notes).toHaveLength(2);
     expect(first.nextCursor).toBeTruthy();
-    expect(first.notes[0].images).toEqual([]);
+    expect(first.notes[0]?.images).toEqual([]);
 
     const second = await storage.notes.search("u1", "Note", {
       limit: 2,

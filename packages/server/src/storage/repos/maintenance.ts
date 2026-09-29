@@ -54,10 +54,10 @@ export interface AuditRecord {
 export interface AuditListOptions {
   limit: number;
   /** Entries older than this id (ids are ULIDs, so they sort by time). */
-  before?: string;
+  before?: string | undefined;
   /** Entries where this account is the actor or the target. */
-  userId?: string;
-  action?: AuditAction;
+  userId?: string | undefined;
+  action?: AuditAction | undefined;
 }
 
 export interface AuditRepo {

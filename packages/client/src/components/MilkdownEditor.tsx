@@ -48,18 +48,20 @@ export function getEditorMarkdown(editor: Editor): string {
 interface MilkdownEditorProps {
   content: string;
   onChange: (markdown: string) => void;
-  disabled?: boolean;
-  contentLocked?: boolean;
+  disabled?: boolean | undefined;
+  contentLocked?: boolean | undefined;
   rawMode?: boolean;
   /** Receives the raw-mode textarea, so the toolbar can format its text. */
   textareaRef?: RefObject<HTMLTextAreaElement>;
   autoFocus?: boolean;
   onEditorReady?: (editor: Editor) => void;
-  collab?: {
-    ydoc: Y.Doc;
-    fragmentName?: string;
-    awareness?: import("y-protocols/awareness").Awareness;
-  };
+  collab?:
+    | {
+        ydoc: Y.Doc;
+        fragmentName?: string;
+        awareness?: import("y-protocols/awareness").Awareness | undefined;
+      }
+    | undefined;
 }
 
 export function MilkdownEditor({

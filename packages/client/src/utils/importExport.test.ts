@@ -180,8 +180,8 @@ describe("importFiles", () => {
       bulkCount: 0,
       failedCount: 0,
     });
-    expect(created[0].title).toBe("Hi");
-    expect(created[0].content).toBe("Body");
+    expect(created[0]?.title).toBe("Hi");
+    expect(created[0]?.content).toBe("Body");
   });
 
   it("creates a single note for a single-note JSON file", async () => {
@@ -201,7 +201,7 @@ describe("importFiles", () => {
       },
     );
     expect(summary.singleCount).toBe(1);
-    expect(created[0].title).toBe("T");
+    expect(created[0]?.title).toBe("T");
   });
 
   it("bulk-imports a JSON array", async () => {
@@ -275,8 +275,8 @@ describe("parseNoteJson bulk normalization", () => {
     );
     expect(result.kind).toBe("bulk");
     if (result.kind !== "bulk") return;
-    expect(result.notes[0].color).toBe(NoteColor.Default);
-    expect(result.notes[0].font).toBe(NoteFont.Default);
+    expect(result.notes[0]?.color).toBe(NoteColor.Default);
+    expect(result.notes[0]?.font).toBe(NoteFont.Default);
   });
 
   it("preserves known colors, fonts and identity fields", () => {
@@ -286,10 +286,10 @@ describe("parseNoteJson bulk normalization", () => {
       ]),
     );
     if (result.kind !== "bulk") throw new Error("expected bulk");
-    expect(result.notes[0].color).toBe(NoteColor.Teal);
-    expect(result.notes[0].font).toBe(NoteFont.ComicRelief);
-    expect(result.notes[0].id).toBe(baseNote.id);
-    expect(result.notes[0].createdAt).toBe(baseNote.createdAt);
+    expect(result.notes[0]?.color).toBe(NoteColor.Teal);
+    expect(result.notes[0]?.font).toBe(NoteFont.ComicRelief);
+    expect(result.notes[0]?.id).toBe(baseNote.id);
+    expect(result.notes[0]?.createdAt).toBe(baseNote.createdAt);
   });
 
   it("coerces malformed scalars and drops malformed collection entries", () => {
@@ -308,12 +308,12 @@ describe("parseNoteJson bulk normalization", () => {
     );
     if (result.kind !== "bulk") throw new Error("expected bulk");
     const note = result.notes[0];
-    expect(note.pinned).toBe(false);
-    expect(note.trashedAt).toBeNull();
-    expect(Number.isFinite(note.position)).toBe(true);
-    expect(note.tags).toEqual(["ok"]);
-    expect(note.images).toEqual(["data:image/png;base64,AAA"]);
-    expect(note.linkPreviews).toHaveLength(1);
+    expect(note?.pinned).toBe(false);
+    expect(note?.trashedAt).toBeNull();
+    expect(Number.isFinite(note?.position)).toBe(true);
+    expect(note?.tags).toEqual(["ok"]);
+    expect(note?.images).toEqual(["data:image/png;base64,AAA"]);
+    expect(note?.linkPreviews).toHaveLength(1);
   });
 
   it("normalizes an unknown reminder recurrence to none", () => {
@@ -326,7 +326,7 @@ describe("parseNoteJson bulk normalization", () => {
       ]),
     );
     if (result.kind !== "bulk") throw new Error("expected bulk");
-    expect(result.notes[0].reminder?.recurrence).toBe("none");
+    expect(result.notes[0]?.reminder?.recurrence).toBe("none");
   });
 
   it("keeps the day a reminder repeats on, and drops one no month has", () => {
@@ -342,7 +342,7 @@ describe("parseNoteJson bulk normalization", () => {
       ]),
     );
     if (result.kind !== "bulk") throw new Error("expected bulk");
-    expect(result.notes[0].reminder).toEqual({ ...reminder, day: 31 });
-    expect(result.notes[1].reminder).toEqual(reminder);
+    expect(result.notes[0]?.reminder).toEqual({ ...reminder, day: 31 });
+    expect(result.notes[1]?.reminder).toEqual(reminder);
   });
 });

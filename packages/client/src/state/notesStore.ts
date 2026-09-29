@@ -27,7 +27,7 @@ import { generatedNotes } from "./autoNotes.js";
 import { asBatch, type Batch, reportFailure } from "./failures.js";
 import { foldIncoming, foldIncomingList, sameValue } from "./incomingNote.js";
 import { mergeNoteUpdate } from "./mergeNote.js";
-import { headPositions } from "./ordering.js";
+import { headPosition } from "./ordering.js";
 import { createPendingWrites } from "./pendingWrites.js";
 import { pickDefaultColor, pickDefaultFont } from "./prefs.js";
 
@@ -287,7 +287,7 @@ export async function createNote(
     archived: input.archived ?? false,
     trashed: input.trashed ?? false,
     trashedAt: input.trashedAt ?? null,
-    position: input.position ?? headPositions(notes.peek(), 1)[0],
+    position: input.position ?? headPosition(notes.peek()),
     tags: input.tags ?? [],
     images: input.images ?? [],
     linkPreviews: input.linkPreviews ?? [],

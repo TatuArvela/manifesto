@@ -10,7 +10,7 @@ export interface PluginSource {
   name: string;
   enabled: boolean;
   origin: PluginOrigin;
-  lastError?: string;
+  lastError?: string | undefined;
 }
 
 export interface AutoNoteResult {

@@ -24,15 +24,17 @@ const LINE_RE =
   /^(\s*)((?:> ?)*)((?:[-*+]|\d+[.)]) +)?(\[[ xX]\](?: |$))?(#{1,6}(?: +|$))?(.*)$/;
 
 export function parseLine(line: string): ParsedLine {
-  const m = LINE_RE.exec(line) as RegExpExecArray;
-  return {
-    indent: m[1],
-    quote: m[2],
-    marker: m[3] ?? "",
-    box: m[4] ?? "",
-    heading: m[5] ?? "",
-    text: m[6],
-  };
+  // Every group but the last matches the empty string, so this always matches.
+  const [
+    ,
+    indent = "",
+    quote = "",
+    marker = "",
+    box = "",
+    heading = "",
+    text = "",
+  ] = LINE_RE.exec(line) ?? [];
+  return { indent, quote, marker, box, heading, text };
 }
 
 function joinLine(p: ParsedLine): string {
@@ -79,7 +81,7 @@ function transformLines(
   const replaced = next.join("\n");
 
   // Keep the cursor on the text it was on, however long the prefix became.
-  const firstDelta = next[0].length - raw[0].length;
+  const firstDelta = (next[0]?.length ?? 0) - (raw[0]?.length ?? 0);
   const totalDelta = replaced.length - (to - from);
   const newStart = Math.max(from, start + firstDelta);
   const newEnd =

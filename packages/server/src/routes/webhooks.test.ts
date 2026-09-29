@@ -12,6 +12,7 @@ import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
+import { defined } from "../test/defined.js";
 import { authHeaders, TEST_CONFIG } from "../test/setup.js";
 import {
   signDelivery,
@@ -131,10 +132,10 @@ describe("webhooks", () => {
       "note.updated",
       "note.deleted",
     ]);
-    expect(events[1].event === "note.updated" && events[1].note.title).toBe(
+    expect(events[1]?.event === "note.updated" && events[1]?.note.title).toBe(
       "Renamed",
     );
-    const first = received[0];
+    const first = defined(received[0], "delivery");
     expect(first.headers["x-manifesto-event"]).toBe("note.created");
     expect(first.headers["x-manifesto-signature"]).toBe(
       signDelivery(
@@ -192,7 +193,7 @@ describe("webhooks", () => {
     const { webhook } = await addWebhook(token);
     const res = await call(token, "POST", `/api/webhooks/${webhook.id}/test`);
     expect(await res.json()).toEqual({ status: 204, error: null });
-    expect(JSON.parse(received[0].body).event).toBe("ping");
+    expect(JSON.parse(defined(received[0]).body).event).toBe("ping");
   });
 
   it("refuses to reach an address the policy does not allow", async () => {

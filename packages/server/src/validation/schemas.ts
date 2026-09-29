@@ -16,6 +16,19 @@ import {
 } from "@manifesto/shared";
 import { z } from "zod";
 
+/**
+ * Every field of `shape`, made optional the way a JSON body is: a key that is
+ * absent, never one that is present and `undefined`. `.partial()` gives the
+ * second, which the wire types in `@manifesto/shared` do not allow.
+ */
+function exactPartial<T extends z.ZodRawShape>(
+  shape: T,
+): { [K in keyof T]: z.ZodExactOptional<T[K]> } {
+  return Object.fromEntries(
+    Object.entries(shape).map(([key, field]) => [key, z.exactOptional(field)]),
+  ) as { [K in keyof T]: z.ZodExactOptional<T[K]> };
+}
+
 const usernameSchema = z
   .string()
   .trim()
@@ -45,12 +58,12 @@ export const authCredentialsSchema = z.object({
 });
 
 export const registerSchema = authCredentialsSchema.extend({
-  email: emailSchema.optional(),
+  email: emailSchema.exactOptional(),
 });
 
 /** The password that confirms an action, where the account has one (see
  * `auth/confirmation.ts`). Only compared with the stored hash. */
-const confirmationPassword = z.string().max(256).optional();
+const confirmationPassword = z.string().max(256).exactOptional();
 
 export const authMeUpdateSchema = z.object({
   email: emailSchema.nullable(),
@@ -93,9 +106,9 @@ export const passkeyAuthenticationSchema = z.object({
     clientDataJSON: base64url(8192),
     authenticatorData: base64url(8192),
     signature: base64url(2048),
-    userHandle: base64url(512).optional(),
+    userHandle: base64url(512).exactOptional(),
   }),
-  authenticatorAttachment: z.string().max(50).optional(),
+  authenticatorAttachment: z.string().max(50).exactOptional(),
   clientExtensionResults: z.record(z.string(), z.unknown()),
 });
 
@@ -107,23 +120,23 @@ export const passkeyRegistrationSchema = z.object({
   response: z.object({
     clientDataJSON: base64url(8192),
     attestationObject: base64url(65536),
-    transports: z.array(z.string().max(50)).max(10).optional(),
+    transports: z.array(z.string().max(50)).max(10).exactOptional(),
   }),
-  authenticatorAttachment: z.string().max(50).optional(),
+  authenticatorAttachment: z.string().max(50).exactOptional(),
   clientExtensionResults: z.record(z.string(), z.unknown()),
 });
 
 export const loginSchema = authCredentialsSchema.extend({
-  newPassword: passwordSchema.optional(),
+  newPassword: passwordSchema.exactOptional(),
   /** An authenticator code, or a recovery code, when two-factor is on. */
-  otp: z.string().trim().min(1).max(32).optional(),
+  otp: z.string().trim().min(1).max(32).exactOptional(),
   /** Or a passkey's answer to the challenge the first attempt was given. */
-  passkey: passkeyAuthenticationSchema.optional(),
+  passkey: passkeyAuthenticationSchema.exactOptional(),
 });
 
 /** `POST /api/auth/passkeys`. */
 export const passkeyAddSchema = z.object({
-  name: z.string().trim().max(100).optional(),
+  name: z.string().trim().max(100).exactOptional(),
   response: passkeyRegistrationSchema,
 });
 
@@ -151,13 +164,13 @@ export const passwordChangeSchema = z.object({
 
 export const adminCreateUserSchema = z.object({
   username: usernameSchema,
-  email: emailSchema.optional(),
+  email: emailSchema.exactOptional(),
 });
 
 export const adminUpdateUserSchema = z
   .object({
-    isAdmin: z.boolean().optional(),
-    email: emailSchema.nullable().optional(),
+    isAdmin: z.boolean().exactOptional(),
+    email: emailSchema.nullable().exactOptional(),
   })
   .refine((body) => body.isAdmin !== undefined || body.email !== undefined, {
     message: "Nothing to change",
@@ -178,12 +191,15 @@ const teamMemberIds = z.array(z.string().min(1).max(64)).max(1000);
 /** `POST /api/admin/teams`. */
 export const adminTeamCreateSchema = z.object({
   name: teamName,
-  memberIds: teamMemberIds.optional(),
+  memberIds: teamMemberIds.exactOptional(),
 });
 
 /** `PUT /api/admin/teams/:id`. */
 export const adminTeamUpdateSchema = z
-  .object({ name: teamName.optional(), memberIds: teamMemberIds.optional() })
+  .object({
+    name: teamName.exactOptional(),
+    memberIds: teamMemberIds.exactOptional(),
+  })
   .refine((body) => body.name !== undefined || body.memberIds !== undefined, {
     message: "Nothing to change",
   });
@@ -197,9 +213,9 @@ export const teamShareCreateSchema = z.object({
 /** `POST /api/notes/:id/links`. */
 export const publicLinkCreateSchema = z.object({
   mode: z.enum(PUBLIC_LINK_MODES),
-  expiresInDays: z.number().int().min(1).max(3650).optional(),
-  password: z.string().min(1).max(256).optional(),
-  maxViews: z.number().int().min(1).max(MAX_PUBLIC_LINK_VIEWS).optional(),
+  expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
+  password: z.string().min(1).max(256).exactOptional(),
+  maxViews: z.number().int().min(1).max(MAX_PUBLIC_LINK_VIEWS).exactOptional(),
 });
 
 /** `POST /api/public/:token/unlock`. */
@@ -242,9 +258,12 @@ export const MAX_LINK_PREVIEW_DESCRIPTION_LENGTH = 2000;
 const linkPreviewSchema = z.object({
   url: httpUrlSchema,
   title: z.string().max(MAX_LINK_PREVIEW_TITLE_LENGTH),
-  description: z.string().max(MAX_LINK_PREVIEW_DESCRIPTION_LENGTH).optional(),
-  image: previewImageSchema.optional(),
-  favicon: previewImageSchema.optional(),
+  description: z
+    .string()
+    .max(MAX_LINK_PREVIEW_DESCRIPTION_LENGTH)
+    .exactOptional(),
+  image: previewImageSchema.exactOptional(),
+  favicon: previewImageSchema.exactOptional(),
   domain: z.string().max(255),
 });
 
@@ -256,9 +275,9 @@ const reminderRecurrenceSchema = z.enum(REMINDER_RECURRENCES);
 const reminderSchema = z.object({
   time: z.string(),
   recurrence: reminderRecurrenceSchema,
-  day: z.number().int().min(1).max(31).optional(),
+  day: z.number().int().min(1).max(31).exactOptional(),
   timezone: z.string(),
-  lastFiredAt: z.string().optional(),
+  lastFiredAt: z.string().exactOptional(),
 });
 
 const autoNoteSourceSchema = z.object({
@@ -291,8 +310,8 @@ const noteFields = {
     .max(MAX_IMAGES_PER_NOTE),
   linkPreviews: z.array(linkPreviewSchema).max(MAX_LINK_PREVIEWS_PER_NOTE),
   reminder: reminderSchema.nullable(),
-  readonly: z.boolean().optional(),
-  source: autoNoteSourceSchema.optional(),
+  readonly: z.boolean().exactOptional(),
+  source: autoNoteSourceSchema.exactOptional(),
 } as const;
 
 export const noteCreateSchema = z.object(noteFields);
@@ -306,8 +325,8 @@ export const notesImportSchema = z.object({
         id: z
           .string()
           .regex(/^[0-9A-Za-z_-]{1,64}$/)
-          .optional(),
-        createdAt: z.iso.datetime({ offset: true }).optional(),
+          .exactOptional(),
+        createdAt: z.iso.datetime({ offset: true }).exactOptional(),
       }),
     )
     .max(MAX_NOTES_PER_IMPORT),
@@ -317,22 +336,22 @@ export const notesImportSchema = z.object({
 export const noteVersionCreateSchema = z.object({
   title: noteFields.title,
   content: noteFields.content,
-  timestamp: z.string().max(40).optional(),
+  timestamp: z.string().max(40).exactOptional(),
 });
-export const noteUpdateSchema = z.object(noteFields).partial();
+export const noteUpdateSchema = z.object(exactPartial(noteFields));
 
 /** `POST /api/tokens`. An MCP token's tools reach notes and nothing else,
  * so it takes only the note scopes. */
 export const apiTokenCreateSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
-    expiresInDays: z.number().int().min(1).max(3650).optional(),
-    kind: z.enum(API_TOKEN_KINDS).optional(),
+    expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
+    kind: z.enum(API_TOKEN_KINDS).exactOptional(),
     scopes: z
       .array(z.enum(API_TOKEN_SCOPES))
       .min(1)
       .max(API_TOKEN_SCOPES.length)
-      .optional(),
+      .exactOptional(),
     password: confirmationPassword,
   })
   .refine(
@@ -352,10 +371,10 @@ export const apiTokenCreateSchema = z
  */
 export const oauthRegisterSchema = z.object({
   redirect_uris: z.array(z.string()).min(1).max(10),
-  client_name: z.string().max(1000).optional(),
-  token_endpoint_auth_method: z.string().max(100).optional(),
-  grant_types: z.array(z.string().max(100)).max(10).optional(),
-  response_types: z.array(z.string().max(100)).max(10).optional(),
+  client_name: z.string().max(1000).exactOptional(),
+  token_endpoint_auth_method: z.string().max(100).exactOptional(),
+  grant_types: z.array(z.string().max(100)).max(10).exactOptional(),
+  response_types: z.array(z.string().max(100)).max(10).exactOptional(),
 });
 
 /** `POST /api/oauth/authorize`: the consent page's answer. */
@@ -364,12 +383,12 @@ export const oauthAuthorizeSchema = z.object({
   redirectUri: z.string().min(1).max(2000),
   // A base64url SHA-256, which is 43 characters.
   codeChallenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-  state: z.string().max(2000).optional(),
+  state: z.string().max(2000).exactOptional(),
   scopes: z
     .array(z.enum(["notes:read", "notes:write"]))
     .min(1)
     .max(2),
-  expiresInDays: z.number().int().min(1).max(3650).optional(),
+  expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
   password: confirmationPassword,
 });
 
@@ -385,7 +404,7 @@ export const webhookCreateSchema = z.object({
     .array(z.enum(WEBHOOK_EVENTS))
     .min(1)
     .max(WEBHOOK_EVENTS.length)
-    .optional(),
+    .exactOptional(),
   password: confirmationPassword,
 });
 
@@ -395,7 +414,7 @@ export const webhookUpdateSchema = z.object({ active: z.boolean() });
 /** `POST /api/auth/password-reset`. `locale` picks the mail's language. */
 export const passwordResetRequestSchema = z.object({
   email: emailSchema,
-  locale: z.string().max(10).optional(),
+  locale: z.string().max(10).exactOptional(),
 });
 
 /** `POST /api/auth/password-reset/confirm`. */

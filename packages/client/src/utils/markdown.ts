@@ -23,12 +23,8 @@ export interface ChecklistLine {
 export function parseChecklistLine(line: string): ChecklistLine | null {
   const m = CHECKLIST_RE.exec(line);
   if (!m) return null;
-  return {
-    indent: m[1],
-    bullet: m[2],
-    checked: m[3].toLowerCase() === "x",
-    label: m[4] ?? "",
-  };
+  const [, indent = "", bullet = "", box = "", label = ""] = m;
+  return { indent, bullet, checked: box.toLowerCase() === "x", label };
 }
 
 /** Rewrites a checklist line's box, leaving indent, marker and label alone. */
@@ -52,15 +48,15 @@ export function removeCheckedItems(content: string): string {
   const fenced = markFencedLines(lines);
   const toRemove = new Set<number>();
 
-  for (let i = 0; i < lines.length; i++) {
+  for (const [i, line] of lines.entries()) {
     if (fenced[i]) continue;
-    const item = parseChecklistLine(lines[i]);
+    const item = parseChecklistLine(line);
     if (!item?.checked) continue;
     toRemove.add(i);
     const parentIndent = item.indent.length;
     for (let j = i + 1; j < lines.length; j++) {
       if (fenced[j]) break;
-      const child = parseChecklistLine(lines[j]);
+      const child = parseChecklistLine(lines[j] ?? "");
       if (!child) break;
       if (child.indent.length <= parentIndent) break;
       toRemove.add(j);
@@ -108,15 +104,17 @@ export function toggleChecklistItem(
   const lines = content.split("\n");
   const fenced = markFencedLines(lines);
   if (fenced[lineIndex]) return null;
-  const item = parseChecklistLine(lines[lineIndex] ?? "");
-  if (!item) return null;
+  const line = lines[lineIndex];
+  const item = parseChecklistLine(line ?? "");
+  if (line === undefined || !item) return null;
   const next = !item.checked;
-  lines[lineIndex] = setChecklistChecked(lines[lineIndex], next);
+  lines[lineIndex] = setChecklistChecked(line, next);
   for (let i = lineIndex + 1; i < lines.length; i++) {
     if (fenced[i]) break;
-    const child = parseChecklistLine(lines[i]);
+    const below = lines[i] ?? "";
+    const child = parseChecklistLine(below);
     if (!child || child.indent.length <= item.indent.length) break;
-    lines[i] = setChecklistChecked(lines[i], next);
+    lines[i] = setChecklistChecked(below, next);
   }
   return lines.join("\n");
 }
@@ -134,11 +132,11 @@ const FENCE_RE = /^\s{0,3}(`{3,}|~{3,})/;
 export function markFencedLines(lines: string[]): boolean[] {
   const fenced: boolean[] = new Array(lines.length).fill(false);
   let openFence: string | null = null;
-  for (let i = 0; i < lines.length; i++) {
-    const match = FENCE_RE.exec(lines[i]);
+  for (const [i, line] of lines.entries()) {
+    const fence = FENCE_RE.exec(line)?.[1];
     if (openFence === null) {
-      if (match) {
-        openFence = match[1];
+      if (fence !== undefined) {
+        openFence = fence;
         fenced[i] = true;
       }
       continue;
@@ -148,9 +146,9 @@ export function markFencedLines(lines: string[]): boolean[] {
     // at least as long. So a ``` inside a ~~~ block, or inside a ```` one,
     // stays part of the code, which is how a note documents fences at all.
     if (
-      match &&
-      match[1][0] === openFence[0] &&
-      match[1].length >= openFence.length
+      fence !== undefined &&
+      fence[0] === openFence[0] &&
+      fence.length >= openFence.length
     ) {
       openFence = null;
     }
@@ -169,13 +167,13 @@ export function segmentContent(content: string): ContentSegment[] {
   const fenced = markFencedLines(lines);
   const segments: ContentSegment[] = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    const type = !fenced[i] && isChecklistLine(lines[i]) ? "checklist" : "text";
-    const last = segments[segments.length - 1];
+  for (const [i, line] of lines.entries()) {
+    const type = !fenced[i] && isChecklistLine(line) ? "checklist" : "text";
+    const last = segments.at(-1);
     if (last && last.type === type) {
-      last.lines.push(lines[i]);
+      last.lines.push(line);
     } else {
-      segments.push({ type, startLine: i, lines: [lines[i]] });
+      segments.push({ type, startLine: i, lines: [line] });
     }
   }
 

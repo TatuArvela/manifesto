@@ -24,10 +24,10 @@ describe("VersionStorage", () => {
     saveVersion("note1", "Title", "Content");
     const versions = getVersions("note1");
     expect(versions).toHaveLength(1);
-    expect(versions[0].noteId).toBe("note1");
-    expect(versions[0].title).toBe("Title");
-    expect(versions[0].content).toBe("Content");
-    expect(versions[0].timestamp).toBeTruthy();
+    expect(versions[0]?.noteId).toBe("note1");
+    expect(versions[0]?.title).toBe("Title");
+    expect(versions[0]?.content).toBe("Content");
+    expect(versions[0]?.timestamp).toBeTruthy();
   });
 
   it("files a version brought back from an export at its own time", () => {
@@ -52,9 +52,9 @@ describe("VersionStorage", () => {
     saveVersion("note1", "Third", "C");
     const versions = getVersions("note1");
     expect(versions).toHaveLength(3);
-    expect(versions[0].title).toBe("Third");
-    expect(versions[1].title).toBe("Second");
-    expect(versions[2].title).toBe("First");
+    expect(versions[0]?.title).toBe("Third");
+    expect(versions[1]?.title).toBe("Second");
+    expect(versions[2]?.title).toBe("First");
   });
 
   it("caps at 50 versions per note", () => {
@@ -64,9 +64,9 @@ describe("VersionStorage", () => {
     const versions = getVersions("note1");
     expect(versions).toHaveLength(50);
     // Newest should be the last one saved
-    expect(versions[0].title).toBe("Title 59");
+    expect(versions[0]?.title).toBe("Title 59");
     // Oldest kept should be #10 (0-9 were dropped)
-    expect(versions[49].title).toBe("Title 10");
+    expect(versions[49]?.title).toBe("Title 10");
   });
 
   it("prunes versions older than 90 days", () => {

@@ -51,7 +51,7 @@ interface AppSocketDeps {
   storage: StorageDriver;
   cfg: ServerConfig;
   /** Tests shorten this; everyone else uses {@link APP_SOCKET_HEARTBEAT_MS}. */
-  heartbeatMs?: number;
+  heartbeatMs?: number | undefined;
 }
 
 /** Wire `/api/ws` onto the app. Returns a function that stops the heartbeat. */

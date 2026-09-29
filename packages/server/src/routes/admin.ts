@@ -50,7 +50,7 @@ interface AdminDeps {
   noteEvents: NoteEvents;
   teamShares: TeamShares;
   /** What the update check last found. */
-  updateStatus?: () => UpdateStatus | null;
+  updateStatus?: (() => UpdateStatus | null) | undefined;
 }
 
 function toAdminUser(user: UserSummary): AdminUser {

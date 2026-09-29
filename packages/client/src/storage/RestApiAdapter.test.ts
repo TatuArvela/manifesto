@@ -1,6 +1,7 @@
 import type { Note } from "@manifesto/shared";
 import { MAX_NOTES_PER_IMPORT, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../test/defined.js";
 import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
 
 type FetchMock = ReturnType<typeof vi.fn<typeof fetch>>;
@@ -62,7 +63,7 @@ describe("RestApiAdapter", () => {
       const trimmed = new RestApiAdapter("https://api.example.com/", "t");
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await trimmed.getAll();
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes",
       );
     });
@@ -73,13 +74,13 @@ describe("RestApiAdapter", () => {
       const sameOrigin = new RestApiAdapter("", "t");
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await sameOrigin.getAll();
-      expect(fetchMock.mock.calls[0][0]).toBe("/api/notes");
+      expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/notes");
     });
 
     it("leaves a base URL without a trailing slash unchanged", async () => {
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await adapter.getAll();
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes",
       );
     });
@@ -134,7 +135,7 @@ describe("RestApiAdapter", () => {
         jsonResponse({ notes: [], nextCursor: null, ids: [], checkpoint: "k" }),
       );
       await adapter.changesSince(null);
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/sync",
       );
     });
@@ -183,7 +184,7 @@ describe("RestApiAdapter", () => {
 
       const result = await adapter.get("X");
       expect(result).toEqual(note);
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes/X",
       );
     });
@@ -242,7 +243,7 @@ describe("RestApiAdapter", () => {
 
       const result = await adapter.update("X", { title: "Renamed" });
       expect(result).toEqual(updated);
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes/X",
       );
       const init = lastCallInit(fetchMock);
@@ -287,7 +288,7 @@ describe("RestApiAdapter", () => {
       fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
 
       await adapter.delete("X");
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes/X",
       );
       expect(lastCallInit(fetchMock).method).toBe("DELETE");
@@ -308,7 +309,7 @@ describe("RestApiAdapter", () => {
       await adapter.deleteAll();
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes",
       );
       expect(lastCallInit(fetchMock).method).toBe("DELETE");
@@ -332,17 +333,17 @@ describe("RestApiAdapter", () => {
       await adapter.importAll([incoming]);
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes/import",
       );
       const body = JSON.parse(lastCallInit(fetchMock).body as string) as {
         notes: Record<string, unknown>[];
       };
       expect(body.notes).toHaveLength(1);
-      expect(body.notes[0].id).toBe("fresh");
-      expect(body.notes[0].createdAt).toBe(incoming.createdAt);
-      expect(body.notes[0].updatedAt).toBeUndefined();
-      expect(body.notes[0].title).toBe("Hi");
+      expect(body.notes[0]?.id).toBe("fresh");
+      expect(body.notes[0]?.createdAt).toBe(incoming.createdAt);
+      expect(defined(body.notes[0]).updatedAt).toBeUndefined();
+      expect(body.notes[0]?.title).toBe("Hi");
     });
 
     it("splits a backup larger than one request may carry", async () => {
@@ -483,10 +484,10 @@ describe("RestApiAdapter", () => {
         );
 
       expect((await adapter.getAll()).map((n) => n.id)).toEqual(["a", "b"]);
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes",
       );
-      expect(fetchMock.mock.calls[1][0]).toBe(
+      expect(fetchMock.mock.calls[1]?.[0]).toBe(
         "https://api.example.com/api/notes?cursor=cur-1",
       );
     });
@@ -509,7 +510,7 @@ describe("RestApiAdapter", () => {
         jsonResponse({ note: makeNote({ id: "a", images: [png] }) }),
       );
       expect(await adapter.loadImages("a")).toEqual([png]);
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/notes/a",
       );
     });
@@ -530,7 +531,7 @@ describe("RestApiAdapter", () => {
       fetchMock.mockResolvedValueOnce(jsonResponse({ preview }));
 
       expect(await adapter.fetchLinkPreview(preview.url)).toEqual(preview);
-      expect(fetchMock.mock.calls[0][0]).toBe(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "https://api.example.com/api/link-preview?url=https%3A%2F%2Fexample.com%2Fa%3Fb%3Dc%26d",
       );
       const headers = lastCallInit(fetchMock).headers as Record<string, string>;
@@ -628,8 +629,8 @@ describe("image uploads", () => {
       { onProgress: (p) => progress.push(p) },
     );
     expect(ref).toBe("attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV");
-    expect(sent[0].url).toBe("https://notes.example/api/attachments");
-    expect(sent[0].headers).toMatchObject({
+    expect(sent[0]?.url).toBe("https://notes.example/api/attachments");
+    expect(sent[0]?.headers).toMatchObject({
       Authorization: "Bearer t",
       "Content-Type": "image/png",
     });
@@ -659,7 +660,7 @@ describe("image uploads", () => {
         "attachment:01BBBBBBBBBBBBBBBBBBBBBBBB",
       ],
     });
-    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(body.images).toEqual([
       "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV",
       "attachment:01BBBBBBBBBBBBBBBBBBBBBBBB",

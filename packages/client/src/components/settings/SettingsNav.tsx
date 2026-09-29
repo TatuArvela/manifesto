@@ -82,7 +82,7 @@ export function NavGroup({
   title,
   children,
 }: {
-  title?: string;
+  title?: string | undefined;
   children: ComponentChildren;
 }) {
   return (

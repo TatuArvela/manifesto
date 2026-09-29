@@ -31,7 +31,7 @@ const textEncoder = new TextEncoder();
 
 export interface RestApiAdapterOptions {
   /** Invoked when the server returns 401, before the error is thrown. */
-  onUnauthorized?: () => void;
+  onUnauthorized?: (() => void) | undefined;
 }
 
 /**

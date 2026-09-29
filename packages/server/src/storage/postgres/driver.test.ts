@@ -71,7 +71,7 @@ describe("postgres: audit log", () => {
         })
       ).map((e) => e.id),
     ).toEqual(["01A1"]);
-    expect((await storage.audit.list({ limit: 1 }))[0].detail).toEqual({
+    expect((await storage.audit.list({ limit: 1 }))[0]?.detail).toEqual({
       method: "password",
     });
     expect(await storage.audit.deleteBefore("2026-04-02T12:00:00.000Z")).toBe(
@@ -277,7 +277,7 @@ describe("postgres: versions", () => {
     }
     const kept = await storage.versions.list("n1");
     expect(kept).toHaveLength(MAX_NOTE_VERSIONS);
-    expect(kept[0].content).toBe(String(MAX_NOTE_VERSIONS + 1));
+    expect(kept[0]?.content).toBe(String(MAX_NOTE_VERSIONS + 1));
     await storage.notes.delete("n1", "u1");
     expect(await storage.versions.list("n1")).toEqual([]);
     await storage.close();
