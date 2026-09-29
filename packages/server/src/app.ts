@@ -21,7 +21,11 @@ import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,
 } from "./linkPreview/fetchPreview.js";
-import { createSmtpMailer, type Mailer } from "./mail/mailer.js";
+import {
+  createSmtpMailer,
+  type Mailer,
+  withMailStatus,
+} from "./mail/mailer.js";
 import { createMcpRoutes } from "./mcp/routes.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { HttpError, onError } from "./middleware/error.js";
@@ -115,7 +119,9 @@ export function createApp(deps: AppDeps): AppHandle {
   // One budget of wrong passwords per account name, whether they were typed
   // to sign in or to confirm an action from a session that is already in.
   const loginAttempts = createLoginAttempts();
-  const mailer = deps.mailer ?? (cfg.mail ? createSmtpMailer(cfg.mail) : null);
+  const smtp = deps.mailer ?? (cfg.mail ? createSmtpMailer(cfg.mail) : null);
+  // Every send goes through this one, so the setup checks see real mail too.
+  const mailer = smtp ? withMailStatus(smtp) : null;
   const mail = mailer && cfg.mail ? { mailer, appUrl: cfg.mail.appUrl } : null;
   const webhooks =
     cfg.webhooks === "off"
@@ -324,6 +330,7 @@ export function createApp(deps: AppDeps): AppHandle {
       revocations,
       noteEvents,
       updateStatus: deps.updateStatus,
+      mail: cfg.mail ? mailer : null,
     }),
   );
 

@@ -1,5 +1,6 @@
 import type { MailConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
+import { nowIso } from "../lib/time.js";
 
 export interface MailMessage {
   to: string;
@@ -45,6 +46,31 @@ export function createSmtpMailer(cfg: MailConfig): Mailer {
         return false;
       }
     },
+  };
+}
+
+/** When mail last went, and when it last could not; null for never. */
+export interface MailStatus {
+  lastSentAt: string | null;
+  lastFailedAt: string | null;
+}
+
+/**
+ * The same mailer, remembering how its sends went, for the admin's setup
+ * checks. In memory, like the job statuses: it describes this process since
+ * it started. Why a send failed is in the log, not here.
+ */
+export function withMailStatus(
+  mailer: Mailer,
+): Mailer & { status(): MailStatus } {
+  const status: MailStatus = { lastSentAt: null, lastFailedAt: null };
+  return {
+    async send(message) {
+      const sent = await mailer.send(message);
+      status[sent ? "lastSentAt" : "lastFailedAt"] = nowIso();
+      return sent;
+    },
+    status: () => ({ ...status }),
   };
 }
 

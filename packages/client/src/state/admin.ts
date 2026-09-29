@@ -1,18 +1,21 @@
-import type {
-  AdminOverviewResponse,
-  AdminTemporaryPasswordResponse,
-  AdminUpdateResponse,
-  AdminUser,
-  AdminUserResponse,
-  AdminUsersResponse,
-  AuditLogResponse,
+import {
+  type AdminChecksResponse,
+  type AdminOverviewResponse,
+  type AdminTemporaryPasswordResponse,
+  type AdminTestMailResponse,
+  type AdminUpdateResponse,
+  type AdminUser,
+  type AdminUserResponse,
+  type AdminUsersResponse,
+  type AuditLogResponse,
+  PROXY_PROBE_ADDRESS,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { ApiError, apiJson } from "../storage/apiRequest.js";
 import { refreshCurrentUser } from "./auth.js";
-import { activeView, showError } from "./ui.js";
+import { activeView, showError, showSuccess } from "./ui.js";
 
 /**
  * Account administration, for the `/admin` view.
@@ -37,8 +40,13 @@ export interface IssuedPassword {
 
 export const issuedPassword = signal<IssuedPassword | null>(null);
 
-function request<T>(method: string, path: string, body?: unknown) {
-  return apiJson<T>(method, `/admin${path}`, body);
+function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  headers?: Record<string, string>,
+) {
+  return apiJson<T>(method, `/admin${path}`, body, headers);
 }
 
 /**
@@ -102,6 +110,39 @@ export async function loadAdminOverview(): Promise<AdminOverviewResponse | null>
   } catch (err) {
     report(err, "overview.failed");
     return null;
+  }
+}
+
+/**
+ * What the setup checks read; null on failure, which has been reported. It
+ * carries a made-up `X-Forwarded-For`, and what the proxy in front did to it
+ * is part of the answer.
+ */
+export async function loadSetupChecks(): Promise<AdminChecksResponse | null> {
+  try {
+    return await request<AdminChecksResponse>("GET", "/checks", undefined, {
+      "X-Forwarded-For": PROXY_PROBE_ADDRESS,
+    });
+  } catch (err) {
+    report(err, "checks.failed");
+    return null;
+  }
+}
+
+/** Sends the admin a test email; whether it went. A 409 is an account with
+ * no address to send it to. */
+export async function sendTestMail(): Promise<boolean> {
+  try {
+    const body = await request<AdminTestMailResponse>("POST", "/checks/mail");
+    if (body?.sent) {
+      showSuccess(t("checks.mail.testSent"));
+      return true;
+    }
+    showError(t("checks.mail.testFailed"));
+    return false;
+  } catch (err) {
+    report(err, "checks.mail.testFailed", "checks.mail.noAddress");
+    return false;
   }
 }
 

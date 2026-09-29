@@ -6,7 +6,8 @@ import {
 } from "../validation/schemas.js";
 import { noContent, notFound, type Operation, ok } from "./operation.js";
 
-/** The admin API: accounts, teams, the audit log and the update check. */
+/** The admin API: accounts, teams, the audit log, the update check and the
+ * setup checks. */
 export const ADMIN_OPERATIONS: Operation[] = [
   {
     method: "get",
@@ -90,6 +91,31 @@ export const ADMIN_OPERATIONS: Operation[] = [
     auth: "admin",
     limits: ["user"],
     responses: ok("AdminOverviewResponse"),
+  },
+  {
+    method: "get",
+    path: "/api/admin/checks",
+    tag: "Admin",
+    summary:
+      "What the setup checks read: APP_URL, what the proxy does to X-Forwarded-For, backups and mail",
+    auth: "admin",
+    limits: ["user"],
+    responses: ok("AdminChecksResponse"),
+  },
+  {
+    method: "post",
+    path: "/api/admin/checks/mail",
+    tag: "Admin",
+    summary: "Send a test message to the admin's own email address",
+    auth: "admin",
+    limits: ["user"],
+    responses: {
+      ...ok("AdminTestMailResponse"),
+      "409": {
+        description: "Mail is not set up, or the account has no address",
+        schema: "Error",
+      },
+    },
   },
   {
     method: "get",

@@ -24,6 +24,7 @@ import { jobStatuses } from "../lib/periodic.js";
 import { newTemporaryPassword } from "../lib/temporaryPassword.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
+import type { Mailer, MailStatus } from "../mail/mailer.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
@@ -41,6 +42,7 @@ import {
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import { VERSION } from "../version.js";
+import { registerAdminCheckRoutes } from "./adminChecks.js";
 import { registerAdminTeamRoutes } from "./teams.js";
 
 interface AdminDeps {
@@ -51,6 +53,8 @@ interface AdminDeps {
   teamShares: TeamShares;
   /** What the update check last found. */
   updateStatus?: (() => UpdateStatus | null) | undefined;
+  /** The server's mailer and how it has gone; null without `SMTP_URL`. */
+  mail?: (Mailer & { status(): MailStatus }) | null | undefined;
 }
 
 function toAdminUser(user: UserSummary): AdminUser {
@@ -357,6 +361,7 @@ export function createAdminRoutes(deps: AdminDeps) {
   });
 
   registerAdminTeamRoutes(admin, deps);
+  registerAdminCheckRoutes(admin, deps);
 
   return admin;
 }

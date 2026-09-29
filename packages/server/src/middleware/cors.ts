@@ -26,7 +26,16 @@ export function corsMiddleware(cfg: ServerConfig): MiddlewareHandler {
     // `If-Match` carries the optimistic-concurrency token on every update of
     // a note the client already holds; without it here the browser refuses
     // the request before it is sent.
-    allowHeaders: ["Authorization", "Content-Type", "If-Match"],
+    // `X-Forwarded-For` is the probe the admin's setup checks send. Allowing
+    // it gives nothing away: anything but a browser can send it already, and
+    // the server believes it only with `TRUST_PROXY`, behind a proxy that
+    // replaces it.
+    allowHeaders: [
+      "Authorization",
+      "Content-Type",
+      "If-Match",
+      "X-Forwarded-For",
+    ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: false,
     maxAge: 600,

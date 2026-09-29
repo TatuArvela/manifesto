@@ -79,3 +79,25 @@ export function shareInvitationMail(
     ].join("\n"),
   };
 }
+
+/** What an admin sends themselves from the setup checks. */
+export function testMail(locale: MailLocale, { link }: { link: string }) {
+  if (locale === "fi") {
+    return {
+      subject: "Testiviesti",
+      text: [
+        "Sähköposti toimii: tämä viesti lähti palvelimeltasi ja tuli perille.",
+        "",
+        link,
+      ].join("\n"),
+    };
+  }
+  return {
+    subject: "Test message",
+    text: [
+      "Mail works: this message left your server and arrived.",
+      "",
+      link,
+    ].join("\n"),
+  };
+}

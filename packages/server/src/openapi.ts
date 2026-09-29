@@ -220,6 +220,17 @@ function components() {
         perUser: { type: "array" },
         jobs: { type: "array" },
       }),
+      AdminChecksResponse: shape({
+        appUrl: { type: ["string", "null"] },
+        trustProxy: { type: "boolean" },
+        proxy: {
+          type: "string",
+          enum: ["untouched", "overwritten", "appended", "removed"],
+        },
+        backup: { type: ["object", "null"] },
+        mail: { type: ["object", "null"] },
+      }),
+      AdminTestMailResponse: shape({ sent: { type: "boolean" } }),
       AccountPrefsResponse: shape({ prefs: { type: "object" } }),
       AuditLogResponse: shape({
         entries: { type: "array" },

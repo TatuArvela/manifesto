@@ -409,6 +409,8 @@ database on every request (`403` otherwise). Shares the per-user API limit. See
 | `POST`   | `/api/admin/users/:id/password`   | Reset the password and end every session of the account: `{ user, temporaryPassword }` |
 | `DELETE` | `/api/admin/users/:id`            | Delete the account with its notes and sessions: `204` |
 | `GET`    | `/api/admin/users/:id/export`     | Everything the account owns, as the zip `GET /api/export` gives its owner. Only with `ADMIN_EXPORT` on; otherwise `404`, as for a route that does not exist |
+| `GET`    | `/api/admin/checks`               | What the overview's [setup checks](features/accounts.md#setup-checks) read: `{ appUrl, trustProxy, proxy, backup, mail }` |
+| `POST`   | `/api/admin/checks/mail`          | Send a test message to the caller's own address: `{ sent }`. `409` without mail set up or an address on the account |
 
 `AdminUser` is `{ id, username, displayName, avatarColor, email, isAdmin, provider,
 mustChangePassword, noteCount, createdAt, lastSeenAt }`, where `provider` is

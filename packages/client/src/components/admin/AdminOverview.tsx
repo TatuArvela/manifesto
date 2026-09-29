@@ -7,6 +7,7 @@ import {
   t,
 } from "../../i18n/index.js";
 import { loadAdminOverview } from "../../state/admin.js";
+import { SetupChecks } from "./SetupChecks.js";
 
 /** The jobs the server runs, by the names it gives them. */
 const JOB_NAMES: Record<string, MessageKey> = {
@@ -36,7 +37,8 @@ function uptime(seconds: number): string {
 
 /**
  * The admin view's Overview: what the server holds, per account and in all,
- * and whether its background jobs are running and how they last went.
+ * whether its setup has something to fix, and whether its background jobs
+ * are running and how they last went.
  */
 export function AdminOverview() {
   const [overview, setOverview] = useState<AdminOverviewResponse | null>(null);
@@ -101,6 +103,8 @@ export function AdminOverview() {
           </div>
         ))}
       </dl>
+
+      <SetupChecks />
 
       <section>
         <h3 class="text-sm font-semibold mb-2">{t("overview.perUser")}</h3>

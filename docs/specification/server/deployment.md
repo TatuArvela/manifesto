@@ -8,11 +8,58 @@ stock build: a rebranded deployment points `CLIENT_DIR` at its own build, or hos
 
 ## Running Directly
 
+The image is the supported way to run a server, but a clone runs the same code. It needs Node 24 (the
+version in `.tool-versions` and the image) and pnpm through corepack (`corepack enable`). `better-sqlite3`
+and `argon2` are native modules: pnpm fetches prebuilt binaries for common platforms, and builds them
+where there are none, which takes Python, `make` and a C++ compiler.
+
 ```bash
+git clone https://github.com/TatuArvela/manifesto.git && cd manifesto
 pnpm install
 pnpm --filter @manifesto/server build
-pnpm --filter @manifesto/server start
+VITE_MANIFESTO_SERVER=/ pnpm --filter @manifesto/client build   # only to serve the client too
 ```
+
+The server reads its settings from the environment only (see
+[Environment Variables](#environment-variables)); nothing loads a `.env` file on its own, so pass one to
+Node. Copy `packages/server/.env.example` to `packages/server/.env` and set at least:
+
+```bash
+DATA_DIR=/var/lib/manifesto          # the SQLite database; relative paths are from the working directory
+CLIENT_DIR=/path/to/manifesto/packages/client/dist   # serve the client built above, as the image does
+```
+
+Then start it from `packages/server`:
+
+```bash
+cd packages/server
+node --env-file=.env dist/index.js
+```
+
+The first start prints the admin's temporary password (see [First sign-in](#first-sign-in)), and the admin
+CLI runs from the same directory: `node --env-file=.env dist/cli.js list-admins`. The build reads the
+version it reports from git history, so a full clone reports the exact build (`0.5.0+14.bf5a6dd`) and a
+shallow one only its commit (`0.5.0+bf5a6dd`).
+
+To keep it running, a systemd unit along these lines does, with a `manifesto` user that owns `DATA_DIR`:
+
+```ini
+[Unit]
+Description=Manifesto server
+After=network.target
+
+[Service]
+User=manifesto
+WorkingDirectory=/path/to/manifesto/packages/server
+ExecStart=/usr/bin/node --env-file=.env dist/index.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+An update is `git pull`, the install and build commands again, and a restart. Put HTTPS in front of it as
+for the image; see [Reverse Proxy](#reverse-proxy).
 
 ## Docker
 
@@ -448,7 +495,9 @@ WebSocket upgrades through for `/api/ws` (application events) and `/api/yjs`
 (collaborative editing); most proxies do that on their own for a proxied route,
 so the two rarely need blocks of their own.
 
-Two things below are easy to get wrong in ways nothing reports.
+Two things below are easy to get wrong in ways nothing else reports. The admin overview's
+[setup checks](../features/accounts.md#setup-checks) look for both from the admin's own request, along with
+HTTPS, `APP_URL`, backups and mail.
 
 ### `X-Forwarded-For` must be overwritten, not appended
 
