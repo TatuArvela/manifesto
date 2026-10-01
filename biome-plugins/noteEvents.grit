@@ -1,11 +1,19 @@
 language js
 
-// .claude/rules/sharing.md: each participant sees different
-// personal fields and a different sharing.role, so the writer's copy of a
-// note must never be broadcast as it is.
-`{ type: "note:updated", $props }` as $event where {
+// .claude/rules/sharing.md: each participant sees different personal fields
+// and a different sharing.role, and a note's arrival, change or loss has to
+// reach every one of them (and their webhooks) the same way. So every note
+// and invitation event is built in sharing/noteEvents.ts and nowhere else.
+`{ type: $type, $props }` as $event where {
+  $type <: or {
+    `"note:created"`,
+    `"note:updated"`,
+    `"note:deleted"`,
+    `"invitation:created"`,
+    `"invitation:removed"`
+  },
   register_diagnostic(
     span=$event,
-    message="Broadcast note updates through sharing/noteEvents.ts: each participant sees their own copy of the note."
+    message="Announce note and invitation events through sharing/noteEvents.ts: each participant hears their own copy."
   )
 }

@@ -1,7 +1,6 @@
 import type { ShareRole } from "@manifesto/shared";
 import { nowIso } from "../lib/time.js";
 import type { NoteShare, StorageDriver } from "../storage/types.js";
-import type { Broadcaster } from "../ws/broadcaster.js";
 import type { AccessChanges } from "./accessChanges.js";
 import type { NoteEvents } from "./noteEvents.js";
 
@@ -49,11 +48,10 @@ export interface TeamShares {
 
 export function createTeamShares(deps: {
   storage: StorageDriver;
-  broadcaster: Broadcaster;
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
 }): TeamShares {
-  const { storage, broadcaster, noteEvents, accessChanges } = deps;
+  const { storage, noteEvents, accessChanges } = deps;
 
   async function invite(
     noteId: string,
@@ -69,10 +67,7 @@ export function createTeamShares(deps: {
       viaTeam: teamId,
     });
     if (created === "exists") return false;
-    const invitation = await storage.shares.getInvitation(noteId, userId);
-    if (invitation) {
-      broadcaster.emit(userId, { type: "invitation:created", invitation });
-    }
+    await noteEvents.invited(noteId, userId);
     return true;
   }
 
@@ -102,16 +97,7 @@ export function createTeamShares(deps: {
   async function applyRole(share: NoteShare, role: ShareRole): Promise<void> {
     await storage.shares.setRole(share.noteId, share.userId, role);
     if (share.acceptedAt === null) {
-      const invitation = await storage.shares.getInvitation(
-        share.noteId,
-        share.userId,
-      );
-      if (invitation) {
-        broadcaster.emit(share.userId, {
-          type: "invitation:created",
-          invitation,
-        });
-      }
+      await noteEvents.invited(share.noteId, share.userId);
     } else if (role === "view") {
       accessChanges.announce({
         noteId: share.noteId,

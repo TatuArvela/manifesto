@@ -27,7 +27,7 @@ are here because breaking one fails silently, often from a file the guide is not
   `pickedReminder`, never by setting `time` alone.
 - A new server route is an entry in `OPERATIONS` with `auth`, `limits` and (if token-reachable)
   `scope`; routers mount no auth or rate limit, and a switchable one declares `feature`.
-- Ending a user's sessions goes through `endUserSessions`; a note broadcast through
+- Ending a user's sessions goes through `endUserSessions`; a note or invitation event through
   `sharing/noteEvents.ts`; taking a note away from someone through `sharing/accessChanges.ts`.
 - A security-relevant action writes an `audit(...)` entry (action in `AUDIT_ACTIONS`, a message in
   both catalogues); one a stolen session could abuse also calls `requireConfirmation`.
