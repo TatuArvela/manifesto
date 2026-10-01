@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/TatuArvela/manifesto/compare/v0.5.0...v0.6.0) (2026-10-01)
+
+
+### Features
+
+* **client:** search finds every word, ignores accents, titles first ([#80](https://github.com/TatuArvela/manifesto/issues/80)) ([d571037](https://github.com/TatuArvela/manifesto/commit/d571037aaa1e882587af65ff5d97d3904a09359f))
+* setup checks in the admin overview, and a full guide to running from a clone ([#78](https://github.com/TatuArvela/manifesto/issues/78)) ([a819cce](https://github.com/TatuArvela/manifesto/commit/a819cce4d60f4d427e460cf35c9cfc736746d150))
+
 ## [0.5.0](https://github.com/TatuArvela/manifesto/compare/v0.4.0...v0.5.0) (2026-09-29)
 
 
