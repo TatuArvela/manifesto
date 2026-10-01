@@ -17,6 +17,30 @@ rests on changes. A proposal to revisit one should say what changed.
   Markdown and JSON another tool can read.
 - **Word count, character count and reading time**: measures for a writing tool. A sticky note is
   short enough to see whole.
+- **Voice memos as attachments**: an attachment is an image, drawn on the card and shrunk on attach
+  ([Attachments](features/attachments.md)). Audio needs a recorder, a player on the card and in the
+  sheet, and a place in export, all for something a sticky note is not for. The Keep importer skips
+  voice recordings for the same reason.
+- **Folders**: a note in one folder is a note filed in exactly one place, which is what tags avoid. A
+  tag already groups notes, a note can carry several, and [tags](features/tags.md) are how the sidebar
+  is organized.
+- **Notion-style structure**: databases and typed properties on notes, pages nested in pages, and
+  block tools in the editor (a `/` command menu, callouts, collapsible toggles). The first two turn a
+  sticky note into a record or a page in a tree, which tags and the board already answer. The block
+  tools each add an editor node that raises `EDITOR_SCHEMA_VERSION` and needs a Markdown form in
+  export, for notes short enough not to need them.
+- **Reminders, priorities or locations on a checklist item**: a checklist is a GFM task list in the
+  note's Markdown ([Checklists](features/checklists.md)), and its items have no identity for a
+  scheduler to name. A reminder belongs to the note, and a date on an item belongs in the item's text.
+- **Two-way CalDAV for checklists** (items as `VTODO`s a phone's reminders app edits): the protocol is
+  the small part. An edit coming back names an item that has no stable ID, and would have to be merged
+  into the collaborative document by guessing which line it meant. The
+  [calendar feed](features/reminders.md) publishes reminders read-only.
+- **App-store builds** (Capacitor or any native shell): the app is a PWA served from its own origin,
+  and a shell runs it from another one, so `SERVER_URL` could never be same-origin, every custom
+  instance would need its own store build to carry its branding, and each release would pass through
+  store review. What a shell would add, reminders that arrive with the app closed, comes from Web Push
+  for a connected installed PWA.
 
 ## Architecture
 
@@ -27,3 +51,8 @@ rests on changes. A proposal to revisit one should say what changed.
 - **Redis, a search engine or any second service as a requirement**: a self-hosted server is one
   container, with Postgres optional. Anything that would want another service gets an in-process
   default first, and the service only as an option.
+- **Loading notes on demand, with search moved to the server**: the client drains every page of
+  `/api/notes`, because tag counts, the tag list and the filter chain are computed over the whole
+  list, and open mode has no server to search on. Paging bounds a response and images load as they
+  are scrolled to; the notes themselves stay in memory. A board of sticky notes is not an archive of
+  hundreds of thousands of documents.
