@@ -138,6 +138,25 @@ describe("attachments", () => {
     expect(meta?.ownerId).toBe(owner.userId);
   });
 
+  it("refuses a viewer's images, and images for a note it cannot see", async () => {
+    const note = await create(owner, [PNG]);
+    await share(note.id, alice, "view");
+    const byViewer = await call(alice, "PUT", `/api/notes/${note.id}`, {
+      images: [await uploadAs(alice, GIF)],
+      pinned: true,
+    });
+    expect(byViewer.status).toBe(403);
+    const byStranger = await call(mallory, "PUT", `/api/notes/${note.id}`, {
+      images: [await uploadAs(mallory, GIF)],
+    });
+    expect(byStranger.status).toBe(404);
+    const kept = await rig.storage.notes.getById(note.id, owner.userId);
+    expect(kept?.images).toEqual(note.images);
+    expect(
+      (await rig.storage.notes.getById(note.id, alice.userId))?.pinned,
+    ).toBe(false);
+  });
+
   it("copies an image an editor may read into their own note", async () => {
     const shared = await create(owner, [PNG]);
     await share(shared.id, alice);

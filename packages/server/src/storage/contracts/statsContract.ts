@@ -1,6 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import type { StorageDriver } from "../types.js";
+import { claimedImages, claimedPreviews } from "./claimed.js";
 
 /** The admin overview's counts, the same from both drivers. */
 export function describeStatsContract(
@@ -41,8 +42,8 @@ export function describeStatsContract(
             trashedAt: trashed ? T : null,
             position: 0,
             tags: [],
-            images: [],
-            linkPreviews: [],
+            images: claimedImages([]),
+            linkPreviews: claimedPreviews([]),
             reminder: null,
           },
           createdAt: T,

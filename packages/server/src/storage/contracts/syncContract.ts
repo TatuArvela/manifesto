@@ -2,6 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { nowIso } from "../../lib/time.js";
 import type { StorageDriver } from "../types.js";
+import { claimed } from "./claimed.js";
 
 /**
  * What `GET /api/sync` reads, run against both drivers: which notes count as
@@ -58,7 +59,7 @@ export function describeSyncContract(
         await storage.notes.insert({
           id,
           userId: "owner",
-          data: { ...noteData, title: id },
+          data: claimed({ ...noteData, title: id }),
           createdAt: T0,
           updatedAt: T0,
         });

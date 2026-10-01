@@ -1,6 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CreateUserInput, StorageDriver } from "../types.js";
+import { claimed } from "./claimed.js";
 
 /**
  * What both drivers must do for account administration, run against each.
@@ -66,7 +67,7 @@ export function describeAdminContract(
       await storage.notes.insert({
         id,
         userId,
-        data: noteData,
+        data: claimed(noteData),
         createdAt: NOW,
         updatedAt: NOW,
       });

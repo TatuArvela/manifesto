@@ -1,6 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver, StoredPublicLink } from "../types.js";
+import { claimedImages, claimedPreviews } from "./claimed.js";
 
 /**
  * Public links, the same in both drivers: a view is counted only while the
@@ -64,8 +65,8 @@ export function describePublicLinksContract(
           trashedAt: null,
           position: 0,
           tags: [],
-          images: [],
-          linkPreviews: [],
+          images: claimedImages([]),
+          linkPreviews: claimedPreviews([]),
           reminder: null,
         },
         createdAt: T0,

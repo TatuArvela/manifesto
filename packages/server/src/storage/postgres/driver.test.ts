@@ -2,6 +2,7 @@ import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { describeAdminContract } from "../contracts/adminContract.js";
 import { describeAttachmentsContract } from "../contracts/attachmentsContract.js";
+import { claimed } from "../contracts/claimed.js";
 import { describeOAuthContract } from "../contracts/oauthContract.js";
 import { describePasskeysContract } from "../contracts/passkeysContract.js";
 import { describePrefsContract } from "../contracts/prefsContract.js";
@@ -261,7 +262,7 @@ describe("postgres: versions", () => {
     await storage.notes.insert({
       id: "n1",
       userId: "u1",
-      data: baseNoteData,
+      data: claimed(baseNoteData),
       createdAt: NOW,
       updatedAt: NOW,
     });
@@ -467,7 +468,7 @@ describe("postgres storage driver (pg-mem)", () => {
       await storage.notes.insert({
         id: "n1",
         userId: "u1",
-        data: { ...baseNoteData, title: "Hello" },
+        data: claimed({ ...baseNoteData, title: "Hello" }),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -485,7 +486,7 @@ describe("postgres storage driver (pg-mem)", () => {
       await storage.notes.insert({
         id: "n1",
         userId: "u1",
-        data: baseNoteData,
+        data: claimed(baseNoteData),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -506,7 +507,7 @@ describe("postgres storage driver (pg-mem)", () => {
       await storage.notes.insert({
         id: "n1",
         userId: "u1",
-        data: baseNoteData,
+        data: claimed(baseNoteData),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -523,7 +524,7 @@ describe("postgres storage driver (pg-mem)", () => {
       await storage.notes.insert({
         id: "n1",
         userId: "u1",
-        data: baseNoteData,
+        data: claimed(baseNoteData),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -536,18 +537,22 @@ describe("postgres storage driver (pg-mem)", () => {
       await storage.notes.insert({
         id: "n1",
         userId: "u1",
-        data: {
+        data: claimed({
           ...baseNoteData,
           title: "Shopping list",
           content: "Eggs and milk",
-        },
+        }),
         createdAt: NOW,
         updatedAt: NOW,
       });
       await storage.notes.insert({
         id: "n2",
         userId: "u1",
-        data: { ...baseNoteData, title: "Trip notes", content: "fly to LAX" },
+        data: claimed({
+          ...baseNoteData,
+          title: "Trip notes",
+          content: "fly to LAX",
+        }),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -566,7 +571,7 @@ describe("postgres storage driver (pg-mem)", () => {
       const note = await storage.notes.insert({
         id: "n1",
         userId: "u1",
-        data: {
+        data: claimed({
           ...baseNoteData,
           tags: ["x", "y"],
           reminder: {
@@ -574,7 +579,7 @@ describe("postgres storage driver (pg-mem)", () => {
             recurrence: "weekly",
             timezone: "Europe/Helsinki",
           },
-        },
+        }),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -602,7 +607,7 @@ describe("postgres storage driver (pg-mem)", () => {
       await storage.notes.insert({
         id: "n1",
         userId: "u1",
-        data: baseNoteData,
+        data: claimed(baseNoteData),
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -642,14 +647,14 @@ describe("postgres storage driver (pg-mem)", () => {
       await storage.notes.insert({
         id: "expired",
         userId: "u1",
-        data: { ...baseNoteData, trashed: true, trashedAt: longAgo },
+        data: claimed({ ...baseNoteData, trashed: true, trashedAt: longAgo }),
         createdAt: longAgo,
         updatedAt: longAgo,
       });
       await storage.notes.insert({
         id: "fresh",
         userId: "u1",
-        data: { ...baseNoteData, trashed: true, trashedAt: recent },
+        data: claimed({ ...baseNoteData, trashed: true, trashedAt: recent }),
         createdAt: recent,
         updatedAt: recent,
       });

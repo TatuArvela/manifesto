@@ -2,6 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAccessChanges } from "../sharing/accessChanges.js";
 import { createNoteEvents } from "../sharing/noteEvents.js";
+import { claimed } from "../storage/contracts/claimed.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import type { StorageDriver } from "../storage/types.js";
 import { type Broadcaster, createBroadcaster } from "../ws/broadcaster.js";
@@ -56,14 +57,14 @@ describe("startTrashCleanup", () => {
     await storage.notes.insert({
       id: "expired",
       userId: "u1",
-      data: { ...baseNote, trashed: true, trashedAt: longAgo },
+      data: claimed({ ...baseNote, trashed: true, trashedAt: longAgo }),
       createdAt: longAgo,
       updatedAt: longAgo,
     });
     await storage.notes.insert({
       id: "fresh",
       userId: "u1",
-      data: { ...baseNote, trashed: true, trashedAt: recent },
+      data: claimed({ ...baseNote, trashed: true, trashedAt: recent }),
       createdAt: recent,
       updatedAt: recent,
     });
@@ -135,7 +136,7 @@ describe("startTrashCleanup", () => {
     await storage.notes.insert({
       id: "later",
       userId: "u1",
-      data: { ...baseNote, trashed: true, trashedAt: longAgo },
+      data: claimed({ ...baseNote, trashed: true, trashedAt: longAgo }),
       createdAt: longAgo,
       updatedAt: longAgo,
     });
@@ -164,7 +165,7 @@ describe("startTrashCleanup", () => {
     await storage.notes.insert({
       id: "shared",
       userId: "u1",
-      data: { ...baseNote, trashed: false },
+      data: claimed({ ...baseNote, trashed: false }),
       createdAt: now,
       updatedAt: now,
     });

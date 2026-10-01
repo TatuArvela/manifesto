@@ -16,7 +16,9 @@ Two pluggable layers, both selected at boot via env vars (`STORAGE_DRIVER`, `AUT
   `storage/localImages.ts`) and in connected mode `attachment:<id>` references to the
   `attachments` table, not bytes: the client uploads each to `POST /api/attachments` first, and note
   writes refuse anything but a reference (`claimImages` in `attachments/store.ts` makes each the note
-  owner's, content-addressed per owner). The client draws them through `StoredImage` and inlines them again for anything that leaves the session (`inlineImages`). A new
+  owner's, content-addressed per owner). Storage takes only what it returns: `notes.insert` and
+  `notes.update` want `ClaimedImages` / `ClaimedPreviews`, branded types nothing else makes, so a
+  write that skips the claim does not compile. A storage test vouches with `storage/contracts/claimed.ts`. The client draws them through `StoredImage` and inlines them again for anything that leaves the session (`inlineImages`). A new
   place that renders a note image must use `StoredImage`, and a new export path must inline.
 - **MCP**: `mcp/` is a stateless MCP server written here rather than taken from the SDK, whose
   dependencies (express among them) outweigh four JSON-RPC methods: `protocol.ts` (JSON-RPC and the

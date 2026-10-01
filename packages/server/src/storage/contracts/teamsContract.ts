@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver } from "../types.js";
+import { claimedImages, claimedPreviews } from "./claimed.js";
 
 /**
  * Teams, the same in both drivers: names unique within a source, members
@@ -44,8 +45,8 @@ export function describeTeamsContract(
           trashedAt: null,
           position: 0,
           tags: [],
-          images: [],
-          linkPreviews: [],
+          images: claimedImages([]),
+          linkPreviews: claimedPreviews([]),
           reminder: null,
         },
         createdAt: T0,

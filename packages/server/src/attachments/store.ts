@@ -8,7 +8,11 @@ import {
 } from "@manifesto/shared";
 import { newId } from "../lib/ulid.js";
 import { HttpError } from "../middleware/error.js";
-import type { StorageDriver } from "../storage/types.js";
+import type {
+  ClaimedImages,
+  ClaimedPreviews,
+  StorageDriver,
+} from "../storage/types.js";
 
 /**
  * The images a note write names, made the note owner's. A note's `images`
@@ -28,13 +32,14 @@ export async function claimImages(
   ownerId: string,
   writerId: string,
   now: string,
-): Promise<string[]> {
+): Promise<ClaimedImages> {
   const out: string[] = [];
   for (const ref of images) {
     if (!isAttachmentRef(ref)) throw new HttpError(422, "Invalid image");
     out.push(await ownedRef(storage, ref, ownerId, writerId, now));
   }
-  return out;
+  // The one place a claim is made, so the one cast.
+  return out as ClaimedImages;
 }
 
 /**
@@ -49,12 +54,13 @@ export async function claimPreviewImages(
   ownerId: string,
   writerId: string,
   now: string,
-): Promise<LinkPreview[]> {
-  return await mapPreviewImages(previews, async (image) =>
+): Promise<ClaimedPreviews> {
+  const out = await mapPreviewImages(previews, async (image) =>
     isAttachmentRef(image)
       ? await ownedRef(storage, image, ownerId, writerId, now)
       : image,
   );
+  return out as ClaimedPreviews;
 }
 
 async function ownedRef(
