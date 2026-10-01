@@ -15,7 +15,7 @@ import {
   toggleSearchLocation,
   toggleSearchType,
 } from "./ui.js";
-import { filteredNotes } from "./views.js";
+import { filteredNotes, sortedNotes } from "./views.js";
 
 describe("hasChecklist", () => {
   it("detects checklist lines with and without bullets", () => {
@@ -152,6 +152,58 @@ describe("search view filtering", () => {
     await createNoteOrFail({ title: "Other" });
     searchQuery.value = "hello";
     expect(filteredNotes.value.map((n) => n.id)).toEqual([hi.id]);
+  });
+
+  it("finds a note holding every word of the query, in any order", async () => {
+    const both = await createNoteOrFail({
+      title: "Shopping",
+      content: "eggs, bread and **milk**",
+    });
+    await createNoteOrFail({ title: "Milk only", content: "just milk" });
+    searchQuery.value = "milk eggs";
+    expect(filteredNotes.value.map((n) => n.id)).toEqual([both.id]);
+  });
+
+  it("ignores accents on either side", async () => {
+    const weather = await createNoteOrFail({ title: "Sää huomenna" });
+    const cafe = await createNoteOrFail({ title: "Cafe list" });
+    searchQuery.value = "saa";
+    expect(filteredNotes.value.map((n) => n.id)).toEqual([weather.id]);
+    searchQuery.value = "café";
+    expect(filteredNotes.value.map((n) => n.id)).toEqual([cafe.id]);
+  });
+
+  it("puts title matches first and keeps the sort within each group", async () => {
+    sortMode.value = "created";
+    const inText = await createNoteOrFail({
+      title: "Errands",
+      content: "buy milk",
+    });
+    const olderTitle = await createNoteOrFail({ title: "Milk brands" });
+    const newerTitle = await createNoteOrFail({ title: "Oat milk" });
+    const createdAt = new Map([
+      [inText.id, "2026-01-03T00:00:00.000Z"],
+      [olderTitle.id, "2026-01-01T00:00:00.000Z"],
+      [newerTitle.id, "2026-01-02T00:00:00.000Z"],
+    ]);
+    notes.value = notes.value.map((n) => ({
+      ...n,
+      createdAt: createdAt.get(n.id) ?? n.createdAt,
+    }));
+    searchQuery.value = "milk";
+    expect(sortedNotes.value.map((n) => n.id)).toEqual([
+      newerTitle.id,
+      olderTitle.id,
+      inText.id,
+    ]);
+  });
+
+  it("finds a note again after its text changes", async () => {
+    const note = await createNoteOrFail({ title: "Before" });
+    searchQuery.value = "after";
+    expect(filteredNotes.value).toHaveLength(0);
+    await updateNote(note.id, { title: "After" });
+    expect(filteredNotes.value.map((n) => n.id)).toEqual([note.id]);
   });
 
   it("clearSearchFilters resets query, types, colors, and locations", async () => {

@@ -2,6 +2,11 @@ import type { Note } from "@manifesto/shared";
 import { imageCountOf } from "@manifesto/shared";
 import { computed } from "@preact/signals";
 import { hasChecklist } from "../utils/markdown.js";
+import {
+  containsTerms,
+  foldForSearch,
+  searchTerms,
+} from "../utils/searchText.js";
 import { allNotes } from "./notesStore.js";
 import { byPosition } from "./ordering.js";
 import { hiddenTags, sortMode } from "./prefs.js";
@@ -77,6 +82,44 @@ export function setTagHidden(tag: string, hide: boolean) {
   hiddenTags.value = hide ? [...rest, tag] : rest;
 }
 
+const queryTerms = computed(() => searchTerms(searchQuery.value));
+
+interface FoldedNote {
+  title: string;
+  content: string;
+  folded: { title: string; all: string };
+}
+
+/**
+ * Each note's text folded once rather than on every keystroke. The source
+ * strings are kept beside it, so a note changed in place is folded again.
+ */
+const foldedCache = new WeakMap<Note, FoldedNote>();
+
+function foldedText(note: Note): { title: string; all: string } {
+  const cached = foldedCache.get(note);
+  if (cached?.title === note.title && cached.content === note.content) {
+    return cached.folded;
+  }
+  const title = foldForSearch(note.title);
+  const folded = { title, all: `${title}\n${foldForSearch(note.content)}` };
+  foldedCache.set(note, { title: note.title, content: note.content, folded });
+  return folded;
+}
+
+/**
+ * A search's notes with those whose title holds one of its words first. The
+ * sort keeps its order within each group, so the view's sort mode still
+ * decides everything else.
+ */
+function titleMatchesFirst(list: Note[]): Note[] {
+  const terms = queryTerms.value;
+  if (activeView.value !== "search" || terms.length === 0) return list;
+  const inTitle = (n: Note) =>
+    terms.some((term) => foldedText(n).title.includes(term));
+  return [...list.filter(inTitle), ...list.filter((n) => !inTitle(n))];
+}
+
 export const filteredNotes = computed(() => {
   let result: Note[] = allNotes.value;
 
@@ -123,13 +166,9 @@ export const filteredNotes = computed(() => {
     }
   }
 
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase();
-    result = result.filter(
-      (n) =>
-        n.title.toLowerCase().includes(q) ||
-        n.content.toLowerCase().includes(q),
-    );
+  const terms = queryTerms.value;
+  if (terms.length > 0) {
+    result = result.filter((n) => containsTerms(foldedText(n).all, terms));
   }
 
   return result;
@@ -163,11 +202,11 @@ export const sortedNotes = computed(() => {
   }
   switch (sortMode.value) {
     case "updated":
-      return newestFirst(result, (n) => n.updatedAt);
+      return titleMatchesFirst(newestFirst(result, (n) => n.updatedAt));
     case "created":
-      return newestFirst(result, (n) => n.createdAt);
+      return titleMatchesFirst(newestFirst(result, (n) => n.createdAt));
     default:
-      return result.sort(byPosition);
+      return titleMatchesFirst(result.sort(byPosition));
   }
 });
 
