@@ -9,7 +9,13 @@ import {
 } from "../utils/searchText.js";
 import { allNotes } from "./notesStore.js";
 import { byPosition } from "./ordering.js";
-import { hiddenTags, sortMode } from "./prefs.js";
+import {
+  hiddenTags,
+  MAX_TAG_COLORS,
+  sortMode,
+  type TagColor,
+  tagColors,
+} from "./prefs.js";
 import {
   activeTag,
   activeView,
@@ -80,6 +86,21 @@ export const notesHiddenByTag = computed(() => {
 export function setTagHidden(tag: string, hide: boolean) {
   const rest = hiddenTags.value.filter((t) => t !== tag);
   hiddenTags.value = hide ? [...rest, tag] : rest;
+}
+
+/**
+ * Gives a tag its colour, or with `null` takes it away. False when the tag
+ * would be one coloured tag too many, see `MAX_TAG_COLORS`.
+ */
+export function setTagColor(tag: string, color: TagColor | null): boolean {
+  const { [tag]: _old, ...rest } = tagColors.value;
+  if (color === null) {
+    tagColors.value = rest;
+    return true;
+  }
+  if (Object.keys(rest).length >= MAX_TAG_COLORS) return false;
+  tagColors.value = { ...rest, [tag]: color };
+  return true;
 }
 
 const queryTerms = computed(() => searchTerms(searchQuery.value));

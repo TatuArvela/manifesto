@@ -177,3 +177,8 @@ export const colorPickerSwatches: { value: NoteColor; swatch: string }[] = [
   { value: NoteColor.Brown, swatch: "bg-taupe-500 dark:bg-taupe-600" },
   { value: NoteColor.Gray, swatch: "bg-neutral-400 dark:bg-neutral-500" },
 ];
+
+/** The swatch of each colour by name, for a dot rather than a whole picker. */
+export const swatchClass = Object.fromEntries(
+  colorPickerSwatches.map(({ value, swatch }) => [value, swatch]),
+) as Record<NoteColor, string>;

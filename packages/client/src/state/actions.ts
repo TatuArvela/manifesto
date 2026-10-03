@@ -10,10 +10,15 @@ import {
   POSITION_STEP,
   positionBetween,
 } from "./ordering.js";
-import { animations, hiddenTags } from "./prefs.js";
+import { animations, hiddenTags, tagColors } from "./prefs.js";
 import { exitSelectMode } from "./selection.js";
 import { activeTag, selectedNotes } from "./ui.js";
-import { inViewLocation, setTagHidden, sortedNotes } from "./views.js";
+import {
+  inViewLocation,
+  setTagColor,
+  setTagHidden,
+  sortedNotes,
+} from "./views.js";
 
 /**
  * The user-level note actions: each one a thing a button does, built on the
@@ -185,8 +190,12 @@ export async function deleteTag(tag: string): Promise<boolean> {
   if (activeTag.value === tag) {
     activeTag.value = null;
   }
-  // A tag gone from every note should not hide the next note given it.
-  if (ok) setTagHidden(tag, false);
+  // A tag gone from every note should not hide the next note given it, nor
+  // colour it.
+  if (ok) {
+    setTagHidden(tag, false);
+    setTagColor(tag, null);
+  }
   return ok;
 }
 
@@ -209,6 +218,12 @@ export async function renameTag(from: string, to: string): Promise<boolean> {
   if (ok && hiddenTags.value.includes(from)) {
     setTagHidden(from, false);
     setTagHidden(to, true);
+  }
+  // The colour goes with the name, unless the tag merged into has its own.
+  const color = tagColors.value[from];
+  if (ok && color !== undefined) {
+    setTagColor(from, null);
+    if (tagColors.value[to] === undefined) setTagColor(to, color);
   }
   return ok;
 }
