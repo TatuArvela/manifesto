@@ -1,15 +1,17 @@
+import { NoteColor } from "@manifesto/shared";
 import type { LucideIcon } from "lucide-preact";
 import {
   Archive,
   Eye,
   EyeOff,
+  Palette,
   Pencil,
   StickyNote,
   Trash2,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { plural, t } from "../i18n/index.js";
+import { getColorPickerColors, plural, t } from "../i18n/index.js";
 import { askConfirmation } from "../state/confirm.js";
 import {
   activeTag,
@@ -18,12 +20,19 @@ import {
   hiddenTags,
   notesLoaded,
   renameTag,
+  setTagColor,
   setTagHidden,
+  showError,
+  type TagColor,
+  tagColors,
   tagCounts,
   tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
 } from "../state/index.js";
+import { Dropdown } from "./Dropdown.js";
+import { TagDot } from "./TagDot.js";
+import { Tooltip } from "./Tooltip.js";
 
 const actionClass =
   "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600";
@@ -107,6 +116,54 @@ function RenameTagForm({ tag, onDone }: { tag: string; onDone: () => void }) {
   );
 }
 
+/**
+ * The colour of the selected tag: the note colours, with the plain one
+ * standing for no colour at all.
+ */
+function TagColorButton({ tag }: { tag: string }) {
+  const [open, setOpen] = useState(false);
+  const current = tagColors.value[tag] ?? NoteColor.Default;
+  // "Default" is a note's own word; on a tag the plain swatch is no colour.
+  const label = (c: { value: NoteColor; label: string }) =>
+    c.value === NoteColor.Default ? t("tags.noColor") : c.label;
+  return (
+    <Dropdown
+      open={open}
+      onClose={() => setOpen(false)}
+      panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1 flex-wrap max-w-64"
+      trigger={
+        <button
+          type="button"
+          class={actionClass}
+          onClick={() => setOpen(!open)}
+          aria-haspopup="true"
+          aria-expanded={open}
+        >
+          <Palette class="w-4 h-4" />
+          {t("tags.color")}
+        </button>
+      }
+    >
+      {getColorPickerColors().map((c) => (
+        <Tooltip key={c.value} label={label(c)}>
+          <button
+            type="button"
+            class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch} ${current === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+            aria-label={label(c)}
+            aria-pressed={current === c.value}
+            onClick={() => {
+              const color =
+                c.value === NoteColor.Default ? null : (c.value as TagColor);
+              if (!setTagColor(tag, color)) showError(t("tags.colorLimit"));
+              setOpen(false);
+            }}
+          />
+        </Tooltip>
+      ))}
+    </Dropdown>
+  );
+}
+
 export function TagsView() {
   const tags = allTags.value;
   const counts = tagCounts.value;
@@ -161,6 +218,7 @@ export function TagsView() {
               {isHidden && (
                 <EyeOff class="w-3.5 h-3.5 opacity-60" aria-hidden="true" />
               )}
+              <TagDot tag={tag} />
               <span class={isHidden ? "opacity-70" : undefined}>#{tag}</span>
               <span class="text-xs tabular-nums opacity-60">{count}</span>
             </Chip>
@@ -191,6 +249,7 @@ export function TagsView() {
             )}
             {selectedHidden ? t("tags.showInNotes") : t("tags.hideFromNotes")}
           </button>
+          <TagColorButton key={selected} tag={selected} />
           <button
             type="button"
             class={actionClass}

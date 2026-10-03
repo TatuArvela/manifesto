@@ -20,6 +20,8 @@ export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
 export type EditMode = "normal" | "raw";
+/** A colour a tag can be given: any note colour but the plain one. */
+export type TagColor = Exclude<NoteColor, NoteColor.Default>;
 /** A preset board tint, each with a light and a dark shade in styles.css. */
 export type BoardColor =
   | "sand"
@@ -194,6 +196,24 @@ function parseTagList(value: unknown): string[] {
   ];
 }
 
+/**
+ * How many tags can hold a colour. The account's whole copy has to stay
+ * within 16 KB, and this map is the one preference that grows with use.
+ */
+export const MAX_TAG_COLORS = 200;
+
+/** Tag to colour, dropping whatever a hand-edited blob holds besides. */
+function parseTagColors(value: unknown): Record<string, TagColor> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const colors = Object.values(NoteColor) as string[];
+  const parsed: Record<string, TagColor> = {};
+  for (const [tag, color] of Object.entries(value).slice(0, MAX_TAG_COLORS)) {
+    if (typeof color !== "string" || color === NoteColor.Default) continue;
+    if (colors.includes(color)) parsed[tag] = color as TagColor;
+  }
+  return parsed;
+}
+
 function oneOf<T extends string>(values: readonly T[], fallback: T) {
   return (value: unknown): T =>
     typeof value === "string" && (values as readonly string[]).includes(value)
@@ -244,6 +264,11 @@ export const PREF_PARSERS = {
    * Search, Reminders and the rest; this only keeps the main board clear.
    */
   hiddenTags: parseTagList,
+  /**
+   * The colour each tag is drawn with, for this user: the tags themselves
+   * are on the notes, and someone a note is shared with has their own.
+   */
+  tagColors: parseTagColors,
   confirmBeforeDelete: flag(false),
   defaultEditMode: oneOf<EditMode>(["normal", "raw"], "normal"),
   boardColor: parseBoardColor,
