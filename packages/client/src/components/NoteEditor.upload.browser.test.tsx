@@ -2,6 +2,7 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { forgetAttachmentUrls } from "../state/attachments.js";
+import { drawingRequest } from "../state/drawing.js";
 import { activeView, notes } from "../state/index.js";
 import { currentStorage } from "../storage/index.js";
 import { NoteInput } from "./NoteInput.js";
@@ -152,5 +153,42 @@ describe("attaching an image", () => {
     const second = await openDraft();
     expect(second.querySelector("img")).toBeNull();
     expect(notes.value).toHaveLength(0);
+  });
+
+  it("offers Draw in the menu, and attaches the drawing like any image", async () => {
+    storeWith(vi.fn(async () => REF));
+    const dialog = await openDraft();
+    (
+      dialog.querySelector(
+        `button[aria-label="${t("noteMenu.moreOptions")}"]`,
+      ) as HTMLElement
+    ).click();
+    const draw = await vi.waitFor(() => {
+      const row = [...document.querySelectorAll("button")].find(
+        (b) => b.textContent === t("editor.draw"),
+      );
+      expect(row).toBeTruthy();
+      return row as HTMLElement;
+    });
+    draw.click();
+    await vi.waitFor(() => expect(drawingRequest.value).not.toBeNull());
+
+    // The pad's part is tested with the pad; here it hands over its picture.
+    drawingRequest.value?.onDone(
+      new File([PNG], "drawing.png", { type: "image/png" }),
+    );
+    await vi.waitFor(() => expect(putImage).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(dialog.querySelector("img")?.src).toMatch(/^blob:/),
+    );
+  });
+
+  it("takes the pad down with the editor it was opened from", async () => {
+    storeWith(vi.fn(async () => REF));
+    await openDraft();
+    drawingRequest.value = { onDone: () => {} };
+    render(null, host);
+    expect(drawingRequest.value).toBeNull();
+    render(<NoteInput />, host);
   });
 });

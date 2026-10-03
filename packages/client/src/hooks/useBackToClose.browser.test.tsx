@@ -18,7 +18,7 @@ function Sheet({
   onBack,
 }: {
   active?: boolean;
-  onBack: () => void;
+  onBack: () => unknown;
 }) {
   useBackToClose(active, onBack);
   return null;
@@ -62,6 +62,28 @@ describe("the browser's back", () => {
     expect(onBack).toHaveBeenCalledOnce();
     expect(history.state).toEqual({ page: "board" });
     expect(window.location.pathname).toBe("/");
+  });
+
+  it("stays the sheet's own when the sheet declines to close", async () => {
+    const lower = vi.fn();
+    const upper = vi.fn(() => false);
+    show(
+      <>
+        <Sheet onBack={lower} />
+        <Sheet onBack={upper} />
+      </>,
+    );
+    await settled();
+    const upperEntry = history.state;
+
+    for (const presses of [1, 2]) {
+      const popped = nextPop();
+      history.back();
+      await popped;
+      expect(upper).toHaveBeenCalledTimes(presses);
+      expect(history.state).toEqual(upperEntry);
+    }
+    expect(lower).not.toHaveBeenCalled();
   });
 
   it("closes only the newest of two sheets", async () => {

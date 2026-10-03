@@ -16,6 +16,27 @@ every `GET /api/notes/:id` would carry the bytes of every image on the note, and
 photos filled `localStorage`'s ~5 MB, after which every save failed, text included. Referred to, a note
 carries a few dozen bytes per image. `StoredImage` draws either kind through a `blob:` URL.
 
+## Drawings
+
+**Draw** in an open note's menu opens a drawing pad: a sheet of white paper to draw on with a finger, a
+pen or a mouse. Done puts the drawing on the note as a PNG image, through the same path as an attached
+picture, so it is stored, shown, shared and exported like one, and takes one of the note's image slots.
+
+- Four inks (black, red, blue, green), three pen widths, an eraser, undo of the last stroke, and clear.
+  A tap leaves a dot.
+- The paper is 1600 by 1200 and opaque, so a drawing reads the same on a note of any colour and in
+  either theme. It is shown as large as fits, keeping its shape.
+- One pointer draws at a time, the first one down: a second finger or a resting palm is ignored. No
+  gesture of the page takes a stroke away (the paper alone has `touch-action: none`), the stroke follows
+  the pointer past the paper's edge, and a touch the system cancels keeps what was drawn.
+- Closing the pad with a drawing on it asks first, by the close button, Escape or Back, and choosing
+  not to discard leaves Back the pad's. Done on empty paper adds nothing. Done or closing with the pen
+  still down counts the line being drawn.
+- If the picture cannot be made, the pad says so and stays open with the drawing on it.
+- A drawing is a picture once it is on the note: it cannot be reopened as strokes, only removed and
+  drawn again.
+- The pad is not offered on a note that cannot be changed (shared to view, or an auto-note).
+
 ## Shrinking on attach
 
 Before an image is stored, in either mode, the client makes it a sensible size (`utils/shrinkImage.ts`):

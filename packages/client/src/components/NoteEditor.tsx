@@ -11,7 +11,7 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import { callCommand } from "@milkdown/kit/utils";
 import { ArrowLeft, Pin, PinOff } from "lucide-preact";
 import type { ComponentChildren } from "preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import {
   docHasDatedItems,
@@ -24,6 +24,7 @@ import {
 import { useImageUploads } from "../hooks/useImageUploads.js";
 import { usePresence } from "../hooks/usePresence.js";
 import { t } from "../i18n/index.js";
+import { closeDrawing, requestDrawing } from "../state/drawing.js";
 import { defaultEditMode, formattingToolbar } from "../state/prefs.js";
 import { hasDatedItems, sortChecklistByDate } from "../utils/itemDate.js";
 import { extractUrls } from "../utils/linkPreview.js";
@@ -165,6 +166,11 @@ export function NoteEditor({
 
   const { uploads, attachFiles, retryUpload, dropUpload } =
     useImageUploads(onAddImages);
+
+  // A pad opened from this editor goes with it: its drawing would be handed
+  // to uploads that are no longer there. A layout effect, as the uploads'
+  // own cleanup is: an effect's is put off until after the paint.
+  useLayoutEffect(() => closeDrawing, []);
 
   const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -516,6 +522,7 @@ export function NoteEditor({
         reminder={reminder}
         onReminderChange={onReminderChange}
         onFilesSelected={handleFilesSelected}
+        onDraw={() => requestDrawing((file) => attachFiles([file]))}
         rawMode={rawMode}
         onToggleRawMode={() => setRawMode(!rawMode)}
         menuItems={menuItems?.({ checkedItems, datedItems }) ?? []}

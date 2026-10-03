@@ -21,6 +21,7 @@ import {
 } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import { initBoardBackground } from "../state/board.js";
+import { drawingRequest } from "../state/drawing.js";
 import { takeIncomingShare } from "../state/incomingShare.js";
 import {
   activeView,
@@ -55,6 +56,7 @@ import { AutoNotesView } from "./AutoNotesView.js";
 import { AdminView } from "./admin/AdminView.js";
 import { ConfirmDialogHost } from "./ConfirmDialog.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
+import { DrawingPad } from "./DrawingPad.js";
 import { Header } from "./Header.js";
 import { InvitationList } from "./InvitationList.js";
 import { LoginScreen } from "./LoginScreen.js";
@@ -396,6 +398,8 @@ function MainApp() {
       <SettingsDialog />
       <ShareDialogHost />
       <PublicLinksDialogHost />
+      {/* Under the confirmation it asks before a drawing is discarded. */}
+      {drawingRequest.value && <DrawingPad />}
       <ConfirmDialogHost />
       <ReminderBanner />
       <ConnectionStatus />

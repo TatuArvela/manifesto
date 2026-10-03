@@ -6,6 +6,7 @@ import {
   Eye,
   Image as ImageIcon,
   Palette,
+  PenLine,
   Redo,
   Type,
   Undo,
@@ -43,6 +44,7 @@ export function NoteEditorToolbar({
   reminder,
   onReminderChange,
   onFilesSelected,
+  onDraw,
   rawMode,
   onToggleRawMode,
   menuItems,
@@ -64,6 +66,8 @@ export function NoteEditorToolbar({
   reminder?: NoteReminder | null | undefined;
   onReminderChange?: ((reminder: NoteReminder | null) => void) | undefined;
   onFilesSelected: (files: FileList | null) => void;
+  /** Opens the drawing pad; left out where the note cannot take images. */
+  onDraw?: (() => void) | undefined;
   rawMode: boolean;
   onToggleRawMode: () => void;
   menuItems: NoteMenuItem[];
@@ -280,6 +284,26 @@ export function NoteEditorToolbar({
           </button>
 
           <div class={`sm:hidden ${menuDividerClass}`} />
+
+          {/* In the menu rather than on the bar: a phone's bar has no room
+              for another tool, and a drawing is made far less often than a
+              picture is attached. */}
+          {onDraw && !disabled && (
+            <>
+              <button
+                type="button"
+                class={menuItemClass}
+                onClick={() => {
+                  onDraw();
+                  closeAllMenus();
+                }}
+              >
+                <PenLine class="w-4 h-4" />
+                {t("editor.draw")}
+              </button>
+              <div class={menuDividerClass} />
+            </>
+          )}
 
           <NoteMenu items={menuItems} onClose={() => setShowMenu(false)} />
         </Dropdown>

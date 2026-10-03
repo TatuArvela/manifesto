@@ -36,7 +36,9 @@ paths:
   open popover, a modifier), so a new binding only calls `useShortcut(key, run)`. The board's keys and
   the `?` sheet read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
 - **Back** closes the newest `NoteSheet` through `hooks/useBackToClose.ts`: each sheet pushes a
-  same-address history entry and takes it off with `history.back()` when closed another way. The
+  same-address history entry and takes it off with `history.back()` when closed another way. An
+  `onBack` that keeps the layer open (the drawing pad, asking before a drawing is discarded) returns
+  `false`, and its entry is put back; without that the next Back pops the entry of the sheet below. The
   entries are kept in `state/sheetHistory.ts`, and the router's own pushes wait for that back to land
   (`afterHistorySettles`), or they would be what it goes back from.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
