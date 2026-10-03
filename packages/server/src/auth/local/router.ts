@@ -1,9 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import type {
-  AuthSuccessResponse,
-  TwoFactorRequiredResponse,
-} from "@manifesto/shared";
+import type { AuthSuccessResponse } from "@manifesto/shared";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { Hono } from "hono";
 import { audit } from "../../audit/audit.js";
@@ -33,6 +30,10 @@ import {
   registerPasskeyRoutes,
 } from "./passkeys.js";
 import { registerPasswordResetRoutes } from "./passwordReset.js";
+import {
+  registerSignInLinkRoutes,
+  type SecondFactorCheck,
+} from "./signInLink.js";
 import { checkSecondFactor, registerTwoFactorRoutes } from "./twoFactor.js";
 
 interface LocalRouterDeps {
@@ -77,6 +78,52 @@ export function createLocalAuthRouter(
       // miss that would have reused the rejected promise.
       decoyHash = null;
     }
+  };
+
+  /**
+   * The second factor of a sign-in whose first step (the password, or a
+   * mailed link) has already held. Answers with the challenge to send back
+   * when the account has one and the request brought none, and otherwise
+   * with whether what it brought is right, and which factor it was.
+   */
+  const secondFactor: SecondFactorCheck = async (c, userId, otp, passkey) => {
+    const totp = await deps.storage.twoFactor.get(userId);
+    const authenticator = totp?.enabledAt != null;
+    const passkeys = await deps.storage.passkeys.listByUser(userId);
+    if (!authenticator && passkeys.length === 0) {
+      return { passed: true, with: null };
+    }
+    if (otp === undefined && passkey === undefined) {
+      // Which factors there are, and a challenge for the passkeys, so the
+      // client can offer each without another round of the first step.
+      return {
+        challenge: {
+          error: "Confirm with your second factor",
+          code: "two_factor_required",
+          twoFactor: {
+            authenticator,
+            passkey: await passkeySecondFactor.options(c, userId, passkeys),
+          },
+        },
+      };
+    }
+    const passed =
+      otp !== undefined
+        ? await checkSecondFactor(
+            deps.storage,
+            userId,
+            authenticator ? (totp?.secret ?? null) : null,
+            otp,
+          )
+        : await passkeySecondFactor.verify(
+            c,
+            userId,
+            passkeys,
+            passkey as AuthenticationResponseJSON,
+          );
+    return passed
+      ? { passed: true, with: otp !== undefined ? "yes" : "passkey" }
+      : { passed: false };
   };
 
   auth.post(
@@ -159,51 +206,20 @@ export function createLocalAuthRouter(
       // The second factor, after the password so that asking for one tells a
       // wrong guess nothing, and on the same per-account budget, so six
       // digits cannot be walked through.
-      const totp = await deps.storage.twoFactor.get(user.id);
-      const authenticator = totp?.enabledAt != null;
-      const passkeys = await deps.storage.passkeys.listByUser(user.id);
-      const twoFactor = authenticator || passkeys.length > 0;
-      if (twoFactor) {
-        if (otp === undefined && passkey === undefined) {
-          // Which factors there are, and a challenge for the passkeys, so the
-          // client can offer each without another round of the password.
-          const body: TwoFactorRequiredResponse = {
-            error: "Confirm with your second factor",
-            code: "two_factor_required",
-            twoFactor: {
-              authenticator,
-              passkey: await passkeySecondFactor.options(c, user.id, passkeys),
-            },
-          };
-          return c.json(body, 403);
-        }
-        const passed =
-          otp !== undefined
-            ? await checkSecondFactor(
-                deps.storage,
-                user.id,
-                authenticator ? (totp?.secret ?? null) : null,
-                otp,
-              )
-            : await passkeySecondFactor.verify(
-                c,
-                user.id,
-                passkeys,
-                passkey as AuthenticationResponseJSON,
-              );
-        if (!passed) {
-          loginAttempts.fail(username);
-          audit(deps.storage, c, {
-            action: "auth.sign_in_failed",
-            targetId: user.id,
-            detail: { username, reason: "two_factor" },
-          });
-          throw new HttpError(
-            401,
-            "That code is not right",
-            "two_factor_invalid",
-          );
-        }
+      const second = await secondFactor(c, user.id, otp, passkey);
+      if ("challenge" in second) return c.json(second.challenge, 403);
+      if (!second.passed) {
+        loginAttempts.fail(username);
+        audit(deps.storage, c, {
+          action: "auth.sign_in_failed",
+          targetId: user.id,
+          detail: { username, reason: "two_factor" },
+        });
+        throw new HttpError(
+          401,
+          "That code is not right",
+          "two_factor_invalid",
+        );
       }
       loginAttempts.succeed(username);
       // A temporary password buys the right to set a real one and nothing
@@ -236,9 +252,7 @@ export function createLocalAuthRouter(
         actorId: user.id,
         detail: {
           method: "password",
-          ...(twoFactor && {
-            twoFactor: otp !== undefined ? "yes" : "passkey",
-          }),
+          ...(second.with && { twoFactor: second.with }),
         },
       });
       const body: AuthSuccessResponse = { token, user: toAuthUser(user) };
@@ -303,6 +317,13 @@ export function createLocalAuthRouter(
     cfg: deps.cfg,
     revocations: deps.revocations,
     mailer: deps.mailer ?? null,
+  });
+  registerSignInLinkRoutes(auth, {
+    storage: deps.storage,
+    cfg: deps.cfg,
+    mailer: deps.mailer ?? null,
+    loginAttempts,
+    secondFactor,
   });
   registerTwoFactorRoutes(auth, {
     storage: deps.storage,

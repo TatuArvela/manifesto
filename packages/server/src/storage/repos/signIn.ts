@@ -75,3 +75,26 @@ export interface PasswordResetsRepo {
   latestFor(userId: string): Promise<string | null>;
   deleteExpired(now: string): Promise<number>;
 }
+
+/** Sign-in links sent by mail, keyed by the token's SHA-256. */
+export interface SignInLinksRepo {
+  create(input: {
+    tokenHash: string;
+    userId: string;
+    createdAt: string;
+    expiresAt: string;
+  }): Promise<void>;
+  /**
+   * Whose link this is, while it is unused and unexpired at `now`, without
+   * spending it: a second factor is asked for before the link is used up.
+   */
+  find(tokenHash: string, now: string): Promise<string | null>;
+  /**
+   * Spends a link that is unused and unexpired at `now`, atomically, and
+   * says whose account it signs in; null for any other link.
+   */
+  consume(tokenHash: string, now: string): Promise<string | null>;
+  /** When the user's latest link was made, for spacing them out. */
+  latestFor(userId: string): Promise<string | null>;
+  deleteExpired(now: string): Promise<number>;
+}

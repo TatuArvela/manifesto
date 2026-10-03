@@ -59,6 +59,12 @@ as the admin's log), so an admin action that reaches into an account must be aud
 account as its target, or its owner never hears of it. An admin reads another account's notes only
 through `ADMIN_EXPORT` (spec: `docs/specification/features/privacy.md`).
 
+A mailed sign-in link (`auth/local/signInLink.ts`, `MAGIC_LINKS`) stands in for the password and nothing
+else: it goes through the same `secondFactor` check and `loginAttempts` budget as `/login` (both built in
+`router.ts`), is refused for an account with no password or a temporary one, and is looked up with
+`signInLinks.find` and spent with `consume` only after the second factor holds. Any new way in does the
+same, or it is a way around two-factor.
+
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:
 `loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map

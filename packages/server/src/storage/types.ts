@@ -13,6 +13,7 @@ import type {
 import type {
   PasskeysRepo,
   PasswordResetsRepo,
+  SignInLinksRepo,
   TwoFactorRepo,
 } from "./repos/signIn.js";
 import type { ApiTokensRepo, OAuthRepo } from "./repos/tokens.js";
@@ -44,6 +45,7 @@ export interface StorageDriver {
   twoFactor: TwoFactorRepo;
   passkeys: PasskeysRepo;
   passwordResets: PasswordResetsRepo;
+  signInLinks: SignInLinksRepo;
   audit: AuditRepo;
   prefs: PrefsRepo;
   publicLinks: PublicLinksRepo;

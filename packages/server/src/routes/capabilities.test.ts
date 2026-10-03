@@ -22,6 +22,7 @@ describe("GET /api/capabilities", () => {
       passwordForm: "shown",
       registration: true,
       passwordReset: false,
+      magicLink: false,
       passkeys: true,
     });
     expect(body.features).toEqual({
@@ -34,6 +35,7 @@ describe("GET /api/capabilities", () => {
       mcp: true,
       webhooks: false,
       passkeys: true,
+      magicLinks: true,
       twoFactor: true,
       adminExport: false,
       mcpSignIn: false,

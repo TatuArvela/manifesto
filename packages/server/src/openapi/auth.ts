@@ -7,6 +7,8 @@ import {
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
   registerSchema,
+  signInLinkConfirmSchema,
+  signInLinkRequestSchema,
 } from "../validation/schemas.js";
 import { noContent, type Operation, ok } from "./operation.js";
 
@@ -170,6 +172,36 @@ export const AUTH_OPERATIONS: Operation[] = [
     body: passwordResetConfirmSchema,
     responses: {
       ...noContent,
+      "410": { description: "Expired or used", schema: "Error" },
+    },
+    provider: "local",
+  },
+  {
+    method: "post",
+    path: "/api/auth/sign-in-link",
+    tag: "Auth",
+    summary: "Mail a sign-in link to a local account's address; always 204",
+    auth: "none",
+    limits: ["sign-in"],
+    feature: "magicLinks",
+    body: signInLinkRequestSchema,
+    responses: noContent,
+    provider: "local",
+  },
+  {
+    method: "post",
+    path: "/api/auth/sign-in-link/confirm",
+    tag: "Auth",
+    summary:
+      "Sign in with a link's token, and the second factor if the account has one",
+    auth: "none",
+    limits: ["sign-in"],
+    feature: "magicLinks",
+    body: signInLinkConfirmSchema,
+    responses: {
+      ...ok("AuthSuccess"),
+      "401": { description: "Wrong second factor", schema: "Error" },
+      "403": { description: "A second factor is required", schema: "Error" },
       "410": { description: "Expired or used", schema: "Error" },
     },
     provider: "local",

@@ -1,4 +1,4 @@
-import { KeyRound } from "lucide-preact";
+import { KeyRound, Mail } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
 import {
@@ -31,10 +31,13 @@ type Mode = "signIn" | "register" | "changePassword" | "twoFactor";
  */
 export function LocalLoginForm({
   onForgot,
+  onEmailLink,
   canRegister,
   passkeys,
 }: {
   onForgot?: (() => void) | undefined;
+  /** Opens "email me a sign-in link", where the server offers it. */
+  onEmailLink?: (() => void) | undefined;
   canRegister: boolean;
   /** Whether the server and this browser can sign in with a passkey. */
   passkeys: boolean;
@@ -316,6 +319,17 @@ export function LocalLoginForm({
           >
             <KeyRound class="w-4 h-4" />
             {t("login.withPasskey")}
+          </button>
+        )}
+        {mode === "signIn" && onEmailLink && (
+          <button
+            type="button"
+            disabled={submitting}
+            class={`${quietClass} inline-flex items-center justify-center gap-1.5`}
+            onClick={onEmailLink}
+          >
+            <Mail class="w-4 h-4" />
+            {t("login.link.open")}
           </button>
         )}
         {mode === "signIn" && onForgot && (

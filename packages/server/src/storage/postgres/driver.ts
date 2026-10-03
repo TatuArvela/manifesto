@@ -18,6 +18,7 @@ import { createPostgresPrefsRepo } from "./prefsRepo.js";
 import { createPostgresPublicLinksRepo } from "./publicLinksRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
 import { createPostgresSharesRepo } from "./sharesRepo.js";
+import { createPostgresSignInLinksRepo } from "./signInLinksRepo.js";
 import { createPostgresTeamsRepo } from "./teamsRepo.js";
 import { createPostgresTwoFactorRepo } from "./twoFactorRepo.js";
 import { createPostgresUsersRepo } from "./usersRepo.js";
@@ -65,6 +66,7 @@ export async function createPostgresStorage(
     passkeys: createPostgresPasskeysRepo(pool),
     prefs: createPostgresPrefsRepo(pool),
     passwordResets: createPostgresPasswordResetsRepo(pool),
+    signInLinks: createPostgresSignInLinksRepo(pool),
     audit: createPostgresAuditRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {

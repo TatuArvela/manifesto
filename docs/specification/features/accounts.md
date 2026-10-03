@@ -221,6 +221,33 @@ checks that its owner is using it (a fingerprint, a face, a PIN). That check is 
 code is asked after it. Passkeys made here are discoverable for this reason. A passkey whose account now
 holds a temporary password, or has none, signs in to nothing; every failure is the same `401`.
 
+## Signing in with a link
+
+With `SMTP_URL` set and `MAGIC_LINKS` on (the default; see [Server Deployment](../server/deployment.md)), a
+local account with an email address can sign in without typing its password: **Email me a sign-in link**
+under the sign-in form asks for the address and mails a link to `APP_URL/#signin=<token>`. Opening it
+signs in.
+
+- Asking always answers `204`, whether or not the address has an account, and the mail is sent after the
+  answer, as a [reset link](#recovery-by-mail) is. One link per account per five minutes.
+- A link works once, for 15 minutes; its token is stored as a SHA-256 hash, in a table of its own
+  (`sign_in_links`), so a sign-in link cannot be spent as a reset link or the other way round. The token is
+  in the URL fragment, which a browser does not send to any server, and the client takes it out of the
+  address bar before using it.
+- The link stands in for the password and for nothing else. An account with two-factor sign-in is asked
+  for its code or passkey after opening the link, on the same per-account budget of failed attempts as a
+  password sign-in, and the link is spent only once that has passed, so a mistyped code does not cost it.
+- No link is sent to an account that has no password here (it signs in through single sign-on) or that
+  holds a [temporary password](#temporary-passwords), which has to be replaced by the person it was
+  handed to. A link sent before either became true is refused.
+- Signing in this way ends no other session and changes nothing about the account. It is in the audit log
+  as a sign-in with `method: "link"`, and asking for the link as "Sign-in link sent".
+- There is no signing up by link: it opens accounts that exist.
+
+Whoever reads the account's mail can already take the account with a reset link, so this adds a shorter
+way in rather than a new party to trust. A host for whom a mailbox alone must never open an account sets
+`MAGIC_LINKS=off`, and should weigh reset by mail the same way.
+
 ## Admins and sign-up under single sign-on
 
 With single sign-on, admin can follow a group at the identity provider (`OIDC_ADMIN_GROUP`) instead of

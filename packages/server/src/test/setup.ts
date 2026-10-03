@@ -35,6 +35,7 @@ export const TEST_CONFIG: ServerConfig = {
   webhooks: "off",
   mcp: true,
   passkeys: true,
+  magicLinks: true,
   twoFactor: true,
   appUrl: null,
   mail: null,

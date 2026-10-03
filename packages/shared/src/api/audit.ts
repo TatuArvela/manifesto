@@ -10,6 +10,7 @@ export const AUDIT_ACTIONS = [
   "auth.password_changed",
   "auth.password_reset_requested",
   "auth.password_reset",
+  "auth.sign_in_link_requested",
   "auth.two_factor_enabled",
   "auth.two_factor_disabled",
   "auth.passkey_added",

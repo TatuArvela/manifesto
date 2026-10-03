@@ -13,6 +13,7 @@ import { createSqlitePrefsRepo } from "./prefsRepo.js";
 import { createSqlitePublicLinksRepo } from "./publicLinksRepo.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteSharesRepo } from "./sharesRepo.js";
+import { createSqliteSignInLinksRepo } from "./signInLinksRepo.js";
 import { createSqliteTeamsRepo } from "./teamsRepo.js";
 import { createSqliteTwoFactorRepo } from "./twoFactorRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";
@@ -48,6 +49,7 @@ export function createSqliteStorage(
     passkeys: createSqlitePasskeysRepo(db),
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqlitePasswordResetsRepo(db),
+    signInLinks: createSqliteSignInLinksRepo(db),
     audit: createSqliteAuditRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async backup(path) {

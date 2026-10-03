@@ -417,6 +417,20 @@ export const passwordResetRequestSchema = z.object({
   locale: z.string().max(10).exactOptional(),
 });
 
+/** `POST /api/auth/sign-in-link`. `locale` picks the mail's language. */
+export const signInLinkRequestSchema = z.object({
+  email: emailSchema,
+  locale: z.string().max(10).exactOptional(),
+});
+
+/** `POST /api/auth/sign-in-link/confirm`: the link's token, and on a second
+ * attempt the second factor the first one was asked for. */
+export const signInLinkConfirmSchema = z.object({
+  token: z.string().min(1).max(200),
+  otp: z.string().trim().min(1).max(32).exactOptional(),
+  passkey: passkeyAuthenticationSchema.exactOptional(),
+});
+
 /** `POST /api/auth/password-reset/confirm`. */
 export const passwordResetConfirmSchema = z.object({
   token: z.string().min(1).max(200),

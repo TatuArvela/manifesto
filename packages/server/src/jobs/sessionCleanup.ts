@@ -30,6 +30,7 @@ export function startSessionCleanup(deps: {
       logger.info("session cleanup pruned sessions", { count: removed });
     }
     await storage.passwordResets.deleteExpired(now);
+    await storage.signInLinks.deleteExpired(now);
     await storage.audit.deleteBefore(
       new Date(Date.parse(now) - auditRetentionDays * DAY_MS).toISOString(),
     );

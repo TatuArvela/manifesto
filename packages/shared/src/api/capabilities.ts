@@ -22,6 +22,7 @@ export const SERVER_FEATURES = [
   "mcp",
   "webhooks",
   "passkeys",
+  "magicLinks",
   "twoFactor",
   "adminExport",
 ] as const;
@@ -47,6 +48,9 @@ export interface CapabilitiesResponse {
     registration: boolean;
     /** Whether a forgotten password can be reset by a link sent by mail. */
     passwordReset: boolean;
+    /** Whether a local account can sign in from a link sent to its address.
+     * Absent from a server older than the feature. */
+    magicLink?: boolean;
     /** Whether a local account can sign in with a passkey alone. */
     passkeys: boolean;
   };

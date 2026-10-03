@@ -99,6 +99,12 @@ export const FEATURES: Record<ServerFeature, FeatureSpec> = {
     description:
       "Adding passkeys and signing in with a passkey alone. Off, nobody can add one or sign in with one alone, but a passkey already added is still asked for as a second factor and can be removed.",
   },
+  magicLinks: {
+    env: "MAGIC_LINKS",
+    default: "on",
+    description:
+      "Signing in to a local account from a link sent to its address, with no password. It needs outgoing mail (`SMTP_URL`) and is absent without it. Off, no link is sent and links already sent are refused; a second factor is asked for either way.",
+  },
   twoFactor: {
     env: "TWO_FACTOR",
     default: "on",

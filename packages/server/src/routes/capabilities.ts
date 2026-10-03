@@ -46,6 +46,10 @@ export function createCapabilitiesRoutes(cfg: ServerConfig) {
         passwordForm: cfg.authProvider === "both" ? cfg.passwordForm : "shown",
         registration: signsInLocally(cfg) && cfg.registrationEnabled,
         passwordReset: cfg.mail !== null && signsInLocally(cfg),
+        magicLink:
+          cfg.mail !== null &&
+          signsInLocally(cfg) &&
+          isFeatureOn(cfg, "magicLinks"),
         passkeys: signsInLocally(cfg) && isFeatureOn(cfg, "passkeys"),
       },
       features: {
