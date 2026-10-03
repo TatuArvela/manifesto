@@ -1,7 +1,13 @@
-import { NoteColor } from "@manifesto/shared";
+import {
+  NoteColor,
+  normalizeTag,
+  tagLeaf,
+  tagLineage,
+} from "@manifesto/shared";
 import type { LucideIcon } from "lucide-preact";
 import {
   Archive,
+  CornerDownRight,
   Eye,
   EyeOff,
   Palette,
@@ -16,8 +22,10 @@ import { askConfirmation } from "../state/confirm.js";
 import {
   activeTag,
   allTags,
+  childTags,
   deleteTag,
   hiddenTags,
+  hiddenThrough,
   notesLoaded,
   renameTag,
   setTagColor,
@@ -39,12 +47,15 @@ const actionClass =
 
 function Chip({
   selected,
+  open = false,
   onClick,
   icon: Icon,
   children,
   ariaLabel,
 }: {
   selected: boolean;
+  /** On the way to the selected tag: one of the tags above it. */
+  open?: boolean;
   onClick: () => void;
   icon?: LucideIcon;
   children: preact.ComponentChildren;
@@ -56,7 +67,9 @@ function Chip({
       class={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors ${
         selected
           ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
-          : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
+          : open
+            ? "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 ring-1 ring-blue-400"
+            : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
       }`}
       onClick={onClick}
       aria-pressed={selected}
@@ -76,7 +89,7 @@ function RenameTagForm({ tag, onDone }: { tag: string; onDone: () => void }) {
   const [name, setName] = useState(tag);
   const [busy, setBusy] = useState(false);
   useEscapeStack(true, onDone);
-  const next = name.trim().toLowerCase();
+  const next = normalizeTag(name);
 
   const submit = async (event: Event) => {
     event.preventDefault();
@@ -164,18 +177,69 @@ function TagColorButton({ tag }: { tag: string }) {
   );
 }
 
+/** One tag in a row of the tree, with its count and what marks it. */
+function TagChip({
+  tag,
+  depth,
+  onSelect,
+}: {
+  tag: string;
+  /** 0 for the top row, which shows the whole tag; below it, the last part. */
+  depth: number;
+  onSelect: () => void;
+}) {
+  const selected = activeTag.value;
+  const count = tagCounts.value.get(tag) ?? 0;
+  const isHidden = hiddenThrough(tag) !== null;
+  return (
+    <Chip
+      selected={selected === tag}
+      open={selected !== null && tagLineage(selected).includes(tag)}
+      onClick={onSelect}
+      ariaLabel={[
+        `#${tag}`,
+        plural("tags.noteCount", count),
+        ...(isHidden ? [t("tags.hidden")] : []),
+      ].join(", ")}
+    >
+      {isHidden && <EyeOff class="w-3.5 h-3.5 opacity-60" aria-hidden="true" />}
+      <TagDot tag={tag} />
+      <span class={isHidden ? "opacity-70" : undefined}>
+        {depth === 0 ? `#${tag}` : tagLeaf(tag)}
+      </span>
+      <span class="text-xs tabular-nums opacity-60">{count}</span>
+    </Chip>
+  );
+}
+
 export function TagsView() {
   const tags = allTags.value;
-  const counts = tagCounts.value;
-  const hidden = new Set(hiddenTags.value);
   const selected = activeTag.value;
-  const selectedHidden = selected !== null && hidden.has(selected);
+  const selectedHidden =
+    selected !== null && hiddenTags.value.includes(selected);
+  // Hidden because a tag above it is: that tag is where to show it again.
+  const hiddenBy = selected === null ? null : hiddenThrough(selected);
   const [renaming, setRenaming] = useState(false);
+
+  const select = (tag: string | null) => {
+    activeTag.value = tag;
+    setRenaming(false);
+  };
+
+  // The tree as rows of chips: the top-level tags, then for each tag on the
+  // way to the selected one, and for the selected one itself, the tags
+  // directly under it. A row a tag has no children for is not drawn.
+  const subRows = (selected ? tagLineage(selected) : [])
+    .map((parent) => ({ parent, children: childTags(parent) }))
+    .filter((row) => row.children.length > 0);
 
   const handleDelete = async () => {
     if (!selected) return;
+    const nested = childTags(selected).length > 0;
     const ok = await askConfirmation({
-      title: t("tags.removeConfirm", { tag: selected }),
+      title: t(nested ? "tags.removeConfirmNested" : "tags.removeConfirm", {
+        tag: selected,
+      }),
       confirmLabel: t("tags.confirmDelete"),
     });
     if (ok) await deleteTag(selected);
@@ -189,42 +253,41 @@ export function TagsView() {
         <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
           {t("nav.tags")}
         </span>
-        <Chip
-          selected={!selected}
-          onClick={() => {
-            activeTag.value = null;
-            setRenaming(false);
-          }}
-        >
+        <Chip selected={!selected} onClick={() => select(null)}>
           {t("tags.all")}
         </Chip>
-        {tags.map((tag) => {
-          const count = counts.get(tag) ?? 0;
-          const isHidden = hidden.has(tag);
-          return (
-            <Chip
-              key={tag}
-              selected={selected === tag}
-              onClick={() => {
-                activeTag.value = tag;
-                setRenaming(false);
-              }}
-              ariaLabel={[
-                `#${tag}`,
-                plural("tags.noteCount", count),
-                ...(isHidden ? [t("tags.hidden")] : []),
-              ].join(", ")}
-            >
-              {isHidden && (
-                <EyeOff class="w-3.5 h-3.5 opacity-60" aria-hidden="true" />
-              )}
-              <TagDot tag={tag} />
-              <span class={isHidden ? "opacity-70" : undefined}>#{tag}</span>
-              <span class="text-xs tabular-nums opacity-60">{count}</span>
-            </Chip>
-          );
-        })}
+        {childTags(null).map((tag) => (
+          <TagChip key={tag} tag={tag} depth={0} onSelect={() => select(tag)} />
+        ))}
       </div>
+
+      {subRows.map(({ parent, children }, i) => (
+        // biome-ignore lint/a11y/useSemanticElements: a fieldset would bring a border and a legend to a row of chips
+        <div
+          key={parent}
+          role="group"
+          data-tags-under={parent}
+          aria-label={t("tags.under", { tag: parent })}
+          class="flex items-center gap-2 flex-wrap"
+          style={{ paddingLeft: `${Math.min(i, 3) * 0.75}rem` }}
+        >
+          <span
+            class="inline-flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 mr-1"
+            aria-hidden="true"
+          >
+            <CornerDownRight class="w-3.5 h-3.5" />
+            {tagLeaf(parent)}
+          </span>
+          {children.map((tag) => (
+            <TagChip
+              key={tag}
+              tag={tag}
+              depth={i + 1}
+              onSelect={() => select(tag)}
+            />
+          ))}
+        </div>
+      ))}
 
       {selected && renaming && (
         <RenameTagForm
@@ -236,19 +299,21 @@ export function TagsView() {
 
       {selected && !renaming && (
         <div class="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            class={actionClass}
-            onClick={() => setTagHidden(selected, !selectedHidden)}
-            aria-pressed={selectedHidden}
-          >
-            {selectedHidden ? (
-              <Eye class="w-4 h-4" />
-            ) : (
-              <EyeOff class="w-4 h-4" />
-            )}
-            {selectedHidden ? t("tags.showInNotes") : t("tags.hideFromNotes")}
-          </button>
+          {hiddenBy === null || hiddenBy === selected ? (
+            <button
+              type="button"
+              class={actionClass}
+              onClick={() => setTagHidden(selected, !selectedHidden)}
+              aria-pressed={selectedHidden}
+            >
+              {selectedHidden ? (
+                <Eye class="w-4 h-4" />
+              ) : (
+                <EyeOff class="w-4 h-4" />
+              )}
+              {selectedHidden ? t("tags.showInNotes") : t("tags.hideFromNotes")}
+            </button>
+          ) : null}
           <TagColorButton key={selected} tag={selected} />
           <button
             type="button"
@@ -266,9 +331,11 @@ export function TagsView() {
             <Trash2 class="w-4 h-4" />
             {t("tags.delete")}
           </button>
-          {selectedHidden && (
+          {hiddenBy !== null && (
             <p class="basis-full text-sm text-neutral-600 dark:text-neutral-300">
-              {t("tags.hiddenHint", { tag: selected })}
+              {hiddenBy === selected
+                ? t("tags.hiddenHint", { tag: selected })
+                : t("tags.hiddenByParent", { tag: selected, parent: hiddenBy })}
             </p>
           )}
         </div>

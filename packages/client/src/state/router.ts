@@ -45,10 +45,13 @@ export function parsePath(pathname: string): Route | null {
   const path = stripBase(pathname);
   if (path === "/") return { view: "active", tag: null };
   if (path.startsWith("/tags/")) {
-    const encoded = path.slice("/tags/".length);
-    if (!encoded) return { view: "tags", tag: null };
+    // A nested tag is a path of its own (`/tags/work/clients`), each part
+    // encoded by itself. A link from before, with the whole tag in one part
+    // (`work%2Fclients`), decodes to the same tag.
+    const parts = path.slice("/tags/".length).split("/").filter(Boolean);
+    if (parts.length === 0) return { view: "tags", tag: null };
     try {
-      return { view: "tags", tag: decodeURIComponent(encoded) };
+      return { view: "tags", tag: parts.map(decodeURIComponent).join("/") };
     } catch {
       return null;
     }
@@ -61,7 +64,7 @@ export function parsePath(pathname: string): Route | null {
 /** Serialize a route into a full URL pathname (base-prefixed). */
 export function buildPath(route: Route): string {
   if (route.view === "tags" && route.tag) {
-    return `${BASE}/tags/${encodeURIComponent(route.tag)}`;
+    return `${BASE}/tags/${route.tag.split("/").map(encodeURIComponent).join("/")}`;
   }
   const sub = VIEW_PATHS[route.view];
   if (sub === "/") return BASE === "" ? "/" : `${BASE}/`;

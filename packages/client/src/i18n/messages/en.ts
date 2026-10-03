@@ -221,6 +221,9 @@ export const en = {
   "tags.all": "All",
   "tags.delete": "Delete tag",
   "tags.removeConfirm": "Remove #{tag} from all notes?",
+  "tags.removeConfirmNested":
+    "Remove #{tag} and every tag under it from all notes?",
+  "tags.under": "Tags under #{tag}",
   "tags.confirmDelete": "Delete",
   "tags.color": "Color",
   "tags.noColor": "No color",
@@ -233,6 +236,8 @@ export const en = {
   "tags.showInNotes": "Show in Notes",
   "tags.hidden": "Hidden from Notes",
   "tags.hiddenHint": "Notes tagged #{tag} are kept out of the Notes view.",
+  "tags.hiddenByParent":
+    "Notes tagged #{tag} are kept out of the Notes view, because #{parent} is hidden.",
   "tags.noteCount": {
     one: "{count} note",
     other: "{count} notes",

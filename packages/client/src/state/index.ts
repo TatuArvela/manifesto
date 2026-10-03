@@ -151,13 +151,16 @@ export {
 export {
   allTags,
   canReorder,
+  childTags,
   editingNote,
   filteredNotes,
+  hiddenThrough,
   notesHiddenByTag,
   pinnedNotes,
   setTagColor,
   setTagHidden,
   sortedNotes,
+  tagColorOf,
   tagCounts,
   unpinnedNotes,
 } from "./views.js";

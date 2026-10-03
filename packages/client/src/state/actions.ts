@@ -1,4 +1,4 @@
-import type { Note, NoteColor } from "@manifesto/shared";
+import { isTagWithin, type Note, type NoteColor } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { removeCheckedItems, toggleChecklistItem } from "../utils/markdown.js";
 import { asBatch, type Batch } from "./failures.js";
@@ -167,12 +167,16 @@ export async function addTag(id: string, tag: string): Promise<boolean> {
   return await updateNote(id, { tags: [...note.tags, tag] });
 }
 
-/** Rewrites the tags of every note carrying `tag`, as one operation. */
+/**
+ * Rewrites the tags of every note carrying `tag` or a tag under it, as one
+ * operation.
+ */
 function retagNotesWith(
   tag: string,
   retag: (tags: string[]) => string[],
 ): Promise<boolean> {
-  const affected = notes.peek().filter((n) => n.tags.includes(tag));
+  const under = (n: Note) => n.tags.some((t) => isTagWithin(t, tag));
+  const affected = notes.peek().filter(under);
   return asBatch((batch) =>
     Promise.all(
       affected.map(({ id }) => {
@@ -185,45 +189,60 @@ function retagNotesWith(
   );
 }
 
+/** The tags, among `known`, that are `tag` or under it. */
+function withinTag(known: string[], tag: string): string[] {
+  return known.filter((t) => isTagWithin(t, tag));
+}
+
+/**
+ * Takes a tag off every note, and with it every tag under it: deleting
+ * `work` deletes `work/clients` too, as deleting a folder would.
+ */
 export async function deleteTag(tag: string): Promise<boolean> {
-  const ok = await retagNotesWith(tag, (tags) => tags.filter((t) => t !== tag));
-  if (activeTag.value === tag) {
+  const ok = await retagNotesWith(tag, (tags) =>
+    tags.filter((t) => !isTagWithin(t, tag)),
+  );
+  if (activeTag.value !== null && isTagWithin(activeTag.value, tag)) {
     activeTag.value = null;
   }
   // A tag gone from every note should not hide the next note given it, nor
   // colour it.
   if (ok) {
-    setTagHidden(tag, false);
-    setTagColor(tag, null);
+    for (const t of withinTag(hiddenTags.value, tag)) setTagHidden(t, false);
+    for (const t of withinTag(Object.keys(tagColors.value), tag)) {
+      setTagColor(t, null);
+    }
   }
   return ok;
 }
 
 /**
- * Gives every note tagged `from` the tag `to` in its place. A note that has
- * both already just loses `from`, so the rename can also merge two tags.
- * `to` is expected normalized the way the tag picker does it.
+ * Gives every note tagged `from` the tag `to` in its place, and moves the
+ * tags under `from` along with it (`work/clients` becomes `job/clients`). A
+ * note that has both already just loses `from`, so the rename can also merge
+ * two tags. `to` is expected normalized the way the tag picker does it.
  */
 export async function renameTag(from: string, to: string): Promise<boolean> {
   if (from === to) return true;
-  const ok = await retagNotesWith(from, (tags) =>
-    tags.includes(to)
-      ? tags.filter((t) => t !== from)
-      : tags.map((t) => (t === from ? to : t)),
-  );
-  if (activeTag.value === from) {
-    activeTag.value = to;
-  }
+  const moved = (tag: string) =>
+    isTagWithin(tag, from) ? to + tag.slice(from.length) : tag;
+  const ok = await retagNotesWith(from, (tags) => [
+    ...new Set(tags.map(moved)),
+  ]);
+  if (activeTag.value !== null) activeTag.value = moved(activeTag.value);
+  if (!ok) return ok;
   // Hidden under its old name stays hidden under its new one.
-  if (ok && hiddenTags.value.includes(from)) {
-    setTagHidden(from, false);
-    setTagHidden(to, true);
+  for (const tag of withinTag(hiddenTags.value, from)) {
+    setTagHidden(tag, false);
+    setTagHidden(moved(tag), true);
   }
   // The colour goes with the name, unless the tag merged into has its own.
-  const color = tagColors.value[from];
-  if (ok && color !== undefined) {
-    setTagColor(from, null);
-    if (tagColors.value[to] === undefined) setTagColor(to, color);
+  for (const tag of withinTag(Object.keys(tagColors.value), from)) {
+    const color = tagColors.value[tag];
+    setTagColor(tag, null);
+    if (color !== undefined && tagColors.value[moved(tag)] === undefined) {
+      setTagColor(moved(tag), color);
+    }
   }
   return ok;
 }

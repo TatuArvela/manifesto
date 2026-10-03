@@ -1,3 +1,4 @@
+import { normalizeTag } from "@manifesto/shared";
 import { Tag } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
@@ -33,7 +34,7 @@ export function TagPicker({
   }, [autoFocus]);
 
   const handleAdd = (tag: string) => {
-    const trimmed = tag.trim().toLowerCase();
+    const trimmed = normalizeTag(tag);
     if (trimmed) {
       onAddTag(trimmed);
     }
