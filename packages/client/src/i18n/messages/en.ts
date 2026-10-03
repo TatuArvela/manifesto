@@ -59,7 +59,7 @@ export const en = {
   "selection.deselectAll": "Deselect all",
   "selection.pin": "Pin",
   "selection.pinSelected": "Pin selected",
-  "selection.addTag": "Add tag",
+  "selection.tags": "Tags",
   "selection.tagSelected": "Tag selected",
   "selection.archive": "Archive",
   "selection.archiveSelected": "Archive selected",

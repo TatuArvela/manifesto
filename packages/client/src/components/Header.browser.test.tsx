@@ -1,11 +1,14 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { plural } from "../i18n/index.js";
+import { plural, t } from "../i18n/index.js";
 import {
   enterSelectMode,
   exitSelectMode,
+  notes,
   selectedNotes,
+  selectMode,
 } from "../state/index.js";
+import { createNoteOrFail } from "../test/testSupport.js";
 import { Header } from "./Header.js";
 import "../styles.css";
 
@@ -76,5 +79,59 @@ describe("the selection bar", () => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(bar()).not.toBeNull();
     expect(bar()?.dataset.leaving).toBeUndefined();
+  });
+
+  describe("tag panel", () => {
+    beforeEach(() => {
+      localStorage.clear();
+      notes.value = [];
+    });
+
+    afterEach(() => {
+      localStorage.clear();
+      notes.value = [];
+    });
+
+    function row(tag: string) {
+      return [
+        ...document.querySelectorAll<HTMLElement>('[role="checkbox"]'),
+      ].find((el) => el.textContent === `#${tag}`);
+    }
+
+    it("shows what the selection carries and toggles a tag across it", async () => {
+      const a = await createNoteOrFail({ title: "A", tags: ["both", "one"] });
+      const b = await createNoteOrFail({ title: "B", tags: ["both"] });
+      await createNoteOrFail({ title: "C", tags: ["other", "both"] });
+      enterSelectMode(a.id);
+      selectedNotes.value = new Set([a.id, b.id]);
+      await settled();
+
+      host
+        .querySelector<HTMLElement>(
+          `[aria-label="${t("selection.tagSelected")}"]`,
+        )
+        ?.click();
+      await settled();
+
+      expect(row("both")?.getAttribute("aria-checked")).toBe("true");
+      expect(row("one")?.getAttribute("aria-checked")).toBe("mixed");
+      expect(row("other")?.getAttribute("aria-checked")).toBe("false");
+
+      row("one")?.click();
+      await vi.waitFor(() =>
+        expect(row("one")?.getAttribute("aria-checked")).toBe("true"),
+      );
+      row("both")?.click();
+      await vi.waitFor(() =>
+        expect(row("both")?.getAttribute("aria-checked")).toBe("false"),
+      );
+
+      const tagsOf = (id: string) => notes.value.find((n) => n.id === id)?.tags;
+      expect(tagsOf(a.id)).toEqual(["one"]);
+      expect(tagsOf(b.id)).toEqual(["one"]);
+      // Still selecting, with the panel open for the next tag.
+      expect(selectMode.value).toBe(true);
+      expect(row("other")).toBeDefined();
+    });
   });
 });
