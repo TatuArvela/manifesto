@@ -356,13 +356,14 @@ export function NoteCardEditor({
         }
         reminder={note.reminder}
         onReminderChange={(reminder) => updateNote(note.id, { reminder })}
-        menuItems={({ checkedItems }) =>
+        menuItems={({ checkedItems, datedItems }) =>
           noteMenuItems(note, {
             // The live buffer, not the stored note: auto-save is debounced, and
             // duplicating or sharing right after a keystroke must copy it.
             draft: { title, content },
             onShowVersions: () => setShowVersions(true),
             checkedItems,
+            datedItems,
             // Archiving, trashing and restoring all move the note out of the
             // view it was opened from, so leaving the editor up would strand
             // it over a grid the note is no longer in.

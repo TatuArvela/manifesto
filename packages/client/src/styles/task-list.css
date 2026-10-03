@@ -406,6 +406,31 @@
   display: none;
 }
 
+/* A date on a checklist item (`@2026-10-02`), drawn as a chip wherever the
+   item is: the editor decorates the token (extensions/itemDates.ts), the card
+   and the read-only views wrap it while rendering (utils/remarkRenderer.ts).
+   Tinted from the text colour, so it sits on every note colour in both
+   themes. */
+.item-date {
+  padding: 0.05em 0.45em;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.item-date-overdue {
+  color: #b91c1c;
+  background: color-mix(in srgb, #dc2626 16%, transparent);
+  font-weight: 600;
+}
+
+.dark .item-date-overdue {
+  color: #fca5a5;
+  background: color-mix(in srgb, #f87171 22%, transparent);
+}
+
 /* y-prosemirror remote-cursor decorations.
    The user's color is set inline by yCursorPlugin via the local awareness
    state; the styles below give the caret a thin tinted body and put a
