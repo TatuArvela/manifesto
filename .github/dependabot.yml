@@ -2,6 +2,9 @@
 # rather than thirty. Every commit is `chore(deps)` (or `ci(deps)`), which
 # release-please does not count as releasable: updates ride along with the
 # next real release instead of cutting one of their own every week.
+# A release has to be a week old before it is proposed (`cooldown`): a
+# compromised version is usually found and pulled within days, and nothing here
+# needs a dependency the day it ships. Security updates are not held back.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -9,6 +12,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: chore(deps)
@@ -32,6 +37,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: ci(deps)
     groups:
@@ -43,6 +50,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: chore(deps)
     ignore:
