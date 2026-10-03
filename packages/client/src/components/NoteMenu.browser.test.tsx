@@ -179,8 +179,9 @@ describe("a note shared with the user", () => {
     members: [],
   });
   const checkedItems = { present: true, remove: () => {} };
+  const datedItems = { present: true, sort: () => {} };
   const ids = (note: Note) =>
-    noteMenuItems(note, { checkedItems }).map((item) => item.id);
+    noteMenuItems(note, { checkedItems, datedItems }).map((item) => item.id);
 
   it("offers the recipient's own trash, as for a note of their own", () => {
     expect(ids(makeNote({ sharing: sharing("view") }))).toContain("trash");
@@ -193,6 +194,20 @@ describe("a note shared with the user", () => {
     expect(ids(makeNote({ sharing: sharing("view") }))).not.toContain(
       "delete-checked",
     );
+  });
+
+  it("offers sorting items by date to someone who can edit, not a viewer", () => {
+    expect(ids(makeNote({ sharing: sharing("edit") }))).toContain(
+      "sort-by-date",
+    );
+    expect(ids(makeNote({ sharing: sharing("view") }))).not.toContain(
+      "sort-by-date",
+    );
+    expect(
+      noteMenuItems(makeNote(), {
+        datedItems: { present: false, sort: () => {} },
+      }).map((item) => item.id),
+    ).not.toContain("sort-by-date");
   });
 
   it("offers no sharing with people in open mode, which has no accounts", () => {

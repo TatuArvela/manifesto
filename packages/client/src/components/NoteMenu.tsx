@@ -4,6 +4,7 @@ import {
   ArchiveRestore,
   Bell,
   Braces,
+  CalendarArrowDown,
   Copy,
   FileText,
   Globe,
@@ -141,6 +142,8 @@ export interface NoteMenuOptions {
    * that counts.
    */
   checkedItems?: { present: boolean; remove: () => void };
+  /** Adds "Sort items by date", through the same two routes. */
+  datedItems?: { present: boolean; sort: () => void };
   /**
    * Called when a row moves the note out of the view it was opened from,
    * archiving, trashing and restoring all do. Surfaces that sit over that view
@@ -308,8 +311,20 @@ export function noteMenuItems(
         onDismiss?.();
       },
     },
-    { kind: "divider", id: "destructive" },
   );
+
+  // Reordering items is changing the note, as deleting them is.
+  if (options.datedItems?.present && role !== "view") {
+    const { sort } = options.datedItems;
+    items.push({
+      id: "sort-by-date",
+      icon: <CalendarArrowDown class="w-4 h-4" />,
+      label: t("noteMenu.sortByDate"),
+      onSelect: sort,
+    });
+  }
+
+  items.push({ kind: "divider", id: "destructive" });
 
   // Deleting items is changing the note, which someone who can only view it
   // cannot do.

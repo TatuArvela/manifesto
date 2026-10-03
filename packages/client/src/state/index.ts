@@ -20,6 +20,7 @@ export {
   renameTag,
   reorderNotes,
   restoreNote,
+  sortItemsByDate,
   toggleCheckbox,
   togglePin,
   trashNote,

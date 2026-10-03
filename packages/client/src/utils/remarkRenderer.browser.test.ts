@@ -142,3 +142,51 @@ describe("renderMarkdown cache", () => {
     expect(renderMarkdown("note 2099")).toBe("<p>note 2099</p>");
   });
 });
+
+describe("dates on checklist items", () => {
+  it("wraps the token of a task item in a chip, overdue when open and past", () => {
+    const html = renderMarkdown(
+      "- [ ] late @2000-01-01\n- [x] done @2000-01-01\n- [ ] far @2999-01-01",
+    );
+    expect(html).toContain(
+      '<span class="item-date item-date-overdue">@2000-01-01</span>',
+    );
+    expect(html).toContain('<span class="item-date">@2000-01-01</span>');
+    expect(html).toContain('<span class="item-date">@2999-01-01</span>');
+  });
+
+  it("leaves a token outside a task item, or in code, as text", () => {
+    expect(renderMarkdown("meet @2000-01-01")).not.toContain("item-date");
+    expect(renderMarkdown("- plain @2000-01-01")).not.toContain("item-date");
+    expect(renderMarkdown("- [ ] type `@2000-01-01`")).not.toContain(
+      "item-date",
+    );
+  });
+
+  it("gives a nested plain item no chip, and a nested task item its own", () => {
+    const html = renderMarkdown(
+      "- [x] parent\n  - [ ] child @2000-01-01\n  - note @2000-01-02",
+    );
+    expect(html).toContain(
+      '<span class="item-date item-date-overdue">@2000-01-01</span>',
+    );
+    expect(html).not.toContain(">@2000-01-02<");
+  });
+
+  it("chips one date an item, inside formatting too", () => {
+    const html = renderInlineMarkdown(
+      "**pay @2000-01-01** or @2000-01-02",
+      false,
+    );
+    expect(html).toBe(
+      '<strong>pay <span class="item-date item-date-overdue">@2000-01-01</span></strong> or @2000-01-02',
+    );
+  });
+
+  it("renders a label by whether its box is ticked", () => {
+    expect(renderInlineMarkdown("pay @2000-01-01", true)).toBe(
+      'pay <span class="item-date">@2000-01-01</span>',
+    );
+    expect(renderInlineMarkdown("pay @2000-01-01")).toBe("pay @2000-01-01");
+  });
+});

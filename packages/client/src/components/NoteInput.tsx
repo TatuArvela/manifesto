@@ -1,5 +1,11 @@
 import type { Note, NoteColor, NoteFont } from "@manifesto/shared";
-import { Braces, FileText, ListX, Plus } from "lucide-preact";
+import {
+  Braces,
+  CalendarArrowDown,
+  FileText,
+  ListX,
+  Plus,
+} from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
@@ -487,7 +493,7 @@ export function NoteInput() {
               )
             }
             onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
-            menuItems={({ checkedItems }) => [
+            menuItems={({ checkedItems, datedItems }) => [
               {
                 id: "export-markdown",
                 icon: <FileText class="w-4 h-4" />,
@@ -513,6 +519,16 @@ export function NoteInput() {
                   });
                 },
               },
+              ...(datedItems.present
+                ? [
+                    {
+                      id: "sort-by-date",
+                      icon: <CalendarArrowDown class="w-4 h-4" />,
+                      label: t("noteMenu.sortByDate"),
+                      onSelect: datedItems.sort,
+                    } as const,
+                  ]
+                : []),
               { kind: "divider", id: "destructive" },
               ...(checkedItems.present
                 ? [

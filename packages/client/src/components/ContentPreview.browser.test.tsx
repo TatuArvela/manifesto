@@ -67,6 +67,19 @@ describe("ContentPreview", () => {
     expect(host.textContent).not.toContain("**");
   });
 
+  it("draws a date on a checklist item as a chip, overdue while open", () => {
+    show("- [ ] Call the plumber @2000-01-01\n- [x] Paid @2000-01-01");
+
+    const chips = [...host.querySelectorAll(".item-date")];
+    expect(chips.map((chip) => chip.textContent)).toEqual([
+      "@2000-01-01",
+      "@2000-01-01",
+    ]);
+    expect(
+      chips.map((chip) => chip.classList.contains("item-date-overdue")),
+    ).toEqual([true, false]);
+  });
+
   it("keeps a checkbox for an item with no label", () => {
     // Pressing Enter in the editor makes one of these. It used to stop being
     // a checklist line the moment it was created: the box disappeared and the

@@ -154,6 +154,7 @@ export const en = {
   "noteMenu.archive": "Archive",
   "noteMenu.unarchive": "Unarchive",
   "noteMenu.deleteChecked": "Delete checked items",
+  "noteMenu.sortByDate": "Sort items by date",
   "noteMenu.delete": "Delete",
   "noteMenu.undelete": "Undelete",
   "noteMenu.shareWithPeople": "Share with people",

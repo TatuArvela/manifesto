@@ -158,6 +158,7 @@ export const fi: Messages = {
   "noteMenu.archive": "Arkistoi",
   "noteMenu.unarchive": "Palauta arkistosta",
   "noteMenu.deleteChecked": "Poista valitut kohdat",
+  "noteMenu.sortByDate": "Järjestä kohdat päivämäärän mukaan",
   "noteMenu.delete": "Poista",
   "noteMenu.undelete": "Palauta roskakorista",
   "noteMenu.shareWithPeople": "Jaa muiden kanssa",

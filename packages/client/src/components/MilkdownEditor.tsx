@@ -25,6 +25,7 @@ import {
 import type * as Y from "yjs";
 import { documentWatcher } from "../extensions/documentWatcher.js";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
+import { itemDatesPlugin } from "../extensions/itemDates.js";
 import { linkTooltip } from "../extensions/linkTooltip.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
 import { taskItemDraggable } from "../extensions/taskItemDraggable.js";
@@ -191,6 +192,7 @@ export function MilkdownEditor({
       .use(manifestoInlineMarks)
       .use(taskItemDraggable)
       .use(inlineCalculationsPlugin)
+      .use(itemDatesPlugin)
       .use(linkTooltip)
       .use(documentWatcher(() => documentChangedRef.current()));
     const collabPlugin = collabFactoryRef.current;
