@@ -228,6 +228,25 @@ export async function addTagToNotes(
   );
 }
 
+export async function removeTagFromNotes(
+  tag: string,
+  noteIds: Set<string>,
+): Promise<boolean> {
+  return await asBatch((batch) =>
+    Promise.all(
+      [...noteIds].map((id) => {
+        const note = notes.peek().find((n) => n.id === id);
+        if (!note?.tags.includes(tag)) return true;
+        return updateNote(
+          id,
+          { tags: note.tags.filter((t) => t !== tag) },
+          batch,
+        );
+      }),
+    ),
+  );
+}
+
 // --- Bulk ---
 
 /**
@@ -305,10 +324,16 @@ export async function bulkSetColor(color: NoteColor): Promise<boolean> {
   return await bulkApply((id, batch) => updateNote(id, { color }, batch));
 }
 
-export async function bulkAddTag(tag: string): Promise<boolean> {
-  const ok = await addTagToNotes(tag, selectedNotes.value);
-  exitSelectMode();
-  return ok;
+/**
+ * Gives every selected note `tag`, or takes it from them all. The selection is
+ * kept, unlike the other bulk actions: the tag panel stays open, since a
+ * selection often takes several tags at once.
+ */
+export async function bulkSetTag(tag: string, on: boolean): Promise<boolean> {
+  const ids = selectedNotes.value;
+  return on
+    ? await addTagToNotes(tag, ids)
+    : await removeTagFromNotes(tag, ids);
 }
 
 // --- Order ---

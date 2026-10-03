@@ -61,7 +61,7 @@ export const fi: Messages = {
   "selection.deselectAll": "Poista valinnat",
   "selection.pin": "Kiinnitä",
   "selection.pinSelected": "Kiinnitä valitut",
-  "selection.addTag": "Lisää tunniste",
+  "selection.tags": "Tunnisteet",
   "selection.tagSelected": "Tunnista valitut",
   "selection.archive": "Arkistoi",
   "selection.archiveSelected": "Arkistoi valitut",
