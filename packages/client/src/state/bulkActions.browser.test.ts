@@ -5,14 +5,15 @@ import { defined } from "../test/defined.js";
 import { createNoteOrFail } from "../test/testSupport.js";
 import {
   addTagToNotes,
-  bulkAddTag,
   bulkArchive,
   bulkDelete,
   bulkPin,
   bulkSetColor,
+  bulkSetTag,
   bulkTrash,
   deleteTag,
   permanentlyDeleteNote,
+  removeTagFromNotes,
   renameTag,
   reorderNotes,
 } from "./actions.js";
@@ -195,13 +196,29 @@ describe("bulk operations", () => {
     expect(notes.value.every((n) => n.color === NoteColor.Blue)).toBe(true);
   });
 
-  it("bulkAddTag adds tag to all selected notes", async () => {
+  it("bulkSetTag adds a tag to all selected notes and keeps the selection", async () => {
     const n1 = await createNoteOrFail({ title: "A" });
-    const n2 = await createNoteOrFail({ title: "B" });
+    const n2 = await createNoteOrFail({ title: "B", tags: ["test"] });
     enterSelectMode(n1.id);
     toggleSelectNote(n2.id);
-    await bulkAddTag("test");
-    expect(notes.value.every((n) => n.tags.includes("test"))).toBe(true);
+    await bulkSetTag("test", true);
+    expect(notes.value.map((n) => n.tags)).toEqual([["test"], ["test"]]);
+    expect(selectMode.value).toBe(true);
+    expect(selectedNotes.value).toEqual(new Set([n1.id, n2.id]));
+  });
+
+  it("bulkSetTag takes a tag from the selected notes only", async () => {
+    const n1 = await createNoteOrFail({ title: "A", tags: ["test", "keep"] });
+    const n2 = await createNoteOrFail({ title: "B" });
+    const other = await createNoteOrFail({ title: "C", tags: ["test"] });
+    enterSelectMode(n1.id);
+    toggleSelectNote(n2.id);
+    await bulkSetTag("test", false);
+    const tagsOf = (id: string) => notes.value.find((n) => n.id === id)?.tags;
+    expect(tagsOf(n1.id)).toEqual(["keep"]);
+    expect(tagsOf(n2.id)).toEqual([]);
+    expect(tagsOf(other.id)).toEqual(["test"]);
+    expect(selectMode.value).toBe(true);
   });
 
   it("bulk operations skip deleted notes gracefully", async () => {
@@ -242,6 +259,14 @@ describe("tag operations", () => {
     const n1 = await createNoteOrFail({ title: "A", tags: ["work"] });
     await addTagToNotes("work", new Set([n1.id]));
     expect(notes.value[0]?.tags.filter((t) => t === "work")).toHaveLength(1);
+  });
+
+  it("removeTagFromNotes removes the tag from specified notes", async () => {
+    const n1 = await createNoteOrFail({ title: "A", tags: ["work", "home"] });
+    const n2 = await createNoteOrFail({ title: "B", tags: ["work"] });
+    await removeTagFromNotes("work", new Set([n1.id]));
+    expect(notes.value.find((n) => n.id === n1.id)?.tags).toEqual(["home"]);
+    expect(notes.value.find((n) => n.id === n2.id)?.tags).toEqual(["work"]);
   });
 
   it("deleteTag removes tag from all notes", async () => {
@@ -524,10 +549,10 @@ describe("failure reporting", () => {
   });
 
   it("reports a nested batch once", async () => {
-    // `bulkAddTag` delegates to `addTagToNotes`, which is itself a batch.
+    // `bulkSetTag` delegates to `addTagToNotes`, which is itself a batch.
     selectPhantomNotes(2);
 
-    await bulkAddTag("shopping");
+    await bulkSetTag("shopping", true);
 
     expect(toasts.value).toHaveLength(1);
     expect(toasts.value[0]?.message).toBe(plural("error.bulkFailed", 2));

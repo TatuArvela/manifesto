@@ -14,20 +14,21 @@ import { getColorPickerColors, plural, t } from "../i18n/index.js";
 import { askConfirmation } from "../state/confirm.js";
 import {
   activeView,
-  bulkAddTag,
   bulkArchive,
   bulkDelete,
   bulkPin,
   bulkRestore,
   bulkSetColor,
+  bulkSetTag,
   bulkTrash,
   exitSelectMode,
+  notes,
   selectAllVisible,
   selectedNotes,
   sortedNotes,
 } from "../state/index.js";
 import { Dropdown } from "./Dropdown.js";
-import { TagPicker } from "./TagPicker.js";
+import { SelectionTagPicker, tagPickerPanelClass } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
 const selToolbarBtnClass = "p-2 rounded-lg hover:bg-white/10 transition-colors";
@@ -47,6 +48,13 @@ export function SelectionToolbar({ leaving }: { leaving: boolean }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const colors = getColorPickerColors();
+  const selected = notes.value.filter((n) => selectedNotes.value.has(n.id));
+  // The colour to mark in the picker: the one every selected note has, if any.
+  const [first] = selected;
+  const sharedColor =
+    first && selected.every((n) => n.color === first.color)
+      ? first.color
+      : null;
   const isTrashView = activeView.value === "trash";
   const visibleIds = sortedNotes.value.map((n) => n.id);
   const allSelected =
@@ -153,7 +161,7 @@ export function SelectionToolbar({ leaving }: { leaving: boolean }) {
               open={showTagPicker}
               onClose={() => setShowTagPicker(false)}
               trigger={
-                <Tooltip label={t("selection.addTag")}>
+                <Tooltip label={t("selection.tags")}>
                   <button
                     type="button"
                     class={selToolbarBtnClass}
@@ -168,15 +176,15 @@ export function SelectionToolbar({ leaving }: { leaving: boolean }) {
                 </Tooltip>
               }
               placement="bottom-end"
-              panelClass="py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[180px] text-neutral-900 dark:text-neutral-100"
+              panelClass={tagPickerPanelClass}
             >
-              <TagPicker
-                tags={[]}
-                onAddTag={(tag) => {
-                  void bulkAddTag(tag);
-                  setShowTagPicker(false);
-                }}
-              />
+              {/* Mounted only while open, so the field is empty and focused each time. */}
+              {showTagPicker && (
+                <SelectionTagPicker
+                  selected={selected}
+                  onSetTag={(tag, on) => void bulkSetTag(tag, on)}
+                />
+              )}
             </Dropdown>
 
             <Tooltip label={t("selection.archive")}>
@@ -215,7 +223,7 @@ export function SelectionToolbar({ leaving }: { leaving: boolean }) {
                 <Tooltip key={c.value} label={c.label}>
                   <button
                     type="button"
-                    class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch}`}
+                    class={`w-7 h-7 rounded-full cursor-pointer ${c.swatch} ${sharedColor === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
                     onClick={() => {
                       void bulkSetColor(c.value as NoteColor);
                       setShowColorPicker(false);
