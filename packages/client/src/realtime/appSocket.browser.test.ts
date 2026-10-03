@@ -14,6 +14,19 @@ import { isServerEvent } from "./appSocket.js";
 describe("isServerEvent", () => {
   const note = { id: "01J", title: "T", content: "" };
   const user = { id: "u1", displayName: "Ada", avatarColor: "#fff" };
+  const comment = {
+    id: "c1",
+    noteId: "01J",
+    author: {
+      id: "u1",
+      username: "ada",
+      displayName: "Ada",
+      avatarColor: "#fff",
+    },
+    body: "Hello",
+    createdAt: "2026-04-01T00:00:00.000Z",
+    editedAt: null,
+  };
 
   it.each([
     ["note:created", { type: "note:created", note }],
@@ -22,6 +35,12 @@ describe("isServerEvent", () => {
     ["presence:join", { type: "presence:join", noteId: "01J", user }],
     ["presence:leave", { type: "presence:leave", noteId: "01J", userId: "u1" }],
     ["prefs:updated", { type: "prefs:updated", prefs: { theme: "dark" } }],
+    ["comment:created", { type: "comment:created", comment }],
+    [
+      "comment:updated from a former participant",
+      { type: "comment:updated", comment: { ...comment, author: null } },
+    ],
+    ["comment:deleted", { type: "comment:deleted", noteId: "01J", id: "c1" }],
   ])("accepts a well-formed %s", (_name, event) => {
     expect(isServerEvent(event)).toBe(true);
   });
@@ -39,6 +58,19 @@ describe("isServerEvent", () => {
       { type: "presence:join", noteId: "01J", user: { id: "u1" } },
     ],
     ["a leave with no userId", { type: "presence:leave", noteId: "01J" }],
+    ["a comment event with no comment", { type: "comment:created" }],
+    [
+      "a comment with no text",
+      { type: "comment:updated", comment: { ...comment, body: undefined } },
+    ],
+    [
+      "a comment whose author is half a person",
+      {
+        type: "comment:created",
+        comment: { ...comment, author: { id: "u1" } },
+      },
+    ],
+    ["a comment delete with no id", { type: "comment:deleted", noteId: "01J" }],
     [
       "preferences that are not an object",
       { type: "prefs:updated", prefs: [] },

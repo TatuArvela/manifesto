@@ -105,6 +105,33 @@ A change of role, a removal, or the owner trashing the note closes the affected 
 
 A shared note has one `updatedAt`, stamped by every write from every participant, including a recipient's change to their own tags. `If-Match` therefore works the same for everyone: a stale write gets `412` with the writer's own current copy of the note, and the client's 3-way merge retries as it does for a single user.
 
+## Comments
+
+Everyone on a shared note can talk about it beside it. An open note that is shared shows a line under
+its people saying how many comments it has; choosing it opens them, oldest first, with a field to add one.
+
+- **Beside the note, not in it.** A comment is not part of the note's text, its
+  [versions](version-history.md), its `updatedAt` or its export, and writing one changes nothing a card
+  shows. Comments are plain text, up to 2000 characters, and a note holds at most 500.
+- **Who writes.** The owner, editors and viewers alike: a comment is how someone who cannot change a note
+  says something about it. A note nobody else is on has no comments panel.
+- **Editing and deleting.** A comment is edited by its author only, and then says "edited". It is deleted
+  by its author or by the note's owner, after a confirmation.
+- **When someone goes.** A person whose share is removed, who leaves the note, or whose account is
+  deleted keeps nothing of the thread: they can no longer read it. Their comments stay for everyone still
+  on the note, shown as "Former participant" with no name, and the owner can delete them. The name is
+  left off when the comments are read, from who holds the note at that moment, so nothing is rewritten:
+  sharing with the person again brings their name back.
+- **Trash and deletion.** While the note is in its owner's trash only the owner reaches its comments,
+  as with the note. Deleting the note deletes its comments.
+- **Live.** A comment written, edited or deleted reaches everyone on the note over `/api/ws`
+  (`comment:created`, `comment:updated`, `comment:deleted`), so an open panel follows along.
+- **With sharing off** (`SHARING=off`), comments already written are still read and can still be deleted;
+  none can be written or edited.
+
+Comments are stored in `note_comments` and loaded only when a shared note is opened, so the board and
+its listings carry none of them. A card does not show that a note has comments.
+
 ## Accounts that go away
 
 Deleting an account deletes the notes it owns, which removes them from everyone they were shared with, live. An account that was a recipient simply drops off the notes it held.

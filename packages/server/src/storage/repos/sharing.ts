@@ -151,3 +151,30 @@ export interface TeamsRepo {
   /** The notes shared with a team. */
   notesOf(teamId: string): Promise<NoteTeamShare[]>;
 }
+
+/** A comment as stored: who wrote it, not whether they still have the note. */
+export interface StoredComment {
+  id: string;
+  noteId: string;
+  /** Null once the author's account is gone. */
+  authorId: string | null;
+  body: string;
+  createdAt: string;
+  editedAt: string | null;
+}
+
+/**
+ * Comments beside a note. They go with the note (deleted by cascade) and
+ * outlive their author's share and account; who may read or write one is the
+ * routes' business, from the note's access.
+ */
+export interface CommentsRepo {
+  /** Oldest first. */
+  listByNote(noteId: string): Promise<StoredComment[]>;
+  countByNote(noteId: string): Promise<number>;
+  get(id: string): Promise<StoredComment | null>;
+  create(comment: StoredComment): Promise<void>;
+  /** False when there is no such comment. */
+  setBody(id: string, body: string, editedAt: string): Promise<boolean>;
+  delete(id: string): Promise<boolean>;
+}

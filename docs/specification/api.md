@@ -117,6 +117,10 @@ Bearer-protected, and share the per-user API limit.
 | `GET`    | `/api/invitations`                   | Invitations waiting for the signed-in user: `{ invitations: ShareInvitation[] }` |
 | `POST`   | `/api/invitations/:noteId/accept`    | Accept: `{ note }`, the recipient's copy |
 | `POST`   | `/api/invitations/:noteId/decline`   | Decline: `204` |
+| `GET`    | `/api/notes/:id/comments`            | The [comments](features/sharing-with-people.md#comments) beside a note, oldest first: `{ comments: NoteComment[] }`. Anyone who can see the note |
+| `POST`   | `/api/notes/:id/comments`            | Write one: `{ body }` (1 to 2000 characters, trimmed), `201` `{ comment }`; `409` when the note holds 500 |
+| `PUT`    | `/api/notes/:id/comments/:commentId` | Change one's own: `{ body }`, `{ comment }` with `editedAt` set; `403` for anyone else's |
+| `DELETE` | `/api/notes/:id/comments/:commentId` | Delete one's own, or any as the note's owner: `204` |
 | `GET`    | `/api/users?q=`                      | Accounts to share with: `{ users: DirectoryUser[] }` |
 | `GET`    | `/api/teams`                         | The teams the signed-in user is in: `{ teams: Team[] }` |
 | `GET`    | `/api/notes/:id/team-shares`         | The teams the note is shared with (owner): `{ teamShares: TeamShare[] }` |
@@ -568,6 +572,8 @@ A JSON event stream used for fan-out of REST writes and presence tracking.
 | `presence:join`    | Server → Client  | A user started viewing/editing a note    |
 | `presence:leave`   | Server → Client  | A user stopped viewing/editing a note    |
 | `invitation:created` | Server → Client | Someone offered this user a note, or changed the offer: `{ invitation: ShareInvitation }` |
+| `comment:created`, `comment:updated` | Server → Client | A comment beside a note was written or edited: `{ comment }`, to everyone who can see the note |
+| `comment:deleted` | Server → Client | A comment is gone: `{ noteId, id }` |
 | `invitation:removed` | Server → Client | An invitation is gone (accepted in another tab, declined, withdrawn, the note trashed or deleted): `{ noteId }` |
 | `prefs:updated`    | Server → Client  | The account's preferences changed, on any device: `{ prefs }`, the whole copy |
 | `heartbeat`        | Server → Client  | Sent every 30 seconds; carries nothing   |

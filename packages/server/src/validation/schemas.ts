@@ -2,6 +2,7 @@ import {
   API_TOKEN_KINDS,
   API_TOKEN_SCOPES,
   ATTACHMENT_REF_PATTERN,
+  MAX_COMMENT_LENGTH,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
@@ -410,6 +411,12 @@ export const webhookCreateSchema = z.object({
 
 /** `PUT /api/webhooks/:id`. */
 export const webhookUpdateSchema = z.object({ active: z.boolean() });
+
+/** `POST /api/notes/:id/comments` and `PUT .../comments/:commentId`. Plain
+ * text; a comment of nothing but space is no comment. */
+export const noteCommentSchema = z.object({
+  body: z.string().trim().min(1).max(MAX_COMMENT_LENGTH),
+});
 
 /** `POST /api/auth/password-reset`. `locale` picks the mail's language. */
 export const passwordResetRequestSchema = z.object({

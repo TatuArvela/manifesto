@@ -1,4 +1,4 @@
-import type { Note } from "@manifesto/shared";
+import type { Note, WebSocketEvent } from "@manifesto/shared";
 import type { NoteShare, StorageDriver } from "../storage/types.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
 import type { AccessChanges } from "./accessChanges.js";
@@ -39,7 +39,18 @@ export interface NoteEvents {
   invited(noteId: string, userId: string): Promise<void>;
   /** The user answered an invitation: their other tabs drop it. */
   answered(noteId: string, userId: string): void;
+  /**
+   * A comment beside the note was written, changed or removed. Everyone who
+   * can see the note hears the same event: a comment has no personal fields.
+   */
+  commented(noteId: string, event: CommentEvent): Promise<void>;
 }
+
+/** The events a comment makes on the sockets. */
+export type CommentEvent = Extract<
+  WebSocketEvent,
+  { type: `comment:${string}` }
+>;
 
 export function createNoteEvents(deps: {
   storage: StorageDriver;
@@ -131,6 +142,19 @@ export function createNoteEvents(deps: {
 
     answered(noteId, userId) {
       broadcaster.emit(userId, { type: "invitation:removed", noteId });
+    },
+
+    async commented(noteId, event) {
+      const audience = await storage.shares.audience(noteId);
+      if (!audience) return;
+      // In the owner's trash the note is hidden from everyone else, and so
+      // is what is said beside it.
+      const others = audience.trashed
+        ? []
+        : audience.shares.filter((s) => s.acceptedAt !== null);
+      for (const userId of [audience.ownerId, ...others.map((s) => s.userId)]) {
+        broadcaster.emit(userId, event);
+      }
     },
   };
 }

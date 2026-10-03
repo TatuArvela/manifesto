@@ -192,6 +192,8 @@ function components() {
       }),
       NoteVersionsResponse: shape({ versions: { type: "array" } }),
       InvitationsResponse: shape({ invitations: { type: "array" } }),
+      NoteCommentsResponse: shape({ comments: { type: "array" } }),
+      NoteCommentResponse: shape({ comment: { type: "object" } }),
       UserLookupResponse: shape({ users: { type: "array" } }),
       LinkPreviewResponse: shape({ preview: { type: ["object", "null"] } }),
       ApiTokensResponse: shape({ tokens: { type: "array" } }),

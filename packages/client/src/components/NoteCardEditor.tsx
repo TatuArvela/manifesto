@@ -32,6 +32,7 @@ import { recordVersion } from "../state/versions.js";
 import { isPhoneLayout } from "../utils/phoneSheets.js";
 import { Backdrop } from "./Backdrop.js";
 import { getEditorMarkdown } from "./MilkdownEditor.js";
+import { NoteComments } from "./NoteComments.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { noteMenuItems } from "./NoteMenu.js";
 import { NoteSheet } from "./NoteSheet.js";
@@ -388,6 +389,7 @@ export function NoteCardEditor({
               )}
             </div>
             <SharedPeople note={note} />
+            <NoteComments note={note} />
           </>
         }
         // A phone opens a note to read it. The focus would come too late after

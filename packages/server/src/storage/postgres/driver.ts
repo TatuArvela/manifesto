@@ -3,6 +3,7 @@ import type { StorageDriver } from "../types.js";
 import { createPostgresApiTokensRepo } from "./apiTokensRepo.js";
 import { createPostgresAttachmentsRepo } from "./attachmentsRepo.js";
 import { createPostgresAuditRepo } from "./auditRepo.js";
+import { createPostgresCommentsRepo } from "./commentsRepo.js";
 import {
   openPostgres,
   type PgPool,
@@ -66,6 +67,7 @@ export async function createPostgresStorage(
     prefs: createPostgresPrefsRepo(pool),
     passwordResets: createPostgresMailedLinksRepo(pool, "password_resets"),
     signInLinks: createPostgresMailedLinksRepo(pool, "sign_in_links"),
+    comments: createPostgresCommentsRepo(pool),
     audit: createPostgresAuditRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),
     async close() {

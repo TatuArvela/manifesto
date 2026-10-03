@@ -27,6 +27,7 @@ import {
   noteUpdateSchema,
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
+import { registerCommentRoutes } from "./comments.js";
 import { registerPublicLinkRoutes } from "./publicLinks.js";
 import { registerShareRoutes } from "./shares.js";
 import { registerTeamShareRoutes } from "./teams.js";
@@ -343,6 +344,7 @@ export function createNotesRoutes(deps: NotesDeps) {
   });
 
   registerShareRoutes(notes, deps);
+  registerCommentRoutes(notes, deps);
   registerPublicLinkRoutes(notes, deps);
   registerTeamShareRoutes(notes, deps);
   registerVersionRoutes(notes, deps);
