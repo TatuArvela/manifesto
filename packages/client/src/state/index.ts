@@ -114,6 +114,13 @@ export {
   toggleSelectNote,
 } from "./selection.js";
 export {
+  fromTemplate,
+  isTemplateTag,
+  TEMPLATE_TAG,
+  templateName,
+  templates,
+} from "./templates.js";
+export {
   type AppView,
   activeTag,
   activeView,

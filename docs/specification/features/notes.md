@@ -10,6 +10,15 @@ Opening the pad peels its top sheet off first, and only once the sheet is free d
 
 New notes default to: color `default` (or the user's chosen default color, which may be random), font `default` (or user's chosen default), not pinned, not archived, not trashed, no tags.
 
+## Templates
+
+A template is an ordinary note tagged `template`, or with a tag under it such as `template/meeting`. Nothing else marks it: there is no field for it and the server knows nothing of it, so templates work in open mode, follow the account in connected mode, and are edited, shared and exported like any note. The tag is the same word in every language.
+
+- While a new note's draft is empty (no title, text, images or tags), the editor shows "Start from" with a chip for each template, named by its title, or by its first line of text when it has none. With no templates the row is not shown
+- Choosing one copies the template's title, text, colour, font and its other tags into the draft. The `template` tags are left off, so the new note is not a template; images, the reminder and the pin are not copied, as Duplicate does not copy them
+- The copy is made once. Changing a template later changes no note made from it, which is what sets it apart from an [auto-note](auto-notes.md), whose text is computed each time
+- An archived note still counts as a template, a trashed one does not. To keep templates off the board, archive them or hide the `template` tag from Notes (see [Tags](tags.md))
+
 ## Editing a Note
 
 Clicking a NoteCard opens the NoteEditor as a modal overlay, grown out of the card, and closing shrinks it back onto the card. A card that cannot be seen (scrolled away, or opened from a notification) fades in and out instead. With Settings > Appearance > Animations off, the editor simply appears. The editor provides:

@@ -253,6 +253,8 @@ export const en = {
 
   // Tag picker
   "tagPicker.placeholder": "Add tag...",
+  "templates.startFrom": "Start from",
+  "templates.untitled": "Untitled template",
 
   // Link previews / images
   "linkPreview.remove": "Remove link preview",

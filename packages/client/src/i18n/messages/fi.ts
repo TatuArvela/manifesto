@@ -259,6 +259,8 @@ export const fi: Messages = {
 
   // Tag picker
   "tagPicker.placeholder": "Lisää tunniste...",
+  "templates.startFrom": "Aloita pohjasta",
+  "templates.untitled": "Nimetön pohja",
 
   // Link previews / images
   "linkPreview.remove": "Poista linkin esikatselu",

@@ -22,6 +22,7 @@ import {
   createNote,
   defaultNoteColor,
   defaultNoteFont,
+  fromTemplate,
   newNoteRequested,
   noteQuips,
   noteSize,
@@ -45,6 +46,7 @@ import { Backdrop } from "./Backdrop.js";
 import { gridColumns } from "./gridColumns.js";
 import { NoteEditor } from "./NoteEditor.js";
 import { NoteSheet } from "./NoteSheet.js";
+import { TemplateChips } from "./TemplateChips.js";
 
 const ctaKeys: MessageKey[] = [
   "cta.0",
@@ -86,6 +88,9 @@ export function NoteInput() {
   const [images, setImages] = useState<string[]>([]);
   const drafts = useDraftLinkPreviews();
   const linkPreviews = drafts.previews;
+  // Counts the templates taken, to rebuild the editor on each: it reads its
+  // text once, as it is built, and a template arrives after that.
+  const [templateTaken, setTemplateTaken] = useState(0);
   const [closing, setClosing] = useState(false);
   const [lifting, setLifting] = useState(false);
   const [topCta, setTopCta] = useState(() => randomCta());
@@ -213,6 +218,23 @@ export function NoteInput() {
     setImages([]);
     drafts.clear();
   };
+
+  /**
+   * Fills the draft from a template. Offered only while the draft is empty,
+   * so there is nothing here for it to overwrite.
+   */
+  const startFrom = (template: Note) => {
+    const copy = fromTemplate(template);
+    setTitle(copy.title);
+    setContent(copy.content);
+    setColor(copy.color);
+    setFont(copy.font);
+    setTags(copy.tags);
+    drafts.add(extractUrls(copy.content));
+    setTemplateTaken((n) => n + 1);
+  };
+  const draftEmpty =
+    !title && !content.trim() && images.length === 0 && tags.length === 0;
 
   const cycleCta = () => {
     setTopCta(nextCta);
@@ -468,6 +490,8 @@ export function NoteInput() {
           onBack={() => closeModal()}
         >
           <NoteEditor
+            key={templateTaken}
+            notice={draftEmpty && <TemplateChips onPick={startFrom} />}
             title={title}
             onTitleChange={setTitle}
             content={content}
