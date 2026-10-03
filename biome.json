@@ -93,6 +93,7 @@
       "packages/**/*.css",
       "packages/**/*.json",
       "docs/examples/*.js",
+      "docs/examples/**/*.mjs",
       "*.json",
       "!packages/**/dist",
       "!packages/**/node_modules"
