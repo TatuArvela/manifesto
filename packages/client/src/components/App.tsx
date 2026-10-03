@@ -140,7 +140,7 @@ function MainApp() {
     // is when the loading screen can go. A failed load is ready too: its
     // toast is what there is to see.
     void loadNotes().then(revealApp);
-    const stopAutoNotes = initAutoNotes();
+    const stopAutoNotes = initAutoNotes(() => notes.value);
     const stopBoardBackground = initBoardBackground();
     initReminderScheduler({
       notes: () => notes.value,

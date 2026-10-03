@@ -1,9 +1,18 @@
-import type { Note, NoteColor, NoteFont } from "@manifesto/shared";
+import {
+  isTagWithin,
+  type Note,
+  type NoteColor,
+  type NoteFont,
+} from "@manifesto/shared";
 import { computed, effect, signal } from "@preact/signals";
-import { plugins, setPluginError } from "../autoNotes/registry.js";
+import {
+  grantedReads,
+  plugins,
+  setPluginError,
+} from "../autoNotes/registry.js";
 import { runPlugin } from "../autoNotes/sandbox.js";
 import type { ApproxLabels } from "../autoNotes/stdlib.js";
-import type { AutoNoteResult } from "../autoNotes/types.js";
+import type { AutoNoteResult, PluginNote } from "../autoNotes/types.js";
 import { t } from "../i18n/index.js";
 import { autoNoteOverrides, generatedNoteId } from "./autoNoteOverrides.js";
 import { locale } from "./prefs.js";
@@ -43,6 +52,8 @@ interface RenderedNote {
   pluginId: string;
   pluginName: string;
   result: AutoNoteResult;
+  /** Made by a run that was reading notes, see `drawnWithoutImages`. */
+  reading: boolean;
 }
 
 /**
@@ -55,10 +66,12 @@ function buildErrorNote(
   pluginId: string,
   pluginName: string,
   message: string,
+  reading: boolean,
 ): RenderedNote {
   return {
     pluginId,
     pluginName,
+    reading,
     result: {
       title: `⚠ ${pluginName}`,
       content: `Plugin failed:\n\n\`\`\`\n${message}\n\`\`\``,
@@ -66,8 +79,71 @@ function buildErrorNote(
   };
 }
 
+/** How many notes one plugin is shown, the most recently changed first. */
+export const MAX_NOTES_READ = 500;
+/** How much of one note's text a plugin is shown. */
+export const MAX_CONTENT_READ = 20_000;
+
+/**
+ * The user's notes, handed in by `initAutoNotes`: `notesStore` builds on this
+ * module (a generated note is a note), so reading it from here would be a
+ * cycle. Generated notes are not among them, so no plugin reads another's
+ * output, or its own.
+ */
+let userNotes: () => Note[] = () => [];
+
+/**
+ * A plugin's notes: those carrying a tag it reads or a tag under one, as a
+ * tag's notes are counted everywhere else, and not in the trash.
+ */
+function inScope(tags: string[], all: Note[]): Note[] {
+  if (tags.length === 0) return [];
+  return all.filter(
+    (note) =>
+      !note.trashed &&
+      note.tags.some((tag) => tags.some((read) => isTagWithin(tag, read))),
+  );
+}
+
+/** What a plugin is shown of them (`ctx.notes`). */
+export function notesFor(tags: string[], all: Note[]): PluginNote[] {
+  return inScope(tags, all)
+    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
+    .slice(0, MAX_NOTES_READ)
+    .map((note) => ({
+      id: note.id,
+      title: note.title,
+      content: note.content.slice(0, MAX_CONTENT_READ),
+      tags: [...note.tags],
+      color: note.color,
+      pinned: note.pinned,
+      archived: note.archived,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+    }));
+}
+
+/**
+ * Whether a note is the output of a plugin that reads notes. Such a card is
+ * drawn without images (`withoutImages`): the plugin's sandbox has no network,
+ * so an image address in what it returns would be the one way to send what it
+ * read somewhere.
+ *
+ * Asked of the run that made the card as well as of the plugin as it stands:
+ * a card outlives the allowance it was made under, until the next run
+ * replaces it, and Stop is pressed on exactly the plugin not to be trusted.
+ */
+export function drawnWithoutImages(note: Pick<Note, "id" | "source">): boolean {
+  if (note.source?.kind !== "auto-note") return false;
+  if (madeReading.value.has(note.id)) return true;
+  const { pluginId } = note.source;
+  const plugin = plugins.value.find((p) => p.id === pluginId);
+  return plugin !== undefined && grantedReads(plugin).length > 0;
+}
+
 async function runAll() {
   const snapshot = plugins.value;
+  const held = userNotes();
   const today = new Date().toISOString();
   const loc = locale.value;
   const approxLabels = buildApproxLabels();
@@ -76,20 +152,29 @@ async function runAll() {
     if (!plugin.enabled) continue;
     const src = plugin.origin.source;
     if (!src) continue;
+    const reads = grantedReads(plugin);
+    const reading = reads.length > 0;
     try {
       const results = await runPlugin(src, {
         today,
         locale: loc,
         approxLabels,
+        reads,
+        notes: notesFor(reads, held),
       });
       setPluginError(plugin.id, undefined);
       for (const result of results) {
-        out.push({ pluginId: plugin.id, pluginName: plugin.name, result });
+        out.push({
+          pluginId: plugin.id,
+          pluginName: plugin.name,
+          result,
+          reading,
+        });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setPluginError(plugin.id, message);
-      out.push(buildErrorNote(plugin.id, plugin.name, message));
+      out.push(buildErrorNote(plugin.id, plugin.name, message, reading));
     }
   }
   autoNotes.value = out;
@@ -114,12 +199,36 @@ function scheduleRun() {
 
 let disposer: (() => void) | null = null;
 
+/** How long the notes a plugin reads must rest before it runs again: a
+ * note being typed changes with every pause of the auto-save. */
+const NOTE_CHANGE_SETTLE_MS = 1000;
+
 /**
- * Wire up the effect that re-invokes plugins. Runs once on mount, then only
- * when plugins change, the locale changes, or `refreshAutoNotes()` is called.
+ * What the reading plugins would see, as text to compare: which notes are in
+ * each one's scope and when each last changed. Empty when nothing reads.
  */
-export function initAutoNotes(): () => void {
+function scopeSignature(all: Note[]): string {
+  return plugins.value
+    .filter((plugin) => plugin.enabled)
+    .map((plugin) => {
+      const reads = grantedReads(plugin);
+      if (reads.length === 0) return "";
+      return inScope(reads, all)
+        .map((note) => `${note.id}@${note.updatedAt}`)
+        .join(",");
+    })
+    .join("|");
+}
+
+/**
+ * Wire up the effects that re-invoke plugins. They run once on mount, when
+ * plugins change, the locale changes or `refreshAutoNotes()` is called, and,
+ * for a plugin that reads notes, a moment after a note in its scope changes.
+ * `notes` is the user's own notes (see `userNotes`).
+ */
+export function initAutoNotes(notes: () => Note[] = () => []): () => void {
   if (disposer) return disposer;
+  userNotes = notes;
 
   const stopEffect = effect(() => {
     void plugins.value;
@@ -128,8 +237,29 @@ export function initAutoNotes(): () => void {
     scheduleRun();
   });
 
+  let lastSignature: string | null = null;
+  let lastPlugins = plugins.value;
+  let settle: ReturnType<typeof setTimeout> | null = null;
+  const stopScopeEffect = effect(() => {
+    const signature = scopeSignature(notes());
+    const samePlugins = plugins.value === lastPlugins;
+    lastPlugins = plugins.value;
+    // The first reading is the run the effect above has just asked for, and
+    // so is one that follows a change to the plugins (Allow, Stop).
+    if (lastSignature === null || signature === lastSignature || !samePlugins) {
+      lastSignature = signature;
+      return;
+    }
+    lastSignature = signature;
+    if (settle) clearTimeout(settle);
+    settle = setTimeout(scheduleRun, NOTE_CHANGE_SETTLE_MS);
+  });
+
   disposer = () => {
     stopEffect();
+    stopScopeEffect();
+    if (settle) clearTimeout(settle);
+    userNotes = () => [];
     disposer = null;
   };
   return disposer;
@@ -146,10 +276,27 @@ const DEFAULT_FONT = "default" as NoteFont;
  */
 const AUTO_NOTE_HEAD = -1e15;
 
+function noteId(rendered: RenderedNote, index: number): string {
+  return generatedNoteId(
+    rendered.pluginId,
+    (rendered.result.key ?? "") || String(index),
+  );
+}
+
+/** The generated notes made by a run that was reading notes. */
+const madeReading = computed<Set<string>>(
+  () =>
+    new Set(
+      autoNotes.value.flatMap((rendered, index) =>
+        rendered.reading ? [noteId(rendered, index)] : [],
+      ),
+    ),
+);
+
 function toNote(rendered: RenderedNote, index: number): Note {
   const { result, pluginId } = rendered;
   const noteKey = result.key ?? "";
-  const id = generatedNoteId(pluginId, noteKey || String(index));
+  const id = noteId(rendered, index);
   const override = autoNoteOverrides.value[id];
   const now = new Date().toISOString();
   return {

@@ -1,6 +1,6 @@
 import { effect, signal } from "@preact/signals";
 import { ulid } from "ulid";
-import { extractPluginTitle } from "./parse.js";
+import { extractPluginReads, extractPluginTitle } from "./parse.js";
 import type { PluginOrigin, PluginSource } from "./types.js";
 
 const STORAGE_KEY = "manifesto:auto-notes";
@@ -22,6 +22,12 @@ function isValidPlugin(p: unknown): p is PluginSource {
   const obj = p as Record<string, unknown>;
   if (typeof obj.id !== "string" || typeof obj.name !== "string") return false;
   if (typeof obj.enabled !== "boolean") return false;
+  if (
+    obj.reads !== undefined &&
+    !(Array.isArray(obj.reads) && obj.reads.every((t) => typeof t === "string"))
+  ) {
+    return false;
+  }
   const origin = obj.origin as Record<string, unknown> | undefined;
   if (!origin || typeof origin !== "object") return false;
   if (origin.kind === "inline") return typeof origin.source === "string";
@@ -68,6 +74,47 @@ export function togglePlugin(id: string) {
   );
 }
 
+/** The tags the user allows a plugin to read; none takes the access away. */
+export function setPluginReads(id: string, tags: string[]) {
+  plugins.value = plugins.value.map((p) =>
+    p.id === id ? withReads(p, tags) : p,
+  );
+}
+
+function withReads(plugin: PluginSource, tags: string[]): PluginSource {
+  const { reads: _old, ...rest } = plugin;
+  return tags.length > 0 ? { ...rest, reads: [...tags] } : rest;
+}
+
+/**
+ * What a plugin reads right now: the tags its source asks for that the user
+ * has allowed. A refetched plugin that asks for more reads no more until the
+ * new tags are allowed, and one that asks for less reads less at once.
+ */
+export function grantedReads(plugin: PluginSource): string[] {
+  const allowed = plugin.reads ?? [];
+  if (allowed.length === 0) return [];
+  return declaredReads(plugin).filter((tag) => allowed.includes(tag));
+}
+
+/** What each source asks to read: a card asks at every render, and a source
+ * can be a quarter of a megabyte to split into lines. */
+const declaredBySource = new Map<string, string[]>();
+const DECLARED_CACHE_SIZE = 50;
+
+/** What a plugin's source asks to read. */
+export function declaredReads(plugin: PluginSource): string[] {
+  const { source } = plugin.origin;
+  const known = declaredBySource.get(source);
+  if (known) return known;
+  const declared = extractPluginReads(source);
+  declaredBySource.set(source, declared);
+  if (declaredBySource.size > DECLARED_CACHE_SIZE) {
+    declaredBySource.delete(declaredBySource.keys().next().value as string);
+  }
+  return declared;
+}
+
 export function setPluginError(id: string, error: string | undefined) {
   // No-op when unchanged, otherwise a rerun loop: every successful plugin
   // clears lastError, which mutates the plugins array, which re-fires the
@@ -106,10 +153,16 @@ export async function refetchPlugin(id: string): Promise<void> {
   if (plugin?.origin.kind !== "url") return;
   const source = await fetchPluginText(plugin.origin.url);
   const name = extractPluginTitle(source);
+  // An allowance ends with the asking: a tag the new source no longer names
+  // is asked for again if a later one names it.
+  const asked = extractPluginReads(source);
   plugins.value = plugins.value.map((p) =>
     p.id === id && p.origin.kind === "url"
       ? {
-          ...p,
+          ...withReads(
+            p,
+            (p.reads ?? []).filter((tag) => asked.includes(tag)),
+          ),
           name,
           origin: {
             ...p.origin,

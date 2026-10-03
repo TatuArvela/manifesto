@@ -80,6 +80,25 @@ describe("ContentPreview", () => {
     ).toEqual([true, false]);
   });
 
+  it("draws no image when told not to, in text and in a checklist label", () => {
+    const content =
+      "![a](https://x.example/a.png)\n- [ ] ![b](https://x.example/b.png) item";
+    render(
+      <ContentPreview
+        note={noteWith(content)}
+        onCheckboxToggle={() => {}}
+        hasTitle={false}
+        noImages
+      />,
+      host,
+    );
+    expect(host.querySelectorAll("img")).toHaveLength(0);
+    expect(host.textContent).toContain("item");
+
+    show(content);
+    expect(host.querySelectorAll("img")).toHaveLength(2);
+  });
+
   it("keeps a checkbox for an item with no label", () => {
     // Pressing Enter in the editor makes one of these. It used to stop being
     // a checklist line the moment it was created: the box disappeared and the

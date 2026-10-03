@@ -20,6 +20,7 @@ import type { VNode } from "preact";
 import { t } from "../i18n/index.js";
 import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
 import { isServerMode } from "../state/auth.js";
+import { drawnWithoutImages } from "../state/autoNotes.js";
 import { confirmDeletion } from "../state/confirm.js";
 import {
   archiveNote,
@@ -228,24 +229,27 @@ export function noteMenuItems(
     }
   }
 
-  items.push(
-    {
-      id: "share",
-      icon: <Link class="w-4 h-4" />,
-      label: t("noteMenu.shareLink"),
-      onSelect: () => {
-        const url = buildShareUrl({
-          title,
-          content,
-          color: note.color,
-          font: note.font,
-          tags: [...note.tags],
-        });
-        navigator.clipboard.writeText(url);
-        showSuccess(t("noteCard.linkCopied"));
-      },
+  items.push({
+    id: "share",
+    icon: <Link class="w-4 h-4" />,
+    label: t("noteMenu.shareLink"),
+    onSelect: () => {
+      const url = buildShareUrl({
+        title,
+        content,
+        color: note.color,
+        font: note.font,
+        tags: [...note.tags],
+      });
+      navigator.clipboard.writeText(url);
+      showSuccess(t("noteCard.linkCopied"));
     },
-    {
+  });
+  // The card of a plugin that reads notes has no copy to make: the copy
+  // would be an ordinary note, drawn with the images its card is kept from
+  // drawing (see `drawnWithoutImages`).
+  if (!drawnWithoutImages(note)) {
+    items.push({
       id: "duplicate",
       icon: <Copy class="w-4 h-4" />,
       label: t("noteMenu.duplicate"),
@@ -258,7 +262,9 @@ export function noteMenuItems(
           tags: [...note.tags],
         });
       },
-    },
+    });
+  }
+  items.push(
     {
       id: "export-markdown",
       icon: <FileText class="w-4 h-4" />,

@@ -2,6 +2,7 @@ import type { Note } from "@manifesto/shared";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
+import { drawnWithoutImages } from "../state/autoNotes.js";
 import { toggleCheckbox, updateNote } from "../state/index.js";
 import { ContentPreview } from "./ContentPreview.js";
 import { ImageGallery } from "./ImageGallery.js";
@@ -128,6 +129,7 @@ export function NoteCardBody({
               }
               hasTitle={!!note.title}
               readOnly={viewOnly}
+              noImages={drawnWithoutImages(note)}
             />
           </div>
 

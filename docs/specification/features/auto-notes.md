@@ -18,9 +18,11 @@ Nothing an auto-note produces is stored as a note. The plugin source is the sour
 There is no polling timer. All enabled plugins re-run when:
 
 - the app mounts,
-- the plugin list changes (added, removed, enabled, disabled, refetched),
-- the locale changes, or
-- the user asks for a refresh from a card.
+- the plugin list changes (added, removed, enabled, disabled, refetched, or what one may read),
+- the locale changes,
+- the user asks for a refresh from a card, or
+- a note that a plugin [reads](#reading-notes) is added, changed or removed, a second after the last
+  such change, so a note being typed does not run the plugins at every pause.
 
 Runs are serialized: a refresh requested while a run is in flight is queued and coalesced into a single re-run rather than overlapping it.
 
@@ -51,6 +53,8 @@ Each function receives one `ctx` argument:
 | `today` | `string` | The current moment as an ISO 8601 timestamp, from `new Date().toISOString()`. Fixed for the whole run, so every plugin in one pass sees the same clock. |
 | `locale` | `string` | The active UI locale (`"en"`, `"fi"`, …). |
 | `stdlib` | `object` | Date helpers, with the locale and the translated relative-time labels already bound. |
+| `notes` | `object[]` | The notes the plugin [reads](#reading-notes); empty for one that reads none. |
+| `reads` | `string[]` | The tags it is reading right now; empty until the user allows them. |
 
 ### Standard library
 
@@ -74,6 +78,49 @@ A function returns one note object or an array of them; a plugin exporting sever
 | `key` | `string` | no | A stable sub-id, so a plugin returning several notes keeps each one's overrides across runs. |
 
 `title` and `content` are strict because a note without them is not a note. Every optional field is lenient: a bad value is dropped rather than failing the run, since one misspelled colour should not cost a plugin its whole output.
+
+## Reading notes
+
+A plugin can be shown some of the user's notes, so a card can gather what is spread over others: the
+open items of every list, how many notes a project has, what changed this week. It is widened through
+the sandbox's own interface and not by giving the plugin any privilege: it is handed a copy to look at.
+
+- **Asking.** The plugin names tags in its header, beside the title: `// @reads todo, work`, on one line
+  or several, in the block of comments the source opens with. A directive further down is ignored.
+  At most 20 tags.
+- **Allowing.** Asking is not having. The plugin's row in the Auto-notes view says what it asks to read,
+  with **Allow**; until then it runs with `ctx.notes` empty. **Stop** takes the allowance back. The
+  allowance is kept with the plugin (`reads`), and a plugin reads a tag only while its source still asks
+  for it and the user has allowed it: a refetch that asks for more reads no more until the new tags are
+  allowed, and one that asks for less reads less at once and has to ask again for a tag it dropped.
+- **What it is shown.** `ctx.notes`: the user's notes carrying one of those tags or a tag nested under
+  one (`work` covers `work/clients`), trashed ones left out,
+  the most recently changed first, at most 500, each as `{ id, title, content, tags, color, pinned,
+  archived, createdAt, updatedAt }` with at most 20 000 characters of `content`. No images, link
+  previews or reminders, and no generated notes, so a plugin never reads another's output or its own.
+  Notes shared with the user are among them, as they are on the board.
+- **No writes.** The list and everything in it is frozen, and there is nothing behind it: a plugin
+  returns cards, as before, and has no way to change a note.
+- **Nothing leaves.** The sandbox has no network (`connect-src 'none'`, and a worker cannot navigate),
+  so what a plugin returns is the only way out of it. The app's own policy (`img-src 'self'`) already
+  refuses an image from elsewhere, but a deployment can loosen or drop that policy, and an image is
+  fetched the moment a card is drawn. So the cards of a plugin that reads are drawn **without images**
+  (and without anything else that carries a `src`), on the board and when opened; the image's
+  alternative text stays. That holds for a card made while the plugin was reading until a later run
+  replaces it, whatever has been stopped since, and such a card cannot be duplicated into an ordinary
+  note, which would draw them.
+- **A worker of its own.** Plugins otherwise share one worker, where one could leave a copy of what it
+  read for a plugin whose cards do show images, or lie in wait for the notes handed to another. A run
+  that is handed notes gets a fresh frame and worker, thrown away when it ends. A link stays too: it goes
+  nowhere until the user follows it, though a plugin could put what it read in one, so links on such a
+  card deserve the care a link in a message from a stranger does. Generated notes never get link
+  previews.
+- **Only in a worker.** On an engine that runs plugins on the frame's own thread (see below), a plugin
+  could point the hidden frame at any address with what it read in the URL. There a plugin with notes to
+  read fails with an error card saying so, and reads nothing.
+
+[`docs/examples/open-tasks.js`](../../examples/open-tasks.js) gathers every unticked checklist item of
+the notes tagged `todo`.
 
 ## Execution and Sandboxing
 
@@ -105,6 +152,7 @@ Plugins live in `localStorage` under `manifesto:auto-notes`, each as a `PluginSo
 - `enabled`: disabled plugins are skipped
 - `origin`: `{ kind: "inline", source }` or `{ kind: "url", url, fetchedAt, source }`
 - `lastError`: the message from the most recent failed run, if any
+- `reads`: the tags the user has allowed it to read notes from, if any
 
 A generated note is an ordinary `Note` assembled in memory, with:
 
@@ -126,6 +174,9 @@ Because the plugin owns the content, "permanently delete" on an auto-note clears
 | Notes per plugin run | 100 |
 | Tags per generated note | 50 |
 | Plugin source size | 256 KB |
+| Tags a plugin may ask to read | 20 |
+| Notes a plugin is shown | 500 |
+| Characters of one note's text it is shown | 20 000 |
 
 ## Limitations
 
@@ -136,4 +187,4 @@ Because the plugin owns the content, "permanently delete" on an auto-note clears
 
 ## Examples
 
-Three annotated example plugins ship in [`docs/examples/`](../../examples/): a year-progress bar, a bin-collection countdown, and a mail-delivery schedule.
+Four annotated example plugins ship in [`docs/examples/`](../../examples/): a year-progress bar, a bin-collection countdown, a mail-delivery schedule, and one that reads notes to gather their open tasks.

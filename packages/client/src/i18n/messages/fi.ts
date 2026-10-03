@@ -415,6 +415,14 @@ export const fi: Messages = {
   "settings.autoNotes.enabled": "Käytössä",
   "settings.autoNotes.disabled": "Pois käytöstä",
   "settings.autoNotes.untitled": "(Nimetön)",
+  "settings.autoNotes.reads.asks":
+    "Pyytää lupaa lukea muistiinpanojasi, joilla on tunniste {tags}.",
+  "settings.autoNotes.reads.hint":
+    "Se näkisi niiden tekstin eikä voisi muuttaa niitä. Sen korteissa ei näytetä kuvia, joten kortin näyttäminen ei lähetä mitään minnekään; kortin linkki vie silti sinne, minne se osoittaa.",
+  "settings.autoNotes.reads.allow": "Salli",
+  "settings.autoNotes.reads.granted":
+    "Lukee muistiinpanojasi, joilla on tunniste {tags}.",
+  "settings.autoNotes.reads.stop": "Lopeta",
   "settings.autoNotes.origin.inline": "Liitetty",
   "settings.autoNotes.origin.url": "URL",
   "confirm.password": "Salasanasi vahvistukseksi",

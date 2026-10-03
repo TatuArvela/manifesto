@@ -53,10 +53,21 @@
            */
           return function run(msg, stdlibRaw) {
             const stdlib = bindLocale(stdlibRaw, msg.locale, msg.approxLabels);
+            // The notes the user allowed this plugin to read, frozen: a
+            // snapshot to look at, with nothing behind it to write to.
+            const notes = (msg.notes || []).map(function (note) {
+              return Object.freeze(
+                Object.assign({}, note, {
+                  tags: Object.freeze((note.tags || []).slice()),
+                }),
+              );
+            });
             const ctx = Object.freeze({
               today: msg.today,
               locale: msg.locale,
               stdlib: stdlib,
+              reads: Object.freeze((msg.reads || []).slice()),
+              notes: Object.freeze(notes),
             });
             const wrapped =
               "var _exports={};var _default;" +

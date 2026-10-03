@@ -19,9 +19,10 @@ import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { usePresence } from "../hooks/usePresence.js";
 import { getColorPickerColors, t } from "../i18n/index.js";
-import { refreshAutoNotes } from "../state/autoNotes.js";
+import { drawnWithoutImages, refreshAutoNotes } from "../state/autoNotes.js";
 import { addTag, ensureImages, togglePin, updateNote } from "../state/index.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
+import { withoutImages } from "../utils/stripImages.js";
 import { Dropdown } from "./Dropdown.js";
 import { editorBtnClass, editorIconClass } from "./editorButtons.js";
 import { ImageGallery } from "./ImageGallery.js";
@@ -76,7 +77,9 @@ export function NoteReadonlyView({
 
   useEscapeStack(true, onClose);
 
-  const html = renderMarkdown(note.content);
+  const rendered = renderMarkdown(note.content);
+  // A plugin that reads notes is drawn without images, here as on its card.
+  const html = drawnWithoutImages(note) ? withoutImages(rendered) : rendered;
 
   return (
     <article
