@@ -225,6 +225,9 @@ export const fi: Messages = {
   "tags.all": "Kaikki",
   "tags.delete": "Poista tunniste",
   "tags.removeConfirm": "Poistetaanko #{tag} kaikista muistiinpanoista?",
+  "tags.removeConfirmNested":
+    "Poistetaanko #{tag} ja kaikki sen alatunnisteet kaikista muistiinpanoista?",
+  "tags.under": "Tunnisteen #{tag} alatunnisteet",
   "tags.confirmDelete": "Poista",
   "tags.color": "Väri",
   "tags.noColor": "Ei väriä",
@@ -238,6 +241,8 @@ export const fi: Messages = {
   "tags.hidden": "Piilotettu muistiinpanoista",
   "tags.hiddenHint":
     "Tunnisteella #{tag} merkityt muistiinpanot eivät näy Muistiinpanot-näkymässä.",
+  "tags.hiddenByParent":
+    "Tunnisteella #{tag} merkityt muistiinpanot eivät näy Muistiinpanot-näkymässä, koska #{parent} on piilotettu.",
   "tags.noteCount": {
     one: "{count} muistiinpano",
     other: "{count} muistiinpanoa",

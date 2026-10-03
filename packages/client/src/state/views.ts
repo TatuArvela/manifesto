@@ -1,5 +1,10 @@
 import type { Note } from "@manifesto/shared";
-import { imageCountOf } from "@manifesto/shared";
+import {
+  imageCountOf,
+  isTagWithin,
+  tagLineage,
+  tagParent,
+} from "@manifesto/shared";
 import { computed } from "@preact/signals";
 import { hasChecklist } from "../utils/markdown.js";
 import {
@@ -66,8 +71,37 @@ export function inViewLocation(
 
 const hiddenTagSet = computed(() => new Set(hiddenTags.value));
 
+/** Whether `tag` or a tag above it is in `set`: what a parent has, its
+ * subtags have too. */
+function withinAny(tag: string, set: Set<string>): boolean {
+  return tagLineage(tag).some((at) => set.has(at));
+}
+
 function hasHiddenTag(note: Note, hidden: Set<string>): boolean {
-  return hidden.size > 0 && note.tags.some((tag) => hidden.has(tag));
+  return hidden.size > 0 && note.tags.some((tag) => withinAny(tag, hidden));
+}
+
+/**
+ * The hidden tag that keeps `tag` out of the Notes view: itself, or the
+ * nearest tag above it that is hidden. Null when it is shown.
+ */
+export function hiddenThrough(tag: string): string | null {
+  const hidden = hiddenTagSet.value;
+  return (
+    tagLineage(tag)
+      .reverse()
+      .find((at) => hidden.has(at)) ?? null
+  );
+}
+
+/** A tag's colour: its own, or that of the nearest tag above it with one. */
+export function tagColorOf(tag: string): TagColor | undefined {
+  const colors = tagColors.value;
+  for (const at of tagLineage(tag).reverse()) {
+    const color = colors[at];
+    if (color !== undefined) return color;
+  }
+  return undefined;
 }
 
 /**
@@ -160,7 +194,8 @@ export const filteredNotes = computed(() => {
       result = result.filter(inViewLocation);
       if (activeTag.value) {
         const tag = activeTag.value;
-        result = result.filter((n) => n.tags.includes(tag));
+        // A tag's notes are its own and those of every tag under it.
+        result = result.filter((n) => n.tags.some((t) => isTagWithin(t, tag)));
       }
       break;
     case "search": {
@@ -239,12 +274,18 @@ export const unpinnedNotes = computed(() =>
   sortedNotes.value.filter((n) => !n.pinned),
 );
 
-/** How many notes, neither archived nor trashed, carry each tag. */
+/**
+ * How many notes, neither archived nor trashed, sit under each tag: those
+ * carrying it and those carrying a tag below it, each note once. So a tag
+ * that exists only as the start of another (`work` in `work/clients`) is
+ * here too, which is what makes it a tag the user can open, hide or add.
+ */
 export const tagCounts = computed(() => {
   const counts = new Map<string, number>();
   for (const note of allNotes.value) {
     if (!note.trashed && !note.archived) {
-      for (const tag of note.tags) {
+      const under = new Set(note.tags.flatMap(tagLineage));
+      for (const tag of under) {
         counts.set(tag, (counts.get(tag) ?? 0) + 1);
       }
     }
@@ -253,6 +294,11 @@ export const tagCounts = computed(() => {
 });
 
 export const allTags = computed(() => [...tagCounts.value.keys()].sort());
+
+/** The tags directly under `parent`, or the top-level ones for null. */
+export function childTags(parent: string | null): string[] {
+  return allTags.value.filter((tag) => tagParent(tag) === parent);
+}
 
 export const editingNote = computed(() =>
   editingNoteId.value

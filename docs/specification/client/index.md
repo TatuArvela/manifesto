@@ -181,7 +181,7 @@ View navigation is backed by `location.pathname` so views are bookmarkable and t
 |----------------------------|------------------------|
 | `/`                        | Notes (active)         |
 | `/tags`                    | Tags: all             |
-| `/tags/<encoded-tag>`      | Tags: filtered by tag |
+| `/tags/<tag>`              | Tags: filtered by tag; a nested tag is a path (`/tags/work/clients`), each part encoded |
 | `/reminders`               | Reminders              |
 | `/archived`                | Archive                |
 | `/trash`                   | Trash                  |
