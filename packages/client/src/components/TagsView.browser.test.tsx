@@ -1,8 +1,8 @@
 import { NoteColor } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getColorLabel, t } from "../i18n/index.js";
-import { activeTag, notes, tagColors } from "../state/index.js";
+import { getColorLabel, plural, t } from "../i18n/index.js";
+import { activeTag, hiddenTags, notes, tagColors } from "../state/index.js";
 import { createNoteOrFail } from "../test/testSupport.js";
 import { TagsView } from "./TagsView.js";
 import "../styles.css";
@@ -38,6 +38,56 @@ afterEach(() => {
   tagColors.value = {};
   notes.value = [];
   localStorage.clear();
+});
+
+describe("nested tags in the Tags view", () => {
+  const groups = () =>
+    [...host.querySelectorAll<HTMLElement>("[data-tags-under]")].map(
+      (group) => [
+        group.getAttribute("aria-label"),
+        [...group.querySelectorAll("button")].map(
+          (chip) => chip.getAttribute("aria-label")?.split(",")[0],
+        ),
+      ],
+    );
+
+  it("opens a row of the tags under each tag on the way to the selected one", async () => {
+    await createNoteOrFail({ title: "B", tags: ["work/clients/acme"] });
+    await createNoteOrFail({ title: "C", tags: ["work/admin"] });
+    await vi.waitFor(() =>
+      expect(groups()).toEqual([
+        [t("tags.under", { tag: "work" }), ["#work/admin", "#work/clients"]],
+      ]),
+    );
+
+    button(`#work/clients, ${plural("tags.noteCount", 1)}`)?.click();
+
+    await vi.waitFor(() =>
+      expect(groups()).toEqual([
+        [t("tags.under", { tag: "work" }), ["#work/admin", "#work/clients"]],
+        [t("tags.under", { tag: "work/clients" }), ["#work/clients/acme"]],
+      ]),
+    );
+    expect(activeTag.value).toBe("work/clients");
+    // Only the top row shows the whole tag.
+    expect(host.textContent).toContain("#work");
+    expect(host.textContent).not.toContain("#work/clients");
+  });
+
+  it("says which tag above hides a tag, in place of a button that could not show it", async () => {
+    await createNoteOrFail({ title: "B", tags: ["work/clients"] });
+    hiddenTags.value = ["work"];
+    activeTag.value = "work/clients";
+
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(
+        t("tags.hiddenByParent", { tag: "work/clients", parent: "work" }),
+      ),
+    );
+    expect(button(t("tags.showInNotes"))).toBeUndefined();
+    expect(button(t("tags.hideFromNotes"))).toBeUndefined();
+    hiddenTags.value = [];
+  });
 });
 
 describe("a tag's colour in the Tags view", () => {

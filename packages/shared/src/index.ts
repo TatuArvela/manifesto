@@ -175,3 +175,11 @@ export {
   SHARED_NOTE_FIELDS,
   TRASH_RETENTION_DAYS,
 } from "./note.js";
+export {
+  isTagWithin,
+  normalizeTag,
+  TAG_SEPARATOR,
+  tagLeaf,
+  tagLineage,
+  tagParent,
+} from "./tags.js";

@@ -292,6 +292,23 @@ describe("MCP endpoint", () => {
       expect(restored.trashed).toBe(false);
     });
 
+    it("lists the notes under a tag, nested ones included", async () => {
+      const token = await mintMcp();
+      const titled = async (title: string, tags: string[]) =>
+        (await noteFrom(token, "create_note", { title, content: "x", tags }))
+          .id;
+      const parent = await titled("parent", ["work"]);
+      const child = await titled("child", ["work/clients"]);
+      const other = await titled("other", ["workshop"]);
+
+      const listed = JSON.stringify(
+        (await tool(token, "list_notes", { tag: "work" })).structuredContent,
+      );
+      expect(listed).toContain(parent);
+      expect(listed).toContain(child);
+      expect(listed).not.toContain(other);
+    });
+
     it("puts a new note ahead of the others, as the web client does", async () => {
       const token = await mintMcp();
       const first = await noteFrom(token, "create_note", { content: "one" });

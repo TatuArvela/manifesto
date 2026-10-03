@@ -1,5 +1,6 @@
 import {
   type ApiTokenScope,
+  isTagWithin,
   MAX_NOTES_PAGE_SIZE,
   type Note,
   NoteColor,
@@ -255,7 +256,9 @@ export const MCP_TOOLS: readonly McpTool[] = [
         .string()
         .max(64)
         .exactOptional()
-        .describe("Only notes with this tag"),
+        .describe(
+          "Only notes with this tag, or with a tag nested under it (work also finds work/clients)",
+        ),
       ...pageFields,
     }),
     scope: "notes:read",
@@ -267,7 +270,9 @@ export const MCP_TOOLS: readonly McpTool[] = [
       );
       const inView = VIEWS[view ?? "active"];
       const notes = page.notes.filter(
-        (n) => inView(n) && (tag === undefined || n.tags.includes(tag)),
+        (n) =>
+          inView(n) &&
+          (tag === undefined || n.tags.some((t) => isTagWithin(t, tag))),
       );
       return ok({ notes: notes.map(brief), nextCursor: page.nextCursor });
     },
