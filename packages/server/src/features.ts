@@ -105,6 +105,12 @@ export const FEATURES: Record<ServerFeature, FeatureSpec> = {
     description:
       "Signing in to a local account from a link sent to its address, with no password. It needs outgoing mail (`SMTP_URL`) and is absent without it. Off, no link is sent and links already sent are refused; a second factor is asked for either way.",
   },
+  pushReminders: {
+    env: "WEB_PUSH",
+    default: "on",
+    description:
+      "Sending a reminder as a push message, so an installed app gets it while closed. The server then makes outbound requests to the browsers' push services (Google's, Apple's, Mozilla's), carrying the note's title and first words encrypted to the browser. Off, it sends none, takes no new subscription, and reminders arrive only while the app is open or the browser wakes it.",
+  },
   twoFactor: {
     env: "TWO_FACTOR",
     default: "on",

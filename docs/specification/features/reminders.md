@@ -13,7 +13,8 @@ Notes can have a scheduled reminder that fires as a device notification at the c
 
 ## Delivery
 
-Reminders are delivered via three paths, in priority order:
+Reminders are delivered via three paths on the device, in priority order, and in connected mode a fourth
+from the server for when none of those is awake (see [Push from the server](#push-from-the-server)):
 
 1. **Service worker notification (primary).** When notifications permission is granted, a service worker schedules reminders in IndexedDB and calls `showNotification` when they are due. This path fires even when the tab is closed, subject to the browser waking the service worker (Chromium with Periodic Background Sync is the most reliable; Firefox and Safari are best-effort).
 2. **From the open page (fallback while the tab is open).** The page maintains a `setTimeout` per upcoming reminder and shows the notification through its service worker registration, falling back to the page's own `Notification` only where there is no worker. The worker path is what works on phones: Chrome on Android refuses `new Notification()` and an installed iOS app has none. Catches missed fires via `visibilitychange` when the tab regains focus (within a one-hour window).
@@ -25,6 +26,45 @@ Each fire is deduplicated across the two notification paths by:
 
 - Using the note id as the notification `tag` (the OS coalesces same-tag notifications)
 - A 60-second `lastFiredAt` window stored on the reminder
+
+## Push from the server
+
+A service worker fires a reminder only while the browser lets it run, which a phone with the app closed
+mostly does not. In connected mode the server covers that: a reminder that comes due and that no device
+has fired is sent as a Web Push message, which the browser's push service delivers to the installed
+app whether or not it is open (iOS 16.4 or later for an app added to the Home Screen, Android, and
+desktop browsers).
+
+- **Who gets it.** Every browser of the account that allows notifications and holds a subscription.
+  A browser subscribes by itself: when notifications are allowed (asked, as before, when the first
+  reminder is saved) and at each start after that, it fetches the server's push key, subscribes at
+  its own push service, and hands the subscription to the server. There is no setting to turn on.
+- **When.** The server looks every 30 seconds and steps in for a reminder that has been due for
+  45 seconds without being fired. An open app fires its reminder on time and moves it on within a
+  moment, so the server only ever acts on one that no client handled: a reminder does not arrive
+  twice, and one for a closed app arrives up to about a minute late. One more than an hour overdue
+  is left alone, as on the device.
+- **What it does to the reminder.** Exactly what a client firing it does: a repeating reminder moves to
+  its next occurrence, by the same rules (the maths is shared code, `reminderTime.ts` in
+  `@manifesto/shared`), and one that does not repeat is marked fired. The write reaches open clients
+  as any change does, and the message tells the service worker where the reminder went, so its own
+  list does not fire the same occurrence again.
+- **The time zone.** A reminder's time is a wall-clock time. The server reads it in the zone the
+  reminder was made in (`NoteReminder.timezone`), not its own.
+- **What is sent, and to whom.** The note's title (or its first words) and the first 140 characters of
+  its text, encrypted to the browser's subscription keys (RFC 8291), so the push service that carries
+  it (Google's, Apple's or Mozilla's) cannot read it. The request is signed with the server's own key
+  (VAPID, RFC 8292), which is made on first use and kept in the database; nothing has to be
+  configured. Both are written over `node:crypto` in `push/webPush.ts` rather than taken from a
+  library, and the encryption is tested against the RFC's own example.
+- **How it ends.** A subscription belongs to the session the browser was signed in with and goes when
+  that session does: signing out there, a password change, an admin ending the account's sessions, or
+  the session expiring. It also goes when the push service reports it gone, or after ten failed sends
+  in a row. An account keeps the ten most recent.
+- **Tapping** the notification opens the note, as any other reminder's does.
+
+A host turns this off with `WEB_PUSH=off` (see [Server Deployment](../server/deployment.md)); reminders
+then arrive as they do in open mode. Open mode has no server to send anything and stays best-effort.
 
 ## Recurrence
 
@@ -75,5 +115,6 @@ gives an address to subscribe to, and a `webcal:` link that opens the device's c
 
 ## Limitations
 
-- Without a server and Web Push, reminders while the tab is closed depend on the browser waking the service worker. This is best-effort; if the browser is fully closed, reminders queue until the next app open and fire on visibility change
+- In open mode, or on a server with `WEB_PUSH=off`, reminders while the tab is closed depend on the browser waking the service worker. This is best-effort; if the browser is fully closed, reminders queue until the next app open and fire on visibility change
+- A pushed reminder arrives up to about a minute after it is due, the price of never arriving twice
 - Reminders are local to the device; they are not synced across devices in open mode

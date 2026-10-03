@@ -9,6 +9,8 @@ import {
 } from "lucide-preact";
 import { useMemo, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
+import { isServerMode } from "../state/auth.js";
+import { ensurePushSubscription } from "../state/pushSubscription.js";
 import {
   currentTimezone,
   ensureNotificationPermission,
@@ -133,6 +135,9 @@ export function ReminderPickerPanel({
     );
     const perm = await ensureNotificationPermission();
     if (perm === "denied") notifyPermissionDenied();
+    // Just allowed, perhaps: in connected mode the server can now reach this
+    // browser while the app is closed.
+    else if (isServerMode) void ensurePushSubscription();
     onChange({ ...settled, timezone: currentTimezone() });
     onDone();
   };

@@ -23,6 +23,7 @@ export const SERVER_FEATURES = [
   "webhooks",
   "passkeys",
   "magicLinks",
+  "pushReminders",
   "twoFactor",
   "adminExport",
 ] as const;

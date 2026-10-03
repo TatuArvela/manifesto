@@ -8,7 +8,9 @@ import {
   ensureInitialAdmin,
 } from "./auth/initialAdmin.js";
 import { loadConfig } from "./config.js";
+import { isFeatureOn } from "./features.js";
 import { startAttachmentCleanup } from "./jobs/attachmentCleanup.js";
+import { startPushReminders } from "./jobs/pushReminders.js";
 import { startScheduledBackup } from "./jobs/scheduledBackup.js";
 import { startSessionCleanup } from "./jobs/sessionCleanup.js";
 import { startTrashCleanup } from "./jobs/trashCleanup.js";
@@ -31,14 +33,21 @@ const authProvider = createAuthProvider(cfg, storage);
 const updateCheck = cfg.updateCheckRepo
   ? startUpdateCheck(cfg.updateCheckRepo, VERSION)
   : null;
-const { app, broadcaster, revocations, accessChanges, noteEvents, webhooks } =
-  createApp({
-    cfg,
-    storage,
-    authProvider,
-    logRequests: true,
-    updateStatus: () => updateCheck?.status() ?? null,
-  });
+const {
+  app,
+  broadcaster,
+  revocations,
+  accessChanges,
+  noteEvents,
+  webhooks,
+  pushSender,
+} = createApp({
+  cfg,
+  storage,
+  authProvider,
+  logRequests: true,
+  updateStatus: () => updateCheck?.status() ?? null,
+});
 
 const ws = createNodeWebSocket({ app });
 const stopAppSocket = attachAppSocket({
@@ -99,6 +108,9 @@ const stopSessionCleanup = startSessionCleanup({
   auditRetentionDays: cfg.auditRetentionDays,
 });
 const stopAttachmentCleanup = startAttachmentCleanup(storage);
+const stopPushReminders = isFeatureOn(cfg, "pushReminders")
+  ? startPushReminders({ storage, sender: pushSender, noteEvents })
+  : () => {};
 const stopBackups = cfg.backup
   ? startScheduledBackup(storage, cfg.backup, cfg.dbPath)
   : () => {};
@@ -116,6 +128,7 @@ const shutdown = createShutdown({
     stopTrashCleanup,
     stopSessionCleanup,
     stopAttachmentCleanup,
+    stopPushReminders,
     stopBackups,
     stopAppSocket,
     () => webhooks?.stop(),

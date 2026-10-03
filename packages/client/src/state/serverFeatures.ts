@@ -31,6 +31,7 @@ export const DEFAULT_SERVER_FEATURES: ServerFeatures = {
   webhooks: false,
   passkeys: true,
   magicLinks: false,
+  pushReminders: false,
   twoFactor: true,
   adminExport: false,
   mcpSignIn: false,

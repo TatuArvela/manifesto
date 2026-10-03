@@ -4,6 +4,7 @@ import { defined } from "../test/defined.js";
 import {
   advanceReminder,
   formatLocalISO,
+  instantOf,
   nextOccurrence,
   parseLocalISO,
   pickedReminder,
@@ -311,5 +312,54 @@ describe("pickedReminder", () => {
       time: "2026-01-31T09:00:00",
       recurrence: "none",
     });
+  });
+});
+
+describe("instantOf", () => {
+  const at = (iso: string) => Date.parse(iso);
+
+  it("reads a wall-clock time in the zone the reminder was made in", () => {
+    expect(instantOf("2026-01-15T08:00:00", "Europe/Helsinki")).toBe(
+      at("2026-01-15T06:00:00Z"),
+    );
+    expect(instantOf("2026-07-15T08:00:00", "Europe/Helsinki")).toBe(
+      at("2026-07-15T05:00:00Z"),
+    );
+    expect(instantOf("2026-07-15T08:00:00", "America/New_York")).toBe(
+      at("2026-07-15T12:00:00Z"),
+    );
+    expect(instantOf("2026-07-15T08:00:00", "UTC")).toBe(
+      at("2026-07-15T08:00:00Z"),
+    );
+    expect(instantOf("2026-07-15T08:00", "Asia/Kolkata")).toBe(
+      at("2026-07-15T02:30:00Z"),
+    );
+  });
+
+  it("is right on both sides of a daylight saving change", () => {
+    // Helsinki leaves summer time at 04:00 on 25 October 2026.
+    expect(instantOf("2026-10-25T02:30:00", "Europe/Helsinki")).toBe(
+      at("2026-10-24T23:30:00Z"),
+    );
+    expect(instantOf("2026-10-25T05:00:00", "Europe/Helsinki")).toBe(
+      at("2026-10-25T03:00:00Z"),
+    );
+    // And enters it at 03:00 on 29 March: 03:30 does not exist that night,
+    // and lands just after the gap.
+    expect(instantOf("2026-03-29T02:59:00", "Europe/Helsinki")).toBe(
+      at("2026-03-29T00:59:00Z"),
+    );
+    expect(instantOf("2026-03-29T03:30:00", "Europe/Helsinki")).toBe(
+      at("2026-03-29T01:30:00Z"),
+    );
+    expect(instantOf("2026-03-29T04:00:00", "Europe/Helsinki")).toBe(
+      at("2026-03-29T01:00:00Z"),
+    );
+  });
+
+  it("falls back to the machine's zone for one it does not know", () => {
+    expect(instantOf("2026-07-15T08:00:00", "Mars/Olympus")).toBe(
+      new Date(2026, 6, 15, 8).getTime(),
+    );
   });
 });

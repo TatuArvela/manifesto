@@ -20,6 +20,7 @@ import {
   parseLocalISO,
   snapReminderToFuture,
 } from "./state/reminderTime.js";
+import { afterPush, readReminderPush } from "./swPush.js";
 
 declare const self: ServiceWorkerGlobalScope & {
   registration: ServiceWorkerRegistration & {
@@ -342,6 +343,42 @@ self.addEventListener(
     }
   }) as EventListener,
 );
+
+// A reminder the server fired because no page of this account's was open to
+// (`jobs/pushReminders.ts` on the server): show it, and move this worker's own
+// copy of the reminder to where the server moved it, so the next look at the
+// list does not fire the same occurrence again. The server has already
+// written the change to the note, so nothing is reported to a page.
+self.addEventListener("push", (event) => {
+  let payload: unknown = null;
+  try {
+    payload = event.data?.json() ?? null;
+  } catch {
+    // Not JSON: handled as an unreadable message below.
+  }
+  event.waitUntil(receivePush(payload));
+});
+
+async function receivePush(payload: unknown): Promise<void> {
+  const push = readReminderPush(payload);
+  if (!push) {
+    // A push must show something, or the browser shows a notice of its own
+    // and may withdraw the subscription. Nothing this server sends ends here.
+    await self.registration.showNotification("Reminder");
+    return;
+  }
+  await self.registration.showNotification(push.title, {
+    body: push.body,
+    tag: push.noteId,
+    data: { noteId: push.noteId },
+  });
+  try {
+    const held = (await getAll()).find((item) => item.noteId === push.noteId);
+    if (held) await putOne(afterPush(held, push));
+  } catch {
+    // The list is a convenience here: the notification is already up.
+  }
+}
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();

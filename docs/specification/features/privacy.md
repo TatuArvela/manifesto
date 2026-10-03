@@ -79,6 +79,11 @@ database provides.
 
 ## What reaches third parties
 
+- **Push reminders** (connected mode, `WEB_PUSH` on by default): a reminder nobody's open app fired is
+  sent through the browser's push service, which is Google's, Apple's or Mozilla's according to the
+  browser. The service learns that this server sent that browser a message, when, and how large; the
+  note's title and first words inside it are encrypted to the browser and it cannot read them. Nothing
+  is sent for an account with no subscribed browser.
 - **Link previews** (connected mode, `LINK_PREVIEWS` on by default): the server fetches the pages a
   note links to. Those sites see the server's address, not the user's, and the URL, not the note.
   Open mode never does this; its CSP forbids it.

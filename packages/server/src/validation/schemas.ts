@@ -418,6 +418,28 @@ export const noteCommentSchema = z.object({
   body: z.string().trim().min(1).max(MAX_COMMENT_LENGTH),
 });
 
+/**
+ * `POST /api/push/subscriptions`: what `PushSubscription.toJSON()` gives. The
+ * endpoint is the browser's push service, always over TLS; where it may point
+ * is checked when a message is sent, against the resolved address.
+ */
+export const pushSubscribeSchema = z.object({
+  endpoint: z
+    .string()
+    .url()
+    .max(2048)
+    .regex(/^https:\/\//i, "endpoint must use https"),
+  keys: z.object({
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
+  }),
+});
+
+/** `DELETE /api/push/subscriptions`. */
+export const pushUnsubscribeSchema = z.object({
+  endpoint: z.string().min(1).max(2048),
+});
+
 /** `POST /api/auth/password-reset`. `locale` picks the mail's language. */
 export const passwordResetRequestSchema = z.object({
   email: emailSchema,
