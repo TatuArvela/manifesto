@@ -363,6 +363,29 @@ describe("hiddenTags", () => {
   });
 });
 
+describe("tagColors", () => {
+  it("defaults to none", () => {
+    expect(parsePrefs(null).tagColors).toEqual({});
+    expect(parsePrefs('{"tagColors":["work"]}').tagColors).toEqual({});
+  });
+
+  it("keeps a tag with a real colour and drops anything else", () => {
+    expect(
+      parsePrefs(
+        '{"tagColors":{"work":"red","home":"default","x":"mauve","y":3}}',
+      ).tagColors,
+    ).toEqual({ work: "red" });
+  });
+
+  it("stops at the most tags that can hold a colour", () => {
+    const many = Object.fromEntries(
+      Array.from({ length: 250 }, (_, i) => [`tag${i}`, "blue"]),
+    );
+    const parsed = parsePrefs(JSON.stringify({ tagColors: many })).tagColors;
+    expect(Object.keys(parsed)).toHaveLength(200);
+  });
+});
+
 describe("defaultEditMode", () => {
   it("defaults to the normal editor", () => {
     expect(parsePrefs(null).defaultEditMode).toBe("normal");
