@@ -20,6 +20,12 @@ it) and `docs/specification/api.md` is the source of truth.
 schemas; a new route must be added to `OPERATIONS` there (through its area's list in `src/openapi/`),
 or `openapi.test.ts` fails.
 
+The document is meant to be generated from (`node dist/cli.js openapi` prints it with no database). A
+response of the public surface is described with `exact` in `openapi.ts`, every property required unless
+named optional, and `openapi.conformance.test.ts` checks the server's real answers against it; add the
+call there when a public operation gains a response shape. A request schema that refers to itself comes
+out of zod with `$defs`, which `embeddable` lifts into the components so no reference dangles.
+
 `OPERATIONS` is also every route's protection, and nothing else is: each declares `auth` (`none`,
 `any`, `session`, `admin`, `mcp`) and its rate-limit `limits` (`BUCKETS` in `middleware/protect.ts`,
 required, `[]` for none), and one middleware on `/api/*` (`createProtection`) applies them from the

@@ -41,7 +41,6 @@ const noteResponseSchema = noteCreateSchema.extend({
   id: z.string(),
   trashedAt: z.string().nullable(),
   imageCount: z.number().int().optional(),
-  sharing: z.record(z.string(), z.unknown()).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -54,14 +53,103 @@ const toSchema = (schema: z.ZodType, io: "input" | "output") =>
   });
 
 /** A response described by name and a few properties, for the types that
- * have no zod schema of their own. */
+ * have no zod schema of their own. Nothing is marked required: this is the
+ * client's own surface, described loosely. */
 const shape = (properties: Record<string, unknown>) => ({
   type: "object",
   properties,
 });
 
+/**
+ * A response of the public surface, described as a client generator needs
+ * it: every property is required unless `optional` names it, so a generated
+ * type says `string` and not `string | undefined`. `openapi.conformance.test.ts`
+ * holds these to what the server actually answers.
+ */
+const exact = (
+  properties: Record<string, unknown>,
+  optional: readonly string[] = [],
+) => ({
+  type: "object",
+  properties,
+  required: Object.keys(properties).filter((key) => !optional.includes(key)),
+});
+
+const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+const listOf = (items: unknown) => ({ type: "array", items });
+const nullable = (type: string) => ({ type: [type, "null"] });
+
+/** The people and shapes the public responses are made of. */
+function publicParts() {
+  const shareUser = {
+    id: { type: "string" },
+    username: { type: "string" },
+    displayName: { type: "string" },
+    avatarColor: { type: "string" },
+  };
+  const teamRef = exact({ id: { type: "string" }, name: { type: "string" } });
+  return {
+    ShareUser: exact(shareUser),
+    NoteMember: exact(
+      {
+        ...shareUser,
+        role: { enum: ["edit", "view"] },
+        accepted: { type: "boolean" },
+        team: teamRef,
+      },
+      ["team"],
+    ),
+    NoteSharing: exact({
+      role: { enum: ["owner", "edit", "view"] },
+      owner: ref("ShareUser"),
+      members: listOf(ref("NoteMember")),
+    }),
+    ShareInvitation: exact(
+      {
+        noteId: { type: "string" },
+        role: { enum: ["edit", "view"] },
+        owner: ref("ShareUser"),
+        title: { type: "string" },
+        content: { type: "string" },
+        color: { type: "string" },
+        font: { type: "string" },
+        invitedAt: { type: "string" },
+        team: teamRef,
+      },
+      ["team"],
+    ),
+    DirectoryUser: exact({ ...shareUser, email: { type: "string" } }, [
+      "email",
+    ]),
+    AuthUser: exact(
+      {
+        ...shareUser,
+        email: nullable("string"),
+        isAdmin: { type: "boolean" },
+        hasPassword: { type: "boolean" },
+        locale: nullable("string"),
+      },
+      ["hasPassword", "locale"],
+    ),
+    NoteVersion: exact({
+      noteId: { type: "string" },
+      timestamp: { type: "string" },
+      title: { type: "string" },
+      content: { type: "string" },
+    }),
+  };
+}
+
 function components() {
-  const note = toSchema(noteResponseSchema, "output");
+  // The note itself comes from the zod schema; who it is shared with is the
+  // one part of it described by hand.
+  const converted = toSchema(noteResponseSchema, "output") as {
+    properties: Record<string, unknown>;
+  };
+  const note = {
+    ...converted,
+    properties: { ...converted.properties, sharing: ref("NoteSharing") },
+  };
   return {
     securitySchemes: {
       bearer: {
@@ -72,38 +160,37 @@ function components() {
       },
     },
     schemas: {
+      ...publicParts(),
       Note: note,
-      NoteResponse: shape({ note: { $ref: "#/components/schemas/Note" } }),
-      NotesResponse: shape({
-        notes: { type: "array", items: { $ref: "#/components/schemas/Note" } },
-        nextCursor: { type: ["string", "null"] },
+      NoteResponse: exact({ note: ref("Note") }),
+      NotesResponse: exact({
+        notes: listOf(ref("Note")),
+        nextCursor: nullable("string"),
       }),
-      SyncResponse: shape({
-        notes: { type: "array", items: { $ref: "#/components/schemas/Note" } },
-        nextCursor: { type: ["string", "null"] },
+      SyncResponse: exact({
+        notes: listOf(ref("Note")),
+        nextCursor: nullable("string"),
         ids: { type: ["array", "null"], items: { type: "string" } },
-        checkpoint: { type: ["string", "null"] },
+        checkpoint: nullable("string"),
       }),
-      TeamsResponse: shape({
-        teams: {
-          type: "array",
-          items: shape({
+      TeamsResponse: exact({
+        teams: listOf(
+          exact({
             id: { type: "string" },
             name: { type: "string" },
             source: { enum: ["local", "oidc"] },
             memberCount: { type: "integer" },
           }),
-        },
+        ),
       }),
-      TeamSharesResponse: shape({
-        teamShares: {
-          type: "array",
-          items: shape({
+      TeamSharesResponse: exact({
+        teamShares: listOf(
+          exact({
             teamId: { type: "string" },
             name: { type: "string" },
             role: { enum: ["edit", "view"] },
           }),
-        },
+        ),
       }),
       AdminTeamsResponse: shape({
         teams: {
@@ -122,7 +209,7 @@ function components() {
         members: { type: "array", items: { type: "object" } },
         createdAt: { type: "string" },
       }),
-      PublicLink: shape({
+      PublicLink: exact({
         token: { type: "string" },
         noteId: { type: "string" },
         mode: { enum: ["live", "snapshot"] },
@@ -133,35 +220,33 @@ function components() {
         lastViewedAt: { type: ["string", "null"] },
         createdAt: { type: "string" },
       }),
-      PublicLinkResponse: shape({
-        link: { $ref: "#/components/schemas/PublicLink" },
-      }),
-      PublicLinksResponse: shape({
-        links: {
-          type: "array",
-          items: { $ref: "#/components/schemas/PublicLink" },
+      PublicLinkResponse: exact({ link: ref("PublicLink") }),
+      PublicLinksResponse: exact({ links: listOf(ref("PublicLink")) }),
+      PublicNoteResponse: exact(
+        {
+          note: exact({
+            title: { type: "string" },
+            content: { type: "string" },
+            color: { type: "string" },
+            font: { type: "string" },
+            images: listOf({ type: "string" }),
+            linkPreviews: listOf({ type: "object" }),
+            updatedAt: { type: "string" },
+          }),
+          access: nullable("string"),
         },
-      }),
-      PublicNoteResponse: shape({
-        note: shape({
-          title: { type: "string" },
-          content: { type: "string" },
-          color: { type: "string" },
-          font: { type: "string" },
-          images: { type: "array", items: { type: "string" } },
-          linkPreviews: { type: "array", items: { type: "object" } },
-          updatedAt: { type: "string" },
-        }),
-        access: { type: ["string", "null"] },
-      }),
-      PublicNoteLockedResponse: shape({ passwordRequired: { const: true } }),
-      NotesImportResponse: shape({
+        ["access"],
+      ),
+      PublicNoteLockedResponse: exact({ passwordRequired: { const: true } }),
+      NotesImportResponse: exact({
         created: { type: "integer" },
         updated: { type: "integer" },
         skipped: { type: "integer" },
       }),
-      Error: shape({ error: { type: "string" }, code: { type: "string" } }),
-      Health: shape({ ok: { type: "boolean" }, version: { type: "string" } }),
+      Error: exact({ error: { type: "string" }, code: { type: "string" } }, [
+        "code",
+      ]),
+      Health: exact({ ok: { type: "boolean" }, version: { type: "string" } }),
       AuthSuccess: shape({
         token: { type: "string" },
         user: { type: "object" },
@@ -174,12 +259,25 @@ function components() {
           passkey: { type: ["object", "null"] },
         }),
       }),
-      AuthMeResponse: shape({ user: { type: "object" } }),
-      CapabilitiesResponse: shape({
+      AuthMeResponse: exact({ user: ref("AuthUser") }),
+      CapabilitiesResponse: exact({
         version: { type: "string" },
-        auth: { type: "object" },
-        features: { type: "object" },
-        limits: { type: "object" },
+        auth: exact({
+          providers: listOf({ enum: ["local", "oidc"] }),
+          passwordForm: { enum: ["shown", "collapsed"] },
+          registration: { type: "boolean" },
+          passwordReset: { type: "boolean" },
+          passkeys: { type: "boolean" },
+        }),
+        // One boolean a feature, and `userLookup`, which is a word. Features
+        // are added over time, so they are not listed one by one.
+        features: {
+          type: "object",
+          properties: { userLookup: { enum: ["search", "exact"] } },
+          required: ["userLookup"],
+          additionalProperties: { type: "boolean" },
+        },
+        limits: { type: "object", additionalProperties: { type: "integer" } },
         editorSchemaVersion: { type: "integer" },
       }),
       TwoFactorStatusResponse: shape({
@@ -190,12 +288,14 @@ function components() {
       TwoFactorRecoveryCodesResponse: shape({
         recoveryCodes: { type: "array", items: { type: "string" } },
       }),
-      NoteVersionsResponse: shape({ versions: { type: "array" } }),
-      InvitationsResponse: shape({ invitations: { type: "array" } }),
+      NoteVersionsResponse: exact({ versions: listOf(ref("NoteVersion")) }),
+      InvitationsResponse: exact({
+        invitations: listOf(ref("ShareInvitation")),
+      }),
       NoteCommentsResponse: shape({ comments: { type: "array" } }),
       NoteCommentResponse: shape({ comment: { type: "object" } }),
-      UserLookupResponse: shape({ users: { type: "array" } }),
-      LinkPreviewResponse: shape({ preview: { type: ["object", "null"] } }),
+      UserLookupResponse: exact({ users: listOf(ref("DirectoryUser")) }),
+      LinkPreviewResponse: exact({ preview: { type: ["object", "null"] } }),
       ApiTokensResponse: shape({ tokens: { type: "array" } }),
       OAuthClientInfo: shape({
         clientId: { type: "string" },
@@ -222,7 +322,7 @@ function components() {
         secret: { type: "string" },
       }),
       AdminUsersResponse: shape({ users: { type: "array" } }),
-      AttachmentUploadResponse: shape({ ref: { type: "string" } }),
+      AttachmentUploadResponse: exact({ ref: { type: "string" } }),
       AdminOverviewResponse: shape({
         version: { type: "string" },
         uptimeSeconds: { type: "integer" },
@@ -241,7 +341,7 @@ function components() {
         mail: { type: ["object", "null"] },
       }),
       AdminTestMailResponse: shape({ sent: { type: "boolean" } }),
-      AccountPrefsResponse: shape({ prefs: { type: "object" } }),
+      AccountPrefsResponse: exact({ prefs: { type: "object" } }),
       AuditLogResponse: shape({
         entries: { type: "array" },
         nextBefore: { type: ["string", "null"] },
@@ -255,13 +355,66 @@ function components() {
   };
 }
 
+/**
+ * The name a generated client gives an operation's method: the HTTP method and
+ * the path's words, `getNotesById` for `GET /api/notes/:id`. Derived, so it
+ * exists for every operation and changes only when its route does.
+ */
+export function operationId(op: Pick<Operation, "method" | "path">): string {
+  const words = op.path
+    .replace(/^\/api\//, "")
+    .split(/[/.\-_]/)
+    .filter(Boolean)
+    .map((part) => (part.startsWith(":") ? `By ${part.slice(1)}` : part))
+    .flatMap((part) => part.split(" "))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1));
+  return op.method + words.join("");
+}
+
+/** Query parameters that are numbers; the rest are strings. */
+const INTEGER_QUERY = new Set(["limit"]);
+
 /** `/api/notes/:id` in the document's `{id}` form. */
 export function openApiPath(path: string): string {
   return path.replace(/:([A-Za-z]+)/g, "{$1}");
 }
 
+/**
+ * A request schema as it can sit inside the document. zod puts a schema that
+ * refers to itself (`z.json()`, any JSON value) under `$defs` and points at it
+ * with `#/$defs/...`, which is right for a schema standing alone and dangling
+ * once it is embedded: the `#` is then the whole document. Each such
+ * definition moves to `components.schemas`, named by `name`, and the
+ * references follow it.
+ */
+function embeddable(
+  schema: unknown,
+  hoisted: Record<string, unknown>,
+  name: (key: string) => string,
+): unknown {
+  const defs = (schema as { $defs?: Record<string, unknown> }).$defs;
+  if (!defs) return schema;
+  const moved = (value: unknown): unknown => {
+    let text = JSON.stringify(value);
+    for (const key of Object.keys(defs)) {
+      text = text.replaceAll(
+        `"#/$defs/${key}"`,
+        `"#/components/schemas/${name(key)}"`,
+      );
+    }
+    return JSON.parse(text);
+  };
+  for (const [key, def] of Object.entries(defs)) {
+    hoisted[name(key)] = moved(def);
+  }
+  const { $defs: _moved, ...rest } = schema as Record<string, unknown>;
+  return moved(rest);
+}
+
 export function buildOpenApiDocument(version: string) {
   const paths: Record<string, Record<string, unknown>> = {};
+  /** Definitions lifted out of request schemas, see `embeddable`. */
+  const hoisted: Record<string, unknown> = {};
   for (const op of OPERATIONS) {
     const path = openApiPath(op.path);
     const parameters = [
@@ -275,11 +428,12 @@ export function buildOpenApiDocument(version: string) {
         name,
         in: "query",
         description,
-        schema: { type: "string" },
+        schema: { type: INTEGER_QUERY.has(name) ? "integer" : "string" },
       })),
     ];
     paths[path] ??= {};
     paths[path][op.method] = {
+      operationId: operationId(op),
       tags: [op.tag],
       summary: op.summary,
       ...(op.provider && {
@@ -305,7 +459,20 @@ export function buildOpenApiDocument(version: string) {
         requestBody: {
           required: true,
           content: {
-            "application/json": { schema: toSchema(op.body, "input") },
+            "application/json": {
+              schema: embeddable(
+                toSchema(op.body, "input"),
+                hoisted,
+                // `__schema0` of `PATCH /api/auth/me/prefs` becomes
+                // `PatchAuthMePrefsSchema0`: unique, and stable.
+                (key) => {
+                  const id = operationId(op);
+                  return `${id.charAt(0).toUpperCase()}${id.slice(1)}${key
+                    .replace(/^_+/, "")
+                    .replace(/^./, (c) => c.toUpperCase())}`;
+                },
+              ),
+            },
           },
         },
       }),
@@ -336,7 +503,10 @@ export function buildOpenApiDocument(version: string) {
       license: { name: "MIT" },
     },
     servers: [{ url: "/" }],
-    components: components(),
+    components: (() => {
+      const base = components();
+      return { ...base, schemas: { ...base.schemas, ...hoisted } };
+    })(),
     paths,
   };
 }

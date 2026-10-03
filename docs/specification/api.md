@@ -238,6 +238,34 @@ The server refuses one with `403` when it has `MCP` off. Every listed token carr
 `scopes`; one an assistant was given by signing in also carries `oauthClientId`, and its `prefix` is
 that of its first access token only, since each refresh replaces the secret.
 
+### Generating a client
+
+`GET /api/openapi.json` is an OpenAPI 3.1 document a client generator can read, for any language that
+has one. It is the same on every deployment of a version, and the server prints it without a database
+or any configuration, so a build can generate from it with nothing running:
+
+```sh
+node dist/cli.js openapi > openapi.json        # or: curl https://notes.example/api/openapi.json
+npx openapi-typescript openapi.json -o manifesto.d.ts      # TypeScript types
+openapi-generator-cli generate -i openapi.json -g python -o ./manifesto-client   # or go, kotlin, ...
+```
+
+What a generator gets:
+
+- an `operationId` for every operation, made of the method and the path's words (`getNotesById` for
+  `GET /api/notes/:id`), unique and changing only when the route does;
+- request bodies that are the schemas the server validates with, converted, so they cannot be out of date;
+- for the public surface, response bodies with every property typed and marked required unless it is
+  optional: the note in full (who it is shared with included), the paged listings, sync, the account,
+  the capabilities, invitations, the user lookup, versions, teams and public links. Operations of the
+  client's own surface (`x-stability: client`) are described by name and loosely;
+- `x-token-scope` on each operation a token reaches, naming the scope it needs.
+
+`openapi.conformance.test.ts` calls the server and checks its real answers against those response
+schemas, so a field added to a response without the document following fails the build.
+
+Programs in TypeScript have a shorter road: the wire types are `@manifesto/shared`'s.
+
 ### MCP
 
 `POST /api/mcp`: the Model Context Protocol endpoint for AI assistants, taking an MCP token only. See
