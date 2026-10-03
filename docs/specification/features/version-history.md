@@ -2,6 +2,10 @@
 
 Notes have persistent version history, allowing users to browse and restore previous versions.
 
+A version the server kept by itself says why (`via`): `link` is the note as it stood before someone
+holding a [public link that can edit](sharing.md#links-that-can-edit) changed it, and is listed as
+"Before an edit through a public link".
+
 ## Behavior
 
 - When the note editor closes with unsaved changes, the pre-edit state is automatically saved as a version

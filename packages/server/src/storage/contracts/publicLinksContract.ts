@@ -28,6 +28,7 @@ function link(overrides: Partial<StoredPublicLink> = {}): StoredPublicLink {
     viewCount: 0,
     lastViewedAt: null,
     createdAt: T0,
+    canEdit: false,
     ...overrides,
   };
 }
@@ -76,6 +77,37 @@ export function describePublicLinksContract(
 
     afterEach(async () => {
       await storage.close();
+    });
+
+    it("keeps whether a link can edit, and a version says when a link made it", async () => {
+      await storage.publicLinks.create(link({ token: "edit", canEdit: true }));
+      await storage.publicLinks.create(link({ token: "read" }));
+      expect((await storage.publicLinks.get("edit"))?.canEdit).toBe(true);
+      expect((await storage.publicLinks.get("read"))?.canEdit).toBe(false);
+
+      const now = new Date().toISOString();
+      await storage.versions.add({
+        id: "v1",
+        noteId: "n1",
+        authorId: "owner",
+        title: "Before",
+        content: "as it was",
+        createdAt: now,
+        via: "link",
+      });
+      await storage.versions.add({
+        id: "v2",
+        noteId: "n1",
+        authorId: "owner",
+        title: "Mine",
+        content: "by hand",
+        createdAt: new Date(Date.now() + 1000).toISOString(),
+      });
+      const versions = await storage.versions.list("n1");
+      expect(versions.map((v) => [v.title, v.via])).toEqual([
+        ["Mine", undefined],
+        ["Before", "link"],
+      ]);
     });
 
     it("stores, lists, reads back and revokes a link", async () => {

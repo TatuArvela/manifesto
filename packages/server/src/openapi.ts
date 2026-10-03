@@ -253,6 +253,7 @@ function components() {
         viewCount: { type: "integer" },
         lastViewedAt: { type: ["string", "null"] },
         createdAt: { type: "string" },
+        canEdit: { type: "boolean" },
       }),
       PublicLinkResponse: exact({ link: ref("PublicLink") }),
       PublicLinksResponse: exact({ links: listOf(ref("PublicLink")) }),

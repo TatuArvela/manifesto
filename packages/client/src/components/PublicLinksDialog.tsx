@@ -181,7 +181,12 @@ function CreateLinkForm({
   const [days, setDays] = useState<number>(0);
   const [maxViews, setMaxViews] = useState("");
   const [password, setPassword] = useState("");
+  const [canEdit, setCanEdit] = useState(false);
   const [busy, setBusy] = useState(false);
+  // A snapshot has nothing to edit, and a view limit would stop an editor
+  // half way; the server refuses both, so the form does not offer them.
+  const editable = mode === "live";
+  const editing = editable && canEdit;
 
   const submit = async (e: Event) => {
     e.preventDefault();
@@ -191,8 +196,11 @@ function CreateLinkForm({
     const link = await createPublicLink(noteId, {
       mode,
       ...(days > 0 && { expiresInDays: days }),
-      ...(Number.isFinite(views) && views > 0 && { maxViews: views }),
+      ...(!editing &&
+        Number.isFinite(views) &&
+        views > 0 && { maxViews: views }),
       ...(password && { password }),
+      ...(editing && { canEdit: true }),
     });
     setBusy(false);
     if (!link) {
@@ -250,7 +258,8 @@ function CreateLinkForm({
           min={1}
           inputMode="numeric"
           placeholder={t("publicLink.form.unlimited")}
-          value={maxViews}
+          disabled={editing}
+          value={editing ? "" : maxViews}
           onInput={(e) => setMaxViews((e.target as HTMLInputElement).value)}
         />
       </label>
@@ -265,11 +274,26 @@ function CreateLinkForm({
           onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
         />
       </label>
+      <label
+        class={`col-span-2 flex items-center gap-2 text-sm ${editable ? "" : "opacity-50"}`}
+      >
+        <input
+          type="checkbox"
+          checked={editing}
+          disabled={!editable}
+          onChange={(e) =>
+            setCanEdit((e.currentTarget as HTMLInputElement).checked)
+          }
+        />
+        {t("publicLink.form.canEdit")}
+      </label>
       <p class="col-span-2 text-xs text-neutral-500 dark:text-neutral-400">
         {t(
-          mode === "live"
-            ? "publicLink.mode.liveHint"
-            : "publicLink.mode.snapshotHint",
+          editing
+            ? "publicLink.mode.editHint"
+            : mode === "live"
+              ? "publicLink.mode.liveHint"
+              : "publicLink.mode.snapshotHint",
         )}
       </p>
       <button
@@ -307,6 +331,11 @@ function LinkRow({
             link.mode === "live"
               ? "publicLink.mode.live"
               : "publicLink.mode.snapshot",
+          )}
+          {link.canEdit && (
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">
+              {t("publicLink.canEdit")}
+            </span>
           )}
           {link.hasPassword && (
             <KeyRound

@@ -100,6 +100,165 @@ describe("PublicNotePage", () => {
     );
   });
 
+  describe("with a link that can edit", () => {
+    const field = <T extends Element>(selector: string) =>
+      vi.waitFor(() => {
+        const found = host.querySelector<T>(selector);
+        expect(found).toBeTruthy();
+        return found as T;
+      });
+    const button = (label: string) =>
+      [...host.querySelectorAll("button")].find((b) => b.textContent === label);
+    const type = (
+      el: HTMLInputElement | HTMLTextAreaElement,
+      value: string,
+    ) => {
+      el.value = value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    const tick = () => new Promise((r) => requestAnimationFrame(r));
+    const sent = (call: number) => {
+      const [url, init] = fetchMock.mock.calls[call] ?? [];
+      return {
+        url: String(url),
+        method: init?.method,
+        ifMatch: (init?.headers as Record<string, string>)?.["If-Match"],
+        body: JSON.parse(String(init?.body)) as Record<string, string>,
+      };
+    };
+
+    async function openEditor() {
+      render(<PublicNotePage token={TOKEN} />, host);
+      await vi.waitFor(() => expect(button("Edit")).toBeTruthy());
+      button("Edit")?.click();
+      return await field<HTMLTextAreaElement>("textarea");
+    }
+
+    it("offers no editing on a link that only reads", async () => {
+      fetchMock.mockResolvedValue(json({ note: shown, access: null }));
+      render(<PublicNotePage token={TOKEN} />, host);
+      await vi.waitFor(() =>
+        expect(host.querySelector("h1")?.textContent).toBe("Recipe"),
+      );
+      expect(button("Edit")).toBeUndefined();
+    });
+
+    it("saves an edit on top of the copy it was shown", async () => {
+      const saved = {
+        ...shown,
+        content: "Flour, water and salt",
+        updatedAt: "2026-04-02T00:00:00.000Z",
+      };
+      fetchMock
+        .mockResolvedValueOnce(
+          json({ note: shown, access: null, canEdit: true }),
+        )
+        .mockResolvedValueOnce(
+          json({ note: saved, access: null, canEdit: true }),
+        );
+      const text = await openEditor();
+      expect(text.value).toBe(shown.content);
+      type(text, "Flour, water and salt");
+      await tick();
+      host.querySelector("form")?.requestSubmit();
+
+      await vi.waitFor(() =>
+        expect(host.textContent).toContain("Flour, water and salt"),
+      );
+      expect(sent(1)).toEqual({
+        url: `${SERVER}/api/public/${TOKEN}`,
+        method: "PUT",
+        ifMatch: shown.updatedAt,
+        body: { title: "Recipe", content: "Flour, water and salt" },
+      });
+      // Back to reading, and saying so.
+      expect(host.querySelector("textarea")).toBeNull();
+      expect(host.textContent).toContain("Saved");
+    });
+
+    it("replays the edit onto someone else's change, and sends it once more", async () => {
+      const base = { ...shown, content: "milk\nbread\neggs" };
+      const theirs = {
+        ...base,
+        content: "milk\nbread\neggs\ncheese",
+        updatedAt: "2026-04-02T00:00:00.000Z",
+      };
+      const merged = {
+        ...theirs,
+        content: "oat milk\nbread\neggs\ncheese",
+        updatedAt: "2026-04-03T00:00:00.000Z",
+      };
+      fetchMock
+        .mockResolvedValueOnce(
+          json({ note: base, access: null, canEdit: true }),
+        )
+        .mockResolvedValueOnce(json({ note: theirs, access: null }, 412))
+        .mockResolvedValueOnce(json({ note: merged, access: null }));
+      const text = await openEditor();
+      type(text, "oat milk\nbread\neggs");
+      await tick();
+      host.querySelector("form")?.requestSubmit();
+
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+      expect(sent(2)).toMatchObject({
+        ifMatch: theirs.updatedAt,
+        body: { content: "oat milk\nbread\neggs\ncheese" },
+      });
+      await vi.waitFor(() =>
+        expect(host.textContent).toContain("together with a change"),
+      );
+    });
+
+    it("writes nothing over a change it cannot place, and keeps the draft", async () => {
+      const theirs = {
+        ...shown,
+        content: "Something else entirely",
+        updatedAt: "2026-04-02T00:00:00.000Z",
+      };
+      fetchMock
+        .mockResolvedValueOnce(
+          json({ note: shown, access: null, canEdit: true }),
+        )
+        .mockResolvedValueOnce(json({ note: theirs, access: null }, 412));
+      const text = await openEditor();
+      type(text, "**Flour** and oat milk");
+      await tick();
+      host.querySelector("form")?.requestSubmit();
+
+      await vi.waitFor(() =>
+        expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+          "changed by someone else",
+        ),
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      // The note as it stands is shown, and the visitor's text is still theirs.
+      expect(host.textContent).toContain("Something else entirely");
+      expect(host.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+        "**Flour** and oat milk",
+      );
+    });
+
+    it("keeps the draft when the save does not get through", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          json({ note: shown, access: null, canEdit: true }),
+        )
+        .mockResolvedValueOnce(json({ error: "slow down" }, 429));
+      const text = await openEditor();
+      type(text, "x");
+      await tick();
+      host.querySelector("form")?.requestSubmit();
+      await vi.waitFor(() =>
+        expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+          "Too many edits",
+        ),
+      );
+      expect(host.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+        "x",
+      );
+    });
+  });
+
   it("asks for the password, says when it is wrong, and opens with the right one", async () => {
     fetchMock
       .mockResolvedValueOnce(json({ passwordRequired: true }, 401))
@@ -200,6 +359,55 @@ describe("PublicLinksDialog", () => {
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("No public links yet");
     });
+  });
+
+  it("offers a link that can edit, for a live link only, and without a view limit", async () => {
+    notes.value = [note];
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      clipboard: { writeText: vi.fn(async () => {}) },
+    });
+    fetchMock
+      .mockResolvedValueOnce(json({ links: [] }))
+      .mockResolvedValueOnce(
+        json({ link: makeLink({ canEdit: true, viewCount: 0 }) }, 201),
+      );
+    publicLinksDialog.value = { noteId: "n1" };
+    render(<PublicLinksDialogHost />, host);
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("No public links yet");
+    });
+    const form = document.body.querySelector("form") as HTMLFormElement;
+    const canEdit = form.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
+    ) as HTMLInputElement;
+    const views = form.querySelector<HTMLInputElement>(
+      'input[type="number"]',
+    ) as HTMLInputElement;
+    views.value = "5";
+    views.dispatchEvent(new Event("input", { bubbles: true }));
+    canEdit.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(views.disabled).toBe(true);
+    expect(document.body.textContent).toContain("with no account");
+    form.requestSubmit();
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
+      mode: "live",
+      canEdit: true,
+    });
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Can edit"),
+    );
+
+    // A snapshot has nothing to edit.
+    const mode = form.querySelector("select") as HTMLSelectElement;
+    mode.value = "snapshot";
+    mode.dispatchEvent(new Event("change", { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(canEdit.disabled).toBe(true);
+    expect(canEdit.checked).toBe(false);
   });
 
   it("creates a link with what the form asks for, and copies it", async () => {

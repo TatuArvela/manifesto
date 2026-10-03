@@ -217,6 +217,7 @@ export const publicLinkCreateSchema = z.object({
   expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
   password: z.string().min(1).max(256).exactOptional(),
   maxViews: z.number().int().min(1).max(MAX_PUBLIC_LINK_VIEWS).exactOptional(),
+  canEdit: z.boolean().exactOptional(),
 });
 
 /** `POST /api/public/:token/unlock`. */
@@ -316,6 +317,17 @@ const noteFields = {
 } as const;
 
 export const noteCreateSchema = z.object(noteFields);
+
+/** `PUT /api/public/:token`: what a link that can edit may change, and
+ * nothing else of the note. */
+export const publicNoteUpdateSchema = z
+  .object({
+    title: noteFields.title.exactOptional(),
+    content: noteFields.content.exactOptional(),
+  })
+  .refine((body) => body.title !== undefined || body.content !== undefined, {
+    message: "Nothing to change",
+  });
 
 /** `POST /api/notes/import`: notes as created, with the id and creation time
  * they had where they came from. */

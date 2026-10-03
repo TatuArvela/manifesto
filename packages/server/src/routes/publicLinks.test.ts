@@ -291,6 +291,235 @@ describe("public links", () => {
     expect(res.status).toBe(409);
   });
 
+  describe("a link that can edit", () => {
+    const edit = (
+      token: string,
+      body: unknown,
+      ifMatch: string | null,
+      headers: Record<string, string> = {},
+    ) =>
+      call(null, "PUT", `/api/public/${token}`, body, {
+        ...(ifMatch !== null && { "If-Match": ifMatch }),
+        ...headers,
+      });
+
+    const ownerNote = async (id: string) =>
+      (
+        (await (await call(owner, "GET", `/api/notes/${id}`)).json()) as {
+          note: Note;
+        }
+      ).note;
+
+    it("lets its holder change the title and the text, and nothing else", async () => {
+      const note = await createNote();
+      const link = await publish(note.id, { mode: "live", canEdit: true });
+      expect(link.canEdit).toBe(true);
+      const seen = await shown(link.token);
+      expect(seen.canEdit).toBe(true);
+
+      const res = await edit(
+        link.token,
+        { content: "Flour, water and salt", tags: ["hacked"], pinned: true },
+        seen.note.updatedAt,
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as PublicNoteResponse;
+      expect(body.note.content).toBe("Flour, water and salt");
+      expect(body.note.updatedAt).not.toBe(seen.note.updatedAt);
+
+      const mine = await ownerNote(note.id);
+      expect(mine).toMatchObject({
+        title: "Recipe",
+        content: "Flour, water and salt",
+        tags: ["private"],
+        pinned: false,
+      });
+    });
+
+    it("is refused by a link that only reads, as if there were no such link", async () => {
+      const note = await createNote();
+      const link = await publish(note.id);
+      const seen = await shown(link.token);
+      expect(seen.canEdit).toBeUndefined();
+      const res = await edit(link.token, { content: "x" }, seen.note.updatedAt);
+      expect(res.status).toBe(404);
+      expect((await ownerNote(note.id)).content).toBe("Flour and water");
+    });
+
+    it("cannot be a snapshot, or limited by views", async () => {
+      const note = await createNote();
+      for (const body of [
+        { mode: "snapshot", canEdit: true },
+        { mode: "live", canEdit: true, maxViews: 3 },
+      ]) {
+        const res = await call(
+          owner,
+          "POST",
+          `/api/notes/${note.id}/links`,
+          body,
+        );
+        expect(res.status, JSON.stringify(body)).toBe(422);
+      }
+    });
+
+    it("does not write over an edit it was not shown", async () => {
+      const note = await createNote();
+      const link = await publish(note.id, { mode: "live", canEdit: true });
+      const seen = await shown(link.token);
+
+      // The owner changes the note after the page was opened.
+      await new Promise((r) => setTimeout(r, 5));
+      await call(owner, "PUT", `/api/notes/${note.id}`, {
+        content: "The owner's text",
+      });
+
+      const stale = await edit(
+        link.token,
+        { content: "The visitor's text" },
+        seen.note.updatedAt,
+      );
+      expect(stale.status).toBe(412);
+      const current = (await stale.json()) as PublicNoteResponse;
+      expect(current.note.content).toBe("The owner's text");
+      expect((await ownerNote(note.id)).content).toBe("The owner's text");
+
+      // On top of what it was just shown, it lands.
+      const retried = await edit(
+        link.token,
+        { content: "Both texts" },
+        current.note.updatedAt,
+      );
+      expect(retried.status).toBe(200);
+      expect((await ownerNote(note.id)).content).toBe("Both texts");
+    });
+
+    it("has to say which copy it edits, and to change something", async () => {
+      const note = await createNote();
+      const link = await publish(note.id, { mode: "live", canEdit: true });
+      const seen = await shown(link.token);
+      expect((await edit(link.token, { content: "x" }, null)).status).toBe(428);
+      expect((await edit(link.token, {}, seen.note.updatedAt)).status).toBe(
+        422,
+      );
+      expect(
+        (
+          await edit(
+            link.token,
+            { content: "x".repeat(100_001) },
+            seen.note.updatedAt,
+          )
+        ).status,
+      ).toBe(422);
+    });
+
+    it("needs the password's proof on a link that has one", async () => {
+      const note = await createNote();
+      const link = await publish(note.id, {
+        mode: "live",
+        canEdit: true,
+        password: "sesame",
+      });
+      const unlocked = (await (
+        await call(null, "POST", `/api/public/${link.token}/unlock`, {
+          password: "sesame",
+        })
+      ).json()) as PublicNoteResponse;
+      expect(unlocked.canEdit).toBe(true);
+
+      const without = await edit(
+        link.token,
+        { content: "x" },
+        unlocked.note.updatedAt,
+      );
+      expect(without.status).toBe(404);
+      const withProof = await edit(
+        link.token,
+        { content: "Let in" },
+        unlocked.note.updatedAt,
+        { "X-Link-Access": unlocked.access ?? "" },
+      );
+      expect(withProof.status).toBe(200);
+    });
+
+    it("stops when the link is revoked, expired, or its note is in the trash", async () => {
+      const note = await createNote();
+      const link = await publish(note.id, { mode: "live", canEdit: true });
+      const seen = await shown(link.token);
+
+      const current = await ownerNote(note.id);
+      await rig.request(`/api/notes/${note.id}`, {
+        method: "PUT",
+        headers: { ...authHeaders(owner.token), "If-Match": current.updatedAt },
+        body: JSON.stringify({ trashed: true }),
+      });
+      expect(
+        (await edit(link.token, { content: "x" }, seen.note.updatedAt)).status,
+      ).toBe(404);
+
+      const other = await createNote();
+      const second = await publish(other.id, { mode: "live", canEdit: true });
+      const shownSecond = await shown(second.token);
+      await call(
+        owner,
+        "DELETE",
+        `/api/notes/${other.id}/links/${second.token}`,
+      );
+      expect(
+        (await edit(second.token, { content: "x" }, shownSecond.note.updatedAt))
+          .status,
+      ).toBe(404);
+      expect((await ownerNote(other.id)).content).toBe("Flour and water");
+    });
+
+    it("keeps the note as it was as a version, and tells the owner, once a sitting", async () => {
+      const note = await createNote();
+      const link = await publish(note.id, { mode: "live", canEdit: true });
+      const seen = await shown(link.token);
+      const events: string[] = [];
+      rig.broadcaster.subscribe((userId, event) => {
+        if (userId === owner.userId) events.push(event.type);
+      });
+
+      const first = (await (
+        await edit(link.token, { content: "One" }, seen.note.updatedAt)
+      ).json()) as PublicNoteResponse;
+      await new Promise((r) => setTimeout(r, 5));
+      await edit(link.token, { content: "Two" }, first.note.updatedAt);
+
+      // The owner's open tabs hear each edit.
+      expect(events.filter((type) => type === "note:updated")).toHaveLength(2);
+
+      const versions = (await (
+        await call(owner, "GET", `/api/notes/${note.id}/versions`)
+      ).json()) as { versions: { content: string; via?: string }[] };
+      expect(versions.versions).toHaveLength(1);
+      expect(versions.versions[0]).toMatchObject({
+        content: "Flour and water",
+        via: "link",
+      });
+
+      await new Promise((r) => setTimeout(r, 20));
+      const entries = await rig.storage.audit.list({
+        limit: 20,
+        action: "link.note_edited",
+      });
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toMatchObject({
+        actorId: null,
+        targetId: owner.userId,
+        noteId: note.id,
+      });
+      expect(entries[0]?.detail.link).toBe(`${link.token.slice(0, 6)}...`);
+      // And it is on the owner's own Activity page.
+      const activity = (await (
+        await call(owner, "GET", "/api/auth/me/activity")
+      ).json()) as { entries: { action: string }[] };
+      expect(
+        activity.entries.some((e) => e.action === "link.note_edited"),
+      ).toBe(true);
+    });
+  });
+
   it("writes the audit log", async () => {
     const note = await createNote();
     const link = await publish(note.id);

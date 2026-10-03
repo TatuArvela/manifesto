@@ -152,6 +152,7 @@ A public link is read without an account, and none of these send a bearer token:
 |----------|----------------------------------------|-------------|
 | `GET`    | `/api/public/:token`                   | The note: `{ note: PublicNote, access: null }`, counting a view; `401` `{ passwordRequired: true }` for a link with a password, counting nothing |
 | `POST`   | `/api/public/:token/unlock`            | With `{ password }`: `{ note, access }`, counting a view; `403` for a wrong one |
+| `PUT`    | `/api/public/:token`                   | For a [link that can edit](features/sharing.md#links-that-can-edit): `{ title?, content? }` with `If-Match: <updatedAt>` (and `X-Link-Access` for a link with a password); `{ note, access, canEdit }`, or `412` with the note as it now stands |
 | `GET`    | `/api/public/:token/attachments/:id`   | A picture the note shows, and no other; a link with a password needs `X-Link-Access: <access>` |
 
 `mode` is `"live"` or `"snapshot"`. `PublicLink` is `{ token, noteId, mode, expiresAt, hasPassword,

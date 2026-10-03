@@ -5,6 +5,7 @@ import type {
   PublicLinksResponse,
   PublicNote,
   PublicNoteResponse,
+  PublicNoteUpdateRequest,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { apiFetch } from "../storage/apiRequest.js";
@@ -67,7 +68,7 @@ export async function revokePublicLink(
 
 /** What opening a public link came to. */
 export type PublicNoteResult =
-  | { kind: "note"; note: PublicNote; access: string | null }
+  | { kind: "note"; note: PublicNote; access: string | null; canEdit: boolean }
   | { kind: "locked" }
   | { kind: "wrong-password" }
   | { kind: "too-many" }
@@ -82,7 +83,12 @@ async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
   if (res.status === 404) return { kind: "gone" };
   if (!res.ok) return { kind: "failed" };
   const body = (await res.json()) as PublicNoteResponse;
-  return { kind: "note", note: body.note, access: body.access };
+  return {
+    kind: "note",
+    note: body.note,
+    access: body.access,
+    canEdit: body.canEdit === true,
+  };
 }
 
 async function publicFetch(
@@ -136,4 +142,40 @@ export async function loadPublicImage(
   });
   if (!res?.ok) return null;
   return URL.createObjectURL(await res.blob());
+}
+
+/** What saving through a public link that can edit came to. */
+export type PublicSaveResult =
+  | { kind: "saved"; note: PublicNote }
+  /** Changed by someone else since it was shown; `note` is how it stands. */
+  | { kind: "conflict"; note: PublicNote }
+  | { kind: "too-many" }
+  | { kind: "gone" }
+  | { kind: "failed" };
+
+/**
+ * Change the title or text of the note a public link shows, on top of the
+ * copy with this `updatedAt`. Resolves with what happened, like the rest.
+ */
+export async function savePublicNote(
+  token: string,
+  changes: PublicNoteUpdateRequest,
+  updatedAt: string,
+  access: string | null,
+): Promise<PublicSaveResult> {
+  const res = await publicFetch(token, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "If-Match": updatedAt,
+      ...(access && { "X-Link-Access": access }),
+    },
+    body: JSON.stringify(changes),
+  });
+  if (!res) return { kind: "failed" };
+  if (res.status === 404) return { kind: "gone" };
+  if (res.status === 429) return { kind: "too-many" };
+  if (res.status !== 200 && res.status !== 412) return { kind: "failed" };
+  const { note } = (await res.json()) as PublicNoteResponse;
+  return { kind: res.status === 200 ? "saved" : "conflict", note };
 }

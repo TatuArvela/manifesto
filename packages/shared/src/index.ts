@@ -76,6 +76,7 @@ export type {
   PublicNote,
   PublicNoteLockedResponse,
   PublicNoteResponse,
+  PublicNoteUpdateRequest,
   PushKeyResponse,
   PushSubscribeRequest,
   PushUnsubscribeRequest,

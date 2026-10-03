@@ -46,6 +46,9 @@ export const BUCKETS = {
     limit: 10,
     windowMs: 15 * 60 * 1000,
   },
+  /** Writes through a public link that can edit, on top of `public-links`:
+   * an editor saving as it goes, and nobody signed in to hold to account. */
+  "public-link-edit": { per: "address", limit: 60, windowMs: 60 * 1000 },
   "oauth-register": { per: "address", limit: 20, windowMs: 60 * 60 * 1000 },
   "oauth-token": { per: "address", limit: 60, windowMs: 60 * 1000 },
 } as const satisfies Record<

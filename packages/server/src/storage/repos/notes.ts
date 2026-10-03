@@ -222,5 +222,7 @@ export interface VersionsRepo {
     title: string;
     content: string;
     createdAt: string;
+    /** Why the server kept it by itself; see `NoteVersion.via`. */
+    via?: "link" | undefined;
   }): Promise<void>;
 }

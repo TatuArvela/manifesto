@@ -28,6 +28,7 @@ export const AUDIT_ACTIONS = [
   "share.team_removed",
   "link.created",
   "link.revoked",
+  "link.note_edited",
   "admin.user_created",
   "admin.user_deleted",
   "admin.admin_granted",

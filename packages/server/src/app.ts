@@ -320,7 +320,7 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
   app.route("/api/search", createSearchRoutes({ storage }));
-  app.route("/api/public", createPublicRoutes({ storage }));
+  app.route("/api/public", createPublicRoutes({ storage, noteEvents }));
   app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
   app.route("/api/push", createPushRoutes({ storage, sender: pushSender }));
   app.route("/api/teams", createTeamRoutes({ storage }));

@@ -12,7 +12,7 @@ export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {
     async create(link) {
       await pool.query(
         `INSERT INTO public_links (${PUBLIC_LINK_COLUMNS})
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
           link.token,
           link.noteId,
@@ -25,6 +25,7 @@ export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {
           link.viewCount,
           link.lastViewedAt,
           link.createdAt,
+          link.canEdit === true,
         ],
       );
     },

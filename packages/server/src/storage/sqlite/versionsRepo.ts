@@ -13,6 +13,7 @@ interface VersionRow {
   title: string;
   content: string;
   created_at: string;
+  via?: string | null;
 }
 
 export function rowToVersion(row: VersionRow): NoteVersion {
@@ -21,17 +22,18 @@ export function rowToVersion(row: VersionRow): NoteVersion {
     timestamp: row.created_at,
     title: row.title,
     content: row.content,
+    ...(row.via === "link" && { via: "link" as const }),
   };
 }
 
 export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
   const listStmt = db.prepare(
-    `SELECT note_id, title, content, created_at FROM note_versions
+    `SELECT note_id, title, content, created_at, via FROM note_versions
      WHERE note_id = ? ORDER BY created_at DESC, id DESC`,
   );
   const insertStmt = db.prepare(
-    `INSERT INTO note_versions (id, note_id, author_id, title, content, created_at)
-     VALUES (@id, @noteId, @authorId, @title, @content, @createdAt)`,
+    `INSERT INTO note_versions (id, note_id, author_id, title, content, created_at, via)
+     VALUES (@id, @noteId, @authorId, @title, @content, @createdAt, @via)`,
   );
   const expireStmt = db.prepare(
     `DELETE FROM note_versions WHERE note_id = ? AND created_at < ?`,
@@ -44,7 +46,7 @@ export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
   );
 
   const add = db.transaction((input: Parameters<VersionsRepo["add"]>[0]) => {
-    insertStmt.run(input);
+    insertStmt.run({ ...input, via: input.via ?? null });
     const cutoff = new Date(
       Date.now() - NOTE_VERSION_MAX_AGE_DAYS * DAY_MS,
     ).toISOString();

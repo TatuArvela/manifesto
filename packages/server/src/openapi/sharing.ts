@@ -2,6 +2,7 @@ import {
   noteCommentSchema,
   publicLinkCreateSchema,
   publicLinkUnlockSchema,
+  publicNoteUpdateSchema,
   shareCreateSchema,
   shareUpdateSchema,
   teamShareCreateSchema,
@@ -174,6 +175,22 @@ export const SHARING_OPERATIONS: Operation[] = [
     responses: {
       ...ok("PublicNoteResponse"),
       "403": { description: "Wrong password", schema: "Error" },
+      ...notFound,
+    },
+  },
+  {
+    method: "put",
+    path: "/api/public/:token",
+    tag: "Sharing",
+    summary:
+      "Change the title or text through a public link that can edit; send If-Match, and X-Link-Access for a link with a password",
+    auth: "none",
+    feature: "publicLinks",
+    limits: ["public-links", "public-link-edit"],
+    body: publicNoteUpdateSchema,
+    responses: {
+      ...ok("PublicNoteResponse"),
+      "412": { description: "Changed meanwhile", schema: "PublicNoteResponse" },
       ...notFound,
     },
   },

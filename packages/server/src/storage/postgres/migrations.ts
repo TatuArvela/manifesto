@@ -397,6 +397,12 @@ CREATE TABLE server_secrets (
 );
 `;
 
+/** See the SQLite copy. */
+const PUBLIC_LINK_EDIT = `
+ALTER TABLE public_links ADD COLUMN can_edit BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE note_versions ADD COLUMN via TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -424,6 +430,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0024-sign-in-links", sql: SIGN_IN_LINKS },
   { id: "0025-note-comments", sql: NOTE_COMMENTS },
   { id: "0026-web-push", sql: WEB_PUSH },
+  { id: "0027-public-link-edit", sql: PUBLIC_LINK_EDIT },
 ];
 
 export async function runMigrations(

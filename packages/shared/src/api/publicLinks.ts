@@ -23,6 +23,12 @@ export interface PublicLink {
   viewCount: number;
   lastViewedAt: string | null;
   createdAt: string;
+  /**
+   * Whether whoever holds the link may change the note's title and text, not
+   * only read them. A `live` link only. Absent from a server from before
+   * links could edit, which is the same as false.
+   */
+  canEdit?: boolean;
 }
 
 export interface PublicLinkCreateRequest {
@@ -32,6 +38,9 @@ export interface PublicLinkCreateRequest {
   /** Asked of every viewer before the note is shown. */
   password?: string;
   maxViews?: number;
+  /** Lets the link's holder edit the title and text. `live` only, and not
+   * together with `maxViews`. */
+  canEdit?: boolean;
 }
 
 export interface PublicLinkResponse {
@@ -67,6 +76,19 @@ export interface PublicNoteResponse {
    * Null for a link without one.
    */
   access: string | null;
+  /** Whether this link may also change the note; see `PublicLink.canEdit`. */
+  canEdit?: boolean;
+}
+
+/**
+ * `PUT /api/public/:token`, for a link that can edit: the title, the text, or
+ * both. Sent with `If-Match` set to the `updatedAt` of the note as it was
+ * shown, so an edit made meanwhile is not written over; a `412` carries the
+ * note as it now stands.
+ */
+export interface PublicNoteUpdateRequest {
+  title?: string;
+  content?: string;
 }
 
 /** `GET /api/public/:token` of a link with a password, before it is given. */

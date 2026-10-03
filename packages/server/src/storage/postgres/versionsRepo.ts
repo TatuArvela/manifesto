@@ -14,7 +14,7 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
   return {
     async list(noteId) {
       const result = await pool.query(
-        `SELECT note_id, title, content, created_at FROM note_versions
+        `SELECT note_id, title, content, created_at, via FROM note_versions
          WHERE note_id = $1 ORDER BY created_at DESC, id DESC`,
         [noteId],
       );
@@ -23,8 +23,8 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
 
     async add(input) {
       await pool.query(
-        `INSERT INTO note_versions (id, note_id, author_id, title, content, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO note_versions (id, note_id, author_id, title, content, created_at, via)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           input.id,
           input.noteId,
@@ -32,6 +32,7 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
           input.title,
           input.content,
           input.createdAt,
+          input.via ?? null,
         ],
       );
       const cutoff = new Date(

@@ -106,6 +106,11 @@ export function VersionHistory({
               >
                 <div class="text-xs text-black/40 dark:text-white/40">
                   {formatDateTime(v.timestamp)}
+                  {/* Kept by the server, before someone holding a public
+                      link that can edit changed the note. */}
+                  {v.via === "link" && (
+                    <span class="ml-2">{t("versions.viaLink")}</span>
+                  )}
                 </div>
                 {v.title && (
                   <div class="text-sm font-medium mt-0.5">

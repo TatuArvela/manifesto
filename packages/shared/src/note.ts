@@ -385,4 +385,9 @@ export interface NoteVersion {
   timestamp: string;
   title: string;
   content: string;
+  /**
+   * Set on a version the server kept by itself, and why: `link` is the note
+   * as it stood before a public link that can edit changed it.
+   */
+  via?: "link";
 }

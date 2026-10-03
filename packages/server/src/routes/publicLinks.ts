@@ -15,13 +15,16 @@ import type { ServerConfig } from "../config.js";
 import { createExpiringCounter } from "../lib/expiringCounter.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
 import { nowIso } from "../lib/time.js";
+import { newId } from "../lib/ulid.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
+import type { NoteEvents } from "../sharing/noteEvents.js";
 import { referencesOf } from "../storage/attachmentMapping.js";
 import type { StorageDriver, StoredPublicLink } from "../storage/types.js";
 import {
   publicLinkCreateSchema,
   publicLinkUnlockSchema,
+  publicNoteUpdateSchema,
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 
@@ -31,6 +34,16 @@ interface PublicLinkDeps {
   storage: StorageDriver;
   cfg: ServerConfig;
 }
+
+/** Writes one link takes in an hour, from anywhere: an editor saving as it
+ * goes stays far below it, and a script hammering a note does not. */
+const EDITS_PER_LINK = 600;
+/**
+ * How long a link's edits count as one sitting. The first in a sitting keeps
+ * a version of the note as it was and writes the audit entry; the rest of an
+ * editor's saves do neither, or one visit would fill the history and the log.
+ */
+const EDIT_SITTING_MS = 30 * 60 * 1000;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -56,6 +69,7 @@ export function toPublicLink(link: StoredPublicLink): PublicLink {
     viewCount: link.viewCount,
     lastViewedAt: link.lastViewedAt,
     createdAt: link.createdAt,
+    canEdit: link.canEdit === true,
   };
 }
 
@@ -134,6 +148,20 @@ export function registerPublicLinkRoutes(
         throw new HttpError(422, "Automatic notes cannot be published");
       }
       const body = c.req.valid("json");
+      if (body.canEdit) {
+        // A snapshot is the note as it was, which there is nothing to edit
+        // in; and a link that runs out after so many views would stop its
+        // holder half way through an edit.
+        if (body.mode !== "live") {
+          throw new HttpError(422, "canEdit: Only a live link can edit");
+        }
+        if (body.maxViews !== undefined) {
+          throw new HttpError(
+            422,
+            "canEdit: A link that can edit cannot be limited by views",
+          );
+        }
+      }
       const now = nowIso();
       const link: StoredPublicLink = {
         token: randomBytes(16).toString("base64url"),
@@ -155,13 +183,14 @@ export function registerPublicLinkRoutes(
         viewCount: 0,
         lastViewedAt: null,
         createdAt: now,
+        canEdit: body.canEdit === true,
       };
       await storage.publicLinks.create(link);
       audit(storage, c, {
         action: "link.created",
         actorId: userId,
         noteId: note.id,
-        detail: { mode: link.mode },
+        detail: { mode: link.mode, ...(link.canEdit && { canEdit: "yes" }) },
       });
       return c.json(
         { link: toPublicLink(link) } satisfies PublicLinkResponse,
@@ -198,8 +227,17 @@ export function registerPublicLinkRoutes(
  */
 export function createPublicRoutes({
   storage,
-}: Pick<PublicLinkDeps, "storage">) {
+  noteEvents,
+}: Pick<PublicLinkDeps, "storage"> & { noteEvents: NoteEvents }) {
   const routes = new Hono();
+  const editCounts = createExpiringCounter({
+    windowMs: 60 * 60 * 1000,
+    maxEntries: 10_000,
+  });
+  const editSittings = createExpiringCounter({
+    windowMs: EDIT_SITTING_MS,
+    maxEntries: 10_000,
+  });
   const unlockFailures = createExpiringCounter({
     windowMs: 60 * 60 * 1000,
     maxEntries: 10_000,
@@ -233,7 +271,11 @@ export function createPublicRoutes({
     if (!(await storage.publicLinks.recordView(link.token, now))) {
       throw notFound();
     }
-    return { note, access: accessKey(link) } satisfies PublicNoteResponse;
+    return {
+      note,
+      access: accessKey(link),
+      ...(link.canEdit && { canEdit: true }),
+    } satisfies PublicNoteResponse;
   }
 
   routes.get("/:token", async (c) => {
@@ -267,6 +309,105 @@ export function createPublicRoutes({
         throw new HttpError(403, "Wrong password");
       }
       return c.json(await view(link, note, now));
+    },
+  );
+
+  /**
+   * `PUT /api/public/:token`: the holder of a link that can edit changes the
+   * note's title or text. There is no account behind the request, so what it
+   * may do is as narrow as the link: those two fields of that one note, and
+   * only on top of the copy it was shown (`If-Match`), so it cannot write
+   * over an edit it never saw.
+   *
+   * The write is the owner's as far as storage goes, and reaches open editors
+   * the way any write from outside the editor does (an API token's, MCP's):
+   * as a row newer than their document. The note as it stood is kept as a
+   * version first, marked `via: "link"`, and the edit is in the audit log
+   * with the link named and the owner as its target, so the owner's own
+   * Activity page shows that their note was changed and through which link.
+   */
+  routes.put(
+    "/:token",
+    zValidator("json", publicNoteUpdateSchema, validatorHook),
+    async (c) => {
+      const now = nowIso();
+      const token = c.req.param("token");
+      const { link } = await open(token, now);
+      // The same answer as a link that does not exist: whether a link can
+      // edit is not something to tell someone who is guessing at it.
+      if (!link.canEdit || link.mode !== "live") throw notFound();
+      const key = accessKey(link);
+      if (key !== null && !sameKey(c.req.header("X-Link-Access"), key)) {
+        throw notFound();
+      }
+      const ifMatch = c.req.header("If-Match");
+      if (!ifMatch) {
+        throw new HttpError(428, "If-Match: Say which copy this edit is of");
+      }
+      const edits = editCounts.peek(link.token, Date.now());
+      if (edits && edits.count >= EDITS_PER_LINK) {
+        throw new HttpError(429, "Too many edits through this link");
+      }
+      editCounts.hit(link.token, Date.now());
+
+      const before = await storage.notes.getById(link.noteId, link.ownerId);
+      if (!before || before.trashed) throw notFound();
+      const conflict = (current: Note) =>
+        c.json(
+          {
+            note: publicNoteOf(current),
+            access: key,
+            canEdit: true,
+          } satisfies PublicNoteResponse,
+          412,
+        );
+      if (before.updatedAt !== ifMatch) return conflict(before);
+
+      const changes = c.req.valid("json");
+      const updated = await storage.notes.update(
+        link.noteId,
+        link.ownerId,
+        {
+          ...(changes.title !== undefined && { title: changes.title }),
+          ...(changes.content !== undefined && { content: changes.content }),
+        },
+        now,
+        ifMatch,
+      );
+      if (!updated) {
+        // Changed between the read above and the write.
+        const current = await storage.notes.getById(link.noteId, link.ownerId);
+        if (!current || current.trashed) throw notFound();
+        return conflict(current);
+      }
+
+      const sitting = editSittings.peek(link.token, Date.now());
+      if (!sitting) {
+        editSittings.hit(link.token, Date.now());
+        await storage.versions.add({
+          id: newId(),
+          noteId: link.noteId,
+          authorId: link.ownerId,
+          title: before.title,
+          content: before.content,
+          createdAt: now,
+          via: "link",
+        });
+        audit(storage, c, {
+          action: "link.note_edited",
+          targetId: link.ownerId,
+          noteId: link.noteId,
+          // Enough of the token to tell one link from another in the list,
+          // not enough to be the link.
+          detail: { link: `${link.token.slice(0, 6)}...` },
+        });
+      }
+      await noteEvents.changed(link.noteId);
+      return c.json({
+        note: publicNoteOf(updated),
+        access: key,
+        canEdit: true,
+      } satisfies PublicNoteResponse);
     },
   );
 

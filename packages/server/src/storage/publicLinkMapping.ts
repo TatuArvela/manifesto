@@ -15,10 +15,12 @@ export interface PublicLinkRow {
   view_count: number;
   last_viewed_at: string | null;
   created_at: string;
+  can_edit: boolean | number;
 }
 
 export const PUBLIC_LINK_COLUMNS = `token, note_id, owner_id, mode, snapshot,
-  password_hash, expires_at, max_views, view_count, last_viewed_at, created_at`;
+  password_hash, expires_at, max_views, view_count, last_viewed_at, created_at,
+  can_edit`;
 
 export function rowToPublicLink(row: PublicLinkRow): StoredPublicLink {
   return {
@@ -34,6 +36,8 @@ export function rowToPublicLink(row: PublicLinkRow): StoredPublicLink {
     viewCount: Number(row.view_count),
     lastViewedAt: row.last_viewed_at,
     createdAt: row.created_at,
+    // An INTEGER in SQLite, a BOOLEAN in Postgres.
+    canEdit: Boolean(row.can_edit),
   };
 }
 

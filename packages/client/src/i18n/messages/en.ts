@@ -780,6 +780,7 @@ export const en = {
   "audit.action.share.team_role_changed": "Team's role changed",
   "audit.action.share.team_removed": "Note no longer shared with a team",
   "audit.action.link.created": "Public link created",
+  "audit.action.link.note_edited": "Note edited through a public link",
   "audit.action.link.revoked": "Public link revoked",
   "audit.action.admin.user_created": "Account created by an admin",
   "audit.action.admin.user_deleted": "Account deleted",
@@ -996,6 +997,23 @@ export const en = {
     "This link does not open a note. It may have expired or been revoked.",
   "publicLink.page.failed":
     "The note could not be loaded. Check your connection and try again.",
+  "publicLink.form.canEdit": "Anyone with the link can edit",
+  "publicLink.mode.editHint":
+    "Anyone holding the link can change the note's title and text, with no account. The note as it was is kept in its version history, and the change shows on your Activity page.",
+  "publicLink.canEdit": "Can edit",
+  "versions.viaLink": "Before an edit through a public link",
+  "publicLink.page.edit": "Edit",
+  "publicLink.page.save": "Save",
+  "publicLink.page.cancel": "Cancel",
+  "publicLink.page.titleLabel": "Title",
+  "publicLink.page.textLabel": "Text, as Markdown",
+  "publicLink.page.saved": "Saved",
+  "publicLink.page.saveFailed": "Could not save. Your text is still here.",
+  "publicLink.page.saveTooMany":
+    "Too many edits through this link. Try again later.",
+  "publicLink.page.conflict":
+    "The note was changed by someone else while you were editing. Your text is still here; the note above shows how it stands now.",
+  "publicLink.page.merged": "Saved, together with a change someone else made.",
   "publicLink.page.passwordPrompt": "This note is protected by a password",
   "publicLink.page.wrongPassword": "That password is not right.",
   "publicLink.page.tooMany": "Too many attempts. Try again later.",

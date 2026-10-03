@@ -800,6 +800,8 @@ export const fi: Messages = {
   "audit.action.share.team_role_changed": "Tiimin rooli muutettu",
   "audit.action.share.team_removed": "Tiimin jako poistettu",
   "audit.action.link.created": "Julkinen linkki luotu",
+  "audit.action.link.note_edited":
+    "Muistiinpanoa muokattu julkisen linkin kautta",
   "audit.action.link.revoked": "Julkinen linkki mitätöity",
   "audit.action.admin.user_created": "Ylläpitäjä loi tilin",
   "audit.action.admin.user_deleted": "Tili poistettu",
@@ -1017,6 +1019,24 @@ export const fi: Messages = {
     "Tämä linkki ei avaa muistiinpanoa. Se on ehkä vanhentunut tai mitätöity.",
   "publicLink.page.failed":
     "Muistiinpanoa ei voitu ladata. Tarkista yhteys ja yritä uudelleen.",
+  "publicLink.form.canEdit": "Kuka tahansa linkin haltija voi muokata",
+  "publicLink.mode.editHint":
+    "Kuka tahansa, jolla on linkki, voi muuttaa muistiinpanon otsikkoa ja tekstiä ilman tiliä. Muistiinpano sellaisena kuin se oli säilyy versiohistoriassa, ja muutos näkyy Toiminta-sivullasi.",
+  "publicLink.canEdit": "Voi muokata",
+  "versions.viaLink": "Ennen julkisen linkin kautta tehtyä muokkausta",
+  "publicLink.page.edit": "Muokkaa",
+  "publicLink.page.save": "Tallenna",
+  "publicLink.page.cancel": "Peruuta",
+  "publicLink.page.titleLabel": "Otsikko",
+  "publicLink.page.textLabel": "Teksti Markdown-muodossa",
+  "publicLink.page.saved": "Tallennettu",
+  "publicLink.page.saveFailed": "Tallennus epäonnistui. Tekstisi on yhä tässä.",
+  "publicLink.page.saveTooMany":
+    "Liian monta muokkausta tämän linkin kautta. Yritä myöhemmin uudelleen.",
+  "publicLink.page.conflict":
+    "Joku muu muutti muistiinpanoa muokkauksesi aikana. Tekstisi on yhä tässä; yllä näkyy muistiinpanon nykyinen tila.",
+  "publicLink.page.merged":
+    "Tallennettu yhdessä jonkun muun tekemän muutoksen kanssa.",
   "publicLink.page.passwordPrompt": "Tämä muistiinpano on suojattu salasanalla",
   "publicLink.page.wrongPassword": "Salasana ei ole oikein.",
   "publicLink.page.tooMany": "Liian monta yritystä. Yritä myöhemmin uudelleen.",

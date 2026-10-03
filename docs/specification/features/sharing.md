@@ -104,5 +104,33 @@ not shown then.
   `Referer` leaves the page.
 
 A link's token is 128 random bits, kept as it is so the owner can copy the link again. Making and
-revoking a link are written to the [audit log](accounts.md). Links that can edit are not offered;
-see the note in `TODO.md`.
+revoking a link are written to the [audit log](accounts.md).
+
+### Links that can edit
+
+A live link can be made with **Anyone with the link can edit**. Its page then has an Edit button, and
+whoever holds the link can change the note's title and text, with no account.
+
+- **What it may change**: the title and the text, as Markdown, and nothing else: not the colour, the
+  tags, the pictures or anything about the note's place among the owner's notes. A snapshot cannot be
+  made editable, and neither can a link with a view limit, which would stop its holder half way.
+- **On top of what was shown**: an edit is sent with the time of the copy it was made from, and is
+  refused (`412`) if the note has changed since, so nobody writes over a change they never saw. The page
+  then replays the visitor's edit onto the note as it now stands where that can be done without
+  guessing and saves once more; where it cannot, it shows the note as it stands, keeps the visitor's
+  text in the editor, and leaves the choice to them.
+- **Reaching the owner**: the write is the owner's as far as storage goes and reaches their open tabs
+  like any other. An editor open on the note takes it in as it does a write through the API or MCP.
+  Editing through a link is not live collaboration: the visitor saves, and does not see the owner type.
+- **What is kept**: the first edit of a sitting (thirty minutes) keeps the note as it stood in its
+  [version history](version-history.md), marked "Before an edit through a public link", and writes
+  "Note edited through a public link" to the audit log with the first characters of the link's token,
+  where the owner's own Activity page shows it. Later saves in the same sitting do neither.
+- **Limits**: on top of the limit on public link requests, an address makes at most 60 edits a minute
+  and one link takes at most 600 an hour from anywhere.
+- **Failing the same way**: an edit sent to a link that only reads, that has expired or been revoked,
+  whose note is in the trash, or without the password's proof, answers as a link that does not exist.
+
+A link that can edit lets anyone who gets hold of it change the note, so it is for a shopping list sent
+to the household, not for anything the owner would mind finding rewritten. Revoking it stops it at once.
+Not offered: editing live alongside the owner (an anonymous writer on the collaboration socket).
