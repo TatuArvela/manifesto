@@ -94,7 +94,7 @@ export function ContentPreview({
                     <span
                       class={`note-inline-markdown ${item.checked ? "line-through opacity-60" : ""}`}
                       dangerouslySetInnerHTML={{
-                        __html: renderInlineMarkdown(item.label),
+                        __html: renderInlineMarkdown(item.label, item.checked),
                       }}
                     />
                   </div>

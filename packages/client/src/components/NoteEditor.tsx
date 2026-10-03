@@ -14,6 +14,10 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import {
+  docHasDatedItems,
+  sortItemsByDateIn,
+} from "../extensions/itemDates.js";
+import {
   deleteCheckedItemsIn,
   docHasCheckedItems,
 } from "../extensions/taskListStructure.js";
@@ -21,6 +25,7 @@ import { useImageUploads } from "../hooks/useImageUploads.js";
 import { usePresence } from "../hooks/usePresence.js";
 import { t } from "../i18n/index.js";
 import { defaultEditMode, formattingToolbar } from "../state/prefs.js";
+import { hasDatedItems, sortChecklistByDate } from "../utils/itemDate.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import {
   removeCheckedItems,
@@ -75,11 +80,13 @@ interface NoteEditorProps {
   /**
    * The rows of the kebab menu. Taken as a builder rather than a list because
    * two of them belong to the document rather than to the note: whether there
-   * are checked items to delete, and how to delete them, are only knowable
-   * here, since in collab mode the shared document is the only copy that counts.
+   * are checked items to delete or dated ones to sort, and how to do either,
+   * are only knowable here, since in collab mode the shared document is the
+   * only copy that counts.
    */
   menuItems?: (editorActions: {
     checkedItems: { present: boolean; remove: () => void };
+    datedItems: { present: boolean; sort: () => void };
   }) => NoteMenuItem[];
   /** Discards an unsaved draft. Shown as a toolbar button, not a menu row. */
   onDelete?: () => void;
@@ -300,6 +307,32 @@ export function NoteEditor({
 
   const checkedItems = { present: hasCheckedItems, remove: deleteCheckedItems };
 
+  const datedItems = {
+    present: rawTextarea
+      ? hasDatedItems(rawTextarea.value)
+      : editor
+        ? editor.action((ctx) => docHasDatedItems(ctx.get(editorStateCtx).doc))
+        : false,
+    sort: () => {
+      if (rawTextarea) {
+        const value = sortChecklistByDate(rawTextarea.value);
+        const caret = Math.min(rawTextarea.selectionStart, value.length);
+        applyTextEdit(rawTextarea, {
+          value,
+          selectionStart: caret,
+          selectionEnd: caret,
+        });
+        return;
+      }
+      if (!editor) return;
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        sortItemsByDateIn(view);
+        view.focus();
+      });
+    },
+  };
+
   return (
     <article
       class={`${colors.bg} ${colors.border} note-surface note-color-transition relative z-10 sm:border sm:shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col`}
@@ -488,7 +521,7 @@ export function NoteEditor({
         onFilesSelected={handleFilesSelected}
         rawMode={rawMode}
         onToggleRawMode={() => setRawMode(!rawMode)}
-        menuItems={menuItems?.({ checkedItems }) ?? []}
+        menuItems={menuItems?.({ checkedItems, datedItems }) ?? []}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={() => editor?.action(callCommand(undoCommand.key))}
