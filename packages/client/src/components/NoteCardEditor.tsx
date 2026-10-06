@@ -4,6 +4,7 @@ import { replaceAll } from "@milkdown/kit/utils";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -76,7 +77,7 @@ export function NoteCardEditor({
   const agreementRef = useRef(agreement);
   agreementRef.current = agreement;
   const [editor, setEditor] = useState<Editor | null>(null);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [showVersions, setShowVersions] = useState(false);
   const [versionsClosing, setVersionsClosing] = useState(false);
   const versionsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -157,8 +158,10 @@ export function NoteCardEditor({
   };
   const saveAndClose = () => saveAndCloseRef.current();
 
-  // Save pending changes on unmount (e.g. backdrop click)
-  useEffect(() => {
+  // Save pending changes on unmount (e.g. backdrop click). A layout effect,
+  // so the save happens as the editor goes: an effect's cleanup waits for the
+  // paint, and a tab closed in between would lose the edit.
+  useLayoutEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       if (savedRef.current) return;
