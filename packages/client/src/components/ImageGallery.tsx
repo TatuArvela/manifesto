@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-preact";
-import { createPortal } from "preact/compat";
+import { createPortal } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";

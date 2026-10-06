@@ -9,7 +9,7 @@ import {
   type TeamShare,
 } from "@manifesto/shared";
 import { LogOut, UserPlus, Users, X } from "lucide-preact";
-import { createPortal } from "preact/compat";
+import { createPortal } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
@@ -417,7 +417,11 @@ function AddPerson({
       <div class="flex flex-wrap items-center gap-2">
         <input
           id="share-dialog-query"
-          type={mode === "search" ? "search" : "text"}
+          // Spread, not `type={a ? b : c}`: the input types are a union keyed
+          // on `type`, and a union of two of them matches no single member.
+          {...(mode === "search"
+            ? ({ type: "search" } as const)
+            : ({ type: "text" } as const))}
           autoComplete="off"
           // biome-ignore lint/a11y/noAutofocus: the dialog was opened to share
           autoFocus

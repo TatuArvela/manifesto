@@ -52,7 +52,7 @@ interface MilkdownEditorProps {
   contentLocked?: boolean | undefined;
   rawMode?: boolean;
   /** Receives the raw-mode textarea, so the toolbar can format its text. */
-  textareaRef?: RefObject<HTMLTextAreaElement>;
+  textareaRef?: RefObject<HTMLTextAreaElement | null>;
   autoFocus?: boolean;
   onEditorReady?: (editor: Editor) => void;
   collab?:

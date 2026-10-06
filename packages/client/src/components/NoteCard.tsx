@@ -282,6 +282,9 @@ export const NoteCard = memo(function NoteCard({
           // article carrying buttons rather than something to activate.
           tabIndex={cardActivates ? 0 : undefined}
           data-note-card
+          // @ts-expect-error Preact 11 types an article's role by what ARIA in
+          // HTML allows, which leaves out "button". The spec has a note as an
+          // `<article>`, so the card keeps both until that is decided.
           role={cardActivates ? "button" : undefined}
           aria-label={cardActivates ? cardLabel : undefined}
           onClick={handleClick}
