@@ -34,13 +34,13 @@
   "devDependencies": {
     "@hocuspocus/provider": "^4.7.0",
     "@types/better-sqlite3": "^9.6.0",
-    "@types/node": "^24.13.6",
+    "@types/node": "^24.19.1",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@types/ws": "^8.18.2",
     "pg-mem": "^3.0.14",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.3"
   }
 }
