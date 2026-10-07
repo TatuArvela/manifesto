@@ -19,7 +19,7 @@ function Grid({ ids }: { ids: string[] }) {
   return (
     <main
       ref={ref}
-      style={{ position: "fixed", inset: 0, overflow: "auto", padding: 50 }}
+      style={{ position: "fixed", inset: 0, overflow: "auto", padding: "50px" }}
     >
       {ids.map((id, i) => (
         <div

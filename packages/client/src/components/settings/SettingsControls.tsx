@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-preact";
-import type { ComponentChildren, JSX } from "preact";
+import type { ComponentChildren, CSSProperties, JSX } from "preact";
 import { useState } from "preact/hooks";
 import { Dropdown } from "../Dropdown.js";
 
@@ -58,7 +58,7 @@ export type SettingsOption<T extends string> = {
   /** Rendered ahead of the label, e.g. a colour swatch. */
   preview?: JSX.Element;
   /** Applied to the label, e.g. to show a font in the font it picks. */
-  labelStyle?: JSX.CSSProperties | undefined;
+  labelStyle?: CSSProperties | undefined;
 };
 
 /** The shared innards of the trigger and every menu item. */

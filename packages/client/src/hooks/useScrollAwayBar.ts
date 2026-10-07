@@ -23,8 +23,8 @@ const SHADOW = 8;
  * nothing.
  */
 export function useScrollAwayBar(
-  scroller: RefObject<HTMLElement>,
-  bar: RefObject<HTMLElement>,
+  scroller: RefObject<HTMLElement | null>,
+  bar: RefObject<HTMLElement | null>,
   enabled: boolean,
   hold: boolean,
 ): number {

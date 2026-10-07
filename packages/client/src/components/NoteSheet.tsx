@@ -1,5 +1,5 @@
 import type { ComponentChildren, RefObject } from "preact";
-import { createPortal } from "preact/compat";
+import { createPortal } from "preact";
 import { useLayoutEffect } from "preact/hooks";
 import { useBackToClose } from "../hooks/useBackToClose.js";
 import { openSheet } from "../utils/phoneSheets.js";
@@ -8,9 +8,9 @@ interface NoteSheetProps {
   /** The dialog's accessible name. */
   label: string;
   /** The focus trap's ref, which goes on the dialog. */
-  dialogRef: RefObject<HTMLDivElement>;
+  dialogRef: RefObject<HTMLDivElement | null>;
   /** The panel the note is drawn in, which a morph animates. */
-  panelRef?: RefObject<HTMLDivElement>;
+  panelRef?: RefObject<HTMLDivElement | null>;
   /** Its stacking layer: `z-50`, or `z-[70]` over another sheet. */
   layer: string;
   /** The open and close transitions, which each caller times its own way. */

@@ -66,7 +66,7 @@ function sameSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
  * container, or null when no drag is under way.
  */
 export function useMarqueeSelection(
-  containerRef: RefObject<HTMLElement>,
+  containerRef: RefObject<HTMLElement | null>,
 ): Box | null {
   const [box, setBox] = useState<Box | null>(null);
   const cancelRef = useRef<(() => void) | null>(null);

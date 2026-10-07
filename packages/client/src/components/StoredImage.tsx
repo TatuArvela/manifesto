@@ -1,5 +1,5 @@
 import { isStoredImageRef } from "@manifesto/shared";
-import type { JSX } from "preact";
+import type { PartialImgHTMLAttributes } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { attachmentObjectUrl } from "../state/attachments.js";
 
@@ -20,7 +20,10 @@ export function StoredImage({
   /** The empty box's own classes, besides the image's; the default suits a
    * gallery image, not a small icon. */
   placeholderClass?: string;
-} & Omit<JSX.ImgHTMLAttributes<HTMLImageElement>, "src" | "alt">) {
+} & Omit<
+  PartialImgHTMLAttributes<HTMLImageElement>,
+  "src" | "alt" | "role" | "title" | "aria-label" | "aria-labelledby"
+>) {
   const [resolved, setResolved] = useState<string | null>(() =>
     isStoredImageRef(src) ? null : src,
   );

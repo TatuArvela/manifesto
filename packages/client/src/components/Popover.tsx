@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { createPortal } from "preact/compat";
+import { createPortal } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { computePanelPosition, type DropdownPlacement } from "./Dropdown.js";

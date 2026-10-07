@@ -54,7 +54,7 @@ export function Tooltip({
   const idRef = useRef("");
   if (!idRef.current) idRef.current = `--tt-${++nextId}`;
   const popoverRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const cancelPending = useCallback(() => {
     if (timeoutRef.current === undefined) return;

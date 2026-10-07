@@ -36,7 +36,7 @@ export function NoteCardBody({
   isLinkOnly: boolean;
   isSquare: boolean;
   viewOnly: boolean;
-  reminderChipRef: preact.RefObject<HTMLButtonElement>;
+  reminderChipRef: preact.RefObject<HTMLButtonElement | null>;
   onToggleReminder: () => void;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);

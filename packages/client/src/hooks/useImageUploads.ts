@@ -1,5 +1,5 @@
 import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { formatFileSize, t } from "../i18n/index.js";
 import { attachImage, ImageTooLargeError } from "../state/attachments.js";
 import { showError } from "../state/ui.js";
@@ -29,7 +29,10 @@ export function useImageUploads(onAddImages: (references: string[]) => void) {
   const onAddImagesRef = useRef(onAddImages);
   onAddImagesRef.current = onAddImages;
 
-  useEffect(
+  // A layout effect: its cleanup runs as the editor unmounts. An effect's is
+  // put off until after the paint, and an upload that finished in between
+  // would land in the next draft.
+  useLayoutEffect(
     () => () => {
       for (const upload of uploadsRef.current) {
         upload.controller.abort();
