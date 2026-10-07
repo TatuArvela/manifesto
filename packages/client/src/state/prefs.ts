@@ -31,6 +31,7 @@ export type {
   NoteScale,
   NoteSize,
   SortMode,
+  TagColor,
   ThemeMode,
   ViewMode,
 } from "./prefParsers.js";
@@ -40,6 +41,7 @@ export {
   BOARD_TEXTURES,
   DARK_HUES,
   DEFAULT_BOARD_CUSTOM_COLOR,
+  MAX_TAG_COLORS,
   parsePrefs,
 } from "./prefParsers.js";
 
@@ -82,6 +84,7 @@ export const noteQuips = pref("noteQuips");
 export const formattingToolbar = pref("formattingToolbar");
 export const stickyTopBar = pref("stickyTopBar");
 export const hiddenTags = pref("hiddenTags");
+export const tagColors = pref("tagColors");
 export const confirmBeforeDelete = pref("confirmBeforeDelete");
 export const defaultEditMode = pref("defaultEditMode");
 export const boardColor = pref("boardColor");

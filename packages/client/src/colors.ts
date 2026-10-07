@@ -177,3 +177,53 @@ export const colorPickerSwatches: { value: NoteColor; swatch: string }[] = [
   { value: NoteColor.Brown, swatch: "bg-taupe-500 dark:bg-taupe-600" },
   { value: NoteColor.Gray, swatch: "bg-neutral-400 dark:bg-neutral-500" },
 ];
+
+/**
+ * A tag's chip in its colour: a step stronger than a note of the same colour,
+ * and an outline stronger again, so the chip reads on that note too.
+ */
+export const tagChipColors: Record<
+  Exclude<NoteColor, NoteColor.Default>,
+  { bg: string; ring: string }
+> = {
+  [NoteColor.Red]: {
+    bg: "bg-red-200 dark:bg-red-800",
+    ring: "ring-red-400 dark:ring-red-600",
+  },
+  [NoteColor.Orange]: {
+    bg: "bg-orange-200 dark:bg-orange-800",
+    ring: "ring-orange-400 dark:ring-orange-600",
+  },
+  [NoteColor.Yellow]: {
+    bg: "bg-yellow-200 dark:bg-yellow-800",
+    ring: "ring-yellow-400 dark:ring-yellow-600",
+  },
+  [NoteColor.Green]: {
+    bg: "bg-green-200 dark:bg-green-800",
+    ring: "ring-green-400 dark:ring-green-600",
+  },
+  [NoteColor.Teal]: {
+    bg: "bg-teal-200 dark:bg-teal-800",
+    ring: "ring-teal-400 dark:ring-teal-600",
+  },
+  [NoteColor.Blue]: {
+    bg: "bg-blue-200 dark:bg-blue-800",
+    ring: "ring-blue-400 dark:ring-blue-600",
+  },
+  [NoteColor.Purple]: {
+    bg: "bg-purple-200 dark:bg-purple-800",
+    ring: "ring-purple-400 dark:ring-purple-600",
+  },
+  [NoteColor.Pink]: {
+    bg: "bg-pink-200 dark:bg-pink-800",
+    ring: "ring-pink-400 dark:ring-pink-600",
+  },
+  [NoteColor.Brown]: {
+    bg: "bg-taupe-400 dark:bg-taupe-700",
+    ring: "ring-taupe-600 dark:ring-taupe-500",
+  },
+  [NoteColor.Gray]: {
+    bg: "bg-neutral-300 dark:bg-neutral-600",
+    ring: "ring-neutral-500 dark:ring-neutral-400",
+  },
+};
