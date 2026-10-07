@@ -31,7 +31,7 @@ import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPicker, ReminderPickerPanel } from "./ReminderPicker.js";
 import { SharedPeople } from "./SharedAvatars.js";
-import { TagDot } from "./TagDot.js";
+import { TagChip } from "./TagChip.js";
 import { TagPickerButton } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -141,11 +141,7 @@ export function NoteReadonlyView({
         {(note.tags.length > 0 || note.reminder) && (
           <div class="flex flex-wrap gap-1 mt-2 items-center">
             {note.tags.map((tag) => (
-              <span
-                key={tag}
-                class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-neutral-200/60 dark:bg-neutral-700/60"
-              >
-                <TagDot tag={tag} />#{tag}
+              <TagChip key={tag} tag={tag}>
                 <button
                   type="button"
                   class="hover:text-red-500 cursor-pointer"
@@ -158,7 +154,7 @@ export function NoteReadonlyView({
                 >
                   ×
                 </button>
-              </span>
+              </TagChip>
             ))}
             {note.reminder && (
               <span class="relative">

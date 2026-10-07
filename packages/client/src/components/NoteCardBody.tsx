@@ -9,7 +9,7 @@ import { LinkPreviewHero } from "./LinkPreviewHero.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { SharedAvatars } from "./SharedAvatars.js";
-import { TagDot } from "./TagDot.js";
+import { TagChip } from "./TagChip.js";
 
 /**
  * What a card shows of its note: the pictures, then either a link hero (for a
@@ -148,12 +148,7 @@ export function NoteCardBody({
                 />
               )}
               {note.tags.map((tag) => (
-                <span
-                  key={tag}
-                  class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-neutral-200/60 dark:bg-neutral-700/60"
-                >
-                  <TagDot tag={tag} />#{tag}
-                </span>
+                <TagChip key={tag} tag={tag} />
               ))}
               {note.sharing && (
                 <span class="ml-auto pl-1">

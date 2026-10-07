@@ -15,9 +15,9 @@ function button(label: string) {
   );
 }
 
-const dots = () =>
+const coloured = () =>
   [...host.querySelectorAll<HTMLElement>("[data-tag-color]")].map(
-    (dot) => dot.dataset.tagColor,
+    (chip) => chip.dataset.tagColor,
   );
 
 beforeEach(async () => {
@@ -41,8 +41,8 @@ afterEach(() => {
 });
 
 describe("a tag's colour in the Tags view", () => {
-  it("is picked for the selected tag and drawn as a dot on its chip", async () => {
-    expect(dots()).toEqual([]);
+  it("is picked for the selected tag and drawn on its chip", async () => {
+    expect(coloured()).toEqual([]);
 
     button(t("tags.color"))?.click();
     await vi.waitFor(() =>
@@ -50,19 +50,19 @@ describe("a tag's colour in the Tags view", () => {
     );
     button(getColorLabel(NoteColor.Red))?.click();
 
-    await vi.waitFor(() => expect(dots()).toEqual(["red"]));
+    await vi.waitFor(() => expect(coloured()).toEqual(["red"]));
     expect(tagColors.value).toEqual({ work: "red" });
   });
 
   it("is taken away with the plain swatch", async () => {
     tagColors.value = { work: NoteColor.Red };
-    await vi.waitFor(() => expect(dots()).toEqual(["red"]));
+    await vi.waitFor(() => expect(coloured()).toEqual(["red"]));
 
     button(t("tags.color"))?.click();
     await vi.waitFor(() => expect(button(t("tags.noColor"))).toBeDefined());
     button(t("tags.noColor"))?.click();
 
-    await vi.waitFor(() => expect(dots()).toEqual([]));
+    await vi.waitFor(() => expect(coloured()).toEqual([]));
     expect(tagColors.value).toEqual({});
   });
 });

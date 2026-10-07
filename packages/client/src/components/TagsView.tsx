@@ -31,7 +31,7 @@ import {
   tagsShowTrashed,
 } from "../state/index.js";
 import { Dropdown } from "./Dropdown.js";
-import { TagDot } from "./TagDot.js";
+import { tagTint } from "./TagChip.js";
 import { Tooltip } from "./Tooltip.js";
 
 const actionClass =
@@ -43,21 +43,31 @@ function Chip({
   icon: Icon,
   children,
   ariaLabel,
+  tint,
+  tagColor,
 }: {
   selected: boolean;
   onClick: () => void;
   icon?: LucideIcon;
   children: preact.ComponentChildren;
   ariaLabel?: string;
+  /** A coloured tag's own background, which it keeps while selected. */
+  tint?: string | undefined;
+  tagColor?: string | undefined;
 }) {
   return (
     <button
       type="button"
       class={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors ${
-        selected
-          ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
-          : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
+        tint
+          ? `${tint} hover:brightness-95 dark:hover:brightness-110 ${
+              selected ? "outline-2 outline-offset-1 outline-blue-500" : ""
+            }`
+          : selected
+            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
+            : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
       }`}
+      data-tag-color={tagColor}
       onClick={onClick}
       aria-pressed={selected}
       aria-label={ariaLabel}
@@ -167,6 +177,7 @@ function TagColorButton({ tag }: { tag: string }) {
 export function TagsView() {
   const tags = allTags.value;
   const counts = tagCounts.value;
+  const colors = tagColors.value;
   const hidden = new Set(hiddenTags.value);
   const selected = activeTag.value;
   const selectedHidden = selected !== null && hidden.has(selected);
@@ -205,6 +216,8 @@ export function TagsView() {
             <Chip
               key={tag}
               selected={selected === tag}
+              tint={colors[tag] && tagTint(tag)}
+              tagColor={colors[tag]}
               onClick={() => {
                 activeTag.value = tag;
                 setRenaming(false);
@@ -218,7 +231,6 @@ export function TagsView() {
               {isHidden && (
                 <EyeOff class="w-3.5 h-3.5 opacity-60" aria-hidden="true" />
               )}
-              <TagDot tag={tag} />
               <span class={isHidden ? "opacity-70" : undefined}>#{tag}</span>
               <span class="text-xs tabular-nums opacity-60">{count}</span>
             </Chip>

@@ -43,7 +43,7 @@ import { PendingUploads } from "./PendingUploads.js";
 import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
 import { ReminderPickerPanel } from "./ReminderPicker.js";
-import { TagDot } from "./TagDot.js";
+import { TagChip } from "./TagChip.js";
 import { Tooltip } from "./Tooltip.js";
 
 interface NoteEditorProps {
@@ -462,11 +462,7 @@ export function NoteEditor({
         {(tags.length > 0 || reminder) && (
           <div class="flex flex-wrap gap-1 mt-2 items-center">
             {tags.map((tag) => (
-              <span
-                key={tag}
-                class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-neutral-200/60 dark:bg-neutral-700/60"
-              >
-                <TagDot tag={tag} />#{tag}
+              <TagChip key={tag} tag={tag}>
                 <button
                   type="button"
                   class="hover:text-red-500 cursor-pointer"
@@ -475,7 +471,7 @@ export function NoteEditor({
                 >
                   ×
                 </button>
-              </span>
+              </TagChip>
             ))}
             {reminder && (
               <span class="relative">
