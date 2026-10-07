@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
+import { findItemDate, itemDateClass, localIsoDate } from "./itemDate.js";
 
 /**
  * What a rendered note is allowed to contain. Everything markdown produces,
@@ -82,6 +83,94 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 });
 
 /**
+ * What is being rendered, which decides where a date token becomes a chip
+ * (see `itemDate.ts`): in a whole document only inside a task list item, in
+ * the label of a checklist item anywhere, since the caller has already taken
+ * the box off it and says here whether it was ticked.
+ */
+type RenderMode = "document" | "openItem" | "doneItem";
+
+/** As much of a hast node as the chip pass reads and writes. */
+interface HtmlNode {
+  type: string;
+  tagName?: string;
+  value?: string;
+  properties?: Record<string, unknown>;
+  children?: HtmlNode[];
+}
+
+/** The item a text node belongs to; null where a token stays plain text. */
+type ItemContext = { checked: boolean; dated: boolean } | null;
+
+function isTicked(item: HtmlNode): boolean {
+  // The box is the item's first child, or the first child of its paragraph
+  // when the list is spread.
+  const [first] = item.children ?? [];
+  const box = first?.tagName === "p" ? first.children?.[0] : first;
+  return box?.tagName === "input" && box.properties?.checked === true;
+}
+
+function chipDates(node: HtmlNode, item: ItemContext, today: string): void {
+  const children = node.children;
+  if (!children) return;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (!child) continue;
+    if (child.type === "text") {
+      // One chip an item: a second date in the same text is just text.
+      const found =
+        item && !item.dated ? findItemDate(child.value ?? "") : null;
+      if (!item || !found) continue;
+      item.dated = true;
+      const text = child.value ?? "";
+      children.splice(
+        i,
+        1,
+        { type: "text", value: text.slice(0, found.start) },
+        {
+          type: "element",
+          tagName: "span",
+          properties: {
+            className: itemDateClass(found.date, item.checked, today),
+          },
+          children: [
+            { type: "text", value: text.slice(found.start, found.end) },
+          ],
+        },
+        { type: "text", value: text.slice(found.end) },
+      );
+      i += 2;
+      continue;
+    }
+    if (child.tagName === "code" || child.tagName === "pre") continue;
+    if (child.tagName === "li") {
+      const classes = child.properties?.className;
+      const isTask =
+        Array.isArray(classes) && classes.includes("task-list-item");
+      chipDates(
+        child,
+        isTask ? { checked: isTicked(child), dated: false } : null,
+        today,
+      );
+      continue;
+    }
+    chipDates(child, item, today);
+  }
+}
+
+function itemDateChips(mode: RenderMode) {
+  return () => (tree: HtmlNode) => {
+    chipDates(
+      tree,
+      mode === "document"
+        ? null
+        : { checked: mode === "doneItem", dated: false },
+      localIsoDate(new Date()),
+    );
+  };
+}
+
+/**
  * `allowDangerousHtml` is what lets `<u>`, `<sub>` and `<sup>` survive.
  * Without it `remark-rehype` drops every raw HTML node before DOMPurify is
  * ever asked, so the three tags our own formatting toolbar writes vanished
@@ -91,12 +180,21 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
  * now reaches the sanitizer, which is the boundary that was always meant to
  * decide this. Nothing outside `ALLOWED_TAGS` / `ALLOWED_ATTR` gets through.
  */
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkBreaks)
-  .use(remarkRehype, { allowDangerousHtml: true })
-  .use(rehypeStringify, { allowDangerousHtml: true });
+function makeProcessor(mode: RenderMode) {
+  return unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkBreaks)
+    .use(remarkRehype, { allowDangerousHtml: true })
+    .use(itemDateChips(mode))
+    .use(rehypeStringify, { allowDangerousHtml: true });
+}
+
+const processors = {
+  document: makeProcessor("document"),
+  openItem: makeProcessor("openItem"),
+  doneItem: makeProcessor("doneItem"),
+};
 
 /**
  * Rendered HTML by source, most recently used last.
@@ -120,17 +218,26 @@ const renderCache = new Map<string, string>();
  * forget the allowlist, and nothing said so.
  */
 export function renderMarkdown(md: string): string {
-  const cached = renderCache.get(md);
+  return render(md, "document");
+}
+
+function render(md: string, mode: RenderMode): string {
+  // Only text that could hold a date token depends on the mode, and on the
+  // day: a chip turns overdue at midnight with no change to its source.
+  const key = md.includes("@")
+    ? `${mode} ${localIsoDate(new Date())}\n${md}`
+    : md;
+  const cached = renderCache.get(key);
   if (cached !== undefined) {
-    renderCache.delete(md);
-    renderCache.set(md, cached);
+    renderCache.delete(key);
+    renderCache.set(key, cached);
     return cached;
   }
   const html = DOMPurify.sanitize(
-    String(processor.processSync(md)),
+    String(processors[mode].processSync(md)),
     PURIFY_CONFIG,
   );
-  renderCache.set(md, html);
+  renderCache.set(key, html);
   if (renderCache.size > RENDER_CACHE_SIZE) {
     renderCache.delete(renderCache.keys().next().value as string);
   }
@@ -144,10 +251,14 @@ export function renderMarkdown(md: string): string {
  * label that really does contain a list is better ugly than swallowed.
  *
  * Checklist labels go through this so `**milk**` in an item renders bold, as
- * the same text does outside the list.
+ * the same text does outside the list. `checked` says the fragment is such a
+ * label, and whether its box is ticked, so a date in it is drawn as a chip.
  */
-export function renderInlineMarkdown(md: string): string {
-  const html = renderMarkdown(md).trim();
+export function renderInlineMarkdown(md: string, checked?: boolean): string {
+  const html = render(
+    md,
+    checked === undefined ? "document" : checked ? "doneItem" : "openItem",
+  ).trim();
   const inner = /^<p>([\s\S]*)<\/p>$/.exec(html)?.[1];
   if (inner === undefined || inner.includes("<p>")) return html;
   return inner;

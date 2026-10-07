@@ -11,6 +11,7 @@ import {
   leavingNotes,
   permanentlyDeleteNote,
   restoreNote,
+  sortItemsByDate,
   toggleCheckbox,
   togglePin,
   trashNote,
@@ -273,6 +274,16 @@ describe("state actions", () => {
     expect(notes.value[0]?.content).toBe("- [x] A\n- [x] B");
     await toggleCheckbox(note.id, 1);
     expect(notes.value[0]?.content).toBe("- [x] A\n- [ ] B");
+  });
+
+  it("sortItemsByDate puts a note's checklist in date order", async () => {
+    const note = await createNoteOrFail({
+      content: "- [ ] later @2026-12-01\n- [ ] none\n- [x] sooner @2026-10-02",
+    });
+    await sortItemsByDate(note.id);
+    expect(notes.value[0]?.content).toBe(
+      "- [x] sooner @2026-10-02\n- [ ] later @2026-12-01\n- [ ] none",
+    );
   });
 
   it("toggleCheckbox cascades to nested descendants", async () => {

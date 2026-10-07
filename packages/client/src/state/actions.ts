@@ -1,5 +1,6 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import { signal } from "@preact/signals";
+import { sortChecklistByDate } from "../utils/itemDate.js";
 import { removeCheckedItems, toggleChecklistItem } from "../utils/markdown.js";
 import { asBatch, type Batch } from "./failures.js";
 import { allNotes, deleteNote, notes, updateNote } from "./notesStore.js";
@@ -402,6 +403,14 @@ export async function deleteCheckedItems(id: string) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
   const next = removeCheckedItems(note.content);
+  if (next === note.content) return;
+  await updateNote(id, { content: next });
+}
+
+export async function sortItemsByDate(id: string) {
+  const note = notes.value.find((n) => n.id === id);
+  if (!note) return;
+  const next = sortChecklistByDate(note.content);
   if (next === note.content) return;
   await updateNote(id, { content: next });
 }

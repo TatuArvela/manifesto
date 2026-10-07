@@ -1,6 +1,12 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import { getColorPickerColors } from "../i18n/index.js";
-import { addTag, deleteCheckedItems, updateNote } from "../state/index.js";
+import {
+  addTag,
+  deleteCheckedItems,
+  sortItemsByDate,
+  updateNote,
+} from "../state/index.js";
+import { hasDatedItems } from "../utils/itemDate.js";
 import { hasCheckedItems } from "../utils/markdown.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { CardPopover } from "./Popover.js";
@@ -67,6 +73,10 @@ function CardMenu({
             checkedItems: {
               present: hasCheckedItems(note.content),
               remove: () => deleteCheckedItems(note.id),
+            },
+            datedItems: {
+              present: hasDatedItems(note.content),
+              sort: () => sortItemsByDate(note.id),
             },
           })}
           onClose={onClose}
