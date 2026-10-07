@@ -130,6 +130,7 @@ jobs:
   merge:
     needs: build
     runs-on: ubuntu-latest
+    environment: image-publish
     permissions:
       packages: write
       # The OIDC token cosign trades for a short-lived signing certificate.
