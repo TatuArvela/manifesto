@@ -1,7 +1,8 @@
-import { Tag } from "lucide-preact";
+import { Square, SquareCheck, SquareMinus, Tag } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
 import { allTags } from "../state/index.js";
+import { tagCoverage } from "../utils/tagCoverage.js";
 import { Dropdown, type DropdownPlacement } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -10,8 +11,54 @@ export const tagPickerPanelClass =
   "py-1 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[180px] max-w-72";
 
 /**
+ * The field a tag is typed into. Calls back with the trimmed, lowercased tag,
+ * which is the one place a tag is normalized.
+ */
+function TagField({
+  onAddTag,
+  autoFocus,
+}: {
+  onAddTag: (tag: string) => void;
+  autoFocus?: boolean | undefined;
+}) {
+  const [newTag, setNewTag] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
+
+  const handleAdd = () => {
+    const trimmed = newTag.trim().toLowerCase();
+    if (trimmed) {
+      onAddTag(trimmed);
+    }
+    setNewTag("");
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      class="w-full px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base bg-neutral-100 dark:bg-neutral-700 rounded outline-none mb-1"
+      placeholder={t("tagPicker.placeholder")}
+      value={newTag}
+      onInput={(e) => setNewTag((e.target as HTMLInputElement).value)}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") handleAdd();
+        if (e.key === "Escape") setNewTag("");
+      }}
+    />
+  );
+}
+
+const tagRowClass =
+  "w-full text-left px-2 py-1 text-sm rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer";
+
+/**
  * Inline tag picker with a text input and list of existing tags.
- * Used in the selection toolbar, on the card, and in the note editor.
+ * Used on the card and in the note editor.
  */
 export function TagPicker({
   tags,
@@ -25,48 +72,66 @@ export function TagPicker({
   /** Puts the caret in the field as the picker opens. */
   autoFocus?: boolean;
 }) {
-  const [newTag, setNewTag] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (autoFocus) inputRef.current?.focus();
-  }, [autoFocus]);
-
-  const handleAdd = (tag: string) => {
-    const trimmed = tag.trim().toLowerCase();
-    if (trimmed) {
-      onAddTag(trimmed);
-    }
-    setNewTag("");
-  };
-
   return (
     <div class="px-3 py-2">
-      <input
-        ref={inputRef}
-        type="text"
-        class="w-full px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base bg-neutral-100 dark:bg-neutral-700 rounded outline-none mb-1"
-        placeholder={t("tagPicker.placeholder")}
-        value={newTag}
-        onInput={(e) => setNewTag((e.target as HTMLInputElement).value)}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (e.key === "Enter") handleAdd(newTag);
-          if (e.key === "Escape") setNewTag("");
-        }}
-      />
+      <TagField onAddTag={onAddTag} autoFocus={autoFocus} />
       {allTags.value
         .filter((existing) => !tags.includes(existing))
         .map((tag) => (
           <button
             key={tag}
             type="button"
-            class="block w-full text-left px-2 py-1 text-sm rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-            onClick={() => handleAdd(tag)}
+            class={`block ${tagRowClass}`}
+            onClick={() => onAddTag(tag)}
           >
             #{tag}
           </button>
         ))}
+    </div>
+  );
+}
+
+const coverageIcon = { all: SquareCheck, some: SquareMinus, none: Square };
+
+/**
+ * The tag picker of a selection: every tag is listed with a box saying whether
+ * all, some or none of the selected notes carry it. A tag they all carry is
+ * taken from them on click; any other is given to those still missing it.
+ */
+export function SelectionTagPicker({
+  selected,
+  onSetTag,
+}: {
+  selected: { tags: string[] }[];
+  /** Called with a normalized tag, and whether the selection is to carry it. */
+  onSetTag: (tag: string, on: boolean) => void;
+}) {
+  return (
+    <div class="px-3 py-2">
+      <TagField onAddTag={(tag) => onSetTag(tag, true)} autoFocus />
+      {tagCoverage(allTags.value, selected).map(({ tag, coverage }) => {
+        const Icon = coverageIcon[coverage];
+        return (
+          // biome-ignore lint/a11y/useSemanticElements: a native checkbox has no "mixed" state without script
+          <button
+            key={tag}
+            type="button"
+            role="checkbox"
+            aria-checked={
+              coverage === "all"
+                ? "true"
+                : coverage === "some"
+                  ? "mixed"
+                  : "false"
+            }
+            class={`flex items-center gap-2 ${tagRowClass}`}
+            onClick={() => onSetTag(tag, coverage !== "all")}
+          >
+            <Icon class="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span class="truncate">#{tag}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
