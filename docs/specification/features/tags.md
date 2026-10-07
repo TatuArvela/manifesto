@@ -14,6 +14,23 @@ Notes can be organized with tags. A note can have zero or more tags.
   - **Rename**: renames the tag on every note, normalized as the tag picker does it (trimmed, lowercased). Renaming onto a tag a note already has merges the two. A hidden tag stays hidden under its new name, and a coloured tag keeps its colour, unless the tag it merges into has one of its own
   - **Delete**: after a confirmation, removes the tag from every note, stops hiding it and forgets its colour
 
+## Nested Tags
+
+A `/` in a tag makes it a path: `work/clients/acme` sits under `work/clients`, which sits under `work`. Nothing else about a tag changes. It is still one string on the note, a note can carry any number of them from any part of the tree, and a tag written before nesting that happens to hold a `/` is now nested.
+
+- A tag is normalized as before (trimmed, lowercased), and each part of its path is trimmed and empty parts are dropped, so `Work / Clients/` is `work/clients`
+- A tag that exists only as the start of another is a tag all the same: with one note tagged `work/clients`, `work` is listed, can be opened, hidden, coloured, renamed and deleted, and is offered in the tag picker
+- **Tags view**: a tree, one tag to a line with its count, as a sidebar of the Tags view from the tablet width up: a pane of the shell beside the navigation rail, full height, with the board and its notes starting after it. It slides out from the rail as the view opens. On a phone it is the same tree on the same surface, as a band across the top of the notes that scrolls away with them, its tree scrolling by itself past a little under half the screen. A tag with tags under it has a chevron that opens and closes them, indented beneath it; choosing a tag opens it and every tag on the way to it, so a link to a nested tag shows where it is. A top-level tag shows whole (`#work`), the ones below only their last part (`clients`). Every tag is a chip, in its colour if it has one, and the chosen tag is marked by its line, so a chosen tag and a blue one do not look alike. The actions on the chosen tag follow the tree as a list, one to a line
+- **Filtering and counts**: a tag's notes are those carrying it and those carrying any tag under it, each counted once
+- **Hide from Notes** covers the tags under the hidden one. A tag hidden through one above it says which, and is shown again from there
+- **Color**: a tag without a colour of its own takes that of the nearest tag above it that has one
+- **Rename** moves the tags under the renamed one with it (`work` to `job` makes `work/clients` into `job/clients`), together with whether each is hidden and its colour. Renaming to a path moves a tag elsewhere in the tree (`workshop` to `work/shop`)
+- **Delete** removes the tag and every tag under it from all notes, and the confirmation says so
+- **Address**: a nested tag's page is `/tags/work/clients/acme`, each part encoded by itself. A link that holds the whole tag in one part (`/tags/work%2Fclients`) opens the same tag
+- **MCP**: `list_notes` with a tag returns the notes under it, nested ones included. `list_tags` lists the tags as they are written on the notes
+
+Nested tags are not folders (see [Non-goals](../non-goals.md)): a note is not filed in one place, and the tree is only a way of reading tag names.
+
 ## Server Mode
 
 Tags are per-user: each user has their own tag namespace. Renaming or deleting a tag affects all of that user's notes with that tag.

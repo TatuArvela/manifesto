@@ -99,7 +99,7 @@ wherever they keep skills.
 | Tool | Does | Writes |
 |---|---|---|
 | `search_notes` | Notes whose title or content contains a query, newest first, paged | |
-| `list_notes` | A page of notes, most recently changed first, by view (active, archived, trashed, all) and tag | |
+| `list_notes` | A page of notes, most recently changed first, by view (active, archived, trashed, all) and tag, nested tags under it included | |
 | `get_note` | One note in full | |
 | `list_tags` | Every tag outside the trash, with how many notes carry it | |
 | `create_note` | A note at the top of the board: Markdown content, optional title, colour, tags, pin | yes |

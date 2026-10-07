@@ -3,6 +3,7 @@ import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useBoardShortcuts } from "../hooks/useBoardShortcuts.js";
 import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
+import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
@@ -256,6 +257,12 @@ function MainApp() {
   const isAutoNotesView = activeView.value === "autoNotes";
   const isActive = activeView.value === "active";
   const isList = viewMode.value === "list";
+  // Where there is room for a column the tag tree is a sidebar; on a phone it
+  // is a block above the notes, inside what scrolls.
+  const wide = useMediaQuery("(min-width: 768px)");
+  const tagsPane = isTagsView && wide;
+  const tagsSurface =
+    "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800";
 
   return (
     <>
@@ -275,6 +282,22 @@ function MainApp() {
         </div>
         <div class="flex flex-1 overflow-hidden relative z-0">
           <Sidebar />
+          {tagsPane && (
+            // The tag tree as a sidebar of the Tags view: part of the shell
+            // like the rail beside it, so the board and its notes start
+            // after it and scroll without it. The outer box holds its place
+            // and clips the pane as it slides in.
+            <aside
+              class="w-72 shrink-0 overflow-hidden z-[4]"
+              aria-label={t("nav.tags")}
+            >
+              <div
+                class={`tags-pane h-full overflow-y-auto ${tagsSurface} border-x`}
+              >
+                <TagsView pane />
+              </div>
+            </aside>
+          )}
           <main
             ref={mainRef}
             class={`board flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
@@ -301,17 +324,25 @@ function MainApp() {
                 </>
               )
             ) : isTagsView ? (
-              isList ? (
-                <div class="max-w-xl mx-auto">
-                  <TagsView />
+              <>
+                {!tagsPane && (
+                  // On a phone the same tree on the same surface, as a band
+                  // across the top of what scrolls: out to the edges, so it
+                  // reads as the shell and not as a card on the board.
+                  <div
+                    class={`-mx-4 -mt-2 mb-4 ${tagsSurface} border-b shadow-sm`}
+                  >
+                    <TagsView />
+                  </div>
+                )}
+                {isList ? (
+                  <div class="max-w-xl mx-auto">
+                    <NoteGrid />
+                  </div>
+                ) : (
                   <NoteGrid />
-                </div>
-              ) : (
-                <>
-                  <TagsView />
-                  <NoteGrid />
-                </>
-              )
+                )}
+              </>
             ) : isAutoNotesView ? (
               isList ? (
                 <div class="max-w-xl mx-auto">

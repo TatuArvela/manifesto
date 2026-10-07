@@ -1,8 +1,8 @@
 import { NoteColor } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getColorLabel, t } from "../i18n/index.js";
-import { activeTag, notes, tagColors } from "../state/index.js";
+import { getColorLabel, plural, t } from "../i18n/index.js";
+import { activeTag, hiddenTags, notes, tagColors } from "../state/index.js";
 import { createNoteOrFail } from "../test/testSupport.js";
 import { TagsView } from "./TagsView.js";
 import "../styles.css";
@@ -38,6 +38,69 @@ afterEach(() => {
   tagColors.value = {};
   notes.value = [];
   localStorage.clear();
+});
+
+describe("nested tags in the Tags view", () => {
+  // Each open tag with the tags directly under it, outermost first.
+  const groups = () =>
+    [...host.querySelectorAll<HTMLElement>("[data-tags-under]")].map(
+      (group) => [
+        group.getAttribute("aria-label"),
+        [
+          ...group.querySelectorAll(":scope > li > div > button[aria-pressed]"),
+        ].map((row) => row.getAttribute("aria-label")?.split(",")[0]),
+      ],
+    );
+
+  it("opens the tags under the selected tag and under each tag on the way to it", async () => {
+    await createNoteOrFail({ title: "B", tags: ["work/clients/acme"] });
+    await createNoteOrFail({ title: "C", tags: ["work/admin"] });
+    await vi.waitFor(() =>
+      expect(groups()).toEqual([
+        [t("tags.under", { tag: "work" }), ["#work/admin", "#work/clients"]],
+      ]),
+    );
+
+    button(`#work/clients, ${plural("tags.noteCount", 1)}`)?.click();
+
+    await vi.waitFor(() =>
+      expect(groups()).toEqual([
+        [t("tags.under", { tag: "work" }), ["#work/admin", "#work/clients"]],
+        [t("tags.under", { tag: "work/clients" }), ["#work/clients/acme"]],
+      ]),
+    );
+    expect(activeTag.value).toBe("work/clients");
+    // Only a top-level tag shows whole.
+    expect(host.textContent).toContain("#work");
+    expect(host.textContent).not.toContain("#work/clients");
+  });
+
+  it("closes and opens a tag with its chevron, leaving the selection alone", async () => {
+    await createNoteOrFail({ title: "B", tags: ["work/clients"] });
+    await vi.waitFor(() => expect(groups()).toHaveLength(1));
+
+    button(t("tags.collapse", { tag: "work" }))?.click();
+    await vi.waitFor(() => expect(groups()).toEqual([]));
+    expect(activeTag.value).toBe("work");
+
+    button(t("tags.expand", { tag: "work" }))?.click();
+    await vi.waitFor(() => expect(groups()).toHaveLength(1));
+  });
+
+  it("says which tag above hides a tag, in place of a button that could not show it", async () => {
+    await createNoteOrFail({ title: "B", tags: ["work/clients"] });
+    hiddenTags.value = ["work"];
+    activeTag.value = "work/clients";
+
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(
+        t("tags.hiddenByParent", { tag: "work/clients", parent: "work" }),
+      ),
+    );
+    expect(button(t("tags.showInNotes"))).toBeUndefined();
+    expect(button(t("tags.hideFromNotes"))).toBeUndefined();
+    hiddenTags.value = [];
+  });
 });
 
 describe("a tag's colour in the Tags view", () => {

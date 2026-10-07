@@ -59,3 +59,19 @@ body {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
+
+/* The Tags view's sidebar comes out from the rail as the view opens. Entry
+   only: leaving the view replaces the whole board at once, and a pane kept on
+   screen for its exit would stand beside a view it has nothing to do with. */
+@keyframes tags-pane-in {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+.tags-pane {
+  animation: tags-pane-in 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}

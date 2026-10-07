@@ -76,7 +76,7 @@ App
 │   └── Trash
 ├── NoteInput              ("Take a note…" bar)
 ├── InvitationList         (notes offered by other accounts, Notes view, connected mode)
-├── TagsView               (tag chip list with counts)
+├── TagsView               (tag tree with counts)
 ├── NoteGrid
 │   └── NoteCard[]         (pinned + unpinned sections, drag-to-reorder)
 ├── NoteCardEditor         (modal overlay over a note)
@@ -181,7 +181,7 @@ View navigation is backed by `location.pathname` so views are bookmarkable and t
 |----------------------------|------------------------|
 | `/`                        | Notes (active)         |
 | `/tags`                    | Tags: all             |
-| `/tags/<encoded-tag>`      | Tags: filtered by tag |
+| `/tags/<tag>`              | Tags: filtered by tag; a nested tag is a path (`/tags/work/clients`), each part encoded |
 | `/reminders`               | Reminders              |
 | `/archived`                | Archive                |
 | `/trash`                   | Trash                  |

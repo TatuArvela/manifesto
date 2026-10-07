@@ -31,6 +31,21 @@ describe("parsePath", () => {
     });
   });
 
+  it("parses a nested tag as a path of its own", () => {
+    expect(parsePath("/tags/work/clients/big%20one")).toEqual({
+      view: "tags",
+      tag: "work/clients/big one",
+    });
+    expect(parsePath("/tags/work/")).toEqual({ view: "tags", tag: "work" });
+  });
+
+  it("still reads a link that held a nested tag in one encoded part", () => {
+    expect(parsePath("/tags/work%2Fclients")).toEqual({
+      view: "tags",
+      tag: "work/clients",
+    });
+  });
+
   it("returns null for unrecognized paths", () => {
     expect(parsePath("/bogus")).toBeNull();
   });
@@ -51,6 +66,12 @@ describe("buildPath", () => {
 
   it("serializes a selected tag", () => {
     expect(buildPath({ view: "tags", tag: "work" })).toBe("/tags/work");
+  });
+
+  it("serializes a nested tag part by part", () => {
+    expect(buildPath({ view: "tags", tag: "work/clients/big one" })).toBe(
+      "/tags/work/clients/big%20one",
+    );
   });
 
   it("URL-encodes the tag name", () => {

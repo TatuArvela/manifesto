@@ -1,3 +1,4 @@
+import { normalizeTag } from "@manifesto/shared";
 import { Square, SquareCheck, SquareMinus, Tag } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
@@ -29,7 +30,7 @@ function TagField({
   }, [autoFocus]);
 
   const handleAdd = () => {
-    const trimmed = newTag.trim().toLowerCase();
+    const trimmed = normalizeTag(newTag);
     if (trimmed) {
       onAddTag(trimmed);
     }
