@@ -41,17 +41,18 @@ afterEach(() => {
 });
 
 describe("nested tags in the Tags view", () => {
+  // Each open tag with the tags directly under it, outermost first.
   const groups = () =>
     [...host.querySelectorAll<HTMLElement>("[data-tags-under]")].map(
       (group) => [
         group.getAttribute("aria-label"),
-        [...group.querySelectorAll("button")].map(
-          (chip) => chip.getAttribute("aria-label")?.split(",")[0],
-        ),
+        [
+          ...group.querySelectorAll(":scope > li > div > button[aria-pressed]"),
+        ].map((row) => row.getAttribute("aria-label")?.split(",")[0]),
       ],
     );
 
-  it("opens a row of the tags under each tag on the way to the selected one", async () => {
+  it("opens the tags under the selected tag and under each tag on the way to it", async () => {
     await createNoteOrFail({ title: "B", tags: ["work/clients/acme"] });
     await createNoteOrFail({ title: "C", tags: ["work/admin"] });
     await vi.waitFor(() =>
@@ -69,9 +70,21 @@ describe("nested tags in the Tags view", () => {
       ]),
     );
     expect(activeTag.value).toBe("work/clients");
-    // Only the top row shows the whole tag.
+    // Only a top-level tag shows whole.
     expect(host.textContent).toContain("#work");
     expect(host.textContent).not.toContain("#work/clients");
+  });
+
+  it("closes and opens a tag with its chevron, leaving the selection alone", async () => {
+    await createNoteOrFail({ title: "B", tags: ["work/clients"] });
+    await vi.waitFor(() => expect(groups()).toHaveLength(1));
+
+    button(t("tags.collapse", { tag: "work" }))?.click();
+    await vi.waitFor(() => expect(groups()).toEqual([]));
+    expect(activeTag.value).toBe("work");
+
+    button(t("tags.expand", { tag: "work" }))?.click();
+    await vi.waitFor(() => expect(groups()).toHaveLength(1));
   });
 
   it("says which tag above hides a tag, in place of a button that could not show it", async () => {

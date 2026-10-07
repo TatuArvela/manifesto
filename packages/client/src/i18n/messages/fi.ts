@@ -229,6 +229,8 @@ export const fi: Messages = {
   "tags.removeConfirmNested":
     "Poistetaanko #{tag} ja kaikki sen alatunnisteet kaikista muistiinpanoista?",
   "tags.under": "Tunnisteen #{tag} alatunnisteet",
+  "tags.expand": "Laajenna #{tag}",
+  "tags.collapse": "Supista #{tag}",
   "tags.confirmDelete": "Poista",
   "tags.color": "Väri",
   "tags.noColor": "Ei väriä",

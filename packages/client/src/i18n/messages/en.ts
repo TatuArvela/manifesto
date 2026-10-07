@@ -225,6 +225,8 @@ export const en = {
   "tags.removeConfirmNested":
     "Remove #{tag} and every tag under it from all notes?",
   "tags.under": "Tags under #{tag}",
+  "tags.expand": "Expand #{tag}",
+  "tags.collapse": "Collapse #{tag}",
   "tags.confirmDelete": "Delete",
   "tags.color": "Color",
   "tags.noColor": "No color",

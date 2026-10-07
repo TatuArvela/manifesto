@@ -7,7 +7,7 @@ import {
 import type { LucideIcon } from "lucide-preact";
 import {
   Archive,
-  CornerDownRight,
+  ChevronRight,
   Eye,
   EyeOff,
   Palette,
@@ -43,49 +43,33 @@ import { Dropdown } from "./Dropdown.js";
 import { tagTint } from "./TagChip.js";
 import { Tooltip } from "./Tooltip.js";
 
+// The actions on the selected tag are a list under the tree, flat so they are
+// not taken for more tags.
 const actionClass =
-  "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600";
+  "flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left rounded-lg cursor-pointer transition-colors text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800";
 
+/** A filter of the view: which of the notes of a tag are shown. */
 function Chip({
   selected,
-  open = false,
   onClick,
   icon: Icon,
   children,
   ariaLabel,
-  tint,
-  tagColor,
 }: {
   selected: boolean;
-  /** On the way to the selected tag: one of the tags above it. */
-  open?: boolean;
   onClick: () => void;
   icon?: LucideIcon;
   children: preact.ComponentChildren;
   ariaLabel?: string;
-  /** A coloured tag's own background, which it keeps while selected. */
-  tint?: string | undefined;
-  tagColor?: string | undefined;
 }) {
   return (
     <button
       type="button"
       class={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full cursor-pointer transition-colors ${
-        tint
-          ? `${tint} hover:brightness-95 dark:hover:brightness-110 ${
-              selected
-                ? "outline-2 outline-offset-1 outline-blue-500"
-                : open
-                  ? "outline-1 outline-offset-1 outline-blue-400"
-                  : ""
-            }`
-          : selected
-            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
-            : open
-              ? "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 ring-1 ring-blue-400"
-              : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
+        selected
+          ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400"
+          : "bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600"
       }`}
-      data-tag-color={tagColor}
       onClick={onClick}
       aria-pressed={selected}
       aria-label={ariaLabel}
@@ -95,6 +79,17 @@ function Chip({
     </button>
   );
 }
+
+// Every tag of the tree is a chip, as it is on a note: an uncoloured one in
+// this, a coloured one in its colour.
+const plainChip = "bg-neutral-200/70 dark:bg-neutral-600/60";
+
+const rowClass = (selected: boolean) =>
+  `flex items-center rounded-lg ${
+    selected
+      ? "bg-neutral-100 dark:bg-neutral-700/70 font-medium"
+      : "hover:bg-neutral-50 dark:hover:bg-neutral-700/30"
+  }`;
 
 /**
  * Renames the selected tag on every note. Normalized the way the tag picker
@@ -137,7 +132,11 @@ function RenameTagForm({ tag, onDone }: { tag: string; onDone: () => void }) {
       >
         {t("tags.renameSubmit")}
       </button>
-      <button type="button" class={actionClass} onClick={onDone}>
+      <button
+        type="button"
+        class="px-3 py-1.5 text-sm rounded-lg cursor-pointer text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        onClick={onDone}
+      >
         {t("tags.cancel")}
       </button>
     </form>
@@ -192,44 +191,107 @@ function TagColorButton({ tag }: { tag: string }) {
   );
 }
 
-/** One tag in a row of the tree, with its count and what marks it. */
-function TreeChip({
+/**
+ * One tag of the tree on a line of its own, and under it, while it is open,
+ * the tags directly beneath. The line is what is selected; the tag's colour is
+ * on its name alone, so a selected tag and a blue one are not alike.
+ */
+function TagNode({
   tag,
   depth,
+  isOpen,
+  onToggle,
   onSelect,
 }: {
   tag: string;
-  /** 0 for the top row, which shows the whole tag; below it, the last part. */
+  /** 0 for a top-level tag, which shows whole; below it, the last part. */
   depth: number;
-  onSelect: () => void;
+  isOpen: (tag: string) => boolean;
+  onToggle: (tag: string) => void;
+  onSelect: (tag: string) => void;
 }) {
-  const selected = activeTag.value;
   const count = tagCounts.value.get(tag) ?? 0;
   const isHidden = hiddenThrough(tag) !== null;
   const color = tagColorOf(tag);
+  const children = childTags(tag);
+  const open = children.length > 0 && isOpen(tag);
   return (
-    <Chip
-      selected={selected === tag}
-      tint={color && tagTint(tag)}
-      tagColor={color}
-      open={selected !== null && tagLineage(selected).includes(tag)}
-      onClick={onSelect}
-      ariaLabel={[
-        `#${tag}`,
-        plural("tags.noteCount", count),
-        ...(isHidden ? [t("tags.hidden")] : []),
-      ].join(", ")}
-    >
-      {isHidden && <EyeOff class="w-3.5 h-3.5 opacity-60" aria-hidden="true" />}
-      <span class={isHidden ? "opacity-70" : undefined}>
-        {depth === 0 ? `#${tag}` : tagLeaf(tag)}
-      </span>
-      <span class="text-xs tabular-nums opacity-60">{count}</span>
-    </Chip>
+    <li>
+      <div
+        class={rowClass(activeTag.value === tag)}
+        style={{ paddingLeft: `${Math.min(depth, 6) * 1.5}rem` }}
+      >
+        {children.length > 0 ? (
+          <button
+            type="button"
+            class="w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-md cursor-pointer opacity-60 hover:opacity-100"
+            aria-expanded={open}
+            aria-label={t(open ? "tags.collapse" : "tags.expand", { tag })}
+            onClick={() => onToggle(tag)}
+          >
+            <ChevronRight
+              class={`w-4 h-4 transition-transform ${open ? "rotate-90" : ""}`}
+            />
+          </button>
+        ) : (
+          <span class="w-7 shrink-0" aria-hidden="true" />
+        )}
+        <button
+          type="button"
+          class="flex-1 min-w-0 flex items-center py-1 pr-2 text-sm text-left cursor-pointer"
+          data-tag-color={color}
+          aria-pressed={activeTag.value === tag}
+          aria-label={[
+            `#${tag}`,
+            plural("tags.noteCount", count),
+            ...(isHidden ? [t("tags.hidden")] : []),
+          ].join(", ")}
+          onClick={() => onSelect(tag)}
+        >
+          <span
+            class={`min-w-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full ${tagTint(tag, plainChip)} ${isHidden ? "opacity-70" : ""}`}
+          >
+            {isHidden && (
+              <EyeOff
+                class="w-3.5 h-3.5 shrink-0 opacity-70"
+                aria-hidden="true"
+              />
+            )}
+            <span class="truncate">
+              {depth === 0 ? `#${tag}` : tagLeaf(tag)}
+            </span>
+            <span class="text-xs tabular-nums opacity-60">{count}</span>
+          </span>
+        </button>
+      </div>
+      {open && (
+        <ul data-tags-under={tag} aria-label={t("tags.under", { tag })}>
+          {children.map((child) => (
+            <TagNode
+              key={child}
+              tag={child}
+              depth={depth + 1}
+              isOpen={isOpen}
+              onToggle={onToggle}
+              onSelect={onSelect}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
   );
 }
 
-export function TagsView() {
+export function TagsView({
+  pane = false,
+}: {
+  /**
+   * As the sidebar, which is as tall as the window and scrolls as a whole.
+   * Without it, above the notes on a phone, the tree scrolls by itself so
+   * the notes are never far below.
+   */
+  pane?: boolean;
+}) {
   const tags = allTags.value;
   const selected = activeTag.value;
   const selectedHidden =
@@ -237,18 +299,26 @@ export function TagsView() {
   // Hidden because a tag above it is: that tag is where to show it again.
   const hiddenBy = selected === null ? null : hiddenThrough(selected);
   const [renaming, setRenaming] = useState(false);
+  // A tag is open when it is the selected one or on the way to it, so the
+  // selection is always in sight, a link to a nested tag included. The chevron
+  // overrides that for one tag, until the next selection through it.
+  const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(
+    new Map(),
+  );
+  const lineage = selected ? tagLineage(selected) : [];
+  const isOpen = (tag: string) => toggled.get(tag) ?? lineage.includes(tag);
+
+  const toggle = (tag: string) =>
+    setToggled(new Map(toggled).set(tag, !isOpen(tag)));
 
   const select = (tag: string | null) => {
     activeTag.value = tag;
     setRenaming(false);
+    if (tag === null) return;
+    const next = new Map(toggled);
+    for (const at of tagLineage(tag)) next.delete(at);
+    setToggled(next);
   };
-
-  // The tree as rows of chips: the top-level tags, then for each tag on the
-  // way to the selected one, and for the selected one itself, the tags
-  // directly under it. A row a tag has no children for is not drawn.
-  const subRows = (selected ? tagLineage(selected) : [])
-    .map((parent) => ({ parent, children: childTags(parent) }))
-    .filter((row) => row.children.length > 0);
 
   const handleDelete = async () => {
     if (!selected) return;
@@ -263,108 +333,105 @@ export function TagsView() {
   };
 
   return (
-    // Centred in the same column in grid mode as in list mode, like the search
-    // filters: the notes below spread across the grid, the controls do not.
-    <div class="mt-4 mb-6 flex flex-col gap-3 w-full max-w-xl mx-auto">
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
-          {t("nav.tags")}
-        </span>
-        <Chip selected={!selected} onClick={() => select(null)}>
-          {t("tags.all")}
-        </Chip>
-        {childTags(null).map((tag) => (
-          <TreeChip
-            key={tag}
-            tag={tag}
-            depth={0}
-            onSelect={() => select(tag)}
-          />
-        ))}
-      </div>
-
-      {subRows.map(({ parent, children }, i) => (
-        // biome-ignore lint/a11y/useSemanticElements: a fieldset would bring a border and a legend to a row of chips
-        <div
-          key={parent}
-          role="group"
-          data-tags-under={parent}
-          aria-label={t("tags.under", { tag: parent })}
-          class="flex items-center gap-2 flex-wrap"
-          style={{ paddingLeft: `${Math.min(i, 3) * 0.75}rem` }}
+    // Plain rows either way: whoever mounts it supplies the surface, the
+    // shell's own, so the tree looks the same beside the notes and above them.
+    <div class="flex flex-col gap-3 py-2">
+      <div>
+        <ul
+          class={pane ? "px-2" : "px-2 max-h-[45vh] overflow-y-auto"}
+          aria-label={t("nav.tags")}
         >
-          <span
-            class="inline-flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 mr-1"
-            aria-hidden="true"
-          >
-            <CornerDownRight class="w-3.5 h-3.5" />
-            {tagLeaf(parent)}
-          </span>
-          {children.map((tag) => (
-            <TreeChip
+          <li>
+            <div class={rowClass(!selected)}>
+              <span class="w-7 shrink-0" aria-hidden="true" />
+              <button
+                type="button"
+                class="flex-1 py-1 pr-2 text-sm text-left cursor-pointer"
+                aria-pressed={!selected}
+                onClick={() => select(null)}
+              >
+                <span
+                  class={`inline-block px-2.5 py-0.5 rounded-full ${plainChip}`}
+                >
+                  {t("tags.all")}
+                </span>
+              </button>
+            </div>
+          </li>
+          {childTags(null).map((tag) => (
+            <TagNode
               key={tag}
               tag={tag}
-              depth={i + 1}
-              onSelect={() => select(tag)}
+              depth={0}
+              isOpen={isOpen}
+              onToggle={toggle}
+              onSelect={select}
             />
           ))}
-        </div>
-      ))}
+        </ul>
 
-      {selected && renaming && (
-        <RenameTagForm
-          key={selected}
-          tag={selected}
-          onDone={() => setRenaming(false)}
-        />
-      )}
+        {selected && renaming && (
+          <div class="mt-2 border-t border-neutral-200 dark:border-neutral-700 p-3">
+            <RenameTagForm
+              key={selected}
+              tag={selected}
+              onDone={() => setRenaming(false)}
+            />
+          </div>
+        )}
 
-      {selected && !renaming && (
-        <div class="flex items-center gap-2 flex-wrap">
-          {hiddenBy === null || hiddenBy === selected ? (
+        {selected && !renaming && (
+          <div class="mt-2 border-t border-neutral-200 dark:border-neutral-700 px-2 pt-2 flex flex-col items-stretch gap-0.5">
+            {hiddenBy === null || hiddenBy === selected ? (
+              <button
+                type="button"
+                class={actionClass}
+                onClick={() => setTagHidden(selected, !selectedHidden)}
+                aria-pressed={selectedHidden}
+              >
+                {selectedHidden ? (
+                  <Eye class="w-4 h-4" />
+                ) : (
+                  <EyeOff class="w-4 h-4" />
+                )}
+                {selectedHidden
+                  ? t("tags.showInNotes")
+                  : t("tags.hideFromNotes")}
+              </button>
+            ) : null}
+            <TagColorButton key={selected} tag={selected} />
             <button
               type="button"
               class={actionClass}
-              onClick={() => setTagHidden(selected, !selectedHidden)}
-              aria-pressed={selectedHidden}
+              onClick={() => setRenaming(true)}
             >
-              {selectedHidden ? (
-                <Eye class="w-4 h-4" />
-              ) : (
-                <EyeOff class="w-4 h-4" />
-              )}
-              {selectedHidden ? t("tags.showInNotes") : t("tags.hideFromNotes")}
+              <Pencil class="w-4 h-4" />
+              {t("tags.rename")}
             </button>
-          ) : null}
-          <TagColorButton key={selected} tag={selected} />
-          <button
-            type="button"
-            class={actionClass}
-            onClick={() => setRenaming(true)}
-          >
-            <Pencil class="w-4 h-4" />
-            {t("tags.rename")}
-          </button>
-          <button
-            type="button"
-            class={`${actionClass} hover:text-red-600 dark:hover:text-red-400`}
-            onClick={handleDelete}
-          >
-            <Trash2 class="w-4 h-4" />
-            {t("tags.delete")}
-          </button>
-          {hiddenBy !== null && (
-            <p class="basis-full text-sm text-neutral-600 dark:text-neutral-300">
-              {hiddenBy === selected
-                ? t("tags.hiddenHint", { tag: selected })
-                : t("tags.hiddenByParent", { tag: selected, parent: hiddenBy })}
-            </p>
-          )}
-        </div>
-      )}
+            <button
+              type="button"
+              class={`${actionClass} hover:text-red-600 dark:hover:text-red-400`}
+              onClick={handleDelete}
+            >
+              <Trash2 class="w-4 h-4" />
+              {t("tags.delete")}
+            </button>
+            {hiddenBy !== null && (
+              <p class="px-3 pt-1 text-sm text-neutral-600 dark:text-neutral-300">
+                {hiddenBy === selected
+                  ? t("tags.hiddenHint", { tag: selected })
+                  : t("tags.hiddenByParent", {
+                      tag: selected,
+                      parent: hiddenBy,
+                    })}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="hidden md:inline text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mr-1">
+      <div class="flex items-center gap-2 flex-wrap px-3 pt-3 pb-1 border-t border-neutral-200 dark:border-neutral-700">
+        <span class="basis-full text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
           {t("search.filterByLocation")}
         </span>
         <Chip
@@ -408,7 +475,7 @@ export function TagsView() {
       </div>
 
       {tags.length === 0 && notesLoaded.value && (
-        <p class="text-sm text-neutral-400 dark:text-neutral-500">
+        <p class="px-3 text-sm text-neutral-400 dark:text-neutral-500">
           {t("tags.empty")}
         </p>
       )}
