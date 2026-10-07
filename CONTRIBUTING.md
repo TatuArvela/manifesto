@@ -20,7 +20,8 @@ You retain copyright on your contribution. You are not assigning it to anyone.
 
 Dependabot opens grouped pull requests every Monday (`.github/dependabot.yml`): one for minor and patch
 updates of runtime dependencies, one for development ones, one for GitHub Actions, and a pull request of
-its own for each major update or base image. They run the same CI as any other pull request.
+its own for each major update or base image. A release is proposed once it is a week old, security
+updates at once. They run the same CI as any other pull request.
 
 Actions in `.github/workflows/` are pinned to a commit, with the release it is in as a comment
 (`uses: actions/checkout@<sha> # v7.0.1`), because a tag can be moved to other code after it is

@@ -95,7 +95,7 @@ jobs:
       packages: write
       # Keyless signing of the image, see image-publish.yml.
       id-token: write
-    uses: ./.github/workflows/image-publish.yml
+    uses: $/.github/workflows/image-publish.yml
     with:
       ref: ${{ needs.release-please.outputs.tag_name }}
       version: ${{ needs.release-please.outputs.version }}
