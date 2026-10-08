@@ -310,6 +310,44 @@ describe("push reminders", () => {
     expect(service.received).toEqual([]);
   });
 
+  it("sends once when two passes read the same due reminder", async () => {
+    const note = await addNote({ reminder: reminder({ recurrence: "daily" }) });
+    await subscribe();
+    await Promise.all([pass(), pass()]);
+    expect(service.received).toHaveLength(1);
+    expect((await reminderOf(note.id))?.time).toBe("2026-10-04T11:58:00");
+  });
+
+  it("leaves a reminder that changed after the pass read it", async () => {
+    const note = await addNote({ reminder: reminder() });
+    await subscribe();
+    const later = reminder({ time: "2026-10-05T09:00:00" });
+    // The user moves the reminder between the pass reading the note and
+    // writing to it, as happens while an earlier send is still waiting.
+    const edited: StorageDriver = {
+      ...storage,
+      notes: {
+        ...storage.notes,
+        listByUser: async (...args) => {
+          const page = await storage.notes.listByUser(...args);
+          const res = await call("PUT", `/api/notes/${note.id}`, {
+            reminder: later,
+          });
+          expect(res.status).toBe(200);
+          return page;
+        },
+      },
+    };
+    await pushDueReminders({
+      storage: edited,
+      sender: handle.pushSender,
+      noteEvents: handle.noteEvents,
+      now: () => NOW,
+    });
+    expect(service.received).toEqual([]);
+    expect(await reminderOf(note.id)).toEqual(later);
+  });
+
   it("does nothing at all for an account with no subscribed browser", async () => {
     const note = await addNote({ reminder: reminder() });
     await pass();

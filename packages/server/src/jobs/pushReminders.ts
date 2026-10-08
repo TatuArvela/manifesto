@@ -93,12 +93,17 @@ export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
           lastFiredAt: firedAt,
         };
         // Written before anything is sent: a pass that dies half way must
-        // not leave a reminder to be pushed again on the next.
+        // not leave a reminder to be pushed again on the next. And only if
+        // the note is still as this pass read it: the sends below can take
+        // long enough for a client, the next pass or another process to
+        // have fired or edited the reminder since, and whoever wrote first
+        // has it. A note changed some other way is met again next pass.
         const written = await storage.notes.update(
           note.id,
           userId,
           { reminder: moved },
           firedAt,
+          note.updatedAt,
         );
         if (!written) continue;
         await noteEvents.changed(note.id);

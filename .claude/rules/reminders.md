@@ -30,7 +30,8 @@ The server's part is `jobs/pushReminders.ts`: every 30 seconds, for accounts wit
 a reminder due for longer than `PUSH_GRACE_MS` that no client has fired is moved on (the same
 `advanceReminder`, and `lastFiredAt`) and then sent through `push/sender.ts`. The grace is what keeps
 it from racing an open client, which fires on time and writes at once; shorten it and both fire. The
-server reads `time` in the reminder's own `timezone` with `instantOf`, never in its own. The worker
+write is conditional on the `updatedAt` the pass read, so of two passes, two processes, or a pass
+and a user's edit, the first writer has the reminder and the other sends nothing. The server reads `time` in the reminder's own `timezone` with `instantOf`, never in its own. The worker
 handles the message in `swPush.ts` (kept out of `sw.ts` so it tests) and moves its own copy with
 `afterPush`, or its next poll fires the occurrence again. `push/webPush.ts` is RFC 8291 and 8292 over
 `node:crypto`, held to the RFC's example in its test; a push endpoint is user-supplied, so sends go
