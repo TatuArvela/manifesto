@@ -8,8 +8,10 @@ import { hashPassword } from "./lib/password.js";
 import { newTemporaryPassword } from "./lib/temporaryPassword.js";
 import { nowIso } from "./lib/time.js";
 import { newId } from "./lib/ulid.js";
+import { buildOpenApiDocument } from "./openapi.js";
 import { createStorage } from "./storage/index.js";
 import { type StorageDriver, UsernameTakenError } from "./storage/types.js";
+import { VERSION } from "./version.js";
 
 /**
  * Lockout recovery from a shell on the server, for when no admin can sign in:
@@ -33,7 +35,10 @@ Commands:
                                off its two-factor sign-in.
   make-admin <username>        Make an account an admin.
   create-admin <username>      Create a local admin account with a temporary
-                               password (printed here).`;
+                               password (printed here).
+  openapi                      Print the API's OpenAPI document, as the server
+                               serves it at /api/openapi.json, to generate a
+                               client from. Needs no database.`;
 
 export interface CliContext {
   storage: StorageDriver;
@@ -160,7 +165,18 @@ export async function runCli(
   }
 }
 
+/** The OpenAPI document as text, the same one `/api/openapi.json` serves. */
+export function openApiText(): string {
+  return JSON.stringify(buildOpenApiDocument(VERSION), null, 2);
+}
+
 async function main(): Promise<void> {
+  // Before the configuration is read: the document is the same whatever the
+  // deployment, and a build machine generating a client has no database.
+  if (process.argv[2] === "openapi") {
+    console.log(openApiText());
+    return;
+  }
   const cfg = loadConfig();
   const storage = await createStorage(cfg);
   try {

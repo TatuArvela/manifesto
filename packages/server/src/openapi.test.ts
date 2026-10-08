@@ -77,6 +77,25 @@ describe("OpenAPI document", () => {
     expect(Object.keys(doc.paths)).toContain(openApiPath("/api/notes/:id"));
   });
 
+  it("leaves no reference a generator could not follow", () => {
+    // A request schema that refers to itself (any JSON value, in the
+    // preferences patch) comes out of zod pointing into its own `$defs`,
+    // which dangles once the schema sits inside the document.
+    const doc = buildOpenApiDocument("test");
+    const json = JSON.stringify(doc);
+    expect(json).not.toContain('"$defs"');
+    const references = [...json.matchAll(/"\$ref":"([^"]+)"/g)].map(
+      ([, target]) => defined(target),
+    );
+    expect(references.length).toBeGreaterThan(0);
+    for (const target of references) {
+      expect(target).toMatch(/^#\/components\/schemas\/\w+$/);
+      expect(doc.components.schemas).toHaveProperty(
+        target.replace("#/components/schemas/", ""),
+      );
+    }
+  });
+
   it("says which operations the compatibility policy covers", () => {
     const doc = buildOpenApiDocument("test");
     const stability = (method: string, path: string) =>

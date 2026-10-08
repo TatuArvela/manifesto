@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { runCli } from "./cli.js";
+import { openApiText, runCli, USAGE } from "./cli.js";
 import { createStorage } from "./storage/index.js";
 import type { StorageDriver } from "./storage/types.js";
 import { TEST_CONFIG } from "./test/setup.js";
@@ -75,6 +75,16 @@ describe("admin CLI", () => {
     expect(lines[0]).toMatch(/^Created admin rescue\. Temporary password: /);
     expect((await storage.users.findByUsername("rescue"))?.isAdmin).toBe(true);
     expect(await run("create-admin", "rescue")).toBe(1);
+  });
+
+  it("prints the OpenAPI document the server serves", () => {
+    const doc = JSON.parse(openApiText()) as {
+      openapi: string;
+      paths: Record<string, { get?: { operationId: string } }>;
+    };
+    expect(doc.openapi).toBe("3.1.0");
+    expect(doc.paths["/api/notes"]?.get?.operationId).toBe("getNotes");
+    expect(USAGE).toContain("openapi");
   });
 
   it("says what it could not do, and how it is used", async () => {
