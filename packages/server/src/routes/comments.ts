@@ -76,12 +76,11 @@ export function registerCommentRoutes(
     );
   }
 
-  /** Stored comments as they are given out, authors named only while they
-   * are on the note. */
-  async function present(
+  /** The authors who may be named on these comments: those on the note. */
+  async function authorsOf(
     audience: NoteAudience | null,
     stored: StoredComment[],
-  ): Promise<NoteComment[]> {
+  ): Promise<Map<string, ShareUser>> {
     const onNote = peopleOn(audience);
     const authorIds = new Set<string>();
     for (const { authorId } of stored) {
@@ -100,7 +99,16 @@ export function registerCommentRoutes(
         });
       }),
     );
-    return stored.map((comment) => ({
+    return authors;
+  }
+
+  /** A stored comment as it is given out, its author named only while they
+   * are on the note. */
+  function present(
+    comment: StoredComment,
+    authors: Map<string, ShareUser>,
+  ): NoteComment {
+    return {
       id: comment.id,
       noteId: comment.noteId,
       author:
@@ -110,27 +118,27 @@ export function registerCommentRoutes(
       body: comment.body,
       createdAt: comment.createdAt,
       editedAt: comment.editedAt,
-    }));
+    };
   }
 
   async function presentOne(
     audience: NoteAudience | null,
     stored: StoredComment,
   ): Promise<NoteComment> {
-    const [comment] = await present(audience, [stored]);
-    if (!comment) throw new HttpError(404, "Comment not found");
-    return comment;
+    return present(stored, await authorsOf(audience, [stored]));
   }
 
   notes.get("/:id/comments", async (c) => {
     const { userId } = c.get("auth");
     const noteId = c.req.param("id") as string;
     await requireAccess(noteId, userId);
+    const stored = await storage.comments.listByNote(noteId);
+    const authors = await authorsOf(
+      await storage.shares.audience(noteId),
+      stored,
+    );
     const body: NoteCommentsResponse = {
-      comments: await present(
-        await storage.shares.audience(noteId),
-        await storage.comments.listByNote(noteId),
-      ),
+      comments: stored.map((comment) => present(comment, authors)),
     };
     return c.json(body);
   });
@@ -176,23 +184,22 @@ export function registerCommentRoutes(
         throw new HttpError(403, "Only its author can change a comment");
       }
       const next = c.req.valid("json").body;
-      const editedAt = nowIso();
-      if (next !== existing.body) {
-        await storage.comments.setBody(existing.id, next, editedAt);
-      }
       const audience = await storage.shares.audience(noteId);
-      const comment = await presentOne(
-        audience,
-        next === existing.body
-          ? existing
-          : { ...existing, body: next, editedAt },
-      );
-      if (next !== existing.body) {
-        noteEvents.commented(audience, {
-          type: "comment:updated",
-          comment,
-        });
+      // The same text again is no edit: nothing is stamped and nobody told.
+      if (next === existing.body) {
+        const body: NoteCommentResponse = {
+          comment: await presentOne(audience, existing),
+        };
+        return c.json(body);
       }
+      const editedAt = nowIso();
+      await storage.comments.setBody(existing.id, next, editedAt);
+      const comment = await presentOne(audience, {
+        ...existing,
+        body: next,
+        editedAt,
+      });
+      noteEvents.commented(audience, { type: "comment:updated", comment });
       const body: NoteCommentResponse = { comment };
       return c.json(body);
     },
