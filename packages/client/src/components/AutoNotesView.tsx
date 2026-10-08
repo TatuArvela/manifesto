@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  BookOpen,
   Check,
   Plus,
   RefreshCw,
@@ -11,13 +12,17 @@ import {
 import { useState } from "preact/hooks";
 import {
   addPlugin,
+  declaredReads,
   fetchPluginSource,
+  grantedReads,
   plugins,
   refetchPlugin,
   removePlugin,
   setPluginError,
+  setPluginReads,
   togglePlugin,
 } from "../autoNotes/registry.js";
+import type { PluginSource } from "../autoNotes/types.js";
 import { t } from "../i18n/index.js";
 import {
   canReorder,
@@ -30,6 +35,60 @@ import { ReorderableGrid } from "./ReorderableGrid.js";
 import { ToggleSwitch } from "./ToggleSwitch.js";
 
 type AddMode = "inline" | "url" | null;
+
+const tagList = (tags: string[]) => tags.map((tag) => `#${tag}`).join(", ");
+
+/**
+ * What a plugin reads, and what it asks to: the tags its source names with
+ * `// @reads`. Nothing is read until the user allows it here, the allowance
+ * can be taken back, and a plugin whose source comes to ask for more is
+ * shown asking again for the new tags only.
+ */
+function PluginReads({ plugin }: { plugin: PluginSource }) {
+  const declared = declaredReads(plugin);
+  if (declared.length === 0) return null;
+  const granted = grantedReads(plugin);
+  const asking = declared.filter((tag) => !granted.includes(tag));
+  const button =
+    "shrink-0 px-2 py-0.5 rounded font-medium cursor-pointer bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500";
+  return (
+    <div class="flex flex-col gap-1 text-[11px] text-neutral-600 dark:text-neutral-300">
+      {granted.length > 0 && (
+        <p class="flex items-start gap-1.5">
+          <BookOpen class="w-3 h-3 mt-0.5 shrink-0" />
+          <span class="flex-1 min-w-0">
+            {t("settings.autoNotes.reads.granted", { tags: tagList(granted) })}
+          </span>
+          <button
+            type="button"
+            class={button}
+            onClick={() => setPluginReads(plugin.id, [])}
+          >
+            {t("settings.autoNotes.reads.stop")}
+          </button>
+        </p>
+      )}
+      {asking.length > 0 && (
+        <p class="flex items-start gap-1.5">
+          <BookOpen class="w-3 h-3 mt-0.5 shrink-0" />
+          <span class="flex-1 min-w-0">
+            {t("settings.autoNotes.reads.asks", { tags: tagList(asking) })}{" "}
+            <span class="text-neutral-500 dark:text-neutral-400">
+              {t("settings.autoNotes.reads.hint")}
+            </span>
+          </span>
+          <button
+            type="button"
+            class={button}
+            onClick={() => setPluginReads(plugin.id, declared)}
+          >
+            {t("settings.autoNotes.reads.allow")}
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function AutoNotesView() {
   const [addMode, setAddMode] = useState<AddMode>(null);
@@ -316,6 +375,8 @@ export function AutoNotesView() {
                     {plugin.origin.url}
                   </p>
                 )}
+
+                <PluginReads plugin={plugin} />
 
                 {plugin.lastError && (
                   <p class="text-[11px] text-red-600 dark:text-red-400 flex items-start gap-1">

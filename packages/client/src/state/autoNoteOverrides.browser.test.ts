@@ -32,6 +32,7 @@ function renderPlugin(title = "Sunny", extra: Record<string, unknown> = {}) {
       pluginId: "weather",
       pluginName: "Weather",
       result: { title, content: "22 degrees", key: "today", ...extra },
+      reading: false,
     },
   ];
 }

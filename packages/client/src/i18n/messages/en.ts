@@ -408,6 +408,12 @@ export const en = {
   "settings.autoNotes.enabled": "Enabled",
   "settings.autoNotes.disabled": "Disabled",
   "settings.autoNotes.untitled": "(Untitled)",
+  "settings.autoNotes.reads.asks": "Asks to read your notes tagged {tags}.",
+  "settings.autoNotes.reads.hint":
+    "It would see their text and could not change them. Its cards show no images, so showing one sends nothing anywhere; a link on one still goes where it says.",
+  "settings.autoNotes.reads.allow": "Allow",
+  "settings.autoNotes.reads.granted": "Reads your notes tagged {tags}.",
+  "settings.autoNotes.reads.stop": "Stop",
   "settings.autoNotes.origin.inline": "Pasted",
   "settings.autoNotes.origin.url": "URL",
   "confirm.password": "Your password, to confirm",

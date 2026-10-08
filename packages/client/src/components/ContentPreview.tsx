@@ -4,6 +4,7 @@ import {
   renderInlineMarkdown,
   renderMarkdown,
 } from "../utils/remarkRenderer.js";
+import { withoutImages } from "../utils/stripImages.js";
 
 /**
  * Renders note content as a read-only preview with interactive checkboxes.
@@ -14,6 +15,7 @@ export function ContentPreview({
   onCheckboxToggle,
   hasTitle,
   readOnly = false,
+  noImages = false,
 }: {
   /** Only the text is read, so an invitation can preview a note it holds
    * just the text of. */
@@ -23,7 +25,11 @@ export function ContentPreview({
   /** Boxes that show their state but cannot be ticked: a note shared with
    * this user only to view. */
   readOnly?: boolean;
+  /** Draws no images: the card of a plugin that reads notes, see
+   * `withoutImages`. */
+  noImages?: boolean;
 }) {
+  const drawn = (html: string) => (noImages ? withoutImages(html) : html);
   if (!note.content) return null;
 
   // Drop empty text segments sandwiched between two checklist segments:
@@ -94,7 +100,9 @@ export function ContentPreview({
                     <span
                       class={`note-inline-markdown ${item.checked ? "line-through opacity-60" : ""}`}
                       dangerouslySetInnerHTML={{
-                        __html: renderInlineMarkdown(item.label, item.checked),
+                        __html: drawn(
+                          renderInlineMarkdown(item.label, item.checked),
+                        ),
                       }}
                     />
                   </div>
@@ -116,7 +124,7 @@ export function ContentPreview({
             />
           );
         }
-        const html = renderMarkdown(text);
+        const html = drawn(renderMarkdown(text));
         return (
           <div
             key={seg.startLine}
