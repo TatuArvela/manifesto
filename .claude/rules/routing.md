@@ -5,6 +5,7 @@ paths:
   - "packages/client/src/hooks/useBackToClose.ts"
   - "packages/client/src/components/App.tsx"
   - "packages/client/vite.config.ts"
+  - "packages/shared/src/tags.ts"
 ---
 
 # Routing

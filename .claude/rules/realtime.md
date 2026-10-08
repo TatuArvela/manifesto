@@ -9,6 +9,7 @@ paths:
   - "packages/client/src/components/ConnectionStatus.tsx"
   - "packages/server/src/ws/**"
   - "packages/server/src/routes/sync*.ts"
+  - "packages/server/src/storage/contracts/syncContract.ts"
 ---
 
 # Realtime and Conflict Resolution
