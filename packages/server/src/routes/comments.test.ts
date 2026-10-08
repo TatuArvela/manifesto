@@ -291,14 +291,17 @@ describe("comments beside a shared note", () => {
 
   it("holds only so many comments on one note", async () => {
     for (let i = 0; i < MAX_COMMENTS_PER_NOTE; i++) {
-      await rig.storage.comments.create({
-        id: `c${String(i).padStart(4, "0")}`,
-        noteId,
-        authorId: owner.userId,
-        body: "x",
-        createdAt: "2026-04-01T00:00:00.000Z",
-        editedAt: null,
-      });
+      await rig.storage.comments.create(
+        {
+          id: `c${String(i).padStart(4, "0")}`,
+          noteId,
+          authorId: owner.userId,
+          body: "x",
+          createdAt: "2026-04-01T00:00:00.000Z",
+          editedAt: null,
+        },
+        MAX_COMMENTS_PER_NOTE,
+      );
     }
     expect(
       (await call(owner, "POST", path(), { body: "one more" })).status,

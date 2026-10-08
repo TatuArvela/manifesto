@@ -75,21 +75,40 @@ export function describeCommentsContract(
     });
 
     it("lists a note's comments oldest first, and counts them", async () => {
-      await storage.comments.create(comment({ id: "c2", createdAt: T1 }));
-      await storage.comments.create(comment());
-      await storage.comments.create(comment({ id: "c3", noteId: "n2" }));
+      await storage.comments.create(comment({ id: "c2", createdAt: T1 }), 10);
+      await storage.comments.create(comment(), 10);
+      await storage.comments.create(comment({ id: "c3", noteId: "n2" }), 10);
 
       expect(
         (await storage.comments.listByNote("n1")).map((c) => c.id),
       ).toEqual(["c1", "c2"]);
-      expect(await storage.comments.countByNote("n1")).toBe(2);
-      expect(await storage.comments.countByNote("n2")).toBe(1);
+      expect(await storage.comments.listByNote("n2")).toHaveLength(1);
       expect(await storage.comments.get("c1")).toEqual(comment());
       expect(await storage.comments.get("nope")).toBeNull();
     });
 
+    it("takes no comment past the limit, on that note alone", async () => {
+      expect(await storage.comments.create(comment(), 2)).toBe(true);
+      expect(await storage.comments.create(comment({ id: "c2" }), 2)).toBe(
+        true,
+      );
+      expect(await storage.comments.create(comment({ id: "c3" }), 2)).toBe(
+        false,
+      );
+      expect(await storage.comments.get("c3")).toBeNull();
+      expect(
+        await storage.comments.create(comment({ id: "c4", noteId: "n2" }), 2),
+      ).toBe(true);
+
+      // Room again once one is gone.
+      await storage.comments.delete("c1");
+      expect(await storage.comments.create(comment({ id: "c3" }), 2)).toBe(
+        true,
+      );
+    });
+
     it("changes a comment's text and says when", async () => {
-      await storage.comments.create(comment());
+      await storage.comments.create(comment(), 10);
       expect(await storage.comments.setBody("c1", "Second", T2)).toBe(true);
       expect(await storage.comments.get("c1")).toEqual(
         comment({ body: "Second", editedAt: T2 }),
@@ -98,14 +117,14 @@ export function describeCommentsContract(
     });
 
     it("deletes one comment, once", async () => {
-      await storage.comments.create(comment());
+      await storage.comments.create(comment(), 10);
       expect(await storage.comments.delete("c1")).toBe(true);
       expect(await storage.comments.delete("c1")).toBe(false);
-      expect(await storage.comments.countByNote("n1")).toBe(0);
+      expect(await storage.comments.listByNote("n1")).toEqual([]);
     });
 
     it("keeps a comment whose author's account is gone, with no author", async () => {
-      await storage.comments.create(comment({ authorId: "u2" }));
+      await storage.comments.create(comment({ authorId: "u2" }), 10);
       await storage.users.delete("u2");
       expect(await storage.comments.get("c1")).toEqual(
         comment({ authorId: null }),
@@ -113,8 +132,8 @@ export function describeCommentsContract(
     });
 
     it("removes a note's comments with the note", async () => {
-      await storage.comments.create(comment());
-      await storage.comments.create(comment({ id: "c3", noteId: "n2" }));
+      await storage.comments.create(comment(), 10);
+      await storage.comments.create(comment({ id: "c3", noteId: "n2" }), 10);
       expect(await storage.notes.delete("n1", "u1")).toBe(true);
       expect(await storage.comments.get("c1")).toBeNull();
       expect(await storage.comments.get("c3")).not.toBeNull();

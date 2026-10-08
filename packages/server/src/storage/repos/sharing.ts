@@ -171,9 +171,13 @@ export interface StoredComment {
 export interface CommentsRepo {
   /** Oldest first. */
   listByNote(noteId: string): Promise<StoredComment[]>;
-  countByNote(noteId: string): Promise<number>;
   get(id: string): Promise<StoredComment | null>;
-  create(comment: StoredComment): Promise<void>;
+  /**
+   * Adds a comment unless its note already holds `limit` of them: false then,
+   * with nothing written. Counting and writing are one step, so comments
+   * arriving together cannot each find room for themselves.
+   */
+  create(comment: StoredComment, limit: number): Promise<boolean>;
   /** False when there is no such comment. */
   setBody(id: string, body: string, editedAt: string): Promise<boolean>;
   delete(id: string): Promise<boolean>;

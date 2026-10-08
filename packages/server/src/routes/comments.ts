@@ -130,11 +130,6 @@ export function registerCommentRoutes(
       const { userId } = c.get("auth");
       const noteId = c.req.param("id") as string;
       await requireAccess(noteId, userId);
-      if (
-        (await storage.comments.countByNote(noteId)) >= MAX_COMMENTS_PER_NOTE
-      ) {
-        throw new HttpError(409, "This note has as many comments as it holds");
-      }
       const stored: StoredComment = {
         id: newId(),
         noteId,
@@ -143,7 +138,9 @@ export function registerCommentRoutes(
         createdAt: nowIso(),
         editedAt: null,
       };
-      await storage.comments.create(stored);
+      if (!(await storage.comments.create(stored, MAX_COMMENTS_PER_NOTE))) {
+        throw new HttpError(409, "This note has as many comments as it holds");
+      }
       const comment = await presentOne(stored);
       await noteEvents.commented(noteId, { type: "comment:created", comment });
       const body: NoteCommentResponse = { comment };

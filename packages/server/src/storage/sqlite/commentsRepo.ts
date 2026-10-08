@@ -11,15 +11,13 @@ export function createSqliteCommentsRepo(db: SqliteDB): CommentsRepo {
     `SELECT ${COMMENT_COLUMNS} FROM note_comments WHERE note_id = ?
      ORDER BY created_at, id`,
   );
-  const countStmt = db.prepare(
-    `SELECT COUNT(*) AS n FROM note_comments WHERE note_id = ?`,
-  );
   const getStmt = db.prepare(
     `SELECT ${COMMENT_COLUMNS} FROM note_comments WHERE id = ?`,
   );
   const insertStmt = db.prepare(
     `INSERT INTO note_comments (${COMMENT_COLUMNS})
-     VALUES (@id, @noteId, @authorId, @body, @createdAt, @editedAt)`,
+     SELECT @id, @noteId, @authorId, @body, @createdAt, @editedAt
+     WHERE (SELECT COUNT(*) FROM note_comments WHERE note_id = @noteId) < @limit`,
   );
   const bodyStmt = db.prepare(
     `UPDATE note_comments SET body = ?, edited_at = ? WHERE id = ?`,
@@ -29,15 +27,12 @@ export function createSqliteCommentsRepo(db: SqliteDB): CommentsRepo {
     async listByNote(noteId) {
       return (byNoteStmt.all(noteId) as CommentRow[]).map(rowToComment);
     },
-    async countByNote(noteId) {
-      return (countStmt.get(noteId) as { n: number }).n;
-    },
     async get(id) {
       const row = getStmt.get(id) as CommentRow | undefined;
       return row ? rowToComment(row) : null;
     },
-    async create(comment) {
-      insertStmt.run(comment);
+    async create(comment, limit) {
+      return insertStmt.run({ ...comment, limit }).changes > 0;
     },
     async setBody(id, body, editedAt) {
       return bodyStmt.run(body, editedAt, id).changes > 0;
