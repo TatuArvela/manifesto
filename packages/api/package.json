@@ -1,0 +1,23 @@
+{
+  "name": "@manifesto/api",
+  "version": "0.5.0",
+  "private": true,
+  "license": "MIT",
+  "author": "Tatu Arvela",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@manifesto/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

@@ -70,7 +70,7 @@ Run a single test file: `pnpm --filter @manifesto/client exec vitest run src/pat
 
 ## Architecture
 
-pnpm monorepo with three packages, plus one build tool:
+pnpm monorepo with three packages, plus a scripting client and one build tool:
 
 - **`packages/shared`**: types *and runtime values*: `NoteColor` / `NoteFont` are real enums and
   the image, page-size and recurrence limits are exported constants, so this package emits
@@ -81,6 +81,10 @@ pnpm monorepo with three packages, plus one build tool:
   value that typechecks and is `undefined` at runtime.
 - **`packages/client`**: Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
 - **`packages/server`**: Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
+- **`packages/api`**: `@manifesto/api`, a dependency-free client over the token-reachable REST API for
+  scripts. Source only (no build; Node runs the TypeScript as it is), type-only imports from shared,
+  and its tests boot the real server app through `server/src/test/setup.ts`, so a route it calls that
+  changes shape fails there.
 - **`packages/build-version`**: build-time only, never shipped. Resolves the version a build
   reports (Settings footer, `/api/health`): `0.1.5` on the release commit, `0.1.5+14.bf5a6dd`
   after it. It counts from the last commit to touch `.release-please-manifest.json`, not from the

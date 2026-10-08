@@ -238,6 +238,13 @@ The server refuses one with `403` when it has `MCP` off. Every listed token carr
 `scopes`; one an assistant was given by signing in also carries `oauthClientId`, and its `prefix` is
 that of its first access token only, since each refresh replaces the secret.
 
+### Scripting
+
+`packages/api` is `@manifesto/api`, a small client over what a personal API token reaches: notes,
+search, images, the token's account and the capabilities. It has no dependencies, takes its types from
+`@manifesto/shared`, and throws a refusal as an error carrying the status. See
+[its README](../../packages/api/README.md). It is not published to npm; a script uses it from a clone.
+
 ### MCP
 
 `POST /api/mcp`: the Model Context Protocol endpoint for AI assistants, taking an MCP token only. See

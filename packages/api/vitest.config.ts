@@ -1,0 +1,16 @@
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      // The source, not the build output, as the server's tests read it.
+      "@manifesto/shared": fileURLToPath(
+        new URL("../shared/src/index.ts", import.meta.url),
+      ),
+    },
+  },
+  test: {
+    include: ["src/**/*.test.ts"],
+  },
+});
