@@ -468,6 +468,25 @@ describe("/api/push", () => {
     expect(await storage.pushSubscriptions.listByUser(userId)).toEqual([]);
   });
 
+  it("records a browser the account had not subscribed, and not its renewals", async () => {
+    await boot();
+    const laptop = subscription("laptop");
+    await call("POST", "/api/push/subscriptions", laptop);
+    // The same browser at its next start.
+    await call("POST", "/api/push/subscriptions", laptop);
+    await call("POST", "/api/push/subscriptions", subscription("phone"));
+    const subscribed = async () =>
+      (await storage.audit.list({ limit: 20 })).filter(
+        (entry) => entry.action === "push.subscribed",
+      );
+    await expect.poll(async () => (await subscribed()).length).toBe(2);
+    for (const entry of await subscribed()) {
+      expect(entry.actorId).toBe(userId);
+      // Where it goes, without the path that would let a sender reach it.
+      expect(entry.detail).toEqual({ service: "push.example" });
+    }
+  });
+
   it("refuses an endpoint that is not https, and keys that are not a subscription's", async () => {
     await boot();
     const good = subscription("x");

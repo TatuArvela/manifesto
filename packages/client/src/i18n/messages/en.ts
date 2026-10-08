@@ -752,6 +752,7 @@ export const en = {
   "audit.action.token.revoked": "API token revoked",
   "audit.action.webhook.created": "Webhook added",
   "audit.action.webhook.deleted": "Webhook removed",
+  "audit.action.push.subscribed": "Browser subscribed to push reminders",
   "audit.action.share.created": "Note shared",
   "audit.action.share.role_changed": "Share role changed",
   "audit.action.share.removed": "Share removed",

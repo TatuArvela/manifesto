@@ -4,6 +4,7 @@ import {
   type PushKeyResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
+import { audit } from "../audit/audit.js";
 import { nowIso } from "../lib/time.js";
 import { hashToken } from "../lib/token.js";
 import { newId } from "../lib/ulid.js";
@@ -50,6 +51,11 @@ export function createPushRoutes(deps: {
       if (!isUsableTarget(keys)) {
         throw new HttpError(422, "keys: Not a push subscription's keys");
       }
+      // A browser renews its subscription at every start. Only one the
+      // account did not hold is somewhere new for its reminders to go.
+      const known = (await storage.pushSubscriptions.listByUser(userId)).some(
+        (held) => held.endpoint === endpoint,
+      );
       await storage.pushSubscriptions.save({
         id: newId(),
         userId,
@@ -61,6 +67,15 @@ export function createPushRoutes(deps: {
         createdAt: nowIso(),
         failureCount: 0,
       });
+      if (!known) {
+        audit(storage, c, {
+          action: "push.subscribed",
+          actorId: userId,
+          // The push service, not the endpoint: its path is what lets a
+          // sender reach the browser.
+          detail: { service: new URL(endpoint).host },
+        });
+      }
       // The newest are kept: a browser that subscribed long ago and was
       // never heard of again is the one to let go.
       const held = await storage.pushSubscriptions.listByUser(userId);
