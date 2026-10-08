@@ -88,7 +88,7 @@ export function NoteSheet({
         <div class="w-full sm:flex sm:items-start sm:justify-center">
           <div
             ref={panelRef ?? null}
-            class="pointer-events-auto w-full sm:min-w-0 sm:max-w-2xl sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto sm:overscroll-contain"
+            class="note-sheet-panel pointer-events-auto w-full sm:min-w-0 sm:max-w-2xl sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto sm:overscroll-contain"
           >
             <SheetAside.Provider value={aside}>{children}</SheetAside.Provider>
           </div>

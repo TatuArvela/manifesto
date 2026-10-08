@@ -118,7 +118,9 @@ function paintPage(sheet: HTMLElement) {
     copy();
   };
   const swaps = new MutationObserver(find);
-  const panel = sheet.firstElementChild;
+  // The element the note is drawn in, which `NoteSheet` marks: it is not the
+  // sheet's own child, since what sits beside it on a wide screen shares a row.
+  const panel = sheet.querySelector(".note-sheet-panel");
   if (panel) swaps.observe(panel, { childList: true });
   const onTransitionEnd = (event: TransitionEvent) => {
     if (event.target === surface) copy();
