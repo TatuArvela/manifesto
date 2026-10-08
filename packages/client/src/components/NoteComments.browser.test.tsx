@@ -139,6 +139,20 @@ function type(field: HTMLTextAreaElement, value: string) {
 
 const tick = () => new Promise((r) => requestAnimationFrame(r));
 
+/**
+ * Takes the panel down and waits for it to let go. Preact runs an effect's
+ * cleanup after the next paint, not at the unmount itself.
+ */
+async function close() {
+  render(null, host);
+  await tick();
+  await new Promise((r) => setTimeout(r, 0));
+}
+const retry = () =>
+  [...host.querySelectorAll("button")].find(
+    (b) => b.textContent === t("comments.retry"),
+  );
+
 async function show(note: Note, me: ShareUser) {
   currentUser.value = { ...me, email: null, isAdmin: false };
   render(<NoteComments note={note} />, host);
@@ -167,8 +181,8 @@ beforeEach(() => {
   document.body.appendChild(host);
 });
 
-afterEach(() => {
-  render(null, host);
+afterEach(async () => {
+  await close();
   host.remove();
   vi.unstubAllGlobals();
   storageConnection.value = { serverUrl: null, token: null };
@@ -293,7 +307,7 @@ describe("NoteComments", () => {
 
   it("keeps nothing for a note whose panel is gone", async () => {
     await show(sharedNote("edit"), alice);
-    render(null, host);
+    await close();
     expect(noteComments.value.has("n1")).toBe(false);
     receiveComment(comment());
     expect(noteComments.value.has("n1")).toBe(false);
@@ -309,7 +323,9 @@ describe("NoteComments", () => {
       expect(host.textContent).toContain(t("comments.loadFailed")),
     );
 
-    toggle()?.click();
+    // No line to open while there is nothing to open onto.
+    expect(toggle()).toBeNull();
+    retry()?.click();
     await vi.waitFor(() =>
       expect(toggle()?.textContent).toBe(plural("comments.count", 1)),
     );
@@ -357,7 +373,7 @@ describe("NoteComments", () => {
       expect(toggle()?.textContent).toBe(plural("comments.count", 1)),
     );
 
-    render(null, host);
+    await close();
     reloadComments();
     expect(reads()).toBe(2);
   });
