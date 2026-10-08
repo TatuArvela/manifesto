@@ -4,9 +4,13 @@ import {
   type NoteComment,
   roleOf,
 } from "@manifesto/shared";
-import { MessageSquare, Pencil, Trash2 } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
+import { MessageSquare, Pencil, Trash2, X } from "lucide-preact";
+import { createPortal } from "preact";
+import { useContext, useEffect, useState } from "preact/hooks";
+import { noteColorMap } from "../colors.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
+import { useMediaQuery } from "../hooks/useMediaQuery.js";
+import { usePresence } from "../hooks/usePresence.js";
 import { formatDateTime, plural, t } from "../i18n/index.js";
 import { currentUser } from "../state/auth.js";
 import {
@@ -21,6 +25,11 @@ import {
 import { askConfirmation } from "../state/confirm.js";
 import { serverFeature } from "../state/serverFeatures.js";
 import { Avatar } from "./Avatar.js";
+import {
+  SHEET_ASIDE_EXIT_MS,
+  SHEET_ASIDE_QUERY,
+  SheetAside,
+} from "./NoteSheet.js";
 
 const fieldClass =
   "w-full rounded-lg border border-black/15 dark:border-white/15 bg-white/60 dark:bg-black/20 px-2 py-1.5 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -193,12 +202,21 @@ function CommentRow({
  * list and a field to add one. Shown for a note that is shared, to everyone
  * on it; a note nobody else is on has nobody to talk to.
  *
+ * On a screen wide enough the list opens in a panel of its own to the right
+ * of the note (`SheetAside`), so a long thread does not push the note's tags
+ * and toolbar away; anywhere narrower it opens under the line.
+ *
  * Writing needs the server's sharing feature. With it off the comments
  * already made are still read and can still be deleted.
  */
 export function NoteComments({ note }: { note: Note }) {
   const shared = note.sharing !== undefined;
   const [open, setOpen] = useState(false);
+  const aside = useContext(SheetAside);
+  const wide = useMediaQuery(SHEET_ASIDE_QUERY);
+  const beside = aside !== null && wide;
+  // Held for its exit after it is closed.
+  const panel = usePresence(open && beside ? true : null, SHEET_ASIDE_EXIT_MS);
   const noteId = note.id;
   // Who is on the note. A comment names its author only while they are, so
   // the names held go stale when this changes and the list is read again.
@@ -221,6 +239,27 @@ export function NoteComments({ note }: { note: Note }) {
   const comments = noteComments.value.get(noteId);
   const count = comments?.length ?? 0;
   const canWrite = serverFeature("sharing");
+  const colors = noteColorMap[note.color];
+  const list = (height: string) =>
+    count > 0 && (
+      <ul class={`flex flex-col gap-3 overflow-y-auto pr-1 ${height}`}>
+        {(comments ?? []).map((comment) => (
+          <CommentRow
+            key={comment.id}
+            comment={comment}
+            canWrite={canWrite}
+            isNoteOwner={roleOf(note) === "owner"}
+          />
+        ))}
+      </ul>
+    );
+  const field = canWrite && (
+    <CommentField
+      label={t("comments.placeholder")}
+      submitLabel={t("comments.send")}
+      onSubmit={(body) => addComment(noteId, body)}
+    />
+  );
 
   if (comments === undefined && commentLoadsFailed.value.has(noteId)) {
     return (
@@ -258,29 +297,42 @@ export function NoteComments({ note }: { note: Note }) {
             ? t("comments.none")
             : plural("comments.count", count)}
       </button>
-      {open && comments !== undefined && (
+      {open && !beside && comments !== undefined && (
         <div class="mt-2 flex flex-col gap-3">
-          {count > 0 && (
-            <ul class="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1">
-              {comments.map((comment) => (
-                <CommentRow
-                  key={comment.id}
-                  comment={comment}
-                  canWrite={canWrite}
-                  isNoteOwner={roleOf(note) === "owner"}
-                />
-              ))}
-            </ul>
-          )}
-          {canWrite && (
-            <CommentField
-              label={t("comments.placeholder")}
-              submitLabel={t("comments.send")}
-              onSubmit={(body) => addComment(noteId, body)}
-            />
-          )}
+          {list("max-h-64")}
+          {field}
         </div>
       )}
+      {panel.shown &&
+        aside &&
+        comments !== undefined &&
+        createPortal(
+          <section
+            aria-label={t("comments.title")}
+            data-leaving={panel.leaving}
+            class={`sheet-aside-panel ${colors.bg} ${colors.border} note-surface absolute left-0 top-0 flex h-full min-h-80 w-80 flex-col gap-3 border p-3 shadow-lg`}
+          >
+            <div class="flex items-center justify-between">
+              <h2 class="text-sm font-medium">{t("comments.title")}</h2>
+              <button
+                type="button"
+                class={quietButton}
+                aria-label={t("comments.close")}
+                onClick={() => setOpen(false)}
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+            {count === 0 && (
+              <p class="text-xs text-black/50 dark:text-white/50">
+                {t("comments.none")}
+              </p>
+            )}
+            {list("min-h-0 flex-1")}
+            <div class="mt-auto">{field}</div>
+          </section>,
+          aside,
+        )}
     </section>
   );
 }

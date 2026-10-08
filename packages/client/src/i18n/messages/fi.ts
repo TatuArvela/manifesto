@@ -927,6 +927,7 @@ export const fi: Messages = {
   "comments.count": { one: "{count} kommentti", other: "{count} kommenttia" },
   "comments.loadFailed": "Kommentteja ei voitu ladata",
   "comments.retry": "Yritä uudelleen",
+  "comments.close": "Sulje kommentit",
   "comments.placeholder": "Kirjoita kommentti...",
   "comments.send": "Kommentoi",
   "comments.edit": "Muokkaa kommenttia",

@@ -21,6 +21,7 @@ import { locale } from "../state/prefs.js";
 import { toasts } from "../state/ui.js";
 import { storageConnection } from "../storage/index.js";
 import { NoteComments } from "./NoteComments.js";
+import { SheetAside } from "./NoteSheet.js";
 
 const SERVER = "http://server.test";
 
@@ -414,5 +415,44 @@ describe("NoteComments", () => {
     );
     await tick();
     expect(reads()).toBe(2);
+  });
+
+  it("opens beside the note where a sheet has room for it", async () => {
+    stored = [comment()];
+    vi.spyOn(window, "matchMedia").mockImplementation(
+      (query) =>
+        ({
+          matches: true,
+          media: query,
+          addEventListener() {},
+          removeEventListener() {},
+        }) as unknown as MediaQueryList,
+    );
+    const aside = document.createElement("div");
+    document.body.appendChild(aside);
+    currentUser.value = { ...alice, email: null, isAdmin: false };
+    render(
+      <SheetAside.Provider value={aside}>
+        <NoteComments note={sharedNote("edit")} />
+      </SheetAside.Provider>,
+      host,
+    );
+    await vi.waitFor(() => expect(noteComments.value.has("n1")).toBe(true));
+    expect(aside.childElementCount).toBe(0);
+
+    toggle()?.click();
+    await vi.waitFor(() => expect(aside.querySelector("li")).toBeTruthy());
+    // The note keeps only the line; the list and the field are beside it.
+    expect(rows()).toEqual([]);
+    expect(aside.textContent).toContain("Shall we take the train?");
+    expect(
+      aside.querySelector(`[aria-label="${t("comments.placeholder")}"]`),
+    ).toBeTruthy();
+
+    aside
+      .querySelector<HTMLButtonElement>(`[aria-label="${t("comments.close")}"]`)
+      ?.click();
+    await vi.waitFor(() => expect(aside.childElementCount).toBe(0));
+    aside.remove();
   });
 });

@@ -109,6 +109,8 @@ A shared note has one `updatedAt`, stamped by every write from every participant
 
 Everyone on a shared note can talk about it beside it. An open note that is shared shows a line under
 its people saying how many comments it has; choosing it opens them, oldest first, with a field to add one.
+On a wide screen (64rem and up) they open in a panel of their own to the right of the note, as tall as
+it, so a long thread leaves the note as it was; on anything narrower they open under the line.
 
 - **Beside the note, not in it.** A comment is not part of the note's text, its
   [versions](version-history.md), its `updatedAt` or its export, and writing one changes nothing a card
