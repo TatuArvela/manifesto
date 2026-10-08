@@ -1,5 +1,5 @@
 import type { Hono } from "hono";
-import { createApp } from "../app.js";
+import { type AppDeps, createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import type { AuthProvider } from "../auth/types.js";
 import type { ServerConfig } from "../config.js";
@@ -54,11 +54,17 @@ export const TEST_CONFIG: ServerConfig = {
 
 export async function bootTestAppWith(
   overrides: Partial<ServerConfig>,
+  seams: Pick<AppDeps, "fetchLinkPreview"> = {},
 ): Promise<TestRig> {
   const cfg: ServerConfig = { ...TEST_CONFIG, ...overrides };
   const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
-  const { app, broadcaster } = createApp({ cfg, storage, authProvider });
+  const { app, broadcaster } = createApp({
+    cfg,
+    storage,
+    authProvider,
+    ...seams,
+  });
   return {
     cfg,
     storage,

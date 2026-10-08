@@ -247,8 +247,10 @@ or any configuration, so a build can generate from it with nothing running:
 ```sh
 node dist/cli.js openapi > openapi.json        # or: curl https://notes.example/api/openapi.json
 npx openapi-typescript openapi.json -o manifesto.d.ts      # TypeScript types
-openapi-generator-cli generate -i openapi.json -g python -o ./manifesto-client   # or go, kotlin, ...
 ```
+
+For another language, take a generator that reads OpenAPI 3.1 and not only 3.0: the document writes
+a value that may be null the 3.1 way (`type: ["string", "null"]`, or `anyOf` with `null`).
 
 What a generator gets:
 
@@ -257,12 +259,16 @@ What a generator gets:
 - request bodies that are the schemas the server validates with, converted, so they cannot be out of date;
 - for the public surface, response bodies with every property typed and marked required unless it is
   optional: the note in full (who it is shared with included), the paged listings, sync, the account,
-  the capabilities, invitations, the user lookup, versions, teams and public links. Operations of the
-  client's own surface (`x-stability: client`) are described by name and loosely;
+  the capabilities, invitations, the user lookup, versions, comments, teams, public links, link
+  previews and uploads. A color, a font and a link preview are each one named type wherever they
+  appear. Operations of the client's own surface (`x-stability: client`) are described by name and
+  loosely;
 - `x-token-scope` on each operation a token reaches, naming the scope it needs.
 
 `openapi.conformance.test.ts` calls the server and checks its real answers against those response
-schemas, so a field added to a response without the document following fails the build.
+schemas, so a field added to a response without the document following fails the build. The schemas
+themselves stay open (no `additionalProperties: false`), so a client generated from one version
+still reads a later server that answers more.
 
 Programs in TypeScript have a shorter road: the wire types are `@manifesto/shared`'s.
 

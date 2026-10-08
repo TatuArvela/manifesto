@@ -23,7 +23,9 @@ or `openapi.test.ts` fails.
 The document is meant to be generated from (`node dist/cli.js openapi` prints it with no database). A
 response of the public surface is described with `exact` in `openapi.ts`, every property required unless
 named optional, and `openapi.conformance.test.ts` checks the server's real answers against it; add the
-call there when a public operation gains a response shape. A request schema that refers to itself comes
+call there when a public operation gains a response shape. `exact` leaves the schema open, since the
+policy allows additions, so it is the test's `undeclared` that catches a field the document lacks, not
+the schema. A request schema that refers to itself comes
 out of zod with `$defs`, which `embeddable` lifts into the components so no reference dangles.
 
 `OPERATIONS` is also every route's protection, and nothing else is: each declares `auth` (`none`,

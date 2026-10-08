@@ -1,3 +1,4 @@
+import { NoteColor, NoteFont } from "@manifesto/shared";
 import { z } from "zod";
 import { ACCOUNT_OPERATIONS } from "./openapi/account.js";
 import { ADMIN_OPERATIONS } from "./openapi/admin.js";
@@ -78,6 +79,9 @@ const exact = (
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
 const listOf = (items: unknown) => ({ type: "array", items });
 const nullable = (type: string) => ({ type: [type, "null"] });
+const nullableRef = (name: string) => ({
+  anyOf: [ref(name), { type: "null" }],
+});
 
 /** The people and shapes the public responses are made of. */
 function publicParts() {
@@ -89,6 +93,21 @@ function publicParts() {
   };
   const teamRef = exact({ id: { type: "string" }, name: { type: "string" } });
   return {
+    // Named, so a generated client has one type for a color wherever a
+    // response carries one.
+    NoteColor: { type: "string", enum: Object.values(NoteColor) },
+    NoteFont: { type: "string", enum: Object.values(NoteFont) },
+    LinkPreview: exact(
+      {
+        url: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        image: { type: "string" },
+        favicon: { type: "string" },
+        domain: { type: "string" },
+      },
+      ["description", "image", "favicon"],
+    ),
     ShareUser: exact(shareUser),
     NoteMember: exact(
       {
@@ -111,8 +130,8 @@ function publicParts() {
         owner: ref("ShareUser"),
         title: { type: "string" },
         content: { type: "string" },
-        color: { type: "string" },
-        font: { type: "string" },
+        color: ref("NoteColor"),
+        font: ref("NoteFont"),
         invitedAt: { type: "string" },
         team: teamRef,
       },
@@ -137,18 +156,33 @@ function publicParts() {
       title: { type: "string" },
       content: { type: "string" },
     }),
+    NoteComment: exact({
+      id: { type: "string" },
+      noteId: { type: "string" },
+      // Null once whoever wrote it no longer has the note.
+      author: nullableRef("ShareUser"),
+      body: { type: "string" },
+      createdAt: { type: "string" },
+      editedAt: nullable("string"),
+    }),
   };
 }
 
 function components() {
   // The note itself comes from the zod schema; who it is shared with is the
-  // one part of it described by hand.
+  // one part of it described by hand, and its color and font point at the
+  // named enums the other responses use.
   const converted = toSchema(noteResponseSchema, "output") as {
     properties: Record<string, unknown>;
   };
   const note = {
     ...converted,
-    properties: { ...converted.properties, sharing: ref("NoteSharing") },
+    properties: {
+      ...converted.properties,
+      color: ref("NoteColor"),
+      font: ref("NoteFont"),
+      sharing: ref("NoteSharing"),
+    },
   };
   return {
     securitySchemes: {
@@ -227,10 +261,10 @@ function components() {
           note: exact({
             title: { type: "string" },
             content: { type: "string" },
-            color: { type: "string" },
-            font: { type: "string" },
+            color: ref("NoteColor"),
+            font: ref("NoteFont"),
             images: listOf({ type: "string" }),
-            linkPreviews: listOf({ type: "object" }),
+            linkPreviews: listOf(ref("LinkPreview")),
             updatedAt: { type: "string" },
           }),
           access: nullable("string"),
@@ -262,13 +296,17 @@ function components() {
       AuthMeResponse: exact({ user: ref("AuthUser") }),
       CapabilitiesResponse: exact({
         version: { type: "string" },
-        auth: exact({
-          providers: listOf({ enum: ["local", "oidc"] }),
-          passwordForm: { enum: ["shown", "collapsed"] },
-          registration: { type: "boolean" },
-          passwordReset: { type: "boolean" },
-          passkeys: { type: "boolean" },
-        }),
+        auth: exact(
+          {
+            providers: listOf({ enum: ["local", "oidc"] }),
+            passwordForm: { enum: ["shown", "collapsed"] },
+            registration: { type: "boolean" },
+            passwordReset: { type: "boolean" },
+            magicLink: { type: "boolean" },
+            passkeys: { type: "boolean" },
+          },
+          ["magicLink"],
+        ),
         // One boolean a feature, and `userLookup`, which is a word. Features
         // are added over time, so they are not listed one by one.
         features: {
@@ -292,10 +330,10 @@ function components() {
       InvitationsResponse: exact({
         invitations: listOf(ref("ShareInvitation")),
       }),
-      NoteCommentsResponse: shape({ comments: { type: "array" } }),
-      NoteCommentResponse: shape({ comment: { type: "object" } }),
+      NoteCommentsResponse: exact({ comments: listOf(ref("NoteComment")) }),
+      NoteCommentResponse: exact({ comment: ref("NoteComment") }),
       UserLookupResponse: exact({ users: listOf(ref("DirectoryUser")) }),
-      LinkPreviewResponse: exact({ preview: { type: ["object", "null"] } }),
+      LinkPreviewResponse: exact({ preview: nullableRef("LinkPreview") }),
       ApiTokensResponse: shape({ tokens: { type: "array" } }),
       OAuthClientInfo: shape({
         clientId: { type: "string" },
