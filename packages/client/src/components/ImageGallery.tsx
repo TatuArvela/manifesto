@@ -18,6 +18,14 @@ interface ImageGalleryProps {
   fill?: boolean;
 }
 
+/**
+ * A button over an image in the editor: out of the way until the image is
+ * pointed at or the button focused, and always there on a touch screen, which
+ * has no pointer to bring it out.
+ */
+const imageButtonClass =
+  "absolute bottom-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 focus-visible:opacity-100 touch:opacity-100 hover:bg-black/80 transition-opacity cursor-pointer";
+
 export function ImageGallery({ images, onDelete, fill }: ImageGalleryProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -50,7 +58,7 @@ export function ImageGallery({ images, onDelete, fill }: ImageGalleryProps) {
             {onDelete && (
               <button
                 type="button"
-                class="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 focus-visible:opacity-100 hover:bg-black/80 transition-opacity cursor-pointer"
+                class={`right-2 ${imageButtonClass}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(i);
