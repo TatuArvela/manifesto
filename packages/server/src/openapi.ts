@@ -166,6 +166,14 @@ function components() {
         token: { type: "string" },
         user: { type: "object" },
       }),
+      TwoFactorRequired: shape({
+        error: { type: "string" },
+        code: { const: "two_factor_required" },
+        twoFactor: shape({
+          authenticator: { type: "boolean" },
+          passkey: { type: ["object", "null"] },
+        }),
+      }),
       AuthMeResponse: shape({ user: { type: "object" } }),
       CapabilitiesResponse: shape({
         version: { type: "string" },

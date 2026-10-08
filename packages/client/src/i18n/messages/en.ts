@@ -602,6 +602,7 @@ export const en = {
     "Enter the email address on your account and a link that signs you in is sent to it. No password needed.",
   "login.link.sent":
     "If an account has that address, a link is on its way. It works once, for 15 minutes.",
+  "login.link.ready": "Your sign-in link is ready.",
   "login.link.signingIn": "Signing you in...",
   "login.link.expired":
     "This sign-in link has expired or was used already. Ask for a new one.",

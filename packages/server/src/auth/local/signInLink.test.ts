@@ -11,6 +11,7 @@ import { defined } from "../../test/defined.js";
 import { authHeaders, TEST_CONFIG } from "../../test/setup.js";
 import { createAuthProvider } from "../index.js";
 import { base32Decode, hotp, totpStep } from "../totp.js";
+import { MAX_LOGIN_FAILURES } from "./loginAttempts.js";
 
 const cfg = {
   ...TEST_CONFIG,
@@ -136,6 +137,22 @@ describe("sign-in by a mailed link", () => {
     expect(mailer.sent).toHaveLength(1);
   });
 
+  it("keeps no link, and no wait, for a mail that could not be sent", async () => {
+    const send = mailer.send;
+    mailer.send = async () => false;
+    await post("/api/auth/sign-in-link", { email: "alice@example.com" });
+    await settle();
+    expect(await storage.signInLinks.latestFor((await alice()).id)).toBeNull();
+    const entries = await storage.audit.list({ limit: 20 });
+    expect(
+      entries.some((e) => e.action === "auth.sign_in_link_requested"),
+    ).toBe(false);
+
+    // Asking again is not held back by the one that never arrived.
+    mailer.send = send;
+    expect((await confirm(await mailedToken())).status).toBe(200);
+  });
+
   it("writes in the language asked for", async () => {
     await post("/api/auth/sign-in-link", {
       email: "alice@example.com",
@@ -166,11 +183,18 @@ describe("sign-in by a mailed link", () => {
     expect(mailer.sent).toEqual([]);
   });
 
-  it("still asks for the second factor, and spends the link only once it holds", async () => {
-    const session = await (
-      await post("/api/auth/login", { username: "alice", password: PASSWORD })
-    ).json();
-    const headers = authHeaders((session as AuthSuccessResponse).token);
+  /** Signs alice in with her password, for the routes that want a session. */
+  async function sessionHeaders() {
+    const res = await post("/api/auth/login", {
+      username: "alice",
+      password: PASSWORD,
+    });
+    return authHeaders(((await res.json()) as AuthSuccessResponse).token);
+  }
+
+  /** Turns two-factor on for alice and hands back what makes her codes. */
+  async function enableTwoFactor() {
+    const headers = await sessionHeaders();
     const setup = await post(
       "/api/auth/two-factor/setup",
       { password: PASSWORD },
@@ -183,6 +207,82 @@ describe("sign-in by a mailed link", () => {
       (await post("/api/auth/two-factor/enable", { code: codeAt(-1) }, headers))
         .status,
     ).toBe(200);
+    return codeAt;
+  }
+
+  /** A sign-in from an address of its own each time, so the per-address
+   * throttle stays out of it and only the per-account count is left. */
+  let addresses = 0;
+  const signInFromElsewhere = (password: string) =>
+    post(
+      "/api/auth/login",
+      { username: "alice", password },
+      { "x-forwarded-for": `2001:db8:0:${(addresses++).toString(16)}::1` },
+    );
+
+  /** Runs the account's budget of failed sign-ins out, as anyone can. */
+  async function lockOut() {
+    for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
+      await signInFromElsewhere("wrong-password");
+    }
+    expect((await signInFromElsewhere(PASSWORD)).status).toBe(429);
+  }
+
+  it("refuses a link sent before the password was changed", async () => {
+    const token = await mailedToken();
+    const changed = await post(
+      "/api/auth/password",
+      { currentPassword: PASSWORD, newPassword: "another-pass-34" },
+      await sessionHeaders(),
+    );
+    expect(changed.status).toBe(204);
+    expect((await confirm(token)).status).toBe(410);
+  });
+
+  it("refuses a link sent to an address the account has since left", async () => {
+    const token = await mailedToken();
+    const moved = await request("/api/auth/me", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(await sessionHeaders()),
+      },
+      body: JSON.stringify({
+        email: "alice@elsewhere.example",
+        password: PASSWORD,
+      }),
+    });
+    expect(moved.status).toBe(200);
+    expect((await confirm(token)).status).toBe(410);
+  });
+
+  describe("against the budget of failed sign-ins", () => {
+    beforeEach(async () => {
+      await storage.close();
+      await boot({ ...cfg, trustProxy: true });
+    });
+
+    it("is not shut for an account with no second factor", async () => {
+      const token = await mailedToken();
+      await lockOut();
+      expect((await confirm(token)).status).toBe(200);
+      // And the link has not cleared the count for whoever was guessing.
+      expect((await signInFromElsewhere(PASSWORD)).status).toBe(429);
+    });
+
+    it("holds an account with a second factor to it", async () => {
+      const codeAt = await enableTwoFactor();
+      const token = await mailedToken();
+      await lockOut();
+      expect((await confirm(token)).status).toBe(429);
+      const guess = await confirm(token, { otp: codeAt(0) });
+      expect(guess.status).toBe(429);
+      expect(guess.headers.get("Retry-After")).toMatch(/^\d+$/);
+    });
+  });
+
+  it("still asks for the second factor, and spends the link only once it holds", async () => {
+    const codeAt = await enableTwoFactor();
 
     const token = await mailedToken();
     const asked = await confirm(token);

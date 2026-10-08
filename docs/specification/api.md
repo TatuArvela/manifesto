@@ -345,7 +345,8 @@ address (null when it has none there). The same request sent again with `otp`
 with `SMTP_URL`; otherwise both routes are `404`). A token that is unknown, used or older than 15 minutes
 is `410`. For an account with two-factor sign-in it answers the same `403` `two_factor_required` as
 `/login`, and the same request sent again with `otp` or `passkey` signs in; a wrong one is `401`
-`two_factor_invalid` and leaves the link usable. See
+`two_factor_invalid` and leaves the link usable. Such an account is `429` with `Retry-After` while its
+budget of failed sign-ins is spent; one without a second factor is not. See
 [Accounts](features/accounts.md#signing-in-with-a-link).
 
 Sign-in is budgeted twice over, and either budget answers `429` with a

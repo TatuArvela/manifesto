@@ -226,17 +226,28 @@ holds a temporary password, or has none, signs in to nothing; every failure is t
 With `SMTP_URL` set and `MAGIC_LINKS` on (the default; see [Server Deployment](../server/deployment.md)), a
 local account with an email address can sign in without typing its password: **Email me a sign-in link**
 under the sign-in form asks for the address and mails a link to `APP_URL/#signin=<token>`. Opening it
-signs in.
+shows a **Sign in** button, and pressing that signs in.
 
 - Asking always answers `204`, whether or not the address has an account, and the mail is sent after the
-  answer, as a [reset link](#recovery-by-mail) is. One link per account per five minutes.
+  answer, as a [reset link](#recovery-by-mail) is. One link per account per five minutes; a link whose
+  mail could not be sent is not kept and does not count towards that.
 - A link works once, for 15 minutes; its token is stored as a SHA-256 hash, in a table of its own
   (`sign_in_links`), so a sign-in link cannot be spent as a reset link or the other way round. The token is
   in the URL fragment, which a browser does not send to any server, and the client takes it out of the
-  address bar before using it.
+  address bar before using it. A browser that is signed in already takes it out too, and uses it for
+  nothing: left there, it would sign the same person back in when they signed out.
+- The link is spent by the press, not by the page loading. A mail scanner or a link preview that opens
+  the address runs the page as a browser does, and would otherwise use the link up and hold a session.
 - The link stands in for the password and for nothing else. An account with two-factor sign-in is asked
   for its code or passkey after opening the link, on the same per-account budget of failed attempts as a
-  password sign-in, and the link is spent only once that has passed, so a mistyped code does not cost it.
+  password sign-in, and a mistyped code does not cost the link. Nor does a link that has run out cost a
+  recovery code: the link is checked before the code is.
+  An account without a second factor is not held to that budget here: there is nothing in the link to
+  guess at, anyone can run the budget out with wrong passwords, and the link is then the way in its
+  owner has left. Such a sign-in does not clear the count either.
+- A link stops working when the account's password is changed or reset, by its owner or an admin, and
+  when its email address changes, so a link sitting in a mailbox someone else can read does not
+  outlast what was done about it.
 - No link is sent to an account that has no password here (it signs in through single sign-on) or that
   holds a [temporary password](#temporary-passwords), which has to be replaced by the person it was
   handed to. A link sent before either became true is refused.

@@ -629,23 +629,26 @@ export function takeSignInLinkToken(): string | null {
 
 /**
  * Asks for a sign-in link to be mailed. As with a reset, the server answers
- * the same whether or not the address has an account, so this says only
- * whether the request got there.
+ * the same whether or not the address has an account, so `sent` says only
+ * that the request got there. The refusals are told apart because each asks
+ * something different of the person: wait, or fix the address.
  */
 export async function requestSignInLink(
   email: string,
   locale: string,
-): Promise<boolean> {
-  if (SERVER_URL === null) return false;
+): Promise<"sent" | "throttled" | "invalid" | "failed"> {
+  if (SERVER_URL === null) return "failed";
   try {
     const res = await fetch(`${SERVER_URL}/api/auth/sign-in-link`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, locale }),
     });
-    return res.ok;
+    if (res.ok) return "sent";
+    if (res.status === 429) return "throttled";
+    return res.status === 422 ? "invalid" : "failed";
   } catch {
-    return false;
+    return "failed";
   }
 }
 

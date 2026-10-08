@@ -192,6 +192,8 @@ export function createAdminRoutes(deps: AdminDeps) {
         const result = await deps.storage.users.setEmail(id, email);
         if (result === "not-found") throw new HttpError(404, "User not found");
         if (result === "email-taken") throw emailTaken();
+        // A sign-in link already sent went to the address this replaces.
+        await deps.storage.signInLinks.deleteByUser(id);
         logger.info("Admin changed an email address", {
           adminId: c.get("auth").userId,
           userId: id,

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "preact/hooks";
-import { t } from "../i18n/index.js";
+import { useState } from "preact/hooks";
+import { type MessageKey, t } from "../i18n/index.js";
 import {
   AuthRequestError,
   loginErrorKey,
@@ -12,18 +12,32 @@ import { getPasskey } from "../utils/webauthn.js";
 import { type SecondFactor, TwoFactorStep } from "./LoginSteps.js";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
 
+/** What to say about a link that could not be asked for. */
+const REQUEST_FAILURES = {
+  throttled: "login.tooManyAttempts",
+  invalid: "account.email.invalid",
+  failed: "login.serverUnavailable",
+} as const satisfies Record<string, MessageKey>;
+
 /** Asks for a sign-in link by mail; says the same whatever the address. */
 export function SignInLinkForm({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">(
-    "idle",
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+  const [failure, setFailure] = useState<keyof typeof REQUEST_FAILURES | null>(
+    null,
   );
   const submit = async (event: Event) => {
     event.preventDefault();
     if (state === "sending" || email.trim().length === 0) return;
     setState("sending");
-    const ok = await requestSignInLink(email.trim(), locale.value);
-    setState(ok ? "sent" : "failed");
+    setFailure(null);
+    const result = await requestSignInLink(email.trim(), locale.value);
+    if (result === "sent") {
+      setState("sent");
+      return;
+    }
+    setFailure(result);
+    setState("idle");
   };
   return (
     <form onSubmit={submit} class="space-y-4">
@@ -55,9 +69,9 @@ export function SignInLinkForm({ onBack }: { onBack: () => void }) {
               class={inputClass}
             />
           </label>
-          {state === "failed" && (
+          {failure && (
             <p class="text-sm text-red-600 dark:text-red-400" role="alert">
-              {t("login.serverUnavailable")}
+              {t(REQUEST_FAILURES[failure])}
             </p>
           )}
           <button
@@ -77,9 +91,11 @@ export function SignInLinkForm({ onBack }: { onBack: () => void }) {
 }
 
 /**
- * Where a mailed sign-in link lands. It signs in at once, since opening the
- * link was the decision; an account with a second factor is asked for it
- * first, with the same link, which the server only spends once that holds.
+ * Where a mailed sign-in link lands. It waits for a press before it spends
+ * the link: a mail scanner or a preview that loads the address runs this
+ * page too, and would otherwise use the link up and sign itself in. An
+ * account with a second factor is then asked for it, with the same link,
+ * which the server only spends once that holds.
  */
 export function SignInLinkLanding({
   token,
@@ -89,9 +105,9 @@ export function SignInLinkLanding({
   /** Back to the ordinary sign-in form, the link being of no more use. */
   onDone: () => void;
 }) {
-  const [step, setStep] = useState<"working" | "twoFactor" | "expired">(
-    "working",
-  );
+  const [step, setStep] = useState<
+    "ready" | "working" | "twoFactor" | "expired"
+  >("ready");
   const [secondFactor, setSecondFactor] = useState<SecondFactor>({
     authenticator: true,
     passkey: null,
@@ -119,7 +135,12 @@ export function SignInLinkLanding({
       } else if (err instanceof AuthRequestError && err.status === 410) {
         setStep("expired");
       } else if (passkey !== undefined) {
-        setError(t("login.passkeyFailed"));
+        // Only a 401 is the passkey's doing; a lock or an unreachable server
+        // says so itself.
+        const refused = err instanceof AuthRequestError && err.status === 401;
+        setError(
+          t(refused ? "login.passkeyFailed" : loginErrorKey(err, "twoFactor")),
+        );
         // That challenge is spent; the link again brings a fresh one.
         try {
           await signInWithLink(token);
@@ -129,6 +150,15 @@ export function SignInLinkLanding({
               authenticator: again.authenticator,
               passkey: again.passkey,
             });
+          } else if (
+            again instanceof AuthRequestError &&
+            again.status === 410
+          ) {
+            setStep("expired");
+          } else {
+            // No fresh challenge came, so the spent one is not offered again.
+            setSecondFactor((held) => ({ ...held, passkey: null }));
+            setError(t(loginErrorKey(again, "twoFactor")));
           }
         }
       } else if (code !== undefined) {
@@ -141,17 +171,6 @@ export function SignInLinkLanding({
       setSubmitting(false);
     }
   };
-
-  // Once, on arrival. A ref rather than the dependency list: the effect must
-  // not run again when `attempt` is rebuilt, or the link would be tried twice.
-  const started = useRef(false);
-  const attemptRef = useRef(attempt);
-  attemptRef.current = attempt;
-  useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    void attemptRef.current();
-  }, []);
 
   const answerWithPasskey = async () => {
     const options = secondFactor.passkey;
@@ -186,6 +205,31 @@ export function SignInLinkLanding({
         onPasskey={() => void answerWithPasskey()}
         onBack={onDone}
       />
+    );
+  }
+
+  if (step === "ready") {
+    return (
+      <div class="space-y-4">
+        <p class="text-sm text-center text-neutral-600 dark:text-neutral-300">
+          {t("login.link.ready")}
+        </p>
+        <button
+          type="button"
+          // biome-ignore lint/a11y/noAutofocus: the one thing to do on this step
+          autoFocus
+          class={submitClass}
+          onClick={() => {
+            setStep("working");
+            void attempt();
+          }}
+        >
+          {t("login.submitSignIn")}
+        </button>
+        <button type="button" class={quietClass} onClick={onDone}>
+          {t("login.back")}
+        </button>
+      </div>
     );
   }
 

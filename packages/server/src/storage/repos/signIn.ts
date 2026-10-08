@@ -86,7 +86,7 @@ export interface SignInLinksRepo {
   }): Promise<void>;
   /**
    * Whose link this is, while it is unused and unexpired at `now`, without
-   * spending it: a second factor is asked for before the link is used up.
+   * spending it: the second factor is asked for with the link still good.
    */
   find(tokenHash: string, now: string): Promise<string | null>;
   /**
@@ -94,7 +94,16 @@ export interface SignInLinksRepo {
    * says whose account it signs in; null for any other link.
    */
   consume(tokenHash: string, now: string): Promise<string | null>;
+  /**
+   * Hands back a link `consume` spent, for a sign-in that then failed at the
+   * second factor. It still expires when it would have.
+   */
+  release(tokenHash: string): Promise<void>;
+  /** Removes one link, for a mail that never went. */
+  delete(tokenHash: string): Promise<void>;
   /** When the user's latest link was made, for spacing them out. */
   latestFor(userId: string): Promise<string | null>;
+  /** Voids every link made for the user, so none sent before still works. */
+  deleteByUser(userId: string): Promise<number>;
   deleteExpired(now: string): Promise<number>;
 }

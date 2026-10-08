@@ -15,6 +15,8 @@ const LOCAL: CapabilitiesResponse["auth"] = {
 let auth = LOCAL;
 let linkToken: string | null = null;
 const requested: string[] = [];
+/** How the server answers a request for a link. */
+let asking: "sent" | "throttled" | "invalid" | "failed" = "sent";
 const attempts: { token: string; otp: string | undefined }[] = [];
 /** What the server makes of the link: fine, wanting a code, or spent. */
 let account: "plain" | "twoFactor" | "expired" = "plain";
@@ -28,7 +30,7 @@ vi.mock("../state/auth.js", async (original) => {
     takeSignInLinkToken: () => linkToken,
     requestSignInLink: async (email: string) => {
       requested.push(email);
-      return true;
+      return asking;
     },
     signInWithLink: async (token: string, otp?: string) => {
       attempts.push({ token, otp });
@@ -57,11 +59,18 @@ const button = (label: string) =>
 const shown = (text: string) =>
   vi.waitFor(() => expect(host.textContent).toContain(text));
 
+/** Presses Sign in on the step a link lands on. */
+async function useLink() {
+  await shown(t("login.link.ready"));
+  button(t("login.submitSignIn"))?.click();
+}
+
 describe("LoginScreen with sign-in by a mailed link", () => {
   beforeEach(() => {
     auth = LOCAL;
     linkToken = null;
     account = "plain";
+    asking = "sent";
     requested.length = 0;
     attempts.length = 0;
     host = document.createElement("div");
@@ -107,19 +116,64 @@ describe("LoginScreen with sign-in by a mailed link", () => {
     await shown(t("login.submitSignIn"));
   });
 
-  it("signs in on arriving from a link, once", async () => {
+  it("says why a link could not be asked for, and lets it be asked again", async () => {
+    render(<LoginScreen />, host);
+    await vi.waitFor(() => expect(button(t("login.link.open"))).toBeDefined());
+    button(t("login.link.open"))?.click();
+    const email = await vi.waitFor(() => {
+      const input = host.querySelector<HTMLInputElement>('input[type="email"]');
+      expect(input).toBeTruthy();
+      return input as HTMLInputElement;
+    });
+    type(email, "alice@example.com");
+    await tick();
+
+    asking = "throttled";
+    host.querySelector("form")?.requestSubmit();
+    await shown(t("login.tooManyAttempts"));
+    expect(host.textContent).not.toContain(t("login.serverUnavailable"));
+
+    asking = "invalid";
+    host.querySelector("form")?.requestSubmit();
+    await shown(t("account.email.invalid"));
+
+    asking = "sent";
+    host.querySelector("form")?.requestSubmit();
+    await shown(t("login.link.sent"));
+    expect(requested).toHaveLength(3);
+  });
+
+  it("leaves the link unspent until Sign in is pressed, then signs in once", async () => {
     linkToken = "ab".repeat(32);
     render(<LoginScreen />, host);
+    await shown(t("login.link.ready"));
+    // Loading the page is what a mail scanner does too.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(attempts).toEqual([]);
+
+    button(t("login.submitSignIn"))?.click();
     await vi.waitFor(() => expect(attempts).toHaveLength(1));
     expect(attempts[0]).toEqual({ token: linkToken, otp: undefined });
     await new Promise((r) => setTimeout(r, 50));
     expect(attempts).toHaveLength(1);
   });
 
+  it("can be turned down, for the ordinary form", async () => {
+    linkToken = "ab".repeat(32);
+    render(<LoginScreen />, host);
+    await shown(t("login.link.ready"));
+    button(t("login.back"))?.click();
+    await vi.waitFor(() =>
+      expect(host.textContent).not.toContain(t("login.link.ready")),
+    );
+    expect(attempts).toEqual([]);
+  });
+
   it("asks for the second factor with the same link", async () => {
     linkToken = "cd".repeat(32);
     account = "twoFactor";
     render(<LoginScreen />, host);
+    await useLink();
     await shown(t("login.twoFactor.title"));
     const code = host.querySelector("input") as HTMLInputElement;
 
@@ -140,6 +194,7 @@ describe("LoginScreen with sign-in by a mailed link", () => {
     linkToken = "ef".repeat(32);
     account = "expired";
     render(<LoginScreen />, host);
+    await useLink();
     await shown(t("login.link.expired"));
     button(t("login.back"))?.click();
     await shown(t("login.submitSignIn"));

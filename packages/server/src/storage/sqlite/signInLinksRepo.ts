@@ -15,8 +15,17 @@ export function createSqliteSignInLinksRepo(db: SqliteDB): SignInLinksRepo {
      WHERE token_hash = @tokenHash AND used_at IS NULL AND expires_at > @now
      RETURNING user_id`,
   );
+  const releaseStmt = db.prepare(
+    `UPDATE sign_in_links SET used_at = NULL WHERE token_hash = ?`,
+  );
+  const deleteStmt = db.prepare(
+    `DELETE FROM sign_in_links WHERE token_hash = ?`,
+  );
   const latestStmt = db.prepare(
     `SELECT MAX(created_at) AS latest FROM sign_in_links WHERE user_id = ?`,
+  );
+  const deleteByUserStmt = db.prepare(
+    `DELETE FROM sign_in_links WHERE user_id = ?`,
   );
   const expireStmt = db.prepare(
     `DELETE FROM sign_in_links WHERE expires_at < ?`,
@@ -37,8 +46,17 @@ export function createSqliteSignInLinksRepo(db: SqliteDB): SignInLinksRepo {
         | undefined;
       return row?.user_id ?? null;
     },
+    async release(tokenHash) {
+      releaseStmt.run(tokenHash);
+    },
+    async delete(tokenHash) {
+      deleteStmt.run(tokenHash);
+    },
     async latestFor(userId) {
       return (latestStmt.get(userId) as { latest: string | null }).latest;
+    },
+    async deleteByUser(userId) {
+      return deleteByUserStmt.run(userId).changes;
     },
     async deleteExpired(now) {
       return expireStmt.run(now).changes;

@@ -201,8 +201,16 @@ export const AUTH_OPERATIONS: Operation[] = [
     responses: {
       ...ok("AuthSuccess"),
       "401": { description: "Wrong second factor", schema: "Error" },
-      "403": { description: "A second factor is required", schema: "Error" },
+      "403": {
+        description: "A second factor is required",
+        schema: "TwoFactorRequired",
+      },
       "410": { description: "Expired or used", schema: "Error" },
+      "429": {
+        description:
+          "Too many failed sign-ins for the account; Retry-After says how long",
+        schema: "Error",
+      },
     },
     provider: "local",
   },

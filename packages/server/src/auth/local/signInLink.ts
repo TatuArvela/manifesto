@@ -55,8 +55,11 @@ export type SecondFactorCheck = (
  *
  * The link stands in for the password and for nothing else: an account with
  * a second factor is asked for it, on the same per-account budget as a
- * password sign-in, and the link is only spent once that has passed, so the
- * challenge can be answered with the link the mail brought.
+ * password sign-in, and a wrong answer leaves the link good, so the challenge
+ * can be answered again with the link the mail brought.
+ *
+ * A link does not outlive a change to what it stands in for or where it was
+ * sent: `endUserSessions` and both email changes void the account's links.
  */
 export function registerSignInLinkRoutes(
   auth: Hono<{ Variables: { auth: AuthContext } }>,
@@ -89,9 +92,10 @@ export function registerSignInLinkRoutes(
     const latest = await storage.signInLinks.latestFor(user.id);
     if (latest && Date.now() - Date.parse(latest) < LINK_COOLDOWN_MS) return;
     const token = newSessionToken();
+    const tokenHash = hashToken(token);
     const now = new Date();
     await storage.signInLinks.create({
-      tokenHash: hashToken(token),
+      tokenHash,
       userId: user.id,
       createdAt: now.toISOString(),
       expiresAt: new Date(
@@ -103,7 +107,12 @@ export function registerSignInLinkRoutes(
       link: `${appUrl}/#signin=${token}`,
       minutes: SIGN_IN_LINK_MINUTES,
     });
-    await mailer.send({ to: email, ...message });
+    if (!(await mailer.send({ to: email, ...message }))) {
+      // Nobody holds this link, and left in place it would also make the
+      // next five minutes of asking again come to nothing.
+      await storage.signInLinks.delete(tokenHash);
+      return;
+    }
     audit(storage, c, {
       action: "auth.sign_in_link_requested",
       targetId: user.id,
@@ -141,14 +150,43 @@ export function registerSignInLinkRoutes(
       if (!user || user.passwordHash === null || user.mustChangePassword) {
         throw gone();
       }
-      const wait = loginAttempts.retryAfter(user.username);
-      if (wait > 0) {
-        c.header("Retry-After", String(wait));
-        throw new HttpError(429, "Too many sign-in attempts");
+      // The budget guards what can be guessed, which here is the second
+      // factor alone. An account without one is not held to it: anyone can
+      // run the budget out with wrong passwords, and the link is the way in
+      // that leaves its owner.
+      const refuseIfLocked = () => {
+        const wait = loginAttempts.retryAfter(user.username);
+        if (wait > 0) {
+          c.header("Retry-After", String(wait));
+          throw new HttpError(429, "Too many sign-in attempts");
+        }
+      };
+      // An answer to the second factor spends the link before it is looked
+      // at, atomically: of two requests holding the same link one goes on,
+      // and a link that ran out meanwhile costs no recovery code. A wrong
+      // answer hands the link back.
+      const answering = otp !== undefined || passkey !== undefined;
+      const spend = async () => {
+        if ((await storage.signInLinks.consume(tokenHash, nowIso())) === null) {
+          throw gone();
+        }
+      };
+      if (answering) {
+        refuseIfLocked();
+        await spend();
       }
-      const second = await deps.secondFactor(c, user.id, otp, passkey);
-      if ("challenge" in second) return c.json(second.challenge, 403);
+      const second = await deps
+        .secondFactor(c, user.id, otp, passkey)
+        .catch(async (err: unknown) => {
+          if (answering) await storage.signInLinks.release(tokenHash);
+          throw err;
+        });
+      if ("challenge" in second) {
+        refuseIfLocked();
+        return c.json(second.challenge, 403);
+      }
       if (!second.passed) {
+        await storage.signInLinks.release(tokenHash);
         loginAttempts.fail(user.username);
         audit(storage, c, {
           action: "auth.sign_in_failed",
@@ -161,12 +199,10 @@ export function registerSignInLinkRoutes(
           "two_factor_invalid",
         );
       }
-      // Spent only now, and atomically: of two requests holding the same
-      // link, one gets a session.
-      if ((await storage.signInLinks.consume(tokenHash, nowIso())) === null) {
-        throw gone();
-      }
-      loginAttempts.succeed(user.username);
+      if (!answering) await spend();
+      // Only a second factor that held clears the count: a link by itself
+      // proves nothing about who has been guessing at the password.
+      if (second.with !== null) loginAttempts.succeed(user.username);
       const session = await issueSession(storage, deps.cfg, user.id);
       audit(storage, c, {
         action: "auth.signed_in",

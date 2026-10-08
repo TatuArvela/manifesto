@@ -614,6 +614,7 @@ export const fi: Messages = {
     "Anna tilisi sähköpostiosoite, niin siihen lähetetään linkki, jolla kirjaudut sisään. Salasanaa ei tarvita.",
   "login.link.sent":
     "Jos osoitteella on tili, linkki on matkalla. Se toimii kerran, 15 minuutin ajan.",
+  "login.link.ready": "Kirjautumislinkkisi on valmis.",
   "login.link.signingIn": "Kirjaudutaan...",
   "login.link.expired":
     "Kirjautumislinkki on vanhentunut tai jo käytetty. Pyydä uusi.",
