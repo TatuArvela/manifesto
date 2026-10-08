@@ -30,6 +30,7 @@ import {
   showError,
   viewMode,
 } from "../state/index.js";
+import { placeImages } from "../utils/drawing.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import {
   isMorphSource,
@@ -477,7 +478,9 @@ export function NoteInput() {
             font={font}
             onFontChange={setFont}
             images={images}
-            onAddImages={(urls) => setImages([...images, ...urls])}
+            onAddImages={(urls, replaces) =>
+              setImages(placeImages(images, urls, replaces))
+            }
             onRemoveImage={(index) =>
               setImages(images.filter((_, i) => i !== index))
             }

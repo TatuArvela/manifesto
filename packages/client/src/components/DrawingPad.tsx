@@ -1,18 +1,23 @@
-import { NoteColor } from "@manifesto/shared";
+import { isStoredImageRef, NoteColor } from "@manifesto/shared";
 import { Check, Eraser, Trash2, Undo, X } from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useBackToClose } from "../hooks/useBackToClose.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { getColorLabel, t } from "../i18n/index.js";
+import { attachmentObjectUrl } from "../state/attachments.js";
 import { askConfirmation } from "../state/confirm.js";
 import { closeDrawing, drawingRequest } from "../state/drawing.js";
+import { showError } from "../state/ui.js";
 import {
-  DRAWING_HEIGHT,
-  DRAWING_WIDTH,
+  BLANK_PAPER,
   drawingPoint,
   drawStroke,
+  encodeDrawing,
   PAPER,
+  type PaperSize,
+  paperSizeFor,
+  penScale,
   renderDrawing,
   type Stroke,
 } from "../utils/drawing.js";
@@ -23,7 +28,7 @@ const INKS = [
   { color: "#2563eb", name: NoteColor.Blue },
   { color: "#16a34a", name: NoteColor.Green },
 ] as const;
-/** Pen widths, in the drawing's own pixels. */
+/** Pen widths, in a new drawing's own pixels. */
 const WIDTHS = [4, 10, 22] as const;
 /** The eraser is paper-coloured ink, wide enough to rub with. */
 const ERASER_SCALE = 4;
@@ -33,7 +38,9 @@ const barButton =
 
 /**
  * The drawing pad: a sheet of paper to draw on with a finger, a pen or a
- * mouse, which becomes an image on the note like any other attachment.
+ * mouse, which becomes an image on the note like any other attachment. Asked
+ * for with one of the note's images, that image is the paper, at its own
+ * shape, and the new lines go over it.
  *
  * One pointer draws at a time, the one that went down first; a second finger
  * is ignored rather than starting a line of its own, and no gesture of the
@@ -57,19 +64,65 @@ export function DrawingPad() {
   const [erasing, setErasing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [paper, setPaper] = useState<PaperSize>(BLANK_PAPER);
+  const baseSrc = request?.base;
+  const base = useRef<HTMLImageElement | null>(null);
+  // Nothing is drawn until the image to draw over is there to draw on.
+  const [ready, setReady] = useState(baseSrc === undefined);
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
 
   const context = () => canvasRef.current?.getContext("2d") ?? null;
 
   const redraw = () => {
     const ctx = context();
-    if (ctx) renderDrawing(ctx, strokesRef.current);
+    if (ctx) renderDrawing(ctx, strokesRef.current, paper, base.current);
   };
 
   // The paper, before anything is drawn on it and before the first frame: a
-  // canvas starts transparent, which over the pad's dark ground is black.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once, as the canvas arrives
-  useLayoutEffect(redraw, []);
+  // canvas starts transparent, which over the pad's dark ground is black, and
+  // is emptied again when the image to draw over gives it a new size.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: as the canvas arrives, and as its paper changes
+  useLayoutEffect(redraw, [paper, ready]);
+
+  useEffect(() => {
+    if (baseSrc === undefined) return;
+    let live = true;
+    const fail = () => {
+      if (!live) return;
+      showError(t("drawing.openFailed"));
+      closeDrawing();
+    };
+    const url = isStoredImageRef(baseSrc)
+      ? attachmentObjectUrl(baseSrc)
+      : Promise.resolve(baseSrc);
+    void url.then((src) => {
+      if (!live) return;
+      if (src === null) {
+        fail();
+        return;
+      }
+      const image = new Image();
+      image.onload = () => {
+        if (!live) return;
+        const size = paperSizeFor({
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+        });
+        if (!size) {
+          fail();
+          return;
+        }
+        base.current = image;
+        setPaper(size);
+        setReady(true);
+      };
+      image.onerror = fail;
+      image.src = src;
+    });
+    return () => {
+      live = false;
+    };
+  }, [baseSrc]);
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
@@ -138,7 +191,7 @@ export function DrawingPad() {
     }
     setSaving(true);
     setFailed(false);
-    canvas.toBlob((blob) => {
+    void encodeDrawing(canvas, base.current !== null).then((blob) => {
       if (!blob) {
         // The pad stays, drawing and all, to be tried again: said here
         // because a toast would be underneath it.
@@ -146,17 +199,22 @@ export function DrawingPad() {
         setFailed(true);
         return;
       }
+      const name = t("drawing.fileName");
       request.onDone(
-        new File([blob], t("drawing.fileName"), { type: "image/png" }),
+        new File(
+          [blob],
+          blob.type === "image/png" ? name : name.replace(/\.png$/, ".jpg"),
+          { type: blob.type },
+        ),
       );
       closeDrawing();
-    }, "image/png");
+    });
   };
 
   const onPointerDown = (event: PointerEvent) => {
     const canvas = canvasRef.current;
     // One line at a time: a second finger, or a palm, is not a second pen.
-    if (!canvas || drawing.current || !event.isPrimary) return;
+    if (!canvas || !ready || drawing.current || !event.isPrimary) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     try {
@@ -167,12 +225,12 @@ export function DrawingPad() {
     }
     const stroke: Stroke = {
       color: erasing ? PAPER : ink,
-      width: erasing ? width * ERASER_SCALE : width,
-      points: [drawingPoint(event, canvas.getBoundingClientRect())],
+      width: (erasing ? width * ERASER_SCALE : width) * penScale(paper),
+      points: [drawingPoint(event, canvas.getBoundingClientRect(), paper)],
     };
     beneath.current ??= document.createElement("canvas");
-    beneath.current.width = DRAWING_WIDTH;
-    beneath.current.height = DRAWING_HEIGHT;
+    beneath.current.width = paper.width;
+    beneath.current.height = paper.height;
     beneath.current.getContext("2d")?.drawImage(canvas, 0, 0);
     drawing.current = { pointerId: event.pointerId, stroke };
     paintActive();
@@ -187,7 +245,7 @@ export function DrawingPad() {
     // the browser kept them: a fast hand otherwise draws corners.
     const events = event.getCoalescedEvents?.() ?? [];
     for (const each of events.length > 0 ? events : [event]) {
-      active.stroke.points.push(drawingPoint(each, shown));
+      active.stroke.points.push(drawingPoint(each, shown, paper));
     }
     frame.current ||= requestAnimationFrame(paintActive);
   };
@@ -265,10 +323,10 @@ export function DrawingPad() {
       <div class="flex-1 min-h-0 flex items-center justify-center px-2">
         <canvas
           ref={canvasRef}
-          width={DRAWING_WIDTH}
-          height={DRAWING_HEIGHT}
+          width={paper.width}
+          height={paper.height}
           class="max-w-full max-h-full rounded-lg shadow-lg cursor-crosshair touch-none select-none"
-          style={{ aspectRatio: `${DRAWING_WIDTH} / ${DRAWING_HEIGHT}` }}
+          style={{ aspectRatio: `${paper.width} / ${paper.height}` }}
           aria-label={t("drawing.paper")}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}

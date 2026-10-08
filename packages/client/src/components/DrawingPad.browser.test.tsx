@@ -340,6 +340,66 @@ describe("DrawingPad", () => {
     await vi.waitFor(() => expect(saved).toHaveLength(1));
   });
 
+  it("opens an image as the paper, at its own shape, and saves the lines over it", async () => {
+    // A tall, plain blue picture, as the note would hold it.
+    const picture = document.createElement("canvas");
+    picture.width = 300;
+    picture.height = 600;
+    const pictureCtx = picture.getContext("2d") as CanvasRenderingContext2D;
+    pictureCtx.fillStyle = "#0000ff";
+    pictureCtx.fillRect(0, 0, 300, 600);
+    const BLUE = "0,0,255";
+    const pixel = (from: HTMLCanvasElement, fx: number, fy: number) => {
+      const ctx = from.getContext("2d") as CanvasRenderingContext2D;
+      const [r, g, b] = ctx.getImageData(
+        Math.round(fx * from.width),
+        Math.round(fy * from.height),
+        1,
+        1,
+      ).data;
+      return `${r},${g},${b}`;
+    };
+
+    render(null, host);
+    requestDrawing((file) => saved.push(file), picture.toDataURL("image/png"));
+    render(<DrawingPad />, host);
+    await vi.waitFor(() =>
+      expect([canvas().width, canvas().height]).toEqual([800, 1600]),
+    );
+    await vi.waitFor(() => expect(pixel(canvas(), 0.5, 0.5)).toBe(BLUE));
+    const rect = canvas().getBoundingClientRect();
+    expect(rect.width / rect.height).toBeCloseTo(0.5, 1);
+
+    // Nothing drawn: the note's image is left as it is.
+    button(t("editor.done"))?.click();
+    await settled();
+    expect(saved).toEqual([]);
+
+    requestDrawing((file) => saved.push(file), picture.toDataURL("image/png"));
+    render(<DrawingPad />, host);
+    await vi.waitFor(() => expect(pixel(canvas(), 0.5, 0.5)).toBe(BLUE));
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    expect(pixel(canvas(), 0.5, 0.5)).toBe("23,23,23");
+    // Undo takes the line and leaves the picture.
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(pixel(canvas(), 0.5, 0.5)).toBe(BLUE);
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+
+    button(t("editor.done"))?.click();
+    await vi.waitFor(() => expect(saved).toHaveLength(1));
+    const bitmap = await createImageBitmap(saved[0] as File);
+    const copy = document.createElement("canvas");
+    copy.width = bitmap.width;
+    copy.height = bitmap.height;
+    copy.getContext("2d")?.drawImage(bitmap, 0, 0);
+    expect([copy.width, copy.height]).toEqual([800, 1600]);
+    expect(pixel(copy, 0.5, 0.5)).toBe("23,23,23");
+    expect(pixel(copy, 0.5, 0.2)).toBe(BLUE);
+  });
+
   it("draws with a real finger, and the page under it stays put", async () => {
     await session().send("Emulation.setTouchEmulationEnabled", {
       enabled: true,

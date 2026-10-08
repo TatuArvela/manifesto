@@ -33,9 +33,24 @@ picture, so it is stored, shown, shared and exported like one, and takes one of 
   not to discard leaves Back the pad's. Done on empty paper adds nothing. Done or closing with the pen
   still down counts the line being drawn.
 - If the picture cannot be made, the pad says so and stays open with the drawing on it.
-- A drawing is a picture once it is on the note: it cannot be reopened as strokes, only removed and
-  drawn again.
 - The pad is not offered on a note that cannot be changed (shared to view, or an auto-note).
+
+### Drawing over an image
+
+Each image in an open note has a **Draw on image** button beside its delete button (both shown as the
+image is pointed at, and always on a touch screen). It opens that image
+on the pad as the paper, and Done puts the result in the image's place (at the end, if the image was
+removed meanwhile). This is how a drawing is changed after it is saved, and how a photo is annotated.
+
+- A drawing is a picture once it is on the note, so its old lines are part of the paper: undo and clear
+  reach only the lines of this sitting, and the eraser paints white over whatever is under it, a photo
+  included. Keeping the strokes would need somewhere to store them beside the image.
+- The paper takes the image's shape. Its long edge is at least a new drawing's 1600 (a line drawn on a
+  thumbnail would be blocks) and at most `MAX_IMAGE_EDGE`; pens are scaled to look the same width on
+  screen.
+- The result is a PNG, which keeps lines crisp however often a drawing is reopened, unless that comes
+  to over a megabyte, as it does over a photo: then it is a JPEG. An animated GIF becomes a still.
+- Done with nothing drawn leaves the image as it was. The original is replaced, not kept.
 
 ## Shrinking on attach
 

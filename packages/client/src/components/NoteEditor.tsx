@@ -57,7 +57,8 @@ interface NoteEditorProps {
   font: NoteFont;
   onFontChange: (font: NoteFont) => void;
   images: string[];
-  onAddImages: (dataUrls: string[]) => void;
+  /** With `replaces`, in place of that image rather than after the rest. */
+  onAddImages: (dataUrls: string[], replaces?: string) => void;
   onRemoveImage: (index: number) => void;
   linkPreviews: LinkPreview[];
   /** Every URL from one paste, together, so they land in a single write. */
@@ -377,7 +378,19 @@ export function NoteEditor({
       </div>
 
       {images.length > 0 && (
-        <ImageGallery images={images} onDelete={onRemoveImage} />
+        <ImageGallery
+          images={images}
+          onDelete={onRemoveImage}
+          onEdit={
+            disabled
+              ? undefined
+              : (index) => {
+                  const image = images[index];
+                  if (image === undefined) return;
+                  requestDrawing((file) => attachFiles([file], image), image);
+                }
+          }
+        />
       )}
       {uploads.length > 0 && (
         <PendingUploads

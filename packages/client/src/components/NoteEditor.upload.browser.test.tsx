@@ -183,6 +183,45 @@ describe("attaching an image", () => {
     );
   });
 
+  it("puts a drawing made over an image in that image's place", async () => {
+    const OTHER = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAW";
+    const REDRAWN = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAX";
+    storeWith(
+      vi
+        .fn()
+        .mockResolvedValueOnce(REF)
+        .mockResolvedValueOnce(OTHER)
+        .mockResolvedValueOnce(REDRAWN),
+    );
+    const dialog = await openDraft();
+    const editButtons = () =>
+      dialog.querySelectorAll<HTMLElement>(
+        `button[aria-label="${t("editor.drawOnImage")}"]`,
+      );
+    attach(dialog);
+    await vi.waitFor(() => expect(editButtons()).toHaveLength(1));
+    attach(dialog);
+    await vi.waitFor(() => expect(editButtons()).toHaveLength(2));
+    editButtons()[0]?.click();
+    await vi.waitFor(() => expect(drawingRequest.value?.base).toBe(REF));
+    drawingRequest.value?.onDone(
+      new File([PNG], "drawing.png", { type: "image/png" }),
+    );
+    drawingRequest.value = null;
+    await vi.waitFor(() => expect(putImage).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() =>
+      expect(dialog.querySelector('[role="progressbar"]')).toBeNull(),
+    );
+
+    (
+      dialog.querySelector(
+        `button[aria-label="${t("editor.done")}"]`,
+      ) as HTMLElement
+    ).click();
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0]?.images).toEqual([REDRAWN, OTHER]);
+  });
+
   it("takes the pad down with the editor it was opened from", async () => {
     storeWith(vi.fn(async () => REF));
     await openDraft();

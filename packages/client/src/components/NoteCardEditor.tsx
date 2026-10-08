@@ -29,6 +29,7 @@ import {
   updateStoredNote,
 } from "../state/index.js";
 import { recordVersion } from "../state/versions.js";
+import { placeImages } from "../utils/drawing.js";
 import { isPhoneLayout } from "../utils/phoneSheets.js";
 import { Backdrop } from "./Backdrop.js";
 import { getEditorMarkdown } from "./MilkdownEditor.js";
@@ -329,10 +330,12 @@ export function NoteCardEditor({
         font={note.font}
         onFontChange={(font) => updateNote(note.id, { font })}
         images={note.images}
-        onAddImages={async (urls) => {
+        onAddImages={async (urls, replaces) => {
           const images = await currentImages();
           if (images === null) return;
-          await updateNote(note.id, { images: [...images, ...urls] });
+          await updateNote(note.id, {
+            images: placeImages(images, urls, replaces),
+          });
         }}
         onRemoveImage={async (index) => {
           const images = await currentImages();

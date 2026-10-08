@@ -8,12 +8,17 @@ import { signal } from "@preact/signals";
  * be a sibling of the app shell, as the confirmation is.
  */
 export const drawingRequest = signal<{
-  /** Called with the finished drawing, a PNG. */
+  /** Called with the finished drawing, an image file. */
   onDone: (file: File) => void;
+  /** One of the note's images to draw over, as the note holds it. */
+  base?: string | undefined;
 } | null>(null);
 
-export function requestDrawing(onDone: (file: File) => void): void {
-  drawingRequest.value = { onDone };
+export function requestDrawing(
+  onDone: (file: File) => void,
+  base?: string,
+): void {
+  drawingRequest.value = { onDone, base };
 }
 
 export function closeDrawing(): void {
