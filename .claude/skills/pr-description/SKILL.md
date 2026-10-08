@@ -9,13 +9,20 @@ The commits carry the story (see the `commit-message` skill) and are what `main`
 description is a reviewer's map over them plus the evidence that the batch works. Never retell a
 commit's mechanism here. If a point is missing from the commits, amend the commit instead.
 
+## Before writing
+
+Read what the branch holds, not what the session remembers of it:
+`git log --reverse --format=%B origin/main..HEAD`. Then
+`node scripts/check-titles.mjs --commits origin/main..HEAD`, which is what CI will run on the
+subjects.
+
 ## Title
 
 What release-please reads when the PR has more than one commit, so it names the batch, not one
 commit: `fix(client): the last pinned bugs, and a reminder hour lost to daylight saving`. Its type
-is `feat` if any commit is a user-visible feature, else `fix` if any is a user-visible fix. Check it
-with `node scripts/check-titles.mjs "<title>"`; CI runs the same check. For a PR of one commit
-GitHub uses the commit subject instead, so make the two agree.
+is `feat` if any commit is a user-visible feature, else `fix` if any is a user-visible fix, else the
+type the commits share. Check it with `node scripts/check-titles.mjs "<title>"`; CI runs the same
+check. For a PR of one commit GitHub uses the commit subject instead, so make the two agree.
 
 ## Body
 
@@ -57,6 +64,15 @@ finds out what happened.
 
 The title is plain too, inside the shape `check-titles` requires:
 `feat(client): draw on a note, and draw over any image already on it`.
+
+## Opening and revising
+
+Write the body to a file and pass it with `gh pr create --body-file <file>` (or `gh pr edit`): in
+`--body "..."` the shell runs every backticked identifier as a command and drops it from the text.
+
+A description goes stale the moment the branch moves. After a push that adds, drops or rewords a
+commit, rewrite the Commits list from the log, redo Verification for the new head (an earlier run
+says nothing about it), and check the title's type still holds.
 
 `.github/pull_request_template.md` is the short version of this for people opening PRs by hand;
 the body written here replaces it, comments included.

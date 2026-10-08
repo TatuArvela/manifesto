@@ -29,6 +29,8 @@ columns, identifiers in backticks, no headings, emoji or bold.
 - **Feature**: what it does, how, and the judgement inside it: the default, the edge it refuses, the
   alternative that lost. Distinct parts may be a `- ` list of full sentences.
 - **Refactor**: `No change in behaviour.`, with evidence where it is checkable, then what moved where.
+- **Docs, tests, build, CI, chore**: what was wrong or missing and who met it (a reader of the page,
+  a contributor, a CI run), then what it says or does now.
 
 Then, only if true: `Behaviour changes:` for anything observable beyond the subject, `Found while
 ...` for where a bug turned up, and what was deliberately left undone.
@@ -38,8 +40,19 @@ Then, only if true: `Behaviour changes:` for anything observable beyond the subj
 ## One reason per commit
 
 A fix found in passing gets a commit of its own, not a paragraph in someone else's, so any commit can
-be dropped from the PR without unpicking the rest.
+be dropped from the PR without unpicking the rest. What belongs to the change travels in its
+commit: its tests, its spec page, its area guide.
 
 ## Trailers
 
 After a blank line, the attribution trailer the session's instructions give, and nothing else.
+
+## Handing it to git
+
+A body is full of backticks, and inside `git commit -m "..."` the shell runs each pair as a command
+and commits whatever it printed, without an error. Write the message to a file and use
+`git commit -F <file>`, or pass it through a quoted heredoc (`<<'EOF'`). Read it back with
+`git log -1 --format=%B` after committing.
+
+The hook lets `fixup!` and `squash!` subjects through, and CI then fails on them: fold them in
+(`git rebase --autosquash`) before pushing.
