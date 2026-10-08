@@ -12,7 +12,11 @@ import { newId } from "../lib/ulid.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
-import type { StorageDriver, StoredComment } from "../storage/types.js";
+import type {
+  NoteAudience,
+  StorageDriver,
+  StoredComment,
+} from "../storage/types.js";
 import { noteCommentSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 
@@ -58,14 +62,9 @@ export function registerCommentRoutes(
     return comment;
   }
 
-  /** Stored comments as they are given out, authors named only while they
-   * are on the note. */
-  async function present(
-    noteId: string,
-    stored: StoredComment[],
-  ): Promise<NoteComment[]> {
-    const audience = await storage.shares.audience(noteId);
-    const onNote = new Set<string>(
+  /** The people a note's comments may name: those on it now. */
+  function peopleOn(audience: NoteAudience | null): Set<string> {
+    return new Set(
       audience
         ? [
             audience.ownerId,
@@ -75,22 +74,32 @@ export function registerCommentRoutes(
           ]
         : [],
     );
-    const authors = new Map<string, ShareUser | null>();
+  }
+
+  /** Stored comments as they are given out, authors named only while they
+   * are on the note. */
+  async function present(
+    audience: NoteAudience | null,
+    stored: StoredComment[],
+  ): Promise<NoteComment[]> {
+    const onNote = peopleOn(audience);
+    const authorIds = new Set<string>();
     for (const { authorId } of stored) {
-      if (authorId === null || authors.has(authorId)) continue;
-      const user = onNote.has(authorId)
-        ? await storage.users.findById(authorId)
-        : null;
-      authors.set(
-        authorId,
-        user && {
+      if (authorId !== null && onNote.has(authorId)) authorIds.add(authorId);
+    }
+    const authors = new Map<string, ShareUser>();
+    await Promise.all(
+      [...authorIds].map(async (id) => {
+        const user = await storage.users.findById(id);
+        if (!user) return;
+        authors.set(id, {
           id: user.id,
           username: user.username,
           displayName: user.displayName,
           avatarColor: user.avatarColor,
-        },
-      );
-    }
+        });
+      }),
+    );
     return stored.map((comment) => ({
       id: comment.id,
       noteId: comment.noteId,
@@ -104,8 +113,11 @@ export function registerCommentRoutes(
     }));
   }
 
-  async function presentOne(stored: StoredComment): Promise<NoteComment> {
-    const [comment] = await present(stored.noteId, [stored]);
+  async function presentOne(
+    audience: NoteAudience | null,
+    stored: StoredComment,
+  ): Promise<NoteComment> {
+    const [comment] = await present(audience, [stored]);
     if (!comment) throw new HttpError(404, "Comment not found");
     return comment;
   }
@@ -116,7 +128,7 @@ export function registerCommentRoutes(
     await requireAccess(noteId, userId);
     const body: NoteCommentsResponse = {
       comments: await present(
-        noteId,
+        await storage.shares.audience(noteId),
         await storage.comments.listByNote(noteId),
       ),
     };
@@ -141,8 +153,9 @@ export function registerCommentRoutes(
       if (!(await storage.comments.create(stored, MAX_COMMENTS_PER_NOTE))) {
         throw new HttpError(409, "This note has as many comments as it holds");
       }
-      const comment = await presentOne(stored);
-      await noteEvents.commented(noteId, { type: "comment:created", comment });
+      const audience = await storage.shares.audience(noteId);
+      const comment = await presentOne(audience, stored);
+      noteEvents.commented(audience, { type: "comment:created", comment });
       const body: NoteCommentResponse = { comment };
       return c.json(body, 201);
     },
@@ -167,13 +180,15 @@ export function registerCommentRoutes(
       if (next !== existing.body) {
         await storage.comments.setBody(existing.id, next, editedAt);
       }
+      const audience = await storage.shares.audience(noteId);
       const comment = await presentOne(
+        audience,
         next === existing.body
           ? existing
           : { ...existing, body: next, editedAt },
       );
       if (next !== existing.body) {
-        await noteEvents.commented(noteId, {
+        noteEvents.commented(audience, {
           type: "comment:updated",
           comment,
         });
@@ -198,7 +213,7 @@ export function registerCommentRoutes(
       );
     }
     await storage.comments.delete(existing.id);
-    await noteEvents.commented(noteId, {
+    noteEvents.commented(await storage.shares.audience(noteId), {
       type: "comment:deleted",
       noteId,
       id: existing.id,

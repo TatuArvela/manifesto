@@ -1,5 +1,9 @@
 import type { Note, WebSocketEvent } from "@manifesto/shared";
-import type { NoteShare, StorageDriver } from "../storage/types.js";
+import type {
+  NoteAudience,
+  NoteShare,
+  StorageDriver,
+} from "../storage/types.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
 import type { AccessChanges } from "./accessChanges.js";
 
@@ -42,8 +46,10 @@ export interface NoteEvents {
   /**
    * A comment beside the note was written, changed or removed. Everyone who
    * can see the note hears the same event: a comment has no personal fields.
+   * Takes the audience the caller read to name the comment's author, rather
+   * than reading it a second time.
    */
-  commented(noteId: string, event: CommentEvent): Promise<void>;
+  commented(audience: NoteAudience | null, event: CommentEvent): void;
 }
 
 /** The events a comment makes on the sockets. */
@@ -144,8 +150,7 @@ export function createNoteEvents(deps: {
       broadcaster.emit(userId, { type: "invitation:removed", noteId });
     },
 
-    async commented(noteId, event) {
-      const audience = await storage.shares.audience(noteId);
+    commented(audience, event) {
       if (!audience) return;
       // In the owner's trash the note is hidden from everyone else, and so
       // is what is said beside it.
