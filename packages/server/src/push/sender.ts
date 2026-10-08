@@ -38,13 +38,18 @@ export interface PushSender {
 
 /**
  * Who a push service should contact about this server's messages (the `sub`
- * of RFC 8292): the client's public address, when the server knows it.
- * Without one there is only a placeholder to give, which the large push
- * services accept.
+ * of RFC 8292): the client's public address, when the server knows one over
+ * `https`. The RFC allows only that or a `mailto:`, and Apple refuses the
+ * whole message for anything else, so an `http` address (a server on the
+ * local network, or in development) is passed over. Without one there is
+ * only a placeholder to give, which the large push services accept.
  */
-function subjectOf(cfg: Pick<ServerConfig, "appUrl" | "corsOrigins">): string {
-  const origin =
-    cfg.appUrl ?? cfg.corsOrigins.find((o) => o.startsWith("https://"));
+export function subjectOf(
+  cfg: Pick<ServerConfig, "appUrl" | "corsOrigins">,
+): string {
+  const origin = [cfg.appUrl, ...cfg.corsOrigins].find((o) =>
+    o?.startsWith("https://"),
+  );
   return origin ?? "mailto:webpush@manifesto.invalid";
 }
 
