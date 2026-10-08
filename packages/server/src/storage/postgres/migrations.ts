@@ -352,6 +352,18 @@ CREATE TABLE passkeys (
 CREATE INDEX passkeys_user ON passkeys(user_id);
 `;
 
+/** See the SQLite copy. */
+const SIGN_IN_LINKS = `
+CREATE TABLE sign_in_links (
+  token_hash TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at    TEXT
+);
+CREATE INDEX sign_in_links_user ON sign_in_links(user_id, created_at);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -376,6 +388,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0021-teams", sql: TEAMS },
   { id: "0022-oauth", sql: OAUTH },
   { id: "0023-passkeys", sql: PASSKEYS },
+  { id: "0024-sign-in-links", sql: SIGN_IN_LINKS },
 ];
 
 export async function runMigrations(

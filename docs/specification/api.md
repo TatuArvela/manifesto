@@ -315,6 +315,8 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 | `DELETE` | `/api/auth/passkeys/:id` | With `{ password }`: remove one |
 | `POST`   | `/api/auth/passkey/options` | Public: a challenge to sign in with a passkey alone |
 | `POST`   | `/api/auth/passkey/login` | Public: `{ response }`, the browser's answer; `AuthSuccessResponse` |
+| `POST`   | `/api/auth/sign-in-link` | Public: `{ email, locale? }`, mails a sign-in link; always `204` |
+| `POST`   | `/api/auth/sign-in-link/confirm` | Public: `{ token, otp?, passkey? }`; `AuthSuccessResponse` |
 
 Passkey options and answers are WebAuthn's JSON forms, binary values as base64url. A ceremony is
 accepted only from a page this server's client is served from (an `Origin` in `CORS_ORIGINS`, that of
@@ -338,6 +340,14 @@ With two-factor sign-in on, a right password answers `403` with
 the account has an authenticator app, and a challenge for its passkeys on this
 address (null when it has none there). The same request sent again with `otp`
 (an authenticator or recovery code) or `passkey` (the browser's answer) signs in.
+
+`POST /api/auth/sign-in-link/confirm` signs in with the token of a mailed link (`MAGIC_LINKS`, and only
+with `SMTP_URL`; otherwise both routes are `404`). A token that is unknown, used or older than 15 minutes
+is `410`. For an account with two-factor sign-in it answers the same `403` `two_factor_required` as
+`/login`, and the same request sent again with `otp` or `passkey` signs in; a wrong one is `401`
+`two_factor_invalid` and leaves the link usable. Such an account is `429` with `Retry-After` while its
+budget of failed sign-ins is spent; one without a second factor is not. See
+[Accounts](features/accounts.md#signing-in-with-a-link).
 
 Sign-in is budgeted twice over, and either budget answers `429` with a
 `Retry-After` header. Per source address, 10 requests every 15 minutes, shared
@@ -434,7 +444,7 @@ All `/api/notes`, `/api/search`, `/api/invitations` and `/api/users` endpoints r
 
 `GET /api/capabilities` is public, and says what the server is and offers, as `CapabilitiesResponse`:
 its `version`, how to sign in (`auth`: the providers, whether the password form is folded away, whether
-registration, reset by mail and passkey sign-in are on), which features are on (`features`: one
+registration, reset by mail, sign-in by a mailed link and passkey sign-in are on), which features are on (`features`: one
 boolean for each feature a host can turn off, below, plus `mcpSignIn` and `userLookup`, how people
 are found to share with), the
 `limits` a caller would otherwise meet as a `413`, `409` or `422` (request and image bytes, images and
@@ -449,7 +459,7 @@ The web client reads it before anyone signs in, to choose what to show. It repla
 
 `features` names each of them, as `SERVER_FEATURES` in `@manifesto/shared` lists them: `sharing`,
 `teams`, `publicLinks`, `linkPreviews`, `calendar`, `apiTokens`, `mcp`, `webhooks`, `passkeys`,
-`twoFactor` and `adminExport`. The variable that switches each, and what it covers, is in
+`magicLinks`, `twoFactor` and `adminExport`. The variable that switches each, and what it covers, is in
 [Deployment](server/deployment.md#turning-features-off). `teams` needs `sharing`, and is reported
 off with it.
 

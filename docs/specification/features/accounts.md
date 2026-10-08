@@ -221,6 +221,44 @@ checks that its owner is using it (a fingerprint, a face, a PIN). That check is 
 code is asked after it. Passkeys made here are discoverable for this reason. A passkey whose account now
 holds a temporary password, or has none, signs in to nothing; every failure is the same `401`.
 
+## Signing in with a link
+
+With `SMTP_URL` set and `MAGIC_LINKS` on (the default; see [Server Deployment](../server/deployment.md)), a
+local account with an email address can sign in without typing its password: **Email me a sign-in link**
+under the sign-in form asks for the address and mails a link to `APP_URL/#signin=<token>`. Opening it
+shows a **Sign in** button, and pressing that signs in.
+
+- Asking always answers `204`, whether or not the address has an account, and the mail is sent after the
+  answer, as a [reset link](#recovery-by-mail) is. One link per account per five minutes; a link whose
+  mail could not be sent is not kept and does not count towards that.
+- A link works once, for 15 minutes; its token is stored as a SHA-256 hash, in a table of its own
+  (`sign_in_links`), so a sign-in link cannot be spent as a reset link or the other way round. The token is
+  in the URL fragment, which a browser does not send to any server, and the client takes it out of the
+  address bar before using it. A browser that is signed in already takes it out too, and uses it for
+  nothing: left there, it would sign the same person back in when they signed out.
+- The link is spent by the press, not by the page loading. A mail scanner or a link preview that opens
+  the address runs the page as a browser does, and would otherwise use the link up and hold a session.
+- The link stands in for the password and for nothing else. An account with two-factor sign-in is asked
+  for its code or passkey after opening the link, on the same per-account budget of failed attempts as a
+  password sign-in, and a mistyped code does not cost the link. Nor does a link that has run out cost a
+  recovery code: the link is checked before the code is.
+  An account without a second factor is not held to that budget here: there is nothing in the link to
+  guess at, anyone can run the budget out with wrong passwords, and the link is then the way in its
+  owner has left. Such a sign-in does not clear the count either.
+- A link stops working when the account's password is changed or reset, by its owner or an admin, and
+  when its email address changes, so a link sitting in a mailbox someone else can read does not
+  outlast what was done about it.
+- No link is sent to an account that has no password here (it signs in through single sign-on) or that
+  holds a [temporary password](#temporary-passwords), which has to be replaced by the person it was
+  handed to. A link sent before either became true is refused.
+- Signing in this way ends no other session and changes nothing about the account. It is in the audit log
+  as a sign-in with `method: "link"`, and asking for the link as "Sign-in link sent".
+- There is no signing up by link: it opens accounts that exist.
+
+Whoever reads the account's mail can already take the account with a reset link, so this adds a shorter
+way in rather than a new party to trust. A host for whom a mailbox alone must never open an account sets
+`MAGIC_LINKS=off`, and should weigh reset by mail the same way.
+
 ## Admins and sign-up under single sign-on
 
 With single sign-on, admin can follow a group at the identity provider (`OIDC_ADMIN_GROUP`) instead of
@@ -241,7 +279,8 @@ the address and mails a link to `APP_URL/#reset=<token>`, which opens a form for
 
 - Asking always answers `204`, whether or not the address has an account, and the mail is sent after
   the answer, so neither the answer nor its timing says which addresses have accounts. One link per
-  account per five minutes, so an address cannot be used to flood its inbox.
+  account per five minutes, so an address cannot be used to flood its inbox; a link whose mail could
+  not be sent is not kept and does not count towards that.
 - A link works once, for 30 minutes; its token is stored as a SHA-256 hash. Using it ends every session
   and API token of the account, as a password change does. Two-factor sign-in stays on: the link proves
   control of the mailbox, not of the authenticator.

@@ -596,6 +596,16 @@ export const en = {
   "login.reset.done": "Password set; sign in with it",
   "login.reset.expired":
     "This link has expired or was used already. Ask for a new one.",
+  "login.link.open": "Email me a sign-in link",
+  "login.link.title": "Sign in with a link",
+  "login.link.hint":
+    "Enter the email address on your account and a link that signs you in is sent to it. No password needed.",
+  "login.link.sent":
+    "If an account has that address, a link is on its way. It works once, for 15 minutes.",
+  "login.link.ready": "Your sign-in link is ready.",
+  "login.link.signingIn": "Signing you in...",
+  "login.link.expired":
+    "This sign-in link has expired or was used already. Ask for a new one.",
   "login.or": "or",
   "login.withPassword": "Sign in with a password instead",
   "login.twoFactor.title": "Confirm it is you",
@@ -733,6 +743,7 @@ export const en = {
   "audit.action.auth.password_changed": "Password changed",
   "audit.action.auth.password_reset_requested": "Password reset link sent",
   "audit.action.auth.password_reset": "Password reset by link",
+  "audit.action.auth.sign_in_link_requested": "Sign-in link sent",
   "audit.action.auth.two_factor_enabled": "Two-factor sign-in turned on",
   "audit.action.auth.two_factor_disabled": "Two-factor sign-in turned off",
   "audit.action.auth.passkey_added": "Passkey added",

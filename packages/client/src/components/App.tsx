@@ -17,6 +17,7 @@ import {
   fetchCapabilities,
   isServerMode,
   refreshCurrentUser,
+  takeSignInLinkToken,
 } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import { initBoardBackground } from "../state/board.js";
@@ -84,7 +85,11 @@ export function App() {
   const signIn = ready && isServerMode && authToken.value === null;
   useEffect(() => {
     if (signIn) revealApp();
-  }, [signIn]);
+    // A mailed link opened where someone is signed in already has nothing to
+    // do, and `LoginScreen` is not there to take its token. Left in the
+    // address it would sign them back in the moment they signed out.
+    else if (ready) takeSignInLinkToken();
+  }, [signIn, ready]);
   if (!ready) return null;
   if (signIn) {
     return <LoginScreen />;

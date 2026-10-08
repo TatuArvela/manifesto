@@ -600,19 +600,76 @@ export async function confirmPasswordReset(
 }
 
 /**
- * A mailed reset link's token, taken from `#reset=` once and removed from the
+ * A mailed link's token, taken from the fragment once and removed from the
  * address bar, so it is not left in history or shown over someone's shoulder.
  */
-export function takeResetToken(): string | null {
+function takeLinkToken(name: "reset" | "signin"): string | null {
   if (typeof window === "undefined") return null;
-  const match = /^#reset=([0-9a-f]{16,200})$/.exec(window.location.hash);
-  if (!match) return null;
+  const match = /^#(reset|signin)=([0-9a-f]{16,200})$/.exec(
+    window.location.hash,
+  );
+  if (match?.[1] !== name) return null;
   history.replaceState(
     null,
     "",
     `${window.location.pathname}${window.location.search}`,
   );
-  return match[1] ?? null;
+  return match[2] ?? null;
+}
+
+/** A mailed reset link's token, from `#reset=`. */
+export function takeResetToken(): string | null {
+  return takeLinkToken("reset");
+}
+
+/** A mailed sign-in link's token, from `#signin=`. */
+export function takeSignInLinkToken(): string | null {
+  return takeLinkToken("signin");
+}
+
+/**
+ * Asks for a sign-in link to be mailed. As with a reset, the server answers
+ * the same whether or not the address has an account, so `sent` says only
+ * that the request got there. The refusals are told apart because each asks
+ * something different of the person: wait, or fix the address.
+ */
+export async function requestSignInLink(
+  email: string,
+  locale: string,
+): Promise<"sent" | "throttled" | "invalid" | "failed"> {
+  if (SERVER_URL === null) return "failed";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/sign-in-link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, locale }),
+    });
+    if (res.ok) return "sent";
+    if (res.status === 429) return "throttled";
+    return res.status === 422 ? "invalid" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
+/**
+ * Signs in with a mailed link's token. Throws as `login` does: a
+ * `TwoFactorRequiredError` when the account has a second factor, after which
+ * the same token is sent again with the code or the passkey's answer, and an
+ * `AuthRequestError` with status 410 for a link that is spent or expired.
+ */
+export async function signInWithLink(
+  token: string,
+  otp?: string,
+  passkey?: PasskeyAuthenticationResponse,
+): Promise<void> {
+  const result = await authRequest("/api/auth/sign-in-link/confirm", {
+    token,
+    ...(otp === undefined ? {} : { otp }),
+    ...(passkey === undefined ? {} : { passkey }),
+  });
+  authToken.value = result.token;
+  currentUser.value = result.user;
 }
 
 export type OidcRefusal =

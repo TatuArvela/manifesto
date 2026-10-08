@@ -11,8 +11,8 @@ import type {
   TeamsRepo,
 } from "./repos/sharing.js";
 import type {
+  MailedLinksRepo,
   PasskeysRepo,
-  PasswordResetsRepo,
   TwoFactorRepo,
 } from "./repos/signIn.js";
 import type { ApiTokensRepo, OAuthRepo } from "./repos/tokens.js";
@@ -43,7 +43,8 @@ export interface StorageDriver {
   webhooks: WebhooksRepo;
   twoFactor: TwoFactorRepo;
   passkeys: PasskeysRepo;
-  passwordResets: PasswordResetsRepo;
+  passwordResets: MailedLinksRepo;
+  signInLinks: MailedLinksRepo;
   audit: AuditRepo;
   prefs: PrefsRepo;
   publicLinks: PublicLinksRepo;

@@ -49,6 +49,42 @@ export function passwordResetMail(
   };
 }
 
+export function signInLinkMail(
+  locale: MailLocale,
+  {
+    username,
+    link,
+    minutes,
+  }: { username: string; link: string; minutes: number },
+) {
+  if (locale === "fi") {
+    return {
+      subject: "Kirjautumislinkkisi",
+      text: [
+        `Hei ${username},`,
+        "",
+        "Joku (toivottavasti sinä) pyysi linkin, jolla kirjaudutaan ilman salasanaa. Kirjaudu täällä:",
+        "",
+        link,
+        "",
+        `Linkki toimii ${minutes} minuuttia ja kerran. Jos et pyytänyt sitä, älä avaa linkkiä; kukaan ei pääse tilillesi ilman sitä.`,
+      ].join("\n"),
+    };
+  }
+  return {
+    subject: "Your sign-in link",
+    text: [
+      `Hello ${username},`,
+      "",
+      "Someone (hopefully you) asked for a link to sign in without a password. Sign in here:",
+      "",
+      link,
+      "",
+      `The link works once, for ${minutes} minutes. If you did not ask for it, do not open it; nobody gets into your account without it.`,
+    ].join("\n"),
+  };
+}
+
 export function shareInvitationMail(
   locale: MailLocale,
   { owner, title, link }: { owner: string; title: string; link: string },

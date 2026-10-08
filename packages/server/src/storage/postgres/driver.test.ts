@@ -111,6 +111,59 @@ describe("postgres: password resets", () => {
     expect(
       await storage.passwordResets.consume("t1", "2026-04-01T00:11:00.000Z"),
     ).toBeNull();
+    await storage.signInLinks.create({
+      tokenHash: "s1",
+      userId: "u1",
+      createdAt: NOW,
+      expiresAt: "2026-04-01T00:15:00.000Z",
+    });
+    expect(await storage.signInLinks.latestFor("u1")).toBe(NOW);
+    expect(
+      await storage.signInLinks.find("s1", "2026-04-01T00:16:00.000Z"),
+    ).toBeNull();
+    // Found as often as asked; spent once.
+    expect(
+      await storage.signInLinks.find("s1", "2026-04-01T00:10:00.000Z"),
+    ).toBe("u1");
+    expect(
+      await storage.signInLinks.consume("s1", "2026-04-01T00:10:00.000Z"),
+    ).toBe("u1");
+    expect(
+      await storage.signInLinks.find("s1", "2026-04-01T00:11:00.000Z"),
+    ).toBeNull();
+    expect(
+      await storage.signInLinks.consume("s1", "2026-04-01T00:11:00.000Z"),
+    ).toBeNull();
+    // Handed back, it is good again until it expires.
+    await storage.signInLinks.release("s1");
+    expect(
+      await storage.signInLinks.consume("s1", "2026-04-01T00:16:00.000Z"),
+    ).toBeNull();
+    expect(
+      await storage.signInLinks.consume("s1", "2026-04-01T00:12:00.000Z"),
+    ).toBe("u1");
+    await storage.signInLinks.create({
+      tokenHash: "s3",
+      userId: "u1",
+      createdAt: NOW,
+      expiresAt: "2026-04-01T00:15:00.000Z",
+    });
+    await storage.signInLinks.delete("s3");
+    expect(
+      await storage.signInLinks.find("s3", "2026-04-01T00:10:00.000Z"),
+    ).toBeNull();
+    await storage.signInLinks.create({
+      tokenHash: "s2",
+      userId: "u1",
+      createdAt: NOW,
+      expiresAt: "2026-04-01T00:15:00.000Z",
+    });
+    // Voided with the rest of the user's, spent or not.
+    expect(await storage.signInLinks.deleteByUser("u1")).toBe(2);
+    expect(
+      await storage.signInLinks.find("s2", "2026-04-01T00:10:00.000Z"),
+    ).toBeNull();
+    expect(await storage.signInLinks.latestFor("u1")).toBeNull();
     await storage.close();
   });
 });

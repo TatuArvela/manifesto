@@ -9,12 +9,14 @@ import {
   oidcRefusal,
   SERVER_ORIGIN,
   takeResetToken,
+  takeSignInLinkToken,
 } from "../state/auth.js";
 import { passkeysSupported } from "../utils/webauthn.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { LocalLoginForm } from "./LocalLoginForm.js";
 import { OrgCredit } from "./OrgCredit.js";
 import { ForgotPasswordForm, ResetPasswordForm } from "./PasswordResetForms.js";
+import { SignInLinkForm, SignInLinkLanding } from "./SignInLinkForms.js";
 
 const OIDC_REFUSAL_MESSAGES: Record<OidcRefusal, MessageKey> = {
   not_in_group: "login.oidcNotInGroup",
@@ -104,7 +106,11 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
   const [resetToken, setResetToken] = useState<string | null>(() =>
     takeResetToken(),
   );
+  const [signInToken, setSignInToken] = useState<string | null>(() =>
+    takeSignInLinkToken(),
+  );
   const [forgot, setForgot] = useState(false);
+  const [byLink, setByLink] = useState(false);
   const oidc = providers.includes("oidc");
   const local = providers.includes("local");
   if (resetToken && local) {
@@ -115,7 +121,16 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
       />
     );
   }
+  if (signInToken && local) {
+    return (
+      <SignInLinkLanding
+        token={signInToken}
+        onDone={() => setSignInToken(null)}
+      />
+    );
+  }
   if (forgot) return <ForgotPasswordForm onBack={() => setForgot(false)} />;
+  if (byLink) return <SignInLinkForm onBack={() => setByLink(false)} />;
   return (
     <>
       {oidc && <OidcLoginPanel />}
@@ -130,6 +145,7 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
         (showPassword || !oidc ? (
           <LocalLoginForm
             onForgot={auth.passwordReset ? () => setForgot(true) : undefined}
+            onEmailLink={auth.magicLink ? () => setByLink(true) : undefined}
             canRegister={auth.registration}
             passkeys={auth.passkeys && passkeysSupported()}
           />

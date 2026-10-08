@@ -59,6 +59,23 @@ as the admin's log), so an admin action that reaches into an account must be aud
 account as its target, or its owner never hears of it. An admin reads another account's notes only
 through `ADMIN_EXPORT` (spec: `docs/specification/features/privacy.md`).
 
+A mailed sign-in link (`auth/local/signInLink.ts`, `MAGIC_LINKS`) stands in for the password and nothing
+else: it goes through the same `secondFactor` check and `loginAttempts` budget as `/login` (both built in
+`router.ts`), is refused for an account with no password or a temporary one, and is looked up with
+`signInLinks.find` so that asking for the second factor costs nothing. A request that answers the factor
+spends the link with `consume` first and hands it back with `release` when the answer is wrong: checked
+the other way round, a link that ran out in between would burn a recovery code for nothing. Any new way
+in does the same, or it is a way around two-factor: `secondFactor` counts, audits and throws a wrong
+answer itself, so a caller only has to send back the challenge. Asking for a link is `mailedLinks`
+(`auth/local/mailedLink.ts`), which reset by mail uses too, and both tables are one repository
+(`mailedLinksRepo.ts` in each driver). A link whose mail could not be sent is deleted, so it neither
+stays live unaudited nor starts the cooldown. The budget is checked only where a second factor is asked for or
+answered, since it guards guesses and an account without one has none to make here; `succeed` is called
+only when a factor held. `endUserSessions` voids the account's links, and a route that changes an
+email address calls `signInLinks.deleteByUser` itself. On the client the landing step spends the link
+on a press, never on mount (a mail scanner loads the page too), and `App` takes the token out of the
+address when someone is signed in already.
+
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:
 `loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map

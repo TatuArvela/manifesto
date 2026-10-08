@@ -608,6 +608,16 @@ export const fi: Messages = {
   "login.reset.submit": "Aseta salasana",
   "login.reset.done": "Salasana asetettu; kirjaudu sillä",
   "login.reset.expired": "Linkki on vanhentunut tai jo käytetty. Pyydä uusi.",
+  "login.link.open": "Lähetä kirjautumislinkki sähköpostiin",
+  "login.link.title": "Kirjaudu linkillä",
+  "login.link.hint":
+    "Anna tilisi sähköpostiosoite, niin siihen lähetetään linkki, jolla kirjaudut sisään. Salasanaa ei tarvita.",
+  "login.link.sent":
+    "Jos osoitteella on tili, linkki on matkalla. Se toimii kerran, 15 minuutin ajan.",
+  "login.link.ready": "Kirjautumislinkkisi on valmis.",
+  "login.link.signingIn": "Kirjaudutaan...",
+  "login.link.expired":
+    "Kirjautumislinkki on vanhentunut tai jo käytetty. Pyydä uusi.",
   "login.or": "tai",
   "login.withPassword": "Kirjaudu mieluummin salasanalla",
   "login.twoFactor.title": "Vahvista henkilöllisyytesi",
@@ -749,6 +759,7 @@ export const fi: Messages = {
   "audit.action.auth.password_reset_requested":
     "Salasanan vaihtolinkki lähetetty",
   "audit.action.auth.password_reset": "Salasana vaihdettu linkillä",
+  "audit.action.auth.sign_in_link_requested": "Kirjautumislinkki lähetetty",
   "audit.action.auth.two_factor_enabled":
     "Kaksivaiheinen kirjautuminen otettu käyttöön",
   "audit.action.auth.two_factor_disabled":

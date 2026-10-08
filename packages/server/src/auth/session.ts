@@ -180,7 +180,8 @@ export async function revokeSession(
  *
  * Their API tokens end too. This runs when a password may be known to someone
  * else (a change, an admin reset), and whoever knew it could have minted a
- * token that would otherwise outlive the reset.
+ * token that would otherwise outlive the reset. A sign-in link still in their
+ * mailbox goes for the same reason: it would be a session a moment later.
  */
 export async function endUserSessions(
   storage: StorageDriver,
@@ -193,6 +194,7 @@ export async function endUserSessions(
     keepToken === undefined ? undefined : hashToken(keepToken),
   );
   await storage.apiTokens.deleteByUser(userId);
+  await storage.signInLinks.deleteByUser(userId);
   revocations.revoke({ userId, keepToken });
 }
 
