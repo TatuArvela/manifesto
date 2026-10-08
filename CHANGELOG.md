@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0](https://github.com/TatuArvela/manifesto/compare/v0.5.0...v0.6.0) (2026-10-08)
+
+
+### Features
+
+* **client:** a checklist item takes a date, shown as a chip and sortable ([#85](https://github.com/TatuArvela/manifesto/issues/85)) ([57f2ced](https://github.com/TatuArvela/manifesto/commit/57f2ced447091bd8b037cbd3e3be8484800b51c4))
+* **client:** a selection's tags can be taken off, and its tag panel shows what it carries ([#84](https://github.com/TatuArvela/manifesto/issues/84)) ([8ebe42e](https://github.com/TatuArvela/manifesto/commit/8ebe42e4771c6bf366937243c5fd413aa8797636))
+* **client:** a tag can be given a colour, kept per user ([#87](https://github.com/TatuArvela/manifesto/issues/87)) ([16becc9](https://github.com/TatuArvela/manifesto/commit/16becc9018dc60f1be97598cca227a3dbf463850))
+* **client:** an auto-note plugin can read the notes of tags the user allows ([#96](https://github.com/TatuArvela/manifesto/issues/96)) ([0b9178c](https://github.com/TatuArvela/manifesto/commit/0b9178c72ffe00d6c29e9a67bd5848a4fa17a086))
+* **client:** draw on a note, and draw over any image already on it ([#97](https://github.com/TatuArvela/manifesto/issues/97)) ([dad8b4b](https://github.com/TatuArvela/manifesto/commit/dad8b4b7c48b84e494428b846c5d95a4b8f6e13b))
+* **client:** search finds every word, ignores accents, titles first ([#80](https://github.com/TatuArvela/manifesto/issues/80)) ([d571037](https://github.com/TatuArvela/manifesto/commit/d571037aaa1e882587af65ff5d97d3904a09359f))
+* reminders arrive as push notifications while the app is closed ([#95](https://github.com/TatuArvela/manifesto/issues/95)) ([dc0fe49](https://github.com/TatuArvela/manifesto/commit/dc0fe499023d6bf537a55f46d69adb410523a8cf))
+* **server:** generate typed API clients from the OpenAPI document ([#94](https://github.com/TatuArvela/manifesto/issues/94)) ([524c6c0](https://github.com/TatuArvela/manifesto/commit/524c6c02f7e5e9e9a5c903be0eb216c5d6d37180))
+* setup checks in the admin overview, and a full guide to running from a clone ([#78](https://github.com/TatuArvela/manifesto/issues/78)) ([a819cce](https://github.com/TatuArvela/manifesto/commit/a819cce4d60f4d427e460cf35c9cfc736746d150))
+* sign-in from a mailed link, and a reset no longer blocked by a failed mail ([#90](https://github.com/TatuArvela/manifesto/issues/90)) ([773249c](https://github.com/TatuArvela/manifesto/commit/773249c97d2affc73233d4e62d43fd7acfd5f817))
+* tags nest with a slash, and the Tags view opens them as a tree ([#88](https://github.com/TatuArvela/manifesto/issues/88)) ([bf4f743](https://github.com/TatuArvela/manifesto/commit/bf4f7437f8eea9936098a1681eace40fc9ea22dc))
+* the people on a shared note can comment beside it ([#91](https://github.com/TatuArvela/manifesto/issues/91)) ([a8fcb90](https://github.com/TatuArvela/manifesto/commit/a8fcb90bb961e22daf686e1071bf75f5a3a72bbd))
+
 ## [0.5.0](https://github.com/TatuArvela/manifesto/compare/v0.4.0...v0.5.0) (2026-09-29)
 
 
