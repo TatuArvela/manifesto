@@ -471,9 +471,7 @@ CREATE INDEX sign_in_links_user ON sign_in_links(user_id, created_at);
 /**
  * Comments beside a note. They go with the note, and stay when their author
  * loses the note or their account: `author_id` is then no longer a
- * participant, or null, and the comment is shown without a name. The number
- * is 0025 because 0024 is taken by a change made alongside this one; the
- * ledger runs whatever it has not applied, so the two land in either order.
+ * participant, or null, and the comment is shown without a name.
  */
 const NOTE_COMMENTS = `
 CREATE TABLE note_comments (
