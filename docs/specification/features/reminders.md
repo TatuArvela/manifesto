@@ -51,8 +51,8 @@ desktop browsers).
   list does not fire the same occurrence again.
 - **The time zone.** A reminder's time is a wall-clock time. The server reads it in the zone the
   reminder was made in (`NoteReminder.timezone`), not its own.
-- **What is sent, and to whom.** The note's title (or its first words) and the first 140 characters of
-  its text, encrypted to the browser's subscription keys (RFC 8291), so the push service that carries
+- **What is sent, and to whom.** The note's title (for an untitled note "Untitled reminder", in the
+  language the account last used the app in) and the first 140 characters of its text, encrypted to the browser's subscription keys (RFC 8291), so the push service that carries
   it (Google's, Apple's or Mozilla's) cannot read it. The request is signed with the server's own key
   (VAPID, RFC 8292), which is made on first use and kept in the database; nothing has to be
   configured. Both are written over `node:crypto` in `push/webPush.ts` rather than taken from a

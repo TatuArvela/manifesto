@@ -8,6 +8,7 @@ import {
 } from "@manifesto/shared";
 import { logger } from "../lib/logger.js";
 import { startPeriodicJob } from "../lib/periodic.js";
+import { type MailLocale, mailLocale } from "../mail/templates.js";
 import type { PushSender } from "../push/sender.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { StorageDriver } from "../storage/types.js";
@@ -25,15 +26,24 @@ export const PUSH_GRACE_MS = 45_000;
  * surfacing. The app moves a recurring one past it when it next opens. */
 const CATCHUP_WINDOW_MS = 60 * 60_000;
 
-/** What a notification says about a note, as the client words it. */
-function notificationOf(note: Note): { title: string; body: string } {
+/** The client's `reminder.untitled`, in the languages it speaks. */
+const UNTITLED: Record<MailLocale, string> = {
+  en: "Untitled reminder",
+  fi: "Nimetön muistutus",
+};
+
+/**
+ * What a notification says about a note, as the client words it
+ * (`reminderScheduler.ts`), an untitled note included: in the language the
+ * account last reported, so the same reminder reads the same whether the
+ * app or the server fired it.
+ */
+function notificationOf(
+  note: Note,
+  locale: MailLocale,
+): { title: string; body: string } {
   return {
-    // A client names an untitled note in the user's language; the server
-    // knows no catalogue, so the first words stand in for a title.
-    title:
-      note.title.trim() ||
-      note.content.replace(/\s+/g, " ").trim().slice(0, 60) ||
-      "Reminder",
+    title: note.title.trim() || UNTITLED[locale],
     body: note.content.replace(/\s+/g, " ").trim().slice(0, 140),
   };
 }
@@ -75,6 +85,8 @@ export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
   const { storage, sender, noteEvents } = deps;
   const now = (deps.now ?? Date.now)();
   for (const userId of await storage.pushSubscriptions.userIds()) {
+    /** Looked up for the first reminder to send, which most passes lack. */
+    let locale: MailLocale | undefined;
     let cursor: string | undefined;
     do {
       const page = await storage.notes.listByUser(userId, {
@@ -108,10 +120,13 @@ export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
         if (!written) continue;
         await noteEvents.changed(note.id);
 
+        locale ??= mailLocale(
+          (await storage.users.findById(userId))?.locale?.split("-")[0],
+        );
         const message: ReminderPush = {
           type: "reminder",
           noteId: note.id,
-          ...notificationOf(note),
+          ...notificationOf(note, locale),
           next: next
             ? {
                 time: next.time,

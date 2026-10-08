@@ -35,4 +35,6 @@ and a user's edit, the first writer has the reminder and the other sends nothing
 handles the message in `swPush.ts` (kept out of `sw.ts` so it tests) and moves its own copy with
 `afterPush`, or its next poll fires the occurrence again. `push/webPush.ts` is RFC 8291 and 8292 over
 `node:crypto`, held to the RFC's example in its test; a push endpoint is user-supplied, so sends go
-through `safeFetch`. A subscription row references its session and dies with it.
+through `safeFetch`. A subscription row references its session and dies with it. An untitled note is named
+from `UNTITLED` in the job, which repeats the client's `reminder.untitled` for each language the
+server writes in: change one and change the other.

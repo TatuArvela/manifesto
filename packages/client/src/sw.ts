@@ -364,7 +364,7 @@ async function receivePush(payload: unknown): Promise<void> {
   if (!push) {
     // A push must show something, or the browser shows a notice of its own
     // and may withdraw the subscription. Nothing this server sends ends here.
-    await self.registration.showNotification("Reminder");
+    await self.registration.showNotification(await installedName());
     return;
   }
   await self.registration.showNotification(push.title, {
@@ -378,6 +378,27 @@ async function receivePush(payload: unknown): Promise<void> {
   } catch {
     // The list is a convenience here: the notification is already up.
   }
+}
+
+/**
+ * What the app is called where it is installed, for a notification with
+ * nothing else to say: the manifest's `name`, which follows a rebrand by
+ * either route (`config.ts`; a worker has no document to read the meta tag
+ * from) and needs no catalogue. The host when the manifest cannot be read.
+ */
+async function installedName(): Promise<string> {
+  try {
+    // The precached copy, so this works offline and makes no request.
+    const res = await caches.match(
+      new URL("manifest.webmanifest", self.registration.scope),
+      { ignoreSearch: true },
+    );
+    const { name } = ((await res?.json()) ?? {}) as { name?: unknown };
+    if (typeof name === "string" && name.trim()) return name;
+  } catch {
+    // Not JSON: the host below, as when it is not cached.
+  }
+  return self.location.host;
 }
 
 self.addEventListener("notificationclick", (event) => {

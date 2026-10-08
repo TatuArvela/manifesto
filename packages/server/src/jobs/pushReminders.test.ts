@@ -269,8 +269,9 @@ describe("push reminders", () => {
       browser.decrypt(service.received[0]?.body as Buffer),
     ) as ReminderPush;
     expect(message.next).toEqual({ time: "2026-10-04T11:58:00" });
-    // No title: the first words stand in for one.
-    expect(message.title).toBe("Bring the x-rays and the referral");
+    // No title: named as the client names it, with the text as the body.
+    expect(message.title).toBe("Untitled reminder");
+    expect(message.body).toBe("Bring the x-rays and the referral");
     expect(await reminderOf(note.id)).toMatchObject({
       time: "2026-10-04T11:58:00",
       recurrence: "daily",
@@ -280,6 +281,17 @@ describe("push reminders", () => {
     // Tomorrow it comes due again.
     await pass(NOW + 24 * 60 * 60_000);
     expect(service.received).toHaveLength(2);
+  });
+
+  it("names an untitled note in the account's language", async () => {
+    await addNote({ title: " ", reminder: reminder() });
+    await storage.users.setLocale(userId, "fi-FI");
+    await subscribe();
+    await pass();
+    const message = JSON.parse(
+      browser.decrypt(service.received[0]?.body as Buffer),
+    ) as ReminderPush;
+    expect(message.title).toBe("Nimetön muistutus");
   });
 
   it("sends to every browser the account has subscribed", async () => {
