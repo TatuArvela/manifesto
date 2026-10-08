@@ -20,6 +20,8 @@ are here because breaking one fails silently, often from a file the guide is not
 - Escape goes through `useEscapeStack`, single-key shortcuts through `useShortcut`; never bind your
   own `keydown` for either.
 - A note image renders through `StoredImage`; anything that leaves the session inlines them.
+- Anything that renders an auto-note's content applies `drawnWithoutImages` / `withoutImages`
+  (`utils/stripImages.ts`): a plugin that read notes has no other way out than its cards.
 - A new `Note` field goes in `SHARED_NOTE_FIELDS` or `PERSONAL_NOTE_FIELDS`, and an array field
   needs a case in `mergeNoteUpdate` (the default, client-wins, drops the other writer's items).
 - Changing a node or mark in the editor schema means raising `EDITOR_SCHEMA_VERSION`.
@@ -169,7 +171,8 @@ code is enough. Read one by hand when planning a change before touching its file
   tests imports `src/test/`. `biome-plugins/` holds the two rules Biome has no built-in for:
   `endUserSessions.grit` and `noteEvents.grit`.
 - `tsconfig.base.json` adds `verbatimModuleSyntax`, `noImplicitOverride`, `noImplicitReturns`,
-  `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` to strict mode. The server builds from
+  `noFallthroughCasesInSwitch`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess` and
+  `noUncheckedSideEffectImports` to strict mode. The server builds from
   `tsconfig.build.json`, which leaves out tests, `storage/contracts/` and `src/test/`, so none of
   them ship in the image.
 - `exactOptionalPropertyTypes` keeps "absent" and "present but `undefined`" apart. The wire types
