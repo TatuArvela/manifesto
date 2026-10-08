@@ -29,6 +29,10 @@ rests on changes. A proposal to revisit one should say what changed.
   sticky note into a record or a page in a tree, which tags and the board already answer. The block
   tools each add an editor node that raises `EDITOR_SCHEMA_VERSION` and needs a Markdown form in
   export, for notes short enough not to need them.
+- **Note templates** (notes marked as templates, offered in the composer to start a new note from):
+  Duplicate in a note's menu already makes a copy of any note, so a note kept in the archive serves as
+  a template with nothing built for it. A row of templates in the composer is clutter on every new
+  note, and a marker for which notes are templates is one more rule for tags or for the note to carry.
 - **Reminders, priorities or locations on a checklist item**: a checklist is a GFM task list in the
   note's Markdown ([Checklists](features/checklists.md)), and its items have no identity for a
   scheduler to name. A reminder belongs to the note, and a date on an item belongs in the item's text.
