@@ -10,9 +10,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { plural, t } from "../i18n/index.js";
 import { currentUser } from "../state/auth.js";
 import {
+  commentLoadsFailed,
   forgetComment,
   noteComments,
   receiveComment,
+  reloadComments,
 } from "../state/comments.js";
 import { answerConfirmation, confirmRequest } from "../state/confirm.js";
 import { locale } from "../state/prefs.js";
@@ -78,6 +80,9 @@ function comment(overrides: Partial<NoteComment> = {}): NoteComment {
 /** The server's side of the comments, for the fetch stub below. */
 let stored: NoteComment[] = [];
 const requests: { method: string; path: string; body: unknown }[] = [];
+/** Answers the next read in place of `stored`, once. */
+let nextRead: (() => Promise<Response>) | null = null;
+const reads = () => requests.filter((r) => r.method === "GET").length;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -92,7 +97,11 @@ const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
   const body = init?.body ? JSON.parse(String(init.body)) : undefined;
   requests.push({ method, path, body });
   const id = path.split("/comments/")[1];
-  if (method === "GET") return json({ comments: stored });
+  if (method === "GET") {
+    const read = nextRead;
+    nextRead = null;
+    return read ? read() : json({ comments: stored });
+  }
   if (method === "POST") {
     const made = comment({
       id: `c${stored.length + 1}`,
@@ -147,6 +156,8 @@ beforeEach(() => {
   locale.value = "en";
   stored = [];
   requests.length = 0;
+  nextRead = null;
+  commentLoadsFailed.value = new Set();
   fetchMock.mockClear();
   vi.stubGlobal("fetch", fetchMock);
   storageConnection.value = { serverUrl: SERVER, token: "tok" };
@@ -286,5 +297,106 @@ describe("NoteComments", () => {
     expect(noteComments.value.has("n1")).toBe(false);
     receiveComment(comment());
     expect(noteComments.value.has("n1")).toBe(false);
+  });
+
+  it("says a failed load and reads again when asked", async () => {
+    nextRead = async () => json({ error: "no" }, 500);
+    stored = [comment()];
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    currentUser.value = { ...alice, email: null, isAdmin: false };
+    render(<NoteComments note={sharedNote("edit")} />, host);
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain(t("comments.loadFailed")),
+    );
+
+    toggle()?.click();
+    await vi.waitFor(() =>
+      expect(toggle()?.textContent).toBe(plural("comments.count", 1)),
+    );
+    expect(host.textContent).not.toContain(t("comments.loadFailed"));
+  });
+
+  it("drops an answer that arrives after the panel is gone", async () => {
+    let answer: (res: Response) => void = () => {};
+    nextRead = () => new Promise((resolve) => (answer = resolve));
+    render(<NoteComments note={sharedNote("edit")} />, host);
+    await vi.waitFor(() => expect(reads()).toBe(1));
+    render(null, host);
+    answer(json({ comments: [comment()] }));
+    await tick();
+    await tick();
+    expect(noteComments.value.has("n1")).toBe(false);
+  });
+
+  it("reads again when an event arrives during a load", async () => {
+    let answer: (res: Response) => void = () => {};
+    nextRead = () => new Promise((resolve) => (answer = resolve));
+    render(<NoteComments note={sharedNote("edit")} />, host);
+    await vi.waitFor(() => expect(reads()).toBe(1));
+
+    // Written after the server read the list the first answer carries.
+    stored = [comment()];
+    receiveComment(comment());
+    answer(json({ comments: [] }));
+    await vi.waitFor(() =>
+      expect(noteComments.value.get("n1")).toHaveLength(1),
+    );
+    await tick();
+    expect(noteComments.value.get("n1")).toHaveLength(1);
+    expect(reads()).toBe(2);
+  });
+
+  it("catches up after a gap in the socket, for an open panel only", async () => {
+    reloadComments();
+    expect(reads()).toBe(0);
+
+    await show(sharedNote("edit"), alice);
+    stored = [comment()];
+    reloadComments();
+    await vi.waitFor(() =>
+      expect(toggle()?.textContent).toBe(plural("comments.count", 1)),
+    );
+
+    render(null, host);
+    reloadComments();
+    expect(reads()).toBe(2);
+  });
+
+  it("reads again when the people on the note change", async () => {
+    stored = [comment({ author: alice })];
+    await show(sharedNote("owner"), olivia);
+    await open();
+    expect(rows()[0]).toContain("Alice");
+
+    // Alice is removed: the server now leaves her name off.
+    stored = [comment({ author: null })];
+    const note = sharedNote("owner");
+    render(
+      <NoteComments
+        note={{
+          ...note,
+          sharing: { role: "owner", owner: olivia, members: [] },
+        }}
+      />,
+      host,
+    );
+    await vi.waitFor(() =>
+      expect(rows()[0]).toContain(t("comments.formerParticipant")),
+    );
+    expect(reads()).toBe(2);
+
+    // Anything else about the note changing reads nothing.
+    render(
+      <NoteComments
+        note={{
+          ...note,
+          title: "Trip!",
+          sharing: { role: "owner", owner: olivia, members: [] },
+        }}
+      />,
+      host,
+    );
+    await tick();
+    expect(reads()).toBe(2);
   });
 });

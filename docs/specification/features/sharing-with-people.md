@@ -126,6 +126,9 @@ its people saying how many comments it has; choosing it opens them, oldest first
   as with the note. Deleting the note deletes its comments.
 - **Live.** A comment written, edited or deleted reaches everyone on the note over `/api/ws`
   (`comment:created`, `comment:updated`, `comment:deleted`), so an open panel follows along.
+  An open panel reads its comments again after the connection was lost, and when the people on the
+  note change, so names follow who is on it. If they cannot be read the panel says so and offers to
+  try again.
 - **With sharing off** (`SHARING=off`), comments already written are still read and can still be deleted;
   none can be written or edited.
 

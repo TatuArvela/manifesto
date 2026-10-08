@@ -907,6 +907,7 @@ export const en = {
   "comments.none": "No comments yet",
   "comments.count": { one: "{count} comment", other: "{count} comments" },
   "comments.loadFailed": "Comments could not be loaded",
+  "comments.retry": "Try again",
   "comments.placeholder": "Write a comment...",
   "comments.send": "Comment",
   "comments.edit": "Edit comment",

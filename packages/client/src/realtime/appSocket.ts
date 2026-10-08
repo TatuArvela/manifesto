@@ -14,7 +14,11 @@ import {
   isServerMode,
   WS_ORIGIN,
 } from "../state/auth.js";
-import { forgetComment, receiveComment } from "../state/comments.js";
+import {
+  forgetComment,
+  receiveComment,
+  reloadComments,
+} from "../state/comments.js";
 import { forgetNote, receiveNote, syncNotes } from "../state/notesStore.js";
 import {
   receiveAccountPrefs,
@@ -305,6 +309,7 @@ function connect(token: string) {
       });
       void loadInvitations();
       void refreshAccountPrefs();
+      reloadComments();
     } else {
       hasOpenedOnce = true;
     }

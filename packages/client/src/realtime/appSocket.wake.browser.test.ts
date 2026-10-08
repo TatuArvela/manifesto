@@ -27,6 +27,7 @@ vi.mock("../state/auth.js", () => ({
 vi.mock("../state/comments.js", () => ({
   forgetComment: () => {},
   receiveComment: () => {},
+  reloadComments: () => {},
 }));
 vi.mock("../state/notesStore.js", () => ({
   forgetNote: () => {},

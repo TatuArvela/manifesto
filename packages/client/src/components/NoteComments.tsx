@@ -11,6 +11,7 @@ import { formatDateTime, plural, t } from "../i18n/index.js";
 import { currentUser } from "../state/auth.js";
 import {
   addComment,
+  commentLoadsFailed,
   deleteComment,
   editComment,
   forgetComments,
@@ -198,25 +199,49 @@ function CommentRow({
 export function NoteComments({ note }: { note: Note }) {
   const shared = note.sharing !== undefined;
   const [open, setOpen] = useState(false);
-  const [failed, setFailed] = useState(false);
   const noteId = note.id;
+  // Who is on the note. A comment names its author only while they are, so
+  // the names held go stale when this changes and the list is read again.
+  const people = note.sharing
+    ? [
+        note.sharing.owner.id,
+        ...note.sharing.members.filter((m) => m.accepted).map((m) => m.id),
+      ].join(" ")
+    : "";
 
   useEffect(() => {
+    if (shared) void loadComments(noteId);
+  }, [noteId, shared, people]);
+  useEffect(() => {
     if (!shared) return;
-    let cancelled = false;
-    void loadComments(noteId).then((ok) => {
-      if (!cancelled) setFailed(!ok);
-    });
-    return () => {
-      cancelled = true;
-      forgetComments(noteId);
-    };
+    return () => forgetComments(noteId);
   }, [noteId, shared]);
 
   if (!shared) return null;
   const comments = noteComments.value.get(noteId);
   const count = comments?.length ?? 0;
   const canWrite = serverFeature("sharing");
+
+  if (comments === undefined && commentLoadsFailed.value.has(noteId)) {
+    return (
+      <section class="mt-2" aria-label={t("comments.title")}>
+        <p
+          class="flex items-center gap-2 text-xs text-black/50 dark:text-white/50"
+          role="status"
+        >
+          <MessageSquare class="w-4 h-4" />
+          {t("comments.loadFailed")}
+          <button
+            type="button"
+            class={quietButton}
+            onClick={() => void loadComments(noteId)}
+          >
+            {t("comments.retry")}
+          </button>
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section class="mt-2" aria-label={t("comments.title")}>
@@ -228,7 +253,7 @@ export function NoteComments({ note }: { note: Note }) {
       >
         <MessageSquare class="w-4 h-4" />
         {comments === undefined
-          ? t(failed ? "comments.loadFailed" : "comments.title")
+          ? t("comments.title")
           : count === 0
             ? t("comments.none")
             : plural("comments.count", count)}
