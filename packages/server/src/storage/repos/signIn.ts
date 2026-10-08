@@ -58,26 +58,15 @@ export interface PasskeysRepo {
   deleteByUser(userId: string): Promise<number>;
 }
 
-/** Password reset links sent by mail, keyed by the token's SHA-256. */
-export interface PasswordResetsRepo {
-  create(input: {
-    tokenHash: string;
-    userId: string;
-    createdAt: string;
-    expiresAt: string;
-  }): Promise<void>;
-  /**
-   * Spends a link that is unused and unexpired at `now`, atomically, and
-   * says whose account it resets; null for any other link.
-   */
-  consume(tokenHash: string, now: string): Promise<string | null>;
-  /** When the user's latest link was made, for spacing them out. */
-  latestFor(userId: string): Promise<string | null>;
-  deleteExpired(now: string): Promise<number>;
-}
+/** The two tables of links sent by mail, alike in everything but the name. */
+export type MailedLinksTable = "password_resets" | "sign_in_links";
 
-/** Sign-in links sent by mail, keyed by the token's SHA-256. */
-export interface SignInLinksRepo {
+/**
+ * Links sent by mail, keyed by the token's SHA-256. One shape for both kinds,
+ * each in a table of its own (`passwordResets`, `signInLinks`), so a link of
+ * one kind cannot be spent as the other.
+ */
+export interface MailedLinksRepo {
   create(input: {
     tokenHash: string;
     userId: string;
@@ -91,7 +80,7 @@ export interface SignInLinksRepo {
   find(tokenHash: string, now: string): Promise<string | null>;
   /**
    * Spends a link that is unused and unexpired at `now`, atomically, and
-   * says whose account it signs in; null for any other link.
+   * says whose account it is for; null for any other link.
    */
   consume(tokenHash: string, now: string): Promise<string | null>;
   /**

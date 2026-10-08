@@ -84,14 +84,16 @@ export function createLocalAuthRouter(
    * The second factor of a sign-in whose first step (the password, or a
    * mailed link) has already held. Answers with the challenge to send back
    * when the account has one and the request brought none, and otherwise
-   * with whether what it brought is right, and which factor it was.
+   * with which factor held. A wrong one is refused here, counted and audited,
+   * so that no way in can forget either.
    */
-  const secondFactor: SecondFactorCheck = async (c, userId, otp, passkey) => {
+  const secondFactor: SecondFactorCheck = async (c, user, otp, passkey) => {
+    const userId = user.id;
     const totp = await deps.storage.twoFactor.get(userId);
     const authenticator = totp?.enabledAt != null;
     const passkeys = await deps.storage.passkeys.listByUser(userId);
     if (!authenticator && passkeys.length === 0) {
-      return { passed: true, with: null };
+      return { with: null };
     }
     if (otp === undefined && passkey === undefined) {
       // Which factors there are, and a challenge for the passkeys, so the
@@ -121,9 +123,16 @@ export function createLocalAuthRouter(
             passkeys,
             passkey as AuthenticationResponseJSON,
           );
-    return passed
-      ? { passed: true, with: otp !== undefined ? "yes" : "passkey" }
-      : { passed: false };
+    if (!passed) {
+      loginAttempts.fail(user.username);
+      audit(deps.storage, c, {
+        action: "auth.sign_in_failed",
+        targetId: userId,
+        detail: { username: user.username, reason: "two_factor" },
+      });
+      throw new HttpError(401, "That code is not right", "two_factor_invalid");
+    }
+    return { with: otp !== undefined ? "yes" : "passkey" };
   };
 
   auth.post(
@@ -206,21 +215,8 @@ export function createLocalAuthRouter(
       // The second factor, after the password so that asking for one tells a
       // wrong guess nothing, and on the same per-account budget, so six
       // digits cannot be walked through.
-      const second = await secondFactor(c, user.id, otp, passkey);
+      const second = await secondFactor(c, user, otp, passkey);
       if ("challenge" in second) return c.json(second.challenge, 403);
-      if (!second.passed) {
-        loginAttempts.fail(username);
-        audit(deps.storage, c, {
-          action: "auth.sign_in_failed",
-          targetId: user.id,
-          detail: { username, reason: "two_factor" },
-        });
-        throw new HttpError(
-          401,
-          "That code is not right",
-          "two_factor_invalid",
-        );
-      }
       loginAttempts.succeed(username);
       // A temporary password buys the right to set a real one and nothing
       // else: no session exists until it has been replaced, so there is no

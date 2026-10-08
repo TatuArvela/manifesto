@@ -279,7 +279,8 @@ the address and mails a link to `APP_URL/#reset=<token>`, which opens a form for
 
 - Asking always answers `204`, whether or not the address has an account, and the mail is sent after
   the answer, so neither the answer nor its timing says which addresses have accounts. One link per
-  account per five minutes, so an address cannot be used to flood its inbox.
+  account per five minutes, so an address cannot be used to flood its inbox; a link whose mail could
+  not be sent is not kept and does not count towards that.
 - A link works once, for 30 minutes; its token is stored as a SHA-256 hash. Using it ends every session
   and API token of the account, as a password change does. Two-factor sign-in stays on: the link proves
   control of the mailbox, not of the authenticator.

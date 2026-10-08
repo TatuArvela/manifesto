@@ -114,6 +114,22 @@ describe("password reset by mail", () => {
     expect(mailer.sent).toHaveLength(1);
   });
 
+  it("does not make the next request wait for a mail that could not be sent", async () => {
+    const send = mailer.send;
+    mailer.send = async () => false;
+    await post("/api/auth/password-reset", { email: "alice@example.com" });
+    await settle();
+    const entries = await storage.audit.list({ limit: 20 });
+    expect(
+      entries.some((e) => e.action === "auth.password_reset_requested"),
+    ).toBe(false);
+
+    mailer.send = send;
+    await post("/api/auth/password-reset", { email: "alice@example.com" });
+    await settle();
+    expect(mailer.sent).toHaveLength(1);
+  });
+
   it("writes in the language asked for", async () => {
     await post("/api/auth/password-reset", {
       email: "alice@example.com",
