@@ -55,6 +55,13 @@ rests on changes. A proposal to revisit one should say what changed.
 - **Redis, a search engine or any second service as a requirement**: a self-hosted server is one
   container, with Postgres optional. Anything that would want another service gets an in-process
   default first, and the service only as an option.
+- **End-to-end encryption**, for the whole account or for notes locked one at a time: a server that
+  cannot read a note cannot fetch its link previews, merge its collaborative edits, share it without
+  a key directory, send it to a webhook or an MCP tool, or give it back to someone who forgot a
+  passphrase. Locking single notes keeps those for the rest and adds a second kind of note with its
+  own keys, storage, history and export. The server encrypts everything it stores instead
+  ([Encryption](features/encryption.md)), which protects every note from a leaked database or backup
+  and asks nothing of the user. Open mode, or a server of one's own, is for notes no operator may read.
 - **Loading notes on demand, with search moved to the server**: the client drains every page of
   `/api/notes`, because tag counts, the tag list and the filter chain are computed over the whole
   list, and open mode has no server to search on. Paging bounds a response and images load as they
