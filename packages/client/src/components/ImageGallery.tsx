@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, X } from "lucide-preact";
+import { ChevronLeft, ChevronRight, PenLine, X } from "lucide-preact";
 import { createPortal } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
@@ -10,6 +10,8 @@ import { StoredImage } from "./StoredImage.js";
 interface ImageGalleryProps {
   images: string[];
   onDelete?: (index: number) => void;
+  /** Opens the image on the drawing pad; left out where it cannot change. */
+  onEdit?: ((index: number) => void) | undefined;
   /**
    * Fill the height of the parent, sharing it between the images and
    * cropping each to fit, instead of taking each image's own height: the
@@ -18,7 +20,20 @@ interface ImageGalleryProps {
   fill?: boolean;
 }
 
-export function ImageGallery({ images, onDelete, fill }: ImageGalleryProps) {
+/**
+ * A button over an image in the editor: out of the way until the image is
+ * pointed at or the button focused, and always there on a touch screen, which
+ * has no pointer to bring it out.
+ */
+const imageButtonClass =
+  "absolute bottom-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 focus-visible:opacity-100 touch:opacity-100 hover:bg-black/80 transition-opacity cursor-pointer";
+
+export function ImageGallery({
+  images,
+  onDelete,
+  onEdit,
+  fill,
+}: ImageGalleryProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   if (images.length === 0) return null;
@@ -47,10 +62,23 @@ export function ImageGallery({ images, onDelete, fill }: ImageGalleryProps) {
                 class={`w-full object-cover block ${fill ? "h-full" : "h-auto max-h-96"}`}
               />
             </button>
+            {onEdit && (
+              <button
+                type="button"
+                class={`${onDelete ? "right-11" : "right-2"} ${imageButtonClass}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(i);
+                }}
+                aria-label={t("editor.drawOnImage")}
+              >
+                <PenLine class="w-4 h-4" />
+              </button>
+            )}
             {onDelete && (
               <button
                 type="button"
-                class="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 focus-visible:opacity-100 hover:bg-black/80 transition-opacity cursor-pointer"
+                class={`right-2 ${imageButtonClass}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(i);

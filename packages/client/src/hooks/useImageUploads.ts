@@ -13,16 +13,21 @@ export interface PendingUpload {
   progress: number;
   failed: boolean;
   controller: AbortController;
+  /** The image of the note's this one takes the place of, once stored. */
+  replaces?: string | undefined;
 }
 
 /**
  * Attached files become pending uploads: drawn at once from the local file,
  * stored (uploaded, in connected mode, with progress), and handed to
- * `onAddImages` as the reference once stored. A failed one stays, marked,
+ * `onAddImages` as the reference once stored, with the image it replaces if
+ * it was drawn over one. A failed one stays, marked,
  * with a retry, rather than a note that points at nothing. Unmounting (closing
  * the editor) cancels whatever is still uploading.
  */
-export function useImageUploads(onAddImages: (references: string[]) => void) {
+export function useImageUploads(
+  onAddImages: (references: string[], replaces?: string) => void,
+) {
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
   const uploadsRef = useRef<PendingUpload[]>([]);
   uploadsRef.current = uploads;
@@ -74,7 +79,7 @@ export function useImageUploads(onAddImages: (references: string[]) => void) {
           // Closed or removed while it finished: the image belongs to nothing.
           if (upload.controller.signal.aborted) return;
           dropUpload(upload.key);
-          onAddImagesRef.current([stored]);
+          onAddImagesRef.current([stored], upload.replaces);
         })
         .catch((err: unknown) => {
           if (err instanceof DOMException && err.name === "AbortError") return;
@@ -95,7 +100,7 @@ export function useImageUploads(onAddImages: (references: string[]) => void) {
   );
 
   const attachFiles = useCallback(
-    (files: File[]) => {
+    (files: File[], replaces?: string) => {
       const added = files.map(
         (file): PendingUpload => ({
           key: `${Date.now()}-${Math.random()}`,
@@ -104,6 +109,7 @@ export function useImageUploads(onAddImages: (references: string[]) => void) {
           progress: 0,
           failed: false,
           controller: new AbortController(),
+          replaces,
         }),
       );
       setUploads((list) => [...list, ...added]);

@@ -9,6 +9,10 @@
  * its entry off again with `history.back()`, so there is never a dead entry
  * left for the next press of back to land on with nothing happening.
  *
+ * A sheet may decline to close (one that asks before throwing work away) by
+ * returning `false` from its `close`. Its entry is then put straight back, so
+ * the next press of back is still the sheet's, and not the one underneath's.
+ *
  * `history.back()` is asynchronous, and anything pushed before its `popstate`
  * arrives would be the entry it goes back from. So a sheet opened in that gap
  * (a reminder opening another note over the one closing) waits for it, and the
@@ -21,7 +25,8 @@ const MARK = "manifestoSheet";
 
 interface Layer {
   id: number;
-  close: () => void;
+  /** Returns `false` when the sheet stays open. */
+  close: () => unknown;
   /** Whether the entry for this layer is in the history now. */
   pushed: boolean;
 }
@@ -68,7 +73,7 @@ function onPopState() {
   const top = layers[layers.length - 1];
   if (top?.pushed && !isOwnEntry(history.state, top.id)) {
     top.pushed = false;
-    top.close();
+    if (top.close() === false && layers.includes(top)) push(top);
   }
 }
 
@@ -98,10 +103,11 @@ function unregister(layer: Layer) {
 
 /**
  * Pushes a history entry for a sheet that has just opened, and has back call
- * `close` while that entry is there. Returns the cleanup that takes the entry
- * off again when the sheet closes some other way.
+ * `close` while that entry is there; a `close` that returns `false` has kept
+ * the sheet open, and keeps its entry. Returns the cleanup that takes the
+ * entry off again when the sheet closes some other way.
  */
-export function openHistoryLayer(close: () => void): () => void {
+export function openHistoryLayer(close: () => unknown): () => void {
   const layer: Layer = { id: nextId++, close, pushed: false };
   register(layer);
   return () => unregister(layer);

@@ -11,7 +11,7 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import { callCommand } from "@milkdown/kit/utils";
 import { ArrowLeft, Pin, PinOff } from "lucide-preact";
 import type { ComponentChildren } from "preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import {
   docHasDatedItems,
@@ -24,6 +24,7 @@ import {
 import { useImageUploads } from "../hooks/useImageUploads.js";
 import { usePresence } from "../hooks/usePresence.js";
 import { t } from "../i18n/index.js";
+import { closeDrawing, requestDrawing } from "../state/drawing.js";
 import { defaultEditMode, formattingToolbar } from "../state/prefs.js";
 import { hasDatedItems, sortChecklistByDate } from "../utils/itemDate.js";
 import { extractUrls } from "../utils/linkPreview.js";
@@ -56,7 +57,8 @@ interface NoteEditorProps {
   font: NoteFont;
   onFontChange: (font: NoteFont) => void;
   images: string[];
-  onAddImages: (dataUrls: string[]) => void;
+  /** With `replaces`, in place of that image rather than after the rest. */
+  onAddImages: (dataUrls: string[], replaces?: string) => void;
   onRemoveImage: (index: number) => void;
   linkPreviews: LinkPreview[];
   /** Every URL from one paste, together, so they land in a single write. */
@@ -165,6 +167,11 @@ export function NoteEditor({
 
   const { uploads, attachFiles, retryUpload, dropUpload } =
     useImageUploads(onAddImages);
+
+  // A pad opened from this editor goes with it: its drawing would be handed
+  // to uploads that are no longer there. A layout effect, as the uploads'
+  // own cleanup is: an effect's is put off until after the paint.
+  useLayoutEffect(() => closeDrawing, []);
 
   const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -371,7 +378,19 @@ export function NoteEditor({
       </div>
 
       {images.length > 0 && (
-        <ImageGallery images={images} onDelete={onRemoveImage} />
+        <ImageGallery
+          images={images}
+          onDelete={onRemoveImage}
+          onEdit={
+            disabled
+              ? undefined
+              : (index) => {
+                  const image = images[index];
+                  if (image === undefined) return;
+                  requestDrawing((file) => attachFiles([file], image), image);
+                }
+          }
+        />
       )}
       {uploads.length > 0 && (
         <PendingUploads
@@ -516,6 +535,7 @@ export function NoteEditor({
         reminder={reminder}
         onReminderChange={onReminderChange}
         onFilesSelected={handleFilesSelected}
+        onDraw={() => requestDrawing((file) => attachFiles([file]))}
         rawMode={rawMode}
         onToggleRawMode={() => setRawMode(!rawMode)}
         menuItems={menuItems?.({ checkedItems, datedItems }) ?? []}
