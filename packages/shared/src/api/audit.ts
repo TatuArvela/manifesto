@@ -19,6 +19,7 @@ export const AUDIT_ACTIONS = [
   "token.revoked",
   "webhook.created",
   "webhook.deleted",
+  "push.subscribed",
   "share.created",
   "share.role_changed",
   "share.removed",

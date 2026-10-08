@@ -770,6 +770,7 @@ export const fi: Messages = {
   "audit.action.token.revoked": "API-tunniste peruttu",
   "audit.action.webhook.created": "Webhook lisätty",
   "audit.action.webhook.deleted": "Webhook poistettu",
+  "audit.action.push.subscribed": "Selain tilasi push-muistutukset",
   "audit.action.share.created": "Muistiinpano jaettu",
   "audit.action.share.role_changed": "Jaon rooli muutettu",
   "audit.action.share.removed": "Jako poistettu",

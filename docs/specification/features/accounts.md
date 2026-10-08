@@ -300,7 +300,8 @@ The server records who did what to which account or note, and from where, in `au
 (with the method, and whether two-factor was used), failed sign-ins (with the name tried and why:
 unknown account, wrong password, wrong code, a passkey refused, or single sign-on refused), sign-outs, password changes and
 resets, two-factor turned on or off, passkeys added or removed, API tokens and webhooks created or
-removed, shares created, changed
+removed, a browser subscribed to push reminders (with the push service it uses, once a browser, not
+at each renewal), shares created, changed
 and removed, and every admin action (accounts created or deleted, admin granted or taken away, including
 by `OIDC_ADMIN_GROUP`, email addresses changed, temporary passwords issued). Note contents are never
 recorded.

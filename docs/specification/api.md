@@ -296,6 +296,16 @@ The first four answer any origin (CORS `*`), since they carry nothing a browser 
 
 `/api/webhooks`: see [Webhooks](features/webhooks.md).
 
+### Push
+
+Session-only, and the web client's own. See [Reminders](features/reminders.md#push-from-the-server).
+
+| Method   | Path                      | Description |
+|----------|---------------------------|-------------|
+| `GET`    | `/api/push/key`           | The server's push public key, for `pushManager.subscribe`: `{ publicKey }` |
+| `POST`   | `/api/push/subscriptions` | Keep this browser's subscription: `{ endpoint, keys: { p256dh, auth } }`, `204`. The endpoint must be `https`; one already held is replaced |
+| `DELETE` | `/api/push/subscriptions` | Forget it: `{ endpoint }`, `204`. Stays open with `WEB_PUSH` off |
+
 ### Version history
 
 | Method   | Path                         | Description          |
@@ -497,7 +507,8 @@ The web client reads it before anyone signs in, to choose what to show. It repla
 
 `features` names each of them, as `SERVER_FEATURES` in `@manifesto/shared` lists them: `sharing`,
 `teams`, `publicLinks`, `linkPreviews`, `calendar`, `apiTokens`, `mcp`, `webhooks`, `passkeys`,
-`magicLinks`, `twoFactor` and `adminExport`. The variable that switches each, and what it covers, is in
+`magicLinks`, `pushReminders`, `twoFactor` and `adminExport`. The variable that switches each, and
+what it covers, is in
 [Deployment](server/deployment.md#turning-features-off). `teams` needs `sharing`, and is reported
 off with it.
 

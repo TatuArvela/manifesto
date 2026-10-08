@@ -12,6 +12,10 @@ import { createSqliteOAuthRepo } from "./oauthRepo.js";
 import { createSqlitePasskeysRepo } from "./passkeysRepo.js";
 import { createSqlitePrefsRepo } from "./prefsRepo.js";
 import { createSqlitePublicLinksRepo } from "./publicLinksRepo.js";
+import {
+  createSqlitePushSubscriptionsRepo,
+  createSqliteServerSecretsRepo,
+} from "./pushRepo.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteSharesRepo } from "./sharesRepo.js";
 import { createSqliteTeamsRepo } from "./teamsRepo.js";
@@ -43,6 +47,8 @@ export function createSqliteStorage(
     apiTokens: createSqliteApiTokensRepo(db),
     oauth: createSqliteOAuthRepo(db),
     webhooks: createSqliteWebhooksRepo(db),
+    pushSubscriptions: createSqlitePushSubscriptionsRepo(db),
+    serverSecrets: createSqliteServerSecretsRepo(db),
     publicLinks: createSqlitePublicLinksRepo(db),
     teams: createSqliteTeamsRepo(db),
     twoFactor: createSqliteTwoFactorRepo(db),

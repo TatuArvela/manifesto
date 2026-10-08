@@ -17,6 +17,10 @@ import { createPostgresOAuthRepo } from "./oauthRepo.js";
 import { createPostgresPasskeysRepo } from "./passkeysRepo.js";
 import { createPostgresPrefsRepo } from "./prefsRepo.js";
 import { createPostgresPublicLinksRepo } from "./publicLinksRepo.js";
+import {
+  createPostgresPushSubscriptionsRepo,
+  createPostgresServerSecretsRepo,
+} from "./pushRepo.js";
 import { createPostgresSessionsRepo } from "./sessionsRepo.js";
 import { createPostgresSharesRepo } from "./sharesRepo.js";
 import { createPostgresTeamsRepo } from "./teamsRepo.js";
@@ -60,6 +64,8 @@ export async function createPostgresStorage(
     apiTokens: createPostgresApiTokensRepo(pool),
     oauth: createPostgresOAuthRepo(pool),
     webhooks: createPostgresWebhooksRepo(pool),
+    pushSubscriptions: createPostgresPushSubscriptionsRepo(pool),
+    serverSecrets: createPostgresServerSecretsRepo(pool),
     publicLinks: createPostgresPublicLinksRepo(pool),
     teams: createPostgresTeamsRepo(pool),
     twoFactor: createPostgresTwoFactorRepo(pool),

@@ -41,6 +41,7 @@ import {
 } from "../state/index.js";
 import { takeConsentPage } from "../state/oauth.js";
 import { startPrefsSync } from "../state/prefsSync.js";
+import { ensurePushSubscription } from "../state/pushSubscription.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
 import { loadInvitations } from "../state/sharing.js";
 import { restoreVersions } from "../state/versions.js";
@@ -170,7 +171,13 @@ function MainApp() {
     if (isServerMode) {
       void refreshCurrentUser().finally(() => setUserChecked(true));
       // After the capabilities, which say whether sharing is on at all.
-      void fetchCapabilities().then(() => loadInvitations());
+      void fetchCapabilities().then(() => {
+        void loadInvitations();
+        // A browser that already allows notifications takes up, or renews,
+        // its push subscription; one that does not is asked when a reminder
+        // is first saved, not here.
+        void ensurePushSubscription();
+      });
     }
     const stopLocaleReport = startAccountLocaleReport();
     return () => {

@@ -11,6 +11,7 @@ export * from "./api/errors.js";
 export * from "./api/notes.js";
 export * from "./api/prefs.js";
 export * from "./api/publicLinks.js";
+export * from "./api/push.js";
 export * from "./api/sharing.js";
 export * from "./api/sockets.js";
 export * from "./api/teams.js";

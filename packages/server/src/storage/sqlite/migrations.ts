@@ -485,6 +485,31 @@ CREATE TABLE note_comments (
 CREATE INDEX note_comments_note ON note_comments(note_id, created_at);
 `;
 
+/**
+ * Web Push: the subscriptions browsers hand over, one row a browser profile
+ * (an endpoint is unique to one) and gone with the session it was made in,
+ * and `server_secrets`, what the server makes for itself once and must keep,
+ * by name: the key it signs push messages with.
+ */
+const WEB_PUSH = `
+CREATE TABLE push_subscriptions (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  session_token TEXT NOT NULL REFERENCES sessions(token) ON DELETE CASCADE,
+  endpoint      TEXT NOT NULL UNIQUE,
+  p256dh        TEXT NOT NULL,
+  auth          TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  failure_count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX push_subscriptions_user ON push_subscriptions(user_id);
+CREATE TABLE server_secrets (
+  name       TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -511,6 +536,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0023-passkeys", sql: PASSKEYS },
   { id: "0024-sign-in-links", sql: SIGN_IN_LINKS },
   { id: "0025-note-comments", sql: NOTE_COMMENTS },
+  { id: "0026-web-push", sql: WEB_PUSH },
 ];
 
 export function runMigrations(

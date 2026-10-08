@@ -405,9 +405,12 @@ export default defineConfig(({ mode }) => {
           // note opened offline keeps its face on a device that never showed
           // it online. `[0-9]` stops at the weight, which leaves out
           // `latin-ext`; that and the other scripts still load on demand.
+          // And the manifest, which the worker reads the app's name from
+          // (`installedName` in `sw.ts`).
           globPatterns: [
             "**/*.{js,wasm,css,html}",
             "assets/*-latin-[0-9]*.woff2",
+            "manifest.webmanifest",
           ],
         },
         devOptions: {

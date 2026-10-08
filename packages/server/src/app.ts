@@ -41,6 +41,7 @@ import {
   resourceMetadataChallenge,
 } from "./oauth/routes.js";
 import { buildOpenApiDocument } from "./openapi.js";
+import { createPushSender, type PushSender } from "./push/sender.js";
 import { createAdminRoutes } from "./routes/admin.js";
 import { createAttachmentRoutes } from "./routes/attachments.js";
 import { createCapabilitiesRoutes } from "./routes/capabilities.js";
@@ -48,6 +49,7 @@ import { createExportRoutes } from "./routes/export.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createPublicRoutes } from "./routes/publicLinks.js";
+import { createPushRoutes } from "./routes/push.js";
 import { createSearchRoutes } from "./routes/search.js";
 import { createInvitationRoutes } from "./routes/shares.js";
 import { createSyncRoutes } from "./routes/sync.js";
@@ -84,6 +86,8 @@ export interface AppDeps {
   /** Test seam: which addresses webhooks may reach, and how fast they retry. */
   webhookAddressPolicy?: (address: string) => boolean;
   webhookRetryDelaysMs?: number[];
+  /** Test seam: which addresses push messages may reach, and on any port. */
+  pushAddressPolicy?: (address: string) => boolean;
   /** Test seam: reads an OAuth client's metadata document. */
   fetchClientMetadata?: ClientMetadataFetcher;
   /** Test seam: replaces the SMTP mailer `cfg.mail` would build. */
@@ -102,6 +106,8 @@ export interface AppHandle {
   noteEvents: NoteEvents;
   /** Null when the server has webhooks off. */
   webhooks: WebhookDispatcher | null;
+  /** Sends push messages; the reminder job in index.ts uses it. */
+  pushSender: PushSender;
 }
 
 export function createApp(deps: AppDeps): AppHandle {
@@ -132,6 +138,13 @@ export function createApp(deps: AppDeps): AppHandle {
           isAllowedAddress: deps.webhookAddressPolicy,
           retryDelaysMs: deps.webhookRetryDelaysMs,
         });
+
+  const pushSender = createPushSender({
+    storage,
+    cfg,
+    isAllowedAddress: deps.pushAddressPolicy,
+    allowAnyPort: deps.pushAddressPolicy !== undefined,
+  });
 
   const app = new Hono();
   app.use("*", corsMiddleware(cfg));
@@ -309,6 +322,7 @@ export function createApp(deps: AppDeps): AppHandle {
   app.route("/api/search", createSearchRoutes({ storage }));
   app.route("/api/public", createPublicRoutes({ storage }));
   app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
+  app.route("/api/push", createPushRoutes({ storage, sender: pushSender }));
   app.route("/api/teams", createTeamRoutes({ storage }));
   app.route("/api/sync", createSyncRoutes({ storage }));
   app.route(
@@ -341,5 +355,6 @@ export function createApp(deps: AppDeps): AppHandle {
     accessChanges,
     noteEvents,
     webhooks,
+    pushSender,
   };
 }

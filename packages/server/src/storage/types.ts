@@ -5,6 +5,7 @@ import type {
   VersionsRepo,
   YjsStore,
 } from "./repos/notes.js";
+import type { PushSubscriptionsRepo, ServerSecretsRepo } from "./repos/push.js";
 import type {
   CommentsRepo,
   PublicLinksRepo,
@@ -22,6 +23,7 @@ import type { WebhooksRepo } from "./repos/webhooks.js";
 
 export * from "./repos/maintenance.js";
 export * from "./repos/notes.js";
+export * from "./repos/push.js";
 export * from "./repos/sharing.js";
 export * from "./repos/signIn.js";
 export * from "./repos/tokens.js";
@@ -42,6 +44,8 @@ export interface StorageDriver {
   apiTokens: ApiTokensRepo;
   oauth: OAuthRepo;
   webhooks: WebhooksRepo;
+  pushSubscriptions: PushSubscriptionsRepo;
+  serverSecrets: ServerSecretsRepo;
   twoFactor: TwoFactorRepo;
   passkeys: PasskeysRepo;
   passwordResets: MailedLinksRepo;

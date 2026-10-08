@@ -380,6 +380,7 @@ function components() {
       }),
       AdminTestMailResponse: shape({ sent: { type: "boolean" } }),
       AccountPrefsResponse: exact({ prefs: { type: "object" } }),
+      PushKeyResponse: exact({ publicKey: { type: "string" } }),
       AuditLogResponse: shape({
         entries: { type: "array" },
         nextBefore: { type: ["string", "null"] },
