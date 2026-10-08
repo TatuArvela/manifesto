@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Client" type="js.build_tools.npm">
+    <package-json value="$PROJECT_DIR$/packages/client/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="dev" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs>
+      <env name="VITE_MANIFESTO_SERVER" value="http://localhost:3001" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>
