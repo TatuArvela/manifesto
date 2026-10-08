@@ -1,6 +1,6 @@
 import type { ComponentChildren, RefObject } from "preact";
-import { createPortal } from "preact";
-import { useLayoutEffect } from "preact/hooks";
+import { createContext, createPortal } from "preact";
+import { useLayoutEffect, useState } from "preact/hooks";
 import { useBackToClose } from "../hooks/useBackToClose.js";
 import { openSheet } from "../utils/phoneSheets.js";
 
@@ -23,6 +23,26 @@ interface NoteSheetProps {
   onBack: () => void;
   children: ComponentChildren;
 }
+
+/**
+ * Where a sheet's content may put something beside the panel on a wide
+ * screen (`SHEET_ASIDE_QUERY`), such as a note's comments: an element to
+ * portal into, to the right of the panel, as tall as it. Null outside a
+ * sheet. Empty, it takes no room and the panel sits centred alone. What goes
+ * in takes the class `sheet-aside-panel`: the aside widens to make room as it
+ * arrives, so the panel slides aside rather than jumping, and closes up again
+ * as it leaves.
+ */
+export const SheetAside = createContext<HTMLElement | null>(null);
+
+/** The widths with room for the aside. Matches its `max-lg:hidden`. */
+export const SHEET_ASIDE_QUERY = "(min-width: 64rem)";
+
+/**
+ * How long what is in the aside takes to leave, held there by `usePresence`
+ * and marked `data-leaving`; `sheet-aside-out` in styles/editor.css.
+ */
+export const SHEET_ASIDE_EXIT_MS = 200;
 
 /**
  * A note (or its history) opened over the board: a centred dialog on a wider
@@ -50,6 +70,8 @@ export function NoteSheet({
 
   useBackToClose(!closing, onBack);
 
+  const [aside, setAside] = useState<HTMLElement | null>(null);
+
   return createPortal(
     <>
       {backdrop}
@@ -60,11 +82,20 @@ export function NoteSheet({
         aria-label={label}
         class={`note-sheet ${layer} sm:fixed sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4 pointer-events-none ${motion}`}
       >
-        <div
-          ref={panelRef ?? null}
-          class="pointer-events-auto w-full sm:max-w-2xl sm:max-h-full sm:overflow-y-auto sm:overscroll-contain"
-        >
-          {children}
+        {/* The panel and what is beside it, centred as one. The panel's
+            height is the dialog's less its padding, said outright because a
+            percentage has nothing to measure against in a row this tall. */}
+        <div class="w-full sm:flex sm:items-start sm:justify-center">
+          <div
+            ref={panelRef ?? null}
+            class="note-sheet-panel pointer-events-auto w-full sm:min-w-0 sm:max-w-2xl sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto sm:overscroll-contain"
+          >
+            <SheetAside.Provider value={aside}>{children}</SheetAside.Provider>
+          </div>
+          <div
+            ref={setAside}
+            class={`sheet-aside pointer-events-auto relative shrink-0 self-stretch max-lg:hidden ${closing ? "opacity-0" : ""}`}
+          />
         </div>
       </div>
     </>,

@@ -126,3 +126,46 @@
     padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
 }
+
+/* What a sheet shows beside its panel on a wide screen (`SheetAside` in
+   NoteSheet.tsx; a note's comments). The aside has no width until something
+   is in it and then widens, so the panel slides aside instead of jumping
+   while what arrived fades in over the room being made. On the way out the
+   same in reverse: the content is held for SHEET_ASIDE_EXIT_MS, marked
+   `data-leaving`, and the aside closes up under it. The content keeps its
+   full width throughout, so nothing in it reflows. */
+.sheet-aside {
+  width: 0;
+  margin-left: 0;
+  transition:
+    width 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    margin-left 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 100ms ease-in;
+}
+
+.sheet-aside:has(> :not([data-leaving="true"])) {
+  width: 20rem;
+  margin-left: 0.75rem;
+}
+
+.sheet-aside-panel {
+  animation: sheet-aside-in 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.sheet-aside-panel[data-leaving="true"] {
+  animation: sheet-aside-out 200ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes sheet-aside-in {
+  from {
+    opacity: 0;
+    translate: -1rem 0;
+  }
+}
+
+@keyframes sheet-aside-out {
+  to {
+    opacity: 0;
+    translate: -1rem 0;
+  }
+}

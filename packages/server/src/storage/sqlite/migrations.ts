@@ -468,6 +468,23 @@ CREATE TABLE sign_in_links (
 CREATE INDEX sign_in_links_user ON sign_in_links(user_id, created_at);
 `;
 
+/**
+ * Comments beside a note. They go with the note, and stay when their author
+ * loses the note or their account: `author_id` is then no longer a
+ * participant, or null, and the comment is shown without a name.
+ */
+const NOTE_COMMENTS = `
+CREATE TABLE note_comments (
+  id         TEXT PRIMARY KEY,
+  note_id    TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  author_id  TEXT REFERENCES users(id) ON DELETE SET NULL,
+  body       TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  edited_at  TEXT
+);
+CREATE INDEX note_comments_note ON note_comments(note_id, created_at);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -493,6 +510,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0022-oauth", sql: OAUTH },
   { id: "0023-passkeys", sql: PASSKEYS },
   { id: "0024-sign-in-links", sql: SIGN_IN_LINKS },
+  { id: "0025-note-comments", sql: NOTE_COMMENTS },
 ];
 
 export function runMigrations(

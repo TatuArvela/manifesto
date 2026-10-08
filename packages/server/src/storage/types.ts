@@ -6,6 +6,7 @@ import type {
   YjsStore,
 } from "./repos/notes.js";
 import type {
+  CommentsRepo,
   PublicLinksRepo,
   SharesRepo,
   TeamsRepo,
@@ -45,6 +46,7 @@ export interface StorageDriver {
   passkeys: PasskeysRepo;
   passwordResets: MailedLinksRepo;
   signInLinks: MailedLinksRepo;
+  comments: CommentsRepo;
   audit: AuditRepo;
   prefs: PrefsRepo;
   publicLinks: PublicLinksRepo;

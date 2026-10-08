@@ -26,6 +26,7 @@ import { Dropdown } from "./Dropdown.js";
 import { editorBtnClass, editorIconClass } from "./editorButtons.js";
 import { ImageGallery } from "./ImageGallery.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
+import { NoteComments } from "./NoteComments.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
 import { ReminderChip } from "./ReminderChip.js";
@@ -196,6 +197,8 @@ export function NoteReadonlyView({
             })}
           />
         )}
+
+        <NoteComments note={note} />
 
         {pluginLabel && (
           <div class="mt-4 pt-2 border-t border-black/10 dark:border-white/10 text-xs text-black/40 dark:text-white/40 whitespace-pre-line">

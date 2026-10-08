@@ -14,6 +14,11 @@ import {
   isServerMode,
   WS_ORIGIN,
 } from "../state/auth.js";
+import {
+  forgetComment,
+  receiveComment,
+  reloadComments,
+} from "../state/comments.js";
 import { forgetNote, receiveNote, syncNotes } from "../state/notesStore.js";
 import {
   receiveAccountPrefs,
@@ -132,6 +137,19 @@ function isInvitation(value: unknown): value is ShareInvitation {
   );
 }
 
+function isComment(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
+  return (
+    typeof c.id === "string" &&
+    typeof c.noteId === "string" &&
+    typeof c.body === "string" &&
+    typeof c.createdAt === "string" &&
+    (c.editedAt === null || typeof c.editedAt === "string") &&
+    (c.author === null || isShareUser(c.author))
+  );
+}
+
 /**
  * Discriminates on the payload, not just on `type`, the mirror of the
  * server's `isClientEvent`. Accepting anything with a string `type` narrowed
@@ -160,6 +178,11 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
       return isInvitation(v.invitation);
     case "invitation:removed":
       return typeof v.noteId === "string";
+    case "comment:created":
+    case "comment:updated":
+      return isComment(v.comment);
+    case "comment:deleted":
+      return typeof v.noteId === "string" && typeof v.id === "string";
     case "prefs:updated":
       return (
         typeof v.prefs === "object" &&
@@ -193,6 +216,13 @@ function applyServerEvent(event: WebSocketEvent) {
       break;
     case "invitation:removed":
       forgetInvitation(event.noteId);
+      break;
+    case "comment:created":
+    case "comment:updated":
+      receiveComment(event.comment);
+      break;
+    case "comment:deleted":
+      forgetComment(event.noteId, event.id);
       break;
     case "prefs:updated":
       receiveAccountPrefs(event.prefs);
@@ -279,6 +309,7 @@ function connect(token: string) {
       });
       void loadInvitations();
       void refreshAccountPrefs();
+      reloadComments();
     } else {
       hasOpenedOnce = true;
     }

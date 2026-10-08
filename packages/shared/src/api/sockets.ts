@@ -1,4 +1,5 @@
 import type { Note } from "../note.js";
+import type { NoteComment } from "./comments.js";
 import type { AccountPrefs } from "./prefs.js";
 import type { ShareInvitation } from "./sharing.js";
 
@@ -41,6 +42,9 @@ export type WebSocketEvent =
   | { type: "presence:leave"; noteId: string; userId: string }
   | { type: "invitation:created"; invitation: ShareInvitation }
   | { type: "invitation:removed"; noteId: string }
+  | { type: "comment:created"; comment: NoteComment }
+  | { type: "comment:updated"; comment: NoteComment }
+  | { type: "comment:deleted"; noteId: string; id: string }
   | { type: "prefs:updated"; prefs: AccountPrefs }
   | { type: "heartbeat" };
 

@@ -35,6 +35,19 @@ away from someone (removal, a role drop to `view`, the owner trashing it) also g
 stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
 `storage/contracts/sharingContract.ts` runs the rules against both drivers.
 
+Comments (`routes/comments.ts`, `note_comments`) sit beside a shared note and never touch it: no
+`updated_at` stamp, no version, no `note:updated`. Their events go out through `noteEvents.commented`,
+to everyone who can see the note. An author who is no longer on the note is left off when comments are
+read (`author: null`, "Former participant" in the client), decided from the note's audience on every
+read rather than written into the row, so removing a share needs no cleanup and sharing again restores
+the name. Anything new that lists people on a note has to make the same choice.
+
+The client holds a note's comments only while its panel is up (`state/comments.ts`), and one read is
+never the last word: `loadComments` is run again by the socket's reconnect catch-up (`reloadComments`),
+by a change in who is on the note (the held names are only as fresh as the read), by an event that
+arrives while a read is under way, and by the panel's "Try again" after a failed one. An answer for a
+panel that has gone, or older than a later read of the same note, is dropped.
+
 A share to a team (spec: the Teams section of the same file) expands into one ordinary `note_shares`
 row per member, marked with `via_team`, so every access check keeps reading `note_shares` alone.
 `sharing/teamShares.ts` is the only code that understands teams: sharing, a team's role, members

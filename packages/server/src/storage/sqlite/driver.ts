@@ -3,6 +3,7 @@ import type { StorageDriver } from "../types.js";
 import { createSqliteApiTokensRepo } from "./apiTokensRepo.js";
 import { createSqliteAttachmentsRepo } from "./attachmentsRepo.js";
 import { createSqliteAuditRepo } from "./auditRepo.js";
+import { createSqliteCommentsRepo } from "./commentsRepo.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteMailedLinksRepo } from "./mailedLinksRepo.js";
 import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
@@ -49,6 +50,7 @@ export function createSqliteStorage(
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqliteMailedLinksRepo(db, "password_resets"),
     signInLinks: createSqliteMailedLinksRepo(db, "sign_in_links"),
+    comments: createSqliteCommentsRepo(db),
     audit: createSqliteAuditRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async backup(path) {

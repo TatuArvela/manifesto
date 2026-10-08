@@ -142,7 +142,9 @@ describe("NoteCard editing modal", () => {
       editingNoteId.value = note.id;
 
       const running = await vi.waitFor(() => {
-        const panel = document.querySelector('[role="dialog"] > div');
+        const panel = document.querySelector(
+          '[role="dialog"] .note-sheet-panel',
+        );
         if (!panel) throw new Error("modal is not up");
         return panel.getAnimations();
       });

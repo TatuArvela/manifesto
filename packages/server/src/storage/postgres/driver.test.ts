@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { describeAdminContract } from "../contracts/adminContract.js";
 import { describeAttachmentsContract } from "../contracts/attachmentsContract.js";
 import { claimed } from "../contracts/claimed.js";
+import { describeCommentsContract } from "../contracts/commentsContract.js";
 import { describeOAuthContract } from "../contracts/oauthContract.js";
 import { describePasskeysContract } from "../contracts/passkeysContract.js";
 import { describePrefsContract } from "../contracts/prefsContract.js";
@@ -31,6 +32,7 @@ describePublicLinksContract("postgres (pg-mem)", bootStorage);
 describeTeamsContract("postgres (pg-mem)", bootStorage);
 describeOAuthContract("postgres (pg-mem)", bootStorage);
 describePasskeysContract("postgres (pg-mem)", bootStorage);
+describeCommentsContract("postgres (pg-mem)", bootStorage);
 describePrefsContract("postgres (pg-mem)", bootStorage, { locks: false });
 
 describe("postgres: audit log", () => {

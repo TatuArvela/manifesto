@@ -1,4 +1,5 @@
 import { describeAttachmentsContract } from "../contracts/attachmentsContract.js";
+import { describeCommentsContract } from "../contracts/commentsContract.js";
 import { describeOAuthContract } from "../contracts/oauthContract.js";
 import { describePasskeysContract } from "../contracts/passkeysContract.js";
 import { describePrefsContract } from "../contracts/prefsContract.js";
@@ -37,5 +38,9 @@ describeOAuthContract("sqlite", async () =>
 );
 
 describePasskeysContract("sqlite", async () =>
+  createSqliteStorage({ dbPath: ":memory:" }),
+);
+
+describeCommentsContract("sqlite", async () =>
   createSqliteStorage({ dbPath: ":memory:" }),
 );

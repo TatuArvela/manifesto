@@ -17,6 +17,7 @@ function sheet(height: number): HTMLElement {
   const el = document.createElement("div");
   el.className = "note-sheet z-50 sm:fixed sm:inset-0";
   const panel = document.createElement("div");
+  panel.className = "note-sheet-panel";
   const surface = document.createElement("div");
   surface.className = "note-sheet-surface bg-red-100";
   surface.style.height = `${height}px`;

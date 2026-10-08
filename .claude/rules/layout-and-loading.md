@@ -77,6 +77,13 @@ a top bar moved to follow it trailed every scroll by a frame. With the keyboard 
 iOS pans the page past the foot of everything laid out, `fixed` layers included, so the page's own
 background shows there; `paintPage` gives it the open note's colour. Anything that
 must show over an open note belongs outside `.app-shell` (App's dialogs, toasts and banners are).
+`NoteSheet` also offers its content a place beside the panel on a wide screen: the `SheetAside`
+context is an element to portal into, to the right of the panel and as tall as it (a note's comments
+open there). It is inside the dialog, so the focus trap covers it; empty, it has no width and the
+panel sits centred alone. It widens as content arrives and closes up as it leaves (`.sheet-aside` in
+`styles/editor.css`), so the panel slides rather than jumps; the content takes `sheet-aside-panel`
+and is held through its exit by `usePresence` with `SHEET_ASIDE_EXIT_MS`. Whether to use it is asked with `useMediaQuery(SHEET_ASIDE_QUERY)`,
+which has to agree with the element's own `max-lg:hidden`.
 The open and close morph uncovers the panel with `clip-path` there instead of scaling it
 (`utils/morph.ts`), since a whole screen scaled onto a card squashes its text.
 
