@@ -56,7 +56,7 @@ What Manifesto has decided not to do, and why, is in [Non-goals](non-goals.md).
 - [MCP](features/mcp.md): Tools for AI assistants over the Model Context Protocol (connected mode)
 - [Preferences](features/preferences.md): Settings kept on the device, and in connected mode following the account
 - [Privacy](features/privacy.md): Who can read notes, what admins see, and what a user can see about their own account
-- [Encryption](features/encryption.md): What protects notes today, and what end-to-end encryption has to settle before 1.0.0
+- [Encryption](features/encryption.md): What protects notes today, and the design chosen before 1.0.0: everything the server stores, notes and images, encrypted at rest
 - [Account Administration](features/accounts.md): Admins, temporary passwords and the Users view (connected mode)
 
 ### Client
