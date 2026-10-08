@@ -137,13 +137,6 @@ function isInvitation(value: unknown): value is ShareInvitation {
   );
 }
 
-/**
- * Discriminates on the payload, not just on `type`, the mirror of the
- * server's `isClientEvent`. Accepting anything with a string `type` narrowed
- * to the union without checking the fields the branches then read, so a
- * malformed `note:created` put `undefined` into the notes list and a card
- * threw during render.
- */
 function isComment(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const c = value as Record<string, unknown>;
@@ -157,6 +150,13 @@ function isComment(value: unknown): boolean {
   );
 }
 
+/**
+ * Discriminates on the payload, not just on `type`, the mirror of the
+ * server's `isClientEvent`. Accepting anything with a string `type` narrowed
+ * to the union without checking the fields the branches then read, so a
+ * malformed `note:created` put `undefined` into the notes list and a card
+ * threw during render.
+ */
 export function isServerEvent(value: unknown): value is WebSocketEvent {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
