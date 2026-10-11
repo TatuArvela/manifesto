@@ -395,28 +395,36 @@ no note.
 - **A note key**: when someone is removed, as under [Sharing](#sharing).
 - **The server key**: as [above](#the-server-key).
 
-### Moving an existing server over
+### A server from before encryption
 
-After the upgrade, an account is moved by its own browser at its next sign-in: it sets up the keys,
-then encrypts the account's notes, versions and images a batch at a time and replaces the readable
-rows. A row with no key version is one not yet encrypted, so both kinds are read while the work runs
-and after an interruption.
+Notes written before encryption are not encrypted where they lie. A server from before it is not
+upgraded in place: the encrypted version starts on an empty database, and each person carries their
+own notes across.
 
-- A shared note is encrypted by its owner's client; the people on it read it as before until then,
-  and get their wrapped key with it.
-- A collaborative document is loaded by that client and stored again as a first snapshot.
-- Tokens, feed addresses and public links made before the move carry no key. They are revoked when
-  the account is moved, and Settings lists what has to be made again.
-- An account that never signs in stays readable. The admin overview counts the accounts not yet
-  moved.
+- **Before the upgrade**, each user exports their notes from Settings
+  ([Export and Import](export-import.md)). The zip holds their notes with the images, the archive
+  and the trash, and the version history.
+- **After it**, they sign in to an account on the new database, which is encrypted from its first
+  sign-in, and import the zip. The browser encrypts each note as it stores it, like any note written
+  there.
+- **What does not come across**: notes someone else shared, which their owner imports and shares
+  again; comments; and tokens, feed addresses, webhooks and public links, which are made again.
+  Accounts are made again too.
+- **The old database** and its backups are the readable copy. The operator keeps them until everyone
+  has their notes, then deletes them.
+- **A server started on a database from before** refuses to start and says why, so that readable
+  notes never sit beside encrypted ones.
+
+Changing rows in place was decided against. The old text would stay in the database's free pages and
+in every backup made before, and the client would have to accept readable rows beside encrypted ones
+for as long as any account had not signed in.
 
 ### Order of building
 
 1. Keys and unlocking: the account key, the key pairs, the secret key, the recovery key (in place of
    the two-factor recovery codes), the sheet, the keys
    kept on a device, and set-up at sign-in.
-2. Notes: title, text, excerpt, font, tags, colour, versions and preferences, with the move of
-   existing rows.
+2. Notes: title, text, excerpt, font, tags, colour, versions and preferences.
 3. Images.
 4. Sharing: wrapping to public keys, fingerprints, the wait for a key, a new note key on removal,
    comments and public links.
