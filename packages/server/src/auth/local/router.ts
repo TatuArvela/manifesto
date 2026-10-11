@@ -281,11 +281,21 @@ export function createLocalAuthRouter(
       if (user.passwordHash === null) {
         throw new HttpError(409, "This account signs in without a password");
       }
+      // The same per-account budget as signing in and confirming an action:
+      // the address bucket alone is one a stolen session can move between
+      // addresses to refill.
+      const wait = loginAttempts.retryAfter(user.username);
+      if (wait > 0) {
+        c.header("Retry-After", String(wait));
+        throw new HttpError(429, "Too many wrong passwords; try again later");
+      }
       // 403 rather than 401: the session is fine, and a client treats 401 as
       // being signed out.
       if (!(await verifyPassword(user.passwordHash, currentPassword))) {
+        loginAttempts.fail(user.username);
         throw new HttpError(403, "Current password is incorrect");
       }
+      loginAttempts.succeed(user.username);
       if (newPassword === currentPassword) {
         throw new HttpError(
           422,

@@ -130,7 +130,8 @@ A temporary password is good for one thing: choosing a real one.
 
 **Change password** on the Account settings page asks for the current password and the new
 one twice. It is offered only under local sign-in. A successful change keeps the current session and
-ends every other session of the account, including its open sockets.
+ends every other session of the account, including its open sockets. A wrong current password counts
+against the same per-account budget as a failed sign-in, and `429` answers while the account is locked.
 
 ## Confirming a change from a session
 

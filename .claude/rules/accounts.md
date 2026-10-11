@@ -78,6 +78,10 @@ either kind left in the old mailbox is the account, for whoever reads it. On the
 on a press, never on mount (a mail scanner loads the page too), and `App` takes the token out of the
 address when someone is signed in already.
 
+Anything that checks a password from a session counts a wrong one in `loginAttempts`, the change of
+password (`/api/auth/password`) included: the address bucket alone refills for a stolen session that
+moves.
+
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:
 `loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map
