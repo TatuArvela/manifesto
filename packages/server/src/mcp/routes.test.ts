@@ -350,6 +350,17 @@ describe("MCP endpoint", () => {
       expect(result.content[0]?.text).toContain("at least one field");
     });
 
+    it("refuse an id that would name another path", async () => {
+      const token = await mintMcp();
+      for (const id of [".", "..", "a/b", "a?b"]) {
+        const read = await tool(token, "get_note", { id });
+        expect(read.isError).toBe(true);
+        expect(read.content[0]?.text).toContain("Not a note id");
+        const trashed = await tool(token, "trash_note", { id });
+        expect(trashed.content[0]?.text).toContain("Not a note id");
+      }
+    });
+
     it("offer a read-only token only what reads, and refuse it the rest", async () => {
       const token = await mintMcp(true);
       const listed = await rpc(token, "tools/list");

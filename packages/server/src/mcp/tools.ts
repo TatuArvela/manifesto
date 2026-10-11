@@ -137,7 +137,12 @@ async function allNotes(rest: RestCall): Promise<Note[]> {
 
 const notePath = (id: string) => `/api/notes/${encodeURIComponent(id)}`;
 
-const idField = z.string().min(1).max(64).describe("The note's id");
+// The alphabet `/api/notes/import` holds an id to. An id becomes a path
+// segment, and `.` or `..` there would name another route, not a note.
+const idField = z
+  .string()
+  .regex(/^[0-9A-Za-z_-]{1,64}$/, "Not a note id")
+  .describe("The note's id");
 const updatedAtField = z
   .string()
   .max(40)
