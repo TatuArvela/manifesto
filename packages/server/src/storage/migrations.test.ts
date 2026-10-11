@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { type Migration, pendingMigrations } from "./migrations.js";
+import type { PgPool } from "./postgres/database.js";
 import {
   MIGRATIONS as PG_MIGRATIONS,
   runMigrations as runPgMigrations,
@@ -269,5 +270,38 @@ describe("postgres migration runner", () => {
     expect(
       rows.map((row: { column_name: string }) => row.column_name),
     ).toContain("favourite");
+  });
+
+  it("skips a step another instance ran after this one read the ledger", async () => {
+    const pool = open();
+    await runPgMigrations(pool);
+
+    // A second instance that booted with the first: its read of the ledger
+    // came back empty, and everything has been applied by the time it gets
+    // the lock.
+    const asked: string[] = [];
+    const late = {
+      connect: async () => {
+        const client = await pool.connect();
+        return {
+          query: (sql: string, params?: unknown[]) => {
+            asked.push(sql);
+            if (sql === "SELECT id FROM schema_migrations") {
+              return Promise.resolve({ rows: [] });
+            }
+            return client.query(sql, params);
+          },
+          release: () => client.release(),
+        };
+      },
+    } as unknown as PgPool;
+    await runPgMigrations(late);
+
+    expect(asked).toContain("SELECT id FROM schema_migrations");
+    expect(asked.filter((sql) => sql.includes("advisory"))).toHaveLength(
+      PG_MIGRATIONS.length,
+    );
+    const { rows } = await pool.query(`SELECT id FROM schema_migrations`);
+    expect(rows).toHaveLength(PG_MIGRATIONS.length);
   });
 });

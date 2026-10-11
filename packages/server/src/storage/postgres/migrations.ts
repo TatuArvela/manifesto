@@ -3,7 +3,7 @@ import {
   type Migration,
   pendingMigrations,
 } from "../migrations.js";
-import type { PgPool } from "./database.js";
+import type { PgClient, PgPool } from "./database.js";
 
 const INITIAL_SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -426,6 +426,37 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0026-web-push", sql: WEB_PUSH },
 ];
 
+/**
+ * The advisory lock every instance takes before it changes the schema: "MANI"
+ * in ASCII. Any number would do, as long as nothing else sharing the database
+ * picks the same one.
+ */
+const MIGRATION_LOCK = 0x4d414e49;
+
+/**
+ * One transaction that holds the migration lock from its first statement to
+ * its commit. Instances that boot together (a rolling deploy, two replicas)
+ * each read the ledger before the other has written to it, so without the
+ * lock both run the same step, and the second fails on a column that is
+ * already there and does not start. The lock is the transaction's own, so it
+ * goes with the connection if the process dies, and works through a pooler
+ * that hands out a connection per transaction.
+ */
+async function locked(
+  client: PgClient,
+  work: () => Promise<void>,
+): Promise<void> {
+  try {
+    await client.query("BEGIN");
+    await client.query(`SELECT pg_advisory_xact_lock(${MIGRATION_LOCK})`);
+    await work();
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  }
+}
+
 export async function runMigrations(
   pool: PgPool,
   declared: readonly Migration[] = MIGRATIONS,
@@ -434,13 +465,17 @@ export async function runMigrations(
   try {
     // Probed rather than re-issued on every boot: `CREATE TABLE IF NOT EXISTS`
     // against a table that is already there is a statement whose only possible
-    // effect is nothing. The create keeps its `IF NOT EXISTS` anyway, so two
-    // instances booting at once still cannot collide.
+    // effect is nothing. Created under the lock, since `IF NOT EXISTS` does not
+    // keep two creates at the same moment from colliding.
     const ledger = await client.query(
       `SELECT 1 FROM information_schema.tables
        WHERE table_schema = current_schema() AND table_name = 'schema_migrations'`,
     );
-    if (ledger.rows.length === 0) await client.query(LEDGER_TABLE_SQL);
+    if (ledger.rows.length === 0) {
+      await locked(client, async () => {
+        await client.query(LEDGER_TABLE_SQL);
+      });
+    }
     const { rows } = await client.query<{ id: string }>(
       `SELECT id FROM schema_migrations`,
     );
@@ -453,18 +488,20 @@ export async function runMigrations(
     // LOWER(username) index, which would let duplicate usernames slip past
     // `findByUsername`) and can't record a step that did not finish.
     for (const migration of pending) {
-      try {
-        await client.query("BEGIN");
+      await locked(client, async () => {
+        // The list above was read before the lock was held, so another
+        // instance may have run this step since.
+        const done = await client.query(
+          `SELECT 1 FROM schema_migrations WHERE id = $1`,
+          [migration.id],
+        );
+        if (done.rows.length > 0) return;
         await client.query(migration.sql);
         await client.query(
           `INSERT INTO schema_migrations (id, applied_at) VALUES ($1, $2)`,
           [migration.id, new Date().toISOString()],
         );
-        await client.query("COMMIT");
-      } catch (err) {
-        await client.query("ROLLBACK").catch(() => {});
-        throw err;
-      }
+      });
     }
   } finally {
     client.release();

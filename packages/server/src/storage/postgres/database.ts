@@ -2,6 +2,7 @@ import pg from "pg";
 import { logger } from "../../lib/logger.js";
 
 export type PgPool = pg.Pool;
+export type PgClient = pg.PoolClient;
 
 export interface PostgresOpenOptions {
   connectionString: string;

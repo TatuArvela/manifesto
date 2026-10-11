@@ -28,6 +28,16 @@ export function newTestPool(): PgPool {
     },
   });
 
+  // Taken by the migration runner. One process is the only instance there is
+  // here, so there is nobody to wait for.
+  db.public.registerFunction({
+    name: "pg_advisory_xact_lock",
+    args: [DataType.integer],
+    returns: DataType.bool,
+    implementation: () => true,
+    impure: true,
+  });
+
   const { Pool } = db.adapters.createPg();
   // biome-ignore lint/suspicious/noExplicitAny: pg-mem's Pool is structurally compatible with pg.Pool
   return new Pool() as any;
