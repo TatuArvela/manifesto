@@ -348,6 +348,11 @@ In Authentik, configure the application's redirect URI to match `OIDC_REDIRECT_U
 
 For larger or scale-out deployments, set `STORAGE_DRIVER=postgres` and `DATABASE_URL=...`. The schema is created on first boot and brought forward on every boot after that; see [Schema migrations](index.md#schema-migrations).
 
+The connection is encrypted only if `DATABASE_URL` asks for it: without an `sslmode` the server
+talks to Postgres in the clear, which is fine on the compose file's private network below and not
+across anything else. For a database on another host, add `?sslmode=verify-full` (and
+`&sslrootcert=/path/to/ca.pem` for a certificate authority the system does not already trust).
+
 ```yaml
 services:
   manifesto-db:
