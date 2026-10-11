@@ -139,6 +139,58 @@ describe("password reset by mail", () => {
     expect(mailer.sent[0]?.subject).toBe("Salasanan vaihtaminen");
   });
 
+  it("voids a link when the password or the address it went to changes", async () => {
+    const signedIn = await post("/api/auth/login", {
+      username: "alice",
+      password: "test-pass-12",
+    });
+    const { token: session } = (await signedIn.json()) as { token: string };
+    const ask = async () => {
+      mailer.sent.length = 0;
+      // Past the cooldown between two links for one account.
+      const alice = await storage.users.findByUsername("alice");
+      await storage.passwordResets.deleteByUser(alice?.id ?? "");
+      await post("/api/auth/password-reset", { email: "alice@example.com" });
+      await settle();
+      return tokenFrom(defined(mailer.sent[0]).text);
+    };
+
+    const beforeChange = await ask();
+    const changed = await post(
+      "/api/auth/password",
+      { currentPassword: "test-pass-12", newPassword: "another-pass-34" },
+      authHeaders(session),
+    );
+    expect(changed.status).toBe(204);
+    expect(
+      (
+        await post("/api/auth/password-reset/confirm", {
+          token: beforeChange,
+          newPassword: "attacker-pass-1",
+        })
+      ).status,
+    ).toBe(410);
+
+    const beforeMove = await ask();
+    const moved = await request("/api/auth/me", {
+      method: "PUT",
+      headers: authHeaders(session),
+      body: JSON.stringify({
+        email: "alice@elsewhere.example",
+        password: "another-pass-34",
+      }),
+    });
+    expect(moved.status).toBe(200);
+    expect(
+      (
+        await post("/api/auth/password-reset/confirm", {
+          token: beforeMove,
+          newPassword: "attacker-pass-1",
+        })
+      ).status,
+    ).toBe(410);
+  });
+
   it("refuses a made-up token", async () => {
     const res = await post("/api/auth/password-reset/confirm", {
       token: "0".repeat(64),

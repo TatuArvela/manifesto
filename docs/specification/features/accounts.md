@@ -289,6 +289,9 @@ the address and mails a link to `APP_URL/#reset=<token>`, which opens a form for
 - A link works once, for 30 minutes; its token is stored as a SHA-256 hash. Using it ends every session
   and API token of the account, as a password change does. Two-factor sign-in stays on: the link proves
   control of the mailbox, not of the authenticator.
+- A link does not outlive what it stands for or where it was sent: a password change, an admin's
+  temporary password and a change of the account's email address (its own or an admin's) void every
+  reset link the account has outstanding, as they do its sign-in links.
 - The mail is in the language the sign-in screen was in (English or Finnish; the server keeps these few
   messages in `mail/templates.ts`).
 
