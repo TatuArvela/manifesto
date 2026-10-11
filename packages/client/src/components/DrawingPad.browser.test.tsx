@@ -4,6 +4,7 @@ import { cdp } from "vitest/browser";
 import { t } from "../i18n/index.js";
 import { answerConfirmation, confirmRequest } from "../state/confirm.js";
 import { drawingRequest, requestDrawing } from "../state/drawing.js";
+import { afterHistorySettles } from "../state/sheetHistory.js";
 import { DRAWING_HEIGHT, DRAWING_WIDTH } from "../utils/drawing.js";
 import { DrawingPad } from "./DrawingPad.js";
 import "../styles.css";
@@ -80,6 +81,9 @@ beforeEach(async () => {
   requestDrawing((file) => saved.push(file));
   render(<DrawingPad />, host);
   await settled();
+  // The last test's pad took its entry off with a `history.back()` that may
+  // not have landed yet, and this pad's entry is only pushed once it has.
+  await new Promise<void>((resolve) => afterHistorySettles(resolve));
 });
 
 afterEach(() => {
