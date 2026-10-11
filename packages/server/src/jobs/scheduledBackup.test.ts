@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
@@ -50,6 +50,16 @@ describe("scheduled backups", () => {
 
   const run = (hour: number, env = plenty, keep = 2) =>
     takeBackup(storage, { dir, keep, intervalHours: 1 }, env, at(hour));
+
+  it.skipIf(process.platform === "win32")(
+    "keeps a backup and its directory to the server's own user",
+    async () => {
+      await run(0);
+      const [name = ""] = await readdir(dir);
+      expect((await stat(join(dir, name))).mode & 0o777).toBe(0o600);
+      expect((await stat(dir)).mode & 0o077).toBe(0);
+    },
+  );
 
   it("writes a readable copy and keeps only the newest", async () => {
     for (let hour = 0; hour < 4; hour++) await run(hour);

@@ -419,6 +419,11 @@ database with SQLite's online backup API, the same consistent, WAL-inclusive cop
 `BACKUP_KEEP` (default 7). The disk it takes levels off at about `BACKUP_KEEP` times the database, and
 the database includes the images.
 
+A backup holds everything the database does: every note, password hash and secret. Each file is
+written readable by the server's own user only (`0600`), and so is a `BACKUP_DIR` the server creates
+(`0700`). A directory that already exists keeps the access it has, so check one you made yourself,
+above all on a volume other accounts can reach.
+
 Each run guards the disk:
 
 - **Restarts do not add copies.** A run also happens at startup, but it is skipped while the newest
