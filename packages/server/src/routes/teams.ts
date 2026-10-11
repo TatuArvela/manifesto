@@ -200,19 +200,41 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
     }
   }
 
-  /** Brings a team's members to `wanted`, through joined/left. */
-  async function setMembers(teamId: string, wanted: string[]): Promise<void> {
+  /**
+   * Brings a team's members to `wanted`, through joined/left. Each change is
+   * its own audit entry, written as it is made: joining a team is an
+   * invitation to every note shared with it, so who was put in which has to
+   * be on record, and a run that fails halfway has recorded what it did.
+   */
+  async function setMembers(
+    c: Context,
+    teamId: string,
+    wanted: string[],
+  ): Promise<void> {
+    const { userId: actorId } = c.get("auth") as AuthContext;
     const want = new Set(wanted);
     const current = new Set(await storage.teams.members(teamId));
     for (const id of want) {
       if (current.has(id)) continue;
       if (await storage.teams.addMember(teamId, id)) {
+        audit(storage, c, {
+          action: "admin.team_member_added",
+          actorId,
+          targetId: id,
+          detail: { team: teamId },
+        });
         await teamShares.joined(teamId, id);
       }
     }
     for (const id of current) {
       if (want.has(id)) continue;
       if (await storage.teams.removeMember(teamId, id)) {
+        audit(storage, c, {
+          action: "admin.team_member_removed",
+          actorId,
+          targetId: id,
+          detail: { team: teamId },
+        });
         await teamShares.left(teamId, id);
       }
     }
@@ -242,12 +264,12 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
       if (created === "exists") {
         throw new HttpError(409, "A team by that name already exists");
       }
-      if (memberIds) await setMembers(id, memberIds);
       audit(storage, c, {
         action: "admin.team_created",
         actorId: c.get("auth").userId,
         detail: { team: id, name },
       });
+      if (memberIds) await setMembers(c, id, memberIds);
       return c.json(
         { team: await adminTeam(await found(id)) } satisfies AdminTeamResponse,
         201,
@@ -273,13 +295,14 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
         if (renamed === "exists") {
           throw new HttpError(409, "A team by that name already exists");
         }
+        // A rename, with both names: people share with a team by its name.
+        audit(storage, c, {
+          action: "admin.team_updated",
+          actorId: c.get("auth").userId,
+          detail: { team: team.id, name, was: team.name },
+        });
       }
-      if (memberIds) await setMembers(team.id, memberIds);
-      audit(storage, c, {
-        action: "admin.team_updated",
-        actorId: c.get("auth").userId,
-        detail: { team: team.id },
-      });
+      if (memberIds) await setMembers(c, team.id, memberIds);
       return c.json({
         team: await adminTeam(await found(team.id)),
       } satisfies AdminTeamResponse);

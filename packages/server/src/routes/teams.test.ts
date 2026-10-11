@@ -244,6 +244,49 @@ describe("teams as share targets", () => {
     expect((await invitationsOf(alice))[0]?.noteId).toBe(note.id);
   });
 
+  it("records who was put in a team, who was taken out, and a rename", async () => {
+    const team = await makeTeam("Design", [alice]);
+    await call(admin, "PUT", `/api/admin/teams/${team}`, {
+      name: "Studio",
+      memberIds: [bob.userId],
+    });
+    // Nothing changes, so nothing is recorded.
+    await call(admin, "PUT", `/api/admin/teams/${team}`, {
+      name: "Studio",
+      memberIds: [bob.userId],
+    });
+
+    const entries = (await rig.storage.audit.list({ limit: 20 }))
+      .filter((entry) => entry.action.startsWith("admin.team_"))
+      .map(({ action, actorId, targetId, detail }) => ({
+        action,
+        actorId,
+        targetId,
+        detail,
+      }));
+    const by = { actorId: admin.userId, detail: { team } };
+    expect(entries).toHaveLength(5);
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        {
+          action: "admin.team_created",
+          actorId: admin.userId,
+          targetId: null,
+          detail: { team, name: "Design" },
+        },
+        { ...by, action: "admin.team_member_added", targetId: alice.userId },
+        {
+          action: "admin.team_updated",
+          actorId: admin.userId,
+          targetId: null,
+          detail: { team, name: "Studio", was: "Design" },
+        },
+        { ...by, action: "admin.team_member_added", targetId: bob.userId },
+        { ...by, action: "admin.team_member_removed", targetId: alice.userId },
+      ]),
+    );
+  });
+
   it("leaves nothing behind when a member it names does not exist", async () => {
     const missing = await call(admin, "POST", "/api/admin/teams", {
       name: "Design",
