@@ -138,7 +138,9 @@ export function parseLinkPreviews(raw: unknown): LinkPreview[] {
       }),
       ...(isPreviewImage(p.image) && { image: p.image }),
       ...(isPreviewImage(p.favicon) && { favicon: p.favicon }),
-      domain: typeof p.domain === "string" ? p.domain : normalizeDomain(p.url),
+      // Never the file's own `domain`: a card would then name one site and
+      // open another.
+      domain: normalizeDomain(p.url),
     });
   }
   return previews;

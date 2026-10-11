@@ -256,17 +256,30 @@ const previewImageSchema = z.union([
 export const MAX_LINK_PREVIEW_TITLE_LENGTH = 500;
 export const MAX_LINK_PREVIEW_DESCRIPTION_LENGTH = 2000;
 
-const linkPreviewSchema = z.object({
-  url: httpUrlSchema,
-  title: z.string().max(MAX_LINK_PREVIEW_TITLE_LENGTH),
-  description: z
-    .string()
-    .max(MAX_LINK_PREVIEW_DESCRIPTION_LENGTH)
-    .exactOptional(),
-  image: previewImageSchema.exactOptional(),
-  favicon: previewImageSchema.exactOptional(),
-  domain: z.string().max(255),
-});
+const linkPreviewSchema = z
+  .object({
+    url: httpUrlSchema,
+    title: z.string().max(MAX_LINK_PREVIEW_TITLE_LENGTH),
+    description: z
+      .string()
+      .max(MAX_LINK_PREVIEW_DESCRIPTION_LENGTH)
+      .exactOptional(),
+    image: previewImageSchema.exactOptional(),
+    favicon: previewImageSchema.exactOptional(),
+    domain: z.string().max(255),
+  })
+  // The card shows `domain` as where the link goes, so it is always the
+  // URL's own host, whatever was sent: a writer could otherwise have a card
+  // name one site and open another, on a shared note or a public link.
+  .transform((preview) => ({ ...preview, domain: hostOf(preview.url) }));
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "";
+  }
+}
 
 /** The query of `GET /api/link-preview`. */
 export const linkPreviewQuerySchema = z.object({ url: httpUrlSchema });

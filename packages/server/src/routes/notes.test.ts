@@ -72,6 +72,22 @@ describe("notes routes", () => {
     await rig.close();
   });
 
+  it("stores a link preview under the host its URL opens", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token, {
+      linkPreviews: [
+        { url: "https://evil.test/login", title: "Bank", domain: "bank.test" },
+      ],
+    });
+    expect(note.linkPreviews[0]?.domain).toBe("evil.test");
+    const changed = await putNote(rig, token, note.id, {
+      linkPreviews: [
+        { url: "https://other.test:8443/", title: "x", domain: "bank.test" },
+      ],
+    });
+    expect(changed.linkPreviews[0]?.domain).toBe("other.test:8443");
+  });
+
   it("returns 401 when no token is supplied", async () => {
     const res = await rig.request("/api/notes");
     expect(res.status).toBe(401);

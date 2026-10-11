@@ -178,6 +178,16 @@ describe("parseLinkPreviews", () => {
     ]);
   });
 
+  it("names the site the URL opens, whatever the file calls it", () => {
+    expect(
+      parseLinkPreviews([
+        { url: "https://evil.test/login", title: "Bank", domain: "bank.test" },
+      ]),
+    ).toEqual([
+      { url: "https://evil.test/login", title: "Bank", domain: "evil.test" },
+    ]);
+  });
+
   it("drops remote, scripted and oversized images but keeps the card", () => {
     const oversized = `data:image/png;base64,${"A".repeat(
       MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES,
