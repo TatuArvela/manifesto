@@ -30,6 +30,11 @@ live; the helper also announces on `auth/revocations.ts`, and `ws/appSocket.ts` 
 close what it covers. The Yjs side closes the raw socket, since closing one document's connection is
 only a message the peer may ignore.
 
+There are no two-factor recovery codes: the account's recovery key (`encryption.md`) signs in past a
+lost factor, through `auth/accountKeys.ts`, on the same `loginAttempts` budget as a password.
+`endUserSessions` takes `keepApiTokens` for the one caller that ends sessions without the
+password being in doubt, a new secret key.
+
 Personal API tokens (`mfp_`, `/api/tokens`) authenticate through the same `authenticateBySession`,
 and `AuthIdentity.via` says which credential it was. Anything that changes how an account is secured
 (tokens, password, email, the admin API) is declared `auth: "session"` (or `"admin"`), so a token
@@ -46,7 +51,7 @@ carries `MCP_FORWARDED`, a symbol no request from the network can set. It holds 
 its tools are offered by the scope each names, and both sockets refuse it.
 
 What would let whoever holds a stolen session keep the account or its notes (an email address, a
-token, a webhook, the two-factor changes) also calls `requireConfirmation` (`auth/confirmation.ts`):
+token, a webhook, the two-factor changes, showing or replacing a key) also calls `requireConfirmation` (`auth/confirmation.ts`):
 the password, counted against the sign-in budget in the shared `loginAttempts`, or for an account
 without one a sign-in within 15 minutes. A new action of that kind calls it too, and its client form
 uses `ConfirmPasswordField` and `ConfirmationError`.
@@ -65,7 +70,7 @@ else: it goes through the same `secondFactor` check and `loginAttempts` budget a
 `router.ts`), is refused for an account with no password or a temporary one, and is looked up with
 `signInLinks.find` so that asking for the second factor costs nothing. A request that answers the factor
 spends the link with `consume` first and hands it back with `release` when the answer is wrong: checked
-the other way round, a link that ran out in between would burn a recovery code for nothing. Any new way
+the other way round, a link that ran out in between would spend a code's time step for nothing. Any new way
 in does the same, or it is a way around two-factor: `secondFactor` counts, audits and throws a wrong
 answer itself, so a caller only has to send back the challenge. Asking for a link is `mailedLinks`
 (`auth/local/mailedLink.ts`), which reset by mail uses too, and both tables are one repository
@@ -88,6 +93,6 @@ request carries `newPassword`. The client never shows a server's `error` text, w
 `loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map
 failures to catalogue messages by status. `AccountMenu` in the header only names the account, opens
 Settings on its page (`openSettings("account")`) and signs out; the account's pages (`AccountSettings`,
-`TwoFactorSettings`, `ApiTokensSettings`, `WebhooksSettings`) are tabs of `SettingsDialog`, which lives in
+`TwoFactorSettings`, `KeysSettings`, `ApiTokensSettings`, `WebhooksSettings`) are tabs of `SettingsDialog`, which lives in
 `components/settings/` with one file per tab and the rows and selects they share; they are shown only
 when signed in, and a tab that disappears falls back to Appearance.

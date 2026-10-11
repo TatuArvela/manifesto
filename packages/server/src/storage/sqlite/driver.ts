@@ -1,5 +1,6 @@
 import type { ServerConfig } from "../../config.js";
 import type { StorageDriver } from "../types.js";
+import { createSqliteAccountKeysRepo } from "./accountKeysRepo.js";
 import { createSqliteApiTokensRepo } from "./apiTokensRepo.js";
 import { createSqliteAttachmentsRepo } from "./attachmentsRepo.js";
 import { createSqliteAuditRepo } from "./auditRepo.js";
@@ -53,6 +54,7 @@ export function createSqliteStorage(
     teams: createSqliteTeamsRepo(db),
     twoFactor: createSqliteTwoFactorRepo(db),
     passkeys: createSqlitePasskeysRepo(db),
+    accountKeys: createSqliteAccountKeysRepo(db),
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqliteMailedLinksRepo(db, "password_resets"),
     signInLinks: createSqliteMailedLinksRepo(db, "sign_in_links"),

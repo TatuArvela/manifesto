@@ -2,15 +2,19 @@ import {
   API_TOKEN_KINDS,
   API_TOKEN_SCOPES,
   ATTACHMENT_REF_PATTERN,
+  isCiphertext,
   MAX_COMMENT_LENGTH,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
   MAX_NOTES_PER_IMPORT,
   MAX_PUBLIC_LINK_VIEWS,
+  MAX_WRAPPED_KEY_LENGTH,
   NoteColor,
   NoteFont,
+  PUBLIC_KEY_LENGTH,
   PUBLIC_LINK_MODES,
+  RECOVERY_VERIFIER_LENGTH,
   REMINDER_RECURRENCES,
   SHARE_ROLES,
   WEBHOOK_EVENTS,
@@ -129,7 +133,7 @@ export const passkeyRegistrationSchema = z.object({
 
 export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.exactOptional(),
-  /** An authenticator code, or a recovery code, when two-factor is on. */
+  /** An authenticator code, when two-factor is on. */
   otp: z.string().trim().min(1).max(32).exactOptional(),
   /** Or a passkey's answer to the challenge the first attempt was given. */
   passkey: passkeyAuthenticationSchema.exactOptional(),
@@ -154,6 +158,81 @@ export const twoFactorPasswordSchema = z.object({
 
 export const twoFactorEnableSchema = z.object({
   code: z.string().trim().min(6).max(10),
+});
+
+/**
+ * A wrapped key: a ciphertext by its shape, which is all the server can say
+ * about one. Anything else in its place is refused, so a faulty client cannot
+ * store a key where a wrapped key belongs.
+ */
+const wrappedKey = z
+  .string()
+  .max(MAX_WRAPPED_KEY_LENGTH)
+  .refine((value) => isCiphertext(value, MAX_WRAPPED_KEY_LENGTH), {
+    message: "Must be a ciphertext",
+  });
+
+/** An uncompressed P-256 point as base64url: 65 bytes, the first of them 4. */
+const publicKey = z
+  .string()
+  .length(PUBLIC_KEY_LENGTH)
+  .regex(/^B[A-Za-z0-9_-]+$/, "Must be a P-256 public key");
+
+/** What a recovery key proves itself with: 32 bytes as base64url. */
+const recoveryVerifier = z
+  .string()
+  .length(RECOVERY_VERIFIER_LENGTH)
+  .regex(/^[A-Za-z0-9_-]+$/, "Must be base64url");
+
+const recoveryKeyWrap = {
+  wrappedByRecovery: wrappedKey,
+  recoveryVerifier,
+};
+
+/** `PUT /api/auth/keys`. */
+export const accountKeysSetupSchema = z.object({
+  ...recoveryKeyWrap,
+  wrappedBySecret: wrappedKey,
+  publicKeys: z.object({ exchange: publicKey, signing: publicKey }),
+  wrappedPrivateKeys: z.object({ exchange: wrappedKey, signing: wrappedKey }),
+});
+
+/** `POST /api/auth/keys/secret`. */
+export const secretKeyReplaceSchema = z.object({
+  password: confirmationPassword,
+  wrappedBySecret: wrappedKey,
+});
+
+/** `POST /api/auth/keys/recovery`. */
+export const recoveryKeyReplaceSchema = z.object({
+  password: confirmationPassword,
+  ...recoveryKeyWrap,
+});
+
+/** `POST /api/auth/keys/confirm` and `DELETE /api/auth/keys`. */
+export const keysConfirmSchema = z.object({
+  password: confirmationPassword,
+});
+
+/** `POST /api/auth/keys/recover`. */
+export const recoveryOpenSchema = z.object({ verifier: recoveryVerifier });
+
+/** `POST /api/auth/keys/recover/complete`. */
+export const recoveryCompleteSchema = z.object({
+  verifier: recoveryVerifier,
+  wrappedBySecret: wrappedKey,
+  ...recoveryKeyWrap,
+});
+
+/** `POST /api/auth/recovery`. */
+export const recoverySignInOpenSchema = recoveryOpenSchema.extend({
+  username: usernameSchema,
+});
+
+/** `POST /api/auth/recovery/complete`. */
+export const recoverySignInCompleteSchema = recoveryCompleteSchema.extend({
+  username: usernameSchema,
+  newPassword: passwordSchema,
 });
 
 export const passwordChangeSchema = z.object({

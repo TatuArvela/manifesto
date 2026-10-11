@@ -4,6 +4,7 @@ import { ACCOUNT_OPERATIONS } from "./openapi/account.js";
 import { ADMIN_OPERATIONS } from "./openapi/admin.js";
 import { AUTH_OPERATIONS } from "./openapi/auth.js";
 import { AUTH_FACTOR_OPERATIONS } from "./openapi/authFactors.js";
+import { KEY_OPERATIONS } from "./openapi/keys.js";
 import { MCP_OPERATIONS } from "./openapi/mcp.js";
 import { NOTE_OPERATIONS } from "./openapi/notes.js";
 import { isPublicSurface, type Operation } from "./openapi/operation.js";
@@ -31,6 +32,7 @@ export const OPERATIONS: Operation[] = [
   ...SERVER_OPERATIONS,
   ...AUTH_OPERATIONS,
   ...AUTH_FACTOR_OPERATIONS,
+  ...KEY_OPERATIONS,
   ...NOTE_OPERATIONS,
   ...SHARING_OPERATIONS,
   ...ACCOUNT_OPERATIONS,
@@ -320,11 +322,18 @@ function components() {
       }),
       TwoFactorStatusResponse: shape({
         enabled: { type: "boolean" },
-        recoveryCodesRemaining: { type: "integer" },
+        authenticator: { type: "boolean" },
       }),
       TwoFactorSetupResponse: shape({ secret: { type: "string" } }),
-      TwoFactorRecoveryCodesResponse: shape({
-        recoveryCodes: { type: "array", items: { type: "string" } },
+      AccountKeysResponse: shape({
+        keys: { type: ["object", "null"] },
+        sessionEndsAt: { type: "string" },
+      }),
+      RecoveryOpenResponse: shape({
+        userId: { type: "string" },
+        version: { type: "integer" },
+        wrappedByRecovery: { type: "string" },
+        hasPassword: { type: "boolean" },
       }),
       NoteVersionsResponse: exact({ versions: listOf(ref("NoteVersion")) }),
       InvitationsResponse: exact({
@@ -345,10 +354,7 @@ function components() {
       OAuthAuthorizeResponse: shape({ redirectTo: { type: "string" } }),
       PasskeysResponse: shape({ passkeys: { type: "array" } }),
       PasskeyOptionsResponse: shape({ options: { type: "object" } }),
-      PasskeyAddedResponse: shape({
-        passkey: { type: "object" },
-        recoveryCodes: { type: ["array", "null"] },
-      }),
+      PasskeyAddedResponse: shape({ passkey: { type: "object" } }),
       PasskeySignInOptionsResponse: shape({ options: { type: "object" } }),
       ApiTokenCreatedResponse: shape({
         token: { type: "object" },

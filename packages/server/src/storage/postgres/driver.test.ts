@@ -1,5 +1,6 @@
 import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describeAccountKeysContract } from "../contracts/accountKeysContract.js";
 import { describeAdminContract } from "../contracts/adminContract.js";
 import { describeAttachmentsContract } from "../contracts/attachmentsContract.js";
 import { claimed } from "../contracts/claimed.js";
@@ -33,6 +34,7 @@ describePublicLinksContract("postgres (pg-mem)", bootStorage);
 describeTeamsContract("postgres (pg-mem)", bootStorage);
 describeOAuthContract("postgres (pg-mem)", bootStorage);
 describePasskeysContract("postgres (pg-mem)", bootStorage);
+describeAccountKeysContract("postgres (pg-mem)", bootStorage);
 describeCommentsContract("postgres (pg-mem)", bootStorage);
 describePushContract("postgres (pg-mem)", bootStorage);
 describePrefsContract("postgres (pg-mem)", bootStorage, { locks: false });
@@ -173,7 +175,7 @@ describe("postgres: password resets", () => {
 });
 
 describe("postgres: two-factor", () => {
-  it("sets up, enables, advances steps once, and spends recovery codes", async () => {
+  it("sets up, enables and advances steps once", async () => {
     const storage = await bootStorage();
     await storage.users.create({
       id: "u1",
@@ -192,13 +194,8 @@ describe("postgres: two-factor", () => {
     expect(await storage.twoFactor.begin("u1", "S3", NOW)).toBe(false);
     expect(await storage.twoFactor.advanceStep("u1", 10)).toBe(false);
     expect(await storage.twoFactor.advanceStep("u1", 11)).toBe(true);
-    await storage.twoFactor.replaceRecoveryCodes("u1", ["a", "b"]);
-    expect(await storage.twoFactor.useRecoveryCode("u1", "a", NOW)).toBe(true);
-    expect(await storage.twoFactor.useRecoveryCode("u1", "a", NOW)).toBe(false);
-    expect(await storage.twoFactor.remainingRecoveryCodes("u1")).toBe(1);
     await storage.twoFactor.disable("u1");
     expect(await storage.twoFactor.get("u1")).toBeNull();
-    expect(await storage.twoFactor.remainingRecoveryCodes("u1")).toBe(0);
     await storage.close();
   });
 });

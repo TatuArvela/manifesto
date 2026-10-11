@@ -232,7 +232,7 @@ has a second factor is still asked for it at every sign-in.
 | `PASSKEYS`      | `on`     | Adding [passkeys](../features/accounts.md#signing-in-with-a-passkey), and signing in with a passkey alone. Off, nobody can add one or sign in with one alone, but a passkey already added is still asked for as a second factor and can be removed. |
 | `MAGIC_LINKS`   | `on`     | [Signing in from a link](../features/accounts.md#signing-in-with-a-link) sent to a local account's address, with no password. It needs `SMTP_URL` and is absent without it. Off, no link is sent and links already sent are refused. An account with a second factor is asked for it either way. Set `off` where a mailbox alone must not open an account. |
 | `WEB_PUSH`      | `on`     | [Push reminders](../features/reminders.md#push-from-the-server): a reminder that comes due with no open app to fire it is sent as a push message, so an installed app gets it while closed. The server then makes outbound HTTPS requests to the browsers' push services (Google's, Apple's and Mozilla's), carrying the note's title and first words encrypted to the browser, through the same boundary as link previews. It needs nothing set up: the signing key is made on first use and kept in the database. Set `off` where the server should make no such requests; reminders then arrive only while the app is open or the browser wakes it. |
-| `TWO_FACTOR`    | `on`     | Turning on [two-factor sign-in](../features/accounts.md#two-factor-sign-in) with an authenticator app. Off, nobody can turn it on, but an account that has it is still asked for its code, and can turn it off or replace its recovery codes. With `PASSKEYS` off as well, Settings has no two-factor page. |
+| `TWO_FACTOR`    | `on`     | Turning on [two-factor sign-in](../features/accounts.md#two-factor-sign-in) with an authenticator app. Off, nobody can turn it on, but an account that has it is still asked for its code, and can turn it off. With `PASSKEYS` off as well, Settings has no two-factor page. |
 | `ADMIN_EXPORT`  | `off`    | `on` lets an admin download any account's notes from the Users view (`GET /api/admin/users/:id/export`), for a data request or a move. Off, an admin cannot read another account's notes from inside the app. Each download shows on that account's own Activity page. See [Privacy](../features/privacy.md). |
 
 A feature whose requirement is off is off too. When its own variable is unset that is implied
@@ -273,7 +273,7 @@ person to sign in through the identity provider is the admin instead.
 
 ### Locked out
 
-When no admin can sign in (the last one lost their password, or their authenticator and recovery codes,
+When no admin can sign in (the last one lost their password, or their authenticator and recovery key,
 or the identity provider no longer knows them), run the admin CLI inside the container. It works on the
 database directly, with the server's own environment, and needs nothing from the running server:
 

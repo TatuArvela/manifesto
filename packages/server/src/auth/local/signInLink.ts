@@ -125,7 +125,7 @@ export function registerSignInLinkRoutes(
       };
       // An answer to the second factor spends the link before it is looked
       // at, atomically: of two requests holding the same link one goes on,
-      // and a link that ran out meanwhile costs no recovery code. A wrong
+      // and a link that ran out meanwhile costs no code. A wrong
       // answer hands the link back.
       const answering = otp !== undefined || passkey !== undefined;
       const spend = async () => {

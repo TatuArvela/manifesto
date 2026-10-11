@@ -27,6 +27,7 @@ export const showSettings = signal(false);
 export type SettingsTab =
   | "account"
   | "twoFactor"
+  | "keys"
   | "tokens"
   | "webhooks"
   | "activity"

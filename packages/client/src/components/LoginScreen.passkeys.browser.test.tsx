@@ -110,7 +110,7 @@ describe("LoginScreen with passkeys", () => {
     host.remove();
   });
 
-  it("offers a passkey after the password, and a recovery code instead of an app's", async () => {
+  it("offers a passkey after the password, and the recovery key in place of a code to type", async () => {
     render(<LoginScreen />, host);
     type(await field('input[autocomplete="username"]'), "alice");
     type(
@@ -121,7 +121,12 @@ describe("LoginScreen with passkeys", () => {
     host.querySelector("form")?.requestSubmit();
 
     (await button(t("login.twoFactor.usePasskey"))).click();
-    expect(host.textContent).toContain(t("login.twoFactor.recoveryCode"));
+    // Passkeys alone leave nothing to type: whoever lost them has the
+    // recovery key.
+    expect(
+      host.querySelector('input[autocomplete="one-time-code"]'),
+    ).toBeNull();
+    expect(host.textContent).toContain(t("login.recover.lostFactor"));
     await vi.waitFor(() => expect(logins).toHaveLength(2));
     expect(logins[1]).toEqual({ otp: undefined, passkey: ANSWER });
   });

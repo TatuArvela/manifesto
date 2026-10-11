@@ -44,12 +44,6 @@ export function createPostgresTwoFactorRepo(pool: PgPool): TwoFactorRepo {
     },
     async disable(userId) {
       await pool.query(`DELETE FROM user_totp WHERE user_id = $1`, [userId]);
-      await pool.query(`DELETE FROM totp_recovery_codes WHERE user_id = $1`, [
-        userId,
-      ]);
-    },
-    async removeAuthenticator(userId) {
-      await pool.query(`DELETE FROM user_totp WHERE user_id = $1`, [userId]);
     },
     async advanceStep(userId, step) {
       const result = await pool.query(
@@ -57,33 +51,6 @@ export function createPostgresTwoFactorRepo(pool: PgPool): TwoFactorRepo {
         [step, userId],
       );
       return (result.rowCount ?? 0) > 0;
-    },
-    async replaceRecoveryCodes(userId, hashes) {
-      await pool.query(`DELETE FROM totp_recovery_codes WHERE user_id = $1`, [
-        userId,
-      ]);
-      for (const hash of hashes) {
-        await pool.query(
-          `INSERT INTO totp_recovery_codes (user_id, code_hash) VALUES ($1, $2)`,
-          [userId, hash],
-        );
-      }
-    },
-    async useRecoveryCode(userId, hash, at) {
-      const result = await pool.query(
-        `UPDATE totp_recovery_codes SET used_at = $1
-         WHERE user_id = $2 AND code_hash = $3 AND used_at IS NULL`,
-        [at, userId, hash],
-      );
-      return (result.rowCount ?? 0) > 0;
-    },
-    async remainingRecoveryCodes(userId) {
-      const result = await pool.query<{ n: number | string }>(
-        `SELECT COUNT(*) AS n FROM totp_recovery_codes
-         WHERE user_id = $1 AND used_at IS NULL`,
-        [userId],
-      );
-      return Number(result.rows[0]?.n ?? 0);
     },
   };
 }

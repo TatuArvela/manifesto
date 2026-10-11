@@ -355,16 +355,18 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 | `POST`   | `/api/auth/login`     | Log in               |
 | `POST`   | `/api/auth/logout`    | Log out              |
 | `POST`   | `/api/auth/password`  | Change your own password |
-| `GET`    | `/api/auth/two-factor` | Whether two-factor is on, whether an authenticator app is set up, and recovery codes left |
-| `POST`   | `/api/auth/two-factor/setup`, `/enable`, `/disable`, `/recovery-codes` | The authenticator app, and replacing the recovery codes |
+| `GET`    | `/api/auth/two-factor` | Whether two-factor is on, and whether an authenticator app is set up: `{ enabled, authenticator }` |
+| `POST`   | `/api/auth/two-factor/setup`, `/enable`, `/disable` | The authenticator app; `enable` and `disable` answer `204` |
 | `GET`    | `/api/auth/passkeys`  | Your passkeys (`PasskeysResponse`), never their keys |
 | `POST`   | `/api/auth/passkeys/options` | With `{ password }`: options for `navigator.credentials.create()` |
-| `POST`   | `/api/auth/passkeys`  | `{ name?, response }`: add the passkey the browser made; `recoveryCodes` when it is the first second factor |
+| `POST`   | `/api/auth/passkeys`  | `{ name?, response }`: add the passkey the browser made |
 | `DELETE` | `/api/auth/passkeys/:id` | With `{ password }`: remove one |
 | `POST`   | `/api/auth/passkey/options` | Public: a challenge to sign in with a passkey alone |
 | `POST`   | `/api/auth/passkey/login` | Public: `{ response }`, the browser's answer; `AuthSuccessResponse` |
 | `POST`   | `/api/auth/sign-in-link` | Public: `{ email, locale? }`, mails a sign-in link; always `204` |
 | `POST`   | `/api/auth/sign-in-link/confirm` | Public: `{ token, otp?, passkey? }`; `AuthSuccessResponse` |
+| `POST`   | `/api/auth/recovery`  | Public: `{ username, verifier }`, the first step of signing in with the [recovery key](#account-keys); `RecoveryOpenResponse` |
+| `POST`   | `/api/auth/recovery/complete` | Public: the second step, with `newPassword` and the new wrapped keys; `AuthSuccessResponse` |
 
 Passkey options and answers are WebAuthn's JSON forms, binary values as base64url. A ceremony is
 accepted only from a page this server's client is served from (an `Origin` in `CORS_ORIGINS`, that of
@@ -387,7 +389,8 @@ With two-factor sign-in on, a right password answers `403` with
 `code: "two_factor_required"` and `twoFactor: { authenticator, passkey }`: whether
 the account has an authenticator app, and a challenge for its passkeys on this
 address (null when it has none there). The same request sent again with `otp`
-(an authenticator or recovery code) or `passkey` (the browser's answer) signs in.
+(an authenticator code) or `passkey` (the browser's answer) signs in. There are no recovery
+codes: an account that has lost its factors signs in with its [recovery key](#account-keys).
 
 `POST /api/auth/sign-in-link/confirm` signs in with the token of a mailed link (`MAGIC_LINKS`, and only
 with `SMTP_URL`; otherwise both routes are `404`). A token that is unknown, used or older than 15 minutes
@@ -444,6 +447,36 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 | `GET`    | `/api/auth/me/prefs`  | Bearer-protected: your [preferences](features/preferences.md) as your clients sent them, `{ prefs }`, where `prefs` is a flat object the server never reads. `{}` until a client has sent any. |
 | `PATCH`  | `/api/auth/me/prefs`  | Bearer-protected: set some preferences with `{ prefs }`, a key set to `null` removing it: `{ prefs }` with the result. At most 100 keys of up to 64 characters; `413` if the result would pass 16 KB as JSON. Every socket of the account hears `prefs:updated`. |
 | `PUT`    | `/api/auth/me/locale` | Bearer-protected: record the language your client is set to with `{ locale }` (a tag such as `fi`): `204`. `AuthUser.locale` gives it back. Mail sent to you by someone else's action, a share invitation, is written in it. |
+
+#### Account keys
+
+The keys an account's notes are encrypted with ([Encryption](features/encryption.md#keys)) are made
+and wrapped in the browser. The server stores them, hands them back to the account's own sessions and
+can open none of them. All of these are session-only, and the ones that check a password or the
+recovery key are throttled like a sign-in (10 requests per 15 minutes per address, and the per-name
+budget of failed attempts).
+
+| Method   | Path                              | Description |
+|----------|-----------------------------------|-------------|
+| `GET`    | `/api/auth/keys`                  | `AccountKeysResponse`: `{ keys, sessionEndsAt }`. `keys` is null before the account is set up, and otherwise `{ version, wrappedBySecret, publicKeys, wrappedPrivateKeys }`. `sessionEndsAt` is when this session ends at the latest, which is when a device removes the keys it holds. |
+| `PUT`    | `/api/auth/keys`                  | `AccountKeysSetupRequest`: the account's first keys. `204`, or `409` once it has some. |
+| `DELETE` | `/api/auth/keys`                  | With `{ password? }`: remove the account's keys, so it is set up again. For when the secret key and the recovery key are both lost. `204`; ends the account's other sessions and tokens. |
+| `POST`   | `/api/auth/keys/confirm`          | With `{ password? }`: `204` when the [confirmation](features/accounts.md#confirming-a-change-from-a-session) holds. The client asks before it shows the secret key it holds. |
+| `POST`   | `/api/auth/keys/secret`           | `{ password?, wrappedBySecret }`: a new secret key. `204`; ends the account's other sessions, and leaves its tokens. |
+| `POST`   | `/api/auth/keys/recovery`         | `{ password?, wrappedByRecovery, recoveryVerifier }`: a new recovery key. `204`. |
+| `POST`   | `/api/auth/keys/recover`          | `{ verifier }`: the first step of using the recovery key while signed in. `RecoveryOpenResponse`: `{ userId, version, wrappedByRecovery, hasPassword }`. A wrong key is `403` with `code: "recovery_key_invalid"`. |
+| `POST`   | `/api/auth/keys/recover/complete` | `{ verifier, wrappedBySecret, wrappedByRecovery, recoveryVerifier }`: the second step, a new secret key and recovery key in place of the ones used. `204`; `409` if the recovery key was spent meanwhile. Ends the account's other sessions and tokens. |
+
+Every wrapped key is a ciphertext: `e1.` and the base64url of a nonce, the AES-256-GCM ciphertext
+and its tag. The server refuses anything else in its place with `422`, which is all it can check. A
+public key is an uncompressed P-256 point as base64url. The recovery key never reaches the server:
+`verifier` is 32 bytes the browser derives from it, as base64url, and the server holds its SHA-256.
+
+`POST /api/auth/recovery` and `/api/auth/recovery/complete` are the same two steps with nobody signed
+in, for a local account that has lost its password or its second factors: they take `username`
+beside the rest, the second takes `newPassword`, sets it, ends every session and token the account
+had and answers `AuthSuccessResponse`. A wrong key and a username nobody holds answer the same `401`.
+An account that signs in through single sign-on signs in there and uses the routes above.
 
 `AuthUser` is `{ id, username, displayName, avatarColor, email, isAdmin }`, where `email` is a
 string or `null`.
@@ -516,7 +549,7 @@ An operation that belongs to one is marked `x-feature` in `/api/openapi.json`. W
 off, it answers the same `404` as a path the server has no route for, before authentication, so a
 caller cannot tell a feature that is off from one the server never had. The ways out of a feature are
 never marked and stay open: `DELETE /api/notes/:id/shares/:userId`, the team shares' listing and
-`DELETE`, the passkeys' listing and `DELETE`, the two-factor status, `disable` and new recovery codes,
+`DELETE`, the passkeys' listing and `DELETE`, the two-factor status and `disable`,
 and the tokens' listing and `DELETE`. A personal API token (`apiTokens`) or an MCP token (`mcp`)
 whose feature is off is refused wherever it is presented, as an unknown token is, and `POST
 /api/tokens` answers `403` for a kind whose feature is off.

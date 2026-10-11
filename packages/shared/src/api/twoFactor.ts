@@ -8,8 +8,6 @@ export interface TwoFactorStatusResponse {
   /** Whether an authenticator app is set up. Absent from servers from before
    * passkeys, where it is `enabled`. */
   authenticator?: boolean;
-  /** Unused recovery codes left; 0 when two-factor is off. */
-  recoveryCodesRemaining: number;
 }
 
 /**
@@ -105,13 +103,9 @@ export interface PasskeyAddRequest {
   response: PasskeyRegistrationResponse;
 }
 
-/**
- * The passkey added, and the recovery codes when it is the account's first
- * second factor (shown once, as when an authenticator is set up first).
- */
+/** The passkey added. */
 export interface PasskeyAddedResponse {
   passkey: Passkey;
-  recoveryCodes: string[] | null;
 }
 
 /** `POST /api/auth/passkey/options`: a challenge to sign in with a passkey. */
@@ -138,11 +132,4 @@ export interface TwoFactorRequiredResponse extends ErrorResponse {
  */
 export interface TwoFactorSetupResponse {
   secret: string;
-}
-
-/** Shown once, when two-factor is turned on or the codes are replaced.
- * Empty when an authenticator is added to an account whose passkeys
- * already have codes, which it shares. */
-export interface TwoFactorRecoveryCodesResponse {
-  recoveryCodes: string[];
 }

@@ -2,6 +2,7 @@ import {
   Database,
   History,
   Info,
+  KeyRound,
   KeySquare,
   type LucideIcon,
   Palette,
@@ -28,6 +29,7 @@ type TabInfo = {
 
 export const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
   twoFactor: { label: "twoFactor.title", icon: ShieldCheck },
+  keys: { label: "keys.title", icon: KeyRound },
   tokens: { label: "tokens.title", icon: KeySquare },
   webhooks: { label: "webhooks.title", icon: Webhook },
   activity: { label: "activity.title", icon: History },
@@ -51,7 +53,8 @@ export function secondFactorOffered(): boolean {
 
 /**
  * The account's pages this user has: none in open mode or signed out, and
- * none for a feature the server has off (`serverFeature`). Two-factor stays
+ * none for a feature the server has off (`serverFeature`). The keys are every
+ * account's, however it signs in. Two-factor stays
  * while either of its halves is on, and with both off for an account that
  * already has one: sign-in still asks for it, and this page is the only way
  * to remove it.
@@ -62,6 +65,7 @@ export function accountTabs(): SettingsTab[] {
   if (hasOwnPassword() && (secondFactorOffered() || hasSecondFactor())) {
     tabs.push("twoFactor");
   }
+  tabs.push("keys");
   if (offeredTokenKinds().length > 0) tabs.push("tokens");
   if (serverFeature("webhooks")) tabs.push("webhooks");
   tabs.push("activity");

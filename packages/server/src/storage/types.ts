@@ -13,6 +13,7 @@ import type {
   TeamsRepo,
 } from "./repos/sharing.js";
 import type {
+  AccountKeysRepo,
   MailedLinksRepo,
   PasskeysRepo,
   TwoFactorRepo,
@@ -48,6 +49,7 @@ export interface StorageDriver {
   serverSecrets: ServerSecretsRepo;
   twoFactor: TwoFactorRepo;
   passkeys: PasskeysRepo;
+  accountKeys: AccountKeysRepo;
   passwordResets: MailedLinksRepo;
   signInLinks: MailedLinksRepo;
   comments: CommentsRepo;

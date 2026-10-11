@@ -564,11 +564,9 @@ export const fi: Messages = {
     "Kirjautuessa kysytään salasanan lisäksi toinen tunnistautumistapa: todennussovelluksen koodi tai pääsyavain.",
   "twoFactor.loading": "Ladataan...",
   "twoFactor.isOff": "Kaksivaiheinen kirjautuminen on pois päältä.",
-  "twoFactor.isOn":
-    "Kaksivaiheinen kirjautuminen on päällä. Palautuskoodeja jäljellä: {count}.",
+  "twoFactor.isOn": "Kaksivaiheinen kirjautuminen on päällä.",
   "twoFactor.turnOn": "Ota todennussovellus käyttöön",
   "twoFactor.turnOff": "Poista todennussovellus",
-  "twoFactor.newCodes": "Uudet palautuskoodit",
   "twoFactor.password": "Salasanasi",
   "twoFactor.continue": "Jatka",
   "twoFactor.addToApp":
@@ -578,11 +576,6 @@ export const fi: Messages = {
   "twoFactor.openInApp": "Avaa tämän laitteen todennussovelluksessa",
   "twoFactor.code": "Koodi",
   "twoFactor.confirm": "Ota käyttöön",
-  "twoFactor.recoveryHint":
-    "Säilytä nämä palautuskoodit turvassa. Kullakin pääsee kirjautumaan kerran, jos todennussovellus ja pääsyavaimet katoavat. Niitä ei näytetä uudelleen.",
-  "twoFactor.copy": "Kopioi",
-  "twoFactor.copied": "Palautuskoodit kopioitu",
-  "twoFactor.saved": "Olen tallentanut ne",
   "twoFactor.turnedOn": "Todennussovellus on käytössä",
   "twoFactor.turnedOff": "Todennussovellus on poistettu",
   "twoFactor.wrongPassword": "Salasana ei ole oikea",
@@ -613,6 +606,89 @@ export const fi: Messages = {
   "passkeys.tooMany":
     "Sinulla on jo enimmäismäärä pääsyavaimia; poista ensin jokin",
   "passkeys.failed": "Pääsyavainta ei voitu lisätä; yritä uudelleen",
+  "keys.title": "Salausavaimet",
+  "keys.secretKey": "Salainen avain",
+  "keys.recoveryKey": "Palautusavain",
+  "keys.continue": "Jatka",
+  "keys.retry": "Yritä uudelleen",
+  "keys.failed": "Se ei onnistunut; yritä uudelleen",
+  "keys.unsupported":
+    "Muistiinpanosi salataan tässä selaimessa, mikä onnistuu vain suojatulla yhteydellä. Avaa tämä sivu osoitteesta, joka alkaa https.",
+  "keys.signedInAs": "Kirjautuneena: {name}.",
+  "keys.setup.title": "Ota avaimesi talteen",
+  "keys.setup.hint":
+    "Muistiinpanosi salataan tässä selaimessa ennen kuin ne lähtevät palvelimelle, joten palvelimen ylläpitäjä ei voi lukea niitä. Nämä kaksi avainta avaavat ne. Ne näytetään vain tämän kerran: tallenna tai tulosta arkki nyt.",
+  "keys.setup.finish": "Jatka muistiinpanoihin",
+  "keys.unlock.title": "Anna salainen avaimesi",
+  "keys.unlock.hint":
+    "Kirjautuminen kertoi, kuka olet; salainen avain avaa muistiinpanosi. Kirjoita se, liitä se tai skannaa sen koodi asetuksista laitteella, joka on kirjautuneena.",
+  "keys.unlock.submit": "Avaa",
+  "keys.unlock.invalid":
+    "Tuo ei ole salainen avain: siinä on SK ja seitsemän neljän merkin ryhmää",
+  "keys.unlock.wrong": "Tuo salainen avain ei avaa tätä tiliä",
+  "keys.unlock.isRecoveryKey":
+    "Tuo on palautusavaimesi. Anna tähän salainen avain tai käytä palautusavainta alta.",
+  "keys.unlock.useRecoveryKey": "Käytä sen sijaan palautusavainta",
+  "keys.unlock.lostBoth": "Olen hukannut molemmat avaimet",
+  "keys.recover.title": "Käytä palautusavainta",
+  "keys.recover.hint":
+    "Arkillasi oleva palautusavain avaa muistiinpanosi, kun salainen avain on kadonnut. Sen käyttäminen vaihtaa molemmat avaimet uusiin.",
+  "keys.recover.signInHint":
+    "Palautusavaimella ja käyttäjätunnuksella pääset kirjautumaan, kun salasana, todennussovellus ja pääsyavaimet ovat kaikki kadonneet. Valitset uuden salasanan, ja molemmat avaimet vaihdetaan uusiin.",
+  "keys.recover.invalid":
+    "Tuo ei ole palautusavain: siinä on RK ja seitsemän neljän merkin ryhmää",
+  "keys.recover.wrong": "Tuo palautusavain ei avaa tätä tiliä",
+  "keys.recover.isSecretKey":
+    "Tuo on salainen avaimesi. Palautusavain alkaa kirjaimilla RK.",
+  "keys.recover.used":
+    "Tuo palautusavain on jo käytetty; aloita alusta uusimmalla avaimella",
+  "keys.recover.sheetTitle": "Ota uudet avaimesi talteen",
+  "keys.recover.sheetHint":
+    "Entiset avaimesi lakkaavat toimimasta, kun jatkat. Tallenna tai tulosta tämä arkki ensin: se näytetään vain tämän kerran.",
+  "keys.recover.finish": "Vaihda avaimet ja avaa",
+  "keys.recover.finishSignIn": "Aseta salasana ja kirjaudu",
+  "keys.startAgain.title": "Aloita tili alusta",
+  "keys.startAgain.hint":
+    "Ilman salaista avainta tai palautusavainta tämän tilin sisältöä ei avaa kukaan: et sinä, ei ylläpitäjä eikä palvelimen omistaja. Alusta aloittaminen antaa tilille uudet avaimet, eikä vanhoilla avaimilla salattua voi enää lukea.",
+  "keys.startAgain.submit": "Aloita alusta uusilla avaimilla",
+  "keys.sheet.title": "Avaimesi sovellukseen {appName}",
+  "keys.sheet.server": "Palvelin",
+  "keys.sheet.username": "Käyttäjätunnus",
+  "keys.sheet.secretKeyHint":
+    "Avaa muistiinpanosi. Kysytään aina, kun kirjaudut sisään.",
+  "keys.sheet.recoveryKeyHint":
+    "Palauttaa tilin, kun sekä kirjautumistapa että salainen avain ovat kadonneet. Säilytä sitä vain tällä arkilla.",
+  "keys.sheet.keepSafe":
+    "Säilytä tämä arkki turvallisessa paikassa, erillään laitteestasi. Ilman näitä avaimia kukaan ei voi avata muistiinpanojasi, eikä kukaan voi tehdä samoja avaimia uudelleen.",
+  "keys.sheet.download": "Tallenna tiedostona",
+  "keys.sheet.print": "Tulosta",
+  "keys.sheet.kept": "Olen tallentanut tai tulostanut tämän arkin",
+  "keys.settings.hint":
+    "Muistiinpanosi avataan avaimilla, jotka ovat vain sinulla. Palvelin säilyttää ne suojattuina eikä voi käyttää niitä.",
+  "keys.settings.secretAbout":
+    "Salainen avain on tällä laitteella niin kauan kuin olet kirjautuneena. Näytä se avataksesi toisen laitteen, tai tee uusi, jos avain on voinut päätyä jollekulle muulle.",
+  "keys.settings.recoveryAbout":
+    "Palautusavain on arkillasi eikä millään laitteella, joten sitä ei voi näyttää uudelleen. Jos arkki on kadonnut, tee uusi avain nyt, kun vielä pääset kirjautumaan.",
+  "keys.settings.reveal": "Näytä salainen avain",
+  "keys.settings.newSecret": "Tee uusi salainen avain",
+  "keys.settings.newRecovery": "Tee uusi palautusavain",
+  "keys.settings.revealHint":
+    "Vahvista, että se olet sinä, ennen kuin salainen avain näytetään.",
+  "keys.settings.newSecretHint":
+    "Uusi salainen avain kirjaa kaikki muut laitteet ulos, ja kukin kysyy uutta avainta, kun kirjaudut sillä uudelleen. Vanha avain lakkaa toimimasta.",
+  "keys.settings.newRecoveryHint":
+    "Uusi palautusavain korvaa arkillasi olevan, joka lakkaa toimimasta.",
+  "keys.settings.revealed":
+    "Tämä on salainen avaimesi. Kirjoita tai liitä se toisella laitteella, kun se kysyy sitä.",
+  "keys.settings.qrLabel": "QR-koodi, jossa salainen avaimesi on",
+  "keys.settings.qrHint":
+    "Tai skannaa tämä koodi toisen laitteen kameralla, jolloin sovellus avautuu siellä avain valmiiksi täytettynä. Kuka tahansa, joka näkee tämän näytön, voi kopioida avaimen.",
+  "keys.settings.hide": "Piilota",
+  "keys.settings.madeSecret":
+    "Tämä on uusi salainen avaimesi. Tallenna se arkkisi yhteyteen; vanha ei enää toimi.",
+  "keys.settings.madeRecovery":
+    "Tämä on uusi palautusavaimesi. Tallenna se vanhan tilalle; vanha ei enää toimi.",
+  "keys.settings.kept": "Olen tallentanut sen",
   "login.oidcNotInGroup":
     "Tililläsi ei voi kirjautua tänne. Kysy palvelimen ylläpitäjältä.",
   "login.oidcNotRegistered":
@@ -643,20 +719,19 @@ export const fi: Messages = {
   "login.or": "tai",
   "login.withPassword": "Kirjaudu mieluummin salasanalla",
   "login.twoFactor.title": "Vahvista henkilöllisyytesi",
-  "login.twoFactor.hint":
-    "Anna todennussovelluksen näyttämä koodi tai jokin palautuskoodeistasi.",
+  "login.twoFactor.hint": "Anna todennussovelluksen näyttämä koodi.",
+  "login.twoFactor.passkeyHint": "Käytä jotakin pääsyavaimistasi.",
   "login.twoFactor.code": "Koodi",
   "login.twoFactor.submit": "Kirjaudu",
   "login.twoFactorRequired": "Anna koodi",
   "login.twoFactorInvalid": "Koodi ei ole oikea",
-  "login.twoFactor.recoveryHint":
-    "Käytä jotakin pääsyavaimistasi tai anna jokin palautuskoodeistasi.",
-  "login.twoFactor.recoveryCode": "Palautuskoodi",
   "login.twoFactor.usePasskey": "Käytä pääsyavainta",
   "login.withPasskey": "Kirjaudu pääsyavaimella",
   "login.passkeyUnknown":
     "Tällä pääsyavaimella ei kirjauduta mihinkään tiliin täällä",
   "login.passkeyFailed": "Pääsyavain ei toiminut; yritä uudelleen",
+  "login.recover.link": "Kirjaudu palautusavaimella",
+  "login.recover.lostFactor": "Kadonnut? Käytä palautusavainta",
   "account.updateAvailable": "Versio {version} on saatavilla",
   "overview.updateAvailable": "Versio {version} on julkaistu.",
   "overview.updateNotes": "Mitä muuttui",
@@ -788,6 +863,11 @@ export const fi: Messages = {
     "Kaksivaiheinen kirjautuminen poistettu käytöstä",
   "audit.action.auth.passkey_added": "Pääsyavain lisätty",
   "audit.action.auth.passkey_removed": "Pääsyavain poistettu",
+  "audit.action.keys.created": "Salausavaimet otettu käyttöön",
+  "audit.action.keys.secret_key_replaced": "Uusi salainen avain tehty",
+  "audit.action.keys.recovery_key_replaced": "Uusi palautusavain tehty",
+  "audit.action.keys.recovery_key_used": "Palautusavain käytetty",
+  "audit.action.keys.started_again": "Tili aloitettu alusta uusilla avaimilla",
   "audit.action.token.created": "API-tunniste luotu",
   "audit.action.token.revoked": "API-tunniste peruttu",
   "audit.action.webhook.created": "Webhook lisätty",

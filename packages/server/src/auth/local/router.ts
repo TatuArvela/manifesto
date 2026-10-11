@@ -19,6 +19,7 @@ import {
   registerSchema,
 } from "../../validation/schemas.js";
 import { validatorHook } from "../../validation/zValidator.js";
+import { registerRecoverySignInRoutes } from "../accountKeys.js";
 import type { SessionRevocations } from "../revocations.js";
 import { endUserSessions, issueSession, revokeSession } from "../session.js";
 import type { AuthProviderRouter } from "../types.js";
@@ -339,6 +340,12 @@ export function createLocalAuthRouter(
     storage: deps.storage,
     cfg: deps.cfg,
     challenges: passkeyChallenges,
+    loginAttempts,
+  });
+  registerRecoverySignInRoutes(auth, {
+    storage: deps.storage,
+    cfg: deps.cfg,
+    revocations: deps.revocations,
     loginAttempts,
   });
 

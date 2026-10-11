@@ -20,6 +20,7 @@ import { ApiTokensSettings } from "./ApiTokensSettings.js";
 import { AppearanceSettings } from "./AppearanceSettings.js";
 import { DataSettings } from "./DataSettings.js";
 import { FeaturesSettings } from "./FeaturesSettings.js";
+import { KeysSettings } from "./KeysSettings.js";
 import {
   AccountNavItem,
   accountTabs,
@@ -158,6 +159,7 @@ export function SettingsDialog() {
             >
               {tab === "account" && <AccountSettings />}
               {tab === "twoFactor" && <TwoFactorSettings />}
+              {tab === "keys" && <KeysSettings />}
               {tab === "tokens" && <ApiTokensSettings />}
               {tab === "webhooks" && <WebhooksSettings />}
               {tab === "activity" && <ActivitySettings />}

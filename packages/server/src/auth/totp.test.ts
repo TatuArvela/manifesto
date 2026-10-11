@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { defined } from "../test/defined.js";
 import {
   base32Decode,
   base32Encode,
   hotp,
-  newRecoveryCodes,
-  normalizeRecoveryCode,
   otpauthUri,
   verifyTotp,
 } from "./totp.js";
@@ -55,17 +52,6 @@ describe("verifyTotp", () => {
   it("refuses anything but six digits", () => {
     expect(verifyTotp(secret, "12345", at)).toBeNull();
     expect(verifyTotp(secret, "abcdef", at)).toBeNull();
-  });
-});
-
-describe("recovery codes", () => {
-  it("are distinct, and read regardless of case and separators", () => {
-    const codes = newRecoveryCodes();
-    expect(new Set(codes).size).toBe(10);
-    expect(codes[0]).toMatch(/^[a-z2-9]{4}-[a-z2-9]{4}$/);
-    expect(
-      normalizeRecoveryCode(defined(codes[0]).toUpperCase().replace("-", " ")),
-    ).toBe(codes[0]);
   });
 });
 

@@ -231,6 +231,7 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
       broadcaster,
       loginAttempts,
+      revocations,
     }),
   );
   app.route(

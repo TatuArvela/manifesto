@@ -8,6 +8,7 @@ export * from "./api/auth.js";
 export * from "./api/capabilities.js";
 export * from "./api/comments.js";
 export * from "./api/errors.js";
+export * from "./api/keys.js";
 export * from "./api/notes.js";
 export * from "./api/prefs.js";
 export * from "./api/publicLinks.js";

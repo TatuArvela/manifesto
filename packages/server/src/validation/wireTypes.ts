@@ -1,4 +1,5 @@
 import type {
+  AccountKeysSetupRequest,
   AdminCreateUserRequest,
   AdminUpdateUserRequest,
   ApiTokenCreateRequest,
@@ -8,13 +9,18 @@ import type {
   NoteUpdate,
   NoteVersionCreateRequest,
   PasswordChangeRequest,
+  RecoveryCompleteRequest,
+  RecoveryKeyReplaceRequest,
+  RecoveryOpenRequest,
   RegisterRequest,
+  SecretKeyReplaceRequest,
   ShareCreateRequest,
   ShareUpdateRequest,
   WebhookCreateRequest,
 } from "@manifesto/shared";
 import type { z } from "zod";
 import type {
+  accountKeysSetupSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
   apiTokenCreateSchema,
@@ -24,7 +30,11 @@ import type {
   noteUpdateSchema,
   noteVersionCreateSchema,
   passwordChangeSchema,
+  recoveryCompleteSchema,
+  recoveryKeyReplaceSchema,
+  recoveryOpenSchema,
   registerSchema,
+  secretKeyReplaceSchema,
   shareCreateSchema,
   shareUpdateSchema,
   webhookCreateSchema,
@@ -74,4 +84,11 @@ export type WireTypeChecks = [
   Assert<Matches<Body<typeof adminUpdateUserSchema>, AdminUpdateUserRequest>>,
   Assert<Matches<Body<typeof shareCreateSchema>, ShareCreateRequest>>,
   Assert<Matches<Body<typeof shareUpdateSchema>, ShareUpdateRequest>>,
+  Assert<Matches<Body<typeof accountKeysSetupSchema>, AccountKeysSetupRequest>>,
+  Assert<Matches<Body<typeof secretKeyReplaceSchema>, SecretKeyReplaceRequest>>,
+  Assert<
+    Matches<Body<typeof recoveryKeyReplaceSchema>, RecoveryKeyReplaceRequest>
+  >,
+  Assert<Matches<Body<typeof recoveryOpenSchema>, RecoveryOpenRequest>>,
+  Assert<Matches<Body<typeof recoveryCompleteSchema>, RecoveryCompleteRequest>>,
 ];

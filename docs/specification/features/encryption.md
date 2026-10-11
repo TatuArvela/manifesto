@@ -1,7 +1,9 @@
 # Encryption
 
-**Status: planned before 1.0.0, design chosen, not yet built.** Today Manifesto does not encrypt notes
-itself. This page says what protects notes now and the design chosen:
+**Status: planned before 1.0.0, design chosen, being built.** The first step of
+[the order of building](#order-of-building) is in place: every account has its keys and is unlocked
+with its secret key. Nothing is encrypted with them yet, so today Manifesto still does not encrypt
+notes itself. This page says what protects notes now and the design chosen:
 [end-to-end encryption for every account](#the-design-end-to-end-for-every-account) in connected
 mode. Notes are encrypted in the browser before they reach the server, and the server stores them
 without a key that opens them.
@@ -151,7 +153,7 @@ no device.
   written afterwards. [Changing keys](#changing-keys) has what that involves. The account's other
   sessions end, and it is written to the audit log.
 - **One thing for losing everything.** It takes the place of the ten recovery codes that
-  [two-factor sign-in](accounts.md#two-factor-sign-in) has today, which could sign in and open
+  [two-factor sign-in](accounts.md#two-factor-sign-in) had, which could sign in and open
   nothing.
 - **The server never sees it.** The browser derives two values from it: one the server holds a hash
   of, to check the sign-in, and one that wraps the account key.
@@ -434,6 +436,13 @@ for as long as any account had not signed in.
 8. Replacing the account key.
 
 Steps 2 to 7 are released together: a server half way would hold notes its own features cannot read.
+
+Step 1 is built. Until the steps after it are, two things it does are narrower than this page says:
+
+- **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
+  and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.
+- **Starting an account again** removes its keys and nothing else. Its notes are not encrypted yet,
+  so there is nothing unreadable to empty; that comes with step 2.
 
 ## What it costs
 

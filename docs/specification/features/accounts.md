@@ -144,8 +144,9 @@ the changes that would let whoever holds one keep the account or its notes ask a
 - setting or removing the **email address**, since a reset link goes to it,
 - minting an **API token**, which outlives the session that made it,
 - adding a **webhook**, which sends every note from then on to its address,
-- turning **two-factor sign-in** on or off, adding or removing a **passkey**, or replacing the recovery
-  codes (these asked before).
+- turning **two-factor sign-in** on or off, or adding or removing a **passkey** (these asked before),
+- showing the **secret key**, replacing it or the **recovery key**, or starting the account again
+  ([Encryption](encryption.md#unlocking)).
 
 An account with a password confirms with it, typed into the same form. Wrong passwords count against
 the same per-name budget as signing in, ten in fifteen minutes, so a stolen session cannot guess at
@@ -201,25 +202,28 @@ provider instead, and can add neither.
   the address of the page that made it (its relying party is that host), so one made on one address of
   a server does not work on another. Browsers offer passkeys only on `https` pages (and `localhost`), so
   a client served over plain `http` shows none of this. At most 20.
-- **Recovery codes**: the first second factor of either kind brings ten one-time recovery codes, shown
-  once and stored hashed. One set covers every factor: adding a second one keeps them, and removing a
-  factor keeps them while another is left. Removing the last turns two-factor off and the codes with it.
+- **A lost factor**: there are no recovery codes. Whoever loses the authenticator and every passkey
+  signs in with the account's [recovery key](encryption.md#the-recovery-key) and the username, which
+  also chooses a new password and replaces the keys the account is unlocked with. Removing the last
+  factor turns two-factor off.
 - **Signing in** answers `403` with `code: "two_factor_required"` after a right password, saying which
   factors the account has and carrying a challenge for its passkeys on this address. The client sends the
-  same request again with `otp` (an authenticator code, or a recovery code, case and separators ignored)
-  or `passkey` (the browser's answer to the challenge). The factor is checked only after the password, so
+  same request again with `otp` (an authenticator code) or `passkey` (the browser's answer to the
+  challenge). An account whose only factor is passkeys has nothing to type. The factor is checked only after the password, so
   a wrong guess learns nothing about the account, and a wrong code counts against the same per-account
   sign-in budget as a wrong password, so six digits cannot be walked through. Each code's time step is
-  accepted once (the server keeps the last one used), a recovery code once, and a challenge once.
+  accepted once (the server keeps the last one used), and a challenge once.
 - **Changes** to any of it ask for the password again, and all of it is session-only: an API token
   cannot touch it.
-- **Lost everything**: an admin issuing a temporary password (see above) also turns two-factor off,
-  passkeys included, since that is the recovery path; the user can set it up again after signing in.
-  A password change or a reset by mail leaves it as it is.
+- **Lost everything**: the recovery key is the way back that needs nobody else. Without it, an admin
+  issuing a temporary password (see above) also turns two-factor off, passkeys included; the user can
+  set it up again after signing in. That restores the sign-in and no key: the notes stay locked until
+  the secret key or the recovery key is entered, or the account is
+  [started again](encryption.md#the-recovery-key). A password change or a reset by mail leaves
+  two-factor as it is.
 
 The authenticator's secret is held as is in `user_totp` (it has to be, to compute codes), next to the
-password hash; `totp_recovery_codes` holds the hashed recovery codes, and `passkeys` each passkey's
-public key, which is no secret.
+password hash, and `passkeys` holds each passkey's public key, which is no secret.
 
 ## Signing in with a passkey
 
@@ -248,8 +252,7 @@ shows a **Sign in** button, and pressing that signs in.
   the address runs the page as a browser does, and would otherwise use the link up and hold a session.
 - The link stands in for the password and for nothing else. An account with two-factor sign-in is asked
   for its code or passkey after opening the link, on the same per-account budget of failed attempts as a
-  password sign-in, and a mistyped code does not cost the link. Nor does a link that has run out cost a
-  recovery code: the link is checked before the code is.
+  password sign-in, and a mistyped code does not cost the link.
   An account without a second factor is not held to that budget here: there is nothing in the link to
   guess at, anyone can run the budget out with wrong passwords, and the link is then the way in its
   owner has left. Such a sign-in does not clear the count either.

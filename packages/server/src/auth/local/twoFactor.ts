@@ -1,13 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import type {
-  TwoFactorRecoveryCodesResponse,
   TwoFactorSetupResponse,
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
 import { audit } from "../../audit/audit.js";
 import { nowIso } from "../../lib/time.js";
-import { hashToken } from "../../lib/token.js";
 import type { AuthContext } from "../../middleware/authBearer.js";
 import { HttpError } from "../../middleware/error.js";
 import type { StorageDriver } from "../../storage/types.js";
@@ -17,19 +15,14 @@ import {
 } from "../../validation/schemas.js";
 import { validatorHook } from "../../validation/zValidator.js";
 import { requireConfirmation } from "../confirmation.js";
-import {
-  newRecoveryCodes,
-  newTotpSecret,
-  normalizeRecoveryCode,
-  verifyTotp,
-} from "../totp.js";
+import { newTotpSecret, verifyTotp } from "../totp.js";
 import type { LoginAttempts } from "./loginAttempts.js";
 
 /**
  * Checks a typed second factor at sign-in: an authenticator code, each step
- * usable once, or an unused recovery code, each usable once. `secret` is null
- * for an account whose second factor is passkeys alone, where only a recovery
- * code can be typed. True if it passes.
+ * usable once. `secret` is null for an account whose second factor is
+ * passkeys alone, which has nothing to type: whoever lost those signs in
+ * with the recovery key (`auth/accountKeys.ts`). True if it passes.
  */
 export async function checkSecondFactor(
   storage: StorageDriver,
@@ -38,16 +31,12 @@ export async function checkSecondFactor(
   otp: string,
 ): Promise<boolean> {
   const step = secret === null ? null : verifyTotp(secret, otp, Date.now());
-  if (step !== null) return storage.twoFactor.advanceStep(userId, step);
-  return storage.twoFactor.useRecoveryCode(
-    userId,
-    hashToken(normalizeRecoveryCode(otp)),
-    nowIso(),
-  );
+  if (step === null) return false;
+  return storage.twoFactor.advanceStep(userId, step);
 }
 
 /** Whether the account has a second factor: an authenticator, a passkey, or
- * both. The recovery codes stand in for whichever it has. */
+ * both. */
 export async function hasSecondFactor(
   storage: StorageDriver,
   userId: string,
@@ -55,18 +44,6 @@ export async function hasSecondFactor(
   const totp = await storage.twoFactor.get(userId);
   if (totp?.enabledAt != null) return true;
   return (await storage.passkeys.listByUser(userId)).length > 0;
-}
-
-export async function issueRecoveryCodes(
-  storage: StorageDriver,
-  userId: string,
-): Promise<string[]> {
-  const codes = newRecoveryCodes();
-  await storage.twoFactor.replaceRecoveryCodes(
-    userId,
-    codes.map((code) => hashToken(code)),
-  );
-  return codes;
 }
 
 /**
@@ -91,13 +68,7 @@ export function registerTwoFactorRoutes(
     const authenticator = state?.enabledAt != null;
     const enabled =
       authenticator || (await storage.passkeys.listByUser(userId)).length > 0;
-    const body: TwoFactorStatusResponse = {
-      enabled,
-      authenticator,
-      recoveryCodesRemaining: enabled
-        ? await storage.twoFactor.remainingRecoveryCodes(userId)
-        : 0,
-    };
+    const body: TwoFactorStatusResponse = { enabled, authenticator };
     return c.json(body);
   });
 
@@ -141,15 +112,9 @@ export function registerTwoFactorRoutes(
           "two_factor_invalid",
         );
       }
-      // Codes come with the first second factor; passkeys already added
-      // have them, and they cover the authenticator too.
-      const first = !(await hasSecondFactor(storage, userId));
       await storage.twoFactor.enable(userId, nowIso(), step);
       audit(storage, c, { action: "auth.two_factor_enabled", actorId: userId });
-      const body: TwoFactorRecoveryCodesResponse = {
-        recoveryCodes: first ? await issueRecoveryCodes(storage, userId) : [],
-      };
-      return c.json(body);
+      return c.body(null, 204);
     },
   );
 
@@ -163,37 +128,12 @@ export function registerTwoFactorRoutes(
         c.get("auth"),
         c.req.valid("json").password,
       );
-      // Passkeys left behind keep the codes, which stand in for them too.
-      if ((await storage.passkeys.listByUser(userId)).length > 0) {
-        await storage.twoFactor.removeAuthenticator(userId);
-      } else {
-        await storage.twoFactor.disable(userId);
-      }
+      await storage.twoFactor.disable(userId);
       audit(storage, c, {
         action: "auth.two_factor_disabled",
         actorId: userId,
       });
       return c.body(null, 204);
-    },
-  );
-
-  auth.post(
-    "/two-factor/recovery-codes",
-    zValidator("json", twoFactorPasswordSchema, validatorHook),
-    async (c) => {
-      const { userId } = c.get("auth");
-      await requireConfirmation(
-        confirmation,
-        c.get("auth"),
-        c.req.valid("json").password,
-      );
-      if (!(await hasSecondFactor(storage, userId))) {
-        throw new HttpError(409, "Two-factor sign-in is off");
-      }
-      const body: TwoFactorRecoveryCodesResponse = {
-        recoveryCodes: await issueRecoveryCodes(storage, userId),
-      };
-      return c.json(body);
     },
   );
 }

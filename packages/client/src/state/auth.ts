@@ -679,6 +679,45 @@ export async function signInWithLink(
   currentUser.value = result.user;
 }
 
+/** How a step of signing in with the recovery key went. */
+export type RecoveryAnswer<T> =
+  | { kind: "ok"; body: T }
+  | { kind: "wrong" | "throttled" | "used" | "failed" };
+
+/**
+ * One of the two steps of signing in with the recovery key and the username
+ * (`/api/auth/recovery`, `/api/auth/recovery/complete`), with nobody signed
+ * in. `state/accountKeys.ts` does the work with the keys; the requests live
+ * here, where the others without a session do. Never rejects.
+ */
+export async function recoveryRequest<T>(
+  step: "open" | "complete",
+  body: unknown,
+): Promise<RecoveryAnswer<T>> {
+  if (SERVER_URL === null) return { kind: "failed" };
+  const path = step === "open" ? "/recovery" : "/recovery/complete";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) return { kind: "wrong" };
+    if (res.status === 429) return { kind: "throttled" };
+    if (res.status === 409) return { kind: "used" };
+    if (!res.ok) return { kind: "failed" };
+    return { kind: "ok", body: (await res.json()) as T };
+  } catch {
+    return { kind: "failed" };
+  }
+}
+
+/** Takes up a session the server just issued. */
+export function adoptSession(session: AuthSuccessResponse): void {
+  authToken.value = session.token;
+  currentUser.value = session.user;
+}
+
 export type OidcRefusal =
   | "not_in_group"
   | "not_registered"

@@ -19,8 +19,10 @@ import {
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
+import { registerAccountKeyRoutes } from "./accountKeys.js";
 import { requireConfirmation } from "./confirmation.js";
 import type { LoginAttempts } from "./local/loginAttempts.js";
+import type { SessionRevocations } from "./revocations.js";
 import type { AuthProviderRouter } from "./types.js";
 import { toAuthUser } from "./users.js";
 
@@ -30,6 +32,7 @@ interface SharedAuthRoutesDeps {
   /** Tells the account's other devices when its preferences change. */
   broadcaster?: Broadcaster;
   loginAttempts: LoginAttempts;
+  revocations: SessionRevocations;
 }
 
 /**
@@ -161,6 +164,8 @@ export function createAuthSharedRoutes(
       return c.body(null, 204);
     },
   );
+
+  registerAccountKeyRoutes(router, deps);
 
   return router;
 }

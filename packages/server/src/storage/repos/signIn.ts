@@ -1,6 +1,7 @@
 import type { Passkey } from "@manifesto/shared";
 
-// What secures a sign-in beyond the password: two-factor, passkeys, reset links.
+// What secures a sign-in beyond the password: two-factor, passkeys, reset links,
+// and the wrapped keys an account unlocks its notes with.
 
 export interface TotpState {
   secret: string;
@@ -17,20 +18,78 @@ export interface TwoFactorRepo {
   begin(userId: string, secret: string, at: string): Promise<boolean>;
   /** Confirms a setup, recording the step of the code that confirmed it. */
   enable(userId: string, at: string, step: number): Promise<void>;
-  /** Removes the authenticator and the recovery codes. */
+  /** Removes the authenticator. */
   disable(userId: string): Promise<void>;
-  /** Removes the authenticator and keeps the recovery codes, which passkeys
-   * share. */
-  removeAuthenticator(userId: string): Promise<void>;
   /**
    * Records `step` as used if it is later than the last one, atomically, and
    * says whether it was. False is a code used before: refuse it.
    */
   advanceStep(userId: string, step: number): Promise<boolean>;
-  replaceRecoveryCodes(userId: string, hashes: string[]): Promise<void>;
-  /** Spends one unused recovery code; false if there is no such code. */
-  useRecoveryCode(userId: string, hash: string, at: string): Promise<boolean>;
-  remainingRecoveryCodes(userId: string): Promise<number>;
+}
+
+/**
+ * An account's keys as the server holds them: the account key wrapped twice
+ * (under the secret key and under the recovery key), the public halves of its
+ * two key pairs and the wrapped private ones. None of it opens anything
+ * without a key the server is never sent.
+ */
+export interface StoredAccountKeys {
+  userId: string;
+  version: number;
+  wrappedBySecret: string;
+  wrappedByRecovery: string;
+  /** SHA-256 of the value the recovery key proves itself with. */
+  recoveryVerifierHash: string;
+  exchangePublicKey: string;
+  signingPublicKey: string;
+  wrappedExchangePrivateKey: string;
+  wrappedSigningPrivateKey: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** What a recovery key that is used leaves in place of itself. */
+export interface ReplacementUserKeys {
+  wrappedBySecret: string;
+  wrappedByRecovery: string;
+  recoveryVerifierHash: string;
+}
+
+export interface AccountKeysRepo {
+  get(userId: string): Promise<StoredAccountKeys | null>;
+  /**
+   * Stores an account's first keys. False, with nothing written, when it has
+   * keys already: two devices setting up at once must not each believe theirs
+   * were kept.
+   */
+  create(keys: StoredAccountKeys): Promise<boolean>;
+  /** Puts a new secret key's wrap in place; false for an account without keys. */
+  setSecretWrap(
+    userId: string,
+    wrappedBySecret: string,
+    at: string,
+  ): Promise<boolean>;
+  /** Puts a new recovery key in place; false for an account without keys. */
+  setRecovery(
+    userId: string,
+    wrappedByRecovery: string,
+    recoveryVerifierHash: string,
+    at: string,
+  ): Promise<boolean>;
+  /**
+   * Spends a recovery key: puts a new secret key and a new recovery key in
+   * place of the ones the account has, in one write, and only while the
+   * recovery key is still `expectedVerifierHash`. False when it is not, so a
+   * key used twice at once is used once.
+   */
+  replaceUserKeys(
+    userId: string,
+    expectedVerifierHash: string,
+    next: ReplacementUserKeys,
+    at: string,
+  ): Promise<boolean>;
+  /** Removes the account's keys, for an account that is started again. */
+  delete(userId: string): Promise<boolean>;
 }
 
 /** A passkey as stored: the public half of the credential and whose it is. */

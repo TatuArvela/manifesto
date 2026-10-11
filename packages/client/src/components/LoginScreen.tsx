@@ -17,6 +17,7 @@ import { BrandLogo } from "./BrandLogo.js";
 import { LocalLoginForm } from "./LocalLoginForm.js";
 import { OrgCredit } from "./OrgCredit.js";
 import { ForgotPasswordForm, ResetPasswordForm } from "./PasswordResetForms.js";
+import { RecoveryForm } from "./RecoveryForms.js";
 import { SignInLinkForm, SignInLinkLanding } from "./SignInLinkForms.js";
 
 const OIDC_REFUSAL_MESSAGES: Record<OidcRefusal, MessageKey> = {
@@ -112,6 +113,7 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
   );
   const [forgot, setForgot] = useState(false);
   const [byLink, setByLink] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const oidc = providers.includes("oidc");
   const local = providers.includes("local");
   if (resetToken && local) {
@@ -132,6 +134,9 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
   }
   if (forgot) return <ForgotPasswordForm onBack={() => setForgot(false)} />;
   if (byLink) return <SignInLinkForm onBack={() => setByLink(false)} />;
+  if (recovering && local) {
+    return <RecoveryForm withUsername onBack={() => setRecovering(false)} />;
+  }
   return (
     <>
       {oidc && <OidcLoginPanel />}
@@ -147,6 +152,7 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
           <LocalLoginForm
             onForgot={auth.passwordReset ? () => setForgot(true) : undefined}
             onEmailLink={auth.magicLink ? () => setByLink(true) : undefined}
+            onRecover={() => setRecovering(true)}
             canRegister={auth.registration}
             passkeys={auth.passkeys && passkeysSupported()}
           />

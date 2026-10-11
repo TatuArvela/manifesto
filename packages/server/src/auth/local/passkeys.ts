@@ -36,7 +36,6 @@ import { requireConfirmation } from "../confirmation.js";
 import { issueSession } from "../session.js";
 import { toAuthUser } from "../users.js";
 import type { LoginAttempts } from "./loginAttempts.js";
-import { hasSecondFactor, issueRecoveryCodes } from "./twoFactor.js";
 
 /** Enough for every device and key a person owns, and a bound on a script. */
 export const MAX_PASSKEYS_PER_USER = 20;
@@ -356,7 +355,6 @@ export function registerPasskeyRoutes(
       if (await storage.passkeys.findByCredentialId(info.credential.id)) {
         throw new HttpError(409, "That passkey is already added");
       }
-      const first = !(await hasSecondFactor(storage, user.id));
       const passkey: StoredPasskey = {
         id: newId(),
         userId: user.id,
@@ -376,14 +374,7 @@ export function registerPasskeyRoutes(
         actorId: user.id,
         detail: { name: passkey.name },
       });
-      // The first second factor turns two-factor on, and one set of recovery
-      // codes covers every factor from then on.
-      const body: PasskeyAddedResponse = {
-        passkey: listedPasskey(passkey),
-        recoveryCodes: first
-          ? await issueRecoveryCodes(storage, user.id)
-          : null,
-      };
+      const body: PasskeyAddedResponse = { passkey: listedPasskey(passkey) };
       return c.json(body, 201);
     },
   );
@@ -401,11 +392,6 @@ export function registerPasskeyRoutes(
       const id = c.req.param("id");
       if (!(await storage.passkeys.delete(id, auth.userId))) {
         throw new HttpError(404, "Passkey not found");
-      }
-      // The codes stand in for the factors; with none left there is nothing
-      // for them to stand in for.
-      if (!(await hasSecondFactor(storage, auth.userId))) {
-        await storage.twoFactor.replaceRecoveryCodes(auth.userId, []);
       }
       audit(storage, c, {
         action: "auth.passkey_removed",

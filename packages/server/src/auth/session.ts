@@ -183,18 +183,24 @@ export async function revokeSession(
  * token that would otherwise outlive the reset. A sign-in link still in their
  * mailbox goes for the same reason: it would be a session a moment later, and
  * so does a reset link, which would be the password.
+ *
+ * `keepApiTokens` is for a new secret key (`auth/accountKeys.ts`), which
+ * signs the account's other devices out so that they ask for it and says
+ * nothing about who knows the password. The tokens' sockets are closed with
+ * the rest and connect again.
  */
 export async function endUserSessions(
   storage: StorageDriver,
   revocations: SessionRevocations,
   userId: string,
   keepToken?: string,
+  options: { keepApiTokens?: boolean } = {},
 ): Promise<void> {
   await storage.sessions.deleteByUser(
     userId,
     keepToken === undefined ? undefined : hashToken(keepToken),
   );
-  await storage.apiTokens.deleteByUser(userId);
+  if (!options.keepApiTokens) await storage.apiTokens.deleteByUser(userId);
   await storage.signInLinks.deleteByUser(userId);
   await storage.passwordResets.deleteByUser(userId);
   revocations.revoke({ userId, keepToken });

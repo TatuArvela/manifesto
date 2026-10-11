@@ -1,6 +1,5 @@
 import type {
   Passkey,
-  PasskeyAddedResponse,
   PasskeyOptionsResponse,
   PasskeysResponse,
 } from "@manifesto/shared";
@@ -20,7 +19,7 @@ export async function listPasskeys(): Promise<Passkey[] | null> {
 }
 
 export type AddPasskeyResult =
-  | { kind: "ok"; recoveryCodes: string[] | null }
+  | { kind: "ok" }
   | {
       kind: "wrong-password" | "cancelled" | "exists" | "too-many" | "failed";
     };
@@ -46,8 +45,7 @@ export async function addPasskey(
   });
   if (res?.status === 409) return { kind: "exists" };
   if (!res?.ok) return { kind: "failed" };
-  const { recoveryCodes } = (await res.json()) as PasskeyAddedResponse;
-  return { kind: "ok", recoveryCodes };
+  return { kind: "ok" };
 }
 
 export async function removePasskey(

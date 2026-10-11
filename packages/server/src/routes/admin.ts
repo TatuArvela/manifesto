@@ -240,8 +240,9 @@ export function createAdminRoutes(deps: AdminDeps) {
     );
     // A reset is often because someone else has the password, so whoever is
     // signed in with it now is signed out, sockets included. It is also how
-    // someone who lost their authenticator and their recovery codes gets back
+    // someone who lost their authenticator and their recovery key gets back
     // in, so two-factor goes too, passkeys included; they can add them again.
+    // It restores the sign-in and no key: the notes stay locked without one.
     await endUserSessions(deps.storage, deps.revocations, id);
     await deps.storage.twoFactor.disable(id);
     await deps.storage.passkeys.deleteByUser(id);

@@ -13,7 +13,8 @@ function sanitizeFilename(name: string): string {
   return cleaned || "note";
 }
 
-function triggerDownload(content: string, filename: string, mime: string) {
+/** Hands `content` to the browser as a file to save. */
+export function downloadFile(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -37,10 +38,10 @@ export function downloadNoteAsMarkdown(
   note: Pick<Note, "title" | "content">,
 ): void {
   const filename = `${sanitizeFilename(note.title || "note")}.md`;
-  triggerDownload(noteToMarkdown(note), filename, "text/markdown");
+  downloadFile(noteToMarkdown(note), filename, "text/markdown");
 }
 
 export function downloadNoteAsJson(note: Note): void {
   const filename = `${sanitizeFilename(note.title || "note")}.json`;
-  triggerDownload(JSON.stringify(note, null, 2), filename, "application/json");
+  downloadFile(JSON.stringify(note, null, 2), filename, "application/json");
 }

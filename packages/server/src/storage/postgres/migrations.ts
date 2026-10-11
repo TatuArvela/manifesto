@@ -397,6 +397,24 @@ CREATE TABLE server_secrets (
 );
 `;
 
+/** See the SQLite copy. */
+const ACCOUNT_KEYS = `
+CREATE TABLE account_keys (
+  user_id                      TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  version                      INTEGER NOT NULL,
+  wrapped_by_secret            TEXT NOT NULL,
+  wrapped_by_recovery          TEXT NOT NULL,
+  recovery_verifier_hash       TEXT NOT NULL,
+  exchange_public_key          TEXT NOT NULL,
+  signing_public_key           TEXT NOT NULL,
+  wrapped_exchange_private_key TEXT NOT NULL,
+  wrapped_signing_private_key  TEXT NOT NULL,
+  created_at                   TEXT NOT NULL,
+  updated_at                   TEXT NOT NULL
+);
+DROP TABLE totp_recovery_codes;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -424,6 +442,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0024-sign-in-links", sql: SIGN_IN_LINKS },
   { id: "0025-note-comments", sql: NOTE_COMMENTS },
   { id: "0026-web-push", sql: WEB_PUSH },
+  { id: "0027-account-keys", sql: ACCOUNT_KEYS },
 ];
 
 /**
