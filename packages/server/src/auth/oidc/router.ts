@@ -79,12 +79,20 @@ function pickDisplayName(claims: openid.IDToken, fallback: string): string {
 
 /**
  * The address the identity provider vouches for, or null. One it marks as
- * unverified is not taken: an address is how a note's owner finds a person to
- * share with, and an unverified one would let anybody claim someone else's.
+ * unverified is never taken: an address is how a note's owner finds a person
+ * to share with, and an unverified one would let anybody claim someone
+ * else's. One it says nothing about is not vouched for either, since some
+ * providers leave the claim out for an address the user typed in themselves;
+ * `OIDC_UNVERIFIED_EMAIL=accept` takes those, for a provider known to hand
+ * out only addresses it controls.
  */
-function pickEmail(claims: openid.IDToken): string | null {
+function pickEmail(
+  claims: openid.IDToken,
+  acceptUnstated: boolean,
+): string | null {
   const { email, email_verified: verified } = claims as Record<string, unknown>;
   if (typeof email !== "string" || verified === false) return null;
+  if (verified !== true && !acceptUnstated) return null;
   const parsed = emailSchema.safeParse(email);
   return parsed.success ? parsed.data : null;
 }
@@ -146,7 +154,7 @@ async function provisionUser(
 ): Promise<string> {
   const provider = providerKey(oidc.issuer);
   const externalId = claims.sub;
-  const claimedEmail = pickEmail(claims);
+  const claimedEmail = pickEmail(claims, oidc.acceptUnverifiedEmail);
   const existing = await storage.users.findByExternalId(provider, externalId);
   if (existing) {
     await syncEmail(storage, existing.id, existing.email, claimedEmail);

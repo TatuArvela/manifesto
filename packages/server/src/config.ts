@@ -30,6 +30,12 @@ export interface OidcConfig {
   teamGroups: string[] | "*" | null;
   /** When false, only identities that already have an account sign in. */
   autoRegister: boolean;
+  /**
+   * Whether an address the identity provider does not vouch for is taken
+   * anyway (`OIDC_UNVERIFIED_EMAIL=accept`). Off, only `email_verified: true`
+   * is; a provider that leaves the claim out is one that has not said.
+   */
+  acceptUnverifiedEmail: boolean;
 }
 
 export interface BackupConfig {
@@ -301,6 +307,9 @@ function loadOidcConfig(): OidcConfig {
     userGroup: process.env.OIDC_USER_GROUP?.trim() || null,
     teamGroups: parseTeamGroups(process.env.OIDC_TEAM_GROUPS),
     autoRegister: envBool("OIDC_AUTO_REGISTER", true),
+    acceptUnverifiedEmail:
+      envEnum("OIDC_UNVERIFIED_EMAIL", ["refuse", "accept"], "refuse") ===
+      "accept",
   };
 }
 

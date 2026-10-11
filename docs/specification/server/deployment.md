@@ -315,6 +315,7 @@ All of these are required and validated at boot. The server only reads them when
 | `OIDC_ADMIN_GROUP`          | Optional. Members are admins and non-members are not, decided again at every sign-in, so removing someone from the group at the identity provider takes admin away at their next sign-in. The last admin is never demoted. Leave unset to grant admin by hand. |
 | `OIDC_TEAM_GROUPS`          | Optional. Groups to mirror as [teams](../features/sharing-with-people.md#teams), comma-separated, or `*` for every group. Each becomes a team the first time a member signs in, and its members follow the group at every sign-in. Unset, no group becomes a team; admins can still make teams by hand. |
 | `OIDC_AUTO_REGISTER`        | `on` (default) creates an account the first time someone signs in. `off` lets in only identities that already have one, and sends anyone else back with a message. |
+| `OIDC_UNVERIFIED_EMAIL`     | `refuse` (default) stores an account's email address only when the provider sends `email_verified: true`. `accept` also takes an address the provider says nothing about, for one that leaves the claim out and only hands out addresses it controls. An address marked `email_verified: false` is never stored. |
 
 The login flow:
 

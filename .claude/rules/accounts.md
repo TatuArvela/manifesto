@@ -80,7 +80,8 @@ address when someone is signed in already.
 
 Anything that checks a password from a session counts a wrong one in `loginAttempts`, the change of
 password (`/api/auth/password`) included: the address bucket alone refills for a stolen session that
-moves.
+moves. Under single sign-on an address is stored only when the provider sends `email_verified: true`
+(`pickEmail`), unless `OIDC_UNVERIFIED_EMAIL=accept`.
 
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:

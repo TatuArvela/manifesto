@@ -78,9 +78,11 @@ verified by sending any.
   refused (`409`, `code: "email_taken"`).
 - **Under local sign-in** it can be given when registering, set or removed on the Account settings page, and
   given or changed by an admin.
-- **Under single sign-on** the identity provider's `email` claim is stored at every sign-in, unless the
-  provider marks it `email_verified: false`, or another account already holds it (the sign-in goes
-  ahead and the address is left off). Account settings shows it read-only. An admin can, but
+- **Under single sign-on** the identity provider's `email` claim is stored at every sign-in, when the
+  provider vouches for it with `email_verified: true` and no other account already holds it (otherwise
+  the sign-in goes ahead and the address is left off). A provider that leaves `email_verified` out has
+  not vouched for it; `OIDC_UNVERIFIED_EMAIL=accept` takes its addresses anyway, and one marked
+  `email_verified: false` is never taken. Account settings shows it read-only. An admin can, but
   the next sign-in puts the provider's address back.
 
 ## The Users view
