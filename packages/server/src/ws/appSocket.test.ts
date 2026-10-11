@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
+import { hashToken } from "../lib/token.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
 import { TEST_CONFIG } from "../test/setup.js";
@@ -23,7 +24,7 @@ interface Rig {
   stopHeartbeat: () => void;
 }
 
-async function bootRig(heartbeatMs?: number): Promise<Rig> {
+async function bootRig(heartbeatMs?: number, recheckMs?: number): Promise<Rig> {
   const cfg = { ...TEST_CONFIG, port: 0 };
   const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
@@ -43,6 +44,7 @@ async function bootRig(heartbeatMs?: number): Promise<Rig> {
     storage,
     cfg,
     heartbeatMs,
+    recheckMs,
   });
   const server = serve({ fetch: app.fetch, port: 0 });
   ws.injectWebSocket(server);
@@ -573,7 +575,7 @@ describe("what /api/ws holds an open socket to", () => {
   let rig: Rig;
 
   beforeEach(async () => {
-    rig = await bootRig();
+    rig = await bootRig(undefined, 50);
   });
 
   afterEach(async () => {
@@ -584,6 +586,27 @@ describe("what /api/ws holds an open socket to", () => {
     new Promise<number>((resolve) => {
       ws.once("close", (code) => resolve(code));
     });
+
+  it("closes the socket of a session that ran out, and keeps a live one", async () => {
+    const lapsing = await register(rig, "alice");
+    const live = await signIn(rig, "alice");
+    const gone = openSocket(rig.wsUrl, lapsing);
+    const kept = openSocket(rig.wsUrl, live);
+    await Promise.all([waitOpen(gone.ws), waitOpen(kept.ws)]);
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Nothing announces an expiry: the row just stops being good.
+    const closed = closeCode(gone.ws);
+    await rig.storage.sessions.touch(
+      hashToken(lapsing),
+      new Date().toISOString(),
+      "2000-01-01T00:00:00.000Z",
+    );
+    expect(await closed).toBe(4401);
+    await new Promise((r) => setTimeout(r, 120));
+    expect(kept.ws.readyState).toBe(WebSocket.OPEN);
+    kept.ws.close();
+  });
 
   it("refuses a frame larger than anything a client says", async () => {
     const token = await register(rig, "alice");

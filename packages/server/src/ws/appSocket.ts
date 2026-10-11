@@ -16,6 +16,7 @@ import { hashToken } from "../lib/token.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { StorageDriver } from "../storage/types.js";
 import type { Broadcaster } from "./broadcaster.js";
+import { recheckSockets, SOCKET_RECHECK_MS } from "./recheck.js";
 
 export const SUBPROTOCOL = "manifesto-session";
 
@@ -60,9 +61,11 @@ interface AppSocketDeps {
   cfg: ServerConfig;
   /** Tests shorten this; everyone else uses {@link APP_SOCKET_HEARTBEAT_MS}. */
   heartbeatMs?: number | undefined;
+  /** Tests shorten this; everyone else uses {@link SOCKET_RECHECK_MS}. */
+  recheckMs?: number | undefined;
 }
 
-/** Wire `/api/ws` onto the app. Returns a function that stops the heartbeat. */
+/** Wire `/api/ws` onto the app. Returns a function that stops its timers. */
 export function attachAppSocket(deps: AppSocketDeps): () => void {
   const { app, ws, authProvider, broadcaster, revocations, storage } = deps;
 
@@ -158,6 +161,17 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
     }
   }, deps.heartbeatMs ?? APP_SOCKET_HEARTBEAT_MS);
   heartbeatTimer.unref();
+
+  // A session or token that ran out announces nothing (see `recheck.ts`).
+  const recheckTimer = setInterval(() => {
+    const open = [...connectionsByUser.values()].flatMap((set) =>
+      [...set].map((conn) => ({ token: conn.token, socket: conn })),
+    );
+    void recheckSockets(authProvider, "notes:read", open, (conn) => {
+      if (!conn.closed) conn.close(4401, "Session ended");
+    });
+  }, deps.recheckMs ?? SOCKET_RECHECK_MS);
+  recheckTimer.unref();
 
   // A socket is authenticated once, at the handshake, so ending a session
   // has to reach the sockets it opened. 4401 is what the client already reads
@@ -407,5 +421,8 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
     }),
   );
 
-  return () => clearInterval(heartbeatTimer);
+  return () => {
+    clearInterval(heartbeatTimer);
+    clearInterval(recheckTimer);
+  };
 }

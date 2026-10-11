@@ -169,6 +169,11 @@ opened:
 This is what makes a reset useful against someone who has learned a password: whoever is signed in
 with it stops receiving note events and stops editing live documents at once.
 
+A session or token that simply runs out announces nothing, so each socket's credential is looked at
+again every five minutes, and one that no longer opens the socket closes it the same way. Looking is a
+use of the session, as a request is, so a tab left open and connected does not lapse for being idle;
+the absolute lifetime ends it all the same.
+
 ## Personal API tokens
 
 Any account can mint API tokens from Settings (**API tokens**), for scripts, iOS Shortcuts,

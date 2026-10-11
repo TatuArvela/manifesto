@@ -646,7 +646,7 @@ without the page, but cannot see them, which is why the event exists. A client t
 it does when coming back to the foreground after longer than that. A client that has never heard
 one, because the server predates it, does not judge the socket by silence.
 
-The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol. A frame from the client may be at most 16 KiB; a larger one closes the socket with `1009`.
+The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol. A frame from the client may be at most 16 KiB; a larger one closes the socket with `1009`. Both sockets look at their credential again every five minutes and close with `4401` once it no longer opens them (an expired session or token).
 
 ### Collaboration socket: `/api/yjs`
 

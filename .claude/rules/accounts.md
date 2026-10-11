@@ -24,7 +24,8 @@ not a read-then-write). Under local sign-in that first-account rule never fires 
 the server listens. Never replace that with a fixed default; see the spec for why.
 
 Anything that ends a user's sessions must go through `endUserSessions` (`auth/session.ts`), never
-`sessions.deleteByUser` alone. Sockets authenticate once, at connect, so deleting rows leaves them
+`sessions.deleteByUser` alone. A credential that only runs out announces nothing, so both sockets
+also ask again every `SOCKET_RECHECK_MS` (`ws/recheck.ts`). Sockets authenticate once, at connect, so deleting rows leaves them
 live; the helper also announces on `auth/revocations.ts`, and `ws/appSocket.ts` / `ws/yjsSocket.ts`
 close what it covers. The Yjs side closes the raw socket, since closing one document's connection is
 only a message the peer may ignore.
