@@ -26,14 +26,14 @@ import type { NoteEvents } from "./noteEvents.js";
  * - The owner is never a recipient of their own note.
  */
 export interface TeamShares {
-  /** Share a note with a team, inviting its members. False if it already
-   * was. */
+  /** Share a note with a team, inviting its members. `exists` if it already
+   * was, and `gone` if the team was removed meanwhile, with nobody invited. */
   share(
     noteId: string,
     ownerId: string,
     teamId: string,
     role: ShareRole,
-  ): Promise<boolean>;
+  ): Promise<"ok" | "exists" | "gone">;
   /** Change the role a team has; its members' shares follow. */
   setRole(noteId: string, teamId: string, role: ShareRole): Promise<boolean>;
   /** Stop sharing a note with a team. False if it was not. */
@@ -44,6 +44,14 @@ export interface TeamShares {
   left(teamId: string, userId: string): Promise<void>;
   /** Take a team's notes away from its members, before the team goes. */
   dissolve(teamId: string): Promise<void>;
+  /**
+   * End whatever still comes through a team that is gone. Removing a team
+   * takes several steps, and a note shared with it or a member put in it
+   * between two of them leaves shares `dissolve` never saw. Run after the
+   * team is deleted, and by whatever invited through it once it finds the
+   * team gone, so whichever of the two finishes last cleans up.
+   */
+  settle(teamId: string): Promise<void>;
 }
 
 export function createTeamShares(deps: {
@@ -85,6 +93,8 @@ export function createTeamShares(deps: {
       const members = await storage.teams.members(other.teamId);
       if (!members.includes(share.userId)) continue;
       await storage.shares.setViaTeam(share.noteId, share.userId, other.teamId);
+      // Removed while the share was on its way to it: try the next.
+      if (!(await storage.teams.get(other.teamId))) continue;
       if (other.role !== share.role) {
         await applyRole(share, other.role);
       }
@@ -127,6 +137,25 @@ export function createTeamShares(deps: {
     return true;
   }
 
+  async function settle(teamId: string): Promise<void> {
+    const ended: NoteShare[] = [];
+    const noteIds = new Set<string>();
+    for (const share of await storage.shares.listByTeam(teamId)) {
+      const gone = await release(share, teamId);
+      if (gone) ended.push(gone);
+      noteIds.add(share.noteId);
+    }
+    noteEvents.ended(ended);
+    for (const noteId of noteIds) await noteEvents.changed(noteId);
+  }
+
+  /** True, having settled it, when the team was removed meanwhile. */
+  async function settledIfGone(teamId: string): Promise<boolean> {
+    if (await storage.teams.get(teamId)) return false;
+    await settle(teamId);
+    return true;
+  }
+
   return {
     async share(noteId, ownerId, teamId, role) {
       const added = await storage.teams.shareNote({
@@ -135,13 +164,14 @@ export function createTeamShares(deps: {
         role,
         createdAt: nowIso(),
       });
-      if (!added) return false;
+      if (!added) return "exists";
       for (const userId of await storage.teams.members(teamId)) {
         if (userId === ownerId) continue;
         await invite(noteId, userId, role, teamId);
       }
+      if (await settledIfGone(teamId)) return "gone";
       await noteEvents.changed(noteId);
-      return true;
+      return "ok";
     },
 
     async setRole(noteId, teamId, role) {
@@ -170,6 +200,7 @@ export function createTeamShares(deps: {
           await noteEvents.changed(shared.noteId);
         }
       }
+      await settledIfGone(teamId);
     },
 
     async left(teamId, userId) {
@@ -189,5 +220,7 @@ export function createTeamShares(deps: {
         await unshare(shared.noteId, teamId);
       }
     },
+
+    settle,
   };
 }

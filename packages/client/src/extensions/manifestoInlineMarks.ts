@@ -7,76 +7,17 @@ import { toggleMark } from "@milkdown/kit/prose/commands";
 import { $command, $markSchema } from "@milkdown/kit/utils";
 import type { Handle, Handlers } from "mdast-util-to-markdown";
 import type { Plugin } from "unified";
-import { visit } from "unist-util-visit";
-
-type InlineTag = "u" | "sub" | "sup";
-
-const TAG_TO_MDAST: Record<InlineTag, string> = {
-  u: "mfUnderline",
-  sub: "mfSubscript",
-  sup: "mfSuperscript",
-};
-
-const OPEN_TAG_RE = /^<(u|sub|sup)(?:\s[^>]*)?>$/i;
-const CLOSE_TAG_RE = /^<\/(u|sub|sup)\s*>$/i;
-
-function matchOpenTag(value: string): InlineTag | null {
-  const tag = OPEN_TAG_RE.exec(value.trim())?.[1];
-  return tag ? (tag.toLowerCase() as InlineTag) : null;
-}
-
-function matchCloseTag(value: string): InlineTag | null {
-  const tag = CLOSE_TAG_RE.exec(value.trim())?.[1];
-  return tag ? (tag.toLowerCase() as InlineTag) : null;
-}
-
-type AnyNode = { type: string; value?: string; children?: AnyNode[] };
-
-function pairChildren(children: AnyNode[]): AnyNode[] {
-  const out: AnyNode[] = [];
-  let i = 0;
-  while (i < children.length) {
-    const node = children[i];
-    if (!node) break;
-    if (node.type === "html" && typeof node.value === "string") {
-      const open = matchOpenTag(node.value);
-      if (open) {
-        let depth = 1;
-        let j = i + 1;
-        for (; j < children.length; j++) {
-          const c = children[j];
-          if (c?.type !== "html" || typeof c.value !== "string") continue;
-          if (matchOpenTag(c.value) === open) depth++;
-          else if (matchCloseTag(c.value) === open) {
-            depth--;
-            if (depth === 0) break;
-          }
-        }
-        if (j < children.length) {
-          const inner = pairChildren(children.slice(i + 1, j));
-          out.push({ type: TAG_TO_MDAST[open], children: inner });
-          i = j + 1;
-          continue;
-        }
-      }
-    }
-    if (node.children) {
-      out.push({ ...node, children: pairChildren(node.children) });
-    } else {
-      out.push(node);
-    }
-    i++;
-  }
-  return out;
-}
+import {
+  type AnyNode,
+  type InlineTag,
+  pairChildren,
+} from "./pairInlineTags.js";
 
 const remarkManifestoInlineMarks: Plugin<[], AnyNode> = () => {
   return (tree) => {
-    visit(tree, (node: AnyNode) => {
-      if (node.children) {
-        node.children = pairChildren(node.children);
-      }
-    });
+    // Once, from the root: `pairChildren` goes all the way down itself, and
+    // visiting each node to do it again repeated the work at every level.
+    if (tree.children) tree.children = pairChildren(tree.children);
   };
 };
 

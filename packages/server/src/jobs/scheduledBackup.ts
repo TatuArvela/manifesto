@@ -1,4 +1,12 @@
-import { mkdir, readdir, rename, rm, stat, statfs } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  readdir,
+  rename,
+  rm,
+  stat,
+  statfs,
+} from "node:fs/promises";
 import { join } from "node:path";
 import type { BackupConfig } from "../config.js";
 import { logger } from "../lib/logger.js";
@@ -67,7 +75,10 @@ export async function takeBackup(
 ): Promise<BackupOutcome> {
   if (!storage.backup) throw new Error("This storage driver takes no backups");
   const { dir, keep } = cfg;
-  await mkdir(dir, { recursive: true });
+  // A backup is the whole database: every note, password hash and secret.
+  // The directory is made for the server's own user alone; one that is
+  // already there keeps the access its owner gave it.
+  await mkdir(dir, { recursive: true, mode: 0o700 });
 
   const files = await readdir(dir);
   for (const leftover of files.filter((f) => PARTIAL.test(f))) {
@@ -95,6 +106,9 @@ export async function takeBackup(
   const name = backupName(now);
   const partial = join(dir, `${name}.partial`);
   await storage.backup(partial);
+  // SQLite makes the copy readable to whoever the umask allows, usually
+  // everyone on the host. Narrowed before it takes a backup's name.
+  await chmod(partial, 0o600);
   await rename(partial, join(dir, name));
   const backups = [...finished, name].sort();
   for (const old of backups.slice(0, Math.max(0, backups.length - keep))) {

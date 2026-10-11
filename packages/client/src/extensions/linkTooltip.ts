@@ -140,6 +140,14 @@ const linkTooltipPlugin = new Plugin({
         }
         return false;
       },
+      // A middle click is not a `click`, and would follow the link as the
+      // markdown wrote it, past the check the button makes.
+      auxclick: (_view, event) => {
+        if ((event.target as Element | null)?.closest?.("a")) {
+          event.preventDefault();
+        }
+        return false;
+      },
       focus: (view) => {
         views.get(view)?.update();
         return false;

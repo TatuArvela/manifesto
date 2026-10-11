@@ -348,6 +348,11 @@ In Authentik, configure the application's redirect URI to match `OIDC_REDIRECT_U
 
 For larger or scale-out deployments, set `STORAGE_DRIVER=postgres` and `DATABASE_URL=...`. The schema is created on first boot and brought forward on every boot after that; see [Schema migrations](index.md#schema-migrations).
 
+The connection is encrypted only if `DATABASE_URL` asks for it: without an `sslmode` the server
+talks to Postgres in the clear, which is fine on the compose file's private network below and not
+across anything else. For a database on another host, add `?sslmode=verify-full` (and
+`&sslrootcert=/path/to/ca.pem` for a certificate authority the system does not already trust).
+
 ```yaml
 services:
   manifesto-db:
@@ -418,6 +423,11 @@ database with SQLite's online backup API, the same consistent, WAL-inclusive cop
 `BACKUP_DIR` (default `$DATA_DIR/backups`) as `manifesto-YYYYMMDD-HHMMSS.db`, keeping the newest
 `BACKUP_KEEP` (default 7). The disk it takes levels off at about `BACKUP_KEEP` times the database, and
 the database includes the images.
+
+A backup holds everything the database does: every note, password hash and secret. Each file is
+written readable by the server's own user only (`0600`), and so is a `BACKUP_DIR` the server creates
+(`0700`). A directory that already exists keeps the access it has, so check one you made yourself,
+above all on a volume other accounts can reach.
 
 Each run guards the disk:
 

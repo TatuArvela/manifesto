@@ -95,6 +95,8 @@ export function markdownFileToNote(
 const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
 const NOTE_FONTS = new Set<string>(Object.values(NoteFont));
 const RECURRENCES = new Set<string>(REMINDER_RECURRENCES);
+/** What the server holds an imported note's id to (`notesImportSchema`). */
+const NOTE_ID = /^[0-9A-Za-z_-]{1,64}$/;
 
 function parseReminder(raw: unknown): NoteReminder | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -127,12 +129,24 @@ function parseStringArray(raw: unknown): string[] {
  *
  * An unknown `color` must never reach storage: it would reach
  * `noteColorMap[...]` as `undefined` and throw inside `NoteCard` on every load
- * after it was persisted. Identity fields are trusted (`isValidNoteShape` has already checked them);
- * everything else is validated and falls back to a safe default.
+ * after it was persisted. `isValidNoteShape` has checked that the identity
+ * fields are strings, and no more than that: an id that could not be one of
+ * ours (it becomes a path segment and a storage key) is replaced, and a date
+ * that is not a date becomes the time of the import. Everything else is
+ * validated and falls back to a safe default.
  */
-export function normalizeImportedNote(raw: Record<string, unknown>): Note {
+export function normalizeImportedNote(
+  raw: Record<string, unknown>,
+  now: string = new Date().toISOString(),
+): Note {
+  const date = (value: unknown): string | null =>
+    typeof value === "string" && !Number.isNaN(Date.parse(value))
+      ? value
+      : null;
+  const updatedAt = date(raw.updatedAt) ?? date(raw.createdAt) ?? now;
+  const trashed = raw.trashed === true;
   return {
-    id: raw.id as string,
+    id: typeof raw.id === "string" && NOTE_ID.test(raw.id) ? raw.id : ulid(),
     title: raw.title as string,
     content: raw.content as string,
     color:
@@ -145,8 +159,9 @@ export function normalizeImportedNote(raw: Record<string, unknown>): Note {
         : NoteFont.Default,
     pinned: raw.pinned === true,
     archived: raw.archived === true,
-    trashed: raw.trashed === true,
-    trashedAt: typeof raw.trashedAt === "string" ? raw.trashedAt : null,
+    trashed,
+    // A trashed note with no date it was trashed on would never expire.
+    trashedAt: trashed ? (date(raw.trashedAt) ?? now) : null,
     position:
       typeof raw.position === "number" && Number.isFinite(raw.position)
         ? raw.position
@@ -155,8 +170,8 @@ export function normalizeImportedNote(raw: Record<string, unknown>): Note {
     images: parseStringArray(raw.images),
     linkPreviews: parseLinkPreviews(raw.linkPreviews),
     reminder: parseReminder(raw.reminder),
-    createdAt: raw.createdAt as string,
-    updatedAt: raw.updatedAt as string,
+    createdAt: date(raw.createdAt) ?? updatedAt,
+    updatedAt,
   };
 }
 

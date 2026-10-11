@@ -52,6 +52,12 @@ ones that are missing, each in its own transaction, and writes its ledger row
 in the same transaction, so a step that fails leaves behind neither half of a
 schema change nor a claim to have made it.
 
+Several instances may boot against one Postgres database at once (a rolling
+deploy, two replicas). Each step is taken under a database advisory lock and
+checked against the ledger again once the lock is held, so one instance runs it
+and the others wait and then skip it. SQLite has one writer at a time by
+nature, and one server per file.
+
 Both drivers ship the same migration ids, in the same order; a test fails if
 they diverge. The SQL differs where the dialects do (SQLite has no boolean
 type and no `BYTEA`; Postgres has no `COLLATE NOCASE`), but what a database has

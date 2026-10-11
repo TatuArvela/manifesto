@@ -11,6 +11,7 @@ import {
   registerTestUser,
   type TestRig,
 } from "../test/setup.js";
+import { MAX_BATCH } from "./routes.js";
 
 interface RpcAnswer {
   jsonrpc: "2.0";
@@ -182,6 +183,23 @@ describe("MCP endpoint", () => {
         { jsonrpc: "2.0", id: "a", result: {} },
       ]);
     });
+
+    it("refuses a batch longer than it will answer in one request", async () => {
+      const token = await mintMcp();
+      const pings = (count: number) =>
+        Array.from({ length: count }, (_, i) => ({
+          jsonrpc: "2.0",
+          id: i,
+          method: "ping",
+        }));
+      const full = await post(token, pings(MAX_BATCH));
+      expect(full.status).toBe(200);
+      expect(await full.json()).toHaveLength(MAX_BATCH);
+
+      const over = await post(token, pings(MAX_BATCH + 1));
+      expect(over.status).toBe(400);
+      expect(((await over.json()) as RpcAnswer).error?.code).toBe(-32600);
+    });
   });
 
   describe("who may use it", () => {
@@ -348,6 +366,17 @@ describe("MCP endpoint", () => {
       const result = await tool(token, "update_note", { id: "x" });
       expect(result.isError).toBe(true);
       expect(result.content[0]?.text).toContain("at least one field");
+    });
+
+    it("refuse an id that would name another path", async () => {
+      const token = await mintMcp();
+      for (const id of [".", "..", "a/b", "a?b"]) {
+        const read = await tool(token, "get_note", { id });
+        expect(read.isError).toBe(true);
+        expect(read.content[0]?.text).toContain("Not a note id");
+        const trashed = await tool(token, "trash_note", { id });
+        expect(trashed.content[0]?.text).toContain("Not a note id");
+      }
     });
 
     it("offer a read-only token only what reads, and refuse it the rest", async () => {

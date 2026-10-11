@@ -211,5 +211,14 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
       );
       return result.rows.map(rowToShare);
     },
+
+    async listByTeam(teamId: string): Promise<NoteShare[]> {
+      const result = await pool.query<ShareRow>(
+        `SELECT ${SHARE_COLUMNS} FROM note_shares WHERE via_team = $1
+         ORDER BY note_id, user_id`,
+        [teamId],
+      );
+      return result.rows.map(rowToShare);
+    },
   };
 }

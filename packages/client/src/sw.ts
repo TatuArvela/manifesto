@@ -410,8 +410,12 @@ self.addEventListener("notificationclick", (event) => {
         type: "window",
         includeUncontrolled: true,
       });
+      // Only a window of this app. `includeUncontrolled` finds every window
+      // of the origin, and on a shared one (a subpath of a Pages site) that
+      // is other sites' pages too, which would be focused and told the note.
+      const scope = self.registration.scope;
       for (const client of clientList) {
-        if ("focus" in client) {
+        if ("focus" in client && client.url.startsWith(scope)) {
           client.postMessage({ type: "open-note", noteId });
           await client.focus();
           return;
