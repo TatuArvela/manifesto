@@ -323,7 +323,7 @@ The login flow:
 3. After the user consents, the IdP redirects to `OIDC_REDIRECT_URI` with `code` and `state`.
 4. The server verifies state, exchanges the code (PKCE), reads ID-token claims, just-in-time provisions a user (keyed by `(provider, sub)`), and mints a Manifesto session token.
 5. The server redirects to `OIDC_POST_LOGIN_REDIRECT#token=<sessionToken>`.
-6. The client picks up the fragment on first paint, calls `GET /api/auth/me` with the bearer token to fetch the user record, populates its auth signals, and clears the fragment from the address bar.
+6. The client picks up the fragment on first paint, calls `GET /api/auth/me` with the bearer token to fetch the user record, populates its auth signals, and clears the fragment from the address bar. It does so only in the tab that started the sign-in (step 1 leaves a mark in that tab's `sessionStorage`, good for 15 minutes and spent once): a `#token=` in a link someone was sent is cleared and ignored, since it would sign them in to the sender's account.
 
 The session token is then sent as `Authorization: Bearer <token>` against the rest of the API, identical to the local provider. Logout (`POST /api/auth/logout`) invalidates the local session; it does not perform IdP-side logout (RP-initiated logout is not implemented in v1).
 

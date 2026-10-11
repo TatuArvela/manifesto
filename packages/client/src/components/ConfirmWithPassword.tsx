@@ -1,5 +1,5 @@
 import { t } from "../i18n/index.js";
-import { currentUser, oidcReauthUrl } from "../state/auth.js";
+import { beginOidcSignIn, currentUser, oidcReauthUrl } from "../state/auth.js";
 import {
   CONFIRMATION_MESSAGES,
   type ConfirmationRefusal,
@@ -52,7 +52,12 @@ export function ConfirmationError({
       {signIn && (
         <>
           {" "}
-          <a href={signIn} class="underline font-medium">
+          <a
+            href={signIn}
+            onClick={beginOidcSignIn}
+            onAuxClick={beginOidcSignIn}
+            class="underline font-medium"
+          >
             {t("confirm.signInAgainLink")}
           </a>
         </>

@@ -15,6 +15,7 @@ import { resolveServerOrigin, resolveServerUrl } from "../config.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { storageConnection } from "../storage/index.js";
 import { getPasskey } from "../utils/webauthn.js";
+import { markOidcFlow, takeOidcFlow } from "./oidcFlow.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
@@ -553,6 +554,12 @@ export const oidcReauthUrl =
   oidcLoginUrl === null ? null : `${oidcLoginUrl}?reauth=1`;
 
 /**
+ * What a link to either address above runs as it is followed: the session
+ * that comes back is taken only in a tab that left this mark.
+ */
+export const beginOidcSignIn = (): void => markOidcFlow();
+
+/**
  * After an OIDC callback the server redirects to the client with the session
  * token in the URL fragment (`#token=...`). Picks it up, fetches the current
  * user via /api/auth/me, populates the auth signals, and clears the fragment
@@ -712,6 +719,10 @@ export async function consumeOidcRedirect(): Promise<boolean> {
     "",
     `${window.location.pathname}${window.location.search}`,
   );
+
+  // Only a sign-in this tab sent the browser to: a `#token=` in a link
+  // someone was handed is the sender's session, not theirs (`oidcFlow.ts`).
+  if (!takeOidcFlow()) return false;
 
   try {
     const res = await fetch(`${SERVER_URL}/api/auth/me`, {

@@ -3,6 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { APP_LOGO, APP_NAME, INSTANCE_NAME } from "../config.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
+  beginOidcSignIn,
   fetchCapabilities,
   type OidcRefusal,
   oidcLoginUrl,
@@ -180,6 +181,8 @@ function OidcLoginPanel() {
       </p>
       <a
         href={href}
+        onClick={beginOidcSignIn}
+        onAuxClick={beginOidcSignIn}
         class="block w-full text-center rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 transition-colors"
       >
         {t("login.oidcSubmit")}
