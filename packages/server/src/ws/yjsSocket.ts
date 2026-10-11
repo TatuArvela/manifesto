@@ -17,6 +17,7 @@ import { hashToken } from "../lib/token.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
+  MAX_YJS_BYTES,
   type YjsAuthContext,
   YjsPersistenceExtension,
 } from "./yjsExtension.js";
@@ -193,7 +194,13 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     },
   );
 
-  const wss = new WebSocketServer({ noServer: true });
+  // Bounded, or `ws` assembles frames of up to 100 MiB in memory before
+  // Hocuspocus, and so before `onAuthenticate`, sees any of them. A frame
+  // carries at most one document's whole state.
+  const wss = new WebSocketServer({
+    noServer: true,
+    maxPayload: MAX_YJS_BYTES,
+  });
 
   // Capture and replace existing upgrade listeners so that WS requests targeting
   // `/api/yjs` go to Hocuspocus while everything else (including the

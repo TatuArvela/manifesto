@@ -19,6 +19,14 @@ import type { Broadcaster } from "./broadcaster.js";
 
 export const SUBPROTOCOL = "manifesto-session";
 
+/**
+ * The largest frame `/api/ws` reads. A client only ever says which note it
+ * is looking at, and `ws` otherwise assembles frames of up to 100 MiB in
+ * memory before anything here sees them, for a peer that has yet to be
+ * authenticated.
+ */
+export const APP_SOCKET_MAX_PAYLOAD = 16 * 1024;
+
 interface Connection {
   id: string;
   userId: string;
@@ -63,6 +71,8 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
   ws.wss.options.handleProtocols = (protocols) => {
     return protocols.has(SUBPROTOCOL) ? SUBPROTOCOL : false;
   };
+  // Read at each upgrade, so setting it here bounds every socket.
+  ws.wss.options.maxPayload = APP_SOCKET_MAX_PAYLOAD;
 
   const connectionsByUser = new Map<string, Set<Connection>>();
   gaugeMetric("manifesto_app_sockets", "Open /api/ws sockets.", () =>

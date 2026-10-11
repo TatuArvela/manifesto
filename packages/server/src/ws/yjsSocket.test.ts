@@ -10,6 +10,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import WebSocket from "ws";
 import {
   Awareness,
   applyAwarenessUpdate,
@@ -22,9 +23,11 @@ import type { SqliteStorageDriver } from "../storage/sqlite/driver.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import { TEST_CONFIG } from "../test/setup.js";
 import { attachAppSocket } from "./appSocket.js";
+import { MAX_YJS_BYTES } from "./yjsExtension.js";
 import {
   attachYjsSocket,
   editorIsCurrent,
+  YJS_PATH,
   type YjsSocket,
 } from "./yjsSocket.js";
 
@@ -644,6 +647,32 @@ describe("Yjs collaboration socket /api/yjs", () => {
     expect(res.status).toBe(200);
     expect(await refused).toBe(true);
     client.destroy();
+  }, 15_000);
+});
+
+describe("what /api/yjs holds an open socket to", () => {
+  let rig: Rig;
+
+  beforeEach(async () => {
+    rig = await bootRig();
+  });
+
+  afterEach(async () => {
+    await close(rig);
+  });
+
+  it("refuses a frame larger than a note's state may be, before any sign-in", async () => {
+    const ws = new WebSocket(`${rig.wsBase}${YJS_PATH}`);
+    await new Promise<void>((resolve, reject) => {
+      ws.once("open", () => resolve());
+      ws.once("error", reject);
+    });
+    const closed = new Promise<number>((resolve) => {
+      ws.once("close", (code) => resolve(code));
+    });
+    ws.send(Buffer.alloc(MAX_YJS_BYTES + 1));
+    // 1009: message too big.
+    expect(await closed).toBe(1009);
   }, 15_000);
 });
 

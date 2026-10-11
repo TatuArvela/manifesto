@@ -44,6 +44,13 @@ itself, or every resume announces a reconnect that is already finishing. A delib
 delay is armed once per outage, not once per status write, since `connecting` and `closed` alternate
 all the way through one.
 
+Both server sockets bound what they read before anyone is authenticated: `ws` assembles a frame of
+up to 100 MiB otherwise. `/api/ws` takes `APP_SOCKET_MAX_PAYLOAD` (a client only says which note it
+is on) and `/api/yjs` `MAX_YJS_BYTES` (`ws/yjsExtension.ts`), which is also the most a note's stored
+state may weigh: past it `onStoreDocument` writes nothing and closes the document's sockets, since the
+state is the one part of a note no request schema sees. A message a client sends on `/api/ws` that
+needs more room needs the constant raised with it.
+
 Non-collaborative writes use optimistic concurrency: `updateNote` sends `If-Match`, and a 412 comes
 back carrying the current server row. `state/mergeNote.ts` then does a 3-way merge of
 (base, desired, current) and retries once. Scalars are client-wins; `tags`, `images` and

@@ -9,7 +9,11 @@ import { createAuthProvider } from "../auth/index.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
 import { TEST_CONFIG } from "../test/setup.js";
-import { attachAppSocket, SUBPROTOCOL } from "./appSocket.js";
+import {
+  APP_SOCKET_MAX_PAYLOAD,
+  attachAppSocket,
+  SUBPROTOCOL,
+} from "./appSocket.js";
 
 interface Rig {
   storage: StorageDriver;
@@ -562,6 +566,33 @@ describe("application WebSocket /api/ws", () => {
 
     ownerSock.ws.close();
     aliceSock.ws.close();
+  });
+});
+
+describe("what /api/ws holds an open socket to", () => {
+  let rig: Rig;
+
+  beforeEach(async () => {
+    rig = await bootRig();
+  });
+
+  afterEach(async () => {
+    await close(rig);
+  });
+
+  const closeCode = (ws: WebSocket) =>
+    new Promise<number>((resolve) => {
+      ws.once("close", (code) => resolve(code));
+    });
+
+  it("refuses a frame larger than anything a client says", async () => {
+    const token = await register(rig, "alice");
+    const { ws } = openSocket(rig.wsUrl, token);
+    await waitOpen(ws);
+    const closed = closeCode(ws);
+    ws.send("x".repeat(APP_SOCKET_MAX_PAYLOAD + 1));
+    // 1009: message too big.
+    expect(await closed).toBe(1009);
   });
 });
 
