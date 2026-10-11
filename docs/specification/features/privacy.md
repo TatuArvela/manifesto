@@ -17,8 +17,8 @@ operator, not only the code.
 | **Connected, own server** | Its operator, which is the user. |
 | **Connected, someone else's server** | The operator, through the database or its backups. Admins, only with `ADMIN_EXPORT` on (below). The people a note is [shared with](sharing-with-people.md). |
 
-Notes are not end-to-end encrypted, and will not be; [Encryption](encryption.md) has the design that is planned, everything encrypted at rest, and why it stops there.
-Anyone who needs notes the server cannot read should use open mode, or run their own server.
+Notes are not end-to-end encrypted yet. [Encryption](encryption.md) has the design that is planned: every account's notes encrypted in the browser, so that the server stores what it cannot read.
+Until it is built, anyone who needs notes the server cannot read should use open mode, or run their own server.
 
 ## What an admin can see
 
