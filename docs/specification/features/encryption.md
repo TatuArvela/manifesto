@@ -38,12 +38,19 @@ should not (an injection, a misconfigured replica).
   its own, and says at start-up where it is and that it must be backed up apart from the database.
 - Each account has a random **data key**, stored on the user's row wrapped by the server key.
 - Everything of the account's is AES-256-GCM under its data key, with the row's id as associated
-  data, so a ciphertext cannot be moved to another row: a note's title and text, its versions, its
-  persisted Yjs state, its link previews and its comments. A shared note is under its owner's key;
-  the server opens it for whoever the note is shared with. Webhook secrets, which have to be read
-  back to sign a delivery and so cannot be hashed, are encrypted the same way.
-- What stays in the clear is what the database has to sort, join and filter by: ids, owners, tags,
-  colour, pin, archive and trash state, reminder times, timestamps.
+  data, so a ciphertext cannot be moved to another row: a note's title and text, its tags, its
+  reminder, its versions, its persisted Yjs state, its link previews and its comments. A shared note
+  is under its owner's key; the server opens it for whoever the note is shared with. The tags and
+  the reminder a recipient puts on a shared note are theirs, and are under the recipient's key.
+  Webhook secrets, which have to be read back to sign a delivery and so cannot be hashed, are
+  encrypted the same way.
+- What stays in the clear is what the database has to sort, join and filter by (ids, owners, pin,
+  archive and trash state, timestamps), and colour, which is one of a few values and says nothing.
+
+Tags and reminders are a user's own words and a user's own schedule, and the database queries by
+neither: tags are filtered and counted in memory, on the client and in the MCP tools alike, and
+whether a reminder is due is worked out from its time, timezone and recurrence in code. So they are
+encrypted with the note. That a note has a reminder stays visible; when, and how often, does not.
 
 A key kept in the clear on the user's row was the alternative, and it protects nothing: whoever has the
 rows has the keys beside them. Wrapping the data key with a key the database never holds is what makes
@@ -80,13 +87,23 @@ slower than the `LIKE` it replaces; it is the price, and it is paid. An index of
 keep the search in the database and would tell anyone holding the database which notes share which
 words, so it is not used.
 
+### Reminders
+
+The server sends a reminder as a push message when no open app fired it
+([Reminders](reminders.md#push-from-the-server)), so every 30 seconds it has to know which reminders
+are due. A reminder is encrypted as a value of its own, apart from the note's text, so that pass
+decrypts the reminders of the accounts with a subscribed browser and nothing else, and then the title
+and text of a note whose reminder it sends. An account nobody has subscribed on is not read at all,
+as now.
+
 ### What it does not protect
 
 - Anything from the operator, or from someone who takes over the running server: they have the server
   key. See [Why not end-to-end](#why-not-end-to-end).
 - A backup that carries the key file beside the database. The start-up message and
   [Server Deployment](../server/deployment.md) say to keep them apart.
-- Which notes and images exist, whose they are, how large, how tagged, and when they changed.
+- Which notes and images exist, whose they are, how large, which have a reminder, and when they
+  changed. A note's id is a ULID, which carries the moment it was created.
 - Open mode: a browser has nowhere to keep a key apart from `localStorage` and IndexedDB, so open
   mode's notes and images are as private as the browser profile, as today.
 
@@ -140,8 +157,9 @@ and after an interruption. An image's content address is rewritten in the same s
 
 1. The server key and the data keys: reading the key or making the key file, wrapping, the key id,
    and replacing the server key.
-2. Note text, versions, Yjs state, link previews, comments and webhook secrets, each with its key
-   version, with the start-up job and `/api/search` in memory.
+2. Note text, tags, reminders, versions, Yjs state, link previews, comments and webhook secrets,
+   each with its key version, with the start-up job, `/api/search` in memory and the push pass
+   reading reminders alone.
 3. Images: the bytes, the keyed content address, and their part of the start-up job.
 4. The command that replaces data keys. It can follow the rest, because the key version it needs is
    on every row and image from step 2.
