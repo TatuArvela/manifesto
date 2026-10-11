@@ -6,6 +6,7 @@ import type {
 } from "@manifesto/shared";
 import { Hono } from "hono";
 import { audit } from "../audit/audit.js";
+import { createExpiringCounter } from "../lib/expiringCounter.js";
 import { nowIso } from "../lib/time.js";
 import type { Mailer } from "../mail/mailer.js";
 import { mailLocale, shareInvitationMail } from "../mail/templates.js";
@@ -29,6 +30,15 @@ export interface ShareRoutesDeps {
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 
 /**
+ * Invitation mails one account may send another in an hour. Sharing, removing
+ * and sharing again mails each time, and the mail carries the sender's own
+ * words (the note's title) from this server's address, so without a bound an
+ * account is a way to flood or phish anyone it can name. The invitation
+ * itself is always made; past this only its mail is left out.
+ */
+export const INVITATION_MAILS_PER_HOUR = 5;
+
+/**
  * `/api/notes/:id/shares`: who a note is shared with, managed by its owner.
  *
  * Registered on the notes router, behind its authentication and rate limit.
@@ -38,6 +48,10 @@ type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
  */
 export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
   const { storage, noteEvents, accessChanges } = deps;
+  const invitationMails = createExpiringCounter({
+    windowMs: 60 * 60 * 1000,
+    maxEntries: 50_000,
+  });
 
   async function requireOwner(noteId: string, userId: string): Promise<void> {
     const access = await storage.notes.access(noteId, userId);
@@ -119,7 +133,12 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
         noteId,
         detail: { role },
       });
-      if (deps.mail && recipient.email) {
+      if (
+        deps.mail &&
+        recipient.email &&
+        invitationMails.hit(`${userId}\u0000${recipientId}`).count <=
+          INVITATION_MAILS_PER_HOUR
+      ) {
         const owner = await storage.users.findById(userId);
         const message = shareInvitationMail(
           // The recipient's language, which their client reported; the

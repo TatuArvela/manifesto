@@ -300,6 +300,8 @@ language rather than the sharer's: each client reports the language it is set to
 (`PUT /api/auth/me/locale`) whenever it differs from what the server holds, and an account no client
 has reported for gets English. Mail is a convenience
 beside something that already happened, so a failure to send is logged and nothing else fails.
+One account mails another at most five invitations an hour; past that the invitation is still made
+and only its mail is left out, so sharing and unsharing cannot be used to flood someone's inbox.
 Accounts from single sign-on have no password here and are not offered a reset.
 
 ## Audit log
