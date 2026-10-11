@@ -316,6 +316,31 @@ describe("parseNoteJson bulk normalization", () => {
     expect(note?.linkPreviews).toHaveLength(1);
   });
 
+  it("replaces an id that could not be a note's, and dates that are not dates", () => {
+    const before = Date.now();
+    const result = parseNoteJson(
+      JSON.stringify([
+        {
+          ...baseNote,
+          id: "../../auth/me",
+          createdAt: "yesterday",
+          updatedAt: "soon",
+          trashed: true,
+          trashedAt: "never",
+        },
+        { ...baseNote, createdAt: "?", updatedAt: "2026-02-03T04:05:06.000Z" },
+      ]),
+    );
+    if (result.kind !== "bulk") throw new Error("expected bulk");
+    const [bad, half] = result.notes;
+    expect(bad?.id).toMatch(/^[0-9A-Z]{26}$/);
+    for (const value of [bad?.createdAt, bad?.updatedAt, bad?.trashedAt]) {
+      expect(Date.parse(value ?? "")).toBeGreaterThanOrEqual(before);
+    }
+    expect(half?.id).toBe(baseNote.id);
+    expect(half?.createdAt).toBe("2026-02-03T04:05:06.000Z");
+  });
+
   it("normalizes an unknown reminder recurrence to none", () => {
     const result = parseNoteJson(
       JSON.stringify([
