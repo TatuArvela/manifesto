@@ -55,6 +55,10 @@ rests on changes. A proposal to revisit one should say what changed.
 - **Redis, a search engine or any second service as a requirement**: a self-hosted server is one
   container, with Postgres optional. Anything that would want another service gets an in-process
   default first, and the service only as an option.
+- **Encryption as a choice**, for some accounts or for notes locked one at a time: every account in
+  connected mode is end-to-end encrypted the same way ([Encryption](features/encryption.md)). A
+  choice makes two kinds of note, and every feature that touches a note's content (sharing,
+  collaboration, previews, reminders, tokens, webhooks) would be built and kept working twice.
 - **Loading notes on demand, with search moved to the server**: the client drains every page of
   `/api/notes`, because tag counts, the tag list and the filter chain are computed over the whole
   list, and open mode has no server to search on. Paging bounds a response and images load as they
