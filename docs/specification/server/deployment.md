@@ -315,6 +315,7 @@ All of these are required and validated at boot. The server only reads them when
 | `OIDC_ADMIN_GROUP`          | Optional. Members are admins and non-members are not, decided again at every sign-in, so removing someone from the group at the identity provider takes admin away at their next sign-in. The last admin is never demoted. Leave unset to grant admin by hand. |
 | `OIDC_TEAM_GROUPS`          | Optional. Groups to mirror as [teams](../features/sharing-with-people.md#teams), comma-separated, or `*` for every group. Each becomes a team the first time a member signs in, and its members follow the group at every sign-in. Unset, no group becomes a team; admins can still make teams by hand. |
 | `OIDC_AUTO_REGISTER`        | `on` (default) creates an account the first time someone signs in. `off` lets in only identities that already have one, and sends anyone else back with a message. |
+| `OIDC_UNVERIFIED_EMAIL`     | `refuse` (default) stores an account's email address only when the provider sends `email_verified: true`. `accept` also takes an address the provider says nothing about, for one that leaves the claim out and only hands out addresses it controls. An address marked `email_verified: false` is never stored. |
 
 The login flow:
 
@@ -323,7 +324,7 @@ The login flow:
 3. After the user consents, the IdP redirects to `OIDC_REDIRECT_URI` with `code` and `state`.
 4. The server verifies state, exchanges the code (PKCE), reads ID-token claims, just-in-time provisions a user (keyed by `(provider, sub)`), and mints a Manifesto session token.
 5. The server redirects to `OIDC_POST_LOGIN_REDIRECT#token=<sessionToken>`.
-6. The client picks up the fragment on first paint, calls `GET /api/auth/me` with the bearer token to fetch the user record, populates its auth signals, and clears the fragment from the address bar.
+6. The client picks up the fragment on first paint, calls `GET /api/auth/me` with the bearer token to fetch the user record, populates its auth signals, and clears the fragment from the address bar. It does so only in the tab that started the sign-in (step 1 leaves a mark in that tab's `sessionStorage`, good for 15 minutes and spent once): a `#token=` in a link someone was sent is cleared and ignored, since it would sign them in to the sender's account.
 
 The session token is then sent as `Authorization: Bearer <token>` against the rest of the API, identical to the local provider. Logout (`POST /api/auth/logout`) invalidates the local session; it does not perform IdP-side logout (RP-initiated logout is not implemented in v1).
 

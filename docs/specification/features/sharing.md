@@ -99,7 +99,7 @@ not shown then.
   publish it. Automatic notes and notes in the trash cannot be published.
 - **Every failure looks the same**: a link never made, revoked, expired, used up, or on a note in the
   trash all say only that the link does not open a note. Wrong passwords are limited per address and
-  per link.
+  per link, and one link's passwords are checked one at a time, so guesses sent together still add up.
 - **Not for search engines**: the public routes send `X-Robots-Tag: noindex` and `no-store`, and no
   `Referer` leaves the page.
 

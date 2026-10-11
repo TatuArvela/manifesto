@@ -17,6 +17,7 @@ const both: Partial<ServerConfig> = {
     userGroup: null,
     teamGroups: null,
     autoRegister: true,
+    acceptUnverifiedEmail: false,
   },
 };
 

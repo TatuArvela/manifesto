@@ -78,8 +78,10 @@ export function createAuthSharedRoutes(
       const result = await deps.storage.users.setEmail(userId, email);
       if (result === "not-found") throw new HttpError(401, "User not found");
       if (result === "email-taken") throw emailTaken();
-      // A sign-in link already sent went to the address this replaces.
+      // A sign-in or reset link already sent went to the address this
+      // replaces.
       await deps.storage.signInLinks.deleteByUser(userId);
+      await deps.storage.passwordResets.deleteByUser(userId);
       const body: AuthMeResponse = {
         user: toAuthUser({ ...user, email }),
       };

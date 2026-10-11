@@ -273,18 +273,21 @@ export const linkPreviewQuerySchema = z.object({ url: httpUrlSchema });
 
 const reminderRecurrenceSchema = z.enum(REMINDER_RECURRENCES);
 
+// Bounded like every other field of a note: these ride in each listing, so
+// an uncapped one is a megabyte per note there. A timestamp and an IANA zone
+// name are short; a plugin's key for a note is its own text.
 const reminderSchema = z.object({
-  time: z.string(),
+  time: z.string().max(40),
   recurrence: reminderRecurrenceSchema,
   day: z.number().int().min(1).max(31).exactOptional(),
-  timezone: z.string(),
-  lastFiredAt: z.string().exactOptional(),
+  timezone: z.string().max(64),
+  lastFiredAt: z.string().max(40).exactOptional(),
 });
 
 const autoNoteSourceSchema = z.object({
   kind: z.literal("auto-note"),
-  pluginId: z.string(),
-  noteKey: z.string(),
+  pluginId: z.string().max(64),
+  noteKey: z.string().max(500),
 });
 
 // Per-field caps. The 1 MiB request-body cap is a backstop, but without

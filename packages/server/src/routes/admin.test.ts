@@ -326,6 +326,7 @@ describe("admin routes under single sign-on", () => {
         userGroup: null,
         teamGroups: null,
         autoRegister: true,
+        acceptUnverifiedEmail: false,
       },
     });
     const user = await rig.storage.users.create({

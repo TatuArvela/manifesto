@@ -41,6 +41,8 @@ away from someone (removal, a role drop to `view`, the owner trashing it) also g
 `sharing/accessChanges.ts`, for the same reason as `endUserSessions`: sockets authorized at connect
 stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
 `storage/contracts/sharingContract.ts` runs the rules against both drivers.
+An invitation's mail is counted per sender and recipient (`INVITATION_MAILS_PER_HOUR` in
+`routes/shares.ts`); anything new that mails someone at another account's bidding needs a bound too.
 
 Comments (`routes/comments.ts`, `note_comments`) sit beside a shared note and never touch it: no
 `updated_at` stamp, no version, no `note:updated`. Their events go out through `noteEvents.commented`,

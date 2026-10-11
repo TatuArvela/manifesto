@@ -646,7 +646,7 @@ without the page, but cannot see them, which is why the event exists. A client t
 it does when coming back to the foreground after longer than that. A client that has never heard
 one, because the server predates it, does not judge the socket by silence.
 
-The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol.
+The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol. A frame from the client may be at most 16 KiB; a larger one closes the socket with `1009`. Both sockets look at their credential again every five minutes and close with `4401` once it no longer opens them (an expired session or token).
 
 ### Collaboration socket: `/api/yjs`
 
@@ -658,4 +658,4 @@ Awareness states are rewritten on the way in: each carries the authenticated use
 
 The connection URL carries the client's editor schema version as `?editor=<n>`. A version below the server's `EDITOR_SCHEMA_VERSION`, or one that is not a number, is refused at the `Auth` message with the reason `editor-outdated` (see [Collaborative Editing](features/collaborative-editing.md#editor-versions)). A URL without the parameter counts as version 1.
 
-Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres).
+Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres). A frame, and a note's whole state, may be at most 8 MiB: a larger frame closes the socket with `1009` before it is read, and a state that has grown past it is not stored and its editors are disconnected with the same code.

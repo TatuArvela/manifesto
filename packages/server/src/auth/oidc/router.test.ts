@@ -50,6 +50,7 @@ const OIDC_CONFIG: OidcConfig = {
   userGroup: null,
   teamGroups: null,
   autoRegister: true,
+  acceptUnverifiedEmail: false,
 };
 
 const FAKE_DISCOVERY = {} as openid.Configuration;
@@ -414,8 +415,33 @@ describe("oidc auth router", () => {
       const later = await signInWith({
         sub: "mail-1",
         email: "dana@work.example",
+        email_verified: true,
       });
       expect(later?.email).toBe("dana@work.example");
+    });
+
+    it("does not take an address the provider says nothing about", async () => {
+      const user = await signInWith({
+        sub: "mail-5",
+        email: "frank@example.com",
+      });
+      expect(user?.email).toBeNull();
+    });
+
+    it("takes one with OIDC_UNVERIFIED_EMAIL=accept, but never one marked unverified", async () => {
+      await rig.close();
+      rig = bootOidcRig({ acceptUnverifiedEmail: true });
+      const unstated = await signInWith({
+        sub: "mail-6",
+        email: "grace@example.com",
+      });
+      expect(unstated?.email).toBe("grace@example.com");
+      const refused = await signInWith({
+        sub: "mail-7",
+        email: "heidi@example.com",
+        email_verified: false,
+      });
+      expect(refused?.email).toBeNull();
     });
 
     it("does not take an address the provider has not verified", async () => {
@@ -428,10 +454,15 @@ describe("oidc auth router", () => {
     });
 
     it("signs someone in without an address another account holds", async () => {
-      await signInWith({ sub: "mail-3", email: "shared@example.com" });
+      await signInWith({
+        sub: "mail-3",
+        email: "shared@example.com",
+        email_verified: true,
+      });
       const second = await signInWith({
         sub: "mail-4",
         email: "SHARED@example.com",
+        email_verified: true,
       });
       expect(second).not.toBeNull();
       expect(second?.email).toBeNull();
@@ -439,6 +470,7 @@ describe("oidc auth router", () => {
       const existing = await signInWith({
         sub: "mail-3",
         email: "shared@example.com",
+        email_verified: true,
       });
       expect(existing?.email).toBe("shared@example.com");
     });

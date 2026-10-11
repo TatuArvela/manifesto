@@ -198,6 +198,33 @@ describe("notes routes", () => {
     expect(res.status).toBe(422);
   });
 
+  it("rejects a reminder or a plugin source whose text has no bound", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const post = (fields: Record<string, unknown>) =>
+      rig.request("/api/notes", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({ ...baseNote, ...fields }),
+      });
+    const reminder = {
+      time: "2026-05-01T09:00",
+      recurrence: "none",
+      timezone: "Europe/Helsinki",
+    };
+    expect((await post({ reminder })).status).toBe(201);
+    for (const long of [
+      { reminder: { ...reminder, time: "2".repeat(41) } },
+      { reminder: { ...reminder, timezone: "Z".repeat(65) } },
+      { reminder: { ...reminder, lastFiredAt: "2".repeat(41) } },
+      { source: { kind: "auto-note", pluginId: "p".repeat(65), noteKey: "k" } },
+      {
+        source: { kind: "auto-note", pluginId: "p", noteKey: "k".repeat(501) },
+      },
+    ]) {
+      expect((await post(long)).status).toBe(422);
+    }
+  });
+
   it("keeps the day a monthly reminder repeats on, and refuses one no month has", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token);

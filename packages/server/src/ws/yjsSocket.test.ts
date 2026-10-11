@@ -10,6 +10,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import WebSocket from "ws";
 import {
   Awareness,
   applyAwarenessUpdate,
@@ -18,13 +19,16 @@ import {
 import * as Y from "yjs";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
+import { hashToken } from "../lib/token.js";
 import type { SqliteStorageDriver } from "../storage/sqlite/driver.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import { TEST_CONFIG } from "../test/setup.js";
 import { attachAppSocket } from "./appSocket.js";
+import { MAX_YJS_BYTES } from "./yjsExtension.js";
 import {
   attachYjsSocket,
   editorIsCurrent,
+  YJS_PATH,
   type YjsSocket,
 } from "./yjsSocket.js";
 
@@ -52,7 +56,7 @@ const baseNote: NoteCreate = {
   reminder: null,
 };
 
-async function bootRig(): Promise<Rig> {
+async function bootRig(recheckMs?: number): Promise<Rig> {
   const cfg = { ...TEST_CONFIG, port: 0 };
   const storage = createSqliteStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);
@@ -83,6 +87,7 @@ async function bootRig(): Promise<Rig> {
     revocations,
     accessChanges,
     cfg,
+    recheckMs,
   });
   const port = (server.address() as AddressInfo).port;
   return {
@@ -644,6 +649,58 @@ describe("Yjs collaboration socket /api/yjs", () => {
     expect(res.status).toBe(200);
     expect(await refused).toBe(true);
     client.destroy();
+  }, 15_000);
+});
+
+describe("what /api/yjs holds an open socket to", () => {
+  let rig: Rig;
+
+  beforeEach(async () => {
+    rig = await bootRig(50);
+  });
+
+  afterEach(async () => {
+    await close(rig);
+  });
+
+  it("disconnects a session that ran out, and keeps a live one", async () => {
+    const { token: lapsing } = await register(rig, "alice");
+    const live = await signIn(rig, "alice");
+    const noteId = await createNote(rig, live);
+    const gone = connect(rig, noteId, lapsing);
+    const kept = connect(rig, noteId, live);
+    expect(await waitSynced(gone)).toBe(true);
+    expect(await waitSynced(kept)).toBe(true);
+
+    // Nothing announces an expiry: the row just stops being good.
+    const refused = waitAuthFailed(gone, 8000);
+    await rig.storage.sessions.touch(
+      hashToken(lapsing),
+      new Date().toISOString(),
+      "2000-01-01T00:00:00.000Z",
+    );
+    expect(await refused).toBe(true);
+    const tokens = [...rig.yjs.hocuspocus.documents.values()].flatMap(
+      (document) => document.getConnections().map((c) => c.context.token),
+    );
+    expect(tokens).toEqual([live]);
+
+    gone.destroy();
+    kept.destroy();
+  }, 15_000);
+
+  it("refuses a frame larger than a note's state may be, before any sign-in", async () => {
+    const ws = new WebSocket(`${rig.wsBase}${YJS_PATH}`);
+    await new Promise<void>((resolve, reject) => {
+      ws.once("open", () => resolve());
+      ws.once("error", reject);
+    });
+    const closed = new Promise<number>((resolve) => {
+      ws.once("close", (code) => resolve(code));
+    });
+    ws.send(Buffer.alloc(MAX_YJS_BYTES + 1));
+    // 1009: message too big.
+    expect(await closed).toBe(1009);
   }, 15_000);
 });
 

@@ -374,6 +374,35 @@ describe("local auth router", () => {
       expect((await attempt("bob", "password-5678", 901)).status).toBe(200);
     });
 
+    it("counts wrong current passwords at a password change on the same budget", async () => {
+      const { token } = await registerTestUser(
+        proxied,
+        "alice",
+        "password-1234",
+      );
+      const change = (currentPassword: string, n: number) =>
+        proxied.request("/api/auth/password", {
+          method: "POST",
+          headers: {
+            ...authHeaders(token),
+            "x-forwarded-for": `2001:db8:1:${n.toString(16)}::1`,
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword: "password-5678",
+          }),
+        });
+      for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
+        expect((await change("wrong-password", i)).status).toBe(403);
+      }
+      // A stolen session that moves between addresses stops here, and the
+      // right password waits as it does at sign-in.
+      const locked = await change("password-1234", 900);
+      expect(locked.status).toBe(429);
+      expect(locked.headers.get("Retry-After")).toMatch(/^\d+$/);
+      expect((await attempt("alice", "password-1234", 901)).status).toBe(429);
+    });
+
     it("forgets the failures once a password is right", async () => {
       await registerTestUser(proxied, "alice", "password-1234");
       for (let i = 0; i < MAX_LOGIN_FAILURES - 1; i++) {

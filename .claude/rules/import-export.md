@@ -28,7 +28,8 @@ The rendered preview still goes through `remarkRenderer`, which sanitizes.
 Public links (`routes/publicLinks.ts`, `state/publicLinks.ts`) are the revocable, server-side
 counterpart: `/p/<token>` renders `PublicNotePage` in place of the app (`main.tsx`), with no account.
 Every way a link fails answers the same 404, and a view is counted by one conditional `UPDATE`
-(`recordView`), never a read then a write. A snapshot's pictures are referrers for the attachment
+(`recordView`), never a read then a write. A link's password checks run one at a time (`inTurn`), for
+the same reason: the failure count is read before a verify that takes long enough for others to arrive. A snapshot's pictures are referrers for the attachment
 sweep in both drivers, so a new place that keeps attachment references must be added there too.
 
 Other apps' formats (Evernote, Joplin, Simplenote, Standard Notes, HTML) are `Importer`s in

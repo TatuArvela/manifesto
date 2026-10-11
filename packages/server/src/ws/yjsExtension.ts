@@ -7,6 +7,19 @@ import * as Y from "yjs";
 import { logger } from "../lib/logger.js";
 import type { YjsStore } from "../storage/types.js";
 
+/**
+ * The most a note's collaborative state may weigh, and so the largest frame
+ * `/api/yjs` reads. A note's text stops at 100,000 characters and its state
+ * is a small multiple of that, edit history included, so this is far above
+ * any real note. Without it anyone who may edit a note could grow the row
+ * its owner keeps it in without end: the state is the one part of a note no
+ * request schema sees.
+ */
+export const MAX_YJS_BYTES = 8 * 1024 * 1024;
+
+/** Standard close code for a message too big to take. */
+const CLOSE_TOO_BIG = 1009;
+
 export interface YjsAuthContext {
   userId: string;
   noteId: string;
@@ -58,6 +71,18 @@ export class YjsPersistenceExtension implements Extension {
     const ctx = payload.lastContext;
     if (!ctx?.ownerId || !ctx?.noteId) return;
     const state = Y.encodeStateAsUpdate(document);
+    if (state.byteLength > MAX_YJS_BYTES) {
+      // Not written, so what is stored stays the last state that fitted, and
+      // nobody stays connected to a document that only grows in memory.
+      logger.warn("Y.Doc state is over the limit; not stored", {
+        noteId: ctx.noteId,
+        bytes: state.byteLength,
+      });
+      for (const connection of document.getConnections()) {
+        connection.webSocket.close(CLOSE_TOO_BIG, "Document too large");
+      }
+      return;
+    }
     const vector = Y.encodeStateVector(document);
     await this.store.store(
       ctx.noteId,

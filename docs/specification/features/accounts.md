@@ -78,9 +78,11 @@ verified by sending any.
   refused (`409`, `code: "email_taken"`).
 - **Under local sign-in** it can be given when registering, set or removed on the Account settings page, and
   given or changed by an admin.
-- **Under single sign-on** the identity provider's `email` claim is stored at every sign-in, unless the
-  provider marks it `email_verified: false`, or another account already holds it (the sign-in goes
-  ahead and the address is left off). Account settings shows it read-only. An admin can, but
+- **Under single sign-on** the identity provider's `email` claim is stored at every sign-in, when the
+  provider vouches for it with `email_verified: true` and no other account already holds it (otherwise
+  the sign-in goes ahead and the address is left off). A provider that leaves `email_verified` out has
+  not vouched for it; `OIDC_UNVERIFIED_EMAIL=accept` takes its addresses anyway, and one marked
+  `email_verified: false` is never taken. Account settings shows it read-only. An admin can, but
   the next sign-in puts the provider's address back.
 
 ## The Users view
@@ -130,7 +132,8 @@ A temporary password is good for one thing: choosing a real one.
 
 **Change password** on the Account settings page asks for the current password and the new
 one twice. It is offered only under local sign-in. A successful change keeps the current session and
-ends every other session of the account, including its open sockets.
+ends every other session of the account, including its open sockets. A wrong current password counts
+against the same per-account budget as a failed sign-in, and `429` answers while the account is locked.
 
 ## Confirming a change from a session
 
@@ -168,6 +171,11 @@ opened:
 
 This is what makes a reset useful against someone who has learned a password: whoever is signed in
 with it stops receiving note events and stops editing live documents at once.
+
+A session or token that simply runs out announces nothing, so each socket's credential is looked at
+again every five minutes, and one that no longer opens the socket closes it the same way. Looking is a
+use of the session, as a request is, so a tab left open and connected does not lapse for being idle;
+the absolute lifetime ends it all the same.
 
 ## Personal API tokens
 
@@ -284,6 +292,9 @@ the address and mails a link to `APP_URL/#reset=<token>`, which opens a form for
 - A link works once, for 30 minutes; its token is stored as a SHA-256 hash. Using it ends every session
   and API token of the account, as a password change does. Two-factor sign-in stays on: the link proves
   control of the mailbox, not of the authenticator.
+- A link does not outlive what it stands for or where it was sent: a password change, an admin's
+  temporary password and a change of the account's email address (its own or an admin's) void every
+  reset link the account has outstanding, as they do its sign-in links.
 - The mail is in the language the sign-in screen was in (English or Finnish; the server keeps these few
   messages in `mail/templates.ts`).
 
@@ -292,6 +303,8 @@ language rather than the sharer's: each client reports the language it is set to
 (`PUT /api/auth/me/locale`) whenever it differs from what the server holds, and an account no client
 has reported for gets English. Mail is a convenience
 beside something that already happened, so a failure to send is logged and nothing else fails.
+One account mails another at most five invitations an hour; past that the invitation is still made
+and only its mail is left out, so sharing and unsharing cannot be used to flood someone's inbox.
 Accounts from single sign-on have no password here and are not offered a reset.
 
 ## Audit log

@@ -197,6 +197,44 @@ describe("public links", () => {
     expect(links[0]).toMatchObject({ viewCount: 1, hasPassword: true });
   });
 
+  it("holds wrong passwords that arrive together to the link's budget", async () => {
+    const proxied = await bootTestAppWith({ trustProxy: true });
+    try {
+      const account = await registerTestUser(proxied, "olivia");
+      const made = await proxied.request("/api/notes", {
+        method: "POST",
+        headers: authHeaders(account.token),
+        body: JSON.stringify(baseNote),
+      });
+      const { note } = (await made.json()) as { note: Note };
+      const published = await proxied.request(`/api/notes/${note.id}/links`, {
+        method: "POST",
+        headers: authHeaders(account.token),
+        body: JSON.stringify({ mode: "live", password: "sesame" }),
+      });
+      const { link } = (await published.json()) as { link: PublicLink };
+      // Each from an address of its own, so only the link's count can stop
+      // them, and all at once, so none has been counted when the rest ask.
+      const guess = (n: number, password = "wrong") =>
+        proxied.request(`/api/public/${link.token}/unlock`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-forwarded-for": `2001:db8:2:${n.toString(16)}::1`,
+          },
+          body: JSON.stringify({ password }),
+        });
+      const statuses = (
+        await Promise.all(Array.from({ length: 30 }, (_, n) => guess(n)))
+      ).map((res) => res.status);
+      expect(statuses.filter((status) => status === 403)).toHaveLength(20);
+      expect(statuses.filter((status) => status === 429)).toHaveLength(10);
+      expect((await guess(900, "sesame")).status).toBe(429);
+    } finally {
+      await proxied.close();
+    }
+  });
+
   it("serves only the pictures the note shows, and with the password's proof", async () => {
     const shownRef = await upload(PNG);
     const otherRef = await upload(GIF);

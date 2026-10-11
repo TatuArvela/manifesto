@@ -214,6 +214,28 @@ export function createPublicRoutes({
 
   const notFound = () => new HttpError(404, "Link not found");
 
+  /** Per link, the tail of the unlocks under way. */
+  const unlocking = new Map<string, Promise<void>>();
+
+  /**
+   * Runs one link's unlocks one after another. The failure count is read,
+   * the password verified and the failure counted, and a verify takes long
+   * enough that requests arriving together would otherwise all read the
+   * count before any of them had added to it.
+   */
+  function inTurn<T>(token: string, work: () => Promise<T>): Promise<T> {
+    const run = (unlocking.get(token) ?? Promise.resolve()).then(work);
+    const settled = run.then(
+      () => {},
+      () => {},
+    );
+    unlocking.set(token, settled);
+    void settled.then(() => {
+      if (unlocking.get(token) === settled) unlocking.delete(token);
+    });
+    return run;
+  }
+
   /** The link and what it shows, if it shows anything at all at `now`. */
   async function open(
     token: string,
@@ -256,16 +278,19 @@ export function createPublicRoutes({
     async (c) => {
       const now = nowIso();
       const { link, note } = await open(c.req.param("token"), now);
-      if (!link.passwordHash) throw notFound();
-      const failures = unlockFailures.peek(link.token, Date.now());
-      if (failures && failures.count >= UNLOCK_FAILURES_PER_LINK) {
-        throw new HttpError(429, "Too many attempts");
-      }
+      const { passwordHash } = link;
+      if (!passwordHash) throw notFound();
       const { password } = c.req.valid("json");
-      if (!(await verifyPassword(link.passwordHash, password))) {
-        unlockFailures.hit(link.token, Date.now());
-        throw new HttpError(403, "Wrong password");
-      }
+      await inTurn(link.token, async () => {
+        const failures = unlockFailures.peek(link.token, Date.now());
+        if (failures && failures.count >= UNLOCK_FAILURES_PER_LINK) {
+          throw new HttpError(429, "Too many attempts");
+        }
+        if (!(await verifyPassword(passwordHash, password))) {
+          unlockFailures.hit(link.token, Date.now());
+          throw new HttpError(403, "Wrong password");
+        }
+      });
       return c.json(await view(link, note, now));
     },
   );

@@ -24,7 +24,8 @@ not a read-then-write). Under local sign-in that first-account rule never fires 
 the server listens. Never replace that with a fixed default; see the spec for why.
 
 Anything that ends a user's sessions must go through `endUserSessions` (`auth/session.ts`), never
-`sessions.deleteByUser` alone. Sockets authenticate once, at connect, so deleting rows leaves them
+`sessions.deleteByUser` alone. A credential that only runs out announces nothing, so both sockets
+also ask again every `SOCKET_RECHECK_MS` (`ws/recheck.ts`). Sockets authenticate once, at connect, so deleting rows leaves them
 live; the helper also announces on `auth/revocations.ts`, and `ws/appSocket.ts` / `ws/yjsSocket.ts`
 close what it covers. The Yjs side closes the raw socket, since closing one document's connection is
 only a message the peer may ignore.
@@ -71,10 +72,16 @@ answer itself, so a caller only has to send back the challenge. Asking for a lin
 (`mailedLinksRepo.ts` in each driver). A link whose mail could not be sent is deleted, so it neither
 stays live unaudited nor starts the cooldown. The budget is checked only where a second factor is asked for or
 answered, since it guards guesses and an account without one has none to make here; `succeed` is called
-only when a factor held. `endUserSessions` voids the account's links, and a route that changes an
-email address calls `signInLinks.deleteByUser` itself. On the client the landing step spends the link
+only when a factor held. `endUserSessions` voids the account's links, sign-in and reset alike, and a route that changes an
+email address calls `signInLinks.deleteByUser` and `passwordResets.deleteByUser` itself: a link of
+either kind left in the old mailbox is the account, for whoever reads it. On the client the landing step spends the link
 on a press, never on mount (a mail scanner loads the page too), and `App` takes the token out of the
 address when someone is signed in already.
+
+Anything that checks a password from a session counts a wrong one in `loginAttempts`, the change of
+password (`/api/auth/password`) included: the address bucket alone refills for a stolen session that
+moves. Under single sign-on an address is stored only when the provider sends `email_verified: true`
+(`pickEmail`), unless `OIDC_UNVERIFIED_EMAIL=accept`.
 
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:

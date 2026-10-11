@@ -16,7 +16,9 @@ import { gaugeMetric } from "../lib/metrics.js";
 import { hashToken } from "../lib/token.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { StorageDriver } from "../storage/types.js";
+import { recheckSockets, SOCKET_RECHECK_MS } from "./recheck.js";
 import {
+  MAX_YJS_BYTES,
   type YjsAuthContext,
   YjsPersistenceExtension,
 } from "./yjsExtension.js";
@@ -27,6 +29,11 @@ import {
  */
 export const YJS_PATH = "/api/yjs";
 
+/** As much of a connection's socket as closing it takes. */
+interface WebSocketLike {
+  close(code?: number, reason?: string): void;
+}
+
 interface AttachOptions {
   httpServer: HttpServer;
   storage: StorageDriver;
@@ -34,6 +41,8 @@ interface AttachOptions {
   revocations: SessionRevocations;
   accessChanges: AccessChanges;
   cfg: ServerConfig;
+  /** Tests shorten this; everyone else uses {@link SOCKET_RECHECK_MS}. */
+  recheckMs?: number | undefined;
 }
 
 export interface YjsSocket {
@@ -193,7 +202,33 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     },
   );
 
-  const wss = new WebSocketServer({ noServer: true });
+  // A session or token that ran out announces nothing (see `recheck.ts`).
+  // The whole socket again, once for each one, however many notes it has open.
+  const recheckTimer = setInterval(() => {
+    const open = new Map<object, { token: string; socket: WebSocketLike }>();
+    for (const document of hocuspocus.documents.values()) {
+      for (const connection of document.getConnections()) {
+        const context = connection.context as YjsAuthContext | undefined;
+        if (!context) continue;
+        open.set(connection.webSocket, {
+          token: context.token,
+          socket: connection.webSocket,
+        });
+      }
+    }
+    void recheckSockets(authProvider, "notes:write", open.values(), (socket) =>
+      socket.close(4401, "Session ended"),
+    );
+  }, opts.recheckMs ?? SOCKET_RECHECK_MS);
+  recheckTimer.unref();
+
+  // Bounded, or `ws` assembles frames of up to 100 MiB in memory before
+  // Hocuspocus, and so before `onAuthenticate`, sees any of them. A frame
+  // carries at most one document's whole state.
+  const wss = new WebSocketServer({
+    noServer: true,
+    maxPayload: MAX_YJS_BYTES,
+  });
 
   // Capture and replace existing upgrade listeners so that WS requests targeting
   // `/api/yjs` go to Hocuspocus while everything else (including the
@@ -242,6 +277,7 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       // so in-flight Yjs updates aren't lost on shutdown.
       stopRevocations();
       stopAccessChanges();
+      clearInterval(recheckTimer);
       await hocuspocus.flushPendingStores();
       hocuspocus.closeConnections();
       wss.close();

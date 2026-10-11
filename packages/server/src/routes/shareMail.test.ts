@@ -6,6 +6,7 @@ import { createMemoryMailer } from "../mail/mailer.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
 import { authHeaders, TEST_CONFIG } from "../test/setup.js";
+import { INVITATION_MAILS_PER_HOUR } from "./shares.js";
 
 const cfg = {
   ...TEST_CONFIG,
@@ -103,6 +104,46 @@ describe("a share invitation by mail", () => {
     expect(mailer.sent).toHaveLength(1);
     expect(mailer.sent[0]?.to).toBe("bob@example.com");
     expect(mailer.sent[0]?.subject).toBe("olivia jakoi kanssasi muistiinpanon");
+  });
+
+  it("stops mailing one person after a few invitations, and still invites them", async () => {
+    const olivia = await register("olivia");
+    const bob = await register("bob");
+    const created = await request("/api/notes", {
+      method: "POST",
+      headers: authHeaders(olivia.token),
+      body: JSON.stringify({
+        title: "Groceries",
+        content: "",
+        color: NoteColor.Default,
+        font: NoteFont.Default,
+        pinned: false,
+        archived: false,
+        trashed: false,
+        position: 0,
+        tags: [],
+        images: [],
+        linkPreviews: [],
+        reminder: null,
+      }),
+    });
+    const { note } = (await created.json()) as { note: { id: string } };
+    // Sharing, removing and sharing again is how an inbox would be flooded.
+    for (let i = 0; i < INVITATION_MAILS_PER_HOUR + 3; i++) {
+      const shared = await request(`/api/notes/${note.id}/shares`, {
+        method: "POST",
+        headers: authHeaders(olivia.token),
+        body: JSON.stringify({ userId: bob.userId, role: "view" }),
+      });
+      expect(shared.status).toBe(201);
+      const removed = await request(
+        `/api/notes/${note.id}/shares/${bob.userId}`,
+        { method: "DELETE", headers: authHeaders(olivia.token) },
+      );
+      expect(removed.status).toBe(204);
+    }
+    await settle();
+    expect(mailer.sent).toHaveLength(INVITATION_MAILS_PER_HOUR);
   });
 
   it("refuses something that is not a language tag", async () => {
