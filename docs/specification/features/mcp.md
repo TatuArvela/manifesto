@@ -147,7 +147,7 @@ shared note can read it through an assistant and not change it.
 
 The endpoint is the protocol's Streamable HTTP transport in its stateless form, written for this server
 rather than taken from the MCP SDK: `POST /api/mcp` takes one JSON-RPC message (or, under protocol
-`2025-03-26`, a batch) and answers with JSON. It keeps no session and never streams, so `GET` and
+`2025-03-26`, a batch of at most 50) and answers with JSON. It keeps no session and never streams, so `GET` and
 `DELETE` answer `405`. It speaks protocol versions `2025-11-25`, `2025-06-18` and `2025-03-26`, and
 offers tools only (no prompts or resources). A request carrying an `Origin` that is neither in
 `CORS_ORIGINS` nor the server's own host is refused, so a web page elsewhere cannot use a browser to

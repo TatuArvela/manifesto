@@ -11,6 +11,7 @@ import {
   registerTestUser,
   type TestRig,
 } from "../test/setup.js";
+import { MAX_BATCH } from "./routes.js";
 
 interface RpcAnswer {
   jsonrpc: "2.0";
@@ -181,6 +182,23 @@ describe("MCP endpoint", () => {
       expect(await res.json()).toEqual([
         { jsonrpc: "2.0", id: "a", result: {} },
       ]);
+    });
+
+    it("refuses a batch longer than it will answer in one request", async () => {
+      const token = await mintMcp();
+      const pings = (count: number) =>
+        Array.from({ length: count }, (_, i) => ({
+          jsonrpc: "2.0",
+          id: i,
+          method: "ping",
+        }));
+      const full = await post(token, pings(MAX_BATCH));
+      expect(full.status).toBe(200);
+      expect(await full.json()).toHaveLength(MAX_BATCH);
+
+      const over = await post(token, pings(MAX_BATCH + 1));
+      expect(over.status).toBe(400);
+      expect(((await over.json()) as RpcAnswer).error?.code).toBe(-32600);
     });
   });
 

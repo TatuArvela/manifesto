@@ -20,6 +20,14 @@ interface McpDeps {
 }
 
 /**
+ * The most messages one batch may hold. A batch is answered in one request,
+ * so the rate limit on the endpoint counts it once however long it is, and
+ * the messages that reach no route (`ping`, `tools/list`, an unknown method)
+ * are counted nowhere else.
+ */
+export const MAX_BATCH = 50;
+
+/**
  * `/api/mcp`: the MCP endpoint, as the protocol's "Streamable HTTP"
  * transport in its stateless form. A client POSTs one JSON-RPC message (or,
  * under protocol 2025-03-26, a batch) and gets the answer as JSON: 200 for a
@@ -130,6 +138,16 @@ export function createMcpRoutes(deps: McpDeps) {
       if (body.length === 0) {
         return reply(
           errorResponse(null, JSON_RPC_ERRORS.invalidRequest, "An empty batch"),
+          400,
+        );
+      }
+      if (body.length > MAX_BATCH) {
+        return reply(
+          errorResponse(
+            null,
+            JSON_RPC_ERRORS.invalidRequest,
+            `A batch holds at most ${MAX_BATCH} messages`,
+          ),
           400,
         );
       }
