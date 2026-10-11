@@ -62,4 +62,7 @@ row per member, marked with `via_team`, so every access check keeps reading `not
 `sharing/teamShares.ts` is the only code that understands teams: sharing, a team's role, members
 joining and leaving (admin edits, and `syncOidcTeams` at an OIDC sign-in) all go through it. A direct
 share is never touched by a team, and a share that loses its team passes to another the member is in
-before it is removed.
+before it is removed. Removing a team is several steps with no transaction around them, so
+whatever invites through a team (`share`, `joined`) checks afterwards that the team is still there,
+and both it and the removal end with `settle`: whichever finishes last takes back the shares the
+other could not see.

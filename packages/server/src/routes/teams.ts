@@ -108,9 +108,11 @@ export function registerTeamShareRoutes(notes: AuthedApp, deps: TeamDeps) {
       if (!members.includes(userId)) {
         throw new HttpError(404, "Team not found");
       }
-      if (!(await teamShares.share(noteId, userId, teamId, role))) {
+      const shared = await teamShares.share(noteId, userId, teamId, role);
+      if (shared === "exists") {
         throw new HttpError(409, "The note is already shared with this team");
       }
+      if (shared === "gone") throw new HttpError(404, "Team not found");
       audit(storage, c, {
         action: "share.team_added",
         actorId: userId,
@@ -315,6 +317,8 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
     // pass to another team they share where there is one.
     await teamShares.dissolve(team.id);
     await storage.teams.delete(team.id);
+    // A note shared with it, or a member put in it, while it was going.
+    await teamShares.settle(team.id);
     audit(storage, c, {
       action: "admin.team_deleted",
       actorId: c.get("auth").userId,

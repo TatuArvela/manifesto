@@ -136,5 +136,28 @@ export function describeTeamsContract(
       expect(await storage.teams.listForUser("alice")).toEqual([]);
       expect(await storage.teams.sharesOfNote("n1")).toEqual([]);
     });
+
+    it("lists the shares that came through a team, after it is gone too", async () => {
+      await team("t1", "Design", "local");
+      await storage.shares.create({
+        noteId: "n1",
+        userId: "alice",
+        role: "view",
+        createdAt: T0,
+        viaTeam: "t1",
+      });
+      await storage.shares.create({
+        noteId: "n1",
+        userId: "bob",
+        role: "edit",
+        createdAt: T0,
+      });
+      const through = [{ noteId: "n1", userId: "alice", viaTeam: "t1" }];
+      expect(await storage.shares.listByTeam("t1")).toMatchObject(through);
+      expect(await storage.shares.listByTeam("t1")).toHaveLength(1);
+
+      await storage.teams.delete("t1");
+      expect(await storage.shares.listByTeam("t1")).toMatchObject(through);
+    });
   });
 }

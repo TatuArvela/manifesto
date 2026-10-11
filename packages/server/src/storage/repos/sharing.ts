@@ -71,6 +71,9 @@ export interface SharesRepo {
   listByRecipient(userId: string): Promise<NoteShare[]>;
   /** Every invitation and share on a user's own notes. */
   listByOwner(ownerId: string): Promise<NoteShare[]>;
+  /** Every invitation and share that came through a team, whether or not the
+   * team is still there. */
+  listByTeam(teamId: string): Promise<NoteShare[]>;
 }
 
 export type { ShareUser };

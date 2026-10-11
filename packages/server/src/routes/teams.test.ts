@@ -11,6 +11,7 @@ import { createAccessChanges } from "../sharing/accessChanges.js";
 import { createNoteEvents } from "../sharing/noteEvents.js";
 import { createTeamShares } from "../sharing/teamShares.js";
 import { syncOidcTeams } from "../sharing/teamSync.js";
+import type { StorageDriver } from "../storage/types.js";
 import {
   authHeaders,
   bootTestApp,
@@ -307,6 +308,71 @@ describe("teams as share targets", () => {
       (await call(admin, "DELETE", `/api/admin/teams/${team}`)).status,
     ).toBe(204);
     expect(await canRead(alice, note.id)).toBe(false);
+  });
+
+  // Removing a team is several steps, and each of these lands between two.
+  describe("while a team is being removed", () => {
+    it("takes back a share that reached a member after its notes were gone through", async () => {
+      const team = await makeTeam("Design", [owner, alice]);
+      const note = await createNote();
+      // As a share to the team leaves it when it lands after the removal has
+      // listed the team's notes: the member's row, with nothing behind it.
+      await rig.storage.shares.create({
+        noteId: note.id,
+        userId: alice.userId,
+        role: "edit",
+        createdAt: note.createdAt,
+        viaTeam: team,
+      });
+      expect(await invitationsOf(alice)).toHaveLength(1);
+
+      expect(
+        (await call(admin, "DELETE", `/api/admin/teams/${team}`)).status,
+      ).toBe(204);
+      expect(await invitationsOf(alice)).toEqual([]);
+      expect(await rig.storage.shares.listByTeam(team)).toEqual([]);
+    });
+
+    it("invites nobody when the team goes while its members are being invited", async () => {
+      const team = await makeTeam("Design", [owner, alice, bob]);
+      const note = await createNote();
+      const accessChanges = createAccessChanges();
+      const { storage } = rig;
+      let removed = false;
+      // The team is removed, as the admin route removes it, the moment the
+      // first member has been invited.
+      const racing: StorageDriver = {
+        ...storage,
+        shares: {
+          ...storage.shares,
+          create: async (input) => {
+            const created = await storage.shares.create(input);
+            if (!removed) {
+              removed = true;
+              await storage.teams.delete(team);
+            }
+            return created;
+          },
+        },
+      };
+      const teamShares = createTeamShares({
+        storage: racing,
+        noteEvents: createNoteEvents({
+          storage: racing,
+          broadcaster: rig.broadcaster,
+          accessChanges,
+        }),
+        accessChanges,
+      });
+
+      expect(await teamShares.share(note.id, owner.userId, team, "edit")).toBe(
+        "gone",
+      );
+      expect(removed).toBe(true);
+      expect(await invitationsOf(alice)).toEqual([]);
+      expect(await invitationsOf(bob)).toEqual([]);
+      expect(await storage.shares.listByTeam(team)).toEqual([]);
+    });
   });
 
   it("is managed by admins only", async () => {

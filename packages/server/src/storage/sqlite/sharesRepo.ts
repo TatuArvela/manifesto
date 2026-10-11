@@ -76,6 +76,10 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
      FROM note_shares s JOIN notes n ON n.id = s.note_id
      WHERE n.user_id = ?`,
   );
+  const byTeamStmt = db.prepare(
+    `SELECT ${SHARE_COLUMNS} FROM note_shares WHERE via_team = ?
+     ORDER BY note_id, user_id`,
+  );
 
   const acceptTx = db.transaction(
     (noteId: string, userId: string, acceptedAt: string): boolean => {
@@ -190,6 +194,10 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
 
     async listByOwner(ownerId: string): Promise<NoteShare[]> {
       return (byOwnerStmt.all(ownerId) as ShareRow[]).map(rowToShare);
+    },
+
+    async listByTeam(teamId: string): Promise<NoteShare[]> {
+      return (byTeamStmt.all(teamId) as ShareRow[]).map(rowToShare);
     },
   };
 }
