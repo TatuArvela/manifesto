@@ -291,11 +291,13 @@ export async function versionsOut(
   sealed: SealedNoteVersion[],
 ): Promise<(SealedNoteVersion | NoteVersion)[]> {
   if (!keys) return sealed;
-  const opened = await openSealedNote(keys, note);
-  if (!opened) return [];
+  // Each with the key it was written under: the note's, or one before it.
+  const ring = await ringOf(keys, note);
+  if (!ring) return [];
   const out: NoteVersion[] = [];
   for (const version of sealed) {
-    const plain = await openVersion(opened.key, version);
+    const key = ringKey(ring, version.keyVersion);
+    const plain = key ? await openVersion(key, version) : null;
     if (plain) out.push(plain);
   }
   return out;
@@ -338,10 +340,20 @@ export async function noteRing(
 ): Promise<NoteRing> {
   const note = await storage.notes.getById(noteId, keys.userId);
   if (!note) throw new HttpError(404, "Note not found");
-  const key = await openNoteKey(keys, noteId, note.keyVersion, note.key);
-  if (!key) throw new HttpError(409, "This token cannot open the note's key");
+  const ring = await ringOf(keys, note);
+  if (!ring) throw new HttpError(409, "This token cannot open the note's key");
+  return ring;
+}
+
+/** The keys of a note as it was read; null when the token's do not open it. */
+async function ringOf(
+  keys: AccountSealKeys,
+  note: SealedNote,
+): Promise<NoteRing | null> {
+  const key = await openNoteKey(keys, note.id, note.keyVersion, note.key);
+  if (!key) return null;
   const older = new Map<number, NoteSealKey>();
-  const raws = await openPreviousKeys(key, noteId, note.previousKeys);
+  const raws = await openPreviousKeys(key, note.id, note.previousKeys);
   for (const [version, raw] of raws) {
     older.set(version, await noteSealKey(raw, version));
     wipe(raw);
@@ -349,15 +361,18 @@ export async function noteRing(
   return { key, older };
 }
 
+function ringKey(ring: NoteRing, version: number): NoteSealKey | null {
+  return version === ring.key.version
+    ? ring.key
+    : (ring.older.get(version) ?? null);
+}
+
 /** A comment's text as a token reads it; null for one that does not open. */
 export async function commentOut(
   ring: NoteRing,
   comment: { id: string; keyVersion: number; body: string },
 ): Promise<string | null> {
-  const key =
-    comment.keyVersion === ring.key.version
-      ? ring.key
-      : ring.older.get(comment.keyVersion);
+  const key = ringKey(ring, comment.keyVersion);
   return key ? openComment(key, comment) : null;
 }
 
