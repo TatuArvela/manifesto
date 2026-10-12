@@ -228,21 +228,49 @@ effect(() => {
   void checkAccountKeys();
 });
 
-// Another tab that unlocks, signs out or is given new keys writes the device's
-// copy; this one reads it again rather than asking for the key twice.
+/** What a tab tells the others: the device's copy was written (`held`), or
+ * the account's keys were removed and it starts again (`gone`). */
+type Announcement = "held" | "gone";
+
+/**
+ * Another tab wrote the device's copy of the keys. A tab that holds nothing
+ * reads it rather than asking for the key twice. One that is unlocked keeps
+ * what it holds while the copy is of the same account key: letting go of it
+ * would fail whatever is being saved, take the app down under whoever is
+ * typing, and bring it back with a `Sealer` that has forgotten every note
+ * and image key it had opened. A new secret key for the same account key is
+ * taken as it is.
+ */
+async function heardFromAnotherTab(said: unknown): Promise<void> {
+  const mine = held;
+  if (mine !== null && said !== "gone") {
+    const stored = await loadDeviceKeys();
+    if (held !== mine) {
+      // This tab changed what it holds meanwhile, and decides for itself.
+      await checkAccountKeys();
+      return;
+    }
+    if (stored?.userId === mine.userId && stored.version === mine.version) {
+      setHeld({ ...mine, secretKey: stored.secretKey });
+      return;
+    }
+  }
+  setHeld(null);
+  await checkAccountKeys();
+}
+
 const channel =
   typeof BroadcastChannel === "undefined"
     ? null
     : new BroadcastChannel("manifesto:keys");
 if (channel) {
-  channel.onmessage = () => {
-    setHeld(null);
-    void checkAccountKeys();
+  channel.onmessage = (event) => {
+    void heardFromAnotherTab(event.data);
   };
 }
 
-function announce(): void {
-  channel?.postMessage("changed");
+function announce(said: Announcement = "held"): void {
+  channel?.postMessage(said);
 }
 
 /**
@@ -618,6 +646,6 @@ export async function startAgain(password: string): Promise<Confirmed<object>> {
   setHeld(null);
   await clearDeviceKeys();
   await checkAccountKeys();
-  announce();
+  announce("gone");
   return { kind: "ok" };
 }
