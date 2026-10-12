@@ -70,7 +70,10 @@ describe("seal", () => {
   it("does not open once changed, and never throws", async () => {
     const key = await keyFor("a");
     const sealed = await seal(key, text("x"), data);
-    const flipped = `${sealed.slice(0, -1)}${sealed.endsWith("A") ? "B" : "A"}`;
+    // A character in the middle: the last one carries bits that are not
+    // part of any byte, so changing it can leave the ciphertext as it was.
+    const at = 20;
+    const flipped = `${sealed.slice(0, at)}${sealed[at] === "A" ? "B" : "A"}${sealed.slice(at + 1)}`;
     expect(await unseal(key, flipped, data)).toBeNull();
     expect(await unseal(key, "plain text", data)).toBeNull();
     expect(await unseal(key, "e1.", data)).toBeNull();
