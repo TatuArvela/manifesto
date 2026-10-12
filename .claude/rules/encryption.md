@@ -24,6 +24,8 @@ paths:
   - "packages/server/src/calendar/routes.ts"
   - "packages/server/src/oauth/tokenEndpoint.ts"
   - "packages/client/src/state/oauth.ts"
+  - "packages/client/src/swPush.ts"
+  - "packages/server/src/jobs/pushReminders.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
   - "packages/server/src/routes/attachments.ts"
@@ -249,6 +251,16 @@ shared note's key.
 A field added to a note's words is added in `noteSeal.ts` (seal, open, check), `SealedNote`, the
 sealed schema and `SEALED_SHARED_NOTE_FIELDS` or the personal list, and `shareMapping.test.ts`
 fails until someone has decided which.
+
+## Push
+
+A reminder nobody's open app fired is pushed by the server (`jobs/pushReminders.ts`), which
+cannot read what it is about. `ReminderPush.sealed` carries the note's sealed title and excerpt
+and the reader's own wrapped copy of the note key, exactly as the row holds them; `title` and
+`body` beside them say only that there is a reminder. The service worker (`swPush.ts`,
+`wordedPush`) opens the sealed half with the account key in `deviceKeys`, which exists only
+while the device is signed in, and words it as `reminderScheduler.ts` does. Every field of a
+push is checked before use (`readReminderPush`): the worker runs privileged.
 
 ## On the server
 

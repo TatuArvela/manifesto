@@ -107,6 +107,7 @@ export type {
   SealedNoteUpdate,
   SealedNoteVersion,
   SealedNoteVersionCreateRequest,
+  SealedReminder,
   SearchParams,
   SecretKeyReplaceRequest,
   SeenKeyRequest,

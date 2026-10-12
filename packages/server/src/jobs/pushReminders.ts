@@ -4,11 +4,13 @@ import {
   MAX_NOTES_PAGE_SIZE,
   type NoteReminder,
   type ReminderPush,
+  type SealedNote,
 } from "@manifesto/shared";
 import { logger } from "../lib/logger.js";
 import { startPeriodicJob } from "../lib/periodic.js";
 import { type MailLocale, mailLocale } from "../mail/templates.js";
 import type { PushSender } from "../push/sender.js";
+import { MAX_PAYLOAD_BYTES } from "../push/webPush.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { StorageDriver } from "../storage/types.js";
 
@@ -38,8 +40,33 @@ const UNTITLED: Record<MailLocale, string> = {
  * app or the server fired it.
  */
 function notificationOf(locale: MailLocale): { title: string; body: string } {
-  // The note's title and text are sealed, and the server has no key.
+  // The note's title and text are sealed, and the server has no key: this
+  // is what a device without one shows.
   return { title: UNTITLED[locale], body: "" };
+}
+
+/**
+ * The message with what the reminder is about, sealed as the note holds it:
+ * the title, the excerpt (the first of the text, which every client that
+ * saves a note saves beside it) and the reader's own wrapped copy of the
+ * note key. The browser opens them with the account key it keeps while
+ * signed in. Left off when the reader holds no current key, and trimmed to
+ * what a push service takes: the excerpt goes first, then the title.
+ */
+function withSealed(message: ReminderPush, note: SealedNote): ReminderPush {
+  if (note.key === "") return message;
+  const fits = (candidate: ReminderPush) =>
+    Buffer.byteLength(JSON.stringify(candidate)) <= MAX_PAYLOAD_BYTES;
+  const sealed = {
+    keyVersion: note.keyVersion,
+    key: note.key,
+    title: note.title,
+    excerpt: note.excerpt,
+  };
+  const whole = { ...message, sealed };
+  if (fits(whole)) return whole;
+  const untexted = { ...message, sealed: { ...sealed, excerpt: "" } };
+  return fits(untexted) ? untexted : message;
 }
 
 /**
@@ -117,18 +144,21 @@ export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
         locale ??= mailLocale(
           (await storage.users.findById(userId))?.locale?.split("-")[0],
         );
-        const message: ReminderPush = {
-          type: "reminder",
-          noteId: note.id,
-          ...notificationOf(locale),
-          next: next
-            ? {
-                time: next.time,
-                ...(next.day !== undefined && { day: next.day }),
-              }
-            : null,
-          firedAt,
-        };
+        const message = withSealed(
+          {
+            type: "reminder",
+            noteId: note.id,
+            ...notificationOf(locale),
+            next: next
+              ? {
+                  time: next.time,
+                  ...(next.day !== undefined && { day: next.day }),
+                }
+              : null,
+            firedAt,
+          },
+          note,
+        );
         for (const subscription of await storage.pushSubscriptions.listByUser(
           userId,
         )) {

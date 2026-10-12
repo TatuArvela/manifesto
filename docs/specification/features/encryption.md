@@ -501,7 +501,14 @@ the code does, and nothing here may be released:
   keys again for the new access and refresh tokens and writes over the copies before them.
 - **Not built of tokens yet** (the rest of step 6): a token cannot attach or read images; Settings
   does not offer to replace every key when a token is revoked, since that is step 8.
-- **A push message** for a reminder says "Reminder" and nothing of the note (step 7).
+- **A push message** for a reminder carries the note's sealed title and excerpt and the reader's
+  wrapped copy of the note key, beside words that say only that there is a reminder. The service
+  worker opens them with the account key the device keeps while signed in, and shows the title
+  and the first of the text; a device without the key shows the bare words. A message too large
+  for a push service loses the excerpt first and then the title.
+- **Not built of the server key yet** (the rest of step 7): reminder times, webhook secrets,
+  authenticator secrets, the key that signs push messages and the keys of push subscriptions are
+  stored as they were, not under a key of the server's.
 - **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
   and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.
 
