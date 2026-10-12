@@ -306,7 +306,9 @@ column's purpose as associated data and the key's id in front of every value (`s
 `createStorage` sets the key for the process (`useAtRest`) before a driver is built; a driver
 built by hand, as the storage contracts do, runs unsealed. The row mappings and five repository
 methods call `atRest.seal` / `atRest.open`, and a value that does not open reads as none (no
-reminder, an empty secret), never as an error that stops a listing.
+reminder, an empty secret), never as an error that stops a listing. `serverSecrets.setIfAbsent`
+is the one place that writes over such a value: answering with a secret it did not store would
+have every process and every start sign push with another key.
 
 A new column of that kind is sealed where it is written, opened where it is read, and added to
 `AT_REST_COLUMNS`: that list is what `moveToCurrentKey` walks at start-up, so a column missing

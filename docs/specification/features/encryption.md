@@ -345,7 +345,8 @@ Replacing it: the server takes the new key and, beside it, the one before
 (`DATA_ENCRYPTION_KEY_PREVIOUS`). Each value carries the id of the key it is under, and a job at
 start-up moves the old ones over and says in the log when the previous key can be removed. Losing the
 server key loses reminder times, webhooks and authenticator set-ups, which can be made again. It loses
-no note.
+no note. The key that signs push messages is made again the first time one is sent, in place of the
+one that no longer opens, so devices subscribe to reminders anew.
 
 ### What it does not protect
 

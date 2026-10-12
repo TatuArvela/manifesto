@@ -79,18 +79,28 @@ export function createSqliteServerSecretsRepo(db: SqliteDB): ServerSecretsRepo {
     `INSERT INTO server_secrets (name, value, created_at) VALUES (?, ?, ?)
      ON CONFLICT (name) DO NOTHING`,
   );
+  const replaceStmt = db.prepare(
+    `UPDATE server_secrets SET value = ?, created_at = ?
+     WHERE name = ? AND value = ?`,
+  );
+  const stored = (name: string) =>
+    (getStmt.get(name) as { value: string } | undefined)?.value;
   const read = (name: string) => {
-    const stored = (getStmt.get(name) as { value: string } | undefined)?.value;
-    return stored === undefined
-      ? null
-      : atRest.open(stored, AT_REST.serverSecret);
+    const held = stored(name);
+    return held === undefined ? null : atRest.open(held, AT_REST.serverSecret);
   };
   return {
     async get(name) {
       return read(name);
     },
     async setIfAbsent(name, value, now) {
-      insertStmt.run(name, atRest.seal(value, AT_REST.serverSecret), now);
+      const sealed = atRest.seal(value, AT_REST.serverSecret);
+      insertStmt.run(name, sealed, now);
+      const held = read(name);
+      if (held !== null) return held;
+      // What the name holds does not open. Only if it is still that value,
+      // so that of two processes that find it so, one's is kept by both.
+      replaceStmt.run(sealed, now, name, stored(name));
       return read(name) ?? value;
     },
   };

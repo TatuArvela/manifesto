@@ -307,4 +307,20 @@ describe("moving stored values to the current key", () => {
     useAtRest(createAtRest({ current: B, previous: A }));
     await readable();
   });
+
+  it("makes a server secret again, once, when the one stored does not open", async () => {
+    storage = await createStorage(TEST_CONFIG);
+    useAtRest(createAtRest({ current: A, previous: null }));
+    await storage.serverSecrets.setIfAbsent("vapid", "first", T0);
+    // The key is gone for good: what was stored reads as none.
+    useAtRest(createAtRest({ current: B, previous: null }));
+    expect(await storage.serverSecrets.setIfAbsent("vapid", "second", T0)).toBe(
+      "second",
+    );
+    // Stored, so the next start and the next process hold the same one.
+    expect(await storage.serverSecrets.get("vapid")).toBe("second");
+    expect(await storage.serverSecrets.setIfAbsent("vapid", "third", T0)).toBe(
+      "second",
+    );
+  });
 });
