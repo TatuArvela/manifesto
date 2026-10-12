@@ -5,6 +5,9 @@ import type {
   InvitationsResponse,
   Note,
   NoteCreate,
+  PublicLink,
+  PublicNoteResponse,
+  SealedNote,
   UserLookupResponse,
   WebSocketEvent,
 } from "@manifesto/shared";
@@ -580,6 +583,171 @@ describe("handing a shared note's key on", () => {
     expect((await accept({ key: "readable", keyVersion: 1 })).status).toBe(422);
     expect((await accept({ ...heldKey, keyVersion: 2 })).status).toBe(409);
     expect((await accept(heldKey)).status).toBe(200);
+  });
+
+  const sealedAs = async (who: { token: string }, id: string) =>
+    (
+      (await (
+        await rig.rawRequest(`/api/notes/${id}`, {
+          headers: authHeaders(who.token),
+        })
+      ).json()) as { note: SealedNote }
+    ).note;
+
+  const rekeyed = (keyVersion: number, extra: object = {}) => ({
+    keyVersion,
+    key: ct(`owner's copy of key ${keyVersion}`),
+    previousKeys: ct("the keys before"),
+    title: ct("Groceries"),
+    content: ct("- [ ] Milk"),
+    excerpt: ct("- [ ] Milk"),
+    font: ct("default"),
+    images: ct("[]"),
+    linkPreviews: ct("[]"),
+    ...extra,
+  });
+
+  const rekey = (who: { token: string }, id: string, body: object) =>
+    rig.rawRequest(`/api/notes/${id}/key`, {
+      method: "PUT",
+      headers: authHeaders(who.token),
+      body: JSON.stringify(body),
+    });
+
+  it("is due a new key once someone who held it is gone, which only the owner is told", async () => {
+    const { id } = await note();
+    for (const who of [alice, bob]) {
+      await call(owner, "POST", `/api/notes/${id}/shares`, {
+        userId: who.userId,
+        role: "edit",
+      });
+    }
+    // Bob was never handed a key: his going gives nothing away.
+    await call(owner, "DELETE", `/api/notes/${id}/shares/${bob.userId}`);
+    expect((await sealedAs(owner, id)).rekeyDue).toBeUndefined();
+
+    await call(alice, "POST", `/api/invitations/${id}/accept`);
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: bob.userId,
+      role: "edit",
+    });
+    await call(bob, "POST", `/api/invitations/${id}/accept`);
+    // Alice leaves, holding the key.
+    await call(alice, "DELETE", `/api/notes/${id}`);
+    expect((await sealedAs(owner, id)).rekeyDue).toBe(true);
+    expect((await sealedAs(bob, id)).rekeyDue).toBeUndefined();
+  });
+
+  it("moves the whole note to a new key at once, and leaves everyone else waiting for it", async () => {
+    const { id } = await note();
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: alice.userId,
+      role: "edit",
+    });
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: bob.userId,
+      role: "edit",
+    });
+    await call(alice, "POST", `/api/invitations/${id}/accept`);
+    await call(bob, "POST", `/api/invitations/${id}/accept`);
+    await call(owner, "DELETE", `/api/notes/${id}/shares/${alice.userId}`);
+
+    // Not a recipient's to do, not to a version it is not next at, and not
+    // with anything readable in it.
+    expect((await rekey(bob, id, rekeyed(2))).status).toBe(404);
+    expect((await rekey(owner, id, rekeyed(3))).status).toBe(409);
+    expect(
+      (await rekey(owner, id, rekeyed(2, { title: "Groceries" }))).status,
+    ).toBe(422);
+    const { title: _title, ...partial } = rekeyed(2);
+    expect((await rekey(owner, id, partial)).status).toBe(422);
+
+    const done = await rekey(owner, id, rekeyed(2));
+    expect(done.status).toBe(200);
+    const mine = ((await done.json()) as { note: SealedNote }).note;
+    expect(mine).toMatchObject({
+      keyVersion: 2,
+      key: ct("owner's copy of key 2"),
+      previousKeys: ct("the keys before"),
+    });
+    expect(mine.rekeyDue).toBeUndefined();
+    expect(mine.sharing?.members).toEqual([
+      expect.objectContaining({ id: bob.userId, waitingForKey: true }),
+    ]);
+    expect((await rekey(owner, id, rekeyed(2))).status).toBe(409);
+
+    // Bob's copy is behind: he is handed nothing that opens the note, and
+    // what he seals under the old key is refused.
+    const behind = await sealedAs(bob, id);
+    expect(behind).toMatchObject({ keyVersion: 2, key: "" });
+    expect(behind.offered).toBeUndefined();
+    const stale = await rig.rawRequest(`/api/notes/${id}`, {
+      method: "PUT",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ title: ct("Under the old key"), keyVersion: 1 }),
+    });
+    expect(stale.status).toBe(409);
+
+    // The owner's client wraps the new key for him, and he keeps it.
+    expect(
+      (
+        await call(
+          owner,
+          "PUT",
+          `/api/notes/${id}/shares/${bob.userId}/key`,
+          offer(owner.userId, 2),
+        )
+      ).status,
+    ).toBe(204);
+    expect((await sealedAs(bob, id)).offered).toEqual(offer(owner.userId, 2));
+    const kept = await rig.rawRequest(`/api/notes/${id}/held-key`, {
+      method: "PUT",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ key: ct("bob's copy of key 2"), keyVersion: 2 }),
+    });
+    expect(kept.status).toBe(200);
+    expect(await sealedAs(bob, id)).toMatchObject({
+      key: ct("bob's copy of key 2"),
+      previousKeys: ct("the keys before"),
+    });
+    const fresh = await rig.rawRequest(`/api/notes/${id}`, {
+      method: "PUT",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ title: ct("Under the new key"), keyVersion: 2 }),
+    });
+    expect(fresh.status).toBe(200);
+  });
+
+  it("is due a new key when a live link is revoked, and hands the new one to the links that stay", async () => {
+    const { id } = await note();
+    const publish = async (mode: string) =>
+      (
+        (await (
+          await call(owner, "POST", `/api/notes/${id}/links`, { mode })
+        ).json()) as { link: PublicLink }
+      ).link.token;
+    const copy = await publish("snapshot");
+    const gone = await publish("live");
+    const stays = await publish("live");
+
+    await call(owner, "DELETE", `/api/notes/${id}/links/${copy}`);
+    expect((await sealedAs(owner, id)).rekeyDue).toBeUndefined();
+    await call(owner, "DELETE", `/api/notes/${id}/links/${gone}`);
+    expect((await sealedAs(owner, id)).rekeyDue).toBe(true);
+
+    const done = await rekey(
+      owner,
+      id,
+      rekeyed(2, {
+        links: [{ token: stays, wrappedKey: ct("key 2, for the link") }],
+      }),
+    );
+    expect(done.status).toBe(200);
+    const shown = (await (
+      await rig.rawRequest(`/api/public/${stays}`)
+    ).json()) as PublicNoteResponse;
+    expect(shown.wrappedKey).toBe(ct("key 2, for the link"));
+    expect(shown.note.keyVersion).toBe(2);
   });
 
   it("gives out an account's public keys once it has them", async () => {

@@ -86,6 +86,7 @@ feature off when the server does not say it has it, rather than trying it and fa
 | `POST`   | `/api/notes`     | Create a note        |
 | `POST`   | `/api/notes/import` | Import up to 100 notes, keeping their ids |
 | `PUT`    | `/api/notes/:id` | Update a note        |
+| `PUT`    | `/api/notes/:id/key` | Put the note under a new key (owner, session only) |
 | `DELETE` | `/api/notes/:id` | Permanently delete   |
 | `DELETE` | `/api/notes`     | Permanently delete every note the user owns |
 
@@ -120,7 +121,10 @@ without keys is refused the note routes with `403`. Every route above takes and 
 - **Sealed under the reader's personal key**: `color` and `tags`. Either is `""` when never set,
   which is how a shared note first reaches its recipient.
 - **`key`** is the note key wrapped under the reader's own notes key, and `keyVersion` says which
-  note key the values are under.
+  note key the values are under. `previousKeys`, present once the key has been replaced, is the
+  keys before it sealed under the one the note has now: what opens the versions, comments and
+  edits written under them. `rekeyDue: true` tells the owner, and nobody else, that someone who
+  held the key no longer holds the note.
 - **Readable**, since the server acts on them: `id`, `pinned`, `archived`, `trashed`, `trashedAt`,
   `position`, `reminder`, `readonly`, `source`, `sharing`, `createdAt` and `updatedAt`.
 
@@ -203,6 +207,15 @@ A shared note is sealed, so everyone on it needs its key ([Encryption](features/
   key of a note of their own; `409` when it is for another key than the note is now under.
 - **A recipient whose copy is behind** the note's key (after it was replaced) is sent the note with
   `key: ""` and the current `offered`, takes it, and stores it with `PUT /api/notes/:id/held-key`.
+- **A note is due a new key** when a share whose holder was ever handed the key ends (removed,
+  left, declined, withdrawn, the team's or the account's going) or a live public link is revoked.
+  The owner's app then sends `PUT /api/notes/:id/key` with `{ keyVersion, key, previousKeys, title,
+  content, excerpt, font, images, linkPreviews, links? }`: everything under the note key sealed
+  again, `keyVersion` one more than the note's (`409` otherwise), and for each live link that
+  stays `{ token, wrappedKey }`. The server moves the whole note at once and answers `{ note }`.
+  Everyone else on the note is then `waitingForKey` until a client holding the new key wraps it
+  for them. A `PUT /api/notes/:id` that carries sealed words says which key they are under in
+  `keyVersion`, and is answered `409` when the note has left that key.
 
 The recipient's client uses no offered key whose signature does not check against the signing key
 of the account it names.

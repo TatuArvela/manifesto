@@ -2,13 +2,17 @@ import {
   type AccountKeys,
   keyFingerprint,
   NoteColor,
+  type NoteComment,
   type NoteCreate,
   NoteFont,
+  type NoteRekeyRequest,
   newLinkKey,
   openLinkedKey,
   openSharedFields,
+  type PublicLink,
   type SealedNote,
   type SealedNoteCreate,
+  type SealedNoteVersion,
   snapshotKey,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
@@ -272,5 +276,186 @@ describe("publishing a note by link", () => {
       title: "",
       content: "",
     });
+  });
+});
+
+describe("replacing a note's key", () => {
+  /** The note as the server holds it once it took `body`. */
+  const moved = (note: SealedNote, body: NoteRekeyRequest): SealedNote => {
+    const { links: _links, ...fields } = body;
+    return { ...note, ...fields };
+  };
+  const link = (overrides: Partial<PublicLink>): PublicLink => ({
+    token: "tok",
+    noteId: "n1",
+    mode: "live",
+    expiresAt: null,
+    hasPassword: false,
+    maxViews: null,
+    viewCount: 0,
+    lastViewedAt: null,
+    createdAt: "c",
+    sealedLinkKey: "",
+    ...overrides,
+  });
+
+  it("moves the note to a key the person removed never held, and keeps what the old one wrote readable", async () => {
+    const owner = await account("u-owner");
+    const alice = await account("u-alice");
+    const bob = await account("u-bob");
+    const note = stored(await owner.sealer.sealNew("n1", draft));
+    const hand = async (to: typeof alice, from: SealedNote) => {
+      const offered = await owner.sealer.offerKey(
+        "n1",
+        { userId: to.userId, exchange: to.publicKeys.exchange },
+        async () => from,
+        owner.load,
+      );
+      if (!offered) throw new Error("no offer");
+      const held = await to.sealer.adoptOffered(
+        "n1",
+        offered,
+        owner.publicKeys.signing,
+        to.load,
+      );
+      if (!held) throw new Error("not adopted");
+      return held;
+    };
+    const aliceKey = await hand(alice, note);
+    await hand(bob, note);
+
+    // Written while the note was under its first key.
+    const fetch = async () => note;
+    const version: SealedNoteVersion = {
+      noteId: "n1",
+      timestamp: "t",
+      ...(await owner.sealer.sealVersion(
+        "n1",
+        { title: "Trip", content: "Fly on the second." },
+        fetch,
+      )),
+    };
+    const comment: NoteComment = {
+      id: "c1",
+      noteId: "n1",
+      author: null,
+      createdAt: "c",
+      editedAt: null,
+      ...(await owner.sealer.sealComment("n1", "c1", "Which airport?", fetch)),
+    };
+
+    // Alice is removed; the owner's app gives the note a new key.
+    const made = await owner.sealer.rekey({ ...note, rekeyDue: true }, []);
+    if (!made) throw new Error("not replaced");
+    expect(made.body.keyVersion).toBe(2);
+    expect(made.body.links).toBeUndefined();
+    expect(JSON.stringify(made.body)).not.toContain("Trip plan");
+    made.commit();
+    const after = moved(note, made.body);
+    expect(owner.sealer.replaced.value.get("n1")).toBe(2);
+
+    // The owner reads it as before, and what the old key wrote with it.
+    expect(await owner.sealer.open(after)).toMatchObject({
+      title: "Trip plan",
+      content: "Fly on the third.",
+      font: NoteFont.Serif,
+      tags: ["travel"],
+    });
+    const later = async () => after;
+    expect(await owner.sealer.openVersions("n1", [version], later)).toEqual([
+      expect.objectContaining({ content: "Fly on the second." }),
+    ]);
+    const reply: NoteComment = {
+      ...comment,
+      id: "c2",
+      ...(await owner.sealer.sealComment("n1", "c2", "The small one.", later)),
+    };
+    expect(reply.keyVersion).toBe(2);
+    expect(
+      (await owner.sealer.openComments("n1", [comment, reply], later)).map(
+        (c) => c.body,
+      ),
+    ).toEqual(["Which airport?", "The small one."]);
+
+    // Alice's copy of the first key opens nothing of the note as it is now,
+    // whatever the server hands her.
+    expect(
+      await alice.sealer.open({ ...after, key: aliceKey.key, keyVersion: 1 }),
+    ).toMatchObject({ title: "", content: "" });
+    expect(await alice.sealer.open({ ...after, key: "" })).toBeNull();
+
+    // Bob, still on the note, has nothing that opens it until the owner's
+    // app wraps the new key for him; then he reads all of it, old and new.
+    expect(await bob.sealer.open({ ...after, key: "" })).toBeNull();
+    await expect(
+      bob.sealer.sealUpdate("n1", { title: "x" }, async () => ({
+        ...after,
+        key: "",
+      })),
+    ).rejects.toThrow();
+    const bobKey = await hand(bob, after);
+    expect(bobKey.keyVersion).toBe(2);
+    const bobs = { ...after, key: bobKey.key };
+    expect(await bob.sealer.open(bobs)).toMatchObject({ title: "Trip plan" });
+    expect(
+      await bob.sealer.openVersions("n1", [version], async () => bobs),
+    ).toHaveLength(1);
+    // What he writes now says which key it is under.
+    expect(
+      await bob.sealer.sealUpdate("n1", { title: "New" }, async () => bobs),
+    ).toMatchObject({ keyVersion: 2 });
+
+    // A second replacement keeps the first key too.
+    const again = await owner.sealer.rekey({ ...after, rekeyDue: true }, []);
+    if (!again) throw new Error("not replaced again");
+    again.commit();
+    const third = moved(after, again.body);
+    expect(third.keyVersion).toBe(3);
+    expect(
+      await owner.sealer.openVersions("n1", [version], async () => third),
+    ).toHaveLength(1);
+  });
+
+  it("hands the new key to the live links that stay", async () => {
+    const owner = await account("u-owner");
+    const note = stored(await owner.sealer.sealNew("n1", draft));
+    const published = await owner.sealer.publish(
+      { id: "n1", ...draft },
+      "live",
+      async () => note,
+    );
+    if (!published) throw new Error("no link");
+    const made = await owner.sealer.rekey(note, [
+      link({ sealedLinkKey: published.fields.sealedLinkKey }),
+      // A snapshot holds no key of the note's, and a link whose key does
+      // not open here is left behind.
+      link({ token: "copy", mode: "snapshot" }),
+      link({ token: "lost", sealedLinkKey: "e1.AAAA" }),
+    ]);
+    if (!made?.body.links) throw new Error("no links");
+    expect(made.body.links.map((l) => l.token)).toEqual(["tok"]);
+    const [rewrapped] = made.body.links;
+    const key = await openLinkedKey(
+      published.linkKey,
+      "n1",
+      2,
+      rewrapped?.wrappedKey ?? "",
+    );
+    if (!key) throw new Error("the link does not open");
+    expect(
+      (await openSharedFields(key, "n1", moved(note, made.body))).title,
+    ).toBe("Trip plan");
+  });
+
+  it("replaces nothing when the note does not open here", async () => {
+    const owner = await account("u-owner");
+    const other = await account("u-other");
+    const note = stored(await owner.sealer.sealNew("n1", draft));
+    // Another account's copy, and a note with a field that is not its own.
+    expect(await other.sealer.rekey(note, [])).toBeNull();
+    const elsewhere = stored(await owner.sealer.sealNew("n2", draft));
+    expect(
+      await owner.sealer.rekey({ ...note, content: elsewhere.content }, []),
+    ).toBeNull();
   });
 });

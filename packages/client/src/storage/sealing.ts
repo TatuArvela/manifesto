@@ -8,6 +8,7 @@ import {
   type Note,
   type NoteComment,
   type NoteCreate,
+  type NoteRekeyRequest,
   type NoteSealKey,
   type NoteUpdate,
   type NoteVersion,
@@ -21,11 +22,15 @@ import {
   openNoteKey,
   openOfferedKey,
   openPref,
+  openPreviousKeys,
   openSealedNote,
   openSharedFields,
   openVersion,
+  type PublicLink,
   type PublicLinkCreateRequest,
   type PublicLinkMode,
+  resealSharedFields,
+  SEALED_SHARED_NOTE_FIELDS,
   type SealedAccountPrefs,
   type SealedNote,
   type SealedNoteCreate,
@@ -38,6 +43,7 @@ import {
   sealNoteUpdate,
   sealPersonalFields,
   sealPref,
+  sealPreviousKeys,
   sealSharedFields,
   sealVersion,
   snapshotKey,
@@ -120,6 +126,23 @@ export interface ImageUpload {
 interface HeldNoteKey {
   key: NoteSealKey;
   wrapped: string;
+  /** The keys before this one, as the note carries them sealed. */
+  previous: string;
+  /** Those keys opened, the first time something under one is read. */
+  older?: Promise<ReadonlyMap<number, NoteSealKey>>;
+}
+
+/** A note's key, and the ones it was under before: what opens anything
+ * written beside the note, whenever it was written. */
+export interface NoteKeyRing {
+  key: NoteSealKey;
+  older: ReadonlyMap<number, NoteSealKey>;
+}
+
+function ringKey(ring: NoteKeyRing, version: number): NoteSealKey | null {
+  return version === ring.key.version
+    ? ring.key
+    : (ring.older.get(version) ?? null);
 }
 
 /**
@@ -151,6 +174,16 @@ export class Sealer {
   } | null> | null = null;
   /** Notes that arrived and did not open, by id. */
   readonly unreadable = signal<ReadonlySet<string>>(new Set());
+  /**
+   * The notes this account owns that are due a new key: someone who held
+   * the one they are under no longer holds the note.
+   */
+  readonly due = signal<ReadonlySet<string>>(new Set());
+  /**
+   * The key version of each note whose key was replaced while it was open
+   * here, so that whatever holds the old key (a live document) starts again.
+   */
+  readonly replaced = signal<ReadonlyMap<string, number>>(new Map());
   /**
    * Whether a whole listing has been opened, so the key of every note the
    * account holds is at hand. An import needs that before it seals: a note
@@ -254,9 +287,10 @@ export class Sealer {
         offered.keyVersion,
         raw,
       );
-      this.noteKeys.set(noteId, {
+      this.hold(noteId, {
         key: await noteSealKey(raw, offered.keyVersion),
         wrapped,
+        previous: "",
       });
       return { key: wrapped, keyVersion: offered.keyVersion };
     } finally {
@@ -324,6 +358,26 @@ export class Sealer {
     return new Blob([image], { type: key.type });
   }
 
+  /** Keeps a note's key, and says so when it is not the one held before. */
+  private hold(id: string, held: HeldNoteKey): void {
+    const before = this.noteKeys.get(id);
+    this.noteKeys.set(id, held);
+    if (before && before.key.version !== held.key.version) {
+      const next = new Map(this.replaced.value);
+      next.set(id, held.key.version);
+      this.replaced.value = next;
+    }
+  }
+
+  private markDue(id: string, due: boolean): void {
+    const held = this.due.value;
+    if (held.has(id) === due) return;
+    const next = new Set(held);
+    if (due) next.add(id);
+    else next.delete(id);
+    this.due.value = next;
+  }
+
   private markUnreadable(id: string, unreadable: boolean): void {
     const held = this.unreadable.peek();
     if (held.has(id) === unreadable) return;
@@ -345,18 +399,34 @@ export class Sealer {
       account,
       sealed,
       // The same wrapped copy as last time, or a key just taken from an
-      // offer, which the server does not hold yet: no need to unwrap.
-      known && (known.wrapped === sealed.key || sealed.key === "")
+      // offer, which the server does not hold yet: no need to unwrap. A key
+      // of another version is not the note's any more.
+      known &&
+        known.key.version === sealed.keyVersion &&
+        (known.wrapped === sealed.key || sealed.key === "")
         ? known.key
         : undefined,
     );
     if (!opened) {
+      // Under a key that was replaced, and the new one not here yet: the
+      // old one seals nothing more.
+      if (known && known.key.version !== sealed.keyVersion) {
+        this.noteKeys.delete(sealed.id);
+      }
       this.markUnreadable(sealed.id, true);
       return null;
     }
+    const previous = sealed.previousKeys ?? "";
     if (sealed.key !== "") {
-      this.noteKeys.set(sealed.id, { key: opened.key, wrapped: sealed.key });
+      this.hold(sealed.id, { key: opened.key, wrapped: sealed.key, previous });
+    } else if (known && known.previous !== previous) {
+      this.noteKeys.set(sealed.id, {
+        key: known.key,
+        wrapped: known.wrapped,
+        previous,
+      });
     }
+    this.markDue(sealed.id, sealed.rekeyDue === true);
     for (const [ref, key] of opened.imageKeys) this.imageKeys.set(ref, key);
     this.markUnreadable(sealed.id, false);
     return opened.note;
@@ -394,7 +464,7 @@ export class Sealer {
       note,
       this.imageKeys,
     );
-    this.noteKeys.set(id, { key, wrapped: sealed.key });
+    this.hold(id, { key, wrapped: sealed.key, previous: "" });
     return sealed;
   }
 
@@ -417,12 +487,95 @@ export class Sealer {
         sealed.key,
       );
       if (key) {
-        const held = { key, wrapped: sealed.key };
-        this.noteKeys.set(id, held);
+        const held = {
+          key,
+          wrapped: sealed.key,
+          previous: sealed.previousKeys ?? "",
+        };
+        this.hold(id, held);
         return held;
       }
     }
     throw new NoteKeyError(id);
+  }
+
+  /** A note's key with the ones before it, opened once and kept. */
+  private async ringOf(
+    id: string,
+    fetch: () => Promise<SealedNote | null>,
+  ): Promise<NoteKeyRing> {
+    const held = await this.keyOf(id, fetch);
+    held.older ??= (async () => {
+      const older = new Map<number, NoteSealKey>();
+      const raws = await openPreviousKeys(held.key, id, held.previous);
+      for (const [version, raw] of raws) {
+        older.set(version, await noteSealKey(raw, version));
+        wipe(raw);
+      }
+      return older;
+    })();
+    return { key: held.key, older: await held.older };
+  }
+
+  /**
+   * The note under a new key, for its owner to send: what everyone on the
+   * note shares sealed again as it is, the new key wrapped for this account,
+   * the keys before it sealed under it, and the new key wrapped for each
+   * live public link. Null when the note does not open here, and then
+   * nothing is replaced. `commit` is called once the server has taken it.
+   */
+  async rekey(
+    sealed: SealedNote,
+    links: readonly PublicLink[],
+  ): Promise<{ body: NoteRekeyRequest; commit: () => void } | null> {
+    const account = await this.account;
+    const id = sealed.id;
+    const oldRaw = await unwrapNoteKey(
+      account,
+      id,
+      sealed.keyVersion,
+      sealed.key,
+    );
+    if (!oldRaw) return null;
+    const raw = crypto.getRandomValues(new Uint8Array(32));
+    const version = sealed.keyVersion + 1;
+    const from = await noteSealKey(oldRaw, sealed.keyVersion);
+    const previous = await openPreviousKeys(from, id, sealed.previousKeys);
+    previous.set(sealed.keyVersion, oldRaw);
+    try {
+      // A note with keys before this one that do not open is left alone:
+      // replacing the key would lose what they opened.
+      if (sealed.previousKeys && previous.size < 2) return null;
+      const key = await noteSealKey(raw, version);
+      const fields = await resealSharedFields(from, key, id, sealed);
+      if (!fields) return null;
+      const wrapped = await wrapNoteKey(account, id, version, raw);
+      const previousKeys = await sealPreviousKeys(key, id, previous);
+      const rewrapped: { token: string; wrappedKey: string }[] = [];
+      for (const link of links) {
+        if (link.mode !== "live") continue;
+        const linkKey = await this.openLinkKey(id, link.sealedLinkKey);
+        // A link whose key does not open here stops opening the note.
+        if (!linkKey) continue;
+        rewrapped.push({
+          token: link.token,
+          wrappedKey: await wrapForLink(linkKey, id, version, raw),
+        });
+      }
+      return {
+        body: {
+          keyVersion: version,
+          key: wrapped,
+          previousKeys,
+          ...fields,
+          ...(rewrapped.length > 0 && { links: rewrapped }),
+        },
+        commit: () => this.hold(id, { key, wrapped, previous: previousKeys }),
+      };
+    } finally {
+      wipe(raw);
+      for (const older of previous.values()) wipe(older);
+    }
   }
 
   /** The changes to a note, with the words among them sealed. */
@@ -432,7 +585,17 @@ export class Sealer {
     fetch: () => Promise<SealedNote | null>,
   ): Promise<SealedNoteUpdate> {
     const { key } = await this.keyOf(id, fetch);
-    return sealNoteUpdate(await this.account, key, id, changes, this.imageKeys);
+    const sealed = await sealNoteUpdate(
+      await this.account,
+      key,
+      id,
+      changes,
+      this.imageKeys,
+    );
+    // Words under the note key say which one, so the server can refuse
+    // them once the note has left it.
+    const shared = SEALED_SHARED_NOTE_FIELDS.some((field) => field in sealed);
+    return shared ? { ...sealed, keyVersion: key.version } : sealed;
   }
 
   /**
@@ -478,33 +641,35 @@ export class Sealer {
     };
   }
 
-  /** The versions that open with the note's current key, newest first as
-   * they came. One under an earlier key is left out. */
+  /** The versions that open, newest first as they came: each with the key
+   * it was written under, the note's or one before it. */
   async openVersions(
     noteId: string,
     sealed: SealedNoteVersion[],
     fetch: () => Promise<SealedNote | null>,
   ): Promise<NoteVersion[]> {
     if (sealed.length === 0) return [];
-    const { key } = await this.keyOf(noteId, fetch);
+    const ring = await this.ringOf(noteId, fetch);
     const out: NoteVersion[] = [];
     for (const version of sealed) {
-      const opened = await openVersion(key, version);
+      const key = ringKey(ring, version.keyVersion);
+      const opened = key ? await openVersion(key, version) : null;
       if (opened) out.push(opened);
     }
     return out;
   }
 
   /**
-   * The key a note's shared document is sealed with: its edits, snapshots
-   * and cursors. Rejects with `NoteKeyError` for a note whose key this
-   * device does not hold.
+   * The keys a note's shared document is read and written with: its edits,
+   * snapshots and cursors are sealed under the note's key, and what was
+   * written before the key was replaced opens with the one before. Rejects
+   * with `NoteKeyError` for a note whose key this device does not hold.
    */
   async documentKey(
     noteId: string,
     fetch: () => Promise<SealedNote | null>,
-  ): Promise<NoteSealKey | null> {
-    return (await this.keyOf(noteId, fetch)).key;
+  ): Promise<NoteKeyRing | null> {
+    return this.ringOf(noteId, fetch);
   }
 
   /**
@@ -644,8 +809,8 @@ export class Sealer {
   }
 
   /**
-   * The comments that open with the note's current key, as they came. One
-   * under an earlier key, or that does not open, is left out.
+   * The comments that open, as they came: each with the key it was written
+   * under, the note's or one before it.
    */
   async openComments(
     noteId: string,
@@ -653,10 +818,11 @@ export class Sealer {
     fetch: () => Promise<SealedNote | null>,
   ): Promise<NoteComment[]> {
     if (sealed.length === 0) return [];
-    const { key } = await this.keyOf(noteId, fetch);
+    const ring = await this.ringOf(noteId, fetch);
     const out: NoteComment[] = [];
     for (const comment of sealed) {
-      const body = await openComment(key, comment);
+      const key = ringKey(ring, comment.keyVersion);
+      const body = key ? await openComment(key, comment) : null;
       if (body !== null) out.push({ ...comment, body });
     }
     return out;

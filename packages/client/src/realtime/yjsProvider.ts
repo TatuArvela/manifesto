@@ -66,6 +66,11 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
   // rotation (login swap, server-forced logout) tears down the provider and
   // re-establishes the connection with the new credentials.
   const token = authToken.value;
+  // A note whose key was replaced while it is open starts again under the
+  // new one: nothing more is written under a key someone removed holds.
+  const keyVersion = noteId
+    ? (sealer.value?.replaced.value.get(noteId) ?? 0)
+    : 0;
 
   useEffect(() => {
     const url = wsUrl();
@@ -94,13 +99,14 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
       : Promise.reject(new Error("locked"));
 
     Promise.all([import("./yjsSession.js"), documentKey]).then(
-      ([{ createYjsSession }, key]) => {
+      ([{ createYjsSession }, ring]) => {
         if (cancelled) return;
         session = createYjsSession({
           url,
           noteId,
           token,
-          key,
+          key: ring?.key ?? null,
+          older: ring?.older,
           user: user
             ? { id: user.id, name: user.displayName, color: user.avatarColor }
             : null,
@@ -138,7 +144,7 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
       session?.destroy();
       setState(IDLE);
     };
-  }, [noteId, token]);
+  }, [noteId, token, keyVersion]);
 
   return state;
 }

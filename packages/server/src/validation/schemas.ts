@@ -12,6 +12,7 @@ import {
   MAX_NOTE_CONTENT_LENGTH,
   MAX_NOTE_TITLE_LENGTH,
   MAX_NOTES_PER_IMPORT,
+  MAX_PREVIOUS_KEYS_LENGTH,
   MAX_PUBLIC_LINK_VIEWS,
   MAX_TAG_LENGTH,
   MAX_TAGS_PER_NOTE,
@@ -574,7 +575,13 @@ export const sealedNotesImportSchema = z.object({
  * of either would fall behind what the note says.
  */
 export const sealedNoteUpdateSchema = z
-  .object(exactPartial(sealedNoteFields))
+  .object({
+    ...exactPartial(sealedNoteFields),
+    // Which note key the sealed values are under. Checked against the
+    // note's, so a change sealed under a key since replaced is refused
+    // and not stored where nobody could open it.
+    keyVersion: z.number().int().min(1).exactOptional(),
+  })
   .refine(
     (body) =>
       (body.images === undefined) === (body.imageRefs === undefined) &&
@@ -585,6 +592,31 @@ export const sealedNoteUpdateSchema = z
         "images comes with imageRefs, linkPreviews with previewRefs, content with excerpt",
     },
   );
+
+/**
+ * `PUT /api/notes/:id/key`: the note under a new key. Everything everyone on
+ * the note shares comes sealed again, with none of it left under the old key.
+ */
+export const noteRekeySchema = z.object({
+  keyVersion: z.number().int().min(2),
+  key: wrappedKey,
+  previousKeys: sealed(MAX_PREVIOUS_KEYS_LENGTH),
+  title: sealed(SEALED_FIELD_MAX.title),
+  content: sealed(SEALED_FIELD_MAX.content),
+  excerpt: sealed(SEALED_FIELD_MAX.excerpt),
+  font: sealed(SEALED_FIELD_MAX.font),
+  images: sealed(SEALED_FIELD_MAX.images),
+  linkPreviews: sealed(SEALED_FIELD_MAX.linkPreviews),
+  links: z
+    .array(
+      z.object({
+        token: z.string().min(1).max(64),
+        wrappedKey,
+      }),
+    )
+    .max(100)
+    .exactOptional(),
+});
 
 /** `POST /api/notes/:id/versions` from the app. */
 export const sealedVersionCreateSchema = z.object({

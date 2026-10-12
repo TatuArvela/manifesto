@@ -29,7 +29,13 @@ import {
   type NoteUpdate,
   type NoteVersion,
 } from "../note.js";
-import { fromUtf8, utf8, wipe } from "./bytes.js";
+import {
+  base64urlToBytes,
+  bytesToBase64url,
+  fromUtf8,
+  utf8,
+  wipe,
+} from "./bytes.js";
 import { type ImageKey, isImageKey } from "./imageSeal.js";
 import {
   associatedData,
@@ -633,6 +639,8 @@ export async function openSealedNote(
   const {
     key: _key,
     keyVersion: _keyVersion,
+    previousKeys: _previousKeys,
+    rekeyDue: _rekeyDue,
     excerpt: _excerpt,
     title: _title,
     content: _content,
@@ -781,4 +789,106 @@ export async function openPref(
   } catch {
     return undefined;
   }
+}
+
+function previousKeysData(key: NoteSealKey, noteId: string) {
+  return sharedData(key, noteId, "previous-keys");
+}
+
+/**
+ * The keys a note was under before, by version, sealed under the key it is
+ * under now, so that whoever holds the note still opens what was written
+ * under them. Someone removed held those keys already; they are never given
+ * the new one.
+ */
+export async function sealPreviousKeys(
+  key: NoteSealKey,
+  noteId: string,
+  previous: ReadonlyMap<number, Uint8Array<ArrayBuffer>>,
+): Promise<string> {
+  const listed: Record<string, string> = {};
+  for (const [version, raw] of previous) {
+    listed[String(version)] = bytesToBase64url(raw);
+  }
+  return seal(
+    key.fields,
+    utf8(JSON.stringify(listed)),
+    previousKeysData(key, noteId),
+  );
+}
+
+/** A note's earlier keys, raw, by version. Empty when there are none or
+ * they do not open. The caller wipes them. */
+export async function openPreviousKeys(
+  key: NoteSealKey,
+  noteId: string,
+  sealed: string | undefined,
+): Promise<Map<number, Uint8Array<ArrayBuffer>>> {
+  const out = new Map<number, Uint8Array<ArrayBuffer>>();
+  if (!sealed) return out;
+  const text = await openText(
+    key.fields,
+    sealed,
+    previousKeysData(key, noteId),
+  );
+  if (text === null) return out;
+  try {
+    const listed = JSON.parse(text) as Record<string, unknown>;
+    for (const [name, value] of Object.entries(listed)) {
+      const version = Number(name);
+      if (!Number.isInteger(version) || version < 1 || version >= key.version) {
+        continue;
+      }
+      if (typeof value !== "string") continue;
+      const raw = base64urlToBytes(value);
+      if (raw.length === 32) out.set(version, raw);
+    }
+  } catch {
+    out.clear();
+  }
+  return out;
+}
+
+/** The longest a note's sealed list of earlier keys may be. */
+export const MAX_PREVIOUS_KEYS_LENGTH = 16_384;
+
+/**
+ * A note's shared fields, moved from one key to another without being read:
+ * each is opened and sealed again as it is. Null when any of them does not
+ * open, so that replacing a key never writes an empty note over one this
+ * device could not read.
+ */
+export async function resealSharedFields(
+  from: NoteSealKey,
+  to: NoteSealKey,
+  noteId: string,
+  sealed: SharedSealed,
+): Promise<SharedSealed | null> {
+  const out = {} as SharedSealed;
+  const fields = [
+    "title",
+    "content",
+    "excerpt",
+    "font",
+    "images",
+    "linkPreviews",
+  ] as const;
+  for (const field of fields) {
+    // Never set: sealed as nothing, which opens as nothing.
+    const text =
+      sealed[field] === ""
+        ? ""
+        : await openText(
+            from.fields,
+            sealed[field],
+            sharedData(from, noteId, field),
+          );
+    if (text === null) return null;
+    out[field] = await seal(
+      to.fields,
+      utf8(text),
+      sharedData(to, noteId, field),
+    );
+  }
+  return out;
 }

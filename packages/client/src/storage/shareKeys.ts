@@ -4,6 +4,7 @@ import type {
   HeldKeyRequest,
   NoteResponse,
   OfferedKey,
+  PublicLinksResponse,
   SealedNote,
 } from "@manifesto/shared";
 import { ApiError, apiFetch, apiJson } from "./apiRequest.js";
@@ -151,4 +152,40 @@ export async function supplyKey(
     offered,
   );
   return res?.ok ?? false;
+}
+
+/**
+ * Gives a note this account owns a new key, because someone who held the old
+ * one no longer holds the note: everything everyone on it shares is sealed
+ * again, and each live public link is handed the new key. The people still
+ * on the note are then waiting for it, and are supplied like anyone else
+ * who waits. Resolves whether the note is under a new key; never rejects.
+ */
+export async function replaceNoteKey(noteId: string): Promise<boolean> {
+  const sealing = sealer.peek();
+  if (!sealing?.handsKeysOn) return false;
+  try {
+    const sealed = await sealedNote(noteId)();
+    // Not due any more: another device of this account got there first.
+    if (!sealed?.rekeyDue) return false;
+    const listed = await apiJson<PublicLinksResponse>(
+      "GET",
+      `/notes/${noteId}/links`,
+    );
+    const made = await sealing.rekey(sealed, listed?.links ?? []);
+    if (!made) return false;
+    const answer = await apiJson<NoteResponse<SealedNote>>(
+      "PUT",
+      `/notes/${noteId}/key`,
+      made.body,
+    );
+    if (!answer) return false;
+    made.commit();
+    return true;
+  } catch (err) {
+    // Lost to another device, or offline: the note stays due, and the next
+    // time it is listed it is tried again.
+    console.warn("Failed to replace a note's key:", err);
+    return false;
+  }
 }

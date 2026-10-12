@@ -44,6 +44,8 @@ export interface YjsSessionOptions {
    * then the document is synced as it is.
    */
   key: NoteSealKey | null;
+  /** The keys the note was under before; see `joinSealedDocument`. */
+  older?: ReadonlyMap<number, NoteSealKey> | undefined;
   /**
    * Our cursor label. The server replaces it with the account it authenticated
    * before anyone else sees it, so this only has to be right for this tab.
@@ -77,6 +79,7 @@ export function createYjsSession({
   noteId,
   token,
   key,
+  older,
   user,
   onStatus,
   onSynced,
@@ -89,7 +92,7 @@ export function createYjsSession({
   ydoc.clientID = wire.clientID;
   const idb = new IndexeddbPersistence(`${LOCAL_COPY_PREFIX}${noteId}`, wire);
   const sealed: SealedDocument | null = key
-    ? joinSealedDocument({ noteId, key, inner: ydoc, outer: wire })
+    ? joinSealedDocument({ noteId, key, older, inner: ydoc, outer: wire })
     : null;
   let compacting: ReturnType<typeof setInterval> | undefined;
   const provider = new HocuspocusProvider({

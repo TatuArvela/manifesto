@@ -32,6 +32,8 @@ export interface NoteRow {
   font: string;
   wrapped_key?: string;
   key_version?: number | string;
+  previous_keys?: string;
+  rekey_due?: number | string;
   pinned: RowBoolean;
   archived: RowBoolean;
   trashed: RowBoolean;
@@ -107,6 +109,9 @@ export function rowToNote(row: NoteRow): SealedNote {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+  const previous = sealedColumn(row.previous_keys);
+  if (previous) note.previousKeys = previous;
+  if (Number(row.rekey_due ?? 0) === 1) note.rekeyDue = true;
   if (asBoolean(row.readonly)) note.readonly = true;
   const source = parseJson<AutoNoteSource | null>(row.source, null);
   if (source) note.source = source;
@@ -117,6 +122,7 @@ export function rowToNote(row: NoteRow): SealedNote {
 const FIELD_TO_COLUMN = {
   key: "wrapped_key",
   keyVersion: "key_version",
+  previousKeys: "previous_keys",
   title: "title",
   content: "content",
   excerpt: "excerpt",
@@ -203,7 +209,7 @@ function toColumnValue(
  * cannot disagree with the column it counts.
  */
 export function noteUpdateColumns(
-  changes: SealedNoteUpdate,
+  changes: SealedNoteUpdate & { previousKeys?: string },
   booleans: BooleanStyle,
 ): { columns: string[]; values: ColumnValue[] } {
   const columns: string[] = [];

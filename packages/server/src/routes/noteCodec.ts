@@ -70,7 +70,7 @@ export function tokenKeys(c: Ctx): AccountSealKeys | null {
 }
 
 /** A request body held to `schema`, refused as the validator refuses one. */
-async function bodyOf<S extends z.ZodType>(
+export async function bodyOf<S extends z.ZodType>(
   c: Ctx,
   schema: S,
 ): Promise<z.infer<S>> {

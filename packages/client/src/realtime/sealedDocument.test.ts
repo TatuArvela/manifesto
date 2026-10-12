@@ -107,6 +107,51 @@ describe("a sealed shared document", () => {
     expect(late.text()).toBe("first second");
   });
 
+  it("reads what an earlier key wrote, and writes only under the one the note has now", async () => {
+    const a = client(key);
+    a.type("before ");
+    await sync(server, a);
+
+    // The note's key is replaced: whoever joins now holds the new one, and
+    // the old one to read with.
+    const next = await noteSealKey(newNoteKey(), 2);
+    const join = (older?: ReadonlyMap<number, NoteSealKey>) => {
+      const inner = new Y.Doc();
+      const outer = new Y.Doc();
+      const joined = joinSealedDocument({
+        noteId: NOTE,
+        key: next,
+        older,
+        inner,
+        outer,
+      });
+      cleanups.push(() => joined.destroy());
+      const body = inner.getText("body");
+      return {
+        inner,
+        outer,
+        joined,
+        text: () => body.toString(),
+        type: (text: string) => body.insert(body.length, text),
+      };
+    };
+    const b = join(new Map([[1, key]]));
+    await sync(server, b);
+    expect(b.text()).toBe("before ");
+    b.type("after");
+    await sync(server, b);
+
+    // Someone with the new key alone opens nothing the old one wrote;
+    // someone still on the old one, only what came before.
+    const fresh = join();
+    await sync(server, fresh);
+    expect(fresh.text()).not.toContain("before");
+    expect(fresh.joined.unreadable()).toBeGreaterThan(0);
+    const left = client(key);
+    await sync(server, left);
+    expect(left.text()).toBe("before ");
+  });
+
   it("opens nothing with another note's key, or under another note's name", async () => {
     const a = client(key);
     a.type("private");

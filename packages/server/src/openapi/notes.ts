@@ -1,6 +1,7 @@
 import {
   attachmentsClaimSchema,
   noteCreateSchema,
+  noteRekeySchema,
   notesImportSchema,
   noteUpdateSchema,
   noteVersionCreateSchema,
@@ -79,7 +80,23 @@ export const NOTE_OPERATIONS: Operation[] = [
       ...ok("NoteResponse"),
       "403": { description: "Your role does not allow it", schema: "Error" },
       ...notFound,
+      "409": { description: "Sealed under a key the note has left" },
       "412": { description: "Changed since; carries the current note" },
+    },
+  },
+  {
+    method: "put",
+    path: "/api/notes/:id/key",
+    tag: "Notes",
+    summary:
+      "Put the note under a new key, after someone who held the old one stopped holding the note (owner)",
+    auth: "session",
+    limits: ["user"],
+    body: noteRekeySchema,
+    responses: {
+      ...ok("NoteResponse"),
+      ...notFound,
+      "409": { description: "The note's key has moved on", schema: "Error" },
     },
   },
   {

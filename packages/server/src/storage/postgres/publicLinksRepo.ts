@@ -47,9 +47,24 @@ export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {
       return row ? rowToPublicLink(row) : null;
     },
     async delete(token, noteId) {
-      const result = await pool.query(
-        `DELETE FROM public_links WHERE token = $1 AND note_id = $2`,
+      const result = await pool.query<{ mode: string }>(
+        `DELETE FROM public_links WHERE token = $1 AND note_id = $2
+         RETURNING mode`,
         [token, noteId],
+      );
+      // A live link gave whoever had it the note's key.
+      if (result.rows[0]?.mode === "live") {
+        await pool.query(`UPDATE notes SET rekey_due = 1 WHERE id = $1`, [
+          noteId,
+        ]);
+      }
+      return (result.rowCount ?? 0) > 0;
+    },
+    async rewrap(token, noteId, wrappedKey) {
+      const result = await pool.query(
+        `UPDATE public_links SET wrapped_key = $1
+         WHERE token = $2 AND note_id = $3 AND mode = 'live'`,
+        [wrappedKey, token, noteId],
       );
       return (result.rowCount ?? 0) > 0;
     },

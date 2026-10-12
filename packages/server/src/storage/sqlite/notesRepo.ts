@@ -325,6 +325,18 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       return await repo.getById(id, userId);
     },
 
+    async rekey(id, ownerId, rekeyed, fromVersion, updatedAt) {
+      const { columns, values } = noteUpdateColumns(rekeyed, "integer");
+      const assignments = [...columns, "updated_at"].map((c) => `${c} = ?`);
+      const info = db
+        .prepare(
+          `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0
+           WHERE id = ? AND user_id = ? AND key_version = ?`,
+        )
+        .run([...values, updatedAt, id, ownerId, fromVersion]);
+      return info.changes > 0;
+    },
+
     async delete(id: string, userId: string): Promise<boolean> {
       const info = deleteStmt.run(id, userId);
       return info.changes > 0;

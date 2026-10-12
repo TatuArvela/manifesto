@@ -589,6 +589,16 @@ ALTER TABLE public_links ADD COLUMN wrapped_key TEXT;
 ALTER TABLE public_links ADD COLUMN sealed_link_key TEXT NOT NULL DEFAULT '';
 `;
 
+/**
+ * Replacing a note's key: the keys it was under before, sealed under the one
+ * it is under now, and whether its owner's app is to replace it because
+ * someone who held it no longer holds the note.
+ */
+const NOTE_REKEY = `
+ALTER TABLE notes ADD COLUMN previous_keys TEXT NOT NULL DEFAULT '';
+ALTER TABLE notes ADD COLUMN rekey_due INTEGER NOT NULL DEFAULT 0;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -622,6 +632,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0030-comment-keys", sql: COMMENT_KEYS },
   { id: "0031-token-keys", sql: TOKEN_KEYS },
   { id: "0032-link-keys", sql: LINK_KEYS },
+  { id: "0033-note-rekey", sql: NOTE_REKEY },
 ];
 
 export function runMigrations(

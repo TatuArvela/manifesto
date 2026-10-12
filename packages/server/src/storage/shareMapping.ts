@@ -100,6 +100,18 @@ export function parseOffered(
 }
 
 /**
+ * Whether a share's holder was ever handed the note's key: offered it with
+ * the invitation, or keeping it since. When such a share ends, the note is
+ * due a new key.
+ */
+export function heldKey(row: ShareRow): boolean {
+  return (
+    parseOffered(row.offered_key) !== null ||
+    Number(row.wrapped_key_version ?? 0) > 0
+  );
+}
+
+/**
  * Whether a share's holder has nothing that opens the note at `keyVersion`:
  * no copy of that key under their own notes key, and none offered to them.
  */
@@ -216,6 +228,8 @@ export function rowToViewNote(row: ViewRow): SealedNote {
   // Their copy of the key, while it is the key the note is under. Behind
   // it, they hold nothing that opens the note, and are handed the offer
   // that would.
+  // Replacing the key is the owner's to do.
+  delete note.rekeyDue;
   const current = Number(row.s_wrapped_key_version ?? 0) === note.keyVersion;
   note.key = current ? sealedColumn(row.s_wrapped_key) : "";
   const offered = current ? null : parseOffered(row.s_offered_key);

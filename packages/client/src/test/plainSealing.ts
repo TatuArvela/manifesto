@@ -18,6 +18,9 @@ import type { NoteSealing } from "../storage/sealing.js";
  */
 export const plainSealing: NoteSealing = {
   unreadable: signal<ReadonlySet<string>>(new Set()),
+  due: signal<ReadonlySet<string>>(new Set()),
+  replaced: signal<ReadonlyMap<string, number>>(new Map()),
+  rekey: async () => null,
   complete: true,
   markComplete: () => {},
   claimsImages: false,

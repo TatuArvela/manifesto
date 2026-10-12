@@ -87,16 +87,19 @@ export interface SealedDocument {
 export function joinSealedDocument(options: {
   noteId: string;
   key: NoteSealKey;
+  /** The keys the note was under before, by version: what they sealed is
+   * read, and nothing new is written under one. */
+  older?: ReadonlyMap<number, NoteSealKey> | undefined;
   inner: Y.Doc;
   outer: Y.Doc;
 }): SealedDocument {
-  const { noteId, key, inner, outer } = options;
+  const { noteId, key, older, inner, outer } = options;
   const log = outer.getArray<Uint8Array>(LOG);
-  const data = (kind: number) =>
+  const data = (kind: number, version = key.version) =>
     associatedData({
       id: noteId,
       field: kind === SNAPSHOT ? "document/snapshot" : "document/edit",
-      version: key.version,
+      version,
     });
   let queue: Promise<void> = Promise.resolve();
   let unreadable = 0;
@@ -117,9 +120,14 @@ export function joinSealedDocument(options: {
       entry.byteLength,
     ).getUint32(1);
     // Under a key this device does not hold the document by: left alone.
+    const under = version === key.version ? key : older?.get(version);
     const update =
-      version === key.version && (kind === EDIT || kind === SNAPSHOT)
-        ? await unsealBytes(key.edits, entry.slice(HEADER_BYTES), data(kind))
+      under && (kind === EDIT || kind === SNAPSHOT)
+        ? await unsealBytes(
+            under.edits,
+            entry.slice(HEADER_BYTES),
+            data(kind, version),
+          )
         : null;
     if (!update) {
       unreadable++;

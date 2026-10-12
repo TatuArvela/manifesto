@@ -151,6 +151,17 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   `waitingForKey`, as the owner or as any other holder.
 - Any note the server answers with outside the adapter (the share routes) is opened with
   `sealer.peek()?.open(...)` before `receiveNote`.
+- **Replacing a note's key.** Both drivers mark a note `rekey_due` inside `shares.delete` (when
+  the share ever held a key, `heldKey`) and `publicLinks.delete` (a live link), so no route has to
+  remember. Only the owner is sent `rekeyDue`; `Sealer.open` gathers those ids in `due`, and an
+  effect in `state/sharing.ts` calls `replaceNoteKey` (`shareKeys.ts`), which sends
+  `PUT /api/notes/:id/key`. `Sealer.rekey` moves the shared fields with `resealSharedFields`,
+  which refuses a note any field of which does not open, so a key is never replaced over words
+  this device could not read. The keys before are kept in `previousKeys`, sealed under the new
+  one; versions, comments and the document's entries are opened with the key of the version they
+  name (`ringOf`). The server stamps `updated_at`, so a write sealed under the old key meets a
+  412, and one that states the old `keyVersion` a 409, after which `RestApiAdapter.update` reads
+  the key again and seals once more. A live document is rebuilt when `Sealer.replaced` changes.
 - A comment's text is sealed under the note key and bound to an id its writer chose
   (`sealComment`); `state/comments.ts` opens every comment it is sent, a socket's included, and
   leaves out one that does not open. The server cannot tell an edit to the same words from a real

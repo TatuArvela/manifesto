@@ -7,6 +7,7 @@ import type {
   AuthMeUpdateRequest,
   HeldKeyRequest,
   NoteCreate,
+  NoteRekeyRequest,
   NotesImportRequest,
   NoteUpdate,
   NoteVersionCreateRequest,
@@ -36,6 +37,7 @@ import type {
   authMeUpdateSchema,
   heldKeySchema,
   noteCreateSchema,
+  noteRekeySchema,
   notesImportSchema,
   noteUpdateSchema,
   noteVersionCreateSchema,
@@ -98,9 +100,10 @@ export type WireTypeChecks = [
   Assert<
     Matches<
       Body<typeof sealedNoteUpdateSchema>,
-      Omit<SealedNoteUpdate, "trashedAt" | "updatedAt" | "key" | "keyVersion">
+      Omit<SealedNoteUpdate, "trashedAt" | "updatedAt" | "key">
     >
   >,
+  Assert<Matches<Body<typeof noteRekeySchema>, NoteRekeyRequest>>,
   Assert<
     Matches<
       Body<typeof sealedNotesImportSchema>["notes"][number],

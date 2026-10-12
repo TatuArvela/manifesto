@@ -1,4 +1,5 @@
 import type {
+  NoteRekeyRequest,
   SealedNote,
   SealedNoteCreate,
   SealedNoteUpdate,
@@ -88,6 +89,9 @@ export class NoteAccessError extends Error {
  * position, tags and reminder in place of the owner's, and every note that has
  * members carries `sharing`.
  */
+/** A note's shared fields under a new key; see `NotesRepo.rekey`. */
+export type RekeyedNote = Omit<NoteRekeyRequest, "links">;
+
 export interface NotesRepo {
   /** One page of the notes the user can see, newest first. */
   listByUser(userId: string, options: ListNotesOptions): Promise<NotePage>;
@@ -135,6 +139,20 @@ export interface NotesRepo {
     updatedAt: string,
     expectedUpdatedAt?: string,
   ): Promise<SealedNote | null>;
+  /**
+   * Puts the owner's note under a new key: its sealed fields, the owner's
+   * wrapped copy and the keys before it, all at once, and only while the
+   * note is still under `fromVersion`. Everyone else's copy of the key is
+   * then behind, and they wait for the new one. False when the note is not
+   * this owner's or its key has moved on.
+   */
+  rekey(
+    id: string,
+    ownerId: string,
+    rekeyed: RekeyedNote,
+    fromVersion: number,
+    updatedAt: string,
+  ): Promise<boolean>;
   /** Owner only. The note's shares go with it. */
   delete(id: string, userId: string): Promise<boolean>;
 }

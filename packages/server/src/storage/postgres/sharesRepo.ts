@@ -1,5 +1,6 @@
 import type { ShareInvitation, ShareRole } from "@manifesto/shared";
 import {
+  heldKey,
   type InvitationRow,
   membersChangedAt,
   rowToInvitation,
@@ -204,6 +205,9 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
           [noteId, userId],
         );
         await stampMembers(query, noteId, membersChangedAt());
+        if (heldKey(row)) {
+          await query(`UPDATE notes SET rekey_due = 1 WHERE id = $1`, [noteId]);
+        }
         return rowToShare(row);
       });
     },

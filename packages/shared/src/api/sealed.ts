@@ -37,6 +37,17 @@ export interface SealedNote
    * opens it, keeps it under their own notes key, and reads the note again.
    */
   offered?: OfferedKey;
+  /**
+   * The keys the note was under before, sealed under the one it is under
+   * now: what still opens its older versions, comments and edits. Absent
+   * for a note whose key was never replaced.
+   */
+  previousKeys?: string;
+  /**
+   * For the owner: someone who held the key no longer holds the note, so
+   * the owner's app is to give it a new one (`PUT /api/notes/:id/key`).
+   */
+  rekeyDue?: true;
   // Under the note key, the same for everyone on the note.
   title: string;
   content: string;
@@ -67,15 +78,44 @@ export interface SealedNoteRefs {
 /** A new note: the client chooses the id, since every value is bound to it. */
 export type SealedNoteCreate = Omit<
   SealedNote,
-  "createdAt" | "updatedAt" | "sharing" | "offered"
+  | "createdAt"
+  | "updatedAt"
+  | "sharing"
+  | "offered"
+  | "previousKeys"
+  | "rekeyDue"
 > &
   SealedNoteRefs;
 
 /** Only the fields being changed. `images` comes with `imageRefs` and
  * `linkPreviews` with `previewRefs`. */
 export type SealedNoteUpdate = Partial<
-  Omit<SealedNote, "id" | "createdAt" | "sharing" | "offered"> & SealedNoteRefs
+  Omit<
+    SealedNote,
+    "id" | "createdAt" | "sharing" | "offered" | "previousKeys" | "rekeyDue"
+  > &
+    SealedNoteRefs
 >;
+
+/**
+ * `PUT /api/notes/:id/key` from the owner's app: the note under a new key.
+ * Everything everyone on the note shares is sealed again, the key comes
+ * wrapped for the owner, and the keys before it sealed under it. `keyVersion`
+ * is one more than the note's. Each live public link named gets the new key
+ * wrapped by its link key; one left out stops opening.
+ */
+export interface NoteRekeyRequest {
+  keyVersion: number;
+  key: string;
+  previousKeys: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  font: string;
+  images: string;
+  linkPreviews: string;
+  links?: { token: string; wrappedKey: string }[];
+}
 
 /** One note of an import, with the creation time it had where it came from. */
 export type SealedNoteImport = SealedNoteCreate & { createdAt?: string };

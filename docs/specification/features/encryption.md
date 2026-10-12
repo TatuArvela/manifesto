@@ -463,10 +463,17 @@ the code does, and nothing here may be released:
   wrapped it, opened and checked by their client, and kept under their own notes key when they
   accept. A member of a team waits until the first client of anyone holding the note wraps it for
   them. An invitation's mail no longer names the note.
+- **A note gets a new key** when someone who held the old one stops holding the note, or a live
+  public link is revoked: the server marks the note, and the first device of its owner to see that
+  seals the title, text, images and previews again under a new key, keeps the old keys sealed under
+  it for the versions, comments and edits they wrote, and hands the new one to the links that stay
+  and, as they come online, to the people still on the note. Narrower than
+  [Sharing](#sharing) describes in two ways: the shared document is not sealed again, so what was
+  typed before stays in the log under the old key until the clients compact it away, and a live
+  link that runs out, as opposed to one revoked, does not mark the note.
 - **Not built of sharing yet** (the rest of step 4): the keys an account has seen are remembered
   for the session only, there is no fingerprint to compare and no refusal of a key that changed, so
-  a signature is checked against whatever key the server gives for its signer; removing someone
-  does not replace the note's key, and neither does revoking a live public link.
+  a signature is checked against whatever key the server gives for its signer.
 - **Public links** carry a link key in the fragment of their address. A live link stores the note
   key wrapped by it; a snapshot stores a copy of the note sealed under a key derived from it. The
   owner's copy of the link key is sealed under their personal key. The page opens the note, and its

@@ -20,6 +20,7 @@ import { sealer } from "../storage/sealing.js";
 import {
   adoptOfferedKey,
   offerKeyTo,
+  replaceNoteKey,
   supplyKey,
 } from "../storage/shareKeys.js";
 import { forgetNote, notes, receiveNote, reviseNote } from "./notesStore.js";
@@ -387,6 +388,23 @@ async function supplyWaiting(note: Note): Promise<void> {
     await supplyKey(note.id, member.id);
   }
 }
+
+/** The notes whose key this session has set about replacing. */
+const replacing = new Set<string>();
+
+// A note is due a new key once someone who held the old one is gone: the
+// owner's app makes it, whichever of their devices is online first.
+effect(() => {
+  const sealing = sealer.value;
+  if (!sealing?.handsKeysOn) return;
+  for (const id of sealing.due.value) {
+    if (replacing.has(id)) continue;
+    replacing.add(id);
+    // One that fails stays due on the server, and is tried again the next
+    // time this account is unlocked.
+    void replaceNoteKey(id);
+  }
+});
 
 // Follows the notes: a share to a team reaches its members with no key, and
 // this is the "first client of anyone holding the note" that wraps it.

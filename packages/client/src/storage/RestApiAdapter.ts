@@ -453,16 +453,22 @@ export class RestApiAdapter implements StorageAdapter {
     };
     if (options.ifMatch !== undefined) headers["If-Match"] = options.ifMatch;
     const sealing = this.sealing();
-    const body = await sealing.sealUpdate(
-      id,
-      await this.withUploads(changes, id),
-      this.sealedNote(id),
-    );
-    const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(body),
-    });
+    const withUploads = await this.withUploads(changes, id);
+    const send = async () =>
+      fetch(`${this.baseUrl}/api/notes/${id}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(
+          await sealing.sealUpdate(id, withUploads, this.sealedNote(id)),
+        ),
+      });
+    let res = await send();
+    if (res.status === 409) {
+      // The note's key was replaced since this device last read it: sealed
+      // again under the one it has now, once.
+      sealing.forget(id);
+      res = await send();
+    }
     if (res.status === 412) {
       const data = (await res.json()) as Partial<NoteResponse<SealedNote>>;
       const current = data?.note ? await sealing.open(data.note) : null;

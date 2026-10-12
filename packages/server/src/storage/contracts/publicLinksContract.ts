@@ -126,6 +126,92 @@ export function describePublicLinksContract(
       expect(await storage.publicLinks.get("tok")).toBeNull();
     });
 
+    it("leaves the note due a new key when a live link or a key's holder goes, until it is given one", async () => {
+      const due = async () =>
+        (await storage.notes.getById("n1", "owner"))?.rekeyDue === true;
+      const rekeyed = (keyVersion: number) => ({
+        keyVersion,
+        key: ct(`key ${keyVersion}`),
+        previousKeys: ct("before"),
+        title: ct("t"),
+        content: ct("c"),
+        excerpt: ct("c"),
+        font: ct("default"),
+        images: ct("[]"),
+        linkPreviews: ct("[]"),
+      });
+
+      // A snapshot holds no key of the note's.
+      await storage.publicLinks.create(
+        link({ token: "copy", mode: "snapshot", wrappedKey: null }),
+      );
+      await storage.publicLinks.delete("copy", "n1");
+      expect(await due()).toBe(false);
+
+      await storage.publicLinks.create(link({ token: "gone" }));
+      await storage.publicLinks.create(link({ token: "stays" }));
+      await storage.publicLinks.delete("gone", "n1");
+      expect(await due()).toBe(true);
+
+      // Only from the version it is at, and only by its owner.
+      expect(await storage.notes.rekey("n1", "owner", rekeyed(3), 2, T1)).toBe(
+        false,
+      );
+      expect(await storage.notes.rekey("n1", "else", rekeyed(2), 1, T1)).toBe(
+        false,
+      );
+      expect(await storage.notes.rekey("n1", "owner", rekeyed(2), 1, T1)).toBe(
+        true,
+      );
+      expect(await storage.notes.getById("n1", "owner")).toMatchObject({
+        keyVersion: 2,
+        key: ct("key 2"),
+        previousKeys: ct("before"),
+        title: ct("t"),
+        updatedAt: T1,
+      });
+      expect(await due()).toBe(false);
+      expect(await storage.publicLinks.rewrap("stays", "n1", ct("again"))).toBe(
+        true,
+      );
+      expect((await storage.publicLinks.get("stays"))?.wrappedKey).toBe(
+        ct("again"),
+      );
+      expect(await storage.publicLinks.rewrap("nope", "n1", ct("x"))).toBe(
+        false,
+      );
+
+      // Someone who accepted held the key; someone only invited, without
+      // one offered, did not.
+      for (const id of ["alice", "bob"]) {
+        await storage.users.create({
+          id,
+          username: id,
+          passwordHash: "h",
+          displayName: "",
+          avatarColor: "#123456",
+          provider: "local",
+          externalId: null,
+          createdAt: T0,
+        });
+        await storage.shares.create({
+          noteId: "n1",
+          userId: id,
+          role: "view",
+          createdAt: T0,
+        });
+      }
+      await storage.shares.delete("n1", "bob");
+      expect(await due()).toBe(false);
+      await storage.shares.accept("n1", "alice", T0, {
+        key: ct("held"),
+        keyVersion: 2,
+      });
+      // Not the recipient's to be told.
+      await storage.shares.delete("n1", "alice");
+      expect(await due()).toBe(true);
+    });
+
     it("keeps a usable snapshot's pictures from the sweep, and lets an expired one's go", async () => {
       await storage.attachments.put({
         id: IMAGE_ID,

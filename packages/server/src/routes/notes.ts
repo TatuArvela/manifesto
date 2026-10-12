@@ -19,8 +19,10 @@ import {
   type StoredNoteUpdate,
 } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
+import { noteRekeySchema } from "../validation/schemas.js";
 import { registerCommentRoutes } from "./comments.js";
 import {
+  bodyOf,
   createBody,
   importBody,
   noteOut,
@@ -224,7 +226,15 @@ export function createNotesRoutes(deps: NotesDeps) {
     const fields = await updateBody(c, keys, deps.storage, id);
     if (!fields) throw new HttpError(404, "Note not found");
     const now = nowIso();
-    const { imageRefs, previewRefs, ...rest } = fields;
+    const { imageRefs, previewRefs, keyVersion, ...rest } = fields;
+    // Sealed under a key the note has since left: stored, nobody could open
+    // it. The app reads the note again and seals under the key it has now.
+    if (keyVersion !== undefined) {
+      const held = await deps.storage.notes.getById(id, userId);
+      if (held && held.keyVersion !== keyVersion) {
+        throw new HttpError(409, "The note is under another key now");
+      }
+    }
     const changes: StoredNoteUpdate = {
       ...rest,
       ...trashStamp(fields.trashed, now),
@@ -312,6 +322,41 @@ export function createNotesRoutes(deps: NotesDeps) {
         (updated.sharing?.role ?? "owner") === "owner",
     });
     return c.json({ note: await noteOut(keys, updated) });
+  });
+
+  /**
+   * The note under a new key, which its owner's app makes when someone who
+   * held the old one no longer holds the note. The server cannot tell a good
+   * key from a bad one; what it holds to is that the whole note moves at
+   * once, from the version it is at, and that everyone else's copy of the
+   * key is then behind until a client that holds the new one wraps it for
+   * them.
+   */
+  notes.put("/:id/key", async (c) => {
+    const { userId } = c.get("auth");
+    const id = c.req.param("id") as string;
+    const { links, ...rekeyed } = await bodyOf(c, noteRekeySchema);
+    const current = await deps.storage.notes.getById(id, userId);
+    if (!current || (current.sharing?.role ?? "owner") !== "owner") {
+      throw new HttpError(404, "Note not found");
+    }
+    const moved =
+      rekeyed.keyVersion === current.keyVersion + 1 &&
+      (await deps.storage.notes.rekey(
+        id,
+        userId,
+        rekeyed,
+        current.keyVersion,
+        nowIso(),
+      ));
+    if (!moved) throw new HttpError(409, "The note is under another key now");
+    for (const link of links ?? []) {
+      await deps.storage.publicLinks.rewrap(link.token, id, link.wrappedKey);
+    }
+    await deps.noteEvents.changed(id);
+    const note = await deps.storage.notes.getById(id, userId);
+    if (!note) throw new HttpError(404, "Note not found");
+    return c.json({ note });
   });
 
   notes.delete("/:id", async (c) => {

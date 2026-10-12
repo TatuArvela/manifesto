@@ -141,6 +141,8 @@ export interface PublicLinksRepo {
    * for a link's last view cannot both have it.
    */
   recordView(token: string, at: string): Promise<boolean>;
+  /** A live link's copy of the note key, after the note's key was replaced. */
+  rewrap(token: string, noteId: string, wrappedKey: string): Promise<boolean>;
 }
 
 export interface StoredTeam {

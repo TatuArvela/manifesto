@@ -1,5 +1,6 @@
 import type { ShareInvitation, ShareRole } from "@manifesto/shared";
 import {
+  heldKey,
   type InvitationRow,
   membersChangedAt,
   rowToInvitation,
@@ -122,12 +123,16 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
     },
   );
 
+  const rekeyDueStmt = db.prepare(
+    `UPDATE notes SET rekey_due = 1 WHERE id = ?`,
+  );
   const deleteTx = db.transaction(
     (noteId: string, userId: string): NoteShare | null => {
       const row = findStmt.get(noteId, userId) as ShareRow | undefined;
       if (!row) return null;
       deleteStmt.run(noteId, userId);
       membersChangedStmt.run(membersChangedAt(), noteId);
+      if (heldKey(row)) rekeyDueStmt.run(noteId);
       return rowToShare(row);
     },
   );
