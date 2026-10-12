@@ -1,18 +1,22 @@
 import {
+  type AccountKeys,
   type Note,
   NoteColor,
   type NoteCreate,
   NoteFont,
+  type SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../test/defined.js";
 import { SealedServer, testKeys } from "../test/sealedServer.js";
+import { createAccountKeys } from "../utils/keyMaterial.js";
 import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
 import {
   ImageKindError,
   LockedError,
   Sealer,
   type StorageKeys,
+  setOfferHandler,
 } from "./sealing.js";
 
 /**
@@ -193,6 +197,105 @@ describe("RestApiAdapter with sealing", () => {
         defined(server.versions.get(a.id)).map((v) => ({ ...v, noteId: b.id })),
       );
       expect(await adapter.listVersions(b.id)).toEqual([]);
+    });
+  });
+
+  describe("a note whose key was replaced", () => {
+    afterEach(() => {
+      setOfferHandler(null);
+    });
+
+    it("seals a change again under the new key, once the server refuses the old", async () => {
+      const created = await adapter.create(draft);
+      const before = defined(server.notes.get(created.id));
+      const made = await new Sealer(keys).rekey(before, []);
+      if (!made) throw new Error("not replaced");
+      server.notes.set(created.id, { ...before, ...made.body });
+
+      const saved = await adapter.update(created.id, { title: "After" });
+      expect(saved.title).toBe("After");
+      expect(defined(server.notes.get(created.id)).keyVersion).toBe(2);
+      expect((await adapterFor(keys).get(created.id))?.title).toBe("After");
+    });
+
+    it("takes the key a recipient is offered before sealing again", async () => {
+      // Two accounts with keys to wrap to and sign with.
+      const account = async (userId: string) => {
+        const made = await createAccountKeys(userId);
+        const held: AccountKeys = {
+          version: made.version,
+          wrappedBySecret: made.request.wrappedBySecret,
+          publicKeys: made.request.publicKeys,
+          wrappedPrivateKeys: made.request.wrappedPrivateKeys,
+        };
+        return {
+          userId,
+          publicKeys: held.publicKeys,
+          load: async () => held,
+          sealer: new Sealer({
+            userId,
+            version: made.version,
+            accountKey: made.accountKey,
+          }),
+        };
+      };
+      const owner = await account("u-owner");
+      const alice = await account("u-alice");
+      const offerTo = async (from: SealedNote) => {
+        const offered = await owner.sealer.offerKey(
+          "n1",
+          { userId: alice.userId, exchange: alice.publicKeys.exchange },
+          async () => from,
+          owner.load,
+        );
+        if (!offered) throw new Error("no offer");
+        return offered;
+      };
+      // As `shareKeys.ts` does, without the requests around it.
+      setOfferHandler(async (sealing, sealed) => {
+        if (!sealed.offered) return;
+        await sealing.adoptOffered(
+          sealed.id,
+          sealed.offered,
+          owner.publicKeys.signing,
+          alice.load,
+        );
+      });
+
+      const {
+        imageRefs: _i,
+        previewRefs: _p,
+        ...sealed
+      } = await owner.sealer.sealNew("n1", draft);
+      const first: SealedNote = { ...sealed, createdAt: "c", updatedAt: "u" };
+      server.notes.set("n1", first);
+      // Alice accepted, and keeps her own copy of the first key.
+      const kept = await alice.sealer.adoptOffered(
+        "n1",
+        await offerTo(first),
+        owner.publicKeys.signing,
+        alice.load,
+      );
+      server.views.set("n1", { key: defined(kept?.key) });
+      const hers = new RestApiAdapter("http://server.test", "tok", {
+        sealer: alice.sealer,
+      });
+      expect((await hers.get("n1"))?.title).toBe("Groceries");
+
+      // The owner replaces the key and offers Alice the new one; her device
+      // has not read the note since.
+      const made = await owner.sealer.rekey(first, []);
+      if (!made) throw new Error("not replaced");
+      made.commit();
+      const second = { ...first, ...made.body };
+      server.notes.set("n1", second);
+      server.views.set("n1", { key: "", offered: await offerTo(second) });
+
+      const saved = await hers.update("n1", { title: "From Alice" });
+      expect(saved.title).toBe("From Alice");
+      const now = defined(server.notes.get("n1"));
+      expect(now.keyVersion).toBe(2);
+      expect((await owner.sealer.open(now))?.title).toBe("From Alice");
     });
   });
 

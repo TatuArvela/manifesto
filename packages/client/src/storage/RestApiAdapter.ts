@@ -465,8 +465,12 @@ export class RestApiAdapter implements StorageAdapter {
     let res = await send();
     if (res.status === 409) {
       // The note's key was replaced since this device last read it: sealed
-      // again under the one it has now, once.
-      sealing.forget(id);
+      // again under the one it has now, once. Read through `open`, which is
+      // what takes the key a recipient was offered; one who has none yet
+      // holds no key after it, and the write fails as it should.
+      const now = await this.sealedNote(id)();
+      if (now) await sealing.open(now);
+      else sealing.forget(id);
       res = await send();
     }
     if (res.status === 412) {

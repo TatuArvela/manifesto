@@ -61,6 +61,11 @@ export class SealedServer {
   readonly versions = new Map<string, SealedNoteVersion[]>();
   /** Ids that belong to someone else's note, which an import is refused. */
   readonly taken = new Set<string>();
+  /**
+   * What the reader is sent of a note in place of the owner's own: a
+   * recipient's copy of its key, or none and the key they are offered.
+   */
+  readonly views = new Map<string, Pick<SealedNote, "key" | "offered">>();
   /** Every request made, as `METHOD path`. */
   readonly requests: string[] = [];
   /** Sealed images, each with whose it is: `me` is the account under test. */
@@ -108,6 +113,11 @@ export class SealedServer {
     };
     this.notes.set(note.id, note);
     return note;
+  }
+
+  /** A note as the reader is sent it. */
+  private seen(note: SealedNote): SealedNote {
+    return { ...note, ...this.views.get(note.id) };
   }
 
   /** Stands in for `fetch`. */
@@ -211,7 +221,7 @@ export class SealedServer {
       const id = one[1] ?? "";
       const note = this.notes.get(id);
       if (!note) return json({ error: "Note not found" }, 404);
-      if (method === "GET") return json({ note });
+      if (method === "GET") return json({ note: this.seen(note) });
       if (method === "DELETE") {
         this.notes.delete(id);
         return new Response(null, { status: 204 });
@@ -231,7 +241,7 @@ export class SealedServer {
         const next = { ...note, ...changes, updatedAt: this.now() };
         this.notes.set(id, next);
         this.remember(id, body);
-        return json({ note: next });
+        return json({ note: this.seen(next) });
       }
     }
     return json({ error: "Not found" }, 404);
@@ -239,8 +249,13 @@ export class SealedServer {
 
   /** Everything the server holds, as the text a copy of its database would
    * be. */
+          keyVersion,
   dump(): string {
     return JSON.stringify([
+        // Sealed under a key the note has since left.
+        if (keyVersion !== undefined && keyVersion !== note.keyVersion) {
+          return json({ error: "The note is under another key now" }, 409);
+        }
       [...this.notes.values()],
       [...this.versions.values()],
     ]);
