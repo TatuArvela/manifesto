@@ -5,7 +5,7 @@ import type {
   AuthSuccessResponse,
   RecoveryOpenResponse,
 } from "@manifesto/shared";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   authHeaders,
   bootTestApp,
@@ -443,6 +443,25 @@ describe("account keys", () => {
         (await call("PUT", "/api/auth/keys", setup("second"))).status,
       ).toBe(204);
       expect(await actions()).toContain("keys.started_again");
+    });
+
+    it("keeps the keys when emptying the account fails, so it can be tried again", async () => {
+      const clear = vi
+        .spyOn(rig.storage.prefs, "clear")
+        .mockRejectedValueOnce(new Error("the database is busy"));
+      const failed = await call("DELETE", "/api/auth/keys", {
+        password: PASSWORD,
+      });
+      expect(failed.status).toBe(500);
+      expect((await keys()).keys).not.toBeNull();
+      expect(await actions()).not.toContain("keys.started_again");
+
+      const again = await call("DELETE", "/api/auth/keys", {
+        password: PASSWORD,
+      });
+      expect(again.status).toBe(204);
+      expect((await keys()).keys).toBeNull();
+      clear.mockRestore();
     });
   });
 });

@@ -289,6 +289,12 @@ export function registerAccountKeyRoutes(
    * again. The next thing the client does is set up new keys. The account's
    * other sessions and its tokens end, since what they hold opens nothing
    * now.
+   *
+   * The keys go last. Emptying is many writes with no transaction around
+   * them, and one that fails leaves the account with its keys, so the same
+   * request can be sent again: with the keys gone first it would be refused,
+   * and what was left would stay sealed under keys nobody has. The other
+   * sessions end first, so that none of them writes a note meanwhile.
    */
   router.delete(
     "/keys",
@@ -296,11 +302,12 @@ export function registerAccountKeyRoutes(
     async (c) => {
       const auth = c.get("auth");
       await requireConfirmation(deps, auth, c.req.valid("json").password);
-      if (!(await storage.accountKeys.delete(auth.userId))) {
+      if (!(await storage.accountKeys.get(auth.userId))) {
         throw new HttpError(409, "This account has no keys yet");
       }
-      await emptyAccount(deps, auth.userId);
       await endUserSessions(storage, deps.revocations, auth.userId, auth.token);
+      await emptyAccount(deps, auth.userId);
+      await storage.accountKeys.delete(auth.userId);
       audit(storage, c, { action: "keys.started_again", actorId: auth.userId });
       return c.body(null, 204);
     },

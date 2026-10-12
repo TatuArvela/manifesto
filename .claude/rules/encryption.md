@@ -318,7 +318,9 @@ recovery key goes through `recoveryKeysOf`, which counts a wrong one against the
 (`replaceUserKeys`), so two requests holding the same key cannot both win. The recovery key took the
 place of the two-factor recovery codes: an account whose only factor is passkeys has nothing to type
 at sign-in. Starting an account again removes its keys and, through `sharing/emptyAccount.ts`,
-everything sealed under them.
+everything sealed under them. The keys go last: emptying is many writes with no transaction, and a
+request that failed halfway has to be one that can be sent again, which it cannot once the keys are
+gone (409).
 
 A database from before encryption is not upgraded: migration `0027-account-keys`, the first step
 of encryption, carries `refuseIf: BEFORE_ENCRYPTION`, and `index.ts` prints the refusal and exits.
