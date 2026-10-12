@@ -135,6 +135,22 @@ describe("sealing a note", () => {
       { url: "https://example.com/b", title: "Kept", domain: "example.com" },
     ]);
   });
+
+  it("names a link preview by the host its URL opens", async () => {
+    const account = await accountOf(await testKeys());
+    const { sealed, key } = await sealNewNote(account, "n1", {
+      ...draft,
+      linkPreviews: [
+        { url: "https://evil.test/login", title: "Bank", domain: "bank.test" },
+        { url: "https://other.test:8443/", title: "x", domain: "bank.test" },
+      ],
+    });
+    const opened = await openSealedNote(account, served(sealed), key);
+    expect(opened?.note.linkPreviews.map((preview) => preview.domain)).toEqual([
+      "evil.test",
+      "other.test:8443",
+    ]);
+  });
 });
 
 describe("Sealer", () => {

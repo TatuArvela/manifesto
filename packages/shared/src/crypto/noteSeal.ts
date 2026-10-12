@@ -245,6 +245,11 @@ function isHttpUrl(value: unknown): value is string {
  * Link previews as a note may hold them, from anything: each card checked
  * as the server checked one, a card that fails left out, and an image that
  * is not an attachment dropped from its card.
+ *
+ * The card shows `domain` as where the link goes, so it is always the URL's
+ * own host, whatever was sealed: a writer could otherwise have a card name
+ * one site and open another, on a shared note or a public link, and the
+ * server cannot look inside to put it right.
  */
 export function checkedLinkPreviews(
   raw: unknown,
@@ -274,7 +279,6 @@ export function checkedLinkPreviews(
     ) {
       continue;
     }
-    if (typeof p.domain !== "string" || p.domain.length > 255) continue;
     const description =
       typeof p.description === "string" &&
       p.description.length <= MAX_LINK_PREVIEW_DESCRIPTION_LENGTH
@@ -288,7 +292,7 @@ export function checkedLinkPreviews(
       ...(description !== undefined && { description }),
       ...(image !== undefined && { image }),
       ...(favicon !== undefined && { favicon }),
-      domain: p.domain,
+      domain: new URL(p.url).host,
     });
   }
   return out;

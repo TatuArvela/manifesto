@@ -98,7 +98,8 @@ order for any new flow that makes a key someone has to hold.
 - **What is opened is checked.** It was written by some client and checked by no server, so
   `shared/src/crypto/noteSeal.ts` holds every opened value to what a note may hold and leaves out
   one that fails, and refuses to seal one past those limits (`NoteLimitError`), since the server can
-  no longer count inside a field.
+  no longer count inside a field. A link preview's `domain` is among them: `checkedLinkPreviews`
+  always writes the host of its `url`, since the card shows it as where the link goes.
 - **A device holds keys only while signed in.** `storage/deviceKeys.ts` keeps them in IndexedDB
   with the day the session ends at the latest (`sessionEndsAt` from `GET /api/auth/keys`), and
   `checkAccountKeys` removes a copy that is another account's or past that day.

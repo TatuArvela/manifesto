@@ -73,8 +73,18 @@ describe("notes routes", () => {
     await rig.close();
   });
 
-  it("stores a link preview under the host its URL opens", async () => {
-    const { token } = await registerTestUser(rig, "alice");
+  it("stores a link preview a token sends under the host its URL opens", async () => {
+    const session = await registerTestUser(rig, "alice");
+    // A token is the one writer whose previews the server reads. A session
+    // sends them sealed, and what opens them puts the host right
+    // (`checkedLinkPreviews`).
+    const minted = await rig.request("/api/tokens", {
+      method: "POST",
+      headers: authHeaders(session.token),
+      body: JSON.stringify({ name: "Script", password: "test-pass-12" }),
+    });
+    expect(minted.status).toBe(201);
+    const token = ((await minted.json()) as { secret: string }).secret;
     const note = await createNote(rig, token, {
       linkPreviews: [
         { url: "https://evil.test/login", title: "Bank", domain: "bank.test" },
