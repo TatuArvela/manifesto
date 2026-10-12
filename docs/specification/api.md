@@ -747,3 +747,10 @@ Awareness states are rewritten on the way in: each carries the authenticated use
 The connection URL carries the client's editor schema version as `?editor=<n>`. A version below the server's `EDITOR_SCHEMA_VERSION`, or one that is not a number, is refused at the `Auth` message with the reason `editor-outdated` (see [Collaborative Editing](features/collaborative-editing.md#editor-versions)). A URL without the parameter counts as version 1.
 
 Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres). A frame, and a note's whole state, may be at most 8 MiB: a larger frame closes the socket with `1009` before it is read, and a state that has grown past it is not stored and its editors are disconnected with the same code.
+
+What that document holds is ciphertext. The note's text is in a second document that never leaves
+the browser; the one synced here is a list (`log`) of entries, each an edit to the first or a
+snapshot of all of it, sealed under a key derived from the note key
+([Collaborative Editing](features/collaborative-editing.md#sealed), [Encryption](features/encryption.md#collaboration)).
+An awareness state is `{ sealed }`, a cursor sealed the same way, beside the `user` the server
+stamps on it.

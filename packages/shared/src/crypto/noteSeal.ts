@@ -66,10 +66,20 @@ export interface AccountSealKeys {
   personal: CryptoKey;
 }
 
-/** A note's key, ready to use and not readable. */
+/**
+ * A note's key, ready to use and not readable: a key for each job, derived
+ * from the note key. Edits and cursor states are many, so each has a key of
+ * its own, apart from the one that seals the note's fields: random nonces are
+ * safe for about 2^32 messages under one key.
+ */
 export interface NoteSealKey {
   version: number;
+  /** Seals the note's fields, its versions and its comments. */
   fields: CryptoKey;
+  /** Seals the edits and snapshots of its shared document. */
+  edits: CryptoKey;
+  /** Seals the cursor states of the people editing it. */
+  presence: CryptoKey;
 }
 
 const NOTE_KEY_BYTES = 32;
@@ -119,9 +129,12 @@ export async function noteSealKey(
   raw: Uint8Array<ArrayBuffer>,
   version: number,
 ): Promise<NoteSealKey> {
+  const base = await derivable(raw);
   return {
     version,
-    fields: await deriveKey(await derivable(raw), "note/fields"),
+    fields: await deriveKey(base, "note/fields"),
+    edits: await deriveKey(base, "note/edits"),
+    presence: await deriveKey(base, "note/presence"),
   };
 }
 

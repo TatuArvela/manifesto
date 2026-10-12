@@ -9,6 +9,31 @@ In connected mode, several people can edit the same note simultaneously, with ch
 - Conflicting edits are resolved by the Yjs CRDT: concurrent insertions and deletions converge without data loss.
 - REST writes (`PUT /api/notes/<id>`) remain the authoritative path for note metadata (color, tags, archived/trashed). Optimistic concurrency on REST is enforced via `If-Match: <updatedAt>` and a 412 + 3-way merge on the client.
 
+## Sealed
+
+The server relays and stores the shared document without being able to read it
+([Encryption](encryption.md#collaboration)). There are two documents:
+
+- **The readable one** is the note as the editor binds to it. It lives in the browser and nowhere
+  else.
+- **The one on the wire** is what the server syncs, merges and stores, and what `y-indexeddb` keeps
+  for offline editing. It holds a list of entries, each an edit to the readable document or a
+  snapshot of all of it, sealed with AES-256-GCM under a key derived from the note key for edits
+  alone, and bound to the note and the key's version.
+
+An edit made in the editor is sealed and appended; an entry that arrives is opened and applied.
+Clients do the merging, which Yjs does the same way wherever it runs, and the server merges only
+the list of opaque entries. An entry that does not open (another key, or damage) is passed over.
+
+- **Compaction is the clients'.** When a note has gathered 200 edits, a client appends a snapshot
+  of the whole document. The edits a snapshot covers are kept until the snapshot after it has
+  arrived, and the last three snapshots are kept, so a faulty one can be passed over without losing
+  the edits it claimed to hold.
+- **Opening a note cold** reads whatever snapshots and edits are there; their order does not
+  matter to Yjs.
+- **`synced`** is reported once every entry that has arrived is in the readable document, since
+  that is the promise the editor relies on.
+
 ## Why Metadata Stays Out of the Document
 
 Only the text is shared through Yjs. Everything else about a note (title, colour, font, pin, archive,
@@ -74,6 +99,11 @@ arriving, or offline typing whose saves failed), and the document still wins.
   avatar colour, and drops any state for a client id that another connection already publishes, so
   one participant cannot label a cursor as someone else or move another person's cursor.
 - Presence updates flow through the application WebSocket (`/api/ws`) using `presence:join`, `presence:leave`, and `presence:update` events.
+
+Cursors are sealed too, under a key of their own. What a client sends is its cursor as ciphertext;
+the server stamps each state with the account it authenticated and refuses one for a client id
+another connection holds, neither of which needs it to read anything. A client shows the stamped
+name and colour and ignores whatever name was inside.
 
 ## Offline Support
 

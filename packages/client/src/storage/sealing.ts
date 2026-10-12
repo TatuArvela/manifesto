@@ -486,6 +486,18 @@ export class Sealer {
     return out;
   }
 
+  /**
+   * The key a note's shared document is sealed with: its edits, snapshots
+   * and cursors. Rejects with `NoteKeyError` for a note whose key this
+   * device does not hold.
+   */
+  async documentKey(
+    noteId: string,
+    fetch: () => Promise<SealedNote | null>,
+  ): Promise<NoteSealKey | null> {
+    return (await this.keyOf(noteId, fetch)).key;
+  }
+
   /** A comment's text, sealed under its note's key and bound to `id`. */
   async sealComment(
     noteId: string,

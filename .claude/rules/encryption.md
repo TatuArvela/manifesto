@@ -11,6 +11,8 @@ paths:
   - "packages/client/src/storage/shareKeys.ts"
   - "packages/client/src/state/sharing.ts"
   - "packages/client/src/state/comments.ts"
+  - "packages/client/src/realtime/sealedDocument.ts"
+  - "packages/client/src/realtime/yjsSession.ts"
   - "packages/server/src/routes/shares.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
@@ -147,6 +149,25 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   (`sealComment`); `state/comments.ts` opens every comment it is sent, a socket's included, and
   leaves out one that does not open. The server cannot tell an edit to the same words from a real
   one, so the client is what leaves an unchanged comment alone.
+
+## The shared document
+
+`realtime/sealedDocument.ts`. The editor binds to a readable `Y.Doc` that never leaves the browser.
+The `Y.Doc` given to Hocuspocus and to `y-indexeddb` is another one, whose `log` array holds that
+document's edits and snapshots sealed under `NoteSealKey.edits`; the server and the offline copy
+hold ciphertext. `joinSealedDocument` carries edits both ways through a queue, and
+`createYjsSession` reports `synced` only once `settled()` says every arrived entry is applied: the
+editor reads `synced` as "this document holds what the server has", and reporting the wire
+document's sync would seed an empty editor over everyone's text.
+
+Presence is bridged the same way (`joinSealedAwareness`): the editor's `Awareness` is local, what
+crosses is `{ sealed }`, and a remote state is shown under the `user` the server stamped, never a
+name from inside. Both documents share one `clientID`, so "the client with the lowest id" in
+`contentAgreement.ts` is the same client to everyone.
+
+The server's `/api/yjs` code did not change and must not start reading the document: nothing in it
+is readable. Passing `key: null` to `createYjsSession` syncs the document as it is, and exists only
+for tests that hand sealing through.
 
 A field added to a note's words is added in `noteSeal.ts` (seal, open, check), `SealedNote`, the
 sealed schema and `SEALED_SHARED_NOTE_FIELDS` or the personal list, and `shareMapping.test.ts`

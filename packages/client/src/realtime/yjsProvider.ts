@@ -9,6 +9,8 @@ import {
   isServerMode,
   WS_ORIGIN,
 } from "../state/auth.js";
+import { sealer } from "../storage/sealing.js";
+import { sealedNote } from "../storage/shareKeys.js";
 import type { YjsConnectionStatus, YjsSession } from "./yjsSession.js";
 
 export type { YjsConnectionStatus } from "./yjsSession.js";
@@ -84,13 +86,21 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
     // editor awaits the same memoized promise.
     void loadYjsCollab().catch(() => {});
 
-    import("./yjsSession.js").then(
-      ({ createYjsSession }) => {
+    // The document is sealed with the note's key, so there is none to open
+    // without it: locked, or a note whose key has not reached this account.
+    const sealing = sealer.peek();
+    const documentKey = sealing
+      ? sealing.documentKey(noteId, sealedNote(noteId))
+      : Promise.reject(new Error("locked"));
+
+    Promise.all([import("./yjsSession.js"), documentKey]).then(
+      ([{ createYjsSession }, key]) => {
         if (cancelled) return;
         session = createYjsSession({
           url,
           noteId,
           token,
+          key,
           user: user
             ? { id: user.id, name: user.displayName, color: user.avatarColor }
             : null,

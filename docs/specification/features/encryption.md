@@ -1,8 +1,9 @@
 # Encryption
 
-**Status: planned before 1.0.0, design chosen, being built.** The first three steps of
-[the order of building](#order-of-building) are in place: every account has its keys and is unlocked
-with its secret key, and a note's title, text, tags, colour and images are sealed in the browser. The rest
+**Status: planned before 1.0.0, design chosen, being built.** Steps 1 to 3 and 5 of
+[the order of building](#order-of-building) are in place, and part of step 4: every account has its
+keys and is unlocked with its secret key, and a note's title, text, tags, colour, images and shared
+document are sealed in the browser. The rest
 is not, and [what is built so far](#what-is-built-so-far) lists what still reaches the server
 readable. This page says what protects notes now and the design chosen:
 [end-to-end encryption for every account](#the-design-end-to-end-for-every-account) in connected
@@ -440,8 +441,8 @@ Steps 2 to 7 are released together: a server half way would hold notes its own f
 
 ### What is built so far
 
-Steps 1 to 3 are built. Until the steps after them are, this page describes more than the code
-does, and nothing here may be released:
+Steps 1 to 3 and 5 are built, and part of step 4. Until the rest is, this page describes more than
+the code does, and nothing here may be released:
 
 - **Sealed in the browser**: a note's title, text, excerpt, font, link previews and list of images
   under its note key, its tags and colour under the reader's personal key, its versions, and the
@@ -450,8 +451,14 @@ does, and nothing here may be released:
 - **Images** are sealed before upload, each under a key made from the account key and the image's
   bytes and found by an HMAC of them, with the key and type carried in the note. The server stores
   and serves bytes of no stated kind, and the client checks what it opens.
-- **Still readable by the server**: the shared document a note is edited in (step 5), which holds
-  its text, and everything a public link shows (the rest of step 4).
+- **The shared document** a note is edited in is sealed: the readable document stays in the
+  browser, and what the server syncs and stores is a list of sealed edits and snapshots, with
+  cursors sealed beside it. This is narrower than [Collaboration](#collaboration) describes in one
+  way: the server still runs Yjs for the room, merging the list of sealed entries, so the rules
+  about which edits and snapshots are kept are followed by the clients that compact a note and not
+  enforced by the server.
+- **Nothing a person writes reaches the server readable any more**, except what a public link
+  shows of a note, which is not sealed yet (the rest of step 4).
 - **Sharing a note** hands its key on: wrapped to the recipient's public key and signed by whoever
   wrapped it, opened and checked by their client, and kept under their own notes key when they
   accept. A member of a team waits until the first client of anyone holding the note wraps it for
