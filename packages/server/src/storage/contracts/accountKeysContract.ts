@@ -136,5 +136,26 @@ export function describeAccountKeysContract(
       expect(await storage.accountKeys.get("u1")).toBeNull();
       expect(await storage.accountKeys.get("u2")).not.toBeNull();
     });
+
+    it("remembers the keys an account has seen of others, up to a limit, until its own keys go", async () => {
+      const me = "u1";
+      await storage.accountKeys.create(keys());
+      expect(await storage.accountKeys.seenKeys(me)).toEqual({});
+      const remember = (peer: string, sealed: string, max = 2) =>
+        storage.accountKeys.rememberKey(me, peer, `e1.${sealed}`, T0, max);
+      expect(await remember("alice", "a1")).toBe(true);
+      expect(await remember("bob", "b1")).toBe(true);
+      // One more than it may hold is refused; one it already holds is
+      // written over.
+      expect(await remember("carol", "c1")).toBe(false);
+      expect(await remember("alice", "a2")).toBe(true);
+      expect(await storage.accountKeys.seenKeys(me)).toEqual({
+        alice: "e1.a2",
+        bob: "e1.b1",
+      });
+      // Sealed under the account's keys, they go when those do.
+      await storage.accountKeys.delete(me);
+      expect(await storage.accountKeys.seenKeys(me)).toEqual({});
+    });
   });
 }

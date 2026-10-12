@@ -33,6 +33,24 @@ export interface AccountPublicKeysResponse {
 }
 
 /**
+ * `GET /api/auth/keys/seen`: the public keys this account has seen of the
+ * people it shares with, by their account id, each sealed under the
+ * account's own personal key. A device keeps nothing past its session, so
+ * this is what lets it tell a key it has met from one swapped since.
+ */
+export interface SeenKeysResponse {
+  seen: Record<string, string>;
+}
+
+/** `PUT /api/auth/keys/seen/:userId`: one of them, as now remembered. */
+export interface SeenKeyRequest {
+  sealed: string;
+}
+
+/** How many accounts' keys one account remembers. */
+export const MAX_SEEN_KEYS = 5000;
+
+/**
  * `POST /api/invitations/:noteId/accept`, and `PUT /api/notes/:id/held-key`
  * after the note's key was replaced: the note key wrapped under the caller's
  * own notes key, as they keep the key of a note of their own.

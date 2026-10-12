@@ -21,6 +21,8 @@ export const plainSealing: NoteSealing = {
   due: signal<ReadonlySet<string>>(new Set()),
   replaced: signal<ReadonlyMap<string, number>>(new Map()),
   rekey: async () => null,
+  sealSeenKeys: async () => "",
+  openSeenKeys: async () => new Map(),
   complete: true,
   markComplete: () => {},
   claimsImages: false,

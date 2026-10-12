@@ -306,6 +306,10 @@ export const shareCreateSchema = z.object({
   key: offeredKeySchema.exactOptional(),
 });
 
+/** `PUT /api/auth/keys/seen/:userId`: someone's public keys as this account
+ * remembers them, sealed under its own key. */
+export const seenKeySchema = z.object({ sealed: sealed(1024) });
+
 /** `POST /api/invitations/:noteId/accept` and `PUT /api/notes/:id/held-key`. */
 export const heldKeySchema = z.object({
   key: wrappedKey,

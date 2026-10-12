@@ -599,6 +599,21 @@ ALTER TABLE notes ADD COLUMN previous_keys TEXT NOT NULL DEFAULT '';
 ALTER TABLE notes ADD COLUMN rekey_due INTEGER NOT NULL DEFAULT 0;
 `;
 
+/**
+ * The public keys an account has seen of the people it shares with, each
+ * sealed under that account's own key: the server keeps the list and reads
+ * none of it.
+ */
+const SEEN_KEYS = `
+CREATE TABLE seen_keys (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  peer_id    TEXT NOT NULL,
+  sealed     TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, peer_id)
+);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -633,6 +648,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0031-token-keys", sql: TOKEN_KEYS },
   { id: "0032-link-keys", sql: LINK_KEYS },
   { id: "0033-note-rekey", sql: NOTE_REKEY },
+  { id: "0034-seen-keys", sql: SEEN_KEYS },
 ];
 
 export function runMigrations(

@@ -71,7 +71,34 @@ export function createPostgresAccountKeysRepo(pool: PgPool): AccountKeysRepo {
       );
       return (result.rowCount ?? 0) > 0;
     },
+    async seenKeys(userId) {
+      const result = await pool.query<{ peer_id: string; sealed: string }>(
+        `SELECT peer_id, sealed FROM seen_keys WHERE user_id = $1`,
+        [userId],
+      );
+      return Object.fromEntries(
+        result.rows.map((row) => [row.peer_id, row.sealed]),
+      );
+    },
+    async rememberKey(userId, peerId, sealed, at, max) {
+      const others = await pool.query<{ n: number | string }>(
+        `SELECT COUNT(*) AS n FROM seen_keys
+         WHERE user_id = $1 AND peer_id <> $2`,
+        [userId, peerId],
+      );
+      if (Number(others.rows[0]?.n ?? 0) >= max) return false;
+      await pool.query(
+        `INSERT INTO seen_keys (user_id, peer_id, sealed, updated_at)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (user_id, peer_id) DO UPDATE SET sealed = EXCLUDED.sealed,
+           updated_at = EXCLUDED.updated_at`,
+        [userId, peerId, sealed, at],
+      );
+      return true;
+    },
     async delete(userId) {
+      // Sealed under the keys that are going: nothing would open them again.
+      await pool.query(`DELETE FROM seen_keys WHERE user_id = $1`, [userId]);
       const result = await pool.query(
         `DELETE FROM account_keys WHERE user_id = $1`,
         [userId],

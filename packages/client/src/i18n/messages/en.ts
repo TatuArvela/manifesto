@@ -1122,6 +1122,16 @@ export const en = {
   "sharing.invitation.waiting":
     "Waiting for this note's key. It arrives when someone who has the note is next online.",
   "sharing.error.waitingForKey": "This note's key has not arrived yet",
+  "sharing.keys.show": "Compare keys",
+  "sharing.keys.hide": "Hide keys",
+  "sharing.keys.explain":
+    "Read these to each other, in person or on a call. If both screens show the same letters for a person, nobody has put a key of their own between you.",
+  "sharing.keys.fingerprint": "Key {fingerprint}",
+  "sharing.keys.none": "No key yet",
+  "sharing.keys.changed":
+    "{name}'s key has changed. Nothing is shared with the new key until you trust it. Compare it with them first.",
+  "sharing.keys.trust": "Trust new key",
+  "sharing.keys.trustFailed": "Could not save that. Try again.",
   "sharing.card.sharedWith": "Shared with {names}.",
   "sharing.card.waiting": "Waiting for {names} to accept.",
   "sharing.card.sharedBy": "Shared by {name}",

@@ -218,7 +218,16 @@ A shared note is sealed, so everyone on it needs its key ([Encryption](features/
   `keyVersion`, and is answered `409` when the note has left that key.
 
 The recipient's client uses no offered key whose signature does not check against the signing key
-of the account it names.
+of the account it names, and takes that signing key only if it is the one it remembers for them.
+
+| Method | Path                            | Description |
+| ------ | ------------------------------- | ----------- |
+| `GET`  | `/api/auth/keys/seen`           | `{ seen }`: the public keys this account has seen of others, by account id, each sealed under its own personal key |
+| `PUT`  | `/api/auth/keys/seen/:userId`   | `{ sealed }`: remember that account's keys, over what was remembered before; `204`, or `409` past 5000 accounts |
+
+Session only. The server hands out public keys (`GET /api/users/:id/keys`), so it could hand out
+one of its own; this list is how a client tells a key it has met from one that changed. The server
+keeps it and can read none of it. It goes when the account's keys do.
 
 A public link is read without an account, and none of these send a bearer token:
 

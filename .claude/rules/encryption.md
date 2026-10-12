@@ -12,6 +12,7 @@ paths:
   - "packages/client/src/state/sharing.ts"
   - "packages/client/src/state/comments.ts"
   - "packages/client/src/state/publicLinks.ts"
+  - "packages/client/src/components/ShareDialog.tsx"
   - "packages/server/src/routes/publicLinks.ts"
   - "packages/client/src/realtime/sealedDocument.ts"
   - "packages/client/src/realtime/yjsSession.ts"
@@ -151,6 +152,14 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   `waitingForKey`, as the owner or as any other holder.
 - Any note the server answers with outside the adapter (the share routes) is opened with
   `sealer.peek()?.open(...)` before `receiveNote`.
+- **Whose key it is.** Nothing wraps to, or checks a signature against, a key straight from
+  `publicKeysOf`: `offerKeyTo` and `adoptOfferedKey` go through `trustedKeysOf`, which takes the
+  first key seen for an account, remembers it (`/api/auth/keys/seen`, sealed with `sealSeenKeys`
+  and bound to whose it is) and answers null for a different one later, naming the account in
+  `changedKeys`. Only `trustKeys` (`state/sharing.ts`, the People dialog's button) replaces a
+  remembered key, and then retries what waited on it. A list that could not be read trusts
+  nobody. `PersonKey` asks for a key's status only while keys are being compared or one is
+  marked changed, so opening the dialog costs no request.
 - **Replacing a note's key.** Both drivers mark a note `rekey_due` inside `shares.delete` (when
   the share ever held a key, `heldKey`) and `publicLinks.delete` (a live link), so no route has to
   remember. Only the owner is sent `rekeyDue`; `Sealer.open` gathers those ids in `due`, and an

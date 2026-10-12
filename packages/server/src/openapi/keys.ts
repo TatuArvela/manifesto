@@ -7,6 +7,7 @@ import {
   recoverySignInCompleteSchema,
   recoverySignInOpenSchema,
   secretKeyReplaceSchema,
+  seenKeySchema,
 } from "../validation/schemas.js";
 import { noContent, type Operation, ok } from "./operation.js";
 
@@ -32,6 +33,29 @@ export const KEY_OPERATIONS: Operation[] = [
     auth: "session",
     limits: [],
     responses: ok("AccountKeysResponse"),
+  },
+  {
+    method: "get",
+    path: "/api/auth/keys/seen",
+    tag: "Auth",
+    summary:
+      "The public keys this account has seen of others, each sealed under its own key",
+    auth: "session",
+    limits: ["user"],
+    responses: { "200": { description: "The sealed list, by account id" } },
+  },
+  {
+    method: "put",
+    path: "/api/auth/keys/seen/:userId",
+    tag: "Auth",
+    summary: "Remember someone's public keys, sealed under this account's key",
+    auth: "session",
+    limits: ["user"],
+    body: seenKeySchema,
+    responses: {
+      ...noContent,
+      ...conflict("The account remembers as many as it may"),
+    },
   },
   {
     method: "put",

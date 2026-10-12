@@ -471,9 +471,14 @@ the code does, and nothing here may be released:
   [Sharing](#sharing) describes in two ways: the shared document is not sealed again, so what was
   typed before stays in the log under the old key until the clients compact it away, and a live
   link that runs out, as opposed to one revoked, does not mark the note.
-- **Not built of sharing yet** (the rest of step 4): the keys an account has seen are remembered
-  for the session only, there is no fingerprint to compare and no refusal of a key that changed, so
-  a signature is checked against whatever key the server gives for its signer.
+- **Whose key it is.** An account remembers the public keys it has seen of the people it shares
+  with, in a list the server keeps sealed under the account's own key. The first key seen for
+  someone is taken; a different one later is wrapped to by nobody and checks no signature until
+  the person agrees to it in the People dialog, which says the key changed and shows its
+  fingerprint. The same dialog shows everyone's fingerprint to compare. Two limits: a new key is
+  never taken without asking, since keys are not yet signed with the ones they replace (that comes
+  with [replacing the account key](#order-of-building)), and a server that drops an entry from the
+  list is met as a first sight of that person, which only comparing fingerprints catches.
 - **Public links** carry a link key in the fragment of their address. A live link stores the note
   key wrapped by it; a snapshot stores a copy of the note sealed under a key derived from it. The
   owner's copy of the link key is sealed under their personal key. The page opens the note, and its

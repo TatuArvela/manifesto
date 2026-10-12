@@ -1,8 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
-import type {
-  AccountKeysResponse,
-  AuthSuccessResponse,
-  RecoveryOpenResponse,
+import {
+  type AccountKeysResponse,
+  type AuthSuccessResponse,
+  MAX_SEEN_KEYS,
+  type RecoveryOpenResponse,
+  type SeenKeysResponse,
 } from "@manifesto/shared";
 import type { Context, Hono } from "hono";
 import { audit } from "../audit/audit.js";
@@ -28,6 +30,7 @@ import {
   recoverySignInCompleteSchema,
   recoverySignInOpenSchema,
   secretKeyReplaceSchema,
+  seenKeySchema,
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import { requireConfirmation } from "./confirmation.js";
@@ -149,6 +152,36 @@ export function registerAccountKeyRoutes(
 
   /** An account's first keys. Refused once it has some: whichever device
    * set up first is the one whose sheet is right. */
+  // What the account remembers of other people's public keys. Sealed under
+  // its own key, so the server keeps the list and can read none of it; what
+  // it could do is drop an entry, which a client meets as a first sight.
+  router.get("/keys/seen", async (c) => {
+    const { userId } = c.get("auth");
+    const body: SeenKeysResponse = {
+      seen: await storage.accountKeys.seenKeys(userId),
+    };
+    return c.json(body);
+  });
+
+  router.put(
+    "/keys/seen/:userId",
+    zValidator("json", seenKeySchema, validatorHook),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const peerId = c.req.param("userId");
+      if (peerId.length > 64) throw new HttpError(404, "User not found");
+      const kept = await storage.accountKeys.rememberKey(
+        userId,
+        peerId,
+        c.req.valid("json").sealed,
+        nowIso(),
+        MAX_SEEN_KEYS,
+      );
+      if (!kept) throw new HttpError(409, "Too many remembered keys");
+      return c.body(null, 204);
+    },
+  );
+
   router.put(
     "/keys",
     zValidator("json", accountKeysSetupSchema, validatorHook),

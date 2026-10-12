@@ -1,14 +1,22 @@
-import type {
-  AccountKeysResponse,
-  AccountPublicKeysResponse,
-  HeldKeyRequest,
-  NoteResponse,
-  OfferedKey,
-  PublicLinksResponse,
-  SealedNote,
+import {
+  type AccountKeysResponse,
+  type AccountPublicKeysResponse,
+  type HeldKeyRequest,
+  keyFingerprint,
+  type NoteResponse,
+  type OfferedKey,
+  type PublicLinksResponse,
+  type SealedNote,
+  type SeenKeysResponse,
 } from "@manifesto/shared";
+import { signal } from "@preact/signals";
 import { ApiError, apiFetch, apiJson } from "./apiRequest.js";
-import { type NoteSealing, sealer, setOfferHandler } from "./sealing.js";
+import {
+  type NoteSealing,
+  type SeenKeys,
+  sealer,
+  setOfferHandler,
+} from "./sealing.js";
 
 /**
  * Handing a shared note's key from account to account
@@ -49,6 +57,148 @@ export function forgetPublicKeys(userId: string): void {
   publicKeys.delete(userId);
 }
 
+/**
+ * What each unlocked account remembers of other people's keys, read from the
+ * server once. The server hands out public keys, so it could hand out one of
+ * its own: the first key seen for an account is remembered, sealed under this
+ * account's key, and a different one later is used for nothing until the
+ * person agrees to it.
+ */
+const remembered = new WeakMap<
+  NoteSealing,
+  Promise<Map<string, SeenKeys> | null>
+>();
+
+/**
+ * The accounts whose keys are no longer the ones remembered, with the keys
+ * the server now gives for them. Nothing is wrapped to such a key and no
+ * signature is checked against it.
+ */
+export const changedKeys = signal<
+  ReadonlyMap<string, AccountPublicKeysResponse>
+>(new Map());
+
+function markChanged(
+  userId: string,
+  given: AccountPublicKeysResponse | null,
+): void {
+  const held = changedKeys.peek();
+  if (!given && !held.has(userId)) return;
+  const next = new Map(held);
+  if (given) next.set(userId, given);
+  else next.delete(userId);
+  changedKeys.value = next;
+}
+
+function rememberedBy(
+  sealing: NoteSealing,
+): Promise<Map<string, SeenKeys> | null> {
+  let pending = remembered.get(sealing);
+  if (!pending) {
+    pending = apiJson<SeenKeysResponse>("GET", "/auth/keys/seen")
+      .then((body) => sealing.openSeenKeys(body?.seen ?? {}))
+      .catch(() => {
+        // Not read: nobody's key is taken on trust meanwhile, and the next
+        // use asks again.
+        remembered.delete(sealing);
+        return null;
+      });
+    remembered.set(sealing, pending);
+  }
+  return pending;
+}
+
+/** Remembers `given` as the account's keys, here and on the server. */
+async function remember(
+  sealing: NoteSealing,
+  seen: Map<string, SeenKeys>,
+  given: AccountPublicKeysResponse,
+): Promise<boolean> {
+  const keys: SeenKeys = { version: given.version, ...given.publicKeys };
+  seen.set(given.userId, keys);
+  try {
+    const res = await apiFetch(
+      "PUT",
+      `/auth/keys/seen/${encodeURIComponent(given.userId)}`,
+      { sealed: await sealing.sealSeenKeys(given.userId, keys) },
+    );
+    return res?.ok ?? false;
+  } catch {
+    // Remembered for this session all the same.
+    return false;
+  }
+}
+
+const sameKeys = (seen: SeenKeys, given: AccountPublicKeysResponse) =>
+  seen.exchange === given.publicKeys.exchange &&
+  seen.signing === given.publicKeys.signing;
+
+/**
+ * An account's public keys, if they are the ones this account remembers for
+ * it, or the first it has seen. Null when it has none, when they could not be
+ * read, and when they have changed: then `changedKeys` names the account.
+ */
+export async function trustedKeysOf(
+  userId: string,
+): Promise<AccountPublicKeysResponse | null> {
+  const given = await publicKeysOf(userId);
+  if (!given) return null;
+  const sealing = sealer.peek();
+  // Sealing that seals nothing has no keys to tell apart.
+  if (!sealing?.handsKeysOn) return given;
+  const seen = await rememberedBy(sealing);
+  if (!seen) return null;
+  const known = seen.get(userId);
+  if (!known) {
+    await remember(sealing, seen, given);
+    return given;
+  }
+  if (sameKeys(known, given)) {
+    markChanged(userId, null);
+    return given;
+  }
+  markChanged(userId, given);
+  return null;
+}
+
+/**
+ * Takes the keys the server now gives for an account in place of the ones
+ * remembered: the person has compared the fingerprint, or decided to go on
+ * without. Resolves whether it is remembered on the server; never rejects.
+ */
+export async function trustChangedKeys(userId: string): Promise<boolean> {
+  const sealing = sealer.peek();
+  const given = changedKeys.peek().get(userId);
+  if (!sealing || !given) return false;
+  const seen = await rememberedBy(sealing);
+  if (!seen) return false;
+  const kept = await remember(sealing, seen, given);
+  if (kept) markChanged(userId, null);
+  else seen.delete(userId);
+  return kept;
+}
+
+/**
+ * The fingerprint of the keys the server gives for an account, for two
+ * people to compare, and whether they are other than the ones remembered.
+ * Null for an account with no keys yet. Never rejects.
+ */
+export async function keyStatusOf(
+  userId: string,
+): Promise<{ fingerprint: string; changed: boolean } | null> {
+  try {
+    const given = await publicKeysOf(userId);
+    if (!given) return null;
+    const trusted = await trustedKeysOf(userId);
+    return {
+      fingerprint: await keyFingerprint(given.publicKeys),
+      changed: trusted === null && changedKeys.peek().has(userId),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** This account's own keys as the server holds them, private halves wrapped. */
 async function ownKeys() {
   try {
@@ -83,7 +233,8 @@ export async function offerKeyTo(
 ): Promise<OfferedKey | null> {
   const sealing = sealer.peek();
   if (!sealing?.handsKeysOn) return null;
-  const recipient = await publicKeysOf(recipientId);
+  // Only to a key this account has seen for them before, or sees first now.
+  const recipient = await trustedKeysOf(recipientId);
   if (!recipient) return null;
   try {
     return await sealing.offerKey(
@@ -112,7 +263,9 @@ export async function adoptOfferedKey(
   if (!sealing.handsKeysOn) {
     return sealing.adoptOffered(noteId, offered, "", ownKeys);
   }
-  const signer = await publicKeysOf(offered.signer);
+  // Checked against the key remembered for the signer: one the server
+  // swapped since checks nothing.
+  const signer = await trustedKeysOf(offered.signer);
   if (!signer) return null;
   try {
     return await sealing.adoptOffered(

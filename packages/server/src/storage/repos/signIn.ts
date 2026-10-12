@@ -57,6 +57,19 @@ export interface ReplacementUserKeys {
 
 export interface AccountKeysRepo {
   get(userId: string): Promise<StoredAccountKeys | null>;
+  /** The keys an account has seen of others, sealed, by the other's id. */
+  seenKeys(userId: string): Promise<Record<string, string>>;
+  /**
+   * Remembers one, over what was remembered of that account before. False,
+   * with nothing written, when it would be one more than `max`.
+   */
+  rememberKey(
+    userId: string,
+    peerId: string,
+    sealed: string,
+    at: string,
+    max: number,
+  ): Promise<boolean>;
   /**
    * Stores an account's first keys. False, with nothing written, when it has
    * keys already: two devices setting up at once must not each believe theirs

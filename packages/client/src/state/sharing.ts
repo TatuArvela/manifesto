@@ -22,6 +22,7 @@ import {
   offerKeyTo,
   replaceNoteKey,
   supplyKey,
+  trustChangedKeys,
 } from "../storage/shareKeys.js";
 import { forgetNote, notes, receiveNote, reviseNote } from "./notesStore.js";
 import { serverFeature } from "./serverFeatures.js";
@@ -388,6 +389,31 @@ async function supplyWaiting(note: Note): Promise<void> {
     await supplyKey(note.id, member.id);
   }
 }
+
+/**
+ * The person looked at an account's changed key and takes it: remembered in
+ * place of the old one, and whatever waited on it is tried again. Never
+ * rejects.
+ */
+export async function trustKeys(userId: string): Promise<boolean> {
+  if (!(await trustChangedKeys(userId))) {
+    showError(t("sharing.keys.trustFailed"));
+    return false;
+  }
+  for (const tried of supplied) {
+    if (tried.endsWith(` ${userId}`)) supplied.delete(tried);
+  }
+  for (const note of notes.peek()) {
+    if (note.sharing?.members.some((m) => m.waitingForKey)) {
+      void supplyWaiting(note);
+    }
+  }
+  // An invitation whose key they signed can be opened now.
+  void loadInvitations();
+  return true;
+}
+
+export { changedKeys, keyStatusOf } from "../storage/shareKeys.js";
 
 /** The notes whose key this session has set about replacing. */
 const replacing = new Set<string>();

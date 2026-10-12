@@ -8,6 +8,7 @@ import type {
   PublicLink,
   PublicNoteResponse,
   SealedNote,
+  SeenKeysResponse,
   UserLookupResponse,
   WebSocketEvent,
 } from "@manifesto/shared";
@@ -748,6 +749,26 @@ describe("handing a shared note's key on", () => {
     ).json()) as PublicNoteResponse;
     expect(shown.wrappedKey).toBe(ct("key 2, for the link"));
     expect(shown.note.keyVersion).toBe(2);
+  });
+
+  it("keeps what an account remembers of other people's keys, sealed and its own", async () => {
+    const seen = async (who: { token: string }) =>
+      (
+        (await (
+          await call(who, "GET", "/api/auth/keys/seen")
+        ).json()) as SeenKeysResponse
+      ).seen;
+    expect(await seen(owner)).toEqual({});
+    const put = (sealed: string) =>
+      call(owner, "PUT", `/api/auth/keys/seen/${alice.userId}`, { sealed });
+    expect((await put("their keys, readable")).status).toBe(422);
+    expect((await put(ct("first sight"))).status).toBe(204);
+    expect((await put(ct("agreed to since"))).status).toBe(204);
+    expect(await seen(owner)).toEqual({
+      [alice.userId]: ct("agreed to since"),
+    });
+    // Nobody else's list.
+    expect(await seen(alice)).toEqual({});
   });
 
   it("gives out an account's public keys once it has them", async () => {

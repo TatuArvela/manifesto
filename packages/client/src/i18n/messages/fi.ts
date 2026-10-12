@@ -1142,6 +1142,16 @@ export const fi: Messages = {
   "sharing.invitation.waiting":
     "Odottaa muistiinpanon avainta. Se saapuu, kun joku, jolla muistiinpano on, on seuraavan kerran verkossa.",
   "sharing.error.waitingForKey": "Muistiinpanon avain ei ole vielä saapunut",
+  "sharing.keys.show": "Vertaa avaimia",
+  "sharing.keys.hide": "Piilota avaimet",
+  "sharing.keys.explain":
+    "Lukekaa nämä toisillenne kasvotusten tai puhelussa. Jos molemmilla ruuduilla näkyvät henkilön kohdalla samat merkit, kukaan ei ole ujuttanut omaa avaintaan väliinne.",
+  "sharing.keys.fingerprint": "Avain {fingerprint}",
+  "sharing.keys.none": "Ei vielä avainta",
+  "sharing.keys.changed":
+    "Käyttäjän {name} avain on vaihtunut. Uudella avaimella ei jaeta mitään ennen kuin luotat siihen. Vertaa sitä ensin hänen kanssaan.",
+  "sharing.keys.trust": "Luota uuteen avaimeen",
+  "sharing.keys.trustFailed": "Tallennus ei onnistunut. Yritä uudelleen.",
   "sharing.card.sharedWith": "Jaettu: {names}.",
   "sharing.card.waiting": "Odottaa hyväksyntää: {names}.",
   "sharing.card.sharedBy": "Jakanut: {name}",

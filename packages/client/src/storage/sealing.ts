@@ -132,6 +132,13 @@ interface HeldNoteKey {
   older?: Promise<ReadonlyMap<number, NoteSealKey>>;
 }
 
+/** An account's public keys as another account remembers having seen them. */
+export interface SeenKeys {
+  version: number;
+  exchange: string;
+  signing: string;
+}
+
 /** A note's key, and the ones it was under before: what opens anything
  * written beside the note, whenever it was written. */
 export interface NoteKeyRing {
@@ -824,6 +831,40 @@ export class Sealer {
       const key = ringKey(ring, comment.keyVersion);
       const body = key ? await openComment(key, comment) : null;
       if (body !== null) out.push({ ...comment, body });
+    }
+    return out;
+  }
+
+  /** Someone's public keys as this account remembers them, sealed under its
+   * own key and bound to whose they are. */
+  async sealSeenKeys(peerId: string, keys: SeenKeys): Promise<string> {
+    return sealPref(await this.account, `seen/${peerId}`, keys);
+  }
+
+  /** The remembered keys that open, by account. One that does not open, or
+   * is not a pair of keys, is left out, and its account is met as new. */
+  async openSeenKeys(
+    sealed: Record<string, string>,
+  ): Promise<Map<string, SeenKeys>> {
+    const account = await this.account;
+    const out = new Map<string, SeenKeys>();
+    for (const [peerId, value] of Object.entries(sealed)) {
+      const opened = (await openPref(account, `seen/${peerId}`, value)) as
+        | Partial<SeenKeys>
+        | undefined;
+      if (
+        opened &&
+        typeof opened === "object" &&
+        typeof opened.exchange === "string" &&
+        typeof opened.signing === "string" &&
+        typeof opened.version === "number"
+      ) {
+        out.set(peerId, {
+          version: opened.version,
+          exchange: opened.exchange,
+          signing: opened.signing,
+        });
+      }
     }
     return out;
   }

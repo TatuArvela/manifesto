@@ -22,6 +22,7 @@ import type {
   SealedNoteUpdate,
   SealedNoteVersionCreateRequest,
   SecretKeyReplaceRequest,
+  SeenKeyRequest,
   ShareCreateRequest,
   ShareUpdateRequest,
   WebhookCreateRequest,
@@ -51,6 +52,7 @@ import type {
   sealedNoteUpdateSchema,
   sealedVersionCreateSchema,
   secretKeyReplaceSchema,
+  seenKeySchema,
   shareCreateSchema,
   shareUpdateSchema,
   webhookCreateSchema,
@@ -104,6 +106,7 @@ export type WireTypeChecks = [
     >
   >,
   Assert<Matches<Body<typeof noteRekeySchema>, NoteRekeyRequest>>,
+  Assert<Matches<Body<typeof seenKeySchema>, SeenKeyRequest>>,
   Assert<
     Matches<
       Body<typeof sealedNotesImportSchema>["notes"][number],
