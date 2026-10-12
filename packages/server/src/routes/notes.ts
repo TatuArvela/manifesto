@@ -334,7 +334,9 @@ export function createNotesRoutes(deps: NotesDeps) {
    * The note under a new key, which its owner's app makes when someone who
    * held the old one no longer holds the note. The server cannot tell a good
    * key from a bad one; what it holds to is that the whole note moves at
-   * once, from the version it is at, and that everyone else's copy of the
+   * once, from the version it is at and from the note as the client read it
+   * (`If-Match`, required: the fields come sealed again from that read, so a
+   * write since then would be undone), and that everyone else's copy of the
    * key is then behind until a client that holds the new one wraps it for
    * them.
    */
@@ -347,7 +349,7 @@ export function createNotesRoutes(deps: NotesDeps) {
       throw new HttpError(404, "Note not found");
     }
     const moved =
-      rekeyed.keyVersion === current.keyVersion + 1 &&
+      current.updatedAt === ifMatch &&
       (await deps.storage.notes.rekey(
         id,
         userId,
@@ -355,14 +357,25 @@ export function createNotesRoutes(deps: NotesDeps) {
         current.keyVersion,
         nowIso(),
       ));
-    if (!moved) throw new HttpError(409, "The note is under another key now");
+    if (!moved) {
+      // Written since the client read it, by anyone on the note: it reads
+      // again and seals what is there now.
+      return c.json({ error: "Note has changed" }, 412);
+    }
     for (const link of links ?? []) {
       await deps.storage.publicLinks.rewrap(link.token, id, link.wrappedKey);
+    }
+    const ifMatch = c.req.header("If-Match");
+    if (ifMatch === undefined) {
+      throw new HttpError(428, "If-Match is required to replace a note's key");
     }
     await deps.noteEvents.changed(id);
     const note = await deps.storage.notes.getById(id, userId);
     if (!note) throw new HttpError(404, "Note not found");
     return c.json({ note });
+    if (rekeyed.keyVersion !== current.keyVersion + 1) {
+      throw new HttpError(409, "The note is under another key now");
+    }
   });
 
   notes.delete("/:id", async (c) => {
@@ -371,6 +384,7 @@ export function createNotesRoutes(deps: NotesDeps) {
     const access = await deps.storage.notes.access(id, userId);
     // Deleting a note shared with you deletes it from your notes: your share
     // goes, and the note stays with its owner and everyone else. This is what
+        ifMatch,
     // emptying it from your own trash does.
     if (access && access.role !== "owner") {
       const removed = await deps.storage.shares.delete(id, userId);

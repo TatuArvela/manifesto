@@ -89,7 +89,7 @@ export const NOTE_OPERATIONS: Operation[] = [
     path: "/api/notes/:id/key",
     tag: "Notes",
     summary:
-      "Put the note under a new key, after someone who held the old one stopped holding the note (owner)",
+      "Put the note under a new key, after someone who held the old one stopped holding the note (owner); If-Match is required",
     auth: "session",
     limits: ["user"],
     body: noteRekeySchema,
@@ -97,6 +97,8 @@ export const NOTE_OPERATIONS: Operation[] = [
       ...ok("NoteResponse"),
       ...notFound,
       "409": { description: "The note's key has moved on", schema: "Error" },
+      "412": { description: "Changed since it was read", schema: "Error" },
+      "428": { description: "No If-Match", schema: "Error" },
     },
   },
   {

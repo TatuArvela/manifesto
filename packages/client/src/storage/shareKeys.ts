@@ -307,6 +307,10 @@ export async function supplyKey(
   return res?.ok ?? false;
 }
 
+/** How often a replacement is sealed again when the note is written under
+ * it, before it is left for the next try. */
+const REKEY_ATTEMPTS = 3;
+
 /**
  * Gives a note this account owns a new key, because someone who held the old
  * one no longer holds the note: everything everyone on it shares is sealed
@@ -318,29 +322,35 @@ export async function replaceNoteKey(noteId: string): Promise<boolean> {
   const sealing = sealer.peek();
   if (!sealing?.handsKeysOn) return false;
   try {
-    const sealed = await sealedNote(noteId)();
-    // Not due any more: another device of this account got there first.
-    if (!sealed?.rekeyDue) return false;
-    const listed = await apiJson<PublicLinksResponse>(
-      "GET",
-      `/notes/${noteId}/links`,
-    );
-    const made = await sealing.rekey(sealed, listed?.links ?? []);
-    if (!made) return false;
-    const answer = await apiJson<NoteResponse<SealedNote>>(
-      "PUT",
-      `/notes/${noteId}/key`,
-      made.body,
-    );
-    if (!answer) return false;
-    made.commit();
-    return true;
+    for (let attempt = 0; attempt < REKEY_ATTEMPTS; attempt++) {
+      const sealed = await sealedNote(noteId)();
+      // Not due any more: another device of this account got there first.
+      if (!sealed?.rekeyDue) return false;
+      const listed = await apiJson<PublicLinksResponse>(
+        "GET",
+        `/notes/${noteId}/links`,
+      );
+      const made = await sealing.rekey(sealed, listed?.links ?? []);
+      if (!made) return false;
+      // The fields were sealed again from the note as just read. The server
+      // takes them only if nothing has written it since, or an edit made
+      // meanwhile would be undone.
+      const res = await apiFetch("PUT", `/notes/${noteId}/key`, made.body, {
+        "If-Match": sealed.updatedAt,
+      });
+      if (res?.ok) {
+        made.commit();
+        return true;
+      }
+      // Written since (412): read again and seal what is there now.
+      if (res?.status !== 412) break;
+    }
   } catch (err) {
-    // Lost to another device, or offline: the note stays due, and the next
-    // time it is listed it is tried again.
     console.warn("Failed to replace a note's key:", err);
-    return false;
   }
+  // Lost to another device, written under too often, or offline: the note
+  // stays due, and whoever asked tries again.
+  return false;
 }
 
 /**

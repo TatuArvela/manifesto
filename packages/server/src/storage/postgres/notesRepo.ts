@@ -347,9 +347,23 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       return await repo.getById(id, userId);
     },
 
-    async rekey(id, ownerId, rekeyed, fromVersion, updatedAt) {
+    async rekey(
+      id,
+      ownerId,
+      rekeyed,
+      fromVersion,
+      updatedAt,
+      expectedUpdatedAt,
+    ) {
       const { columns, values } = noteUpdateColumns(rekeyed, "native");
-      const params = [...values, updatedAt, id, ownerId, fromVersion];
+      const params = [
+        ...values,
+        updatedAt,
+        id,
+        ownerId,
+        fromVersion,
+        expectedUpdatedAt,
+      ];
       const assignments = [...columns, "updated_at"].map(
         (column, i) => `${column} = $${i + 1}`,
       );
@@ -357,7 +371,8 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       const result = await pool.query(
         `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
            reminder_key = ''
-         WHERE id = $${at} AND user_id = $${at + 1} AND key_version = $${at + 2}`,
+         WHERE id = $${at} AND user_id = $${at + 1} AND key_version = $${at + 2}
+           AND updated_at = $${at + 3}`,
         params,
       );
       if ((result.rowCount ?? 0) === 0) return false;

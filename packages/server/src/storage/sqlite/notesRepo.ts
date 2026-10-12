@@ -325,16 +325,31 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       return await repo.getById(id, userId);
     },
 
-    async rekey(id, ownerId, rekeyed, fromVersion, updatedAt) {
+    async rekey(
+      id,
+      ownerId,
+      rekeyed,
+      fromVersion,
+      updatedAt,
+      expectedUpdatedAt,
+    ) {
       const { columns, values } = noteUpdateColumns(rekeyed, "integer");
       const assignments = [...columns, "updated_at"].map((c) => `${c} = ?`);
       const info = db
         .prepare(
           `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
              reminder_key = ''
-           WHERE id = ? AND user_id = ? AND key_version = ?`,
+           WHERE id = ? AND user_id = ? AND key_version = ?
+             AND updated_at = ?`,
         )
-        .run([...values, updatedAt, id, ownerId, fromVersion]);
+        .run([
+          ...values,
+          updatedAt,
+          id,
+          ownerId,
+          fromVersion,
+          expectedUpdatedAt,
+        ]);
       if (info.changes === 0) return false;
       // Every feed's copy of the key is of the one before.
       db.prepare(

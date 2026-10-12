@@ -608,12 +608,25 @@ describe("handing a shared note's key on", () => {
     ...extra,
   });
 
-  const rekey = (who: { token: string }, id: string, body: object) =>
-    rig.rawRequest(`/api/notes/${id}/key`, {
+  /** As the app sends it: from the note as it was just read, unless a test
+   * says which read (`ifMatch`), or sends none (null). */
+  const rekey = async (
+    who: { token: string },
+    id: string,
+    body: object,
+    ifMatch?: string | null,
+  ) => {
+    const read =
+      ifMatch === undefined ? (await sealedAs(who, id)).updatedAt : ifMatch;
+    return rig.rawRequest(`/api/notes/${id}/key`, {
       method: "PUT",
-      headers: authHeaders(who.token),
+      headers: {
+        ...authHeaders(who.token),
+        ...(read !== null && { "If-Match": read }),
+      },
       body: JSON.stringify(body),
     });
+  };
 
   it("is due a new key once someone who held it is gone, which only the owner is told", async () => {
     const { id } = await note();
@@ -662,6 +675,22 @@ describe("handing a shared note's key on", () => {
     ).toBe(422);
     const { title: _title, ...partial } = rekeyed(2);
     expect((await rekey(owner, id, partial)).status).toBe(422);
+    // Not without saying which read the fields were sealed again from, and
+    // not from one the note has been written since: Bob's edit, made while
+    // the owner's app was sealing, is not in what it sends.
+    expect((await rekey(owner, id, rekeyed(2), null)).status).toBe(428);
+    const read = (await sealedAs(owner, id)).updatedAt;
+    const edit = await rig.rawRequest(`/api/notes/${id}`, {
+      method: "PUT",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ title: ct("Bob's edit"), keyVersion: 1 }),
+    });
+    expect(edit.status).toBe(200);
+    expect((await rekey(owner, id, rekeyed(2), read)).status).toBe(412);
+    expect(await sealedAs(owner, id)).toMatchObject({
+      keyVersion: 1,
+      title: ct("Bob's edit"),
+    });
 
     const done = await rekey(owner, id, rekeyed(2));
     expect(done.status).toBe(200);

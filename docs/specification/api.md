@@ -220,7 +220,10 @@ A shared note is sealed, so everyone on it needs its key ([Encryption](features/
   The owner's app then sends `PUT /api/notes/:id/key` with `{ keyVersion, key, previousKeys, title,
   content, excerpt, font, images, linkPreviews, links? }`: everything under the note key sealed
   again, `keyVersion` one more than the note's (`409` otherwise), and for each live link that
-  stays `{ token, wrappedKey }`. The server moves the whole note at once and answers `{ note }`.
+  stays `{ token, wrappedKey }`. `If-Match` carries the `updatedAt` of the note those fields were
+  sealed again from and is required (`428` without it): a note written since is answered `412`,
+  and the app reads it again, so replacing a key never undoes someone's edit. The server moves the
+  whole note at once and answers `{ note }`.
   Everyone else on the note is then `waitingForKey` until a client holding the new key wraps it
   for them. A `PUT /api/notes/:id` that carries sealed words says which key they are under in
   `keyVersion`, and is answered `409` when the note has left that key.

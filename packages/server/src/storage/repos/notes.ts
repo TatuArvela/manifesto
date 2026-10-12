@@ -142,9 +142,11 @@ export interface NotesRepo {
   /**
    * Puts the owner's note under a new key: its sealed fields, the owner's
    * wrapped copy and the keys before it, all at once, and only while the
-   * note is still under `fromVersion`. Everyone else's copy of the key is
-   * then behind, and they wait for the new one. False when the note is not
-   * this owner's or its key has moved on.
+   * note is still under `fromVersion` and as it was at `expectedUpdatedAt`:
+   * the fields were sealed again from a read, and a write since then is not
+   * in them. Everyone else's copy of the key is then behind, and they wait
+   * for the new one. False when the note is not this owner's, its key has
+   * moved on, or it changed since that read.
    */
   rekey(
     id: string,
@@ -152,6 +154,7 @@ export interface NotesRepo {
     rekeyed: RekeyedNote,
     fromVersion: number,
     updatedAt: string,
+    expectedUpdatedAt: string,
   ): Promise<boolean>;
   /** Owner only. The note's shares go with it. */
   delete(id: string, userId: string): Promise<boolean>;

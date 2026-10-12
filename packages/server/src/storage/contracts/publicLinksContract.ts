@@ -153,16 +153,19 @@ export function describePublicLinksContract(
       await storage.publicLinks.delete("gone", "n1");
       expect(await due()).toBe(true);
 
-      // Only from the version it is at, and only by its owner.
-      expect(await storage.notes.rekey("n1", "owner", rekeyed(3), 2, T1)).toBe(
+      // Only from the version it is at, only by its owner, and only while
+      // the note is as it was read.
+      const read =
+        (await storage.notes.getById("n1", "owner"))?.updatedAt ?? "";
+      const rekey = (owner: string, to: number, from: number, at = read) =>
+        storage.notes.rekey("n1", owner, rekeyed(to), from, T1, at);
+      expect(await rekey("owner", 3, 2)).toBe(false);
+      expect(await rekey("else", 2, 1)).toBe(false);
+      expect(await rekey("owner", 2, 1, "2001-01-01T00:00:00.000Z")).toBe(
         false,
       );
-      expect(await storage.notes.rekey("n1", "else", rekeyed(2), 1, T1)).toBe(
-        false,
-      );
-      expect(await storage.notes.rekey("n1", "owner", rekeyed(2), 1, T1)).toBe(
-        true,
-      );
+      expect((await storage.notes.getById("n1", "owner"))?.keyVersion).toBe(1);
+      expect(await rekey("owner", 2, 1)).toBe(true);
       expect(await storage.notes.getById("n1", "owner")).toMatchObject({
         keyVersion: 2,
         key: ct("key 2"),
