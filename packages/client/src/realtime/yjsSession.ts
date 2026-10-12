@@ -56,6 +56,9 @@ export interface YjsSessionOptions {
   user: YjsSessionUser | null;
   onStatus: (status: YjsConnectionStatus) => void;
   onSynced: () => void;
+  /** Entries of the document did not open here, `count` of them so far: the
+   * editor shows the rest, and says that it is not everything. */
+  onUnreadable: (count: number) => void;
   /** `reason` is `EDITOR_OUTDATED_REASON` when this build is too old to join. */
   onAuthenticationFailed: (reason: string) => void;
 }
@@ -86,6 +89,7 @@ export function createYjsSession({
   user,
   onStatus,
   onSynced,
+  onUnreadable,
   onAuthenticationFailed,
 }: YjsSessionOptions): YjsSession {
   const wire = new Y.Doc();
@@ -99,7 +103,14 @@ export function createYjsSession({
   void deleteReadableNoteCopies([noteId]);
   const idb = new IndexeddbPersistence(`${LOCAL_COPY_PREFIX}${noteId}`, wire);
   const sealed: SealedDocument | null = key
-    ? joinSealedDocument({ noteId, key, older, inner: ydoc, outer: wire })
+    ? joinSealedDocument({
+        noteId,
+        key,
+        older,
+        inner: ydoc,
+        outer: wire,
+        onUnreadable,
+      })
     : null;
   let compacting: ReturnType<typeof setInterval> | undefined;
   const provider = new HocuspocusProvider({

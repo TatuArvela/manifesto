@@ -189,6 +189,37 @@ describe("Sealer", () => {
     expect([...mine.unreadable.value]).toEqual(["n1"]);
   });
 
+  it("opens a listing in the order it came, and forgets a note that is gone", async () => {
+    const keys = await testKeys();
+    const theirs = await accountOf(await testKeys("u2"));
+    const writer = new Sealer(keys);
+    const listing: SealedNote[] = [];
+    for (let i = 0; i < 20; i++) {
+      const note = { ...draft, title: `Note ${i}` };
+      // Every fifth is someone else's, and does not open.
+      listing.push(
+        served(
+          i % 5 === 0
+            ? (await sealNewNote(theirs, `n${i}`, note)).sealed
+            : await writer.sealNew(`n${i}`, note),
+        ),
+      );
+    }
+    const mine = new Sealer(keys);
+    const opened = await mine.openAll(listing);
+    expect(opened.map((note) => note.title)).toEqual(
+      listing.flatMap((_, i) => (i % 5 === 0 ? [] : [`Note ${i}`])),
+    );
+    expect([...mine.unreadable.value].sort()).toEqual([
+      "n0",
+      "n10",
+      "n15",
+      "n5",
+    ]);
+    mine.forget("n5");
+    expect(mine.unreadable.value.has("n5")).toBe(false);
+  });
+
   it("seals a comment under its note's key and its own id", async () => {
     const keys = await testKeys();
     const sealer = new Sealer(keys);

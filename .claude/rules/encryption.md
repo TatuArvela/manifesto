@@ -35,6 +35,7 @@ paths:
   - "packages/client/src/state/accountKeys.ts"
   - "packages/client/src/test/plainSealing.ts"
   - "packages/client/src/test/sealedServer.ts"
+  - "packages/client/src/components/UnopenedNotes.tsx"
   - "packages/client/src/components/KeyScreen.tsx"
   - "packages/client/src/components/KeySheet.tsx"
   - "packages/client/src/components/RecoveryForms.tsx"
@@ -96,7 +97,9 @@ order for any new flow that makes a key someone has to hold.
 - **Nothing above the storage layer holds a ciphertext, and nothing below it a readable note.**
   `storage/sealing.ts` (`Sealer`) seals what `RestApiAdapter` sends and opens what it and the app
   socket receive; the store, the views and the editor deal in `Note` as in open mode. A new request
-  that carries a note's words goes through the `Sealer`, never around it.
+  that carries a note's words goes through the `Sealer`, never around it. A note that does not
+  open is left out and counted in `Sealer.unreadable`, which `UnopenedNotes` shows on the board;
+  `forget` takes it out again. `openAll` opens a few notes at a time and keeps their order.
 - **The server stores only what is shaped as a ciphertext** where one belongs: `sealed` in
   `validation/schemas.ts` on the way in, and `sealedColumn` (`storage/noteMapping.ts`) on the way
   out, so a column's readable default is never sent as a value.
@@ -212,7 +215,15 @@ document's edits and snapshots sealed under `NoteSealKey.edits`; the server and 
 hold ciphertext. `joinSealedDocument` carries edits both ways through a queue, and
 `createYjsSession` reports `synced` only once `settled()` says every arrived entry is applied: the
 editor reads `synced` as "this document holds what the server has", and reporting the wire
-document's sync would seed an empty editor over everyone's text.
+document's sync would seed an empty editor over everyone's text. An entry that does not open is
+passed over by design (any editor can append junk, and must not be able to stop the note syncing),
+and counted: `onUnreadable` carries the count to `useNoteYDoc`, and the editor shows a notice.
+
+Sealing takes a moment, so `SealedDocument.destroy` resolves once the edits already made are in the
+wire document, and `createYjsSession` closes the provider, the offline copy and the wire document
+only then. Closing them at once drops the last keystrokes before a note was closed. `NoteSealKey`
+derives `edits` and `presence` the first time they are asked for, since every note of a listing is
+opened and only an open editor needs them.
 
 Presence is bridged the same way (`joinSealedAwareness`): the editor's `Awareness` is local, what
 crosses is `{ sealed }`, and a remote state is shown under the `user` the server stamped, never a

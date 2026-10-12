@@ -186,7 +186,8 @@ export class Sealer {
     exchange: CryptoKey;
     signing: CryptoKey;
   } | null> | null = null;
-  /** Notes that arrived and did not open, by id. */
+  /** Notes that arrived and did not open, by id: what the board says it
+   * is not showing (`UnopenedNotes`). */
   readonly unreadable = signal<ReadonlySet<string>>(new Set());
   /**
    * The notes this account owns that are due a new key: someone who held
@@ -538,6 +539,7 @@ export class Sealer {
   /** A note's key no longer applies: it was deleted, or taken away. */
   forget(id: string): void {
     this.noteKeys.delete(id);
+    this.markUnreadable(id, false);
   }
 
   /** A new note under a new key and `id`. */

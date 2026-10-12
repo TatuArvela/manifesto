@@ -33,6 +33,12 @@ export interface NoteYDoc {
    * a reload.
    */
   outdated: boolean;
+  /**
+   * How many entries of the sealed document did not open on this device
+   * (another key, or damage). They are passed over, so the editor may be
+   * showing less than was written, and the caller says so.
+   */
+  unreadable: number;
 }
 
 const IDLE: NoteYDoc = {
@@ -41,6 +47,7 @@ const IDLE: NoteYDoc = {
   status: "disabled",
   synced: false,
   outdated: false,
+  unreadable: 0,
 };
 
 function wsUrl(): string | null {
@@ -116,6 +123,9 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
           onSynced: () => {
             setState((prev) => ({ ...prev, synced: true }));
           },
+          onUnreadable: (unreadable) => {
+            if (!cancelled) setState((prev) => ({ ...prev, unreadable }));
+          },
           onAuthenticationFailed: (reason) => {
             setState((prev) => ({
               ...prev,
@@ -131,6 +141,7 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
           status: "connecting",
           synced: false,
           outdated: false,
+          unreadable: 0,
         });
       },
       () => {

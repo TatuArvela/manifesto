@@ -23,7 +23,9 @@ The server relays and stores the shared document without being able to read it
 
 An edit made in the editor is sealed and appended; an entry that arrives is opened and applied.
 Clients do the merging, which Yjs does the same way wherever it runs, and the server merges only
-the list of opaque entries. An entry that does not open (another key, or damage) is passed over.
+the list of opaque entries. An entry that does not open (another key, or damage) is passed over, and
+the editor says that some changes are not shown. An edit still being sealed when the note is closed is
+written before the document is.
 
 - **Compaction is the clients'.** When a note has gathered 200 edits, a client appends a snapshot
   of the whole document. The edits a snapshot covers are kept until the snapshot after it has

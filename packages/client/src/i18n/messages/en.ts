@@ -184,6 +184,13 @@ export const en = {
   "editor.outdated":
     "A newer version is in use. Reload to keep editing this note.",
   "editor.outdated.reload": "Reload",
+  "editor.unopenedEdits":
+    "Some changes to this note could not be opened on this device and are not shown.",
+  "notes.unopened": {
+    one: "{count} note is not shown: its key has not arrived or does not open on this device.",
+    other:
+      "{count} notes are not shown: their keys have not arrived or do not open on this device.",
+  },
   "editor.metadata.created": "Created {date}",
   "editor.metadata.edited": "Edited {date}",
   "editor.imageAlt": "Delete image",

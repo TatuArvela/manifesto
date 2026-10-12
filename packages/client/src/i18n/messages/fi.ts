@@ -188,6 +188,13 @@ export const fi: Messages = {
   "editor.outdated":
     "Palvelimella on käytössä uudempi versio. Lataa sivu uudelleen, niin voit jatkaa tämän muistiinpanon muokkaamista.",
   "editor.outdated.reload": "Lataa uudelleen",
+  "editor.unopenedEdits":
+    "Osaa tämän muistiinpanon muutoksista ei voitu avata tällä laitteella, eikä niitä näytetä.",
+  "notes.unopened": {
+    one: "{count} muistiinpanoa ei näytetä: sen avain ei ole saapunut tai ei aukea tällä laitteella.",
+    other:
+      "{count} muistiinpanoa ei näytetä: niiden avaimet eivät ole saapuneet tai eivät aukea tällä laitteella.",
+  },
   "editor.metadata.created": "Luotu {date}",
   "editor.metadata.edited": "Muokattu {date}",
   "editor.imageAlt": "Poista kuva",

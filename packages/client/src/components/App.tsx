@@ -74,6 +74,7 @@ import { MobileNav, Sidebar } from "./Sidebar.js";
 import { SettingsDialog } from "./settings/SettingsDialog.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
+import { UnopenedNotes } from "./UnopenedNotes.js";
 import { WelcomeDialog } from "./WelcomeDialog.js";
 
 // True only on the *very first render* of a page that landed with `#token=`
@@ -386,12 +387,14 @@ function MainApp() {
               <div class="max-w-xl mx-auto">
                 <NoteInput />
                 {isActive && <InvitationList />}
+                {isActive && <UnopenedNotes />}
                 <NoteGrid />
               </div>
             ) : (
               <>
                 <NoteInput />
                 {isActive && <InvitationList />}
+                {isActive && <UnopenedNotes />}
                 <NoteGrid />
               </>
             )}

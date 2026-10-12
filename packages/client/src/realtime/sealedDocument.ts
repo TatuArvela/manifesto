@@ -98,8 +98,10 @@ export function joinSealedDocument(options: {
   older?: ReadonlyMap<number, NoteSealKey> | undefined;
   inner: Y.Doc;
   outer: Y.Doc;
+  /** Told how many entries have not opened, each time another does not. */
+  onUnreadable?: ((count: number) => void) | undefined;
 }): SealedDocument {
-  const { noteId, key, older, inner, outer } = options;
+  const { noteId, key, older, inner, outer, onUnreadable } = options;
   const log = outer.getArray<Uint8Array>(LOG);
   const data = (kind: number, version = key.version) =>
     associatedData({
@@ -110,6 +112,10 @@ export function joinSealedDocument(options: {
   let queue: Promise<void> = Promise.resolve();
   let unreadable = 0;
   let destroyed = false;
+  const passOver = () => {
+    unreadable++;
+    onUnreadable?.(unreadable);
+  };
 
   const enqueue = (work: () => Promise<void>) => {
     queue = queue.then(work).catch((err) => {
@@ -136,7 +142,7 @@ export function joinSealedDocument(options: {
           )
         : null;
     if (!update) {
-      unreadable++;
+      passOver();
       return;
     }
     try {
@@ -144,7 +150,7 @@ export function joinSealedDocument(options: {
     } catch (err) {
       // What opened was not an update: a faulty writer, whose entry is
       // passed over like one that did not open.
-      unreadable++;
+      passOver();
       console.warn("A sealed edit did not apply:", err);
     }
   }
