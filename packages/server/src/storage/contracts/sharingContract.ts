@@ -6,7 +6,7 @@ import {
   NoteAccessError,
   type StorageDriver,
 } from "../types.js";
-import { claimed } from "./claimed.js";
+import { claimed, claimedUpdate, ct, opened } from "./claimed.js";
 
 /**
  * What both drivers must do for sharing notes between accounts, run against
@@ -112,9 +112,11 @@ export function describeSharingContract(
             displayName: "Olivia",
             avatarColor: "#123456",
           },
-          title: "Groceries",
-          content: "- [ ] Milk",
-          color: NoteColor.Yellow,
+          // Sealed, as the note is; the colour is the owner's own and is
+          // not part of what is offered.
+          title: ct("Groceries"),
+          content: ct("- [ ] Milk"),
+          color: NoteColor.Default,
           font: NoteFont.Default,
           invitedAt: T1,
         },
@@ -141,9 +143,11 @@ export function describeSharingContract(
       await share("alice", "edit");
 
       const seen = await storage.notes.getById("n1", "alice");
-      expect(seen).toMatchObject({
+      // The colour and the tags are each person's own, under their own key,
+      // so a recipient starts with neither.
+      expect(seen && opened(seen)).toMatchObject({
         title: "Groceries",
-        color: NoteColor.Yellow,
+        color: NoteColor.Default,
         pinned: false,
         archived: false,
         tags: [],
@@ -200,16 +204,16 @@ export function describeSharingContract(
       const alices = await storage.notes.update(
         "n1",
         "alice",
-        {
+        claimedUpdate({
           tags: ["errands"],
           pinned: true,
           color: NoteColor.Blue,
           title: "Shopping",
-        },
+        }),
         T3,
         T0,
       );
-      expect(alices).toMatchObject({
+      expect(alices && opened(alices)).toMatchObject({
         title: "Shopping",
         tags: ["errands"],
         pinned: true,
@@ -218,7 +222,7 @@ export function describeSharingContract(
       });
 
       const owners = await storage.notes.getById("n1", "owner");
-      expect(owners).toMatchObject({
+      expect(owners && opened(owners)).toMatchObject({
         title: "Shopping",
         tags: ["home"],
         pinned: true,
@@ -241,14 +245,24 @@ export function describeSharingContract(
       await share("alice", "view");
 
       await expect(
-        storage.notes.update("n1", "alice", { content: "hijacked" }, T3),
+        storage.notes.update(
+          "n1",
+          "alice",
+          claimedUpdate({ content: "hijacked" }),
+          T3,
+        ),
       ).rejects.toBeInstanceOf(NoteAccessError);
       // Nothing half-written: not the content, not the pin sent with it.
       await expect(
-        storage.notes.update("n1", "alice", { pinned: true, title: "x" }, T3),
+        storage.notes.update(
+          "n1",
+          "alice",
+          claimedUpdate({ pinned: true, title: "x" }),
+          T3,
+        ),
       ).rejects.toBeInstanceOf(NoteAccessError);
       const after = await storage.notes.getById("n1", "alice");
-      expect(after).toMatchObject({
+      expect(after && opened(after)).toMatchObject({
         content: "- [ ] Milk",
         title: "Groceries",
         pinned: false,
@@ -370,7 +384,7 @@ export function describeSharingContract(
       await storage.notes.update(
         "n1",
         "owner",
-        { title: "Later" },
+        claimedUpdate({ title: "Later" }),
         "2026-04-03T00:00:00.000Z",
       );
 
@@ -384,18 +398,6 @@ export function describeSharingContract(
       });
       expect(second.notes.map((n) => n.id)).toEqual(["a1"]);
       expect(second.nextCursor).toBeNull();
-    });
-
-    it("searches the notes shared with a user too", async () => {
-      await share("alice", "view");
-      expect(
-        (await storage.notes.search("alice", "milk", PAGE)).notes.map(
-          (n) => n.id,
-        ),
-      ).toEqual(["n1"]);
-      expect((await storage.notes.search("bob", "milk", PAGE)).notes).toEqual(
-        [],
-      );
     });
 
     it("changes roles and removes shares, saying what was removed", async () => {

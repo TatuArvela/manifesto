@@ -1,15 +1,14 @@
 import { zValidator } from "@hono/zod-validator";
 import {
   NOTE_VERSION_MAX_AGE_DAYS,
-  type NoteVersionsResponse,
+  type SealedNoteVersion,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
 import { nowIso } from "../lib/time.js";
-import { newId } from "../lib/ulid.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
-import { noteVersionCreateSchema } from "../validation/schemas.js";
+import { sealedVersionCreateSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
@@ -49,7 +48,7 @@ export function registerVersionRoutes(
     if (!(await storage.notes.access(id, userId))) {
       throw new HttpError(404, "Note not found");
     }
-    const body: NoteVersionsResponse = {
+    const body: { versions: SealedNoteVersion[] } = {
       versions: await storage.versions.list(id),
     };
     return c.json(body);
@@ -57,7 +56,7 @@ export function registerVersionRoutes(
 
   notes.post(
     "/:id/versions",
-    zValidator("json", noteVersionCreateSchema, validatorHook),
+    zValidator("json", sealedVersionCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
       const id = c.req.param("id") as string;
@@ -69,15 +68,18 @@ export function registerVersionRoutes(
           "Your role on this note does not allow editing it",
         );
       }
-      const { title, content, timestamp } = c.req.valid("json");
-      await storage.versions.add({
-        id: newId(),
+      const version = c.req.valid("json");
+      // The client chooses the id, which the sealed values are bound to.
+      const added = await storage.versions.add({
+        id: version.id,
         noteId: id,
         authorId: userId,
-        title,
-        content,
-        createdAt: versionTimestamp(timestamp, nowIso()),
+        keyVersion: version.keyVersion,
+        title: version.title,
+        content: version.content,
+        createdAt: versionTimestamp(version.timestamp, nowIso()),
       });
+      if (!added) throw new HttpError(409, "A version already has this id");
       return c.body(null, 201);
     },
   );

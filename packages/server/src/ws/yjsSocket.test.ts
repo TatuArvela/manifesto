@@ -20,6 +20,7 @@ import * as Y from "yjs";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import { hashToken } from "../lib/token.js";
+import { sealedCreate } from "../storage/contracts/claimed.js";
 import type { SqliteStorageDriver } from "../storage/sqlite/driver.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import { TEST_CONFIG } from "../test/setup.js";
@@ -140,7 +141,7 @@ async function createNote(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ ...baseNote, ...overrides }),
+    body: JSON.stringify(sealedCreate({ ...baseNote, ...overrides })),
   });
   expect(res.status).toBe(201);
   const body = (await res.json()) as { note: { id: string } };

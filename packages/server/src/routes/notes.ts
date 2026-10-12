@@ -5,10 +5,9 @@ import {
   roleOf,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { claimImages, claimPreviewImages } from "../attachments/store.js";
+import { claimImages } from "../attachments/store.js";
 import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
-import { newId } from "../lib/ulid.js";
 import type { Mailer } from "../mail/mailer.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
@@ -22,9 +21,9 @@ import {
 } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
 import {
-  noteCreateSchema,
-  notesImportSchema,
-  noteUpdateSchema,
+  sealedNoteCreateSchema,
+  sealedNotesImportSchema,
+  sealedNoteUpdateSchema,
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import { registerCommentRoutes } from "./comments.js";
@@ -111,34 +110,37 @@ export function createNotesRoutes(deps: NotesDeps) {
     return c.json({ note });
   });
 
+  // The client chooses a new note's id, since everything it sealed is bound
+  // to it, so an id can arrive that is already someone's.
   notes.post(
     "/",
-    zValidator("json", noteCreateSchema, validatorHook),
+    zValidator("json", sealedNoteCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
-      const fields = c.req.valid("json");
+      const { id, imageRefs, previewRefs, ...fields } = c.req.valid("json");
+      if (await deps.storage.notes.exists(id)) {
+        throw new HttpError(409, "A note already has this id");
+      }
       const now = nowIso();
-      const images = await claimImages(
-        deps.storage,
-        fields.images,
-        userId,
-        userId,
-        now,
-      );
-      const linkPreviews = await claimPreviewImages(
-        deps.storage,
-        fields.linkPreviews,
-        userId,
-        userId,
-        now,
-      );
       const note = await deps.storage.notes.insert({
-        id: newId(),
+        id,
         userId,
         data: {
           ...fields,
-          images,
-          linkPreviews,
+          imageRefs: await claimImages(
+            deps.storage,
+            imageRefs,
+            userId,
+            userId,
+            now,
+          ),
+          previewRefs: await claimImages(
+            deps.storage,
+            previewRefs,
+            userId,
+            userId,
+            now,
+          ),
           trashedAt: fields.trashed ? now : null,
         },
         createdAt: now,
@@ -153,7 +155,7 @@ export function createNotesRoutes(deps: NotesDeps) {
   // backup imported twice updates the same notes rather than duplicating them.
   notes.post(
     "/import",
-    zValidator("json", notesImportSchema, validatorHook),
+    zValidator("json", sealedNotesImportSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
       const result: NotesImportResponse = {
@@ -161,31 +163,40 @@ export function createNotesRoutes(deps: NotesDeps) {
         updated: 0,
         skipped: 0,
       };
-      for (const { id, createdAt, ...fields } of c.req.valid("json").notes) {
+      const taken: string[] = [];
+      for (const item of c.req.valid("json").notes) {
+        const { id, createdAt, imageRefs, previewRefs, ...fields } = item;
         const now = nowIso();
-        const access = id ? await deps.storage.notes.access(id, userId) : null;
+        const access = await deps.storage.notes.access(id, userId);
         if (access && access.role !== "owner") {
           result.skipped++;
           continue;
         }
+        // Someone else's note has this id. A readable note was given a new
+        // one here; a sealed one is bound to its id, so the client has to
+        // seal it again under another.
+        if (!access && (await deps.storage.notes.exists(id))) {
+          taken.push(id);
+          continue;
+        }
         const data = {
           ...fields,
-          images: await claimImages(
+          imageRefs: await claimImages(
             deps.storage,
-            fields.images,
+            imageRefs,
             userId,
             userId,
             now,
           ),
-          linkPreviews: await claimPreviewImages(
+          previewRefs: await claimImages(
             deps.storage,
-            fields.linkPreviews,
+            previewRefs,
             userId,
             userId,
             now,
           ),
         };
-        if (id && access) {
+        if (access) {
           await deps.storage.notes.update(
             id,
             userId,
@@ -196,11 +207,8 @@ export function createNotesRoutes(deps: NotesDeps) {
           result.updated++;
           continue;
         }
-        // An id already taken by a note this user cannot write is not theirs
-        // to reuse.
-        const free = id !== undefined && !(await deps.storage.notes.exists(id));
         const note = await deps.storage.notes.insert({
-          id: free ? id : newId(),
+          id,
           userId,
           data: { ...data, trashedAt: fields.trashed ? now : null },
           createdAt: createdAt ? new Date(createdAt).toISOString() : now,
@@ -209,24 +217,25 @@ export function createNotesRoutes(deps: NotesDeps) {
         deps.noteEvents.created(note, userId);
         result.created++;
       }
+      if (taken.length > 0) result.taken = taken;
       return c.json(result);
     },
   );
 
   notes.put(
     "/:id",
-    zValidator("json", noteUpdateSchema, validatorHook),
+    zValidator("json", sealedNoteUpdateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
       const id = c.req.param("id") as string;
       const fields = c.req.valid("json");
       const now = nowIso();
-      const { images, linkPreviews, ...rest } = fields;
+      const { imageRefs, previewRefs, ...rest } = fields;
       const changes: StoredNoteUpdate = {
         ...rest,
         ...trashStamp(fields.trashed, now),
       };
-      if (images !== undefined || linkPreviews !== undefined) {
+      if (imageRefs !== undefined || previewRefs !== undefined) {
         // Stored under the note's owner, whoever is writing. Refused here
         // with the answers the update would give, since references nobody
         // claimed never reach it.
@@ -234,27 +243,27 @@ export function createNotesRoutes(deps: NotesDeps) {
         if (!access) throw new HttpError(404, "Note not found");
         if (access.role === "view") {
           const named = [
-            ...(images !== undefined ? ["images"] : []),
-            ...(linkPreviews !== undefined ? ["linkPreviews"] : []),
+            ...(imageRefs !== undefined ? ["images"] : []),
+            ...(previewRefs !== undefined ? ["linkPreviews"] : []),
           ];
           throw new HttpError(
             403,
             `Your role on this note does not allow changing ${named.join(", ")}`,
           );
         }
-        if (images !== undefined) {
-          changes.images = await claimImages(
+        if (imageRefs !== undefined) {
+          changes.imageRefs = await claimImages(
             deps.storage,
-            images,
+            imageRefs,
             access.ownerId,
             userId,
             now,
           );
         }
-        if (linkPreviews !== undefined) {
-          changes.linkPreviews = await claimPreviewImages(
+        if (previewRefs !== undefined) {
+          changes.previewRefs = await claimImages(
             deps.storage,
-            linkPreviews,
+            previewRefs,
             access.ownerId,
             userId,
             now,

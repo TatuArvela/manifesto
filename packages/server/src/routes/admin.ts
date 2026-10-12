@@ -15,8 +15,6 @@ import type { SessionRevocations } from "../auth/revocations.js";
 import { endUserSessions } from "../auth/session.js";
 import { pickAvatarColor } from "../auth/users.js";
 import { type ServerConfig, signsInLocally } from "../config.js";
-import { exportAccount, sendExport } from "../export/userExport.js";
-import { isFeatureOn } from "../features.js";
 import type { UpdateStatus } from "../jobs/updateCheck.js";
 import { logger } from "../lib/logger.js";
 import { hashPassword } from "../lib/password.js";
@@ -121,7 +119,6 @@ export function createAdminRoutes(deps: AdminDeps) {
     const users = await deps.storage.users.list();
     const body: AdminUsersResponse = {
       users: users.map(toAdminUser),
-      adminExport: isFeatureOn(deps.cfg, "adminExport"),
     };
     return c.json(body);
   });
@@ -287,27 +284,6 @@ export function createAdminRoutes(deps: AdminDeps) {
       targetId: id,
     });
     return c.body(null, 204);
-  });
-
-  /**
-   * Everything an account owns, as a zip, for a data request or a move. Only
-   * with `ADMIN_EXPORT` on (off, the protection answers 404 before this);
-   * the owner hears of it in their own activity.
-   */
-  admin.get("/users/:id/export", async (c) => {
-    const id = c.req.param("id");
-    const zip = await exportAccount(deps.storage, id);
-    if (!zip) throw new HttpError(404, "User not found");
-    audit(deps.storage, c, {
-      action: "admin.user_exported",
-      actorId: c.get("auth").userId,
-      targetId: id,
-    });
-    return sendExport(
-      c,
-      zip,
-      (await deps.storage.users.findById(id))?.username,
-    );
   });
 
   /** Whether a newer release is out, for the account menu to mention. */

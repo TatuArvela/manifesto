@@ -5,14 +5,14 @@ import type {
   LinkPreviewResponse,
   Note,
   NoteCreate,
-  NoteImport,
   NoteResponse,
-  NotesImportRequest,
+  NotesImportResponse,
   NotesResponse,
   NoteUpdate,
   NoteVersion,
-  NoteVersionCreateRequest,
-  NoteVersionsResponse,
+  SealedNote,
+  SealedNoteImport,
+  SealedNoteVersion,
   SyncResponse,
 } from "@manifesto/shared";
 import {
@@ -20,8 +20,10 @@ import {
   MAX_NOTES_PER_IMPORT,
   mapPreviewImages,
 } from "@manifesto/shared";
+import { ulid } from "ulid";
 import { dataUrlToBlob } from "../utils/dataUrl.js";
 import type { NoteChanges, StorageAdapter } from "./StorageAdapter.js";
+import { LockedError, type NoteSealing } from "./sealing.js";
 
 /** Under the server's 1 MiB body limit, with room for the request's own
  * wrapping. */
@@ -32,6 +34,12 @@ const textEncoder = new TextEncoder();
 export interface RestApiAdapterOptions {
   /** Invoked when the server returns 401, before the error is thrown. */
   onUnauthorized?: (() => void) | undefined;
+  /**
+   * Seals what is sent and opens what arrives. Null while the account is
+   * locked, and then nothing that holds a note's words can be read or
+   * written.
+   */
+  sealer?: NoteSealing | null | undefined;
 }
 
 /**
@@ -58,6 +66,7 @@ export class RestApiAdapter implements StorageAdapter {
   private baseUrl: string;
   private token: string;
   private onUnauthorized: (() => void) | undefined;
+  private sealer: NoteSealing | null;
 
   constructor(
     baseUrl: string,
@@ -67,7 +76,24 @@ export class RestApiAdapter implements StorageAdapter {
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.token = token;
     this.onUnauthorized = options.onUnauthorized;
+    this.sealer = options.sealer ?? null;
   }
+
+  /** The account's sealing, or a refusal while it is locked. */
+  private sealing(): NoteSealing {
+    if (!this.sealer) throw new LockedError();
+    return this.sealer;
+  }
+
+  /** A note as the server holds it, for a key this device has not opened. */
+  private readonly sealedNote = (id: string) => async () => {
+    const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
+      headers: this.headers(),
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) await this.fail(res, "Failed to fetch note");
+    return ((await res.json()) as NoteResponse<SealedNote>).note;
+  };
 
   private headers(): HeadersInit {
     return {
@@ -101,6 +127,7 @@ export class RestApiAdapter implements StorageAdapter {
    * that needs them.
    */
   private async drainPages(path: string, failure: string): Promise<Note[]> {
+    const sealing = this.sealing();
     const notes: Note[] = [];
     let cursor: string | null = null;
     do {
@@ -109,8 +136,8 @@ export class RestApiAdapter implements StorageAdapter {
         : `${this.baseUrl}${path}`;
       const res: Response = await fetch(url, { headers: this.headers() });
       if (!res.ok) await this.fail(res, failure);
-      const data = (await res.json()) as NotesResponse;
-      notes.push(...data.notes);
+      const data = (await res.json()) as NotesResponse<SealedNote>;
+      notes.push(...(await sealing.openAll(data.notes)));
       cursor = data.nextCursor ?? null;
       // A page that came back empty cannot be followed by a useful one, and a
       // server that kept handing back the same cursor would spin here.
@@ -120,7 +147,9 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async getAll(): Promise<Note[]> {
-    return await this.drainPages("/api/notes", "Failed to fetch notes");
+    const notes = await this.drainPages("/api/notes", "Failed to fetch notes");
+    this.sealer?.markComplete();
+    return notes;
   }
 
   /**
@@ -131,6 +160,7 @@ export class RestApiAdapter implements StorageAdapter {
    * record of change: the caller lists everything, as it did then.
    */
   async changesSince(since: string | null): Promise<NoteChanges | null> {
+    const sealing = this.sealing();
     const notes: Note[] = [];
     let cursor: string | null = null;
     for (;;) {
@@ -143,12 +173,13 @@ export class RestApiAdapter implements StorageAdapter {
       });
       if (res.status === 404 && cursor === null) return null;
       if (!res.ok) await this.fail(res, "Failed to sync notes");
-      const data = (await res.json()) as SyncResponse;
-      notes.push(...data.notes);
+      const data = (await res.json()) as SyncResponse<SealedNote>;
+      notes.push(...(await sealing.openAll(data.notes)));
       if (data.nextCursor === null) {
         if (data.ids === null || data.checkpoint === null) {
           throw new Error("Sync ended without a checkpoint");
         }
+        if (since === null) sealing.markComplete();
         return { notes, ids: data.ids, checkpoint: data.checkpoint };
       }
       // A cursor handed back unchanged would spin here, as in `drainPages`.
@@ -158,9 +189,8 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * The attachments of one note, which a listing leaves behind. In open mode
-   * they were never separated from the note, so `LocalStorageAdapter` answers
-   * this from what it already has.
+   * The images of one note. A listing carries them now, so this is a read of
+   * the note for whoever still asks.
    */
   async loadImages(id: string): Promise<string[]> {
     const note = await this.get(id);
@@ -172,17 +202,29 @@ export class RestApiAdapter implements StorageAdapter {
       headers: this.headers(),
     });
     if (!res.ok) await this.fail(res, "Failed to fetch versions");
-    return ((await res.json()) as NoteVersionsResponse).versions;
+    const { versions } = (await res.json()) as {
+      versions: SealedNoteVersion[];
+    };
+    return await this.sealing().openVersions(
+      noteId,
+      versions,
+      this.sealedNote(noteId),
+    );
   }
 
   async saveVersion(
     noteId: string,
-    version: NoteVersionCreateRequest,
+    version: { title: string; content: string; timestamp?: string },
   ): Promise<void> {
+    const sealed = await this.sealing().sealVersion(
+      noteId,
+      version,
+      this.sealedNote(noteId),
+    );
     const res = await fetch(`${this.baseUrl}/api/notes/${noteId}/versions`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify(version),
+      body: JSON.stringify(sealed),
     });
     if (!res.ok) await this.fail(res, "Failed to save version");
   }
@@ -197,13 +239,18 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async get(id: string): Promise<Note | null> {
-    const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
-      headers: this.headers(),
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) await this.fail(res, "Failed to fetch note");
-    const data = (await res.json()) as NoteResponse;
-    return data.note;
+    const sealing = this.sealing();
+    const sealed = await this.sealedNote(id)();
+    return sealed ? await sealing.open(sealed) : null;
+  }
+
+  /** The note in an answer, opened; a note that will not open is a failed
+   * request, since the caller asked for it by writing it. */
+  private async opened(res: Response, failure: string): Promise<Note> {
+    const data = (await res.json()) as NoteResponse<SealedNote>;
+    const note = await this.sealing().open(data.note);
+    if (!note) throw new Error(failure);
+    return note;
   }
 
   /**
@@ -303,14 +350,19 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async create(note: NoteCreate): Promise<Note> {
+    const sealing = this.sealing();
+    // The id is chosen here: everything sealed is bound to it.
+    const sealed = await sealing.sealNew(ulid(), await this.withUploads(note));
     const res = await fetch(`${this.baseUrl}/api/notes`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify(await this.withUploads(note)),
+      body: JSON.stringify(sealed),
     });
-    if (!res.ok) await this.fail(res, "Failed to create note");
-    const data = (await res.json()) as NoteResponse;
-    return data.note;
+    if (!res.ok) {
+      sealing.forget(sealed.id);
+      await this.fail(res, "Failed to create note");
+    }
+    return await this.opened(res, "Failed to create note");
   }
 
   async update(
@@ -323,19 +375,24 @@ export class RestApiAdapter implements StorageAdapter {
       Authorization: `Bearer ${this.token}`,
     };
     if (options.ifMatch !== undefined) headers["If-Match"] = options.ifMatch;
-    const body = await this.withUploads(changes);
+    const sealing = this.sealing();
+    const body = await sealing.sealUpdate(
+      id,
+      await this.withUploads(changes),
+      this.sealedNote(id),
+    );
     const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
       method: "PUT",
       headers,
       body: JSON.stringify(body),
     });
     if (res.status === 412) {
-      const data = (await res.json()) as Partial<NoteResponse>;
-      if (data?.note) throw new NoteConflictError(data.note);
+      const data = (await res.json()) as Partial<NoteResponse<SealedNote>>;
+      const current = data?.note ? await sealing.open(data.note) : null;
+      if (current) throw new NoteConflictError(current);
     }
     if (!res.ok) await this.fail(res, "Failed to update note");
-    const data = (await res.json()) as NoteResponse;
-    return data.note;
+    return await this.opened(res, "Failed to update note");
   }
 
   async delete(id: string): Promise<void> {
@@ -344,6 +401,7 @@ export class RestApiAdapter implements StorageAdapter {
       headers: this.headers(),
     });
     if (!res.ok) await this.fail(res, "Failed to delete note");
+    this.sealer?.forget(id);
   }
 
   async deleteAll(): Promise<void> {
@@ -362,11 +420,19 @@ export class RestApiAdapter implements StorageAdapter {
    * already has and importing the same file twice changes nothing.
    */
   async importAll(imported: Note[]): Promise<void> {
-    let chunk: NoteImport[] = [];
+    const sealing = this.sealing();
+    // A note this account already holds is written over under the key it
+    // has, so every key has to be at hand before the first is sealed.
+    if (!sealing.complete) await this.getAll();
+    type Plain = Omit<Note, "updatedAt" | "imageCount" | "sharing">;
+    const plain = new Map<string, Plain>();
+    let chunk: SealedNoteImport[] = [];
     let chunkBytes = 0;
+    /** Ids the server said belong to someone else's note. */
+    const taken: string[] = [];
     const send = async () => {
       if (chunk.length === 0) return;
-      const body: NotesImportRequest = { notes: chunk };
+      const body = { notes: chunk };
       chunk = [];
       chunkBytes = 0;
       const res = await fetch(`${this.baseUrl}/api/notes/import`, {
@@ -375,15 +441,19 @@ export class RestApiAdapter implements StorageAdapter {
         body: JSON.stringify(body),
       });
       if (!res.ok) await this.fail(res, "Failed to import notes");
+      try {
+        const answer = (await res.json()) as Partial<NotesImportResponse>;
+        taken.push(...(answer.taken ?? []));
+      } catch {
+        // No answer to read: nothing was said to be taken.
+      }
     };
-    for (const note of imported) {
-      const {
-        updatedAt: _updatedAt,
-        imageCount: _imageCount,
-        sharing: _sharing,
-        ...payload
-      } = note;
-      const item = await this.withUploads(payload);
+    const add = async (id: string, payload: Plain) => {
+      const { id: _id, createdAt, ...fields } = payload;
+      const item: SealedNoteImport = {
+        ...(await sealing.sealOver(id, fields)),
+        createdAt,
+      };
       const bytes = textEncoder.encode(JSON.stringify(item)).length;
       if (
         chunk.length >= MAX_NOTES_PER_IMPORT ||
@@ -393,6 +463,26 @@ export class RestApiAdapter implements StorageAdapter {
       }
       chunk.push(item);
       chunkBytes += bytes;
+    };
+    for (const note of imported) {
+      const {
+        updatedAt: _updatedAt,
+        imageCount: _imageCount,
+        sharing: _sharing,
+        ...payload
+      } = note;
+      const uploaded = await this.withUploads(payload);
+      plain.set(uploaded.id, uploaded);
+      await add(uploaded.id, uploaded);
+    }
+    await send();
+    // An id that is someone else's note: sealed again under an id of this
+    // device's making, since a sealed note cannot be given one by the server.
+    const again = taken.splice(0);
+    for (const id of again) {
+      sealing.forget(id);
+      const payload = plain.get(id);
+      if (payload) await add(ulid(), payload);
     }
     await send();
   }

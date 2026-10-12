@@ -10,13 +10,14 @@ paths:
 
 # Pagination
 
-`/api/notes` and `/api/search` page with `?limit=&cursor=`, ordered by `(updatedAt, id)`, because two
+`/api/notes` and `/api/sync` page with `?limit=&cursor=`, ordered by `(updatedAt, id)`, because two
 notes saved in the same millisecond have no order by timestamp alone, and a page boundary between
-them would repeat one and drop the other. A *listed* note carries `imageCount` and an empty
-`images`; the bytes come from `GET /api/notes/:id`. The client drains every page, because
-`allTags`, tag counts and the filter chain are computed over the whole list. Paging bounds a
-response, it does not change the model. `useNoteImages` hangs `ensureImages` off an
-`IntersectionObserver` so a grid fetches only what is scrolled past. Three callers need the bytes
-and say so: the editor's add-an-image handler (which would otherwise write an empty list over every
-existing attachment), the JSON export, and the `images` search filter. Open mode resolves the same
-call locally, so both modes behave alike.
+them would repeat one and drop the other. The client drains every page, because `allTags`, tag
+counts and the filter chain are computed over the whole list. Paging bounds a response, it does not
+change the model.
+
+A listed note carries its images: in connected mode they are a sealed list of references, small
+enough to travel with the note, and the bytes of each come from `GET /api/attachments/:id` when
+`StoredImage` draws it. `imageCount`, `hasUnloadedImages` and `ensureImages` are from when a
+listing left the images behind; a server no longer sends the count, so in both modes `images` is
+complete and those are no-ops kept for the callers that still ask.

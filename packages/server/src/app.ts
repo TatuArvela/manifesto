@@ -45,7 +45,6 @@ import { createPushSender, type PushSender } from "./push/sender.js";
 import { createAdminRoutes } from "./routes/admin.js";
 import { createAttachmentRoutes } from "./routes/attachments.js";
 import { createCapabilitiesRoutes } from "./routes/capabilities.js";
-import { createExportRoutes } from "./routes/export.js";
 import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
 import { createNotesRoutes } from "./routes/notes.js";
 import { createPublicRoutes } from "./routes/publicLinks.js";
@@ -232,6 +231,7 @@ export function createApp(deps: AppDeps): AppHandle {
       broadcaster,
       loginAttempts,
       revocations,
+      noteEvents,
     }),
   );
   app.route(
@@ -269,7 +269,6 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
   app.route("/api/users", createUsersRoutes({ cfg, storage }));
-  app.route("/api/export", createExportRoutes({ storage }));
 
   app.route(
     "/api/tokens",
@@ -320,7 +319,7 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
     }),
   );
-  app.route("/api/search", createSearchRoutes({ storage }));
+  app.route("/api/search", createSearchRoutes());
   app.route("/api/public", createPublicRoutes({ storage }));
   app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
   app.route("/api/push", createPushRoutes({ storage, sender: pushSender }));

@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver, StoredPublicLink } from "../types.js";
-import { claimedImages, claimedPreviews } from "./claimed.js";
+import { claimed } from "./claimed.js";
 
 /**
  * Public links, the same in both drivers: a view is counted only while the
@@ -54,7 +54,7 @@ export function describePublicLinksContract(
       await storage.notes.insert({
         id: "n1",
         userId: "owner",
-        data: {
+        data: claimed({
           title: "",
           content: "",
           color: NoteColor.Default,
@@ -65,10 +65,10 @@ export function describePublicLinksContract(
           trashedAt: null,
           position: 0,
           tags: [],
-          images: claimedImages([]),
-          linkPreviews: claimedPreviews([]),
+          images: [],
+          linkPreviews: [],
           reminder: null,
-        },
+        }),
         createdAt: T0,
         updatedAt: T0,
       });

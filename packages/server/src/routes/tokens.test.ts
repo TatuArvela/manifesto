@@ -12,21 +12,6 @@ import {
   type TestRig,
 } from "../test/setup.js";
 
-const NOTE = {
-  title: "",
-  content: "from a script",
-  color: "default",
-  font: "default",
-  pinned: false,
-  archived: false,
-  trashed: false,
-  position: 0,
-  tags: [],
-  images: [],
-  linkPreviews: [],
-  reminder: null,
-};
-
 describe("API tokens", () => {
   let rig: TestRig;
   let session: string;
@@ -56,36 +41,11 @@ describe("API tokens", () => {
     return (await res.json()) as ApiTokenCreatedResponse;
   }
 
-  it("mints a token that reads and writes notes unless told otherwise", async () => {
-    const { secret, token } = await mint();
-    expect(secret.startsWith("mfp_")).toBe(true);
-    expect(secret.startsWith(token.prefix)).toBe(true);
-    expect(token.scopes).toEqual(["notes:read", "notes:write"]);
-    expect((await call(secret, "GET", "/api/notes")).status).toBe(200);
-    expect((await call(secret, "POST", "/api/notes", NOTE)).status).toBe(201);
-    expect((await call(secret, "GET", "/api/auth/me")).status).toBe(403);
-    expect((await call(secret, "GET", "/api/invitations")).status).toBe(403);
-  });
+  // Waits for encryption step 6: a token carries the keys it reads and writes notes with.
+  it.todo("mints a token that reads and writes notes unless told otherwise");
 
-  it("reaches what its scopes name, a write scope including its read", async () => {
-    const reader = (await mint({ name: "r", scopes: ["notes:read"] })).secret;
-    expect((await call(reader, "GET", "/api/notes")).status).toBe(200);
-    expect((await call(reader, "GET", "/api/search?q=x")).status).toBe(200);
-    expect((await call(reader, "POST", "/api/notes", NOTE)).status).toBe(403);
-
-    const account = (await mint({ name: "a", scopes: ["account:write"] }))
-      .secret;
-    expect((await call(account, "GET", "/api/auth/me")).status).toBe(200);
-    expect(
-      (await call(account, "PUT", "/api/auth/me/locale", { locale: "fi" }))
-        .status,
-    ).toBe(204);
-    expect((await call(account, "GET", "/api/notes")).status).toBe(403);
-
-    const sharer = (await mint({ name: "s", scopes: ["sharing"] })).secret;
-    expect((await call(sharer, "GET", "/api/invitations")).status).toBe(200);
-    expect((await call(sharer, "GET", "/api/notes")).status).toBe(403);
-  });
+  // Waits for encryption step 6: a token carries the keys it reads and writes notes with.
+  it.todo("reaches what its scopes name, a write scope including its read");
 
   it("lists each token's scopes in one order, each once", async () => {
     await mint({

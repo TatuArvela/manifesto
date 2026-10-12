@@ -7,20 +7,23 @@ which appears only when the server has them on.
 ## What is sent
 
 A webhook subscribes to `note.created`, `note.updated` and `note.deleted` (all three by default). It
-hears exactly what its owner's open tabs hear: their own notes, and notes shared with them, each as the
-owner of the webhook sees it (their own color, pin, tags and role). The body is a `WebhookPayload`:
+fires for what its owner's open tabs hear of: their own notes, and notes shared with them. The body
+is a `WebhookPayload`:
 
 ```json
 {
   "event": "note.updated",
   "deliveryId": "01J...",
   "occurredAt": "2026-09-23T10:00:00.000Z",
-  "note": { "id": "01J...", "title": "...", "content": "...", "...": "..." }
+  "note": { "id": "01J...", "pinned": false, "archived": false, "updatedAt": "...", "...": "..." }
 }
 ```
 
-A deletion carries `noteId` instead of `note`. Images arrive as `attachment:<id>` references, readable
-with an API token at `GET /api/attachments/:id` (see [Attachments](attachments.md)).
+A webhook fires on a change made in the app, when no key is on the server, so `note` is a
+`WebhookNote`: the fields the server reads (`id`, `pinned`, `archived`, `trashed`, `trashedAt`,
+`position`, `reminder`, `readonly`, `source`, `sharing`, `createdAt`, `updatedAt`) and no title,
+text, tags or colour ([Encryption](encryption.md#webhooks)). A receiver that needs those reads the
+note by its id with an API token. A deletion carries `noteId` instead of `note`.
 
 Headers:
 

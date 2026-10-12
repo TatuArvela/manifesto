@@ -1,11 +1,11 @@
-import { MAX_NOTES_PAGE_SIZE, type Note } from "@manifesto/shared";
+import { MAX_NOTES_PAGE_SIZE } from "@manifesto/shared";
 import { Hono } from "hono";
 import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { CALENDAR_TOKEN_PREFIX, hashToken } from "../lib/token.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
-import { remindersCalendar } from "./ics.js";
+import { type CalendarNote, remindersCalendar } from "./ics.js";
 
 /**
  * `GET /api/calendar/<token>.ics`: a user's reminders, for a calendar app to
@@ -38,14 +38,18 @@ export function createCalendarRoutes(deps: {
     if (!user) throw notFound;
     await storage.apiTokens.touch(token.id, now);
 
-    const notes: Note[] = [];
+    // The server cannot read a note's title or text, so until a feed carries
+    // a key each event is named by the fallback alone.
+    const notes: CalendarNote[] = [];
     let cursor: string | undefined;
     do {
       const page = await storage.notes.listByUser(user.id, {
         limit: MAX_NOTES_PAGE_SIZE,
         ...(cursor !== undefined && { cursor }),
       });
-      notes.push(...page.notes);
+      for (const { id, reminder, trashed } of page.notes) {
+        notes.push({ id, reminder, trashed, title: "", content: "" });
+      }
       cursor = page.nextCursor ?? undefined;
     } while (cursor !== undefined);
 

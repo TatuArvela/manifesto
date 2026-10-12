@@ -1,9 +1,8 @@
 import type {
-  LinkPreview,
-  Note,
-  NoteCreate,
-  NoteUpdate,
-  NoteVersion,
+  SealedNote,
+  SealedNoteCreate,
+  SealedNoteUpdate,
+  SealedNoteVersion,
   ShareRole,
 } from "@manifesto/shared";
 
@@ -20,22 +19,23 @@ declare const claimed: unique symbol;
  */
 export type ClaimedImages = string[] & { readonly [claimed]: "images" };
 
-/** The same for the thumbnails and favicons of a note's link previews,
- * which `claimPreviewImages` makes. */
-export type ClaimedPreviews = LinkPreview[] & {
-  readonly [claimed]: "previews";
+/** A new note as storage takes it: the attachments it names claimed. */
+export type StoredNoteCreate = Omit<
+  SealedNoteCreate,
+  "id" | "imageRefs" | "previewRefs"
+> & {
+  imageRefs: ClaimedImages;
+  previewRefs: ClaimedImages;
 };
 
-/** A new note as storage takes it: its images claimed. */
-export type StoredNoteCreate = Omit<NoteCreate, "images" | "linkPreviews"> & {
-  images: ClaimedImages;
-  linkPreviews: ClaimedPreviews;
-};
-
-/** A change to a note as storage takes it: any images it sets, claimed. */
-export type StoredNoteUpdate = Omit<NoteUpdate, "images" | "linkPreviews"> & {
-  images?: ClaimedImages;
-  linkPreviews?: ClaimedPreviews;
+/** A change to a note as storage takes it: any attachments it names,
+ * claimed. */
+export type StoredNoteUpdate = Omit<
+  SealedNoteUpdate,
+  "imageRefs" | "previewRefs"
+> & {
+  imageRefs?: ClaimedImages;
+  previewRefs?: ClaimedImages;
 };
 
 export interface InsertNoteInput {
@@ -48,12 +48,7 @@ export interface InsertNoteInput {
 
 /** One page of a listing, plus the cursor that reaches the next one. */
 export interface NotePage {
-  /**
-   * Attachments are stripped: each note carries `imageCount` and an empty
-   * `images`. A listing exists to say what notes there are, and sending every
-   * attachment of every note is what made that answer unbounded.
-   */
-  notes: Note[];
+  notes: SealedNote[];
   nextCursor: string | null;
 }
 
@@ -94,12 +89,11 @@ export class NoteAccessError extends Error {
  * members carries `sharing`.
  */
 export interface NotesRepo {
-  /** One page of the notes the user can see, newest first, without
-   * attachments. */
+  /** One page of the notes the user can see, newest first. */
   listByUser(userId: string, options: ListNotesOptions): Promise<NotePage>;
   /**
    * One page of the notes the user can see whose row or members changed after
-   * `since` (an ISO timestamp), newest first, without attachments. A shared
+   * `since` (an ISO timestamp), newest first. A shared
    * note's personal fields need no column of their own: a recipient's write
    * stamps the note's `updated_at` like any other.
    */
@@ -110,13 +104,13 @@ export interface NotesRepo {
   ): Promise<NotePage>;
   /** The ids of every note the user can see, in no particular order. */
   visibleIds(userId: string): Promise<string[]>;
-  /** A single note the user can see, attachments and all. */
-  getById(id: string, userId: string): Promise<Note | null>;
+  /** A single note the user can see. */
+  getById(id: string, userId: string): Promise<SealedNote | null>;
   /** The user's role on a note they can see, or null. */
   access(id: string, userId: string): Promise<NoteAccess | null>;
   /** Whether any note, anyone's, has this id. */
   exists(id: string): Promise<boolean>;
-  insert(input: InsertNoteInput): Promise<Note>;
+  insert(input: InsertNoteInput): Promise<SealedNote>;
   /**
    * Update a note, optionally constrained by the current `updated_at` for
    * optimistic concurrency. Returns null when the user cannot see the note
@@ -135,16 +129,9 @@ export interface NotesRepo {
     changes: StoredNoteUpdate,
     updatedAt: string,
     expectedUpdatedAt?: string,
-  ): Promise<Note | null>;
+  ): Promise<SealedNote | null>;
   /** Owner only. The note's shares go with it. */
   delete(id: string, userId: string): Promise<boolean>;
-  /** One page of matches among the notes the user can see, newest first,
-   * without attachments. */
-  search(
-    userId: string,
-    query: string,
-    options: ListNotesOptions,
-  ): Promise<NotePage>;
 }
 
 /**
@@ -208,19 +195,22 @@ export interface AttachmentsRepo {
 }
 
 /**
- * A note's earlier title and content (connected mode's version history). The
- * repo keeps each note to `MAX_NOTE_VERSIONS` and `NOTE_VERSION_MAX_AGE_DAYS`
- * as versions are added; a deleted note takes its versions with it.
+ * A note's earlier title and content (connected mode's version history),
+ * sealed like the note. The repo keeps each note to `MAX_NOTE_VERSIONS` and
+ * `NOTE_VERSION_MAX_AGE_DAYS` as versions are added; a deleted note takes its
+ * versions with it.
  */
 export interface VersionsRepo {
   /** Newest first. */
-  list(noteId: string): Promise<NoteVersion[]>;
+  list(noteId: string): Promise<SealedNoteVersion[]>;
+  /** False when a version already has this id, which changes nothing. */
   add(input: {
     id: string;
     noteId: string;
     authorId: string;
+    keyVersion: number;
     title: string;
     content: string;
     createdAt: string;
-  }): Promise<void>;
+  }): Promise<boolean>;
 }

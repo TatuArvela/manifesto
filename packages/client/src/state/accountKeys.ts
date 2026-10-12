@@ -13,6 +13,7 @@ import {
   loadDeviceKeys,
   saveDeviceKeys,
 } from "../storage/deviceKeys.js";
+import { storageKeys } from "../storage/sealing.js";
 import {
   createAccountKeys,
   type NewAccountKeys,
@@ -92,6 +93,32 @@ let scannedSecretKey: string | null = null;
  * over a newer one. */
 let generation = 0;
 
+/**
+ * Changes what this device holds, and tells the storage layer, which seals
+ * and opens with it. The same account key is handed over once: a new secret
+ * key for it changes nothing storage has to know.
+ */
+function setHeld(keys: Omit<DeviceKeys, "endsAt"> | null): void {
+  held = keys;
+  const told = storageKeys.peek();
+  if (keys === null) {
+    if (told !== null) storageKeys.value = null;
+    return;
+  }
+  if (
+    told?.userId === keys.userId &&
+    told.version === keys.version &&
+    told.accountKey === keys.accountKey
+  ) {
+    return;
+  }
+  storageKeys.value = {
+    userId: keys.userId,
+    version: keys.version,
+    accountKey: keys.accountKey,
+  };
+}
+
 /** The account key, for whatever encrypts and decrypts; null while locked. */
 export function accountKey(): CryptoKey | null {
   return keyState.value === "unlocked" ? (held?.accountKey ?? null) : null;
@@ -122,7 +149,7 @@ async function hold(
   endsAt: string | null,
 ): Promise<void> {
   generation++;
-  held = keys;
+  setHeld(keys);
   pendingSetup = null;
   pendingRecovery = null;
   scannedSecretKey = null;
@@ -133,7 +160,7 @@ async function hold(
 }
 
 function forget(): void {
-  held = null;
+  setHeld(null);
   served = null;
   pendingSetup = null;
   pendingRecovery = null;
@@ -170,7 +197,7 @@ export async function checkAccountKeys(): Promise<void> {
     // Kept only for the account they are, and only until the day its session
     // would have run out: a device that was off never heard it end.
     if (stored.userId === user.id && Date.parse(stored.endsAt) > Date.now()) {
-      held = stored;
+      setHeld(stored);
       keyState.value = "unlocked";
       return;
     }
@@ -209,7 +236,7 @@ const channel =
     : new BroadcastChannel("manifesto:keys");
 if (channel) {
   channel.onmessage = () => {
-    held = null;
+    setHeld(null);
     void checkAccountKeys();
   };
 }
@@ -463,7 +490,7 @@ export async function completeRecovery(
   // Held before the session is taken up, so the check that follows the
   // sign-in finds the account unlocked and asks for nothing.
   generation++;
-  held = keys;
+  setHeld(keys);
   pendingRecovery = null;
   adoptSession(answer.body);
   const now = await fetchKeys();
@@ -588,7 +615,7 @@ export function sheetFor(key: {
 export async function startAgain(password: string): Promise<Confirmed<object>> {
   const res = await apiFetch("DELETE", "/auth/keys", withPassword(password));
   if (!res?.ok) return refusalOf(res);
-  held = null;
+  setHeld(null);
   await clearDeviceKeys();
   await checkAccountKeys();
   announce();

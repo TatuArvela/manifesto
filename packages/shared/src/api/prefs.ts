@@ -9,6 +9,10 @@ export type AccountPrefs = Record<string, unknown>;
 /** How large `AccountPrefs` may grow, as JSON. */
 export const MAX_ACCOUNT_PREFS_BYTES = 16_384;
 
+/** How large the sealed preferences the server holds may grow, as JSON: each
+ * value is a third larger than what it seals, and carries a nonce and a tag. */
+export const MAX_SEALED_ACCOUNT_PREFS_BYTES = 32_768;
+
 /** `GET /api/auth/me/prefs`, and the answer to a `PATCH`. */
 export interface AccountPrefsResponse {
   prefs: AccountPrefs;

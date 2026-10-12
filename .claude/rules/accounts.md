@@ -62,8 +62,8 @@ catalogues, which `AuditLog.test.ts` checks. The request's address is keyed on `
 `c.req.raw`: `bodyLimit` replaces the raw request whenever there is a body. Each user reads their
 own lines on the Activity page of Settings (`/api/auth/me/activity`, built by the same `auditPage`
 as the admin's log), so an admin action that reaches into an account must be audited with that
-account as its target, or its owner never hears of it. An admin reads another account's notes only
-through `ADMIN_EXPORT` (spec: `docs/specification/features/privacy.md`).
+account as its target, or its owner never hears of it. An admin reads no account's notes: the
+server holds them sealed and has no export of them (spec: `docs/specification/features/privacy.md`).
 
 A mailed sign-in link (`auth/local/signInLink.ts`, `MAGIC_LINKS`) stands in for the password and nothing
 else: it goes through the same `secondFactor` check and `loginAttempts` budget as `/login` (both built in

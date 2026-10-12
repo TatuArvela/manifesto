@@ -1,10 +1,16 @@
-import type { LinkPreview, LinkPreviewResponse } from "@manifesto/shared";
+import type {
+  LinkPreview,
+  LinkPreviewResponse,
+  NoteCreate,
+} from "@manifesto/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import type { ServerConfig } from "../config.js";
 import type { LinkPreviewFetcher } from "../linkPreview/fetchPreview.js";
+import { sealedCreate } from "../storage/contracts/claimed.js";
 import { createStorage } from "../storage/index.js";
+import { sealingClient } from "../test/sealingClient.js";
 import {
   authHeaders,
   registerTestUser,
@@ -39,7 +45,8 @@ async function boot(
     authProvider,
     broadcaster,
     app,
-    request: async (input, init) => app.request(input, init),
+    request: sealingClient(async (input, init) => app.request(input, init)),
+    rawRequest: async (input, init) => app.request(input, init),
     close: async () => storage.close(),
   };
   return rig;
@@ -167,11 +174,25 @@ describe("note link previews", () => {
     });
     const { ref } = (await upload.json()) as { ref: string };
 
+    // The cards are sealed, so what the server holds a thumbnail to is the
+    // reference sent beside them.
+    const withRefs = (previewRefs: string[]) =>
+      app.rawRequest("/api/notes", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({
+          ...sealedCreate(note(ref) as unknown as NoteCreate),
+          previewRefs,
+        }),
+      });
     expect((await post(ref)).status).toBe(201);
-    expect((await post("data:image/png;base64,iVBORw0KGgo=")).status).toBe(422);
-    expect((await post("javascript:alert(1)")).status).toBe(422);
-    expect((await post("attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV")).status).toBe(
-      422,
-    );
+    expect((await withRefs([ref])).status).toBe(201);
+    expect(
+      (await withRefs(["data:image/png;base64,iVBORw0KGgo="])).status,
+    ).toBe(422);
+    expect((await withRefs(["javascript:alert(1)"])).status).toBe(422);
+    expect(
+      (await withRefs(["attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV"])).status,
+    ).toBe(422);
   });
 });

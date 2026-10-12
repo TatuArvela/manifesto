@@ -20,14 +20,14 @@ export interface PageParams {
 
 // --- REST responses ---
 
-export interface NotesResponse {
+export interface NotesResponse<N = Note> {
   /**
    * One page of notes, newest first. Attachments are **not** included: a
    * listed note carries `imageCount` and an empty `images`, and the data URLs
    * arrive with `GET /api/notes/:id`. Sending every attachment of every note
    * on every load is what made a list response unbounded in the first place.
    */
-  notes: Note[];
+  notes: N[];
   /** Pass back as `cursor` for the next page; null on the last one. */
   nextCursor: string | null;
 }
@@ -37,7 +37,7 @@ export interface NotesResponse {
  * Page through it as through `/api/notes`; `checkpoint` and `ids` come on the
  * last page only, and the next sync sends that checkpoint back as `since`.
  */
-export interface SyncResponse extends NotesResponse {
+export interface SyncResponse<N = Note> extends NotesResponse<N> {
   /**
    * Every note the user can see, changed or not. A note the client holds
    * whose id is missing here was deleted, or taken away from them, since.
@@ -48,8 +48,8 @@ export interface SyncResponse extends NotesResponse {
   checkpoint: string | null;
 }
 
-export interface NoteResponse {
-  note: Note;
+export interface NoteResponse<N = Note> {
+  note: N;
 }
 
 /** Notes per `POST /api/notes/import` request; a larger backup is sent in
@@ -74,6 +74,13 @@ export interface NotesImportResponse {
   updated: number;
   /** Notes shared with this user, which are someone else's to change. */
   skipped: number;
+  /**
+   * Ids that belong to notes this user cannot see. A sealed note is bound to
+   * its id, so the server cannot give one a new id as it does for a readable
+   * note: the client seals it again under an id of its own and sends it once
+   * more. Absent when there are none.
+   */
+  taken?: string[];
 }
 
 /** `POST /api/attachments`: the reference to put in a note's `images`. */

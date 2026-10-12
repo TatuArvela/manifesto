@@ -1,6 +1,8 @@
 import { createHmac } from "node:crypto";
 import type {
+  SealedNote,
   WebhookEventName,
+  WebhookNote,
   WebhookPayload,
   WebSocketEvent,
 } from "@manifesto/shared";
@@ -81,6 +83,24 @@ function eventName(event: WebSocketEvent): WebhookEventName | null {
   }
 }
 
+/** The readable part of a note, which is all a delivery carries. */
+export function webhookNoteOf(note: SealedNote): WebhookNote {
+  return {
+    id: note.id,
+    pinned: note.pinned,
+    archived: note.archived,
+    trashed: note.trashed,
+    trashedAt: note.trashedAt,
+    position: note.position,
+    reminder: note.reminder,
+    createdAt: note.createdAt,
+    updatedAt: note.updatedAt,
+    ...(note.readonly !== undefined && { readonly: note.readonly }),
+    ...(note.source !== undefined && { source: note.source }),
+    ...(note.sharing !== undefined && { sharing: note.sharing }),
+  };
+}
+
 function payloadFor(
   event: WebSocketEvent,
   name: WebhookEventName,
@@ -93,7 +113,7 @@ function payloadFor(
     return {
       ...base,
       event: name as "note.created" | "note.updated",
-      note: event.note,
+      note: webhookNoteOf(event.note),
     };
   }
   return null;

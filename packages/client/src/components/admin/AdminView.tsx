@@ -3,7 +3,6 @@ import {
   AtSign,
   Check,
   Copy,
-  Download,
   KeyRound,
   MoreVertical,
   ShieldCheck,
@@ -14,7 +13,6 @@ import {
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { useEscapeStack } from "../../hooks/useEscapeStack.js";
 import { formatDate, plural, t } from "../../i18n/index.js";
-import { downloadAccountExport } from "../../state/accountExport.js";
 import {
   adminUsers,
   createAccount,
@@ -32,7 +30,6 @@ import {
   fetchCapabilities,
 } from "../../state/auth.js";
 import { serverFeature } from "../../state/serverFeatures.js";
-import { showError } from "../../state/ui.js";
 import { Avatar } from "../Avatar.js";
 import { Dropdown } from "../Dropdown.js";
 import { menuItemClass, menuPanelClass } from "../NoteMenu.js";
@@ -464,21 +461,6 @@ function UserRow({
               >
                 <KeyRound class="w-4 h-4" />
                 {t("admin.resetPassword")}
-              </button>
-            )}
-            {serverFeature("adminExport") && (
-              <button
-                type="button"
-                class={menuItemClass}
-                onClick={() => {
-                  setMenuOpen(false);
-                  void downloadAccountExport(user.id).then((ok) => {
-                    if (!ok) showError(t("admin.exportFailed"));
-                  });
-                }}
-              >
-                <Download class="w-4 h-4" />
-                {t("admin.exportNotes")}
               </button>
             )}
             <button

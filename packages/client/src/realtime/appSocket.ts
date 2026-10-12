@@ -35,6 +35,7 @@ import {
   receiveInvitation,
 } from "../state/sharing.js";
 import { editingNoteId } from "../state/ui.js";
+import { sealer } from "../storage/sealing.js";
 import { trackConnection } from "./connectionOutage.js";
 
 const SUBPROTOCOL = "manifesto-session";
@@ -196,13 +197,31 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
   }
 }
 
-function applyServerEvent(event: WebSocketEvent) {
+/**
+ * The last event being applied. A note arrives sealed, and opening it takes
+ * a moment, so events wait for each other: a deletion must not overtake the
+ * update before it.
+ */
+let applying: Promise<void> = Promise.resolve();
+
+function queueServerEvent(event: WebSocketEvent) {
+  applying = applying
+    .then(() => applyServerEvent(event))
+    .catch((err) => console.warn("Failed to apply a server event:", err));
+}
+
+async function applyServerEvent(event: WebSocketEvent) {
   switch (event.type) {
     case "note:created":
-    case "note:updated":
-      receiveNote(event.note);
+    case "note:updated": {
+      // Null while locked, and for a note whose key did not open: either
+      // way there is nothing readable to show.
+      const note = await sealer.peek()?.open(event.note);
+      if (note) receiveNote(note);
       break;
+    }
     case "note:deleted":
+      sealer.peek()?.forget(event.id);
       forgetNote(event.id);
       break;
     case "presence:join":
@@ -225,7 +244,7 @@ function applyServerEvent(event: WebSocketEvent) {
       forgetComment(event.noteId, event.id);
       break;
     case "prefs:updated":
-      receiveAccountPrefs(event.prefs);
+      await receiveAccountPrefs(event.prefs);
       break;
     case "heartbeat":
       hearsHeartbeats = true;
@@ -324,7 +343,7 @@ function connect(token: string) {
     } catch {
       return;
     }
-    if (isServerEvent(parsed)) applyServerEvent(parsed);
+    if (isServerEvent(parsed)) queueServerEvent(parsed);
   };
 
   ws.onclose = (event) => lost(event.code);

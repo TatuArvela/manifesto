@@ -55,7 +55,7 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
     `UPDATE note_shares SET role = ? WHERE note_id = ? AND user_id = ?`,
   );
   const acceptStmt = db.prepare(
-    `UPDATE note_shares SET accepted_at = ?, color = ?, position = ?
+    `UPDATE note_shares SET accepted_at = ?, position = ?
      WHERE note_id = ? AND user_id = ? AND accepted_at IS NULL`,
   );
   const deleteStmt = db.prepare(
@@ -90,7 +90,6 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
       // At the head of the manual order, as a note of their own would be.
       const info = acceptStmt.run(
         acceptedAt,
-        note.color,
         -Date.parse(acceptedAt),
         noteId,
         userId,

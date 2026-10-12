@@ -5,6 +5,7 @@ import { createAuthProvider } from "../auth/index.js";
 import { createMemoryMailer } from "../mail/mailer.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
+import { sealingClient } from "../test/sealingClient.js";
 import { authHeaders, TEST_CONFIG } from "../test/setup.js";
 import { INVITATION_MAILS_PER_HOUR } from "./shares.js";
 
@@ -56,7 +57,7 @@ describe("a share invitation by mail", () => {
       authProvider: createAuthProvider(cfg, storage),
       mailer,
     });
-    request = async (path, init) => app.request(path, init);
+    request = sealingClient(async (path, init) => app.request(path, init));
   });
 
   afterEach(async () => {

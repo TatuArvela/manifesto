@@ -2,9 +2,9 @@ import type { Note, NoteVersion } from "@manifesto/shared";
 import { exportArchiveFiles, hasUnloadedImages } from "@manifesto/shared";
 import { APP_FILE_SLUG } from "../config.js";
 import { t } from "../i18n/index.js";
-import { storage, storageConnection } from "../storage/index.js";
+import { storage } from "../storage/index.js";
 import { writeZip } from "../utils/zip.js";
-import { downloadAccountExport, saveFile } from "./accountExport.js";
+import { saveFile } from "./accountExport.js";
 import { inlineImages, inlinePreviewImages } from "./attachments.js";
 import { ensureImages, notes } from "./notesStore.js";
 import { prefsSnapshot } from "./prefs.js";
@@ -58,10 +58,11 @@ export async function exportNotes(): Promise<Note[] | null> {
 }
 
 /**
- * The export archive, built here: `notes.json`, a Markdown copy of each note,
- * `versions.json` and this browser's `preferences.json`, laid out as a server lays out its own (see
- * `exportArchiveFiles`), so either imports anywhere. Null if the notes could
- * not all be gathered, which has already been said.
+ * The export archive, built here in both modes: `notes.json`, a Markdown
+ * copy of each note, `versions.json` and this browser's `preferences.json`
+ * (see `exportArchiveFiles`). Connected, the server holds only sealed notes
+ * and has nothing readable to build one from. Null if the notes could not
+ * all be gathered, which has already been said.
  */
 export async function exportArchive(): Promise<Blob | null> {
   const backup = await exportNotes();
@@ -88,13 +89,11 @@ export async function exportArchive(): Promise<Blob | null> {
 }
 
 /**
- * Downloads every note as the export zip. Connected, the server builds it for
- * the account; in open mode this browser builds the same archive from what it
- * holds. Resolves whether a file was handed over, and never rejects.
+ * Downloads every note this account owns as the export zip, built in this
+ * browser from the notes it has opened. Resolves whether a file was handed
+ * over, and never rejects.
  */
 export async function downloadExport(): Promise<boolean> {
-  const { serverUrl, token } = storageConnection.value;
-  if (serverUrl !== null && token) return downloadAccountExport();
   try {
     const zip = await exportArchive();
     if (zip === null) return false;

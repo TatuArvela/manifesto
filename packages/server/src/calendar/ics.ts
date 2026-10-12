@@ -117,7 +117,13 @@ function startOf(time: string, timezone: string): string | null {
   return `DTSTART:${utcStamp(new Date(moment))}`;
 }
 
-function summaryOf(note: Note): string {
+/** What the feed reads of a note. */
+export type CalendarNote = Pick<
+  Note,
+  "id" | "title" | "content" | "reminder" | "trashed"
+>;
+
+function summaryOf(note: CalendarNote): string {
   const title = note.title.trim();
   if (title) return title;
   const firstLine = note.content
@@ -140,7 +146,7 @@ export interface CalendarOptions {
 
 /** The feed: every note with a reminder that is not in the trash. */
 export function remindersCalendar(
-  notes: Note[],
+  notes: CalendarNote[],
   options: CalendarOptions,
 ): string {
   const lines = [

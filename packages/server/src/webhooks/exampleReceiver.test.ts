@@ -1,22 +1,11 @@
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import type { Server } from "node:http";
 import { type AddressInfo, connect } from "node:net";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type {
-  Note,
-  WebhookCreatedResponse,
-  WebhookPayload,
-} from "@manifesto/shared";
+import type { Note, WebhookPayload } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createApp } from "../app.js";
-import { createAuthProvider } from "../auth/index.js";
-import { createStorage } from "../storage/index.js";
-import type { StorageDriver } from "../storage/types.js";
-import { authHeaders, TEST_CONFIG } from "../test/setup.js";
-import { signDelivery, type WebhookDispatcher } from "./dispatcher.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { signDelivery } from "./dispatcher.js";
 
 /**
  * `docs/examples/webhooks/receiver.mjs` is documentation people copy, so it
@@ -101,117 +90,8 @@ describe("the example webhook receiver", () => {
     ).toBe(false);
   });
 
-  describe("fed by the real dispatcher", () => {
-    let storage: StorageDriver;
-    let request: (path: string, init?: RequestInit) => Promise<Response>;
-    let dispatcher: WebhookDispatcher;
-    let receiver: Server | null = null;
-    let mirror: string;
-
-    beforeEach(async () => {
-      mirror = await mkdtemp(join(tmpdir(), "manifesto-mirror-"));
-      const cfg = { ...TEST_CONFIG, webhooks: "public" as const };
-      storage = await createStorage(cfg);
-      const handle = createApp({
-        cfg,
-        storage,
-        authProvider: createAuthProvider(cfg, storage),
-        webhookAddressPolicy: (address) => address === "127.0.0.1",
-        webhookRetryDelaysMs: [0, 1],
-      });
-      dispatcher = handle.webhooks as WebhookDispatcher;
-      request = async (path, init) => handle.app.request(path, init);
-    });
-
-    afterEach(async () => {
-      await dispatcher.idle();
-      dispatcher.stop();
-      if (receiver) await close(receiver);
-      receiver = null;
-      await storage.close();
-      await rm(mirror, { recursive: true, force: true });
-    });
-
-    it("mirrors notes to a folder as they are made, changed and deleted", async () => {
-      const example = await loadExample();
-      const registered = await request("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
-      });
-      const { token } = (await registered.json()) as { token: string };
-      const call = (method: string, path: string, body?: unknown) =>
-        request(path, {
-          method,
-          headers: authHeaders(token),
-          ...(body !== undefined && { body: JSON.stringify(body) }),
-        });
-
-      // The webhook's address has to exist before its secret does, and the
-      // receiver wants the secret: so the listening server comes first, and
-      // hands its requests to a receiver made once the secret is known.
-      let inner: Server | null = null;
-      const front = createServer((req, res) => {
-        inner?.emit("request", req, res);
-      });
-      receiver = front;
-      const port = await listen(front);
-      const added = await call("POST", "/api/webhooks", {
-        url: `http://127.0.0.1:${port}/hook`,
-        password: "test-pass-12",
-      });
-      expect(added.status).toBe(201);
-      const { secret } = (await added.json()) as WebhookCreatedResponse;
-
-      const deliveries: string[] = [];
-      inner = example.createReceiver({
-        secret,
-        recipes: [
-          async (delivery) => {
-            deliveries.push(delivery.event);
-            await example.mirrorToFolder(delivery, { MIRROR_DIR: mirror });
-          },
-        ],
-      });
-
-      const created = await call("POST", "/api/notes", baseNote);
-      const note = ((await created.json()) as { note: Note }).note;
-      await dispatcher.idle();
-      await vi.waitFor(async () =>
-        expect(await readdir(mirror)).toEqual([`${note.id}.md`]),
-      );
-      const written = await readFile(join(mirror, `${note.id}.md`), "utf8");
-      expect(written).toContain('title: "Hello"');
-      expect(written).toContain('tags: ["home"]');
-      expect(written).toContain("Body text");
-
-      await call("PUT", `/api/notes/${note.id}`, { title: "Renamed" });
-      await dispatcher.idle();
-      await vi.waitFor(async () =>
-        expect(await readFile(join(mirror, `${note.id}.md`), "utf8")).toContain(
-          'title: "Renamed"',
-        ),
-      );
-
-      await call("DELETE", `/api/notes/${note.id}`);
-      await dispatcher.idle();
-      await vi.waitFor(async () => expect(await readdir(mirror)).toEqual([]));
-      expect(deliveries).toEqual([
-        "note.created",
-        "note.updated",
-        "note.deleted",
-      ]);
-
-      // The server's own verdict on the receiver: every delivery got a 2xx.
-      const listed = (await (await call("GET", "/api/webhooks")).json()) as {
-        webhooks: { lastStatus: number | null; failureCount: number }[];
-      };
-      expect(listed.webhooks[0]).toMatchObject({
-        lastStatus: 204,
-        failureCount: 0,
-      });
-    });
-  });
+  // Waits for encryption step 6: the receiver reads a note with an API token.
+  it.todo("mirrors notes to a folder as they are made, changed and deleted");
 
   describe("on its own", () => {
     const SECRET = "whsec_test";

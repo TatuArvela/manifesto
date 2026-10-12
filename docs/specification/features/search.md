@@ -17,9 +17,9 @@ A search bar in the header allows full-text search across all notes.
 ## Implementation
 
 The client searches the notes it holds in memory, in both modes: a connected client already keeps
-every note it can read (see [API](../api.md#paging-the-list-endpoints)), so a round trip would add
-latency and nothing else. Each note's text is folded once and kept until the note changes.
+every note it can read (see [API](../api.md#paging-the-list-endpoints)), and in connected mode it
+is the only place they can be searched, since the server stores them
+[sealed](encryption.md). Each note's text is folded once and kept until the note changes.
 
-`GET /api/search?q=` (see [API](../api.md)) is for API clients and the MCP `search_notes` tool. It
-is a plainer match: the whole query as one substring of `title` or `content`, ignoring case (under
-SQLite only for ASCII letters, since its `LOWER` knows no others) and with accents significant.
+`GET /api/search?q=` (see [API](../api.md#search)) answers the app's own session `403`. It is for
+API clients and the MCP `search_notes` tool, whose tokens carry a key.

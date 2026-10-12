@@ -1,9 +1,10 @@
 # Encryption
 
-**Status: planned before 1.0.0, design chosen, being built.** The first step of
-[the order of building](#order-of-building) is in place: every account has its keys and is unlocked
-with its secret key. Nothing is encrypted with them yet, so today Manifesto still does not encrypt
-notes itself. This page says what protects notes now and the design chosen:
+**Status: planned before 1.0.0, design chosen, being built.** The first two steps of
+[the order of building](#order-of-building) are in place: every account has its keys and is unlocked
+with its secret key, and a note's title, text, tags and colour are sealed in the browser. The rest
+is not, and [what is built so far](#what-is-built-so-far) lists what still reaches the server
+readable. This page says what protects notes now and the design chosen:
 [end-to-end encryption for every account](#the-design-end-to-end-for-every-account) in connected
 mode. Notes are encrypted in the browser before they reach the server, and the server stores them
 without a key that opens them.
@@ -437,12 +438,25 @@ for as long as any account had not signed in.
 
 Steps 2 to 7 are released together: a server half way would hold notes its own features cannot read.
 
-Step 1 is built. Until the steps after it are, two things it does are narrower than this page says:
+### What is built so far
 
+Steps 1 and 2 are built. Until the steps after them are, this page describes more than the code
+does, and nothing here may be released:
+
+- **Sealed in the browser**: a note's title, text, excerpt, font, link previews and list of images
+  under its note key, its tags and colour under the reader's personal key, its versions, and the
+  account's preferences. The server refuses anything else in their place, refuses to start on a
+  database that holds notes from before, and has no search, export or admin export of notes.
+- **Still readable by the server**: the shared document a note is edited in (step 5), which holds
+  its text; the bytes of images (step 3); comments, and everything a public link shows (step 4).
+- **Sharing a note** reaches nobody yet: the server makes the invitation, and the recipient is
+  handed no key (step 4). An invitation's mail no longer names the note.
+- **A token** (API, MCP, the calendar feed) is answered with sealed notes it cannot open and can
+  write none, so the MCP tools and the feed's event names do not work (step 6). Webhooks already
+  carry no content.
+- **A push message** for a reminder says "Reminder" and nothing of the note (step 7).
 - **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
   and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.
-- **Starting an account again** removes its keys and nothing else. Its notes are not encrypted yet,
-  so there is nothing unreadable to empty; that comes with step 2.
 
 ## What it costs
 

@@ -6,6 +6,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { sealedCreate, sealedUpdate } from "../storage/contracts/claimed.js";
 import { defined } from "../test/defined.js";
 import {
   authHeaders,
@@ -204,12 +205,13 @@ describe("notes routes", () => {
     expect(res.status).toBe(422);
   });
 
-  it("rejects oversized content with 422", async () => {
+  it("rejects a sealed text past what the largest note seals to, with 422", async () => {
     const { token } = await registerTestUser(rig, "alice");
+    // The server cannot count the characters inside, only the ciphertext.
     const res = await rig.request("/api/notes", {
       method: "POST",
       headers: authHeaders(token),
-      body: JSON.stringify({ ...baseNote, content: "x".repeat(100_001) }),
+      body: JSON.stringify({ ...baseNote, content: "x".repeat(400_001) }),
     });
     expect(res.status).toBe(422);
   });
@@ -239,6 +241,52 @@ describe("notes routes", () => {
     ]) {
       expect((await post(long)).status).toBe(422);
     }
+  });
+
+  it("refuses readable text where a ciphertext belongs", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const post = (fields: object) =>
+      rig.rawRequest("/api/notes", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({ ...sealedCreate(baseNote), ...fields }),
+      });
+    expect((await post({})).status).toBe(201);
+    for (const field of ["title", "content", "excerpt", "font", "key"]) {
+      expect((await post({ [field]: "readable" })).status, field).toBe(422);
+    }
+    expect((await post({ tags: ["readable"] })).status).toBe(422);
+    // A colour or tags never set are empty, and nothing else is.
+    expect((await post({ color: "", tags: "" })).status).toBe(201);
+    expect((await post({ color: "yellow" })).status).toBe(422);
+  });
+
+  it("wants the references a sealed list names, and the excerpt with the text", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token);
+    const put = (changes: object) =>
+      rig.rawRequest(`/api/notes/${note.id}`, {
+        method: "PUT",
+        headers: authHeaders(token),
+        body: JSON.stringify(changes),
+      });
+    const whole = sealedUpdate({ content: "x", images: [], linkPreviews: [] });
+    expect((await put(whole)).status).toBe(200);
+    for (const half of ["excerpt", "imageRefs", "previewRefs"]) {
+      const { [half as keyof typeof whole]: _left, ...rest } = whole;
+      expect((await put(rest)).status, half).toBe(422);
+    }
+  });
+
+  it("refuses a new note under an id that is taken", async () => {
+    const { token } = await registerTestUser(rig, "alice");
+    const note = await createNote(rig, token);
+    const res = await rig.rawRequest("/api/notes", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(sealedCreate(baseNote, note.id)),
+    });
+    expect(res.status).toBe(409);
   });
 
   it("keeps the day a monthly reminder repeats on, and refuses one no month has", async () => {
@@ -290,19 +338,6 @@ describe("notes routes", () => {
       });
       expect(res.status, `expected 422 for ${why}`).toBe(422);
     }
-  });
-
-  it("rejects too many tags with 422", async () => {
-    const { token } = await registerTestUser(rig, "alice");
-    const res = await rig.request("/api/notes", {
-      method: "POST",
-      headers: authHeaders(token),
-      body: JSON.stringify({
-        ...baseNote,
-        tags: Array.from({ length: 51 }, (_, i) => `tag-${i}`),
-      }),
-    });
-    expect(res.status).toBe(422);
   });
 
   it("stamps trashedAt from the server clock, ignoring the client's", async () => {
@@ -434,18 +469,18 @@ describe("notes routes", () => {
       expect(note.createdAt).toBe(backup.createdAt);
     });
 
-    it("gives a new id when the id is someone else's note", async () => {
+    it("names an id that is someone else's note, for the client to seal it under another", async () => {
       const alice = await registerTestUser(rig, "alice");
       const bob = await registerTestUser(rig, "bob");
       const theirs = await createNote(rig, alice.token, { title: "Alice's" });
 
+      // A sealed note is bound to its id, so the server cannot give it a
+      // new one as it did for a readable note.
       expect(
         await importNotes(bob.token, [{ ...baseNote, id: theirs.id }]),
-      ).toEqual({ created: 1, updated: 0, skipped: 0 });
+      ).toEqual({ created: 0, updated: 0, skipped: 0, taken: [theirs.id] });
 
-      const bobs = await listIds(bob.token);
-      expect(bobs).toHaveLength(1);
-      expect(bobs[0]).not.toBe(theirs.id);
+      expect(await listIds(bob.token)).toEqual([]);
       expect(await listIds(alice.token)).toEqual([theirs.id]);
     });
 
@@ -491,7 +526,7 @@ describe("notes routes", () => {
   describe("listing", () => {
     const PNG = `data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`;
 
-    it("leaves attachments out of the list and sends the count instead", async () => {
+    it("lists a note with its sealed images, and reads their bytes by reference", async () => {
       // The reason the endpoint is paged at all: an unpaged list of notes each
       // carrying its own pictures is a response with no upper bound.
       const { token } = await registerTestUser(rig, "alice");
@@ -509,9 +544,15 @@ describe("notes routes", () => {
       const res = await rig.request("/api/notes", {
         headers: authHeaders(token),
       });
+      // The sealed list of images is small and travels with the note; the
+      // references the server keeps for itself never do.
+      const raw = await rig.rawRequest("/api/notes", {
+        headers: authHeaders(token),
+      });
+      const [listed] = ((await raw.json()) as { notes: object[] }).notes;
+      expect(listed && "imageRefs" in listed).toBe(false);
       const body = (await res.json()) as NotesResponse;
-      expect(body.notes[0]?.images).toEqual([]);
-      expect(body.notes[0]?.imageCount).toBe(1);
+      expect(body.notes[0]?.images).toEqual([uploadedRef]);
 
       // Reading the one note gives the reference, and that the bytes.
       const one = await rig.request(`/api/notes/${defined(body.notes[0]).id}`, {

@@ -85,18 +85,19 @@ export function signInLinkMail(
   };
 }
 
+/**
+ * The mail says who shared a note and not which: its title is sealed, and
+ * the server that writes this mail has no key.
+ */
 export function shareInvitationMail(
   locale: MailLocale,
-  { owner, title, link }: { owner: string; title: string; link: string },
+  { owner, link }: { owner: string; link: string },
 ) {
-  const named =
-    title.trim() ||
-    (locale === "fi" ? "nimetön muistiinpano" : "an untitled note");
   if (locale === "fi") {
     return {
       subject: `${owner} jakoi kanssasi muistiinpanon`,
       text: [
-        `${owner} jakoi kanssasi muistiinpanon: ${named}.`,
+        `${owner} jakoi kanssasi muistiinpanon.`,
         "",
         "Hyväksy tai hylkää kutsu täällä:",
         "",
@@ -107,7 +108,7 @@ export function shareInvitationMail(
   return {
     subject: `${owner} shared a note with you`,
     text: [
-      `${owner} shared a note with you: ${named}.`,
+      `${owner} shared a note with you.`,
       "",
       "Accept or decline the invitation here:",
       "",

@@ -40,15 +40,34 @@ export interface WebhookCreatedResponse {
 }
 
 /**
- * The body of every webhook delivery. `note` is the copy the webhook's owner
- * sees, their own color and tags included; a deletion carries only the id.
+ * What a delivery says of a note: the fields the server reads, as the
+ * webhook's owner has them. A webhook fires on a change made in the app,
+ * when no key is on the server, so it carries no title, text or tags; a
+ * receiver that needs them reads the note with an API token.
  */
+export type WebhookNote = Pick<
+  Note,
+  | "id"
+  | "pinned"
+  | "archived"
+  | "trashed"
+  | "trashedAt"
+  | "position"
+  | "reminder"
+  | "createdAt"
+  | "updatedAt"
+  | "readonly"
+  | "source"
+  | "sharing"
+>;
+
+/** The body of every webhook delivery. A deletion carries only the id. */
 export type WebhookPayload =
   | {
       event: "note.created" | "note.updated";
       deliveryId: string;
       occurredAt: string;
-      note: Note;
+      note: WebhookNote;
     }
   | {
       event: "note.deleted";

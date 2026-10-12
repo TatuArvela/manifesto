@@ -1,7 +1,9 @@
 import type Database from "better-sqlite3";
 import {
+  BEFORE_ENCRYPTION,
   LEDGER_TABLE_SQL,
   type Migration,
+  MigrationRefusedError,
   pendingMigrations,
 } from "../migrations.js";
 
@@ -534,6 +536,26 @@ CREATE TABLE account_keys (
 DROP TABLE totp_recovery_codes;
 `;
 
+/**
+ * Notes sealed in the browser. The columns that held a note's words now hold
+ * ciphertext, and beside them go the note key wrapped for its owner (and, in
+ * `note_shares`, for each recipient), the version of that key, the excerpt,
+ * and the sealed list of images. `images` keeps the attachment references
+ * that list names and `preview_refs` those of the link previews, since the
+ * server can read neither any more and still has to keep the attachments.
+ * Preferences written before were readable, so they go.
+ */
+const SEALED_NOTES = `
+ALTER TABLE notes ADD COLUMN excerpt TEXT NOT NULL DEFAULT '';
+ALTER TABLE notes ADD COLUMN image_list TEXT NOT NULL DEFAULT '';
+ALTER TABLE notes ADD COLUMN preview_refs TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE notes ADD COLUMN wrapped_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE notes ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE note_shares ADD COLUMN wrapped_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE note_versions ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
+DELETE FROM user_prefs;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -562,6 +584,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0025-note-comments", sql: NOTE_COMMENTS },
   { id: "0026-web-push", sql: WEB_PUSH },
   { id: "0027-account-keys", sql: ACCOUNT_KEYS },
+  { id: "0028-sealed-notes", sql: SEALED_NOTES, refuseIf: BEFORE_ENCRYPTION },
 ];
 
 export function runMigrations(
@@ -578,6 +601,12 @@ export function runMigrations(
   // SQLite has transactional DDL, so a step that fails part-way leaves neither
   // half of its schema change nor its ledger row behind.
   const apply = db.transaction((migration: Migration) => {
+    if (
+      migration.refuseIf &&
+      db.prepare(migration.refuseIf.sql).get() !== undefined
+    ) {
+      throw new MigrationRefusedError(migration.refuseIf.message);
+    }
     db.exec(migration.sql);
     record.run(migration.id, new Date().toISOString());
   });

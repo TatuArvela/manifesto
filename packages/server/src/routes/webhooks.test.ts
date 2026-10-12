@@ -13,6 +13,7 @@ import { createAuthProvider } from "../auth/index.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
 import { defined } from "../test/defined.js";
+import { sealingClient } from "../test/sealingClient.js";
 import { authHeaders, TEST_CONFIG } from "../test/setup.js";
 import {
   signDelivery,
@@ -81,7 +82,9 @@ describe("webhooks", () => {
       webhookRetryDelaysMs: [0, 1],
     });
     dispatcher = handle.webhooks as WebhookDispatcher;
-    request = async (path, init) => handle.app.request(path, init);
+    request = sealingClient(async (path, init) =>
+      handle.app.request(path, init),
+    );
   });
 
   afterEach(async () => {
@@ -132,9 +135,14 @@ describe("webhooks", () => {
       "note.updated",
       "note.deleted",
     ]);
-    expect(events[1]?.event === "note.updated" && events[1]?.note.title).toBe(
-      "Renamed",
-    );
+    // What the server reads of the note, and none of its words.
+    const [, updated] = events;
+    expect(updated?.event === "note.updated" && updated.note).toMatchObject({
+      id: note.id,
+      pinned: false,
+    });
+    expect(received[1]?.body).not.toContain("title");
+    expect(received[1]?.body).not.toContain("e1.");
     const first = defined(received[0], "delivery");
     expect(first.headers["x-manifesto-event"]).toBe("note.created");
     expect(first.headers["x-manifesto-signature"]).toBe(

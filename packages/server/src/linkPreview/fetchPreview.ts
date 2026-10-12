@@ -1,9 +1,9 @@
-import type { LinkPreview } from "@manifesto/shared";
-import { logger } from "../lib/logger.js";
 import {
+  type LinkPreview,
   MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
   MAX_LINK_PREVIEW_TITLE_LENGTH,
-} from "../validation/schemas.js";
+} from "@manifesto/shared";
+import { logger } from "../lib/logger.js";
 import { decodeHtml, extractMetadata } from "./parseHtml.js";
 import { type SafeFetchOptions, safeFetch } from "./safeFetch.js";
 

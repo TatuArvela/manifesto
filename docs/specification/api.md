@@ -97,13 +97,40 @@ removes the note from their notes (their share goes, the note stays with everyon
 `204`, as emptying it from their own trash. `DELETE /api/notes` deletes only the notes the user
 owns; the ones shared with them stay.
 
-`POST /api/notes/import` takes `{ "notes": NoteImport[] }`, at most `MAX_NOTES_PER_IMPORT` (100)
-per request, each a note as `POST /api/notes` takes it plus the `id` and `createdAt` it had where it
+`POST /api/notes/import` takes `{ "notes": [...] }`, at most `MAX_NOTES_PER_IMPORT` (100)
+per request, each a note as `POST /api/notes` takes it plus the `createdAt` it had where it
 came from. An `id` the user owns is updated in place, so importing the same backup twice changes
-nothing; an `id` shared with them is skipped; an `id` taken by anyone else's note, or absent, gets a
-new one. Images must be attachment references, as for any note write. It answers
-`{ "created": number, "updated": number, "skipped": number }`. A backup larger than one request, by
-count or by the 1 MiB body limit, is sent in several.
+nothing; an `id` shared with them is skipped. An `id` taken by anyone else's note is not imported
+and is named in `taken`: a sealed note is bound to its id, so the client seals it again under a new
+one and sends it once more. Images must be attachment references, as for any note write. It answers
+`{ "created": number, "updated": number, "skipped": number, "taken"?: string[] }`. A backup larger
+than one request, by count or by the 1 MiB body limit, is sent in several.
+
+#### Sealed notes
+
+The app seals a note in the browser before it sends it, and the server stores and returns it
+sealed ([Encryption](features/encryption.md)). Every route above takes and answers a `SealedNote`
+(`packages/shared/src/api/sealed.ts`) for a session:
+
+- **Sealed under the note key**: `title`, `content`, `excerpt` (the first 140 characters of the
+  text), `font`, `images` (the list of the note's images) and `linkPreviews`.
+- **Sealed under the reader's personal key**: `color` and `tags`. Either is `""` when never set,
+  which is how a shared note first reaches its recipient.
+- **`key`** is the note key wrapped under the reader's own notes key, and `keyVersion` says which
+  note key the values are under.
+- **Readable**, since the server acts on them: `id`, `pinned`, `archived`, `trashed`, `trashedAt`,
+  `position`, `reminder`, `readonly`, `source`, `sharing`, `createdAt` and `updatedAt`.
+
+A sealed value is `e1.` and the base64url of a nonce, the ciphertext and its tag. The server checks
+that shape and a size for each field, and answers `422` for anything else in a sealed field: it
+holds no key, so the shape is all it can check. It can no longer hold a title to 500 characters or
+a note to 50 tags; the client that seals a note does.
+
+The client chooses a new note's `id`, since every sealed value is bound to the id of its note:
+`POST /api/notes` takes it, and answers `409` for one that is taken. A write that carries `images`
+carries `imageRefs` beside it, and one that carries `linkPreviews` carries `previewRefs`: the
+`attachment:` references each sealed list names, which is how the server knows which images a note
+still uses. They are never sent back. `content` travels with `excerpt`.
 
 ### Sharing
 
@@ -180,6 +207,10 @@ includes `email`. Either way the caller is never among the results, and an empty
 | Method   | Path              | Description          |
 |----------|-------------------|----------------------|
 | `GET`    | `/api/search?q=`  | Search notes, one page at a time |
+
+The server cannot read a note, so it cannot search one for the app, which searches the notes it
+has opened in memory ([Search](features/search.md)). A session is answered `403`. The route is for
+a token that carries a key.
 
 ### Sync
 
@@ -310,8 +341,12 @@ Session-only, and the web client's own. See [Reminders](features/reminders.md#pu
 
 | Method   | Path                         | Description          |
 |----------|------------------------------|----------------------|
-| `GET`    | `/api/notes/:id/versions`    | The note's versions, newest first (`NoteVersionsResponse`) |
-| `POST`   | `/api/notes/:id/versions`    | Add a version (`NoteVersionCreateRequest`); owner and editors |
+| `GET`    | `/api/notes/:id/versions`    | The note's versions, newest first: `{ versions: SealedNoteVersion[] }` |
+| `POST`   | `/api/notes/:id/versions`    | Add a version (`SealedNoteVersionCreateRequest`); owner and editors |
+
+A version's `title` and `content` are sealed under the note key and bound to the version's own
+`id`, which the client chooses (`409` for one that is taken). `keyVersion` says which note key it is
+under.
 
 See [Version History](features/version-history.md).
 
@@ -444,8 +479,8 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 | `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment), and on start to pick up admin rights granted or revoked since sign-in. |
 | `PUT`    | `/api/auth/me`        | Bearer-protected: set or clear (`null`) your own email address with `{ email }`: `{ user: AuthUser }`. An account that signs in with single sign-on is `409`, since the identity provider owns its address. |
 | `GET`    | `/api/auth/me/activity` | A session only: your own lines of the audit log, where you are the actor or the target, newest first, as `AuditLogResponse` (`limit`, `before`). An entry where someone else acted on you has `ip: null`. |
-| `GET`    | `/api/auth/me/prefs`  | Bearer-protected: your [preferences](features/preferences.md) as your clients sent them, `{ prefs }`, where `prefs` is a flat object the server never reads. `{}` until a client has sent any. |
-| `PATCH`  | `/api/auth/me/prefs`  | Bearer-protected: set some preferences with `{ prefs }`, a key set to `null` removing it: `{ prefs }` with the result. At most 100 keys of up to 64 characters; `413` if the result would pass 16 KB as JSON. Every socket of the account hears `prefs:updated`. |
+| `GET`    | `/api/auth/me/prefs`  | Bearer-protected: your [preferences](features/preferences.md) as your clients sent them, `{ prefs }`, a flat object whose values are each sealed under the account's personal key and bound to their name. `{}` until a client has sent any. |
+| `PATCH`  | `/api/auth/me/prefs`  | Bearer-protected: set some preferences with `{ prefs }`, each value sealed and a key set to `null` removing it: `{ prefs }` with the result. At most 100 keys of up to 64 characters; `422` for a value that is not a ciphertext, `413` if the result would pass 32 KB as JSON. Every socket of the account hears `prefs:updated`. |
 | `PUT`    | `/api/auth/me/locale` | Bearer-protected: record the language your client is set to with `{ locale }` (a tag such as `fi`): `204`. `AuthUser.locale` gives it back. Mail sent to you by someone else's action, a share invitation, is written in it. |
 
 #### Account keys
@@ -494,12 +529,11 @@ database on every request (`403` otherwise). Shares the per-user API limit. See
 
 | Method   | Path                              | Description |
 |----------|-----------------------------------|-------------|
-| `GET`    | `/api/admin/users`                | Every account, by username: `{ users: AdminUser[], adminExport }`, where `adminExport` says whether the export below is on |
+| `GET`    | `/api/admin/users`                | Every account, by username: `{ users: AdminUser[] }` |
 | `POST`   | `/api/admin/users`                | Create an account from `{ username, email? }`: `201` `{ user, temporaryPassword }` |
 | `PUT`    | `/api/admin/users/:id`            | Grant or revoke admin with `{ isAdmin }`, set or clear the address with `{ email }`, or both: `{ user }` |
 | `POST`   | `/api/admin/users/:id/password`   | Reset the password and end every session of the account: `{ user, temporaryPassword }` |
 | `DELETE` | `/api/admin/users/:id`            | Delete the account with its notes and sessions: `204` |
-| `GET`    | `/api/admin/users/:id/export`     | Everything the account owns, as the zip `GET /api/export` gives its owner. Only with `ADMIN_EXPORT` on; otherwise `404`, as for a route that does not exist |
 | `GET`    | `/api/admin/checks`               | What the overview's [setup checks](features/accounts.md#setup-checks) read: `{ appUrl, trustProxy, proxy, backup, mail }` |
 | `POST`   | `/api/admin/checks/mail`          | Send a test message to the caller's own address: `{ sent }`. `409` without mail set up or an address on the account |
 
@@ -540,7 +574,7 @@ The web client reads it before anyone signs in, to choose what to show. It repla
 
 `features` names each of them, as `SERVER_FEATURES` in `@manifesto/shared` lists them: `sharing`,
 `teams`, `publicLinks`, `linkPreviews`, `calendar`, `apiTokens`, `mcp`, `webhooks`, `passkeys`,
-`magicLinks`, `pushReminders`, `twoFactor` and `adminExport`. The variable that switches each, and
+`magicLinks`, `pushReminders` and `twoFactor`. The variable that switches each, and
 what it covers, is in
 [Deployment](server/deployment.md#turning-features-off). `teams` needs `sharing`, and is reported
 off with it.
@@ -558,10 +592,10 @@ whose feature is off is refused wherever it is presented, as an unknown token is
 
 - Content type: `application/json`
 - Note objects follow the schema defined in [Data Model](data-model.md)
-- `POST /api/notes` accepts a note without `id`, `createdAt`, or `updatedAt` (server assigns these). `trashedAt` is server-assigned too: it is derived from `trashed`, and a value sent by a client is ignored
+- `POST /api/notes` accepts a note without `createdAt` or `updatedAt` (the server assigns these), under an `id` the client chose. `trashedAt` is server-assigned too: it is derived from `trashed`, and a value sent by a client is ignored
 - `PUT /api/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
-- List endpoints return `{ "notes": Note[], "nextCursor": string | null }`
-- Single note endpoints return `{ "note": Note }`
+- List endpoints return `{ "notes": [...], "nextCursor": string | null }`
+- Single note endpoints return `{ "note": ... }`, the note [sealed](#sealed-notes)
 - Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (`password_change_required`, and `email_taken` to tell a taken address from a taken username)
 - `PUT /api/auth/me`, `POST /api/tokens`, `POST /api/webhooks` and the two-factor changes take the account's `password` in the body. Without it they answer `403` with `confirmation_required`, with a wrong one `403` with `password_incorrect`, and after too many wrong ones `429`. An account without a password answers `403` with `reauthentication_required` unless its session was signed in within 15 minutes; `GET /api/auth/login?reauth=1` signs in again. See [Accounts](features/accounts.md#confirming-a-change-from-a-session)
 
@@ -617,22 +651,11 @@ write.
 
 The checkpoint is kept by the client. The server stores nothing per device.
 
-### Attachments are not in a listing
+### Images in a listing
 
-A note returned by a list endpoint carries `imageCount` and an **empty**
-`images`. The bytes come from `GET /api/notes/:id`, which returns the note
-whole.
-
-This is what makes a listing's size a function of how many notes a user has
-rather than of how many pictures they have attached, each of which may be up to
-5 MB, inlined as a `data:` URL in the note itself (see
-[Data Model](data-model.md#images)). A client must therefore not read an empty
-`images` as "this note has no pictures": compare it with `imageCount`, and fetch
-the note before doing anything that needs the bytes: drawing them, exporting
-the note, or writing a new list of attachments back.
-
-In open mode nothing is ever separated from its note, so `imageCount` is absent
-there and `images` is always complete.
+A listed note carries its sealed `images`, like any other field: the list holds references, a few
+dozen bytes an image, and the bytes of each come from `GET /api/attachments/:id` when a card draws
+it. `imageCount` is no longer sent.
 
 ## WebSocket APIs
 

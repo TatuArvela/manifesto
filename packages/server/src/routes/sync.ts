@@ -1,4 +1,4 @@
-import type { SyncResponse } from "@manifesto/shared";
+import type { SealedNote, SyncResponse } from "@manifesto/shared";
 import { Hono } from "hono";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
@@ -113,7 +113,7 @@ export function createSyncRoutes(deps: SyncDeps) {
       nextCursor: last ? null : encodeSyncCursor(next, nextCursor),
       ids: last ? await deps.storage.notes.visibleIds(userId) : null,
       checkpoint: last ? next : null,
-    } satisfies SyncResponse);
+    } satisfies SyncResponse<SealedNote>);
   });
 
   return sync;

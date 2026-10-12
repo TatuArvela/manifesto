@@ -3,22 +3,17 @@ import {
   ATTACHMENT_REF_PREFIX,
   attachmentIdOf,
   isAttachmentRef,
-  type LinkPreview,
-  mapPreviewImages,
 } from "@manifesto/shared";
 import { newId } from "../lib/ulid.js";
 import { HttpError } from "../middleware/error.js";
-import type {
-  ClaimedImages,
-  ClaimedPreviews,
-  StorageDriver,
-} from "../storage/types.js";
+import type { ClaimedImages, StorageDriver } from "../storage/types.js";
 
 /**
- * The images a note write names, made the note owner's. A note's `images`
- * holds `attachment:<id>` references only (uploads come first, through
- * `POST /api/attachments`), and every attachment a note refers to belongs to
- * the note's owner, whose notes it is swept with.
+ * The attachments a note write names, made the note owner's: its images
+ * (`imageRefs`) or the thumbnails and icons of its link previews
+ * (`previewRefs`). Each is an `attachment:<id>` reference (uploads come
+ * first, through `POST /api/attachments`), and every attachment a note refers
+ * to belongs to the note's owner, whose notes it is swept with.
  *
  * A reference the owner already holds passes through. One held by someone
  * else is the case of an editor adding their own upload to another person's
@@ -40,27 +35,6 @@ export async function claimImages(
   }
   // The one place a claim is made, so the one cast.
   return out as ClaimedImages;
-}
-
-/**
- * The same for the thumbnails and favicons of a note's link previews, which
- * are attachments like any image. Validation has already limited each to an
- * attachment reference or, on a row from before previews were stored, a
- * remote URL, which passes through.
- */
-export async function claimPreviewImages(
-  storage: StorageDriver,
-  previews: LinkPreview[],
-  ownerId: string,
-  writerId: string,
-  now: string,
-): Promise<ClaimedPreviews> {
-  const out = await mapPreviewImages(previews, async (image) =>
-    isAttachmentRef(image)
-      ? await ownedRef(storage, image, ownerId, writerId, now)
-      : image,
-  );
-  return out as ClaimedPreviews;
 }
 
 async function ownedRef(

@@ -12,6 +12,8 @@ import { isoPlusDays, nowIso } from "../lib/time.js";
 import { hashToken, safeEqual } from "../lib/token.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
+import { emptyAccount } from "../sharing/emptyAccount.js";
+import type { NoteEvents } from "../sharing/noteEvents.js";
 import type {
   StorageDriver,
   StoredAccountKeys,
@@ -43,11 +45,16 @@ import { toAuthUser } from "./users.js";
 /** The first account key an account has; replacing every key raises it. */
 const FIRST_KEY_VERSION = 1;
 
-interface KeyRoutesDeps {
+interface RecoveryDeps {
   cfg: ServerConfig;
   storage: StorageDriver;
   loginAttempts: LoginAttempts;
   revocations: SessionRevocations;
+}
+
+interface KeyRoutesDeps extends RecoveryDeps {
+  /** For starting an account again, which takes its notes from everyone. */
+  noteEvents: NoteEvents;
 }
 
 type AuthRouter = Hono<{ Variables: { auth: AuthContext } }>;
@@ -65,7 +72,7 @@ function tooManyAttempts(c: Context, wait: number): HttpError {
  * someone is, since a client takes a 401 to mean its session ended.
  */
 async function recoveryKeysOf(
-  deps: KeyRoutesDeps,
+  deps: RecoveryDeps,
   c: Context,
   username: string,
   user: User | null,
@@ -244,10 +251,11 @@ export function registerAccountKeyRoutes(
 
   /**
    * Starts the account again, for someone who has lost the secret key on
-   * every device and the recovery key too: the keys go, and the next thing
-   * the client does is set up new ones. Nothing under the old keys can be
-   * read again, by anyone. The account's other sessions end, since what they
-   * hold opens nothing now.
+   * every device and the recovery key too: the keys go, and so does
+   * everything sealed under them (`emptyAccount`), which nobody can read
+   * again. The next thing the client does is set up new keys. The account's
+   * other sessions and its tokens end, since what they hold opens nothing
+   * now.
    */
   router.delete(
     "/keys",
@@ -258,6 +266,7 @@ export function registerAccountKeyRoutes(
       if (!(await storage.accountKeys.delete(auth.userId))) {
         throw new HttpError(409, "This account has no keys yet");
       }
+      await emptyAccount(deps, auth.userId);
       await endUserSessions(storage, deps.revocations, auth.userId, auth.token);
       audit(storage, c, { action: "keys.started_again", actorId: auth.userId });
       return c.body(null, 204);
@@ -320,7 +329,7 @@ export function registerAccountKeyRoutes(
 /** Puts the new secret key and recovery key in place of the ones a recovery
  * used, once: of two requests holding the same key, one goes on. */
 async function spendRecoveryKey(
-  deps: KeyRoutesDeps,
+  deps: RecoveryDeps,
   user: User,
   stored: StoredAccountKeys,
   next: {
@@ -355,7 +364,7 @@ async function spendRecoveryKey(
  */
 export function registerRecoverySignInRoutes(
   router: AuthRouter,
-  deps: KeyRoutesDeps,
+  deps: RecoveryDeps,
 ): void {
   const { storage } = deps;
 

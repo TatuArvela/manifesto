@@ -4,6 +4,7 @@ import { createMemoryMailer } from "../../mail/mailer.js";
 import { createStorage } from "../../storage/index.js";
 import type { StorageDriver } from "../../storage/types.js";
 import { defined } from "../../test/defined.js";
+import { sealingClient } from "../../test/sealingClient.js";
 import { authHeaders, TEST_CONFIG } from "../../test/setup.js";
 import { createAuthProvider } from "../index.js";
 
@@ -40,7 +41,7 @@ describe("password reset by mail", () => {
       authProvider: createAuthProvider(cfg, storage),
       mailer,
     });
-    request = async (path, init) => app.request(path, init);
+    request = sealingClient(async (path, init) => app.request(path, init));
     const res = await post("/api/auth/register", {
       username: "alice",
       password: "test-pass-12",
@@ -235,7 +236,9 @@ describe("password reset by mail", () => {
       to: "alice@example.com",
       subject: "olivia shared a note with you",
     });
-    expect(mailer.sent.at(-1)?.text).toContain("Trip plan");
+    // The note's title is sealed, so the mail cannot name it.
+    expect(mailer.sent.at(-1)?.text).not.toContain("Trip plan");
+    expect(mailer.sent.at(-1)?.text).not.toContain("e1.");
   });
 });
 

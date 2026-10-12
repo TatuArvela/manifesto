@@ -1,11 +1,11 @@
 import {
-  type Note,
   NoteColor,
   type NoteCreate,
   NoteFont,
+  type SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { claimed, claimedImages } from "./contracts/claimed.js";
+import { claimed, claimedUpdate, ct, opened } from "./contracts/claimed.js";
 import { createPostgresStorage } from "./postgres/driver.js";
 import { newTestPool } from "./postgres/testDb.js";
 import { createSqliteStorage } from "./sqlite/driver.js";
@@ -14,16 +14,13 @@ import type { StorageDriver } from "./types.js";
 /**
  * The two drivers store a note in different column types (SQLite has no
  * boolean and no JSON) and used to carry their own copy of the mapping
- * between a row and a `Note`. Parity was a convention, and the tests only ever
+ * between a row and a note. Parity was a convention, and the tests only ever
  * checked each driver against itself, so a change made in one file and not the
  * other would have gone unnoticed.
  *
  * These run the same assertions against both, and compare their answers
  * directly where the answer should be identical.
  */
-
-/** A page big enough that these fixtures are never split across two. */
-const PAGE = { limit: 50 };
 
 const NOW = "2026-04-01T00:00:00.000Z";
 
@@ -69,7 +66,7 @@ const fullNote: NoteCreate = {
   trashedAt: "2026-04-02T00:00:00.000Z",
   position: 7,
   tags: ["home", "food"],
-  images: ["data:image/png;base64,iVBORw0KGgo="],
+  images: ["attachment:01J8Z3Q4R5S6T7V8W9X0Y1Z2AB"],
   linkPreviews: [
     { url: "https://example.com", title: "Example", domain: "example.com" },
   ],
@@ -101,12 +98,32 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
       createdAt: NOW,
       updatedAt: NOW,
     });
-    expect(note).toEqual({
+    expect(opened(note)).toEqual({
       id: "n1",
       ...fullNote,
       createdAt: NOW,
       updatedAt: NOW,
     });
+    // What only the sealed note has: its key, and the excerpt beside the text.
+    expect(note).toMatchObject({
+      key: ct("key of claimed"),
+      keyVersion: 1,
+      excerpt: ct("Milk, eggs"),
+    });
+  });
+
+  it("sends nothing readable where a ciphertext belongs", async () => {
+    // A share's colour and tags start as the columns' defaults, which are not
+    // ciphertext and mean "never set": they go out empty, never as they are.
+    const note = await storage.notes.insert({
+      id: "n1",
+      userId: "u1",
+      data: { ...claimed(fullNote), title: "readable", tags: "[]" },
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+    expect(note.title).toBe("");
+    expect(note.tags).toBe("");
   });
 
   it("leaves the two optional fields off a note that has neither", async () => {
@@ -121,7 +138,7 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
       createdAt: NOW,
       updatedAt: NOW,
     });
-    expect(note).toEqual({
+    expect(opened(note)).toEqual({
       id: "n1",
       ...plain,
       createdAt: NOW,
@@ -129,28 +146,6 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
     });
     expect("readonly" in note).toBe(false);
     expect("source" in note).toBe(false);
-  });
-
-  it("folds case beyond ASCII when searching", async () => {
-    // SQLite's own LOWER() folds ASCII only, so this used to find the note on
-    // Postgres and not on SQLite: the same query, the same data, two answers.
-    await storage.notes.insert({
-      id: "n1",
-      userId: "u1",
-      data: claimed({
-        ...fullNote,
-        title: "ÄITI JA ÖLJY",
-        content: "Ostoslista",
-      }),
-      createdAt: NOW,
-      updatedAt: NOW,
-    });
-    expect(
-      (await storage.notes.search("u1", "äiti", PAGE)).notes.map((n) => n.id),
-    ).toEqual(["n1"]);
-    expect(
-      (await storage.notes.search("u1", "ÖLJY", PAGE)).notes.map((n) => n.id),
-    ).toEqual(["n1"]);
   });
 
   it("updates only the fields it was given", async () => {
@@ -165,10 +160,10 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
     const updated = await storage.notes.update(
       "n1",
       "u1",
-      { pinned: false, tags: ["work"] },
+      claimedUpdate({ pinned: false, tags: ["work"] }),
       later,
     );
-    expect(updated).toEqual({
+    expect(updated && opened(updated)).toEqual({
       id: "n1",
       ...fullNote,
       pinned: false,
@@ -181,7 +176,9 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
 
 describe("the two drivers agree", () => {
   /** The note each driver returns for the same write. */
-  async function noteFrom(open: () => Promise<StorageDriver>): Promise<Note> {
+  async function noteFrom(
+    open: () => Promise<StorageDriver>,
+  ): Promise<SealedNote> {
     const storage = await withUser(await open());
     try {
       await storage.notes.insert({
@@ -285,46 +282,14 @@ describe.each(drivers)("$name listings", ({ open }) => {
     expect(new Set(seen).size).toBe(5);
   });
 
-  it("leaves the attachments out of a listing and says how many there are", async () => {
+  it("lists a note's sealed images, and never the references the server keeps", async () => {
     await seed(1);
     const { notes: listed } = await storage.notes.listByUser("u1", {
       limit: 10,
     });
-    expect(listed[0]?.images).toEqual([]);
-    expect(listed[0]?.imageCount).toBe(fullNote.images.length);
-
-    // The single-note read is where the bytes live.
-    const full = await storage.notes.getById("n00", "u1");
-    expect(full?.images).toEqual(fullNote.images);
-  });
-
-  it("keeps the count in step with the attachments through an update", async () => {
-    await seed(1);
-    await storage.notes.update(
-      "n00",
-      "u1",
-      { images: claimedImages() },
-      "2026-05-01T00:00:00.000Z",
-    );
-    const { notes: listed } = await storage.notes.listByUser("u1", {
-      limit: 10,
-    });
-    expect(listed[0]?.imageCount).toBe(0);
-  });
-
-  it("pages search results the same way", async () => {
-    await seed(5);
-    const first = await storage.notes.search("u1", "Note", { limit: 2 });
-    expect(first.notes).toHaveLength(2);
-    expect(first.nextCursor).toBeTruthy();
-    expect(first.notes[0]?.images).toEqual([]);
-
-    const second = await storage.notes.search("u1", "Note", {
-      limit: 2,
-      cursor: first.nextCursor as string,
-    });
-    expect(second.notes.map((n) => n.id)).not.toEqual(
-      first.notes.map((n) => n.id),
-    );
+    const [first] = listed;
+    expect(first && opened(first).images).toEqual(fullNote.images);
+    expect(first && "imageRefs" in first).toBe(false);
+    expect(first && "previewRefs" in first).toBe(false);
   });
 });

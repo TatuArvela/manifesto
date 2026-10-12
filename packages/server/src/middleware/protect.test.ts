@@ -32,7 +32,6 @@ describe("route protection", () => {
     rig = await bootTestAppWith({
       trustProxy: true,
       webhooks: "public",
-      adminExport: true,
       appUrl: "http://localhost:5173",
     });
     ({ token: admin } = await registerTestUser(rig, "admin"));
@@ -180,7 +179,6 @@ describe("features the host turned off", () => {
   /** Every feature on, and the OAuth routes that come with `APP_URL`. */
   const ALL_ON: Partial<ServerConfig> = {
     webhooks: "public",
-    adminExport: true,
     appUrl: "http://localhost:5173",
   };
 

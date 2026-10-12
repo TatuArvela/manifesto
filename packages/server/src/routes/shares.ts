@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import type {
   InvitationsResponse,
   NoteResponse,
+  SealedNote,
   ShareRole,
 } from "@manifesto/shared";
 import { Hono } from "hono";
@@ -64,7 +65,7 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
   async function ownerView(noteId: string, userId: string) {
     const note = await storage.notes.getById(noteId, userId);
     if (!note) throw new HttpError(404, "Note not found");
-    const body: NoteResponse = { note };
+    const body: NoteResponse<SealedNote> = { note };
     return body;
   }
 
@@ -146,7 +147,6 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
           mailLocale(recipient.locale?.split("-")[0]),
           {
             owner: owner?.displayName || owner?.username || "",
-            title: note.title,
             link: deps.mail.appUrl,
           },
         );
@@ -262,7 +262,7 @@ export function createInvitationRoutes(deps: InvitationRoutesDeps) {
     await noteEvents.changed(noteId);
     // Whoever is looking at the note right now shows up for them at once.
     accessChanges.announce({ noteId, userIds: [userId], change: "gained" });
-    const body: NoteResponse = { note };
+    const body: NoteResponse<SealedNote> = { note };
     return c.json(body);
   });
 

@@ -123,7 +123,6 @@ describe("SettingsDialog account pages", () => {
       sharing: false,
       // Not reported, as by a server from before the switch: as it was.
       teams: true,
-      adminExport: false,
     });
   });
 });

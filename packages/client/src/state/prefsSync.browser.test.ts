@@ -1,3 +1,4 @@
+import type { SealedAccountPrefs } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "../storage/index.js";
 import { hiddenTags, stickyTopBar, theme } from "./prefs.js";
@@ -121,7 +122,11 @@ describe("preferences that follow the account", () => {
       timeout: 2000,
     });
     patches = [];
-    receiveAccountPrefs({ theme: "dark", hiddenTags: ["home"] });
+    // Readable, as this project's stand-in for sealing hands them through.
+    await receiveAccountPrefs({
+      theme: "dark",
+      hiddenTags: ["home"],
+    } as unknown as SealedAccountPrefs);
     expect(theme.value).toBe("dark");
     expect(hiddenTags.value).toEqual(["home"]);
     await new Promise((r) => setTimeout(r, 700));

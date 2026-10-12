@@ -2,7 +2,7 @@ import {
   MAX_NOTE_VERSIONS,
   NOTE_VERSION_MAX_AGE_DAYS,
 } from "@manifesto/shared";
-import { rowToVersion } from "../sqlite/versionsRepo.js";
+import { rowToVersion, VERSION_COLUMNS } from "../sqlite/versionsRepo.js";
 import type { VersionsRepo } from "../types.js";
 import type { PgPool } from "./database.js";
 
@@ -14,7 +14,7 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
   return {
     async list(noteId) {
       const result = await pool.query(
-        `SELECT note_id, title, content, created_at FROM note_versions
+        `SELECT ${VERSION_COLUMNS} FROM note_versions
          WHERE note_id = $1 ORDER BY created_at DESC, id DESC`,
         [noteId],
       );
@@ -22,13 +22,23 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
     },
 
     async add(input) {
+      // Asked first rather than left to `ON CONFLICT`, whose row count
+      // pg-mem gets wrong; the id is a ULID the writer just made, so the
+      // race this leaves is with itself.
+      const taken = await pool.query(
+        `SELECT 1 FROM note_versions WHERE id = $1`,
+        [input.id],
+      );
+      if (taken.rows.length > 0) return false;
       await pool.query(
-        `INSERT INTO note_versions (id, note_id, author_id, title, content, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO note_versions
+           (id, note_id, author_id, key_version, title, content, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           input.id,
           input.noteId,
           input.authorId,
+          input.keyVersion,
           input.title,
           input.content,
           input.createdAt,
@@ -49,6 +59,7 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
       for (const { id } of beyond.rows) {
         await pool.query(`DELETE FROM note_versions WHERE id = $1`, [id]);
       }
+      return true;
     },
   };
 }

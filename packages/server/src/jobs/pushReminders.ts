@@ -2,7 +2,6 @@ import {
   advanceReminder,
   instantOf,
   MAX_NOTES_PAGE_SIZE,
-  type Note,
   type NoteReminder,
   type ReminderPush,
 } from "@manifesto/shared";
@@ -38,14 +37,9 @@ const UNTITLED: Record<MailLocale, string> = {
  * account last reported, so the same reminder reads the same whether the
  * app or the server fired it.
  */
-function notificationOf(
-  note: Note,
-  locale: MailLocale,
-): { title: string; body: string } {
-  return {
-    title: note.title.trim() || UNTITLED[locale],
-    body: note.content.replace(/\s+/g, " ").trim().slice(0, 140),
-  };
+function notificationOf(locale: MailLocale): { title: string; body: string } {
+  // The note's title and text are sealed, and the server has no key.
+  return { title: UNTITLED[locale], body: "" };
 }
 
 /**
@@ -126,7 +120,7 @@ export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
         const message: ReminderPush = {
           type: "reminder",
           noteId: note.id,
-          ...notificationOf(note, locale),
+          ...notificationOf(locale),
           next: next
             ? {
                 time: next.time,

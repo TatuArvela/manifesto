@@ -1,23 +1,17 @@
 import { Hono } from "hono";
 import type { AuthContext } from "../middleware/authBearer.js";
-import type { StorageDriver } from "../storage/types.js";
-import { readPageParams } from "../validation/pageParams.js";
+import { HttpError } from "../middleware/error.js";
 
-interface SearchDeps {
-  storage: StorageDriver;
-}
-
-export function createSearchRoutes(deps: SearchDeps) {
+/**
+ * `/api/search`. The server cannot read a note, so it cannot search one: the
+ * app searches the notes it has opened, in memory. What is left here is for
+ * a token that carries a key.
+ */
+export function createSearchRoutes() {
   const search = new Hono<{ Variables: { auth: AuthContext } }>();
 
-  search.get("/", async (c) => {
-    const { userId } = c.get("auth");
-    const q = c.req.query("q") ?? "";
-    if (q.trim().length === 0) {
-      return c.json({ notes: [], nextCursor: null });
-    }
-    const page = readPageParams(c.req.query("limit"), c.req.query("cursor"));
-    return c.json(await deps.storage.notes.search(userId, q, page));
+  search.get("/", () => {
+    throw new HttpError(403, "The app searches its own notes");
   });
 
   return search;

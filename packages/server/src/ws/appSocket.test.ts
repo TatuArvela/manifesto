@@ -7,8 +7,10 @@ import WebSocket from "ws";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import { hashToken } from "../lib/token.js";
+import { ct } from "../storage/contracts/claimed.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
+import { sealingClient } from "../test/sealingClient.js";
 import { TEST_CONFIG } from "../test/setup.js";
 import {
   APP_SOCKET_MAX_PAYLOAD,
@@ -126,7 +128,10 @@ async function authedPost<T>(
   token: string,
   body: unknown,
 ): Promise<T> {
-  const res = await fetch(`${rig.baseUrl}${path}`, {
+  const send = sealingClient((input, init) =>
+    fetch(`${rig.baseUrl}${input}`, init),
+  );
+  const res = await send(path, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -239,7 +244,8 @@ describe("application WebSocket /api/ws", () => {
     const raw = await received;
     const parsed = JSON.parse(raw);
     expect(parsed.type).toBe("note:created");
-    expect(parsed.note.title).toBe("WS");
+    // Sealed, as the note is stored.
+    expect(parsed.note.title).toBe(ct("WS"));
 
     ws.close();
   });

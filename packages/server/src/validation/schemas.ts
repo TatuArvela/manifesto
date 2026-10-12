@@ -5,10 +5,16 @@ import {
   isCiphertext,
   MAX_COMMENT_LENGTH,
   MAX_IMAGES_PER_NOTE,
+  MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
+  MAX_LINK_PREVIEW_TITLE_LENGTH,
   MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
+  MAX_NOTE_CONTENT_LENGTH,
+  MAX_NOTE_TITLE_LENGTH,
   MAX_NOTES_PER_IMPORT,
   MAX_PUBLIC_LINK_VIEWS,
+  MAX_TAG_LENGTH,
+  MAX_TAGS_PER_NOTE,
   MAX_WRAPPED_KEY_LENGTH,
   NoteColor,
   NoteFont,
@@ -16,6 +22,7 @@ import {
   PUBLIC_LINK_MODES,
   RECOVERY_VERIFIER_LENGTH,
   REMINDER_RECURRENCES,
+  SEALED_FIELD_MAX,
   SHARE_ROLES,
   WEBHOOK_EVENTS,
 } from "@manifesto/shared";
@@ -82,13 +89,29 @@ export const authLocaleSchema = z.object({
 });
 
 /**
- * A patch of an account's preferences: up to 100 keys, each set to any JSON
- * value or to `null` to remove it. The server never reads the values; how
+ * A value sealed in the browser: a ciphertext by its shape, which is all the
+ * server can say about one. Anything else in its place is refused, so a
+ * faulty client cannot store readable text where a ciphertext belongs.
+ */
+const sealed = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .refine((value) => isCiphertext(value, max), {
+      message: "Must be a ciphertext",
+    });
+
+/** A sealed value, or nothing where one was never set. */
+const sealedOrEmpty = (max: number) => z.union([z.literal(""), sealed(max)]);
+
+/**
+ * A patch of an account's preferences: up to 100 keys, each set to a value
+ * sealed under the account's personal key, or to `null` to remove it. How
  * large the whole may grow is checked when it is merged.
  */
 export const accountPrefsUpdateSchema = z.object({
   prefs: z
-    .record(z.string().min(1).max(64), z.json())
+    .record(z.string().min(1).max(64), sealed(SEALED_FIELD_MAX.pref).nullable())
     .refine((prefs) => Object.keys(prefs).length <= 100, {
       message: "At most 100 preferences",
     }),
@@ -165,12 +188,7 @@ export const twoFactorEnableSchema = z.object({
  * about one. Anything else in its place is refused, so a faulty client cannot
  * store a key where a wrapped key belongs.
  */
-const wrappedKey = z
-  .string()
-  .max(MAX_WRAPPED_KEY_LENGTH)
-  .refine((value) => isCiphertext(value, MAX_WRAPPED_KEY_LENGTH), {
-    message: "Must be a ciphertext",
-  });
+const wrappedKey = sealed(MAX_WRAPPED_KEY_LENGTH);
 
 /** An uncompressed P-256 point as base64url: 65 bytes, the first of them 4. */
 const publicKey = z
@@ -332,9 +350,6 @@ const previewImageSchema = z.union([
   httpUrlSchema,
 ]);
 
-export const MAX_LINK_PREVIEW_TITLE_LENGTH = 500;
-export const MAX_LINK_PREVIEW_DESCRIPTION_LENGTH = 2000;
-
 const linkPreviewSchema = z
   .object({
     url: httpUrlSchema,
@@ -387,8 +402,8 @@ const autoNoteSourceSchema = z.object({
 // payload with multi-MB notes and OOM the server. The numbers are generous
 // for normal use but reject obviously-pathological inputs.
 const noteFields = {
-  title: z.string().max(500),
-  content: z.string().max(100_000),
+  title: z.string().max(MAX_NOTE_TITLE_LENGTH),
+  content: z.string().max(MAX_NOTE_CONTENT_LENGTH),
   color: noteColorSchema,
   font: noteFontSchema,
   pinned: z.boolean(),
@@ -399,7 +414,7 @@ const noteFields = {
   // immediately, or never. The routes stamp it from `trashed` and the
   // server clock, and zod strips whatever a client sends.
   position: z.number(),
-  tags: z.array(z.string().min(1).max(64)).max(50),
+  tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(MAX_TAGS_PER_NOTE),
   // References from `POST /api/attachments`; the bytes never ride in a note.
   images: z
     .array(z.string().regex(ATTACHMENT_REF_PATTERN, "Upload images first"))
@@ -435,6 +450,87 @@ export const noteVersionCreateSchema = z.object({
   timestamp: z.string().max(40).exactOptional(),
 });
 export const noteUpdateSchema = z.object(exactPartial(noteFields));
+
+// The same requests from the app, whose notes are sealed before they leave
+// the browser. Every value in someone's words is a ciphertext; what the
+// server acts on stays as it was.
+
+/** A note's id, chosen by the client that seals it. */
+const noteIdSchema = z.string().regex(/^[0-9A-Za-z_-]{1,64}$/);
+
+const attachmentRefs = (max: number) =>
+  z
+    .array(z.string().regex(ATTACHMENT_REF_PATTERN, "Upload images first"))
+    .max(max);
+
+const sealedNoteFields = {
+  title: sealed(SEALED_FIELD_MAX.title),
+  content: sealed(SEALED_FIELD_MAX.content),
+  excerpt: sealed(SEALED_FIELD_MAX.excerpt),
+  font: sealed(SEALED_FIELD_MAX.font),
+  images: sealed(SEALED_FIELD_MAX.images),
+  // What the two sealed lists name, which the server keeps the images by.
+  imageRefs: attachmentRefs(MAX_IMAGES_PER_NOTE),
+  linkPreviews: sealed(SEALED_FIELD_MAX.linkPreviews),
+  // A thumbnail and an icon for each preview.
+  previewRefs: attachmentRefs(MAX_LINK_PREVIEWS_PER_NOTE * 2),
+  color: sealedOrEmpty(SEALED_FIELD_MAX.color),
+  tags: sealedOrEmpty(SEALED_FIELD_MAX.tags),
+  pinned: noteFields.pinned,
+  archived: noteFields.archived,
+  trashed: noteFields.trashed,
+  position: noteFields.position,
+  reminder: noteFields.reminder,
+  readonly: noteFields.readonly,
+  source: noteFields.source,
+} as const;
+
+/** `POST /api/notes` from the app. */
+export const sealedNoteCreateSchema = z.object({
+  id: noteIdSchema,
+  key: wrappedKey,
+  keyVersion: z.number().int().min(1),
+  ...sealedNoteFields,
+});
+
+/** `POST /api/notes/import` from the app. A note already there keeps the
+ * key it has, which the client sealed this copy under. */
+export const sealedNotesImportSchema = z.object({
+  notes: z
+    .array(
+      sealedNoteCreateSchema.extend({
+        createdAt: z.iso.datetime({ offset: true }).exactOptional(),
+      }),
+    )
+    .max(MAX_NOTES_PER_IMPORT),
+});
+
+/**
+ * `PUT /api/notes/:id` from the app. A sealed list travels with the
+ * references it names, and the text with its excerpt, or the server's record
+ * of either would fall behind what the note says.
+ */
+export const sealedNoteUpdateSchema = z
+  .object(exactPartial(sealedNoteFields))
+  .refine(
+    (body) =>
+      (body.images === undefined) === (body.imageRefs === undefined) &&
+      (body.linkPreviews === undefined) === (body.previewRefs === undefined) &&
+      (body.content === undefined) === (body.excerpt === undefined),
+    {
+      message:
+        "images comes with imageRefs, linkPreviews with previewRefs, content with excerpt",
+    },
+  );
+
+/** `POST /api/notes/:id/versions` from the app. */
+export const sealedVersionCreateSchema = z.object({
+  id: noteIdSchema,
+  keyVersion: z.number().int().min(1),
+  title: sealed(SEALED_FIELD_MAX.title),
+  content: sealed(SEALED_FIELD_MAX.content),
+  timestamp: z.string().max(40).exactOptional(),
+});
 
 /** `POST /api/tokens`. An MCP token's tools reach notes and nothing else,
  * so it takes only the note scopes. */

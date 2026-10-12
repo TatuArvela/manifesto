@@ -10,6 +10,7 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { openedAnswer } from "../test/sealingClient.js";
 import {
   authHeaders,
   bootTestApp,
@@ -102,7 +103,10 @@ describe("sharing notes between accounts", () => {
   }
 
   function eventsFor(userId: string) {
-    return events.filter((e) => e.userId === userId).map((e) => e.event);
+    // Read as the app would show them: a note in an event is sealed.
+    return events
+      .filter((e) => e.userId === userId)
+      .map((e) => openedAnswer(e.event) as WebSocketEvent);
   }
 
   it("invites, and the note arrives only once the invitation is accepted", async () => {
@@ -456,14 +460,6 @@ describe("sharing notes between accounts", () => {
       type: "invitation:removed",
       noteId: note.id,
     });
-  });
-
-  it("finds shared notes in search", async () => {
-    const note = await createNote();
-    await shareAccepted(note.id, alice, "view");
-    const res = await call(alice, "GET", "/api/search?q=milk");
-    const body = (await res.json()) as { notes: Note[] };
-    expect(body.notes.map((n) => n.id)).toEqual([note.id]);
   });
 });
 

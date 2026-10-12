@@ -13,6 +13,11 @@ import type {
   RecoveryKeyReplaceRequest,
   RecoveryOpenRequest,
   RegisterRequest,
+  SealedAccountPrefsUpdate,
+  SealedNoteCreate,
+  SealedNoteImport,
+  SealedNoteUpdate,
+  SealedNoteVersionCreateRequest,
   SecretKeyReplaceRequest,
   ShareCreateRequest,
   ShareUpdateRequest,
@@ -21,6 +26,7 @@ import type {
 import type { z } from "zod";
 import type {
   accountKeysSetupSchema,
+  accountPrefsUpdateSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
   apiTokenCreateSchema,
@@ -34,6 +40,10 @@ import type {
   recoveryKeyReplaceSchema,
   recoveryOpenSchema,
   registerSchema,
+  sealedNoteCreateSchema,
+  sealedNotesImportSchema,
+  sealedNoteUpdateSchema,
+  sealedVersionCreateSchema,
   secretKeyReplaceSchema,
   shareCreateSchema,
   shareUpdateSchema,
@@ -74,6 +84,33 @@ export type WireTypeChecks = [
   >,
   Assert<
     Matches<Body<typeof noteVersionCreateSchema>, NoteVersionCreateRequest>
+  >,
+  Assert<
+    Matches<
+      Body<typeof sealedNoteCreateSchema>,
+      Omit<SealedNoteCreate, "trashedAt">
+    >
+  >,
+  Assert<
+    Matches<
+      Body<typeof sealedNoteUpdateSchema>,
+      Omit<SealedNoteUpdate, "trashedAt" | "updatedAt" | "key" | "keyVersion">
+    >
+  >,
+  Assert<
+    Matches<
+      Body<typeof sealedNotesImportSchema>["notes"][number],
+      Omit<SealedNoteImport, "trashedAt">
+    >
+  >,
+  Assert<
+    Matches<
+      Body<typeof sealedVersionCreateSchema>,
+      SealedNoteVersionCreateRequest
+    >
+  >,
+  Assert<
+    Matches<Body<typeof accountPrefsUpdateSchema>, SealedAccountPrefsUpdate>
   >,
   Assert<Matches<Body<typeof apiTokenCreateSchema>, ApiTokenCreateRequest>>,
   Assert<Matches<Body<typeof webhookCreateSchema>, WebhookCreateRequest>>,

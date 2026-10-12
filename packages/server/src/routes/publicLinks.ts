@@ -1,13 +1,16 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import type {
-  Note,
-  PublicLink,
-  PublicLinkResponse,
-  PublicLinksResponse,
-  PublicNote,
-  PublicNoteLockedResponse,
-  PublicNoteResponse,
+import {
+  NoteColor,
+  NoteFont,
+  type PublicLink,
+  type PublicLinkResponse,
+  type PublicLinksResponse,
+  type PublicNote,
+  type PublicNoteLockedResponse,
+  type PublicNoteResponse,
+  previewImages,
+  type SealedNote,
 } from "@manifesto/shared";
 import { type Context, Hono } from "hono";
 import { audit } from "../audit/audit.js";
@@ -59,15 +62,19 @@ export function toPublicLink(link: StoredPublicLink): PublicLink {
   };
 }
 
-/** What a public link shows of a note; see `PublicNote`. */
-function publicNoteOf(note: Note): PublicNote {
+/**
+ * What a public link shows of a note; see `PublicNote`. The title and text
+ * are the note's sealed ones, which nothing outside the owner's app opens
+ * until a link carries a key of its own.
+ */
+function publicNoteOf(note: SealedNote): PublicNote {
   return {
     title: note.title,
     content: note.content,
-    color: note.color,
-    font: note.font,
-    images: note.images,
-    linkPreviews: note.linkPreviews,
+    color: NoteColor.Default,
+    font: NoteFont.Default,
+    images: [],
+    linkPreviews: [],
     updatedAt: note.updatedAt,
   };
 }
@@ -99,7 +106,7 @@ export function registerPublicLinkRoutes(
   notes: AuthedApp,
   { storage, cfg }: PublicLinkDeps,
 ): void {
-  async function ownNote(c: Context, noteId: string): Promise<Note> {
+  async function ownNote(c: Context, noteId: string): Promise<SealedNote> {
     const { userId } = c.get("auth") as AuthContext;
     const access = await storage.notes.access(noteId, userId);
     if (!access) throw new HttpError(404, "Note not found");
@@ -316,7 +323,7 @@ export function createPublicRoutes({
     // other attachments.
     const shown = referencesOf({
       images: JSON.stringify(note.images),
-      link_previews: JSON.stringify(note.linkPreviews),
+      preview_refs: JSON.stringify(previewImages(note.linkPreviews)),
     });
     if (!shown.includes(id)) throw notFound();
     const attachment = await storage.attachments.get(id);

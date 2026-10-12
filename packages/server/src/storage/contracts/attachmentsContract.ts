@@ -1,7 +1,7 @@
 import { type LinkPreview, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver } from "../types.js";
-import { claimedImages, claimedPreviews } from "./claimed.js";
+import { claimed } from "./claimed.js";
 
 /** The attachment store's rules, run against both drivers. */
 
@@ -33,7 +33,7 @@ export function describeAttachmentsContract(
       storage.notes.insert({
         id,
         userId,
-        data: {
+        data: claimed({
           title: "",
           content: "",
           color: NoteColor.Default,
@@ -44,10 +44,10 @@ export function describeAttachmentsContract(
           trashedAt: null,
           position: 0,
           tags: [],
-          images: claimedImages(images),
-          linkPreviews: claimedPreviews(linkPreviews),
+          images: images,
+          linkPreviews: linkPreviews,
           reminder: null,
-        },
+        }),
         createdAt: T0,
         updatedAt: T0,
       });

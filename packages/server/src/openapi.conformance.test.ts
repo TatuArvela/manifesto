@@ -237,7 +237,6 @@ describe("the OpenAPI document against the server's answers", () => {
       pinned: true,
     });
     await conforms(owner, "get", "/api/notes", "/api/notes?limit=10", 200);
-    await conforms(owner, "get", "/api/search", "/api/search?q=trip", 200);
     await conforms(owner, "get", "/api/sync", "/api/sync", 200);
     await conforms(owner, "get", "/api/notes/{id}", "/api/notes/nope", 404);
     await conforms(

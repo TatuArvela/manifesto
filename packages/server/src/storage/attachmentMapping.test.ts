@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   referencedIds,
-  referencedPreviewIds,
   referencesOf,
   refPattern,
   sweepAction,
@@ -21,33 +20,9 @@ describe("referencesOf", () => {
     expect(
       referencesOf({
         images: JSON.stringify([`attachment:${A}`]),
-        link_previews: JSON.stringify([
-          {
-            url: "https://a.example",
-            title: "A",
-            domain: "a.example",
-            image: `attachment:${B}`,
-            favicon: `attachment:${C}`,
-          },
-        ]),
+        preview_refs: JSON.stringify([`attachment:${B}`, `attachment:${C}`]),
       }),
     ).toEqual([A, B, C]);
-  });
-
-  it("does not count an id a preview only spells out in its text", () => {
-    expect(
-      referencesOf({
-        images: "[]",
-        link_previews: JSON.stringify([
-          {
-            url: `https://a.example/attachment:${A}`,
-            title: `attachment:${A}`,
-            description: `attachment:${A}`,
-            domain: "a.example",
-          },
-        ]),
-      }),
-    ).toEqual([]);
   });
 
   it("ignores what is not a reference: data URLs, local refs, remote URLs, malformed ids", () => {
@@ -71,9 +46,8 @@ describe("referencesOf", () => {
   it("reads a column that is empty, null, not JSON or not a list as naming nothing", () => {
     for (const raw of [null, "", "not json", "{}", '"attachment:x"', "null"]) {
       expect(referencedIds(raw), String(raw)).toEqual([]);
-      expect(referencedPreviewIds(raw), String(raw)).toEqual([]);
     }
-    expect(referencedPreviewIds(JSON.stringify([null, 1, "x"]))).toEqual([]);
+    expect(referencedIds(JSON.stringify([null, 1, "x"]))).toEqual([]);
   });
 });
 

@@ -16,6 +16,7 @@ import {
 } from "../storage/index.js";
 import { subscribeToExternalNotes } from "../storage/LocalStorageAdapter.js";
 import { NoteConflictError } from "../storage/RestApiAdapter.js";
+import { type StorageKeys, storageKeys } from "../storage/sealing.js";
 import { deleteVersions } from "../storage/VersionStorage.js";
 import {
   clearAutoNoteOverride,
@@ -71,16 +72,24 @@ let syncCheckpoint: string | null = null;
 // a signed-out browser no longer shows another account's notes as
 // notifications.
 let sessionToken: string | null = null;
+let sessionKeys: StorageKeys | null = null;
 effect(() => {
   const { serverUrl, token } = storageConnection.value;
-  if (serverUrl !== null && token === null && sessionToken !== null) {
+  const keys = storageKeys.value;
+  const signedOut =
+    serverUrl !== null && token === null && sessionToken !== null;
+  // Locked again, or started again under new keys: what is in memory was
+  // opened with keys that no longer apply.
+  const relocked = sessionKeys !== null && keys !== sessionKeys;
+  if (signedOut || relocked) {
     confirmed.clear();
     notes.value = [];
     notesLoaded.value = false;
   }
   // A checkpoint says what this list already holds of one account's notes.
-  if (token !== sessionToken) syncCheckpoint = null;
+  if (token !== sessionToken || relocked) syncCheckpoint = null;
   sessionToken = token;
+  sessionKeys = keys;
 });
 
 /**

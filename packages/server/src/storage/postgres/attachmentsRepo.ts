@@ -68,11 +68,11 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
       if (!found) return false;
       if (found.ownerId === userId) return true;
       const shared = await pool.query<ReferringRow>(
-        `SELECT n.images, n.link_previews
+        `SELECT n.images, n.preview_refs
          FROM note_shares s JOIN notes n ON n.id = s.note_id
          WHERE s.user_id = $1 AND s.accepted_at IS NOT NULL
            AND n.user_id = $2 AND n.trashed = FALSE
-           AND (n.images LIKE $3 OR n.link_previews LIKE $3)`,
+           AND (n.images LIKE $3 OR n.preview_refs LIKE $3)`,
         [userId, found.ownerId, refPattern(id)],
       );
       return shared.rows.some((note) => referencesOf(note).includes(id));
@@ -81,7 +81,7 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
     async sweep(now, cutoffIso) {
       const referenced = new Set<string>();
       const notes = await pool.query<ReferringRow>(
-        `SELECT images, link_previews FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
+        `SELECT images, preview_refs FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
       );
       for (const row of notes.rows) {
         for (const id of referencesOf(row)) referenced.add(id);
@@ -115,7 +115,7 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
           const gone = await pool.query(
             `DELETE FROM attachments WHERE id = $1 AND NOT EXISTS
                (SELECT 1 FROM notes
-                WHERE images LIKE $2 OR link_previews LIKE $2)`,
+                WHERE images LIKE $2 OR preview_refs LIKE $2)`,
             [row.id, refPattern(row.id)],
           );
           deleted += gone.rowCount ?? 0;

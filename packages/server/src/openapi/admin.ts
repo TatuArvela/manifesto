@@ -66,16 +66,6 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/admin/users/:id/export",
-    tag: "Admin",
-    summary: "Every note an account owns, as a zip (only with ADMIN_EXPORT on)",
-    auth: "admin",
-    feature: "adminExport",
-    limits: ["user"],
-    responses: { "200": { description: "application/zip" }, ...notFound },
-  },
-  {
-    method: "get",
     path: "/api/admin/update",
     tag: "Admin",
     summary: "The running version, and the newest release if the check is on",

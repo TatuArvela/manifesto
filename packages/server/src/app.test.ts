@@ -71,11 +71,11 @@ describe("end-to-end smoke", () => {
     });
     expect(update.status).toBe(200);
 
+    // The app searches the notes it has opened; the server cannot.
     const search = await rig.request("/api/search?q=renamed", {
       headers: authHeaders(token),
     });
-    const found = ((await search.json()) as { notes: Note[] }).notes;
-    expect(found.map((n) => n.id)).toEqual([note.id]);
+    expect(search.status).toBe(403);
 
     const del = await rig.request(`/api/notes/${note.id}`, {
       method: "DELETE",

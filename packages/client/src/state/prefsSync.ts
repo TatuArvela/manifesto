@@ -1,7 +1,12 @@
-import type { AccountPrefs, AccountPrefsResponse } from "@manifesto/shared";
+import type {
+  AccountPrefs,
+  SealedAccountPrefs,
+  SealedAccountPrefsResponse,
+} from "@manifesto/shared";
 import { effect, untracked } from "@preact/signals";
 import { apiFetch } from "../storage/apiRequest.js";
 import { storageConnection } from "../storage/index.js";
+import { sealer } from "../storage/sealing.js";
 import {
   ACCOUNT_PREF_KEYS,
   accountPrefsSnapshot,
@@ -20,6 +25,10 @@ import {
  * touched, and each change elsewhere arrives as `prefs:updated` on the app
  * socket. A change made here and not yet sent wins over one that arrives,
  * since it is newer to the person making it.
+ *
+ * The server holds each value sealed under the account's personal key (the
+ * names of hidden tags are among them), so nothing here runs until the
+ * account is unlocked.
  */
 
 /** Each account key's value as this module last saw it, as JSON. */
@@ -49,11 +58,14 @@ function schedulePush() {
 }
 
 async function push(): Promise<void> {
-  if (!ready || dirty.size === 0) return;
+  const sealing = sealer.peek();
+  if (!ready || dirty.size === 0 || !sealing) return;
   const snapshot = accountPrefsSnapshot();
   const patch: AccountPrefs = {};
   for (const key of dirty) patch[key] = snapshot[key];
-  const res = await apiFetch("PATCH", "/auth/me/prefs", { prefs: patch });
+  const res = await apiFetch("PATCH", "/auth/me/prefs", {
+    prefs: await sealing.sealPrefs(patch),
+  });
   // Offline or refused: the keys stay dirty, for the next change or the
   // next time the socket reconnects.
   if (!res?.ok) return;
@@ -81,15 +93,20 @@ function adopt(prefs: AccountPrefs) {
  * Never rejects.
  */
 export async function refreshAccountPrefs(): Promise<void> {
+  const sealing = sealer.peek();
+  if (!sealing) return;
   const res = await apiFetch("GET", "/auth/me/prefs");
   if (!res?.ok) return;
-  let prefs: AccountPrefs;
+  let sealed: SealedAccountPrefs;
   try {
-    prefs = ((await res.json()) as AccountPrefsResponse).prefs ?? {};
+    sealed = ((await res.json()) as SealedAccountPrefsResponse).prefs ?? {};
   } catch {
     return;
   }
-  if (!prefs || typeof prefs !== "object" || Array.isArray(prefs)) return;
+  if (!sealed || typeof sealed !== "object" || Array.isArray(sealed)) return;
+  // A value that does not open reads as one the server lacks, and is sent
+  // again from here.
+  const prefs = await sealing.openPrefs(sealed);
   adopt(prefs);
   // The keys the server lacks: every one for an account with nothing stored,
   // or a preference newer than the client that last wrote.
@@ -100,10 +117,15 @@ export async function refreshAccountPrefs(): Promise<void> {
   if (dirty.size > 0) schedulePush();
 }
 
-/** `prefs:updated` from the app socket: another device changed something. */
-export function receiveAccountPrefs(prefs: AccountPrefs): void {
-  if (!ready) return;
-  adopt(prefs);
+/** `prefs:updated` from the app socket: another device changed something.
+ * Never rejects. */
+export async function receiveAccountPrefs(
+  sealed: SealedAccountPrefs,
+): Promise<void> {
+  const sealing = sealer.peek();
+  if (!ready || !sealing) return;
+  const prefs = await sealing.openPrefs(sealed);
+  if (ready) adopt(prefs);
 }
 
 /**
@@ -116,11 +138,12 @@ export function startPrefsSync(): void {
 
   effect(() => {
     const { serverUrl, token } = storageConnection.value;
+    const unlocked = sealer.value !== null;
     untracked(() => {
       ready = false;
       dirty.clear();
       clearTimeout(pushTimer);
-      if (serverUrl === null || !token) return;
+      if (serverUrl === null || !token || !unlocked) return;
       void refreshAccountPrefs();
     });
   });

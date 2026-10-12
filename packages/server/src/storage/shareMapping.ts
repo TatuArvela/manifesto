@@ -1,9 +1,9 @@
 import type {
-  Note,
   NoteMember,
   NoteReminder,
   NoteRole,
-  NoteUpdate,
+  SealedNote,
+  SealedNoteUpdate,
   ShareInvitation,
   ShareRole,
   ShareUser,
@@ -11,8 +11,8 @@ import type {
 } from "@manifesto/shared";
 import {
   PERSONAL_NOTE_FIELDS,
+  SEALED_SHARED_NOTE_FIELDS,
   SHARE_ROLES,
-  SHARED_NOTE_FIELDS,
 } from "@manifesto/shared";
 import { nowIso } from "../lib/time.js";
 import {
@@ -22,8 +22,8 @@ import {
   parseFont,
   parseJson,
   type RowBoolean,
-  rowToListedNote,
   rowToNote,
+  sealedColumn,
 } from "./noteMapping.js";
 import type { NoteShare } from "./types.js";
 
@@ -53,6 +53,7 @@ export interface ViewRow extends NoteRow {
   s_position?: number | string | null;
   s_tags?: string | null;
   s_reminder?: string | null;
+  s_wrapped_key?: string | null;
 }
 
 /** For a query that joins `note_shares s` onto `notes n`. */
@@ -66,6 +67,7 @@ export const SHARE_OVERLAY_COLUMNS = [
   "s.position AS s_position",
   "s.tags AS s_tags",
   "s.reminder AS s_reminder",
+  "s.wrapped_key AS s_wrapped_key",
 ].join(", ");
 
 export interface ShareRow {
@@ -168,17 +170,19 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
 
 /**
  * The note as its reader sees it. A row that came through a share takes the
- * recipient's own personal fields, their own trash included. The owner's trash
- * never shows here: a note in it does not reach anyone else at all.
+ * recipient's own personal fields, their own trash included, and their own
+ * wrapped copy of the note key. The owner's trash never shows here: a note in
+ * it does not reach anyone else at all.
  */
-export function rowToViewNote(row: ViewRow, listed: boolean): Note {
-  const note = listed ? rowToListedNote(row) : rowToNote(row);
+export function rowToViewNote(row: ViewRow): SealedNote {
+  const note = rowToNote(row);
   if (row.s_role === null || row.s_role === undefined) return note;
-  note.color = parseColor(row.s_color ?? "");
+  note.key = sealedColumn(row.s_wrapped_key);
+  note.color = sealedColumn(row.s_color);
   note.pinned = asBoolean(row.s_pinned ?? false);
   note.archived = asBoolean(row.s_archived ?? false);
   note.position = Number(row.s_position ?? 0);
-  note.tags = parseJson<string[]>(row.s_tags ?? null, []);
+  note.tags = sealedColumn(row.s_tags);
   note.reminder = parseJson<NoteReminder | null>(row.s_reminder ?? null, null);
   note.trashed = asBoolean(row.s_trashed ?? false);
   note.trashedAt = row.s_trashed_at ?? null;
@@ -192,11 +196,11 @@ export function rowToViewNote(row: ViewRow, listed: boolean): Note {
  */
 export function attachSharing(
   rows: ViewRow[],
-  notes: Note[],
+  notes: SealedNote[],
   viewerId: string,
   members: MemberRow[],
   users: UserBriefRow[],
-): Note[] {
+): SealedNote[] {
   const membersByNote = new Map<string, MemberRow[]>();
   for (const member of members) {
     const list = membersByNote.get(member.note_id) ?? [];
@@ -239,7 +243,7 @@ export function ownerIdsOf(rows: ViewRow[]): string[] {
   return [...new Set(rows.map((row) => row.user_id))];
 }
 
-const SHARED_FIELDS = new Set<string>(SHARED_NOTE_FIELDS);
+const SHARED_FIELDS = new Set<string>(SEALED_SHARED_NOTE_FIELDS);
 const PERSONAL_FIELDS = new Set<string>(PERSONAL_NOTE_FIELDS);
 
 /**
@@ -247,9 +251,9 @@ const PERSONAL_FIELDS = new Set<string>(PERSONAL_NOTE_FIELDS);
  * fields to the note, the personal ones (their own trash among them) to their
  * share, and the rest (auto-note markers) belonging to the owner alone.
  */
-export function splitChanges(changes: NoteUpdate): {
-  shared: NoteUpdate;
-  personal: NoteUpdate;
+export function splitChanges(changes: SealedNoteUpdate): {
+  shared: SealedNoteUpdate;
+  personal: SealedNoteUpdate;
   ownerOnly: string[];
 } {
   const shared: Record<string, unknown> = {};
@@ -262,8 +266,8 @@ export function splitChanges(changes: NoteUpdate): {
     else ownerOnly.push(field);
   }
   return {
-    shared: shared as NoteUpdate,
-    personal: personal as NoteUpdate,
+    shared: shared as SealedNoteUpdate,
+    personal: personal as SealedNoteUpdate,
     ownerOnly,
   };
 }

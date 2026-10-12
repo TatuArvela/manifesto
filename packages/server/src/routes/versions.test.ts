@@ -1,6 +1,7 @@
 import type { Note, NoteCreate, NoteVersionsResponse } from "@manifesto/shared";
 import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ct } from "../storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
@@ -118,8 +119,9 @@ describe("version routes", () => {
         id: `v${String(i).padStart(3, "0")}`,
         noteId: note.id,
         authorId: owner.userId,
-        title: "",
-        content: String(i),
+        keyVersion: 1,
+        title: ct(""),
+        content: ct(String(i)),
         createdAt: new Date(Date.now() - (100 - i) * 1000).toISOString(),
       });
     }

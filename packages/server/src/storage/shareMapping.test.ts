@@ -1,11 +1,10 @@
 import {
-  NoteColor,
-  NoteFont,
-  type NoteUpdate,
   PERSONAL_NOTE_FIELDS,
-  SHARED_NOTE_FIELDS,
+  SEALED_SHARED_NOTE_FIELDS,
+  type SealedNoteUpdate,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
+import { ct } from "./contracts/claimed.js";
 import {
   attachSharing,
   forbiddenFields,
@@ -19,19 +18,22 @@ import {
 
 /**
  * Where a recipient's write of each field lands. Keyed on every field of
- * `NoteUpdate`, so a field added to `Note` fails the typecheck here until
+ * `SealedNoteUpdate`, so a field added to a note fails the typecheck here until
  * someone decides whether recipients may write it; without that decision it
  * falls to the owner alone and every recipient's write of it is refused.
  */
 const WHERE: Record<
-  keyof Required<NoteUpdate>,
+  keyof Required<SealedNoteUpdate>,
   "shared" | "personal" | "owner"
 > = {
   title: "shared",
   content: "shared",
+  excerpt: "shared",
   font: "shared",
   images: "shared",
+  imageRefs: "shared",
   linkPreviews: "shared",
+  previewRefs: "shared",
   color: "personal",
   pinned: "personal",
   archived: "personal",
@@ -40,25 +42,33 @@ const WHERE: Record<
   position: "personal",
   tags: "personal",
   reminder: "personal",
-  // Auto-note markers, and the stamp the server writes itself.
+  // Auto-note markers, the stamp the server writes itself, and the note
+  // key, which only its owner replaces.
   readonly: "owner",
   source: "owner",
   updatedAt: "owner",
+  key: "owner",
+  keyVersion: "owner",
 };
 
-const sample: Required<NoteUpdate> = {
-  title: "t",
-  content: "c",
-  font: NoteFont.Default,
-  images: [],
-  linkPreviews: [],
-  color: NoteColor.Blue,
+const sample: Required<SealedNoteUpdate> = {
+  key: ct("key"),
+  keyVersion: 2,
+  title: ct("t"),
+  content: ct("c"),
+  excerpt: ct("c"),
+  font: ct("default"),
+  images: ct("[]"),
+  imageRefs: [],
+  linkPreviews: ct("[]"),
+  previewRefs: [],
+  color: ct("blue"),
   pinned: true,
   archived: false,
   trashed: false,
   trashedAt: null,
   position: 5,
-  tags: ["x"],
+  tags: ct('["x"]'),
   reminder: null,
   readonly: true,
   source: { kind: "auto-note", pluginId: "p", noteKey: "k" },
@@ -80,12 +90,12 @@ describe("splitChanges", () => {
   it("agrees with the lists in shared, which the client reads too", () => {
     expect(
       Object.keys(WHERE).filter(
-        (f) => WHERE[f as keyof NoteUpdate] === "shared",
+        (f) => WHERE[f as keyof SealedNoteUpdate] === "shared",
       ),
-    ).toEqual([...SHARED_NOTE_FIELDS]);
+    ).toEqual([...SEALED_SHARED_NOTE_FIELDS]);
     expect(
       Object.keys(WHERE)
-        .filter((f) => WHERE[f as keyof NoteUpdate] === "personal")
+        .filter((f) => WHERE[f as keyof SealedNoteUpdate] === "personal")
         .sort(),
     ).toEqual([...PERSONAL_NOTE_FIELDS].sort());
   });
@@ -98,7 +108,7 @@ describe("splitChanges", () => {
       reminder: null,
       pinned: false,
       readonly: undefined,
-    } as unknown as NoteUpdate);
+    } as unknown as SealedNoteUpdate);
     expect(split).toEqual({
       shared: {},
       personal: { reminder: null, pinned: false },
@@ -107,7 +117,7 @@ describe("splitChanges", () => {
   });
 
   it("treats a field it has never heard of as the owner's", () => {
-    const split = splitChanges({ sharing: {} } as unknown as NoteUpdate);
+    const split = splitChanges({ sharing: {} } as unknown as SealedNoteUpdate);
     expect(split.ownerOnly).toEqual(["sharing"]);
   });
 });
@@ -115,20 +125,29 @@ describe("splitChanges", () => {
 describe("forbiddenFields", () => {
   it("lets an editor write shared and personal fields", () => {
     expect(
-      forbiddenFields("edit", splitChanges({ title: "a", pinned: true })),
+      forbiddenFields("edit", splitChanges({ title: ct("a"), pinned: true })),
     ).toEqual([]);
   });
 
   it("keeps a viewer to their own copy", () => {
     expect(
-      forbiddenFields("view", splitChanges({ pinned: true, tags: ["a"] })),
+      forbiddenFields(
+        "view",
+        splitChanges({ pinned: true, tags: ct('["a"]') }),
+      ),
     ).toEqual([]);
     expect(
       forbiddenFields(
         "view",
-        splitChanges({ pinned: true, content: "x", images: [] }),
+        splitChanges({ pinned: true, content: ct("x"), imageRefs: [] }),
       ).sort(),
-    ).toEqual(["content", "images"]);
+    ).toEqual(["content", "imageRefs"]);
+  });
+
+  it("keeps the note key to its owner", () => {
+    expect(
+      forbiddenFields("edit", splitChanges({ key: ct("k"), keyVersion: 2 })),
+    ).toEqual(["key", "keyVersion"]);
   });
 
   it("refuses the owner's fields to every role", () => {
@@ -139,7 +158,7 @@ describe("forbiddenFields", () => {
           splitChanges({
             readonly: true,
             source: undefined,
-          } as unknown as NoteUpdate),
+          } as unknown as SealedNoteUpdate),
         ),
       ).toEqual(["readonly"]);
     }
@@ -159,18 +178,19 @@ function row(overrides: Partial<ViewRow> = {}): ViewRow {
   return {
     id: "n1",
     user_id: "owner",
-    title: "Title",
-    content: "Body",
-    color: "blue",
-    font: "default",
+    title: ct("Title"),
+    content: ct("Body"),
+    color: ct("blue"),
+    font: ct("default"),
+    wrapped_key: ct("owner's key"),
     pinned: 1,
     archived: 0,
     trashed: 0,
     trashed_at: null,
     position: 10,
-    tags: '["owner-tag"]',
+    tags: ct('["owner-tag"]'),
     images: "[]",
-    link_previews: "[]",
+    link_previews: ct("[]"),
     reminder: null,
     readonly: 0,
     source: null,
@@ -182,11 +202,12 @@ function row(overrides: Partial<ViewRow> = {}): ViewRow {
 
 describe("rowToViewNote", () => {
   it("shows the owner their own row", () => {
-    const note = rowToViewNote(row(), false);
+    const note = rowToViewNote(row());
     expect(note).toMatchObject({
-      color: "blue",
+      key: ct("owner's key"),
+      color: ct("blue"),
       pinned: true,
-      tags: ["owner-tag"],
+      tags: ct('["owner-tag"]'),
       position: 10,
     });
   });
@@ -195,26 +216,29 @@ describe("rowToViewNote", () => {
     const note = rowToViewNote(
       row({
         s_role: "view",
-        s_color: null,
         s_pinned: 0,
         s_archived: 1,
         s_trashed: 0,
         s_position: "3.5",
-        s_tags: null,
+        // The columns' defaults, for a colour and tags never set.
+        s_color: "default",
+        s_tags: "[]",
         s_reminder: null,
+        s_wrapped_key: ct("recipient's key"),
       }),
-      false,
     );
     expect(note).toMatchObject({
-      title: "Title",
-      content: "Body",
-      color: "default",
+      title: ct("Title"),
+      content: ct("Body"),
+      // Their own copy of the key, and nothing of the owner's colour or tags.
+      key: ct("recipient's key"),
+      color: "",
       pinned: false,
       archived: true,
       trashed: false,
       trashedAt: null,
       position: 3.5,
-      tags: [],
+      tags: "",
       reminder: null,
     });
   });
@@ -227,7 +251,6 @@ describe("rowToViewNote", () => {
         s_trashed_at: "2026-02-01T00:00:00.000Z",
         trashed: 0,
       }),
-      false,
     );
     expect(note.trashed).toBe(true);
     expect(note.trashedAt).toBe("2026-02-01T00:00:00.000Z");
@@ -283,7 +306,7 @@ describe("attachSharing", () => {
     const r = row();
     const [note] = attachSharing(
       [r],
-      [rowToViewNote(r, false)],
+      [rowToViewNote(r)],
       "owner",
       members,
       users,
@@ -306,13 +329,7 @@ describe("attachSharing", () => {
 
   it("shows a recipient only the people who accepted", () => {
     const r = row({ s_role: "edit" });
-    const [note] = attachSharing(
-      [r],
-      [rowToViewNote(r, false)],
-      "b",
-      members,
-      users,
-    );
+    const [note] = attachSharing([r], [rowToViewNote(r)], "b", members, users);
     expect(note?.sharing?.role).toBe("edit");
     expect(note?.sharing?.owner.displayName).toBe("Olga");
     expect(note?.sharing?.members.map((m) => m.username)).toEqual([
@@ -325,7 +342,7 @@ describe("attachSharing", () => {
     const r = row({ id: "lonely" });
     const [note] = attachSharing(
       [r],
-      [rowToViewNote(r, false)],
+      [rowToViewNote(r)],
       "owner",
       members,
       users,

@@ -51,5 +51,8 @@ export function createPostgresPrefsRepo(pool: PgPool): PrefsRepo {
         client.release();
       }
     },
+    async clear(userId) {
+      await pool.query(`DELETE FROM user_prefs WHERE user_id = $1`, [userId]);
+    },
   };
 }

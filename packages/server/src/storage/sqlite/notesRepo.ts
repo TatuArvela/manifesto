@@ -1,10 +1,9 @@
-import type { Note, NoteUpdate } from "@manifesto/shared";
+import type { SealedNote, SealedNoteUpdate } from "@manifesto/shared";
 import {
   decodeCursor,
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
-  searchPattern,
   splitPage,
 } from "../noteMapping.js";
 import {
@@ -30,12 +29,11 @@ import {
 } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
-/**
- * Everything but the attachments. Listing queries select this so the bytes
- * never leave the database, which is the point of leaving them out of the
- * response.
- */
-const LIST_COLUMNS = INSERT_COLUMNS.filter((c) => c !== "images");
+/** Everything a reader is sent: the attachment references are the server's
+ * own record and stay behind. */
+const LIST_COLUMNS = INSERT_COLUMNS.filter(
+  (c) => c !== "images" && c !== "preview_refs" && c !== "image_count",
+);
 
 /**
  * Ordered by `updated_at DESC, id DESC`, so a cursor is a place in a total
@@ -49,8 +47,6 @@ const AFTER_CURSOR = `AND (n.updated_at < @afterUpdatedAt
   OR (n.updated_at = @afterUpdatedAt AND n.id < @afterId))`;
 /** Row or members changed after `@since`; see `members_changed_at`. */
 const CHANGED = `AND (n.updated_at > @since OR n.members_changed_at > @since)`;
-const MATCHES = `AND (LOWER(n.title) LIKE LOWER(@like)
-  OR LOWER(n.content) LIKE LOWER(@like))`;
 
 /** The user's own notes. */
 const OWN_FROM = `SELECT ${LIST_COLUMNS.map((c) => `n.${c}`).join(", ")}
@@ -76,10 +72,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
   const own = {
     first: db.prepare(`${OWN_FROM} ${PAGE_ORDER}`),
     after: db.prepare(`${OWN_FROM} ${AFTER_CURSOR} ${PAGE_ORDER}`),
-    search: db.prepare(`${OWN_FROM} ${MATCHES} ${PAGE_ORDER}`),
-    searchAfter: db.prepare(
-      `${OWN_FROM} ${MATCHES} ${AFTER_CURSOR} ${PAGE_ORDER}`,
-    ),
     changed: db.prepare(`${OWN_FROM} ${CHANGED} ${PAGE_ORDER}`),
     changedAfter: db.prepare(
       `${OWN_FROM} ${CHANGED} ${AFTER_CURSOR} ${PAGE_ORDER}`,
@@ -88,10 +80,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
   const shared = {
     first: db.prepare(`${SHARED_FROM} ${PAGE_ORDER}`),
     after: db.prepare(`${SHARED_FROM} ${AFTER_CURSOR} ${PAGE_ORDER}`),
-    search: db.prepare(`${SHARED_FROM} ${MATCHES} ${PAGE_ORDER}`),
-    searchAfter: db.prepare(
-      `${SHARED_FROM} ${MATCHES} ${AFTER_CURSOR} ${PAGE_ORDER}`,
-    ),
     changed: db.prepare(`${SHARED_FROM} ${CHANGED} ${PAGE_ORDER}`),
     changedAfter: db.prepare(
       `${SHARED_FROM} ${CHANGED} ${AFTER_CURSOR} ${PAGE_ORDER}`,
@@ -129,8 +117,8 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
 
   /** The notes as `viewerId` sees them, with `sharing` where they have
    * members. */
-  function view(rows: ViewRow[], viewerId: string, listed: boolean): Note[] {
-    const notes = rows.map((row) => rowToViewNote(row, listed));
+  function view(rows: ViewRow[], viewerId: string): SealedNote[] {
+    const notes = rows.map((row) => rowToViewNote(row));
     if (rows.length === 0) return notes;
     const ids = rows.map((row) => row.id);
     const members = db
@@ -154,8 +142,8 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     return attachSharing(rows, notes, viewerId, members, users);
   }
 
-  /** Narrows a listing to a search (`like`) or to changes (`since`). */
-  type Filter = { like: string } | { since: string } | null;
+  /** Narrows a listing to changes (`since`). */
+  type Filter = { since: string } | null;
 
   function page(
     userId: string,
@@ -176,20 +164,16 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
         ? after
           ? set.after
           : set.first
-        : "like" in filter
-          ? after
-            ? set.searchAfter
-            : set.search
-          : after
-            ? set.changedAfter
-            : set.changed;
+        : after
+          ? set.changedAfter
+          : set.changed;
     const rows = mergePages(
       pick(own).all(params) as ViewRow[],
       pick(shared).all(params) as ViewRow[],
       limit,
     );
     const { page: kept, nextCursor } = splitPage(rows, limit);
-    return { notes: view(kept, userId, true), nextCursor };
+    return { notes: view(kept, userId), nextCursor };
   }
 
   /**
@@ -201,7 +185,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     (
       id: string,
       userId: string,
-      changes: NoteUpdate,
+      changes: SealedNoteUpdate,
       updatedAt: string,
       expectedUpdatedAt: string | undefined,
     ): boolean => {
@@ -263,9 +247,9 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       );
     },
 
-    async getById(id: string, userId: string): Promise<Note | null> {
+    async getById(id: string, userId: string): Promise<SealedNote | null> {
       const row = getStmt.get({ id, userId }) as ViewRow | undefined;
-      return row ? (view([row], userId, false)[0] ?? null) : null;
+      return row ? (view([row], userId)[0] ?? null) : null;
     },
 
     async access(id: string, userId: string): Promise<NoteAccess | null> {
@@ -287,7 +271,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       return ownerStmt.get(id) !== undefined;
     },
 
-    async insert(input: InsertNoteInput): Promise<Note> {
+    async insert(input: InsertNoteInput): Promise<SealedNote> {
       insertStmt.run(noteInsertValues(input, "integer"));
       const note = await repo.getById(input.id, input.userId);
       if (!note)
@@ -298,10 +282,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     async update(
       id: string,
       userId: string,
-      changes: NoteUpdate,
+      changes: SealedNoteUpdate,
       updatedAt: string,
       expectedUpdatedAt?: string,
-    ): Promise<Note | null> {
+    ): Promise<SealedNote | null> {
       const owner = ownerStmt.get(id) as OwnerRow | undefined;
       if (!owner) return null;
       if (owner.user_id !== userId) {
@@ -335,16 +319,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     async delete(id: string, userId: string): Promise<boolean> {
       const info = deleteStmt.run(id, userId);
       return info.changes > 0;
-    },
-
-    async search(
-      userId: string,
-      query: string,
-      options: ListNotesOptions,
-    ): Promise<NotePage> {
-      const like = searchPattern(query);
-      if (like === null) return { notes: [], nextCursor: null };
-      return page(userId, { like }, options);
     },
   };
 

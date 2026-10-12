@@ -1,4 +1,8 @@
-import type { PublicLinkMode, PublicNote } from "@manifesto/shared";
+import {
+  type PublicLinkMode,
+  type PublicNote,
+  previewImages,
+} from "@manifesto/shared";
 import { referencesOf } from "./attachmentMapping.js";
 import type { StoredPublicLink } from "./types.js";
 
@@ -53,6 +57,6 @@ export function snapshotReferences(snapshot: string | null): string[] {
   const note = JSON.parse(snapshot) as PublicNote;
   return referencesOf({
     images: JSON.stringify(note.images),
-    link_previews: JSON.stringify(note.linkPreviews),
+    preview_refs: JSON.stringify(previewImages(note.linkPreviews)),
   });
 }

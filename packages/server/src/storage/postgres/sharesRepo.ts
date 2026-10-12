@@ -146,9 +146,9 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
         const row = note.rows[0];
         if (!row || row.trashed) return false;
         const result = await query(
-          `UPDATE note_shares SET accepted_at = $1, color = $2, position = $3
-           WHERE note_id = $4 AND user_id = $5 AND accepted_at IS NULL`,
-          [acceptedAt, row.color, -Date.parse(acceptedAt), noteId, userId],
+          `UPDATE note_shares SET accepted_at = $1, position = $2
+           WHERE note_id = $3 AND user_id = $4 AND accepted_at IS NULL`,
+          [acceptedAt, -Date.parse(acceptedAt), noteId, userId],
         );
         if ((result.rowCount ?? 0) === 0) return false;
         await stampMembers(query, noteId, acceptedAt);

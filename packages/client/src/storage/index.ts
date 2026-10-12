@@ -2,6 +2,7 @@ import { computed, signal } from "@preact/signals";
 import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
 import { RestApiAdapter } from "./RestApiAdapter.js";
 import type { StorageAdapter } from "./StorageAdapter.js";
+import { sealer } from "./sealing.js";
 
 export { LocalStorageAdapter } from "./LocalStorageAdapter.js";
 export { RestApiAdapter } from "./RestApiAdapter.js";
@@ -37,7 +38,13 @@ export const currentStorage = computed<StorageAdapter>(() => {
   // string, and reading that as "no server" sent every note to localStorage
   // while the user believed they were signed in.
   if (serverUrl !== null && token) {
-    return new RestApiAdapter(serverUrl, token, { onUnauthorized });
+    // Without the account's keys (locked, or not set up yet) the adapter
+    // still reaches the server and refuses every note, which it could
+    // neither open nor seal.
+    return new RestApiAdapter(serverUrl, token, {
+      onUnauthorized,
+      sealer: sealer.value,
+    });
   }
   return new LocalStorageAdapter();
 });
