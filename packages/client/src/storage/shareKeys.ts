@@ -172,10 +172,17 @@ export async function trustChangedKeys(userId: string): Promise<boolean> {
   if (!sealing || !given) return false;
   const seen = await rememberedBy(sealing);
   if (!seen) return false;
+  const before = seen.get(userId);
   const kept = await remember(sealing, seen, given);
-  if (kept) markChanged(userId, null);
+  if (kept) {
+    markChanged(userId, null);
+    return true;
+  }
+  // Not agreed to after all. The key remembered before goes back: with no
+  // entry the changed key would be met as a first sighting, and trusted.
+  if (before) seen.set(userId, before);
   else seen.delete(userId);
-  return kept;
+  return false;
 }
 
 /**

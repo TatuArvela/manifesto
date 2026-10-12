@@ -21,6 +21,7 @@ import {
 const publicKeysOf = new Map<string, AccountPublicKeys>();
 let seen: Record<string, string>;
 let seenReadable: boolean;
+let seenWritable: boolean;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -44,6 +45,7 @@ async function server(url: string, init?: RequestInit): Promise<Response> {
   }
   const put = /^\/api\/auth\/keys\/seen\/([^/]+)$/.exec(path);
   if (put && init?.method === "PUT") {
+    if (!seenWritable) return json({ error: "down" }, 500);
     const { sealed } = JSON.parse(String(init.body)) as { sealed: string };
     seen[decodeURIComponent(put[1] ?? "")] = sealed;
     return new Response(null, { status: 204 });
@@ -65,6 +67,7 @@ beforeEach(() => {
   publicKeysOf.clear();
   seen = {};
   seenReadable = true;
+  seenWritable = true;
   changedKeys.value = new Map();
   vi.stubGlobal(
     "fetch",
@@ -122,6 +125,28 @@ describe("remembering other people's keys", () => {
     await unlock(mine);
     expect((await trustedKeysOf("u-alice"))?.publicKeys).toEqual(swapped);
     expect((await keyStatusOf("u-alice"))?.changed).toBe(false);
+  });
+
+  it("keeps the key it remembered when trusting a changed one fails", async () => {
+    const mine = await testKeys("u-me");
+    await unlock(mine);
+    publicKeysOf.set("u-alice", await someKeys());
+    await trustedKeysOf("u-alice");
+    const swapped = await someKeys();
+    publicKeysOf.set("u-alice", swapped);
+    forgetPublicKeys("u-alice");
+    expect(await trustedKeysOf("u-alice")).toBeNull();
+
+    // The server does not take the new key: nothing was agreed to.
+    seenWritable = false;
+    expect(await trustChangedKeys("u-alice")).toBe(false);
+    // The swapped key is not met as a first sighting afterwards.
+    expect(await trustedKeysOf("u-alice")).toBeNull();
+    expect(changedKeys.value.get("u-alice")?.publicKeys).toEqual(swapped);
+
+    seenWritable = true;
+    expect(await trustChangedKeys("u-alice")).toBe(true);
+    expect((await trustedKeysOf("u-alice"))?.publicKeys).toEqual(swapped);
   });
 
   it("trusts nobody while the list cannot be read, and opens no other account's list", async () => {

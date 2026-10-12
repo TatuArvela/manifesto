@@ -166,8 +166,9 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   first key seen for an account, remembers it (`/api/auth/keys/seen`, sealed with `sealSeenKeys`
   and bound to whose it is) and answers null for a different one later, naming the account in
   `changedKeys`. Only `trustKeys` (`state/sharing.ts`, the People dialog's button) replaces a
-  remembered key, and then retries what waited on it. A list that could not be read trusts
-  nobody. `PersonKey` asks for a key's status only while keys are being compared or one is
+  remembered key, and then retries what waited on it. When the server does not take the new one,
+  `trustChangedKeys` puts the remembered key back: an account with no entry is met as new, and
+  its changed key would be trusted unasked. A list that could not be read trusts nobody. `PersonKey` asks for a key's status only while keys are being compared or one is
   marked changed, so opening the dialog costs no request.
 - **Replacing a note's key.** Both drivers mark a note `rekey_due` inside `shares.delete` (when
   the share ever held a key, `heldKey`) and `publicLinks.delete` (a live link), so no route has to
