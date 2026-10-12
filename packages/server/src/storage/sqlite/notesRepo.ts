@@ -1,4 +1,5 @@
 import type { SealedNote, SealedNoteUpdate } from "@manifesto/shared";
+import { type ReferringRow, referencesOf } from "../attachmentMapping.js";
 import {
   decodeCursor,
   INSERT_COLUMNS,
@@ -270,6 +271,13 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
 
     async exists(id: string): Promise<boolean> {
       return ownerStmt.get(id) !== undefined;
+    },
+
+    async attachmentIds(id: string): Promise<string[]> {
+      const row = db
+        .prepare(`SELECT images, preview_refs FROM notes WHERE id = ?`)
+        .get(id) as ReferringRow | undefined;
+      return row ? referencesOf(row) : [];
     },
 
     async insert(input: InsertNoteInput): Promise<SealedNote> {

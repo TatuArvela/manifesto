@@ -1,10 +1,6 @@
-import {
-  type PublicLinkMode,
-  type PublicNote,
-  previewImages,
-} from "@manifesto/shared";
-import { referencesOf } from "./attachmentMapping.js";
-import type { StoredPublicLink } from "./types.js";
+import type { PublicLinkMode } from "@manifesto/shared";
+import { referencedIds } from "./attachmentMapping.js";
+import type { StoredPublicLink, StoredSnapshot } from "./types.js";
 
 /** A `public_links` row as both drivers read it. */
 export interface PublicLinkRow {
@@ -19,10 +15,13 @@ export interface PublicLinkRow {
   view_count: number;
   last_viewed_at: string | null;
   created_at: string;
+  wrapped_key: string | null;
+  sealed_link_key: string;
 }
 
 export const PUBLIC_LINK_COLUMNS = `token, note_id, owner_id, mode, snapshot,
-  password_hash, expires_at, max_views, view_count, last_viewed_at, created_at`;
+  password_hash, expires_at, max_views, view_count, last_viewed_at, created_at,
+  wrapped_key, sealed_link_key`;
 
 export function rowToPublicLink(row: PublicLinkRow): StoredPublicLink {
   return {
@@ -30,7 +29,11 @@ export function rowToPublicLink(row: PublicLinkRow): StoredPublicLink {
     noteId: row.note_id,
     ownerId: row.owner_id,
     mode: row.mode as PublicLinkMode,
-    snapshot: row.snapshot ? (JSON.parse(row.snapshot) as PublicNote) : null,
+    snapshot: row.snapshot
+      ? (JSON.parse(row.snapshot) as StoredSnapshot)
+      : null,
+    wrappedKey: row.wrapped_key,
+    sealedLinkKey: row.sealed_link_key,
     passwordHash: row.password_hash,
     hasPassword: row.password_hash !== null,
     expiresAt: row.expires_at,
@@ -54,9 +57,6 @@ export function usableSnapshotsWhere(now: string): string {
 /** The attachment ids a snapshot shows, for the attachment sweep. */
 export function snapshotReferences(snapshot: string | null): string[] {
   if (!snapshot) return [];
-  const note = JSON.parse(snapshot) as PublicNote;
-  return referencesOf({
-    images: JSON.stringify(note.images),
-    preview_refs: JSON.stringify(previewImages(note.linkPreviews)),
-  });
+  const { refs } = JSON.parse(snapshot) as Partial<StoredSnapshot>;
+  return referencedIds(JSON.stringify(refs ?? []));
 }

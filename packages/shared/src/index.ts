@@ -85,6 +85,7 @@ export type {
   PublicNote,
   PublicNoteLockedResponse,
   PublicNoteResponse,
+  PublicSnapshot,
   PushKeyResponse,
   PushSubscribeRequest,
   PushUnsubscribeRequest,
@@ -188,6 +189,13 @@ export {
   sealImage,
   sniffImageType,
 } from "./crypto/imageSeal.js";
+export {
+  LINK_KEY_PATTERN,
+  newLinkKey,
+  openLinkedKey,
+  snapshotKey,
+  wrapForLink,
+} from "./crypto/linkSeal.js";
 export type {
   AccountSealKeys,
   ImageKeys,

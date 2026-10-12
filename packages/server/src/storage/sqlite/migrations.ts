@@ -579,6 +579,16 @@ const TOKEN_KEYS = `
 ALTER TABLE api_tokens ADD COLUMN wrapped_keys TEXT;
 `;
 
+/**
+ * A public link's keys, neither of which the server can use: the note key
+ * wrapped by the link key (a live link), and the link key sealed for its
+ * owner to copy the address again.
+ */
+const LINK_KEYS = `
+ALTER TABLE public_links ADD COLUMN wrapped_key TEXT;
+ALTER TABLE public_links ADD COLUMN sealed_link_key TEXT NOT NULL DEFAULT '';
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -611,6 +621,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0029-share-keys", sql: SHARE_KEYS },
   { id: "0030-comment-keys", sql: COMMENT_KEYS },
   { id: "0031-token-keys", sql: TOKEN_KEYS },
+  { id: "0032-link-keys", sql: LINK_KEYS },
 ];
 
 export function runMigrations(

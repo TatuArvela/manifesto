@@ -110,6 +110,11 @@ export interface NotesRepo {
   access(id: string, userId: string): Promise<NoteAccess | null>;
   /** Whether any note, anyone's, has this id. */
   exists(id: string): Promise<boolean>;
+  /**
+   * The ids of the attachments a note names, in its images and its link
+   * previews: the server's own record, which no reader is sent.
+   */
+  attachmentIds(id: string): Promise<string[]>;
   insert(input: InsertNoteInput): Promise<SealedNote>;
   /**
    * Update a note, optionally constrained by the current `updated_at` for

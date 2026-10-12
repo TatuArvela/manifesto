@@ -10,7 +10,8 @@ export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {
   const insertStmt = db.prepare(
     `INSERT INTO public_links (${PUBLIC_LINK_COLUMNS})
      VALUES (@token, @noteId, @ownerId, @mode, @snapshot, @passwordHash,
-             @expiresAt, @maxViews, @viewCount, @lastViewedAt, @createdAt)`,
+             @expiresAt, @maxViews, @viewCount, @lastViewedAt, @createdAt,
+             @wrappedKey, @sealedLinkKey)`,
   );
   const byNoteStmt = db.prepare(
     `SELECT ${PUBLIC_LINK_COLUMNS} FROM public_links WHERE note_id = ?

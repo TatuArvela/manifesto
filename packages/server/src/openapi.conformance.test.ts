@@ -145,7 +145,11 @@ describe("the OpenAPI document against the server's answers", () => {
     path: string,
     body?: unknown,
   ) {
-    const res = await rig.request(path, {
+    // A public link's page has no account and opens what it is sent with a
+    // key from its own address, so its answers are held to the document as
+    // the server gives them.
+    const send = path.startsWith("/api/public/") ? rig.rawRequest : rig.request;
+    const res = await send(path, {
       method: method.toUpperCase(),
       headers: who
         ? authHeaders(who.token)

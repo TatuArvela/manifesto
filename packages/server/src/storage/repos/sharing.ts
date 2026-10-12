@@ -1,7 +1,7 @@
 import type {
   OfferedKey,
   PublicLink,
-  PublicNote,
+  PublicSnapshot,
   ShareInvitation,
   ShareRole,
   ShareUser,
@@ -115,8 +115,16 @@ export type { ShareUser };
 export interface StoredPublicLink extends PublicLink {
   ownerId: string;
   passwordHash: string | null;
-  /** The note as it stood when a `snapshot` link was made; null for `live`. */
-  snapshot: PublicNote | null;
+  /** The note as it stood when a `snapshot` link was made, sealed for the
+   * link; null for `live`. */
+  snapshot: StoredSnapshot | null;
+  /** A `live` link's copy of the note key, wrapped by the link key. */
+  wrappedKey: string | null;
+}
+
+/** A snapshot as kept: what the owner's browser sealed, and when. */
+export interface StoredSnapshot extends PublicSnapshot {
+  updatedAt: string;
 }
 
 export interface PublicLinksRepo {

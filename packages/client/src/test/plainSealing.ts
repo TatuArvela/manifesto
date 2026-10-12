@@ -48,6 +48,9 @@ export const plainSealing: NoteSealing = {
   sealVersion: async (_noteId, version) =>
     version as unknown as SealedNoteVersionCreateRequest,
   openVersions: async (_noteId, sealed) => sealed as unknown as NoteVersion[],
+  // No link key: the link is its token alone.
+  publish: async () => null,
+  openLinkKey: async () => null,
   // No keys to carry: the server makes the token, as it does for one that
   // reaches no note.
   newToken: async () => null,

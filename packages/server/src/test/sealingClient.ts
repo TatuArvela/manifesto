@@ -4,6 +4,8 @@ import {
   isAttachmentRef,
   type NoteCreate,
   type NoteUpdate,
+  type PublicNote,
+  previewImages,
   SEALED_IMAGE_OVERHEAD,
   type SealedNote,
   type SealedNoteVersion,
@@ -135,6 +137,24 @@ export function openedAnswer(value: unknown, path = ""): unknown {
     return value.map((item) => openedAnswer(item, path));
   if (!isRecord(value)) return value;
   if (isSealedNote(value)) return opened(value as unknown as SealedNote);
+  // A note as a public link hands it over, read as its page shows it.
+  if (
+    typeof value.keyVersion === "number" &&
+    typeof value.linkPreviews === "string" &&
+    !("key" in value)
+  ) {
+    const note = value as unknown as PublicNote;
+    const json = <T>(sealed: string, none: T): T =>
+      sealed === "" ? none : (JSON.parse(plain(sealed)) as T);
+    return {
+      title: plain(note.title),
+      content: plain(note.content),
+      font: plain(note.font) || "default",
+      images: json<string[]>(note.images, []),
+      linkPreviews: json<unknown[]>(note.linkPreviews, []),
+      updatedAt: note.updatedAt,
+    };
+  }
   if (isSealedVersion(value)) {
     const version = value as unknown as SealedNoteVersion;
     return {
@@ -285,6 +305,7 @@ export function sealingClient(send: Fetch): Fetch {
     // and sends the keys it carries: so here, and the secret is put into
     // the answer, where a test looks for it.
     let madeSecret: string | null = null;
+    let madeLink = false;
     if (
       method === "POST" &&
       path === "/api/tokens" &&
@@ -305,6 +326,45 @@ export function sealingClient(send: Fetch): Fetch {
             madeSecret = secret;
             next = { ...init, body: JSON.stringify({ ...body, ...fields }) };
           }
+        }
+      } catch {
+        // Not JSON: sent as it is.
+      }
+    }
+    // Publishing: the app seals the link key for its owner and, for a
+    // snapshot, a copy of the note as it stands.
+    const published = /^\/api\/notes\/([^/]+)\/links$/.exec(path);
+    if (method === "POST" && published && typeof init?.body === "string") {
+      try {
+        const body = JSON.parse(init.body) as Record<string, unknown>;
+        if (!("sealedLinkKey" in body)) {
+          const extra: Record<string, unknown> = {
+            sealedLinkKey: ct("link key"),
+          };
+          if (body.mode === "snapshot") {
+            const got = await send(`/api/notes/${published[1]}`, {
+              headers: init.headers ?? {},
+            });
+            if (got.ok) {
+              const { note } = (await got.json()) as { note: SealedNote };
+              const shown = opened(note);
+              extra.snapshot = {
+                title: note.title,
+                content: note.content,
+                font: note.font,
+                images: note.images,
+                linkPreviews: note.linkPreviews,
+                refs: [
+                  ...shown.images,
+                  ...previewImages(shown.linkPreviews),
+                ].filter(isAttachmentRef),
+              };
+            }
+          } else if (body.mode === "live") {
+            extra.wrappedKey = ct("note key for the link");
+          }
+          next = { ...init, body: JSON.stringify({ ...body, ...extra }) };
+          madeLink = true;
         }
       } catch {
         // Not JSON: sent as it is.
@@ -335,7 +395,7 @@ export function sealingClient(send: Fetch): Fetch {
         body: JSON.stringify({ key: ct("held key"), keyVersion }),
       };
     }
-    if (typeof init?.body === "string" && madeSecret === null) {
+    if (typeof init?.body === "string" && madeSecret === null && !madeLink) {
       try {
         let parsed: unknown = JSON.parse(init.body);
         const noteId = /^\/api\/notes\/([^/]+)$/.exec(path)?.[1];

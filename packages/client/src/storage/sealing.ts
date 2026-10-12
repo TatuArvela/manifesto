@@ -11,6 +11,7 @@ import {
   type NoteSealKey,
   type NoteUpdate,
   type NoteVersion,
+  newLinkKey,
   newTokenSecret,
   noteSealKey,
   type OfferedKey,
@@ -23,6 +24,8 @@ import {
   openSealedNote,
   openSharedFields,
   openVersion,
+  type PublicLinkCreateRequest,
+  type PublicLinkMode,
   type SealedAccountPrefs,
   type SealedNote,
   type SealedNoteCreate,
@@ -37,10 +40,12 @@ import {
   sealPref,
   sealSharedFields,
   sealVersion,
+  snapshotKey,
   tokenHashOf,
   unwrapNoteKey,
   verifyOfferedKey,
   wipe,
+  wrapForLink,
   wrapNoteKey,
   wrapTokenKeys,
 } from "@manifesto/shared";
@@ -500,6 +505,94 @@ export class Sealer {
     fetch: () => Promise<SealedNote | null>,
   ): Promise<NoteSealKey | null> {
     return (await this.keyOf(noteId, fetch)).key;
+  }
+
+  /**
+   * What publishing a note takes: a new link key, which goes into the link's
+   * address and nowhere else, and what the server is sent. A live link gets
+   * the note key wrapped by the link key; a snapshot gets a copy of the note
+   * as it is now, sealed under a key derived from the link key. Either way
+   * the link key is also sealed for this account, so its owner can copy the
+   * address again.
+   */
+  async publish(
+    note: Pick<
+      Note,
+      "id" | "title" | "content" | "font" | "images" | "linkPreviews"
+    >,
+    mode: PublicLinkMode,
+    fetch: () => Promise<SealedNote | null>,
+  ): Promise<{
+    linkKey: string;
+    fields: Pick<
+      PublicLinkCreateRequest,
+      "sealedLinkKey" | "wrappedKey" | "snapshot"
+    >;
+  } | null> {
+    const account = await this.account;
+    const linkKey = newLinkKey();
+    const sealedLinkKey = await sealPref(account, `link/${note.id}`, linkKey);
+    if (mode === "live") {
+      const held = await this.keyOf(note.id, fetch);
+      const raw = await unwrapNoteKey(
+        account,
+        note.id,
+        held.key.version,
+        held.wrapped,
+      );
+      if (!raw) throw new NoteKeyError(note.id);
+      try {
+        return {
+          linkKey,
+          fields: {
+            sealedLinkKey,
+            wrappedKey: await wrapForLink(
+              linkKey,
+              note.id,
+              held.key.version,
+              raw,
+            ),
+          },
+        };
+      } finally {
+        wipe(raw);
+      }
+    }
+    const key = await snapshotKey(linkKey);
+    if (!key) return null;
+    const sealed = await sealSharedFields(
+      key,
+      note.id,
+      {
+        title: note.title,
+        content: note.content,
+        font: note.font,
+        images: note.images,
+        linkPreviews: note.linkPreviews,
+      },
+      this.imageKeys,
+    );
+    return {
+      linkKey,
+      fields: {
+        sealedLinkKey,
+        snapshot: {
+          title: sealed.title ?? "",
+          content: sealed.content ?? "",
+          font: sealed.font ?? "",
+          images: sealed.images ?? "",
+          linkPreviews: sealed.linkPreviews ?? "",
+          refs: [...(sealed.imageRefs ?? []), ...(sealed.previewRefs ?? [])],
+        },
+      },
+    };
+  }
+
+  /** A link's key, from the copy sealed for its owner; null when it does
+   * not open. */
+  async openLinkKey(noteId: string, sealed: string): Promise<string | null> {
+    const opened = await openPref(await this.account, `link/${noteId}`, sealed);
+    return typeof opened === "string" ? opened : null;
   }
 
   /**

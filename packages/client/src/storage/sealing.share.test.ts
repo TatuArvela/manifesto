@@ -4,8 +4,12 @@ import {
   NoteColor,
   type NoteCreate,
   NoteFont,
+  newLinkKey,
+  openLinkedKey,
+  openSharedFields,
   type SealedNote,
   type SealedNoteCreate,
+  snapshotKey,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import { createAccountKeys } from "../utils/keyMaterial.js";
@@ -192,5 +196,81 @@ describe("handing a note's key to someone it is shared with", () => {
     expect(print).toMatch(/^([0-9A-F]{4} ){5}[0-9A-F]{4}$/);
     expect(await keyFingerprint({ ...owner.publicKeys })).toBe(print);
     expect(await keyFingerprint(alice.publicKeys)).not.toBe(print);
+  });
+});
+
+describe("publishing a note by link", () => {
+  const shownBy = async (
+    key: Awaited<ReturnType<typeof snapshotKey>>,
+    fields: Parameters<typeof openSharedFields>[2],
+  ) => {
+    if (!key) return null;
+    const { title, content } = await openSharedFields(key, "n1", fields);
+    return { title, content };
+  };
+
+  it("lets whoever has the link key open a live link, which follows the note", async () => {
+    const owner = await account("u-owner");
+    const note = stored(await owner.sealer.sealNew("n1", draft));
+    const made = await owner.sealer.publish(
+      { id: "n1", ...draft },
+      "live",
+      async () => note,
+    );
+    if (!made?.fields.wrappedKey) throw new Error("no link");
+    expect(made.fields.snapshot).toBeUndefined();
+
+    // The page: the link key from its address, the rest from the server.
+    const key = await openLinkedKey(
+      made.linkKey,
+      "n1",
+      note.keyVersion,
+      made.fields.wrappedKey,
+    );
+    expect(await shownBy(key, note)).toEqual({
+      title: "Trip plan",
+      content: "Fly on the third.",
+    });
+    // Another link's key, or this one on another note, opens nothing.
+    expect(
+      await openLinkedKey(newLinkKey(), "n1", 1, made.fields.wrappedKey),
+    ).toBeNull();
+    expect(
+      await openLinkedKey(made.linkKey, "n2", 1, made.fields.wrappedKey),
+    ).toBeNull();
+
+    // The owner can copy the address again, and nobody else's account can.
+    expect(
+      await owner.sealer.openLinkKey("n1", made.fields.sealedLinkKey),
+    ).toBe(made.linkKey);
+    const other = await account("u-other");
+    expect(
+      await other.sealer.openLinkKey("n1", made.fields.sealedLinkKey),
+    ).toBeNull();
+  });
+
+  it("seals a snapshot under the link key, apart from the note's own key", async () => {
+    const owner = await account("u-owner");
+    const note = stored(await owner.sealer.sealNew("n1", draft));
+    const made = await owner.sealer.publish(
+      { id: "n1", ...draft },
+      "snapshot",
+      async () => note,
+    );
+    if (!made?.fields.snapshot) throw new Error("no snapshot");
+    expect(made.fields.wrappedKey).toBeUndefined();
+    const { snapshot } = made.fields;
+    expect(JSON.stringify(snapshot)).not.toContain("Trip plan");
+    expect(snapshot.refs).toEqual([]);
+
+    expect(await shownBy(await snapshotKey(made.linkKey), snapshot)).toEqual({
+      title: "Trip plan",
+      content: "Fly on the third.",
+    });
+    // The copy is not under the note's key: the link gives nothing else away.
+    expect(await shownBy(await snapshotKey(newLinkKey()), snapshot)).toEqual({
+      title: "",
+      content: "",
+    });
   });
 });

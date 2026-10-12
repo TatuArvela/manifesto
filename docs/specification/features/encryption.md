@@ -457,8 +457,8 @@ the code does, and nothing here may be released:
   way: the server still runs Yjs for the room, merging the list of sealed entries, so the rules
   about which edits and snapshots are kept are followed by the clients that compact a note and not
   enforced by the server.
-- **Nothing a person writes reaches the server readable any more**, except what a public link
-  shows of a note, which is not sealed yet (the rest of step 4).
+- **Nothing a person writes reaches the server readable any more**, outside a request made with a
+  token that carries a key.
 - **Sharing a note** hands its key on: wrapped to the recipient's public key and signed by whoever
   wrapped it, opened and checked by their client, and kept under their own notes key when they
   accept. A member of a team waits until the first client of anyone holding the note wraps it for
@@ -466,7 +466,11 @@ the code does, and nothing here may be released:
 - **Not built of sharing yet** (the rest of step 4): the keys an account has seen are remembered
   for the session only, there is no fingerprint to compare and no refusal of a key that changed, so
   a signature is checked against whatever key the server gives for its signer; removing someone
-  does not replace the note's key; public links are not sealed.
+  does not replace the note's key, and neither does revoking a live public link.
+- **Public links** carry a link key in the fragment of their address. A live link stores the note
+  key wrapped by it; a snapshot stores a copy of the note sealed under a key derived from it. The
+  owner's copy of the link key is sealed under their personal key. The page opens the note, and its
+  pictures, in the browser.
 - **Comments** are sealed under the note key, each bound to an id its writer chose.
 - **An API or MCP token made in Settings** carries the notes key and the personal key, wrapped
   under a key derived from its secret, which the app makes and the server never sees until the

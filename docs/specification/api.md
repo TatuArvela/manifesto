@@ -161,7 +161,7 @@ Bearer-protected, and share the per-user API limit.
 | `PUT`    | `/api/notes/:id/team-shares/:teamId` | Change the team's role, and its members' with it: `{ role }`, `{ teamShares }` |
 | `DELETE` | `/api/notes/:id/team-shares/:teamId` | Stop sharing with the team, taking the note from those who had it through it: `204` |
 | `GET`    | `/api/notes/:id/links`               | The note's [public links](features/sharing.md#public-links) (owner): `{ links: PublicLink[] }` |
-| `POST`   | `/api/notes/:id/links`               | Publish it: `{ mode, expiresInDays?, password?, maxViews? }`, `201` `{ link }` (owner) |
+| `POST`   | `/api/notes/:id/links`               | Publish it: `{ mode, expiresInDays?, password?, maxViews?, sealedLinkKey, wrappedKey? or snapshot? }`, `201` `{ link }` (owner) |
 | `DELETE` | `/api/notes/:id/links/:token`        | Revoke a link: `204` (owner) |
 
 `role` is `"edit"` or `"view"`. The `{ note }` a share route returns is the owner's copy, with
@@ -211,13 +211,22 @@ A public link is read without an account, and none of these send a bearer token:
 
 | Method   | Path                                   | Description |
 |----------|----------------------------------------|-------------|
-| `GET`    | `/api/public/:token`                   | The note: `{ note: PublicNote, access: null }`, counting a view; `401` `{ passwordRequired: true }` for a link with a password, counting nothing |
-| `POST`   | `/api/public/:token/unlock`            | With `{ password }`: `{ note, access }`, counting a view; `403` for a wrong one |
-| `GET`    | `/api/public/:token/attachments/:id`   | A picture the note shows, and no other; a link with a password needs `X-Link-Access: <access>` |
+| `GET`    | `/api/public/:token`                   | The note: `{ note: PublicNote, wrappedKey, access: null }`, counting a view; `401` `{ passwordRequired: true }` for a link with a password, counting nothing |
+| `POST`   | `/api/public/:token/unlock`            | With `{ password }`: `{ note, wrappedKey, access }`, counting a view; `403` for a wrong one |
+| `GET`    | `/api/public/:token/attachments/:id`   | A picture the note shows, sealed, and no other; a link with a password needs `X-Link-Access: <access>` |
 
 `mode` is `"live"` or `"snapshot"`. `PublicLink` is `{ token, noteId, mode, expiresAt, hasPassword,
-maxViews, viewCount, lastViewedAt, createdAt }`; `PublicNote` is `{ title, content, color, font,
-images, linkPreviews, updatedAt }`. Every public route answers the same `404` for a link that does not
+maxViews, viewCount, lastViewedAt, createdAt, sealedLinkKey }`; `PublicNote` is `{ id, keyVersion,
+title, content, font, images, linkPreviews, updatedAt }`, every word of it sealed.
+
+What a link shows opens only with its **link key**, 256 random bits the owner's app makes and puts
+in the fragment of the address (`/p/<token>#k=<key>`), which no browser sends to a server. The key
+is not the token, and the server never holds it. A `live` link is created with `wrappedKey`, the
+note key wrapped by the link key, and answers with the note's own sealed fields; a `snapshot` link
+is created with `snapshot`, a copy of the note sealed under a key derived from the link key, and
+the attachment references it names, which must be the note's. `sealedLinkKey` is the link key
+sealed under the owner's personal key, handed back so the owner can copy the address again. The
+password, the expiry and the view limit stay gates the server keeps. Every public route answers the same `404` for a link that does not
 open (never made, revoked, expired, used up, its note in the trash; with `PUBLIC_LINKS=off`, the 404 of
 a route that does not exist), sends
 `Cache-Control: no-store` and `X-Robots-Tag: noindex`, and is limited per address; `unlock` also per

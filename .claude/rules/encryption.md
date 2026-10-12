@@ -11,6 +11,8 @@ paths:
   - "packages/client/src/storage/shareKeys.ts"
   - "packages/client/src/state/sharing.ts"
   - "packages/client/src/state/comments.ts"
+  - "packages/client/src/state/publicLinks.ts"
+  - "packages/server/src/routes/publicLinks.ts"
   - "packages/client/src/realtime/sealedDocument.ts"
   - "packages/client/src/realtime/yjsSession.ts"
   - "packages/server/src/routes/shares.ts"
@@ -172,6 +174,19 @@ name from inside. Both documents share one `clientID`, so "the client with the l
 The server's `/api/yjs` code did not change and must not start reading the document: nothing in it
 is readable. Passing `key: null` to `createYjsSession` syncs the document as it is, and exists only
 for tests that hand sealing through.
+
+## Public links
+
+A link's address is `/p/<token>#k=<link key>` (`shared/src/crypto/linkSeal.ts`). The server finds
+the link by the token and never sees the key. `Sealer.publish` makes the key and what the server
+stores: for a live link the note key wrapped by it, for a snapshot a copy of the note sealed under
+a key derived from it, with the attachment references that copy names. The owner's own copy of the
+link key is sealed under their personal key (`sealedLinkKey`), which is how the dialog copies an
+address again (`publicLinkAddress`). The page has no account and no `Sealer`: `state/publicLinks.ts`
+reads the key from `location.hash`, opens the note with the shared functions, and opens each
+picture with the key the note holds for it. A link without its key shows the same "gone" as one
+that is not there. Its browser test seals a real note for that reason, though the rest of that
+project hands sealing through.
 
 ## Tokens
 

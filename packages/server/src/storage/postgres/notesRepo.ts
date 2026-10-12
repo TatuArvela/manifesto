@@ -1,4 +1,5 @@
 import type { SealedNote, SealedNoteUpdate } from "@manifesto/shared";
+import { type ReferringRow, referencesOf } from "../attachmentMapping.js";
 import {
   decodeCursor,
   INSERT_COLUMNS,
@@ -285,6 +286,15 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
 
     async exists(id: string): Promise<boolean> {
       return (await ownerOf(id)) !== null;
+    },
+
+    async attachmentIds(id: string): Promise<string[]> {
+      const found = await pool.query<ReferringRow>(
+        `SELECT images, preview_refs FROM notes WHERE id = $1`,
+        [id],
+      );
+      const [row] = found.rows;
+      return row ? referencesOf(row) : [];
     },
 
     async insert(input: InsertNoteInput): Promise<SealedNote> {

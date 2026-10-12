@@ -1,5 +1,3 @@
-import type { LinkPreview, NoteColor, NoteFont } from "../note.js";
-
 /**
  * What a public link shows: `live` follows the note as it changes, `snapshot`
  * keeps the note as it was when the link was made.
@@ -23,6 +21,25 @@ export interface PublicLink {
   viewCount: number;
   lastViewedAt: string | null;
   createdAt: string;
+  /**
+   * The link key, sealed under the owner's personal key, so the owner can
+   * copy the whole address again. The server never holds the key itself.
+   */
+  sealedLinkKey: string;
+}
+
+/**
+ * A snapshot link's copy of the note: its title, text, font, images and link
+ * previews, sealed in the owner's browser under a key derived from the link
+ * key, and the attachments those name, which the server serves by.
+ */
+export interface PublicSnapshot {
+  title: string;
+  content: string;
+  font: string;
+  images: string;
+  linkPreviews: string;
+  refs: string[];
 }
 
 export interface PublicLinkCreateRequest {
@@ -32,6 +49,11 @@ export interface PublicLinkCreateRequest {
   /** Asked of every viewer before the note is shown. */
   password?: string;
   maxViews?: number;
+  sealedLinkKey: string;
+  /** For a `live` link: the note key, wrapped by the link key. */
+  wrappedKey?: string;
+  /** For a `snapshot` link: the note as it is now, sealed for the link. */
+  snapshot?: PublicSnapshot;
 }
 
 export interface PublicLinkResponse {
@@ -43,24 +65,33 @@ export interface PublicLinksResponse {
 }
 
 /**
- * A note as a public link shows it to anyone holding the link: the text and
- * how it looks, and nothing about who wrote it, its tags or its place among
- * the owner's notes. `images` and link preview pictures are `attachment:`
- * references, served by `GET /api/public/:token/attachments/:id`.
+ * A note as a public link hands it to anyone holding the link: its title,
+ * text, font, images and link previews, sealed, and nothing about who wrote
+ * it, its tags, its colour or its place among the owner's notes. The page
+ * opens it with the link key from its own address. Its pictures are sealed
+ * too, served by `GET /api/public/:token/attachments/:id`.
  */
 export interface PublicNote {
+  /** The note's id, which its sealed values are bound to. */
+  id: string;
+  /** Which key they are under: the note's, or 1 for a snapshot's own. */
+  keyVersion: number;
   title: string;
   content: string;
-  color: NoteColor;
-  font: NoteFont;
-  images: string[];
-  linkPreviews: LinkPreview[];
+  font: string;
+  images: string;
+  linkPreviews: string;
   /** When the text shown last changed: the note's, or the snapshot's. */
   updatedAt: string;
 }
 
 export interface PublicNoteResponse {
   note: PublicNote;
+  /**
+   * For a live link, the note key wrapped by the link key. Null for a
+   * snapshot, whose copy is under a key derived from the link key itself.
+   */
+  wrappedKey: string | null;
   /**
    * For a link with a password, what the attachment requests carry as
    * `X-Link-Access`, so the password is checked once and not per image.

@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver, StoredPublicLink } from "../types.js";
-import { claimed } from "./claimed.js";
+import { claimed, ct } from "./claimed.js";
 
 /**
  * Public links, the same in both drivers: a view is counted only while the
@@ -28,6 +28,8 @@ function link(overrides: Partial<StoredPublicLink> = {}): StoredPublicLink {
     viewCount: 0,
     lastViewedAt: null,
     createdAt: T0,
+    wrappedKey: ct("the note key, for the link"),
+    sealedLinkKey: ct("the link key, for its owner"),
     ...overrides,
   };
 }
@@ -81,13 +83,14 @@ export function describePublicLinksContract(
     it("stores, lists, reads back and revokes a link", async () => {
       const made = link({
         mode: "snapshot",
+        wrappedKey: null,
         snapshot: {
-          title: "t",
-          content: "c",
-          color: NoteColor.Blue,
-          font: NoteFont.Default,
-          images: [],
-          linkPreviews: [],
+          title: ct("t"),
+          content: ct("c"),
+          font: ct("default"),
+          images: ct("[]"),
+          linkPreviews: ct("[]"),
+          refs: [],
           updatedAt: T0,
         },
         passwordHash: "hash",
@@ -136,13 +139,16 @@ export function describePublicLinksContract(
         link({
           mode: "snapshot",
           expiresAt: "2026-07-01T00:00:00.000Z",
+          wrappedKey: null,
+          // What the copy shows is sealed; the references are what the
+          // sweep reads.
           snapshot: {
-            title: "",
-            content: "",
-            color: NoteColor.Default,
-            font: NoteFont.Default,
-            images: [`attachment:${IMAGE_ID}`],
-            linkPreviews: [],
+            title: ct(""),
+            content: ct(""),
+            font: ct("default"),
+            images: ct("sealed list"),
+            linkPreviews: ct("[]"),
+            refs: [`attachment:${IMAGE_ID}`],
             updatedAt: T0,
           },
         }),

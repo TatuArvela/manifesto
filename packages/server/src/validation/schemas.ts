@@ -339,12 +339,42 @@ export const teamShareCreateSchema = z.object({
 });
 
 /** `POST /api/notes/:id/links`. */
-export const publicLinkCreateSchema = z.object({
-  mode: z.enum(PUBLIC_LINK_MODES),
-  expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
-  password: z.string().min(1).max(256).exactOptional(),
-  maxViews: z.number().int().min(1).max(MAX_PUBLIC_LINK_VIEWS).exactOptional(),
-});
+export const publicLinkCreateSchema = z
+  .object({
+    mode: z.enum(PUBLIC_LINK_MODES),
+    expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
+    password: z.string().min(1).max(256).exactOptional(),
+    maxViews: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_PUBLIC_LINK_VIEWS)
+      .exactOptional(),
+    // The link key, sealed for the owner; the server never holds the key.
+    sealedLinkKey: sealed(MAX_WRAPPED_KEY_LENGTH),
+    // A live link: the note key, wrapped by the link key.
+    wrappedKey: wrappedKey.exactOptional(),
+    // A snapshot link: the note as it is, sealed for the link.
+    snapshot: z
+      .object({
+        title: sealed(SEALED_FIELD_MAX.title),
+        content: sealed(SEALED_FIELD_MAX.content),
+        font: sealed(SEALED_FIELD_MAX.font),
+        images: sealed(SEALED_FIELD_MAX.images),
+        linkPreviews: sealed(SEALED_FIELD_MAX.linkPreviews),
+        refs: z
+          .array(z.string().regex(ATTACHMENT_REF_PATTERN))
+          .max(MAX_IMAGES_PER_NOTE + MAX_LINK_PREVIEWS_PER_NOTE * 2),
+      })
+      .exactOptional(),
+  })
+  .refine(
+    (body) =>
+      body.mode === "live"
+        ? body.wrappedKey !== undefined && body.snapshot === undefined
+        : body.snapshot !== undefined && body.wrappedKey === undefined,
+    { message: "A live link takes wrappedKey, a snapshot link takes snapshot" },
+  );
 
 /** `POST /api/public/:token/unlock`. */
 export const publicLinkUnlockSchema = z.object({
