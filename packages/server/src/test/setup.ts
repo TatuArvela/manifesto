@@ -43,6 +43,10 @@ export const TEST_CONFIG: ServerConfig = {
   mail: null,
   backup: null,
   metricsToken: null,
+  // A key of the tests' own, so nothing is written beside a database.
+  dataEncryptionKey: "dGVzdC1zZXJ2ZXIta2V5LXRlc3Qtc2VydmVyLWtleS0",
+  dataEncryptionKeyPrevious: null,
+  dataKeyFile: null,
   metricsPort: null,
   metricsHost: "127.0.0.1",
   clientDir: null,

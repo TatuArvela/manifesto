@@ -20,6 +20,7 @@ import { createMetricsApp } from "./lib/metricsServer.js";
 import { createShutdown } from "./lib/shutdown.js";
 import { createStorage } from "./storage/index.js";
 import { MigrationRefusedError } from "./storage/migrations.js";
+import { moveToCurrentKey } from "./storage/serverKey.js";
 import { VERSION } from "./version.js";
 import { attachAppSocket } from "./ws/appSocket.js";
 import { attachYjsSocket } from "./ws/yjsSocket.js";
@@ -34,6 +35,9 @@ const storage = await createStorage(cfg).catch((err: unknown) => {
   }
   throw err;
 });
+// What the server stores for itself goes under its current key: a value
+// from before it had one, or under the key before, is rewritten.
+await moveToCurrentKey(storage, cfg.dataEncryptionKeyPrevious !== null);
 // Before the server listens, so no request can reach a server nobody can
 // administer.
 const initialAdmin = await ensureInitialAdmin(storage, cfg);

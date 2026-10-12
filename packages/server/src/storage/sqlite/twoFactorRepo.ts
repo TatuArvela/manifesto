@@ -1,3 +1,4 @@
+import { AT_REST, atRest } from "../atRest.js";
 import type { TotpState, TwoFactorRepo } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
@@ -9,7 +10,8 @@ interface TotpRow {
 
 export function rowToTotp(row: TotpRow): TotpState {
   return {
-    secret: row.secret,
+    // Under the server key; one that no longer opens matches no code.
+    secret: atRest.open(row.secret, AT_REST.totpSecret) ?? "",
     enabledAt: row.enabled_at,
     lastStep: Number(row.last_step),
   };
@@ -40,7 +42,10 @@ export function createSqliteTwoFactorRepo(db: SqliteDB): TwoFactorRepo {
       return row ? rowToTotp(row) : null;
     },
     async begin(userId, secret, at) {
-      return beginStmt.run(userId, secret, at).changes > 0;
+      return (
+        beginStmt.run(userId, atRest.seal(secret, AT_REST.totpSecret), at)
+          .changes > 0
+      );
     },
     async enable(userId, at, step) {
       enableStmt.run(at, step, userId);

@@ -1,3 +1,4 @@
+import { AT_REST, atRest } from "../atRest.js";
 import type { WebhooksRepo } from "../types.js";
 import { rowToWebhook, type WebhookRow } from "../webhookMapping.js";
 import type { SqliteDB } from "./database.js";
@@ -36,6 +37,7 @@ export function createSqliteWebhooksRepo(db: SqliteDB): WebhooksRepo {
     async create(input) {
       insertStmt.run({
         ...input,
+        secret: atRest.seal(input.secret, AT_REST.webhookSecret),
         events: JSON.stringify(input.events),
         active: input.active ? 1 : 0,
       });

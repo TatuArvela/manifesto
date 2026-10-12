@@ -81,5 +81,27 @@ export function createPostgresMaintenanceRepo(pool: PgPool): MaintenanceRepo {
       );
       return result.rows.map((row) => ({ id: row.id, userId: row.user_id }));
     },
+    async rewriteColumn(table, keys, column, rewrite) {
+      const found = await pool.query<Record<string, string>>(
+        `SELECT ${[...keys, column].join(", ")} FROM ${table}
+         WHERE ${column} IS NOT NULL AND ${column} <> ''`,
+      );
+      let written = 0;
+      for (const row of found.rows) {
+        const stored = row[column];
+        if (typeof stored !== "string") continue;
+        const next = rewrite(stored);
+        if (next === null) continue;
+        const where = keys.map((key, i) => `${key} = $${i + 2}`).join(" AND ");
+        // Only while the row still holds what was read.
+        const result = await pool.query(
+          `UPDATE ${table} SET ${column} = $1
+           WHERE ${where} AND ${column} = $${keys.length + 2}`,
+          [next, ...keys.map((key) => row[key]), stored],
+        );
+        written += result.rowCount ?? 0;
+      }
+      return written;
+    },
   };
 }

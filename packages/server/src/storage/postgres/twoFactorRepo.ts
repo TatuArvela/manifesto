@@ -1,3 +1,4 @@
+import { AT_REST, atRest } from "../atRest.js";
 import { rowToTotp } from "../sqlite/twoFactorRepo.js";
 import type { TwoFactorRepo } from "../types.js";
 import type { PgPool } from "./database.js";
@@ -14,7 +15,8 @@ export function createPostgresTwoFactorRepo(pool: PgPool): TwoFactorRepo {
       const row = result.rows[0];
       return row ? rowToTotp(row) : null;
     },
-    async begin(userId, secret, at) {
+    async begin(userId, plain, at) {
+      const secret = atRest.seal(plain, AT_REST.totpSecret);
       const existing = await pool.query<{ enabled_at: string | null }>(
         `SELECT enabled_at FROM user_totp WHERE user_id = $1`,
         [userId],

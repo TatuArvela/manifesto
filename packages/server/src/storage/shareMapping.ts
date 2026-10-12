@@ -1,6 +1,5 @@
 import type {
   NoteMember,
-  NoteReminder,
   NoteRole,
   OfferedKey,
   SealedNote,
@@ -24,6 +23,7 @@ import {
   rowToNote,
   sealedColumn,
   setReminderKey,
+  storedReminder,
 } from "./noteMapping.js";
 import type { NoteShare } from "./types.js";
 
@@ -242,7 +242,7 @@ export function rowToViewNote(row: ViewRow): SealedNote {
   note.archived = asBoolean(row.s_archived ?? false);
   note.position = Number(row.s_position ?? 0);
   note.tags = sealedColumn(row.s_tags);
-  note.reminder = parseJson<NoteReminder | null>(row.s_reminder ?? null, null);
+  note.reminder = storedReminder(row.s_reminder);
   setReminderKey(note, row.s_reminder_key);
   note.trashed = asBoolean(row.s_trashed ?? false);
   note.trashedAt = row.s_trashed_at ?? null;

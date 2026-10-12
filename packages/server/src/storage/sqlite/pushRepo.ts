@@ -1,7 +1,9 @@
+import { AT_REST, atRest } from "../atRest.js";
 import {
   PUSH_COLUMNS,
   type PushRow,
   rowToPushSubscription,
+  sealedSubscription,
 } from "../pushMapping.js";
 import type { PushSubscriptionsRepo, ServerSecretsRepo } from "../types.js";
 import type { SqliteDB } from "./database.js";
@@ -44,7 +46,7 @@ export function createSqlitePushSubscriptionsRepo(
   );
   return {
     async save(subscription) {
-      save({ ...subscription });
+      save({ ...sealedSubscription(subscription) });
     },
     async listByUser(userId) {
       return (byUserStmt.all(userId) as PushRow[]).map(rowToPushSubscription);
@@ -77,14 +79,18 @@ export function createSqliteServerSecretsRepo(db: SqliteDB): ServerSecretsRepo {
     `INSERT INTO server_secrets (name, value, created_at) VALUES (?, ?, ?)
      ON CONFLICT (name) DO NOTHING`,
   );
-  const read = (name: string) =>
-    (getStmt.get(name) as { value: string } | undefined)?.value ?? null;
+  const read = (name: string) => {
+    const stored = (getStmt.get(name) as { value: string } | undefined)?.value;
+    return stored === undefined
+      ? null
+      : atRest.open(stored, AT_REST.serverSecret);
+  };
   return {
     async get(name) {
       return read(name);
     },
     async setIfAbsent(name, value, now) {
-      insertStmt.run(name, value, now);
+      insertStmt.run(name, atRest.seal(value, AT_REST.serverSecret), now);
       return read(name) ?? value;
     },
   };

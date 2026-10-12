@@ -506,9 +506,10 @@ the code does, and nothing here may be released:
   worker opens them with the account key the device keeps while signed in, and shows the title
   and the first of the text; a device without the key shows the bare words. A message too large
   for a push service loses the excerpt first and then the title.
-- **Not built of the server key yet** (the rest of step 7): reminder times, webhook secrets,
-  authenticator secrets, the key that signs push messages and the keys of push subscriptions are
-  stored as they were, not under a key of the server's.
+- **The server key** seals what the server reads by itself: reminder times, webhook secrets,
+  authenticator secrets, the key that signs push messages and the keys of push subscriptions. It is
+  the operator's (`DATA_ENCRYPTION_KEY`) or kept in a key file made on first start; each value
+  names the key it is under, and a start-up moves everything to the current one.
 - **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
   and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.
 

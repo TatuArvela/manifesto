@@ -38,6 +38,19 @@ export interface MaintenanceRepo {
    * else; for the recipient it is gone, as a note of their own would be.
    */
   cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]>;
+  /**
+   * Passes every value of one column to `rewrite` and stores what it
+   * answers, leaving alone the rows it answers null for. For moving what is
+   * under the server key to another (`moveToCurrentKey`); the table, its
+   * primary key and the column are names from `AT_REST_COLUMNS`, never a
+   * caller's input. Returns how many rows were rewritten.
+   */
+  rewriteColumn(
+    table: string,
+    keys: readonly string[],
+    column: string,
+    rewrite: (stored: string) => string | null,
+  ): Promise<number>;
 }
 
 export interface AuditRecord {

@@ -1,3 +1,4 @@
+import { AT_REST, atRest } from "../atRest.js";
 import type { WebhooksRepo } from "../types.js";
 import { rowToWebhook, type WebhookRow } from "../webhookMapping.js";
 import type { PgPool } from "./database.js";
@@ -15,7 +16,7 @@ export function createPostgresWebhooksRepo(pool: PgPool): WebhooksRepo {
           input.id,
           input.userId,
           input.url,
-          input.secret,
+          atRest.seal(input.secret, AT_REST.webhookSecret),
           JSON.stringify(input.events),
           input.active,
           input.createdAt,

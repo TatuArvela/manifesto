@@ -26,6 +26,9 @@ paths:
   - "packages/client/src/state/oauth.ts"
   - "packages/client/src/swPush.ts"
   - "packages/server/src/jobs/pushReminders.ts"
+  - "packages/server/src/storage/atRest.ts"
+  - "packages/server/src/storage/serverKey.ts"
+  - "packages/server/src/storage/noteMapping.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
   - "packages/server/src/routes/attachments.ts"
@@ -261,6 +264,27 @@ and the reader's own wrapped copy of the note key, exactly as the row holds them
 `wordedPush`) opens the sealed half with the account key in `deviceKeys`, which exists only
 while the device is signed in, and words it as `reminderScheduler.ts` does. Every field of a
 push is checked before use (`readReminderPush`): the worker runs privileged.
+
+## The server key
+
+Not the account's keys: what the server has to read with nobody signed in (`storage/atRest.ts`).
+A reminder's time, a webhook's secret, an authenticator's secret, the VAPID key and each push
+subscription's keys are AES-256-GCM under one key that is never in the database, with the
+column's purpose as associated data and the key's id in front of every value (`s1.<id>.<...>`).
+`createStorage` sets the key for the process (`useAtRest`) before a driver is built; a driver
+built by hand, as the storage contracts do, runs unsealed. The row mappings and five repository
+methods call `atRest.seal` / `atRest.open`, and a value that does not open reads as none (no
+reminder, an empty secret), never as an error that stops a listing.
+
+A new column of that kind is sealed where it is written, opened where it is read, and added to
+`AT_REST_COLUMNS`: that list is what `moveToCurrentKey` walks at start-up, so a column missing
+from it is never moved when the key is replaced, and is lost with the old key. Reading a value
+from before the server had a key works because anything without the `s1.` prefix is taken as it
+is; the same start-up pass seals it.
+
+`loadServerKeys` (`storage/serverKey.ts`) takes `DATA_ENCRYPTION_KEY` or a key file it makes
+(`0600`, `wx`), and warns while the file sits beside the database or its backups.
+`DATA_ENCRYPTION_KEY_PREVIOUS` keeps the key before readable until the move is done.
 
 ## On the server
 

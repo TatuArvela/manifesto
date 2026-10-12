@@ -1,7 +1,9 @@
+import { AT_REST, atRest } from "../atRest.js";
 import {
   PUSH_COLUMNS,
   type PushRow,
   rowToPushSubscription,
+  sealedSubscription,
 } from "../pushMapping.js";
 import type { PushSubscriptionsRepo, ServerSecretsRepo } from "../types.js";
 import type { PgPool } from "./database.js";
@@ -12,7 +14,8 @@ export function createPostgresPushSubscriptionsRepo(
   pool: PgPool,
 ): PushSubscriptionsRepo {
   return {
-    async save(subscription) {
+    async save(given) {
+      const subscription = sealedSubscription(given);
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
@@ -106,7 +109,10 @@ export function createPostgresServerSecretsRepo(
       `SELECT value FROM server_secrets WHERE name = $1`,
       [name],
     );
-    return result.rows[0]?.value ?? null;
+    const stored = result.rows[0]?.value;
+    return stored === undefined
+      ? null
+      : atRest.open(stored, AT_REST.serverSecret);
   };
   return {
     get: read,
@@ -114,7 +120,7 @@ export function createPostgresServerSecretsRepo(
       await pool.query(
         `INSERT INTO server_secrets (name, value, created_at)
          VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING`,
-        [name, value, now],
+        [name, atRest.seal(value, AT_REST.serverSecret), now],
       );
       return (await read(name)) ?? value;
     },

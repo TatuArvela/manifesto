@@ -88,5 +88,32 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
       const rows = cleanupStmt.all(cutoffIso) as ExpiredRow[];
       return rows.map((row) => ({ id: row.id, userId: row.user_id }));
     },
+    async rewriteColumn(table, keys, column, rewrite) {
+      const rows = db
+        .prepare(
+          `SELECT ${[...keys, column].join(", ")} FROM ${table}
+           WHERE ${column} IS NOT NULL AND ${column} <> ''`,
+        )
+        .all() as Record<string, string>[];
+      const update = db.prepare(
+        `UPDATE ${table} SET ${column} = ?
+         WHERE ${keys.map((key) => `${key} = ?`).join(" AND ")}
+           AND ${column} = ?`,
+      );
+      let written = 0;
+      for (const row of rows) {
+        const stored = row[column];
+        if (typeof stored !== "string") continue;
+        const next = rewrite(stored);
+        if (next === null) continue;
+        // Only while the row still holds what was read.
+        written += update.run(
+          next,
+          ...keys.map((key) => row[key]),
+          stored,
+        ).changes;
+      }
+      return written;
+    },
   };
 }

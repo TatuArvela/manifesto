@@ -5,6 +5,7 @@ import type {
   SealedNoteUpdate,
 } from "@manifesto/shared";
 import { CIPHERTEXT_PREFIX, NoteColor, NoteFont } from "@manifesto/shared";
+import { AT_REST, atRest } from "./atRest.js";
 
 /**
  * The `notes` row as either driver returns it, and the mapping between it and
@@ -73,6 +74,18 @@ export function parseJson<T>(raw: string | null, fallback: T): T {
   }
 }
 
+/** A reminder as its column holds it, under the server key. One that does
+ * not open (the key it was under is gone) is no reminder. */
+export function storedReminder(
+  raw: string | null | undefined,
+): NoteReminder | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  return parseJson<NoteReminder | null>(
+    atRest.open(raw, AT_REST.reminder),
+    null,
+  );
+}
+
 /** `false !== 0` is true, so a driver's own flags cannot be read as numbers. */
 export function asBoolean(raw: RowBoolean): boolean {
   return raw === true || raw === 1;
@@ -116,7 +129,7 @@ export function rowToNote(row: NoteRow): SealedNote {
     trashedAt: row.trashed_at,
     // Postgres hands back wide integer types as strings.
     position: Number(row.position),
-    reminder: parseJson<NoteReminder | null>(row.reminder, null),
+    reminder: storedReminder(row.reminder),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -198,6 +211,11 @@ function toColumnValue(
     case "trashedAt":
       return (value as string | null | undefined) ?? null;
     case "reminder":
+      // When, and how it repeats: the server reads these to fire it, so
+      // they are under its own key and not the account's.
+      return value === null || value === undefined
+        ? null
+        : atRest.seal(JSON.stringify(value), AT_REST.reminder);
     case "source":
       return value === null || value === undefined
         ? null

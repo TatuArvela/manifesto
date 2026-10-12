@@ -182,6 +182,9 @@ have a table of their own, under [Turning features off](#turning-features-off).
 | `DATA_DIR`         | `./data`                   | Directory for the SQLite database        |
 | `MANIFESTO_DB`     | `${DATA_DIR}/manifesto.db` | Override the SQLite path explicitly      |
 | `DATABASE_URL`     | _(required for postgres)_  | Postgres connection string               |
+| `DATA_ENCRYPTION_KEY` | *(a key file)*          | The server key: 32 random bytes in base64 or hex (`openssl rand -base64 32`). See [The server key](#the-server-key). |
+| `DATA_ENCRYPTION_KEY_PREVIOUS` | *(unset)*      | The key before, while a replaced key's values are moved over. |
+| `DATA_KEY_FILE`    | `${DATA_DIR}/server.key`   | Where the server keeps its key when `DATA_ENCRYPTION_KEY` is not set. |
 | `CORS_ORIGINS`     | `http://localhost:5173`    | Comma-separated allowed client origins   |
 | `SESSION_TTL_DAYS` | `30`                       | Session inactivity timeout in days       |
 | `SESSION_ABSOLUTE_TTL_DAYS` | `90`              | Hard session lifetime in days, measured from login. A session in constant use still ends here, so a stolen token can't live forever. |
@@ -238,11 +241,38 @@ A feature whose requirement is off is off too. When its own variable is unset th
 (`SHARING=off` alone turns teams off); when it says `on` anyway (`SHARING=off` with `TEAMS=on`),
 the server refuses to start rather than guess which was meant.
 
+### The server key
+
+Notes are encrypted in the browser, under keys the server never holds
+([Encryption](../features/encryption.md)). A few other values the server has to read by itself, with
+nobody signed in: when a reminder is due, a webhook's signing secret, an authenticator app's secret,
+the key that signs push messages and the keys of each push subscription. Those are stored under one
+**server key**, which is never in the database.
+
+- Supply it as `DATA_ENCRYPTION_KEY` (or `DATA_ENCRYPTION_KEY_FILE`), 32 random bytes in base64 or
+  hex. `openssl rand -base64 32` makes one.
+- Without it the server makes a key on first start and writes it to `DATA_KEY_FILE`
+  (`${DATA_DIR}/server.key` by default), readable by its own user alone, and says so in the log.
+- **Back the key up apart from the database.** A copy of the database without the key cannot read
+  those values, which is the point of it; a copy of both can. The server warns at every start while
+  the key file is in the same directory as the SQLite database or its backups. Point `DATA_KEY_FILE`
+  somewhere else, or supply the key through the environment, to keep them apart.
+- **Losing the key** loses reminder times, webhooks, authenticator set-ups and push subscriptions,
+  all of which can be made again. It loses no note.
+- **Replacing it**: set the new key as `DATA_ENCRYPTION_KEY` and the old one as
+  `DATA_ENCRYPTION_KEY_PREVIOUS`, and restart. At start-up the server rewrites everything under the
+  new key and says in the log when nothing is left under the old one; then
+  `DATA_ENCRYPTION_KEY_PREVIOUS` can be removed. With a key file, put the new key in the file and
+  the old one in `DATA_ENCRYPTION_KEY_PREVIOUS`.
+- A server that was running before it had a key seals what it stored the first time it starts with
+  one.
+
 ### Secrets from files
 
 Each secret can be given as a file instead, the way Docker and Kubernetes mount secrets:
 `DATABASE_URL_FILE`, `OIDC_CLIENT_ID_FILE`, `OIDC_CLIENT_SECRET_FILE`, `SMTP_URL_FILE`,
-`METRICS_TOKEN_FILE` and `INITIAL_ADMIN_PASSWORD_FILE` name a file whose contents are the value (a
+`METRICS_TOKEN_FILE`, `INITIAL_ADMIN_PASSWORD_FILE`, `DATA_ENCRYPTION_KEY_FILE` and
+`DATA_ENCRYPTION_KEY_PREVIOUS_FILE` name a file whose contents are the value (a
 trailing newline is dropped). Setting both a variable and its `_FILE` stops the server at boot.
 
 ```yaml
