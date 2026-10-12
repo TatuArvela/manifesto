@@ -15,8 +15,9 @@ import {
 import { effect, signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
+import { connectionOutage } from "../realtime/connectionOutage.js";
 import { ApiError, apiJson } from "../storage/apiRequest.js";
-import { sealer } from "../storage/sealing.js";
+import { type NoteSealing, sealer } from "../storage/sealing.js";
 import {
   adoptOfferedKey,
   leaveFeedKey,
@@ -370,9 +371,47 @@ export async function leaveNote(
   return true;
 }
 
-/** Who has been tried this session, as `note user`, so one that cannot be
- * supplied (an account with no keys yet) is not asked about on every change. */
-const supplied = new Set<string>();
+/**
+ * What each unlocked account has set about, by a name for the work, so an
+ * effect that runs again does not start the same thing twice. Kept for the
+ * `Sealer` it was done with and not for the page: a lock and unlock, or
+ * another account signing in, starts with nothing in hand.
+ */
+const inHand = new WeakMap<NoteSealing, Set<string>>();
+
+function handOf(sealing: NoteSealing): Set<string> {
+  let hand = inHand.get(sealing);
+  if (!hand) {
+    hand = new Set();
+    inHand.set(sealing, hand);
+  }
+  return hand;
+}
+
+/**
+ * Starts `work` unless this unlocked account already has `what` in hand.
+ * Work that did not succeed is forgotten, so whatever runs the effect again
+ * (the connection coming back, the next listing that changes it) tries
+ * again; `work` resolves whether it did, and never rejects.
+ */
+function setAbout(
+  sealing: NoteSealing,
+  what: string,
+  work: () => Promise<boolean>,
+): void {
+  const hand = handOf(sealing);
+  if (hand.has(what)) return;
+  hand.add(what);
+  void work().then((done) => {
+    if (!done) hand.delete(what);
+  });
+}
+
+/** Supplying one person a note's key, as `inHand` names it. Kept once tried,
+ * failed or not, so someone who cannot be supplied (an account with no keys
+ * yet) is not asked about on every change of a note; `trustKeys` forgets. */
+const supplyOf = (noteId: string, userId: string) =>
+  `supply ${noteId} ${userId}`;
 
 /**
  * Hands the note's key to whoever on it is still waiting for one: a member
@@ -381,10 +420,13 @@ const supplied = new Set<string>();
  * not. Never rejects.
  */
 async function supplyWaiting(note: Note): Promise<void> {
+  const sealing = sealer.peek();
+  if (!sealing) return;
+  const supplied = handOf(sealing);
   // A viewer holds the key as much as anyone, so anyone on the note may.
   for (const member of note.sharing?.members ?? []) {
     if (!member.waitingForKey) continue;
-    const tried = `${note.id} ${member.id}`;
+    const tried = supplyOf(note.id, member.id);
     if (supplied.has(tried)) continue;
     supplied.add(tried);
     await supplyKey(note.id, member.id);
@@ -401,8 +443,14 @@ export async function trustKeys(userId: string): Promise<boolean> {
     showError(t("sharing.keys.trustFailed"));
     return false;
   }
-  for (const tried of supplied) {
-    if (tried.endsWith(` ${userId}`)) supplied.delete(tried);
+  const sealing = sealer.peek();
+  if (sealing) {
+    const supplied = handOf(sealing);
+    for (const tried of supplied) {
+      if (tried.startsWith("supply ") && tried.endsWith(` ${userId}`)) {
+        supplied.delete(tried);
+      }
+    }
   }
   for (const note of notes.peek()) {
     if (note.sharing?.members.some((m) => m.waitingForKey)) {
@@ -416,36 +464,30 @@ export async function trustKeys(userId: string): Promise<boolean> {
 
 export { changedKeys, keyStatusOf } from "../storage/shareKeys.js";
 
-/** The notes whose key this session has set about replacing. */
-const replacing = new Set<string>();
-
 // A note is due a new key once someone who held the old one is gone: the
-// owner's app makes it, whichever of their devices is online first.
+// owner's app makes it, whichever of their devices is online first. One
+// that fails stays due, under the key the person who left still holds, so
+// it is not given up on: tried again when the connection is back after an
+// outage, when the set of due notes changes, and when the account is next
+// unlocked.
 effect(() => {
   const sealing = sealer.value;
   if (!sealing?.handsKeysOn) return;
+  if (connectionOutage.value) return;
   for (const id of sealing.due.value) {
-    if (replacing.has(id)) continue;
-    replacing.add(id);
-    // One that fails stays due on the server, and is tried again the next
-    // time this account is unlocked.
-    void replaceNoteKey(id);
+    setAbout(sealing, `rekey ${id}`, () => replaceNoteKey(id));
   }
 });
 
-/** The notes this session has left a calendar feed the key of. */
-const leftForFeed = new Set<string>();
-
 // A note with a reminder and no copy of its key for a calendar feed: a
 // script set the reminder, or the note's key was replaced. Whichever device
-// of the account sees it leaves the copy.
+// of the account sees it leaves the copy, and tries again as above.
 effect(() => {
   const sealing = sealer.value;
   if (!sealing?.handsKeysOn) return;
+  if (connectionOutage.value) return;
   for (const id of sealing.feedDue.value) {
-    if (leftForFeed.has(id)) continue;
-    leftForFeed.add(id);
-    void leaveFeedKey(id);
+    setAbout(sealing, `feed ${id}`, () => leaveFeedKey(id));
   }
 });
 

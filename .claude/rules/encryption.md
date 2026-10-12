@@ -177,9 +177,16 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   which refuses a note any field of which does not open, so a key is never replaced over words
   this device could not read. The keys before are kept in `previousKeys`, sealed under the new
   one; versions, comments and the document's entries are opened with the key of the version they
-  name (`ringOf`). The server stamps `updated_at`, so a write sealed under the old key meets a
-  412, and one that states the old `keyVersion` a 409, after which `RestApiAdapter.update` reads
-  the key again and seals once more. A live document is rebuilt when `Sealer.replaced` changes.
+  name (`ringOf`, and its namesake in `routes/noteCodec.ts` for a token). The fields are sealed
+  again from a read, so the request carries that read's `updatedAt` as `If-Match` and the server
+  moves the note only if nothing wrote it since (412, and `replaceNoteKey` reads again). The
+  server stamps `updated_at`, so a write sealed under the old key meets a 412, and one that states
+  the old `keyVersion` a 409, after which `RestApiAdapter.update` reads the note again through
+  `Sealer.open`, which is what takes a recipient's offered key, and seals once more. An import
+  never moves a note to another key: the route answers `stale` and `importAll` reads and seals
+  again. A live document is rebuilt when `Sealer.replaced` changes. What `state/sharing.ts` has
+  set about (`inHand`) is kept for each unlocked `Sealer` and forgotten when it fails, so a failed
+  replacement is tried again on reconnecting and on the next unlock.
 - A comment's text is sealed under the note key and bound to an id its writer chose
   (`sealComment`); `state/comments.ts` opens every comment it is sent, a socket's included, and
   leaves out one that does not open. The server cannot tell an edit to the same words from a real
@@ -200,6 +207,11 @@ crosses is `{ sealed }`, and a remote state is shown under the `user` the server
 name from inside. Both documents share one `clientID`, so "the client with the lowest id" in
 `contentAgreement.ts` is the same client to everyone.
 
+Whatever `y-indexeddb` loads into the wire document is synced as it is, so the sealed copy has a
+name of its own (`LOCAL_COPY_PREFIX`, `manifesto:yjs-sealed:`), apart from the readable copies a
+browser kept before sealing, which `createYjsSession` deletes (`deleteReadableNoteCopies`). A change
+to what the wire document holds needs a new name the same way, never the old one reused.
+
 The server's `/api/yjs` code did not change and must not start reading the document: nothing in it
 is readable. Passing `key: null` to `createYjsSession` syncs the document as it is, and exists only
 for tests that hand sealing through.
@@ -207,11 +219,6 @@ for tests that hand sealing through.
 ## Public links
 
 A link's address is `/p/<token>#k=<link key>` (`shared/src/crypto/linkSeal.ts`). The server finds
-Whatever `y-indexeddb` loads into the wire document is synced as it is, so the sealed copy has a
-name of its own (`LOCAL_COPY_PREFIX`, `manifesto:yjs-sealed:`), apart from the readable copies a
-browser kept before sealing, which `createYjsSession` deletes (`deleteReadableNoteCopies`). A change
-to what the wire document holds needs a new name the same way, never the old one reused.
-
 the link by the token and never sees the key. `Sealer.publish` makes the key and what the server
 stores: for a live link the note key wrapped by it, for a snapshot a copy of the note sealed under
 a key derived from it, with the attachment references that copy names. The owner's own copy of the
