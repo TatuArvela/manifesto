@@ -7,6 +7,11 @@ export interface StoredApiToken extends ApiToken {
   /** When an OAuth grant's current access token lapses; null for a token
    * minted by hand, whose secret lasts as long as the token. */
   accessExpiresAt: string | null;
+  /**
+   * The keys it carries, wrapped under a key derived from its secret; null
+   * for a token that reaches no note. Never listed.
+   */
+  wrappedKeys: string | null;
 }
 
 /** An OAuth grant's secrets, replaced together at every refresh. */
@@ -23,7 +28,12 @@ export interface OAuthGrantSecrets {
  */
 export interface ApiTokensRepo {
   create(
-    input: StoredApiToken & { tokenHash: string; refreshHash?: string },
+    input: Omit<StoredApiToken, "wrappedKeys"> & {
+      tokenHash: string;
+      refreshHash?: string;
+      /** Left out for a token that carries no key. */
+      wrappedKeys?: string | null;
+    },
   ): Promise<void>;
   findByHash(tokenHash: string): Promise<StoredApiToken | null>;
   /** The grant whose current refresh token this is. */

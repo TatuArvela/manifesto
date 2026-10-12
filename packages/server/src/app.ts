@@ -319,7 +319,7 @@ export function createApp(deps: AppDeps): AppHandle {
       storage,
     }),
   );
-  app.route("/api/search", createSearchRoutes());
+  app.route("/api/search", createSearchRoutes({ storage }));
   app.route("/api/public", createPublicRoutes({ storage }));
   app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
   app.route("/api/push", createPushRoutes({ storage, sender: pushSender }));

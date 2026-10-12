@@ -571,6 +571,14 @@ const COMMENT_KEYS = `
 ALTER TABLE note_comments ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
 `;
 
+/**
+ * The keys a token carries, wrapped under a key derived from its secret, so
+ * the server can open them only while a request presents the token.
+ */
+const TOKEN_KEYS = `
+ALTER TABLE api_tokens ADD COLUMN wrapped_keys TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -602,6 +610,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0028-sealed-notes", sql: SEALED_NOTES, refuseIf: BEFORE_ENCRYPTION },
   { id: "0029-share-keys", sql: SHARE_KEYS },
   { id: "0030-comment-keys", sql: COMMENT_KEYS },
+  { id: "0031-token-keys", sql: TOKEN_KEYS },
 ];
 
 export function runMigrations(

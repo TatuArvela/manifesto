@@ -18,6 +18,7 @@ import {
   sealedCreate,
   sealedUpdate,
 } from "../storage/contracts/claimed.js";
+import { keyedToken } from "./keyedTokens.js";
 
 /**
  * A test's requests, sent the way the app sends them. The app seals a note
@@ -280,6 +281,35 @@ export function sealingClient(send: Fetch): Fetch {
     if (method === "POST" && path === "/api/attachments" && init) {
       next = sealedUpload(init) ?? init;
     }
+    // A token that reaches notes is made by the app, which keeps its secret
+    // and sends the keys it carries: so here, and the secret is put into
+    // the answer, where a test looks for it.
+    let madeSecret: string | null = null;
+    if (
+      method === "POST" &&
+      path === "/api/tokens" &&
+      typeof init?.body === "string"
+    ) {
+      try {
+        const body = JSON.parse(init.body) as Record<string, unknown>;
+        const kind = body.kind ?? "api";
+        if ((kind === "api" || kind === "mcp") && !("tokenHash" in body)) {
+          const me = await send("/api/auth/me", {
+            headers: init.headers ?? {},
+          });
+          const userId = me.ok
+            ? ((await me.json()) as { user: { id: string } }).user.id
+            : null;
+          if (userId !== null) {
+            const { secret, fields } = await keyedToken(userId, kind);
+            madeSecret = secret;
+            next = { ...init, body: JSON.stringify({ ...body, ...fields }) };
+          }
+        }
+      } catch {
+        // Not JSON: sent as it is.
+      }
+    }
     const accepted = /^\/api\/invitations\/([^/]+)\/accept$/.exec(path);
     if (
       method === "POST" &&
@@ -305,7 +335,7 @@ export function sealingClient(send: Fetch): Fetch {
         body: JSON.stringify({ key: ct("held key"), keyVersion }),
       };
     }
-    if (typeof init?.body === "string") {
+    if (typeof init?.body === "string" && madeSecret === null) {
       try {
         let parsed: unknown = JSON.parse(init.body);
         const noteId = /^\/api\/notes\/([^/]+)$/.exec(path)?.[1];
@@ -333,7 +363,12 @@ export function sealingClient(send: Fetch): Fetch {
     const text = await res.text();
     let answer = text;
     try {
-      answer = JSON.stringify(openedAnswer(JSON.parse(text), path));
+      const opened = openedAnswer(JSON.parse(text), path);
+      answer = JSON.stringify(
+        madeSecret !== null && res.status === 201 && isRecord(opened)
+          ? { ...opened, secret: madeSecret }
+          : opened,
+      );
     } catch {
       // Left as it came.
     }

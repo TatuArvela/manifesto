@@ -1,6 +1,7 @@
 import type { ApiTokenCreatedResponse, NoteCreate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 import {
   authHeaders,
   bootTestApp,
@@ -46,7 +47,7 @@ describe("the reminder feed", () => {
     await rig.close();
   });
 
-  async function mint(kind: string): Promise<ApiTokenCreatedResponse> {
+  async function mint(kind: string) {
     const res = await rig.request("/api/tokens", {
       method: "POST",
       headers: authHeaders(session),
@@ -57,7 +58,8 @@ describe("the reminder feed", () => {
       }),
     });
     expect(res.status).toBe(201);
-    return (await res.json()) as ApiTokenCreatedResponse;
+    const created = (await res.json()) as ApiTokenCreatedResponse;
+    return { ...created, secret: defined(created.secret) };
   }
 
   // Waits for encryption step 6: a feed names its events once it carries the reminder key.

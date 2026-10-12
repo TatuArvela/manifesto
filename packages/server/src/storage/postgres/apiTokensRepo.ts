@@ -13,8 +13,8 @@ export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {
       await pool.query(
         `INSERT INTO api_tokens
            (id, user_id, name, kind, scopes, token_hash, prefix, created_at, last_used_at, expires_at,
-            oauth_client_id, refresh_hash, access_expires_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+            oauth_client_id, refresh_hash, access_expires_at, wrapped_keys)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
         [
           input.id,
           input.userId,
@@ -29,6 +29,7 @@ export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {
           input.oauthClientId ?? null,
           input.refreshHash ?? null,
           input.accessExpiresAt,
+          input.wrappedKeys ?? null,
         ],
       );
     },

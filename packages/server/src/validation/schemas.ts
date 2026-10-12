@@ -15,6 +15,7 @@ import {
   MAX_PUBLIC_LINK_VIEWS,
   MAX_TAG_LENGTH,
   MAX_TAGS_PER_NOTE,
+  MAX_TOKEN_KEYS_LENGTH,
   MAX_WRAPPED_KEY_LENGTH,
   NoteColor,
   NoteFont,
@@ -576,8 +577,25 @@ export const apiTokenCreateSchema = z
       .min(1)
       .max(API_TOKEN_SCOPES.length)
       .exactOptional(),
+    // A token the app made, to carry keys: the secret's SHA-256, its first
+    // characters for a list to show, and the keys wrapped under it.
+    tokenHash: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .exactOptional(),
+    prefix: z
+      .string()
+      .regex(/^mf[pm]_[A-Za-z0-9_-]{6}$/)
+      .exactOptional(),
+    wrappedKeys: sealed(MAX_TOKEN_KEYS_LENGTH).exactOptional(),
     password: confirmationPassword,
   })
+  .refine(
+    (body) =>
+      (body.tokenHash === undefined) === (body.prefix === undefined) &&
+      (body.tokenHash === undefined) === (body.wrappedKeys === undefined),
+    { message: "tokenHash, prefix and wrappedKeys come together" },
+  )
   .refine(
     (body) =>
       body.kind !== "mcp" ||

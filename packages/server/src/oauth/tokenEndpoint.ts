@@ -129,6 +129,8 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
       expiresAt: stored.grantExpiresAt,
       oauthClientId: stored.clientId,
       accessExpiresAt,
+      // An assistant signed in through the browser carries no key yet.
+      wrappedKeys: null,
     };
     await storage.apiTokens.create({
       ...token,

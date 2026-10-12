@@ -11,9 +11,9 @@ export function createSqliteApiTokensRepo(db: SqliteDB): ApiTokensRepo {
   const insertStmt = db.prepare(
     `INSERT INTO api_tokens
        (id, user_id, name, kind, scopes, token_hash, prefix, created_at, last_used_at, expires_at,
-        oauth_client_id, refresh_hash, access_expires_at)
+        oauth_client_id, refresh_hash, access_expires_at, wrapped_keys)
      VALUES (@id, @userId, @name, @kind, @scopes, @tokenHash, @prefix, @createdAt, @lastUsedAt, @expiresAt,
-        @oauthClientId, @refreshHash, @accessExpiresAt)`,
+        @oauthClientId, @refreshHash, @accessExpiresAt, @wrappedKeys)`,
   );
   const byRefreshStmt = db.prepare(
     `SELECT ${API_TOKEN_COLUMNS} FROM api_tokens WHERE refresh_hash = ?`,
@@ -54,6 +54,7 @@ export function createSqliteApiTokensRepo(db: SqliteDB): ApiTokensRepo {
         scopes: JSON.stringify(input.scopes),
         oauthClientId: input.oauthClientId ?? null,
         refreshHash: input.refreshHash ?? null,
+        wrappedKeys: input.wrappedKeys ?? null,
       });
     },
     async findByRefreshHash(refreshHash) {

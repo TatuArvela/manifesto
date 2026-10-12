@@ -6,6 +6,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ServerConfig } from "../config.js";
 import { OPERATIONS, type Operation } from "../openapi.js";
+import { defined } from "../test/defined.js";
 import {
   authHeaders,
   bootTestAppWith,
@@ -51,7 +52,7 @@ describe("route protection", () => {
         ],
       }),
     });
-    token = ((await minted.json()) as ApiTokenCreatedResponse).secret;
+    token = defined(((await minted.json()) as ApiTokenCreatedResponse).secret);
   });
 
   afterEach(async () => {
@@ -304,7 +305,9 @@ describe("features the host turned off", () => {
         body: JSON.stringify({ name: kind, kind, password: "test-pass-12" }),
       });
     const minted = await mint("api");
-    const { secret } = (await minted.json()) as ApiTokenCreatedResponse;
+    const secret = defined(
+      ((await minted.json()) as ApiTokenCreatedResponse).secret,
+    );
     const notes = () =>
       rig.request("/api/notes", { headers: authHeaders(secret) });
     expect((await notes()).status).toBe(200);

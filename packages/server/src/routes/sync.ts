@@ -1,9 +1,10 @@
-import type { SealedNote, SyncResponse } from "@manifesto/shared";
+import type { Note, SealedNote, SyncResponse } from "@manifesto/shared";
 import { Hono } from "hono";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
+import { notesOut, tokenKeys } from "./noteCodec.js";
 
 interface SyncDeps {
   storage: StorageDriver;
@@ -81,6 +82,7 @@ export function createSyncRoutes(deps: SyncDeps) {
 
   sync.get("/", async (c) => {
     const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
 
     const rawSince = c.req.query("since");
     // No checkpoint means everything: the empty string sorts before every
@@ -109,11 +111,11 @@ export function createSyncRoutes(deps: SyncDeps) {
     );
     const last = nextCursor === null;
     return c.json({
-      notes,
+      notes: await notesOut(keys, notes),
       nextCursor: last ? null : encodeSyncCursor(next, nextCursor),
       ids: last ? await deps.storage.notes.visibleIds(userId) : null,
       checkpoint: last ? next : null,
-    } satisfies SyncResponse<SealedNote>);
+    } satisfies SyncResponse<SealedNote | Note>);
   });
 
   return sync;

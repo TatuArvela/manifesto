@@ -1,4 +1,9 @@
-import { type ApiTokenScope, hasScope } from "@manifesto/shared";
+import {
+  type AccountSealKeys,
+  type ApiTokenScope,
+  hasScope,
+  unwrapTokenKeys,
+} from "@manifesto/shared";
 import type { Context, MiddlewareHandler } from "hono";
 import type { AuthProvider, CredentialKind } from "../auth/types.js";
 import { OPERATIONS } from "../openapi.js";
@@ -12,6 +17,13 @@ export interface AuthContext {
   scopes?: readonly ApiTokenScope[];
   /** When a session was signed in; absent for a token. */
   signedInAt?: string;
+  /**
+   * The keys a token carries, opened for this request with the token it
+   * presented: what the server opens and seals that account's notes with
+   * while the request runs, and never keeps. Absent for a session, which
+   * sends no key, and for a token that carries none.
+   */
+  keys?: AccountSealKeys;
 }
 
 export interface AuthMiddlewareOptions {
@@ -104,12 +116,20 @@ export function createAuthMiddleware(
         throw new HttpError(403, `This token does not have the ${scope} scope`);
       }
     }
+    const keys = identity.wrappedKeys
+      ? await unwrapTokenKeys(
+          identity.token,
+          identity.wrappedKeys,
+          identity.userId,
+        )
+      : null;
     c.set("auth", {
       userId: identity.userId,
       token: identity.token,
       via: identity.via,
       ...(identity.scopes && { scopes: identity.scopes }),
       ...(identity.signedInAt && { signedInAt: identity.signedInAt }),
+      ...(keys && { keys }),
     });
     await next();
   };

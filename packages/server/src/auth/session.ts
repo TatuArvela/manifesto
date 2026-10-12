@@ -80,6 +80,7 @@ async function authenticateByApiToken(
     token,
     via: kind === "mcp" ? "mcp-token" : "api-token",
     scopes: stored.scopes,
+    ...(stored.wrappedKeys !== null && { wrappedKeys: stored.wrappedKeys }),
     username: user.username,
     displayName: user.displayName || user.username,
     avatarColor: user.avatarColor,

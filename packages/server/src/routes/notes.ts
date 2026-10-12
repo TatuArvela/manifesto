@@ -1,4 +1,3 @@
-import { zValidator } from "@hono/zod-validator";
 import {
   MAX_NOTES_PAGE_SIZE,
   type NotesImportResponse,
@@ -20,13 +19,15 @@ import {
   type StoredNoteUpdate,
 } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
-import {
-  sealedNoteCreateSchema,
-  sealedNotesImportSchema,
-  sealedNoteUpdateSchema,
-} from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
 import { registerCommentRoutes } from "./comments.js";
+import {
+  createBody,
+  importBody,
+  noteOut,
+  notesOut,
+  tokenKeys,
+  updateBody,
+} from "./noteCodec.js";
 import { registerPublicLinkRoutes } from "./publicLinks.js";
 import { registerShareRoutes } from "./shares.js";
 import { registerTeamShareRoutes } from "./teams.js";
@@ -94,16 +95,25 @@ export function createNotesRoutes(deps: NotesDeps) {
     return ids;
   }
 
+  // Every route here answers the app with what is stored, sealed, and a
+  // token that carries keys with the same notes opened; see `noteCodec.ts`.
   notes.get("/", async (c) => {
     const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
     const page = readPageParams(c.req.query("limit"), c.req.query("cursor"));
-    return c.json(await deps.storage.notes.listByUser(userId, page));
+    const listed = await deps.storage.notes.listByUser(userId, page);
+    return c.json({
+      notes: await notesOut(keys, listed.notes),
+      nextCursor: listed.nextCursor,
+    });
   });
 
   notes.get("/:id", async (c) => {
     const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
     const id = c.req.param("id") as string;
-    const note = await deps.storage.notes.getById(id, userId);
+    const sealed = await deps.storage.notes.getById(id, userId);
+    const note = sealed && (await noteOut(keys, sealed));
     if (!note) {
       throw new HttpError(404, "Note not found");
     }
@@ -112,187 +122,197 @@ export function createNotesRoutes(deps: NotesDeps) {
 
   // The client chooses a new note's id, since everything it sealed is bound
   // to it, so an id can arrive that is already someone's.
-  notes.post(
-    "/",
-    zValidator("json", sealedNoteCreateSchema, validatorHook),
-    async (c) => {
-      const { userId } = c.get("auth");
-      const { id, imageRefs, previewRefs, ...fields } = c.req.valid("json");
-      if (await deps.storage.notes.exists(id)) {
-        throw new HttpError(409, "A note already has this id");
-      }
+  notes.post("/", async (c) => {
+    const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
+    const { id, imageRefs, previewRefs, ...fields } = await createBody(c, keys);
+    if (await deps.storage.notes.exists(id)) {
+      throw new HttpError(409, "A note already has this id");
+    }
+    const now = nowIso();
+    const note = await deps.storage.notes.insert({
+      id,
+      userId,
+      data: {
+        ...fields,
+        imageRefs: await claimImages(deps.storage, imageRefs, userId),
+        previewRefs: await claimImages(deps.storage, previewRefs, userId),
+        trashedAt: fields.trashed ? now : null,
+      },
+      createdAt: now,
+      updatedAt: now,
+    });
+    deps.noteEvents.created(note, userId);
+    return c.json({ note: await noteOut(keys, note) }, 201);
+  });
+
+  // A backup, or part of one. A note keeps its id and creation time, so a
+  // backup imported twice updates the same notes rather than duplicating them.
+  notes.post("/import", async (c) => {
+    const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
+    const result: NotesImportResponse = {
+      created: 0,
+      updated: 0,
+      skipped: 0,
+    };
+    const taken: string[] = [];
+    for (const item of await importBody(c, keys, deps.storage)) {
+      const { id, createdAt, imageRefs, previewRefs, ...fields } = item;
       const now = nowIso();
+      const access = await deps.storage.notes.access(id, userId);
+      if (access && access.role !== "owner") {
+        result.skipped++;
+        continue;
+      }
+      // Someone else's note has this id. A readable note was given a new
+      // one here; a sealed one is bound to its id, so the client has to
+      // seal it again under another.
+      if (!access && (await deps.storage.notes.exists(id))) {
+        taken.push(id);
+        continue;
+      }
+      // A token's write over a note it already has names the references
+      // only where it changed the list they describe.
+      const data = {
+        ...fields,
+        ...(imageRefs !== undefined && {
+          imageRefs: await claimImages(deps.storage, imageRefs, userId),
+        }),
+        ...(previewRefs !== undefined && {
+          previewRefs: await claimImages(deps.storage, previewRefs, userId),
+        }),
+      };
+      if (access) {
+        await deps.storage.notes.update(
+          id,
+          userId,
+          { ...data, ...trashStamp(fields.trashed, now) },
+          now,
+        );
+        await deps.noteEvents.changed(id, { trashChanged: true });
+        result.updated++;
+        continue;
+      }
       const note = await deps.storage.notes.insert({
         id,
         userId,
         data: {
-          ...fields,
-          imageRefs: await claimImages(deps.storage, imageRefs, userId),
-          previewRefs: await claimImages(deps.storage, previewRefs, userId),
+          ...data,
+          imageRefs: await claimImages(deps.storage, imageRefs ?? [], userId),
+          previewRefs: await claimImages(
+            deps.storage,
+            previewRefs ?? [],
+            userId,
+          ),
           trashedAt: fields.trashed ? now : null,
         },
-        createdAt: now,
+        createdAt: createdAt ? new Date(createdAt).toISOString() : now,
         updatedAt: now,
       });
       deps.noteEvents.created(note, userId);
-      return c.json({ note }, 201);
-    },
-  );
+      result.created++;
+    }
+    if (taken.length > 0) result.taken = taken;
+    return c.json(result);
+  });
 
-  // A backup, or part of one. A note keeps its id and creation time, so a
-  // backup imported twice updates the same notes rather than duplicating them.
-  notes.post(
-    "/import",
-    zValidator("json", sealedNotesImportSchema, validatorHook),
-    async (c) => {
-      const { userId } = c.get("auth");
-      const result: NotesImportResponse = {
-        created: 0,
-        updated: 0,
-        skipped: 0,
-      };
-      const taken: string[] = [];
-      for (const item of c.req.valid("json").notes) {
-        const { id, createdAt, imageRefs, previewRefs, ...fields } = item;
-        const now = nowIso();
-        const access = await deps.storage.notes.access(id, userId);
-        if (access && access.role !== "owner") {
-          result.skipped++;
-          continue;
-        }
-        // Someone else's note has this id. A readable note was given a new
-        // one here; a sealed one is bound to its id, so the client has to
-        // seal it again under another.
-        if (!access && (await deps.storage.notes.exists(id))) {
-          taken.push(id);
-          continue;
-        }
-        const data = {
-          ...fields,
-          imageRefs: await claimImages(deps.storage, imageRefs, userId),
-          previewRefs: await claimImages(deps.storage, previewRefs, userId),
-        };
-        if (access) {
-          await deps.storage.notes.update(
-            id,
-            userId,
-            { ...data, ...trashStamp(fields.trashed, now) },
-            now,
-          );
-          await deps.noteEvents.changed(id, { trashChanged: true });
-          result.updated++;
-          continue;
-        }
-        const note = await deps.storage.notes.insert({
-          id,
-          userId,
-          data: { ...data, trashedAt: fields.trashed ? now : null },
-          createdAt: createdAt ? new Date(createdAt).toISOString() : now,
-          updatedAt: now,
-        });
-        deps.noteEvents.created(note, userId);
-        result.created++;
-      }
-      if (taken.length > 0) result.taken = taken;
-      return c.json(result);
-    },
-  );
-
-  notes.put(
-    "/:id",
-    zValidator("json", sealedNoteUpdateSchema, validatorHook),
-    async (c) => {
-      const { userId } = c.get("auth");
-      const id = c.req.param("id") as string;
-      const fields = c.req.valid("json");
-      const now = nowIso();
-      const { imageRefs, previewRefs, ...rest } = fields;
-      const changes: StoredNoteUpdate = {
-        ...rest,
-        ...trashStamp(fields.trashed, now),
-      };
-      if (imageRefs !== undefined || previewRefs !== undefined) {
-        // Stored under the note's owner, whoever is writing. Refused here
-        // with the answers the update would give, since references nobody
-        // claimed never reach it.
-        const access = await deps.storage.notes.access(id, userId);
-        if (!access) throw new HttpError(404, "Note not found");
-        if (access.role === "view") {
-          const named = [
-            ...(imageRefs !== undefined ? ["images"] : []),
-            ...(previewRefs !== undefined ? ["linkPreviews"] : []),
-          ];
-          throw new HttpError(
-            403,
-            `Your role on this note does not allow changing ${named.join(", ")}`,
-          );
-        }
-        if (imageRefs !== undefined) {
-          changes.imageRefs = await claimImages(
-            deps.storage,
-            imageRefs,
-            access.ownerId,
-          );
-        }
-        if (previewRefs !== undefined) {
-          changes.previewRefs = await claimImages(
-            deps.storage,
-            previewRefs,
-            access.ownerId,
-          );
-        }
-      }
-      const ifMatch = c.req.header("If-Match");
-      // Atomic compare-and-set: storage.notes.update with an
-      // `expectedUpdatedAt` only touches the row if its current
-      // updated_at still matches. A null result means one of:
-      //   (a) the note doesn't exist or this user cannot see it (404)
-      //   (b) the note exists but updated_at moved on (412 + current note)
-      let updated: Awaited<ReturnType<typeof deps.storage.notes.update>>;
-      try {
-        updated = await deps.storage.notes.update(
-          id,
-          userId,
-          changes,
-          now,
-          ifMatch,
+  notes.put("/:id", async (c) => {
+    const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
+    const id = c.req.param("id") as string;
+    const fields = await updateBody(c, keys, deps.storage, id);
+    if (!fields) throw new HttpError(404, "Note not found");
+    const now = nowIso();
+    const { imageRefs, previewRefs, ...rest } = fields;
+    const changes: StoredNoteUpdate = {
+      ...rest,
+      ...trashStamp(fields.trashed, now),
+    };
+    if (imageRefs !== undefined || previewRefs !== undefined) {
+      // Stored under the note's owner, whoever is writing. Refused here
+      // with the answers the update would give, since references nobody
+      // claimed never reach it.
+      const access = await deps.storage.notes.access(id, userId);
+      if (!access) throw new HttpError(404, "Note not found");
+      if (access.role === "view") {
+        const named = [
+          ...(imageRefs !== undefined ? ["images"] : []),
+          ...(previewRefs !== undefined ? ["linkPreviews"] : []),
+        ];
+        throw new HttpError(
+          403,
+          `Your role on this note does not allow changing ${named.join(", ")}`,
         );
-      } catch (err) {
-        // A viewer reaching for the note itself, or a recipient for what only
-        // the owner decides.
-        if (err instanceof NoteAccessError) {
-          throw new HttpError(
-            403,
-            `Your role on this note does not allow changing ${err.fields.join(", ")}`,
-          );
-        }
-        throw err;
       }
-      if (!updated) {
-        const current = await deps.storage.notes.getById(id, userId);
-        if (!current) {
-          throw new HttpError(404, "Note not found");
-        }
-        if (ifMatch !== undefined && current.updatedAt !== ifMatch) {
-          // 412 carries the current note so the client can run a 3-way
-          // merge and retry without re-fetching.
-          return c.json({ error: "Note has changed", note: current }, 412);
-        }
-        // Note exists and matched, but UPDATE found nothing. This shouldn't
-        // happen in practice; treat as 404 so the client retries cleanly.
+      if (imageRefs !== undefined) {
+        changes.imageRefs = await claimImages(
+          deps.storage,
+          imageRefs,
+          access.ownerId,
+        );
+      }
+      if (previewRefs !== undefined) {
+        changes.previewRefs = await claimImages(
+          deps.storage,
+          previewRefs,
+          access.ownerId,
+        );
+      }
+    }
+    const ifMatch = c.req.header("If-Match");
+    // Atomic compare-and-set: storage.notes.update with an
+    // `expectedUpdatedAt` only touches the row if its current
+    // updated_at still matches. A null result means one of:
+    //   (a) the note doesn't exist or this user cannot see it (404)
+    //   (b) the note exists but updated_at moved on (412 + current note)
+    let updated: Awaited<ReturnType<typeof deps.storage.notes.update>>;
+    try {
+      updated = await deps.storage.notes.update(
+        id,
+        userId,
+        changes,
+        now,
+        ifMatch,
+      );
+    } catch (err) {
+      // A viewer reaching for the note itself, or a recipient for what only
+      // the owner decides.
+      if (err instanceof NoteAccessError) {
+        throw new HttpError(
+          403,
+          `Your role on this note does not allow changing ${err.fields.join(", ")}`,
+        );
+      }
+      throw err;
+    }
+    if (!updated) {
+      const current = await deps.storage.notes.getById(id, userId);
+      if (!current) {
         throw new HttpError(404, "Note not found");
       }
-      // Everyone holding the note gets their own copy of it, the writer's
-      // other tabs included. Only the owner's trash hides the note from anyone
-      // else; a recipient's is theirs alone.
-      await deps.noteEvents.changed(id, {
-        trashChanged:
-          fields.trashed !== undefined &&
-          (updated.sharing?.role ?? "owner") === "owner",
-      });
-      return c.json({ note: updated });
-    },
-  );
+      if (ifMatch !== undefined && current.updatedAt !== ifMatch) {
+        // 412 carries the current note so the client can run a 3-way
+        // merge and retry without re-fetching.
+        return c.json(
+          { error: "Note has changed", note: await noteOut(keys, current) },
+          412,
+        );
+      }
+      // Note exists and matched, but UPDATE found nothing. This shouldn't
+      // happen in practice; treat as 404 so the client retries cleanly.
+      throw new HttpError(404, "Note not found");
+    }
+    // Everyone holding the note gets their own copy of it, the writer's
+    // other tabs included. Only the owner's trash hides the note from anyone
+    // else; a recipient's is theirs alone.
+    await deps.noteEvents.changed(id, {
+      trashChanged:
+        fields.trashed !== undefined &&
+        (updated.sharing?.role ?? "owner") === "owner",
+    });
+    return c.json({ note: await noteOut(keys, updated) });
+  });
 
   notes.delete("/:id", async (c) => {
     const { userId } = c.get("auth");

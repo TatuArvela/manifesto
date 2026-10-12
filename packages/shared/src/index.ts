@@ -242,6 +242,14 @@ export {
   openOfferedKey,
   verifyOfferedKey,
 } from "./crypto/shareSeal.js";
+export type { TokenKeyMaterial } from "./crypto/tokenSeal.js";
+export {
+  MAX_TOKEN_KEYS_LENGTH,
+  newTokenSecret,
+  tokenHashOf,
+  unwrapTokenKeys,
+  wrapTokenKeys,
+} from "./crypto/tokenSeal.js";
 export {
   EXPORT_NOTES_FILE,
   EXPORT_PREFERENCES_FILE,

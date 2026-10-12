@@ -153,7 +153,7 @@ export function ApiTokensSettings() {
       );
       return;
     }
-    setSecret(result.created.secret);
+    setSecret(result.created.secret ?? null);
     setSecretKind(kind);
     setName("");
     setPassword("");
