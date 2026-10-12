@@ -7,7 +7,7 @@ import {
 import { Hono } from "hono";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
-import { decodeCursor, encodeCursor } from "../storage/noteMapping.js";
+import { encodeCursor } from "../storage/noteMapping.js";
 import type { StorageDriver } from "../storage/types.js";
 import { readPageParams } from "../validation/pageParams.js";
 import { tokenKeys } from "./noteCodec.js";
@@ -35,24 +35,17 @@ export function createSearchRoutes(deps: { storage: StorageDriver }) {
     if (q.length === 0) {
       return c.json({ notes: [], nextCursor: null } satisfies NotesResponse);
     }
-    // Where the page before left off: listings run newest first.
-    const after = cursor ? decodeCursor(cursor) : null;
     const found: Note[] = [];
     let more = false;
-    let next: string | undefined;
+    // Where the page before left off: a result's cursor is the listing's
+    // own, so the scan starts there and reads nothing it has answered.
+    let next: string | undefined = cursor;
     scan: do {
       const page = await deps.storage.notes.listByUser(userId, {
         limit: MAX_NOTES_PAGE_SIZE,
         ...(next !== undefined && { cursor: next }),
       });
       for (const sealed of page.notes) {
-        if (
-          after &&
-          (sealed.updatedAt > after.updatedAt ||
-            (sealed.updatedAt === after.updatedAt && sealed.id >= after.id))
-        ) {
-          continue;
-        }
         const note = (await openSealedNote(keys, sealed))?.note;
         if (
           !note ||
