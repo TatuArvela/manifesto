@@ -670,7 +670,10 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0024-sign-in-links", sql: SIGN_IN_LINKS },
   { id: "0025-note-comments", sql: NOTE_COMMENTS },
   { id: "0026-web-push", sql: WEB_PUSH },
-  { id: "0027-account-keys", sql: ACCOUNT_KEYS },
+  // Refused on the first step of encryption, so a database that is turned
+  // away is still the one the older version left. The second keeps the
+  // refusal for a database an earlier build stopped in between.
+  { id: "0027-account-keys", sql: ACCOUNT_KEYS, refuseIf: BEFORE_ENCRYPTION },
   { id: "0028-sealed-notes", sql: SEALED_NOTES, refuseIf: BEFORE_ENCRYPTION },
   { id: "0029-share-keys", sql: SHARE_KEYS },
   { id: "0030-comment-keys", sql: COMMENT_KEYS },

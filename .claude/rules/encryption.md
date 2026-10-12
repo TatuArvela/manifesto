@@ -304,8 +304,10 @@ place of the two-factor recovery codes: an account whose only factor is passkeys
 at sign-in. Starting an account again removes its keys and, through `sharing/emptyAccount.ts`,
 everything sealed under them.
 
-A database from before encryption is not upgraded: migration `0028-sealed-notes` carries
-`refuseIf: BEFORE_ENCRYPTION`, and `index.ts` prints the refusal and exits.
+A database from before encryption is not upgraded: migration `0027-account-keys`, the first step
+of encryption, carries `refuseIf: BEFORE_ENCRYPTION`, and `index.ts` prints the refusal and exits.
+The guard sits on the first step so a refused database is unchanged and the older version still
+runs on it; a later step that needs the same refusal must not come after one that alters anything.
 
 ## Tests
 

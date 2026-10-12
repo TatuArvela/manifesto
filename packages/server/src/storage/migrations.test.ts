@@ -183,11 +183,16 @@ describe("0003-user-admin on a server that already has accounts", () => {
   });
 });
 
-describe("0028-sealed-notes on a database from before encryption", () => {
+describe("the first step of encryption on a database from before it", () => {
   // Notes written before encryption are readable where they lie. The server
   // does not seal them in place (the old text would stay in free pages and in
   // every backup), so it refuses to run beside them and says why.
-  const BEFORE = "0028-sealed-notes";
+  // The first step, not the one that seals the notes: a step before the
+  // refusal would have changed the database the operator is sent back to.
+  const BEFORE = "0027-account-keys";
+  const ENCRYPTION = SQLITE_MIGRATIONS.slice(
+    SQLITE_MIGRATIONS.findIndex((m) => m.id === BEFORE),
+  ).map((m) => m.id);
   const user = `INSERT INTO users (id, username, created_at) VALUES ('u', 'amy', '2026-01-01')`;
   const note = `INSERT INTO notes (id, user_id, title, content, color, font, created_at, updated_at)
     VALUES ('n', 'u', 'Readable', 'Text', 'default', 'default', '2026-01-01', '2026-01-01')`;
@@ -200,13 +205,15 @@ describe("0028-sealed-notes on a database from before encryption", () => {
 
     expect(() => runSqliteMigrations(db)).toThrow(MigrationRefusedError);
     expect(() => runSqliteMigrations(db)).toThrow(/before end-to-end/);
-    const applied = db
-      .prepare(`SELECT id FROM schema_migrations WHERE id = ?`)
-      .all(BEFORE);
-    expect(applied).toEqual([]);
+    const applied = (
+      db.prepare(`SELECT id FROM schema_migrations`).all() as { id: string }[]
+    ).map((row) => row.id);
+    expect(applied.filter((id) => ENCRYPTION.includes(id))).toEqual([]);
     expect(db.prepare(`SELECT title FROM notes WHERE id = 'n'`).get()).toEqual({
       title: "Readable",
     });
+    // What the older version reads is all still there.
+    expect(db.prepare(`SELECT * FROM totp_recovery_codes`).all()).toEqual([]);
     db.close();
   });
 
@@ -219,11 +226,13 @@ describe("0028-sealed-notes on a database from before encryption", () => {
     await expect(runPgMigrations(pool)).rejects.toBeInstanceOf(
       MigrationRefusedError,
     );
-    const { rows } = await pool.query(
-      `SELECT id FROM schema_migrations WHERE id = $1`,
-      [BEFORE],
-    );
-    expect(rows).toEqual([]);
+    const { rows } = await pool.query(`SELECT id FROM schema_migrations`);
+    expect(
+      rows.filter((row: { id: string }) => ENCRYPTION.includes(row.id)),
+    ).toEqual([]);
+    expect(
+      (await pool.query(`SELECT * FROM totp_recovery_codes`)).rows,
+    ).toEqual([]);
   });
 
   it("runs on a database with accounts and no notes", () => {
