@@ -14,6 +14,7 @@ import {
   acceptInvitation,
   declineInvitation,
   findUsers,
+  type Invitation,
   invitations,
   leaveNote,
   receiveInvitation,
@@ -70,6 +71,9 @@ function sharedAs(role: NoteSharing["role"]): NoteSharing {
   };
 }
 
+/** An invitation as the server sends it. This project hands notes through
+ * unsealed, so its words are readable here; the key that came with it is
+ * taken as it is. */
 function invitation(overrides: Partial<ShareInvitation> = {}): ShareInvitation {
   return {
     noteId: "n1",
@@ -77,8 +81,31 @@ function invitation(overrides: Partial<ShareInvitation> = {}): ShareInvitation {
     owner,
     title: "Groceries",
     content: "- [ ] Milk",
-    color: NoteColor.Yellow,
     font: NoteFont.Default,
+    keyVersion: 1,
+    offered: {
+      keyVersion: 1,
+      ephemeral: "e",
+      wrapped: "w",
+      signer: owner.id,
+      signature: "s",
+    },
+    invitedAt: "2026-04-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+/** The same invitation as the app shows it. */
+function shown(overrides: Partial<Invitation> = {}): Invitation {
+  return {
+    noteId: "n1",
+    role: "edit",
+    owner,
+    title: "Groceries",
+    content: "- [ ] Milk",
+    color: NoteColor.Default,
+    font: NoteFont.Default,
+    waiting: false,
     invitedAt: "2026-04-01T00:00:00.000Z",
     ...overrides,
   };
@@ -118,15 +145,25 @@ afterEach(() => {
 const messages = () => toasts.value.map((toast) => toast.message);
 
 describe("invitations", () => {
-  it("says so when an invitation arrives, and not again when it is refreshed", () => {
-    receiveInvitation(invitation());
-    receiveInvitation(invitation({ role: "view" }));
-    expect(invitations.value).toEqual([invitation({ role: "view" })]);
+  it("says so when an invitation arrives, and not again when it is refreshed", async () => {
+    await receiveInvitation(invitation());
+    await receiveInvitation(invitation({ role: "view" }));
+    expect(invitations.value).toEqual([shown({ role: "view" })]);
     expect(messages()).toEqual(["Olivia wants to share a note with you"]);
   });
 
-  it("accepts one, putting the note among the user's notes", async () => {
-    invitations.value = [invitation()];
+  it("shows nothing of a note whose key has not come, and does not accept it", async () => {
+    await receiveInvitation(invitation({ offered: null }));
+    expect(invitations.value).toEqual([
+      shown({ title: "", content: "", waiting: true }),
+    ]);
+    expect(await acceptInvitation("n1")).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(messages()).toContain("This note's key has not arrived yet");
+  });
+
+  it("accepts one, keeping its key and putting the note among the user's notes", async () => {
+    await receiveInvitation(invitation());
     const note = makeNote({ sharing: sharedAs("edit") });
     fetchMock.mockResolvedValueOnce(json({ note }));
 
@@ -134,12 +171,14 @@ describe("invitations", () => {
     const [url, init] = fetchMock.mock.calls[0] ?? [];
     expect(url).toBe(`${SERVER}/api/invitations/n1/accept`);
     expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toMatchObject({ keyVersion: 1 });
     expect(invitations.value).toEqual([]);
     expect(notes.value).toEqual([note]);
   });
 
   it("drops an invitation that is gone by the time it is accepted", async () => {
-    invitations.value = [invitation()];
+    await receiveInvitation(invitation());
+    toasts.value = [];
     fetchMock.mockResolvedValueOnce(
       json({ error: "Invitation not found" }, 404),
     );
@@ -152,7 +191,7 @@ describe("invitations", () => {
   });
 
   it("declines one", async () => {
-    invitations.value = [invitation()];
+    invitations.value = [shown()];
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     expect(await declineInvitation("n1")).toBe(true);
     expect(fetchMock.mock.calls[0]?.[0]).toBe(

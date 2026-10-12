@@ -8,6 +8,9 @@ paths:
   - "packages/client/src/utils/keyMaterial.ts"
   - "packages/client/src/storage/deviceKeys.ts"
   - "packages/client/src/storage/sealing.ts"
+  - "packages/client/src/storage/shareKeys.ts"
+  - "packages/client/src/state/sharing.ts"
+  - "packages/server/src/routes/shares.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
   - "packages/server/src/routes/attachments.ts"
@@ -119,6 +122,26 @@ is two steps: the client asks `POST /api/attachments/claim` for the owner's own 
 seals (`RestApiAdapter.claim`, `adoptImages`), and the write then refuses any reference that is not
 the owner's (`claimImages`). A new path that puts an image in a note goes through `withUploads`, or
 it will meet that refusal on a shared note.
+
+## Sharing
+
+Everyone on a shared note needs its key (`shared/src/crypto/shareSeal.ts`). It is wrapped to the
+recipient's ECDH public key through an ephemeral key (`offerNoteKey`) and signed with the wrapper's
+ECDSA key over the note, the version, the recipient and the wrap; the recipient's client uses none
+whose signature fails (`Sealer.adoptOffered`), since wrapping to a public key proves nothing about
+who wrapped. The server stores the offer on the share row (`offered_key`) and, once accepted, the
+recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_version`).
+
+- A recipient is sent `key` only while their copy is the key the note is under (`rowToViewNote`);
+  behind it they get `key: ""` and the current offer, which `Sealer.open` takes through the handler
+  `storage/shareKeys.ts` registers, and stores with `PUT /held-key`.
+- The requests live in `shareKeys.ts`, not `sealing.ts`: sealing must not import `apiRequest.ts`
+  (it would close a cycle through `storage/index.ts`).
+- `state/sharing.ts` shows an invitation only once its key checked and opened (`Invitation.waiting`
+  otherwise), accepts with the held key, and supplies a key to whoever on a note is
+  `waitingForKey`, as the owner or as any other holder.
+- Any note the server answers with outside the adapter (the share routes) is opened with
+  `sealer.peek()?.open(...)` before `receiveNote`.
 
 A field added to a note's words is added in `noteSeal.ts` (seal, open, check), `SealedNote`, the
 sealed schema and `SEALED_SHARED_NOTE_FIELDS` or the personal list, and `shareMapping.test.ts`

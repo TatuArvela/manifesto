@@ -56,6 +56,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     const ids = rows.map((row) => row.id);
     const members = await pool.query<MemberRow>(
       `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at,
+              s.offered_key, s.wrapped_key_version,
               u.username, u.display_name, u.avatar_color,
               s.via_team, t.name AS team_name
        FROM note_shares s JOIN users u ON u.id = s.user_id

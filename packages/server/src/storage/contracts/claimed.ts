@@ -57,6 +57,9 @@ export function claimedImages(images: string[] = []): ClaimedImages {
   return images as ClaimedImages;
 }
 
+/** A note key as a recipient keeps it, for a test that accepts a share. */
+export const heldKey = { key: ct("held key"), keyVersion: 1 };
+
 /** The changes of an update as the app sends them. */
 export function sealedUpdate(changes: NoteUpdate): SealedNoteUpdate {
   const { title, content, font, images, linkPreviews, color, tags, ...rest } =

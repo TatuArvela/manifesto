@@ -7,6 +7,7 @@ import {
   SEALED_IMAGE_OVERHEAD,
   type SealedNote,
   type SealedNoteVersion,
+  type ShareInvitation,
   sniffImageType,
 } from "@manifesto/shared";
 import { newId } from "../lib/ulid.js";
@@ -107,6 +108,7 @@ function isSealedVersion(value: Record<string, unknown>): boolean {
   return (
     typeof value.keyVersion === "number" &&
     typeof value.noteId === "string" &&
+    typeof value.timestamp === "string" &&
     typeof value.title === "string"
   );
 }
@@ -262,6 +264,31 @@ export function sealingClient(send: Fetch): Fetch {
     let next = init;
     if (method === "POST" && path === "/api/attachments" && init) {
       next = sealedUpload(init) ?? init;
+    }
+    const accepted = /^\/api\/invitations\/([^/]+)\/accept$/.exec(path);
+    if (
+      method === "POST" &&
+      accepted &&
+      (init?.body == null || init.body === "{}")
+    ) {
+      // The app opens the key it was offered and sends it back wrapped
+      // under its own notes key; here, a value of that shape.
+      const list = await send("/api/invitations", {
+        headers: init?.headers ?? {},
+      });
+      const invitations = list.ok
+        ? ((await list.json()) as { invitations: ShareInvitation[] })
+            .invitations
+        : [];
+      const keyVersion =
+        invitations.find((i) => i.noteId === accepted[1])?.keyVersion ?? 1;
+      const withJson = new Headers(init?.headers);
+      withJson.set("Content-Type", "application/json");
+      next = {
+        ...init,
+        headers: withJson,
+        body: JSON.stringify({ key: ct("held key"), keyVersion }),
+      };
     }
     if (typeof init?.body === "string") {
       try {

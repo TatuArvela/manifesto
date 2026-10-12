@@ -19,6 +19,7 @@ import {
   MAX_WRAPPED_KEY_LENGTH,
   NoteColor,
   NoteFont,
+  OFFERED_KEY_MAX,
   PUBLIC_KEY_LENGTH,
   PUBLIC_LINK_MODES,
   RECOVERY_VERIFIER_LENGTH,
@@ -277,9 +278,33 @@ export const adminUpdateUserSchema = z
 
 const shareRoleSchema = z.enum(SHARE_ROLES);
 
+/**
+ * A note key wrapped to someone's public key and signed: shapes only, since
+ * the server can open none of it. The recipient's client checks the
+ * signature against the key it remembers for the signer.
+ */
+export const offeredKeySchema = z.object({
+  keyVersion: z.number().int().min(1),
+  ephemeral: publicKey,
+  wrapped: sealed(OFFERED_KEY_MAX.wrapped),
+  signer: z.string().min(1).max(64),
+  signature: z
+    .string()
+    .min(1)
+    .max(OFFERED_KEY_MAX.signature)
+    .regex(/^[A-Za-z0-9_-]+$/, "Must be base64url"),
+});
+
 export const shareCreateSchema = z.object({
   userId: z.string().min(1).max(64),
   role: shareRoleSchema,
+  key: offeredKeySchema.exactOptional(),
+});
+
+/** `POST /api/invitations/:noteId/accept` and `PUT /api/notes/:id/held-key`. */
+export const heldKeySchema = z.object({
+  key: wrappedKey,
+  keyVersion: z.number().int().min(1),
 });
 
 export const shareUpdateSchema = z.object({ role: shareRoleSchema });

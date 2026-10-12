@@ -1137,6 +1137,9 @@ export const fi: Messages = {
   "sharing.invitation.accept": "Hyväksy",
   "sharing.invitation.decline": "Hylkää",
   "sharing.invitation.received": "{name} haluaa jakaa kanssasi muistiinpanon",
+  "sharing.invitation.waiting":
+    "Odottaa muistiinpanon avainta. Se saapuu, kun joku, jolla muistiinpano on, on seuraavan kerran verkossa.",
+  "sharing.error.waitingForKey": "Muistiinpanon avain ei ole vielä saapunut",
   "sharing.card.sharedWith": "Jaettu: {names}.",
   "sharing.card.waiting": "Odottaa hyväksyntää: {names}.",
   "sharing.card.sharedBy": "Jakanut: {name}",

@@ -1,4 +1,3 @@
-import type { ShareInvitation } from "@manifesto/shared";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
@@ -6,6 +5,7 @@ import { t } from "../i18n/index.js";
 import {
   acceptInvitation,
   declineInvitation,
+  type Invitation,
   invitations,
 } from "../state/sharing.js";
 import { Avatar } from "./Avatar.js";
@@ -33,7 +33,7 @@ export function InvitationList() {
   );
 }
 
-function InvitationCard({ invitation }: { invitation: ShareInvitation }) {
+function InvitationCard({ invitation }: { invitation: Invitation }) {
   const [busy, setBusy] = useState(false);
   const name = invitation.owner.displayName || invitation.owner.username;
   const colors = noteColorMap[invitation.color];
@@ -97,22 +97,28 @@ function InvitationCard({ invitation }: { invitation: ShareInvitation }) {
           fontFamily: noteFontFamilies[invitation.font] || undefined,
         }}
       >
-        <h3 class="font-medium text-base leading-snug">
-          {invitation.title || t("sharing.untitled")}
-        </h3>
-        <ContentPreview
-          note={invitation}
-          onCheckboxToggle={() => {}}
-          hasTitle
-          readOnly
-        />
+        {invitation.waiting ? (
+          <p class="text-sm opacity-80">{t("sharing.invitation.waiting")}</p>
+        ) : (
+          <>
+            <h3 class="font-medium text-base leading-snug">
+              {invitation.title || t("sharing.untitled")}
+            </h3>
+            <ContentPreview
+              note={invitation}
+              onCheckboxToggle={() => {}}
+              hasTitle
+              readOnly
+            />
+          </>
+        )}
       </div>
 
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
           class="px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
-          disabled={busy}
+          disabled={busy || invitation.waiting}
           onClick={() => answer(acceptInvitation)}
         >
           {t("sharing.invitation.accept")}

@@ -1,16 +1,28 @@
-import type {
-  DirectoryUser,
-  InvitationsResponse,
-  NoteResponse,
-  ShareInvitation,
-  ShareRole,
-  UserLookupResponse,
+import {
+  type DirectoryUser,
+  type HeldKeyRequest,
+  type InvitationsResponse,
+  type Note,
+  NoteColor,
+  NoteFont,
+  type NoteResponse,
+  roleOf,
+  type SealedNote,
+  type ShareInvitation,
+  type ShareRole,
+  type UserLookupResponse,
 } from "@manifesto/shared";
-import { signal } from "@preact/signals";
+import { effect, signal } from "@preact/signals";
 import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { ApiError, apiJson } from "../storage/apiRequest.js";
-import { forgetNote, receiveNote, reviseNote } from "./notesStore.js";
+import { sealer } from "../storage/sealing.js";
+import {
+  adoptOfferedKey,
+  offerKeyTo,
+  supplyKey,
+} from "../storage/shareKeys.js";
+import { forgetNote, notes, receiveNote, reviseNote } from "./notesStore.js";
 import { serverFeature } from "./serverFeatures.js";
 import { editingNoteId, showError, showSuccess } from "./ui.js";
 
@@ -23,8 +35,71 @@ import { editingNoteId, showError, showSuccess } from "./ui.js";
  * to catalogue messages by status, as `admin.ts` does.
  */
 
+/**
+ * An invitation as the app shows it: the note's title, text and font opened
+ * with the key that came with it. `waiting` while no key has come, or the one
+ * that came did not check against its signer: nothing of the note is shown
+ * then, and it cannot be accepted yet.
+ */
+export interface Invitation
+  extends Omit<
+    ShareInvitation,
+    "title" | "content" | "font" | "keyVersion" | "offered"
+  > {
+  title: string;
+  content: string;
+  /** The owner's colour is their own; an invitation has none. */
+  color: NoteColor;
+  font: NoteFont;
+  waiting: boolean;
+}
+
 /** Notes other people have offered, newest first. */
-export const invitations = signal<ShareInvitation[]>([]);
+export const invitations = signal<Invitation[]>([]);
+
+/** The key each open invitation came with, as this account will keep it. */
+const heldKeys = new Map<string, HeldKeyRequest>();
+
+/** Opens an invitation as it arrived from the server. Never rejects. */
+async function opened(raw: ShareInvitation): Promise<Invitation> {
+  const {
+    title: _t,
+    content: _c,
+    font: _f,
+    keyVersion,
+    offered,
+    ...rest
+  } = raw;
+  const waiting: Invitation = {
+    ...rest,
+    title: "",
+    content: "",
+    color: NoteColor.Default,
+    font: NoteFont.Default,
+    waiting: true,
+  };
+  const sealing = sealer.peek();
+  if (!sealing || !offered) return waiting;
+  try {
+    const held = await adoptOfferedKey(sealing, raw.noteId, offered);
+    if (!held) return waiting;
+    const preview = await sealing.openPreview(raw.noteId, keyVersion, raw);
+    if (!preview) return waiting;
+    heldKeys.set(raw.noteId, held);
+    return { ...waiting, ...preview, waiting: false };
+  } catch (err) {
+    console.warn("Failed to open an invitation:", err);
+    return waiting;
+  }
+}
+
+/** A note the server answered with, opened; null when it does not open. */
+async function openedNote(
+  sealed: SealedNote | undefined,
+): Promise<Note | null> {
+  if (!sealed) return null;
+  return (await sealer.peek()?.open(sealed)) ?? null;
+}
 
 /**
  * The note whose people are being looked at, if any. One dialog for the whole
@@ -49,10 +124,11 @@ function report(
   showError(t(byStatus[status] ?? fallback));
 }
 
-const byId = (noteId: string) => (i: ShareInvitation) => i.noteId === noteId;
+const byId = (noteId: string) => (i: Invitation) => i.noteId === noteId;
 
-/** Add or refresh one invitation, as the socket reports it. */
-export function receiveInvitation(invitation: ShareInvitation): void {
+/** Add or refresh one invitation, as the socket reports it. Never rejects. */
+export async function receiveInvitation(raw: ShareInvitation): Promise<void> {
+  const invitation = await opened(raw);
   const known = invitations.value.some(byId(invitation.noteId));
   invitations.value = [
     invitation,
@@ -68,6 +144,7 @@ export function receiveInvitation(invitation: ShareInvitation): void {
 }
 
 export function forgetInvitation(noteId: string): void {
+  heldKeys.delete(noteId);
   invitations.value = invitations.value.filter((i) => i.noteId !== noteId);
 }
 
@@ -79,7 +156,9 @@ export async function loadInvitations(): Promise<boolean> {
   }
   try {
     const body = await apiJson<InvitationsResponse>("GET", "/invitations");
-    invitations.value = body?.invitations ?? [];
+    const list: Invitation[] = [];
+    for (const raw of body?.invitations ?? []) list.push(await opened(raw));
+    invitations.value = list;
     return true;
   } catch (err) {
     // Not worth a toast on start: the notes are what the user came for, and
@@ -90,13 +169,22 @@ export async function loadInvitations(): Promise<boolean> {
 }
 
 export async function acceptInvitation(noteId: string): Promise<boolean> {
+  // Accepting keeps the note's key under this account's own notes key. An
+  // invitation still waiting for one has nothing to keep.
+  const held = heldKeys.get(noteId);
+  if (!held) {
+    showError(t("sharing.error.waitingForKey"));
+    return false;
+  }
   try {
-    const body = await apiJson<NoteResponse>(
+    const body = await apiJson<NoteResponse<SealedNote>>(
       "POST",
       `/invitations/${noteId}/accept`,
+      held,
     );
     forgetInvitation(noteId);
-    if (body) receiveNote(body.note);
+    const note = await openedNote(body?.note);
+    if (note) receiveNote(note);
     return true;
   } catch (err) {
     // Gone: withdrawn, or the note was trashed or deleted in the meantime.
@@ -163,15 +251,21 @@ export async function shareNote(
   role: ShareRole,
 ): Promise<boolean> {
   try {
-    const body = await apiJson<NoteResponse>(
+    // The note's key, wrapped to their public key and signed. Without one
+    // (an account not set up yet) the invitation waits, and whoever holds
+    // the note wraps it for them later.
+    const key = await offerKeyTo(noteId, userId);
+    const body = await apiJson<NoteResponse<SealedNote>>(
       "POST",
       `/notes/${noteId}/shares`,
       {
         userId,
         role,
+        ...(key && { key }),
       },
     );
-    if (body) receiveNote(body.note);
+    const note = await openedNote(body?.note);
+    if (note) receiveNote(note);
     return true;
   } catch (err) {
     report(
@@ -194,12 +288,13 @@ export async function setShareRole(
   role: ShareRole,
 ): Promise<boolean> {
   try {
-    const body = await apiJson<NoteResponse>(
+    const body = await apiJson<NoteResponse<SealedNote>>(
       "PUT",
       `/notes/${noteId}/shares/${userId}`,
       { role },
     );
-    if (body) receiveNote(body.note);
+    const note = await openedNote(body?.note);
+    if (note) receiveNote(note);
     return true;
   } catch (err) {
     report(
@@ -271,3 +366,36 @@ export async function leaveNote(
   forgetNote(noteId);
   return true;
 }
+
+/** Who has been tried this session, as `note user`, so one that cannot be
+ * supplied (an account with no keys yet) is not asked about on every change. */
+const supplied = new Set<string>();
+
+/**
+ * Hands the note's key to whoever on it is still waiting for one: a member
+ * of a team the note was shared with, or someone invited before they had
+ * keys. Whichever holder of the note is online first does it, the owner or
+ * not. Never rejects.
+ */
+async function supplyWaiting(note: Note): Promise<void> {
+  // A viewer holds the key as much as anyone, so anyone on the note may.
+  for (const member of note.sharing?.members ?? []) {
+    if (!member.waitingForKey) continue;
+    const tried = `${note.id} ${member.id}`;
+    if (supplied.has(tried)) continue;
+    supplied.add(tried);
+    await supplyKey(note.id, member.id);
+  }
+}
+
+// Follows the notes: a share to a team reaches its members with no key, and
+// this is the "first client of anyone holding the note" that wraps it.
+effect(() => {
+  if (!sealer.value?.handsKeysOn) return;
+  for (const note of notes.value) {
+    if (roleOf(note) === "view" && !note.sharing) continue;
+    if (note.sharing?.members.some((m) => m.waitingForKey)) {
+      void supplyWaiting(note);
+    }
+  }
+});

@@ -2,6 +2,7 @@ import type {
   NoteMember,
   NoteReminder,
   NoteRole,
+  OfferedKey,
   SealedNote,
   SealedNoteUpdate,
   ShareInvitation,
@@ -18,8 +19,6 @@ import { nowIso } from "../lib/time.js";
 import {
   asBoolean,
   type NoteRow,
-  parseColor,
-  parseFont,
   parseJson,
   type RowBoolean,
   rowToNote,
@@ -54,6 +53,8 @@ export interface ViewRow extends NoteRow {
   s_tags?: string | null;
   s_reminder?: string | null;
   s_wrapped_key?: string | null;
+  s_wrapped_key_version?: number | string | null;
+  s_offered_key?: string | null;
 }
 
 /** For a query that joins `note_shares s` onto `notes n`. */
@@ -68,6 +69,8 @@ export const SHARE_OVERLAY_COLUMNS = [
   "s.tags AS s_tags",
   "s.reminder AS s_reminder",
   "s.wrapped_key AS s_wrapped_key",
+  "s.wrapped_key_version AS s_wrapped_key_version",
+  "s.offered_key AS s_offered_key",
 ].join(", ");
 
 export interface ShareRow {
@@ -77,6 +80,32 @@ export interface ShareRow {
   created_at: string;
   accepted_at: string | null;
   via_team?: string | null;
+  offered_key?: string | null;
+  wrapped_key_version?: number | string | null;
+}
+
+/** An offered key as stored, or null for none or anything else. */
+export function parseOffered(
+  raw: string | null | undefined,
+): OfferedKey | null {
+  const value = parseJson<Partial<OfferedKey> | null>(raw ?? null, null);
+  return value &&
+    typeof value.keyVersion === "number" &&
+    typeof value.ephemeral === "string" &&
+    typeof value.wrapped === "string" &&
+    typeof value.signer === "string" &&
+    typeof value.signature === "string"
+    ? (value as OfferedKey)
+    : null;
+}
+
+/**
+ * Whether a share's holder has nothing that opens the note at `keyVersion`:
+ * no copy of that key under their own notes key, and none offered to them.
+ */
+function waitsForKey(row: ShareRow, keyVersion: number): boolean {
+  if (Number(row.wrapped_key_version ?? 0) === keyVersion) return false;
+  return parseOffered(row.offered_key)?.keyVersion !== keyVersion;
 }
 
 /** A share with the account it belongs to, and the team it came through. */
@@ -100,8 +129,9 @@ export interface InvitationRow {
   created_at: string;
   title: string;
   content: string;
-  color: string;
   font: string;
+  key_version: number | string;
+  offered_key: string | null;
   owner_id: string;
   username: string;
   display_name: string;
@@ -159,10 +189,16 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
       display_name: row.display_name,
       avatar_color: row.avatar_color,
     }),
-    title: row.title,
-    content: row.content,
-    color: parseColor(row.color),
-    font: parseFont(row.font),
+    title: sealedColumn(row.title),
+    content: sealedColumn(row.content),
+    font: sealedColumn(row.font),
+    keyVersion: Number(row.key_version),
+    // Only one for the key the note is under now: an older one opens
+    // nothing the invitation shows.
+    offered:
+      parseOffered(row.offered_key)?.keyVersion === Number(row.key_version)
+        ? parseOffered(row.offered_key)
+        : null,
     invitedAt: row.created_at,
     ...teamOf(row),
   };
@@ -177,7 +213,13 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
 export function rowToViewNote(row: ViewRow): SealedNote {
   const note = rowToNote(row);
   if (row.s_role === null || row.s_role === undefined) return note;
-  note.key = sealedColumn(row.s_wrapped_key);
+  // Their copy of the key, while it is the key the note is under. Behind
+  // it, they hold nothing that opens the note, and are handed the offer
+  // that would.
+  const current = Number(row.s_wrapped_key_version ?? 0) === note.keyVersion;
+  note.key = current ? sealedColumn(row.s_wrapped_key) : "";
+  const offered = current ? null : parseOffered(row.s_offered_key);
+  if (offered?.keyVersion === note.keyVersion) note.offered = offered;
   note.color = sealedColumn(row.s_color);
   note.pinned = asBoolean(row.s_pinned ?? false);
   note.archived = asBoolean(row.s_archived ?? false);
@@ -230,6 +272,7 @@ export function attachSharing(
       role: parseRole(m.role),
       accepted: m.accepted_at !== null,
       ...teamOf(m),
+      ...(waitsForKey(m, note.keyVersion) && { waitingForKey: true }),
     }));
     return {
       ...note,

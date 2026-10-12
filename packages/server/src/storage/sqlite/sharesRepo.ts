@@ -8,16 +8,19 @@ import {
 } from "../shareMapping.js";
 import type {
   CreateShareInput,
+  HeldKey,
   NoteAudience,
   NoteShare,
   SharesRepo,
 } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
-const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team`;
+const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team,
+  offered_key, wrapped_key_version`;
 
 const INVITATION_SELECT = `
-  SELECT s.note_id, s.role, s.created_at, n.title, n.content, n.color, n.font,
+  SELECT s.note_id, s.role, s.created_at, n.title, n.content, n.font,
+         n.key_version, s.offered_key,
          n.user_id AS owner_id, u.username, u.display_name, u.avatar_color,
          s.via_team, t.name AS team_name
   FROM note_shares s
@@ -45,8 +48,17 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
     `SELECT ${SHARE_COLUMNS} FROM note_shares WHERE note_id = ? AND user_id = ?`,
   );
   const insertStmt = db.prepare(
-    `INSERT INTO note_shares (note_id, user_id, role, created_at, via_team)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO note_shares
+       (note_id, user_id, role, created_at, via_team, offered_key)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  );
+  const offerStmt = db.prepare(
+    `UPDATE note_shares SET offered_key = ? WHERE note_id = ? AND user_id = ?`,
+  );
+  const holdStmt = db.prepare(
+    `UPDATE note_shares
+     SET wrapped_key = ?, wrapped_key_version = ?, offered_key = NULL
+     WHERE note_id = ? AND user_id = ? AND accepted_at IS NOT NULL`,
   );
   const setViaTeamStmt = db.prepare(
     `UPDATE note_shares SET via_team = ? WHERE note_id = ? AND user_id = ?`,
@@ -55,7 +67,9 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
     `UPDATE note_shares SET role = ? WHERE note_id = ? AND user_id = ?`,
   );
   const acceptStmt = db.prepare(
-    `UPDATE note_shares SET accepted_at = ?, position = ?
+    `UPDATE note_shares
+     SET accepted_at = ?, position = ?, wrapped_key = ?,
+         wrapped_key_version = ?, offered_key = NULL
      WHERE note_id = ? AND user_id = ? AND accepted_at IS NULL`,
   );
   const deleteStmt = db.prepare(
@@ -72,7 +86,8 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
     `SELECT ${SHARE_COLUMNS} FROM note_shares WHERE user_id = ?`,
   );
   const byOwnerStmt = db.prepare(
-    `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at, s.via_team
+    `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at, s.via_team,
+            s.offered_key, s.wrapped_key_version
      FROM note_shares s JOIN notes n ON n.id = s.note_id
      WHERE n.user_id = ?`,
   );
@@ -82,7 +97,12 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
   );
 
   const acceptTx = db.transaction(
-    (noteId: string, userId: string, acceptedAt: string): boolean => {
+    (
+      noteId: string,
+      userId: string,
+      acceptedAt: string,
+      held: HeldKey,
+    ): boolean => {
       const note = noteStmt.get(noteId) as
         | { trashed: number; color: string }
         | undefined;
@@ -91,6 +111,8 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
       const info = acceptStmt.run(
         acceptedAt,
         -Date.parse(acceptedAt),
+        held.key,
+        held.keyVersion,
         noteId,
         userId,
       );
@@ -132,6 +154,7 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
           input.role,
           input.createdAt,
           input.viaTeam ?? null,
+          input.offeredKey ? JSON.stringify(input.offeredKey) : null,
         );
         membersChangedStmt.run(input.createdAt, input.noteId);
         return "ok";
@@ -163,8 +186,19 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
       noteId: string,
       userId: string,
       acceptedAt: string,
+      held: HeldKey,
     ): Promise<boolean> {
-      return acceptTx.immediate(noteId, userId, acceptedAt);
+      return acceptTx.immediate(noteId, userId, acceptedAt, held);
+    },
+
+    async offerKey(noteId, userId, offered) {
+      return offerStmt.run(JSON.stringify(offered), noteId, userId).changes > 0;
+    },
+
+    async holdKey(noteId, userId, held) {
+      return (
+        holdStmt.run(held.key, held.keyVersion, noteId, userId).changes > 0
+      );
     },
 
     async delete(noteId: string, userId: string): Promise<NoteShare | null> {

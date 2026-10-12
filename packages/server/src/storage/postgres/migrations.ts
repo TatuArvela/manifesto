@@ -437,6 +437,16 @@ ALTER TABLE note_versions ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
 DELETE FROM user_prefs;
 `;
 
+/**
+ * A note key on its way to someone the note is shared with: wrapped to their
+ * public key and signed (`offered_key`, as JSON), until their client keeps it
+ * under their own notes key (`wrapped_key`, at `wrapped_key_version`).
+ */
+const SHARE_KEYS = `
+ALTER TABLE note_shares ADD COLUMN offered_key TEXT;
+ALTER TABLE note_shares ADD COLUMN wrapped_key_version INTEGER NOT NULL DEFAULT 0;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -466,6 +476,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0026-web-push", sql: WEB_PUSH },
   { id: "0027-account-keys", sql: ACCOUNT_KEYS },
   { id: "0028-sealed-notes", sql: SEALED_NOTES, refuseIf: BEFORE_ENCRYPTION },
+  { id: "0029-share-keys", sql: SHARE_KEYS },
 ];
 
 /**

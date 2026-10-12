@@ -21,6 +21,14 @@ export const plainSealing: NoteSealing = {
   complete: true,
   markComplete: () => {},
   claimsImages: false,
+  handsKeysOn: false,
+  offerKey: async () => null,
+  adoptOffered: async (_noteId, offered) => ({
+    key: "",
+    keyVersion: offered.keyVersion,
+  }),
+  openPreview: async (_noteId, _keyVersion, sealed) =>
+    sealed as unknown as Pick<Note, "title" | "content" | "font">,
   sealUpload: async (image) => ({
     body: image,
     headers: { "Content-Type": image.type },

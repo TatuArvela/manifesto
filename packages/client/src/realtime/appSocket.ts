@@ -1,7 +1,5 @@
 import {
   APP_SOCKET_HEARTBEAT_MS,
-  NoteColor,
-  NoteFont,
   type PresenceUser,
   type ShareInvitation,
   type WebSocketClientEvent,
@@ -117,12 +115,8 @@ function isShareUser(value: unknown): boolean {
   );
 }
 
-const noteColors = new Set<unknown>(Object.values(NoteColor));
-const noteFonts = new Set<unknown>(Object.values(NoteFont));
-
-/** Color and font are checked against the enums, not just typed as strings:
- * the invitation card indexes `noteColorMap` and `noteFontFamilies` with them,
- * and an unknown key throws while it renders. */
+/** The shape only: what an invitation shows is sealed, and is checked when
+ * it is opened (`state/sharing.ts`). */
 function isInvitation(value: unknown): value is ShareInvitation {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
@@ -132,8 +126,9 @@ function isInvitation(value: unknown): value is ShareInvitation {
     isShareUser(v.owner) &&
     typeof v.title === "string" &&
     typeof v.content === "string" &&
-    noteColors.has(v.color) &&
-    noteFonts.has(v.font) &&
+    typeof v.font === "string" &&
+    typeof v.keyVersion === "number" &&
+    (v.offered === null || typeof v.offered === "object") &&
     typeof v.invitedAt === "string"
   );
 }
@@ -231,7 +226,7 @@ async function applyServerEvent(event: WebSocketEvent) {
       recordPresenceLeave(event.noteId, event.userId);
       break;
     case "invitation:created":
-      receiveInvitation(event.invitation);
+      await receiveInvitation(event.invitation);
       break;
     case "invitation:removed":
       forgetInvitation(event.noteId);

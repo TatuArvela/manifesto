@@ -22,7 +22,8 @@ paths:
 # Sharing Between Accounts
 
 Connected mode lets an owner share a note with other accounts, each as `edit` or `view`, once they
-accept an invitation (spec: `docs/specification/features/sharing-with-people.md`). The note row is
+accept an invitation (spec: `docs/specification/features/sharing-with-people.md`). The note is
+sealed, so sharing also hands its key on; that half is in `encryption.md`. The note row is
 the owner's; each recipient's `note_shares` row holds their role and their own `color`, `pinned`,
 `archived`, `trashed`, `position`, `tags` and `reminder`. A recipient's trash is theirs alone and
 expires their share, not the note; the owner's trash hides the note from everyone. `SHARED_NOTE_FIELDS` / `PERSONAL_NOTE_FIELDS` in

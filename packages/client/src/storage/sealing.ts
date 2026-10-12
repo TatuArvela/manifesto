@@ -1,5 +1,7 @@
 import {
+  type AccountKeys,
   type AccountSealKeys,
+  type HeldKeyRequest,
   type ImageKey,
   type ImageKeySource,
   type Note,
@@ -7,10 +9,15 @@ import {
   type NoteSealKey,
   type NoteUpdate,
   type NoteVersion,
+  noteSealKey,
+  type OfferedKey,
+  offerNoteKey,
   openImage,
   openNoteKey,
+  openOfferedKey,
   openPref,
   openSealedNote,
+  openSharedFields,
   openVersion,
   type SealedAccountPrefs,
   type SealedNote,
@@ -25,10 +32,18 @@ import {
   sealPref,
   sealSharedFields,
   sealVersion,
+  unwrapNoteKey,
+  verifyOfferedKey,
+  wipe,
+  wrapNoteKey,
 } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
 import { ulid } from "ulid";
-import { accountImageKeys, accountSubkey } from "../utils/keyMaterial.js";
+import {
+  accountImageKeys,
+  accountSubkey,
+  openPrivateKey,
+} from "../utils/keyMaterial.js";
 
 /**
  * Sealing and opening for everything that crosses to the server in connected
@@ -114,6 +129,14 @@ export class Sealer {
   /** Whether a note's images have to be made its owner's before it names
    * them (`POST /api/attachments/claim`). */
   readonly claimsImages: boolean = true;
+  /** Whether a shared note's key is wrapped for the people on it. */
+  readonly handsKeysOn: boolean = true;
+  private readonly keys: StorageKeys;
+  /** The account's private keys, opened the first time one is needed. */
+  private privateKeys: Promise<{
+    exchange: CryptoKey;
+    signing: CryptoKey;
+  } | null> | null = null;
   /** Notes that arrived and did not open, by id. */
   readonly unreadable = signal<ReadonlySet<string>>(new Set());
   /**
@@ -124,6 +147,7 @@ export class Sealer {
   complete = false;
 
   constructor(keys: StorageKeys) {
+    this.keys = keys;
     this.account = (async () => ({
       userId: keys.userId,
       version: keys.version,
@@ -131,6 +155,120 @@ export class Sealer {
       personal: await accountSubkey(keys.accountKey, "personal"),
     }))();
     this.images = accountImageKeys(keys.accountKey);
+  }
+
+  /**
+   * The account's two private keys, opened with the account key from what
+   * the server holds wrapped (`load`). Null when they could not be read or
+   * do not open; asked again the next time, then.
+   */
+  private async ownPrivateKeys(load: () => Promise<AccountKeys | null>) {
+    this.privateKeys ??= (async () => {
+      const held = await load();
+      if (!held) return null;
+      const { accountKey, userId } = this.keys;
+      const exchange = await openPrivateKey(
+        accountKey,
+        userId,
+        held,
+        "exchange",
+      );
+      const signing = await openPrivateKey(accountKey, userId, held, "signing");
+      return exchange && signing ? { exchange, signing } : null;
+    })();
+    const opened = await this.privateKeys;
+    if (!opened) this.privateKeys = null;
+    return opened;
+  }
+
+  /**
+   * The key of a note this account holds, wrapped to `recipient`'s public
+   * key and signed as this account. Null when the private keys could not be
+   * opened; rejects with `NoteKeyError` for a note whose key is not held.
+   */
+  async offerKey(
+    noteId: string,
+    recipient: { userId: string; exchange: string },
+    fetch: () => Promise<SealedNote | null>,
+    load: () => Promise<AccountKeys | null>,
+  ): Promise<OfferedKey | null> {
+    const own = await this.ownPrivateKeys(load);
+    if (!own) return null;
+    const account = await this.account;
+    const held = await this.keyOf(noteId, fetch);
+    const raw = await unwrapNoteKey(
+      account,
+      noteId,
+      held.key.version,
+      held.wrapped,
+    );
+    if (!raw) throw new NoteKeyError(noteId);
+    try {
+      return await offerNoteKey(
+        { noteId, recipientId: recipient.userId },
+        held.key.version,
+        raw,
+        recipient.exchange,
+        { userId: this.keys.userId, signing: own.signing },
+      );
+    } finally {
+      wipe(raw);
+    }
+  }
+
+  /**
+   * Takes a key offered to this account. It is used only if its signature
+   * checks against `signerKey`, the signing key of the account it says
+   * wrapped it; then it is opened and wrapped under this account's own notes
+   * key, which is what is handed back to store. Null for one that does not
+   * check or does not open.
+   */
+  async adoptOffered(
+    noteId: string,
+    offered: OfferedKey,
+    signerKey: string,
+    load: () => Promise<AccountKeys | null>,
+  ): Promise<HeldKeyRequest | null> {
+    const context = { noteId, recipientId: this.keys.userId };
+    if (!(await verifyOfferedKey(context, offered, signerKey))) return null;
+    const own = await this.ownPrivateKeys(load);
+    if (!own) return null;
+    const raw = await openOfferedKey(context, offered, own.exchange);
+    if (!raw) return null;
+    try {
+      const wrapped = await wrapNoteKey(
+        await this.account,
+        noteId,
+        offered.keyVersion,
+        raw,
+      );
+      this.noteKeys.set(noteId, {
+        key: await noteSealKey(raw, offered.keyVersion),
+        wrapped,
+      });
+      return { key: wrapped, keyVersion: offered.keyVersion };
+    } finally {
+      wipe(raw);
+    }
+  }
+
+  /**
+   * What an invitation shows of its note, opened with the key adopted for
+   * it. Null when no key for the note at `keyVersion` is held.
+   */
+  async openPreview(
+    noteId: string,
+    keyVersion: number,
+    sealed: { title: string; content: string; font: string },
+  ): Promise<Pick<Note, "title" | "content" | "font"> | null> {
+    const held = this.noteKeys.get(noteId);
+    if (held?.key.version !== keyVersion) return null;
+    const { title, content, font } = await openSharedFields(
+      held.key,
+      noteId,
+      sealed,
+    );
+    return { title, content, font };
   }
 
   /** An image sealed for upload. Rejects with `ImageKindError` for a file
@@ -186,18 +324,27 @@ export class Sealer {
   /** The note as its reader sees it; null when its key does not open. */
   async open(sealed: SealedNote): Promise<Note | null> {
     const account = await this.account;
+    // No copy of the key of their own, and one offered: taken first.
+    if (sealed.key === "" && sealed.offered && offerHandler) {
+      await offerHandler(this, sealed);
+    }
     const known = this.noteKeys.get(sealed.id);
     const opened = await openSealedNote(
       account,
       sealed,
-      // The same wrapped copy as last time: no need to unwrap it again.
-      known?.wrapped === sealed.key ? known.key : undefined,
+      // The same wrapped copy as last time, or a key just taken from an
+      // offer, which the server does not hold yet: no need to unwrap.
+      known && (known.wrapped === sealed.key || sealed.key === "")
+        ? known.key
+        : undefined,
     );
     if (!opened) {
       this.markUnreadable(sealed.id, true);
       return null;
     }
-    this.noteKeys.set(sealed.id, { key: opened.key, wrapped: sealed.key });
+    if (sealed.key !== "") {
+      this.noteKeys.set(sealed.id, { key: opened.key, wrapped: sealed.key });
+    }
     for (const [ref, key] of opened.imageKeys) this.imageKeys.set(ref, key);
     this.markUnreadable(sealed.id, false);
     return opened.note;
@@ -368,6 +515,19 @@ export class Sealer {
 /** What the storage layer seals and opens with: `Sealer`, as its callers
  * see it. */
 export type NoteSealing = Pick<Sealer, keyof Sealer>;
+
+/** What takes a key offered with a note; see `storage/shareKeys.ts`. */
+type OfferHandler = (sealing: NoteSealing, sealed: SealedNote) => Promise<void>;
+
+let offerHandler: OfferHandler | null = null;
+
+/**
+ * Set by `storage/shareKeys.ts`, which knows how to ask the server for the
+ * signer's key: the sealing itself must not reach for a request.
+ */
+export function setOfferHandler(handler: OfferHandler | null): void {
+  offerHandler = handler;
+}
 
 const forTests = signal<NoteSealing | null>(null);
 

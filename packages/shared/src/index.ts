@@ -6,6 +6,7 @@ export type {
   AccountPrefsResponse,
   AccountPrefsUpdate,
   AccountPublicKeys,
+  AccountPublicKeysResponse,
   AdminChecksResponse,
   AdminCreateUserRequest,
   AdminOverviewResponse,
@@ -43,6 +44,7 @@ export type {
   DirectoryUser,
   ErrorCode,
   ErrorResponse,
+  HeldKeyRequest,
   InvitationsResponse,
   LinkPreviewResponse,
   NoteComment,
@@ -229,6 +231,14 @@ export {
   unseal,
   unsealBytes,
 } from "./crypto/seal.js";
+export type { OfferContext, OfferedKey } from "./crypto/shareSeal.js";
+export {
+  keyFingerprint,
+  OFFERED_KEY_MAX,
+  offerNoteKey,
+  openOfferedKey,
+  verifyOfferedKey,
+} from "./crypto/shareSeal.js";
 export {
   EXPORT_NOTES_FILE,
   EXPORT_PREFERENCES_FILE,

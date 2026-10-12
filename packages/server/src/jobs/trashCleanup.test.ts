@@ -2,7 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAccessChanges } from "../sharing/accessChanges.js";
 import { createNoteEvents } from "../sharing/noteEvents.js";
-import { claimed } from "../storage/contracts/claimed.js";
+import { claimed, heldKey } from "../storage/contracts/claimed.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import type { StorageDriver } from "../storage/types.js";
 import { type Broadcaster, createBroadcaster } from "../ws/broadcaster.js";
@@ -172,7 +172,7 @@ describe("startTrashCleanup", () => {
       role: "edit",
       createdAt: now,
     });
-    await storage.shares.accept("shared", "u2", now);
+    await storage.shares.accept("shared", "u2", now, heldKey);
     await storage.notes.update(
       "shared",
       "u2",

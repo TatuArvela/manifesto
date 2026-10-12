@@ -138,11 +138,14 @@ Bearer-protected, and share the per-user API limit.
 
 | Method   | Path                                 | Description |
 |----------|--------------------------------------|-------------|
-| `POST`   | `/api/notes/:id/shares`              | Invite an account: `{ userId, role }`, `201` `{ note }` |
+| `POST`   | `/api/notes/:id/shares`              | Invite an account: `{ userId, role, key? }`, `201` `{ note }` |
+| `PUT`    | `/api/notes/:id/shares/:userId/key`  | Hand someone on the note its key (`OfferedKey`), as anyone who holds it: `204` |
+| `PUT`    | `/api/notes/:id/held-key`            | A recipient keeps the note's replaced key under their own notes key: `{ key, keyVersion }`, `{ note }` |
+| `GET`    | `/api/users/:id/keys`                | An account's public keys: `{ userId, version, publicKeys }`; `404` until it has any |
 | `PUT`    | `/api/notes/:id/shares/:userId`      | Change their role: `{ role }`, `{ note }` |
 | `DELETE` | `/api/notes/:id/shares/:userId`      | Remove them or withdraw the invitation (owner), or leave the note (the user themselves): `204` |
 | `GET`    | `/api/invitations`                   | Invitations waiting for the signed-in user: `{ invitations: ShareInvitation[] }` |
-| `POST`   | `/api/invitations/:noteId/accept`    | Accept: `{ note }`, the recipient's copy |
+| `POST`   | `/api/invitations/:noteId/accept`    | Accept, keeping the note's key: `{ key, keyVersion }`, answered with `{ note }`, the recipient's copy |
 | `POST`   | `/api/invitations/:noteId/decline`   | Decline: `204` |
 | `GET`    | `/api/notes/:id/comments`            | The [comments](features/sharing-with-people.md#comments) beside a note, oldest first: `{ comments: NoteComment[] }`. Anyone who can see the note |
 | `POST`   | `/api/notes/:id/comments`            | Write one: `{ body }` (1 to 2000 characters, trimmed), `201` `{ comment }`; `409` when the note holds 500 |
@@ -168,10 +171,34 @@ Bearer-protected, and share the per-user API limit.
 - Accepting or declining an invitation that is not there (withdrawn, the note trashed or deleted, or
   already answered) is `404`. Declining is for invitations only; leaving an accepted note is the
   `DELETE` above.
-- `ShareInvitation` is `{ noteId, role, owner: ShareUser, title, content, color, font, invitedAt }`:
-  the note's text whole, with the owner's color and its font, so the invitation can show the note
-  itself. Attachments and link previews come with the note once it is accepted. Invitations to a
-  note in the trash are not listed.
+- `ShareInvitation` is `{ noteId, role, owner: ShareUser, title, content, font, keyVersion, offered,
+  invitedAt }`: the note's title, text and font, sealed under its note key, so the invitation can
+  show the note itself. The owner's colour is their own and is not part of it. Attachments and link
+  previews come with the note once it is accepted. Invitations to a note in the trash are not listed.
+
+#### Handing the note's key on
+
+A shared note is sealed, so everyone on it needs its key ([Encryption](features/encryption.md#sharing)):
+
+- **`OfferedKey`** is `{ keyVersion, ephemeral, wrapped, signer, signature }`: the note key sealed
+  under what an ephemeral P-256 key and the recipient's public key agree on, and signed by the
+  account that wrapped it, over the note, the version, the recipient and the wrap. The server stores
+  and passes it on, and checks only its shape, that `signer` is the caller, and that it is for the
+  key the note is under.
+- **With the invitation**: the owner's client sends it as `key` when the recipient has public keys.
+  Without one the invitation's `offered` is `null`: it is waiting for a key, shows nothing, and
+  cannot be accepted yet.
+- **Later, by anyone who holds the note**: `PUT /api/notes/:id/shares/:userId/key`. A share to a
+  team reaches members the owner's client never wrapped for, and the first client of anyone on the
+  note does it. `NoteMember.waitingForKey` is `true` while nobody has, for everyone on the note to
+  see.
+- **Accepting** sends the key back wrapped under the recipient's own notes key, as they keep the
+  key of a note of their own; `409` when it is for another key than the note is now under.
+- **A recipient whose copy is behind** the note's key (after it was replaced) is sent the note with
+  `key: ""` and the current `offered`, takes it, and stores it with `PUT /api/notes/:id/held-key`.
+
+The recipient's client uses no offered key whose signature does not check against the signing key
+of the account it names.
 
 A public link is read without an account, and none of these send a bearer token:
 

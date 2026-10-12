@@ -10,6 +10,7 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ct, heldKey } from "../storage/contracts/claimed.js";
 import { openedAnswer } from "../test/sealingClient.js";
 import {
   authHeaders,
@@ -459,6 +460,148 @@ describe("sharing notes between accounts", () => {
     expect(eventsFor(bob.userId).at(-1)).toEqual({
       type: "invitation:removed",
       noteId: note.id,
+    });
+  });
+});
+
+describe("handing a shared note's key on", () => {
+  let rig: TestRig;
+  let owner: { token: string; userId: string };
+  let alice: { token: string; userId: string };
+  let bob: { token: string; userId: string };
+
+  beforeEach(async () => {
+    rig = await bootTestApp();
+    owner = await registerTestUser(rig, "olivia");
+    alice = await registerTestUser(rig, "alice");
+    bob = await registerTestUser(rig, "bob");
+  });
+
+  afterEach(async () => {
+    await rig.close();
+  });
+
+  const call = (
+    who: { token: string },
+    method: string,
+    path: string,
+    body?: unknown,
+  ) =>
+    rig.request(path, {
+      method,
+      headers: authHeaders(who.token),
+      ...(body !== undefined && { body: JSON.stringify(body) }),
+    });
+
+  const offer = (signer: string, keyVersion = 1) => ({
+    keyVersion,
+    ephemeral: `B${"A".repeat(86)}`,
+    wrapped: ct("wrapped for them"),
+    signer,
+    signature: "c2lnbmF0dXJl",
+  });
+
+  async function note(): Promise<Note> {
+    const res = await call(owner, "POST", "/api/notes", baseNote);
+    return ((await res.json()) as { note: Note }).note;
+  }
+
+  const invitationOf = async (who: { token: string }) =>
+    (
+      (await (
+        await call(who, "GET", "/api/invitations")
+      ).json()) as InvitationsResponse
+    ).invitations[0];
+
+  it("takes the key with the invitation, when the owner's client could wrap it", async () => {
+    const { id } = await note();
+    const res = await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: alice.userId,
+      role: "edit",
+      key: offer(owner.userId),
+    });
+    expect(res.status).toBe(201);
+    expect((await invitationOf(alice))?.offered).toEqual(offer(owner.userId));
+    // Signed by someone else, or for another key, it is not the owner's to
+    // send.
+    for (const key of [offer(bob.userId), offer(owner.userId, 2)]) {
+      const bad = await call(owner, "POST", `/api/notes/${id}/shares`, {
+        userId: bob.userId,
+        role: "edit",
+        key,
+      });
+      expect(bad.status).toBe(422);
+    }
+  });
+
+  it("lets anyone who holds the note wrap its key for someone still waiting", async () => {
+    const { id } = await note();
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: alice.userId,
+      role: "view",
+    });
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: bob.userId,
+      role: "view",
+    });
+    expect((await invitationOf(bob))?.offered).toBeNull();
+    const put = (who: { token: string; userId: string }, signer = who.userId) =>
+      call(
+        who,
+        "PUT",
+        `/api/notes/${id}/shares/${bob.userId}/key`,
+        offer(signer),
+      );
+    // Someone who has not accepted holds no key to wrap.
+    expect((await put(alice)).status).toBe(404);
+    await call(alice, "POST", `/api/invitations/${id}/accept`);
+    expect((await put(alice, owner.userId)).status).toBe(422);
+    expect((await put(alice)).status).toBe(204);
+    expect((await invitationOf(bob))?.offered?.signer).toBe(alice.userId);
+    // Nobody is waiting any more, as everyone on the note can see.
+    const seen = await call(owner, "GET", `/api/notes/${id}`);
+    const { note: ownerView } = (await seen.json()) as { note: Note };
+    expect(ownerView.sharing?.members.some((m) => m.waitingForKey)).toBe(false);
+  });
+
+  it("refuses an invitation's acceptance under another key, and a readable one", async () => {
+    const { id } = await note();
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: alice.userId,
+      role: "edit",
+    });
+    const accept = (body: object) =>
+      rig.rawRequest(`/api/invitations/${id}/accept`, {
+        method: "POST",
+        headers: authHeaders(alice.token),
+        body: JSON.stringify(body),
+      });
+    expect((await accept({})).status).toBe(422);
+    expect((await accept({ key: "readable", keyVersion: 1 })).status).toBe(422);
+    expect((await accept({ ...heldKey, keyVersion: 2 })).status).toBe(409);
+    expect((await accept(heldKey)).status).toBe(200);
+  });
+
+  it("gives out an account's public keys once it has them", async () => {
+    const before = await call(owner, "GET", `/api/users/${alice.userId}/keys`);
+    expect(before.status).toBe(404);
+    const publicKeys = {
+      exchange: `B${"x".repeat(86)}`,
+      signing: `B${"y".repeat(86)}`,
+    };
+    const setup = await call(alice, "PUT", "/api/auth/keys", {
+      wrappedBySecret: ct("a"),
+      wrappedByRecovery: ct("b"),
+      recoveryVerifier: "v".repeat(43),
+      publicKeys,
+      wrappedPrivateKeys: { exchange: ct("c"), signing: ct("d") },
+    });
+    expect(setup.status).toBe(204);
+    const res = await call(owner, "GET", `/api/users/${alice.userId}/keys`);
+    expect(await res.json()).toEqual({
+      userId: alice.userId,
+      version: 1,
+      publicKeys,
     });
   });
 });

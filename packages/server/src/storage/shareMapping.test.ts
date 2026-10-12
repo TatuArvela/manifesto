@@ -225,6 +225,7 @@ describe("rowToViewNote", () => {
         s_tags: "[]",
         s_reminder: null,
         s_wrapped_key: ct("recipient's key"),
+        s_wrapped_key_version: 1,
       }),
     );
     expect(note).toMatchObject({
@@ -241,6 +242,38 @@ describe("rowToViewNote", () => {
       tags: "",
       reminder: null,
     });
+  });
+
+  it("hands a recipient whose copy of the key is behind the offer that opens the note, and no key", () => {
+    const offered = {
+      keyVersion: 2,
+      ephemeral: "B".repeat(87),
+      wrapped: ct("the new key"),
+      signer: "owner",
+      signature: "sig",
+    };
+    const behind = rowToViewNote(
+      row({
+        key_version: 2,
+        s_role: "edit",
+        s_wrapped_key: ct("the old key"),
+        s_wrapped_key_version: 1,
+        s_offered_key: JSON.stringify(offered),
+      }),
+    );
+    expect(behind.key).toBe("");
+    expect(behind.offered).toEqual(offered);
+    // An offer for a key the note is no longer under opens nothing.
+    const stale = rowToViewNote(
+      row({
+        key_version: 3,
+        s_role: "edit",
+        s_wrapped_key_version: 1,
+        s_offered_key: JSON.stringify(offered),
+      }),
+    );
+    expect(stale.key).toBe("");
+    expect(stale.offered).toBeUndefined();
   });
 
   it("gives a recipient their own trash, whatever the owner's row says", () => {

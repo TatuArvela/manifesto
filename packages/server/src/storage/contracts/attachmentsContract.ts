@@ -1,7 +1,7 @@
 import { type LinkPreview, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver } from "../types.js";
-import { claimed } from "./claimed.js";
+import { claimed, heldKey } from "./claimed.js";
 
 /** The attachment store's rules, run against both drivers. */
 
@@ -98,7 +98,7 @@ export function describeAttachmentsContract(
         createdAt: T0,
       });
       expect(await storage.attachments.readableBy(id, "alice")).toBe(false);
-      await storage.shares.accept("n1", "alice", T0);
+      await storage.shares.accept("n1", "alice", T0, heldKey);
       expect(await storage.attachments.readableBy(id, "alice")).toBe(true);
     });
 
@@ -144,7 +144,7 @@ export function describeAttachmentsContract(
         role: "view",
         createdAt: T0,
       });
-      await storage.shares.accept("n1", "alice", T0);
+      await storage.shares.accept("n1", "alice", T0, heldKey);
       expect(await storage.attachments.readableBy(thumb.id, "alice")).toBe(
         true,
       );

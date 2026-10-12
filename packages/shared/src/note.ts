@@ -264,6 +264,12 @@ export interface NoteMember extends ShareUser {
   /** The team this person has the note through; absent when shared with
    * them directly. */
   team?: TeamRef;
+  /**
+   * True while nobody has wrapped the note's key for this person, so they
+   * can open nothing of it yet. The first client of anyone holding the note
+   * wraps it for them.
+   */
+  waitingForKey?: boolean;
 }
 
 /**

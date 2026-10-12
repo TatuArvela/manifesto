@@ -1117,6 +1117,9 @@ export const en = {
   "sharing.invitation.accept": "Accept",
   "sharing.invitation.decline": "Decline",
   "sharing.invitation.received": "{name} wants to share a note with you",
+  "sharing.invitation.waiting":
+    "Waiting for this note's key. It arrives when someone who has the note is next online.",
+  "sharing.error.waitingForKey": "This note's key has not arrived yet",
   "sharing.card.sharedWith": "Shared with {names}.",
   "sharing.card.waiting": "Waiting for {names} to accept.",
   "sharing.card.sharedBy": "Shared by {name}",

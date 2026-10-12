@@ -1,3 +1,4 @@
+import type { OfferedKey } from "../crypto/shareSeal.js";
 import type { Note } from "../note.js";
 
 // Notes as the server stores them and as a signed-in app sends and receives
@@ -30,6 +31,12 @@ export interface SealedNote
   /** Which note key the values are under; it goes up when the key is
    * replaced. */
   keyVersion: number;
+  /**
+   * For someone the note is shared with whose own copy of the key is behind:
+   * the current key, wrapped to their public key and signed. Their client
+   * opens it, keeps it under their own notes key, and reads the note again.
+   */
+  offered?: OfferedKey;
   // Under the note key, the same for everyone on the note.
   title: string;
   content: string;
@@ -60,14 +67,14 @@ export interface SealedNoteRefs {
 /** A new note: the client chooses the id, since every value is bound to it. */
 export type SealedNoteCreate = Omit<
   SealedNote,
-  "createdAt" | "updatedAt" | "sharing"
+  "createdAt" | "updatedAt" | "sharing" | "offered"
 > &
   SealedNoteRefs;
 
 /** Only the fields being changed. `images` comes with `imageRefs` and
  * `linkPreviews` with `previewRefs`. */
 export type SealedNoteUpdate = Partial<
-  Omit<SealedNote, "id" | "createdAt" | "sharing"> & SealedNoteRefs
+  Omit<SealedNote, "id" | "createdAt" | "sharing" | "offered"> & SealedNoteRefs
 >;
 
 /** One note of an import, with the creation time it had where it came from. */

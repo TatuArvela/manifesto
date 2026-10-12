@@ -451,9 +451,15 @@ does, and nothing here may be released:
   bytes and found by an HMAC of them, with the key and type carried in the note. The server stores
   and serves bytes of no stated kind, and the client checks what it opens.
 - **Still readable by the server**: the shared document a note is edited in (step 5), which holds
-  its text; comments, and everything a public link shows (step 4).
-- **Sharing a note** reaches nobody yet: the server makes the invitation, and the recipient is
-  handed no key (step 4). An invitation's mail no longer names the note.
+  its text; comments, and everything a public link shows (the rest of step 4).
+- **Sharing a note** hands its key on: wrapped to the recipient's public key and signed by whoever
+  wrapped it, opened and checked by their client, and kept under their own notes key when they
+  accept. A member of a team waits until the first client of anyone holding the note wraps it for
+  them. An invitation's mail no longer names the note.
+- **Not built of sharing yet** (the rest of step 4): the keys an account has seen are remembered
+  for the session only, there is no fingerprint to compare and no refusal of a key that changed, so
+  a signature is checked against whatever key the server gives for its signer; removing someone
+  does not replace the note's key; comments and public links are not sealed.
 - **A token** (API, MCP, the calendar feed) is answered with sealed notes it cannot open and can
   write none, so the MCP tools and the feed's event names do not work (step 6). Webhooks already
   carry no content.

@@ -20,7 +20,7 @@ import * as Y from "yjs";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import { hashToken } from "../lib/token.js";
-import { sealedCreate } from "../storage/contracts/claimed.js";
+import { heldKey, sealedCreate } from "../storage/contracts/claimed.js";
 import type { SqliteStorageDriver } from "../storage/sqlite/driver.js";
 import { createSqliteStorage } from "../storage/sqlite/driver.js";
 import { TEST_CONFIG } from "../test/setup.js";
@@ -168,7 +168,11 @@ async function shareWith(
     `${rig.baseUrl}/api/invitations/${noteId}/accept`,
     {
       method: "POST",
-      headers: { Authorization: `Bearer ${recipient.token}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${recipient.token}`,
+      },
+      body: JSON.stringify(heldKey),
     },
   );
   expect(accepted.status).toBe(200);

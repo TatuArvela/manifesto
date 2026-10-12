@@ -6,7 +6,7 @@ import {
   NoteAccessError,
   type StorageDriver,
 } from "../types.js";
-import { claimed, claimedUpdate, ct, opened } from "./claimed.js";
+import { claimed, claimedUpdate, ct, heldKey, opened } from "./claimed.js";
 
 /**
  * What both drivers must do for sharing notes between accounts, run against
@@ -92,7 +92,9 @@ export function describeSharingContract(
         }),
       ).toBe("ok");
       if (accept) {
-        expect(await storage.shares.accept("n1", userId, T2)).toBe(true);
+        expect(await storage.shares.accept("n1", userId, T2, heldKey)).toBe(
+          true,
+        );
       }
     }
 
@@ -113,11 +115,12 @@ export function describeSharingContract(
             avatarColor: "#123456",
           },
           // Sealed, as the note is; the colour is the owner's own and is
-          // not part of what is offered.
+          // not part of what is offered. Nobody has wrapped the key yet.
           title: ct("Groceries"),
           content: ct("- [ ] Milk"),
-          color: NoteColor.Default,
-          font: NoteFont.Default,
+          font: ct(NoteFont.Default),
+          keyVersion: 1,
+          offered: null,
           invitedAt: T1,
         },
       ]);
@@ -125,6 +128,42 @@ export function describeSharingContract(
         noteId: "n1",
       });
       expect(await storage.shares.getInvitation("n1", "bob")).toBeNull();
+    });
+
+    it("carries a key offered to someone until they keep it as their own", async () => {
+      const offered = {
+        keyVersion: 1,
+        ephemeral: "B".repeat(87),
+        wrapped: ct("wrapped to alice"),
+        signer: "owner",
+        signature: "sig",
+      };
+      await share("alice", "edit", false);
+      // Until someone wraps it for her, everyone on the note sees her wait.
+      const waiting = await storage.notes.getById("n1", "owner");
+      expect(waiting?.sharing?.members).toMatchObject([
+        { id: "alice", waitingForKey: true },
+      ]);
+      expect(await storage.shares.offerKey("n1", "bob", offered)).toBe(false);
+      expect(await storage.shares.offerKey("n1", "alice", offered)).toBe(true);
+      expect(
+        (await storage.shares.getInvitation("n1", "alice"))?.offered,
+      ).toEqual(offered);
+      const told = await storage.notes.getById("n1", "owner");
+      expect(told?.sharing?.members[0]?.waitingForKey).toBeUndefined();
+
+      // Not hers to keep before she has accepted.
+      expect(await storage.shares.holdKey("n1", "alice", heldKey)).toBe(false);
+      expect(await storage.shares.accept("n1", "alice", T2, heldKey)).toBe(
+        true,
+      );
+      const hers = await storage.notes.getById("n1", "alice");
+      expect(hers?.key).toBe(heldKey.key);
+      expect(hers?.offered).toBeUndefined();
+      expect(
+        (await storage.notes.getById("n1", "owner"))?.sharing?.members[0]
+          ?.waitingForKey,
+      ).toBeUndefined();
     });
 
     it("refuses a second invitation to the same person", async () => {
@@ -168,7 +207,9 @@ export function describeSharingContract(
         (await storage.notes.listByUser("alice", PAGE)).notes.map((n) => n.id),
       ).toEqual(["n1"]);
       // Accepting twice is not a thing.
-      expect(await storage.shares.accept("n1", "alice", T3)).toBe(false);
+      expect(await storage.shares.accept("n1", "alice", T3, heldKey)).toBe(
+        false,
+      );
     });
 
     it("tells the owner about invitations and recipients only about members", async () => {
@@ -359,7 +400,7 @@ export function describeSharingContract(
         await storage.notes.update("n1", "alice", { pinned: true }, T3),
       ).toBeNull();
       expect(await storage.shares.listInvitations("bob")).toEqual([]);
-      expect(await storage.shares.accept("n1", "bob", T3)).toBe(false);
+      expect(await storage.shares.accept("n1", "bob", T3, heldKey)).toBe(false);
       expect((await storage.shares.audience("n1"))?.trashed).toBe(true);
 
       await storage.notes.update("n1", "owner", { trashed: false }, T3);
