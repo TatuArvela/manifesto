@@ -211,6 +211,24 @@ describe("a sealed shared document", () => {
     expect(a.outer.getArray("log").length).toBe(1);
   });
 
+  it("writes an edit made just before it was closed", async () => {
+    const a = client(key);
+    a.type("last words");
+    // Closed at once, with the edit still being sealed.
+    const closed = a.joined.destroy();
+    expect(a.outer.getArray("log").length).toBe(0);
+    await closed;
+    expect(a.outer.getArray("log").length).toBe(1);
+    // Nothing made after it is carried.
+    a.type(" and more");
+    await a.joined.settled();
+    expect(a.outer.getArray("log").length).toBe(1);
+    Y.applyUpdate(server, Y.encodeStateAsUpdate(a.outer));
+    const late = client(key);
+    await sync(server, late);
+    expect(late.text()).toBe("last words");
+  });
+
   it("passes over an entry that does not open, and reads the rest", async () => {
     const a = client(key);
     a.type("kept");

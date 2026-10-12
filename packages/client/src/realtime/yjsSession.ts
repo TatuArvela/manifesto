@@ -152,13 +152,18 @@ export function createYjsSession({
       window.removeEventListener("pagehide", onPageHide);
       clearInterval(compacting);
       leavePresence?.();
-      sealed?.destroy();
       outer?.setLocalState(null);
       if (awareness !== outer) awareness?.destroy();
-      provider.destroy();
-      void idb.destroy();
-      if (ydoc !== wire) ydoc.destroy();
-      wire.destroy();
+      const close = () => {
+        provider.destroy();
+        void idb.destroy();
+        if (ydoc !== wire) ydoc.destroy();
+        wire.destroy();
+      };
+      // The last edits are still being sealed: the wire document, its
+      // socket and its offline copy stay until they have been written.
+      if (sealed) void sealed.destroy().then(close);
+      else close();
     },
   };
 }

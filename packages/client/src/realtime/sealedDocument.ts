@@ -74,7 +74,13 @@ export interface SealedDocument {
   compact(force?: boolean): Promise<void>;
   /** Entries that arrived and did not open: another key, or damage. */
   unreadable(): number;
-  destroy(): void;
+  /**
+   * Stops carrying anything new across. Resolves once the edits already
+   * made to the inner document are in the outer one, which whoever holds
+   * that has to wait for before it is closed: sealing takes a moment, and
+   * the last keystrokes before a note is closed are still on their way.
+   */
+  destroy(): Promise<void>;
 }
 
 /**
@@ -149,7 +155,8 @@ export function joinSealedDocument(options: {
       new Uint8Array(update),
       data(kind),
     );
-    if (destroyed) return;
+    // Written even after `destroy`, which waits for it: the edit was made
+    // while the document was open, and is nowhere else.
     outer.transact(() => {
       log.push([entryOf(kind, key.version, sealed)]);
     }, TO_OUTER);
@@ -228,6 +235,7 @@ export function joinSealedDocument(options: {
       destroyed = true;
       log.unobserve(onLog);
       inner.off("update", onInner);
+      return queue;
     },
   };
 }
