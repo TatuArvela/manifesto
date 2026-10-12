@@ -517,6 +517,8 @@ export class RestApiAdapter implements StorageAdapter {
     let chunkBytes = 0;
     /** Ids the server said belong to someone else's note. */
     const taken: string[] = [];
+    /** Ids of notes the server holds under another key than they came in. */
+    const stale: string[] = [];
     const send = async () => {
       if (chunk.length === 0) return;
       const body = { notes: chunk };
@@ -531,6 +533,7 @@ export class RestApiAdapter implements StorageAdapter {
       try {
         const answer = (await res.json()) as Partial<NotesImportResponse>;
         taken.push(...(answer.taken ?? []));
+        stale.push(...(answer.stale ?? []));
       } catch {
         // No answer to read: nothing was said to be taken.
       }
@@ -572,6 +575,21 @@ export class RestApiAdapter implements StorageAdapter {
       if (payload) await add(ulid(), payload);
     }
     await send();
+    // A note whose key was replaced since this device read it: read again,
+    // which takes the key it has now, and sealed under that.
+    const behind = stale.splice(0);
+    for (const id of behind) {
+      const now = await this.sealedNote(id)();
+      if (!now || !(await sealing.open(now))) {
+        throw new Error("Failed to import notes");
+      }
+      const payload = plain.get(id);
+      if (payload) await add(id, payload);
+    }
+    await send();
+    // Still under another key: it was replaced again, or this device cannot
+    // hold the note's key. Said, not passed over.
+    if (stale.length > 0) throw new Error("Failed to import notes");
   }
 
   async fetchLinkPreview(url: string): Promise<LinkPreview | null> {

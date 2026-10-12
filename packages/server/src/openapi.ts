@@ -280,11 +280,16 @@ function components() {
         ["access"],
       ),
       PublicNoteLockedResponse: exact({ passwordRequired: { const: true } }),
-      NotesImportResponse: exact({
-        created: { type: "integer" },
-        updated: { type: "integer" },
-        skipped: { type: "integer" },
-      }),
+      NotesImportResponse: exact(
+        {
+          created: { type: "integer" },
+          updated: { type: "integer" },
+          skipped: { type: "integer" },
+          taken: { type: "array", items: { type: "string" } },
+          stale: { type: "array", items: { type: "string" } },
+        },
+        ["taken", "stale"],
+      ),
       Error: exact({ error: { type: "string" }, code: { type: "string" } }, [
         "code",
       ]),

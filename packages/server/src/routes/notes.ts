@@ -163,6 +163,7 @@ export function createNotesRoutes(deps: NotesDeps) {
       skipped: 0,
     };
     const taken: string[] = [];
+    const stale: string[] = [];
     for (const item of await importBody(c, keys, deps.storage)) {
       const { id, createdAt, imageRefs, previewRefs, ...fields } = item;
       const now = nowIso();
@@ -178,10 +179,23 @@ export function createNotesRoutes(deps: NotesDeps) {
         taken.push(id);
         continue;
       }
+      // A note already here stays under the key it has. A copy sealed under
+      // any other (the key before a replacement, which someone taken off the
+      // note still holds, or a new one made on a device that could not open
+      // the note) is not stored: it would take the note back to that key and
+      // leave its versions and everyone else's copy unable to open it.
+      const { key, keyVersion, ...sealedFields } = fields;
+      if (access) {
+        const held = await deps.storage.notes.getById(id, userId);
+        if (!held || held.key !== key || held.keyVersion !== keyVersion) {
+          stale.push(id);
+          continue;
+        }
+      }
       // A token's write over a note it already has names the references
       // only where it changed the list they describe.
       const data = {
-        ...fields,
+        ...sealedFields,
         ...(imageRefs !== undefined && {
           imageRefs: await claimImages(deps.storage, imageRefs, userId),
         }),
@@ -205,6 +219,8 @@ export function createNotesRoutes(deps: NotesDeps) {
         userId,
         data: {
           ...data,
+          key,
+          keyVersion,
           imageRefs: await claimImages(deps.storage, imageRefs ?? [], userId),
           previewRefs: await claimImages(
             deps.storage,
@@ -220,6 +236,7 @@ export function createNotesRoutes(deps: NotesDeps) {
       result.created++;
     }
     if (taken.length > 0) result.taken = taken;
+    if (stale.length > 0) result.stale = stale;
     return c.json(result);
   });
 
@@ -344,9 +361,16 @@ export function createNotesRoutes(deps: NotesDeps) {
     const { userId } = c.get("auth");
     const id = c.req.param("id") as string;
     const { links, ...rekeyed } = await bodyOf(c, noteRekeySchema);
+    const ifMatch = c.req.header("If-Match");
+    if (ifMatch === undefined) {
+      throw new HttpError(428, "If-Match is required to replace a note's key");
+    }
     const current = await deps.storage.notes.getById(id, userId);
     if (!current || (current.sharing?.role ?? "owner") !== "owner") {
       throw new HttpError(404, "Note not found");
+    }
+    if (rekeyed.keyVersion !== current.keyVersion + 1) {
+      throw new HttpError(409, "The note is under another key now");
     }
     const moved =
       current.updatedAt === ifMatch &&
@@ -356,6 +380,7 @@ export function createNotesRoutes(deps: NotesDeps) {
         rekeyed,
         current.keyVersion,
         nowIso(),
+        ifMatch,
       ));
     if (!moved) {
       // Written since the client read it, by anyone on the note: it reads
@@ -365,17 +390,10 @@ export function createNotesRoutes(deps: NotesDeps) {
     for (const link of links ?? []) {
       await deps.storage.publicLinks.rewrap(link.token, id, link.wrappedKey);
     }
-    const ifMatch = c.req.header("If-Match");
-    if (ifMatch === undefined) {
-      throw new HttpError(428, "If-Match is required to replace a note's key");
-    }
     await deps.noteEvents.changed(id);
     const note = await deps.storage.notes.getById(id, userId);
     if (!note) throw new HttpError(404, "Note not found");
     return c.json({ note });
-    if (rekeyed.keyVersion !== current.keyVersion + 1) {
-      throw new HttpError(409, "The note is under another key now");
-    }
   });
 
   notes.delete("/:id", async (c) => {
@@ -384,7 +402,6 @@ export function createNotesRoutes(deps: NotesDeps) {
     const access = await deps.storage.notes.access(id, userId);
     // Deleting a note shared with you deletes it from your notes: your share
     // goes, and the note stays with its owner and everyone else. This is what
-        ifMatch,
     // emptying it from your own trash does.
     if (access && access.role !== "owner") {
       const removed = await deps.storage.shares.delete(id, userId);

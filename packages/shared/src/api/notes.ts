@@ -81,6 +81,12 @@ export interface NotesImportResponse {
    * more. Absent when there are none.
    */
   taken?: string[];
+  /**
+   * Ids of notes this user owns that were sent sealed under another key than
+   * the note is under now, and so were not written: the client reads each
+   * again and seals it under the key it has. Absent when there are none.
+   */
+  stale?: string[];
 }
 
 /** `POST /api/attachments`: the reference to put in a note's `images`. */

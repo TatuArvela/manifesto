@@ -103,8 +103,11 @@ per request, each a note as `POST /api/notes` takes it plus the `createdAt` it h
 came from. An `id` the user owns is updated in place, so importing the same backup twice changes
 nothing; an `id` shared with them is skipped. An `id` taken by anyone else's note is not imported
 and is named in `taken`: a sealed note is bound to its id, so the client seals it again under a new
-one and sends it once more. Images must be attachment references, as for any note write. It answers
-`{ "created": number, "updated": number, "skipped": number, "taken"?: string[] }`. A backup larger
+one and sends it once more. A note the user owns is written only under the key it has: one that
+arrives under another `key` or `keyVersion` (sealed before the note's key was replaced) is not
+written and is named in `stale`, and the client reads the note again and seals under its key.
+Images must be attachment references, as for any note write. It answers
+`{ "created": number, "updated": number, "skipped": number, "taken"?: string[], "stale"?: string[] }`. A backup larger
 than one request, by count or by the 1 MiB body limit, is sent in several.
 
 #### Sealed notes

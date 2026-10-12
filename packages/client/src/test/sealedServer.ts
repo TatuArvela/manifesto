@@ -173,6 +173,7 @@ export class SealedServer {
     }
     if (path === "/api/notes/import" && method === "POST") {
       const taken: string[] = [];
+      const stale: string[] = [];
       let created = 0;
       let updated = 0;
       for (const item of body.notes as SealedNoteImport[]) {
@@ -184,16 +185,28 @@ export class SealedServer {
           taken.push(item.id);
           continue;
         }
-        if (this.notes.has(item.id)) updated++;
+        // A note already here is written only under the key it has.
+        const held = this.notes.get(item.id);
+        if (
+          held &&
+          (held.key !== item.key || held.keyVersion !== item.keyVersion)
+        ) {
+          stale.push(item.id);
+          continue;
+        }
+        if (held) updated++;
         else created++;
         const { createdAt, ...fields } = item;
-        this.stored(fields, this.notes.get(item.id)?.createdAt ?? createdAt);
+        const note = this.stored(fields, held?.createdAt ?? createdAt);
+        // An update leaves what the import does not carry as it was.
+        if (held) this.notes.set(item.id, { ...held, ...note });
       }
       return json({
         created,
         updated,
         skipped: 0,
         ...(taken.length > 0 && { taken }),
+        ...(stale.length > 0 && { stale }),
       });
     }
     const versions = /^\/api\/notes\/([^/]+)\/versions$/.exec(path);
@@ -236,8 +249,13 @@ export class SealedServer {
         const {
           imageRefs: _i,
           previewRefs: _p,
+          keyVersion,
           ...changes
         } = body as SealedNoteUpdate;
+        // Sealed under a key the note has since left.
+        if (keyVersion !== undefined && keyVersion !== note.keyVersion) {
+          return json({ error: "The note is under another key now" }, 409);
+        }
         const next = { ...note, ...changes, updatedAt: this.now() };
         this.notes.set(id, next);
         this.remember(id, body);
@@ -249,13 +267,8 @@ export class SealedServer {
 
   /** Everything the server holds, as the text a copy of its database would
    * be. */
-          keyVersion,
   dump(): string {
     return JSON.stringify([
-        // Sealed under a key the note has since left.
-        if (keyVersion !== undefined && keyVersion !== note.keyVersion) {
-          return json({ error: "The note is under another key now" }, 409);
-        }
       [...this.notes.values()],
       [...this.versions.values()],
     ]);

@@ -1,4 +1,9 @@
-import type { Note, NoteCreate, NotesResponse } from "@manifesto/shared";
+import type {
+  Note,
+  NoteCreate,
+  NotesResponse,
+  SealedNote,
+} from "@manifesto/shared";
 import {
   attachmentIdOf,
   MAX_NOTES_PER_IMPORT,
@@ -6,7 +11,11 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { sealedCreate, sealedUpdate } from "../storage/contracts/claimed.js";
+import {
+  ct,
+  sealedCreate,
+  sealedUpdate,
+} from "../storage/contracts/claimed.js";
 import { defined } from "../test/defined.js";
 import {
   authHeaders,
@@ -492,6 +501,70 @@ describe("notes routes", () => {
 
       expect(await listIds(bob.token)).toEqual([]);
       expect(await listIds(alice.token)).toEqual([theirs.id]);
+    });
+
+    it("leaves a note under the key it has, and names a copy sealed under another", async () => {
+      const { token } = await registerTestUser(rig, "alice");
+      const created = await createNote(rig, token, { title: "As it is" });
+      const sealedNow = async () =>
+        (
+          (await (
+            await rig.rawRequest(`/api/notes/${created.id}`, {
+              headers: authHeaders(token),
+            })
+          ).json()) as { note: SealedNote }
+        ).note;
+      const held = await sealedNow();
+      const copy = {
+        id: created.id,
+        title: ct("From a device behind"),
+        content: ct(""),
+        excerpt: ct(""),
+        font: ct("default"),
+        images: ct("[]"),
+        imageRefs: [],
+        linkPreviews: ct("[]"),
+        previewRefs: [],
+        color: "",
+        tags: "",
+        pinned: false,
+        archived: false,
+        trashed: false,
+        position: 0,
+        reminder: null,
+      };
+      const send = async (key: string, keyVersion: number) => {
+        const res = await rig.rawRequest("/api/notes/import", {
+          method: "POST",
+          headers: authHeaders(token),
+          body: JSON.stringify({ notes: [{ ...copy, key, keyVersion }] }),
+        });
+        expect(res.status).toBe(200);
+        return await res.json();
+      };
+
+      // The key before a replacement, and a key of the device's own making.
+      for (const [key, version] of [
+        [held.key, held.keyVersion + 1],
+        [ct("another key"), held.keyVersion],
+      ] as const) {
+        expect(await send(key, version)).toEqual({
+          created: 0,
+          updated: 0,
+          skipped: 0,
+          stale: [created.id],
+        });
+      }
+      expect(await sealedNow()).toEqual(held);
+
+      expect(await send(held.key, held.keyVersion)).toMatchObject({
+        updated: 1,
+      });
+      expect(await sealedNow()).toMatchObject({
+        key: held.key,
+        keyVersion: held.keyVersion,
+        title: ct("From a device behind"),
+      });
     });
 
     it("refuses more notes than one request may carry", async () => {

@@ -333,6 +333,27 @@ describe("RestApiAdapter with sealing", () => {
       expect(await adapter.listVersions(created.id)).toHaveLength(1);
     });
 
+    it("seals again under the key a note has now when it was replaced meanwhile", async () => {
+      const created = await adapter.create(draft);
+      await adapter.getAll();
+      // Another device of the account replaces the key: someone left.
+      const before = defined(server.notes.get(created.id));
+      const made = await new Sealer(keys).rekey(before, []);
+      if (!made) throw new Error("not replaced");
+      server.notes.set(created.id, { ...before, ...made.body });
+
+      // This one still holds the key before, which whoever left holds too.
+      await adapter.importAll([backup(created.id, "From the backup")]);
+
+      const after = defined(server.notes.get(created.id));
+      expect(after.keyVersion).toBe(2);
+      expect(after.key).toBe(made.body.key);
+      expect(after.previousKeys).toBe(made.body.previousKeys);
+      expect((await adapterFor(keys).get(created.id))?.title).toBe(
+        "From the backup",
+      );
+    });
+
     it("seals a note again under a new id when its id is someone else's", async () => {
       server.taken.add("theirs");
       await adapter.importAll([backup("theirs", "Mine now")]);
