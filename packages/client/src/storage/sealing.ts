@@ -134,6 +134,9 @@ interface HeldNoteKey {
   older?: Promise<ReadonlyMap<number, NoteSealKey>>;
 }
 
+/** How many notes of a listing are being opened at any moment. */
+const OPENED_AT_ONCE = 8;
+
 /** An account's public keys as another account remembers having seen them. */
 export interface SeenKeys {
   version: number;
@@ -479,7 +482,13 @@ export class Sealer {
       return null;
     }
     const previous = sealed.previousKeys ?? "";
-    if (sealed.key !== "") {
+    if (
+      known?.key === opened.key &&
+      known.wrapped === sealed.key &&
+      known.previous === previous
+    ) {
+      // As held already: kept, with the earlier keys it has opened.
+    } else if (sealed.key !== "") {
       this.hold(sealed.id, { key: opened.key, wrapped: sealed.key, previous });
     } else if (known && known.previous !== previous) {
       this.noteKeys.set(sealed.id, {
@@ -500,14 +509,21 @@ export class Sealer {
     return opened.note;
   }
 
-  /** Every note of a listing that opens, in order. */
+  /** Every note of a listing that opens, in order, a few at a time. */
   async openAll(sealed: SealedNote[]): Promise<Note[]> {
-    const out: Note[] = [];
-    for (const note of sealed) {
-      const opened = await this.open(note);
-      if (opened) out.push(opened);
-    }
-    return out;
+    const opened = new Array<Note | null>(sealed.length).fill(null);
+    let next = 0;
+    const work = async () => {
+      while (next < sealed.length) {
+        const index = next++;
+        const note = sealed[index];
+        if (note) opened[index] = await this.open(note);
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(OPENED_AT_ONCE, sealed.length) }, work),
+    );
+    return opened.filter((note) => note !== null);
   }
 
   markComplete(): void {

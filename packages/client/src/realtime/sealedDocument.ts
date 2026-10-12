@@ -130,7 +130,7 @@ export function joinSealedDocument(options: {
     const update =
       under && (kind === EDIT || kind === SNAPSHOT)
         ? await unsealBytes(
-            under.edits,
+            await under.edits(),
             entry.slice(HEADER_BYTES),
             data(kind, version),
           )
@@ -151,7 +151,7 @@ export function joinSealedDocument(options: {
 
   async function append(kind: number, update: Uint8Array): Promise<void> {
     const sealed = await sealBytes(
-      key.edits,
+      await key.edits(),
       new Uint8Array(update),
       data(kind),
     );
@@ -190,7 +190,7 @@ export function joinSealedDocument(options: {
     // Everything in the log has been applied (the queue is empty), so the
     // inner document as it stands covers every entry there is.
     const sealed = await sealBytes(
-      key.edits,
+      await key.edits(),
       new Uint8Array(Y.encodeStateAsUpdate(inner)),
       data(SNAPSHOT),
     );
@@ -299,7 +299,7 @@ export function joinSealedAwareness(options: {
     }
     let held = opened.get(clientId);
     if (held?.sealed !== state.sealed) {
-      const bytes = await unseal(key.presence, state.sealed, data);
+      const bytes = await unseal(await key.presence(), state.sealed, data);
       const text = bytes ? fromUtf8(bytes) : null;
       let parsed: unknown = null;
       try {
@@ -363,7 +363,11 @@ export function joinSealedAwareness(options: {
       }
       const { user: _user, ...own } = local as Record<string, unknown>;
       outer.setLocalState({
-        sealed: await seal(key.presence, utf8(JSON.stringify(own)), data),
+        sealed: await seal(
+          await key.presence(),
+          utf8(JSON.stringify(own)),
+          data,
+        ),
       });
     });
   };
