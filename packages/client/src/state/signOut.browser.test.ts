@@ -1,6 +1,7 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { effect } from "@preact/signals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LOCAL_COPY_PREFIX } from "../realtime/localNoteCopies.js";
 import { authToken, currentUser } from "./auth.js";
 import { notes } from "./notesStore.js";
 import { signOut } from "./signOut.js";
@@ -80,8 +81,8 @@ afterEach(() => {
 describe("signOut", () => {
   it("ends the session and deletes the offline copy of every note held", async () => {
     const ids = [`a-${unique()}`, `b-${unique()}`];
-    const copies = ids.map((id) => `manifesto:yjs:${id}`);
-    const unrelated = `manifesto:yjs:not-held-${unique()}`;
+    const copies = ids.map((id) => `${LOCAL_COPY_PREFIX}${id}`);
+    const unrelated = `${LOCAL_COPY_PREFIX}not-held-${unique()}`;
     for (const name of [...copies, unrelated]) await createDatabase(name);
     notes.value = ids.map(note);
 

@@ -103,7 +103,9 @@ database provides.
 
 - **Open mode** keeps everything in `localStorage` and IndexedDB, as private as the browser profile.
 - **Connected mode** keeps the notes in memory, and an offline copy of each note opened for editing in
-  IndexedDB (`manifesto:yjs:<id>`), so an edit made offline survives a reload.
+  IndexedDB (`manifesto:yjs-sealed:<id>`), so an edit made offline survives a reload. The copy is
+  the sealed log of the note's edits, as the server holds it. A browser that kept readable copies
+  before notes were sealed (`manifesto:yjs:<id>`) deletes them the next time a note is opened.
 - **Signing out** leaves none of the account's notes behind: the list leaves memory, the reminders
   stop (in the page and in the service worker's copy, which is handed an empty list), and the offline
   copies are deleted. A session that ends because the server refused it (`401`) empties the list and

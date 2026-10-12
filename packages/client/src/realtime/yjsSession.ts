@@ -3,7 +3,10 @@ import { EDITOR_SCHEMA_VERSION, type NoteSealKey } from "@manifesto/shared";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
-import { LOCAL_COPY_PREFIX } from "./localNoteCopies.js";
+import {
+  deleteReadableNoteCopies,
+  LOCAL_COPY_PREFIX,
+} from "./localNoteCopies.js";
 import {
   joinSealedAwareness,
   joinSealedDocument,
@@ -90,6 +93,10 @@ export function createYjsSession({
   // same client to everyone, whichever document they count in.
   const ydoc = key ? new Y.Doc() : wire;
   ydoc.clientID = wire.clientID;
+  // A browser from before the document was sealed may still hold it
+  // readable, under the old name. Whatever a copy holds is synced as it is,
+  // so the sealed copy has a name of its own and the old ones are removed.
+  void deleteReadableNoteCopies([noteId]);
   const idb = new IndexeddbPersistence(`${LOCAL_COPY_PREFIX}${noteId}`, wire);
   const sealed: SealedDocument | null = key
     ? joinSealedDocument({ noteId, key, older, inner: ydoc, outer: wire })

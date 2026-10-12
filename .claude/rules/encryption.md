@@ -207,6 +207,11 @@ for tests that hand sealing through.
 ## Public links
 
 A link's address is `/p/<token>#k=<link key>` (`shared/src/crypto/linkSeal.ts`). The server finds
+Whatever `y-indexeddb` loads into the wire document is synced as it is, so the sealed copy has a
+name of its own (`LOCAL_COPY_PREFIX`, `manifesto:yjs-sealed:`), apart from the readable copies a
+browser kept before sealing, which `createYjsSession` deletes (`deleteReadableNoteCopies`). A change
+to what the wire document holds needs a new name the same way, never the old one reused.
+
 the link by the token and never sees the key. `Sealer.publish` makes the key and what the server
 stores: for a live link the note key wrapped by it, for a snapshot a copy of the note sealed under
 a key derived from it, with the attachment references that copy names. The owner's own copy of the
