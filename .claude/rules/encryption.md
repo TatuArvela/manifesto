@@ -69,6 +69,11 @@ recovery key from the sign-in screen) sets them before `adoptSession`, so the ch
 finds the account unlocked instead of asking for a key. Whatever changes what the device holds goes
 through `setHeld`, which is also what tells the storage layer (`storageKeys`).
 
+Tabs tell each other over a `BroadcastChannel`. `hold` announces `held` only when the device's copy
+was written, and an unlocked tab that cannot read a copy keeps what it holds: a browser that refuses
+IndexedDB keeps the keys in memory alone, and locking on every other tab's unlock would take the app
+down under whoever is typing. Only `gone` (`startAgain`) makes a tab let go.
+
 Every key is shown once, on a sheet (`KeepSheetStep`), and the write that makes it real comes after
 the user says they kept it: set-up and both recoveries prepare first and complete second. Keep that
 order for any new flow that makes a key someone has to hold.

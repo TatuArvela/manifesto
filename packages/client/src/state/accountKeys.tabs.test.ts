@@ -12,12 +12,15 @@ vi.mock("../config.js", async (original) => ({
 // IndexedDB, so it is kept here, and read back as another object each time,
 // as a stored `CryptoKey` is.
 let device: DeviceKeys | null = null;
+/** False for a browser that refuses IndexedDB: nothing is kept or read. */
+let deviceKeeps = true;
 vi.mock("../storage/deviceKeys.js", () => ({
   saveDeviceKeys: async (keys: DeviceKeys) => {
+    if (!deviceKeeps) return false;
     device = keys;
     return true;
   },
-  loadDeviceKeys: async () => (device ? { ...device } : null),
+  loadDeviceKeys: async () => (deviceKeeps && device ? { ...device } : null),
   clearDeviceKeys: async () => {
     device = null;
   },
@@ -60,6 +63,9 @@ async function server(input: string, init?: RequestInit): Promise<Response> {
     case "PUT /auth/keys":
       stored = { ...(body as AccountKeysSetupRequest), version: 1 };
       return new Response(null, { status: 204 });
+    case "POST /auth/keys/secret":
+      if (stored) stored.wrappedBySecret = body.wrappedBySecret;
+      return new Response(null, { status: 204 });
     default:
       return new Response("{}", { status: 404 });
   }
@@ -82,6 +88,7 @@ describe("account keys across tabs", () => {
   beforeEach(async () => {
     stored = null;
     device = null;
+    deviceKeeps = true;
     vi.stubGlobal(
       "fetch",
       vi.fn((input: string, init?: RequestInit) => server(input, init)),
@@ -129,6 +136,32 @@ describe("account keys across tabs", () => {
       kind: "ok",
       secretKey: "SK-from-the-other-tab",
     });
+  });
+
+  it("keeps what it holds when the device's copy cannot be read", async () => {
+    const before = storageKeys.value;
+    deviceKeeps = false;
+    const seen: string[] = [];
+    const stop = keys.keyState.subscribe((value) => seen.push(value));
+    anotherTabSays("held");
+    await heard();
+    stop();
+    expect(seen).toEqual(["unlocked"]);
+    expect(storageKeys.value).toBe(before);
+  });
+
+  it("tells the other tabs nothing when the device kept no copy", async () => {
+    const said: unknown[] = [];
+    const tab = new BroadcastChannel("manifesto:keys");
+    tab.onmessage = (event) => said.push(event.data);
+    deviceKeeps = false;
+    expect((await keys.renewSecretKey("")).kind).toBe("ok");
+    await heard();
+    expect(said).toEqual([]);
+    deviceKeeps = true;
+    expect((await keys.renewSecretKey("")).kind).toBe("ok");
+    await vi.waitFor(() => expect(said).toEqual(["held"]));
+    tab.close();
   });
 
   it("lets go of keys another tab removed", async () => {

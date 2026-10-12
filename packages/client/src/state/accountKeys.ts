@@ -143,7 +143,11 @@ async function fetchKeys(): Promise<AccountKeysResponse | null> {
   }
 }
 
-/** Holds the keys in memory and on the device, and shows the app. */
+/**
+ * Holds the keys in memory and on the device, shows the app, and tells the
+ * other tabs when the device's copy was written: one the browser would not
+ * keep is nothing for them to read.
+ */
 async function hold(
   keys: Omit<DeviceKeys, "endsAt">,
   endsAt: string | null,
@@ -156,7 +160,9 @@ async function hold(
   keyState.value = "unlocked";
   // Without the day the session ends, the device could not tell when to
   // remove them by itself, so it keeps them in memory alone.
-  if (endsAt !== null) await saveDeviceKeys({ ...keys, endsAt });
+  if (endsAt !== null && (await saveDeviceKeys({ ...keys, endsAt }))) {
+    announce();
+  }
 }
 
 function forget(): void {
@@ -239,7 +245,7 @@ type Announcement = "held" | "gone";
  * would fail whatever is being saved, take the app down under whoever is
  * typing, and bring it back with a `Sealer` that has forgotten every note
  * and image key it had opened. A new secret key for the same account key is
- * taken as it is.
+ * taken as it is, and a copy that cannot be read changes nothing.
  */
 async function heardFromAnotherTab(said: unknown): Promise<void> {
   const mine = held;
@@ -250,7 +256,11 @@ async function heardFromAnotherTab(said: unknown): Promise<void> {
       await checkAccountKeys();
       return;
     }
-    if (stored?.userId === mine.userId && stored.version === mine.version) {
+    // No copy to read: this browser keeps none (the keys are in memory
+    // alone), or the other tab's was not written. Nothing says the keys
+    // here stopped being the account's, which is what `gone` is for.
+    if (stored === null) return;
+    if (stored.userId === mine.userId && stored.version === mine.version) {
       setHeld({ ...mine, secretKey: stored.secretKey });
       return;
     }
@@ -339,7 +349,6 @@ export async function completeSetup(): Promise<"ok" | "exists" | "failed"> {
     },
     served?.sessionEndsAt ?? null,
   );
-  announce();
   return "ok";
 }
 
@@ -373,7 +382,6 @@ export async function unlock(input: string): Promise<UnlockResult> {
     { userId: user.id, version: keys.version, secretKey, accountKey: key },
     served?.sessionEndsAt ?? null,
   );
-  announce();
   return "ok";
 }
 
@@ -505,7 +513,6 @@ export async function completeRecovery(
     if (res?.status === 409 || res?.status === 403) return "used";
     if (!res?.ok) return "failed";
     await hold(keys, served?.sessionEndsAt ?? null);
-    announce();
     return "ok";
   }
   const answer = await recoveryRequest<AuthSuccessResponse>("complete", {
@@ -524,7 +531,6 @@ export async function completeRecovery(
   const now = await fetchKeys();
   if (now) served = now;
   await hold(keys, now?.sessionEndsAt ?? null);
-  announce();
   return "ok";
 }
 
@@ -600,7 +606,6 @@ export async function renewSecretKey(
     { ...mine, secretKey: next.secretKey },
     served?.sessionEndsAt ?? null,
   );
-  announce();
   return { kind: "ok", secretKey: next.secretKey };
 }
 
