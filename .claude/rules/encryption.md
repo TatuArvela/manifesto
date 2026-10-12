@@ -9,6 +9,8 @@ paths:
   - "packages/client/src/storage/deviceKeys.ts"
   - "packages/client/src/storage/sealing.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
+  - "packages/server/src/attachments/store.ts"
+  - "packages/server/src/routes/attachments.ts"
   - "packages/client/src/state/accountKeys.ts"
   - "packages/client/src/test/plainSealing.ts"
   - "packages/client/src/test/sealedServer.ts"
@@ -98,6 +100,26 @@ from sealing, each easy to get wrong:
   `sealUpdate` reading the key first when the device has not opened the note): a new key would
   orphan its versions.
 
+## Images
+
+An image is sealed before upload (`shared/src/crypto/imageSeal.ts`): its key is an HMAC of its bytes
+under a key of the account's, and its address a second HMAC, so one account stores an image once and
+the address says nothing. The server keeps bytes of no stated kind (`attachments.sha256` holds the
+address, `content_type` is always `application/octet-stream`), and no longer sniffs a type: the
+sealing client does (`sealImage` refuses what is not one of five image types) and the opening client
+does again (`openImage`), since the type in a note is whoever attached the image's word.
+
+In the app a note still names its images as `attachment:<id>` strings, in `images` and in a
+preview's `image` / `favicon`. The key and type of each wait in the `Sealer`'s `imageKeys`, filled
+from every note it opens and every upload it makes, and are sealed back into the note with the
+reference. A note that names an image the device has no key for is refused, not sent without one.
+
+A sealed note cannot have a reference rewritten under it, so the old copy-on-write in `claimImages`
+is two steps: the client asks `POST /api/attachments/claim` for the owner's own reference before it
+seals (`RestApiAdapter.claim`, `adoptImages`), and the write then refuses any reference that is not
+the owner's (`claimImages`). A new path that puts an image in a note goes through `withUploads`, or
+it will meet that refusal on a shared note.
+
 A field added to a note's words is added in `noteSeal.ts` (seal, open, check), `SealedNote`, the
 sealed schema and `SEALED_SHARED_NOTE_FIELDS` or the personal list, and `shareMapping.test.ts`
 fails until someone has decided which.
@@ -120,10 +142,12 @@ A database from before encryption is not upgraded: migration `0028-sealed-notes`
 The server never opens a note, so its tests need only values shaped as ciphertext: `ct` / `plain`
 in `storage/contracts/claimed.ts`, and `test/sealingClient.ts`, which sends a test's requests as the
 app does (sealed on the way out, opened on the way back) so a route test still speaks of a note's
-title. `rig.rawRequest` sends a body as given, for what the server refuses.
+title. It uploads an image under an address made from its bytes and claims a note's images before
+it writes, as the app does. `rig.rawRequest` sends a body as given, for what the server refuses.
 
 On the client, the browser project installs `test/plainSealing.ts` for every test: those tests are
 about the store, the socket and the screens, with fake servers that answer readable notes. Real
 sealing is tested in the node project (`sealing.test.ts`, `RestApiAdapter.sealed.test.ts`, against
-`test/sealedServer.ts`, a server that holds what it is sent and no key). The browser project also
-needs a real IndexedDB for `deviceKeys`.
+`test/sealedServer.ts`, a server that holds what it is sent and no key). `putImage` itself needs
+`XMLHttpRequest`, so the node tests seal an upload with the `Sealer` and place it on that server by
+hand. The browser project also needs a real IndexedDB for `deviceKeys`.

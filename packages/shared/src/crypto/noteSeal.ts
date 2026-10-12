@@ -27,9 +27,9 @@ import {
   NoteFont,
   type NoteUpdate,
   type NoteVersion,
-  previewImages,
 } from "../note.js";
 import { fromUtf8, utf8, wipe } from "./bytes.js";
+import { type ImageKey, isImageKey } from "./imageSeal.js";
 import {
   associatedData,
   derivable,
@@ -225,8 +225,22 @@ function isHttpUrl(value: unknown): value is string {
  * as the server checked one, a card that fails left out, and an image that
  * is not an attachment dropped from its card.
  */
-export function checkedLinkPreviews(raw: unknown): LinkPreview[] {
+export function checkedLinkPreviews(
+  raw: unknown,
+  found?: Map<string, ImageKey>,
+): LinkPreview[] {
   if (!Array.isArray(raw)) return [];
+  // In a sealed note a thumbnail is an entry with its key; in the app, and
+  // in what is about to be sealed, it is the reference alone.
+  const imageOf = (value: unknown): string | undefined => {
+    if (typeof value === "string") {
+      return isAttachmentRef(value) ? value : undefined;
+    }
+    const entry = entryRef(value);
+    if (!entry) return undefined;
+    found?.set(...entry);
+    return entry[0];
+  };
   const out: LinkPreview[] = [];
   for (const item of raw) {
     if (out.length >= MAX_LINK_PREVIEWS_PER_NOTE) break;
@@ -245,14 +259,8 @@ export function checkedLinkPreviews(raw: unknown): LinkPreview[] {
       p.description.length <= MAX_LINK_PREVIEW_DESCRIPTION_LENGTH
         ? p.description
         : undefined;
-    const image =
-      typeof p.image === "string" && isAttachmentRef(p.image)
-        ? p.image
-        : undefined;
-    const favicon =
-      typeof p.favicon === "string" && isAttachmentRef(p.favicon)
-        ? p.favicon
-        : undefined;
+    const image = imageOf(p.image);
+    const favicon = imageOf(p.favicon);
     out.push({
       url: p.url,
       title: p.title,
@@ -265,21 +273,43 @@ export function checkedLinkPreviews(raw: unknown): LinkPreview[] {
   return out;
 }
 
-/** One image of a note, as the sealed list holds it. */
-interface SealedImage {
+/** One image as a sealed note names it: the attachment, and what opens it. */
+interface ImageEntry extends ImageKey {
   id: string;
 }
 
-/** A note's images as references, from the sealed list's JSON. */
-export function checkedImages(raw: unknown): string[] {
+/**
+ * What opens each image a note holds, by its `attachment:` reference. A note
+ * in the app holds references alone; their keys are kept beside it, handed
+ * to whatever seals the note and taken from whatever opens it.
+ */
+export type ImageKeys = ReadonlyMap<string, ImageKey>;
+
+/** The reference an entry names, when the entry is whole; else null. */
+function entryRef(item: unknown): [string, ImageKey] | null {
+  if (!isImageKey(item)) return null;
+  const { id, key, type } = item as ImageEntry;
+  const ref = `${ATTACHMENT_REF_PREFIX}${typeof id === "string" ? id : ""}`;
+  return isAttachmentRef(ref) ? [ref, { key, type }] : null;
+}
+
+/**
+ * A note's images as references, from the sealed list's JSON. An entry
+ * without a key and a type this app takes is left out, since it could not be
+ * opened. Each one's key goes into `found`.
+ */
+export function checkedImages(
+  raw: unknown,
+  found: Map<string, ImageKey>,
+): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];
   for (const item of raw) {
     if (out.length >= MAX_IMAGES_PER_NOTE) break;
-    if (typeof item !== "object" || item === null) continue;
-    const { id } = item as Partial<SealedImage>;
-    const ref = `${ATTACHMENT_REF_PREFIX}${typeof id === "string" ? id : ""}`;
-    if (isAttachmentRef(ref)) out.push(ref);
+    const entry = entryRef(item);
+    if (!entry) continue;
+    out.push(entry[0]);
+    found.set(...entry);
   }
   return out;
 }
@@ -318,12 +348,15 @@ function parsed(text: string | null): unknown {
 
 /**
  * Seals the shared fields given, and the excerpt whenever the text is among
- * them. Throws `NoteLimitError` for a value past what a note may hold.
+ * them. `images` holds what opens each image the fields name. Throws
+ * `NoteLimitError` for a value past what a note may hold, or an image whose
+ * key is not there.
  */
 export async function sealSharedFields(
   key: NoteSealKey,
   noteId: string,
   fields: Partial<SharedPlain>,
+  images: ImageKeys = new Map(),
 ): Promise<Partial<SharedSealed & SealedNoteRefs>> {
   const out: Partial<SharedSealed & SealedNoteRefs> = {};
   const put = (field: keyof SharedSealed, text: string) =>
@@ -352,9 +385,13 @@ export async function sealSharedFields(
     ) {
       throw new NoteLimitError("images");
     }
-    const list: SealedImage[] = fields.images.map((ref) => ({
-      id: attachmentIdOf(ref),
-    }));
+    const list: ImageEntry[] = [];
+    for (const ref of fields.images) {
+      const image = images.get(ref);
+      // Without its key nobody could open it, this account included.
+      if (!image) throw new NoteLimitError("images");
+      list.push({ id: attachmentIdOf(ref), ...image });
+    }
     out.images = await put("images", JSON.stringify(list));
     out.imageRefs = [...fields.images];
   }
@@ -362,13 +399,35 @@ export async function sealSharedFields(
     if (fields.linkPreviews.length > MAX_LINK_PREVIEWS_PER_NOTE) {
       throw new NoteLimitError("linkPreviews");
     }
-    const previews = checkedLinkPreviews(fields.linkPreviews);
+    // A thumbnail whose key is not there is dropped and the card kept: it
+    // is a picture of the linked page, not something the user attached.
+    const entryOf = (ref: string | undefined): ImageEntry | undefined => {
+      const image = ref === undefined ? undefined : images.get(ref);
+      return ref !== undefined && image
+        ? { id: attachmentIdOf(ref), ...image }
+        : undefined;
+    };
+    const previews = checkedLinkPreviews(fields.linkPreviews).map(
+      ({ image, favicon, ...rest }) => {
+        const sealedImage = entryOf(image);
+        const sealedFavicon = entryOf(favicon);
+        return {
+          ...rest,
+          ...(sealedImage && { image: sealedImage }),
+          ...(sealedFavicon && { favicon: sealedFavicon }),
+        };
+      },
+    );
     const json = JSON.stringify(previews);
     if (utf8(json).length > MAX_LINK_PREVIEWS_BYTES) {
       throw new NoteLimitError("linkPreviews");
     }
     out.linkPreviews = await put("linkPreviews", json);
-    out.previewRefs = previewImages(previews);
+    out.previewRefs = previews.flatMap((p) =>
+      [p.image, p.favicon].flatMap((entry) =>
+        entry ? [`${ATTACHMENT_REF_PREFIX}${entry.id}`] : [],
+      ),
+    );
   }
   return out;
 }
@@ -403,8 +462,12 @@ export async function sealPersonalFields(
   return out;
 }
 
-/** What `openSharedFields` hands back: the excerpt beside the rest. */
-export type OpenedSharedFields = SharedPlain & { excerpt: string };
+/** What `openSharedFields` hands back: the excerpt beside the rest, and
+ * what opens each image the fields name. */
+export type OpenedSharedFields = SharedPlain & {
+  excerpt: string;
+  imageKeys: Map<string, ImageKey>;
+};
 
 /** Opens and checks a note's shared fields; one that fails is its default. */
 export async function openSharedFields(
@@ -418,7 +481,9 @@ export async function openSharedFields(
   const content = await open("content");
   const excerpt = await open("excerpt");
   const font = (await open("font"))?.trimEnd() ?? "";
+  const imageKeys = new Map<string, ImageKey>();
   return {
+    imageKeys,
     title: title !== null && title.length <= MAX_NOTE_TITLE_LENGTH ? title : "",
     content:
       content !== null && content.length <= MAX_NOTE_CONTENT_LENGTH
@@ -429,8 +494,11 @@ export async function openSharedFields(
         ? excerpt
         : "",
     font: fonts.has(font) ? (font as NoteFont) : NoteFont.Default,
-    images: checkedImages(parsed(await open("images"))),
-    linkPreviews: checkedLinkPreviews(parsed(await open("linkPreviews"))),
+    images: checkedImages(parsed(await open("images")), imageKeys),
+    linkPreviews: checkedLinkPreviews(
+      parsed(await open("linkPreviews")),
+      imageKeys,
+    ),
   };
 }
 
@@ -466,19 +534,19 @@ export async function sealNewNote(
   account: AccountSealKeys,
   id: string,
   note: NoteCreate,
+  imageKeys: ImageKeys = new Map(),
 ): Promise<{ sealed: SealedNoteCreate; key: NoteSealKey }> {
   const { title, content, font, images, linkPreviews, color, tags, ...rest } =
     note;
   const raw = newNoteKey();
   try {
     const key = await noteSealKey(raw, 1);
-    const shared = await sealSharedFields(key, id, {
-      title,
-      content,
-      font,
-      images,
-      linkPreviews,
-    });
+    const shared = await sealSharedFields(
+      key,
+      id,
+      { title, content, font, images, linkPreviews },
+      imageKeys,
+    );
     const personal = await sealPersonalFields(account, id, { color, tags });
     return {
       key,
@@ -502,18 +570,24 @@ export async function sealNoteUpdate(
   key: NoteSealKey,
   id: string,
   changes: NoteUpdate,
+  imageKeys: ImageKeys = new Map(),
 ): Promise<SealedNoteUpdate> {
   const { title, content, font, images, linkPreviews, color, tags, ...rest } =
     changes;
   return {
     ...rest,
-    ...(await sealSharedFields(key, id, {
-      ...(title !== undefined && { title }),
-      ...(content !== undefined && { content }),
-      ...(font !== undefined && { font }),
-      ...(images !== undefined && { images }),
-      ...(linkPreviews !== undefined && { linkPreviews }),
-    })),
+    ...(await sealSharedFields(
+      key,
+      id,
+      {
+        ...(title !== undefined && { title }),
+        ...(content !== undefined && { content }),
+        ...(font !== undefined && { font }),
+        ...(images !== undefined && { images }),
+        ...(linkPreviews !== undefined && { linkPreviews }),
+      },
+      imageKeys,
+    )),
     ...(await sealPersonalFields(account, id, {
       ...(color !== undefined && { color }),
       ...(tags !== undefined && { tags }),
@@ -530,7 +604,12 @@ export async function openSealedNote(
   account: AccountSealKeys,
   sealed: SealedNote,
   known?: NoteSealKey,
-): Promise<{ note: Note; key: NoteSealKey; excerpt: string } | null> {
+): Promise<{
+  note: Note;
+  key: NoteSealKey;
+  excerpt: string;
+  imageKeys: Map<string, ImageKey>;
+} | null> {
   const key =
     known?.version === sealed.keyVersion
       ? known
@@ -549,9 +628,13 @@ export async function openSealedNote(
     tags: _tags,
     ...rest
   } = sealed;
-  const { excerpt, ...shared } = await openSharedFields(key, sealed.id, sealed);
+  const { excerpt, imageKeys, ...shared } = await openSharedFields(
+    key,
+    sealed.id,
+    sealed,
+  );
   const personal = await openPersonalFields(account, sealed.id, sealed);
-  return { key, excerpt, note: { ...rest, ...shared, ...personal } };
+  return { key, excerpt, imageKeys, note: { ...rest, ...shared, ...personal } };
 }
 
 /** A version's title and text, sealed under the note key and bound to the

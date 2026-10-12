@@ -1,10 +1,13 @@
 import {
   type AccountSealKeys,
+  type ImageKey,
+  type ImageKeySource,
   type Note,
   type NoteCreate,
   type NoteSealKey,
   type NoteUpdate,
   type NoteVersion,
+  openImage,
   openNoteKey,
   openPref,
   openSealedNote,
@@ -15,6 +18,7 @@ import {
   type SealedNoteUpdate,
   type SealedNoteVersion,
   type SealedNoteVersionCreateRequest,
+  sealImage,
   sealNewNote,
   sealNoteUpdate,
   sealPersonalFields,
@@ -24,7 +28,7 @@ import {
 } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
 import { ulid } from "ulid";
-import { accountSubkey } from "../utils/keyMaterial.js";
+import { accountImageKeys, accountSubkey } from "../utils/keyMaterial.js";
 
 /**
  * Sealing and opening for everything that crosses to the server in connected
@@ -66,6 +70,24 @@ export class NoteKeyError extends Error {
   }
 }
 
+/** An image that is not one of the kinds a note may hold, whatever the file
+ * was called. */
+export class ImageKindError extends Error {
+  constructor() {
+    super("Not a PNG, JPEG, GIF, WebP or AVIF image");
+    this.name = "ImageKindError";
+  }
+}
+
+/** An image as it goes to the server: what to send, and with which headers. */
+export interface ImageUpload {
+  body: Blob;
+  headers: Record<string, string>;
+  /** What opens it, to keep once the server has named it; null when it was
+   * sent as it is. */
+  key: ImageKey | null;
+}
+
 /** What is known of a note's key: the key to use, and its wrapped copy as
  * the server holds it. */
 interface HeldNoteKey {
@@ -80,7 +102,18 @@ interface HeldNoteKey {
  */
 export class Sealer {
   private readonly account: Promise<AccountSealKeys>;
+  private readonly images: Promise<ImageKeySource>;
   private readonly noteKeys = new Map<string, HeldNoteKey>();
+  /**
+   * What opens each image this device has met, by its reference: from every
+   * note opened, and every image uploaded. A note in the app names its
+   * images by reference alone, and this is where their keys wait to be
+   * sealed back into it.
+   */
+  private readonly imageKeys = new Map<string, ImageKey>();
+  /** Whether a note's images have to be made its owner's before it names
+   * them (`POST /api/attachments/claim`). */
+  readonly claimsImages: boolean = true;
   /** Notes that arrived and did not open, by id. */
   readonly unreadable = signal<ReadonlySet<string>>(new Set());
   /**
@@ -97,6 +130,48 @@ export class Sealer {
       notes: await accountSubkey(keys.accountKey, "notes"),
       personal: await accountSubkey(keys.accountKey, "personal"),
     }))();
+    this.images = accountImageKeys(keys.accountKey);
+  }
+
+  /** An image sealed for upload. Rejects with `ImageKindError` for a file
+   * that is not an image a note may hold. */
+  async sealUpload(image: Blob): Promise<ImageUpload> {
+    const sealed = await sealImage(
+      await this.images,
+      new Uint8Array(await image.arrayBuffer()),
+    );
+    if (!sealed) throw new ImageKindError();
+    return {
+      body: new Blob([sealed.bytes], { type: "application/octet-stream" }),
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Attachment-Address": sealed.address,
+      },
+      key: sealed.key,
+    };
+  }
+
+  /** Keeps what opens the image the server has just named `ref`. */
+  keepImageKey(ref: string, key: ImageKey | null): void {
+    if (key) this.imageKeys.set(ref, key);
+  }
+
+  /** `to` is the same sealed image as `from`, stored again for a note's
+   * owner: the same key opens it. */
+  sameImage(from: string, to: string): void {
+    const key = this.imageKeys.get(from);
+    if (key) this.imageKeys.set(to, key);
+  }
+
+  /** The image `ref` names, from its sealed bytes. Rejects when this device
+   * has no key for it, or it does not open as the image its note says. */
+  async openDownload(ref: string, sealed: Blob): Promise<Blob> {
+    const key = this.imageKeys.get(ref);
+    const image = key
+      ? await openImage(key, new Uint8Array(await sealed.arrayBuffer()))
+      : null;
+    if (!key || !image) throw new Error("The image could not be opened");
+    return new Blob([image], { type: key.type });
   }
 
   private markUnreadable(id: string, unreadable: boolean): void {
@@ -123,6 +198,7 @@ export class Sealer {
       return null;
     }
     this.noteKeys.set(sealed.id, { key: opened.key, wrapped: sealed.key });
+    for (const [ref, key] of opened.imageKeys) this.imageKeys.set(ref, key);
     this.markUnreadable(sealed.id, false);
     return opened.note;
   }
@@ -153,7 +229,12 @@ export class Sealer {
 
   /** A new note under a new key and `id`. */
   async sealNew(id: string, note: NoteCreate): Promise<SealedNoteCreate> {
-    const { sealed, key } = await sealNewNote(await this.account, id, note);
+    const { sealed, key } = await sealNewNote(
+      await this.account,
+      id,
+      note,
+      this.imageKeys,
+    );
     this.noteKeys.set(id, { key, wrapped: sealed.key });
     return sealed;
   }
@@ -192,7 +273,7 @@ export class Sealer {
     fetch: () => Promise<SealedNote | null>,
   ): Promise<SealedNoteUpdate> {
     const { key } = await this.keyOf(id, fetch);
-    return sealNoteUpdate(await this.account, key, id, changes);
+    return sealNoteUpdate(await this.account, key, id, changes, this.imageKeys);
   }
 
   /**
@@ -206,13 +287,12 @@ export class Sealer {
     const account = await this.account;
     const { title, content, font, images, linkPreviews, color, tags, ...rest } =
       note;
-    const shared = await sealSharedFields(held.key, id, {
-      title,
-      content,
-      font,
-      images,
-      linkPreviews,
-    });
+    const shared = await sealSharedFields(
+      held.key,
+      id,
+      { title, content, font, images, linkPreviews },
+      this.imageKeys,
+    );
     const personal = await sealPersonalFields(account, id, { color, tags });
     return {
       ...rest,

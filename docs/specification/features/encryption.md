@@ -1,8 +1,8 @@
 # Encryption
 
-**Status: planned before 1.0.0, design chosen, being built.** The first two steps of
+**Status: planned before 1.0.0, design chosen, being built.** The first three steps of
 [the order of building](#order-of-building) are in place: every account has its keys and is unlocked
-with its secret key, and a note's title, text, tags and colour are sealed in the browser. The rest
+with its secret key, and a note's title, text, tags, colour and images are sealed in the browser. The rest
 is not, and [what is built so far](#what-is-built-so-far) lists what still reaches the server
 readable. This page says what protects notes now and the design chosen:
 [end-to-end encryption for every account](#the-design-end-to-end-for-every-account) in connected
@@ -440,15 +440,18 @@ Steps 2 to 7 are released together: a server half way would hold notes its own f
 
 ### What is built so far
 
-Steps 1 and 2 are built. Until the steps after them are, this page describes more than the code
+Steps 1 to 3 are built. Until the steps after them are, this page describes more than the code
 does, and nothing here may be released:
 
 - **Sealed in the browser**: a note's title, text, excerpt, font, link previews and list of images
   under its note key, its tags and colour under the reader's personal key, its versions, and the
   account's preferences. The server refuses anything else in their place, refuses to start on a
   database that holds notes from before, and has no search, export or admin export of notes.
+- **Images** are sealed before upload, each under a key made from the account key and the image's
+  bytes and found by an HMAC of them, with the key and type carried in the note. The server stores
+  and serves bytes of no stated kind, and the client checks what it opens.
 - **Still readable by the server**: the shared document a note is edited in (step 5), which holds
-  its text; the bytes of images (step 3); comments, and everything a public link shows (step 4).
+  its text; comments, and everything a public link shows (step 4).
 - **Sharing a note** reaches nobody yet: the server makes the invitation, and the recipient is
   handed no key (step 4). An invitation's mail no longer names the note.
 - **A token** (API, MCP, the calendar feed) is answered with sealed notes it cannot open and can

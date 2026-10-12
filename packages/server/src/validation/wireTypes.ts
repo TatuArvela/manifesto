@@ -3,6 +3,7 @@ import type {
   AdminCreateUserRequest,
   AdminUpdateUserRequest,
   ApiTokenCreateRequest,
+  AttachmentsClaimRequest,
   AuthMeUpdateRequest,
   NoteCreate,
   NotesImportRequest,
@@ -30,6 +31,7 @@ import type {
   adminCreateUserSchema,
   adminUpdateUserSchema,
   apiTokenCreateSchema,
+  attachmentsClaimSchema,
   authMeUpdateSchema,
   noteCreateSchema,
   notesImportSchema,
@@ -112,6 +114,7 @@ export type WireTypeChecks = [
   Assert<
     Matches<Body<typeof accountPrefsUpdateSchema>, SealedAccountPrefsUpdate>
   >,
+  Assert<Matches<Body<typeof attachmentsClaimSchema>, AttachmentsClaimRequest>>,
   Assert<Matches<Body<typeof apiTokenCreateSchema>, ApiTokenCreateRequest>>,
   Assert<Matches<Body<typeof webhookCreateSchema>, WebhookCreateRequest>>,
   Assert<Matches<Body<typeof registerSchema>, RegisterRequest>>,

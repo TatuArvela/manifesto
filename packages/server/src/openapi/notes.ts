@@ -1,4 +1,5 @@
 import {
+  attachmentsClaimSchema,
   noteCreateSchema,
   notesImportSchema,
   noteUpdateSchema,
@@ -155,26 +156,41 @@ export const NOTE_OPERATIONS: Operation[] = [
     path: "/api/attachments",
     tag: "Notes",
     summary:
-      "Upload an image (the raw file, its type in Content-Type); answers the attachment: reference",
+      "Upload an image sealed in the browser (its address in X-Attachment-Address); answers the attachment: reference",
     auth: "any",
     limits: ["attachments"],
     scope: "notes:write",
     responses: {
       "201": { description: "Stored", schema: "AttachmentUploadResponse" },
       "413": { description: "Over the image limit", schema: "Error" },
-      "415": { description: "Not an accepted image type", schema: "Error" },
+    },
+  },
+  {
+    method: "post",
+    path: "/api/attachments/claim",
+    tag: "Notes",
+    summary:
+      "Make images the owner's of the note about to name them; answers the references to name instead",
+    auth: "any",
+    limits: ["attachments"],
+    scope: "notes:write",
+    body: attachmentsClaimSchema,
+    responses: {
+      ...ok("AttachmentsClaimResponse"),
+      "403": { description: "Your role does not allow it", schema: "Error" },
+      ...notFound,
     },
   },
   {
     method: "get",
     path: "/api/attachments/:id",
     tag: "Notes",
-    summary: "The bytes of an image a note refers to as attachment:<id>",
+    summary: "The sealed bytes of an image a note refers to as attachment:<id>",
     auth: "any",
     limits: ["attachments"],
     scope: "notes:read",
     responses: {
-      "200": { description: "The image, with its media type" },
+      "200": { description: "The sealed image, as application/octet-stream" },
       ...notFound,
     },
   },

@@ -354,11 +354,12 @@ See [Version History](features/version-history.md).
 
 | Method   | Path                     | Description          |
 |----------|--------------------------|----------------------|
-| `POST`   | `/api/attachments`       | Upload an image: the raw file, its type in `Content-Type`; answers `{ ref }` |
-| `GET`    | `/api/attachments/:id`   | The bytes of an image a note refers to as `attachment:<id>` |
+| `POST`   | `/api/attachments`       | Upload an image sealed in the browser: the sealed bytes, its address in `X-Attachment-Address`; answers `{ ref }` |
+| `POST`   | `/api/attachments/claim` | Make images the owner's of the note about to name them: `{ noteId?, refs }`, answered with `{ refs }`, the reference to name for each |
+| `GET`    | `/api/attachments/:id`   | The sealed bytes of an image a note refers to as `attachment:<id>`, as `application/octet-stream` |
 
-A note's `images` holds `attachment:<id>` references from uploads; see
-[Attachments](features/attachments.md).
+A note's sealed `images` names `attachment:<id>` references from uploads, with the key and type of
+each; see [Attachments](features/attachments.md).
 
 ### Link previews
 

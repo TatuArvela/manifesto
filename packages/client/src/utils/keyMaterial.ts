@@ -1,7 +1,9 @@
-import type {
-  AccountKeys,
-  AccountKeysSetupRequest,
-  RecoveryKeyWrap,
+import {
+  type AccountKeys,
+  type AccountKeysSetupRequest,
+  deriveMacKey,
+  type ImageKeySource,
+  type RecoveryKeyWrap,
 } from "@manifesto/shared";
 import {
   associatedData,
@@ -42,6 +44,20 @@ export function accountSubkey(
   purpose: AccountKeyPurpose,
 ): Promise<CryptoKey> {
   return deriveKey(accountKey, `account/${purpose}`);
+}
+
+/**
+ * The account's two keys for images: one makes an image's key from its
+ * bytes, the other the address the image is stored under, so the same image
+ * attached twice by one account is one stored thing.
+ */
+export async function accountImageKeys(
+  accountKey: CryptoKey,
+): Promise<ImageKeySource> {
+  return {
+    derive: await deriveMacKey(accountKey, "account/images/key"),
+    address: await deriveMacKey(accountKey, "account/images/address"),
+  };
 }
 
 const encoder = new TextEncoder();

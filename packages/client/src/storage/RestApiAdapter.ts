@@ -1,4 +1,6 @@
 import type {
+  AttachmentsClaimRequest,
+  AttachmentsClaimResponse,
   AttachmentUploadResponse,
   ErrorResponse,
   LinkPreview,
@@ -17,8 +19,10 @@ import type {
 } from "@manifesto/shared";
 import {
   attachmentIdOf,
+  isAttachmentRef,
   MAX_NOTES_PER_IMPORT,
   mapPreviewImages,
+  previewImages,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
 import { dataUrlToBlob } from "../utils/dataUrl.js";
@@ -235,7 +239,7 @@ export class RestApiAdapter implements StorageAdapter {
       { headers: { Authorization: `Bearer ${this.token}` } },
     );
     if (!res.ok) await this.fail(res, "Failed to fetch attachment");
-    return await res.blob();
+    return await this.sealing().openDownload(ref, await res.blob());
   }
 
   async get(id: string): Promise<Note | null> {
@@ -254,16 +258,31 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * Uploads one image and resolves its `attachment:` reference. Through
-   * `XMLHttpRequest` rather than `fetch`, since only it reports how much of
-   * the body has gone.
+   * Seals one image, uploads it and resolves its `attachment:` reference.
+   * Through `XMLHttpRequest` rather than `fetch`, since only it reports how
+   * much of the body has gone.
    */
-  putImage(
+  async putImage(
     image: Blob,
     options: {
       onProgress?: (fraction: number) => void;
       signal?: AbortSignal;
     } = {},
+  ): Promise<string> {
+    const sealing = this.sealing();
+    const upload = await sealing.sealUpload(image);
+    const ref = await this.send(upload.body, upload.headers, options);
+    sealing.keepImageKey(ref, upload.key);
+    return ref;
+  }
+
+  private send(
+    body: Blob,
+    headers: Record<string, string>,
+    options: {
+      onProgress?: (fraction: number) => void;
+      signal?: AbortSignal;
+    },
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       // An `abort` listener never hears a signal that has already fired.
@@ -274,7 +293,9 @@ export class RestApiAdapter implements StorageAdapter {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${this.baseUrl}/api/attachments`);
       xhr.setRequestHeader("Authorization", `Bearer ${this.token}`);
-      xhr.setRequestHeader("Content-Type", image.type);
+      for (const [name, value] of Object.entries(headers)) {
+        xhr.setRequestHeader(name, value);
+      }
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable)
           options.onProgress?.(event.loaded / event.total);
@@ -298,8 +319,43 @@ export class RestApiAdapter implements StorageAdapter {
       options.signal?.addEventListener("abort", () => xhr.abort(), {
         once: true,
       });
-      xhr.send(image);
+      xhr.send(body);
     });
+  }
+
+  /**
+   * Makes the images a note is about to name its owner's, and answers the
+   * reference to name for each. A note's attachments all belong to its
+   * owner, and a sealed note cannot have one rewritten under it, so an image
+   * held by someone else (an editor's own upload, one copied out of a shared
+   * note) is stored again for the owner first.
+   */
+  private async claim(
+    refs: string[],
+    noteId: string | undefined,
+  ): Promise<Map<string, string>> {
+    const sealing = this.sealing();
+    const claimed = new Map<string, string>();
+    const asked = [...new Set(refs)];
+    if (!sealing.claimsImages || asked.length === 0) return claimed;
+    const body: AttachmentsClaimRequest = {
+      ...(noteId !== undefined && { noteId }),
+      refs: asked,
+    };
+    const res = await fetch(`${this.baseUrl}/api/attachments/claim`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) await this.fail(res, "Failed to store the note's images");
+    const answer = (await res.json()) as AttachmentsClaimResponse;
+    asked.forEach((ref, i) => {
+      const owned = answer.refs[i];
+      if (owned === undefined || owned === ref) return;
+      claimed.set(ref, owned);
+      sealing.sameImage(ref, owned);
+    });
+    return claimed;
   }
 
   /**
@@ -336,15 +392,36 @@ export class RestApiAdapter implements StorageAdapter {
     });
   }
 
-  /** A note write with everything inline uploaded first. */
-  private async withUploads<T extends NoteUpdate>(changes: T): Promise<T> {
+  /**
+   * A note write with everything inline uploaded first, and every image it
+   * names made the owner's of note `noteId` (the writer's own, for a note
+   * not there yet).
+   */
+  private async withUploads<T extends NoteUpdate>(
+    changes: T,
+    noteId?: string,
+  ): Promise<T> {
+    if (!changes.images && !changes.linkPreviews) return changes;
+    const images = changes.images
+      ? await this.uploadInline(changes.images)
+      : undefined;
+    const linkPreviews = changes.linkPreviews
+      ? await this.uploadInlinePreviews(changes.linkPreviews)
+      : undefined;
+    const owned = await this.claim(
+      [...(images ?? []), ...previewImages(linkPreviews ?? [])].filter(
+        isAttachmentRef,
+      ),
+      noteId,
+    );
+    const own = (ref: string) => owned.get(ref) ?? ref;
     return {
       ...changes,
-      ...(changes.images && {
-        images: await this.uploadInline(changes.images),
-      }),
-      ...(changes.linkPreviews && {
-        linkPreviews: await this.uploadInlinePreviews(changes.linkPreviews),
+      ...(images && { images: images.map(own) }),
+      ...(linkPreviews && {
+        linkPreviews: await mapPreviewImages(linkPreviews, async (image) =>
+          own(image),
+        ),
       }),
     };
   }
@@ -378,7 +455,7 @@ export class RestApiAdapter implements StorageAdapter {
     const sealing = this.sealing();
     const body = await sealing.sealUpdate(
       id,
-      await this.withUploads(changes),
+      await this.withUploads(changes, id),
       this.sealedNote(id),
     );
     const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {

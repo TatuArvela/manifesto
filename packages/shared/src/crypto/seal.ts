@@ -45,12 +45,15 @@ export function associatedData(parts: {
   );
 }
 
-/** Encrypts `plaintext` under `key`, bound to `data`. */
-export async function seal(
+/**
+ * Encrypts `plaintext` under `key`, bound to `data`, as bytes: the nonce,
+ * the ciphertext and its tag. For what is stored as bytes, an image.
+ */
+export async function sealBytes(
   key: CryptoKey,
   plaintext: Uint8Array<ArrayBuffer>,
   data: Uint8Array<ArrayBuffer>,
-): Promise<string> {
+): Promise<Uint8Array<ArrayBuffer>> {
   const nonce = crypto.getRandomValues(new Uint8Array(NONCE_BYTES));
   const ciphertext = new Uint8Array(
     await crypto.subtle.encrypt(
@@ -62,7 +65,42 @@ export async function seal(
   const out = new Uint8Array(NONCE_BYTES + ciphertext.length);
   out.set(nonce);
   out.set(ciphertext, NONCE_BYTES);
-  return CIPHERTEXT_PREFIX + bytesToBase64url(out);
+  return out;
+}
+
+/** Decrypts what `sealBytes` made; null for anything that does not open. */
+export async function unsealBytes(
+  key: CryptoKey,
+  sealed: Uint8Array<ArrayBuffer>,
+  data: Uint8Array<ArrayBuffer>,
+): Promise<Uint8Array<ArrayBuffer> | null> {
+  if (sealed.length < NONCE_BYTES + TAG_BYTES) return null;
+  try {
+    return new Uint8Array(
+      await crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv: sealed.subarray(0, NONCE_BYTES),
+          additionalData: data,
+        },
+        key,
+        sealed.subarray(NONCE_BYTES),
+      ),
+    );
+  } catch {
+    return null;
+  }
+}
+
+/** Encrypts `plaintext` under `key`, bound to `data`. */
+export async function seal(
+  key: CryptoKey,
+  plaintext: Uint8Array<ArrayBuffer>,
+  data: Uint8Array<ArrayBuffer>,
+): Promise<string> {
+  return (
+    CIPHERTEXT_PREFIX + bytesToBase64url(await sealBytes(key, plaintext, data))
+  );
 }
 
 /**
@@ -78,23 +116,13 @@ export async function unseal(
   if (typeof sealed !== "string" || !sealed.startsWith(CIPHERTEXT_PREFIX)) {
     return null;
   }
+  let bytes: Uint8Array<ArrayBuffer>;
   try {
-    const bytes = base64urlToBytes(sealed.slice(CIPHERTEXT_PREFIX.length));
-    if (bytes.length < NONCE_BYTES + TAG_BYTES) return null;
-    return new Uint8Array(
-      await crypto.subtle.decrypt(
-        {
-          name: "AES-GCM",
-          iv: bytes.subarray(0, NONCE_BYTES),
-          additionalData: data,
-        },
-        key,
-        bytes.subarray(NONCE_BYTES),
-      ),
-    );
+    bytes = base64urlToBytes(sealed.slice(CIPHERTEXT_PREFIX.length));
   } catch {
     return null;
   }
+  return unsealBytes(key, bytes, data);
 }
 
 /**
@@ -131,6 +159,20 @@ export function deriveKey(
     { name: "AES-GCM", length: KEY_BITS },
     false,
     ["encrypt", "decrypt"],
+  );
+}
+
+/** The HMAC-SHA-256 key for `purpose`, which cannot be read out either. */
+export function deriveMacKey(
+  base: CryptoKey,
+  purpose: string,
+): Promise<CryptoKey> {
+  return crypto.subtle.deriveKey(
+    hkdf(purpose),
+    base,
+    { name: "HMAC", hash: "SHA-256", length: KEY_BITS },
+    false,
+    ["sign"],
   );
 }
 

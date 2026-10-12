@@ -3,6 +3,7 @@ import {
   API_TOKEN_SCOPES,
   ATTACHMENT_REF_PATTERN,
   isCiphertext,
+  MAX_ATTACHMENTS_PER_CLAIM,
   MAX_COMMENT_LENGTH,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
@@ -484,6 +485,12 @@ const sealedNoteFields = {
   readonly: noteFields.readonly,
   source: noteFields.source,
 } as const;
+
+/** `POST /api/attachments/claim`. */
+export const attachmentsClaimSchema = z.object({
+  noteId: noteIdSchema.exactOptional(),
+  refs: attachmentRefs(MAX_ATTACHMENTS_PER_CLAIM),
+});
 
 /** `POST /api/notes` from the app. */
 export const sealedNoteCreateSchema = z.object({

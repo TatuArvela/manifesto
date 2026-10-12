@@ -8,7 +8,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../test/defined.js";
 import { SealedServer, testKeys } from "../test/sealedServer.js";
 import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
-import { LockedError, Sealer, type StorageKeys } from "./sealing.js";
+import {
+  ImageKindError,
+  LockedError,
+  Sealer,
+  type StorageKeys,
+} from "./sealing.js";
 
 /**
  * The adapter against a server that holds only what it is sent: every word of
@@ -232,6 +237,144 @@ describe("RestApiAdapter with sealing", () => {
       expect(read).toHaveLength(1);
       expect(read[0]?.title).toBe("Mine now");
       expect(read[0]?.id).not.toBe("theirs");
+    });
+  });
+
+  describe("images", () => {
+    // A one-pixel PNG, and the start of a GIF.
+    const PNG = Uint8Array.from(
+      atob(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+      ),
+      (c) => c.charCodeAt(0),
+    );
+    const GIF = new TextEncoder().encode("GIF89a\u0001\u0000\u0001\u0000");
+    const blob = (bytes: Uint8Array<ArrayBuffer>, type: string) =>
+      new Blob([bytes], { type });
+    const bytesOf = async (b: Blob) => new Uint8Array(await b.arrayBuffer());
+
+    let sealer: Sealer;
+    let mine: RestApiAdapter;
+
+    beforeEach(() => {
+      sealer = new Sealer(keys);
+      mine = new RestApiAdapter("http://server.test", "tok", { sealer });
+    });
+
+    /** An upload as `putImage` makes it, which a test without a browser
+     * cannot send: sealed here, stored on the server, its key kept. */
+    async function upload(
+      with_: Sealer,
+      image: Blob,
+      owner = "me",
+    ): Promise<string> {
+      const sealed = await with_.sealUpload(image);
+      const ref = server.putAttachment(await bytesOf(sealed.body), owner);
+      with_.keepImageKey(ref, sealed.key);
+      return ref;
+    }
+
+    it("seals an image so the server holds bytes it cannot read, and opens it again", async () => {
+      const sealed = await sealer.sealUpload(blob(PNG, "image/png"));
+      const stored = await bytesOf(sealed.body);
+      expect(stored.length).toBe(PNG.length + 28);
+      // Not the image, nor anything that starts like one.
+      expect([...stored.subarray(0, 4)]).not.toEqual([...PNG.subarray(0, 4)]);
+      expect(sealed.headers["Content-Type"]).toBe("application/octet-stream");
+      expect(sealed.headers["X-Attachment-Address"]).toMatch(
+        /^[A-Za-z0-9_-]{43}$/,
+      );
+
+      const ref = server.putAttachment(stored);
+      sealer.keepImageKey(ref, sealed.key);
+      const read = await mine.loadImage(ref);
+      expect(read.type).toBe("image/png");
+      expect([...(await bytesOf(read))]).toEqual([...PNG]);
+    });
+
+    it("finds the same image under the same address for one account, and no other", async () => {
+      const address = async (with_: Sealer, bytes: Uint8Array<ArrayBuffer>) =>
+        (await with_.sealUpload(blob(bytes, "image/png"))).headers[
+          "X-Attachment-Address"
+        ];
+      expect(await address(sealer, PNG)).toBe(await address(sealer, PNG));
+      expect(await address(sealer, GIF)).not.toBe(await address(sealer, PNG));
+      const other = new Sealer(await testKeys("u2"));
+      expect(await address(other, PNG)).not.toBe(await address(sealer, PNG));
+    });
+
+    it("takes what the bytes say an image is, and nothing that is not one", async () => {
+      // A PNG handed over as something else is still a PNG.
+      const sealed = await sealer.sealUpload(blob(PNG, "text/html"));
+      expect(sealed.key?.type).toBe("image/png");
+      const svg = new TextEncoder().encode("<svg onload=alert(1)>");
+      await expect(
+        sealer.sealUpload(blob(svg, "image/png")),
+      ).rejects.toBeInstanceOf(ImageKindError);
+    });
+
+    it("carries an image's key in the note, for every device that opens it", async () => {
+      const ref = await upload(sealer, blob(PNG, "image/png"));
+      const created = await mine.create({ ...draft, images: [ref] });
+      expect(created.images).toEqual([ref]);
+      expect(server.refs.get(created.id)?.imageRefs).toEqual([ref]);
+      // The key is nowhere the server can read it.
+      const held = defined(server.notes.get(created.id));
+      expect(held.images.startsWith("e1.")).toBe(true);
+
+      const otherDevice = adapterFor(keys);
+      await expect(otherDevice.loadImage(ref)).rejects.toThrow();
+      expect((await otherDevice.getAll())[0]?.images).toEqual([ref]);
+      expect((await otherDevice.loadImage(ref)).type).toBe("image/png");
+
+      const stranger = adapterFor(await testKeys("u2"));
+      await stranger.getAll();
+      await expect(stranger.loadImage(ref)).rejects.toThrow();
+    });
+
+    it("carries a preview's thumbnail the same way", async () => {
+      const ref = await upload(sealer, blob(PNG, "image/png"));
+      const preview = {
+        url: "https://example.com/a",
+        title: "Example",
+        domain: "example.com",
+        image: ref,
+      };
+      const created = await mine.create({ ...draft, linkPreviews: [preview] });
+      expect(created.linkPreviews).toEqual([preview]);
+      expect(server.refs.get(created.id)?.previewRefs).toEqual([ref]);
+      const otherDevice = adapterFor(keys);
+      expect((await otherDevice.getAll())[0]?.linkPreviews).toEqual([preview]);
+      expect((await otherDevice.loadImage(ref)).type).toBe("image/png");
+    });
+
+    it("names the owner's copy of an image that was someone else's", async () => {
+      const created = await mine.create(draft);
+      // An image this device can open, held by another account: one copied
+      // out of a note shared with it.
+      const theirs = await upload(sealer, blob(PNG, "image/png"), "other");
+      const updated = await mine.update(created.id, { images: [theirs] });
+      const [own] = updated.images;
+      expect(own).not.toBe(theirs);
+      expect(server.refs.get(created.id)?.imageRefs).toEqual([own]);
+      // The same sealed bytes, so the key still opens them.
+      expect((await mine.loadImage(defined(own))).type).toBe("image/png");
+    });
+
+    it("refuses to seal a note that names an image it has no key for", async () => {
+      const ref = server.putAttachment(new Uint8Array(40));
+      await expect(mine.create({ ...draft, images: [ref] })).rejects.toThrow();
+    });
+
+    it("shows nothing for an image that is not what its note says", async () => {
+      const sealed = await sealer.sealUpload(blob(GIF, "image/gif"));
+      const ref = server.putAttachment(await bytesOf(sealed.body));
+      // A note written by someone who lied about the kind of image.
+      sealer.keepImageKey(ref, {
+        key: sealed.key?.key ?? "",
+        type: "image/png",
+      });
+      await expect(mine.loadImage(ref)).rejects.toThrow();
     });
   });
 });

@@ -127,20 +127,8 @@ export function createNotesRoutes(deps: NotesDeps) {
         userId,
         data: {
           ...fields,
-          imageRefs: await claimImages(
-            deps.storage,
-            imageRefs,
-            userId,
-            userId,
-            now,
-          ),
-          previewRefs: await claimImages(
-            deps.storage,
-            previewRefs,
-            userId,
-            userId,
-            now,
-          ),
+          imageRefs: await claimImages(deps.storage, imageRefs, userId),
+          previewRefs: await claimImages(deps.storage, previewRefs, userId),
           trashedAt: fields.trashed ? now : null,
         },
         createdAt: now,
@@ -181,20 +169,8 @@ export function createNotesRoutes(deps: NotesDeps) {
         }
         const data = {
           ...fields,
-          imageRefs: await claimImages(
-            deps.storage,
-            imageRefs,
-            userId,
-            userId,
-            now,
-          ),
-          previewRefs: await claimImages(
-            deps.storage,
-            previewRefs,
-            userId,
-            userId,
-            now,
-          ),
+          imageRefs: await claimImages(deps.storage, imageRefs, userId),
+          previewRefs: await claimImages(deps.storage, previewRefs, userId),
         };
         if (access) {
           await deps.storage.notes.update(
@@ -256,8 +232,6 @@ export function createNotesRoutes(deps: NotesDeps) {
             deps.storage,
             imageRefs,
             access.ownerId,
-            userId,
-            now,
           );
         }
         if (previewRefs !== undefined) {
@@ -265,8 +239,6 @@ export function createNotesRoutes(deps: NotesDeps) {
             deps.storage,
             previewRefs,
             access.ownerId,
-            userId,
-            now,
           );
         }
       }

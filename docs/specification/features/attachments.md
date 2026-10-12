@@ -7,8 +7,8 @@ A note carries up to `MAX_IMAGES_PER_NOTE` images of up to 5 MB each, and in bot
 - **Open mode:** `local:<sha256>`, an image in this browser's IndexedDB (`storage/localImages.ts`).
 
 A link preview's thumbnail and favicon are held the same way, and everything below applies to them
-too: they are claimed for the note's owner, served to its recipients, swept when no preview or image
-refers to them, and inlined again on export (where one that cannot be read is left out and its card
+too: they are sealed, claimed for the note's owner, served to its recipients, swept when no preview
+or image refers to them, and inlined again on export (where one that cannot be read is left out and its card
 kept, since it is a picture of the linked page rather than something the user attached).
 
 `data:` URLs appear only in export and import files. Inline, every note write, every conflict retry,
@@ -62,39 +62,54 @@ the edge but over a megabyte is re-encoded only if that makes it smaller, and sm
 hundred kilobytes, and the redraw drops its EXIF data (camera, location). The 5 MB limit is the ceiling
 for what is not shrunk.
 
+## Sealed in the browser
+
+In connected mode an image is encrypted before it is uploaded, and the server stores bytes it cannot
+read ([Encryption](encryption.md#images)):
+
+- **Its key** is made from the uploader's account key and the image's own bytes (an HMAC), and the
+  image is sealed under it with AES-256-GCM.
+- **Its address** is a second HMAC of the bytes, under another key of the account's. The server finds
+  an attachment by it, so the same image sent again (a conflict retry, a stale tab, a duplicate note)
+  resolves to the attachment that already holds it, and the address says nothing to anyone without
+  the key.
+- **The key travels in the note.** The note's sealed list of images holds each one's id, key and
+  type, which is how every device of the account, and everyone a note is shared with, opens them. A
+  preview's thumbnail and icon are held the same way inside the sealed previews. In the app a note
+  names its images by reference alone, and the keys wait beside it (`Sealer` in
+  `storage/sealing.ts`) to be sealed back in.
+- **The type** is the client's to say and to check. The sealing client reads it from the image's
+  leading bytes (PNG, JPEG, GIF, WebP, AVIF), whatever the file was handed over as, and refuses
+  anything else. The opening client takes only those five types and checks the leading bytes again
+  after decrypting, since the type in a note was written by whoever attached the image; one that
+  fails is not shown.
+
 ## How an image gets there
 
-The client uploads each image as it is attached: `POST /api/attachments` with the raw file (no base64)
-and its type in `Content-Type`, answered with `{ ref: "attachment:<id>" }`. The editor draws the image at
-once from the local file, shows the upload's progress, and puts the reference in the note when it is
-stored. A failed upload stays in the editor, marked, with **Try again** and **Remove**, rather than
-saving a note that refers to nothing; closing the editor cancels what is still uploading. The REST
-adapter also uploads any image that reaches a note write still inline (an import, something shared to
-the app), so what it sends is references.
+The client uploads each image as it is attached: `POST /api/attachments` with the sealed bytes (no
+base64) and the image's address in `X-Attachment-Address`, answered with
+`{ ref: "attachment:<id>" }`. The editor draws the image at once from the local file, shows the
+upload's progress, and puts the reference in the note when it is stored. A failed upload stays in
+the editor, marked, with **Try again** and **Remove**, rather than saving a note that refers to
+nothing; closing the editor cancels what is still uploading. The REST adapter also uploads any image
+that reaches a note write still inline (an import, something shared to the app), so what it sends is
+references.
 
-The server reads an upload's type from its leading bytes (PNG, JPEG, GIF, WebP, AVIF) and stores it as
-that, since the file is served back with that type and `nosniff`. It must be sent as some image type,
-but not necessarily that one: a browser names a file's type from its extension, so a JPEG saved as
-`.png` arrives as `image/png`, and refusing it would fail the same upload on every retry. Anything the
-bytes do not show to be one of those images, or not sent as an image, is 415; over the image limit is
-413. An upload is stored under the uploader.
-
-- **Content-addressed per owner.** An attachment is keyed by the SHA-256 of its bytes within its
-  owner's store, so the same image sent again (a conflict retry, a stale tab, a duplicate note) resolves
-  to the attachment that already holds it rather than a second copy.
-- **Owned by the note's owner.** An image in a note belongs to the note's owner, whose notes it is swept
-  with; see [Note writes](#note-writes).
+The server stores what it is sent as bytes of no stated kind: sealed, an image cannot be told from
+anything else, so nothing is read from its leading bytes any more. An upload without an address, or
+with nothing in it, is 422; over the image limit (plus the 28 bytes sealing adds) is 413. An upload
+is stored under the uploader, once for an address.
 
 ## Reading
 
-`GET /api/attachments/:id` returns the bytes with their image type, to the owner and to anyone holding
-an accepted share of a note of the owner's that refers to it, while the owner has not trashed that note.
-To anyone else it is a 404. The response is `Cache-Control: private, immutable` (an id names one set of
-bytes for good), `nosniff`, and carries a sandboxing CSP. It has its own per-user rate limit, wider than
-the notes API's, since a grid asks for one image per card.
+`GET /api/attachments/:id` returns the sealed bytes as `application/octet-stream`, to the owner and
+to anyone holding an accepted share of a note of the owner's that refers to it, while the owner has
+not trashed that note. To anyone else it is a 404. The response is `Cache-Control: private, immutable`
+(an id names one set of bytes for good), `nosniff`, and carries a sandboxing CSP. It has its own
+per-user rate limit, wider than the notes API's, since a grid asks for one image per card.
 
-The client cannot point an `<img>` at it, because the request needs the session's bearer token. It
-fetches each attachment once per session and shows it through a `blob:` URL (`state/attachments.ts`,
+The client fetches each attachment once per session, opens it with the key its note holds, and shows
+it through a `blob:` URL of the type it turned out to be (`state/attachments.ts`,
 `components/StoredImage.tsx`), which the page's CSP already allows.
 
 ## Leaving the session
@@ -113,12 +128,27 @@ still finds its images.
 
 ## Note writes
 
-A note's `images` accepts `attachment:<id>` references only; an inline `data:` image, or anything else,
-is refused with 422 ("Upload images first"). Note writes are therefore held to the same 1 MiB body
-limit as the rest of the API, and uploads (one raw image, up to the image limit) are the only route
-allowed more. A reference the note's owner holds passes through; one held by another account is
-copied into the owner's store if the writer may read it (an editor adding their own upload, or copying
-an image out of a note shared with them); anything else is refused (`attachments/store.ts`).
+A note names its images inside ciphertext, so a write that carries the sealed list carries the
+references it names beside it (`imageRefs`, and `previewRefs` for link previews): these are the
+server's record of which attachments a note uses, for serving them to its recipients and for the
+sweep. Each must be an `attachment:<id>` reference; anything else is refused with 422. Note writes
+are held to the same 1 MiB body limit as the rest of the API, and uploads (one sealed image, up to
+the image limit) are the only route allowed more.
+
+Every attachment a note refers to belongs to the note's owner, whose notes it is swept with and
+whose account it goes with. A readable note could have a reference rewritten under it; a sealed one
+cannot, so the image is made the owner's before the note is sealed:
+
+- **`POST /api/attachments/claim`** takes `{ noteId?, refs }` and answers `{ refs }`, the owner's own
+  reference for each in order. One the owner already holds comes back as it is. One held by another
+  account (an editor's own upload, or an image copied out of a note shared with them) is stored again
+  for the owner if the caller may read it, under a new id: the sealed bytes are the same, so the key
+  the note holds still opens them. `noteId` is the note about to be written, and absent for one not
+  made yet, whose owner is the caller. A viewer is refused (403), and so is a reference the caller
+  cannot read (422).
+- **The write** then names the references it was given. One that is not the owner's by then is
+  refused with 422 (`attachments/store.ts`), or a crafted reference would lend a note someone else's
+  image.
 
 Inline images from before this, which only development databases ever held, were dropped by migration
 `0013-drop-inline-images` rather than moved.

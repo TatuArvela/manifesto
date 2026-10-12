@@ -367,6 +367,9 @@ function components() {
       }),
       AdminUsersResponse: shape({ users: { type: "array" } }),
       AttachmentUploadResponse: exact({ ref: { type: "string" } }),
+      AttachmentsClaimResponse: exact({
+        refs: { type: "array", items: { type: "string" } },
+      }),
       AdminOverviewResponse: shape({
         version: { type: "string" },
         uptimeSeconds: { type: "integer" },

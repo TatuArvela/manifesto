@@ -1,9 +1,13 @@
+import { createHash } from "node:crypto";
 import {
   CIPHERTEXT_PREFIX,
+  isAttachmentRef,
   type NoteCreate,
   type NoteUpdate,
+  SEALED_IMAGE_OVERHEAD,
   type SealedNote,
   type SealedNoteVersion,
+  sniffImageType,
 } from "@manifesto/shared";
 import { newId } from "../lib/ulid.js";
 import {
@@ -20,6 +24,9 @@ import {
  * speaks of a note's title in plain words is speaking as the app's user does:
  * this stands where the app's own sealing would, with values that are only
  * shaped as ciphertext (`ct`), since the server never opens one.
+ *
+ * An image is uploaded sealed, under an address made from its bytes, and
+ * made the owner's of the note about to name it, as the app does both.
  *
  * A request made with a token is left as it is: a script sends readable
  * notes. So is a body that is already sealed, or that is not a note at all,
@@ -144,8 +151,107 @@ export function openedAnswer(value: unknown, path = ""): unknown {
   );
 }
 
+/** The nonce and tag a sealed image carries, as so many zero bytes. */
+const IMAGE_FILLER = SEALED_IMAGE_OVERHEAD;
+
+/** An upload as the app sends one: sealed, under the address its bytes give. */
+function sealedUpload(init: RequestInit): RequestInit | null {
+  const { body } = init;
+  if (!(body instanceof Uint8Array)) return null;
+  const headers = new Headers(init.headers);
+  if (headers.has("X-Attachment-Address")) return null;
+  const sealed = new Uint8Array(IMAGE_FILLER + body.length);
+  sealed.set(body, IMAGE_FILLER);
+  headers.set(
+    "X-Attachment-Address",
+    createHash("sha256").update(body).digest("base64url"),
+  );
+  headers.set("Content-Type", "application/octet-stream");
+  return { ...init, headers, body: sealed as BodyInit };
+}
+
+/** A served image as the app shows it: opened, and of the kind it is. */
+async function openedImage(res: Response): Promise<Response> {
+  const sealed = new Uint8Array(await res.arrayBuffer());
+  const image = sealed.subarray(IMAGE_FILLER);
+  const headers = new Headers(res.headers);
+  headers.set(
+    "Content-Type",
+    sniffImageType(image) ?? "application/octet-stream",
+  );
+  headers.delete("Content-Length");
+  return new Response(image, { status: res.status, headers });
+}
+
+const ATTACHMENT = /\/attachments\/[^/]+$/;
+
+/** The attachment references a note's body names. */
+function refsOf(note: Record<string, unknown>): string[] {
+  const refs: string[] = [];
+  const take = (value: unknown) => {
+    if (typeof value === "string" && isAttachmentRef(value)) refs.push(value);
+  };
+  if (Array.isArray(note.images)) note.images.forEach(take);
+  if (Array.isArray(note.linkPreviews)) {
+    for (const preview of note.linkPreviews) {
+      if (!isRecord(preview)) continue;
+      take(preview.image);
+      take(preview.favicon);
+    }
+  }
+  return refs;
+}
+
+/** `note` naming `owned` in place of each reference it was claimed for. */
+function withOwned(
+  note: Record<string, unknown>,
+  owned: Map<string, string>,
+): Record<string, unknown> {
+  const own = (value: unknown) =>
+    typeof value === "string" ? (owned.get(value) ?? value) : value;
+  return {
+    ...note,
+    ...(Array.isArray(note.images) && { images: note.images.map(own) }),
+    ...(Array.isArray(note.linkPreviews) && {
+      linkPreviews: note.linkPreviews.map((preview: unknown) =>
+        isRecord(preview)
+          ? {
+              ...preview,
+              ...("image" in preview && { image: own(preview.image) }),
+              ...("favicon" in preview && { favicon: own(preview.favicon) }),
+            }
+          : preview,
+      ),
+    }),
+  };
+}
+
 /** `send`, sealing what a session sends and opening what it is answered. */
 export function sealingClient(send: Fetch): Fetch {
+  /**
+   * Makes the images a note is about to name its owner's, as the app does
+   * before it seals the note. A refusal is the answer to the whole write.
+   */
+  async function claimed(
+    init: RequestInit,
+    note: Record<string, unknown>,
+    noteId: string | undefined,
+  ): Promise<Record<string, unknown> | Response> {
+    const refs = [...new Set(refsOf(note))];
+    if (refs.length === 0 || "key" in note) return note;
+    const res = await send("/api/attachments/claim", {
+      method: "POST",
+      headers: init.headers ?? {},
+      body: JSON.stringify({ ...(noteId !== undefined && { noteId }), refs }),
+    });
+    if (!res.ok) return res;
+    const answer = (await res.json()) as { refs: string[] };
+    return withOwned(
+      note,
+      new Map(refs.map((ref, i) => [ref, answer.refs[i] ?? ref])),
+    );
+  }
+
   return async (input, init) => {
     const headers = new Headers(init?.headers);
     if (TOKEN.test(headers.get("Authorization") ?? "")) {
@@ -154,15 +260,31 @@ export function sealingClient(send: Fetch): Fetch {
     const path = new URL(input, "http://test").pathname;
     const method = (init?.method ?? "GET").toUpperCase();
     let next = init;
+    if (method === "POST" && path === "/api/attachments" && init) {
+      next = sealedUpload(init) ?? init;
+    }
     if (typeof init?.body === "string") {
       try {
-        const body = sealedBody(method, path, JSON.parse(init.body));
+        let parsed: unknown = JSON.parse(init.body);
+        const noteId = /^\/api\/notes\/([^/]+)$/.exec(path)?.[1];
+        const writesNote =
+          (method === "POST" && path === "/api/notes") ||
+          (method === "PUT" && noteId !== undefined);
+        if (writesNote && isRecord(parsed)) {
+          const owned = await claimed(init, parsed, noteId);
+          if (owned instanceof Response) return owned;
+          parsed = owned;
+        }
+        const body = sealedBody(method, path, parsed);
         if (body !== null) next = { ...init, body: JSON.stringify(body) };
       } catch {
         // Not JSON: sent as it is, for the server to refuse.
       }
     }
     const res = await send(input, next);
+    if (method === "GET" && res.ok && ATTACHMENT.test(path)) {
+      return openedImage(res);
+    }
     if (!res.headers.get("Content-Type")?.includes("application/json")) {
       return res;
     }

@@ -88,6 +88,25 @@ export interface AttachmentUploadResponse {
   ref: string;
 }
 
+/** The most references one `POST /api/attachments/claim` may carry: a
+ * note's images, and a thumbnail and an icon for each of its previews. */
+export const MAX_ATTACHMENTS_PER_CLAIM = 60;
+
+/**
+ * `POST /api/attachments/claim`: the images a note is about to name, to be
+ * made its owner's. `noteId` is the note, or absent (or not there yet) for
+ * one the caller is about to make.
+ */
+export interface AttachmentsClaimRequest {
+  noteId?: string;
+  refs: string[];
+}
+
+/** The owner's own reference for each, in the order they were sent. */
+export interface AttachmentsClaimResponse {
+  refs: string[];
+}
+
 /** `GET /api/notes/:id/versions`, newest first. */
 export interface NoteVersionsResponse {
   versions: NoteVersion[];

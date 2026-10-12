@@ -4,8 +4,10 @@ import {
   MAX_IMAGE_SOURCE_BYTES,
   NoteColor,
   NoteFont,
+  SEALED_IMAGE_OVERHEAD,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { opened, sealedCreate } from "../storage/contracts/claimed.js";
 import { defined } from "../test/defined.js";
 import {
   authHeaders,
@@ -125,14 +127,114 @@ describe("attachments", () => {
     expect((await fetchAs(alice, defined(note.images[0]))).status).toBe(404);
   });
 
-  // Waits for encryption step 3: an image is stored for a note's owner before the note names it.
-  it.todo("stores an editor's image under the note's owner");
+  it("stores an editor's image under the note's owner", async () => {
+    const note = await create(owner, []);
+    await share(note.id, alice);
+    const res = await call(alice, "PUT", `/api/notes/${note.id}`, {
+      images: [await uploadAs(alice, GIF)],
+    });
+    const [ref] = ((await res.json()) as { note: Note }).note.images;
+    const meta = await rig.storage.attachments.meta(
+      attachmentIdOf(defined(ref)),
+    );
+    expect(meta?.ownerId).toBe(owner.userId);
+  });
 
-  // Waits for encryption step 3: an image is stored for a note's owner before the note names it.
-  it.todo("refuses a viewer's images, and images for a note it cannot see");
+  it("refuses a viewer's images, and images for a note it cannot see", async () => {
+    const note = await create(owner, [PNG]);
+    await share(note.id, alice, "view");
+    const byViewer = await call(alice, "PUT", `/api/notes/${note.id}`, {
+      images: [await uploadAs(alice, GIF)],
+      pinned: true,
+    });
+    expect(byViewer.status).toBe(403);
+    const byStranger = await call(mallory, "PUT", `/api/notes/${note.id}`, {
+      images: [await uploadAs(mallory, GIF)],
+    });
+    expect(byStranger.status).toBe(404);
+    const kept = await rig.storage.notes.getById(note.id, owner.userId);
+    expect(kept && opened(kept).images).toEqual(note.images);
+    expect(
+      (await rig.storage.notes.getById(note.id, alice.userId))?.pinned,
+    ).toBe(false);
+  });
 
-  // Waits for encryption step 3: an image is stored for a note's owner before the note names it.
-  it.todo("copies an image an editor may read into their own note");
+  it("copies an image an editor may read into their own note", async () => {
+    const shared = await create(owner, [PNG]);
+    await share(shared.id, alice);
+    const mine = await create(alice, [defined(shared.images[0])]);
+    expect(mine.images[0]).not.toBe(shared.images[0]);
+    const meta = await rig.storage.attachments.meta(
+      attachmentIdOf(defined(mine.images[0])),
+    );
+    expect(meta?.ownerId).toBe(alice.userId);
+    // The same sealed bytes, so the key the note holds still opens them.
+    const theirs = await rig.storage.attachments.get(
+      attachmentIdOf(defined(shared.images[0])),
+    );
+    const copy = await rig.storage.attachments.get(
+      attachmentIdOf(defined(mine.images[0])),
+    );
+    expect(copy && theirs && copy.data.equals(theirs.data)).toBe(true);
+  });
+
+  describe("claiming before a note names an image", () => {
+    const claim = (who: Account, body: object) =>
+      call(who, "POST", "/api/attachments/claim", body);
+    const refsOf = async (res: Response) =>
+      ((await res.json()) as { refs: string[] }).refs;
+
+    it("hands back what the owner already holds as it is, and once however often", async () => {
+      const mine = await uploadAs(owner, PNG);
+      const res = await claim(owner, { refs: [mine, mine] });
+      expect(await refsOf(res)).toEqual([mine, mine]);
+      const note = await create(owner, []);
+      expect(
+        await refsOf(await claim(owner, { noteId: note.id, refs: [mine] })),
+      ).toEqual([mine]);
+    });
+
+    it("stores an editor's image for the note's owner, the same one each time", async () => {
+      const note = await create(owner, []);
+      await share(note.id, alice);
+      const hers = await uploadAs(alice, GIF);
+      const [first] = await refsOf(
+        await claim(alice, { noteId: note.id, refs: [hers] }),
+      );
+      expect(first).not.toBe(hers);
+      const [again] = await refsOf(
+        await claim(alice, { noteId: note.id, refs: [hers] }),
+      );
+      expect(again).toBe(first);
+    });
+
+    it("refuses a viewer, a stranger to the note, and what the caller cannot read", async () => {
+      const note = await create(owner, [PNG]);
+      await share(note.id, alice, "view");
+      const hers = await uploadAs(alice, GIF);
+      expect(
+        (await claim(alice, { noteId: note.id, refs: [hers] })).status,
+      ).toBe(403);
+      expect((await claim(mallory, { noteId: note.id, refs: [] })).status).toBe(
+        404,
+      );
+      expect((await claim(mallory, { refs: note.images })).status).toBe(422);
+      expect((await claim(mallory, { refs: ["data:image/png"] })).status).toBe(
+        422,
+      );
+    });
+
+    it("leaves a note naming someone else's image to be refused when written", async () => {
+      const theirs = await uploadAs(owner, PNG);
+      // Around the claim, as a client that skipped it would.
+      const res = await rig.rawRequest("/api/notes", {
+        method: "POST",
+        headers: authHeaders(mallory.token),
+        body: JSON.stringify(sealedCreate({ ...baseNote, images: [theirs] })),
+      });
+      expect(res.status).toBe(422);
+    });
+  });
 
   it("refuses a reference the writer cannot read", async () => {
     const theirs = await create(owner, [PNG]);
@@ -182,10 +284,23 @@ describe("attachments", () => {
       domain: "example.com",
     });
 
-    // Waits for encryption step 3: an image is stored for a note's owner before the note names it.
-    it.todo(
-      "stores an editor's thumbnail under the owner, for every recipient",
-    );
+    it("stores an editor's thumbnail under the owner, for every recipient", async () => {
+      const note = await create(owner, []);
+      await share(note.id, alice);
+      await share(note.id, mallory, "view");
+      const res = await call(alice, "PUT", `/api/notes/${note.id}`, {
+        linkPreviews: [preview(await uploadAs(alice, GIF))],
+      });
+      expect(res.status).toBe(200);
+      const [stored] = ((await res.json()) as { note: Note }).note.linkPreviews;
+      const ref = defined(stored).image as string;
+      expect(stored?.favicon).toBe(ref);
+      const meta = await rig.storage.attachments.meta(
+        attachmentIdOf(defined(ref)),
+      );
+      expect(meta?.ownerId).toBe(owner.userId);
+      expect((await fetchAs(mallory, ref)).status).toBe(200);
+    });
 
     it("keeps a thumbnail through the sweep while a preview holds it", async () => {
       const ref = await uploadAs(owner, PNG);
@@ -252,15 +367,22 @@ describe("attachments", () => {
       expect(((await again.json()) as { ref: string }).ref).toBe(ref);
     });
 
-    it("stores an image as the type its bytes say, whatever it was sent as", async () => {
+    it("stores and serves what it is sent, as bytes of no stated kind", async () => {
       const res = await upload(owner, PNG_BYTES, "image/jpeg");
       expect(res.status).toBe(201);
       const { ref } = (await res.json()) as { ref: string };
-      const served = await rig.request(
+      // As the server answers, before the app opens the image.
+      const served = await rig.rawRequest(
         `/api/attachments/${ref.slice("attachment:".length)}`,
         { headers: { Authorization: `Bearer ${owner.token}` } },
       );
-      expect(served.headers.get("Content-Type")).toBe("image/png");
+      expect(served.headers.get("Content-Type")).toBe(
+        "application/octet-stream",
+      );
+      expect(served.headers.get("X-Content-Type-Options")).toBe("nosniff");
+      expect((await served.arrayBuffer()).byteLength).toBe(
+        PNG_BYTES.length + SEALED_IMAGE_OVERHEAD,
+      );
     });
 
     it("starts the grace again when an image is uploaded again", async () => {
@@ -278,10 +400,20 @@ describe("attachments", () => {
       expect(await rig.storage.attachments.meta(id)).not.toBeNull();
     });
 
-    it("refuses a file that is not an image, or is not sent as one", async () => {
-      expect((await upload(owner, PNG_BYTES, "text/html")).status).toBe(415);
-      const html = new TextEncoder().encode("<svg onload=alert(1)>");
-      expect((await upload(owner, html, "image/png")).status).toBe(415);
+    it("refuses an upload with no address, or with nothing in it", async () => {
+      // Sent as it is: the server cannot tell an image from anything else
+      // once it is sealed, so the address is what it asks for.
+      const bare = (headers: Record<string, string>, body: Uint8Array) =>
+        rig.rawRequest("/api/attachments", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${owner.token}`, ...headers },
+          body: body as BodyInit,
+        });
+      expect((await bare({}, PNG_BYTES)).status).toBe(422);
+      expect(
+        (await bare({ "X-Attachment-Address": "not an address" }, PNG_BYTES))
+          .status,
+      ).toBe(422);
       expect((await upload(owner, new Uint8Array(), "image/png")).status).toBe(
         422,
       );

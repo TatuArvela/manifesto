@@ -63,6 +63,31 @@ export class SealedServer {
   readonly taken = new Set<string>();
   /** Every request made, as `METHOD path`. */
   readonly requests: string[] = [];
+  /** Sealed images, each with whose it is: `me` is the account under test. */
+  readonly attachments = new Map<
+    string,
+    { owner: string; bytes: Uint8Array<ArrayBuffer> }
+  >();
+  /** The references each note was last sent beside its sealed lists. */
+  readonly refs = new Map<
+    string,
+    { imageRefs?: string[]; previewRefs?: string[] }
+  >();
+  private nextAttachment = 0;
+
+  /** Stores sealed bytes as an upload would, and answers their reference. */
+  putAttachment(bytes: Uint8Array<ArrayBuffer>, owner = "me"): string {
+    const id = `01J8Z3Q4R5S6T7V8W9X0Y1${String(this.nextAttachment++).padStart(4, "0")}`;
+    this.attachments.set(id, { owner, bytes });
+    return `attachment:${id}`;
+  }
+
+  private remember(id: string, body: Record<string, unknown>): void {
+    const held = this.refs.get(id) ?? {};
+    if (Array.isArray(body.imageRefs)) held.imageRefs = body.imageRefs;
+    if (Array.isArray(body.previewRefs)) held.previewRefs = body.previewRefs;
+    this.refs.set(id, held);
+  }
   private clock = Date.parse("2026-04-01T00:00:00.000Z");
 
   private now(): string {
@@ -99,6 +124,24 @@ export class SealedServer {
         ? (JSON.parse(init.body) as Record<string, unknown>)
         : {};
 
+    if (path === "/api/attachments/claim" && method === "POST") {
+      // Every note here is the account's own, so anything held by someone
+      // else is stored again for it.
+      const refs = (body.refs as string[]).map((ref) => {
+        const held = this.attachments.get(ref.slice("attachment:".length));
+        if (!held || held.owner === "me") return ref;
+        return this.putAttachment(held.bytes);
+      });
+      return json({ refs });
+    }
+    const attachment = /^\/api\/attachments\/([^/]+)$/.exec(path);
+    if (attachment && method === "GET") {
+      const held = this.attachments.get(attachment[1] ?? "");
+      if (!held) return json({ error: "Attachment not found" }, 404);
+      return new Response(held.bytes, {
+        headers: { "Content-Type": "application/octet-stream" },
+      });
+    }
     if (path === "/api/notes" && method === "GET") {
       return json({ notes: [...this.notes.values()], nextCursor: null });
     }
@@ -115,6 +158,7 @@ export class SealedServer {
       if (problem) return json({ error: `${problem}: not sealed` }, 422);
       const create = body as unknown as SealedNoteCreate;
       if (this.notes.has(create.id)) return json({ error: "taken" }, 409);
+      this.remember(create.id, body);
       return json({ note: this.stored(create) }, 201);
     }
     if (path === "/api/notes/import" && method === "POST") {
@@ -186,6 +230,7 @@ export class SealedServer {
         } = body as SealedNoteUpdate;
         const next = { ...note, ...changes, updatedAt: this.now() };
         this.notes.set(id, next);
+        this.remember(id, body);
         return json({ note: next });
       }
     }

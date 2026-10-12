@@ -27,6 +27,8 @@ export type {
   ApiTokenKind,
   ApiTokenScope,
   ApiTokensResponse,
+  AttachmentsClaimRequest,
+  AttachmentsClaimResponse,
   AttachmentUploadResponse,
   AuditAction,
   AuditEntry,
@@ -142,6 +144,7 @@ export {
   hasScope,
   isCiphertext,
   MAX_ACCOUNT_PREFS_BYTES,
+  MAX_ATTACHMENTS_PER_CLAIM,
   MAX_COMMENT_LENGTH,
   MAX_COMMENTS_PER_NOTE,
   MAX_NOTES_PAGE_SIZE,
@@ -167,7 +170,24 @@ export {
   wipe,
 } from "./crypto/bytes.js";
 export type {
+  ImageKey,
+  ImageKeySource,
+  ImageMediaType,
+  SealedImage,
+} from "./crypto/imageSeal.js";
+export {
+  IMAGE_ADDRESS_PATTERN,
+  IMAGE_MEDIA_TYPES,
+  isImageKey,
+  isImageMediaType,
+  openImage,
+  SEALED_IMAGE_OVERHEAD,
+  sealImage,
+  sniffImageType,
+} from "./crypto/imageSeal.js";
+export type {
   AccountSealKeys,
+  ImageKeys,
   NoteSealKey,
   OpenedSharedFields,
 } from "./crypto/noteSeal.js";
@@ -201,10 +221,13 @@ export {
   derivable,
   deriveBytes,
   deriveKey,
+  deriveMacKey,
   seal,
+  sealBytes,
   sealedLength,
   sealingKey,
   unseal,
+  unsealBytes,
 } from "./crypto/seal.js";
 export {
   EXPORT_NOTES_FILE,
