@@ -21,6 +21,7 @@ paths:
   - "packages/server/src/routes/tokens.ts"
   - "packages/server/src/test/keyedTokens.ts"
   - "packages/client/src/state/apiTokens.ts"
+  - "packages/server/src/calendar/routes.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
   - "packages/server/src/routes/attachments.ts"
@@ -219,6 +220,15 @@ keys for the request (`auth.keys`) and nothing keeps them. `routes/noteCodec.ts`
 translation: `tokenKeys(c)` is null for a session, which is answered sealed, and for a token every
 note route opens what it answers and seals what it is sent. A new route that answers a note calls
 `noteOut` / `notesOut`, or a token is handed ciphertext.
+
+A calendar feed's address is such a token too, carrying the reminder key alone
+(`wrapFeedKey`; `calendar/routes.ts` opens it from the address). It reaches a note only through
+`reminderKey`, the note key wrapped under the reader's reminder key: a personal field like the
+reminder itself (on the note for its owner, on the share for a recipient), sent by `sealNew` /
+`sealUpdate` whenever a reminder is set, cleared by the route when the reminder is and by `rekey`
+for everyone. A note that has a reminder and no copy lands in `Sealer.feedDue`, and the effect in
+`state/sharing.ts` leaves one (`leaveFeedKey`); that is the only way a reminder a script set, or
+a note whose key was replaced, gets its name back in the feed.
 
 `test/sealingClient.ts` mints a token as the app does, with real keys (`test/keyedTokens.ts`),
 since the server opens with them. A note written by a session in a test is only shaped as

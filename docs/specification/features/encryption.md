@@ -489,11 +489,16 @@ the code does, and nothing here may be released:
   token is used. For a request that presents it the server opens and seals notes in memory: notes,
   versions, sync, import and `GET /api/search` work as before, and so do the MCP tools. Webhooks
   carry no content.
+- **A calendar feed's address** is made in the app like any token that carries a key, and carries
+  the reminder key alone. A note with a reminder has its key wrapped under its reader's reminder
+  key, by the client that sets the reminder; the copy goes when the reminder does and when the
+  note's key is replaced. A reminder set by a script, which holds no reminder key, has no copy
+  until a device of the account next sees the note and leaves one; until then the feed names that
+  event "Reminder".
 - **Not built of tokens yet** (the rest of step 6): a token cannot attach or read images, or read
   comments; an assistant signed in through the browser (OAuth) carries no key and reaches no note;
-  the calendar feed carries no reminder key, so every event is named "Reminder"; the example
-  webhook receiver still expects a note's content; Settings does not offer to replace every key
-  when a token is revoked, since that is step 8.
+  the example webhook receiver still expects a note's content; Settings does not offer to replace
+  every key when a token is revoked, since that is step 8.
 - **A push message** for a reminder says "Reminder" and nothing of the note (step 7).
 - **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
   and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.

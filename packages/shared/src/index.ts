@@ -165,6 +165,7 @@ export {
   PUBLIC_KEY_LENGTH,
   PUBLIC_LINK_MODES,
   RECOVERY_VERIFIER_LENGTH,
+  SEALED_PERSONAL_NOTE_FIELDS,
   SEALED_SHARED_NOTE_FIELDS,
   SERVER_FEATURES,
   TEAM_SOURCES,
@@ -220,6 +221,7 @@ export {
   openPersonalFields,
   openPref,
   openPreviousKeys,
+  openReminderKey,
   openSealedNote,
   openSharedFields,
   openVersion,
@@ -234,6 +236,7 @@ export {
   sealSharedFields,
   sealVersion,
   unwrapNoteKey,
+  wrapForReminders,
   wrapNoteKey,
 } from "./crypto/noteSeal.js";
 export {
@@ -263,7 +266,9 @@ export {
   MAX_TOKEN_KEYS_LENGTH,
   newTokenSecret,
   tokenHashOf,
+  unwrapFeedKey,
   unwrapTokenKeys,
+  wrapFeedKey,
   wrapTokenKeys,
 } from "./crypto/tokenSeal.js";
 export {

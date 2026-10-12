@@ -20,6 +20,8 @@ export const plainSealing: NoteSealing = {
   unreadable: signal<ReadonlySet<string>>(new Set()),
   due: signal<ReadonlySet<string>>(new Set()),
   replaced: signal<ReadonlyMap<string, number>>(new Map()),
+  feedDue: signal<ReadonlySet<string>>(new Set()),
+  feedKey: async () => "",
   rekey: async () => null,
   sealSeenKeys: async () => "",
   openSeenKeys: async () => new Map(),

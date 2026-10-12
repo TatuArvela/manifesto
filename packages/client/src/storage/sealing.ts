@@ -51,7 +51,9 @@ import {
   unwrapNoteKey,
   verifyOfferedKey,
   wipe,
+  wrapFeedKey,
   wrapForLink,
+  wrapForReminders,
   wrapNoteKey,
   wrapTokenKeys,
 } from "@manifesto/shared";
@@ -160,6 +162,8 @@ function ringKey(ring: NoteKeyRing, version: number): NoteSealKey | null {
 export class Sealer {
   private readonly account: Promise<AccountSealKeys>;
   private readonly images: Promise<ImageKeySource>;
+  /** Wraps the key of each note that has a reminder, for a calendar feed. */
+  private readonly reminders: Promise<CryptoKey>;
   private readonly noteKeys = new Map<string, HeldNoteKey>();
   /**
    * What opens each image this device has met, by its reference: from every
@@ -187,6 +191,12 @@ export class Sealer {
    */
   readonly due = signal<ReadonlySet<string>>(new Set());
   /**
+   * The notes with a reminder that a calendar feed cannot name yet: no copy
+   * of their key is under this account's reminder key. A reminder set by a
+   * script leaves one so, and so does a replaced note key.
+   */
+  readonly feedDue = signal<ReadonlySet<string>>(new Set());
+  /**
    * The key version of each note whose key was replaced while it was open
    * here, so that whatever holds the old key (a live document) starts again.
    */
@@ -207,6 +217,7 @@ export class Sealer {
       personal: await accountSubkey(keys.accountKey, "personal"),
     }))();
     this.images = accountImageKeys(keys.accountKey);
+    this.reminders = accountSubkey(keys.accountKey, "reminder");
   }
 
   /**
@@ -385,6 +396,50 @@ export class Sealer {
     this.due.value = next;
   }
 
+  private markFeedDue(id: string, due: boolean): void {
+    const held = this.feedDue.value;
+    if (held.has(id) === due) return;
+    const next = new Set(held);
+    if (due) next.add(id);
+    else next.delete(id);
+    this.feedDue.value = next;
+  }
+
+  /** A held note key wrapped under the reminder key: the copy a calendar
+   * feed opens the note with. */
+  private async wrappedForFeed(id: string, held: HeldNoteKey): Promise<string> {
+    const account = await this.account;
+    const raw = await unwrapNoteKey(
+      account,
+      id,
+      held.key.version,
+      held.wrapped,
+    );
+    if (!raw) throw new NoteKeyError(id);
+    try {
+      return await wrapForReminders(
+        await this.reminders,
+        account,
+        id,
+        held.key.version,
+        raw,
+      );
+    } finally {
+      wipe(raw);
+    }
+  }
+
+  /**
+   * The copy of a note's key for this account's calendar feeds, to store
+   * with a note that has a reminder and none yet.
+   */
+  async feedKey(
+    id: string,
+    fetch: () => Promise<SealedNote | null>,
+  ): Promise<string> {
+    return this.wrappedForFeed(id, await this.keyOf(id, fetch));
+  }
+
   private markUnreadable(id: string, unreadable: boolean): void {
     const held = this.unreadable.peek();
     if (held.has(id) === unreadable) return;
@@ -434,6 +489,12 @@ export class Sealer {
       });
     }
     this.markDue(sealed.id, sealed.rekeyDue === true);
+    this.markFeedDue(
+      sealed.id,
+      sealed.reminder !== null &&
+        !sealed.reminderKey &&
+        this.noteKeys.has(sealed.id),
+    );
     for (const [ref, key] of opened.imageKeys) this.imageKeys.set(ref, key);
     this.markUnreadable(sealed.id, false);
     return opened.note;
@@ -471,8 +532,11 @@ export class Sealer {
       note,
       this.imageKeys,
     );
-    this.hold(id, { key, wrapped: sealed.key, previous: "" });
-    return sealed;
+    const held = { key, wrapped: sealed.key, previous: "" };
+    this.hold(id, held);
+    return note.reminder
+      ? { ...sealed, reminderKey: await this.wrappedForFeed(id, held) }
+      : sealed;
   }
 
   /**
@@ -591,7 +655,8 @@ export class Sealer {
     changes: NoteUpdate,
     fetch: () => Promise<SealedNote | null>,
   ): Promise<SealedNoteUpdate> {
-    const { key } = await this.keyOf(id, fetch);
+    const held = await this.keyOf(id, fetch);
+    const { key } = held;
     const sealed = await sealNoteUpdate(
       await this.account,
       key,
@@ -599,6 +664,11 @@ export class Sealer {
       changes,
       this.imageKeys,
     );
+    // A reminder being set: the note's key goes under the reminder key with
+    // it, so a calendar feed can name the event.
+    if (changes.reminder) {
+      sealed.reminderKey = await this.wrappedForFeed(id, held);
+    }
     // Words under the note key say which one, so the server can refuse
     // them once the note has left it.
     const shared = SEALED_SHARED_NOTE_FIELDS.some((field) => field in sealed);
@@ -630,6 +700,9 @@ export class Sealer {
       keyVersion: held.key.version,
       ...shared,
       ...personal,
+      ...(note.reminder && {
+        reminderKey: await this.wrappedForFeed(id, held),
+      }),
     } as SealedNoteCreate;
   }
 
@@ -770,15 +843,41 @@ export class Sealer {
   /**
    * A new token that carries keys: its secret, which stays on this side,
    * and what the server is sent of it. The notes key and the personal key
-   * are derived from the account key as bytes for the one wrap and wiped;
-   * the account key itself is never among them, so a token opens no private
-   * key and accepts no invitation.
+   * (or, for a calendar feed, the reminder key alone) are derived from the
+   * account key as bytes for the one wrap and wiped; the account key itself
+   * is never among them, so a token opens no private key and accepts no
+   * invitation.
    */
-  async newToken(prefix: string): Promise<{
+  async newToken(
+    prefix: string,
+    carries: "notes" | "reminders" = "notes",
+  ): Promise<{
     secret: string;
     fields: { tokenHash: string; prefix: string; wrappedKeys: string };
   } | null> {
     const secret = newTokenSecret(prefix);
+    if (carries === "reminders") {
+      // A calendar feed's address: the reminder key and nothing else.
+      const reminders = await deriveBytes(
+        this.keys.accountKey,
+        "account/reminder",
+      );
+      try {
+        return {
+          secret,
+          fields: {
+            tokenHash: await tokenHashOf(secret),
+            prefix: secret.slice(0, prefix.length + 6),
+            wrappedKeys: await wrapFeedKey(secret, {
+              version: this.keys.version,
+              reminders,
+            }),
+          },
+        };
+      } finally {
+        wipe(reminders);
+      }
+    }
     const notes = await deriveBytes(this.keys.accountKey, "account/notes");
     const personal = await deriveBytes(
       this.keys.accountKey,

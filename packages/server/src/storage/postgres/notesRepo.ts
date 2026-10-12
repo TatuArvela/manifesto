@@ -355,11 +355,18 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       );
       const at = columns.length + 2;
       const result = await pool.query(
-        `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0
+        `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
+           reminder_key = ''
          WHERE id = $${at} AND user_id = $${at + 1} AND key_version = $${at + 2}`,
         params,
       );
-      return (result.rowCount ?? 0) > 0;
+      if ((result.rowCount ?? 0) === 0) return false;
+      // Every feed's copy of the key is of the one before.
+      await pool.query(
+        `UPDATE note_shares SET reminder_key = '' WHERE note_id = $1`,
+        [id],
+      );
+      return true;
     },
 
     async delete(id: string, userId: string): Promise<boolean> {

@@ -11,7 +11,7 @@ import type {
   TeamRef,
 } from "@manifesto/shared";
 import {
-  PERSONAL_NOTE_FIELDS,
+  SEALED_PERSONAL_NOTE_FIELDS,
   SEALED_SHARED_NOTE_FIELDS,
   SHARE_ROLES,
 } from "@manifesto/shared";
@@ -23,6 +23,7 @@ import {
   type RowBoolean,
   rowToNote,
   sealedColumn,
+  setReminderKey,
 } from "./noteMapping.js";
 import type { NoteShare } from "./types.js";
 
@@ -52,6 +53,7 @@ export interface ViewRow extends NoteRow {
   s_position?: number | string | null;
   s_tags?: string | null;
   s_reminder?: string | null;
+  s_reminder_key?: string | null;
   s_wrapped_key?: string | null;
   s_wrapped_key_version?: number | string | null;
   s_offered_key?: string | null;
@@ -68,6 +70,7 @@ export const SHARE_OVERLAY_COLUMNS = [
   "s.position AS s_position",
   "s.tags AS s_tags",
   "s.reminder AS s_reminder",
+  "s.reminder_key AS s_reminder_key",
   "s.wrapped_key AS s_wrapped_key",
   "s.wrapped_key_version AS s_wrapped_key_version",
   "s.offered_key AS s_offered_key",
@@ -240,6 +243,7 @@ export function rowToViewNote(row: ViewRow): SealedNote {
   note.position = Number(row.s_position ?? 0);
   note.tags = sealedColumn(row.s_tags);
   note.reminder = parseJson<NoteReminder | null>(row.s_reminder ?? null, null);
+  setReminderKey(note, row.s_reminder_key);
   note.trashed = asBoolean(row.s_trashed ?? false);
   note.trashedAt = row.s_trashed_at ?? null;
   return note;
@@ -301,7 +305,7 @@ export function ownerIdsOf(rows: ViewRow[]): string[] {
 }
 
 const SHARED_FIELDS = new Set<string>(SEALED_SHARED_NOTE_FIELDS);
-const PERSONAL_FIELDS = new Set<string>(PERSONAL_NOTE_FIELDS);
+const PERSONAL_FIELDS = new Set<string>(SEALED_PERSONAL_NOTE_FIELDS);
 
 /**
  * A recipient's update, split by where each field is written: the shared

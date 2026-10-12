@@ -1,5 +1,5 @@
 import type { OfferedKey } from "../crypto/shareSeal.js";
-import type { Note } from "../note.js";
+import { type Note, PERSONAL_NOTE_FIELDS } from "../note.js";
 
 // Notes as the server stores them and as a signed-in app sends and receives
 // them: every value in someone's words is a ciphertext the server cannot
@@ -37,6 +37,13 @@ export interface SealedNote
    * opens it, keeps it under their own notes key, and reads the note again.
    */
   offered?: OfferedKey;
+  /**
+   * While the note has a reminder: its key wrapped under the reader's own
+   * reminder key, which is what a calendar feed opens the note with. Written
+   * by the client that sets the reminder, and gone when the reminder is, or
+   * when the note's key is replaced. Absent when there is none.
+   */
+  reminderKey?: string;
   /**
    * The keys the note was under before, sealed under the one it is under
    * now: what still opens its older versions, comments and edits. Absent
@@ -133,6 +140,16 @@ export const SEALED_SHARED_NOTE_FIELDS = [
   "imageRefs",
   "linkPreviews",
   "previewRefs",
+] as const;
+
+/**
+ * The fields of a sealed note that are each reader's own:
+ * `PERSONAL_NOTE_FIELDS`, and the copy of the note key their calendar feed
+ * opens, which goes where their reminder does.
+ */
+export const SEALED_PERSONAL_NOTE_FIELDS = [
+  ...PERSONAL_NOTE_FIELDS,
+  "reminderKey",
 ] as const;
 
 /** A version of a note's title and text, sealed under the note key it was

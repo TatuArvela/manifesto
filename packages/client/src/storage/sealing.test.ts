@@ -5,11 +5,14 @@ import {
   type NoteCreate,
   NoteFont,
   NoteLimitError,
+  openReminderKey,
   openSealedNote,
+  openSharedFields,
   type SealedNote,
   type SealedNoteCreate,
   sealNewNote,
   tokenHashOf,
+  unwrapFeedKey,
   unwrapTokenKeys,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
@@ -239,5 +242,73 @@ describe("Sealer", () => {
         keys.userId,
       ),
     ).toBeNull();
+  });
+
+  it("makes a calendar feed an address that opens the notes with a reminder, and no others", async () => {
+    const keys = await testKeys();
+    const sealer = new Sealer(keys);
+    const reminder = {
+      time: "2026-05-01T09:30:00",
+      recurrence: "none" as const,
+      timezone: "Europe/Helsinki",
+    };
+    const dentist = await sealer.sealNew("n1", {
+      ...draft,
+      title: "Dentist",
+      reminder,
+    });
+    const diary = await sealer.sealNew("n2", { ...draft, title: "Diary" });
+    // The copy for the feed is made with the reminder, and only then.
+    expect(dentist.reminderKey).toMatch(/^e1\./);
+    expect(diary.reminderKey).toBeUndefined();
+
+    const made = await sealer.newToken("mfc_", "reminders");
+    if (!made) throw new Error("no address");
+    expect(made.secret.startsWith("mfc_")).toBe(true);
+    // The address carries the reminder key and nothing that opens a note
+    // directly.
+    expect(
+      await unwrapTokenKeys(made.secret, made.fields.wrappedKeys, keys.userId),
+    ).toBeNull();
+    const feed = await unwrapFeedKey(made.secret, made.fields.wrappedKeys);
+    if (!feed) throw new Error("the feed's key did not open");
+    const owner = { userId: keys.userId, version: feed.version };
+    const key = await openReminderKey(
+      feed.reminders,
+      owner,
+      "n1",
+      1,
+      dentist.reminderKey,
+    );
+    if (!key) throw new Error("the feed does not open the note");
+    expect((await openSharedFields(key, "n1", dentist)).title).toBe("Dentist");
+    // Not another note with that copy, and not with another address.
+    expect(
+      await openReminderKey(
+        feed.reminders,
+        owner,
+        "n2",
+        1,
+        dentist.reminderKey,
+      ),
+    ).toBeNull();
+    expect(
+      await unwrapFeedKey("mfc_another", made.fields.wrappedKeys),
+    ).toBeNull();
+
+    // Setting a reminder later sends the copy with it; a note that has a
+    // reminder and no copy (a script set it) is marked for one.
+    const fetch = async () => served(diary);
+    expect(
+      (await sealer.sealUpdate("n2", { reminder }, fetch)).reminderKey,
+    ).toMatch(/^e1\./);
+    expect(
+      (await sealer.sealUpdate("n2", { pinned: true }, fetch)).reminderKey,
+    ).toBeUndefined();
+    await sealer.open({ ...served(diary), reminder });
+    expect([...sealer.feedDue.value]).toEqual(["n2"]);
+    const left = await sealer.feedKey("n2", fetch);
+    await sealer.open({ ...served(diary), reminder, reminderKey: left });
+    expect(sealer.feedDue.value.size).toBe(0);
   });
 });

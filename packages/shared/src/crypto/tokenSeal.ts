@@ -123,3 +123,62 @@ export async function unwrapTokenKeys(
     if (personal) wipe(personal);
   }
 }
+
+const FEED_DATA = associatedData({
+  id: "",
+  field: "token/feed-key",
+  version: 1,
+});
+
+/**
+ * The key a calendar feed's address carries: the account's reminder key and
+ * nothing else, wrapped under a key derived from the address's secret. A
+ * feed address is the weakest of the secrets (the calendar service has it,
+ * and every proxy on the way), so it opens the notes that have a reminder
+ * and no others.
+ */
+export async function wrapFeedKey(
+  secret: string,
+  keys: { version: number; reminders: Uint8Array<ArrayBuffer> },
+): Promise<string> {
+  return seal(
+    await wrapKeyOf(secret),
+    utf8(
+      JSON.stringify({
+        version: keys.version,
+        reminders: bytesToBase64url(keys.reminders),
+      }),
+    ),
+    FEED_DATA,
+  );
+}
+
+/** The reminder key a presented feed address carries; null when `wrapped`
+ * does not open with this secret. Lives for the request that asked. */
+export async function unwrapFeedKey(
+  secret: string,
+  wrapped: string,
+): Promise<{ version: number; reminders: CryptoKey } | null> {
+  const bytes = await unseal(await wrapKeyOf(secret), wrapped, FEED_DATA);
+  const text = bytes ? fromUtf8(bytes) : null;
+  if (text === null) return null;
+  let reminders: Uint8Array<ArrayBuffer> | undefined;
+  try {
+    const parsed = JSON.parse(text) as {
+      version?: unknown;
+      reminders?: unknown;
+    };
+    if (
+      typeof parsed.version !== "number" ||
+      typeof parsed.reminders !== "string"
+    ) {
+      return null;
+    }
+    reminders = base64urlToBytes(parsed.reminders);
+    return { version: parsed.version, reminders: await sealingKey(reminders) };
+  } catch {
+    return null;
+  } finally {
+    if (reminders) wipe(reminders);
+  }
+}

@@ -538,6 +538,8 @@ const sealedNoteFields = {
   previewRefs: attachmentRefs(MAX_LINK_PREVIEWS_PER_NOTE * 2),
   color: sealedOrEmpty(SEALED_FIELD_MAX.color),
   tags: sealedOrEmpty(SEALED_FIELD_MAX.tags),
+  // The note key for a calendar feed, while the note has a reminder.
+  reminderKey: sealedOrEmpty(MAX_WRAPPED_KEY_LENGTH).exactOptional(),
   pinned: noteFields.pinned,
   archived: noteFields.archived,
   trashed: noteFields.trashed,
@@ -651,7 +653,7 @@ export const apiTokenCreateSchema = z
       .exactOptional(),
     prefix: z
       .string()
-      .regex(/^mf[pm]_[A-Za-z0-9_-]{6}$/)
+      .regex(/^mf[pmc]_[A-Za-z0-9_-]{6}$/)
       .exactOptional(),
     wrappedKeys: sealed(MAX_TOKEN_KEYS_LENGTH).exactOptional(),
     password: confirmationPassword,

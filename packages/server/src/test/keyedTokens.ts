@@ -8,6 +8,8 @@ import {
   tokenHashOf,
   unwrapNoteKey,
   utf8,
+  wrapFeedKey,
+  wrapForReminders,
   wrapNoteKey,
   wrapTokenKeys,
 } from "@manifesto/shared";
@@ -30,6 +32,7 @@ async function material(userId: string) {
     version: 1,
     notes: await deriveBytes(account, "account/notes"),
     personal: await deriveBytes(account, "account/personal"),
+    reminders: await deriveBytes(account, "account/reminder"),
   };
 }
 
@@ -53,20 +56,54 @@ export async function testAccountKeys(
  */
 export async function keyedToken(
   userId: string,
-  kind: "api" | "mcp",
+  kind: "api" | "mcp" | "calendar",
 ): Promise<{
   secret: string;
   fields: { tokenHash: string; prefix: string; wrappedKeys: string };
 }> {
-  const secret = newTokenSecret(kind === "mcp" ? "mfm_" : "mfp_");
+  const secret = newTokenSecret(
+    kind === "mcp" ? "mfm_" : kind === "calendar" ? "mfc_" : "mfp_",
+  );
+  const keys = await material(userId);
   return {
     secret,
     fields: {
       tokenHash: await tokenHashOf(secret),
       prefix: secret.slice(0, 10),
-      wrappedKeys: await wrapTokenKeys(secret, await material(userId)),
+      // A feed's address carries the reminder key and nothing else.
+      wrappedKeys:
+        kind === "calendar"
+          ? await wrapFeedKey(secret, keys)
+          : await wrapTokenKeys(secret, keys),
     },
   };
+}
+
+/**
+ * The copy of a note's key that a calendar feed opens, as the app leaves it
+ * when a reminder is set: the reader's own copy opened, and wrapped under
+ * their reminder key.
+ */
+export async function reminderKeyOf(
+  sealed: Pick<SealedNote, "id" | "key" | "keyVersion">,
+  userId: string,
+): Promise<string> {
+  const account = await testAccountKeys(userId);
+  const raw = await unwrapNoteKey(
+    account,
+    sealed.id,
+    sealed.keyVersion,
+    sealed.key,
+  );
+  if (!raw) throw new Error("The test keys do not open this note");
+  const { reminders } = await material(userId);
+  return wrapForReminders(
+    await sealingKey(reminders),
+    account,
+    sealed.id,
+    sealed.keyVersion,
+    raw,
+  );
 }
 
 /**

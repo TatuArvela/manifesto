@@ -120,6 +120,8 @@ without keys is refused the note routes with `403`. Every route above takes and 
   text), `font`, `images` (the list of the note's images) and `linkPreviews`.
 - **Sealed under the reader's personal key**: `color` and `tags`. Either is `""` when never set,
   which is how a shared note first reaches its recipient.
+- **`reminderKey`**, on a note with a reminder, is the note key wrapped under the reader's own
+  reminder key, for their calendar feed. It is the reader's own, like the reminder.
 - **`key`** is the note key wrapped under the reader's own notes key, and `keyVersion` says which
   note key the values are under. `previousKeys`, present once the key has been replaced, is the
   keys before it sealed under the one the note has now: what opens the versions, comments and
@@ -327,6 +329,14 @@ with a reminder that is not in the trash, at the reminder's time in its timezone
 as it does (`RRULE`), fifteen minutes long, with an alarm when it starts. It may be cached for five
 minutes; any failure (a wrong, revoked or expired token, or an address without `.ics`) is `404`. See
 [Reminders](features/reminders.md#calendar-feed).
+
+The app makes a feed's address as it makes a token that carries keys (`tokenHash`, `prefix`,
+`wrappedKeys`), and what it wraps is the account's reminder key alone. A sealed note that has a
+reminder carries `reminderKey`, the note key wrapped under its reader's reminder key, which the
+client sends with the reminder; the server clears it when the reminder is cleared or the note's key
+is replaced, and hands it back only to that reader. For a request to the feed's address the server
+opens the reminder key from the address and, through `reminderKey`, each note that has a reminder.
+An event whose note has no copy yet is named "Reminder" and holds no text.
 
 `POST /api/tokens` with `"kind": "mcp"` mints a token for an AI assistant instead: it starts with
 `mfm_`, works at `/api/mcp` and nowhere else (the REST API and both sockets answer `403` or close

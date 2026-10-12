@@ -34,6 +34,7 @@ export type CreateApiTokenResult =
 const KEYED_PREFIX: Partial<Record<ApiTokenKind, string>> = {
   api: "mfp_",
   mcp: "mfm_",
+  calendar: "mfc_",
 };
 
 /**
@@ -43,7 +44,9 @@ const KEYED_PREFIX: Partial<Record<ApiTokenKind, string>> = {
  * A token that reaches notes carries the keys to open them, so its secret is
  * made here and the server is sent its hash and the keys wrapped under it;
  * the server never sees the secret until the token is used. A calendar
- * token, and one for the account alone, is made by the server as before.
+ * feed's address is made the same way and carries the reminder key alone,
+ * which opens the notes that have a reminder. A token for the account
+ * alone is made by the server as before.
  */
 export async function createApiToken(
   name: string,
@@ -53,12 +56,17 @@ export async function createApiToken(
   password: string,
 ): Promise<CreateApiTokenResult> {
   const prefix = KEYED_PREFIX[kind];
-  const reachesNotes = scopes.some((scope) => scope.startsWith("notes:"));
+  const reachesNotes =
+    kind === "calendar" || scopes.some((scope) => scope.startsWith("notes:"));
   let made: Awaited<ReturnType<NonNullable<typeof sealer.value>["newToken"]>> =
     null;
   if (prefix !== undefined && reachesNotes) {
     try {
-      made = (await sealer.peek()?.newToken(prefix)) ?? null;
+      made =
+        (await sealer
+          .peek()
+          ?.newToken(prefix, kind === "calendar" ? "reminders" : "notes")) ??
+        null;
     } catch (err) {
       console.warn("Failed to make a token's keys:", err);
       return { kind: "failed" };

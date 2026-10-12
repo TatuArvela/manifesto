@@ -34,6 +34,7 @@ export interface NoteRow {
   key_version?: number | string;
   previous_keys?: string;
   rekey_due?: number | string;
+  reminder_key?: string;
   pinned: RowBoolean;
   archived: RowBoolean;
   trashed: RowBoolean;
@@ -86,6 +87,16 @@ export function sealedColumn(raw: string | null | undefined): string {
   return raw?.startsWith(CIPHERTEXT_PREFIX) ? raw : "";
 }
 
+/** The feed's copy of the note key, which is there only with a reminder. */
+export function setReminderKey(
+  note: SealedNote,
+  raw: string | null | undefined,
+): void {
+  const wrapped = note.reminder ? sealedColumn(raw) : "";
+  if (wrapped) note.reminderKey = wrapped;
+  else delete note.reminderKey;
+}
+
 export function rowToNote(row: NoteRow): SealedNote {
   const note: SealedNote = {
     id: row.id,
@@ -112,6 +123,7 @@ export function rowToNote(row: NoteRow): SealedNote {
   const previous = sealedColumn(row.previous_keys);
   if (previous) note.previousKeys = previous;
   if (Number(row.rekey_due ?? 0) === 1) note.rekeyDue = true;
+  setReminderKey(note, row.reminder_key);
   if (asBoolean(row.readonly)) note.readonly = true;
   const source = parseJson<AutoNoteSource | null>(row.source, null);
   if (source) note.source = source;
@@ -123,6 +135,7 @@ const FIELD_TO_COLUMN = {
   key: "wrapped_key",
   keyVersion: "key_version",
   previousKeys: "previous_keys",
+  reminderKey: "reminder_key",
   title: "title",
   content: "content",
   excerpt: "excerpt",

@@ -238,6 +238,8 @@ export function createNotesRoutes(deps: NotesDeps) {
     const changes: StoredNoteUpdate = {
       ...rest,
       ...trashStamp(fields.trashed, now),
+      // A calendar feed's copy of the note key goes when the reminder does.
+      ...(fields.reminder === null && { reminderKey: "" }),
     };
     if (imageRefs !== undefined || previewRefs !== undefined) {
       // Stored under the note's owner, whoever is writing. Refused here

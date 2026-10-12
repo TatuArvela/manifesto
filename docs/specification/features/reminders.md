@@ -109,6 +109,9 @@ gives an address to subscribe to, and a `webcal:` link that opens the device's c
 - The address is the secret. It is shown once, when the token is made, and anyone who has it can read
   the reminders; revoking the token in Settings stops the feed. It opens nothing else, and is not a
   sign-in token anywhere.
+- Notes are [encrypted](encryption.md#tokens-that-carry-a-key), so the address carries a key: the
+  one that opens the notes that have a reminder, and no others. A reminder set by a script shows as
+  "Reminder", without the note's name or text, until the app has next been open on that account.
 - Calendar apps fetch the feed on their own schedule, often every few hours, so a changed reminder can
   take that long to show there. The app's own notifications stay the ones that arrive on time.
 - The calendar is named after the token, so two devices can each have their own.

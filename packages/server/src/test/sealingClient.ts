@@ -314,7 +314,10 @@ export function sealingClient(send: Fetch): Fetch {
       try {
         const body = JSON.parse(init.body) as Record<string, unknown>;
         const kind = body.kind ?? "api";
-        if ((kind === "api" || kind === "mcp") && !("tokenHash" in body)) {
+        if (
+          (kind === "api" || kind === "mcp" || kind === "calendar") &&
+          !("tokenHash" in body)
+        ) {
           const me = await send("/api/auth/me", {
             headers: init.headers ?? {},
           });

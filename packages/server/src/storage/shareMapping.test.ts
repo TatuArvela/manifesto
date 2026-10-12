@@ -1,5 +1,5 @@
 import {
-  PERSONAL_NOTE_FIELDS,
+  SEALED_PERSONAL_NOTE_FIELDS,
   SEALED_SHARED_NOTE_FIELDS,
   type SealedNoteUpdate,
 } from "@manifesto/shared";
@@ -42,6 +42,7 @@ const WHERE: Record<
   position: "personal",
   tags: "personal",
   reminder: "personal",
+  reminderKey: "personal",
   // Auto-note markers, the stamp the server writes itself, and the note
   // key, which only its owner replaces.
   readonly: "owner",
@@ -70,6 +71,7 @@ const sample: Required<SealedNoteUpdate> = {
   position: 5,
   tags: ct('["x"]'),
   reminder: null,
+  reminderKey: "",
   readonly: true,
   source: { kind: "auto-note", pluginId: "p", noteKey: "k" },
   updatedAt: "2026-01-01T00:00:00.000Z",
@@ -97,7 +99,7 @@ describe("splitChanges", () => {
       Object.keys(WHERE)
         .filter((f) => WHERE[f as keyof SealedNoteUpdate] === "personal")
         .sort(),
-    ).toEqual([...PERSONAL_NOTE_FIELDS].sort());
+    ).toEqual([...SEALED_PERSONAL_NOTE_FIELDS].sort());
   });
 
   it("skips a field whose value is undefined, and keeps null and false", () => {

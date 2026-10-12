@@ -342,3 +342,21 @@ export async function replaceNoteKey(noteId: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Leaves a calendar feed the key of a note that has a reminder and no copy
+ * for it yet. Resolves whether the server took it; never rejects.
+ */
+export async function leaveFeedKey(noteId: string): Promise<boolean> {
+  const sealing = sealer.peek();
+  if (!sealing?.handsKeysOn) return false;
+  try {
+    const res = await apiFetch("PUT", `/notes/${noteId}`, {
+      reminderKey: await sealing.feedKey(noteId, sealedNote(noteId)),
+    });
+    return res?.ok ?? false;
+  } catch (err) {
+    console.warn("Failed to leave a calendar feed a note's key:", err);
+    return false;
+  }
+}

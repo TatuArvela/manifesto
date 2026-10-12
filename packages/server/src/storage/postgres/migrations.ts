@@ -495,6 +495,16 @@ CREATE TABLE seen_keys (
 );
 `;
 
+/**
+ * A note's key as a calendar feed opens it: wrapped under its reader's
+ * reminder key while the note has a reminder. The owner's copy is on the
+ * note and a recipient's on their share, like the reminder itself.
+ */
+const REMINDER_KEYS = `
+ALTER TABLE notes ADD COLUMN reminder_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE note_shares ADD COLUMN reminder_key TEXT NOT NULL DEFAULT '';
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -530,6 +540,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0032-link-keys", sql: LINK_KEYS },
   { id: "0033-note-rekey", sql: NOTE_REKEY },
   { id: "0034-seen-keys", sql: SEEN_KEYS },
+  { id: "0035-reminder-keys", sql: REMINDER_KEYS },
 ];
 
 /**

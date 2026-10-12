@@ -19,6 +19,7 @@ import { ApiError, apiJson } from "../storage/apiRequest.js";
 import { sealer } from "../storage/sealing.js";
 import {
   adoptOfferedKey,
+  leaveFeedKey,
   offerKeyTo,
   replaceNoteKey,
   supplyKey,
@@ -429,6 +430,22 @@ effect(() => {
     // One that fails stays due on the server, and is tried again the next
     // time this account is unlocked.
     void replaceNoteKey(id);
+  }
+});
+
+/** The notes this session has left a calendar feed the key of. */
+const leftForFeed = new Set<string>();
+
+// A note with a reminder and no copy of its key for a calendar feed: a
+// script set the reminder, or the note's key was replaced. Whichever device
+// of the account sees it leaves the copy.
+effect(() => {
+  const sealing = sealer.value;
+  if (!sealing?.handsKeysOn) return;
+  for (const id of sealing.feedDue.value) {
+    if (leftForFeed.has(id)) continue;
+    leftForFeed.add(id);
+    void leaveFeedKey(id);
   }
 });
 
