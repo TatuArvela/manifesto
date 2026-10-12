@@ -1,18 +1,24 @@
 import {
   type AccountKeys,
   keyFingerprint,
+  MAX_PREVIOUS_KEYS,
+  MAX_PREVIOUS_KEYS_LENGTH,
   NoteColor,
   type NoteComment,
   type NoteCreate,
   NoteFont,
   type NoteRekeyRequest,
   newLinkKey,
+  newNoteKey,
+  noteSealKey,
   openLinkedKey,
+  openPreviousKeys,
   openSharedFields,
   type PublicLink,
   type SealedNote,
   type SealedNoteCreate,
   type SealedNoteVersion,
+  sealPreviousKeys,
   snapshotKey,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
@@ -414,6 +420,22 @@ describe("replacing a note's key", () => {
     expect(
       await owner.sealer.openVersions("n1", [version], async () => third),
     ).toHaveLength(1);
+  });
+
+  it("keeps the newest earlier keys within what the server takes", async () => {
+    const key = await noteSealKey(newNoteKey(), MAX_PREVIOUS_KEYS + 10);
+    const previous = new Map<number, Uint8Array<ArrayBuffer>>();
+    for (let version = 1; version < key.version; version++) {
+      previous.set(version, newNoteKey());
+    }
+    const sealed = await sealPreviousKeys(key, "n1", previous);
+    expect(sealed.length).toBeLessThanOrEqual(MAX_PREVIOUS_KEYS_LENGTH);
+    const opened = await openPreviousKeys(key, "n1", sealed);
+    expect(opened.size).toBe(MAX_PREVIOUS_KEYS);
+    // The oldest are the ones let go.
+    expect(opened.has(9)).toBe(false);
+    expect(opened.get(10)).toEqual(previous.get(10));
+    expect(opened.has(key.version - 1)).toBe(true);
   });
 
   it("hands the new key to the live links that stay", async () => {

@@ -468,7 +468,8 @@ app's own screens has been run in a browser yet, so none of this is released:
   public link is revoked: the server marks the note, and the first device of its owner to see that
   seals the title, text, images and previews again under a new key, keeps the old keys sealed under
   it for the versions, comments and edits they wrote, and hands the new one to the links that stay
-  and, as they come online, to the people still on the note. Narrower than
+  and, as they come online, to the people still on the note. A note keeps its last 1024 keys; past
+  that the oldest go, and what was written under them stops opening. Narrower than
   [Sharing](#sharing) describes in two ways: the shared document is not sealed again, so what was
   typed before stays in the log under the old key until the clients compact it away, and a live
   link that runs out, as opposed to one revoked, does not mark the note.

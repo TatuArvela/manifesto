@@ -176,8 +176,11 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   effect in `state/sharing.ts` calls `replaceNoteKey` (`shareKeys.ts`), which sends
   `PUT /api/notes/:id/key`. `Sealer.rekey` moves the shared fields with `resealSharedFields`,
   which refuses a note any field of which does not open, so a key is never replaced over words
-  this device could not read. The keys before are kept in `previousKeys`, sealed under the new
-  one; versions, comments and the document's entries are opened with the key of the version they
+  this device could not read. A server with public links switched off answers 404 for the note's
+  links, which `replaceNoteKey` takes as none: the key is replaced all the same. The keys before
+  are kept in `previousKeys`, sealed under the new one, the newest `MAX_PREVIOUS_KEYS` of them
+  (the server holds the list to a length, and a note that could not be moved again would stay
+  under a key someone removed holds); versions, comments and the document's entries are opened with the key of the version they
   name (`ringOf`, and its namesake in `routes/noteCodec.ts` for a token). The fields are sealed
   again from a read, so the request carries that read's `updatedAt` as `If-Match` and the server
   moves the note only if nothing wrote it since (412, and `replaceNoteKey` reads again). The

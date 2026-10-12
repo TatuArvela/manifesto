@@ -214,6 +214,7 @@ export {
   checkedLinkPreviews,
   checkedTags,
   excerptOf,
+  MAX_PREVIOUS_KEYS,
   MAX_PREVIOUS_KEYS_LENGTH,
   NoteLimitError,
   newNoteKey,

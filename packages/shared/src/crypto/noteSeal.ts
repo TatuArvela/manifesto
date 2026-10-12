@@ -801,10 +801,23 @@ function previousKeysData(key: NoteSealKey, noteId: string) {
 }
 
 /**
+ * How many earlier keys a note carries. The list grows by one with every
+ * replacement and the server holds it to a length, so past this many the
+ * oldest go: what was written under them (a version, a comment from that
+ * long ago) stops opening, which is the lesser loss beside a note that can
+ * no longer leave a key someone removed still holds.
+ */
+export const MAX_PREVIOUS_KEYS = 1024;
+
+/** The longest a note's sealed list of earlier keys may be: each is a
+ * version and 32 bytes in base64, well under 64 bytes of JSON. */
+export const MAX_PREVIOUS_KEYS_LENGTH = sealedLength(MAX_PREVIOUS_KEYS * 64);
+
+/**
  * The keys a note was under before, by version, sealed under the key it is
  * under now, so that whoever holds the note still opens what was written
  * under them. Someone removed held those keys already; they are never given
- * the new one.
+ * the new one. Only the newest `MAX_PREVIOUS_KEYS` are kept.
  */
 export async function sealPreviousKeys(
   key: NoteSealKey,
@@ -812,7 +825,10 @@ export async function sealPreviousKeys(
   previous: ReadonlyMap<number, Uint8Array<ArrayBuffer>>,
 ): Promise<string> {
   const listed: Record<string, string> = {};
-  for (const [version, raw] of previous) {
+  const newest = [...previous]
+    .sort(([a], [b]) => b - a)
+    .slice(0, MAX_PREVIOUS_KEYS);
+  for (const [version, raw] of newest) {
     listed[String(version)] = bytesToBase64url(raw);
   }
   return seal(
@@ -853,9 +869,6 @@ export async function openPreviousKeys(
   }
   return out;
 }
-
-/** The longest a note's sealed list of earlier keys may be. */
-export const MAX_PREVIOUS_KEYS_LENGTH = 16_384;
 
 /**
  * A note's shared fields, moved from one key to another without being read:
