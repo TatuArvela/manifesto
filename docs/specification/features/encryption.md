@@ -497,8 +497,7 @@ the code does, and nothing here may be released:
   event "Reminder".
 - **Not built of tokens yet** (the rest of step 6): a token cannot attach or read images, or read
   comments; an assistant signed in through the browser (OAuth) carries no key and reaches no note;
-  the example webhook receiver still expects a note's content; Settings does not offer to replace
-  every key when a token is revoked, since that is step 8.
+  Settings does not offer to replace every key when a token is revoked, since that is step 8.
 - **A push message** for a reminder says "Reminder" and nothing of the note (step 7).
 - **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
   and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.

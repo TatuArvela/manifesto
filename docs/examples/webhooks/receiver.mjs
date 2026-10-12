@@ -10,6 +10,17 @@
 // in the order they came. Each recipe is a function of the delivery; one that
 // throws is logged and does not stop the others. See
 // docs/specification/features/webhooks.md for what is sent.
+//
+// Notes are encrypted, and a webhook fires when no key is on the server, so a
+// delivery says which note changed and not what it says. A recipe that needs
+// the title, the text or the tags reads the note with an API token (Settings >
+// API tokens, with "Read notes"), which carries the key to open it:
+//
+//   MANIFESTO_URL=https://notes.example MANIFESTO_TOKEN=mfp_... \
+//     WEBHOOK_SECRET=whsec_... node receiver.mjs
+//
+// Whoever holds that token can read every note of the account, so keep it
+// where you keep the webhook secret, and give it no more than "Read notes".
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
@@ -62,6 +73,26 @@ function firstTime(deliveryId) {
   return true;
 }
 
+// --- Reading the note a delivery is about ---
+
+/**
+ * The note as it is now, read with the API token, or null when it is gone or
+ * no token is set. A delivery is a hint that something changed: by the time
+ * a recipe runs the note may have changed again, and this is the latest.
+ */
+export async function readNote(noteId, env = process.env) {
+  const { MANIFESTO_URL: base, MANIFESTO_TOKEN: token } = env;
+  if (!base || !token) return null;
+  // An id is a ULID; anything else is not put into an address.
+  if (!/^[0-9A-Za-z_-]{1,64}$/.test(noteId)) return null;
+  const res = await fetch(`${base.replace(/\/+$/, "")}/api/notes/${noteId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Manifesto answered ${res.status}`);
+  return (await res.json()).note;
+}
+
 // --- Recipes ---
 
 /**
@@ -87,9 +118,10 @@ export async function todoTagOpensIssue(delivery, env = process.env) {
   const { GITHUB_REPO: repo, GITHUB_TOKEN: token } = env;
   if (!repo || !token) return;
   if (delivery.event === "note.deleted") return;
-  const { note } = delivery;
-  if (!note.tags.includes("todo") || note.trashed) return;
-  if (notesWithIssue.has(note.id)) return;
+  // The delivery says the note is in the trash without a read.
+  if (delivery.note.trashed || notesWithIssue.has(delivery.note.id)) return;
+  const note = await readNote(delivery.note.id, env);
+  if (!note?.tags.includes("todo") || note.trashed) return;
 
   const marker = `manifesto-note:${note.id}`;
   const github = (path, init) =>
@@ -136,8 +168,9 @@ export async function todoTagOpensIssue(delivery, env = process.env) {
 export async function notifyTagPushes(delivery, env = process.env) {
   const url = env.NTFY_URL;
   if (!url || delivery.event === "note.deleted") return;
-  const { note } = delivery;
-  if (!note.tags.includes("notify") || note.trashed) return;
+  if (delivery.note.trashed) return;
+  const note = await readNote(delivery.note.id, env);
+  if (!note?.tags.includes("notify") || note.trashed) return;
   const res = await fetch(url, {
     method: "POST",
     headers: { Title: "Manifesto", Tags: "memo" },
@@ -166,7 +199,9 @@ export async function mirrorToFolder(delivery, env = process.env) {
     await rm(file, { force: true });
     return;
   }
-  const { note } = delivery;
+  // Gone again already: its own delivery removes the file.
+  const note = await readNote(id, env);
+  if (!note) return;
   const front = [
     "---",
     `title: ${JSON.stringify(note.title)}`,

@@ -1,17 +1,34 @@
-import type { Server } from "node:http";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { createServer, type Server } from "node:http";
 import { type AddressInfo, connect } from "node:net";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Note, WebhookPayload } from "@manifesto/shared";
+import type {
+  Note,
+  WebhookCreatedResponse,
+  WebhookPayload,
+} from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { signDelivery } from "./dispatcher.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createApp } from "../app.js";
+import { createAuthProvider } from "../auth/index.js";
+import { createStorage } from "../storage/index.js";
+import type { StorageDriver } from "../storage/types.js";
+import { keyedToken } from "../test/keyedTokens.js";
+import { authHeaders, TEST_CONFIG } from "../test/setup.js";
+import { signDelivery, type WebhookDispatcher } from "./dispatcher.js";
 
 /**
  * `docs/examples/webhooks/receiver.mjs` is documentation people copy, so it
  * is held to the server it documents: real deliveries from the real
- * dispatcher have to pass its signature check and drive its recipes.
+ * dispatcher have to pass its signature check and drive its recipes, and the
+ * note a delivery names has to be readable with a real API token, since a
+ * delivery carries none of its words.
  */
+
+/** Where the recipes are told the server is. */
+const MANIFESTO_URL = "https://notes.example";
 
 type Recipe = (
   delivery: WebhookPayload,
@@ -90,8 +107,150 @@ describe("the example webhook receiver", () => {
     ).toBe(false);
   });
 
-  // Waits for encryption step 6: the receiver reads a note with an API token.
-  it.todo("mirrors notes to a folder as they are made, changed and deleted");
+  describe("fed by the real dispatcher", () => {
+    let storage: StorageDriver;
+    let request: (path: string, init?: RequestInit) => Promise<Response>;
+    let dispatcher: WebhookDispatcher;
+    let receiver: Server | null = null;
+    let mirror: string;
+    const realFetch = globalThis.fetch;
+
+    beforeEach(async () => {
+      mirror = await mkdtemp(join(tmpdir(), "manifesto-mirror-"));
+      const cfg = { ...TEST_CONFIG, webhooks: "public" as const };
+      storage = await createStorage(cfg);
+      const handle = createApp({
+        cfg,
+        storage,
+        authProvider: createAuthProvider(cfg, storage),
+        webhookAddressPolicy: (address) => address === "127.0.0.1",
+        webhookRetryDelaysMs: [0, 1],
+      });
+      dispatcher = handle.webhooks as WebhookDispatcher;
+      request = async (path, init) => handle.app.request(path, init);
+      // The app under test listens nowhere: what a recipe asks of the
+      // server's address is handed to it, and the rest goes out as it would.
+      vi.stubGlobal("fetch", (url: string | URL, init?: RequestInit) =>
+        String(url).startsWith(MANIFESTO_URL)
+          ? request(String(url).slice(MANIFESTO_URL.length), init)
+          : realFetch(url, init),
+      );
+    });
+
+    afterEach(async () => {
+      await dispatcher.idle();
+      dispatcher.stop();
+      if (receiver) await close(receiver);
+      receiver = null;
+      await storage.close();
+      await rm(mirror, { recursive: true, force: true });
+      vi.unstubAllGlobals();
+    });
+
+    it("mirrors notes to a folder as they are made, changed and deleted", async () => {
+      const example = await loadExample();
+      const registered = await request("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
+      });
+      const { token: session, user } = (await registered.json()) as {
+        token: string;
+        user: { id: string };
+      };
+      const as =
+        (bearer: string) => (method: string, path: string, body?: unknown) =>
+          request(path, {
+            method,
+            headers: authHeaders(bearer),
+            ...(body !== undefined && { body: JSON.stringify(body) }),
+          });
+      const call = as(session);
+      // The token the receiver reads notes with, made as the app makes one:
+      // it carries the keys. The notes are written with it too, so that
+      // they are sealed under keys it opens.
+      const made = await keyedToken(user.id, "api");
+      const minted = await call("POST", "/api/tokens", {
+        name: "Receiver",
+        password: "test-pass-12",
+        ...made.fields,
+      });
+      expect(minted.status).toBe(201);
+      const script = as(made.secret);
+      const env = {
+        MIRROR_DIR: mirror,
+        MANIFESTO_URL,
+        MANIFESTO_TOKEN: made.secret,
+      };
+
+      // The webhook's address has to exist before its secret does, and the
+      // receiver wants the secret: so the listening server comes first, and
+      // hands its requests to a receiver made once the secret is known.
+      let inner: Server | null = null;
+      const front = createServer((req, res) => {
+        inner?.emit("request", req, res);
+      });
+      receiver = front;
+      const port = await listen(front);
+      const added = await call("POST", "/api/webhooks", {
+        url: `http://127.0.0.1:${port}/hook`,
+        password: "test-pass-12",
+      });
+      expect(added.status).toBe(201);
+      const { secret } = (await added.json()) as WebhookCreatedResponse;
+
+      const deliveries: string[] = [];
+      inner = example.createReceiver({
+        secret,
+        recipes: [
+          async (delivery) => {
+            deliveries.push(delivery.event);
+            // Nothing of the note's words is in what was delivered.
+            expect(JSON.stringify(delivery)).not.toContain("Hello");
+            await example.mirrorToFolder(delivery, env);
+          },
+        ],
+      });
+
+      const created = await script("POST", "/api/notes", baseNote);
+      expect(created.status).toBe(201);
+      const note = ((await created.json()) as { note: Note }).note;
+      await dispatcher.idle();
+      await vi.waitFor(async () =>
+        expect(await readdir(mirror)).toEqual([`${note.id}.md`]),
+      );
+      const written = await readFile(join(mirror, `${note.id}.md`), "utf8");
+      expect(written).toContain('title: "Hello"');
+      expect(written).toContain('tags: ["home"]');
+      expect(written).toContain("Body text");
+
+      await script("PUT", `/api/notes/${note.id}`, { title: "Renamed" });
+      await dispatcher.idle();
+      await vi.waitFor(async () =>
+        expect(await readFile(join(mirror, `${note.id}.md`), "utf8")).toContain(
+          'title: "Renamed"',
+        ),
+      );
+
+      await script("DELETE", `/api/notes/${note.id}`);
+      await dispatcher.idle();
+      await vi.waitFor(async () => expect(await readdir(mirror)).toEqual([]));
+      expect(deliveries).toEqual([
+        "note.created",
+        "note.updated",
+        "note.deleted",
+      ]);
+
+      // The server's own verdict on the receiver: every delivery got a 2xx.
+      const listed = (await (await call("GET", "/api/webhooks")).json()) as {
+        webhooks: { lastStatus: number | null; failureCount: number }[];
+      };
+      expect(listed.webhooks[0]).toMatchObject({
+        lastStatus: 204,
+        failureCount: 0,
+      });
+    });
+  });
 
   describe("on its own", () => {
     const SECRET = "whsec_test";
@@ -181,15 +340,19 @@ describe("the example webhook receiver", () => {
     });
   });
 
+  /** The notes the stubbed server answers a recipe's read with, by id. */
+  const served = new Map<string, Note>();
+
+  /**
+   * A delivery about a note, which the server is then asked for: the
+   * delivery carries the fields the server reads, the answer the rest.
+   */
   const noteDelivery = (
     id: string,
     tags: string[],
     fields: Partial<Note> = {},
-  ): WebhookPayload => ({
-    event: "note.updated",
-    deliveryId: "d1",
-    occurredAt: "2026-10-03T12:00:00.000Z",
-    note: {
+  ): WebhookPayload => {
+    const note: Note = {
       ...baseNote,
       id,
       title: "Fix the gate",
@@ -197,11 +360,42 @@ describe("the example webhook receiver", () => {
       createdAt: "",
       updatedAt: "",
       ...fields,
-    },
-  });
+    };
+    served.set(id, note);
+    return {
+      event: "note.updated",
+      deliveryId: "d1",
+      occurredAt: "2026-10-03T12:00:00.000Z",
+      note: {
+        id,
+        pinned: note.pinned,
+        archived: note.archived,
+        trashed: note.trashed,
+        trashedAt: note.trashedAt,
+        position: note.position,
+        reminder: note.reminder,
+        createdAt: "",
+        updatedAt: "",
+      },
+    };
+  };
+
+  /** The server's answer to a recipe reading a note, or null for any other
+   * address. */
+  const noteRead = (url: string, init?: RequestInit): Response | null => {
+    if (!url.startsWith(`${MANIFESTO_URL}/api/notes/`)) return null;
+    const bearer = new Headers(init?.headers).get("Authorization");
+    if (bearer !== "Bearer mfp_test")
+      return new Response(null, { status: 401 });
+    const note = served.get(url.slice(`${MANIFESTO_URL}/api/notes/`.length));
+    return note
+      ? new Response(JSON.stringify({ note }))
+      : new Response(null, { status: 404 });
+  };
+  const reading = { MANIFESTO_URL, MANIFESTO_TOKEN: "mfp_test" };
 
   describe("the todo recipe", () => {
-    const env = { GITHUB_REPO: "me/chores", GITHUB_TOKEN: "t" };
+    const env = { GITHUB_REPO: "me/chores", GITHUB_TOKEN: "t", ...reading };
 
     afterEach(() => {
       vi.unstubAllGlobals();
@@ -211,6 +405,8 @@ describe("the example webhook receiver", () => {
     function stubGitHub(indexed: boolean) {
       const calls: { url: string; method: string; body: unknown }[] = [];
       vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+        const read = noteRead(url, init);
+        if (read) return read;
         calls.push({
           url,
           method: init?.method ?? "GET",
@@ -267,7 +463,7 @@ describe("the example webhook receiver", () => {
   });
 
   describe("the notify recipe", () => {
-    const env = { NTFY_URL: "https://ntfy.example/topic" };
+    const env = { NTFY_URL: "https://ntfy.example/topic", ...reading };
 
     afterEach(() => {
       vi.unstubAllGlobals();
@@ -277,6 +473,8 @@ describe("the example webhook receiver", () => {
       const { notifyTagPushes } = await loadExample();
       const calls: { url: string; init: RequestInit | undefined }[] = [];
       vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+        const read = noteRead(url, init);
+        if (read) return read;
         calls.push({ url, init });
         return new Response(null, { status: 200 });
       });
@@ -288,7 +486,11 @@ describe("the example webhook receiver", () => {
         body: "Fix the gate",
       });
 
+      // Without a token there is no note to read, and nothing is pushed.
       calls.length = 0;
+      await notifyTagPushes(noteDelivery("01NOTOKEN", ["notify"]), {
+        NTFY_URL: env.NTFY_URL,
+      });
       await notifyTagPushes(noteDelivery("01QUIET", ["home"]), env);
       await notifyTagPushes(
         noteDelivery("01BINNED", ["notify"], { trashed: true }),

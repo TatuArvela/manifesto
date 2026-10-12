@@ -56,10 +56,17 @@ with no dependencies (Node 20 or newer), to run as it is or to take apart. Start
 reach it, add its address under Settings > Webhooks, and give it the secret shown there:
 
 ```sh
-WEBHOOK_SECRET=whsec_... PORT=8787 node receiver.mjs
+WEBHOOK_SECRET=whsec_... MANIFESTO_URL=https://notes.example MANIFESTO_TOKEN=mfp_... \
+  PORT=8787 node receiver.mjs
 ```
 
-It does the four things every receiver has to, and they are the part worth copying into anything else:
+A delivery says which note changed and carries none of its words, so the recipes read the note with
+an [API token](accounts.md#personal-api-tokens) (`readNote`). Make one with "Read notes" and nothing
+more: it carries the key that opens every note of the account, so it is kept as carefully as the
+webhook's secret. Without `MANIFESTO_TOKEN` the recipes have nothing to read and do nothing but remove
+a mirrored file.
+
+It does the five things every receiver has to, and they are the part worth copying into anything else:
 
 - **Verify.** The signature is checked over the raw body as it arrived, before any JSON is parsed, with a
   constant-time comparison, and a timestamp more than five minutes from the receiver's clock is refused.
@@ -67,6 +74,9 @@ It does the four things every receiver has to, and they are the part worth copyi
   counts as failed and a recipe that calls another service can take longer.
 - **Keep the order.** Answering first means the next delivery arrives while the last is still being
   worked on, so the work goes through one queue: a note's change is never handled after its deletion.
+- **Read the latest.** The note is read when the recipe runs, which may be after it changed again
+  or was deleted: a delivery is a hint that something changed, and the answer to the read is what is
+  true now.
 - **Expect repeats.** A delivery that was not answered in time comes again with the same
   `X-Manifesto-Delivery`, so ids already handled are dropped. A note that changes twice makes two
   deliveries with different ids, so a recipe that creates something also checks whether it already has,
@@ -78,7 +88,7 @@ Each recipe is a function of the delivery, switched on by its own environment va
 |---|---|---|
 | `todoTagOpensIssue` | A note tagged `todo` opens a GitHub issue with the note's title and text. The note's id is written into the issue, and a note that already has an issue is left alone, so editing or re-tagging it makes no second one. | `GITHUB_REPO=owner/name`, `GITHUB_TOKEN` with "Issues: read and write" on that repository |
 | `notifyTagPushes` | A note tagged `notify` sends a push notification through [ntfy](https://ntfy.sh) when it is created or changed. Only the title is sent, since a public topic can be read by anyone who guesses its name. | `NTFY_URL` |
-| `mirrorToFolder` | Every note as a Markdown file with front matter, named by the note's id, rewritten on each change and removed on deletion: a plain-text mirror to back up or keep in Git. | `MIRROR_DIR` |
+| `mirrorToFolder` | Every note as a Markdown file with front matter, named by the note's id, rewritten on each change and removed on deletion: a plain-text mirror to back up or keep in Git. The files are readable, so the folder is as private as the notes were. | `MIRROR_DIR` |
 
 A recipe sees every note its webhook's owner holds, shared ones included, each as that person sees it; a
 tag is the owner's own, so someone else's tags on a shared note do not trigger theirs. Trashed notes are
@@ -90,8 +100,8 @@ before acting; a workflow that only parses the JSON takes orders from anyone who
 a server whose automation runs beside it on the local network, `WEBHOOKS=private` lets a webhook point
 there (see below).
 
-`packages/server/src/webhooks/exampleReceiver.test.ts` runs the file against the real dispatcher, so the
-example cannot drift from what the server sends.
+`packages/server/src/webhooks/exampleReceiver.test.ts` runs the file against the real dispatcher and
+reads its notes with a real token, so the example cannot drift from what the server sends.
 
 ## Where a webhook may point
 
