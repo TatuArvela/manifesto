@@ -1,5 +1,8 @@
 import {
   type AccountSealKeys,
+  attachmentIdOf,
+  type ImageKey,
+  isAttachmentRef,
   type Note,
   type NoteCreate,
   NoteLimitError,
@@ -12,12 +15,14 @@ import {
   openPreviousKeys,
   openSealedNote,
   openVersion,
+  previewImages,
   type SealedNote,
   type SealedNoteVersion,
   sealComment,
   sealNewNote,
   sealNoteUpdate,
   sealVersion,
+  unwrapImageKey,
   wipe,
 } from "@manifesto/shared";
 import type { Context } from "hono";
@@ -140,20 +145,54 @@ export async function notesOut(
 export async function createBody(
   c: Ctx,
   keys: AccountSealKeys | null,
+  storage: StorageDriver,
 ): Promise<SealedCreate> {
   if (!keys) return bodyOf(c, sealedCreate);
   const plain = await bodyOf(c, noteCreateSchema);
-  return sealedFrom(keys, newId(), plain as Omit<NoteCreate, "trashedAt">);
+  return sealedFrom(
+    keys,
+    storage,
+    newId(),
+    plain as Omit<NoteCreate, "trashedAt">,
+  );
+}
+
+/**
+ * The keys of the images a token's note names, for the ones the token
+ * uploaded: each was kept wrapped under the account's notes key with the
+ * attachment (`POST /api/attachments`), and is sealed into the note from
+ * here. A reference with no such key is left to sealing, which refuses it.
+ */
+async function uploadedKeys(
+  keys: AccountSealKeys,
+  storage: StorageDriver,
+  note: Pick<Partial<NoteCreate>, "images" | "linkPreviews">,
+  known: ReadonlyMap<string, ImageKey> = new Map(),
+): Promise<Map<string, ImageKey>> {
+  const out = new Map(known);
+  const refs = [
+    ...(note.images ?? []),
+    ...previewImages(note.linkPreviews ?? []),
+  ];
+  for (const ref of refs) {
+    if (out.has(ref) || !isAttachmentRef(ref)) continue;
+    const id = attachmentIdOf(ref);
+    const meta = await storage.attachments.meta(id);
+    const key = await unwrapImageKey(keys, id, meta?.wrappedKey);
+    if (key) out.set(ref, key);
+  }
+  return out;
 }
 
 async function sealedFrom(
   keys: AccountSealKeys,
+  storage: StorageDriver,
   id: string,
   plain: Omit<NoteCreate, "trashedAt">,
 ): Promise<SealedCreate> {
+  const imageKeys = await uploadedKeys(keys, storage, plain);
   const { sealed } = await sealing(() =>
-    // A new note names no image: a token has no key for one to carry.
-    sealNewNote(keys, id, { ...plain, trashedAt: null }),
+    sealNewNote(keys, id, { ...plain, trashedAt: null }, imageKeys),
   );
   const { trashedAt: _trashedAt, ...body } = sealed;
   return body as SealedCreate;
@@ -187,10 +226,12 @@ async function sealedChanges(
   if (!opened) {
     throw new HttpError(409, "This token cannot open the note's key");
   }
-  // The images the note already names keep their keys; a new one has none
-  // here, and sealing refuses it.
+  // The images the note already names keep their keys, and one the token
+  // uploaded brings the key kept with it; any other has none here, and
+  // sealing refuses it.
+  const imageKeys = await uploadedKeys(keys, storage, plain, opened.imageKeys);
   const sealed = await sealing(() =>
-    sealNoteUpdate(keys, opened.key, id, plain, opened.imageKeys),
+    sealNoteUpdate(keys, opened.key, id, plain, imageKeys),
   );
   const {
     trashedAt: _t,
@@ -236,7 +277,7 @@ export async function importBody(
     }
     const free = id !== undefined && !(await storage.notes.exists(id));
     out.push({
-      ...(await sealedFrom(keys, free ? id : newId(), plain)),
+      ...(await sealedFrom(keys, storage, free ? id : newId(), plain)),
       ...stamp,
     });
   }

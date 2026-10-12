@@ -187,6 +187,11 @@ export interface AttachmentMeta {
   contentType: string;
   size: number;
   createdAt: string;
+  /**
+   * For an image a token uploaded: its key, wrapped under the uploader's
+   * notes key, until a note names the image. Null for one the app sealed.
+   */
+  wrappedKey: string | null;
 }
 
 export interface StoredAttachment extends AttachmentMeta {
@@ -200,7 +205,11 @@ export interface StoredAttachment extends AttachmentMeta {
  * conflict retry or a stale tab does, never stores it twice.
  */
 export interface AttachmentsRepo {
-  put(input: Omit<StoredAttachment, "size">): Promise<AttachmentMeta>;
+  put(
+    input: Omit<StoredAttachment, "size" | "wrappedKey"> & {
+      wrappedKey?: string | null;
+    },
+  ): Promise<AttachmentMeta>;
   get(id: string): Promise<StoredAttachment | null>;
   meta(id: string): Promise<AttachmentMeta | null>;
   /**

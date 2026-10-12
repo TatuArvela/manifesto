@@ -947,3 +947,51 @@ export async function openReminderKey(
     wipe(raw);
   }
 }
+
+function imageKeyData(account: AccountSealKeys, attachmentId: string) {
+  return associatedData({
+    id: attachmentId,
+    field: "attachment-key",
+    version: account.version,
+    account: account.userId,
+  });
+}
+
+/**
+ * An uploaded image's key, kept for its uploader until a note names the
+ * image: wrapped under their notes key and bound to the attachment. Only a
+ * token's upload needs it, since the server holds nothing between two
+ * requests; the app keeps the key in memory.
+ */
+export function wrapImageKey(
+  account: AccountSealKeys,
+  attachmentId: string,
+  key: ImageKey,
+): Promise<string> {
+  return seal(
+    account.notes,
+    utf8(JSON.stringify(key)),
+    imageKeyData(account, attachmentId),
+  );
+}
+
+/** The key `wrapImageKey` kept; null when it does not open for this account. */
+export async function unwrapImageKey(
+  account: AccountSealKeys,
+  attachmentId: string,
+  wrapped: string | null | undefined,
+): Promise<ImageKey | null> {
+  if (!wrapped) return null;
+  const text = await openText(
+    account.notes,
+    wrapped,
+    imageKeyData(account, attachmentId),
+  );
+  if (text === null) return null;
+  try {
+    const key: unknown = JSON.parse(text);
+    return isImageKey(key) ? key : null;
+  } catch {
+    return null;
+  }
+}

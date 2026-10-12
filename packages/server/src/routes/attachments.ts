@@ -1,13 +1,20 @@
 import { zValidator } from "@hono/zod-validator";
 import {
+  type AccountSealKeys,
   ATTACHMENT_REF_PREFIX,
   type AttachmentsClaimResponse,
   type AttachmentUploadResponse,
   IMAGE_ADDRESS_PATTERN,
+  type ImageKey,
   MAX_IMAGE_SOURCE_BYTES,
+  openImage,
+  openSealedNote,
   SEALED_IMAGE_OVERHEAD,
+  sealImageAtRandom,
+  unwrapImageKey,
+  wrapImageKey,
 } from "@manifesto/shared";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { adoptImages } from "../attachments/store.js";
 import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
@@ -16,6 +23,9 @@ import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 import { attachmentsClaimSchema } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
+import { tokenKeys } from "./noteCodec.js";
+
+type Ctx = Context<{ Variables: { auth: AuthContext } }>;
 
 interface AttachmentDeps {
   storage: StorageDriver;
@@ -41,12 +51,76 @@ const SEALED_TYPE = "application/octet-stream";
  *
  * `GET /:id` serves one to its owner and to anyone holding an accepted share
  * of a note of theirs that refers to it; to anyone else it does not exist.
+ *
+ * A token that carries keys sends and is sent the image itself: the server
+ * seals what it uploads and opens what it reads, for that request, as it
+ * does a note's words (`noteCodec.ts`).
  */
 export function createAttachmentRoutes(deps: AttachmentDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
 
+  /**
+   * An image from a token that carries keys: sent as it is, since a script
+   * cannot seal one, and sealed here under a key made for it. The key is
+   * kept with the attachment, wrapped under the account's notes key, until
+   * a note names the image and takes the key into its own sealed list.
+   */
+  async function uploadedByToken(c: Ctx, keys: AccountSealKeys) {
+    const image = new Uint8Array(await c.req.arrayBuffer());
+    if (image.length === 0) throw new HttpError(422, "The file is empty");
+    if (image.length > MAX_IMAGE_SOURCE_BYTES) {
+      throw new HttpError(413, "The image is too large");
+    }
+    const sealed = await sealImageAtRandom(image);
+    if (!sealed) {
+      throw new HttpError(415, "Not a PNG, JPEG, GIF, WebP or AVIF image");
+    }
+    const id = newId();
+    await deps.storage.attachments.put({
+      id,
+      ownerId: keys.userId,
+      sha256: sealed.address,
+      contentType: SEALED_TYPE,
+      data: Buffer.from(sealed.bytes),
+      createdAt: nowIso(),
+      wrappedKey: await wrapImageKey(keys, id, sealed.key),
+    });
+    const body: AttachmentUploadResponse = {
+      ref: `${ATTACHMENT_REF_PREFIX}${id}`,
+    };
+    return c.json(body, 201);
+  }
+
+  /**
+   * What opens an image for a token: the key kept with one it uploaded, or
+   * the key the note it names holds for it. A token has to say which note,
+   * since the keys of a note's images are inside the note.
+   */
+  async function keyFor(
+    keys: AccountSealKeys,
+    id: string,
+    wrappedKey: string | null,
+    noteId: string | undefined,
+  ): Promise<ImageKey> {
+    const own = await unwrapImageKey(keys, id, wrappedKey);
+    if (own) return own;
+    if (noteId === undefined) {
+      throw new HttpError(
+        400,
+        "Say which note the image is in: ?note=<note id>",
+      );
+    }
+    const note = await deps.storage.notes.getById(noteId, keys.userId);
+    const opened = note ? await openSealedNote(keys, note) : null;
+    const key = opened?.imageKeys.get(`${ATTACHMENT_REF_PREFIX}${id}`);
+    if (!key) throw new HttpError(404, "Attachment not found");
+    return key;
+  }
+
   routes.post("/", async (c) => {
     const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
+    if (keys) return uploadedByToken(c, keys);
     const address = c.req.header("X-Attachment-Address") ?? "";
     if (!IMAGE_ADDRESS_PATTERN.test(address)) {
       throw new HttpError(422, "X-Attachment-Address names no sealed image");
@@ -110,6 +184,26 @@ export function createAttachmentRoutes(deps: AttachmentDeps) {
     }
     const attachment = await deps.storage.attachments.get(id);
     if (!attachment) throw new HttpError(404, "Attachment not found");
+    const keys = tokenKeys(c);
+    if (keys) {
+      // Opened for the token, which cannot: the image itself, as the kind
+      // its note says it is and its bytes agree it is.
+      const key = await keyFor(
+        keys,
+        id,
+        attachment.wrappedKey,
+        c.req.query("note"),
+      );
+      const image = await openImage(key, new Uint8Array(attachment.data));
+      if (!image) throw new HttpError(404, "Attachment not found");
+      return c.body(image, 200, {
+        "Content-Type": key.type,
+        "Content-Length": String(image.length),
+        "Cache-Control": "private, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+      });
+    }
     return c.body(new Uint8Array(attachment.data), 200, {
       "Content-Type": SEALED_TYPE,
       "Content-Length": String(attachment.size),

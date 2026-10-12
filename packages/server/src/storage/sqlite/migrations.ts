@@ -634,6 +634,15 @@ ALTER TABLE oauth_codes ADD COLUMN wrapped_keys TEXT;
 ALTER TABLE api_tokens ADD COLUMN refresh_wrapped_keys TEXT;
 `;
 
+/**
+ * The key of an image a token uploaded, wrapped under its uploader's notes
+ * key until a note names the image: the server keeps nothing between the
+ * upload and the note that follows, so it is kept here, unreadable.
+ */
+const ATTACHMENT_KEYS = `
+ALTER TABLE attachments ADD COLUMN wrapped_key TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -671,6 +680,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0034-seen-keys", sql: SEEN_KEYS },
   { id: "0035-reminder-keys", sql: REMINDER_KEYS },
   { id: "0036-oauth-keys", sql: OAUTH_KEYS },
+  { id: "0037-attachment-keys", sql: ATTACHMENT_KEYS },
 ];
 
 export function runMigrations(

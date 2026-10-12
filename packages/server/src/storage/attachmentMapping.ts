@@ -9,11 +9,12 @@ export interface AttachmentRow {
   content_type: string;
   size: number | string;
   created_at: string;
+  wrapped_key?: string | null;
   data?: Buffer | Uint8Array;
 }
 
 export const ATTACHMENT_META_COLUMNS =
-  "id, owner_id, sha256, content_type, size, created_at";
+  "id, owner_id, sha256, content_type, size, created_at, wrapped_key";
 
 export function rowToAttachmentMeta(row: AttachmentRow): AttachmentMeta {
   return {
@@ -23,6 +24,7 @@ export function rowToAttachmentMeta(row: AttachmentRow): AttachmentMeta {
     contentType: row.content_type,
     size: Number(row.size),
     createdAt: row.created_at,
+    wrappedKey: row.wrapped_key ?? null,
   };
 }
 

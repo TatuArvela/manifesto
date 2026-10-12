@@ -443,6 +443,18 @@ See [Version History](features/version-history.md).
 A note's sealed `images` names `attachment:<id>` references from uploads, with the key and type of
 each; see [Attachments](features/attachments.md).
 
+A token that carries keys sends and is sent the image itself:
+
+- `POST /api/attachments` takes the image's bytes with no `X-Attachment-Address`. The server
+  checks that they are a PNG, JPEG, GIF, WebP or AVIF image (`415` otherwise, whatever the
+  `Content-Type` says), seals them, and answers `{ ref }` to put in a note's `images`.
+- `GET /api/attachments/:id?note=<note id>` answers the image, with its own `Content-Type`. `note`
+  is a note the token's account holds that names the image: the key that opens an image is inside
+  the note. It may be left out for an image the same account uploaded with a token, and is `400`
+  when it is needed and missing.
+- A token attaches images to notes its own account owns. One uploaded for a note someone else owns
+  is refused when the note is written (`422`), as any image that is not the owner's is.
+
 ### Link previews
 
 | Method   | Path                     | Description          |

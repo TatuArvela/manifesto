@@ -19,8 +19,10 @@ import type { SqliteDB } from "./database.js";
 export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
   const insertStmt = db.prepare(
     `INSERT INTO attachments
-       (id, owner_id, sha256, content_type, size, data, created_at)
-     VALUES (@id, @ownerId, @sha256, @contentType, @size, @data, @createdAt)
+       (id, owner_id, sha256, content_type, size, data, created_at,
+        wrapped_key)
+     VALUES (@id, @ownerId, @sha256, @contentType, @size, @data, @createdAt,
+        @wrappedKey)
      ON CONFLICT (owner_id, sha256) DO UPDATE SET unreferenced_since = NULL`,
   );
   const byHashStmt = db.prepare(
@@ -86,7 +88,11 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
 
   return {
     async put(input) {
-      insertStmt.run({ ...input, size: input.data.length });
+      insertStmt.run({
+        ...input,
+        size: input.data.length,
+        wrappedKey: input.wrappedKey ?? null,
+      });
       const row = byHashStmt.get(input.ownerId, input.sha256) as AttachmentRow;
       return rowToAttachmentMeta(row);
     },

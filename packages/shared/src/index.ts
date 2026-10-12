@@ -193,6 +193,7 @@ export {
   openImage,
   SEALED_IMAGE_OVERHEAD,
   sealImage,
+  sealImageAtRandom,
   sniffImageType,
 } from "./crypto/imageSeal.js";
 export {
@@ -236,8 +237,10 @@ export {
   sealPreviousKeys,
   sealSharedFields,
   sealVersion,
+  unwrapImageKey,
   unwrapNoteKey,
   wrapForReminders,
+  wrapImageKey,
   wrapNoteKey,
 } from "./crypto/noteSeal.js";
 export {

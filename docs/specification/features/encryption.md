@@ -499,8 +499,13 @@ the code does, and nothing here may be released:
   the code and wraps the keys under it; the server is sent the code's hash and first sees the code
   when the assistant trades it in. At that exchange, and at every refresh, the server wraps the
   keys again for the new access and refresh tokens and writes over the copies before them.
-- **Not built of tokens yet** (the rest of step 6): a token cannot attach or read images; Settings
-  does not offer to replace every key when a token is revoked, since that is step 8.
+- **Images through a token**: a token sends an image as it is and the server seals it, under a
+  key made for that image and kept with it, wrapped under the account's notes key, until a note
+  names the image and takes the key into its sealed list. Reading one, the token says which note
+  it is in and is sent the image itself. Such an image is stored once for each upload, since its
+  key does not come from its bytes. A token cannot attach an image to a note someone else owns.
+- **Not built of tokens yet**: Settings does not offer to replace every key when a token is
+  revoked, since that is step 8.
 - **A push message** for a reminder carries the note's sealed title and excerpt and the reader's
   wrapped copy of the note key, beside words that say only that there is a reminder. The service
   worker opens them with the account key the device keeps while signed in, and shows the title

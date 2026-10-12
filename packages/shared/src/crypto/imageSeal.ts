@@ -149,6 +149,29 @@ export async function sealImage(
 }
 
 /**
+ * Seals an image under a new random key, for whoever cannot make one from
+ * the account key: the server, sealing what a token uploads. The image is
+ * then stored once for each upload, since nothing ties its key to its bytes.
+ * Null when the bytes are not an image a note may hold.
+ */
+export async function sealImageAtRandom(
+  image: Uint8Array<ArrayBuffer>,
+): Promise<SealedImage | null> {
+  const type = sniffImageType(image);
+  if (!type) return null;
+  const raw = crypto.getRandomValues(new Uint8Array(32));
+  try {
+    return {
+      bytes: await sealBytes(await sealingKey(raw), image, IMAGE_DATA),
+      address: bytesToBase64url(crypto.getRandomValues(new Uint8Array(32))),
+      key: { key: bytesToBase64url(raw), type },
+    };
+  } finally {
+    wipe(raw);
+  }
+}
+
+/**
  * Opens a sealed image with the key its note holds. Null when it does not
  * open, or when what comes out is not the kind of image the note said: the
  * type was written by whoever attached it, and nothing checked it since.

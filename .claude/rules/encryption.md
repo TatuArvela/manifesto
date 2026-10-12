@@ -230,6 +230,13 @@ note route opens what it answers and seals what it is sent. A new route that ans
 key (a comment) goes through `noteRing`, `commentOut` and `commentBody` the same way; the event a
 write sends still carries the sealed copy, since the sockets are the app's.
 
+A token's images go the same way (`routes/attachments.ts`). It uploads the image itself and
+the server seals it with `sealImageAtRandom`: a token carries no image keys, so the key is random
+and the image is not found again by its bytes. That key is kept on the attachment row
+(`wrapped_key`, `wrapImageKey`) because the server holds nothing between the upload and the note
+that follows; `uploadedKeys` in `noteCodec.ts` hands it to sealing when a note names the image.
+A token reads an image with `?note=<id>`, since the keys of a note's images are inside the note.
+
 An assistant's OAuth grant carries the same keys (`oauth/tokenEndpoint.ts`). The consent page
 (`allowClient`) makes the code with `Sealer.newToken("")` and sends its hash and the keys wrapped
 under it, and adds `code` to the address the server answers with, which comes without one. The

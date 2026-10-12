@@ -127,7 +127,11 @@ export function createNotesRoutes(deps: NotesDeps) {
   notes.post("/", async (c) => {
     const { userId } = c.get("auth");
     const keys = tokenKeys(c);
-    const { id, imageRefs, previewRefs, ...fields } = await createBody(c, keys);
+    const { id, imageRefs, previewRefs, ...fields } = await createBody(
+      c,
+      keys,
+      deps.storage,
+    );
     if (await deps.storage.notes.exists(id)) {
       throw new HttpError(409, "A note already has this id");
     }
