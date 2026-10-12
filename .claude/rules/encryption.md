@@ -219,7 +219,9 @@ token and one for the account alone are still made by the server. `createAuthMid
 keys for the request (`auth.keys`) and nothing keeps them. `routes/noteCodec.ts` is the whole
 translation: `tokenKeys(c)` is null for a session, which is answered sealed, and for a token every
 note route opens what it answers and seals what it is sent. A new route that answers a note calls
-`noteOut` / `notesOut`, or a token is handed ciphertext.
+`noteOut` / `notesOut`, or a token is handed ciphertext. What is written beside a note under its
+key (a comment) goes through `noteRing`, `commentOut` and `commentBody` the same way; the event a
+write sends still carries the sealed copy, since the sockets are the app's.
 
 A calendar feed's address is such a token too, carrying the reminder key alone
 (`wrapFeedKey`; `calendar/routes.ts` opens it from the address). It reaches a note only through

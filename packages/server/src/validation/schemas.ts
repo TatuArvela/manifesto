@@ -4,6 +4,7 @@ import {
   ATTACHMENT_REF_PATTERN,
   isCiphertext,
   MAX_ATTACHMENTS_PER_CLAIM,
+  MAX_COMMENT_LENGTH,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
   MAX_LINK_PREVIEW_TITLE_LENGTH,
@@ -731,6 +732,14 @@ export const noteCommentSchema = z.object({
 /** `POST /api/notes/:id/comments`, under an id the client chose. */
 export const noteCommentCreateSchema = noteCommentSchema.extend({
   id: noteIdSchema,
+});
+
+/**
+ * A comment from a token that carries a key: its words, which the server
+ * seals under the note's key. The same body writes a new one and changes one.
+ */
+export const commentTextSchema = z.object({
+  body: z.string().trim().min(1).max(MAX_COMMENT_LENGTH),
 });
 
 /**

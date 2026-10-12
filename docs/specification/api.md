@@ -177,6 +177,12 @@ A comment's `body` is a ciphertext, and `keyVersion` says which note key it is u
 holds it to the shape and size of one (`422` otherwise) and can no longer hold its text to 1 to 2000
 characters or trim it: the client that seals it does.
 
+A token that carries keys reads and writes a comment in plain words, as it does a note: it sends
+`{ body }` (trimmed, 1 to 2000 characters, `422` otherwise) with no `id` or `keyVersion`, the
+server seals it under the note's key and chooses the id, and every `body` it is answered with is
+readable. A comment that does not open with the token's keys is left out of the list, and a note
+whose key they do not open is `409`.
+
 - Inviting, changing a role and removing someone else are the owner's: another participant gets
   `403`, and someone who cannot see the note `404`.
 - Inviting yourself, or to an automatic note (`readonly`), is `422`. Inviting someone who already

@@ -1,4 +1,3 @@
-import { zValidator } from "@hono/zod-validator";
 import {
   MAX_COMMENTS_PER_NOTE,
   type NoteComment,
@@ -6,7 +5,7 @@ import {
   type NoteCommentsResponse,
   type ShareUser,
 } from "@manifesto/shared";
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 import { nowIso } from "../lib/time.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
@@ -17,12 +16,15 @@ import type {
   StoredComment,
 } from "../storage/types.js";
 import {
-  noteCommentCreateSchema,
-  noteCommentSchema,
-} from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+  commentBody,
+  commentOut,
+  type NoteRing,
+  noteRing,
+  tokenKeys,
+} from "./noteCodec.js";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
+type Ctx = Context<{ Variables: { auth: AuthContext } }>;
 
 /**
  * `/api/notes/:id/comments`: what the people on a note say beside it. A
@@ -131,91 +133,140 @@ export function registerCommentRoutes(
     return present(stored, await authorsOf(audience, [stored]));
   }
 
+  /**
+   * The note's keys for a request made with a token that carries them, which
+   * reads and writes a comment's words; null for the app's own session,
+   * which is sent and sends them sealed.
+   */
+  async function ringFor(c: Ctx, noteId: string): Promise<NoteRing | null> {
+    const keys = tokenKeys(c);
+    return keys ? noteRing(keys, storage, noteId) : null;
+  }
+
+  /** A comment as this request is answered: sealed for the app, readable
+   * for a token. */
+  async function answered(
+    ring: NoteRing | null,
+    comment: NoteComment,
+  ): Promise<NoteComment> {
+    if (!ring) return comment;
+    return { ...comment, body: (await commentOut(ring, comment)) ?? "" };
+  }
+
   notes.get("/:id/comments", async (c) => {
     const { userId } = c.get("auth");
     const noteId = c.req.param("id") as string;
     await requireAccess(noteId, userId);
+    const ring = await ringFor(c, noteId);
     const stored = await storage.comments.listByNote(noteId);
     const authors = await authorsOf(
       await storage.shares.audience(noteId),
       stored,
     );
-    const body: NoteCommentsResponse = {
-      comments: stored.map((comment) => present(comment, authors)),
-    };
+    const comments: NoteComment[] = [];
+    for (const one of stored) {
+      const comment = present(one, authors);
+      if (!ring) {
+        comments.push(comment);
+        continue;
+      }
+      // One that does not open is left out, as the app leaves it out.
+      const text = await commentOut(ring, comment);
+      if (text !== null) comments.push({ ...comment, body: text });
+    }
+    const body: NoteCommentsResponse = { comments };
     return c.json(body);
   });
 
-  notes.post(
-    "/:id/comments",
-    zValidator("json", noteCommentCreateSchema, validatorHook),
-    async (c) => {
-      const { userId } = c.get("auth");
-      const noteId = c.req.param("id") as string;
-      await requireAccess(noteId, userId);
-      const sent = c.req.valid("json");
-      // The client chose the id, which the sealed text is bound to.
-      if (await storage.comments.get(sent.id)) {
-        throw new HttpError(409, "A comment already has this id");
-      }
-      const stored: StoredComment = {
-        id: sent.id,
-        noteId,
-        authorId: userId,
-        body: sent.body,
-        keyVersion: sent.keyVersion,
-        createdAt: nowIso(),
-        editedAt: null,
-      };
-      if (!(await storage.comments.create(stored, MAX_COMMENTS_PER_NOTE))) {
-        throw new HttpError(409, "This note has as many comments as it holds");
-      }
-      const audience = await storage.shares.audience(noteId);
-      const comment = await presentOne(audience, stored);
-      noteEvents.commented(audience, { type: "comment:created", comment });
-      const body: NoteCommentResponse = { comment };
-      return c.json(body, 201);
-    },
-  );
+  notes.post("/:id/comments", async (c) => {
+    const { userId } = c.get("auth");
+    const noteId = c.req.param("id") as string;
+    await requireAccess(noteId, userId);
+    const ring = await ringFor(c, noteId);
+    const sent = await commentBody(c, ring);
+    // Whoever sealed it chose the id, which the sealed text is bound to.
+    if (await storage.comments.get(sent.id)) {
+      throw new HttpError(409, "A comment already has this id");
+    }
+    const stored: StoredComment = {
+      id: sent.id,
+      noteId,
+      authorId: userId,
+      body: sent.body,
+      keyVersion: sent.keyVersion,
+      createdAt: nowIso(),
+      editedAt: null,
+    };
+    if (!(await storage.comments.create(stored, MAX_COMMENTS_PER_NOTE))) {
+      throw new HttpError(409, "This note has as many comments as it holds");
+    }
+    const audience = await storage.shares.audience(noteId);
+    const comment = await presentOne(audience, stored);
+    noteEvents.commented(audience, { type: "comment:created", comment });
+    const body: NoteCommentResponse = {
+      comment: await answered(ring, comment),
+    };
+    return c.json(body, 201);
+  });
 
-  notes.put(
-    "/:id/comments/:commentId",
-    zValidator("json", noteCommentSchema, validatorHook),
-    async (c) => {
-      const { userId } = c.get("auth");
-      const noteId = c.req.param("id") as string;
-      await requireAccess(noteId, userId);
-      const existing = await requireComment(
-        noteId,
-        c.req.param("commentId") as string,
-      );
-      if (existing.authorId !== userId) {
-        throw new HttpError(403, "Only its author can change a comment");
-      }
-      const { body: next, keyVersion } = c.req.valid("json");
-      const audience = await storage.shares.audience(noteId);
-      // The same sealed text again is no edit: nothing is stamped and nobody
-      // told. A client that seals the same words again sends another
-      // ciphertext, and it is the client that leaves an unchanged one alone.
-      if (next === existing.body) {
+  notes.put("/:id/comments/:commentId", async (c) => {
+    const { userId } = c.get("auth");
+    const noteId = c.req.param("id") as string;
+    await requireAccess(noteId, userId);
+    const existing = await requireComment(
+      noteId,
+      c.req.param("commentId") as string,
+    );
+    if (existing.authorId !== userId) {
+      throw new HttpError(403, "Only its author can change a comment");
+    }
+    const ring = await ringFor(c, noteId);
+    const audience = await storage.shares.audience(noteId);
+    // A token's same words again are no edit, and here the server can
+    // tell: nothing is sealed, stamped or told.
+    if (ring) {
+      const text = (await c.req.raw
+        .clone()
+        .json()
+        .catch(() => null)) as {
+        body?: unknown;
+      } | null;
+      const was = await commentOut(ring, existing);
+      if (
+        was !== null &&
+        typeof text?.body === "string" &&
+        text.body.trim() === was
+      ) {
         const body: NoteCommentResponse = {
-          comment: await presentOne(audience, existing),
+          comment: await answered(ring, await presentOne(audience, existing)),
         };
         return c.json(body);
       }
-      const editedAt = nowIso();
-      await storage.comments.setBody(existing.id, next, keyVersion, editedAt);
-      const comment = await presentOne(audience, {
-        ...existing,
-        body: next,
-        keyVersion,
-        editedAt,
-      });
-      noteEvents.commented(audience, { type: "comment:updated", comment });
-      const body: NoteCommentResponse = { comment };
+    }
+    const { body: next, keyVersion } = await commentBody(c, ring, existing.id);
+    // The same sealed text again is no edit: nothing is stamped and nobody
+    // told. A client that seals the same words again sends another
+    // ciphertext, and it is the client that leaves an unchanged one alone.
+    if (next === existing.body) {
+      const body: NoteCommentResponse = {
+        comment: await presentOne(audience, existing),
+      };
       return c.json(body);
-    },
-  );
+    }
+    const editedAt = nowIso();
+    await storage.comments.setBody(existing.id, next, keyVersion, editedAt);
+    const comment = await presentOne(audience, {
+      ...existing,
+      body: next,
+      keyVersion,
+      editedAt,
+    });
+    noteEvents.commented(audience, { type: "comment:updated", comment });
+    const body: NoteCommentResponse = {
+      comment: await answered(ring, comment),
+    };
+    return c.json(body);
+  });
 
   notes.delete("/:id/comments/:commentId", async (c) => {
     const { userId } = c.get("auth");

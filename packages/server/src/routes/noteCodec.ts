@@ -3,15 +3,22 @@ import {
   type Note,
   type NoteCreate,
   NoteLimitError,
+  type NoteSealKey,
   type NoteUpdate,
   type NoteVersion,
+  noteSealKey,
+  openComment,
+  openNoteKey,
+  openPreviousKeys,
   openSealedNote,
   openVersion,
   type SealedNote,
   type SealedNoteVersion,
+  sealComment,
   sealNewNote,
   sealNoteUpdate,
   sealVersion,
+  wipe,
 } from "@manifesto/shared";
 import type { Context } from "hono";
 import type { z } from "zod";
@@ -20,6 +27,9 @@ import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
+  commentTextSchema,
+  noteCommentCreateSchema,
+  noteCommentSchema,
   noteCreateSchema,
   notesImportSchema,
   noteUpdateSchema,
@@ -266,5 +276,68 @@ export async function versionBody(
     id,
     ...(await sealing(() => sealVersion(opened.key, id, plain))),
     ...(plain.timestamp !== undefined && { timestamp: plain.timestamp }),
+  };
+}
+
+/** A note's key and the ones it was under before, as a token opens them. */
+export interface NoteRing {
+  key: NoteSealKey;
+  older: Map<number, NoteSealKey>;
+}
+
+/**
+ * The keys of a note the token's account holds, for what is written beside
+ * the note under them (its comments). 404 when the account cannot see the
+ * note, 409 when the token's keys do not open it.
+ */
+export async function noteRing(
+  keys: AccountSealKeys,
+  storage: StorageDriver,
+  noteId: string,
+): Promise<NoteRing> {
+  const note = await storage.notes.getById(noteId, keys.userId);
+  if (!note) throw new HttpError(404, "Note not found");
+  const key = await openNoteKey(keys, noteId, note.keyVersion, note.key);
+  if (!key) throw new HttpError(409, "This token cannot open the note's key");
+  const older = new Map<number, NoteSealKey>();
+  const raws = await openPreviousKeys(key, noteId, note.previousKeys);
+  for (const [version, raw] of raws) {
+    older.set(version, await noteSealKey(raw, version));
+    wipe(raw);
+  }
+  return { key, older };
+}
+
+/** A comment's text as a token reads it; null for one that does not open. */
+export async function commentOut(
+  ring: NoteRing,
+  comment: { id: string; keyVersion: number; body: string },
+): Promise<string | null> {
+  const key =
+    comment.keyVersion === ring.key.version
+      ? ring.key
+      : ring.older.get(comment.keyVersion);
+  return key ? openComment(key, comment) : null;
+}
+
+/**
+ * The comment in a request, sealed: as the app sent it, under the id it
+ * chose, or sealed here for a token under the note's key. `id` is the
+ * comment being changed, absent for a new one.
+ */
+export async function commentBody(
+  c: Ctx,
+  ring: NoteRing | null,
+  id?: string,
+): Promise<{ id: string; body: string; keyVersion: number }> {
+  if (!ring) {
+    if (id === undefined) return bodyOf(c, noteCommentCreateSchema);
+    return { id, ...(await bodyOf(c, noteCommentSchema)) };
+  }
+  const plain = await bodyOf(c, commentTextSchema);
+  const commentId = id ?? newId();
+  return {
+    id: commentId,
+    ...(await sealing(() => sealComment(ring.key, commentId, plain.body))),
   };
 }

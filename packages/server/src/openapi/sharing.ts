@@ -1,7 +1,6 @@
 import {
+  commentTextSchema,
   heldKeySchema,
-  noteCommentCreateSchema,
-  noteCommentSchema,
   offeredKeySchema,
   publicLinkCreateSchema,
   publicLinkUnlockSchema,
@@ -292,7 +291,7 @@ export const SHARING_OPERATIONS: Operation[] = [
     feature: "sharing",
     limits: ["user"],
     scope: "notes:write",
-    body: noteCommentCreateSchema,
+    body: commentTextSchema,
     responses: {
       "201": { description: "Written", schema: "NoteCommentResponse" },
       "409": { description: "The note holds no more", schema: "Error" },
@@ -307,7 +306,7 @@ export const SHARING_OPERATIONS: Operation[] = [
     feature: "sharing",
     limits: ["user"],
     scope: "notes:write",
-    body: noteCommentSchema,
+    body: commentTextSchema,
     responses: ok("NoteCommentResponse"),
   },
   {
