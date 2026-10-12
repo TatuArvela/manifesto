@@ -1,3 +1,4 @@
+import { MAX_COMMENT_LENGTH } from "../api/comments.js";
 import { MAX_ACCOUNT_PREFS_BYTES } from "../api/prefs.js";
 import type {
   SealedNote,
@@ -96,6 +97,7 @@ export const SEALED_FIELD_MAX = {
   tags: sealedLength(MAX_TAGS_PER_NOTE * (MAX_TAG_LENGTH * 6 + 3) + 2),
   linkPreviews: sealedLength(MAX_LINK_PREVIEWS_BYTES),
   pref: sealedLength(MAX_ACCOUNT_PREFS_BYTES),
+  comment: sealedLength(MAX_COMMENT_LENGTH * 3),
 } as const;
 
 /** A value the client refuses to seal, as the server once refused to store
@@ -694,6 +696,44 @@ export async function openVersion(
     title,
     content,
   };
+}
+
+/**
+ * A comment's text, sealed under the note key and bound to the comment's own
+ * id. Throws `NoteLimitError` for one that is empty or too long, which the
+ * server can no longer tell.
+ */
+export async function sealComment(
+  key: NoteSealKey,
+  commentId: string,
+  body: string,
+): Promise<{ body: string; keyVersion: number }> {
+  const text = body.trim();
+  if (text.length === 0 || text.length > MAX_COMMENT_LENGTH) {
+    throw new NoteLimitError("comment");
+  }
+  return {
+    keyVersion: key.version,
+    body: await seal(
+      key.fields,
+      utf8(text),
+      sharedData(key, commentId, "comment"),
+    ),
+  };
+}
+
+/** A comment's text; null when it is under another key, or does not open. */
+export async function openComment(
+  key: NoteSealKey,
+  comment: { id: string; keyVersion: number; body: string },
+): Promise<string | null> {
+  if (comment.keyVersion !== key.version) return null;
+  const text = await openText(
+    key.fields,
+    comment.body,
+    sharedData(key, comment.id, "comment"),
+  );
+  return text !== null && text.length <= MAX_COMMENT_LENGTH ? text : null;
 }
 
 /** One preference, sealed under the account's personal key and bound to its

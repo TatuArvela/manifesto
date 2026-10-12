@@ -166,6 +166,7 @@ function publicParts() {
       // Null once whoever wrote it no longer has the note.
       author: nullableRef("ShareUser"),
       body: { type: "string" },
+      keyVersion: { type: "integer" },
       createdAt: { type: "string" },
       editedAt: nullable("string"),
     }),

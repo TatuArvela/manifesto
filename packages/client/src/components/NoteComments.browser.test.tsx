@@ -72,6 +72,7 @@ function comment(overrides: Partial<NoteComment> = {}): NoteComment {
     noteId: "n1",
     author: olivia,
     body: "Shall we take the train?",
+    keyVersion: 1,
     createdAt: "2026-04-01T10:00:00.000Z",
     editedAt: null,
     ...overrides,
@@ -298,9 +299,9 @@ describe("NoteComments", () => {
   it("takes in what the socket reports while open", async () => {
     await show(sharedNote("edit"), alice);
     await open();
-    receiveComment(comment());
+    await receiveComment(comment());
     await vi.waitFor(() => expect(rows()).toHaveLength(1));
-    receiveComment(comment({ body: "By bus, then" }));
+    await receiveComment(comment({ body: "By bus, then" }));
     await vi.waitFor(() => expect(rows()[0]).toContain("By bus, then"));
     forgetComment("n1", "c1");
     await vi.waitFor(() => expect(rows()).toHaveLength(0));
@@ -310,7 +311,7 @@ describe("NoteComments", () => {
     await show(sharedNote("edit"), alice);
     await close();
     expect(noteComments.value.has("n1")).toBe(false);
-    receiveComment(comment());
+    await receiveComment(comment());
     expect(noteComments.value.has("n1")).toBe(false);
   });
 
@@ -353,7 +354,8 @@ describe("NoteComments", () => {
 
     // Written after the server read the list the first answer carries.
     stored = [comment()];
-    receiveComment(comment());
+    // Not awaited: the read it asks for again is the one this test answers.
+    void receiveComment(comment());
     answer(json({ comments: [] }));
     await vi.waitFor(() =>
       expect(noteComments.value.get("n1")).toHaveLength(1),

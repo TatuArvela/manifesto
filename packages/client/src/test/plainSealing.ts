@@ -48,6 +48,8 @@ export const plainSealing: NoteSealing = {
   sealVersion: async (_noteId, version) =>
     version as unknown as SealedNoteVersionCreateRequest,
   openVersions: async (_noteId, sealed) => sealed as unknown as NoteVersion[],
+  sealComment: async (_noteId, _id, body) => ({ body, keyVersion: 1 }),
+  openComments: async (_noteId, sealed) => sealed,
   sealPrefs: async (prefs) => prefs as Record<string, string | null>,
   openPrefs: async (sealed) => sealed,
 };

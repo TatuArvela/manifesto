@@ -5,6 +5,7 @@ import {
   type ImageKey,
   type ImageKeySource,
   type Note,
+  type NoteComment,
   type NoteCreate,
   type NoteSealKey,
   type NoteUpdate,
@@ -12,6 +13,7 @@ import {
   noteSealKey,
   type OfferedKey,
   offerNoteKey,
+  openComment,
   openImage,
   openNoteKey,
   openOfferedKey,
@@ -25,6 +27,7 @@ import {
   type SealedNoteUpdate,
   type SealedNoteVersion,
   type SealedNoteVersionCreateRequest,
+  sealComment,
   sealImage,
   sealNewNote,
   sealNoteUpdate,
@@ -479,6 +482,36 @@ export class Sealer {
     for (const version of sealed) {
       const opened = await openVersion(key, version);
       if (opened) out.push(opened);
+    }
+    return out;
+  }
+
+  /** A comment's text, sealed under its note's key and bound to `id`. */
+  async sealComment(
+    noteId: string,
+    id: string,
+    body: string,
+    fetch: () => Promise<SealedNote | null>,
+  ): Promise<{ body: string; keyVersion: number }> {
+    const { key } = await this.keyOf(noteId, fetch);
+    return sealComment(key, id, body);
+  }
+
+  /**
+   * The comments that open with the note's current key, as they came. One
+   * under an earlier key, or that does not open, is left out.
+   */
+  async openComments(
+    noteId: string,
+    sealed: NoteComment[],
+    fetch: () => Promise<SealedNote | null>,
+  ): Promise<NoteComment[]> {
+    if (sealed.length === 0) return [];
+    const { key } = await this.keyOf(noteId, fetch);
+    const out: NoteComment[] = [];
+    for (const comment of sealed) {
+      const body = await openComment(key, comment);
+      if (body !== null) out.push({ ...comment, body });
     }
     return out;
   }

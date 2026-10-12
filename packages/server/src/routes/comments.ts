@@ -8,7 +8,6 @@ import {
 } from "@manifesto/shared";
 import type { Hono } from "hono";
 import { nowIso } from "../lib/time.js";
-import { newId } from "../lib/ulid.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
@@ -17,7 +16,10 @@ import type {
   StorageDriver,
   StoredComment,
 } from "../storage/types.js";
-import { noteCommentSchema } from "../validation/schemas.js";
+import {
+  noteCommentCreateSchema,
+  noteCommentSchema,
+} from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
@@ -116,6 +118,7 @@ export function registerCommentRoutes(
           ? null
           : (authors.get(comment.authorId) ?? null),
       body: comment.body,
+      keyVersion: comment.keyVersion,
       createdAt: comment.createdAt,
       editedAt: comment.editedAt,
     };
@@ -145,16 +148,22 @@ export function registerCommentRoutes(
 
   notes.post(
     "/:id/comments",
-    zValidator("json", noteCommentSchema, validatorHook),
+    zValidator("json", noteCommentCreateSchema, validatorHook),
     async (c) => {
       const { userId } = c.get("auth");
       const noteId = c.req.param("id") as string;
       await requireAccess(noteId, userId);
+      const sent = c.req.valid("json");
+      // The client chose the id, which the sealed text is bound to.
+      if (await storage.comments.get(sent.id)) {
+        throw new HttpError(409, "A comment already has this id");
+      }
       const stored: StoredComment = {
-        id: newId(),
+        id: sent.id,
         noteId,
         authorId: userId,
-        body: c.req.valid("json").body,
+        body: sent.body,
+        keyVersion: sent.keyVersion,
         createdAt: nowIso(),
         editedAt: null,
       };
@@ -183,9 +192,11 @@ export function registerCommentRoutes(
       if (existing.authorId !== userId) {
         throw new HttpError(403, "Only its author can change a comment");
       }
-      const next = c.req.valid("json").body;
+      const { body: next, keyVersion } = c.req.valid("json");
       const audience = await storage.shares.audience(noteId);
-      // The same text again is no edit: nothing is stamped and nobody told.
+      // The same sealed text again is no edit: nothing is stamped and nobody
+      // told. A client that seals the same words again sends another
+      // ciphertext, and it is the client that leaves an unchanged one alone.
       if (next === existing.body) {
         const body: NoteCommentResponse = {
           comment: await presentOne(audience, existing),
@@ -193,10 +204,11 @@ export function registerCommentRoutes(
         return c.json(body);
       }
       const editedAt = nowIso();
-      await storage.comments.setBody(existing.id, next, editedAt);
+      await storage.comments.setBody(existing.id, next, keyVersion, editedAt);
       const comment = await presentOne(audience, {
         ...existing,
         body: next,
+        keyVersion,
         editedAt,
       });
       noteEvents.commented(audience, { type: "comment:updated", comment });

@@ -566,6 +566,11 @@ ALTER TABLE note_shares ADD COLUMN offered_key TEXT;
 ALTER TABLE note_shares ADD COLUMN wrapped_key_version INTEGER NOT NULL DEFAULT 0;
 `;
 
+/** A comment's text is sealed under its note's key; this is which one. */
+const COMMENT_KEYS = `
+ALTER TABLE note_comments ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -596,6 +601,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0027-account-keys", sql: ACCOUNT_KEYS },
   { id: "0028-sealed-notes", sql: SEALED_NOTES, refuseIf: BEFORE_ENCRYPTION },
   { id: "0029-share-keys", sql: SHARE_KEYS },
+  { id: "0030-comment-keys", sql: COMMENT_KEYS },
 ];
 
 export function runMigrations(

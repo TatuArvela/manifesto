@@ -13,6 +13,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ct } from "../storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
@@ -289,6 +290,25 @@ describe("comments beside a shared note", () => {
     expect(await rig.storage.comments.get(comment.id)).toBeNull();
   });
 
+  it("stores a comment sealed, under the id its writer chose, and refuses a readable one", async () => {
+    const send = (body: object) =>
+      rig.rawRequest(path(), {
+        method: "POST",
+        headers: authHeaders(owner.token),
+        body: JSON.stringify(body),
+      });
+    const sealed = { id: "c-chosen", keyVersion: 1, body: ct("Hello") };
+    expect((await send(sealed)).status).toBe(201);
+    const [stored] = await rig.storage.comments.listByNote(noteId);
+    expect(stored).toMatchObject(sealed);
+    // The id is what the text is bound to, so it cannot be had twice.
+    expect((await send(sealed)).status).toBe(409);
+    expect((await send({ ...sealed, id: "c2", body: "Hello" })).status).toBe(
+      422,
+    );
+    expect((await send({ id: "c3", body: ct("x") })).status).toBe(422);
+  });
+
   it("holds only so many comments on one note", async () => {
     for (let i = 0; i < MAX_COMMENTS_PER_NOTE; i++) {
       await rig.storage.comments.create(
@@ -297,6 +317,7 @@ describe("comments beside a shared note", () => {
           noteId,
           authorId: owner.userId,
           body: "x",
+          keyVersion: 1,
           createdAt: "2026-04-01T00:00:00.000Z",
           editedAt: null,
         },

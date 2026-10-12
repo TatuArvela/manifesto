@@ -10,6 +10,7 @@ paths:
   - "packages/client/src/storage/sealing.ts"
   - "packages/client/src/storage/shareKeys.ts"
   - "packages/client/src/state/sharing.ts"
+  - "packages/client/src/state/comments.ts"
   - "packages/server/src/routes/shares.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
@@ -142,6 +143,10 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   `waitingForKey`, as the owner or as any other holder.
 - Any note the server answers with outside the adapter (the share routes) is opened with
   `sealer.peek()?.open(...)` before `receiveNote`.
+- A comment's text is sealed under the note key and bound to an id its writer chose
+  (`sealComment`); `state/comments.ts` opens every comment it is sent, a socket's included, and
+  leaves out one that does not open. The server cannot tell an edit to the same words from a real
+  one, so the client is what leaves an unchanged comment alone.
 
 A field added to a note's words is added in `noteSeal.ts` (seal, open, check), `SealedNote`, the
 sealed schema and `SEALED_SHARED_NOTE_FIELDS` or the personal list, and `shareMapping.test.ts`

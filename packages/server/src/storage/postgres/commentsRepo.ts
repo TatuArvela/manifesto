@@ -41,12 +41,13 @@ export function createPostgresCommentsRepo(pool: PgPool): CommentsRepo {
         if (room) {
           await client.query(
             `INSERT INTO note_comments (${COMMENT_COLUMNS})
-             VALUES ($1, $2, $3, $4, $5, $6)`,
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [
               comment.id,
               comment.noteId,
               comment.authorId,
               comment.body,
+              comment.keyVersion,
               comment.createdAt,
               comment.editedAt,
             ],
@@ -61,10 +62,11 @@ export function createPostgresCommentsRepo(pool: PgPool): CommentsRepo {
         client.release();
       }
     },
-    async setBody(id, body, editedAt) {
+    async setBody(id, body, keyVersion, editedAt) {
       const result = await pool.query(
-        `UPDATE note_comments SET body = $1, edited_at = $2 WHERE id = $3`,
-        [body, editedAt, id],
+        `UPDATE note_comments SET body = $1, key_version = $2, edited_at = $3
+         WHERE id = $4`,
+        [body, keyVersion, editedAt, id],
       );
       return (result.rowCount ?? 0) > 0;
     },

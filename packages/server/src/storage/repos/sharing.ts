@@ -191,7 +191,9 @@ export interface StoredComment {
   noteId: string;
   /** Null once the author's account is gone. */
   authorId: string | null;
+  /** Sealed under the note key of `keyVersion`. */
   body: string;
+  keyVersion: number;
   createdAt: string;
   editedAt: string | null;
 }
@@ -212,6 +214,11 @@ export interface CommentsRepo {
    */
   create(comment: StoredComment, limit: number): Promise<boolean>;
   /** False when there is no such comment. */
-  setBody(id: string, body: string, editedAt: string): Promise<boolean>;
+  setBody(
+    id: string,
+    body: string,
+    keyVersion: number,
+    editedAt: string,
+  ): Promise<boolean>;
   delete(id: string): Promise<boolean>;
 }

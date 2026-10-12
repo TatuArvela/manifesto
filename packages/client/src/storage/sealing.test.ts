@@ -7,6 +7,7 @@ import {
   NoteLimitError,
   openSealedNote,
   type SealedNote,
+  type SealedNoteCreate,
   sealNewNote,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
@@ -40,7 +41,7 @@ async function accountOf(keys: StorageKeys): Promise<AccountSealKeys> {
 }
 
 /** A sealed note as a server would hand it back. */
-function served(sealed: Awaited<ReturnType<typeof sealNewNote>>["sealed"]) {
+function served(sealed: SealedNoteCreate) {
   const { imageRefs: _i, previewRefs: _p, ...note } = sealed;
   return { ...note, createdAt: "c", updatedAt: "u" } satisfies SealedNote;
 }
@@ -165,5 +166,44 @@ describe("Sealer", () => {
     const { sealed } = await sealNewNote(theirs, "n1", draft);
     expect(await mine.open(served(sealed))).toBeNull();
     expect([...mine.unreadable.value]).toEqual(["n1"]);
+  });
+
+  it("seals a comment under its note's key and its own id", async () => {
+    const keys = await testKeys();
+    const sealer = new Sealer(keys);
+    const note = served(await sealer.sealNew("n1", draft));
+    const fetch = async () => note;
+    const sealed = await sealer.sealComment("n1", "c1", "  Shall we?  ", fetch);
+    expect(sealed.keyVersion).toBe(1);
+    expect(sealed.body).not.toContain("Shall");
+    const comment = {
+      id: "c1",
+      noteId: "n1",
+      author: null,
+      createdAt: "t",
+      editedAt: null,
+      ...sealed,
+    };
+    // Another device, which reads the note's key from the server first.
+    const opened = await new Sealer(keys).openComments("n1", [comment], fetch);
+    expect(opened).toEqual([{ ...comment, body: "Shall we?" }]);
+    // Under another comment's id, or said to be under another key, it does
+    // not open and is left out.
+    expect(
+      await sealer.openComments(
+        "n1",
+        [
+          { ...comment, id: "c2" },
+          { ...comment, keyVersion: 2 },
+        ],
+        fetch,
+      ),
+    ).toEqual([]);
+    await expect(sealer.sealComment("n1", "c3", "   ", fetch)).rejects.toThrow(
+      NoteLimitError,
+    );
+    await expect(
+      sealer.sealComment("n1", "c3", "x".repeat(2001), fetch),
+    ).rejects.toThrow(NoteLimitError);
   });
 });

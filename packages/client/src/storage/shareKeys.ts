@@ -59,7 +59,7 @@ async function ownKeys() {
   }
 }
 
-const sealedNote = (noteId: string) => async () => {
+export const sealedNote = (noteId: string) => async () => {
   try {
     const body = await apiJson<NoteResponse<SealedNote>>(
       "GET",

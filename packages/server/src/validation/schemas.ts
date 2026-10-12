@@ -4,7 +4,6 @@ import {
   ATTACHMENT_REF_PATTERN,
   isCiphertext,
   MAX_ATTACHMENTS_PER_CLAIM,
-  MAX_COMMENT_LENGTH,
   MAX_IMAGES_PER_NOTE,
   MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
   MAX_LINK_PREVIEW_TITLE_LENGTH,
@@ -102,6 +101,10 @@ const sealed = (max: number) =>
     .refine((value) => isCiphertext(value, max), {
       message: "Must be a ciphertext",
     });
+
+/** An id chosen by the client that seals what it names: a note's, a
+ * version's, a comment's. */
+const noteIdSchema = z.string().regex(/^[0-9A-Za-z_-]{1,64}$/);
 
 /** A sealed value, or nothing where one was never set. */
 const sealedOrEmpty = (max: number) => z.union([z.literal(""), sealed(max)]);
@@ -481,9 +484,6 @@ export const noteUpdateSchema = z.object(exactPartial(noteFields));
 // the browser. Every value in someone's words is a ciphertext; what the
 // server acts on stays as it was.
 
-/** A note's id, chosen by the client that seals it. */
-const noteIdSchema = z.string().regex(/^[0-9A-Za-z_-]{1,64}$/);
-
 const attachmentRefs = (max: number) =>
   z
     .array(z.string().regex(ATTACHMENT_REF_PATTERN, "Upload images first"))
@@ -635,10 +635,16 @@ export const webhookCreateSchema = z.object({
 /** `PUT /api/webhooks/:id`. */
 export const webhookUpdateSchema = z.object({ active: z.boolean() });
 
-/** `POST /api/notes/:id/comments` and `PUT .../comments/:commentId`. Plain
- * text; a comment of nothing but space is no comment. */
+/** `PUT /api/notes/:id/comments/:commentId`: the comment's text sealed under
+ * the note key. Its length is the sealing client's to hold. */
 export const noteCommentSchema = z.object({
-  body: z.string().trim().min(1).max(MAX_COMMENT_LENGTH),
+  body: sealed(SEALED_FIELD_MAX.comment),
+  keyVersion: z.number().int().min(1),
+});
+
+/** `POST /api/notes/:id/comments`, under an id the client chose. */
+export const noteCommentCreateSchema = noteCommentSchema.extend({
+  id: noteIdSchema,
 });
 
 /**

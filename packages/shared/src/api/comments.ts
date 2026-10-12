@@ -19,7 +19,10 @@ export interface NoteComment {
    * comment stays, without their name.
    */
   author: ShareUser | null;
+  /** Its text, sealed under the note key and bound to the comment's id. */
   body: string;
+  /** Which note key it is under. */
+  keyVersion: number;
   createdAt: string;
   /** When its author last changed it; null for one never edited. */
   editedAt: string | null;
@@ -35,7 +38,15 @@ export interface NoteCommentResponse {
   comment: NoteComment;
 }
 
-/** `POST /api/notes/:id/comments` and `PUT .../comments/:commentId`. */
+/** `PUT /api/notes/:id/comments/:commentId`: the sealed text, and the note
+ * key it is under. */
 export interface NoteCommentRequest {
   body: string;
+  keyVersion: number;
+}
+
+/** `POST /api/notes/:id/comments`. The client chooses the id, which the
+ * sealed text is bound to. */
+export interface NoteCommentCreateRequest extends NoteCommentRequest {
+  id: string;
 }

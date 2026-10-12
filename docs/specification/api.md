@@ -148,8 +148,8 @@ Bearer-protected, and share the per-user API limit.
 | `POST`   | `/api/invitations/:noteId/accept`    | Accept, keeping the note's key: `{ key, keyVersion }`, answered with `{ note }`, the recipient's copy |
 | `POST`   | `/api/invitations/:noteId/decline`   | Decline: `204` |
 | `GET`    | `/api/notes/:id/comments`            | The [comments](features/sharing-with-people.md#comments) beside a note, oldest first: `{ comments: NoteComment[] }`. Anyone who can see the note |
-| `POST`   | `/api/notes/:id/comments`            | Write one: `{ body }` (1 to 2000 characters, trimmed), `201` `{ comment }`; `409` when the note holds 500 |
-| `PUT`    | `/api/notes/:id/comments/:commentId` | Change one's own: `{ body }`, `{ comment }` with `editedAt` set; `403` for anyone else's |
+| `POST`   | `/api/notes/:id/comments`            | Write one: `{ id, body, keyVersion }`, the text sealed under the note key and bound to the id the client chose, `201` `{ comment }`; `409` when the note holds 500, or the id is taken |
+| `PUT`    | `/api/notes/:id/comments/:commentId` | Change one's own: `{ body, keyVersion }`, `{ comment }` with `editedAt` set; `403` for anyone else's |
 | `DELETE` | `/api/notes/:id/comments/:commentId` | Delete one's own, or any as the note's owner: `204` |
 | `GET`    | `/api/users?q=`                      | Accounts to share with: `{ users: DirectoryUser[] }` |
 | `GET`    | `/api/teams`                         | The teams the signed-in user is in: `{ teams: Team[] }` |
@@ -163,6 +163,10 @@ Bearer-protected, and share the per-user API limit.
 
 `role` is `"edit"` or `"view"`. The `{ note }` a share route returns is the owner's copy, with
 `sharing` brought up to date.
+
+A comment's `body` is a ciphertext, and `keyVersion` says which note key it is under. The server
+holds it to the shape and size of one (`422` otherwise) and can no longer hold its text to 1 to 2000
+characters or trim it: the client that seals it does.
 
 - Inviting, changing a role and removing someone else are the owner's: another participant gets
   `403`, and someone who cannot see the note `404`.

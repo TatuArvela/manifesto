@@ -39,7 +39,7 @@ type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 const TOKEN = /^Bearer mf[a-z]_/;
 
 /** The fields that hold someone's words wherever they turn up. */
-const WORDS = new Set(["title", "content", "excerpt"]);
+const WORDS = new Set(["title", "content", "excerpt", "body"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -80,6 +80,21 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
       ...rest,
       title: typeof title === "string" ? ct(title) : title,
       content: typeof content === "string" ? ct(content) : content,
+    };
+  }
+  const comment = /^\/api\/notes\/[^/]+\/comments(\/[^/]+)?$/.exec(path);
+  if (comment && (method === "POST" || method === "PUT")) {
+    if ("keyVersion" in body) return null;
+    // Trimmed and held to its length here, as the app's sealing does, since
+    // the server cannot tell either of a sealed comment.
+    const text = typeof body.body === "string" ? body.body.trim() : body.body;
+    if (typeof text !== "string" || text === "" || text.length > 2000) {
+      return { ...body, keyVersion: 1 };
+    }
+    return {
+      ...(method === "POST" && { id: newId() }),
+      keyVersion: 1,
+      body: ct(text),
     };
   }
   if (method === "PATCH" && path === "/api/auth/me/prefs") {

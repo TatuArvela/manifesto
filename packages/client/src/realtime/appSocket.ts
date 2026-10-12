@@ -233,7 +233,7 @@ async function applyServerEvent(event: WebSocketEvent) {
       break;
     case "comment:created":
     case "comment:updated":
-      receiveComment(event.comment);
+      await receiveComment(event.comment);
       break;
     case "comment:deleted":
       forgetComment(event.noteId, event.id);
