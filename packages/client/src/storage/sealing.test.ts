@@ -9,6 +9,8 @@ import {
   type SealedNote,
   type SealedNoteCreate,
   sealNewNote,
+  tokenHashOf,
+  unwrapTokenKeys,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import { testKeys } from "../test/sealedServer.js";
@@ -205,5 +207,37 @@ describe("Sealer", () => {
     await expect(
       sealer.sealComment("n1", "c3", "x".repeat(2001), fetch),
     ).rejects.toThrow(NoteLimitError);
+  });
+
+  it("makes a token whose keys open the account's notes, and nobody else's secret does", async () => {
+    const keys = await testKeys();
+    const sealer = new Sealer(keys);
+    const note = served(
+      await sealer.sealNew("n1", { ...draft, title: "Mine", tags: ["x"] }),
+    );
+    const made = await sealer.newToken("mfp_");
+    if (!made) throw new Error("no token");
+    expect(made.secret.startsWith("mfp_")).toBe(true);
+    expect(made.fields.prefix).toBe(made.secret.slice(0, 10));
+    expect(made.fields.tokenHash).toBe(await tokenHashOf(made.secret));
+    expect(made.fields.wrappedKeys).not.toContain(made.secret);
+
+    // What the server does when the token is presented.
+    const carried = await unwrapTokenKeys(
+      made.secret,
+      made.fields.wrappedKeys,
+      keys.userId,
+    );
+    if (!carried) throw new Error("the token's keys did not open");
+    const opened = await openSealedNote(carried, note);
+    expect(opened?.note).toMatchObject({ title: "Mine", tags: ["x"] });
+
+    expect(
+      await unwrapTokenKeys(
+        "mfp_another",
+        made.fields.wrappedKeys,
+        keys.userId,
+      ),
+    ).toBeNull();
   });
 });

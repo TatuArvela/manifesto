@@ -14,6 +14,10 @@ paths:
   - "packages/client/src/realtime/sealedDocument.ts"
   - "packages/client/src/realtime/yjsSession.ts"
   - "packages/server/src/routes/shares.ts"
+  - "packages/server/src/routes/noteCodec.ts"
+  - "packages/server/src/routes/tokens.ts"
+  - "packages/server/src/test/keyedTokens.ts"
+  - "packages/client/src/state/apiTokens.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
   - "packages/server/src/routes/attachments.ts"
@@ -168,6 +172,23 @@ name from inside. Both documents share one `clientID`, so "the client with the l
 The server's `/api/yjs` code did not change and must not start reading the document: nothing in it
 is readable. Passing `key: null` to `createYjsSession` syncs the document as it is, and exists only
 for tests that hand sealing through.
+
+## Tokens
+
+A script cannot seal or open a note, so a token that reaches notes carries the notes key and the
+personal key (never the account key), wrapped under a key derived from its secret
+(`shared/src/crypto/tokenSeal.ts`). The app makes the secret (`Sealer.newToken`,
+`state/apiTokens.ts`) and sends its hash, so the server first sees it when it is used; a calendar
+token and one for the account alone are still made by the server. `createAuthMiddleware` opens the
+keys for the request (`auth.keys`) and nothing keeps them. `routes/noteCodec.ts` is the whole
+translation: `tokenKeys(c)` is null for a session, which is answered sealed, and for a token every
+note route opens what it answers and seals what it is sent. A new route that answers a note calls
+`noteOut` / `notesOut`, or a token is handed ciphertext.
+
+`test/sealingClient.ts` mints a token as the app does, with real keys (`test/keyedTokens.ts`),
+since the server opens with them. A note written by a session in a test is only shaped as
+ciphertext, so a token reads what a token wrote; `heldKeyOf` gives a recipient a real copy of a
+shared note's key.
 
 A field added to a note's words is added in `noteSeal.ts` (seal, open, check), `SealedNote`, the
 sealed schema and `SEALED_SHARED_NOTE_FIELDS` or the personal list, and `shareMapping.test.ts`

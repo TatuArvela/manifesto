@@ -450,6 +450,8 @@ export const fi: Messages = {
   "tokens.title": "API-tunnisteet",
   "tokens.hint":
     "Tunnisteella skripti, pikakomento tai botti voi käyttää muistiinpanojasi palvelimella {server} ilman salasanaasi. Se ulottuu vain siihen, mihin annat sille oikeuden, eikä koskaan salasanaasi, tunnisteisiisi tai muihin tileihin.",
+  "tokens.keyWarning":
+    "Muistiinpanosi on salattu, joten niihin ulottuva tunniste kantaa avainta. Sillä tehdyn pyynnön ajan palvelin voi lukea muistiinpanosi, ja tunnisteen haltija voi lukea ne kaikki, annetusta oikeudesta riippumatta. Peru tunniste, joka on voinut vuotaa.",
   "tokens.name": "Nimi",
   "tokens.namePlaceholder": "Mikä sitä käyttää?",
   "tokens.nameRequired": "Anna tunnisteelle nimi",

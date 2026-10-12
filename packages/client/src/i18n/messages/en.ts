@@ -440,6 +440,8 @@ export const en = {
   "tokens.title": "API tokens",
   "tokens.hint":
     "A token lets a script, a shortcut or a bot use your notes on {server} without your password. It reaches only what you give it access to, and never your password, your tokens or other accounts.",
+  "tokens.keyWarning":
+    "Your notes are encrypted, so a token that reaches them carries a key. While a request made with it runs, the server can read your notes, and whoever holds the token can read all of them, whatever access it was given. Revoke one that may have leaked.",
   "tokens.name": "Name",
   "tokens.namePlaceholder": "What will use it?",
   "tokens.nameRequired": "Give the token a name",

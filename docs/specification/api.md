@@ -109,8 +109,11 @@ than one request, by count or by the 1 MiB body limit, is sent in several.
 #### Sealed notes
 
 The app seals a note in the browser before it sends it, and the server stores and returns it
-sealed ([Encryption](features/encryption.md)). Every route above takes and answers a `SealedNote`
-(`packages/shared/src/api/sealed.ts`) for a session:
+sealed ([Encryption](features/encryption.md)). A token that carries keys is the exception: for a
+request that presents one the server opens and seals with those keys, so it sends and is sent a
+readable `Note`, with an `id` the server assigns, as this page describes everywhere else. A token
+without keys is refused the note routes with `403`. Every route above takes and answers a
+`SealedNote` (`packages/shared/src/api/sealed.ts`) for a session:
 
 - **Sealed under the note key**: `title`, `content`, `excerpt` (the first 140 characters of the
   text), `font`, `images` (the list of the note's images) and `linkPreviews`.
@@ -241,7 +244,8 @@ includes `email`. Either way the caller is never among the results, and an empty
 
 The server cannot read a note, so it cannot search one for the app, which searches the notes it
 has opened in memory ([Search](features/search.md)). A session is answered `403`. The route is for
-a token that carries a key.
+a token that carries a key: the server opens the account's notes in memory for the request and
+returns those whose title or text holds `q`, whatever its case, newest first.
 
 ### Sync
 

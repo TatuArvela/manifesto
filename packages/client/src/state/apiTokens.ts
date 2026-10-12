@@ -6,6 +6,7 @@ import type {
   ApiTokensResponse,
 } from "@manifesto/shared";
 import { apiFetch } from "../storage/apiRequest.js";
+import { sealer } from "../storage/sealing.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
@@ -29,8 +30,21 @@ export type CreateApiTokenResult =
   | { kind: "refused"; refusal: ConfirmationRefusal }
   | { kind: "failed" };
 
-/** A script's token unless `kind` says otherwise, reaching what `scopes`
- * name (an MCP token only the note scopes). */
+/** What each kind of token that carries keys starts with. */
+const KEYED_PREFIX: Partial<Record<ApiTokenKind, string>> = {
+  api: "mfp_",
+  mcp: "mfm_",
+};
+
+/**
+ * A script's token unless `kind` says otherwise, reaching what `scopes`
+ * name (an MCP token only the note scopes).
+ *
+ * A token that reaches notes carries the keys to open them, so its secret is
+ * made here and the server is sent its hash and the keys wrapped under it;
+ * the server never sees the secret until the token is used. A calendar
+ * token, and one for the account alone, is made by the server as before.
+ */
 export async function createApiToken(
   name: string,
   expiresInDays: number | null,
@@ -38,8 +52,21 @@ export async function createApiToken(
   scopes: readonly ApiTokenScope[],
   password: string,
 ): Promise<CreateApiTokenResult> {
+  const prefix = KEYED_PREFIX[kind];
+  const reachesNotes = scopes.some((scope) => scope.startsWith("notes:"));
+  let made: Awaited<ReturnType<NonNullable<typeof sealer.value>["newToken"]>> =
+    null;
+  if (prefix !== undefined && reachesNotes) {
+    try {
+      made = (await sealer.peek()?.newToken(prefix)) ?? null;
+    } catch (err) {
+      console.warn("Failed to make a token's keys:", err);
+      return { kind: "failed" };
+    }
+  }
   const res = await apiFetch("POST", "/tokens", {
     name,
+    ...made?.fields,
     ...(expiresInDays !== null && { expiresInDays }),
     // `api` is what a server takes when none is named, older ones included.
     ...(kind !== "api" && { kind }),
@@ -51,9 +78,11 @@ export async function createApiToken(
   const refusal = res && (await confirmationRefusal(res));
   if (refusal) return { kind: "refused", refusal };
   if (!res?.ok) return { kind: "failed" };
+  const created = (await res.json()) as ApiTokenCreatedResponse;
   return {
     kind: "ok",
-    created: (await res.json()) as ApiTokenCreatedResponse,
+    // The secret of a token made here is known here alone.
+    created: made ? { ...created, secret: made.secret } : created,
   };
 }
 

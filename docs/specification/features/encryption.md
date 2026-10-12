@@ -468,9 +468,16 @@ the code does, and nothing here may be released:
   a signature is checked against whatever key the server gives for its signer; removing someone
   does not replace the note's key; public links are not sealed.
 - **Comments** are sealed under the note key, each bound to an id its writer chose.
-- **A token** (API, MCP, the calendar feed) is answered with sealed notes it cannot open and can
-  write none, so the MCP tools and the feed's event names do not work (step 6). Webhooks already
+- **An API or MCP token made in Settings** carries the notes key and the personal key, wrapped
+  under a key derived from its secret, which the app makes and the server never sees until the
+  token is used. For a request that presents it the server opens and seals notes in memory: notes,
+  versions, sync, import and `GET /api/search` work as before, and so do the MCP tools. Webhooks
   carry no content.
+- **Not built of tokens yet** (the rest of step 6): a token cannot attach or read images, or read
+  comments; an assistant signed in through the browser (OAuth) carries no key and reaches no note;
+  the calendar feed carries no reminder key, so every event is named "Reminder"; the example
+  webhook receiver still expects a note's content; Settings does not offer to replace every key
+  when a token is revoked, since that is step 8.
 - **A push message** for a reminder says "Reminder" and nothing of the note (step 7).
 - **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
   and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.

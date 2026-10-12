@@ -1,6 +1,7 @@
 import {
   type AccountKeys,
   type AccountSealKeys,
+  deriveBytes,
   type HeldKeyRequest,
   type ImageKey,
   type ImageKeySource,
@@ -10,6 +11,7 @@ import {
   type NoteSealKey,
   type NoteUpdate,
   type NoteVersion,
+  newTokenSecret,
   noteSealKey,
   type OfferedKey,
   offerNoteKey,
@@ -35,10 +37,12 @@ import {
   sealPref,
   sealSharedFields,
   sealVersion,
+  tokenHashOf,
   unwrapNoteKey,
   verifyOfferedKey,
   wipe,
   wrapNoteKey,
+  wrapTokenKeys,
 } from "@manifesto/shared";
 import { computed, signal } from "@preact/signals";
 import { ulid } from "ulid";
@@ -496,6 +500,43 @@ export class Sealer {
     fetch: () => Promise<SealedNote | null>,
   ): Promise<NoteSealKey | null> {
     return (await this.keyOf(noteId, fetch)).key;
+  }
+
+  /**
+   * A new token that carries keys: its secret, which stays on this side,
+   * and what the server is sent of it. The notes key and the personal key
+   * are derived from the account key as bytes for the one wrap and wiped;
+   * the account key itself is never among them, so a token opens no private
+   * key and accepts no invitation.
+   */
+  async newToken(prefix: string): Promise<{
+    secret: string;
+    fields: { tokenHash: string; prefix: string; wrappedKeys: string };
+  } | null> {
+    const secret = newTokenSecret(prefix);
+    const notes = await deriveBytes(this.keys.accountKey, "account/notes");
+    const personal = await deriveBytes(
+      this.keys.accountKey,
+      "account/personal",
+    );
+    try {
+      return {
+        secret,
+        fields: {
+          tokenHash: await tokenHashOf(secret),
+          // The prefix and six characters, which is what a list shows.
+          prefix: secret.slice(0, prefix.length + 6),
+          wrappedKeys: await wrapTokenKeys(secret, {
+            version: this.keys.version,
+            notes,
+            personal,
+          }),
+        },
+      };
+    } finally {
+      wipe(notes);
+      wipe(personal);
+    }
   }
 
   /** A comment's text, sealed under its note's key and bound to `id`. */
