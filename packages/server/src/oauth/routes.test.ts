@@ -1,9 +1,10 @@
 import { createHash, randomBytes } from "node:crypto";
-import type {
-  ApiTokensResponse,
-  CapabilitiesResponse,
-  OAuthAuthorizeResponse,
-  OAuthClientInfo,
+import {
+  type ApiTokensResponse,
+  type CapabilitiesResponse,
+  type OAuthAuthorizeResponse,
+  type OAuthClientInfo,
+  unwrapTokenKeys,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../app.js";
@@ -11,6 +12,7 @@ import { createAuthProvider } from "../auth/index.js";
 import { hashToken } from "../lib/token.js";
 import { createStorage } from "../storage/index.js";
 import { defined } from "../test/defined.js";
+import { wrapTestKeys } from "../test/keyedTokens.js";
 import {
   authHeaders,
   bootTestAppWith,
@@ -39,10 +41,15 @@ function pkce() {
 describe("OAuth for /api/mcp", () => {
   let rig: TestRig;
   let session: string;
+  let userId: string;
 
   beforeEach(async () => {
     rig = await bootTestAppWith({ appUrl: "https://notes.example" });
-    ({ token: session } = await registerTestUser(rig, "alice", PASSWORD));
+    ({ token: session, userId } = await registerTestUser(
+      rig,
+      "alice",
+      PASSWORD,
+    ));
   });
 
   afterEach(async () => {
@@ -227,6 +234,102 @@ describe("OAuth for /api/mcp", () => {
     expect((await mcp(second.access_token)).status).toBe(200);
   });
 
+  it("carries the notes' keys from the consent to each token it becomes, and no copy outlives its token", async () => {
+    const clientId = await registeredClient();
+    const { verifier, challenge } = pkce();
+    // The consent page makes the code and wraps the keys under it.
+    const code = randomBytes(32).toString("base64url");
+    const half = await authorize(clientId, challenge, {
+      codeHash: hashToken(code),
+    });
+    expect(half.status).toBe(422);
+    const agreed = await authorize(clientId, challenge, {
+      codeHash: hashToken(code),
+      wrappedKeys: await wrapTestKeys(code, userId),
+    });
+    expect(agreed.status).toBe(200);
+    // The server never had the code, so the address comes without it.
+    const { redirectTo } = (await agreed.json()) as OAuthAuthorizeResponse;
+    expect(new URL(redirectTo).searchParams.has("code")).toBe(false);
+    expect(new URL(redirectTo).searchParams.get("state")).toBe("xyz");
+
+    const traded = await token({
+      grant_type: "authorization_code",
+      code,
+      code_verifier: verifier,
+      client_id: clientId,
+      redirect_uri: REDIRECT,
+    });
+    expect(traded.status).toBe(200);
+    const first = (await traded.json()) as TokenAnswer;
+
+    const tool = async (bearer: string, name: string, args: object) => {
+      const res = await rig.request("/api/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${bearer}`,
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name, arguments: args },
+        }),
+      });
+      return JSON.stringify(await res.json());
+    };
+    // The assistant writes a note and reads it back, in plain words.
+    await tool(first.access_token, "create_note", {
+      title: "From the assistant",
+      content: "Booked the ferry.",
+    });
+    expect(await tool(first.access_token, "list_notes", {})).toContain(
+      "From the assistant",
+    );
+    // What the server stores of it is sealed.
+    const [stored] = (await rig.storage.notes.listByUser(userId, { limit: 10 }))
+      .notes;
+    expect(stored?.title).toMatch(/^e1\./);
+
+    const grant = async (access: string) => {
+      const found = await rig.storage.apiTokens.findByHash(hashToken(access));
+      if (!found) throw new Error("no grant has this access token");
+      return found;
+    };
+    const before = await grant(first.access_token);
+    const opens = async (secret: string, wrapped: string | null) =>
+      wrapped !== null &&
+      (await unwrapTokenKeys(secret, wrapped, userId)) !== null;
+    expect(await opens(first.access_token, before.wrappedKeys)).toBe(true);
+    expect(await opens(first.refresh_token, before.refreshWrappedKeys)).toBe(
+      true,
+    );
+    // The code opens neither copy.
+    expect(await opens(code, before.wrappedKeys)).toBe(false);
+
+    const refreshed = await token({
+      grant_type: "refresh_token",
+      refresh_token: first.refresh_token,
+      client_id: clientId,
+    });
+    expect(refreshed.status).toBe(200);
+    const second = (await refreshed.json()) as TokenAnswer;
+    expect(await tool(second.access_token, "list_notes", {})).toContain(
+      "From the assistant",
+    );
+    const after = await grant(second.access_token);
+    expect(await opens(second.access_token, after.wrappedKeys)).toBe(true);
+    expect(await opens(second.refresh_token, after.refreshWrappedKeys)).toBe(
+      true,
+    );
+    // The tokens before open nothing that is still stored.
+    expect(await opens(first.access_token, after.wrappedKeys)).toBe(false);
+    expect(await opens(first.refresh_token, after.refreshWrappedKeys)).toBe(
+      false,
+    );
+  });
+
   it("refuses an access token past its hour", async () => {
     const clientId = await registeredClient();
     const { refresh_token } = await signIn(clientId);
@@ -236,6 +339,8 @@ describe("OAuth for /api/mcp", () => {
       tokenHash: hashToken("mfm_lapsed"),
       refreshHash: hashToken("mfr_next"),
       accessExpiresAt: "2020-01-01T00:00:00.000Z",
+      wrappedKeys: null,
+      refreshWrappedKeys: null,
     });
     expect((await mcp("mfm_lapsed")).status).toBe(401);
   });

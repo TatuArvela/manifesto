@@ -400,7 +400,7 @@ An assistant can also be given its token by signing in through the browser (OAut
 | `POST` | `/api/oauth/register` | Register a public client (RFC 7591) |
 | `POST` | `/api/oauth/token` | A form: trade a code and its PKCE verifier, or a refresh token, for an hour's `mfm_` token and the next `mfr_` refresh token |
 | `GET`  | `/api/oauth/client` | Session only: the client a consent is about (`OAuthClientInfo`) |
-| `POST` | `/api/oauth/authorize` | Session only, with the password: agree (`OAuthAuthorizeRequest`), answered with the client's redirect address carrying the code |
+| `POST` | `/api/oauth/authorize` | Session only, with the password: agree (`OAuthAuthorizeRequest`), answered with the client's redirect address. With `codeHash` and `wrappedKeys` (the app's own code, and the keys the grant carries wrapped under it) the address comes without a code, which the app adds; without them the server makes the code and the grant reaches no note |
 
 The first four answer any origin (CORS `*`), since they carry nothing a browser adds by itself.
 `/api/capabilities` says whether the server offers this, in `features.mcpSignIn`.

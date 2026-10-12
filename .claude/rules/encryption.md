@@ -22,6 +22,8 @@ paths:
   - "packages/server/src/test/keyedTokens.ts"
   - "packages/client/src/state/apiTokens.ts"
   - "packages/server/src/calendar/routes.ts"
+  - "packages/server/src/oauth/tokenEndpoint.ts"
+  - "packages/client/src/state/oauth.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
   - "packages/server/src/routes/attachments.ts"
@@ -222,6 +224,13 @@ note route opens what it answers and seals what it is sent. A new route that ans
 `noteOut` / `notesOut`, or a token is handed ciphertext. What is written beside a note under its
 key (a comment) goes through `noteRing`, `commentOut` and `commentBody` the same way; the event a
 write sends still carries the sealed copy, since the sockets are the app's.
+
+An assistant's OAuth grant carries the same keys (`oauth/tokenEndpoint.ts`). The consent page
+(`allowClient`) makes the code with `Sealer.newToken("")` and sends its hash and the keys wrapped
+under it, and adds `code` to the address the server answers with, which comes without one. The
+exchange opens the keys as bytes (`openTokenKeyMaterial`, the one caller that needs them so) and
+wraps them for the access token and for the refresh token (`refresh_wrapped_keys`); each refresh
+does it again from the refresh token being spent, in the same statement that rotates the hashes.
 
 A calendar feed's address is such a token too, carrying the reminder key alone
 (`wrapFeedKey`; `calendar/routes.ts` opens it from the address). It reaches a note only through

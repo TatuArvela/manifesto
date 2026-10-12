@@ -134,9 +134,21 @@ export interface OAuthAuthorizeRequest {
   /** Days until the grant ends; left out for one that does not. */
   expiresInDays?: number;
   password?: string;
+  /**
+   * For a grant that reaches notes: the SHA-256 of a code the app made, and
+   * the keys the grant carries wrapped under a key derived from that code.
+   * The server first sees the code when the assistant trades it in. They
+   * come together.
+   */
+  codeHash?: string;
+  wrappedKeys?: string;
 }
 
 export interface OAuthAuthorizeResponse {
-  /** The client's redirect address with the code on it, to send the browser to. */
+  /**
+   * The client's redirect address, to send the browser to: with the code on
+   * it when the server made the code, and without when the app did, which
+   * then adds `code` itself.
+   */
   redirectTo: string;
 }

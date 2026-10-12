@@ -12,13 +12,22 @@ export interface StoredApiToken extends ApiToken {
    * for a token that reaches no note. Never listed.
    */
   wrappedKeys: string | null;
+  /**
+   * For an assistant's grant that carries keys: the same keys wrapped under
+   * its refresh token, which is what makes the next access token's copy.
+   * Never listed.
+   */
+  refreshWrappedKeys: string | null;
 }
 
-/** An OAuth grant's secrets, replaced together at every refresh. */
+/** An OAuth grant's secrets, replaced together at every refresh: the copies
+ * of its keys under the old tokens go with them. */
 export interface OAuthGrantSecrets {
   tokenHash: string;
   refreshHash: string;
   accessExpiresAt: string;
+  wrappedKeys: string | null;
+  refreshWrappedKeys: string | null;
 }
 
 /**
@@ -28,11 +37,12 @@ export interface OAuthGrantSecrets {
  */
 export interface ApiTokensRepo {
   create(
-    input: Omit<StoredApiToken, "wrappedKeys"> & {
+    input: Omit<StoredApiToken, "wrappedKeys" | "refreshWrappedKeys"> & {
       tokenHash: string;
       refreshHash?: string;
       /** Left out for a token that carries no key. */
       wrappedKeys?: string | null;
+      refreshWrappedKeys?: string | null;
     },
   ): Promise<void>;
   findByHash(tokenHash: string): Promise<StoredApiToken | null>;
@@ -81,6 +91,9 @@ export interface StoredOAuthCode {
   /** When the grant it becomes ends; null for never. */
   grantExpiresAt: string | null;
   expiresAt: string;
+  /** The keys the grant will carry, wrapped under the code; null for a
+   * consent that handed none on. */
+  wrappedKeys: string | null;
 }
 
 /** The OAuth server's own rows; the grants themselves are API tokens. */

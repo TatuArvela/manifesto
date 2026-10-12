@@ -689,19 +689,32 @@ export const oauthRegisterSchema = z.object({
 });
 
 /** `POST /api/oauth/authorize`: the consent page's answer. */
-export const oauthAuthorizeSchema = z.object({
-  clientId: z.string().min(1).max(2000),
-  redirectUri: z.string().min(1).max(2000),
-  // A base64url SHA-256, which is 43 characters.
-  codeChallenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-  state: z.string().max(2000).exactOptional(),
-  scopes: z
-    .array(z.enum(["notes:read", "notes:write"]))
-    .min(1)
-    .max(2),
-  expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
-  password: confirmationPassword,
-});
+export const oauthAuthorizeSchema = z
+  .object({
+    clientId: z.string().min(1).max(2000),
+    redirectUri: z.string().min(1).max(2000),
+    // A base64url SHA-256, which is 43 characters.
+    codeChallenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+    state: z.string().max(2000).exactOptional(),
+    scopes: z
+      .array(z.enum(["notes:read", "notes:write"]))
+      .min(1)
+      .max(2),
+    expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
+    password: confirmationPassword,
+    // A code the app made, to carry keys: its SHA-256, and the keys wrapped
+    // under a key derived from it.
+    codeHash: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .exactOptional(),
+    wrappedKeys: sealed(MAX_TOKEN_KEYS_LENGTH).exactOptional(),
+  })
+  .refine(
+    (body) =>
+      (body.codeHash === undefined) === (body.wrappedKeys === undefined),
+    { message: "codeHash and wrappedKeys come together" },
+  );
 
 /** `POST /api/webhooks`. Where it may point is checked on every delivery,
  * against the resolved address; this only refuses what is never a webhook. */

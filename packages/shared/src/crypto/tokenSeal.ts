@@ -81,20 +81,18 @@ export async function wrapTokenKeys(
 }
 
 /**
- * The keys a presented token carries, ready to open and seal `userId`'s
- * notes with. Null when `wrapped` does not open with this secret. The keys
- * live for the request that asked and are never stored.
+ * The keys a presented token carries, as bytes: for the one place that has
+ * to wrap them again under another secret, the exchange that turns an
+ * assistant's code or refresh token into its next tokens. Null when
+ * `wrapped` does not open with this secret. The caller wipes them.
  */
-export async function unwrapTokenKeys(
+export async function openTokenKeyMaterial(
   secret: string,
   wrapped: string,
-  userId: string,
-): Promise<AccountSealKeys | null> {
+): Promise<TokenKeyMaterial | null> {
   const bytes = await unseal(await wrapKeyOf(secret), wrapped, DATA);
   const text = bytes ? fromUtf8(bytes) : null;
   if (text === null) return null;
-  let notes: Uint8Array<ArrayBuffer> | undefined;
-  let personal: Uint8Array<ArrayBuffer> | undefined;
   try {
     const parsed = JSON.parse(text) as {
       version?: unknown;
@@ -108,19 +106,40 @@ export async function unwrapTokenKeys(
     ) {
       return null;
     }
-    notes = base64urlToBytes(parsed.notes);
-    personal = base64urlToBytes(parsed.personal);
+    return {
+      version: parsed.version,
+      notes: base64urlToBytes(parsed.notes),
+      personal: base64urlToBytes(parsed.personal),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The keys a presented token carries, ready to open and seal `userId`'s
+ * notes with. Null when `wrapped` does not open with this secret. The keys
+ * live for the request that asked and are never stored.
+ */
+export async function unwrapTokenKeys(
+  secret: string,
+  wrapped: string,
+  userId: string,
+): Promise<AccountSealKeys | null> {
+  const material = await openTokenKeyMaterial(secret, wrapped);
+  if (!material) return null;
+  try {
     return {
       userId,
-      version: parsed.version,
-      notes: await sealingKey(notes),
-      personal: await sealingKey(personal),
+      version: material.version,
+      notes: await sealingKey(material.notes),
+      personal: await sealingKey(material.personal),
     };
   } catch {
     return null;
   } finally {
-    if (notes) wipe(notes);
-    if (personal) wipe(personal);
+    wipe(material.notes);
+    wipe(material.personal);
   }
 }
 

@@ -624,6 +624,16 @@ ALTER TABLE notes ADD COLUMN reminder_key TEXT NOT NULL DEFAULT '';
 ALTER TABLE note_shares ADD COLUMN reminder_key TEXT NOT NULL DEFAULT '';
 `;
 
+/**
+ * The keys an assistant's sign-in carries from the consent page to its
+ * tokens: wrapped under the code until it is traded in, and then under the
+ * refresh token beside the copy under the access token.
+ */
+const OAUTH_KEYS = `
+ALTER TABLE oauth_codes ADD COLUMN wrapped_keys TEXT;
+ALTER TABLE api_tokens ADD COLUMN refresh_wrapped_keys TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -660,6 +670,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0033-note-rekey", sql: NOTE_REKEY },
   { id: "0034-seen-keys", sql: SEEN_KEYS },
   { id: "0035-reminder-keys", sql: REMINDER_KEYS },
+  { id: "0036-oauth-keys", sql: OAUTH_KEYS },
 ];
 
 export function runMigrations(

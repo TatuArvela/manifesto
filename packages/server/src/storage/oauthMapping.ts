@@ -21,13 +21,14 @@ export interface OAuthCodeRow {
   scopes: string;
   grant_expires_at: string | null;
   expires_at: string;
+  wrapped_keys: string | null;
 }
 
 export const OAUTH_CLIENT_COLUMNS =
   "id, name, redirect_uris, created_at, last_used_at";
 
 export const OAUTH_CODE_COLUMNS =
-  "code_hash, client_id, client_name, user_id, redirect_uri, code_challenge, scopes, grant_expires_at, expires_at";
+  "code_hash, client_id, client_name, user_id, redirect_uri, code_challenge, scopes, grant_expires_at, expires_at, wrapped_keys";
 
 /** The addresses a row names; an unreadable list names none, so nothing can
  * be redirected to through it. */
@@ -64,5 +65,6 @@ export function rowToOAuthCode(row: OAuthCodeRow): StoredOAuthCode {
     scopes: parseScopes(row.scopes),
     grantExpiresAt: row.grant_expires_at,
     expiresAt: row.expires_at,
+    wrappedKeys: row.wrapped_keys,
   };
 }

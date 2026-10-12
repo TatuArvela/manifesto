@@ -61,8 +61,14 @@ the endpoints below answer `404` and tokens minted by hand are the only way in.
   minting a token by hand does, and counts toward the same limit of 50 tokens. A user who signs in
   through the identity provider from that page comes back to it after. A code is good once, for two
   minutes, and only with the verifier of the challenge it was issued for.
+- **Keys**: notes are [encrypted](encryption.md#tokens-that-carry-a-key), so the grant carries the
+  keys to open them. The consent page, which runs in the unlocked app, makes the code itself and
+  wraps the keys under a key derived from it; the server is sent the code's hash and the wrapped
+  keys, and answers with the redirect address without a code, which the page adds. The server
+  first sees the code when the assistant trades it in.
 - **Tokens**: `POST /api/oauth/token` trades the code for an access token (`mfm_`, an hour) and a
-  refresh token (`mfr_`), which trades for the next pair; each refresh replaces both. The refresh
+  refresh token (`mfr_`), which trades for the next pair; each refresh replaces both, and wraps the
+  grant's keys again under the new pair in place of the copies before. The refresh
   token is not a bearer token anywhere. One that comes back after it was replaced has been copied,
   and ends the grant for the assistant and the copy alike. A `resource` other than `/api/mcp` is
   refused (`invalid_target`).

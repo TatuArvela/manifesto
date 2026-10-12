@@ -23,6 +23,7 @@ function code(overrides: Partial<StoredOAuthCode> = {}): StoredOAuthCode {
     scopes: ["notes:read", "notes:write"],
     grantExpiresAt: null,
     expiresAt: T1,
+    wrappedKeys: null,
     ...overrides,
   };
 }
@@ -111,12 +112,16 @@ export function describeOAuthContract(
         accessExpiresAt: T1,
         tokenHash: "access-1",
         refreshHash: "refresh-1",
+        wrappedKeys: "e1.under-access-1",
+        refreshWrappedKeys: "e1.under-refresh-1",
       });
       const grant = await storage.apiTokens.findByRefreshHash("refresh-1");
       expect(grant).toMatchObject({
         id: "g1",
         oauthClientId: "c1",
         accessExpiresAt: T1,
+        wrappedKeys: "e1.under-access-1",
+        refreshWrappedKeys: "e1.under-refresh-1",
       });
       expect((await storage.apiTokens.listByUser("u1"))[0]).toEqual({
         id: "g1",
@@ -134,10 +139,17 @@ export function describeOAuthContract(
         tokenHash: "access-2",
         refreshHash: "refresh-2",
         accessExpiresAt: T2,
+        wrappedKeys: "e1.under-access-2",
+        refreshWrappedKeys: "e1.under-refresh-2",
       };
       expect(await storage.apiTokens.rotate("refresh-1", next)).toBe(true);
       expect(await storage.apiTokens.rotate("refresh-1", next)).toBe(false);
       expect(await storage.apiTokens.findByHash("access-1")).toBeNull();
+      // The copies of its keys under the tokens before are written over.
+      expect(await storage.apiTokens.findByHash("access-2")).toMatchObject({
+        wrappedKeys: "e1.under-access-2",
+        refreshWrappedKeys: "e1.under-refresh-2",
+      });
       expect(
         (await storage.apiTokens.findByHash("access-2"))?.accessExpiresAt,
       ).toBe(T2);

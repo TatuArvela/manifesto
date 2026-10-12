@@ -184,9 +184,16 @@ export function createOAuthRoutes(deps: OAuthDeps) {
       if (existing.length >= MAX_API_TOKENS_PER_USER) {
         throw new HttpError(409, "Revoke a token before creating another");
       }
-      const code = randomBytes(32).toString("base64url");
+      // A grant that reaches notes carries their keys, so the consent page
+      // made the code and wrapped the keys under it: the server stores the
+      // code's hash and first sees the code when the assistant trades it in.
+      const code =
+        body.codeHash === undefined
+          ? randomBytes(32).toString("base64url")
+          : null;
       await storage.oauth.createCode({
-        codeHash: hashToken(code),
+        codeHash: code === null ? (body.codeHash ?? "") : hashToken(code),
+        wrappedKeys: body.wrappedKeys ?? null,
         clientId: client.id,
         clientName: client.name,
         userId: auth.userId,
@@ -200,7 +207,8 @@ export function createOAuthRoutes(deps: OAuthDeps) {
         expiresAt: plusMs(nowIso(), CODE_TTL_MS),
       });
       const target = new URL(body.redirectUri);
-      target.searchParams.set("code", code);
+      // A code the app made is the app's to add.
+      if (code !== null) target.searchParams.set("code", code);
       if (body.state !== undefined)
         target.searchParams.set("state", body.state);
       const answer: OAuthAuthorizeResponse = { redirectTo: target.href };

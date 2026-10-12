@@ -495,9 +495,12 @@ the code does, and nothing here may be released:
   note's key is replaced. A reminder set by a script, which holds no reminder key, has no copy
   until a device of the account next sees the note and leaves one; until then the feed names that
   event "Reminder".
-- **Not built of tokens yet** (the rest of step 6): a token cannot attach or read images; an
-  assistant signed in through the browser (OAuth) carries no key and reaches no note;
-  Settings does not offer to replace every key when a token is revoked, since that is step 8.
+- **An assistant signed in through the browser** carries the same two keys. The consent page makes
+  the code and wraps the keys under it; the server is sent the code's hash and first sees the code
+  when the assistant trades it in. At that exchange, and at every refresh, the server wraps the
+  keys again for the new access and refresh tokens and writes over the copies before them.
+- **Not built of tokens yet** (the rest of step 6): a token cannot attach or read images; Settings
+  does not offer to replace every key when a token is revoked, since that is step 8.
 - **A push message** for a reminder says "Reminder" and nothing of the note (step 7).
 - **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
   and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.

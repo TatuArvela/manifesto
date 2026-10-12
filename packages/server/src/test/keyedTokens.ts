@@ -134,3 +134,14 @@ export async function heldKeyOf(
     keyVersion: sealed.keyVersion,
   };
 }
+
+/**
+ * An account's notes key and personal key wrapped under `secret`, as the
+ * consent page wraps them under the code it makes for an assistant.
+ */
+export async function wrapTestKeys(
+  secret: string,
+  userId: string,
+): Promise<string> {
+  return wrapTokenKeys(secret, await material(userId));
+}

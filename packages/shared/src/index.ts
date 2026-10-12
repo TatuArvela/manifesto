@@ -265,6 +265,7 @@ export type { TokenKeyMaterial } from "./crypto/tokenSeal.js";
 export {
   MAX_TOKEN_KEYS_LENGTH,
   newTokenSecret,
+  openTokenKeyMaterial,
   tokenHashOf,
   unwrapFeedKey,
   unwrapTokenKeys,

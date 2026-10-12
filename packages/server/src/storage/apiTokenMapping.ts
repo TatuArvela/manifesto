@@ -19,10 +19,11 @@ export interface ApiTokenRow {
   oauth_client_id: string | null;
   access_expires_at: string | null;
   wrapped_keys: string | null;
+  refresh_wrapped_keys: string | null;
 }
 
 export const API_TOKEN_COLUMNS =
-  "id, user_id, name, kind, scopes, prefix, created_at, last_used_at, expires_at, oauth_client_id, access_expires_at, wrapped_keys";
+  "id, user_id, name, kind, scopes, prefix, created_at, last_used_at, expires_at, oauth_client_id, access_expires_at, wrapped_keys, refresh_wrapped_keys";
 
 /** The scopes a row names, leaving out any this server does not know: a
  * scope is a grant, so an unreadable one grants nothing. */
@@ -54,6 +55,7 @@ export function rowToApiToken(row: ApiTokenRow): StoredApiToken {
     expiresAt: row.expires_at,
     accessExpiresAt: row.access_expires_at,
     wrappedKeys: row.wrapped_keys,
+    refreshWrappedKeys: row.refresh_wrapped_keys,
     ...(row.oauth_client_id !== null && {
       oauthClientId: row.oauth_client_id,
     }),
@@ -66,6 +68,7 @@ export function listedToken({
   userId: _userId,
   accessExpiresAt: _accessExpiresAt,
   wrappedKeys: _wrappedKeys,
+  refreshWrappedKeys: _refreshWrappedKeys,
   ...token
 }: StoredApiToken) {
   return token;
