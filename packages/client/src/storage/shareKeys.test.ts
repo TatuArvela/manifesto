@@ -1,13 +1,20 @@
-import type { AccountPublicKeys } from "@manifesto/shared";
+import {
+  type AccountPublicKeys,
+  NoteColor,
+  NoteFont,
+  type NoteRekeyRequest,
+  type SealedNote,
+} from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { testKeys } from "../test/sealedServer.js";
 import { createAccountKeys } from "../utils/keyMaterial.js";
 import { storageConnection } from "./index.js";
-import { storageKeys } from "./sealing.js";
+import { sealer, storageKeys } from "./sealing.js";
 import {
   changedKeys,
   forgetPublicKeys,
   keyStatusOf,
+  replaceNoteKey,
   trustChangedKeys,
   trustedKeysOf,
 } from "./shareKeys.js";
@@ -22,6 +29,11 @@ const publicKeysOf = new Map<string, AccountPublicKeys>();
 let seen: Record<string, string>;
 let seenReadable: boolean;
 let seenWritable: boolean;
+/** A note the server holds, what it answers for its public links, and the
+ * replacement of its key the server was last sent. */
+let held: SealedNote | null;
+let linksStatus: number;
+let rekeyed: NoteRekeyRequest | null;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -50,6 +62,16 @@ async function server(url: string, init?: RequestInit): Promise<Response> {
     seen[decodeURIComponent(put[1] ?? "")] = sealed;
     return new Response(null, { status: 204 });
   }
+  if (held && path === `/api/notes/${held.id}`) return json({ note: held });
+  if (held && path === `/api/notes/${held.id}/links`) {
+    return linksStatus === 200
+      ? json({ links: [] })
+      : json({ error: "no" }, linksStatus);
+  }
+  if (held && path === `/api/notes/${held.id}/key` && init?.method === "PUT") {
+    rekeyed = JSON.parse(String(init.body)) as NoteRekeyRequest;
+    return json({ note: held });
+  }
   return json({ error: "unexpected" }, 500);
 }
 
@@ -68,6 +90,9 @@ beforeEach(() => {
   seen = {};
   seenReadable = true;
   seenWritable = true;
+  held = null;
+  linksStatus = 200;
+  rekeyed = null;
   changedKeys.value = new Map();
   vi.stubGlobal(
     "fetch",
@@ -168,5 +193,44 @@ describe("remembering other people's keys", () => {
     await unlock(mine);
     expect(await trustedKeysOf("u-bob")).not.toBeNull();
     expect(changedKeys.value.size).toBe(0);
+  });
+});
+
+describe("replacing a note's key", () => {
+  async function dueNote(): Promise<void> {
+    await unlock(await testKeys("u-me"));
+    const sealed = await sealer.peek()?.sealNew("n1", {
+      title: "Trip plan",
+      content: "Fly on the third.",
+      color: NoteColor.Yellow,
+      font: NoteFont.Serif,
+      pinned: false,
+      archived: false,
+      trashed: false,
+      trashedAt: null,
+      position: 0,
+      tags: [],
+      images: [],
+      linkPreviews: [],
+      reminder: null,
+    });
+    if (!sealed) throw new Error("locked");
+    const { imageRefs: _i, previewRefs: _p, ...note } = sealed;
+    held = { ...note, createdAt: "c", updatedAt: "u", rekeyDue: true };
+  }
+
+  it("replaces it on a server with public links switched off", async () => {
+    await dueNote();
+    linksStatus = 404;
+    expect(await replaceNoteKey("n1")).toBe(true);
+    expect(rekeyed?.keyVersion).toBe(2);
+    expect(rekeyed?.links).toBeUndefined();
+  });
+
+  it("leaves it due while the note's links cannot be read", async () => {
+    await dueNote();
+    linksStatus = 500;
+    expect(await replaceNoteKey("n1")).toBe(false);
+    expect(rekeyed).toBeNull();
   });
 });

@@ -5,6 +5,7 @@ import {
   keyFingerprint,
   type NoteResponse,
   type OfferedKey,
+  type PublicLink,
   type PublicLinksResponse,
   type SealedNote,
   type SeenKeysResponse,
@@ -314,6 +315,25 @@ export async function supplyKey(
   return res?.ok ?? false;
 }
 
+/**
+ * The public links a note's new key has to be handed to. A server with
+ * public links switched off answers 404 for the listing, and has none to
+ * hand it to: the key is replaced all the same, since the person who left
+ * still holds the old one. Rejects when the listing could not be read.
+ */
+async function liveLinksOf(noteId: string): Promise<PublicLink[]> {
+  try {
+    const listed = await apiJson<PublicLinksResponse>(
+      "GET",
+      `/notes/${noteId}/links`,
+    );
+    return listed?.links ?? [];
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
+}
+
 /** How often a replacement is sealed again when the note is written under
  * it, before it is left for the next try. */
 const REKEY_ATTEMPTS = 3;
@@ -333,11 +353,7 @@ export async function replaceNoteKey(noteId: string): Promise<boolean> {
       const sealed = await sealedNote(noteId)();
       // Not due any more: another device of this account got there first.
       if (!sealed?.rekeyDue) return false;
-      const listed = await apiJson<PublicLinksResponse>(
-        "GET",
-        `/notes/${noteId}/links`,
-      );
-      const made = await sealing.rekey(sealed, listed?.links ?? []);
+      const made = await sealing.rekey(sealed, await liveLinksOf(noteId));
       if (!made) return false;
       // The fields were sealed again from the note as just read. The server
       // takes them only if nothing has written it since, or an edit made
