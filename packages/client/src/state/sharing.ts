@@ -407,11 +407,15 @@ function setAbout(
   });
 }
 
-/** Supplying one person a note's key, as `inHand` names it. Kept once tried,
- * failed or not, so someone who cannot be supplied (an account with no keys
- * yet) is not asked about on every change of a note; `trustKeys` forgets. */
-const supplyOf = (noteId: string, userId: string) =>
-  `supply ${noteId} ${userId}`;
+/**
+ * Supplying one person a note's key, as `inHand` names it. Kept once tried,
+ * so someone who cannot be supplied (an account with no keys yet) is not
+ * asked about on every change of a note; `trustKeys` forgets. The name
+ * carries the key the note was last moved to here: a key replaced again
+ * leaves everyone waiting again, whoever was supplied the one before.
+ */
+const supplyOf = (sealing: NoteSealing, noteId: string, userId: string) =>
+  `supply ${noteId} ${sealing.replaced.peek().get(noteId) ?? 0} ${userId}`;
 
 /**
  * Hands the note's key to whoever on it is still waiting for one: a member
@@ -426,10 +430,14 @@ async function supplyWaiting(note: Note): Promise<void> {
   // A viewer holds the key as much as anyone, so anyone on the note may.
   for (const member of note.sharing?.members ?? []) {
     if (!member.waitingForKey) continue;
-    const tried = supplyOf(note.id, member.id);
+    const tried = supplyOf(sealing, note.id, member.id);
     if (supplied.has(tried)) continue;
     supplied.add(tried);
-    await supplyKey(note.id, member.id);
+    // A request that did not get through is tried again the next time the
+    // effect below runs: when the connection is back, or the notes change.
+    if ((await supplyKey(note.id, member.id)) === "failed") {
+      supplied.delete(tried);
+    }
   }
 }
 
@@ -494,7 +502,11 @@ effect(() => {
 // Follows the notes: a share to a team reaches its members with no key, and
 // this is the "first client of anyone holding the note" that wraps it.
 effect(() => {
-  if (!sealer.value?.handsKeysOn) return;
+  const sealing = sealer.value;
+  if (!sealing?.handsKeysOn) return;
+  if (connectionOutage.value) return;
+  // Read so the effect runs again when a note's key is replaced.
+  void sealing.replaced.value;
   for (const note of notes.value) {
     if (roleOf(note) === "view" && !note.sharing) continue;
     if (note.sharing?.members.some((m) => m.waitingForKey)) {

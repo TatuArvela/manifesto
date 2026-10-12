@@ -163,7 +163,10 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   (it would close a cycle through `storage/index.ts`).
 - `state/sharing.ts` shows an invitation only once its key checked and opened (`Invitation.waiting`
   otherwise), accepts with the held key, and supplies a key to whoever on a note is
-  `waitingForKey`, as the owner or as any other holder.
+  `waitingForKey`, as the owner or as any other holder. What it has tried is named with the key
+  the note was last moved to (`Sealer.replaced`), so a second replacement supplies everyone again,
+  and a `supplyKey` that `failed` (a request that did not get through, as opposed to `unable`) is
+  forgotten and tried when the connection is back.
 - Any note the server answers with outside the adapter (the share routes) is opened with
   `sealer.peek()?.open(...)` before `receiveNote`.
 - **Whose key it is.** Nothing wraps to, or checks a signature against, a key straight from

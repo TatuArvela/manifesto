@@ -299,20 +299,31 @@ setOfferHandler(async (sealing, sealed) => {
   if (held) void apiFetch("PUT", `/notes/${sealed.id}/held-key`, held);
 });
 
-/** Hands `recipientId`, who is on the note and waiting, its key. Resolves
- * whether the server took it; never rejects. */
+/**
+ * How handing someone a key went: `unable` when there is nothing to hand
+ * them or nothing to wrap it to (an account with no keys yet, a changed key
+ * nobody has agreed to), which asking again does not change; `failed` when a
+ * request did not get through, which it may.
+ */
+export type SupplyResult = "supplied" | "unable" | "failed";
+
+/** Hands `recipientId`, who is on the note and waiting, its key. Never
+ * rejects. */
 export async function supplyKey(
   noteId: string,
   recipientId: string,
-): Promise<boolean> {
+): Promise<SupplyResult> {
   const offered = await offerKeyTo(noteId, recipientId);
-  if (!offered) return false;
+  if (!offered) {
+    // `publicKeysOf` keeps an answer and forgets a request that failed.
+    return publicKeys.has(recipientId) ? "unable" : "failed";
+  }
   const res = await apiFetch(
     "PUT",
     `/notes/${noteId}/shares/${encodeURIComponent(recipientId)}/key`,
     offered,
   );
-  return res?.ok ?? false;
+  return res?.ok ? "supplied" : "failed";
 }
 
 /**
