@@ -441,8 +441,9 @@ Steps 2 to 7 are released together: a server half way would hold notes its own f
 
 ### What is built so far
 
-Steps 1 to 3 and 5 are built, and part of step 4. Until the rest is, this page describes more than
-the code does, and nothing here may be released:
+Steps 1 to 7 are built. Step 8, replacing the account key, is not, and a few things are built
+narrower than the sections above describe; each is said where it applies below. Nothing of the
+app's own screens has been run in a browser yet, so none of this is released:
 
 - **Sealed in the browser**: a note's title, text, excerpt, font, link previews and list of images
   under its note key, its tags and colour under the reader's personal key, its versions, and the
