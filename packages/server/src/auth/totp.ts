@@ -80,6 +80,8 @@ export function verifyTotp(
   const digits = code.replace(/\s/g, "");
   if (!/^\d{6}$/.test(digits)) return null;
   const key = base32Decode(secret);
+  // No secret is not a secret: its codes are anyone's to work out.
+  if (key.length === 0) return null;
   const now = totpStep(nowMs);
   for (let step = now - WINDOW; step <= now + WINDOW; step++) {
     const expected = Buffer.from(hotp(key, step));

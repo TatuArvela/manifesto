@@ -53,6 +53,15 @@ describe("verifyTotp", () => {
     expect(verifyTotp(secret, "12345", at)).toBeNull();
     expect(verifyTotp(secret, "abcdef", at)).toBeNull();
   });
+
+  it("matches no code for a secret that is not there", () => {
+    // What a secret reads as once the server key that sealed it is gone.
+    // The code for an empty key is anyone's to compute.
+    const step = Math.floor(1111111109 / 30);
+    const guessable = hotp(Buffer.alloc(0), step);
+    expect(verifyTotp("", guessable, at)).toBeNull();
+    expect(verifyTotp("=", guessable, at)).toBeNull();
+  });
 });
 
 describe("otpauthUri", () => {
