@@ -43,11 +43,14 @@ export async function emptyAccount(
     noteEvents.ended([removed]);
     await noteEvents.changed(id);
   }
-  for (const invitation of await storage.shares.listInvitations(userId)) {
-    const removed = await storage.shares.delete(invitation.noteId, userId);
+  // Every share left, whatever state it or its note is in: an invitation,
+  // and a note its owner has in the trash, which no listing shows and which
+  // would come back from there under a key this account can no longer open.
+  for (const share of await storage.shares.listByRecipient(userId)) {
+    const removed = await storage.shares.delete(share.noteId, userId);
     if (!removed) continue;
     noteEvents.ended([removed]);
-    await noteEvents.changed(invitation.noteId);
+    await noteEvents.changed(share.noteId);
   }
   await storage.prefs.clear(userId);
 }

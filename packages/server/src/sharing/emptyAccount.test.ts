@@ -121,6 +121,20 @@ describe("emptyAccount", () => {
     expect(((await res.json()) as { note: Note }).note.sharing).toBeUndefined();
   });
 
+  it("gives up a note its owner has in the trash, which no listing shows", async () => {
+    const shared = await create(alice, "Alice's");
+    await share(shared, alice, bob);
+    await call(alice, "PUT", `/api/notes/${shared.id}`, { trashed: true });
+    expect(await idsOf(bob)).toEqual([]);
+
+    await empty();
+
+    // Restored, it would have come back under a key the account has lost.
+    expect(await rig.storage.shares.listByRecipient(bob.userId)).toEqual([]);
+    await call(alice, "PUT", `/api/notes/${shared.id}`, { trashed: false });
+    expect(await idsOf(bob)).toEqual([]);
+  });
+
   it("removes its preferences", async () => {
     await call(bob, "PATCH", "/api/auth/me/prefs", {
       prefs: { hiddenTags: ["work"] },
