@@ -224,6 +224,9 @@ editor reads `synced` as "this document holds what the server has", and reportin
 document's sync would seed an empty editor over everyone's text. An entry that does not open is
 passed over by design (any editor can append junk, and must not be able to stop the note syncing),
 and counted: `onUnreadable` carries the count to `useNoteYDoc`, and the editor shows a notice.
+`settled()` resolves later than the effect that asked, and a destroyed session's socket stays up
+until its last edits are sealed, so every callback `useNoteYDoc` hands a session checks
+`cancelled`: one that wrote state after cleanup would mark the next note's session `synced`.
 
 Sealing takes a moment, so `SealedDocument.destroy` resolves once the edits already made are in the
 wire document, and `createYjsSession` closes the provider, the offline copy and the wire document

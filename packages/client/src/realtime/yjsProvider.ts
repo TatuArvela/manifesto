@@ -117,16 +117,22 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
           user: user
             ? { id: user.id, name: user.displayName, color: user.avatarColor }
             : null,
+          // A session that was destroyed still speaks: its socket closes
+          // once the last edits are sealed, and `synced` waits on entries
+          // being opened. By then the state is the next session's, and
+          // marking that one synced would bind an editor to an empty
+          // document.
           onStatus: (status) => {
-            setState((prev) => ({ ...prev, status }));
+            if (!cancelled) setState((prev) => ({ ...prev, status }));
           },
           onSynced: () => {
-            setState((prev) => ({ ...prev, synced: true }));
+            if (!cancelled) setState((prev) => ({ ...prev, synced: true }));
           },
           onUnreadable: (unreadable) => {
             if (!cancelled) setState((prev) => ({ ...prev, unreadable }));
           },
           onAuthenticationFailed: (reason) => {
+            if (cancelled) return;
             setState((prev) => ({
               ...prev,
               status: "disconnected",
