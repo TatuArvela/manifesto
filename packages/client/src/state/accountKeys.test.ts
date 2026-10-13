@@ -202,6 +202,21 @@ describe("account keys", () => {
     expect(sent).not.toContain(sheet?.recoveryKey);
   });
 
+  it("keeps the sheet it showed when the same account is only described anew", async () => {
+    await signIn();
+    await state("setup");
+    const sheet = await keys.prepareSetup();
+    const asked = requests.length;
+    // A new display name or language, as a refresh of the account brings.
+    currentUser.value = { ...USER, displayName: "Alice A." };
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(keys.keyState.value).toBe("setup");
+    expect(requests.length).toBe(asked);
+    // The keys already on the screen, or on paper, are the ones set up.
+    expect(await keys.prepareSetup()).toEqual(sheet);
+    expect(await keys.completeSetup()).toBe("ok");
+  });
+
   it("asks for the other device's key when that one set the account up first", async () => {
     await signIn();
     await state("setup");

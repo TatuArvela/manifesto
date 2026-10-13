@@ -65,7 +65,9 @@ Signing in opens nothing. `keyState` (`state/accountKeys.ts`) is what `App` show
 `setup` for an account with no keys (the browser makes them and shows the sheet once), `locked` until
 the secret key is entered, `unlocked` after. It follows the session through one effect, so a
 sign-out and a session the server ended both remove the keys with no caller having to remember; a
-new way in only has to set `authToken`. A flow that already holds the keys when it signs in (the
+new way in only has to set `authToken`. The effect follows who is signed in (`signedInAs`) and runs
+the check `untracked`: `currentUser` is replaced whole on any refresh of the account, and deciding
+again then would discard a set-up or recovery whose sheet is already shown. A flow that already holds the keys when it signs in (the
 recovery key from the sign-in screen) sets them before `adoptSession`, so the check that follows
 finds the account unlocked instead of asking for a key. Whatever changes what the device holds goes
 through `setHeld`, which is also what tells the storage layer (`storageKeys`).

@@ -5,7 +5,7 @@ import type {
   RecoveryCompleteRequest,
   RecoveryOpenResponse,
 } from "@manifesto/shared";
-import { effect, signal } from "@preact/signals";
+import { computed, effect, signal, untracked } from "@preact/signals";
 import { apiFetch } from "../storage/apiRequest.js";
 import {
   clearDeviceKeys,
@@ -225,13 +225,20 @@ export async function checkAccountKeys(): Promise<void> {
   if (scannedSecretKey !== null) await unlock(scannedSecretKey);
 }
 
+/** Who is signed in, and nothing else about them. */
+const signedInAs = computed(() => currentUser.value?.id ?? null);
+
 // The state follows the session: a sign-in asks for the key, and a sign-out
 // or a session the server ended (`clearAuthLocal`) removes it.
 effect(() => {
   // Read so the effect runs again when either changes.
   void authToken.value;
-  void currentUser.value?.id;
-  void checkAccountKeys();
+  void signedInAs.value;
+  // Untracked, since the check reads `currentUser` whole: the same account
+  // under a new name or language is not a new session, and deciding again
+  // would throw away the keys of a set-up or a recovery whose sheet is
+  // already on the screen.
+  untracked(() => void checkAccountKeys());
 });
 
 /** What a tab tells the others: the device's copy was written (`held`), or
