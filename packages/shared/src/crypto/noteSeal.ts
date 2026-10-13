@@ -220,7 +220,7 @@ type SharedPlain = Pick<
   "title" | "content" | "font" | "images" | "linkPreviews"
 >;
 type PersonalPlain = Pick<Note, "color" | "tags">;
-type SharedSealed = Pick<
+export type SharedSealed = Pick<
   SealedNote,
   "title" | "content" | "excerpt" | "font" | "images" | "linkPreviews"
 >;
@@ -535,6 +535,41 @@ export async function openSharedFields(
       imageKeys,
     ),
   };
+}
+
+/**
+ * Whether `key` is the key the note's words are under: it opens one of the
+ * fields `sealed` carries. `openSharedFields` reads a field that does not
+ * open as empty, so a wrong key would show an empty note, and the next edit
+ * would seal over everyone's words with it. Asked of a key that came from
+ * someone else before it is kept. True where `sealed` carries no field at
+ * all, which leaves nothing to tell by.
+ */
+export async function opensSharedFields(
+  key: NoteSealKey,
+  noteId: string,
+  sealed: Partial<SharedSealed>,
+): Promise<boolean> {
+  const fields = [
+    "title",
+    "content",
+    "excerpt",
+    "font",
+    "images",
+    "linkPreviews",
+  ] as const;
+  let carried = false;
+  for (const field of fields) {
+    if (!sealed[field]) continue;
+    carried = true;
+    const opened = await openText(
+      key.fields,
+      sealed[field],
+      sharedData(key, noteId, field),
+    );
+    if (opened !== null) return true;
+  }
+  return !carried;
 }
 
 /** Opens and checks a person's own fields; an empty one was never set. */

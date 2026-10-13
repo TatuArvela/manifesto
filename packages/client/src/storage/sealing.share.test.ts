@@ -166,6 +166,28 @@ describe("handing a note's key to someone it is shared with", () => {
     expect(await adopt("n1", theirs)).toBeNull();
     // And one said to be a later key than it is.
     expect(await adopt("n1", { ...good, keyVersion: 2 })).toBeNull();
+    // A key of mallory's making under her own name: the signature checks,
+    // since she is on the note, but it is not the key the note's words are
+    // under, and a note opened with it would read as empty.
+    expect(
+      await alice.sealer.adoptOffered(
+        "n1",
+        forged,
+        mallory.publicKeys.signing,
+        alice.load,
+        note,
+      ),
+    ).toBeNull();
+    expect(alice.sealer.holds("n1")).toBe(false);
+    expect(
+      await alice.sealer.adoptOffered(
+        "n1",
+        good,
+        owner.publicKeys.signing,
+        alice.load,
+        note,
+      ),
+    ).not.toBeNull();
 
     expect(await adopt("n1", good)).not.toBeNull();
   });

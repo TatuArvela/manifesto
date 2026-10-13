@@ -208,6 +208,7 @@ export type {
   ImageKeys,
   NoteSealKey,
   OpenedSharedFields,
+  SharedSealed,
 } from "./crypto/noteSeal.js";
 export {
   checkedImages,
@@ -227,6 +228,7 @@ export {
   openReminderKey,
   openSealedNote,
   openSharedFields,
+  opensSharedFields,
   openVersion,
   resealSharedFields,
   SEALED_FIELD_MAX,

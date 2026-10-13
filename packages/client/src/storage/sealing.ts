@@ -25,6 +25,7 @@ import {
   openPreviousKeys,
   openSealedNote,
   openSharedFields,
+  opensSharedFields,
   openVersion,
   type PublicLink,
   type PublicLinkCreateRequest,
@@ -37,6 +38,7 @@ import {
   type SealedNoteUpdate,
   type SealedNoteVersion,
   type SealedNoteVersionCreateRequest,
+  type SharedSealed,
   sealComment,
   sealImage,
   sealNewNote,
@@ -288,13 +290,17 @@ export class Sealer {
    * checks against `signerKey`, the signing key of the account it says
    * wrapped it; then it is opened and wrapped under this account's own notes
    * key, which is what is handed back to store. Null for one that does not
-   * check or does not open.
+   * check or does not open, and for one that is not the key of `words`, the
+   * note's sealed fields as the server sent them: the signature says who
+   * wrapped a key, not that it is the note's, and anyone on the note may
+   * wrap one.
    */
   async adoptOffered(
     noteId: string,
     offered: OfferedKey,
     signerKey: string,
     load: () => Promise<AccountKeys | null>,
+    words?: Partial<SharedSealed>,
   ): Promise<HeldKeyRequest | null> {
     const context = { noteId, recipientId: this.keys.userId };
     if (!(await verifyOfferedKey(context, offered, signerKey))) return null;
@@ -303,17 +309,15 @@ export class Sealer {
     const raw = await openOfferedKey(context, offered, own.exchange);
     if (!raw) return null;
     try {
+      const key = await noteSealKey(raw, offered.keyVersion);
+      if (words && !(await opensSharedFields(key, noteId, words))) return null;
       const wrapped = await wrapNoteKey(
         await this.account,
         noteId,
         offered.keyVersion,
         raw,
       );
-      this.hold(noteId, {
-        key: await noteSealKey(raw, offered.keyVersion),
-        wrapped,
-        previous: "",
-      });
+      this.hold(noteId, { key, wrapped, previous: "" });
       return { key: wrapped, keyVersion: offered.keyVersion };
     } finally {
       wipe(raw);

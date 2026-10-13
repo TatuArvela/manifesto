@@ -156,7 +156,13 @@ Everyone on a shared note needs its key (`shared/src/crypto/shareSeal.ts`). It i
 recipient's ECDH public key through an ephemeral key (`offerNoteKey`) and signed with the wrapper's
 ECDSA key over the note, the version, the recipient and the wrap; the recipient's client uses none
 whose signature fails (`Sealer.adoptOffered`), since wrapping to a public key proves nothing about
-who wrapped. The server stores the offer on the share row (`offered_key`) and, once accepted, the
+who wrapped. A signature says who wrapped a key, not that it is the note's, and anyone on a note
+may wrap one, so `adoptOfferedKey` also holds the key to the note's sealed fields
+(`opensSharedFields`): `openSharedFields` reads a field that does not open as empty, and a wrong
+key kept would show an empty note whose next edit seals over everyone's words. The route
+(`PUT /:id/shares/:userId/key`) lets anyone but the owner hand a key only to someone
+`waitingForKey`, judged from the owner's view of the note, which is the one that lists
+invitations. The server stores the offer on the share row (`offered_key`) and, once accepted, the
 recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_version`).
 
 - A recipient is sent `key` only while their copy is the key the note is under (`rowToViewNote`);

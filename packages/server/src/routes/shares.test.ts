@@ -562,6 +562,12 @@ describe("handing a shared note's key on", () => {
     expect((await put(alice, owner.userId)).status).toBe(422);
     expect((await put(alice)).status).toBe(204);
     expect((await invitationOf(bob))?.offered?.signer).toBe(alice.userId);
+    // Offered one, bob is not waiting: nobody but the owner puts another in
+    // its place, or any holder could swap in a key of their own making.
+    expect((await put(alice)).status).toBe(409);
+    expect((await invitationOf(bob))?.offered?.signer).toBe(alice.userId);
+    expect((await put(owner)).status).toBe(204);
+    expect((await invitationOf(bob))?.offered?.signer).toBe(owner.userId);
     // Nobody is waiting any more, as everyone on the note can see.
     const seen = await call(owner, "GET", `/api/notes/${id}`);
     const { note: ownerView } = (await seen.json()) as { note: Note };

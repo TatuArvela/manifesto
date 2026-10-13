@@ -85,7 +85,7 @@ async function opened(raw: ShareInvitation): Promise<Invitation> {
   const sealing = sealer.peek();
   if (!sealing || !offered) return waiting;
   try {
-    const held = await adoptOfferedKey(sealing, raw.noteId, offered);
+    const held = await adoptOfferedKey(sealing, raw.noteId, offered, raw);
     if (!held) return waiting;
     const preview = await sealing.openPreview(raw.noteId, keyVersion, raw);
     if (!preview) return waiting;

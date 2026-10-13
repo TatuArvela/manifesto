@@ -151,7 +151,7 @@ Bearer-protected, and share the per-user API limit.
 | Method   | Path                                 | Description |
 |----------|--------------------------------------|-------------|
 | `POST`   | `/api/notes/:id/shares`              | Invite an account: `{ userId, role, key? }`, `201` `{ note }` |
-| `PUT`    | `/api/notes/:id/shares/:userId/key`  | Hand someone on the note its key (`OfferedKey`), as anyone who holds it: `204` |
+| `PUT`    | `/api/notes/:id/shares/:userId/key`  | Hand someone on the note its key (`OfferedKey`), as anyone who holds it: `204`; `409` when they are not waiting for one and the caller is not the owner |
 | `PUT`    | `/api/notes/:id/held-key`            | A recipient keeps the note's replaced key under their own notes key: `{ key, keyVersion }`, `{ note }` |
 | `GET`    | `/api/users/:id/keys`                | An account's public keys: `{ userId, version, publicKeys }`; `404` until it has any |
 | `PUT`    | `/api/notes/:id/shares/:userId`      | Change their role: `{ role }`, `{ note }` |
@@ -213,7 +213,10 @@ A shared note is sealed, so everyone on it needs its key ([Encryption](features/
 - **Later, by anyone who holds the note**: `PUT /api/notes/:id/shares/:userId/key`. A share to a
   team reaches members the owner's client never wrapped for, and the first client of anyone on the
   note does it. `NoteMember.waitingForKey` is `true` while nobody has, for everyone on the note to
-  see.
+  see. Only someone waiting is handed one this way: for a person who holds the key, or has an offer
+  of it they have not taken, anyone but the owner is answered `409`, or any holder could put a key
+  of their own making in place of the real one. The recipient's client checks the signature and
+  that the key opens the note's sealed fields, and keeps none that fails either.
 - **Accepting** sends the key back wrapped under the recipient's own notes key, as they keep the
   key of a note of their own; `409` when it is for another key than the note is now under.
 - **A recipient whose copy is behind** the note's key (after it was replaced) is sent the note with

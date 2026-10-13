@@ -9,6 +9,7 @@ import {
   type PublicLinksResponse,
   type SealedNote,
   type SeenKeysResponse,
+  type SharedSealed,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { ApiError, apiFetch, apiJson } from "./apiRequest.js";
@@ -259,17 +260,19 @@ export async function offerKeyTo(
 
 /**
  * Takes a key offered to this account: checked against the signer's key,
- * opened, and wrapped under this account's own notes key. Null when it does
- * not check or open, and then nothing of the note is used.
+ * opened, held to `words` (the note's sealed fields, which it has to open),
+ * and wrapped under this account's own notes key. Null when it does not
+ * check or open, and then nothing of the note is used.
  */
 export async function adoptOfferedKey(
   sealing: NoteSealing,
   noteId: string,
   offered: OfferedKey,
+  words: Partial<SharedSealed>,
 ): Promise<HeldKeyRequest | null> {
   // Sealing that seals nothing has no signature to check either.
   if (!sealing.handsKeysOn) {
-    return sealing.adoptOffered(noteId, offered, "", ownKeys);
+    return sealing.adoptOffered(noteId, offered, "", ownKeys, words);
   }
   // Checked against the key remembered for the signer: one the server
   // swapped since checks nothing.
@@ -281,6 +284,7 @@ export async function adoptOfferedKey(
       offered,
       signer.publicKeys.signing,
       ownKeys,
+      words,
     );
   } catch (err) {
     console.warn("Failed to open an offered key:", err);
@@ -295,7 +299,12 @@ export async function adoptOfferedKey(
  */
 setOfferHandler(async (sealing, sealed) => {
   if (!sealed.offered) return;
-  const held = await adoptOfferedKey(sealing, sealed.id, sealed.offered);
+  const held = await adoptOfferedKey(
+    sealing,
+    sealed.id,
+    sealed.offered,
+    sealed,
+  );
   if (held) void apiFetch("PUT", `/notes/${sealed.id}/held-key`, held);
 });
 

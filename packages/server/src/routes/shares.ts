@@ -210,7 +210,10 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
    * signed by the caller. Anyone who holds the note may: a share to a team
    * reaches members the owner's client never wrapped for, and whoever of the
    * note's holders is online first does it. The recipient's client decides
-   * whether to trust it, by the signature.
+   * whether to trust it, by the signature and by whether it opens the note.
+   * Only someone still waiting is handed one: a key they hold, or one they
+   * were offered and have not taken yet, is replaced by the owner alone, or
+   * any holder could put a key of their own making in its place.
    */
   notes.put(
     "/:id/shares/:userId/key",
@@ -226,6 +229,19 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
       if (!note || note.key === "") throw new HttpError(404, "Note not found");
       if (key.signer !== userId || key.keyVersion !== note.keyVersion) {
         throw new HttpError(422, "Not a key of this note from you");
+      }
+      const ownerId = note.sharing?.owner.id;
+      if (roleOf(note) !== "owner" && ownerId !== undefined) {
+        // As the owner sees the note: an invitation is not among the
+        // members a recipient is shown.
+        const whole = await storage.notes.getById(noteId, ownerId);
+        const member = whole?.sharing?.members.find(
+          (m) => m.id === recipientId,
+        );
+        if (!member) throw new HttpError(404, "Share not found");
+        if (!member.waitingForKey) {
+          throw new HttpError(409, "They are not waiting for this note's key");
+        }
       }
       if (!(await storage.shares.offerKey(noteId, recipientId, key))) {
         throw new HttpError(404, "Share not found");
