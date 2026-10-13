@@ -188,8 +188,9 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   its changed key would be trusted unasked. A list that could not be read trusts nobody. `PersonKey` asks for a key's status only while keys are being compared or one is
   marked changed, so opening the dialog costs no request.
 - **Replacing a note's key.** Both drivers mark a note `rekey_due` inside `shares.delete` (when
-  the share ever held a key, `heldKey`) and `publicLinks.delete` (a live link), so no route has to
-  remember. Only the owner is sent `rekeyDue`; `Sealer.open` gathers those ids in `due`, and an
+  the share ever held a key, `heldKey`), `maintenance.cleanupTrashedSharesBefore` (a share expired
+  from its recipient's trash) and `publicLinks.delete` (a live link), so no route has to remember.
+  A new statement that deletes from `note_shares` has to do the same. Only the owner is sent `rekeyDue`; `Sealer.open` gathers those ids in `due`, and an
   effect in `state/sharing.ts` calls `replaceNoteKey` (`shareKeys.ts`), which sends
   `PUT /api/notes/:id/key`. `Sealer.rekey` moves the shared fields with `resealSharedFields`,
   which refuses a note any field of which does not open, so a key is never replaced over words

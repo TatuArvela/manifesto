@@ -37,7 +37,7 @@ function isUniqueViolation(err: unknown): boolean {
   return err instanceof Error && (err as { code?: string }).code === "23505";
 }
 
-async function inTransaction<T>(
+export async function inTransaction<T>(
   pool: PgPool,
   run: (query: PgPool["query"]) => Promise<T>,
 ): Promise<T> {

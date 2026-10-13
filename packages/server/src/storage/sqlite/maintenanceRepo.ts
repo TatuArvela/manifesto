@@ -1,4 +1,5 @@
 import {
+  heldKey,
   membersChangedAt,
   rowToShare,
   type ShareRow,
@@ -32,18 +33,29 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
        WHERE trashed = 1
          AND trashed_at IS NOT NULL
          AND trashed_at < ?
-     RETURNING note_id, user_id, role, created_at, accepted_at, via_team`,
+     RETURNING note_id, user_id, role, created_at, accepted_at, via_team,
+       offered_key, wrapped_key_version`,
   );
 
   const membersChangedStmt = db.prepare(
     `UPDATE notes SET members_changed_at = ? WHERE id = ?`,
   );
-  // An expired share leaves the note's members, as a removal does.
+  const rekeyDueStmt = db.prepare(
+    `UPDATE notes SET rekey_due = 1 WHERE id = ?`,
+  );
+  // An expired share leaves the note's members, as a removal does, and
+  // leaves the note due a new key as one does (`shares.delete`): whoever
+  // held the old one still does.
   const cleanupSharesTx = db.transaction((cutoffIso: string): ShareRow[] => {
     const rows = cleanupSharesStmt.all(cutoffIso) as ShareRow[];
     const at = membersChangedAt();
     for (const noteId of new Set(rows.map((row) => row.note_id))) {
       membersChangedStmt.run(at, noteId);
+    }
+    for (const noteId of new Set(
+      rows.filter(heldKey).map((row) => row.note_id),
+    )) {
+      rekeyDueStmt.run(noteId);
     }
     return rows;
   });

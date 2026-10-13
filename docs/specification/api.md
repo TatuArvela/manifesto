@@ -222,7 +222,8 @@ A shared note is sealed, so everyone on it needs its key ([Encryption](features/
 - **A recipient whose copy is behind** the note's key (after it was replaced) is sent the note with
   `key: ""` and the current `offered`, takes it, and stores it with `PUT /api/notes/:id/held-key`.
 - **A note is due a new key** when a share whose holder was ever handed the key ends (removed,
-  left, declined, withdrawn, the team's or the account's going) or a live public link is revoked.
+  left, declined, withdrawn, expired from the recipient's trash, the team's or the account's going)
+  or a live public link is revoked.
   The owner's app then sends `PUT /api/notes/:id/key` with `{ keyVersion, key, previousKeys, title,
   content, excerpt, font, images, linkPreviews, links? }`: everything under the note key sealed
   again, `keyVersion` one more than the note's (`409` otherwise), and for each live link that

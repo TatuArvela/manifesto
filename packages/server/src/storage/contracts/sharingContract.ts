@@ -380,7 +380,8 @@ export function describeSharingContract(
       expect(expired).toMatchObject([{ noteId: "n1", userId: "alice" }]);
       expect(await storage.notes.getById("n1", "alice")).toBeNull();
       expect(await storage.notes.getById("n1", "bob")).not.toBeNull();
-      expect(await storage.notes.getById("n1", "owner")).not.toBeNull();
+      // Whoever left still holds the note's key, as after a removal.
+      expect((await storage.notes.getById("n1", "owner"))?.rekeyDue).toBe(true);
     });
 
     it("hides a note from everyone else while it is in the owner's trash", async () => {
