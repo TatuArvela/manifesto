@@ -15,6 +15,7 @@ import {
   forgetPublicKeys,
   keyStatusOf,
   replaceNoteKey,
+  supplyKey,
   trustChangedKeys,
   trustedKeysOf,
 } from "./shareKeys.js";
@@ -193,6 +194,24 @@ describe("remembering other people's keys", () => {
     await unlock(mine);
     expect(await trustedKeysOf("u-bob")).not.toBeNull();
     expect(changedKeys.value.size).toBe(0);
+  });
+});
+
+describe("handing someone a note's key", () => {
+  it("is worth trying again only when a request did not get through", async () => {
+    await unlock(await testKeys("u-me"));
+    publicKeysOf.set("u-alice", await someKeys());
+    // Their keys were read; what this account remembers of them was not.
+    seenReadable = false;
+    expect(await supplyKey("n1", "u-alice")).toBe("failed");
+    // Nobody to wrap to, however often it is asked.
+    expect(await supplyKey("n1", "u-nobody")).toBe("unable");
+    seenReadable = true;
+    expect(await trustedKeysOf("u-alice")).not.toBeNull();
+    // A changed key waits for the person, not for another try.
+    for (const id of publicKeysOf.keys()) forgetPublicKeys(id);
+    publicKeysOf.set("u-alice", await someKeys());
+    expect(await supplyKey("n1", "u-alice")).toBe("unable");
   });
 });
 

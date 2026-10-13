@@ -232,6 +232,44 @@ export const sealedNote = (noteId: string) => async () => {
 };
 
 /**
+ * A note's key wrapped for someone, or why there is none: `unable` when
+ * asking again changes nothing, `failed` when it may. See `SupplyResult`.
+ */
+async function wrapKeyFor(
+  noteId: string,
+  recipientId: string,
+): Promise<OfferedKey | "unable" | "failed"> {
+  const sealing = sealer.peek();
+  if (!sealing?.handsKeysOn) return "unable";
+  // Only to a key this account has seen for them before, or sees first now.
+  const recipient = await trustedKeysOf(recipientId);
+  if (!recipient) {
+    // Both lookups keep an answer and forget a request that failed, so what
+    // is still there says which it was.
+    if (!publicKeys.has(recipientId)) return "failed";
+    // An account with no keys yet.
+    if ((await publicKeysOf(recipientId)) === null) return "unable";
+    // A changed key nobody has agreed to, or a list that could not be read.
+    return remembered.has(sealing) ? "unable" : "failed";
+  }
+  // A note not opened here is read for its key, which is a request too.
+  const held = sealing.holds(noteId);
+  try {
+    const offered = await sealing.offerKey(
+      noteId,
+      { userId: recipientId, exchange: recipient.publicKeys.exchange },
+      sealedNote(noteId),
+      ownKeys,
+    );
+    // None: this account's own keys could not be read just now.
+    return offered ?? "failed";
+  } catch (err) {
+    console.warn("Failed to wrap a note's key:", err);
+    return held ? "unable" : "failed";
+  }
+}
+
+/**
  * The key of a note this account holds, wrapped to `recipientId`'s public
  * key and signed. Null when the recipient has no keys yet, or this device
  * cannot wrap: the invitation then waits for a key.
@@ -240,22 +278,8 @@ export async function offerKeyTo(
   noteId: string,
   recipientId: string,
 ): Promise<OfferedKey | null> {
-  const sealing = sealer.peek();
-  if (!sealing?.handsKeysOn) return null;
-  // Only to a key this account has seen for them before, or sees first now.
-  const recipient = await trustedKeysOf(recipientId);
-  if (!recipient) return null;
-  try {
-    return await sealing.offerKey(
-      noteId,
-      { userId: recipientId, exchange: recipient.publicKeys.exchange },
-      sealedNote(noteId),
-      ownKeys,
-    );
-  } catch (err) {
-    console.warn("Failed to wrap a note's key:", err);
-    return null;
-  }
+  const offered = await wrapKeyFor(noteId, recipientId);
+  return typeof offered === "string" ? null : offered;
 }
 
 /**
@@ -322,11 +346,8 @@ export async function supplyKey(
   noteId: string,
   recipientId: string,
 ): Promise<SupplyResult> {
-  const offered = await offerKeyTo(noteId, recipientId);
-  if (!offered) {
-    // `publicKeysOf` keeps an answer and forgets a request that failed.
-    return publicKeys.has(recipientId) ? "unable" : "failed";
-  }
+  const offered = await wrapKeyFor(noteId, recipientId);
+  if (typeof offered === "string") return offered;
   const res = await apiFetch(
     "PUT",
     `/notes/${noteId}/shares/${encodeURIComponent(recipientId)}/key`,
