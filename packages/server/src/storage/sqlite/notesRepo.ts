@@ -190,6 +190,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       changes: SealedNoteUpdate,
       updatedAt: string,
       expectedUpdatedAt: string | undefined,
+      expectedKeyVersion: number | undefined,
     ): boolean => {
       const share = acceptedRoleStmt.get(id, userId) as
         | { role: string }
@@ -205,6 +206,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       if (expectedUpdatedAt !== undefined) {
         where += ` AND updated_at = ?`;
         params.push(expectedUpdatedAt);
+      }
+      if (expectedKeyVersion !== undefined) {
+        where += ` AND key_version = ?`;
+        params.push(expectedKeyVersion);
       }
       const assignments = [...note.columns, "updated_at"].map(
         (column) => `${column} = ?`,
@@ -294,6 +299,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       changes: SealedNoteUpdate,
       updatedAt: string,
       expectedUpdatedAt?: string,
+      expectedKeyVersion?: number,
     ): Promise<SealedNote | null> {
       const owner = ownerStmt.get(id) as OwnerRow | undefined;
       if (!owner) return null;
@@ -304,6 +310,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
           changes,
           updatedAt,
           expectedUpdatedAt,
+          expectedKeyVersion,
         );
         return written ? await repo.getById(id, userId) : null;
       }
@@ -318,6 +325,11 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       if (expectedUpdatedAt !== undefined) {
         where += ` AND updated_at = ?`;
         params.push(expectedUpdatedAt);
+      }
+      // And on the key the words were sealed under, for the same reason.
+      if (expectedKeyVersion !== undefined) {
+        where += ` AND key_version = ?`;
+        params.push(expectedKeyVersion);
       }
       const sql = `UPDATE notes SET ${assignments.join(", ")} ${where}`;
       const info = db.prepare(sql).run(params);

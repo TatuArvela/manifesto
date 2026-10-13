@@ -153,6 +153,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     changes: SealedNoteUpdate,
     updatedAt: string,
     expectedUpdatedAt: string | undefined,
+    expectedKeyVersion: number | undefined,
   ): Promise<boolean> {
     const client = await pool.connect();
     try {
@@ -181,6 +182,10 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       if (expectedUpdatedAt !== undefined) {
         params.push(expectedUpdatedAt);
         where += ` AND updated_at = $${params.length}`;
+      }
+      if (expectedKeyVersion !== undefined) {
+        params.push(expectedKeyVersion);
+        where += ` AND key_version = $${params.length}`;
       }
       const written = await client.query(
         `UPDATE notes SET ${assignments.join(", ")} ${where}`,
@@ -315,6 +320,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       changes: SealedNoteUpdate,
       updatedAt: string,
       expectedUpdatedAt?: string,
+      expectedKeyVersion?: number,
     ): Promise<SealedNote | null> {
       const owner = await ownerOf(id);
       if (!owner) return null;
@@ -325,6 +331,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
           changes,
           updatedAt,
           expectedUpdatedAt,
+          expectedKeyVersion,
         );
         return written ? await repo.getById(id, userId) : null;
       }
@@ -340,6 +347,11 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       if (expectedUpdatedAt !== undefined) {
         params.push(expectedUpdatedAt);
         where += ` AND updated_at = $${params.length}`;
+      }
+      // And on the key the words were sealed under, for the same reason.
+      if (expectedKeyVersion !== undefined) {
+        params.push(expectedKeyVersion);
+        where += ` AND key_version = $${params.length}`;
       }
       const sql = `UPDATE notes SET ${assignments.join(", ")} ${where}`;
       const result = await pool.query(sql, params);

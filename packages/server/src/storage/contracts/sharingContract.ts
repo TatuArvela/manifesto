@@ -384,6 +384,38 @@ export function describeSharingContract(
       expect((await storage.notes.getById("n1", "owner"))?.rekeyDue).toBe(true);
     });
 
+    it("writes only while the note is under the key the write names", async () => {
+      await share("alice", "edit");
+      const held = await storage.notes.getById("n1", "owner");
+      if (!held) throw new Error("the note is not there");
+      const other = held.keyVersion + 1;
+      for (const writer of ["owner", "alice"]) {
+        expect(
+          await storage.notes.update(
+            "n1",
+            writer,
+            { title: ct("sealed under a key that is gone") },
+            T3,
+            undefined,
+            other,
+          ),
+        ).toBeNull();
+      }
+      expect((await storage.notes.getById("n1", "owner"))?.updatedAt).toBe(
+        held.updatedAt,
+      );
+      expect(
+        await storage.notes.update(
+          "n1",
+          "alice",
+          { title: ct("sealed under the key it has") },
+          T3,
+          undefined,
+          held.keyVersion,
+        ),
+      ).toMatchObject({ updatedAt: T3 });
+    });
+
     it("hides a note from everyone else while it is in the owner's trash", async () => {
       await share("alice", "edit");
       await share("bob", "view", false);

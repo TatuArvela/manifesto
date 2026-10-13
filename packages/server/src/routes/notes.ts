@@ -204,12 +204,19 @@ export function createNotesRoutes(deps: NotesDeps) {
         }),
       };
       if (access) {
-        await deps.storage.notes.update(
+        // Held to the key just checked, in the write itself.
+        const written = await deps.storage.notes.update(
           id,
           userId,
           { ...data, ...trashStamp(fields.trashed, now) },
           now,
+          undefined,
+          keyVersion,
         );
+        if (!written) {
+          stale.push(id);
+          continue;
+        }
         await deps.noteEvents.changed(id, { trashChanged: true });
         result.updated++;
         continue;
@@ -248,14 +255,6 @@ export function createNotesRoutes(deps: NotesDeps) {
     if (!fields) throw new HttpError(404, "Note not found");
     const now = nowIso();
     const { imageRefs, previewRefs, keyVersion, ...rest } = fields;
-    // Sealed under a key the note has since left: stored, nobody could open
-    // it. The app reads the note again and seals under the key it has now.
-    if (keyVersion !== undefined) {
-      const held = await deps.storage.notes.getById(id, userId);
-      if (held && held.keyVersion !== keyVersion) {
-        throw new HttpError(409, "The note is under another key now");
-      }
-    }
     const changes: StoredNoteUpdate = {
       ...rest,
       ...trashStamp(fields.trashed, now),
@@ -299,6 +298,10 @@ export function createNotesRoutes(deps: NotesDeps) {
     // updated_at still matches. A null result means one of:
     //   (a) the note doesn't exist or this user cannot see it (404)
     //   (b) the note exists but updated_at moved on (412 + current note)
+    //   (c) the words were sealed under a key the note has since left (409)
+    // The key is part of the same statement: a check made before the write
+    // would let a replacement in between the two, and what was then stored
+    // nobody could open.
     let updated: Awaited<ReturnType<typeof deps.storage.notes.update>>;
     try {
       updated = await deps.storage.notes.update(
@@ -307,6 +310,7 @@ export function createNotesRoutes(deps: NotesDeps) {
         changes,
         now,
         ifMatch,
+        keyVersion,
       );
     } catch (err) {
       // A viewer reaching for the note itself, or a recipient for what only
@@ -323,6 +327,10 @@ export function createNotesRoutes(deps: NotesDeps) {
       const current = await deps.storage.notes.getById(id, userId);
       if (!current) {
         throw new HttpError(404, "Note not found");
+      }
+      // The app reads the note again and seals under the key it has now.
+      if (keyVersion !== undefined && current.keyVersion !== keyVersion) {
+        throw new HttpError(409, "The note is under another key now");
       }
       if (ifMatch !== undefined && current.updatedAt !== ifMatch) {
         // 412 carries the current note so the client can run a 3-way

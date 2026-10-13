@@ -233,7 +233,9 @@ A shared note is sealed, so everyone on it needs its key ([Encryption](features/
   whole note at once and answers `{ note }`.
   Everyone else on the note is then `waitingForKey` until a client holding the new key wraps it
   for them. A `PUT /api/notes/:id` that carries sealed words says which key they are under in
-  `keyVersion`, and is answered `409` when the note has left that key.
+  `keyVersion`, and is answered `409` when the note has left that key; the check is part of the
+  write, so a replacement cannot land between the two. A token's write is held to the key the
+  server sealed it under in the same way.
 
 The recipient's client uses no offered key whose signature does not check against the signing key
 of the account it names, and takes that signing key only if it is the one it remembers for them.

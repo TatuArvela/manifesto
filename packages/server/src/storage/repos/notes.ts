@@ -131,6 +131,10 @@ export interface NotesRepo {
    * stamp the note's `updated_at` either way, so everyone holds one
    * concurrency token. Throws `NoteAccessError` when the role does not allow
    * a field.
+   *
+   * `expectedKeyVersion` holds the write to the key its words were sealed
+   * under, in the same statement: null as well when the note has left that
+   * key, so a write that raced a replacement stores nothing nobody can open.
    */
   update(
     id: string,
@@ -138,6 +142,7 @@ export interface NotesRepo {
     changes: StoredNoteUpdate,
     updatedAt: string,
     expectedUpdatedAt?: string,
+    expectedKeyVersion?: number,
   ): Promise<SealedNote | null>;
   /**
    * Puts the owner's note under a new key: its sealed fields, the owner's

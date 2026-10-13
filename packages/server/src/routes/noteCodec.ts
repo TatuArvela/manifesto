@@ -16,6 +16,7 @@ import {
   openSealedNote,
   openVersion,
   previewImages,
+  SEALED_SHARED_NOTE_FIELDS,
   type SealedNote,
   type SealedNoteVersion,
   sealComment,
@@ -240,7 +241,12 @@ async function sealedChanges(
     keyVersion: _v,
     ...body
   } = sealed;
-  return body as SealedUpdate;
+  // Words under the note key say which one, as the app's do, so the write
+  // is refused if the note leaves that key before it lands.
+  const shared = SEALED_SHARED_NOTE_FIELDS.some((field) => field in body);
+  return (
+    shared ? { ...body, keyVersion: opened.key.version } : body
+  ) as SealedUpdate;
 }
 
 /**

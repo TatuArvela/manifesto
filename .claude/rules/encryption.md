@@ -203,7 +203,9 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   again from a read, so the request carries that read's `updatedAt` as `If-Match` and the server
   moves the note only if nothing wrote it since (412, and `replaceNoteKey` reads again). The
   server stamps `updated_at`, so a write sealed under the old key meets a 412, and one that states
-  the old `keyVersion` a 409, after which `RestApiAdapter.update` reads the note again through
+  the old `keyVersion` a 409 (`notes.update` takes it as `expectedKeyVersion`, a condition of the
+  write itself and never a read before it; a token's write states the key `sealedChanges` sealed
+  under), after which `RestApiAdapter.update` reads the note again through
   `Sealer.open`, which is what takes a recipient's offered key, and seals once more. An import
   never moves a note to another key: the route answers `stale` and `importAll` reads and seals
   again. A live document is rebuilt when `Sealer.replaced` changes. What `state/sharing.ts` has
