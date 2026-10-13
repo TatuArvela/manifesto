@@ -192,18 +192,18 @@ export function createNotesRoutes(deps: NotesDeps) {
           continue;
         }
       }
-      // A token's write over a note it already has names the references
-      // only where it changed the list they describe.
-      const data = {
-        ...sealedFields,
-        ...(imageRefs !== undefined && {
-          imageRefs: await claimImages(deps.storage, imageRefs, userId),
-        }),
-        ...(previewRefs !== undefined && {
-          previewRefs: await claimImages(deps.storage, previewRefs, userId),
-        }),
-      };
       if (access) {
+        // A token's write over a note it already has names the references
+        // only where it changed the list they describe.
+        const data = {
+          ...sealedFields,
+          ...(imageRefs !== undefined && {
+            imageRefs: await claimImages(deps.storage, imageRefs, userId),
+          }),
+          ...(previewRefs !== undefined && {
+            previewRefs: await claimImages(deps.storage, previewRefs, userId),
+          }),
+        };
         // Held to the key just checked, in the write itself.
         const written = await deps.storage.notes.update(
           id,
@@ -225,7 +225,7 @@ export function createNotesRoutes(deps: NotesDeps) {
         id,
         userId,
         data: {
-          ...data,
+          ...sealedFields,
           key,
           keyVersion,
           imageRefs: await claimImages(deps.storage, imageRefs ?? [], userId),
