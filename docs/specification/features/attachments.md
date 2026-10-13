@@ -145,7 +145,9 @@ cannot, so the image is made the owner's before the note is sealed:
   for the owner if the caller may read it, under a new id: the sealed bytes are the same, so the key
   the note holds still opens them. `noteId` is the note about to be written, and absent for one not
   made yet, whose owner is the caller. A viewer is refused (403), and so is a reference the caller
-  cannot read (422).
+  cannot read (422). A token that carries keys does not call it: the server makes the images of a
+  token's write the owner's as it seals the note, and the key kept with the token's upload goes
+  into the note under the owner's reference.
 - **The write** then names the references it was given. One that is not the owner's by then is
   refused with 422 (`attachments/store.ts`), or a crafted reference would lend a note someone else's
   image.

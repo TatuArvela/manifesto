@@ -1,4 +1,4 @@
-import type { Note, NoteCreate } from "@manifesto/shared";
+import type { Note, NoteCreate, SealedNote } from "@manifesto/shared";
 import {
   attachmentIdOf,
   MAX_IMAGE_SOURCE_BYTES,
@@ -9,6 +9,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { opened, sealedCreate } from "../storage/contracts/claimed.js";
 import { defined } from "../test/defined.js";
+import { heldKeyOf } from "../test/keyedTokens.js";
 import {
   authHeaders,
   bootTestApp,
@@ -476,6 +477,67 @@ describe("attachments", () => {
       ).toBe(415);
       expect((await upload(script, new Uint8Array(), "image/png")).status).toBe(
         422,
+      );
+    });
+
+    it("lets an editor's token add its own upload to a note shared with it", async () => {
+      const mint = async (who: Account): Promise<Account> => {
+        const minted = await rig.request("/api/tokens", {
+          method: "POST",
+          headers: authHeaders(who.token),
+          body: JSON.stringify({ name: "Script", password: "test-pass-12" }),
+        });
+        return {
+          token: ((await minted.json()) as { secret: string }).secret,
+          userId: who.userId,
+        };
+      };
+      // Written by a token, so it is sealed under a real key.
+      const made = await call(await mint(owner), "POST", "/api/notes", {
+        ...baseNote,
+        title: "Trip",
+      });
+      const { id } = ((await made.json()) as { note: Note }).note;
+      await call(owner, "POST", `/api/notes/${id}/shares`, {
+        userId: alice.userId,
+        role: "edit",
+      });
+      const sealed = (
+        (await (
+          await rig.rawRequest(`/api/notes/${id}`, {
+            headers: authHeaders(owner.token),
+          })
+        ).json()) as { note: SealedNote }
+      ).note;
+      const accepted = await rig.rawRequest(`/api/invitations/${id}/accept`, {
+        method: "POST",
+        headers: authHeaders(alice.token),
+        body: JSON.stringify(
+          await heldKeyOf(sealed, owner.userId, alice.userId),
+        ),
+      });
+      expect(accepted.status).toBe(200);
+
+      const script = await mint(alice);
+      const sent = await upload(script, PNG_BYTES, "image/png");
+      const { ref } = (await sent.json()) as { ref: string };
+      const written = await call(script, "PUT", `/api/notes/${id}`, {
+        images: [ref],
+      });
+      expect(written.status).toBe(200);
+      const { images } = ((await written.json()) as { note: Note }).note;
+      // The note names the owner's copy, which the key of the upload opens.
+      const copy = attachmentIdOf(defined(images[0]));
+      expect(copy).not.toBe(attachmentIdOf(ref));
+      expect((await rig.storage.attachments.meta(copy))?.ownerId).toBe(
+        owner.userId,
+      );
+      const read = await rig.rawRequest(`/api/attachments/${copy}?note=${id}`, {
+        headers: authHeaders(script.token),
+      });
+      expect(read.status).toBe(200);
+      expect(Buffer.from(await read.arrayBuffer()).equals(PNG_BYTES)).toBe(
+        true,
       );
     });
 

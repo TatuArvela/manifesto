@@ -150,7 +150,9 @@ A sealed note cannot have a reference rewritten under it, so the old copy-on-wri
 is two steps: the client asks `POST /api/attachments/claim` for the owner's own reference before it
 seals (`RestApiAdapter.claim`, `adoptImages`), and the write then refuses any reference that is not
 the owner's (`claimImages`). A new path that puts an image in a note goes through `withUploads`, or
-it will meet that refusal on a shared note.
+it will meet that refusal on a shared note. A token's write does the first step on the server
+(`ownedByOwner` in `routes/noteCodec.ts`), carrying the key kept with its upload over to the
+owner's copy.
 
 ## Sharing
 

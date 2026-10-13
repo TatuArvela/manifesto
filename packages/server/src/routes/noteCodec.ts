@@ -3,6 +3,7 @@ import {
   attachmentIdOf,
   type ImageKey,
   isAttachmentRef,
+  mapPreviewImages,
   type Note,
   type NoteCreate,
   NoteLimitError,
@@ -28,6 +29,8 @@ import {
 } from "@manifesto/shared";
 import type { Context } from "hono";
 import type { z } from "zod";
+import { adoptImages } from "../attachments/store.js";
+import { nowIso } from "../lib/time.js";
 import { newId } from "../lib/ulid.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
@@ -185,6 +188,50 @@ async function uploadedKeys(
   return out;
 }
 
+/**
+ * The changes with every image they name made the note owner's, as the app
+ * does before it seals (`POST /api/attachments/claim`): an editor's token
+ * names its own upload, and the write takes only the owner's reference. The
+ * copy holds the same bytes, so the key kept with the upload opens it, and
+ * goes into `imageKeys` under the reference the note will name.
+ */
+async function ownedByOwner(
+  storage: StorageDriver,
+  owner: { ownerId: string; writerId: string },
+  plain: NoteUpdate,
+  imageKeys: Map<string, ImageKey>,
+): Promise<NoteUpdate> {
+  const named = [
+    ...(plain.images ?? []),
+    ...previewImages(plain.linkPreviews ?? []),
+  ];
+  if (named.length === 0) return plain;
+  const now = nowIso();
+  const owned = new Map<string, string>();
+  for (const ref of new Set(named)) {
+    const [own = ref] = await adoptImages(
+      storage,
+      [ref],
+      owner.ownerId,
+      owner.writerId,
+      now,
+    );
+    owned.set(ref, own);
+    const key = imageKeys.get(ref);
+    if (key) imageKeys.set(own, key);
+  }
+  const ownerOf = (ref: string) => owned.get(ref) ?? ref;
+  return {
+    ...plain,
+    ...(plain.images && { images: plain.images.map(ownerOf) }),
+    ...(plain.linkPreviews && {
+      linkPreviews: await mapPreviewImages(plain.linkPreviews, async (ref) =>
+        ownerOf(ref),
+      ),
+    }),
+  };
+}
+
 async function sealedFrom(
   keys: AccountSealKeys,
   storage: StorageDriver,
@@ -231,8 +278,20 @@ async function sealedChanges(
   // uploaded brings the key kept with it; any other has none here, and
   // sealing refuses it.
   const imageKeys = await uploadedKeys(keys, storage, plain, opened.imageKeys);
+  // On a note shared with the token's account they become the owner's
+  // first. A viewer's are left as they are, for the route to refuse.
+  const access = await storage.notes.access(id, keys.userId);
+  const changes =
+    access?.role === "edit"
+      ? await ownedByOwner(
+          storage,
+          { ownerId: access.ownerId, writerId: keys.userId },
+          plain,
+          imageKeys,
+        )
+      : plain;
   const sealed = await sealing(() =>
-    sealNoteUpdate(keys, opened.key, id, plain, imageKeys),
+    sealNoteUpdate(keys, opened.key, id, changes, imageKeys),
   );
   const {
     trashedAt: _t,
