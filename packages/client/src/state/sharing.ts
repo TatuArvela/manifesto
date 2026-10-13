@@ -389,10 +389,12 @@ function handOf(sealing: NoteSealing): Set<string> {
 }
 
 /**
- * Starts `work` unless this unlocked account already has `what` in hand.
- * Work that did not succeed is forgotten, so whatever runs the effect again
- * (the connection coming back, the next listing that changes it) tries
- * again; `work` resolves whether it did, and never rejects.
+ * Starts `work` unless this unlocked account already has `what` under way.
+ * It is in hand only while it runs. Work that did not succeed is tried again
+ * by whatever runs the effect again (the connection coming back, the next
+ * listing that changes it), and work that did is no longer asked for, until
+ * the note is due it once more: a second person removed in one session
+ * needs a second new key. `work` never rejects.
  */
 function setAbout(
   sealing: NoteSealing,
@@ -402,8 +404,8 @@ function setAbout(
   const hand = handOf(sealing);
   if (hand.has(what)) return;
   hand.add(what);
-  void work().then((done) => {
-    if (!done) hand.delete(what);
+  void work().then(() => {
+    hand.delete(what);
   });
 }
 

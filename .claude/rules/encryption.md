@@ -207,8 +207,9 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   `Sealer.open`, which is what takes a recipient's offered key, and seals once more. An import
   never moves a note to another key: the route answers `stale` and `importAll` reads and seals
   again. A live document is rebuilt when `Sealer.replaced` changes. What `state/sharing.ts` has
-  set about (`inHand`) is kept for each unlocked `Sealer` and forgotten when it fails, so a failed
-  replacement is tried again on reconnecting and on the next unlock.
+  set about (`inHand`) is kept for each unlocked `Sealer` only while it runs (`setAbout`): a
+  failed replacement is tried again on reconnecting and on the next unlock, and a note due again
+  in the same session, after a second removal, is given a second key.
 - A comment's text is sealed under the note key and bound to an id its writer chose
   (`sealComment`); `state/comments.ts` opens every comment it is sent, a socket's included, and
   leaves out one that does not open. The server cannot tell an edit to the same words from a real
