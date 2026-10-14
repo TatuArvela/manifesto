@@ -567,12 +567,6 @@ export const oidcReauthUrl =
 export const beginOidcSignIn = (): void => markOidcFlow();
 
 /**
- * After an OIDC callback the server redirects to the client with the session
- * token in the URL fragment (`#token=...`). Picks it up, fetches the current
- * user via /api/auth/me, populates the auth signals, and clears the fragment
- * from the address bar so refreshes don't re-trigger the flow.
- */
-/**
  * Asks for a reset link to be mailed. The server answers the same whether or
  * not the address has an account, so this says only whether the request got
  * there. `locale` picks the mail's language.
@@ -738,6 +732,12 @@ export type OidcRefusal =
  */
 export const oidcRefusal = signal<OidcRefusal | null>(null);
 
+/**
+ * After an OIDC callback the server redirects to the client with the session
+ * token in the URL fragment (`#token=...`). Picks it up, fetches the current
+ * user via /api/auth/me, populates the auth signals, and clears the fragment
+ * from the address bar so refreshes don't re-trigger the flow.
+ */
 export async function consumeOidcRedirect(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (SERVER_URL === null) return false;
