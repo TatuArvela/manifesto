@@ -386,3 +386,15 @@ body.note-drag-active .note-select {
   opacity: 0 !important;
   pointer-events: none;
 }
+
+/* A card's keyboard focus is on the hidden button that opens it
+   (`[data-card-open]`), so the card draws the ring in its place, over the
+   transparent selection outline it always carries. */
+.note-surface:has(> [data-card-open]:focus-visible) {
+  outline-color: var(--color-blue-600);
+  outline-offset: 2px;
+}
+
+.dark .note-surface:has(> [data-card-open]:focus-visible) {
+  outline-color: var(--color-blue-400);
+}

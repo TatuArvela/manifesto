@@ -88,7 +88,7 @@ describe("card focus", () => {
     host.innerHTML = ["a", "b", "c"]
       .map(
         (id) =>
-          `<div data-note-id="${id}"><div data-note-card tabindex="0">${id}</div></div>`,
+          `<div data-note-id="${id}"><article data-note-card><button type="button" data-card-open>${id}</button></article></div>`,
       )
       .join("");
     document.body.appendChild(host);

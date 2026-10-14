@@ -105,6 +105,7 @@ export const fi: Messages = {
   "noteCard.restoreNote": "Palauta muistiinpano",
   "noteCard.deletePermanently": "Poista pysyvästi",
   "noteCard.select": "Valitse",
+  "noteCard.untitled": "Nimetön muistiinpano",
   "noteCard.deselect": "Poista valinta",
   "noteCard.linkCopied": "Linkki kopioitu leikepöydälle",
   "noteCard.trashedAt": "Poistettu {date}",

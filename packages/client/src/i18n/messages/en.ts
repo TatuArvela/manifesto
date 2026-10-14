@@ -102,6 +102,7 @@ export const en = {
   "noteCard.restoreNote": "Restore note",
   "noteCard.deletePermanently": "Delete permanently",
   "noteCard.select": "Select",
+  "noteCard.untitled": "Untitled note",
   "noteCard.deselect": "Deselect",
   "noteCard.linkCopied": "Link copied to clipboard",
   "noteCard.trashedAt": "Trashed {date}",

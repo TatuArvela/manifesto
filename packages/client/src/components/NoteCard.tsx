@@ -22,6 +22,7 @@ import {
   toggleSelectNote,
   viewMode,
 } from "../state/index.js";
+import { cardName } from "../utils/cardName.js";
 import { contentIsOnlyPreviewUrls } from "../utils/linkPreview.js";
 import { MORPH_MS } from "../utils/morph.js";
 import { useEditor } from "./lazyEditor.js";
@@ -142,14 +143,12 @@ export const NoteCard = memo(function NoteCard({
   };
 
   // Whether pressing the card does anything. Deliberately not conditioned on
-  // `isEditing`: dropping `tabindex` from the focused element blurs it, so a
-  // card that gave up its tab stop the moment its own editor opened would
-  // leave the editor's focus trap with nothing to hand focus back to on close.
-  // Reopening while already editing is `handleClick`'s guard, not this one's.
+  // `isEditing`: taking away the focused button blurs it, so a card that gave
+  // up its tab stop the moment its own editor opened would leave the editor's
+  // focus trap with nothing to hand focus back to on close. Reopening while
+  // already editing is `handleClick`'s guard, not this one's.
   const cardActivates = isSelectMode || !isTrashView;
-  const cardLabel = isSelectMode
-    ? note.title || t("noteCard.select")
-    : note.title || t("editor.titlePlaceholder");
+  const cardLabel = cardName(note) || t("noteCard.untitled");
 
   const handleSelectClick = (e: Event) => {
     e.stopPropagation();
@@ -215,6 +214,7 @@ export const NoteCard = memo(function NoteCard({
           onClick={handleSelectClick}
         />
 
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: the keyboard opens the card through its `[data-card-open]` button, whose click lands here */}
         <article
           ref={cardRef}
           class={clsx(
@@ -285,31 +285,26 @@ export const NoteCard = memo(function NoteCard({
                   onDragEnd?.(e);
                 }
           }
-          // A card is the primary control of the grid and was reachable only
-          // with a pointer: no tab stop, and an Enter handler on an element
-          // nothing could focus. Trash cards do not open, so they are a plain
-          // article carrying buttons rather than something to activate.
-          tabIndex={cardActivates ? 0 : undefined}
           data-note-card
-          // @ts-expect-error Preact 11 types an article's role by what ARIA in
-          // HTML allows, which leaves out "button". The spec has a note as an
-          // `<article>`, so the card keeps both until that is decided.
-          role={cardActivates ? "button" : undefined}
-          aria-label={cardActivates ? cardLabel : undefined}
           onClick={handleClick}
-          onKeyDown={(e) => {
-            if (!cardActivates) return;
-            // Only keys aimed at the card itself. Enter on a link or a button
-            // inside it bubbles here too, and cancelling it stopped that link
-            // or button from ever activating.
-            if (e.target !== e.currentTarget) return;
-            if (e.key !== "Enter" && e.key !== " ") return;
-            // Space scrolls the page by default, and both would otherwise also
-            // reach whatever the click opens.
-            e.preventDefault();
-            handleClick();
-          }}
         >
+          {/* What a keyboard or a screen reader presses to open the card. The
+              card was itself the button, which hid every control inside it:
+              a button's children are presentational, so its pin, colour and
+              menu buttons went unannounced or were read twice. Kept while the
+              card's own editor is open, or the editor's focus trap would have
+              nothing to hand focus back to on close. Its click reaches the
+              card's handler; trash cards do not open, so they have none. */}
+          {cardActivates && (
+            <button
+              type="button"
+              data-card-open
+              class="sr-only"
+              aria-pressed={isSelectMode ? isSelected : undefined}
+            >
+              {cardLabel}
+            </button>
+          )}
           <CardStatusBar
             note={note}
             isTrashView={isTrashView}
@@ -367,7 +362,7 @@ export const NoteCard = memo(function NoteCard({
 
       {showModal && (
         <NoteSheet
-          label={note.title || t("editor.titlePlaceholder")}
+          label={cardLabel}
           dialogRef={modalRef}
           panelRef={panelRef}
           layer="layer-sheet"
