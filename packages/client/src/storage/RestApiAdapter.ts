@@ -46,6 +46,13 @@ export interface RestApiAdapterOptions {
   sealer?: NoteSealing | null | undefined;
 }
 
+/** The server's own message from an error body, or `fallback`. */
+function errorMessage(data: Partial<ErrorResponse>, fallback: string): string {
+  return typeof data.error === "string" && data.error.length > 0
+    ? data.error
+    : fallback;
+}
+
 /**
  * Thrown when an update collides with a newer server-side version. The
  * caller can use `currentNote` to run a 3-way merge and retry with a
@@ -108,16 +115,13 @@ export class RestApiAdapter implements StorageAdapter {
 
   private async fail(res: Response, fallback: string): Promise<never> {
     if (res.status === 401) this.onUnauthorized?.();
-    let message = fallback;
+    let data: Partial<ErrorResponse> = {};
     try {
-      const data = (await res.json()) as Partial<ErrorResponse>;
-      if (typeof data.error === "string" && data.error.length > 0) {
-        message = data.error;
-      }
+      data = (await res.json()) as Partial<ErrorResponse>;
     } catch {
       // body was not JSON; keep the fallback message
     }
-    throw new Error(message);
+    throw new Error(errorMessage(data, fallback));
   }
 
   /**
@@ -474,9 +478,16 @@ export class RestApiAdapter implements StorageAdapter {
       res = await send();
     }
     if (res.status === 412) {
-      const data = (await res.json()) as Partial<NoteResponse<SealedNote>>;
-      const current = data?.note ? await sealing.open(data.note) : null;
+      // The body is read once, for the note and for the message alike.
+      let data: Partial<NoteResponse<SealedNote> & ErrorResponse> = {};
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        // not JSON: nothing to merge with, and no message
+      }
+      const current = data.note ? await sealing.open(data.note) : null;
       if (current) throw new NoteConflictError(current);
+      throw new Error(errorMessage(data, "Failed to update note"));
     }
     if (!res.ok) await this.fail(res, "Failed to update note");
     return await this.opened(res, "Failed to update note");
