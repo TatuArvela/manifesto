@@ -228,6 +228,7 @@ export {
   openReminderKey,
   openSealedNote,
   openSharedFields,
+  openSharedFieldsUnder,
   opensSharedFields,
   openVersion,
   resealSharedFields,

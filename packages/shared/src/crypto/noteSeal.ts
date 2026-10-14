@@ -510,12 +510,46 @@ export async function openSharedFields(
   noteId: string,
   sealed: Partial<SharedSealed>,
 ): Promise<OpenedSharedFields> {
+  return checkedShared(await openSharedTexts(key, noteId, sealed));
+}
+
+/**
+ * `openSharedFields` when `opensSharedFields` would say the key is the
+ * note's, else null: the same answer as asking both, each field opened once.
+ */
+export async function openSharedFieldsUnder(
+  key: NoteSealKey,
+  noteId: string,
+  sealed: Partial<SharedSealed>,
+): Promise<OpenedSharedFields | null> {
+  const texts = await openSharedTexts(key, noteId, sealed);
+  return provingFields(sealed).every((field) => texts[field] !== null)
+    ? checkedShared(texts)
+    : null;
+}
+
+type SharedTexts = Record<keyof SharedSealed, string | null>;
+
+async function openSharedTexts(
+  key: NoteSealKey,
+  noteId: string,
+  sealed: Partial<SharedSealed>,
+): Promise<SharedTexts> {
   const open = (field: keyof SharedSealed) =>
     openText(key.fields, sealed[field], sharedData(key, noteId, field));
-  const title = await open("title");
-  const content = await open("content");
-  const excerpt = await open("excerpt");
-  const font = (await open("font"))?.trimEnd() ?? "";
+  return {
+    title: await open("title"),
+    content: await open("content"),
+    excerpt: await open("excerpt"),
+    font: await open("font"),
+    images: await open("images"),
+    linkPreviews: await open("linkPreviews"),
+  };
+}
+
+function checkedShared(texts: SharedTexts): OpenedSharedFields {
+  const { title, content, excerpt } = texts;
+  const font = texts.font?.trimEnd() ?? "";
   const imageKeys = new Map<string, ImageKey>();
   return {
     imageKeys,
@@ -529,12 +563,21 @@ export async function openSharedFields(
         ? excerpt
         : "",
     font: fonts.has(font) ? (font as NoteFont) : NoteFont.Default,
-    images: checkedImages(parsed(await open("images")), imageKeys),
-    linkPreviews: checkedLinkPreviews(
-      parsed(await open("linkPreviews")),
-      imageKeys,
-    ),
+    images: checkedImages(parsed(texts.images), imageKeys),
+    linkPreviews: checkedLinkPreviews(parsed(texts.linkPreviews), imageKeys),
   };
+}
+
+/** The fields `opensSharedFields` holds a key to; see there. */
+function provingFields(sealed: Partial<SharedSealed>): (keyof SharedSealed)[] {
+  const words = (["title", "content", "excerpt"] as const).filter(
+    (field) => sealed[field],
+  );
+  return words.length > 0
+    ? words
+    : (["font", "images", "linkPreviews"] as const).filter(
+        (field) => sealed[field],
+      );
 }
 
 /**
@@ -553,16 +596,7 @@ export async function opensSharedFields(
   noteId: string,
   sealed: Partial<SharedSealed>,
 ): Promise<boolean> {
-  const words = (["title", "content", "excerpt"] as const).filter(
-    (field) => sealed[field],
-  );
-  const fields =
-    words.length > 0
-      ? words
-      : (["font", "images", "linkPreviews"] as const).filter(
-          (field) => sealed[field],
-        );
-  for (const field of fields) {
+  for (const field of provingFields(sealed)) {
     const opened = await openText(
       key.fields,
       sealed[field],

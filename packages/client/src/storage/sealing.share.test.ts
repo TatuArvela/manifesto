@@ -14,6 +14,7 @@ import {
   openLinkedKey,
   openPreviousKeys,
   openSharedFields,
+  openSharedFieldsUnder,
   type PublicLink,
   type SealedNote,
   type SealedNoteCreate,
@@ -312,6 +313,26 @@ describe("publishing a note by link", () => {
       title: "",
       content: "",
     });
+  });
+
+  it("opens the page's note in one pass only under the key that is the note's", async () => {
+    const owner = await account("u-owner");
+    const note = stored(await owner.sealer.sealNew("n1", draft));
+    const made = await owner.sealer.publish(
+      { id: "n1", ...draft },
+      "snapshot",
+      async () => note,
+    );
+    if (!made?.fields.snapshot) throw new Error("no snapshot");
+    const { snapshot } = made.fields;
+    const right = await snapshotKey(made.linkKey);
+    const wrong = await snapshotKey(newLinkKey());
+    if (!right || !wrong) throw new Error("no key");
+    expect(await openSharedFieldsUnder(right, "n1", snapshot)).toEqual(
+      await openSharedFields(right, "n1", snapshot),
+    );
+    // Another link's key derives a key all the same; only opening tells.
+    expect(await openSharedFieldsUnder(wrong, "n1", snapshot)).toBeNull();
   });
 });
 

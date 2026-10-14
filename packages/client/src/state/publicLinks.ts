@@ -8,8 +8,7 @@ import {
   type NoteSealKey,
   openImage,
   openLinkedKey,
-  openSharedFields,
-  opensSharedFields,
+  openSharedFieldsUnder,
   type PublicLink,
   type PublicLinkCreateRequest,
   type PublicLinkResponse,
@@ -184,10 +183,8 @@ async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
   }
   // A snapshot's key is derived from whatever the address holds, so another
   // link's key gives one too; only the words opening tell it is this note's.
-  if (!key || !(await opensSharedFields(key, note.id, note))) {
-    return { kind: "gone" };
-  }
-  const opened = await openSharedFields(key, note.id, note);
+  const opened = key && (await openSharedFieldsUnder(key, note.id, note));
+  if (!opened) return { kind: "gone" };
   imageKeys.clear();
   for (const [ref, imageKey] of opened.imageKeys) imageKeys.set(ref, imageKey);
   return {
