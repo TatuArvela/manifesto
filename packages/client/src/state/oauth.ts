@@ -83,7 +83,11 @@ export async function lookUpClient(
   });
   const res = await apiFetch("GET", `/oauth/client?${query}`);
   if (!res?.ok) return null;
-  return (await res.json()) as OAuthClientInfo;
+  try {
+    return (await res.json()) as OAuthClientInfo;
+  } catch {
+    return null;
+  }
 }
 
 export type AllowResult =

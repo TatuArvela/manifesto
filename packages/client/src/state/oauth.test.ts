@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { storageConnection } from "../storage/index.js";
 import {
   isOAuthConsentPath,
+  lookUpClient,
   parseAuthorizeRequest,
   returnTarget,
 } from "./oauth.js";
@@ -68,5 +70,23 @@ describe("the consent page's request", () => {
     expect(returnTarget("cursor://anysphere.cursor-retrieval/oauth")).toBe(
       "cursor://",
     );
+  });
+});
+
+describe("looking up the assistant", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    storageConnection.value = { serverUrl: null, token: null };
+  });
+
+  it("answers null for an answer that is not JSON, rather than rejecting", async () => {
+    storageConnection.value = { serverUrl: "", token: "t" };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("<html>proxy error</html>")),
+    );
+    const request = parseAuthorizeRequest(query());
+    if (!request) throw new Error("no request");
+    await expect(lookUpClient(request)).resolves.toBeNull();
   });
 });
