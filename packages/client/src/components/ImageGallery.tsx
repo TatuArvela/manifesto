@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, PenLine, X } from "lucide-preact";
 import { createPortal } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
@@ -123,15 +123,16 @@ function ImageLightbox({
   useEscapeStack(true, onClose);
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
 
-  useEffect(() => {
-    if (!hasMultiple) return;
-    const handleKey = (e: KeyboardEvent) => {
-      const by = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
-      if (by !== 0) onChangeIndex((index + by + images.length) % images.length);
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [hasMultiple, index, images.length, onChangeIndex]);
+  // On the dialog, which holds the focus (`useFocusTrap`), rather than on the
+  // document: the arrows are this layer's, and never anything under it.
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (!hasMultiple || e.defaultPrevented) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    const by = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+    if (by === 0) return;
+    e.preventDefault();
+    step(by);
+  };
 
   const shown = images[index];
   if (shown === undefined) return null;
@@ -141,6 +142,7 @@ function ImageLightbox({
       <Backdrop onDismiss={onClose} class="z-[100]" deep />
       <div
         ref={dialogRef}
+        onKeyDown={onKeyDown}
         role="dialog"
         aria-modal="true"
         aria-label={t("editor.imageViewer")}
