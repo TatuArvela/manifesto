@@ -59,7 +59,7 @@ import {
   wrapNoteKey,
   wrapTokenKeys,
 } from "@manifesto/shared";
-import { computed, signal } from "@preact/signals";
+import { computed, type Signal, signal } from "@preact/signals";
 import { ulid } from "ulid";
 import {
   accountImageKeys,
@@ -164,6 +164,20 @@ function ringKey(ring: NoteKeyRing, version: number): NoteSealKey | null {
  * opened, so a change to a note is sealed without unwrapping its key again;
  * the keys themselves cannot be read out of it.
  */
+/** Puts `id` in the set `held` holds, or takes it out. */
+function toggleIn(
+  held: Signal<ReadonlySet<string>>,
+  id: string,
+  on: boolean,
+): void {
+  const now = held.peek();
+  if (now.has(id) === on) return;
+  const next = new Set(now);
+  if (on) next.add(id);
+  else next.delete(id);
+  held.value = next;
+}
+
 export class Sealer {
   private readonly account: Promise<AccountSealKeys>;
   private readonly images: Promise<ImageKeySource>;
@@ -401,24 +415,6 @@ export class Sealer {
     }
   }
 
-  private markDue(id: string, due: boolean): void {
-    const held = this.due.value;
-    if (held.has(id) === due) return;
-    const next = new Set(held);
-    if (due) next.add(id);
-    else next.delete(id);
-    this.due.value = next;
-  }
-
-  private markFeedDue(id: string, due: boolean): void {
-    const held = this.feedDue.value;
-    if (held.has(id) === due) return;
-    const next = new Set(held);
-    if (due) next.add(id);
-    else next.delete(id);
-    this.feedDue.value = next;
-  }
-
   /** A held note key wrapped under the reminder key: the copy a calendar
    * feed opens the note with. */
   private async wrappedForFeed(id: string, held: HeldNoteKey): Promise<string> {
@@ -454,15 +450,6 @@ export class Sealer {
     return this.wrappedForFeed(id, await this.keyOf(id, fetch));
   }
 
-  private markUnreadable(id: string, unreadable: boolean): void {
-    const held = this.unreadable.peek();
-    if (held.has(id) === unreadable) return;
-    const next = new Set(held);
-    if (unreadable) next.add(id);
-    else next.delete(id);
-    this.unreadable.value = next;
-  }
-
   /** The note as its reader sees it; null when its key does not open. */
   async open(sealed: SealedNote): Promise<Note | null> {
     const account = await this.account;
@@ -489,7 +476,7 @@ export class Sealer {
       if (known && known.key.version !== sealed.keyVersion) {
         this.noteKeys.delete(sealed.id);
       }
-      this.markUnreadable(sealed.id, true);
+      toggleIn(this.unreadable, sealed.id, true);
       return null;
     }
     const previous = sealed.previousKeys ?? "";
@@ -508,15 +495,16 @@ export class Sealer {
         previous,
       });
     }
-    this.markDue(sealed.id, sealed.rekeyDue === true);
-    this.markFeedDue(
+    toggleIn(this.due, sealed.id, sealed.rekeyDue === true);
+    toggleIn(
+      this.feedDue,
       sealed.id,
       sealed.reminder !== null &&
         !sealed.reminderKey &&
         this.noteKeys.has(sealed.id),
     );
     for (const [ref, key] of opened.imageKeys) this.imageKeys.set(ref, key);
-    this.markUnreadable(sealed.id, false);
+    toggleIn(this.unreadable, sealed.id, false);
     return opened.note;
   }
 
@@ -549,7 +537,7 @@ export class Sealer {
   /** A note's key no longer applies: it was deleted, or taken away. */
   forget(id: string): void {
     this.noteKeys.delete(id);
-    this.markUnreadable(id, false);
+    toggleIn(this.unreadable, id, false);
   }
 
   /** A new note under a new key and `id`. */
