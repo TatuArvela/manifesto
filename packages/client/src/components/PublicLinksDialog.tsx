@@ -109,13 +109,13 @@ function PublicLinksDialog({
 
   return createPortal(
     <>
-      <Backdrop onDismiss={onClose} class="z-[60]" />
+      <Backdrop onDismiss={onClose} class="layer-nested-backdrop" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="public-links-title"
-        class="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none animate-scale-in"
+        class="fixed inset-0 layer-nested flex items-center justify-center p-4 pointer-events-none animate-scale-in"
       >
         <div class="pointer-events-auto w-full max-w-md max-h-full overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-xl border border-neutral-200 dark:border-neutral-700 p-5 sm:p-6 flex flex-col gap-4">
           <div class="min-w-0">

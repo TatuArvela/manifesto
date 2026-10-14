@@ -290,13 +290,13 @@ export function NoteCardEditor({
         <NoteSheet
           label={t("noteMenu.versionHistory")}
           dialogRef={versionsRef}
-          layer="z-[70]"
+          layer="layer-nested"
           motion={`transition-all duration-150 ${versionsClosing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
           backdrop={
             <Backdrop
               onDismiss={closeVersions}
               closing={versionsClosing}
-              class="z-[60]"
+              class="layer-nested-backdrop"
             />
           }
           closing={versionsClosing}

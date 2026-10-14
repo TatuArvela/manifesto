@@ -11,6 +11,42 @@
   --breakpoint-7xl: 3200px;
 }
 
+/* The layers over the board, bottom to top. A sheet opened over another sheet
+   (sharing, public links, history) takes the nested pair; the confirmation
+   and the toasts sit above everything, since any layer can raise either and
+   neither may land behind the layer that asked. Named here so the order can
+   be read in one place rather than reassembled from numbers. */
+@utility layer-backdrop {
+  z-index: 40;
+}
+@utility layer-sheet {
+  z-index: 50;
+}
+@utility layer-drawing {
+  z-index: 55;
+}
+@utility layer-nested-backdrop {
+  z-index: 60;
+}
+@utility layer-drop-target {
+  z-index: 60;
+}
+@utility layer-nested {
+  z-index: 70;
+}
+@utility layer-gallery-backdrop {
+  z-index: 100;
+}
+@utility layer-gallery {
+  z-index: 110;
+}
+@utility layer-confirm {
+  z-index: 120;
+}
+@utility layer-toast {
+  z-index: 130;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

@@ -97,7 +97,7 @@ export function WelcomeDialog() {
 
   return (
     <>
-      <Backdrop onDismiss={dismiss} closing={closing} class="z-40" />
+      <Backdrop onDismiss={dismiss} closing={closing} class="layer-backdrop" />
 
       <div
         ref={dialogRef}
@@ -105,7 +105,7 @@ export function WelcomeDialog() {
         aria-modal="true"
         aria-labelledby="welcome-dialog-title"
         aria-describedby="welcome-dialog-mode"
-        class={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
+        class={`fixed inset-0 layer-sheet flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
       >
         <div class="pointer-events-auto w-full max-w-md max-h-full overflow-y-auto overscroll-contain">
           <div

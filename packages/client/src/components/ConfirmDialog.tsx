@@ -52,7 +52,7 @@ export function ConfirmDialogHost() {
       <Backdrop
         onDismiss={() => answerConfirmation(false)}
         closing={closing}
-        class="z-[60]"
+        class="layer-confirm"
       />
       <div
         ref={dialogRef}
@@ -60,7 +60,7 @@ export function ConfirmDialogHost() {
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby={shown.body ? "confirm-dialog-body" : undefined}
-        class={`fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
+        class={`fixed inset-0 layer-confirm flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
       >
         <div class="pointer-events-auto w-full max-w-sm rounded-lg bg-white dark:bg-neutral-800 shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
           <div class="px-5 pt-5 pb-4">

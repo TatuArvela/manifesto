@@ -27,13 +27,13 @@ export function ShortcutsDialog() {
 
   return (
     <>
-      <Backdrop onDismiss={dismiss} closing={closing} class="z-40" />
+      <Backdrop onDismiss={dismiss} closing={closing} class="layer-backdrop" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="shortcuts-dialog-title"
-        class={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
+        class={`fixed inset-0 layer-sheet flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
       >
         <div class="pointer-events-auto w-full max-w-sm max-h-full overflow-y-auto overscroll-contain rounded-xl bg-white dark:bg-neutral-800 shadow-xl p-5 text-neutral-900 dark:text-neutral-100">
           <h2 id="shortcuts-dialog-title" class="text-lg font-semibold mb-3">
