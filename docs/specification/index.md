@@ -27,6 +27,7 @@ What Manifesto has decided not to do, and why, is in [Non-goals](non-goals.md).
 - [User Stories](user-stories.md): Scenarios and acceptance criteria
 - [Operating Modes](operating-modes.md): Open vs connected, storage and auth options, decision matrix
 - [Custom Instances](custom-instances.md): Deploying Manifesto under your own name, icons and description
+- [Accessibility](accessibility.md): The WCAG 2.1 AA target, known gaps, and what a deployment may need to publish
 - [Non-goals](non-goals.md): Features and architecture Manifesto has decided against
 
 ### Shared Contract
