@@ -6,7 +6,8 @@ description: House style for commit messages in this repo. Use whenever writing,
 # Writing a commit message
 
 PRs are squash-merged with every commit's message kept in the squashed body, so the commits are the
-lasting record of why the code is the way it is. The PR description only points at them.
+lasting record of why the code is the way it is. The PR description summarises what the batch does
+for a user and leaves the detail to them.
 
 ## Subject
 
