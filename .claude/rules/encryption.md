@@ -8,6 +8,7 @@ paths:
   - "packages/client/src/utils/keyMaterial.ts"
   - "packages/client/src/storage/deviceKeys.ts"
   - "packages/client/src/storage/sealing.ts"
+  - "packages/client/src/storage/accountSealing.ts"
   - "packages/client/src/storage/shareKeys.ts"
   - "packages/client/src/state/sharing.ts"
   - "packages/client/src/state/comments.ts"
@@ -101,7 +102,8 @@ for any new flow that makes a key someone has to hold.
   reused key.
 - **Nothing above the storage layer holds a ciphertext, and nothing below it a readable note.**
   `storage/sealing.ts` (`Sealer`) seals what `RestApiAdapter` sends and opens what it and the app
-  socket receive; the store, the views and the editor deal in `Note` as in open mode. A new request
+  socket receive (what is sealed under the account's keys alone, about no note, is
+  `storage/accountSealing.ts`); the store, the views and the editor deal in `Note` as in open mode. A new request
   that carries a note's words goes through the `Sealer`, never around it. A note that does not
   open is left out and counted in `Sealer.unreadable`, which `UnopenedNotes` shows on the board;
   `forget` takes it out again. `openAll` opens a few notes at a time and keeps their order.

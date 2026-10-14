@@ -12,13 +12,9 @@ import {
   type SharedSealed,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
+import type { SeenKeys } from "./accountSealing.js";
 import { ApiError, apiFetch, apiJson } from "./apiRequest.js";
-import {
-  type NoteSealing,
-  type SeenKeys,
-  sealer,
-  setOfferHandler,
-} from "./sealing.js";
+import { type NoteSealing, sealer, setOfferHandler } from "./sealing.js";
 
 /**
  * Handing a shared note's key from account to account

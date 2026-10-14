@@ -1,7 +1,6 @@
 import {
   type AccountKeys,
   type AccountSealKeys,
-  deriveBytes,
   type HeldKeyRequest,
   type ImageKey,
   type ImageKeySource,
@@ -13,7 +12,6 @@ import {
   type NoteUpdate,
   type NoteVersion,
   newLinkKey,
-  newTokenSecret,
   noteSealKey,
   type OfferedKey,
   offerNoteKey,
@@ -49,15 +47,12 @@ import {
   sealSharedFields,
   sealVersion,
   snapshotKey,
-  tokenHashOf,
   unwrapNoteKey,
   verifyOfferedKey,
   wipe,
-  wrapFeedKey,
   wrapForLink,
   wrapForReminders,
   wrapNoteKey,
-  wrapTokenKeys,
 } from "@manifesto/shared";
 import { computed, type Signal, signal } from "@preact/signals";
 import { ulid } from "ulid";
@@ -66,6 +61,15 @@ import {
   accountSubkey,
   openPrivateKey,
 } from "../utils/keyMaterial.js";
+import {
+  type NewToken,
+  newKeyedToken,
+  openPrefs,
+  openSeenKeys,
+  type SeenKeys,
+  sealPrefs,
+  sealSeenKeys,
+} from "./accountSealing.js";
 
 /**
  * Sealing and opening for everything that crosses to the server in connected
@@ -139,13 +143,6 @@ interface HeldNoteKey {
 /** How many notes of a listing are being opened at any moment. */
 const OPENED_AT_ONCE = 8;
 
-/** An account's public keys as another account remembers having seen them. */
-export interface SeenKeys {
-  version: number;
-  exchange: string;
-  signing: string;
-}
-
 /** A note's key, and the ones it was under before: what opens anything
  * written beside the note, whenever it was written. */
 export interface NoteKeyRing {
@@ -159,11 +156,6 @@ function ringKey(ring: NoteKeyRing, version: number): NoteSealKey | null {
     : (ring.older.get(version) ?? null);
 }
 
-/**
- * One unlocked account's sealing. It remembers the key of every note it has
- * opened, so a change to a note is sealed without unwrapping its key again;
- * the keys themselves cannot be read out of it.
- */
 /** Puts `id` in the set `held` holds, or takes it out. */
 function toggleIn(
   held: Signal<ReadonlySet<string>>,
@@ -178,6 +170,11 @@ function toggleIn(
   held.value = next;
 }
 
+/**
+ * One unlocked account's sealing. It remembers the key of every note it has
+ * opened, so a change to a note is sealed without unwrapping its key again;
+ * the keys themselves cannot be read out of it.
+ */
 export class Sealer {
   private readonly account: Promise<AccountSealKeys>;
   private readonly images: Promise<ImageKeySource>;
@@ -861,67 +858,12 @@ export class Sealer {
     return typeof opened === "string" ? opened : null;
   }
 
-  /**
-   * A new token that carries keys: its secret, which stays on this side,
-   * and what the server is sent of it. The notes key and the personal key
-   * (or, for a calendar feed, the reminder key alone) are derived from the
-   * account key as bytes for the one wrap and wiped; the account key itself
-   * is never among them, so a token opens no private key and accepts no
-   * invitation.
-   */
+  /** A new token that carries keys (`newKeyedToken`). */
   async newToken(
     prefix: string,
     carries: "notes" | "reminders" = "notes",
-  ): Promise<{
-    secret: string;
-    fields: { tokenHash: string; prefix: string; wrappedKeys: string };
-  } | null> {
-    const secret = newTokenSecret(prefix);
-    if (carries === "reminders") {
-      // A calendar feed's address: the reminder key and nothing else.
-      const reminders = await deriveBytes(
-        this.keys.accountKey,
-        "account/reminder",
-      );
-      try {
-        return {
-          secret,
-          fields: {
-            tokenHash: await tokenHashOf(secret),
-            prefix: secret.slice(0, prefix.length + 6),
-            wrappedKeys: await wrapFeedKey(secret, {
-              version: this.keys.version,
-              reminders,
-            }),
-          },
-        };
-      } finally {
-        wipe(reminders);
-      }
-    }
-    const notes = await deriveBytes(this.keys.accountKey, "account/notes");
-    const personal = await deriveBytes(
-      this.keys.accountKey,
-      "account/personal",
-    );
-    try {
-      return {
-        secret,
-        fields: {
-          tokenHash: await tokenHashOf(secret),
-          // The prefix and six characters, which is what a list shows.
-          prefix: secret.slice(0, prefix.length + 6),
-          wrappedKeys: await wrapTokenKeys(secret, {
-            version: this.keys.version,
-            notes,
-            personal,
-          }),
-        },
-      };
-    } finally {
-      wipe(notes);
-      wipe(personal);
-    }
+  ): Promise<NewToken | null> {
+    return newKeyedToken(this.keys, prefix, carries);
   }
 
   /** A comment's text, sealed under its note's key and bound to `id`. */
@@ -955,66 +897,26 @@ export class Sealer {
     return out;
   }
 
-  /** Someone's public keys as this account remembers them, sealed under its
-   * own key and bound to whose they are. */
   async sealSeenKeys(peerId: string, keys: SeenKeys): Promise<string> {
-    return sealPref(await this.account, `seen/${peerId}`, keys);
+    return sealSeenKeys(await this.account, peerId, keys);
   }
 
-  /** The remembered keys that open, by account. One that does not open, or
-   * is not a pair of keys, is left out, and its account is met as new. */
   async openSeenKeys(
     sealed: Record<string, string>,
   ): Promise<Map<string, SeenKeys>> {
-    const account = await this.account;
-    const out = new Map<string, SeenKeys>();
-    for (const [peerId, value] of Object.entries(sealed)) {
-      const opened = (await openPref(account, `seen/${peerId}`, value)) as
-        | Partial<SeenKeys>
-        | undefined;
-      if (
-        opened &&
-        typeof opened === "object" &&
-        typeof opened.exchange === "string" &&
-        typeof opened.signing === "string" &&
-        typeof opened.version === "number"
-      ) {
-        out.set(peerId, {
-          version: opened.version,
-          exchange: opened.exchange,
-          signing: opened.signing,
-        });
-      }
-    }
-    return out;
+    return openSeenKeys(await this.account, sealed);
   }
 
-  /** The preferences to send, each sealed; `null` removes one and stays. */
   async sealPrefs(
     prefs: Record<string, unknown>,
   ): Promise<Record<string, string | null>> {
-    const account = await this.account;
-    const out: Record<string, string | null> = {};
-    for (const [name, value] of Object.entries(prefs)) {
-      out[name] =
-        value === null || value === undefined
-          ? null
-          : await sealPref(account, name, value);
-    }
-    return out;
+    return sealPrefs(await this.account, prefs);
   }
 
-  /** The preferences that open; one that does not is left out. */
   async openPrefs(
     sealed: SealedAccountPrefs,
   ): Promise<Record<string, unknown>> {
-    const account = await this.account;
-    const out: Record<string, unknown> = {};
-    for (const [name, value] of Object.entries(sealed)) {
-      const opened = await openPref(account, name, value);
-      if (opened !== undefined) out[name] = opened;
-    }
-    return out;
+    return openPrefs(await this.account, sealed);
   }
 }
 
