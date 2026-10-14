@@ -1,6 +1,7 @@
 import {
   type AccountKeys,
   type AccountKeysSetupRequest,
+  bytesToBase64url,
   deriveMacKey,
   type ImageKeySource,
   type RecoveryKeyWrap,
@@ -14,7 +15,6 @@ import {
   unseal,
 } from "./seal.js";
 import { newUserKey } from "./userKey.js";
-import { bytesToBase64url } from "./webauthn.js";
 
 /**
  * An account's keys, made and wrapped in the browser
