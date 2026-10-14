@@ -168,6 +168,7 @@ export function NoteReadonlyView({
                   onClick={() =>
                     setShowReminderChipPicker(!showReminderChipPicker)
                   }
+                  expanded={showReminderChipPicker}
                   onClear={() => updateNote(note.id, { reminder: null })}
                 />
                 {reminderChipPicker.shown && (

@@ -511,6 +511,7 @@ export function NoteEditor({
                   onClick={() =>
                     setShowReminderChipPicker(!showReminderChipPicker)
                   }
+                  expanded={showReminderChipPicker}
                   onClear={
                     onReminderChange ? () => onReminderChange(null) : undefined
                   }

@@ -203,6 +203,20 @@ export function Dropdown({
     return () => clearTimeout(timer);
   }, [open]);
 
+  // The trigger says whether its panel is open, for every dropdown at once
+  // rather than each caller remembering to (most had not). And a panel that
+  // closes with focus in it hands focus back to the trigger: the panel turns
+  // inert, which would otherwise drop focus to the page.
+  useEffect(() => {
+    const anchor = anchorRef.current;
+    const panel = panelRef.current;
+    const button = [
+      ...(anchor?.querySelectorAll<HTMLElement>("button") ?? []),
+    ].find((b) => !panel?.contains(b));
+    button?.setAttribute("aria-expanded", String(open));
+    if (!open && panel?.contains(document.activeElement)) button?.focus();
+  }, [open]);
+
   // Script-side placement, only where CSS can't do it. Kept in sync while open
   // because the trigger moves with any scrolling ancestor.
   useEffect(() => {

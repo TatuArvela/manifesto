@@ -323,6 +323,7 @@ export const NoteCard = memo(function NoteCard({
             isSquare={isSquare}
             viewOnly={viewOnly}
             reminderChipRef={reminderChipRef}
+            reminderOpen={openPopover === "reminder"}
             onToggleReminder={() => togglePopover("reminder")}
           />
 
@@ -334,6 +335,7 @@ export const NoteCard = memo(function NoteCard({
             colorBtnRef={colorBtnRef}
             tagsBtnRef={tagsBtnRef}
             menuBtnRef={menuBtnRef}
+            openPopover={openPopover}
             onToggleColorPicker={() => togglePopover("color")}
             onToggleTags={() => togglePopover("tags")}
             onToggleMenu={() => togglePopover("menu")}
