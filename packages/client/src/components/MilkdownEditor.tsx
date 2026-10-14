@@ -35,6 +35,7 @@ import {
   type YjsCollabFactory,
 } from "../extensions/yjsCollab.js";
 import { useMilkdownEditor } from "../hooks/useMilkdownEditor.js";
+import { t } from "../i18n/index.js";
 import {
   normalizeMarkdown,
   replaceTextareaText,
@@ -163,6 +164,13 @@ export function MilkdownEditor({
         ctx.update(editorViewOptionsCtx, (prev) => ({
           ...prev,
           editable: () => true,
+          // The editable area had no name, so a screen reader announced an
+          // unnamed text field after the title.
+          attributes: {
+            role: "textbox",
+            "aria-multiline": "true",
+            "aria-label": t("editor.contentLabel"),
+          },
         }));
         ctx.update(remarkStringifyOptionsCtx, (prev) => ({
           ...prev,
@@ -453,6 +461,7 @@ export function MilkdownEditor({
         ref={textareaRef}
         class="block w-full py-1 bg-transparent outline-none resize-none overflow-hidden font-mono text-sm max-sm:text-[16px]/6"
         style={{ display: rawMode ? "" : "none" }}
+        aria-label={t("editor.contentLabel")}
         rows={1}
         value={rawContent}
         onInput={(e) => onRawInput((e.target as HTMLTextAreaElement).value)}

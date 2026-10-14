@@ -6,6 +6,7 @@ import { userEvent } from "vitest/browser";
 import * as Y from "yjs";
 import { editorHistory } from "../extensions/editorHistory.js";
 import { DEFAULT_FRAGMENT_NAME } from "../extensions/yjsCollab.js";
+import { t } from "../i18n/index.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 
 /**
@@ -315,6 +316,22 @@ describe("MilkdownEditor undo with a shared document", () => {
 });
 
 describe("MilkdownEditor teardown", () => {
+  it("names its text field for a screen reader", async () => {
+    const host = mountHost();
+    render(<MilkdownEditor content="Milk" onChange={() => {}} />, host);
+    const view = await vi.waitFor(() => {
+      const el = host.querySelector(".ProseMirror");
+      if (!el) throw new Error("no editor yet");
+      return el;
+    });
+    expect(view.getAttribute("role")).toBe("textbox");
+    expect(view.getAttribute("aria-multiline")).toBe("true");
+    expect(view.getAttribute("aria-label")).toBe(t("editor.contentLabel"));
+    expect(host.querySelector("textarea")?.getAttribute("aria-label")).toBe(
+      t("editor.contentLabel"),
+    );
+  });
+
   it("does not throw when destroyed inside the listener debounce", async () => {
     // `@milkdown/plugin-listener` gives no way to cancel its pending
     // serialization, and the timer runs where no caller can catch it: the

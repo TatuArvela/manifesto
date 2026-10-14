@@ -132,6 +132,7 @@ export const fi: Messages = {
 
   // Note editor
   "editor.titlePlaceholder": "Otsikko",
+  "editor.contentLabel": "Muistiinpanon teksti",
   "editor.removeTag": "Poista tunniste {tag}",
   "editor.color": "Väri",
   "editor.changeColor": "Vaihda väriä",

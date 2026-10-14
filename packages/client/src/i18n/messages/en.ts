@@ -129,6 +129,7 @@ export const en = {
 
   // Note editor
   "editor.titlePlaceholder": "Title",
+  "editor.contentLabel": "Note text",
   "editor.removeTag": "Remove tag {tag}",
   "editor.color": "Color",
   "editor.changeColor": "Change color",

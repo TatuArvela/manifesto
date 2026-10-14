@@ -417,6 +417,7 @@ export function NoteEditor({
           type="text"
           class="w-full bg-transparent outline-none font-medium text-base max-sm:text-[1.35rem] mb-2 placeholder:text-neutral-400 sm:pr-32"
           placeholder={t("editor.titlePlaceholder")}
+          aria-label={t("editor.titlePlaceholder")}
           value={title}
           onInput={(e) => onTitleChange((e.target as HTMLInputElement).value)}
           onKeyDown={(e) => {
