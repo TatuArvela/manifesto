@@ -63,6 +63,8 @@ async function server(input: string, init?: RequestInit): Promise<Response> {
     case "PUT /auth/keys":
       stored = { ...(body as AccountKeysSetupRequest), version: 1 };
       return new Response(null, { status: 204 });
+    case "POST /auth/keys/confirm":
+      return new Response(null, { status: 204 });
     case "POST /auth/keys/secret":
       if (stored) stored.wrappedBySecret = body.wrappedBySecret;
       return new Response(null, { status: 204 });
@@ -154,12 +156,16 @@ describe("account keys across tabs", () => {
     const said: unknown[] = [];
     const tab = new BroadcastChannel("manifesto:keys");
     tab.onmessage = (event) => said.push(event.data);
+    const renew = async () => {
+      expect((await keys.prepareSecretKey("")).kind).toBe("ok");
+      return (await keys.completeRenewal("")).kind;
+    };
     deviceKeeps = false;
-    expect((await keys.renewSecretKey("")).kind).toBe("ok");
+    expect(await renew()).toBe("ok");
     await heard();
     expect(said).toEqual([]);
     deviceKeeps = true;
-    expect((await keys.renewSecretKey("")).kind).toBe("ok");
+    expect(await renew()).toBe("ok");
     await vi.waitFor(() => expect(said).toEqual(["held"]));
     tab.close();
   });

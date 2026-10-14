@@ -2,8 +2,10 @@ import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
 import { t } from "../../i18n/index.js";
 import {
-  renewRecoveryKey,
-  renewSecretKey,
+  abandonRenewal,
+  completeRenewal,
+  prepareRecoveryKey,
+  prepareSecretKey,
   revealSecretKey,
   secretKeyAddress,
   sheetFor,
@@ -13,7 +15,7 @@ import {
   ConfirmationError,
   ConfirmPasswordField,
 } from "../ConfirmWithPassword.js";
-import { KeySheetView } from "../KeySheet.js";
+import { KeepSheetStep } from "../KeySheet.js";
 import { QrCode } from "../QrCode.js";
 
 const primaryClass =
@@ -59,6 +61,9 @@ function Section({
  * is on the sheet alone, so it can only be replaced. Each step asks for the
  * password first (or a recent sign-in), since a session left open should not
  * be enough to read a key off the screen or to lock every other device out.
+ * A new key is shown before it is sent, and replaces the old one only once
+ * the user says they kept it; the password is held until then, since the
+ * server asks for it again with the new key.
  */
 export function KeysSettings() {
   const [step, setStep] = useState<Step>({ kind: "idle" });
@@ -68,6 +73,7 @@ export function KeysSettings() {
   const [busy, setBusy] = useState(false);
 
   const reset = () => {
+    abandonRenewal();
     setStep({ kind: "idle" });
     setPassword("");
     setRefusal(null);
@@ -89,8 +95,8 @@ export function KeysSettings() {
       purpose === "reveal"
         ? await revealSecretKey(password)
         : purpose === "newSecret"
-          ? await renewSecretKey(password)
-          : await renewRecoveryKey(password);
+          ? await prepareSecretKey(password)
+          : await prepareRecoveryKey(password);
     setBusy(false);
     if (result.kind === "failed") {
       setFailed(true);
@@ -100,13 +106,29 @@ export function KeysSettings() {
       setRefusal(result.kind);
       return;
     }
-    setPassword("");
     if (purpose === "reveal" && "secretKey" in result) {
+      setPassword("");
       setStep({ kind: "revealed", secretKey: result.secretKey });
     } else if ("secretKey" in result) {
       setStep({ kind: "made", secretKey: result.secretKey });
     } else {
       setStep({ kind: "made", recoveryKey: result.recoveryKey });
+    }
+  };
+
+  const keep = async () => {
+    setRefusal(null);
+    setFailed(false);
+    setBusy(true);
+    const result = await completeRenewal(password);
+    setBusy(false);
+    if (result.kind === "ok") {
+      setPassword("");
+      setStep({ kind: "idle" });
+    } else if (result.kind === "failed") {
+      setFailed(true);
+    } else {
+      setRefusal(result.kind);
     }
   };
 
@@ -172,10 +194,25 @@ export function KeysSettings() {
               : "keys.settings.madeRecovery",
           )}
         </p>
-        <KeySheetView sheet={sheetFor(step)} />
+        <KeepSheetStep
+          sheet={sheetFor(step)}
+          submitLabel={t("keys.settings.kept")}
+          error={
+            <>
+              {refusal && <ConfirmationError refusal={refusal} />}
+              {failed && (
+                <p class="text-sm text-red-600 dark:text-red-400" role="alert">
+                  {t("keys.failed")}
+                </p>
+              )}
+            </>
+          }
+          busy={busy}
+          onSubmit={() => void keep()}
+        />
         <div class="flex justify-end">
-          <button type="button" class={primaryClass} onClick={reset}>
-            {t("keys.settings.kept")}
+          <button type="button" class={secondaryClass} onClick={reset}>
+            {t("confirm.cancel")}
           </button>
         </div>
       </div>

@@ -78,8 +78,11 @@ IndexedDB keeps the keys in memory alone, and locking on every other tab's unloc
 down under whoever is typing. Only `gone` (`startAgain`) makes a tab let go.
 
 Every key is shown once, on a sheet (`KeepSheetStep`), and the write that makes it real comes after
-the user says they kept it: set-up and both recoveries prepare first and complete second. Keep that
-order for any new flow that makes a key someone has to hold.
+the user says they kept it: set-up, both recoveries and a new key from Settings
+(`prepareSecretKey` / `prepareRecoveryKey`, then `completeRenewal`) prepare first and complete
+second. A new secret key whose request got no answer is taken as made when the server's wrap is the
+one sent: the device has to go on holding the key that opens what the server holds. Keep that order
+for any new flow that makes a key someone has to hold.
 
 ## What never happens, and what each is guarded by
 

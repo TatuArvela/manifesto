@@ -136,7 +136,9 @@ the recovery key.
 
 An account is set up at its first sign-in. The browser makes both keys and shows them once, on one
 sheet to save or print, with the server's address and the username, and the user has to confirm they
-kept it. Making a new secret key or recovery key is written to the audit log.
+kept it. A new secret key or recovery key is shown the same way before anything is replaced, and the
+old one goes on working until the user confirms they kept the new one. Making either is written to
+the audit log.
 
 While a device is signed in it also holds the account key, in IndexedDB as a key the page can use and
 cannot read out, so the service worker can use it. It goes with the secret key when the session ends.

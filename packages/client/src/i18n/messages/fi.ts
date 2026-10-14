@@ -694,10 +694,10 @@ export const fi: Messages = {
     "Tai skannaa tämä koodi toisen laitteen kameralla, jolloin sovellus avautuu siellä avain valmiiksi täytettynä. Kuka tahansa, joka näkee tämän näytön, voi kopioida avaimen.",
   "keys.settings.hide": "Piilota",
   "keys.settings.madeSecret":
-    "Tämä on uusi salainen avaimesi. Tallenna se arkkisi yhteyteen; vanha ei enää toimi.",
+    "Tämä on uusi salainen avaimesi. Tallenna se arkkisi yhteyteen: vanha lakkaa toimimasta, kun vahvistat tallentaneesi sen.",
   "keys.settings.madeRecovery":
-    "Tämä on uusi palautusavaimesi. Tallenna se vanhan tilalle; vanha ei enää toimi.",
-  "keys.settings.kept": "Olen tallentanut sen",
+    "Tämä on uusi palautusavaimesi. Tallenna se vanhan tilalle: vanha lakkaa toimimasta, kun vahvistat tallentaneesi sen.",
+  "keys.settings.kept": "Ota uusi avain käyttöön",
   "login.oidcNotInGroup":
     "Tililläsi ei voi kirjautua tänne. Kysy palvelimen ylläpitäjältä.",
   "login.oidcNotRegistered":

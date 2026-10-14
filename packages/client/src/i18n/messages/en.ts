@@ -680,10 +680,10 @@ export const en = {
     "Or scan this code with the other device's camera, which opens the app there with the key filled in. Anyone who sees this screen can copy the key.",
   "keys.settings.hide": "Hide",
   "keys.settings.madeSecret":
-    "This is your new secret key. Save it with your sheet; the old one no longer works.",
+    "This is your new secret key. Save it with your sheet: the old one stops working once you say you have.",
   "keys.settings.madeRecovery":
-    "This is your new recovery key. Save it in place of the old one, which no longer works.",
-  "keys.settings.kept": "I have saved it",
+    "This is your new recovery key. Save it in place of the old one, which stops working once you say you have.",
+  "keys.settings.kept": "Use the new key",
   "login.oidcNotInGroup":
     "Your account is not one allowed to sign in here. Ask whoever runs this server.",
   "login.oidcNotRegistered":

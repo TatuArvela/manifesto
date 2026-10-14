@@ -17,6 +17,8 @@ import { storageKeys } from "../storage/sealing.js";
 import {
   createAccountKeys,
   type NewAccountKeys,
+  type NewRecoveryKey,
+  type NewSecretKey,
   type RecoveredKeys,
   recoverAccountKey,
   recoveryVerifierOf,
@@ -87,6 +89,11 @@ let pendingRecovery: {
   /** Set when nobody is signed in and the recovery signs in. */
   username: string | null;
 } | null = null;
+/** A new secret or recovery key made in Settings, until its sheet is kept. */
+let pendingRenewal:
+  | ({ kind: "secret" } & NewSecretKey)
+  | ({ kind: "recovery" } & NewRecoveryKey)
+  | null = null;
 /** A secret key scanned into the address before the account was unlocked. */
 let scannedSecretKey: string | null = null;
 /** Raised whenever the state is decided, so an older check does not answer
@@ -156,6 +163,7 @@ async function hold(
   setHeld(keys);
   pendingSetup = null;
   pendingRecovery = null;
+  pendingRenewal = null;
   scannedSecretKey = null;
   keyState.value = "unlocked";
   // Without the day the session ends, the device could not tell when to
@@ -170,6 +178,7 @@ function forget(): void {
   served = null;
   pendingSetup = null;
   pendingRecovery = null;
+  pendingRenewal = null;
 }
 
 /**
@@ -588,55 +597,101 @@ async function currentKeys(): Promise<AccountKeys | null> {
 }
 
 /**
- * A new secret key in place of the one this device holds. Every other device
- * is signed out and asks for the new one.
+ * Makes a new secret key in place of the one this device holds, once the
+ * server has checked the password, and answers it to show. Nothing is
+ * replaced until `completeRenewal`, after the user says they kept it.
  */
-export async function renewSecretKey(
+export async function prepareSecretKey(
   password: string,
 ): Promise<Confirmed<{ secretKey: string }>> {
-  const mine = held;
-  const keys = await currentKeys();
-  if (!mine || !keys) return { kind: "failed" };
-  let next: Awaited<ReturnType<typeof replaceSecretKey>>;
-  try {
-    next = await replaceSecretKey(mine.userId, keys, mine.secretKey);
-  } catch {
-    return { kind: "failed" };
-  }
-  if (next === null) return { kind: "failed" };
-  const res = await apiFetch("POST", "/auth/keys/secret", {
-    ...withPassword(password),
-    wrappedBySecret: next.wrappedBySecret,
-  });
-  if (!res?.ok) return refusalOf(res);
-  await hold(
-    { ...mine, secretKey: next.secretKey },
-    served?.sessionEndsAt ?? null,
-  );
-  return { kind: "ok", secretKey: next.secretKey };
+  const made = await prepareRenewal(password, replaceSecretKey);
+  if (made.kind !== "ok") return made;
+  pendingRenewal = { kind: "secret", ...made.next };
+  return { kind: "ok", secretKey: made.next.secretKey };
 }
 
-/** A new recovery key; the one on the old sheet stops working. */
-export async function renewRecoveryKey(
+/** The same for a new recovery key. */
+export async function prepareRecoveryKey(
   password: string,
 ): Promise<Confirmed<{ recoveryKey: string }>> {
+  const made = await prepareRenewal(password, replaceRecoveryKey);
+  if (made.kind !== "ok") return made;
+  pendingRenewal = { kind: "recovery", ...made.next };
+  return { kind: "ok", recoveryKey: made.next.recoveryKey };
+}
+
+async function prepareRenewal<T>(
+  password: string,
+  replace: (
+    userId: string,
+    keys: AccountKeys,
+    secretKey: string,
+  ) => Promise<T | null>,
+): Promise<Confirmed<{ next: T }>> {
+  pendingRenewal = null;
   const mine = held;
+  if (!mine) return { kind: "failed" };
+  const confirmed = await apiFetch(
+    "POST",
+    "/auth/keys/confirm",
+    withPassword(password),
+  );
+  if (!confirmed?.ok) return refusalOf(confirmed);
   const keys = await currentKeys();
-  if (!mine || !keys) return { kind: "failed" };
-  let next: Awaited<ReturnType<typeof replaceRecoveryKey>>;
+  if (!keys) return { kind: "failed" };
+  let next: T | null;
   try {
-    next = await replaceRecoveryKey(mine.userId, keys, mine.secretKey);
+    next = await replace(mine.userId, keys, mine.secretKey);
   } catch {
     return { kind: "failed" };
   }
-  if (next === null) return { kind: "failed" };
-  const res = await apiFetch("POST", "/auth/keys/recovery", {
+  return next === null ? { kind: "failed" } : { kind: "ok", next };
+}
+
+/**
+ * Puts the key `prepareSecretKey` or `prepareRecoveryKey` made in place of
+ * the old one. A new secret key signs out every other device, and this one
+ * goes on with it.
+ */
+export async function completeRenewal(
+  password: string,
+): Promise<Confirmed<object>> {
+  const pending = pendingRenewal;
+  const mine = held;
+  if (!pending || !mine) return { kind: "failed" };
+  if (pending.kind === "recovery") {
+    const res = await apiFetch("POST", "/auth/keys/recovery", {
+      ...withPassword(password),
+      wrappedByRecovery: pending.wrappedByRecovery,
+      recoveryVerifier: pending.recoveryVerifier,
+    });
+    if (!res?.ok) return refusalOf(res);
+    pendingRenewal = null;
+    return { kind: "ok" };
+  }
+  const res = await apiFetch("POST", "/auth/keys/secret", {
     ...withPassword(password),
-    wrappedByRecovery: next.wrappedByRecovery,
-    recoveryVerifier: next.recoveryVerifier,
+    wrappedBySecret: pending.wrappedBySecret,
   });
-  if (!res?.ok) return refusalOf(res);
-  return { kind: "ok", recoveryKey: next.recoveryKey };
+  // A request whose answer was lost may still have been made: the wrap the
+  // server holds says, and this device has to go on with the key that
+  // opens it.
+  const made =
+    res?.ok ||
+    (!res &&
+      (await currentKeys())?.wrappedBySecret === pending.wrappedBySecret);
+  if (!made) return refusalOf(res);
+  pendingRenewal = null;
+  await hold(
+    { ...mine, secretKey: pending.secretKey },
+    served?.sessionEndsAt ?? null,
+  );
+  return { kind: "ok" };
+}
+
+/** Drops a new key whose sheet was not kept; the old one goes on working. */
+export function abandonRenewal(): void {
+  pendingRenewal = null;
 }
 
 /** A sheet for one new key, to save beside or in place of the old one. */

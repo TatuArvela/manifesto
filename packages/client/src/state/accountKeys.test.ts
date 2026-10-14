@@ -35,6 +35,8 @@ interface Stored extends AccountKeysSetupRequest {
   version: number;
 }
 let stored: Stored | null;
+/** The next key replaced is, but its answer never arrives. */
+let loseAnswer = false;
 let requests: { method: string; path: string; body: unknown }[];
 
 const json = (body: unknown, status = 200) =>
@@ -88,6 +90,7 @@ async function server(input: string, init?: RequestInit): Promise<Response> {
     case "POST /auth/keys/secret":
       if (wrongPassword) return refused("password_incorrect");
       if (stored) stored = { ...stored, wrappedBySecret: body.wrappedBySecret };
+      if (loseAnswer) throw new TypeError("connection reset");
       return empty();
     case "POST /auth/keys/recovery":
       if (wrongPassword) return refused("password_incorrect");
@@ -156,6 +159,7 @@ async function signInAfresh(): Promise<void> {
 describe("account keys", () => {
   beforeEach(() => {
     stored = null;
+    loseAnswer = false;
     requests = [];
     vi.stubGlobal(
       "fetch",
@@ -283,31 +287,69 @@ describe("account keys", () => {
 
   it("makes a new secret key, which is the one that unlocks from then on", async () => {
     const { secretKey } = await setUp();
-    expect((await keys.renewSecretKey("wrong-pass-00")).kind).toBe(
+    expect((await keys.prepareSecretKey("wrong-pass-00")).kind).toBe(
       "password-wrong",
     );
-    const renewed = await keys.renewSecretKey(PASSWORD);
-    if (renewed.kind !== "ok") throw new Error(renewed.kind);
-    expect(renewed.secretKey).not.toBe(secretKey);
+    const made = await keys.prepareSecretKey(PASSWORD);
+    if (made.kind !== "ok") throw new Error(made.kind);
+    expect(made.secretKey).not.toBe(secretKey);
+    // Nothing is replaced until the sheet is kept.
+    const before = stored?.wrappedBySecret;
+    expect(requests.some((r) => r.path === "/auth/keys/secret")).toBe(false);
+    expect(await keys.revealSecretKey(PASSWORD)).toEqual({
+      kind: "ok",
+      secretKey,
+    });
+    expect((await keys.completeRenewal(PASSWORD)).kind).toBe("ok");
+    expect(stored?.wrappedBySecret).not.toBe(before);
     // This device goes on, and now holds the new key to show.
     expect(keys.keyState.value).toBe("unlocked");
     expect(await keys.revealSecretKey(PASSWORD)).toEqual({
       kind: "ok",
-      secretKey: renewed.secretKey,
+      secretKey: made.secretKey,
     });
     await signInAfresh();
     expect(await keys.unlock(secretKey)).toBe("wrong");
-    expect(await keys.unlock(renewed.secretKey)).toBe("ok");
+    expect(await keys.unlock(made.secretKey)).toBe("ok");
   });
 
-  it("makes a new recovery key, and the old one stops working", async () => {
+  it("keeps the old secret key when the new one's sheet is not kept", async () => {
+    const { secretKey } = await setUp();
+    const made = await keys.prepareSecretKey(PASSWORD);
+    if (made.kind !== "ok") throw new Error(made.kind);
+    keys.abandonRenewal();
+    expect((await keys.completeRenewal(PASSWORD)).kind).toBe("failed");
+    await signInAfresh();
+    expect(await keys.unlock(made.secretKey)).toBe("wrong");
+    expect(await keys.unlock(secretKey)).toBe("ok");
+  });
+
+  it("goes on with the new secret key when the server took it but its answer was lost", async () => {
+    await setUp();
+    const made = await keys.prepareSecretKey(PASSWORD);
+    if (made.kind !== "ok") throw new Error(made.kind);
+    loseAnswer = true;
+    expect((await keys.completeRenewal(PASSWORD)).kind).toBe("ok");
+    loseAnswer = false;
+    expect(await keys.revealSecretKey(PASSWORD)).toEqual({
+      kind: "ok",
+      secretKey: made.secretKey,
+    });
+  });
+
+  it("makes a new recovery key, and the old one stops working once it is kept", async () => {
     const { recoveryKey } = await setUp();
-    const renewed = await keys.renewRecoveryKey(PASSWORD);
-    if (renewed.kind !== "ok") throw new Error(renewed.kind);
-    expect(renewed.recoveryKey).not.toBe(recoveryKey);
+    const made = await keys.prepareRecoveryKey(PASSWORD);
+    if (made.kind !== "ok") throw new Error(made.kind);
+    expect(made.recoveryKey).not.toBe(recoveryKey);
+    expect(requests.some((r) => r.path === "/auth/keys/recovery")).toBe(false);
+    expect((await keys.completeRenewal("wrong-pass-00")).kind).toBe(
+      "password-wrong",
+    );
+    expect((await keys.completeRenewal(PASSWORD)).kind).toBe("ok");
     await signInAfresh();
     expect((await keys.beginRecovery(recoveryKey)).kind).toBe("wrong");
-    expect((await keys.beginRecovery(renewed.recoveryKey)).kind).toBe("ok");
+    expect((await keys.beginRecovery(made.recoveryKey)).kind).toBe("ok");
   });
 
   it("unlocks with the recovery key and replaces both keys", async () => {
