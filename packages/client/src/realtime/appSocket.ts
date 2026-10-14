@@ -17,7 +17,12 @@ import {
   receiveComment,
   reloadComments,
 } from "../state/comments.js";
-import { forgetNote, receiveNote, syncNotes } from "../state/notesStore.js";
+import {
+  forgetNote,
+  notes,
+  receiveNote,
+  syncNotes,
+} from "../state/notesStore.js";
 import {
   receiveAccountPrefs,
   refreshAccountPrefs,
@@ -221,6 +226,14 @@ function subjectOf(event: Exclude<WebSocketEvent, { type: "heartbeat" }>) {
  */
 const applying = new Map<string, Promise<void>>();
 
+/**
+ * Raised each time a reconnect starts catching up through `syncNotes`. An
+ * event the socket before it delivered may still be opening when the sync
+ * has already dropped its note; that event is older than the sync, so it may
+ * refresh a note still held but never bring one back.
+ */
+let catchUps = 0;
+
 function queueServerEvent(event: WebSocketEvent) {
   // A heartbeat is about the socket, not the notes: it waits for nothing, or
   // a slow note would have a live socket taken for a silent one.
@@ -232,9 +245,10 @@ function queueServerEvent(event: WebSocketEvent) {
   // Sent to the session that was unlocked when it arrived: one locked or
   // signed out since does not apply it under whoever comes next.
   const session = sealer.peek();
+  const heardAt = catchUps;
   const next = (applying.get(subject) ?? Promise.resolve())
     .then(() =>
-      sealer.peek() === session ? applyServerEvent(event) : undefined,
+      sealer.peek() === session ? applyServerEvent(event, heardAt) : undefined,
     )
     .catch((err) => console.warn("Failed to apply a server event:", err))
     .finally(() => {
@@ -243,14 +257,19 @@ function queueServerEvent(event: WebSocketEvent) {
   applying.set(subject, next);
 }
 
-async function applyServerEvent(event: WebSocketEvent) {
+async function applyServerEvent(event: WebSocketEvent, heardAt: number) {
   switch (event.type) {
     case "note:created":
     case "note:updated": {
       // Null while locked, and for a note whose key did not open: either
       // way there is nothing readable to show.
       const note = await sealer.peek()?.open(event.note);
-      if (note) receiveNote(note);
+      if (!note) break;
+      // Overtaken by a catch-up while it opened: one the sync dropped stays
+      // dropped.
+      const stale = heardAt !== catchUps;
+      if (stale && !notes.peek().some((n) => n.id === note.id)) break;
+      receiveNote(note);
       break;
     }
     case "note:deleted":
@@ -352,6 +371,7 @@ function connect(token: string) {
       // it cannot). `receiveNote` keeps the notes that did not change and
       // handles any racing events that arrive between this fire and the
       // response.
+      catchUps++;
       syncNotes().catch(() => {
         // Network blip during the catch-up fetch is fine; the next user
         // action or full reload will retry.
