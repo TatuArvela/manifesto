@@ -202,6 +202,8 @@ export class Sealer {
   /** Notes that arrived and did not open, by id: what the board says it
    * is not showing (`UnopenedNotes`). */
   readonly unreadable = signal<ReadonlySet<string>>(new Set());
+  /** Those of them this account owns. */
+  private readonly unopenedOwn = new Set<string>();
   /**
    * The notes this account owns that are due a new key: someone who held
    * the one they are under no longer holds the note.
@@ -474,6 +476,9 @@ export class Sealer {
         this.noteKeys.delete(sealed.id);
       }
       toggleIn(this.unreadable, sealed.id, true);
+      if ((sealed.sharing?.role ?? "owner") === "owner") {
+        this.unopenedOwn.add(sealed.id);
+      }
       return null;
     }
     const previous = sealed.previousKeys ?? "";
@@ -502,6 +507,7 @@ export class Sealer {
     );
     for (const [ref, key] of opened.imageKeys) this.imageKeys.set(ref, key);
     toggleIn(this.unreadable, sealed.id, false);
+    this.unopenedOwn.delete(sealed.id);
     return opened.note;
   }
 
@@ -531,9 +537,16 @@ export class Sealer {
     return this.noteKeys.has(id);
   }
 
+  /** Whether a note this account owns arrived and did not open: a backup
+   * made now would be without it. */
+  missesOwnNotes(): boolean {
+    return this.unopenedOwn.size > 0;
+  }
+
   /** A note's key no longer applies: it was deleted, or taken away. */
   forget(id: string): void {
     this.noteKeys.delete(id);
+    this.unopenedOwn.delete(id);
     toggleIn(this.unreadable, id, false);
   }
 

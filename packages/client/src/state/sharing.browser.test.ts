@@ -311,4 +311,13 @@ describe("writing a shared note", () => {
     const exported = await exportNotes();
     expect(exported?.[0]).not.toHaveProperty("sharing");
   });
+
+  it("leaves a note shared with this account out of its export", async () => {
+    notes.value = [
+      makeNote({ id: "mine", sharing: sharedAs("owner") }),
+      makeNote({ id: "theirs", sharing: sharedAs("edit") }),
+    ];
+    const exported = await exportNotes();
+    expect(exported?.map((note) => note.id)).toEqual(["mine"]);
+  });
 });
