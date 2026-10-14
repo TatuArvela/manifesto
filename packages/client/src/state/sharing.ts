@@ -82,6 +82,9 @@ async function opened(raw: ShareInvitation): Promise<Invitation> {
     font: NoteFont.Default,
     waiting: true,
   };
+  // A refreshed invitation is judged on what it carries now: the key an
+  // earlier copy came with may be one the note has since moved away from.
+  heldKeys.delete(raw.noteId);
   const sealing = sealer.peek();
   if (!sealing || !offered) return waiting;
   try {
