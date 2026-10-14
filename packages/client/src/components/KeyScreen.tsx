@@ -16,6 +16,7 @@ import type { ConfirmationRefusal } from "../state/passwordConfirmation.js";
 import { signOut } from "../state/signOut.js";
 import { userKeyKindOf } from "../utils/userKey.js";
 import { BrandLogo } from "./BrandLogo.js";
+import { buttonClass } from "./buttonClasses.js";
 import {
   ConfirmationError,
   ConfirmPasswordField,
@@ -23,9 +24,6 @@ import {
 import { KeepSheetStep } from "./KeySheet.js";
 import { quietClass, submitClass } from "./loginFormClasses.js";
 import { Field, RecoveryForm, UserKeyInput } from "./RecoveryForms.js";
-
-const dangerClass =
-  "w-full rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-medium py-2 transition-colors";
 
 function ErrorLine({ message }: { message: string | null }) {
   if (!message) return null;
@@ -255,7 +253,11 @@ function StartAgain({ onBack }: { onBack: () => void }) {
       <ConfirmPasswordField value={password} onInput={setPassword} />
       {refusal && <ConfirmationError refusal={refusal} />}
       <ErrorLine message={error} />
-      <button type="submit" disabled={busy} class={dangerClass}>
+      <button
+        type="submit"
+        disabled={busy}
+        class={`${buttonClass("danger")} w-full`}
+      >
         {busy ? t("login.submitting") : t("keys.startAgain.submit")}
       </button>
       <button type="button" class={quietClass} onClick={onBack}>

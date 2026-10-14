@@ -11,6 +11,7 @@ import { showWelcome } from "../state/ui.js";
 import { markWelcomed } from "../state/welcome.js";
 import { Backdrop } from "./Backdrop.js";
 import { BrandLogo } from "./BrandLogo.js";
+import { buttonClass } from "./buttonClasses.js";
 
 /** How long the fade-out runs; matches the `duration-150` classes below. */
 const CLOSE_MS = 150;
@@ -131,7 +132,7 @@ export function WelcomeDialog() {
             <div class="mt-5 flex justify-end">
               <button
                 type="button"
-                class="px-4 py-2 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
+                class={buttonClass("primary")}
                 onClick={dismiss}
               >
                 {t("welcome.start")}

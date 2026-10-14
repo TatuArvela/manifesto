@@ -14,6 +14,7 @@ import {
 } from "../state/auth.js";
 import { passkeysSupported } from "../utils/webauthn.js";
 import { BrandLogo } from "./BrandLogo.js";
+import { buttonClass } from "./buttonClasses.js";
 import { LocalLoginForm } from "./LocalLoginForm.js";
 import { OrgCredit } from "./OrgCredit.js";
 import { ForgotPasswordForm, ResetPasswordForm } from "./PasswordResetForms.js";
@@ -189,7 +190,7 @@ function OidcLoginPanel() {
         href={href}
         onClick={beginOidcSignIn}
         onAuxClick={beginOidcSignIn}
-        class="block w-full text-center rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 transition-colors"
+        class={`${buttonClass("primary")} w-full`}
       >
         {t("login.oidcSubmit")}
       </a>

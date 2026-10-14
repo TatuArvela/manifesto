@@ -6,9 +6,7 @@ import type {
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { formatDateTime, type MessageKey, t } from "../../i18n/index.js";
 import { loadAuditLog } from "../../state/admin.js";
-
-const secondaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 disabled:opacity-60 cursor-pointer";
+import { buttonClass } from "../buttonClasses.js";
 
 function nameOf(user: ShareUser | null): string {
   if (!user) return t("audit.nobody");
@@ -108,7 +106,7 @@ export function AuditLog({
       {next && (
         <button
           type="button"
-          class={`${secondaryButtonClass} self-center`}
+          class={`${buttonClass("secondary", "sm")} self-center`}
           disabled={busy}
           onClick={() => void load(next)}
         >

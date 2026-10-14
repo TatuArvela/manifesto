@@ -28,6 +28,7 @@ import {
   sortedNotes,
   viewMode,
 } from "../state/index.js";
+import { buttonClass } from "./buttonClasses.js";
 import { gridColumns } from "./gridColumns.js";
 import { ReorderableGrid } from "./ReorderableGrid.js";
 import { Switch } from "./ToggleSwitch.js";
@@ -236,7 +237,7 @@ export function AutoNotesView() {
                 </button>
                 <button
                   type="button"
-                  class="px-3 py-1 text-sm bg-blue-600 text-white rounded font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  class={buttonClass("primary", "sm")}
                   disabled={!pasteSource.trim()}
                   onClick={handlePasteSave}
                 >
@@ -268,7 +269,7 @@ export function AutoNotesView() {
                 </button>
                 <button
                   type="button"
-                  class="px-3 py-1 text-sm bg-blue-600 text-white rounded font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  class={buttonClass("primary", "sm")}
                   disabled={!urlValue.trim() || urlBusy}
                   onClick={handleUrlSave}
                 >

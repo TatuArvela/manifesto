@@ -39,6 +39,7 @@ import {
   tagsShowArchived,
   tagsShowTrashed,
 } from "../state/index.js";
+import { buttonClass } from "./buttonClasses.js";
 import { Dropdown } from "./Dropdown.js";
 import { tagTint } from "./TagChip.js";
 import { Tooltip } from "./Tooltip.js";
@@ -128,7 +129,7 @@ function RenameTagForm({ tag, onDone }: { tag: string; onDone: () => void }) {
       <button
         type="submit"
         disabled={busy || !next}
-        class="px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white cursor-pointer"
+        class={buttonClass("primary", "sm")}
       >
         {t("tags.renameSubmit")}
       </button>

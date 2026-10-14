@@ -25,6 +25,7 @@ import {
 import { askConfirmation } from "../state/confirm.js";
 import { serverFeature } from "../state/serverFeatures.js";
 import { Avatar } from "./Avatar.js";
+import { buttonClass } from "./buttonClasses.js";
 import {
   SHEET_ASIDE_EXIT_MS,
   SHEET_ASIDE_QUERY,
@@ -35,8 +36,6 @@ const fieldClass =
   "w-full rounded-lg border border-black/15 dark:border-white/15 bg-white/60 dark:bg-black/20 px-2 py-1.5 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 const quietButton =
   "px-2 py-1 text-xs rounded-md cursor-pointer text-black/60 dark:text-white/60 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50";
-const sendButton =
-  "px-3 py-1 text-xs font-medium rounded-md cursor-pointer bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white";
 
 /** A field for a comment's text: sent with the button or Mod+Enter. */
 function CommentField({
@@ -94,7 +93,7 @@ function CommentField({
         )}
         <button
           type="submit"
-          class={sendButton}
+          class={buttonClass("primary", "xs")}
           disabled={busy || body.length === 0}
         >
           {submitLabel}

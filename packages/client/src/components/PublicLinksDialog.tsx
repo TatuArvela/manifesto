@@ -16,9 +16,8 @@ import {
 } from "../state/publicLinks.js";
 import { showError, showSuccess } from "../state/ui.js";
 import { Backdrop } from "./Backdrop.js";
+import { buttonClass } from "./buttonClasses.js";
 
-const primaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
 const iconButtonClass =
   "inline-flex items-center justify-center p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-60 cursor-pointer";
 const fieldClass =
@@ -162,7 +161,7 @@ function PublicLinksDialog({
           <div class="flex justify-end">
             <button
               type="button"
-              class="px-3 py-1.5 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+              class={buttonClass("secondary", "sm")}
               onClick={onClose}
             >
               {t("publicLink.dialog.done")}
@@ -279,7 +278,7 @@ function CreateLinkForm({
       </p>
       <button
         type="submit"
-        class={`${primaryButtonClass} col-span-2`}
+        class={`${buttonClass("primary", "sm")} col-span-2`}
         disabled={busy}
       >
         <Globe class="w-4 h-4" />

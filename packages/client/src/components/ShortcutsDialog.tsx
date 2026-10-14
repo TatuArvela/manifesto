@@ -6,6 +6,7 @@ import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
 import { showShortcuts } from "../state/ui.js";
 import { Backdrop } from "./Backdrop.js";
+import { buttonClass } from "./buttonClasses.js";
 
 /** How long the fade-out runs; matches the `duration-150` classes below. */
 const CLOSE_MS = 150;
@@ -59,7 +60,7 @@ export function ShortcutsDialog() {
           <div class="mt-4 flex justify-end">
             <button
               type="button"
-              class="px-4 py-2 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
+              class={buttonClass("primary")}
               onClick={dismiss}
             >
               {t("shortcuts.close")}

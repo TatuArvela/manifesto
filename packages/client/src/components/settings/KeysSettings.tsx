@@ -11,17 +11,13 @@ import {
   sheetFor,
 } from "../../state/accountKeys.js";
 import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
+import { buttonClass } from "../buttonClasses.js";
 import {
   ConfirmationError,
   ConfirmPasswordField,
 } from "../ConfirmWithPassword.js";
 import { KeepSheetStep } from "../KeySheet.js";
 import { QrCode } from "../QrCode.js";
-
-const primaryClass =
-  "px-4 py-2 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
-const secondaryClass =
-  "px-4 py-2 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer";
 
 /** What each button asks the password for. */
 type Purpose = "reveal" | "newSecret" | "newRecovery";
@@ -146,10 +142,14 @@ export function KeysSettings() {
           </p>
         )}
         <div class="flex justify-end gap-2">
-          <button type="button" class={secondaryClass} onClick={reset}>
+          <button
+            type="button"
+            class={buttonClass("secondary")}
+            onClick={reset}
+          >
             {t("confirm.cancel")}
           </button>
-          <button type="submit" disabled={busy} class={primaryClass}>
+          <button type="submit" disabled={busy} class={buttonClass("primary")}>
             {t("keys.continue")}
           </button>
         </div>
@@ -176,7 +176,7 @@ export function KeysSettings() {
           {t("keys.settings.qrHint")}
         </p>
         <div class="flex justify-end">
-          <button type="button" class={primaryClass} onClick={reset}>
+          <button type="button" class={buttonClass("primary")} onClick={reset}>
             {t("keys.settings.hide")}
           </button>
         </div>
@@ -211,7 +211,11 @@ export function KeysSettings() {
           onSubmit={() => void keep()}
         />
         <div class="flex justify-end">
-          <button type="button" class={secondaryClass} onClick={reset}>
+          <button
+            type="button"
+            class={buttonClass("secondary")}
+            onClick={reset}
+          >
             {t("confirm.cancel")}
           </button>
         </div>
@@ -229,14 +233,14 @@ export function KeysSettings() {
         <div class="flex flex-wrap justify-end gap-2">
           <button
             type="button"
-            class={secondaryClass}
+            class={buttonClass("secondary")}
             onClick={() => ask("newSecret")}
           >
             {t("keys.settings.newSecret")}
           </button>
           <button
             type="button"
-            class={primaryClass}
+            class={buttonClass("primary")}
             onClick={() => ask("reveal")}
           >
             {t("keys.settings.reveal")}
@@ -248,7 +252,7 @@ export function KeysSettings() {
         <div class="flex justify-end">
           <button
             type="button"
-            class={secondaryClass}
+            class={buttonClass("secondary")}
             onClick={() => ask("newRecovery")}
           >
             {t("keys.settings.newRecovery")}

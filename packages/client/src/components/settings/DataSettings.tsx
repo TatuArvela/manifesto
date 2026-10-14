@@ -10,6 +10,7 @@ import {
 import { restoreVersions } from "../../state/versions.js";
 import { importFiles } from "../../utils/importExport.js";
 import { Bookmarklet } from "../Bookmarklet.js";
+import { buttonClass } from "../buttonClasses.js";
 
 /** What Import reads, as a name and a line about it, for the Data page. */
 const IMPORT_FORMATS: [MessageKey, MessageKey][] = [
@@ -138,7 +139,7 @@ export function DataSettings() {
             <div class="flex gap-2">
               <button
                 type="button"
-                class="flex-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
+                class={`${buttonClass("danger", "sm")} flex-1`}
                 onClick={handleDeleteAll}
               >
                 {t("settings.data.deleteYes")}

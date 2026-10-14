@@ -16,6 +16,7 @@ import {
   returnTarget,
 } from "../state/oauth.js";
 import type { ConfirmationRefusal } from "../state/passwordConfirmation.js";
+import { buttonClass } from "./buttonClasses.js";
 import {
   ConfirmationError,
   ConfirmPasswordField,
@@ -211,18 +212,10 @@ function Consent({ request }: { request: AuthorizeRequest }) {
           {t("oauth.revokeHint")}
         </p>
         <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={deny}
-            class="px-4 py-2 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
-          >
+          <button type="button" onClick={deny} class={buttonClass("secondary")}>
             {t("oauth.deny")}
           </button>
-          <button
-            type="submit"
-            disabled={busy}
-            class="px-4 py-2 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
-          >
+          <button type="submit" disabled={busy} class={buttonClass("primary")}>
             {t("oauth.allow")}
           </button>
         </div>

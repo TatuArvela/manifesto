@@ -10,6 +10,7 @@ import {
 import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
 import { showSuccess } from "../../state/ui.js";
 import { Avatar } from "../Avatar.js";
+import { buttonClass } from "../buttonClasses.js";
 import {
   ConfirmationError,
   ConfirmPasswordField,
@@ -17,8 +18,6 @@ import {
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-neutral-100 dark:read-only:bg-neutral-800 read-only:text-neutral-600 dark:read-only:text-neutral-300";
-const primaryClass =
-  "px-4 py-2 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
 
 /** Something, an `@`, something: the same shape the server checks. */
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+$/;
@@ -198,7 +197,11 @@ function EmailForm({ current }: { current: string | null }) {
         </p>
       )}
       <div class="flex justify-end">
-        <button type="submit" disabled={busy || unchanged} class={primaryClass}>
+        <button
+          type="submit"
+          disabled={busy || unchanged}
+          class={buttonClass("primary")}
+        >
           {busy ? t("login.submitting") : t("account.email.save")}
         </button>
       </div>
@@ -280,7 +283,7 @@ function PasswordForm() {
         </p>
       )}
       <div class="flex justify-end">
-        <button type="submit" disabled={busy} class={primaryClass}>
+        <button type="submit" disabled={busy} class={buttonClass("primary")}>
           {busy ? t("login.submitting") : t("account.changePassword")}
         </button>
       </div>

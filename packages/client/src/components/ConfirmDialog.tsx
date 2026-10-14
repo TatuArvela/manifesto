@@ -4,6 +4,7 @@ import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
 import { answerConfirmation, confirmRequest } from "../state/confirm.js";
 import { Backdrop } from "./Backdrop.js";
+import { buttonClass } from "./buttonClasses.js";
 
 /**
  * The one place a destructive action stops to ask. Driven by the
@@ -83,14 +84,14 @@ export function ConfirmDialogHost() {
             <button
               ref={cancelRef}
               type="button"
-              class="px-4 py-2 text-sm rounded-lg font-medium hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+              class={buttonClass("quiet")}
               onClick={() => answerConfirmation(false)}
             >
               {t("confirm.cancel")}
             </button>
             <button
               type="button"
-              class="px-4 py-2 text-sm rounded-lg font-medium bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+              class={buttonClass("danger")}
               onClick={() => answerConfirmation(true)}
             >
               {shown.confirmLabel}

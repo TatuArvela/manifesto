@@ -9,6 +9,7 @@ import { renderMarkdown } from "../utils/remarkRenderer.js";
 import type { SharedNotePayload } from "../utils/shareLink.js";
 import { clearShareHash } from "../utils/shareLink.js";
 import { Backdrop } from "./Backdrop.js";
+import { buttonClass } from "./buttonClasses.js";
 
 export function SharedNoteDialog({
   payload,
@@ -119,7 +120,7 @@ export function SharedNoteDialog({
               </button>
               <button
                 type="button"
-                class="px-4 py-2 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
+                class={buttonClass("primary")}
                 onClick={handleSave}
               >
                 {t("share.save")}
