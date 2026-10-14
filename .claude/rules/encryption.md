@@ -240,6 +240,8 @@ editor reads `synced` as "this document holds what the server has", and reportin
 document's sync would seed an empty editor over everyone's text. An entry that does not open is
 passed over by design (any editor can append junk, and must not be able to stop the note syncing),
 and counted: `onUnreadable` carries the count to `useNoteYDoc`, and the editor shows a notice.
+`compact` removes only entries under a key the device holds: one still on the old key after a
+replacement has none of the new key's edits in its snapshot, and must leave them to whoever does.
 `settled()` resolves later than the effect that asked, and a destroyed session's socket stays up
 until its last edits are sealed, so every callback `useNoteYDoc` hands a session checks
 `cancelled`: one that wrote state after cleanup would mark the next note's session `synced`.

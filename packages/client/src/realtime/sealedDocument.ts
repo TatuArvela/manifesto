@@ -67,6 +67,14 @@ function kindOf(entry: Uint8Array): number {
   return entry[0] ?? -1;
 }
 
+function versionOf(entry: Uint8Array): number {
+  return new DataView(
+    entry.buffer,
+    entry.byteOffset,
+    entry.byteLength,
+  ).getUint32(1);
+}
+
 export interface SealedDocument {
   /** Resolves once every entry that has arrived is in the inner document. */
   settled(): Promise<void>;
@@ -112,6 +120,14 @@ export function joinSealedDocument(options: {
   let queue: Promise<void> = Promise.resolve();
   let unreadable = 0;
   let destroyed = false;
+  /** Whether this device holds the key an entry is under, and so has read
+   * it: one under a key it does not hold yet (a replacement it has not been
+   * handed) is in no snapshot it writes. */
+  const readable = (entry: Uint8Array) => {
+    if (entry.length <= HEADER_BYTES) return false;
+    const version = versionOf(entry);
+    return version === key.version || (older?.has(version) ?? false);
+  };
   const passOver = () => {
     unreadable++;
     onUnreadable?.(unreadable);
@@ -126,11 +142,7 @@ export function joinSealedDocument(options: {
   async function open(entry: Uint8Array): Promise<void> {
     if (destroyed || entry.length <= HEADER_BYTES) return;
     const kind = kindOf(entry);
-    const version = new DataView(
-      entry.buffer,
-      entry.byteOffset,
-      entry.byteLength,
-    ).getUint32(1);
+    const version = versionOf(entry);
     // Under a key this device does not hold the document by: left alone.
     const under = version === key.version ? key : older?.get(version);
     const update =
@@ -194,7 +206,9 @@ export function joinSealedDocument(options: {
     const edits = log.toArray().filter((e) => kindOf(e) === EDIT).length;
     if (!force && edits < COMPACT_AFTER) return;
     // Everything in the log has been applied (the queue is empty), so the
-    // inner document as it stands covers every entry there is.
+    // inner document as it stands covers every entry this device can read.
+    // One under a key it does not hold is in none of its snapshots, and is
+    // never removed here: the device that holds that key compacts it.
     const sealed = await sealBytes(
       await key.edits(),
       new Uint8Array(Y.encodeStateAsUpdate(inner)),
@@ -203,9 +217,11 @@ export function joinSealedDocument(options: {
     if (destroyed) return;
     outer.transact(() => {
       const entries = log.toArray();
-      const snapshots = entries
-        .map((entry, index) => (kindOf(entry) === SNAPSHOT ? index : -1))
-        .filter((index) => index >= 0);
+      // Only the snapshots this device can read: another key's are the
+      // concern of whoever holds it.
+      const snapshots = entries.flatMap((entry, index) =>
+        kindOf(entry) === SNAPSHOT && readable(entry) ? [index] : [],
+      );
       // The snapshot before this one: the edits it covers have waited for
       // the snapshot after it, which is this one, and can go. The edits
       // since stay, so that this snapshot can be passed over if it is
@@ -213,9 +229,11 @@ export function joinSealedDocument(options: {
       const previous = snapshots.at(-1) ?? -1;
       const stale = new Set<number>();
       entries.forEach((entry, index) => {
-        if (kindOf(entry) === EDIT && index < previous) stale.add(index);
+        if (kindOf(entry) === EDIT && index < previous && readable(entry)) {
+          stale.add(index);
+        }
       });
-      // With the new one, the last three are kept.
+      // With the new one, the last three this device can read are kept.
       for (const index of snapshots.slice(0, 1 - SNAPSHOTS_KEPT)) {
         stale.add(index);
       }

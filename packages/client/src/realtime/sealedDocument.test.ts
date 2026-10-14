@@ -29,10 +29,14 @@ interface Client {
 const NOTE = "n1";
 const cleanups: (() => void)[] = [];
 
-function client(key: NoteSealKey, noteId = NOTE): Client {
+function client(
+  key: NoteSealKey,
+  noteId = NOTE,
+  older?: ReadonlyMap<number, NoteSealKey>,
+): Client {
   const inner = new Y.Doc();
   const outer = new Y.Doc();
-  const joined = joinSealedDocument({ noteId, key, inner, outer });
+  const joined = joinSealedDocument({ noteId, key, older, inner, outer });
   cleanups.push(() => joined.destroy());
   const body = inner.getText("body");
   return {
@@ -189,6 +193,28 @@ describe("a sealed shared document", () => {
     await sync(server, late);
     expect(late.text()).toBe(a.text());
     expect(late.text().endsWith("tail")).toBe(true);
+  });
+
+  it("leaves what a newer key wrote to whoever holds it, when one still on the old key folds", async () => {
+    const next = await noteSealKey(newNoteKey(), 2);
+    const behind = client(key);
+    const moved = client(next, NOTE, new Map([[1, key]]));
+    behind.type("old ");
+    moved.type("new ");
+    await sync(server, behind, moved);
+    expect(behind.joined.unreadable()).toBe(1);
+
+    // Two snapshots, the second of which would let go of the edits before
+    // the first: the newer key's among them, which neither of them holds.
+    await behind.joined.compact(true);
+    behind.type("more ");
+    await behind.joined.compact(true);
+    await sync(server, behind);
+
+    const late = client(next, NOTE, new Map([[1, key]]));
+    await sync(server, late);
+    expect(late.text()).toContain("new");
+    expect(late.text()).toContain("more");
   });
 
   it("keeps the last three snapshots", async () => {
