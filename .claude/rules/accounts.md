@@ -58,7 +58,9 @@ uses `ConfirmPasswordField` and `ConfirmationError`.
 
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
-catalogues, which `AuditLog.test.ts` checks. The request's address is keyed on `c.req`, never
+catalogues, which `AuditLog.test.ts` checks. An entry's `detail` holds only what the server
+already knows about an account: a failed sign-in names the account it matched, never a name that
+matched none, since that is often a password typed into the wrong field. The request's address is keyed on `c.req`, never
 `c.req.raw`: `bodyLimit` replaces the raw request whenever there is a body. Each user reads their
 own lines on the Activity page of Settings (`/api/auth/me/activity`, built by the same `auditPage`
 as the admin's log), so an admin action that reaches into an account must be audited with that

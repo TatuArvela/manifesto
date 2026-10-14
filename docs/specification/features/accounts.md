@@ -313,8 +313,10 @@ Accounts from single sign-on have no password here and are not offered a reset.
 ## Audit log
 
 The server records who did what to which account or note, and from where, in `audit_log`: sign-ins
-(with the method, and whether two-factor was used), failed sign-ins (with the name tried and why:
-unknown account, wrong password, wrong code, a passkey refused, or single sign-on refused), sign-outs, password changes and
+(with the method, and whether two-factor was used), failed sign-ins (with why: unknown account, wrong
+password, wrong code, a passkey refused, or single sign-on refused, and the account's name when the
+name tried matched one; a name that matched none is not kept, since it is often a password typed into
+the wrong field), sign-outs, password changes and
 resets, two-factor turned on or off, passkeys added or removed, API tokens and webhooks created or
 removed, a browser subscribed to push reminders (with the push service it uses, once a browser, not
 at each renewal), shares created, changed

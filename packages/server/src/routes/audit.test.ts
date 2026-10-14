@@ -62,6 +62,13 @@ describe("audit log", () => {
     expect(entries[2]?.detail).toEqual({ username: "bob", reason: "password" });
   });
 
+  it("keeps no name that no account holds", async () => {
+    await login("hunter2-typed-as-a-name", "wrong-pass-00");
+    const { entries } = await log("?action=auth.sign_in_failed");
+    expect(entries[0]?.detail).toEqual({ reason: "unknown_account" });
+    expect(JSON.stringify(entries)).not.toContain("hunter2");
+  });
+
   it("narrows to one account, one action, and pages", async () => {
     for (let i = 0; i < 3; i++) await login("bob", "wrong-pass-00");
     await login("alice", "wrong-pass-00");
