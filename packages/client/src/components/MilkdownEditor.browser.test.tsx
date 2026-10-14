@@ -1,6 +1,10 @@
+import type { Editor } from "@milkdown/kit/core";
+import { editorStateCtx } from "@milkdown/kit/core";
 import { render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import * as Y from "yjs";
+import { editorHistory } from "../extensions/editorHistory.js";
 import { DEFAULT_FRAGMENT_NAME } from "../extensions/yjsCollab.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 
@@ -267,6 +271,46 @@ describe("MilkdownEditor raw mode with a shared document", () => {
     expect(textarea.value).toBe(
       "Shopping list for the long weekend\n\nBring bags",
     );
+  });
+});
+
+describe("MilkdownEditor undo with a shared document", () => {
+  // A collaborative editor has y-prosemirror's undo in place of Milkdown's
+  // history, which brings no keys and which the toolbar used to look past:
+  // undo did nothing at all in a connected instance.
+  it("undoes this session's typing from the keyboard and the toolbar's check", async () => {
+    const ydoc = docContaining("Shared start");
+    let editor: Editor | null = null;
+    const editorText = await mountEditor({
+      content: "Shared start",
+      onChange: () => {},
+      collab: { ydoc },
+      onEditorReady: (ready) => {
+        editor = ready;
+      },
+    });
+    const canUndo = () =>
+      editor?.action((ctx) => {
+        const state = ctx.get(editorStateCtx);
+        return editorHistory(state).undo(state);
+      }) ?? false;
+
+    await vi.waitFor(() => expect(editorText()).toContain("Shared start"));
+    expect(canUndo()).toBe(false);
+
+    const surface = document.querySelector<HTMLElement>(".ProseMirror");
+    surface?.focus();
+    await userEvent.keyboard("{ControlOrMeta>}{End}{/ControlOrMeta} and mine");
+    await vi.waitFor(() =>
+      expect(fragmentText(ydoc)).toContain("Shared start and mine"),
+    );
+    expect(canUndo()).toBe(true);
+
+    await userEvent.keyboard("{ControlOrMeta>}z{/ControlOrMeta}");
+    await vi.waitFor(() =>
+      expect(fragmentText(ydoc)).not.toContain("and mine"),
+    );
+    expect(fragmentText(ydoc)).toContain("Shared start");
   });
 });
 

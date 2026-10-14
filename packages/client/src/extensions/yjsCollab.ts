@@ -2,6 +2,7 @@ import { prosePluginsCtx } from "@milkdown/kit/core";
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
+import { editorHistoryPlugins } from "./editorHistory.js";
 
 /**
  * Name of the shared `Y.XmlFragment` the editor binds to. Exported because
@@ -41,7 +42,7 @@ let modulePromise: Promise<YjsCollabFactory> | null = null;
 export function loadYjsCollab(): Promise<YjsCollabFactory> {
   if (!modulePromise) {
     modulePromise = import("y-prosemirror").then(
-      ({ yCursorPlugin, ySyncPlugin, yUndoPlugin }) =>
+      ({ redoCommand, undoCommand, yCursorPlugin, ySyncPlugin, yUndoPlugin }) =>
         ({ ydoc, fragmentName = DEFAULT_FRAGMENT_NAME, awareness }) =>
         (ctx) =>
         async () => {
@@ -49,8 +50,17 @@ export function loadYjsCollab(): Promise<YjsCollabFactory> {
           ctx.update(prosePluginsCtx, (plugins) => {
             // y-prosemirror's yUndoPlugin replaces the standard history
             // plugin; mixing the two double-applies undo on remote
-            // operations.
-            const next = [...plugins, ySyncPlugin(fragment), yUndoPlugin()];
+            // operations. It brings no keys of its own, and the toolbar
+            // finds it through `editorHistory`, so it comes with both.
+            const next = [
+              ...plugins,
+              ySyncPlugin(fragment),
+              yUndoPlugin(),
+              ...editorHistoryPlugins({
+                undo: undoCommand,
+                redo: redoCommand,
+              }),
+            ];
             if (awareness) next.push(yCursorPlugin(awareness));
             return next;
           });
