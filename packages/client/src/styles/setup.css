@@ -88,6 +88,20 @@ header input[type="search"]::-webkit-search-decoration {
   appearance: none;
 }
 
+/* One keyboard focus ring for everything, rather than each browser's own,
+   which differ and can vanish against a coloured note. In the base layer, so
+   a control that draws its own (`focus:ring-*` with `outline-none`) keeps it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-blue-600);
+    outline-offset: 2px;
+  }
+
+  .dark :focus-visible {
+    outline-color: var(--color-blue-400);
+  }
+}
+
 html,
 body {
   overscroll-behavior: none;
