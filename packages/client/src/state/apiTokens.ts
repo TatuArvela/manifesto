@@ -61,12 +61,18 @@ export async function createApiToken(
   let made: Awaited<ReturnType<NonNullable<typeof sealer.value>["newToken"]>> =
     null;
   if (prefix !== undefined && reachesNotes) {
+    // Locked: no keys to give it, and a token without them is sent no note
+    // it can open.
+    const sealing = sealer.peek();
+    if (!sealing) {
+      console.warn("Cannot make a token's keys while locked");
+      return { kind: "failed" };
+    }
     try {
-      made =
-        (await sealer
-          .peek()
-          ?.newToken(prefix, kind === "calendar" ? "reminders" : "notes")) ??
-        null;
+      made = await sealing.newToken(
+        prefix,
+        kind === "calendar" ? "reminders" : "notes",
+      );
     } catch (err) {
       console.warn("Failed to make a token's keys:", err);
       return { kind: "failed" };
