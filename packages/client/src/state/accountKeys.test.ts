@@ -255,6 +255,19 @@ describe("account keys", () => {
     await state("locked");
   });
 
+  it("holds nothing when the session ends while a set-up is being sent", async () => {
+    await signIn();
+    await state("setup");
+    await keys.prepareSetup();
+    const setup = keys.completeSetup();
+    // Signed out with the request on its way.
+    authToken.value = null;
+    currentUser.value = null;
+    expect(await setup).toBe("failed");
+    await state("none");
+    expect(keys.accountKey()).toBeNull();
+  });
+
   it("says when the server cannot be asked, and asks again", async () => {
     await setUp();
     await signOut();

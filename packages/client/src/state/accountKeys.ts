@@ -153,12 +153,17 @@ async function fetchKeys(): Promise<AccountKeysResponse | null> {
 /**
  * Holds the keys in memory and on the device, shows the app, and tells the
  * other tabs when the device's copy was written: one the browser would not
- * keep is nothing for them to read.
+ * keep is nothing for them to read. False, holding nothing, when the account
+ * the keys are for is no longer signed in: every caller has awaited a
+ * request first, and a device holds keys only while signed in.
  */
 async function hold(
   keys: Omit<DeviceKeys, "endsAt">,
   endsAt: string | null,
-): Promise<void> {
+): Promise<boolean> {
+  if (authToken.peek() === null || currentUser.peek()?.id !== keys.userId) {
+    return false;
+  }
   generation++;
   setHeld(keys);
   pendingSetup = null;
@@ -171,6 +176,7 @@ async function hold(
   if (endsAt !== null && (await saveDeviceKeys({ ...keys, endsAt }))) {
     announce();
   }
+  return true;
 }
 
 function forget(): void {
@@ -356,7 +362,7 @@ export async function completeSetup(): Promise<"ok" | "exists" | "failed"> {
     return "exists";
   }
   if (!res?.ok) return "failed";
-  await hold(
+  const kept = await hold(
     {
       userId: user.id,
       version: made.version,
@@ -365,7 +371,7 @@ export async function completeSetup(): Promise<"ok" | "exists" | "failed"> {
     },
     served?.sessionEndsAt ?? null,
   );
-  return "ok";
+  return kept ? "ok" : "failed";
 }
 
 export type UnlockResult =
@@ -394,11 +400,11 @@ export async function unlock(input: string): Promise<UnlockResult> {
     scannedSecretKey = null;
     return "wrong";
   }
-  await hold(
+  const kept = await hold(
     { userId: user.id, version: keys.version, secretKey, accountKey: key },
     served?.sessionEndsAt ?? null,
   );
-  return "ok";
+  return kept ? "ok" : "failed";
 }
 
 export type RecoveryResult =
@@ -528,8 +534,7 @@ export async function completeRecovery(
     const res = await apiFetch("POST", "/auth/keys/recover/complete", body);
     if (res?.status === 409 || res?.status === 403) return "used";
     if (!res?.ok) return "failed";
-    await hold(keys, served?.sessionEndsAt ?? null);
-    return "ok";
+    return (await hold(keys, served?.sessionEndsAt ?? null)) ? "ok" : "failed";
   }
   const answer = await recoveryRequest<AuthSuccessResponse>("complete", {
     ...body,
@@ -546,8 +551,7 @@ export async function completeRecovery(
   adoptSession(answer.body);
   const now = await fetchKeys();
   if (now) served = now;
-  await hold(keys, now?.sessionEndsAt ?? null);
-  return "ok";
+  return (await hold(keys, now?.sessionEndsAt ?? null)) ? "ok" : "failed";
 }
 
 /** Drops a set-up or a recovery that was not finished. */
