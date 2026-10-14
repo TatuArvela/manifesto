@@ -98,6 +98,9 @@ function toCurrentUser(value: unknown): CurrentUser | null {
     email: typeof v.email === "string" ? v.email : null,
     isAdmin: v.isAdmin === true,
     ...(typeof v.hasPassword === "boolean" && { hasPassword: v.hasPassword }),
+    ...((typeof v.locale === "string" || v.locale === null) && {
+      locale: v.locale,
+    }),
   };
 }
 
