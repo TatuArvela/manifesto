@@ -33,6 +33,11 @@ function isVisible(el: HTMLElement): boolean {
   });
 }
 
+/** Tabbable elements within `root` alone, in tab order. */
+export function tabbableIn(root: HTMLElement): HTMLElement[] {
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isVisible);
+}
+
 /**
  * Tabbable elements, in tab order, across the modal *and* any popover panel
  * portalled out of it. `CardPopover` renders into `document.body`, so a

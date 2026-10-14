@@ -19,6 +19,11 @@ paths:
   only while open and get their exit from `usePresence`. The slide is a
   translation and never a scale, because the browsers without anchor positioning place the panel
   from a measured `getBoundingClientRect` and a scaled box measures smaller than it lands.
+  `Dropdown` sets `aria-expanded` on its trigger's button itself, and hands focus back to it when
+  a panel closes with focus inside. A `CardPopover` is portalled to the end of the page, so it
+  moves focus in once placed (to the option marked `aria-pressed` / `aria-checked`, else the first
+  control) and back to its anchor on close; without that the keyboard never reached it. Mark the
+  current option in a picker with `aria-pressed`, which both a screen reader and this focus read.
 - **Confirming a deletion** goes through the `confirmRequest` signal in `state/confirm.ts`, which
   `ConfirmDialogHost` renders, one question at a time: a second question answers the first with
   "no" rather than stacking, so the promise behind a replaced prompt always settles and no caller

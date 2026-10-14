@@ -344,3 +344,37 @@ describe("the card menu", () => {
     await pressEscape();
   });
 });
+
+describe("a card's popovers from the keyboard", () => {
+  it("takes focus to the current colour and gives it back on Escape", async () => {
+    // The panel is portalled to the end of the page, and nothing moved focus
+    // into it: Tab from its button went on to the next card.
+    const note = makeNote(NOTE_ID, "Card");
+    storeNote(note);
+    show(note);
+    const trigger = host.querySelector<HTMLButtonElement>(
+      `button[aria-label="${t("noteCard.changeColor")}"]`,
+    );
+    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+    trigger?.focus();
+    trigger?.click();
+
+    const current = await vi.waitFor(() => {
+      const swatch = document.querySelector<HTMLButtonElement>(
+        '.card-popover button[aria-pressed="true"]',
+      );
+      if (!swatch) throw new Error("no current colour");
+      return swatch;
+    });
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(current);
+    });
+    expect(trigger?.getAttribute("aria-expanded")).toBe("true");
+
+    await pressEscape();
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(trigger);
+    });
+    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+  });
+});
