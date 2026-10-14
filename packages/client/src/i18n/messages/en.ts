@@ -130,6 +130,8 @@ export const en = {
   // Note editor
   "editor.titlePlaceholder": "Title",
   "editor.contentLabel": "Note text",
+  "editor.calcResult":
+    "Result {result}. Tab or Enter writes it in, Escape dismisses it.",
   "editor.removeTag": "Remove tag {tag}",
   "editor.color": "Color",
   "editor.changeColor": "Change color",

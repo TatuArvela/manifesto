@@ -7,6 +7,7 @@ import * as Y from "yjs";
 import { editorHistory } from "../extensions/editorHistory.js";
 import { DEFAULT_FRAGMENT_NAME } from "../extensions/yjsCollab.js";
 import { t } from "../i18n/index.js";
+import { inlineCalculations } from "../state/prefs.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 
 /**
@@ -330,6 +331,28 @@ describe("MilkdownEditor teardown", () => {
     expect(host.querySelector("textarea")?.getAttribute("aria-label")).toBe(
       t("editor.contentLabel"),
     );
+  });
+
+  it("announces a calculation's result, which the text does not carry", async () => {
+    inlineCalculations.value = true;
+    const host = mountHost();
+    render(<MilkdownEditor content="" onChange={() => {}} />, host);
+    const view = await vi.waitFor(() => {
+      const el = host.querySelector<HTMLElement>(".ProseMirror");
+      if (!el) throw new Error("no editor yet");
+      return el;
+    });
+    const status = host.querySelector('[role="status"]');
+    expect(status?.textContent).toBe("");
+
+    view.focus();
+    document.execCommand("insertText", false, "200+300");
+
+    await vi.waitFor(() => {
+      expect(status?.textContent).toBe(
+        t("editor.calcResult", { result: "500" }),
+      );
+    });
   });
 
   it("does not throw when destroyed inside the listener debounce", async () => {

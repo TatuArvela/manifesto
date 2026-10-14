@@ -133,6 +133,8 @@ export const fi: Messages = {
   // Note editor
   "editor.titlePlaceholder": "Otsikko",
   "editor.contentLabel": "Muistiinpanon teksti",
+  "editor.calcResult":
+    "Tulos {result}. Sarkain tai Enter kirjoittaa sen, Esc hylkää sen.",
   "editor.removeTag": "Poista tunniste {tag}",
   "editor.color": "Väri",
   "editor.changeColor": "Vaihda väriä",

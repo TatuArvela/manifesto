@@ -2,6 +2,7 @@ import { prosePluginsCtx } from "@milkdown/kit/core";
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { type EditorState, Plugin, PluginKey } from "@milkdown/kit/prose/state";
 import { Decoration, DecorationSet } from "@milkdown/kit/prose/view";
+import { t } from "../i18n/index.js";
 import {
   inlineCalculations,
   resolvedDecimalSeparator,
@@ -103,6 +104,31 @@ const calcPlugin = new Plugin<CalcState>({
       }
       return computeState(newState, dismissedAt);
     },
+  },
+  // The result is drawn as a widget inside the text, which a screen reader
+  // must not read as part of it (`aria-hidden` above), so it is announced
+  // through a polite live region beside the editor instead: once when it
+  // appears or changes, not again as the caret moves along the same line.
+  view(editorView) {
+    const status = document.createElement("span");
+    status.className = "sr-only";
+    status.setAttribute("role", "status");
+    editorView.dom.parentElement?.appendChild(status);
+    let said = "";
+    const announce = (state: EditorState) => {
+      const s = inlineCalcKey.getState(state);
+      const text = s?.active
+        ? t("editor.calcResult", { result: s.formatted })
+        : "";
+      if (text === said) return;
+      said = text;
+      status.textContent = text;
+    };
+    announce(editorView.state);
+    return {
+      update: (view) => announce(view.state),
+      destroy: () => status.remove(),
+    };
   },
   props: {
     decorations(state) {
