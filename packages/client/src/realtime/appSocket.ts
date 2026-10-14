@@ -192,12 +192,34 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
   }
 }
 
+/** What an event is about: events about one note wait for each other, and
+ * for nothing else. */
+function subjectOf(event: Exclude<WebSocketEvent, { type: "heartbeat" }>) {
+  switch (event.type) {
+    case "note:created":
+    case "note:updated":
+      return event.note.id;
+    case "note:deleted":
+      return event.id;
+    case "invitation:created":
+      return event.invitation.noteId;
+    case "comment:created":
+    case "comment:updated":
+      return event.comment.noteId;
+    case "prefs:updated":
+      return "prefs";
+    default:
+      return event.noteId;
+  }
+}
+
 /**
- * The last event being applied. A note arrives sealed, and opening it takes
- * a moment, so events wait for each other: a deletion must not overtake the
- * update before it.
+ * The last event being applied for each subject. A note arrives sealed, and
+ * opening it takes a moment (a request, when its key is offered), so events
+ * about the same note wait for each other: a deletion must not overtake the
+ * update before it. Another note's events do not wait behind a slow one.
  */
-let applying: Promise<void> = Promise.resolve();
+const applying = new Map<string, Promise<void>>();
 
 function queueServerEvent(event: WebSocketEvent) {
   // A heartbeat is about the socket, not the notes: it waits for nothing, or
@@ -206,9 +228,19 @@ function queueServerEvent(event: WebSocketEvent) {
     hearsHeartbeats = true;
     return;
   }
-  applying = applying
-    .then(() => applyServerEvent(event))
-    .catch((err) => console.warn("Failed to apply a server event:", err));
+  const subject = subjectOf(event);
+  // Sent to the session that was unlocked when it arrived: one locked or
+  // signed out since does not apply it under whoever comes next.
+  const session = sealer.peek();
+  const next = (applying.get(subject) ?? Promise.resolve())
+    .then(() =>
+      sealer.peek() === session ? applyServerEvent(event) : undefined,
+    )
+    .catch((err) => console.warn("Failed to apply a server event:", err))
+    .finally(() => {
+      if (applying.get(subject) === next) applying.delete(subject);
+    });
+  applying.set(subject, next);
 }
 
 async function applyServerEvent(event: WebSocketEvent) {
