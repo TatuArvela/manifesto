@@ -538,10 +538,13 @@ export async function openSharedFields(
 }
 
 /**
- * Whether `key` is the key the note's words are under: it opens one of the
- * fields `sealed` carries. `openSharedFields` reads a field that does not
- * open as empty, so a wrong key would show an empty note, and the next edit
- * would seal over everyone's words with it. Asked of a key that came from
+ * Whether `key` is the key the note's words are under: it opens every one of
+ * its title, content and excerpt that `sealed` carries, or, where it carries
+ * none of them, every field it does carry. `openSharedFields` reads a field
+ * that does not open as empty, so a wrong key would show an empty note, and
+ * the next edit would seal over everyone's words with it. One field opening
+ * is not enough: anyone who may edit the note can write a field under a key
+ * of their own making, and then offer that key. Asked of a key that came from
  * someone else before it is kept. True where `sealed` carries no field at
  * all, which leaves nothing to tell by.
  */
@@ -550,26 +553,24 @@ export async function opensSharedFields(
   noteId: string,
   sealed: Partial<SharedSealed>,
 ): Promise<boolean> {
-  const fields = [
-    "title",
-    "content",
-    "excerpt",
-    "font",
-    "images",
-    "linkPreviews",
-  ] as const;
-  let carried = false;
+  const words = (["title", "content", "excerpt"] as const).filter(
+    (field) => sealed[field],
+  );
+  const fields =
+    words.length > 0
+      ? words
+      : (["font", "images", "linkPreviews"] as const).filter(
+          (field) => sealed[field],
+        );
   for (const field of fields) {
-    if (!sealed[field]) continue;
-    carried = true;
     const opened = await openText(
       key.fields,
       sealed[field],
       sharedData(key, noteId, field),
     );
-    if (opened !== null) return true;
+    if (opened === null) return false;
   }
-  return !carried;
+  return true;
 }
 
 /** Opens and checks a person's own fields; an empty one was never set. */

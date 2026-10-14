@@ -148,12 +148,8 @@ describe("handing a note's key to someone it is shared with", () => {
     // dishonest server would try.
     expect(await adopt("n1", good, mallory.publicKeys.signing)).toBeNull();
     // A key of mallory's making, passed off as the owner's.
-    const forged = await offerTo(
-      mallory,
-      "n1",
-      stored(await mallory.sealer.sealNew("n1", draft)),
-      alice,
-    );
+    const hers = stored(await mallory.sealer.sealNew("n1", draft));
+    const forged = await offerTo(mallory, "n1", hers, alice);
     if (!forged) throw new Error("no offer");
     expect(await adopt("n1", { ...forged, signer: "u-owner" })).toBeNull();
     // The key of another note, moved onto this one.
@@ -178,6 +174,18 @@ describe("handing a note's key to someone it is shared with", () => {
         note,
       ),
     ).toBeNull();
+    // Nor once she has written one field of the note under it, which an
+    // editor may: the words are still under the note's key.
+    const written: SealedNote = { ...note, font: hers.font };
+    expect(
+      await alice.sealer.adoptOffered(
+        "n1",
+        forged,
+        mallory.publicKeys.signing,
+        alice.load,
+        written,
+      ),
+    ).toBeNull();
     expect(alice.sealer.holds("n1")).toBe(false);
     expect(
       await alice.sealer.adoptOffered(
@@ -185,7 +193,7 @@ describe("handing a note's key to someone it is shared with", () => {
         good,
         owner.publicKeys.signing,
         alice.load,
-        note,
+        written,
       ),
     ).not.toBeNull();
 

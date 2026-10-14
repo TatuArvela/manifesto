@@ -163,7 +163,9 @@ whose signature fails (`Sealer.adoptOffered`), since wrapping to a public key pr
 who wrapped. A signature says who wrapped a key, not that it is the note's, and anyone on a note
 may wrap one, so `adoptOfferedKey` also holds the key to the note's sealed fields
 (`opensSharedFields`): `openSharedFields` reads a field that does not open as empty, and a wrong
-key kept would show an empty note whose next edit seals over everyone's words. The route
+key kept would show an empty note whose next edit seals over everyone's words. Every one of the
+title, text and excerpt it carries has to open, not any one field: an editor can write the font
+alone under a key of their own and then offer it. The route
 (`PUT /:id/shares/:userId/key`) lets anyone but the owner hand a key only to someone
 `waitingForKey`, judged from the owner's view of the note, which is the one that lists
 invitations. The server stores the offer on the share row (`offered_key`) and, once accepted, the
