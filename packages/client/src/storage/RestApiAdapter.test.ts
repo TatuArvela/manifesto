@@ -521,6 +521,14 @@ describe("RestApiAdapter", () => {
       expect(await adapter.getAll()).toEqual([]);
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
+
+    it("gives up on a full page that hands back the cursor it was asked with", async () => {
+      fetchMock.mockImplementation(async () =>
+        jsonResponse({ notes: [makeNote({ id: "a" })], nextCursor: "stuck" }),
+      );
+      await expect(adapter.getAll()).rejects.toThrow();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("loadImages", () => {

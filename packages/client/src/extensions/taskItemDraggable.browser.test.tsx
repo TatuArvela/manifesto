@@ -119,4 +119,33 @@ describe("a checklist row on a touch screen", () => {
     expect(document.querySelector(".task-item-drag-ghost")).toBeNull();
     await vi.waitFor(() => expect(markdown).toMatch(/\n\s+- \[ \] Bread/));
   });
+
+  it("ends a drag on Escape without closing the layer under it", async () => {
+    await mount("- [ ] Milk\n- [ ] Bread");
+    const handle = defined(rows()[1]).querySelector(".task-item-drag-handle");
+    if (!handle) throw new Error("no handle");
+    const start = handle.getBoundingClientRect();
+    const at = {
+      pointerId: 7,
+      bubbles: true,
+      clientX: start.left + start.width / 2,
+      clientY: start.top + start.height / 2,
+    } as const;
+    // Where `useEscapeStack` listens: on the document, as the press bubbles.
+    const layer = vi.fn();
+    document.addEventListener("keydown", layer);
+
+    handle.dispatchEvent(new PointerEvent("pointerdown", { ...at, button: 0 }));
+    document.dispatchEvent(
+      new PointerEvent("pointermove", { ...at, clientX: at.clientX + 8 }),
+    );
+    expect(document.querySelector(".task-item-drag-ghost")).not.toBeNull();
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    document.removeEventListener("keydown", layer);
+
+    expect(document.querySelector(".task-item-drag-ghost")).toBeNull();
+    expect(layer).not.toHaveBeenCalled();
+  });
 });

@@ -98,6 +98,9 @@ function toCurrentUser(value: unknown): CurrentUser | null {
     email: typeof v.email === "string" ? v.email : null,
     isAdmin: v.isAdmin === true,
     ...(typeof v.hasPassword === "boolean" && { hasPassword: v.hasPassword }),
+    ...((typeof v.locale === "string" || v.locale === null) && {
+      locale: v.locale,
+    }),
   };
 }
 
@@ -129,10 +132,14 @@ effect(() => {
   if (typeof localStorage === "undefined") return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    if (token && user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
+    try {
+      if (token && user) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // Storage refused: signed in for this tab, until it closes.
     }
   }, 50);
 });
@@ -560,12 +567,6 @@ export const oidcReauthUrl =
 export const beginOidcSignIn = (): void => markOidcFlow();
 
 /**
- * After an OIDC callback the server redirects to the client with the session
- * token in the URL fragment (`#token=...`). Picks it up, fetches the current
- * user via /api/auth/me, populates the auth signals, and clears the fragment
- * from the address bar so refreshes don't re-trigger the flow.
- */
-/**
  * Asks for a reset link to be mailed. The server answers the same whether or
  * not the address has an account, so this says only whether the request got
  * there. `locale` picks the mail's language.
@@ -731,6 +732,12 @@ export type OidcRefusal =
  */
 export const oidcRefusal = signal<OidcRefusal | null>(null);
 
+/**
+ * After an OIDC callback the server redirects to the client with the session
+ * token in the URL fragment (`#token=...`). Picks it up, fetches the current
+ * user via /api/auth/me, populates the auth signals, and clears the fragment
+ * from the address bar so refreshes don't re-trigger the flow.
+ */
 export async function consumeOidcRedirect(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (SERVER_URL === null) return false;

@@ -82,19 +82,48 @@ function loadNotes(): Note[] {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
   if (cached && cached.raw === raw) return cached.notes.slice();
+  let notes: Note[];
   try {
-    const notes = (JSON.parse(raw) as Note[]).map((n) => ({
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error("Not a list of notes");
+    notes = (parsed as Note[]).map((n) => ({
       ...n,
       font: n.font ?? NoteFont.Default,
       images: n.images ?? [],
       linkPreviews: n.linkPreviews ?? [],
       reminder: n.reminder ?? null,
     }));
-    cached = { raw, notes };
-    return notes.slice();
   } catch {
+    setAside(raw);
     return [];
   }
+  cached = { raw, notes };
+  return notes.slice();
+}
+
+/** Where a list that would not read is kept, one key for each time. */
+const SET_ASIDE_PREFIX = `${STORAGE_KEY}:unreadable:`;
+
+/**
+ * Moves a list that does not read out of the way, so the app starts empty
+ * instead of writing the next note over it, and someone can still get the
+ * words back by hand. Throws when storage will not take the copy: the list
+ * then stays where it is, and the load fails rather than a save replacing it.
+ */
+function setAside(raw: string): void {
+  const key = `${SET_ASIDE_PREFIX}${Date.now()}`;
+  localStorage.setItem(key, raw);
+  localStorage.removeItem(STORAGE_KEY);
+  cached = null;
+  console.error(`The stored notes did not read, and were moved to ${key}`);
+}
+
+/** Whether a list was set aside: its images are still its own. */
+function hasSetAside(): boolean {
+  for (let i = 0; i < localStorage.length; i++) {
+    if (localStorage.key(i)?.startsWith(SET_ASIDE_PREFIX)) return true;
+  }
+  return false;
 }
 
 function saveNotes(notes: Note[]): void {
@@ -190,10 +219,13 @@ export class LocalStorageAdapter implements StorageAdapter {
       }
     }
     const current = loadNotes();
-    void sweepLocalImages(
-      new Set(current.flatMap(imagesOf)),
-      LOCAL_IMAGE_GRACE_MS,
-    ).catch(() => {});
+    // A list set aside names images too, and nothing can say which.
+    if (!hasSetAside()) {
+      void sweepLocalImages(
+        new Set(current.flatMap(imagesOf)),
+        LOCAL_IMAGE_GRACE_MS,
+      ).catch(() => {});
+    }
     return current;
   }
 

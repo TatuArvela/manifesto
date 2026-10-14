@@ -101,10 +101,16 @@ function prefSignal(key: PrefKey): Signal<unknown> {
   return prefSignals[key] as Signal<unknown>;
 }
 
+/** Never throws: storage that refuses (a private window, a full quota)
+ * leaves the signals holding the preferences for this session. */
 function savePrefs() {
   const blob: Record<string, unknown> = {};
   for (const key of PREF_KEYS) blob[key] = prefSignal(key).value;
-  localStorage.setItem(PREFS_KEY, JSON.stringify(blob));
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(blob));
+  } catch {
+    // Kept in memory only.
+  }
 }
 
 /** The preset "random" stands for in this tab; see `randomBoardTexture`. */
@@ -232,11 +238,7 @@ export function adoptAccountPrefs(blob: Record<string, unknown>) {
   } finally {
     applyingRemotePrefs = false;
   }
-  try {
-    savePrefs();
-  } catch {
-    // Storage refused: the signals hold them for this session.
-  }
+  savePrefs();
 }
 
 // Persist preferences when any pref signal changes (debounced)

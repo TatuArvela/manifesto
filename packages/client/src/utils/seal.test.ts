@@ -27,9 +27,12 @@ describe("seal", () => {
   });
 
   it("is shaped as the server expects a ciphertext to be", async () => {
-    const sealed = await seal(await keyFor("a"), text("x"), data);
+    const sealed = await seal(await keyFor("a"), text("Shopping list"), data);
     expect(isCiphertext(sealed, 1024)).toBe(true);
-    expect(sealed).not.toContain("x".repeat(2));
+    // Eight letters the random base64url text holds by chance about once in
+    // several trillion runs; the "xx" asked about before came up about once
+    // in a hundred.
+    expect(sealed).not.toContain("Shopping");
   });
 
   it("seals an empty value", async () => {

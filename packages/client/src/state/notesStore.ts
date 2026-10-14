@@ -440,12 +440,16 @@ export async function deleteNote(id: string, batch?: Batch): Promise<boolean> {
     return true;
   }
   const held = notes.value.find((n) => n.id === id) ?? null;
+  const known = confirmed.get(id);
   forgetNote(id);
   try {
     await storage.delete(id);
     deleteVersions(id);
     return true;
   } catch (err) {
+    // Back as it was, with the copy storage last confirmed: a write that
+    // fails later falls back to that one.
+    if (known && !confirmed.has(id)) confirmed.set(id, known);
     if (held) notes.value = upsertById(notes.value, held);
     reportFailure(
       `Failed to delete note ${id}:`,
