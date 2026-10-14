@@ -4,7 +4,9 @@ import {
   MAX_IMAGE_SOURCE_BYTES,
   mapPreviewImages,
 } from "@manifesto/shared";
-import { storage } from "../storage/index.js";
+import { effect } from "@preact/signals";
+import { storage, storageConnection } from "../storage/index.js";
+import { storageKeys } from "../storage/sealing.js";
 import { blobToDataUrl } from "../utils/dataUrl.js";
 import { shrinkImage } from "../utils/shrinkImage.js";
 
@@ -16,6 +18,21 @@ import { shrinkImage } from "../utils/shrinkImage.js";
  * names one set of bytes for good, so a cached copy never goes stale.
  */
 const objectUrls = new Map<string, Promise<string | null>>();
+
+// The bytes behind each URL are the image opened, so they leave with the
+// session and the keys that opened them, as the notes do (`notesStore.ts`).
+let cachedFor: { token: string | null; userId: string | null } | null = null;
+effect(() => {
+  const now = {
+    token: storageConnection.value.token,
+    userId: storageKeys.value?.userId ?? null,
+  };
+  const before = cachedFor;
+  cachedFor = now;
+  if (before && (before.token !== now.token || before.userId !== now.userId)) {
+    forgetAttachmentUrls();
+  }
+});
 
 /** A `blob:` URL showing the attachment, or null if it could not be read. */
 export function attachmentObjectUrl(ref: string): Promise<string | null> {
@@ -112,7 +129,13 @@ export async function attachImage(
   return stored;
 }
 
-/** Test seam: the cache is module state and outlives a test. */
+/** Lets go of every image shown so far. Also a test seam: the cache is
+ * module state and outlives a test. */
 export function forgetAttachmentUrls(): void {
+  for (const pending of objectUrls.values()) {
+    void pending.then((url) => {
+      if (url) URL.revokeObjectURL(url);
+    });
+  }
   objectUrls.clear();
 }

@@ -2,7 +2,7 @@ import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StoredImage } from "../components/StoredImage.js";
-import { currentStorage } from "../storage/index.js";
+import { currentStorage, storageConnection } from "../storage/index.js";
 import {
   attachmentObjectUrl,
   forgetAttachmentUrls,
@@ -46,6 +46,23 @@ describe("attachmentObjectUrl", () => {
     loadImage.mockRejectedValueOnce(new Error("offline"));
     expect(await attachmentObjectUrl(REF)).toBeNull();
     expect(await attachmentObjectUrl(REF)).toMatch(/^blob:/);
+  });
+
+  it("lets go of what it showed when the session ends", async () => {
+    const before = storageConnection.peek();
+    storageConnection.value = { serverUrl: "", token: "t" };
+    try {
+      const url = await attachmentObjectUrl(REF);
+      storageConnection.value = { serverUrl: "", token: null };
+      await attachmentObjectUrl(REF);
+      expect(loadImage).toHaveBeenCalledTimes(2);
+      // Revoked: the bytes behind it are gone.
+      await vi.waitFor(async () =>
+        expect(fetch(url as string)).rejects.toThrow(),
+      );
+    } finally {
+      storageConnection.value = before;
+    }
   });
 });
 
