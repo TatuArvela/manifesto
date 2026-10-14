@@ -200,6 +200,12 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
 let applying: Promise<void> = Promise.resolve();
 
 function queueServerEvent(event: WebSocketEvent) {
+  // A heartbeat is about the socket, not the notes: it waits for nothing, or
+  // a slow note would have a live socket taken for a silent one.
+  if (event.type === "heartbeat") {
+    hearsHeartbeats = true;
+    return;
+  }
   applying = applying
     .then(() => applyServerEvent(event))
     .catch((err) => console.warn("Failed to apply a server event:", err));
@@ -240,9 +246,6 @@ async function applyServerEvent(event: WebSocketEvent) {
       break;
     case "prefs:updated":
       await receiveAccountPrefs(event.prefs);
-      break;
-    case "heartbeat":
-      hearsHeartbeats = true;
       break;
   }
 }
