@@ -444,7 +444,12 @@ export function startTaskItemDrag(
     endDrag(false);
   };
   const onKeyDown = (ev: KeyboardEvent) => {
-    if (ev.key === "Escape") endDrag(false);
+    if (ev.key !== "Escape") return;
+    // The press is the drag's. Heard first (capture), and kept from the
+    // Escape stack's listener, which would close the note under the drag too.
+    ev.preventDefault();
+    ev.stopPropagation();
+    endDrag(false);
   };
 
   dragState = {
