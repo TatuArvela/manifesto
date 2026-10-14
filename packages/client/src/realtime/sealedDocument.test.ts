@@ -272,6 +272,42 @@ describe("a sealed shared document", () => {
 });
 
 describe("presence over a sealed document", () => {
+  it("does not send a cursor again once stopped while sealing it", async () => {
+    const real = await noteSealKey(newNoteKey(), 1);
+    let sealing = (): void => {};
+    let release = (): void => {};
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    // A presence key that is slow to come, so the cursor is caught mid-seal.
+    const key: NoteSealKey = {
+      ...real,
+      edits: () => real.edits(),
+      presence: async () => {
+        sealing();
+        await gate;
+        return real.presence();
+      },
+    };
+    const inner = new Awareness(new Y.Doc());
+    const outer = new Awareness(new Y.Doc());
+    const started = new Promise<void>((r) => {
+      sealing = r;
+    });
+    const stop = joinSealedAwareness({ noteId: NOTE, key, inner, outer });
+    inner.setLocalState({ cursor: { anchor: 1, head: 1 } });
+    await started;
+    // Closed with that cursor still being sealed, as an editor that leaves
+    // clears what it sent.
+    stop();
+    outer.setLocalState(null);
+    release();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(outer.getLocalState()).toBeNull();
+    inner.destroy();
+    outer.destroy();
+  });
+
   it("sends a cursor sealed, and shows it under the name the server stamped", async () => {
     const key = await noteSealKey(newNoteKey(), 1);
     const docs = [new Y.Doc(), new Y.Doc(), new Y.Doc(), new Y.Doc()];

@@ -386,13 +386,14 @@ export function joinSealedAwareness(options: {
         return;
       }
       const { user: _user, ...own } = local as Record<string, unknown>;
-      outer.setLocalState({
-        sealed: await seal(
-          await key.presence(),
-          utf8(JSON.stringify(own)),
-          data,
-        ),
-      });
+      const sealed = await seal(
+        await key.presence(),
+        utf8(JSON.stringify(own)),
+        data,
+      );
+      // Stopped while sealing: the cursor has left, and is not put back.
+      if (stopped) return;
+      outer.setLocalState({ sealed });
     });
   };
   const onInner = (_change: unknown, origin: unknown) => {
