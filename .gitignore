@@ -17,6 +17,14 @@ __screenshots__
 .env.local
 
 .idea
+.vscode
+*.swp
+*~
+
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
 
 .claude/plans/
 .claude/settings.local.json
