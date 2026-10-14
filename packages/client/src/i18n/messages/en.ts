@@ -427,7 +427,6 @@ export const en = {
   "settings.autoNotes.refetch": "Refetch",
   "settings.autoNotes.remove": "Remove",
   "settings.autoNotes.enabled": "Enabled",
-  "settings.autoNotes.disabled": "Disabled",
   "settings.autoNotes.untitled": "(Untitled)",
   "settings.autoNotes.reads.asks": "Asks to read your notes tagged {tags}.",
   "settings.autoNotes.reads.hint":

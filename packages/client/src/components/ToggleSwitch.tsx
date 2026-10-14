@@ -1,92 +1,12 @@
 import type { ComponentChildren } from "preact";
+import { useContext, useId } from "preact/hooks";
+import { ControlLabelId } from "./controlLabel.js";
 import { Tooltip } from "./Tooltip.js";
-
-/** Two-state toggle switch with icon slots and tooltips */
-export function ToggleSwitch({
-  checked,
-  onChange,
-  iconOff,
-  iconOn,
-  labelOff,
-  labelOn,
-}: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  iconOff: ComponentChildren;
-  iconOn: ComponentChildren;
-  labelOff: string;
-  labelOn: string;
-}) {
-  const slotW = 32;
-  const gap = 2;
-  const totalW = slotW * 2 + gap * 2;
-  const knobOffset = gap + (checked ? slotW : 0);
-
-  return (
-    <div
-      class="relative inline-flex items-center rounded-full bg-neutral-200 dark:bg-neutral-700"
-      style={{ width: `${totalW}px`, height: "32px" }}
-      role="switch"
-      aria-checked={checked}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        // Only handle activation when the container itself has focus. The
-        // inner buttons handle their own Space/Enter via the browser's button
-        // default click, and bubbling here would double-toggle and produce the
-        // wrong value when focus is on a button.
-        if (e.target !== e.currentTarget) return;
-        if (e.key === " " || e.key === "Enter") {
-          e.preventDefault();
-          onChange(!checked);
-        }
-      }}
-    >
-      <span
-        class="absolute top-0.5 rounded-full bg-white dark:bg-neutral-300 shadow transition-all duration-200"
-        style={{
-          width: `${slotW - gap}px`,
-          height: "28px",
-          transform: `translateX(${knobOffset}px)`,
-        }}
-      />
-      <Tooltip label={labelOff}>
-        <button
-          type="button"
-          class={`relative z-10 flex items-center justify-center cursor-pointer transition-colors duration-200 ${
-            !checked
-              ? "text-neutral-800 dark:text-neutral-900"
-              : "text-neutral-400 dark:text-neutral-500"
-          }`}
-          style={{ width: `${slotW}px`, height: "32px" }}
-          onClick={() => onChange(false)}
-          aria-label={labelOff}
-        >
-          {iconOff}
-        </button>
-      </Tooltip>
-      <Tooltip label={labelOn}>
-        <button
-          type="button"
-          class={`relative z-10 flex items-center justify-center cursor-pointer transition-colors duration-200 ${
-            checked
-              ? "text-neutral-800 dark:text-neutral-900"
-              : "text-neutral-400 dark:text-neutral-500"
-          }`}
-          style={{ width: `${slotW}px`, height: "32px" }}
-          onClick={() => onChange(true)}
-          aria-label={labelOn}
-        >
-          {iconOn}
-        </button>
-      </Tooltip>
-    </div>
-  );
-}
 
 /**
  * Plain on/off switch for a boolean setting, with no icon per state. Use this
- * wherever the setting really is just on or off; `ToggleSwitch` is for the
- * cases where the two states are genuinely different choices worth naming.
+ * wherever the setting really is just on or off; `ThreeWayToggle` is for the
+ * cases where the states are genuinely different choices worth naming.
  */
 export function Switch({
   checked,
@@ -97,6 +17,7 @@ export function Switch({
   onChange: (checked: boolean) => void;
   label: string;
 }) {
+  const labelledBy = useContext(ControlLabelId);
   const trackW = 44;
   const knob = 20;
   const gap = 2;
@@ -106,7 +27,8 @@ export function Switch({
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label={label}
+      aria-label={labelledBy ? undefined : label}
+      aria-labelledby={labelledBy}
       class={`relative inline-flex shrink-0 items-center rounded-full cursor-pointer transition-colors duration-200 ${
         checked ? "bg-blue-500" : "bg-neutral-300 dark:bg-neutral-600"
       }`}
@@ -125,18 +47,27 @@ export function Switch({
   );
 }
 
-/** Three-state toggle switch with icon slots and tooltips */
+/**
+ * A choice between a few named options, drawn as a track with a sliding knob.
+ * Each option is a real radio button, hidden under its icon, so the group is
+ * one tab stop and the arrow keys move the choice. It is named by `label`, or
+ * by the settings row it sits in.
+ */
 export function ThreeWayToggle({
   value,
   onChange,
   options,
   trackClass,
+  label,
 }: {
   value: number;
   onChange: (index: number) => void;
   options: { icon: ComponentChildren; label: string }[];
   trackClass?: string;
+  label?: string | undefined;
 }) {
+  const labelledBy = useContext(ControlLabelId);
+  const name = useId();
   const count = options.length;
   const slotW = 32;
   const gap = 2;
@@ -147,6 +78,9 @@ export function ThreeWayToggle({
     <div
       class={`relative inline-flex items-center rounded-full ${trackClass ?? "bg-neutral-100 dark:bg-neutral-700"}`}
       style={{ width: `${totalW}px`, height: "32px" }}
+      role="radiogroup"
+      aria-label={labelledBy ? undefined : label}
+      aria-labelledby={labelledBy}
     >
       <span
         class="absolute top-0.5 rounded-full bg-white dark:bg-neutral-300 shadow transition-all duration-200"
@@ -158,19 +92,24 @@ export function ThreeWayToggle({
       />
       {options.map((opt, i) => (
         <Tooltip key={i} label={opt.label}>
-          <button
-            type="button"
-            class={`relative z-10 flex items-center justify-center cursor-pointer transition-all duration-200 ${
+          <label
+            class={`relative z-10 flex items-center justify-center rounded-full cursor-pointer transition-all duration-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-blue-600 dark:has-[:focus-visible]:outline-blue-400 ${
               value === i
                 ? "text-neutral-800 dark:text-neutral-900"
                 : "text-black dark:text-white opacity-40"
             }`}
             style={{ width: `${slotW}px`, height: "32px" }}
-            onClick={() => onChange(i)}
-            aria-label={opt.label}
           >
+            <input
+              type="radio"
+              class="sr-only"
+              name={name}
+              checked={value === i}
+              onChange={() => onChange(i)}
+              aria-label={opt.label}
+            />
             {opt.icon}
-          </button>
+          </label>
         </Tooltip>
       ))}
     </div>

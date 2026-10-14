@@ -1,10 +1,8 @@
 import {
   AlertTriangle,
   BookOpen,
-  Check,
   Plus,
   RefreshCw,
-  Slash,
   Trash2,
   Wand2,
   X,
@@ -32,7 +30,7 @@ import {
 } from "../state/index.js";
 import { gridColumns } from "./gridColumns.js";
 import { ReorderableGrid } from "./ReorderableGrid.js";
-import { ToggleSwitch } from "./ToggleSwitch.js";
+import { Switch } from "./ToggleSwitch.js";
 
 type AddMode = "inline" | "url" | null;
 
@@ -337,13 +335,10 @@ export function AutoNotesView() {
                       ? t("settings.autoNotes.origin.url")
                       : t("settings.autoNotes.origin.inline")}
                   </span>
-                  <ToggleSwitch
+                  <Switch
                     checked={plugin.enabled}
                     onChange={() => togglePlugin(plugin.id)}
-                    iconOff={<Slash class="w-4 h-4" />}
-                    iconOn={<Check class="w-4 h-4" />}
-                    labelOff={t("settings.autoNotes.disabled")}
-                    labelOn={t("settings.autoNotes.enabled")}
+                    label={t("settings.autoNotes.enabled")}
                   />
                   {plugin.origin.kind === "url" && (
                     <button

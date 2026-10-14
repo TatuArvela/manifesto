@@ -434,7 +434,6 @@ export const fi: Messages = {
   "settings.autoNotes.refetch": "Lataa uudelleen",
   "settings.autoNotes.remove": "Poista",
   "settings.autoNotes.enabled": "Käytössä",
-  "settings.autoNotes.disabled": "Pois käytöstä",
   "settings.autoNotes.untitled": "(Nimetön)",
   "settings.autoNotes.reads.asks":
     "Pyytää lupaa lukea muistiinpanojasi, joilla on tunniste {tags}.",
