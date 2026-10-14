@@ -18,8 +18,12 @@ describe("CORS", () => {
     await rig.close();
   });
 
-  function preflight(method: string, headers: string) {
-    return rig.request("/api/notes/some-id", {
+  function preflight(
+    method: string,
+    headers: string,
+    path = "/api/notes/some-id",
+  ) {
+    return rig.request(path, {
       method: "OPTIONS",
       headers: {
         Origin: "http://localhost:5173",
@@ -41,6 +45,19 @@ describe("CORS", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
       "http://localhost:5173",
     );
+  });
+
+  it("allows the address a sealed image upload carries", async () => {
+    const res = await preflight(
+      "POST",
+      "authorization,content-type,x-attachment-address",
+      "/api/attachments",
+    );
+    const allowed = (res.headers.get("Access-Control-Allow-Headers") ?? "")
+      .toLowerCase()
+      .split(",")
+      .map((h) => h.trim());
+    expect(allowed).toContain("x-attachment-address");
   });
 
   it("gives an origin it does not know nothing", async () => {
