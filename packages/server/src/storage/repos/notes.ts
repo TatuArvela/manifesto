@@ -92,6 +92,9 @@ export class NoteAccessError extends Error {
 /** A note's shared fields under a new key; see `NotesRepo.rekey`. */
 export type RekeyedNote = Omit<NoteRekeyRequest, "links">;
 
+/** A live public link's copy of the new key, wrapped by its link key. */
+export type RewrappedLink = NonNullable<NoteRekeyRequest["links"]>[number];
+
 export interface NotesRepo {
   /** One page of the notes the user can see, newest first. */
   listByUser(userId: string, options: ListNotesOptions): Promise<NotePage>;
@@ -149,9 +152,11 @@ export interface NotesRepo {
    * wrapped copy and the keys before it, all at once, and only while the
    * note is still under `fromVersion` and as it was at `expectedUpdatedAt`:
    * the fields were sealed again from a read, and a write since then is not
-   * in them. Everyone else's copy of the key is then behind, and they wait
-   * for the new one. False when the note is not this owner's, its key has
-   * moved on, or it changed since that read.
+   * in them. Each live link in `links` gets its copy of the new key in the
+   * same write, so the note never moves without them; a link named that is
+   * gone or not live is passed over. Everyone else's copy of the key is then
+   * behind, and they wait for the new one. False when the note is not this
+   * owner's, its key has moved on, or it changed since that read.
    */
   rekey(
     id: string,
@@ -160,6 +165,7 @@ export interface NotesRepo {
     fromVersion: number,
     updatedAt: string,
     expectedUpdatedAt: string,
+    links: readonly RewrappedLink[],
   ): Promise<boolean>;
   /** Owner only. The note's shares go with it. */
   delete(id: string, userId: string): Promise<boolean>;

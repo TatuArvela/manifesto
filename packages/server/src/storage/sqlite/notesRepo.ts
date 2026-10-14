@@ -27,6 +27,8 @@ import {
   NoteAccessError,
   type NotePage,
   type NotesRepo,
+  type RekeyedNote,
+  type RewrappedLink,
 } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
@@ -178,6 +180,54 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     return { notes: view(kept, userId), nextCursor };
   }
 
+  const clearFeedKeysStmt = db.prepare(
+    `UPDATE note_shares SET reminder_key = '' WHERE note_id = ?`,
+  );
+  const rewrapStmt = db.prepare(
+    `UPDATE public_links SET wrapped_key = ?
+     WHERE token = ? AND note_id = ? AND mode = 'live'`,
+  );
+  /**
+   * The note, its feeds and its live links move to the new key as one
+   * transaction: a link left on the old key would stop opening, with nothing
+   * left to say so.
+   */
+  const rekeyTx = db.transaction(
+    (
+      id: string,
+      ownerId: string,
+      rekeyed: RekeyedNote,
+      fromVersion: number,
+      updatedAt: string,
+      expectedUpdatedAt: string,
+      links: readonly RewrappedLink[],
+    ): boolean => {
+      const { columns, values } = noteUpdateColumns(rekeyed, "integer");
+      const assignments = [...columns, "updated_at"].map((c) => `${c} = ?`);
+      const info = db
+        .prepare(
+          `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
+             reminder_key = ''
+           WHERE id = ? AND user_id = ? AND key_version = ?
+             AND updated_at = ?`,
+        )
+        .run([
+          ...values,
+          updatedAt,
+          id,
+          ownerId,
+          fromVersion,
+          expectedUpdatedAt,
+        ]);
+      if (info.changes === 0) return false;
+      // Every feed's copy of the key is of the one before.
+      clearFeedKeysStmt.run(id);
+      for (const link of links) {
+        rewrapStmt.run(link.wrappedKey, link.token, id);
+      }
+      return true;
+    },
+  );
   /**
    * A recipient's write, as one transaction: their role is read and the note's
    * `updated_at` compared in the same lock that writes both rows, so a share
@@ -344,30 +394,17 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       fromVersion,
       updatedAt,
       expectedUpdatedAt,
+      links,
     ) {
-      const { columns, values } = noteUpdateColumns(rekeyed, "integer");
-      const assignments = [...columns, "updated_at"].map((c) => `${c} = ?`);
-      const info = db
-        .prepare(
-          `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
-             reminder_key = ''
-           WHERE id = ? AND user_id = ? AND key_version = ?
-             AND updated_at = ?`,
-        )
-        .run([
-          ...values,
-          updatedAt,
-          id,
-          ownerId,
-          fromVersion,
-          expectedUpdatedAt,
-        ]);
-      if (info.changes === 0) return false;
-      // Every feed's copy of the key is of the one before.
-      db.prepare(
-        `UPDATE note_shares SET reminder_key = '' WHERE note_id = ?`,
-      ).run(id);
-      return true;
+      return rekeyTx(
+        id,
+        ownerId,
+        rekeyed,
+        fromVersion,
+        updatedAt,
+        expectedUpdatedAt,
+        links,
+      );
     },
 
     async delete(id: string, userId: string): Promise<boolean> {

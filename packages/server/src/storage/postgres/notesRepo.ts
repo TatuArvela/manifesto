@@ -29,6 +29,7 @@ import {
   type NotesRepo,
 } from "../types.js";
 import type { PgPool } from "./database.js";
+import { inTransaction } from "./sharesRepo.js";
 
 /** See the SQLite copy: same columns, same ordering, same reasons. */
 const LIST_COLUMNS = INSERT_COLUMNS.filter(
@@ -366,6 +367,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       fromVersion,
       updatedAt,
       expectedUpdatedAt,
+      links,
     ) {
       const { columns, values } = noteUpdateColumns(rekeyed, "native");
       const params = [
@@ -380,20 +382,32 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         (column, i) => `${column} = $${i + 1}`,
       );
       const at = columns.length + 2;
-      const result = await pool.query(
-        `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
-           reminder_key = ''
-         WHERE id = $${at} AND user_id = $${at + 1} AND key_version = $${at + 2}
-           AND updated_at = $${at + 3}`,
-        params,
-      );
-      if ((result.rowCount ?? 0) === 0) return false;
-      // Every feed's copy of the key is of the one before.
-      await pool.query(
-        `UPDATE note_shares SET reminder_key = '' WHERE note_id = $1`,
-        [id],
-      );
-      return true;
+      // The note, its feeds and its live links move to the new key together:
+      // a link left on the old key would stop opening, with nothing left to
+      // say so.
+      return inTransaction(pool, async (query) => {
+        const result = await query(
+          `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
+             reminder_key = ''
+           WHERE id = $${at} AND user_id = $${at + 1}
+             AND key_version = $${at + 2} AND updated_at = $${at + 3}`,
+          params,
+        );
+        if ((result.rowCount ?? 0) === 0) return false;
+        // Every feed's copy of the key is of the one before.
+        await query(
+          `UPDATE note_shares SET reminder_key = '' WHERE note_id = $1`,
+          [id],
+        );
+        for (const link of links) {
+          await query(
+            `UPDATE public_links SET wrapped_key = $1
+             WHERE token = $2 AND note_id = $3 AND mode = 'live'`,
+            [link.wrappedKey, link.token, id],
+          );
+        }
+        return true;
+      });
     },
 
     async delete(id: string, userId: string): Promise<boolean> {

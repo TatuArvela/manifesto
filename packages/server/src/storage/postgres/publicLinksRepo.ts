@@ -60,14 +60,6 @@ export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {
       }
       return (result.rowCount ?? 0) > 0;
     },
-    async rewrap(token, noteId, wrappedKey) {
-      const result = await pool.query(
-        `UPDATE public_links SET wrapped_key = $1
-         WHERE token = $2 AND note_id = $3 AND mode = 'live'`,
-        [wrappedKey, token, noteId],
-      );
-      return (result.rowCount ?? 0) > 0;
-    },
     async recordView(token, at) {
       const result = await pool.query(
         `UPDATE public_links

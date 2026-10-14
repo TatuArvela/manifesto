@@ -389,14 +389,12 @@ export function createNotesRoutes(deps: NotesDeps) {
         current.keyVersion,
         nowIso(),
         ifMatch,
+        links ?? [],
       ));
     if (!moved) {
       // Written since the client read it, by anyone on the note: it reads
       // again and seals what is there now.
       return c.json({ error: "Note has changed" }, 412);
-    }
-    for (const link of links ?? []) {
-      await deps.storage.publicLinks.rewrap(link.token, id, link.wrappedKey);
     }
     await deps.noteEvents.changed(id);
     const note = await deps.storage.notes.getById(id, userId);

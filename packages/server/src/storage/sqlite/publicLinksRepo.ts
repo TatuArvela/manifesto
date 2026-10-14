@@ -25,10 +25,6 @@ export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {
        SELECT 1 FROM public_links
        WHERE token = ? AND note_id = ? AND mode = 'live')`,
   );
-  const rewrapStmt = db.prepare(
-    `UPDATE public_links SET wrapped_key = ?
-     WHERE token = ? AND note_id = ? AND mode = 'live'`,
-  );
   const deleteStmt = db.prepare(
     `DELETE FROM public_links WHERE token = ? AND note_id = ?`,
   );
@@ -58,9 +54,6 @@ export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {
       // A live link gave whoever had it the note's key.
       liveGoneStmt.run(noteId, token, noteId);
       return deleteStmt.run(token, noteId).changes > 0;
-    },
-    async rewrap(token, noteId, wrappedKey) {
-      return rewrapStmt.run(wrappedKey, token, noteId).changes > 0;
     },
     async recordView(token, at) {
       return viewStmt.run({ token, at }).changes > 0;

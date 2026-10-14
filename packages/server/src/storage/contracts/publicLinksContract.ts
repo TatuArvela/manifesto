@@ -157,14 +157,22 @@ export function describePublicLinksContract(
       // the note is as it was read.
       const read =
         (await storage.notes.getById("n1", "owner"))?.updatedAt ?? "";
+      const rewrapped = [
+        { token: "stays", wrappedKey: ct("again") },
+        { token: "nope", wrappedKey: ct("x") },
+      ];
       const rekey = (owner: string, to: number, from: number, at = read) =>
-        storage.notes.rekey("n1", owner, rekeyed(to), from, T1, at);
+        storage.notes.rekey("n1", owner, rekeyed(to), from, T1, at, rewrapped);
       expect(await rekey("owner", 3, 2)).toBe(false);
       expect(await rekey("else", 2, 1)).toBe(false);
       expect(await rekey("owner", 2, 1, "2001-01-01T00:00:00.000Z")).toBe(
         false,
       );
       expect((await storage.notes.getById("n1", "owner"))?.keyVersion).toBe(1);
+      // A refused move leaves the links on the key they had.
+      expect((await storage.publicLinks.get("stays"))?.wrappedKey).not.toBe(
+        ct("again"),
+      );
       expect(await rekey("owner", 2, 1)).toBe(true);
       expect(await storage.notes.getById("n1", "owner")).toMatchObject({
         keyVersion: 2,
@@ -174,15 +182,12 @@ export function describePublicLinksContract(
         updatedAt: T1,
       });
       expect(await due()).toBe(false);
-      expect(await storage.publicLinks.rewrap("stays", "n1", ct("again"))).toBe(
-        true,
-      );
+      // The live link moved with the note; the one named that is not there
+      // was passed over.
       expect((await storage.publicLinks.get("stays"))?.wrappedKey).toBe(
         ct("again"),
       );
-      expect(await storage.publicLinks.rewrap("nope", "n1", ct("x"))).toBe(
-        false,
-      );
+      expect(await storage.publicLinks.get("nope")).toBeNull();
 
       // Someone who accepted held the key; someone only invited, without
       // one offered, did not.
