@@ -246,6 +246,22 @@ describe("Sealer", () => {
     expect(mine.missesOwnNotes()).toBe(false);
   });
 
+  it("forgets that a deleted note was due a key", async () => {
+    const sealer = new Sealer(await testKeys());
+    const reminder = {
+      time: "2026-05-01T09:30:00",
+      recurrence: "none" as const,
+      timezone: "Europe/Helsinki",
+    };
+    const note = served(await sealer.sealNew("n1", draft));
+    await sealer.open({ ...note, reminder, rekeyDue: true });
+    expect([...sealer.due.value]).toEqual(["n1"]);
+    expect([...sealer.feedDue.value]).toEqual(["n1"]);
+    sealer.forget("n1");
+    expect(sealer.due.value.size).toBe(0);
+    expect(sealer.feedDue.value.size).toBe(0);
+  });
+
   it("asks for its private keys again after reading them failed", async () => {
     const made = await createAccountKeys("u1");
     const sealer = new Sealer({

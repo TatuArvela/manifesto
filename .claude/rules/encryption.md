@@ -106,7 +106,7 @@ for any new flow that makes a key someone has to hold.
   `storage/accountSealing.ts`); the store, the views and the editor deal in `Note` as in open mode. A new request
   that carries a note's words goes through the `Sealer`, never around it. A note that does not
   open is left out and counted in `Sealer.unreadable`, which `UnopenedNotes` shows on the board;
-  `forget` takes it out again. An export
+  `forget` takes it out again, with whatever else the `Sealer` had marked the note for. An export
   is refused while one of the account's own notes is among them (`missesOwnNotes`), and leaves
   out a note shared with the account, which is its owner's to back up. `openAll` opens a few notes at a time and keeps their order.
 - **The server stores only what is shaped as a ciphertext** where one belongs: `sealed` in

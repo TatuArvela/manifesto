@@ -554,6 +554,8 @@ export class Sealer {
     this.noteKeys.delete(id);
     this.unopenedOwn.delete(id);
     toggleIn(this.unreadable, id, false);
+    toggleIn(this.due, id, false);
+    toggleIn(this.feedDue, id, false);
   }
 
   /** A new note under a new key and `id`. */
