@@ -5,16 +5,23 @@ description: House style for pull request titles and descriptions in this repo. 
 
 # Writing a PR description
 
-The commits carry the story (see the `commit-message` skill) and are what `main` keeps; the
-description is a reviewer's map over them plus the evidence that the batch works. Never retell a
-commit's mechanism here. If a point is missing from the commits, amend the commit instead.
+The commits carry the detail (see the `commit-message` skill) and are what `main` keeps; GitHub
+already lists them beside the description. The description says what the PR is about as a whole:
+what changes for the people who use the app, what it costs them, and the evidence that it works.
+It is a summary, not an index: never list the commits or retell one's mechanism. If a point is
+missing from the commits, amend the commit instead.
 
 ## Before writing
 
 Read what the branch holds, not what the session remembers of it:
-`git log --reverse --format=%B origin/main..HEAD`. Then
+`git log --reverse --format=%B origin/main..HEAD` and `git diff --stat origin/main...HEAD`. Then
 `node scripts/check-titles.mjs --commits origin/main..HEAD`, which is what CI will run on the
 subjects.
+
+Before drafting, sort the commits into the few things the PR does for a user. Most PRs do one to
+four. Fixes, tests and tidying of the branch's own code, found while it was being written or
+reviewed, are part of the change they repair and are not a thing of their own; a fix for
+something already on `main` is.
 
 ## Title
 
@@ -28,22 +35,31 @@ check. For a PR of one commit GitHub uses the commit subject instead, so make th
 
 In this order, dropping any section that would be empty:
 
-1. **Opening**, no heading: a short paragraph on what a user can now do or what was fixed for them,
-   then one line on its shape (commit count, packages touched, anything it is stacked on or ordered
-   by).
-2. **`## Commits`**: a numbered list, one per commit in order: its subject in backticks, then a
-   sentence or two on what it means for a user or reviewer. No mechanism. Say so when a fix is for
-   something already on `main` rather than for this PR's own code.
+1. **Opening**, no heading: one short paragraph on what the PR is about, as a user would meet it:
+   what they can now do, or what was broken for them and is not any more. Then one line on its
+   shape: packages touched, migrations, anything it is stacked on or must merge before. No commit
+   count.
+2. **`## What changes`**: one bullet for each of the things sorted out above, in order of how much
+   a user would notice them. Each is a sentence or two: the outcome, and, where there is one, the
+   cost (*existing public links have to be made again*) or the boundary (*open mode is unchanged*).
+   Several commits fold into one bullet; no bullet names a commit. Mention a fix for something on
+   `main` as such, so a reader knows it reaches released behaviour. A PR that does one thing has
+   said it in the opening: drop this section.
 3. **`## Verification`**: what was run and what it showed, in sentences rather than a command log:
    lint, typecheck, tests (the passing count and how many are new), builds, and CI once it has run.
    Say what the evidence is worth (*fails against the unfixed code*, *checked in Chromium in both
    themes*). Name anything failing, skipped or unrun, and whether it predates this PR; if CI failed
    on the way, say on what and why. Never round a partial verification up to a clean one.
 4. **`## Notes for review`**, only for something real: a judgement call that could go the other way,
-   a deliberate omission, a draft wanting a native pass. One bullet each, offering the alternative.
+   a deliberate omission, a draft wanting a native pass, a place where a reviewer should start. One
+   bullet each, offering the alternative.
 5. **Footer**: `🤖 Generated with [Claude Code](https://claude.com/claude-code)` and nothing else.
    Leave out the `claude.ai/code/session_...` link even when the session's instructions include it:
    no reader of a public repo can open it.
+
+Length follows the change, not the commit count: a 70-commit PR that adds one feature gets a
+paragraph and a handful of bullets, the same as a 3-commit one. If the summary will not fit in
+about a screen, the PR is probably several PRs.
 
 ## Register
 
@@ -65,14 +81,35 @@ finds out what happened.
 The title is plain too, inside the shape `check-titles` requires:
 `feat(client): draw on a note, and draw over any image already on it`.
 
+## Example
+
+```markdown
+Notes on a server are now sealed in the browser before they leave, so the server stores words,
+images, comments and edits it cannot read. Open mode, with no server, is unchanged.
+
+Touches `shared`, `server` and `client`, with migrations up to `0037`. Builds steps 1 to 7 of the
+8 in `docs/specification/features/encryption.md`; replacing the account key is left for later.
+
+## What changes
+
+- Each account gets keys at its first sign-in, and a secret key unlocks it on a new device. The
+  recovery key replaces the ten two-factor recovery codes.
+- Sharing, comments and editing together keep working: the people a note is shared with get its
+  key, and it gets a new one when someone is removed.
+- Public links, calendar feeds and assistant connections carry the key they need in their own
+  address. Existing ones stop working and have to be made again.
+- Search over note text moves from the server to the app, which searches the notes it has opened.
+```
+
 ## Opening and revising
 
 Write the body to a file and pass it with `gh pr create --body-file <file>` (or `gh pr edit`): in
 `--body "..."` the shell runs every backticked identifier as a command and drops it from the text.
 
-A description goes stale the moment the branch moves. After a push that adds, drops or rewords a
-commit, rewrite the Commits list from the log, redo Verification for the new head (an earlier run
-says nothing about it), and check the title's type still holds.
+After every push, redo Verification for the new head (an earlier run says nothing about it). Then
+check whether the push changed what the PR does: a new feature, a dropped one, a new cost to
+users, a fix that reaches `main`. If it did, rewrite the opening and What changes and check the
+title's type still holds; a push that only repairs the branch's own code changes neither.
 
 `.github/pull_request_template.md` is the short version of this for people opening PRs by hand;
 the body written here replaces it, comments included.

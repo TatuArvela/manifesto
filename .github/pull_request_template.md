@@ -1,10 +1,15 @@
 <!--
 The title becomes the changelog line: "type(scope): what the batch does".
 `node scripts/check-titles.mjs "<title>"` lists the rules; CI checks it.
-Explain each change in its commit message, not here.
+Explain each change in its commit message; here, summarise the PR as a whole
+rather than listing its commits.
 -->
 
-<!-- What this is and why, in a sentence or two. -->
+<!-- What this changes for someone using the app, in a sentence or two. -->
+
+## What changes
+
+<!-- Only if it does more than one thing: a bullet per outcome, not per commit. -->
 
 ## Verification
 
