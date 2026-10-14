@@ -103,6 +103,22 @@ describe("renderMarkdown raw HTML", () => {
     expect(html).toContain("<u>");
     expect(html).not.toContain("onmouseover");
   });
+
+  it("drops a class the pipeline did not write", () => {
+    const html = renderMarkdown(
+      '<a href="https://example.com" class="fixed inset-0 z-50">Sign in</a>',
+    );
+    expect(html).toContain("Sign in");
+    expect(html).not.toContain("class=");
+  });
+
+  it("keeps the pipeline's own classes and drops the rest beside them", () => {
+    expect(renderMarkdown("- [ ] item")).toContain('class="task-list-item"');
+    expect(renderMarkdown("```js\nx\n```")).toContain('class="language-js"');
+    expect(
+      renderMarkdown('<span class="item-date fixed inset-0">x</span>'),
+    ).toContain('<span class="item-date">x</span>');
+  });
 });
 
 describe("renderInlineMarkdown", () => {

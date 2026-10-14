@@ -59,7 +59,7 @@ const PURIFY_CONFIG = {
     "src",
     "alt",
     "title", // images
-    "class", // styling
+    "class", // the pipeline's own, see `RENDERED_CLASSES`
     "type",
     "checked",
     "disabled", // task-list checkboxes
@@ -80,6 +80,34 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName !== "A" || !node.hasAttribute("href")) return;
   node.setAttribute("target", "_blank");
   node.setAttribute("rel", "noopener noreferrer");
+});
+
+/**
+ * The classes a rendered note may carry: the ones the pipeline itself writes
+ * (GFM's task lists and code languages, the footnote label, the date chip).
+ * Any other is dropped. A note can come from someone else (a share, a public
+ * link, a plugin), and the page's own utility classes would let it lay
+ * itself over the app (`fixed inset-0 z-50`) as a fake sign-in or a link
+ * dressed as a button.
+ */
+const RENDERED_CLASSES = new Set([
+  "contains-task-list",
+  "task-list-item",
+  "item-date",
+  "item-date-overdue",
+  "sr-only",
+]);
+const CODE_LANGUAGE_CLASS = /^language-[\w+#.-]{1,40}$/;
+
+DOMPurify.addHook("uponSanitizeAttribute", (_node, data) => {
+  if (data.attrName !== "class") return;
+  const kept = data.attrValue
+    .split(/\s+/)
+    .filter(
+      (name) => RENDERED_CLASSES.has(name) || CODE_LANGUAGE_CLASS.test(name),
+    );
+  if (kept.length === 0) data.keepAttr = false;
+  else data.attrValue = kept.join(" ");
 });
 
 /**
