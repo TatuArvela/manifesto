@@ -18,10 +18,10 @@ operator, not only the code.
 | **Connected, someone else's server** | The people a note is [shared with](sharing-with-people.md). The operator and the admins hold what the browser sealed and no key that opens it. |
 
 Notes are being moved to end-to-end encryption: [Encryption](encryption.md) has the design, and
-says which parts are built. A note's title, text, tags and colour are sealed in the browser before
-they reach the server. Until the rest is built (the shared document a note is edited in and its
-images, among others), anyone who needs notes the server cannot read should use open mode, or run
-their own server.
+says which parts are built. Everything a person writes in a note (its title, text, tags, colour,
+images, the shared document it is edited in, its versions and comments) is sealed in the browser
+before it reaches the server. That is built but not yet released; until a release carries it,
+anyone who needs notes the server cannot read should use open mode, or run their own server.
 
 ## What an admin can see
 
@@ -81,8 +81,48 @@ Everything the server stores is readable by whoever runs it:
   password hashes (argon2). Sessions and API tokens are stored as hashes.
 - **Preferences** that follow the account ([Preferences](preferences.md)), which include the names
   of tags hidden from the board.
-- **The audit log**, with client addresses.
-- **Backups**, when `BACKUP_INTERVAL_HOURS` is set: whole copies of all of the above, in `BACKUP_DIR`.
+- **The audit log**, with client addresses. A failed sign-in names the account it was for only when
+  the name tried belongs to one: a name that matched no account is not kept, since it is often a
+  password typed into the wrong field.
+- **Backups**, when `BACKUP_INTERVAL_HOURS` is set: whole copies of all of the above, in `BACKUP_DIR`,
+  the newest `BACKUP_KEEP` of them.
+
+How long each is kept:
+
+| What | Kept |
+|---|---|
+| An account and what it holds | Until it is deleted, by its owner or an admin |
+| A note in the trash | 30 days ([Trash](trash.md)) |
+| A note's versions | The newest 50, and none older than 90 days |
+| An image no note refers to | 90 days, so a restored version still finds it |
+| A session, a sign-in or reset link, an API token | Until it expires or is ended, then swept within the hour |
+| An audit log entry | `AUDIT_RETENTION_DAYS`, 180 days by default, also after the account it is about is deleted |
+| A backup | Until `BACKUP_KEEP` newer ones replace it, also after an account in it is deleted |
+
+## A person's own data
+
+What a person can do about what the server holds on them, without asking anyone:
+
+- **See it.** Settings shows the account's details, its tokens, webhooks and passkeys, and its
+  **Activity** page shows the audit log's lines about it ([above](#what-a-user-can-see-about-their-account)).
+- **Take it away.** **Export Notes** downloads every note the account owns, with versions and
+  preferences, in a format that imports anywhere ([Export](export-import.md#export)). Notes shared with
+  the account are their owners', and comments it wrote stay with the notes they were written on.
+- **Correct it.** The email address is changed on the Account page; under single sign-on it comes from
+  the identity provider.
+- **Delete it.** **Delete account** on the Account page removes the account and everything it holds
+  ([Accounts](accounts.md#deleting-your-own-account)). What stays is the audit log's entries until they
+  expire and the backups taken before, as the table above says.
+
+## The operator's privacy notice
+
+Whoever runs a server for other people decides who holds their data and for how long, and is the one
+to tell them. `VITE_PRIVACY_URL`, or the `privacy-url` meta tag in a release bundle
+([Client Deployment](../client/deployment.md)), links that notice from the sign-in screen, where an
+account is made, and from About. This page is a starting point for writing it: the settings that
+change what it has to say are `USER_LOOKUP`, `REGISTRATION_ENABLED`, `AUDIT_RETENTION_DAYS`,
+`BACKUP_INTERVAL_HOURS` and `BACKUP_KEEP`, `TRUST_PROXY` (whose addresses the audit log records),
+and the features that reach third parties, below.
 
 The server's own log carries method, path, status and timing, never a request body or a query string,
 so what someone searches for is not logged. Encryption at rest is whatever the operator's disk or
