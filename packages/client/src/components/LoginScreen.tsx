@@ -14,6 +14,7 @@ import {
 } from "../state/auth.js";
 import { passkeysSupported } from "../utils/webauthn.js";
 import { BrandLogo } from "./BrandLogo.js";
+import { buttonClass } from "./buttonClasses.js";
 import { LocalLoginForm } from "./LocalLoginForm.js";
 import { OrgCredit } from "./OrgCredit.js";
 import { ForgotPasswordForm, ResetPasswordForm } from "./PasswordResetForms.js";
@@ -87,7 +88,7 @@ export function LoginScreen() {
         <OrgCredit class="mt-6" />
 
         {SERVER_ORIGIN !== null && (
-          <p class="mt-6 text-xs text-center text-neutral-400 dark:text-neutral-500 break-all">
+          <p class="mt-6 text-xs text-center text-neutral-500 dark:text-neutral-500 break-all">
             {t("login.serverLabel")}: {SERVER_ORIGIN}
           </p>
         )}
@@ -141,7 +142,7 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
     <>
       {oidc && <OidcLoginPanel />}
       {oidc && local && (
-        <div class="my-5 flex items-center gap-3 text-xs text-neutral-400 dark:text-neutral-500">
+        <div class="my-5 flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-500">
           <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
           {t("login.or")}
           <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
@@ -189,7 +190,7 @@ function OidcLoginPanel() {
         href={href}
         onClick={beginOidcSignIn}
         onAuxClick={beginOidcSignIn}
-        class="block w-full text-center rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 transition-colors"
+        class={`${buttonClass("primary")} w-full`}
       >
         {t("login.oidcSubmit")}
       </a>

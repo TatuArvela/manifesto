@@ -220,7 +220,7 @@ export function ReminderPickerPanel({
     "reminder.recurrence.none";
 
   const fieldClass =
-    "flex items-center gap-2 px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 focus-within:bg-black/5 dark:focus-within:bg-white/10";
+    "flex items-center gap-2 px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 focus-within:bg-black/5 dark:focus-within:bg-white/10 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500";
 
   return (
     <div class="flex flex-col gap-1">

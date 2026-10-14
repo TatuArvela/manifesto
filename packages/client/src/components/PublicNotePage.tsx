@@ -12,6 +12,7 @@ import {
   unlockPublicNote,
 } from "../state/publicLinks.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
+import { buttonClass } from "./buttonClasses.js";
 
 /**
  * The page a public link opens, rendered in place of the app: no account, no
@@ -121,7 +122,7 @@ function PasswordForm({
       <button
         type="submit"
         disabled={busy || !password}
-        class="inline-flex items-center justify-center px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
+        class={buttonClass("primary", "sm")}
       >
         {t("publicLink.page.open")}
       </button>

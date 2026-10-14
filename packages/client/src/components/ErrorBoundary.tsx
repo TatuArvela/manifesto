@@ -5,6 +5,7 @@ import { t } from "../i18n/index.js";
 import { revealApp } from "../splash.js";
 import { getLocalImage } from "../storage/localImages.js";
 import { blobToDataUrl } from "../utils/dataUrl.js";
+import { buttonClass } from "./buttonClasses.js";
 
 const NOTES_KEY = "manifesto:notes";
 
@@ -122,7 +123,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div class="mt-5 flex flex-wrap gap-2">
             <button
               type="button"
-              class="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+              class={buttonClass("primary", "sm")}
               onClick={() => window.location.reload()}
             >
               {t("error.reload")}

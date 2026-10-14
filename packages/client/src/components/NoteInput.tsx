@@ -420,7 +420,7 @@ export function NoteInput() {
             <div
               class={`note-stack-next border ${noteColorMap[stackColor].bg} ${noteColorMap[stackColor].border}`}
             >
-              <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
+              <div class="px-5 pt-12 pb-4 text-sm text-neutral-500 dark:text-neutral-300">
                 {nextLine}
               </div>
             </div>
@@ -428,7 +428,7 @@ export function NoteInput() {
               ref={topSheetRef}
               class={`${topNoteClass} border ${noteColorMap[topSheetColor].bg} ${noteColorMap[topSheetColor].border}`}
             >
-              <div class="px-5 pt-12 pb-4 text-sm text-neutral-400 dark:text-neutral-300">
+              <div class="px-5 pt-12 pb-4 text-sm text-neutral-500 dark:text-neutral-300">
                 {topLine}
               </div>
             </div>
@@ -456,13 +456,13 @@ export function NoteInput() {
           label={t("nav.newNote")}
           dialogRef={modalRef}
           panelRef={panelRef}
-          layer="z-50"
+          layer="layer-sheet"
           motion={`transition-all duration-150 ${closing ? "opacity-0 sm:scale-95" : morphing ? "" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
           backdrop={
             <Backdrop
               onDismiss={() => closeModal()}
               closing={closing}
-              class="z-40 max-sm:hidden"
+              class="layer-backdrop max-sm:hidden"
             />
           }
           closing={closing}

@@ -272,7 +272,7 @@ export function DrawingPad() {
       role="dialog"
       aria-modal="true"
       aria-label={t("drawing.title")}
-      class="fixed inset-0 z-[55] flex flex-col bg-neutral-900 text-neutral-100 animate-fade-in"
+      class="fixed inset-0 layer-drawing flex flex-col bg-neutral-900 text-neutral-100 animate-fade-in"
     >
       <div class="flex items-center gap-1 px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
         <button

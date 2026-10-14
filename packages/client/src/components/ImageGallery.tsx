@@ -139,14 +139,14 @@ function ImageLightbox({
 
   return createPortal(
     <>
-      <Backdrop onDismiss={onClose} class="z-[100]" deep />
+      <Backdrop onDismiss={onClose} class="layer-gallery-backdrop" deep />
       <div
         ref={dialogRef}
         onKeyDown={onKeyDown}
         role="dialog"
         aria-modal="true"
         aria-label={t("editor.imageViewer")}
-        class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none animate-fade-in"
+        class="fixed inset-0 layer-gallery flex items-center justify-center p-4 pointer-events-none animate-fade-in"
       >
         <StoredImage
           src={shown}

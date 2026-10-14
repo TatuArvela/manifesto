@@ -12,6 +12,7 @@ import {
   setWebhookActive,
   testWebhook,
 } from "../../state/webhooks.js";
+import { buttonClass } from "../buttonClasses.js";
 import {
   ConfirmationError,
   ConfirmPasswordField,
@@ -172,11 +173,7 @@ export function WebhooksSettings() {
           </p>
         )}
         <div class="flex justify-end">
-          <button
-            type="submit"
-            disabled={busy}
-            class="px-4 py-2 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
-          >
+          <button type="submit" disabled={busy} class={buttonClass("primary")}>
             {t("webhooks.add")}
           </button>
         </div>

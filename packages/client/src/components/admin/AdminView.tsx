@@ -31,18 +31,12 @@ import {
 } from "../../state/auth.js";
 import { serverFeature } from "../../state/serverFeatures.js";
 import { Avatar } from "../Avatar.js";
+import { buttonClass } from "../buttonClasses.js";
 import { Dropdown } from "../Dropdown.js";
 import { menuItemClass, menuPanelClass } from "../NoteMenu.js";
 import { AdminOverview } from "./AdminOverview.js";
 import { AdminTeams } from "./AdminTeams.js";
 import { AuditLog } from "./AuditLog.js";
-
-const primaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
-const secondaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 disabled:opacity-60 cursor-pointer";
-const dangerButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 cursor-pointer";
 
 /**
  * `/admin`: every account on the server, for an admin to create, reset,
@@ -124,7 +118,7 @@ export function AdminView() {
             {passwordsHere && !creating && (
               <button
                 type="button"
-                class={primaryButtonClass}
+                class={buttonClass("primary", "sm")}
                 onClick={() => setCreating(true)}
               >
                 <UserPlus class="w-4 h-4" />
@@ -153,7 +147,7 @@ export function AdminView() {
                 </p>
                 <button
                   type="button"
-                  class={secondaryButtonClass}
+                  class={buttonClass("secondary", "sm")}
                   onClick={load}
                 >
                   {t("admin.retry")}
@@ -240,12 +234,16 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
       </label>
       <button
         type="submit"
-        class={primaryButtonClass}
+        class={buttonClass("primary", "sm")}
         disabled={busy || username.trim().length === 0}
       >
         {t("admin.create.submit")}
       </button>
-      <button type="button" class={secondaryButtonClass} onClick={onDone}>
+      <button
+        type="button"
+        class={buttonClass("secondary", "sm")}
+        onClick={onDone}
+      >
         {t("admin.cancel")}
       </button>
     </form>
@@ -295,7 +293,7 @@ function IssuedPasswordPanel({ issued }: { issued: IssuedPassword }) {
         <button
           ref={copyRef}
           type="button"
-          class={secondaryButtonClass}
+          class={buttonClass("secondary", "sm")}
           onClick={copy}
         >
           {copied ? <Check class="w-4 h-4" /> : <Copy class="w-4 h-4" />}
@@ -303,7 +301,7 @@ function IssuedPasswordPanel({ issued }: { issued: IssuedPassword }) {
         </button>
         <button
           type="button"
-          class={`${secondaryButtonClass} ml-auto`}
+          class={`${buttonClass("secondary", "sm")} ml-auto`}
           onClick={() => {
             issuedPassword.value = null;
           }}
@@ -496,7 +494,9 @@ function UserRow({
             <button
               type="button"
               class={
-                confirming === "delete" ? dangerButtonClass : primaryButtonClass
+                confirming === "delete"
+                  ? buttonClass("danger", "sm")
+                  : buttonClass("primary", "sm")
               }
               disabled={busy}
               onClick={() =>
@@ -515,7 +515,7 @@ function UserRow({
             </button>
             <button
               type="button"
-              class={secondaryButtonClass}
+              class={buttonClass("secondary", "sm")}
               disabled={busy}
               onClick={() => setConfirming(null)}
             >
@@ -570,10 +570,18 @@ function EmailForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
           class={fieldClass}
         />
       </label>
-      <button type="submit" class={primaryButtonClass} disabled={busy}>
+      <button
+        type="submit"
+        class={buttonClass("primary", "sm")}
+        disabled={busy}
+      >
         {t("admin.saveEmail")}
       </button>
-      <button type="button" class={secondaryButtonClass} onClick={onDone}>
+      <button
+        type="button"
+        class={buttonClass("secondary", "sm")}
+        onClick={onDone}
+      >
         {t("admin.cancel")}
       </button>
     </form>

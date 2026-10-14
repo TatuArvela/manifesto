@@ -77,13 +77,17 @@ export function SettingsDialog() {
 
   return (
     <>
-      <Backdrop onDismiss={handleClose} closing={leaving} class="z-40" />
+      <Backdrop
+        onDismiss={handleClose}
+        closing={leaving}
+        class="layer-backdrop"
+      />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-dialog-title"
-        class={`fixed inset-0 z-50 flex items-center justify-center sm:p-6 pointer-events-none transition-all duration-150 ${leaving ? "opacity-0 scale-95" : "animate-scale-in"}`}
+        class={`fixed inset-0 layer-sheet flex items-center justify-center sm:p-6 pointer-events-none transition-all duration-150 ${leaving ? "opacity-0 scale-95" : "animate-scale-in"}`}
       >
         <div class="pointer-events-auto flex flex-col sm:flex-row w-full h-full sm:h-[min(42rem,100%)] sm:max-w-3xl overflow-hidden sm:rounded-2xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-2xl sm:border border-neutral-200 dark:border-neutral-700">
           <aside class="flex flex-col shrink-0 sm:w-64 bg-neutral-50 dark:bg-neutral-900/40 border-b sm:border-b-0 sm:border-r border-neutral-200 dark:border-neutral-700">

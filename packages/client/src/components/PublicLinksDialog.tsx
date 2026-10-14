@@ -16,9 +16,8 @@ import {
 } from "../state/publicLinks.js";
 import { showError, showSuccess } from "../state/ui.js";
 import { Backdrop } from "./Backdrop.js";
+import { buttonClass } from "./buttonClasses.js";
 
-const primaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
 const iconButtonClass =
   "inline-flex items-center justify-center p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-60 cursor-pointer";
 const fieldClass =
@@ -109,13 +108,13 @@ function PublicLinksDialog({
 
   return createPortal(
     <>
-      <Backdrop onDismiss={onClose} class="z-[60]" />
+      <Backdrop onDismiss={onClose} class="layer-nested-backdrop" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="public-links-title"
-        class="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none animate-scale-in"
+        class="fixed inset-0 layer-nested flex items-center justify-center p-4 pointer-events-none animate-scale-in"
       >
         <div class="pointer-events-auto w-full max-w-md max-h-full overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-xl border border-neutral-200 dark:border-neutral-700 p-5 sm:p-6 flex flex-col gap-4">
           <div class="min-w-0">
@@ -162,7 +161,7 @@ function PublicLinksDialog({
           <div class="flex justify-end">
             <button
               type="button"
-              class="px-3 py-1.5 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer"
+              class={buttonClass("secondary", "sm")}
               onClick={onClose}
             >
               {t("publicLink.dialog.done")}
@@ -279,7 +278,7 @@ function CreateLinkForm({
       </p>
       <button
         type="submit"
-        class={`${primaryButtonClass} col-span-2`}
+        class={`${buttonClass("primary", "sm")} col-span-2`}
         disabled={busy}
       >
         <Globe class="w-4 h-4" />

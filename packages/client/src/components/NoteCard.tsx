@@ -336,7 +336,7 @@ export const NoteCard = memo(function NoteCard({
           />
 
           {isTrashView && note.trashedAt && (
-            <p class="mt-2 text-xs text-neutral-400">
+            <p class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
               {t("noteCard.trashedAt", { date: formatDate(note.trashedAt) })}
             </p>
           )}
@@ -361,7 +361,7 @@ export const NoteCard = memo(function NoteCard({
           label={note.title || t("editor.titlePlaceholder")}
           dialogRef={modalRef}
           panelRef={panelRef}
-          layer="z-50"
+          layer="layer-sheet"
           motion={`transition-all duration-100 ease-in ${morphing ? "" : closing ? "opacity-0 sm:scale-[0.98]" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
           backdrop={
             // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
@@ -369,7 +369,7 @@ export const NoteCard = memo(function NoteCard({
             <div
               // In and out over the same time as the panel: the morph's
               // when it morphs, the plain fade's otherwise.
-              class={`fixed inset-0 bg-black/50 z-40 max-sm:hidden transition-opacity ease-in ${morphing ? "duration-240" : "duration-100"} ${closing ? "opacity-0" : morphing ? "animate-[fade-in_240ms_ease-out]" : "animate-fade-in"}`}
+              class={`fixed inset-0 bg-black/50 layer-backdrop max-sm:hidden transition-opacity ease-in ${morphing ? "duration-240" : "duration-100"} ${closing ? "opacity-0" : morphing ? "animate-[fade-in_240ms_ease-out]" : "animate-fade-in"}`}
               onClick={closeModal}
             />
           }

@@ -11,7 +11,7 @@ interface NoteSheetProps {
   dialogRef: RefObject<HTMLDivElement | null>;
   /** The panel the note is drawn in, which a morph animates. */
   panelRef?: RefObject<HTMLDivElement | null>;
-  /** Its stacking layer: `z-50`, or `z-[70]` over another sheet. */
+  /** Its stacking layer: `layer-sheet`, or `layer-nested` over another sheet. */
   layer: string;
   /** The open and close transitions, which each caller times its own way. */
   motion: string;

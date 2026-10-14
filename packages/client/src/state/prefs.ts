@@ -310,9 +310,44 @@ function applyTheme(mode: ThemeMode) {
     (mode === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("dark", isDark);
+  paintBrowserBar(isDark);
 }
 
-effect(() => applyTheme(theme.value));
+// The browser's bar (`<meta name="theme-color">`) keeps the brand colour in
+// the light theme. In the dark one a blue bar over a dark header glares, so it
+// takes the header's own background instead, read from the live ramp so a
+// dark hue tints it too. A canvas turns that `oklch()` into the hex every
+// browser accepts there.
+const themeColorMeta = document.querySelector<HTMLMetaElement>(
+  'meta[name="theme-color"]',
+);
+const brandThemeColor = themeColorMeta?.content ?? "";
+
+function paintBrowserBar(isDark: boolean) {
+  if (!themeColorMeta) return;
+  themeColorMeta.content = isDark
+    ? (toHex(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--color-neutral-900",
+        ),
+      ) ?? brandThemeColor)
+    : brandThemeColor;
+}
+
+function toHex(color: string): string | null {
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx || !color.trim()) return null;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r = 0, g = 0, b = 0] = ctx.getImageData(0, 0, 1, 1).data;
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+effect(() => {
+  // Read so a change of dark hue repaints the bar as well.
+  void darkHue.value;
+  applyTheme(theme.value);
+});
 
 window
   .matchMedia("(prefers-color-scheme: dark)")

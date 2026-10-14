@@ -5,10 +5,8 @@ import { APP_FILE_SLUG } from "../config.js";
 import { t } from "../i18n/index.js";
 import type { KeySheet } from "../state/accountKeys.js";
 import { downloadFile } from "../utils/noteDownload.js";
+import { buttonClass } from "./buttonClasses.js";
 import { submitClass } from "./loginFormClasses.js";
-
-const secondaryClass =
-  "inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer";
 
 /** While a sheet is on screen, printing the page prints the sheet alone
  * (`styles.css`). */
@@ -113,7 +111,7 @@ export function KeySheetView({ sheet }: { sheet: KeySheet }) {
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class={secondaryClass}
+          class={buttonClass("secondary")}
           onClick={() =>
             downloadFile(
               sheetText(sheet),
@@ -127,7 +125,7 @@ export function KeySheetView({ sheet }: { sheet: KeySheet }) {
         </button>
         <button
           type="button"
-          class={secondaryClass}
+          class={buttonClass("secondary")}
           onClick={() => window.print()}
         >
           <Printer class="w-4 h-4" />

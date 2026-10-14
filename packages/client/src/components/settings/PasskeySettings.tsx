@@ -11,13 +11,10 @@ import {
 import { serverFeature } from "../../state/serverFeatures.js";
 import { showSuccess } from "../../state/ui.js";
 import { passkeysSupported } from "../../utils/webauthn.js";
+import { buttonClass } from "../buttonClasses.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
-const primaryClass =
-  "px-4 py-2 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
-const secondaryClass =
-  "px-4 py-2 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer";
 
 const ADD_FAILURES: Record<
   Exclude<AddPasskeyResult["kind"], "ok">,
@@ -183,10 +180,18 @@ export function PasskeySettings({ onChange }: { onChange: () => void }) {
           {passwordField}
           {errorLine}
           <div class="flex justify-end gap-2">
-            <button type="button" class={secondaryClass} onClick={close}>
+            <button
+              type="button"
+              class={buttonClass("secondary")}
+              onClick={close}
+            >
               {t("confirm.cancel")}
             </button>
-            <button type="submit" disabled={busy} class={primaryClass}>
+            <button
+              type="submit"
+              disabled={busy}
+              class={buttonClass("primary")}
+            >
               {t("passkeys.remove")}
             </button>
           </div>
@@ -210,10 +215,18 @@ export function PasskeySettings({ onChange }: { onChange: () => void }) {
           {passwordField}
           {errorLine}
           <div class="flex justify-end gap-2">
-            <button type="button" class={secondaryClass} onClick={close}>
+            <button
+              type="button"
+              class={buttonClass("secondary")}
+              onClick={close}
+            >
               {t("confirm.cancel")}
             </button>
-            <button type="submit" disabled={busy} class={primaryClass}>
+            <button
+              type="submit"
+              disabled={busy}
+              class={buttonClass("primary")}
+            >
               {t("passkeys.add")}
             </button>
           </div>
@@ -227,7 +240,7 @@ export function PasskeySettings({ onChange }: { onChange: () => void }) {
             <div class="flex justify-end">
               <button
                 type="button"
-                class={secondaryClass}
+                class={buttonClass("secondary")}
                 onClick={() => setForm({ kind: "add" })}
               >
                 {t("passkeys.addStart")}

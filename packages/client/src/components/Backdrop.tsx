@@ -3,7 +3,7 @@ interface BackdropProps {
   onDismiss: () => void;
   /** Fades out with the dialog's exit while true. */
   closing?: boolean;
-  /** Its layer, and anything else it needs: `z-40`, `z-[60] max-sm:hidden`. */
+  /** Its layer, and anything else it needs: `layer-backdrop`, `layer-nested-backdrop max-sm:hidden`. */
   class: string;
   /** The darker shade, for a viewer that should hide the board. */
   deep?: boolean;

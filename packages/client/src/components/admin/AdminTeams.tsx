@@ -12,11 +12,8 @@ import {
   updateTeam,
 } from "../../state/teams.js";
 import { showError } from "../../state/ui.js";
+import { buttonClass } from "../buttonClasses.js";
 
-const primaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
-const secondaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 disabled:opacity-60 cursor-pointer";
 const fieldClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 
@@ -107,7 +104,7 @@ export function AdminTeams() {
         </label>
         <button
           type="submit"
-          class={primaryButtonClass}
+          class={buttonClass("primary", "sm")}
           disabled={busy || name.trim().length === 0}
         >
           <Users class="w-4 h-4" />
@@ -182,7 +179,7 @@ function TeamRow({
         {!fromProvider && !editing && (
           <button
             type="button"
-            class={secondaryButtonClass}
+            class={buttonClass("secondary", "sm")}
             onClick={() => setEditing(true)}
           >
             {t("admin.teams.editMembers")}
@@ -226,7 +223,7 @@ function TeamRow({
           <div class="flex gap-2">
             <button
               type="button"
-              class={primaryButtonClass}
+              class={buttonClass("primary", "sm")}
               disabled={busy}
               onClick={save}
             >
@@ -234,7 +231,7 @@ function TeamRow({
             </button>
             <button
               type="button"
-              class={secondaryButtonClass}
+              class={buttonClass("secondary", "sm")}
               onClick={() => {
                 setSelected(new Set(team.members.map((m) => m.id)));
                 setEditing(false);

@@ -9,6 +9,7 @@ import {
   invitations,
 } from "../state/sharing.js";
 import { Avatar } from "./Avatar.js";
+import { buttonClass } from "./buttonClasses.js";
 import { ContentPreview } from "./ContentPreview.js";
 
 /**
@@ -117,7 +118,7 @@ function InvitationCard({ invitation }: { invitation: Invitation }) {
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class="px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
+          class={buttonClass("primary", "sm")}
           disabled={busy || invitation.waiting}
           onClick={() => answer(acceptInvitation)}
         >
@@ -125,7 +126,7 @@ function InvitationCard({ invitation }: { invitation: Invitation }) {
         </button>
         <button
           type="button"
-          class="px-3 py-1.5 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 disabled:opacity-60 cursor-pointer"
+          class={buttonClass("secondary", "sm")}
           disabled={busy}
           onClick={() => answer(declineInvitation)}
         >

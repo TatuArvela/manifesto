@@ -1,10 +1,8 @@
 import {
   AlertTriangle,
   BookOpen,
-  Check,
   Plus,
   RefreshCw,
-  Slash,
   Trash2,
   Wand2,
   X,
@@ -30,9 +28,10 @@ import {
   sortedNotes,
   viewMode,
 } from "../state/index.js";
+import { buttonClass } from "./buttonClasses.js";
 import { gridColumns } from "./gridColumns.js";
 import { ReorderableGrid } from "./ReorderableGrid.js";
-import { ToggleSwitch } from "./ToggleSwitch.js";
+import { Switch } from "./ToggleSwitch.js";
 
 type AddMode = "inline" | "url" | null;
 
@@ -52,7 +51,7 @@ function PluginReads({ plugin }: { plugin: PluginSource }) {
   const button =
     "shrink-0 px-2 py-0.5 rounded font-medium cursor-pointer bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500";
   return (
-    <div class="flex flex-col gap-1 text-[11px] text-neutral-600 dark:text-neutral-300">
+    <div class="flex flex-col gap-1 text-xs text-neutral-600 dark:text-neutral-300">
       {granted.length > 0 && (
         <p class="flex items-start gap-1.5">
           <BookOpen class="w-3 h-3 mt-0.5 shrink-0" />
@@ -238,7 +237,7 @@ export function AutoNotesView() {
                 </button>
                 <button
                   type="button"
-                  class="px-3 py-1 text-sm bg-blue-600 text-white rounded font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  class={buttonClass("primary", "sm")}
                   disabled={!pasteSource.trim()}
                   onClick={handlePasteSave}
                 >
@@ -270,7 +269,7 @@ export function AutoNotesView() {
                 </button>
                 <button
                   type="button"
-                  class="px-3 py-1 text-sm bg-blue-600 text-white rounded font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  class={buttonClass("primary", "sm")}
                   disabled={!urlValue.trim() || urlBusy}
                   onClick={handleUrlSave}
                 >
@@ -327,23 +326,20 @@ export function AutoNotesView() {
                     class={`flex-1 min-w-0 text-sm font-medium truncate ${
                       plugin.name
                         ? ""
-                        : "italic text-neutral-400 dark:text-neutral-500 font-normal"
+                        : "italic text-neutral-500 dark:text-neutral-500 font-normal"
                     }`}
                   >
                     {plugin.name || t("settings.autoNotes.untitled")}
                   </span>
-                  <span class="text-[10px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  <span class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                     {plugin.origin.kind === "url"
                       ? t("settings.autoNotes.origin.url")
                       : t("settings.autoNotes.origin.inline")}
                   </span>
-                  <ToggleSwitch
+                  <Switch
                     checked={plugin.enabled}
                     onChange={() => togglePlugin(plugin.id)}
-                    iconOff={<Slash class="w-4 h-4" />}
-                    iconOn={<Check class="w-4 h-4" />}
-                    labelOff={t("settings.autoNotes.disabled")}
-                    labelOn={t("settings.autoNotes.enabled")}
+                    label={t("settings.autoNotes.enabled")}
                   />
                   {plugin.origin.kind === "url" && (
                     <button
@@ -369,7 +365,7 @@ export function AutoNotesView() {
 
                 {plugin.origin.kind === "url" && (
                   <p
-                    class="text-[11px] text-neutral-500 dark:text-neutral-400 truncate"
+                    class="text-xs text-neutral-500 dark:text-neutral-400 truncate"
                     title={plugin.origin.url}
                   >
                     {plugin.origin.url}
@@ -379,7 +375,7 @@ export function AutoNotesView() {
                 <PluginReads plugin={plugin} />
 
                 {plugin.lastError && (
-                  <p class="text-[11px] text-red-600 dark:text-red-400 flex items-start gap-1">
+                  <p class="text-xs text-red-600 dark:text-red-400 flex items-start gap-1">
                     <AlertTriangle class="w-3 h-3 mt-0.5 shrink-0" />
                     <span class="break-all">{plugin.lastError}</span>
                   </p>

@@ -4,6 +4,7 @@ import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
 import { answerConfirmation, confirmRequest } from "../state/confirm.js";
 import { Backdrop } from "./Backdrop.js";
+import { buttonClass } from "./buttonClasses.js";
 
 /**
  * The one place a destructive action stops to ask. Driven by the
@@ -52,7 +53,7 @@ export function ConfirmDialogHost() {
       <Backdrop
         onDismiss={() => answerConfirmation(false)}
         closing={closing}
-        class="z-[60]"
+        class="layer-confirm"
       />
       <div
         ref={dialogRef}
@@ -60,7 +61,7 @@ export function ConfirmDialogHost() {
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby={shown.body ? "confirm-dialog-body" : undefined}
-        class={`fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
+        class={`fixed inset-0 layer-confirm flex items-center justify-center p-4 pointer-events-none transition-all duration-150 ${closing ? "opacity-0 scale-95" : "animate-scale-in"}`}
       >
         <div class="pointer-events-auto w-full max-w-sm rounded-lg bg-white dark:bg-neutral-800 shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
           <div class="px-5 pt-5 pb-4">
@@ -83,14 +84,14 @@ export function ConfirmDialogHost() {
             <button
               ref={cancelRef}
               type="button"
-              class="px-4 py-2 text-sm rounded-lg font-medium hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+              class={buttonClass("quiet")}
               onClick={() => answerConfirmation(false)}
             >
               {t("confirm.cancel")}
             </button>
             <button
               type="button"
-              class="px-4 py-2 text-sm rounded-lg font-medium bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+              class={buttonClass("danger")}
               onClick={() => answerConfirmation(true)}
             >
               {shown.confirmLabel}

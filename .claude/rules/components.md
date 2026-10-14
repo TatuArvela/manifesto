@@ -43,3 +43,11 @@ paths:
   (`afterHistorySettles`), or they would be what it goes back from.
 - **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
   clearing the signal; `NoteCard`'s `useCardModal` plays the animation and takes the modal down.
+- **Text buttons** take their classes from `buttonClass(tone, size)` in `buttonClasses.ts`, never a
+  class string of their own, or the variants drift apart again (they had reached a dozen).
+- **Keyboard focus** is one ring for the whole app, `:focus-visible` in `styles/setup.css`. A
+  control that draws its own uses `outline-none` with a `ring`, which wins because the default sits
+  in the base layer; one that removes the outline and draws nothing leaves no focus to see.
+- **Layers over the board** are the `layer-*` utilities in `styles/setup.css`, never a bare
+  `z-[n]`. The confirmation and the toasts are the top two, because any sheet can raise either:
+  a confirmation numbered under a nested sheet was asked behind the dialog that asked it.

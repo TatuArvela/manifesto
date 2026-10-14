@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-preact";
 import type { ComponentChildren, CSSProperties, JSX } from "preact";
-import { useState } from "preact/hooks";
+import { useContext, useId, useState } from "preact/hooks";
+import { ControlLabelId } from "../controlLabel.js";
 import { Dropdown } from "../Dropdown.js";
 
 /** A three-way toggle's track, dark enough to read on a group's tinted panel. */
@@ -14,10 +15,15 @@ export function SettingsRow({
   label: string;
   children: ComponentChildren;
 }) {
+  const labelId = useId();
   return (
     <div class="flex items-center justify-between gap-4 min-h-12 px-3 py-2">
-      <h4 class="text-sm text-neutral-700 dark:text-neutral-200">{label}</h4>
-      {children}
+      <h4 id={labelId} class="text-sm text-neutral-700 dark:text-neutral-200">
+        {label}
+      </h4>
+      <ControlLabelId.Provider value={labelId}>
+        {children}
+      </ControlLabelId.Provider>
     </div>
   );
 }
@@ -93,6 +99,8 @@ export function SettingsSelect<T extends string>({
   label: string;
 }) {
   const [open, setOpen] = useState(false);
+  const labelledBy = useContext(ControlLabelId);
+  const triggerId = useId();
   const current = options.find((o) => o.value === value) ?? {
     value,
     label: value,
@@ -108,7 +116,9 @@ export function SettingsSelect<T extends string>({
           type="button"
           class="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 text-sm rounded-lg cursor-pointer transition-colors bg-white dark:bg-neutral-700 ring-1 ring-inset ring-neutral-200 dark:ring-0 hover:bg-neutral-100 dark:hover:bg-neutral-600"
           onClick={() => setOpen(!open)}
-          aria-label={label}
+          id={triggerId}
+          aria-label={labelledBy ? undefined : label}
+          aria-labelledby={labelledBy && `${labelledBy} ${triggerId}`}
           aria-haspopup="menu"
           aria-expanded={open}
         >

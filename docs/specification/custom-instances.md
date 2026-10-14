@@ -179,7 +179,8 @@ Not parametrised, both one-line source edits:
 
 - **Theme colour** `#2563eb`, in `packages/client/index.html`
   (`<meta name="theme-color">`) and `packages/client/public/manifest.webmanifest`
-  (`theme_color`).
+  (`theme_color`). It colours the browser's bar in the light theme; in the dark
+  one the app paints that bar with its header's background instead.
 - **The repository link** in Settings → About, in
   `packages/client/src/components/settings/AboutSettings.tsx`.
 

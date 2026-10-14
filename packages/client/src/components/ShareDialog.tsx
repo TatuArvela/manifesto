@@ -38,14 +38,9 @@ import {
 import { showError } from "../state/ui.js";
 import { Avatar } from "./Avatar.js";
 import { Backdrop } from "./Backdrop.js";
+import { buttonClass } from "./buttonClasses.js";
 import { Tooltip } from "./Tooltip.js";
 
-const primaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
-const secondaryButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 disabled:opacity-60 cursor-pointer";
-const dangerButtonClass =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 cursor-pointer";
 const inputClass =
   "w-full min-w-0 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 const selectClass =
@@ -143,13 +138,13 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
 
   return createPortal(
     <>
-      <Backdrop onDismiss={onClose} class="z-[60]" />
+      <Backdrop onDismiss={onClose} class="layer-nested-backdrop" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="share-dialog-title"
-        class="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none animate-scale-in"
+        class="fixed inset-0 layer-nested flex items-center justify-center p-4 pointer-events-none animate-scale-in"
       >
         <div class="pointer-events-auto w-full max-w-md max-h-full overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-xl border border-neutral-200 dark:border-neutral-700 p-5 sm:p-6 flex flex-col gap-4">
           <div class="min-w-0">
@@ -229,7 +224,7 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
                 <div class="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    class={dangerButtonClass}
+                    class={buttonClass("danger", "sm")}
                     disabled={busy}
                     onClick={leave}
                   >
@@ -237,7 +232,7 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
                   </button>
                   <button
                     type="button"
-                    class={secondaryButtonClass}
+                    class={buttonClass("secondary", "sm")}
                     disabled={busy}
                     onClick={() => setLeaving(false)}
                   >
@@ -248,7 +243,7 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
             ) : (
               <button
                 type="button"
-                class={`${secondaryButtonClass} self-start`}
+                class={`${buttonClass("secondary", "sm")} self-start`}
                 onClick={() => setLeaving(true)}
               >
                 <LogOut class="w-4 h-4" />
@@ -257,7 +252,11 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
             ))}
 
           <div class="flex justify-end">
-            <button type="button" class={primaryButtonClass} onClick={onClose}>
+            <button
+              type="button"
+              class={buttonClass("primary", "sm")}
+              onClick={onClose}
+            >
               {t("sharing.done")}
             </button>
           </div>
@@ -545,7 +544,7 @@ function AddPerson({
         {mode === "exact" && (
           <button
             type="submit"
-            class={secondaryButtonClass}
+            class={buttonClass("secondary", "sm")}
             disabled={busy || query.trim().length === 0}
           >
             {t("sharing.add.find")}
@@ -592,7 +591,7 @@ function AddPerson({
                 ) : (
                   <button
                     type="button"
-                    class={`${primaryButtonClass} shrink-0`}
+                    class={`${buttonClass("primary", "sm")} shrink-0`}
                     disabled={busy}
                     onClick={() => invite(user)}
                     aria-label={t("sharing.add.inviteNamed", { name })}
@@ -681,7 +680,7 @@ function TeamShares({ note }: { note: Note }) {
           />
           <button
             type="button"
-            class={primaryButtonClass}
+            class={buttonClass("primary", "sm")}
             disabled={busy || !picked}
             onClick={() =>
               run(async () => {

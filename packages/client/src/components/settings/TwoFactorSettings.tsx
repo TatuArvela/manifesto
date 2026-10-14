@@ -12,15 +12,12 @@ import {
   twoFactorStatus,
 } from "../../state/twoFactor.js";
 import { showSuccess } from "../../state/ui.js";
+import { buttonClass } from "../buttonClasses.js";
 import { QrCode } from "../QrCode.js";
 import { PasskeySettings } from "./PasskeySettings.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
-const primaryClass =
-  "px-4 py-2 text-sm rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer";
-const secondaryClass =
-  "px-4 py-2 text-sm rounded-lg font-medium bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer";
 
 type Step =
   | { kind: "loading" }
@@ -135,7 +132,7 @@ export function TwoFactorSettings() {
           {authenticator ? (
             <button
               type="button"
-              class={secondaryClass}
+              class={buttonClass("secondary")}
               onClick={() => setStep({ kind: "password", purpose: "disable" })}
             >
               {t("twoFactor.turnOff")}
@@ -146,7 +143,7 @@ export function TwoFactorSettings() {
             serverFeature("twoFactor") && (
               <button
                 type="button"
-                class={primaryClass}
+                class={buttonClass("primary")}
                 onClick={() => setStep({ kind: "password", purpose: "begin" })}
               >
                 {t("twoFactor.turnOn")}
@@ -180,7 +177,7 @@ export function TwoFactorSettings() {
         </label>
         {errorLine}
         <div class="flex justify-end">
-          <button type="submit" disabled={busy} class={primaryClass}>
+          <button type="submit" disabled={busy} class={buttonClass("primary")}>
             {t("twoFactor.continue")}
           </button>
         </div>
@@ -226,7 +223,7 @@ export function TwoFactorSettings() {
         </label>
         {errorLine}
         <div class="flex justify-end">
-          <button type="submit" disabled={busy} class={primaryClass}>
+          <button type="submit" disabled={busy} class={buttonClass("primary")}>
             {t("twoFactor.confirm")}
           </button>
         </div>
