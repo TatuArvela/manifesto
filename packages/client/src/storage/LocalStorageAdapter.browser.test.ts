@@ -33,6 +33,7 @@ describe("LocalStorageAdapter", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     localStorage.clear();
   });
 
@@ -170,10 +171,39 @@ describe("LocalStorageAdapter", () => {
   });
 
   it("handles corrupted localStorage gracefully", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     localStorage.setItem(STORAGE_KEY, "not json");
     const freshAdapter = new LocalStorageAdapter();
     const notes = await freshAdapter.getAll();
     expect(notes).toEqual([]);
+  });
+
+  it("sets a list that does not read aside rather than save over it", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    localStorage.setItem(STORAGE_KEY, '{"not":"a list"}');
+    await adapter.create(sampleNote);
+
+    const aside = Object.keys(localStorage).filter((key) =>
+      key.startsWith(`${STORAGE_KEY}:unreadable:`),
+    );
+    expect(aside).toHaveLength(1);
+    expect(localStorage.getItem(aside[0] ?? "")).toBe('{"not":"a list"}');
+    expect(await adapter.getAll()).toHaveLength(1);
+  });
+
+  it("leaves a list that does not read in place when it cannot be set aside", async () => {
+    localStorage.setItem(STORAGE_KEY, "not json");
+    const setItem = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new DOMException("Quota exceeded", "QuotaExceededError");
+      });
+    try {
+      await expect(adapter.getAll()).rejects.toThrow();
+    } finally {
+      setItem.mockRestore();
+    }
+    expect(localStorage.getItem(STORAGE_KEY)).toBe("not json");
   });
 
   it("reports a refusal and does not throw when localStorage is full", async () => {
