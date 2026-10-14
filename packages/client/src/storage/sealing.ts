@@ -233,21 +233,27 @@ export class Sealer {
    */
   private async ownPrivateKeys(load: () => Promise<AccountKeys | null>) {
     this.privateKeys ??= (async () => {
-      const held = await load();
-      if (!held) return null;
-      const { accountKey, userId } = this.keys;
-      const exchange = await openPrivateKey(
-        accountKey,
-        userId,
-        held,
-        "exchange",
-      );
-      const signing = await openPrivateKey(accountKey, userId, held, "signing");
-      return exchange && signing ? { exchange, signing } : null;
+      // A failure is a null too, or it would be kept and answered to every
+      // later caller until the account is unlocked again.
+      try {
+        return await this.openPrivateKeys(load);
+      } catch (err) {
+        console.warn("Failed to open this account's private keys:", err);
+        return null;
+      }
     })();
     const opened = await this.privateKeys;
     if (!opened) this.privateKeys = null;
     return opened;
+  }
+
+  private async openPrivateKeys(load: () => Promise<AccountKeys | null>) {
+    const held = await load();
+    if (!held) return null;
+    const { accountKey, userId } = this.keys;
+    const exchange = await openPrivateKey(accountKey, userId, held, "exchange");
+    const signing = await openPrivateKey(accountKey, userId, held, "signing");
+    return exchange && signing ? { exchange, signing } : null;
   }
 
   /**

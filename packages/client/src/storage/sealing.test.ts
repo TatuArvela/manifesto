@@ -17,7 +17,7 @@ import {
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import { testKeys } from "../test/sealedServer.js";
-import { accountSubkey } from "../utils/keyMaterial.js";
+import { accountSubkey, createAccountKeys } from "../utils/keyMaterial.js";
 import { Sealer, type StorageKeys } from "./sealing.js";
 
 const draft: NoteCreate = {
@@ -218,6 +218,34 @@ describe("Sealer", () => {
     ]);
     mine.forget("n5");
     expect(mine.unreadable.value.has("n5")).toBe(false);
+  });
+
+  it("asks for its private keys again after reading them failed", async () => {
+    const made = await createAccountKeys("u1");
+    const sealer = new Sealer({
+      userId: "u1",
+      version: made.version,
+      accountKey: made.accountKey,
+    });
+    await sealer.sealNew("n1", draft);
+    const recipient = (await createAccountKeys("u2")).request.publicKeys;
+    let asked = 0;
+    const load = async () => {
+      asked++;
+      // The first answer is not what was expected at all.
+      if (asked === 1) throw new TypeError("no wrappedPrivateKeys");
+      return { version: made.version, ...made.request };
+    };
+    const offer = () =>
+      sealer.offerKey(
+        "n1",
+        { userId: "u2", exchange: recipient.exchange },
+        async () => null,
+        load,
+      );
+    expect(await offer()).toBeNull();
+    expect(await offer()).not.toBeNull();
+    expect(asked).toBe(2);
   });
 
   it("seals a comment under its note's key and its own id", async () => {
