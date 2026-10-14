@@ -110,25 +110,30 @@ function rememberedBy(
   return pending;
 }
 
-/** Remembers `given` as the account's keys, here and on the server. */
+/**
+ * Remembers `given` as the account's keys, on the server and then here. A key
+ * the server did not keep is not remembered at all: in the next session it
+ * would be met as a first sight, and so would whatever key the server gave
+ * then.
+ */
 async function remember(
   sealing: NoteSealing,
   seen: Map<string, SeenKeys>,
   given: AccountPublicKeysResponse,
 ): Promise<boolean> {
   const keys: SeenKeys = { version: given.version, ...given.publicKeys };
-  seen.set(given.userId, keys);
   try {
     const res = await apiFetch(
       "PUT",
       `/auth/keys/seen/${encodeURIComponent(given.userId)}`,
       { sealed: await sealing.sealSeenKeys(given.userId, keys) },
     );
-    return res?.ok ?? false;
+    if (!res?.ok) return false;
   } catch {
-    // Remembered for this session all the same.
     return false;
   }
+  seen.set(given.userId, keys);
+  return true;
 }
 
 const sameKeys = (seen: SeenKeys, given: AccountPublicKeysResponse) =>
@@ -152,8 +157,11 @@ export async function trustedKeysOf(
   if (!seen) return null;
   const known = seen.get(userId);
   if (!known) {
-    await remember(sealing, seen, given);
-    return given;
+    if (await remember(sealing, seen, given)) return given;
+    // Not kept, so not taken. The list is read again next time, which also
+    // marks this as worth trying again (`wrapKeyFor`).
+    remembered.delete(sealing);
+    return null;
   }
   if (sameKeys(known, given)) {
     markChanged(userId, null);
@@ -174,17 +182,11 @@ export async function trustChangedKeys(userId: string): Promise<boolean> {
   if (!sealing || !given) return false;
   const seen = await rememberedBy(sealing);
   if (!seen) return false;
-  const before = seen.get(userId);
-  const kept = await remember(sealing, seen, given);
-  if (kept) {
-    markChanged(userId, null);
-    return true;
-  }
-  // Not agreed to after all. The key remembered before goes back: with no
-  // entry the changed key would be met as a first sighting, and trusted.
-  if (before) seen.set(userId, before);
-  else seen.delete(userId);
-  return false;
+  // Not kept, the key remembered before stays: with no entry the changed
+  // key would be met as a first sighting, and trusted.
+  if (!(await remember(sealing, seen, given))) return false;
+  markChanged(userId, null);
+  return true;
 }
 
 /**

@@ -153,6 +153,20 @@ describe("remembering other people's keys", () => {
     expect((await keyStatusOf("u-alice"))?.changed).toBe(false);
   });
 
+  it("takes a first key only once the server has kept it", async () => {
+    await unlock(await testKeys("u-me"));
+    publicKeysOf.set("u-alice", await someKeys());
+    seenWritable = false;
+    expect(await trustedKeysOf("u-alice")).toBeNull();
+    // Worth trying again: the request did not get through.
+    expect(await supplyKey("n1", "u-alice")).toBe("failed");
+    expect(seen).toEqual({});
+
+    seenWritable = true;
+    expect(await trustedKeysOf("u-alice")).not.toBeNull();
+    expect(Object.keys(seen)).toEqual(["u-alice"]);
+  });
+
   it("keeps the key it remembered when trusting a changed one fails", async () => {
     const mine = await testKeys("u-me");
     await unlock(mine);
