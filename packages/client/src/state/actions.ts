@@ -15,10 +15,13 @@ import { animations, hiddenTags, tagColors } from "./prefs.js";
 import { exitSelectMode } from "./selection.js";
 import { activeTag, selectedNotes } from "./ui.js";
 import {
+  canReorder,
   inViewLocation,
+  pinnedNotes,
   setTagColor,
   setTagHidden,
   sortedNotes,
+  unpinnedNotes,
 } from "./views.js";
 
 /**
@@ -429,6 +432,42 @@ export async function reorderNotes(
     return;
   }
   await updateNote(movedId, { position: next });
+}
+
+/**
+ * Where a note could move one step to, earlier (`-1`) or later (`1`), within
+ * its section of the board (pinned or not): the keyboard's way of doing what
+ * a drag does. Null where it cannot: the board is not in manual order, or the
+ * note is already at that end.
+ */
+export function noteMoveTarget(
+  id: string,
+  delta: -1 | 1,
+): { ids: string[]; from: number; to: number } | null {
+  if (!canReorder.peek()) return null;
+  const note = allNotes.peek().find((n) => n.id === id);
+  if (!note) return null;
+  const ids = (note.pinned ? pinnedNotes : unpinnedNotes)
+    .peek()
+    .map((n) => n.id);
+  const from = ids.indexOf(id);
+  const to = from + delta;
+  if (from === -1 || to < 0 || to >= ids.length) return null;
+  return { ids, from, to };
+}
+
+/**
+ * Moves a note one step, as `noteMoveTarget` finds it. Says where it landed,
+ * one-based, for the caller to announce, or null if it did not move.
+ */
+export async function moveNoteBy(
+  id: string,
+  delta: -1 | 1,
+): Promise<{ position: number; count: number } | null> {
+  const target = noteMoveTarget(id, delta);
+  if (!target) return null;
+  await reorderNotes(target.ids, target.from, target.to);
+  return { position: target.to + 1, count: target.ids.length };
 }
 
 // --- Checklists ---

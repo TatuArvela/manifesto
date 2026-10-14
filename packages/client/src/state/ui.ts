@@ -135,6 +135,13 @@ effect(() => {
   if (view !== "search") previousView.value = view;
 });
 
+/**
+ * What the board last said to a screen reader that it shows no other way,
+ * such as where a card moved to from the keyboard. `NoteGrid` keeps it in a
+ * polite live region.
+ */
+export const boardAnnouncement = signal("");
+
 // --- Notifications ---
 
 export type ToastType = "error" | "success";

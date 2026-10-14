@@ -171,6 +171,8 @@ export const en = {
   "noteMenu.exportMarkdown": "Download as Markdown",
   "noteMenu.exportJson": "Download as JSON",
   "noteMenu.archive": "Archive",
+  "noteMenu.moveEarlier": "Move earlier",
+  "noteMenu.moveLater": "Move later",
   "noteMenu.unarchive": "Unarchive",
   "noteMenu.deleteChecked": "Delete checked items",
   "noteMenu.sortByDate": "Sort items by date",
@@ -243,6 +245,7 @@ export const en = {
   },
   "noteGrid.pinned": "Pinned",
   "noteGrid.others": "Others",
+  "noteGrid.moved": "Moved to {position} of {count}",
 
   // Tags view
   "tags.all": "All",
@@ -889,6 +892,9 @@ export const en = {
   "shortcuts.search": "Search",
   "shortcuts.next": "Next note",
   "shortcuts.previous": "Previous note",
+  "shortcuts.moveLater": "Move note later",
+  "shortcuts.moveEarlier": "Move note earlier",
+  "shortcuts.shift": "Shift",
   "shortcuts.open": "Open the focused note",
   "shortcuts.archive": "Archive or unarchive the focused note",
   "shortcuts.trash": "Move the focused note to the trash",

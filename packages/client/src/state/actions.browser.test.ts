@@ -9,6 +9,8 @@ import {
   archiveNote,
   deleteCheckedItems,
   leavingNotes,
+  moveNoteBy,
+  noteMoveTarget,
   permanentlyDeleteNote,
   restoreNote,
   sortItemsByDate,
@@ -633,5 +635,46 @@ describe("the storage quota message", () => {
 
     quotaRefusedAt.value = at + 60_001;
     expect(quotaToasts()).toHaveLength(2);
+  });
+});
+
+describe("moving a note one step", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+    activeView.value = "active";
+    searchQuery.value = "";
+    sortMode.value = "default";
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  const titles = () => sortedNotes.value.map((n) => n.title);
+
+  it("moves within the board's order and says where it landed", async () => {
+    await createNoteOrFail({ title: "A" });
+    await createNoteOrFail({ title: "B" });
+    await createNoteOrFail({ title: "C" });
+    const first = defined(sortedNotes.value[0]);
+    const order = titles();
+
+    expect(await moveNoteBy(first.id, 1)).toEqual({ position: 2, count: 3 });
+    expect(titles()).toEqual([order[1], order[0], order[2]]);
+  });
+
+  it("does not move past either end, or out of manual order", async () => {
+    await createNoteOrFail({ title: "A" });
+    await createNoteOrFail({ title: "B" });
+    const first = defined(sortedNotes.value[0]);
+    const last = defined(sortedNotes.value.at(-1));
+
+    expect(noteMoveTarget(first.id, -1)).toBe(null);
+    expect(noteMoveTarget(last.id, 1)).toBe(null);
+    expect(await moveNoteBy(first.id, -1)).toBe(null);
+
+    sortMode.value = "updated";
+    expect(noteMoveTarget(first.id, 1)).toBe(null);
   });
 });

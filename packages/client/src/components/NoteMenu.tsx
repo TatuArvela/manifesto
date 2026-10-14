@@ -2,6 +2,8 @@ import { type Note, roleOf } from "@manifesto/shared";
 import {
   Archive,
   ArchiveRestore,
+  ArrowLeft,
+  ArrowRight,
   Bell,
   Braces,
   CalendarArrowDown,
@@ -17,6 +19,7 @@ import {
   Users,
 } from "lucide-preact";
 import type { VNode } from "preact";
+import { moveCard } from "../hooks/useBoardShortcuts.js";
 import { t } from "../i18n/index.js";
 import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
 import { isServerMode } from "../state/auth.js";
@@ -26,6 +29,7 @@ import {
   archiveNote,
   createNote,
   ensureImages,
+  noteMoveTarget,
   restoreNote,
   showError,
   trashNote,
@@ -318,6 +322,26 @@ export function noteMenuItems(
       },
     },
   );
+
+  // The board's manual order, for whoever cannot drag: a keyboard, a screen
+  // reader, a switch. Offered only where a drag would work, and only the
+  // directions the card can go.
+  if (noteMoveTarget(note.id, -1)) {
+    items.push({
+      id: "move-earlier",
+      icon: <ArrowLeft class="w-4 h-4" />,
+      label: t("noteMenu.moveEarlier"),
+      onSelect: () => void moveCard(note.id, -1),
+    });
+  }
+  if (noteMoveTarget(note.id, 1)) {
+    items.push({
+      id: "move-later",
+      icon: <ArrowRight class="w-4 h-4" />,
+      label: t("noteMenu.moveLater"),
+      onSelect: () => void moveCard(note.id, 1),
+    });
+  }
 
   // Reordering items is changing the note, as deleting them is.
   if (options.datedItems?.present && role !== "view") {

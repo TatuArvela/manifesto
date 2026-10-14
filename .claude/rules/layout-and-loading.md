@@ -28,7 +28,9 @@ the grid up again. Content that settles after first paint (images, fonts) has to
 or the card keeps the height it was born with.
 
 Drag-to-reorder is gated by the `canReorder` computed: Notes or Auto-notes view, default sort, no
-search, no modal. `reorderNotes` gives the dropped note the midpoint between its neighbours and
+search, no modal. The same gate offers the keyboard's way (`moveNoteBy`, one place in the
+card's section, bound to `Shift j` / `Shift k` and in the card menu), which WCAG requires of any
+drag. `reorderNotes` gives the dropped note the midpoint between its neighbours and
 writes nothing else. `position` is a float in both drivers, so a `POSITION_STEP` (1000) gap lasts
 about fifty halvings before `renumberFrom` spreads everything out again. The neighbours are found
 on the whole number line, archived and trashed notes included: they share it, and a slot chosen

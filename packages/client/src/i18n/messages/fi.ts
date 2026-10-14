@@ -175,6 +175,8 @@ export const fi: Messages = {
   "noteMenu.exportMarkdown": "Lataa Markdownina",
   "noteMenu.exportJson": "Lataa JSON-tiedostona",
   "noteMenu.archive": "Arkistoi",
+  "noteMenu.moveEarlier": "Siirrä aiemmaksi",
+  "noteMenu.moveLater": "Siirrä myöhemmäksi",
   "noteMenu.unarchive": "Palauta arkistosta",
   "noteMenu.deleteChecked": "Poista valitut kohdat",
   "noteMenu.sortByDate": "Järjestä kohdat päivämäärän mukaan",
@@ -247,6 +249,7 @@ export const fi: Messages = {
   },
   "noteGrid.pinned": "Kiinnitetyt",
   "noteGrid.others": "Muut",
+  "noteGrid.moved": "Siirretty kohtaan {position}/{count}",
 
   // Tags view
   "tags.all": "Kaikki",
@@ -908,6 +911,9 @@ export const fi: Messages = {
   "shortcuts.search": "Haku",
   "shortcuts.next": "Seuraava muistiinpano",
   "shortcuts.previous": "Edellinen muistiinpano",
+  "shortcuts.moveLater": "Siirrä muistiinpanoa myöhemmäksi",
+  "shortcuts.moveEarlier": "Siirrä muistiinpanoa aiemmaksi",
+  "shortcuts.shift": "Vaihto",
   "shortcuts.open": "Avaa valittu muistiinpano",
   "shortcuts.archive":
     "Arkistoi valittu muistiinpano tai palauta se arkistosta",
