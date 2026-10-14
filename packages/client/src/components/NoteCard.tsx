@@ -336,7 +336,7 @@ export const NoteCard = memo(function NoteCard({
           />
 
           {isTrashView && note.trashedAt && (
-            <p class="mt-2 text-xs text-neutral-400">
+            <p class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
               {t("noteCard.trashedAt", { date: formatDate(note.trashedAt) })}
             </p>
           )}

@@ -51,7 +51,7 @@ function PluginReads({ plugin }: { plugin: PluginSource }) {
   const button =
     "shrink-0 px-2 py-0.5 rounded font-medium cursor-pointer bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500";
   return (
-    <div class="flex flex-col gap-1 text-[11px] text-neutral-600 dark:text-neutral-300">
+    <div class="flex flex-col gap-1 text-xs text-neutral-600 dark:text-neutral-300">
       {granted.length > 0 && (
         <p class="flex items-start gap-1.5">
           <BookOpen class="w-3 h-3 mt-0.5 shrink-0" />
@@ -326,12 +326,12 @@ export function AutoNotesView() {
                     class={`flex-1 min-w-0 text-sm font-medium truncate ${
                       plugin.name
                         ? ""
-                        : "italic text-neutral-400 dark:text-neutral-500 font-normal"
+                        : "italic text-neutral-500 dark:text-neutral-500 font-normal"
                     }`}
                   >
                     {plugin.name || t("settings.autoNotes.untitled")}
                   </span>
-                  <span class="text-[10px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  <span class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                     {plugin.origin.kind === "url"
                       ? t("settings.autoNotes.origin.url")
                       : t("settings.autoNotes.origin.inline")}
@@ -365,7 +365,7 @@ export function AutoNotesView() {
 
                 {plugin.origin.kind === "url" && (
                   <p
-                    class="text-[11px] text-neutral-500 dark:text-neutral-400 truncate"
+                    class="text-xs text-neutral-500 dark:text-neutral-400 truncate"
                     title={plugin.origin.url}
                   >
                     {plugin.origin.url}
@@ -375,7 +375,7 @@ export function AutoNotesView() {
                 <PluginReads plugin={plugin} />
 
                 {plugin.lastError && (
-                  <p class="text-[11px] text-red-600 dark:text-red-400 flex items-start gap-1">
+                  <p class="text-xs text-red-600 dark:text-red-400 flex items-start gap-1">
                     <AlertTriangle class="w-3 h-3 mt-0.5 shrink-0" />
                     <span class="break-all">{plugin.lastError}</span>
                   </p>

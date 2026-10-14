@@ -154,7 +154,7 @@ function MainHeader({ covered }: { covered: boolean }) {
             <Tooltip label={t("search.close")}>
               <button
                 type="button"
-                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer"
                 onClick={exitSearch}
                 aria-label={t("search.close")}
               >

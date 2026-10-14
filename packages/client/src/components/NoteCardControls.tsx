@@ -55,7 +55,7 @@ export function CardSelectButton({
           "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
           isSelected
             ? "bg-blue-500 text-white hover:bg-blue-600"
-            : "bg-white dark:bg-neutral-200 text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white hover:scale-110 border border-neutral-300",
+            : "bg-white dark:bg-neutral-200 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-white hover:scale-110 border border-neutral-300",
         )}
         onClick={onClick}
         aria-label={isSelected ? t("noteCard.deselect") : t("noteCard.select")}
@@ -104,7 +104,7 @@ export function CardStatusBar({
         // shadow of their own rather than joining the neutral ramp.
         overlay
           ? "text-white [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.7))]"
-          : "text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
+          : "text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
         // Faded rather than switched, both ways. Visibility is in the
         // transition so it waits for the fade out, and still hides the
         // buttons from Tab once it has finished.

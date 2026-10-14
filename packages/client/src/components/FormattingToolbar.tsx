@@ -231,7 +231,7 @@ export function FormattingToolbar({
                   }}
                 >
                   <span class="font-semibold">H{level}</span>
-                  <span class="text-neutral-400 text-xs">
+                  <span class="text-neutral-500 dark:text-neutral-400 text-xs">
                     {t("format.headingLevel", { level })}
                   </span>
                 </button>

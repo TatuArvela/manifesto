@@ -88,7 +88,7 @@ export function LoginScreen() {
         <OrgCredit class="mt-6" />
 
         {SERVER_ORIGIN !== null && (
-          <p class="mt-6 text-xs text-center text-neutral-400 dark:text-neutral-500 break-all">
+          <p class="mt-6 text-xs text-center text-neutral-500 dark:text-neutral-500 break-all">
             {t("login.serverLabel")}: {SERVER_ORIGIN}
           </p>
         )}
@@ -142,7 +142,7 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
     <>
       {oidc && <OidcLoginPanel />}
       {oidc && local && (
-        <div class="my-5 flex items-center gap-3 text-xs text-neutral-400 dark:text-neutral-500">
+        <div class="my-5 flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-500">
           <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
           {t("login.or")}
           <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
