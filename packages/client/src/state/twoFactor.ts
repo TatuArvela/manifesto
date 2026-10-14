@@ -1,5 +1,4 @@
 import type {
-  TwoFactorRecoveryCodesResponse,
   TwoFactorSetupResponse,
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
@@ -33,7 +32,7 @@ const secondFactor = signal<{ userId: string; enabled: boolean } | null>(null);
  * Whether the signed-in account has a second factor. Settings keeps its
  * two-factor page for such an account even when the server has turned both
  * halves off: sign-in still asks for the factor, and that page is the only
- * way to remove it or replace the recovery codes.
+ * way to remove it.
  */
 export function hasSecondFactor(): boolean {
   const known = secondFactor.value;
@@ -61,13 +60,9 @@ export async function beginTwoFactor(
 
 export async function enableTwoFactor(
   code: string,
-): Promise<{ kind: "ok"; recoveryCodes: string[] } | Failure> {
+): Promise<{ kind: "ok" } | Failure> {
   const res = await apiFetch("POST", "/auth/two-factor/enable", { code });
-  if (!res?.ok) return failureOf(res);
-  return {
-    kind: "ok",
-    ...((await res.json()) as TwoFactorRecoveryCodesResponse),
-  };
+  return res?.ok ? { kind: "ok" } : failureOf(res);
 }
 
 export async function disableTwoFactor(
@@ -75,19 +70,6 @@ export async function disableTwoFactor(
 ): Promise<{ kind: "ok" } | Failure> {
   const res = await apiFetch("POST", "/auth/two-factor/disable", { password });
   return res?.ok ? { kind: "ok" } : failureOf(res);
-}
-
-export async function renewRecoveryCodes(
-  password: string,
-): Promise<{ kind: "ok"; recoveryCodes: string[] } | Failure> {
-  const res = await apiFetch("POST", "/auth/two-factor/recovery-codes", {
-    password,
-  });
-  if (!res?.ok) return failureOf(res);
-  return {
-    kind: "ok",
-    ...((await res.json()) as TwoFactorRecoveryCodesResponse),
-  };
 }
 
 /**

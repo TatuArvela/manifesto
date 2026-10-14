@@ -63,6 +63,7 @@ describe("SettingsDialog account pages", () => {
     await vi.waitFor(() => expect(pages()).toContain(t("webhooks.title")));
     expect(pages()).toContain(t("twoFactor.title"));
     expect(pages()).toContain(t("tokens.title"));
+    expect(pages()).toContain(t("keys.title"));
   });
 
   it("hides the pages of features the server has off", async () => {
@@ -78,16 +79,17 @@ describe("SettingsDialog account pages", () => {
     expect(pages()).not.toContain(t("webhooks.title"));
     expect(pages()).not.toContain(t("tokens.title"));
     expect(pages()).not.toContain(t("twoFactor.title"));
+    // The keys are no feature: every account has them.
+    expect(pages()).toContain(t("keys.title"));
   });
 
   it("keeps the two-factor page for an account that has one when both halves are off", async () => {
     // Sign-in still asks for the factor, so the page that removes it stays.
     const fetchMock = vi.fn(
       async () =>
-        new Response(
-          JSON.stringify({ enabled: true, recoveryCodesRemaining: 8 }),
-          { headers: { "Content-Type": "application/json" } },
-        ),
+        new Response(JSON.stringify({ enabled: true, authenticator: true }), {
+          headers: { "Content-Type": "application/json" },
+        }),
     );
     vi.stubGlobal("fetch", fetchMock);
     storageConnection.value = {
@@ -121,7 +123,6 @@ describe("SettingsDialog account pages", () => {
       sharing: false,
       // Not reported, as by a server from before the switch: as it was.
       teams: true,
-      adminExport: false,
     });
   });
 });

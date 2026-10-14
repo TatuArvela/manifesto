@@ -206,7 +206,7 @@ describe("sign-in by a mailed link", () => {
     expect(
       (await post("/api/auth/two-factor/enable", { code: codeAt(-1) }, headers))
         .status,
-    ).toBe(200);
+    ).toBe(204);
     return codeAt;
   }
 

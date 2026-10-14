@@ -182,6 +182,9 @@ have a table of their own, under [Turning features off](#turning-features-off).
 | `DATA_DIR`         | `./data`                   | Directory for the SQLite database        |
 | `MANIFESTO_DB`     | `${DATA_DIR}/manifesto.db` | Override the SQLite path explicitly      |
 | `DATABASE_URL`     | _(required for postgres)_  | Postgres connection string               |
+| `DATA_ENCRYPTION_KEY` | *(a key file)*          | The server key: 32 random bytes in base64 or hex (`openssl rand -base64 32`). See [The server key](#the-server-key). |
+| `DATA_ENCRYPTION_KEY_PREVIOUS` | *(unset)*      | The key before, while a replaced key's values are moved over. |
+| `DATA_KEY_FILE`    | `${DATA_DIR}/server.key`   | Where the server keeps its key when `DATA_ENCRYPTION_KEY` is not set. |
 | `CORS_ORIGINS`     | `http://localhost:5173`    | Comma-separated allowed client origins   |
 | `SESSION_TTL_DAYS` | `30`                       | Session inactivity timeout in days       |
 | `SESSION_ABSOLUTE_TTL_DAYS` | `90`              | Hard session lifetime in days, measured from login. A session in constant use still ends here, so a stolen token can't live forever. |
@@ -232,18 +235,44 @@ has a second factor is still asked for it at every sign-in.
 | `PASSKEYS`      | `on`     | Adding [passkeys](../features/accounts.md#signing-in-with-a-passkey), and signing in with a passkey alone. Off, nobody can add one or sign in with one alone, but a passkey already added is still asked for as a second factor and can be removed. |
 | `MAGIC_LINKS`   | `on`     | [Signing in from a link](../features/accounts.md#signing-in-with-a-link) sent to a local account's address, with no password. It needs `SMTP_URL` and is absent without it. Off, no link is sent and links already sent are refused. An account with a second factor is asked for it either way. Set `off` where a mailbox alone must not open an account. |
 | `WEB_PUSH`      | `on`     | [Push reminders](../features/reminders.md#push-from-the-server): a reminder that comes due with no open app to fire it is sent as a push message, so an installed app gets it while closed. The server then makes outbound HTTPS requests to the browsers' push services (Google's, Apple's and Mozilla's), carrying the note's title and first words encrypted to the browser, through the same boundary as link previews. It needs nothing set up: the signing key is made on first use and kept in the database. Set `off` where the server should make no such requests; reminders then arrive only while the app is open or the browser wakes it. |
-| `TWO_FACTOR`    | `on`     | Turning on [two-factor sign-in](../features/accounts.md#two-factor-sign-in) with an authenticator app. Off, nobody can turn it on, but an account that has it is still asked for its code, and can turn it off or replace its recovery codes. With `PASSKEYS` off as well, Settings has no two-factor page. |
-| `ADMIN_EXPORT`  | `off`    | `on` lets an admin download any account's notes from the Users view (`GET /api/admin/users/:id/export`), for a data request or a move. Off, an admin cannot read another account's notes from inside the app. Each download shows on that account's own Activity page. See [Privacy](../features/privacy.md). |
+| `TWO_FACTOR`    | `on`     | Turning on [two-factor sign-in](../features/accounts.md#two-factor-sign-in) with an authenticator app. Off, nobody can turn it on, but an account that has it is still asked for its code, and can turn it off. With `PASSKEYS` off as well, Settings has no two-factor page. |
 
 A feature whose requirement is off is off too. When its own variable is unset that is implied
 (`SHARING=off` alone turns teams off); when it says `on` anyway (`SHARING=off` with `TEAMS=on`),
 the server refuses to start rather than guess which was meant.
 
+### The server key
+
+Notes are encrypted in the browser, under keys the server never holds
+([Encryption](../features/encryption.md)). A few other values the server has to read by itself, with
+nobody signed in: when a reminder is due, a webhook's signing secret, an authenticator app's secret,
+the key that signs push messages and the keys of each push subscription. Those are stored under one
+**server key**, which is never in the database.
+
+- Supply it as `DATA_ENCRYPTION_KEY` (or `DATA_ENCRYPTION_KEY_FILE`), 32 random bytes in base64 or
+  hex. `openssl rand -base64 32` makes one.
+- Without it the server makes a key on first start and writes it to `DATA_KEY_FILE`
+  (`${DATA_DIR}/server.key` by default), readable by its own user alone, and says so in the log.
+- **Back the key up apart from the database.** A copy of the database without the key cannot read
+  those values, which is the point of it; a copy of both can. The server warns at every start while
+  the key file is in the same directory as the SQLite database or its backups. Point `DATA_KEY_FILE`
+  somewhere else, or supply the key through the environment, to keep them apart.
+- **Losing the key** loses reminder times, webhooks, authenticator set-ups and push subscriptions,
+  all of which can be made again. It loses no note.
+- **Replacing it**: set the new key as `DATA_ENCRYPTION_KEY` and the old one as
+  `DATA_ENCRYPTION_KEY_PREVIOUS`, and restart. At start-up the server rewrites everything under the
+  new key and says in the log when nothing is left under the old one; then
+  `DATA_ENCRYPTION_KEY_PREVIOUS` can be removed. With a key file, put the new key in the file and
+  the old one in `DATA_ENCRYPTION_KEY_PREVIOUS`.
+- A server that was running before it had a key seals what it stored the first time it starts with
+  one.
+
 ### Secrets from files
 
 Each secret can be given as a file instead, the way Docker and Kubernetes mount secrets:
 `DATABASE_URL_FILE`, `OIDC_CLIENT_ID_FILE`, `OIDC_CLIENT_SECRET_FILE`, `SMTP_URL_FILE`,
-`METRICS_TOKEN_FILE` and `INITIAL_ADMIN_PASSWORD_FILE` name a file whose contents are the value (a
+`METRICS_TOKEN_FILE`, `INITIAL_ADMIN_PASSWORD_FILE`, `DATA_ENCRYPTION_KEY_FILE` and
+`DATA_ENCRYPTION_KEY_PREVIOUS_FILE` name a file whose contents are the value (a
 trailing newline is dropped). Setting both a variable and its `_FILE` stops the server at boot.
 
 ```yaml
@@ -273,7 +302,7 @@ person to sign in through the identity provider is the admin instead.
 
 ### Locked out
 
-When no admin can sign in (the last one lost their password, or their authenticator and recovery codes,
+When no admin can sign in (the last one lost their password, or their authenticator and recovery key,
 or the identity provider no longer knows them), run the admin CLI inside the container. It works on the
 database directly, with the server's own environment, and needs nothing from the running server:
 

@@ -1,9 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
 import {
-  type AccountPrefsResponse,
   type AuditLogResponse,
   type AuthMeResponse,
-  MAX_ACCOUNT_PREFS_BYTES,
+  MAX_SEALED_ACCOUNT_PREFS_BYTES,
+  type SealedAccountPrefs,
+  type SealedAccountPrefsResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
 import { auditPage } from "../audit/auditPage.js";
@@ -11,6 +12,7 @@ import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
+import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
   accountPrefsUpdateSchema,
@@ -19,8 +21,10 @@ import {
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
+import { registerAccountKeyRoutes } from "./accountKeys.js";
 import { requireConfirmation } from "./confirmation.js";
 import type { LoginAttempts } from "./local/loginAttempts.js";
+import type { SessionRevocations } from "./revocations.js";
 import type { AuthProviderRouter } from "./types.js";
 import { toAuthUser } from "./users.js";
 
@@ -30,6 +34,9 @@ interface SharedAuthRoutesDeps {
   /** Tells the account's other devices when its preferences change. */
   broadcaster?: Broadcaster;
   loginAttempts: LoginAttempts;
+  revocations: SessionRevocations;
+  /** For starting an account again, which takes its notes from everyone. */
+  noteEvents: NoteEvents;
 }
 
 /**
@@ -114,8 +121,8 @@ export function createAuthSharedRoutes(
    */
   router.get("/me/prefs", async (c) => {
     const { userId } = c.get("auth");
-    const body: AccountPrefsResponse = {
-      prefs: await deps.storage.prefs.get(userId),
+    const body: SealedAccountPrefsResponse = {
+      prefs: (await deps.storage.prefs.get(userId)) as SealedAccountPrefs,
     };
     return c.json(body);
   });
@@ -130,15 +137,16 @@ export function createAuthSharedRoutes(
         userId,
         c.req.valid("json").prefs,
         nowIso(),
-        MAX_ACCOUNT_PREFS_BYTES,
+        MAX_SEALED_ACCOUNT_PREFS_BYTES,
       );
       if (merged === "tooLarge") {
         throw new HttpError(413, "Preferences are too large");
       }
       // Every socket of the account hears it, the sender's included; it
       // adopts what it already has, which changes nothing.
-      deps.broadcaster?.emit(userId, { type: "prefs:updated", prefs: merged });
-      const body: AccountPrefsResponse = { prefs: merged };
+      const prefs = merged as SealedAccountPrefs;
+      deps.broadcaster?.emit(userId, { type: "prefs:updated", prefs });
+      const body: SealedAccountPrefsResponse = { prefs };
       return c.json(body);
     },
   );
@@ -161,6 +169,8 @@ export function createAuthSharedRoutes(
       return c.body(null, 204);
     },
   );
+
+  registerAccountKeyRoutes(router, deps);
 
   return router;
 }

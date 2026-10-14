@@ -4,17 +4,14 @@ Manifesto supports exporting and importing note data from the Settings dialog. T
 
 ## Export
 
-**Export Notes** in Settings downloads every note as one zip, the same archive in both modes:
+**Export Notes** in Settings downloads every note as one zip, the same archive in both modes. The
+browser builds it from the notes it holds (`exportArchive`, zipped with the platform's
+`CompressionStream`), named `manifesto-export-YYYY-MM-DD.zip`. In connected mode the server stores
+notes [sealed](encryption.md) and has nothing readable to build an export from, so there is no
+export route, for an account or for an admin: the notes are opened in the browser, and the file is
+made there.
 
-- **Connected mode**: the server builds it for the account (`GET /api/export`, which takes any
-  credential, so an API token can script a backup), named `<username>-notes-YYYY-MM-DD.zip`. With
-  `ADMIN_EXPORT` on, an admin can download any account's with **Download notes**
-  (`GET /api/admin/users/:id/export`), and the account's owner sees it on their Activity page
-  ([Privacy](privacy.md)).
-- **Open mode**: the browser builds it from what it holds (`exportArchive`, zipped with the platform's
-  `CompressionStream`), named `manifesto-export-YYYY-MM-DD.zip`.
-
-Both write the layout `exportArchiveFiles` in `@manifesto/shared` defines, so an archive from either
+It has the layout `exportArchiveFiles` in `@manifesto/shared` defines, so an archive from either
 mode imports into either:
 
 | File | Holds |
@@ -22,12 +19,11 @@ mode imports into either:
 | `notes.json` | Every note the account owns, the archive and trash included, in the import format above, with images inlined as `data:` URLs. Importing it restores the notes anywhere, open mode included. |
 | `notes/<title>.md` | Each note not in the trash as Markdown, with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`) that the Markdown-folder import reads back, for another tool to open. |
 | `versions.json` | The version history of those notes. |
-| `preferences.json` | The [preferences](preferences.md): the account's as the server holds them in connected mode, this browser's in open mode. For keeping and reading; importing an archive leaves the settings as they are. |
-| `account.json` | Connected mode only: the account's username, display name, email address, how it signs in, whether it is an admin and when it was made. |
+| `preferences.json` | This browser's [preferences](preferences.md). For keeping and reading; importing an archive leaves the settings as they are. |
 
-Notes shared with the account belong to someone else and are not included. A server's download serves a
-person leaving, moving servers, or asking what is held about them; each one is recorded in the audit
-log. Importing the zip as it is restores it from `notes.json` (same ids, so a note already here is
+Notes shared with the account belong to someone else and are not included. The download serves a
+person leaving, moving servers, or carrying their notes onto a
+[server that encrypts](encryption.md#a-server-from-before-encryption). Importing the zip as it is restores it from `notes.json` (same ids, so a note already here is
 merged, not duplicated); the Markdown files are the same notes stripped down and are then not read.
 `versions.json` is then filed under the notes it belongs to, with the dates the versions were taken:
 only under notes the importing user owns, skipping a version the note already has (so importing the

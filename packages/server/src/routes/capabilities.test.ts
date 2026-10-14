@@ -38,7 +38,6 @@ describe("GET /api/capabilities", () => {
       magicLinks: true,
       pushReminders: true,
       twoFactor: true,
-      adminExport: false,
       mcpSignIn: false,
       userLookup: "search",
     });

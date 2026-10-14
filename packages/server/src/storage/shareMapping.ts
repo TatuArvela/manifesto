@@ -1,29 +1,29 @@
 import type {
-  Note,
   NoteMember,
-  NoteReminder,
   NoteRole,
-  NoteUpdate,
+  OfferedKey,
+  SealedNote,
+  SealedNoteUpdate,
   ShareInvitation,
   ShareRole,
   ShareUser,
   TeamRef,
 } from "@manifesto/shared";
 import {
-  PERSONAL_NOTE_FIELDS,
+  SEALED_PERSONAL_NOTE_FIELDS,
+  SEALED_SHARED_NOTE_FIELDS,
   SHARE_ROLES,
-  SHARED_NOTE_FIELDS,
 } from "@manifesto/shared";
 import { nowIso } from "../lib/time.js";
 import {
   asBoolean,
   type NoteRow,
-  parseColor,
-  parseFont,
   parseJson,
   type RowBoolean,
-  rowToListedNote,
   rowToNote,
+  sealedColumn,
+  setReminderKey,
+  storedReminder,
 } from "./noteMapping.js";
 import type { NoteShare } from "./types.js";
 
@@ -53,6 +53,10 @@ export interface ViewRow extends NoteRow {
   s_position?: number | string | null;
   s_tags?: string | null;
   s_reminder?: string | null;
+  s_reminder_key?: string | null;
+  s_wrapped_key?: string | null;
+  s_wrapped_key_version?: number | string | null;
+  s_offered_key?: string | null;
 }
 
 /** For a query that joins `note_shares s` onto `notes n`. */
@@ -66,6 +70,10 @@ export const SHARE_OVERLAY_COLUMNS = [
   "s.position AS s_position",
   "s.tags AS s_tags",
   "s.reminder AS s_reminder",
+  "s.reminder_key AS s_reminder_key",
+  "s.wrapped_key AS s_wrapped_key",
+  "s.wrapped_key_version AS s_wrapped_key_version",
+  "s.offered_key AS s_offered_key",
 ].join(", ");
 
 export interface ShareRow {
@@ -75,6 +83,44 @@ export interface ShareRow {
   created_at: string;
   accepted_at: string | null;
   via_team?: string | null;
+  offered_key?: string | null;
+  wrapped_key_version?: number | string | null;
+}
+
+/** An offered key as stored, or null for none or anything else. */
+export function parseOffered(
+  raw: string | null | undefined,
+): OfferedKey | null {
+  const value = parseJson<Partial<OfferedKey> | null>(raw ?? null, null);
+  return value &&
+    typeof value.keyVersion === "number" &&
+    typeof value.ephemeral === "string" &&
+    typeof value.wrapped === "string" &&
+    typeof value.signer === "string" &&
+    typeof value.signature === "string"
+    ? (value as OfferedKey)
+    : null;
+}
+
+/**
+ * Whether a share's holder was ever handed the note's key: offered it with
+ * the invitation, or keeping it since. When such a share ends, the note is
+ * due a new key.
+ */
+export function heldKey(row: ShareRow): boolean {
+  return (
+    parseOffered(row.offered_key) !== null ||
+    Number(row.wrapped_key_version ?? 0) > 0
+  );
+}
+
+/**
+ * Whether a share's holder has nothing that opens the note at `keyVersion`:
+ * no copy of that key under their own notes key, and none offered to them.
+ */
+function waitsForKey(row: ShareRow, keyVersion: number): boolean {
+  if (Number(row.wrapped_key_version ?? 0) === keyVersion) return false;
+  return parseOffered(row.offered_key)?.keyVersion !== keyVersion;
 }
 
 /** A share with the account it belongs to, and the team it came through. */
@@ -98,8 +144,9 @@ export interface InvitationRow {
   created_at: string;
   title: string;
   content: string;
-  color: string;
   font: string;
+  key_version: number | string;
+  offered_key: string | null;
   owner_id: string;
   username: string;
   display_name: string;
@@ -157,10 +204,16 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
       display_name: row.display_name,
       avatar_color: row.avatar_color,
     }),
-    title: row.title,
-    content: row.content,
-    color: parseColor(row.color),
-    font: parseFont(row.font),
+    title: sealedColumn(row.title),
+    content: sealedColumn(row.content),
+    font: sealedColumn(row.font),
+    keyVersion: Number(row.key_version),
+    // Only one for the key the note is under now: an older one opens
+    // nothing the invitation shows.
+    offered:
+      parseOffered(row.offered_key)?.keyVersion === Number(row.key_version)
+        ? parseOffered(row.offered_key)
+        : null,
     invitedAt: row.created_at,
     ...teamOf(row),
   };
@@ -168,18 +221,29 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
 
 /**
  * The note as its reader sees it. A row that came through a share takes the
- * recipient's own personal fields, their own trash included. The owner's trash
- * never shows here: a note in it does not reach anyone else at all.
+ * recipient's own personal fields, their own trash included, and their own
+ * wrapped copy of the note key. The owner's trash never shows here: a note in
+ * it does not reach anyone else at all.
  */
-export function rowToViewNote(row: ViewRow, listed: boolean): Note {
-  const note = listed ? rowToListedNote(row) : rowToNote(row);
+export function rowToViewNote(row: ViewRow): SealedNote {
+  const note = rowToNote(row);
   if (row.s_role === null || row.s_role === undefined) return note;
-  note.color = parseColor(row.s_color ?? "");
+  // Their copy of the key, while it is the key the note is under. Behind
+  // it, they hold nothing that opens the note, and are handed the offer
+  // that would.
+  // Replacing the key is the owner's to do.
+  delete note.rekeyDue;
+  const current = Number(row.s_wrapped_key_version ?? 0) === note.keyVersion;
+  note.key = current ? sealedColumn(row.s_wrapped_key) : "";
+  const offered = current ? null : parseOffered(row.s_offered_key);
+  if (offered?.keyVersion === note.keyVersion) note.offered = offered;
+  note.color = sealedColumn(row.s_color);
   note.pinned = asBoolean(row.s_pinned ?? false);
   note.archived = asBoolean(row.s_archived ?? false);
   note.position = Number(row.s_position ?? 0);
-  note.tags = parseJson<string[]>(row.s_tags ?? null, []);
-  note.reminder = parseJson<NoteReminder | null>(row.s_reminder ?? null, null);
+  note.tags = sealedColumn(row.s_tags);
+  note.reminder = storedReminder(row.s_reminder);
+  setReminderKey(note, row.s_reminder_key);
   note.trashed = asBoolean(row.s_trashed ?? false);
   note.trashedAt = row.s_trashed_at ?? null;
   return note;
@@ -192,11 +256,11 @@ export function rowToViewNote(row: ViewRow, listed: boolean): Note {
  */
 export function attachSharing(
   rows: ViewRow[],
-  notes: Note[],
+  notes: SealedNote[],
   viewerId: string,
   members: MemberRow[],
   users: UserBriefRow[],
-): Note[] {
+): SealedNote[] {
   const membersByNote = new Map<string, MemberRow[]>();
   for (const member of members) {
     const list = membersByNote.get(member.note_id) ?? [];
@@ -226,6 +290,7 @@ export function attachSharing(
       role: parseRole(m.role),
       accepted: m.accepted_at !== null,
       ...teamOf(m),
+      ...(waitsForKey(m, note.keyVersion) && { waitingForKey: true }),
     }));
     return {
       ...note,
@@ -239,17 +304,17 @@ export function ownerIdsOf(rows: ViewRow[]): string[] {
   return [...new Set(rows.map((row) => row.user_id))];
 }
 
-const SHARED_FIELDS = new Set<string>(SHARED_NOTE_FIELDS);
-const PERSONAL_FIELDS = new Set<string>(PERSONAL_NOTE_FIELDS);
+const SHARED_FIELDS = new Set<string>(SEALED_SHARED_NOTE_FIELDS);
+const PERSONAL_FIELDS = new Set<string>(SEALED_PERSONAL_NOTE_FIELDS);
 
 /**
  * A recipient's update, split by where each field is written: the shared
  * fields to the note, the personal ones (their own trash among them) to their
  * share, and the rest (auto-note markers) belonging to the owner alone.
  */
-export function splitChanges(changes: NoteUpdate): {
-  shared: NoteUpdate;
-  personal: NoteUpdate;
+export function splitChanges(changes: SealedNoteUpdate): {
+  shared: SealedNoteUpdate;
+  personal: SealedNoteUpdate;
   ownerOnly: string[];
 } {
   const shared: Record<string, unknown> = {};
@@ -262,8 +327,8 @@ export function splitChanges(changes: NoteUpdate): {
     else ownerOnly.push(field);
   }
   return {
-    shared: shared as NoteUpdate,
-    personal: personal as NoteUpdate,
+    shared: shared as SealedNoteUpdate,
+    personal: personal as SealedNoteUpdate,
     ownerOnly,
   };
 }

@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import type { StorageDriver } from "../types.js";
-import { claimedImages, claimedPreviews } from "./claimed.js";
+import { claimed } from "./claimed.js";
 
 /** The admin overview's counts, the same from both drivers. */
 export function describeStatsContract(
@@ -31,7 +31,7 @@ export function describeStatsContract(
         storage.notes.insert({
           id,
           userId,
-          data: {
+          data: claimed({
             title: "",
             content: "",
             color: NoteColor.Default,
@@ -42,10 +42,10 @@ export function describeStatsContract(
             trashedAt: trashed ? T : null,
             position: 0,
             tags: [],
-            images: claimedImages([]),
-            linkPreviews: claimedPreviews([]),
+            images: [],
+            linkPreviews: [],
             reminder: null,
-          },
+          }),
           createdAt: T,
           updatedAt: T,
         });

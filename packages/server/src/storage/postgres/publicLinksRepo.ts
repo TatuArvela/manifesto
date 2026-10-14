@@ -12,7 +12,7 @@ export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {
     async create(link) {
       await pool.query(
         `INSERT INTO public_links (${PUBLIC_LINK_COLUMNS})
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           link.token,
           link.noteId,
@@ -25,6 +25,8 @@ export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {
           link.viewCount,
           link.lastViewedAt,
           link.createdAt,
+          link.wrappedKey,
+          link.sealedLinkKey,
         ],
       );
     },
@@ -45,10 +47,17 @@ export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {
       return row ? rowToPublicLink(row) : null;
     },
     async delete(token, noteId) {
-      const result = await pool.query(
-        `DELETE FROM public_links WHERE token = $1 AND note_id = $2`,
+      const result = await pool.query<{ mode: string }>(
+        `DELETE FROM public_links WHERE token = $1 AND note_id = $2
+         RETURNING mode`,
         [token, noteId],
       );
+      // A live link gave whoever had it the note's key.
+      if (result.rows[0]?.mode === "live") {
+        await pool.query(`UPDATE notes SET rekey_due = 1 WHERE id = $1`, [
+          noteId,
+        ]);
+      }
       return (result.rowCount ?? 0) > 0;
     },
     async recordView(token, at) {

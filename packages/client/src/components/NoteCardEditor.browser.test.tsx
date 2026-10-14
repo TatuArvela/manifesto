@@ -60,6 +60,7 @@ function unsynced(ydoc: Y.Doc): NoteYDoc {
     status: "connecting",
     synced: false,
     outdated: false,
+    unreadable: 0,
   };
 }
 
@@ -70,6 +71,7 @@ function synced(ydoc: Y.Doc): NoteYDoc {
     status: "connected",
     synced: true,
     outdated: false,
+    unreadable: 0,
   };
 }
 
@@ -192,6 +194,7 @@ describe("NoteCardEditor collaboration gate", () => {
       status: "disabled",
       synced: false,
       outdated: false,
+      unreadable: 0,
     };
 
     show(note);
@@ -211,6 +214,7 @@ describe("NoteCardEditor collaboration gate", () => {
       status: "disconnected",
       synced: false,
       outdated: true,
+      unreadable: 0,
     };
 
     show(note);
@@ -394,6 +398,7 @@ describe("NoteCardEditor with a row written from outside the document", () => {
       status: "disabled",
       synced: false,
       outdated: false,
+      unreadable: 0,
     };
     show(note);
     // Restored before the editor has even been built, so nothing but the row

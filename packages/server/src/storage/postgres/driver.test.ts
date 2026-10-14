@@ -1,8 +1,9 @@
 import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describeAccountKeysContract } from "../contracts/accountKeysContract.js";
 import { describeAdminContract } from "../contracts/adminContract.js";
 import { describeAttachmentsContract } from "../contracts/attachmentsContract.js";
-import { claimed } from "../contracts/claimed.js";
+import { claimed, claimedUpdate, opened } from "../contracts/claimed.js";
 import { describeCommentsContract } from "../contracts/commentsContract.js";
 import { describeOAuthContract } from "../contracts/oauthContract.js";
 import { describePasskeysContract } from "../contracts/passkeysContract.js";
@@ -33,6 +34,7 @@ describePublicLinksContract("postgres (pg-mem)", bootStorage);
 describeTeamsContract("postgres (pg-mem)", bootStorage);
 describeOAuthContract("postgres (pg-mem)", bootStorage);
 describePasskeysContract("postgres (pg-mem)", bootStorage);
+describeAccountKeysContract("postgres (pg-mem)", bootStorage);
 describeCommentsContract("postgres (pg-mem)", bootStorage);
 describePushContract("postgres (pg-mem)", bootStorage);
 describePrefsContract("postgres (pg-mem)", bootStorage, { locks: false });
@@ -173,7 +175,7 @@ describe("postgres: password resets", () => {
 });
 
 describe("postgres: two-factor", () => {
-  it("sets up, enables, advances steps once, and spends recovery codes", async () => {
+  it("sets up, enables and advances steps once", async () => {
     const storage = await bootStorage();
     await storage.users.create({
       id: "u1",
@@ -192,13 +194,8 @@ describe("postgres: two-factor", () => {
     expect(await storage.twoFactor.begin("u1", "S3", NOW)).toBe(false);
     expect(await storage.twoFactor.advanceStep("u1", 10)).toBe(false);
     expect(await storage.twoFactor.advanceStep("u1", 11)).toBe(true);
-    await storage.twoFactor.replaceRecoveryCodes("u1", ["a", "b"]);
-    expect(await storage.twoFactor.useRecoveryCode("u1", "a", NOW)).toBe(true);
-    expect(await storage.twoFactor.useRecoveryCode("u1", "a", NOW)).toBe(false);
-    expect(await storage.twoFactor.remainingRecoveryCodes("u1")).toBe(1);
     await storage.twoFactor.disable("u1");
     expect(await storage.twoFactor.get("u1")).toBeNull();
-    expect(await storage.twoFactor.remainingRecoveryCodes("u1")).toBe(0);
     await storage.close();
   });
 });
@@ -328,6 +325,7 @@ describe("postgres: versions", () => {
         id: `v${String(i).padStart(3, "0")}`,
         noteId: "n1",
         authorId: "u1",
+        keyVersion: 1,
         title: "",
         content: String(i),
         createdAt: new Date(Date.now() - (100 - i) * 1000).toISOString(),
@@ -529,7 +527,8 @@ describe("postgres storage driver (pg-mem)", () => {
         createdAt: NOW,
         updatedAt: NOW,
       });
-      expect(await storage.notes.getById("n1", "u1")).toMatchObject({
+      const stored = await storage.notes.getById("n1", "u1");
+      expect(stored && opened(stored)).toMatchObject({
         title: "Hello",
         tags: ["a"],
       });
@@ -550,12 +549,12 @@ describe("postgres storage driver (pg-mem)", () => {
       const updated = await storage.notes.update(
         "n1",
         "u1",
-        { title: "Renamed", pinned: true },
+        claimedUpdate({ title: "Renamed", pinned: true }),
         "2026-04-02T00:00:00.000Z",
       );
-      expect(updated?.title).toBe("Renamed");
+      expect(updated && opened(updated).title).toBe("Renamed");
       expect(updated?.pinned).toBe(true);
-      expect(updated?.content).toBe("Body");
+      expect(updated && opened(updated).content).toBe("Body");
       expect(updated?.updatedAt).toBe("2026-04-02T00:00:00.000Z");
       expect(updated?.createdAt).toBe(NOW);
     });
@@ -571,7 +570,7 @@ describe("postgres storage driver (pg-mem)", () => {
       const result = await storage.notes.update(
         "n1",
         "u2",
-        { title: "x" },
+        claimedUpdate({ title: "x" }),
         "2026-04-02T00:00:00.000Z",
       );
       expect(result).toBeNull();
@@ -590,40 +589,6 @@ describe("postgres storage driver (pg-mem)", () => {
       expect(await storage.notes.getById("n1", "u1")).toBeNull();
     });
 
-    it("searches by case-insensitive substring on title and content", async () => {
-      await storage.notes.insert({
-        id: "n1",
-        userId: "u1",
-        data: claimed({
-          ...baseNoteData,
-          title: "Shopping list",
-          content: "Eggs and milk",
-        }),
-        createdAt: NOW,
-        updatedAt: NOW,
-      });
-      await storage.notes.insert({
-        id: "n2",
-        userId: "u1",
-        data: claimed({
-          ...baseNoteData,
-          title: "Trip notes",
-          content: "fly to LAX",
-        }),
-        createdAt: NOW,
-        updatedAt: NOW,
-      });
-      expect(
-        (await storage.notes.search("u1", "EGGS", PAGE)).notes.map((n) => n.id),
-      ).toEqual(["n1"]);
-      expect(
-        (await storage.notes.search("u1", "trip", PAGE)).notes.map((n) => n.id),
-      ).toEqual(["n2"]);
-      expect((await storage.notes.search("u2", "trip", PAGE)).notes).toEqual(
-        [],
-      );
-    });
-
     it("round-trips structured fields (reminder, tags)", async () => {
       const note = await storage.notes.insert({
         id: "n1",
@@ -640,7 +605,7 @@ describe("postgres storage driver (pg-mem)", () => {
         createdAt: NOW,
         updatedAt: NOW,
       });
-      expect(note.tags).toEqual(["x", "y"]);
+      expect(opened(note).tags).toEqual(["x", "y"]);
       expect(note.reminder).toEqual({
         time: "2026-04-10T08:00:00",
         recurrence: "weekly",

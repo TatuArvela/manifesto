@@ -2,6 +2,7 @@ import type { Note } from "@manifesto/shared";
 import { MAX_NOTES_PER_IMPORT, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../test/defined.js";
+import { plainSealing } from "../test/plainSealing.js";
 import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
 
 type FetchMock = ReturnType<typeof vi.fn<typeof fetch>>;
@@ -51,7 +52,9 @@ describe("RestApiAdapter", () => {
   beforeEach(() => {
     fetchMock = vi.fn<typeof fetch>();
     vi.stubGlobal("fetch", fetchMock);
-    adapter = new RestApiAdapter("https://api.example.com", "token-abc");
+    adapter = new RestApiAdapter("https://api.example.com", "token-abc", {
+      sealer: plainSealing,
+    });
   });
 
   afterEach(() => {
@@ -60,7 +63,9 @@ describe("RestApiAdapter", () => {
 
   describe("construction", () => {
     it("trims a trailing slash from the base URL", async () => {
-      const trimmed = new RestApiAdapter("https://api.example.com/", "t");
+      const trimmed = new RestApiAdapter("https://api.example.com/", "t", {
+        sealer: plainSealing,
+      });
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await trimmed.getAll();
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
@@ -71,7 +76,7 @@ describe("RestApiAdapter", () => {
     it("builds relative paths from an empty base, for a same-origin server", async () => {
       // What `/` resolves to. `fetch` takes it from here against the page, so
       // the client needs no hostname of its own and cannot have a stale one.
-      const sameOrigin = new RestApiAdapter("", "t");
+      const sameOrigin = new RestApiAdapter("", "t", { sealer: plainSealing });
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await sameOrigin.getAll();
       expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/notes");
@@ -438,7 +443,7 @@ describe("RestApiAdapter", () => {
       const adapter401 = new RestApiAdapter(
         "https://api.example.com",
         "token-abc",
-        { onUnauthorized },
+        { onUnauthorized, sealer: plainSealing },
       );
       fetchMock.mockResolvedValueOnce(
         new Response(JSON.stringify({ error: "Session expired" }), {
@@ -455,7 +460,7 @@ describe("RestApiAdapter", () => {
       const adapter500 = new RestApiAdapter(
         "https://api.example.com",
         "token-abc",
-        { onUnauthorized },
+        { onUnauthorized, sealer: plainSealing },
       );
       fetchMock.mockResolvedValueOnce(new Response("", { status: 500 }));
       await expect(adapter500.getAll()).rejects.toThrow();
@@ -554,6 +559,7 @@ describe("RestApiAdapter", () => {
       const onUnauthorized = vi.fn();
       const withHook = new RestApiAdapter("https://api.example.com", "t", {
         onUnauthorized,
+        sealer: plainSealing,
       });
       fetchMock.mockResolvedValueOnce(
         jsonResponse({ error: "Unauthorized" }, { status: 401 }),
@@ -622,7 +628,9 @@ describe("image uploads", () => {
 
   it("uploads the raw image with its type and reports progress", async () => {
     const sent = fakeXhr(201);
-    const adapter = new RestApiAdapter("https://notes.example", "t");
+    const adapter = new RestApiAdapter("https://notes.example", "t", {
+      sealer: plainSealing,
+    });
     const progress: number[] = [];
     const ref = await adapter.putImage(
       new Blob([new Uint8Array([1, 2])], { type: "image/png" }),
@@ -639,7 +647,9 @@ describe("image uploads", () => {
 
   it("rejects an upload the server refuses", async () => {
     fakeXhr(415);
-    const adapter = new RestApiAdapter("https://notes.example", "t");
+    const adapter = new RestApiAdapter("https://notes.example", "t", {
+      sealer: plainSealing,
+    });
     await expect(
       adapter.putImage(new Blob([], { type: "image/png" })),
     ).rejects.toMatchObject({ status: 415 });
@@ -651,7 +661,9 @@ describe("image uploads", () => {
       jsonResponse({ note: makeNote() }, { status: 201 }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    const adapter = new RestApiAdapter("https://notes.example", "t");
+    const adapter = new RestApiAdapter("https://notes.example", "t", {
+      sealer: plainSealing,
+    });
     const { id: _id, createdAt: _c, updatedAt: _u, ...fields } = makeNote();
     await adapter.create({
       ...fields,

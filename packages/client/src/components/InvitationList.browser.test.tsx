@@ -1,11 +1,11 @@
-import { NoteColor, NoteFont, type ShareInvitation } from "@manifesto/shared";
+import { NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { noteColorMap } from "../colors.js";
-import { invitations } from "../state/sharing.js";
+import { type Invitation, invitations } from "../state/sharing.js";
 import { InvitationList } from "./InvitationList.js";
 
-const invitation: ShareInvitation = {
+const invitation: Invitation = {
   noteId: "n1",
   role: "view",
   owner: {
@@ -16,8 +16,10 @@ const invitation: ShareInvitation = {
   },
   title: "Groceries",
   content: "**Buy** these:\n\n- [ ] Milk\n- [x] Bread",
-  color: NoteColor.Green,
+  // The owner's colour is their own, so an invitation is drawn without one.
+  color: NoteColor.Default,
   font: NoteFont.Serif,
+  waiting: false,
   invitedAt: "2026-04-01T00:00:00.000Z",
 };
 
@@ -50,8 +52,20 @@ describe("an invitation", () => {
       [true, true],
     ]);
     expect(preview.innerHTML).toContain(
-      noteColorMap[NoteColor.Green].bg.split(" ")[0],
+      noteColorMap[NoteColor.Default].bg.split(" ")[0],
     );
+  });
+
+  it("says it is waiting for the note's key, shows nothing of the note and cannot be accepted", () => {
+    invitations.value = [
+      { ...invitation, title: "", content: "", waiting: true },
+    ];
+    render(<InvitationList />, host);
+    expect(host.textContent).toContain("Waiting for this note's key");
+    expect(host.querySelector("h3")).toBeNull();
+    const [accept, decline] = [...host.querySelectorAll("button")];
+    expect(accept?.disabled).toBe(true);
+    expect(decline?.disabled).toBe(false);
   });
 
   it("says when it came through a team", () => {

@@ -1,16 +1,10 @@
-import { zValidator } from "@hono/zod-validator";
-import {
-  NOTE_VERSION_MAX_AGE_DAYS,
-  type NoteVersionsResponse,
-} from "@manifesto/shared";
+import { NOTE_VERSION_MAX_AGE_DAYS, roleOf } from "@manifesto/shared";
 import type { Hono } from "hono";
 import { nowIso } from "../lib/time.js";
-import { newId } from "../lib/ulid.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
-import { noteVersionCreateSchema } from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+import { tokenKeys, versionBody, versionsOut } from "./noteCodec.js";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 
@@ -45,40 +39,43 @@ export function registerVersionRoutes(
 ) {
   notes.get("/:id/versions", async (c) => {
     const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
     const id = c.req.param("id") as string;
-    if (!(await storage.notes.access(id, userId))) {
-      throw new HttpError(404, "Note not found");
-    }
-    const body: NoteVersionsResponse = {
-      versions: await storage.versions.list(id),
-    };
-    return c.json(body);
+    const note = await storage.notes.getById(id, userId);
+    if (!note) throw new HttpError(404, "Note not found");
+    return c.json({
+      versions: await versionsOut(keys, note, await storage.versions.list(id)),
+    });
   });
 
-  notes.post(
-    "/:id/versions",
-    zValidator("json", noteVersionCreateSchema, validatorHook),
-    async (c) => {
-      const { userId } = c.get("auth");
-      const id = c.req.param("id") as string;
-      const access = await storage.notes.access(id, userId);
-      if (!access) throw new HttpError(404, "Note not found");
-      if (access.role === "view") {
-        throw new HttpError(
-          403,
-          "Your role on this note does not allow editing it",
-        );
-      }
-      const { title, content, timestamp } = c.req.valid("json");
-      await storage.versions.add({
-        id: newId(),
-        noteId: id,
-        authorId: userId,
-        title,
-        content,
-        createdAt: versionTimestamp(timestamp, nowIso()),
-      });
-      return c.body(null, 201);
-    },
-  );
+  notes.post("/:id/versions", async (c) => {
+    const { userId } = c.get("auth");
+    const keys = tokenKeys(c);
+    const id = c.req.param("id") as string;
+    const note = await storage.notes.getById(id, userId);
+    if (!note) throw new HttpError(404, "Note not found");
+    if (roleOf(note) === "view") {
+      throw new HttpError(
+        403,
+        "Your role on this note does not allow editing it",
+      );
+    }
+    const version = await versionBody(c, keys, note);
+    if (!version) {
+      throw new HttpError(409, "This token cannot open the note's key");
+    }
+    // The id is the client's, or for a token the server's: the sealed values
+    // are bound to it.
+    const added = await storage.versions.add({
+      id: version.id,
+      noteId: id,
+      authorId: userId,
+      keyVersion: version.keyVersion,
+      title: version.title,
+      content: version.content,
+      createdAt: versionTimestamp(version.timestamp, nowIso()),
+    });
+    if (!added) throw new HttpError(409, "A version already has this id");
+    return c.body(null, 201);
+  });
 }

@@ -25,7 +25,6 @@ export const SERVER_FEATURES = [
   "magicLinks",
   "pushReminders",
   "twoFactor",
-  "adminExport",
 ] as const;
 
 export type ServerFeature = (typeof SERVER_FEATURES)[number];

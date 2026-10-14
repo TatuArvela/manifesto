@@ -3,7 +3,6 @@ import type { ShareUser } from "../note.js";
 /** What the audit log records. */
 export const AUDIT_ACTIONS = [
   "account.registered",
-  "account.exported",
   "auth.signed_in",
   "auth.sign_in_failed",
   "auth.signed_out",
@@ -15,6 +14,11 @@ export const AUDIT_ACTIONS = [
   "auth.two_factor_disabled",
   "auth.passkey_added",
   "auth.passkey_removed",
+  "keys.created",
+  "keys.secret_key_replaced",
+  "keys.recovery_key_replaced",
+  "keys.recovery_key_used",
+  "keys.started_again",
   "token.created",
   "token.revoked",
   "webhook.created",
@@ -34,7 +38,6 @@ export const AUDIT_ACTIONS = [
   "admin.admin_revoked",
   "admin.email_changed",
   "admin.password_reset",
-  "admin.user_exported",
   "admin.team_created",
   "admin.team_updated",
   "admin.team_member_added",

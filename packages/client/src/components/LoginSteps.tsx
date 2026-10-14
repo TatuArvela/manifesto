@@ -6,8 +6,8 @@ import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
 // The steps a password sign-in can pass through after the password itself.
 // Presentational: `LocalLoginForm` holds the fields and does the signing in.
 
-/** What the two-factor step can take: the app's codes (recovery codes are
- * always typed), and a challenge for the account's passkeys here. */
+/** What the two-factor step can take: the app's codes, and a challenge for
+ * the account's passkeys here. */
 export interface SecondFactor {
   authenticator: boolean;
   passkey: PasskeyRequestOptions | null;
@@ -22,6 +22,7 @@ export function TwoFactorStep({
   submitting,
   onSubmit,
   onPasskey,
+  onRecover,
   onBack,
 }: {
   secondFactor: SecondFactor;
@@ -31,8 +32,11 @@ export function TwoFactorStep({
   submitting: boolean;
   onSubmit: (event: Event) => void;
   onPasskey: () => void;
+  /** Opens signing in with the recovery key, for a factor that was lost. */
+  onRecover?: (() => void) | undefined;
   onBack: () => void;
 }) {
+  const canUsePasskey = secondFactor.passkey !== null && passkeysSupported();
   return (
     <form onSubmit={onSubmit} class="space-y-4">
       <div>
@@ -43,55 +47,62 @@ export function TwoFactorStep({
           {t(
             secondFactor.authenticator
               ? "login.twoFactor.hint"
-              : "login.twoFactor.recoveryHint",
+              : "login.twoFactor.passkeyHint",
           )}
         </p>
       </div>
-      {secondFactor.passkey && passkeysSupported() && (
-        <>
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={onPasskey}
-            class={submitClass}
-          >
-            {t("login.twoFactor.usePasskey")}
-          </button>
-          <div class="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
-            <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
-            {t("login.or")}
-            <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
-          </div>
-        </>
+      {canUsePasskey && (
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={onPasskey}
+          class={submitClass}
+        >
+          {t("login.twoFactor.usePasskey")}
+        </button>
       )}
-      <label class="block">
-        <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
-          {t(
-            secondFactor.authenticator
-              ? "login.twoFactor.code"
-              : "login.twoFactor.recoveryCode",
-          )}
-        </span>
-        <input
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          // biome-ignore lint/a11y/noAutofocus: the one thing to do on this step
-          autoFocus
-          maxLength={32}
-          value={otp}
-          onInput={(e) => setOtp((e.currentTarget as HTMLInputElement).value)}
-          class={`${inputClass} tracking-widest`}
-        />
-      </label>
+      {canUsePasskey && secondFactor.authenticator && (
+        <div class="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
+          <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
+          {t("login.or")}
+          <span class="flex-1 border-t border-neutral-200 dark:border-neutral-700" />
+        </div>
+      )}
+      {/* Only an authenticator app has a code to type: an account whose
+          second factor is passkeys alone uses one, or the recovery key. */}
+      {secondFactor.authenticator && (
+        <label class="block">
+          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+            {t("login.twoFactor.code")}
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            // biome-ignore lint/a11y/noAutofocus: the one thing to do on this step
+            autoFocus
+            maxLength={32}
+            value={otp}
+            onInput={(e) => setOtp((e.currentTarget as HTMLInputElement).value)}
+            class={`${inputClass} tracking-widest`}
+          />
+        </label>
+      )}
       {error && (
         <p class="text-sm text-red-600 dark:text-red-400" role="alert">
           {error}
         </p>
       )}
-      <button type="submit" disabled={submitting} class={submitClass}>
-        {submitting ? t("login.submitting") : t("login.twoFactor.submit")}
-      </button>
+      {secondFactor.authenticator && (
+        <button type="submit" disabled={submitting} class={submitClass}>
+          {submitting ? t("login.submitting") : t("login.twoFactor.submit")}
+        </button>
+      )}
+      {onRecover && (
+        <button type="button" class={quietClass} onClick={onRecover}>
+          {t("login.recover.lostFactor")}
+        </button>
+      )}
       <button type="button" class={quietClass} onClick={onBack}>
         {t("login.back")}
       </button>

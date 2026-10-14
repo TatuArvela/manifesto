@@ -2,8 +2,11 @@ import type {
   ApiTokenCreatedResponse,
   CapabilitiesResponse,
   Note,
+  SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
+import { heldKeyOf } from "../test/keyedTokens.js";
 import {
   authHeaders,
   bootTestApp,
@@ -45,17 +48,15 @@ describe("MCP endpoint", () => {
     await rig.close();
   });
 
-  async function mint(
-    body: object,
-    as: string = session,
-  ): Promise<ApiTokenCreatedResponse> {
+  async function mint(body: object, as: string = session) {
     const res = await rig.request("/api/tokens", {
       method: "POST",
       headers: authHeaders(as),
       body: JSON.stringify({ password: "test-pass-12", ...body }),
     });
     expect(res.status).toBe(201);
-    return (await res.json()) as ApiTokenCreatedResponse;
+    const created = (await res.json()) as ApiTokenCreatedResponse;
+    return { ...created, secret: defined(created.secret) };
   }
 
   const mintMcp = async (readOnly = false, as: string = session) =>
@@ -218,7 +219,6 @@ describe("MCP endpoint", () => {
         ["GET", "/api/notes"],
         ["GET", "/api/auth/me"],
         ["GET", "/api/tokens"],
-        ["GET", "/api/export"],
       ] as const) {
         const res = await rig.request(path, {
           method,
@@ -398,35 +398,39 @@ describe("MCP endpoint", () => {
     });
 
     it("keep to the role a share gives", async () => {
+      const olivia = await registerTestUser(rig, "olivia");
       const bob = await registerTestUser(rig, "bob");
-      const res = await rig.request("/api/notes", {
-        method: "POST",
-        headers: authHeaders(session),
-        body: JSON.stringify({
-          title: "Plan",
-          content: "shared",
-          color: "default",
-          font: "default",
-          pinned: false,
-          archived: false,
-          trashed: false,
-          position: 0,
-          tags: [],
-          images: [],
-          linkPreviews: [],
-          reminder: null,
-        }),
-      });
-      const { note } = (await res.json()) as { note: Note };
+      // Written by the owner's own token, so it is sealed with her keys.
+      const note = await noteFrom(
+        await mintMcp(false, olivia.token),
+        "create_note",
+        { title: "Plan", content: "shared" },
+      );
       await rig.request(`/api/notes/${note.id}/shares`, {
         method: "POST",
-        headers: authHeaders(session),
+        headers: authHeaders(olivia.token),
         body: JSON.stringify({ userId: bob.userId, role: "view" }),
       });
-      await rig.request(`/api/invitations/${note.id}/accept`, {
-        method: "POST",
-        headers: authHeaders(bob.token),
-      });
+      // Accepting keeps the note's key under the recipient's own notes key,
+      // which is what his token then opens the note with.
+      const sealed = (
+        (await (
+          await rig.rawRequest(`/api/notes/${note.id}`, {
+            headers: authHeaders(olivia.token),
+          })
+        ).json()) as { note: SealedNote }
+      ).note;
+      const accepted = await rig.rawRequest(
+        `/api/invitations/${note.id}/accept`,
+        {
+          method: "POST",
+          headers: authHeaders(bob.token),
+          body: JSON.stringify(
+            await heldKeyOf(sealed, olivia.userId, bob.userId),
+          ),
+        },
+      );
+      expect(accepted.status).toBe(200);
       const token = await mintMcp(false, bob.token);
       const read = await noteFrom(token, "get_note", { id: note.id });
       expect(read.role).toBe("view");

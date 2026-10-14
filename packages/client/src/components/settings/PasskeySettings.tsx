@@ -38,17 +38,9 @@ type Form =
 /**
  * The account's passkeys, under the authenticator app in the two-factor tab:
  * each a second factor after the password, and a way to sign in alone. Adding
- * one asks for the password and then the browser's own prompt; the first
- * second factor of either kind brings the recovery codes, which
- * `onRecoveryCodes` shows.
+ * one asks for the password and then the browser's own prompt.
  */
-export function PasskeySettings({
-  onChange,
-  onRecoveryCodes,
-}: {
-  onChange: () => void;
-  onRecoveryCodes: (codes: string[]) => void;
-}) {
+export function PasskeySettings({ onChange }: { onChange: () => void }) {
   const [passkeys, setPasskeys] = useState<Passkey[] | null>(null);
   const [form, setForm] = useState<Form>({ kind: "none" });
   const [name, setName] = useState("");
@@ -88,8 +80,7 @@ export function PasskeySettings({
     close();
     showSuccess(t("passkeys.added"));
     await reload();
-    if (result.recoveryCodes) onRecoveryCodes(result.recoveryCodes);
-    else onChange();
+    onChange();
   };
 
   const submitRemove = (passkey: Passkey) => async (e: Event) => {

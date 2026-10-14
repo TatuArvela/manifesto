@@ -11,3 +11,27 @@
 @import "./styles/prose.css";
 @import "./styles/editor.css";
 @import "./styles/task-list.css";
+
+/* The sheet with an account's keys (`KeySheet.tsx`): while one is on screen,
+   printing the page prints the sheet and nothing around it. Visibility
+   rather than display, since the sheet sits deep inside what is hidden. */
+@media print {
+  body.key-sheet-open * {
+    visibility: hidden;
+  }
+  body.key-sheet-open .key-sheet,
+  body.key-sheet-open .key-sheet * {
+    visibility: visible;
+  }
+  body.key-sheet-open .key-sheet {
+    position: fixed;
+    inset: 0 0 auto 0;
+    margin: 2rem;
+    border: 1px solid #000;
+    background: #fff;
+    color: #000;
+  }
+  body.key-sheet-open .key-sheet * {
+    color: #000;
+  }
+}

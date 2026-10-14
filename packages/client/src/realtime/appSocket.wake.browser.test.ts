@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  */
 const authToken = signal<string | null>(null);
 const editingNoteId = signal<string | null>(null);
+const notes = signal<unknown[]>([]);
 const syncNotes = vi.fn(async () => {});
 
 vi.mock("../state/auth.js", () => ({
@@ -31,6 +32,7 @@ vi.mock("../state/comments.js", () => ({
 }));
 vi.mock("../state/notesStore.js", () => ({
   forgetNote: () => {},
+  notes,
   syncNotes,
   receiveNote: () => {},
 }));

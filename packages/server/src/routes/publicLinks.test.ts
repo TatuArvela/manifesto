@@ -7,6 +7,7 @@ import type {
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nowIso } from "../lib/time.js";
+import { ct } from "../storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
@@ -110,6 +111,67 @@ describe("public links", () => {
     return (await res.json()) as PublicNoteResponse;
   }
 
+  it("hands over only what is sealed, with the note key wrapped for a live link and none for a snapshot", async () => {
+    const note = await createNote();
+    const raw = async (token: string) =>
+      (await (
+        await rig.rawRequest(`/api/public/${token}`)
+      ).json()) as PublicNoteResponse;
+
+    const live = await raw((await publish(note.id)).token);
+    expect(live.wrappedKey).toBe(ct("note key for the link"));
+    expect(live.note).toMatchObject({ id: note.id, keyVersion: 1 });
+    expect(JSON.stringify(live)).not.toContain("Recipe");
+    expect(live.note.title).toBe(ct("Recipe"));
+
+    const copy = await raw(
+      (await publish(note.id, { mode: "snapshot" })).token,
+    );
+    expect(copy.wrappedKey).toBeNull();
+    expect(copy.note.title).toBe(ct("Recipe"));
+  });
+
+  it("wants the key a link's kind carries, and a snapshot's pictures to be the note's", async () => {
+    const note = await createNote({ images: [await upload(PNG)] });
+    const stray = await upload(GIF);
+    const sealedLinkKey = ct("link key");
+    const snapshot = {
+      title: ct("t"),
+      content: ct("c"),
+      font: ct("default"),
+      images: ct("[]"),
+      linkPreviews: ct("[]"),
+      refs: [] as string[],
+    };
+    const post = (body: object) =>
+      rig.rawRequest(`/api/notes/${note.id}/links`, {
+        method: "POST",
+        headers: authHeaders(owner.token),
+        body: JSON.stringify(body),
+      });
+    expect((await post({ mode: "live", sealedLinkKey })).status).toBe(422);
+    expect((await post({ mode: "snapshot", sealedLinkKey })).status).toBe(422);
+    expect(
+      (await post({ mode: "live", sealedLinkKey, wrappedKey: "readable" }))
+        .status,
+    ).toBe(422);
+    expect(
+      (
+        await post({
+          mode: "snapshot",
+          sealedLinkKey,
+          snapshot: { ...snapshot, refs: [stray] },
+        })
+      ).status,
+    ).toBe(422);
+    const made = await post({ mode: "snapshot", sealedLinkKey, snapshot });
+    expect(made.status).toBe(201);
+    // The owner is handed the link key back as they sealed it.
+    expect(
+      ((await made.json()) as { link: PublicLink }).link.sealedLinkKey,
+    ).toBe(sealedLinkKey);
+  });
+
   it("shows the note to anyone holding the link, and counts the view", async () => {
     const note = await createNote();
     const link = await publish(note.id);
@@ -121,10 +183,11 @@ describe("public links", () => {
     expect(body.note).toMatchObject({
       title: "Recipe",
       content: "Flour and water",
-      color: NoteColor.Yellow,
     });
-    // Nothing about the owner's filing of it.
+    // Nothing about the owner's filing of it: the tags and the colour are
+    // the owner's own, under a key no link carries.
     expect(body.note).not.toHaveProperty("tags");
+    expect(body.note).not.toHaveProperty("color");
     expect(body.access).toBeNull();
 
     const list = await call(owner, "GET", `/api/notes/${note.id}/links`);

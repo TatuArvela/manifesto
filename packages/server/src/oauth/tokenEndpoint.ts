@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import type { ApiTokenScope } from "@manifesto/shared";
+import {
+  type ApiTokenScope,
+  openTokenKeyMaterial,
+  wipe,
+  wrapTokenKeys,
+} from "@manifesto/shared";
 import type { Context } from "hono";
 import { audit } from "../audit/audit.js";
 import type { SessionRevocations } from "../auth/revocations.js";
@@ -54,6 +59,37 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
       return id || undefined;
     } catch {
       return undefined;
+    }
+  }
+
+  /**
+   * A grant's keys, moved from the secret that is being spent to the two
+   * that replace it. The server holds them readable for this one step, as it
+   * does whenever the grant is used. Nothing to move for a grant without
+   * keys; `unreadable` when what is stored does not open with the secret
+   * presented, which a real code or refresh token always does.
+   */
+  async function rewrapped(
+    wrapped: string | null,
+    spent: string,
+    access: string,
+    refreshToken: string,
+  ): Promise<
+    | { wrappedKeys: string | null; refreshWrappedKeys: string | null }
+    | "unreadable"
+  > {
+    if (wrapped === null)
+      return { wrappedKeys: null, refreshWrappedKeys: null };
+    const material = await openTokenKeyMaterial(spent, wrapped);
+    if (!material) return "unreadable";
+    try {
+      return {
+        wrappedKeys: await wrapTokenKeys(access, material),
+        refreshWrappedKeys: await wrapTokenKeys(refreshToken, material),
+      };
+    } finally {
+      wipe(material.notes);
+      wipe(material.personal);
     }
   }
 
@@ -114,6 +150,15 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
 
     const access = newApiToken(MCP_TOKEN_PREFIX);
     const refreshToken = newApiToken(REFRESH_TOKEN_PREFIX);
+    // The keys the consent wrapped under the code, wrapped again for the two
+    // tokens it becomes. The code's copy went with the code.
+    const carried = await rewrapped(
+      stored.wrappedKeys,
+      code,
+      access,
+      refreshToken,
+    );
+    if (carried === "unreadable") return invalid();
     const accessExpiresAt = earlier(
       plusMs(now, ACCESS_TOKEN_SECONDS * 1000),
       stored.grantExpiresAt,
@@ -132,6 +177,7 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
     };
     await storage.apiTokens.create({
       ...token,
+      ...carried,
       userId: stored.userId,
       tokenHash: hashToken(access),
       refreshHash: hashToken(refreshToken),
@@ -200,10 +246,20 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
       plusMs(now, ACCESS_TOKEN_SECONDS * 1000),
       grant.expiresAt,
     );
+    // The keys under the refresh token being spent, wrapped for the next
+    // pair; the copies under the tokens before them are written over.
+    const carried = await rewrapped(
+      grant.refreshWrappedKeys,
+      refreshToken,
+      access,
+      next,
+    );
+    if (carried === "unreadable") return invalid();
     const rotated = await storage.apiTokens.rotate(hash, {
       tokenHash: hashToken(access),
       refreshHash: hashToken(next),
       accessExpiresAt,
+      ...carried,
     });
     // Another refresh with the same token won the race.
     if (!rotated) return invalid();

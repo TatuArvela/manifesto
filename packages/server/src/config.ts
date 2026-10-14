@@ -127,6 +127,17 @@ export interface ServerConfig extends FeatureToggles {
   /** The bearer token `GET /metrics` asks for; null keeps it off. */
   metricsToken: string | null;
   /**
+   * The server key, which the few values the server reads by itself are
+   * stored under (`storage/atRest.ts`): 32 bytes in base64 or hex. Null
+   * keeps it in `dataKeyFile` instead, made on first start.
+   */
+  dataEncryptionKey: string | null;
+  /** The key before, while a replaced key's values are moved over. */
+  dataEncryptionKeyPrevious: string | null;
+  /** Where the key is kept when it is not supplied; null for
+   * `${dataDir}/server.key`. */
+  dataKeyFile: string | null;
+  /**
    * A port of its own for `/metrics`, off the public one, or null. With it
    * set, the main port never serves metrics.
    */
@@ -342,6 +353,8 @@ export const FILE_SECRETS = [
   "SMTP_URL",
   "METRICS_TOKEN",
   "INITIAL_ADMIN_PASSWORD",
+  "DATA_ENCRYPTION_KEY",
+  "DATA_ENCRYPTION_KEY_PREVIOUS",
 ] as const;
 
 export function resolveFileSecrets(
@@ -401,6 +414,10 @@ export function loadConfig(): ServerConfig {
     mail: loadMailConfig(appUrl),
     backup: loadBackupConfig(dataDir),
     metricsToken: process.env.METRICS_TOKEN?.trim() || null,
+    dataEncryptionKey: process.env.DATA_ENCRYPTION_KEY?.trim() || null,
+    dataEncryptionKeyPrevious:
+      process.env.DATA_ENCRYPTION_KEY_PREVIOUS?.trim() || null,
+    dataKeyFile: process.env.DATA_KEY_FILE?.trim() || null,
     metricsPort:
       envInt("METRICS_PORT", 0) > 0 ? envInt("METRICS_PORT", 0) : null,
     metricsHost: process.env.METRICS_HOST?.trim() || "127.0.0.1",

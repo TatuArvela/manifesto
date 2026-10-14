@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { defined } from "../test/defined.js";
 import {
   base32Decode,
   base32Encode,
   hotp,
-  newRecoveryCodes,
-  normalizeRecoveryCode,
   otpauthUri,
   verifyTotp,
 } from "./totp.js";
@@ -56,16 +53,14 @@ describe("verifyTotp", () => {
     expect(verifyTotp(secret, "12345", at)).toBeNull();
     expect(verifyTotp(secret, "abcdef", at)).toBeNull();
   });
-});
 
-describe("recovery codes", () => {
-  it("are distinct, and read regardless of case and separators", () => {
-    const codes = newRecoveryCodes();
-    expect(new Set(codes).size).toBe(10);
-    expect(codes[0]).toMatch(/^[a-z2-9]{4}-[a-z2-9]{4}$/);
-    expect(
-      normalizeRecoveryCode(defined(codes[0]).toUpperCase().replace("-", " ")),
-    ).toBe(codes[0]);
+  it("matches no code for a secret that is not there", () => {
+    // What a secret reads as once the server key that sealed it is gone.
+    // The code for an empty key is anyone's to compute.
+    const step = Math.floor(1111111109 / 30);
+    const guessable = hotp(Buffer.alloc(0), step);
+    expect(verifyTotp("", guessable, at)).toBeNull();
+    expect(verifyTotp("=", guessable, at)).toBeNull();
   });
 });
 

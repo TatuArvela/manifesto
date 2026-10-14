@@ -15,10 +15,13 @@ operator, not only the code.
 |---|---|
 | **Open mode** | Whoever can use the browser profile they are in. Nothing leaves the device. |
 | **Connected, own server** | Its operator, which is the user. |
-| **Connected, someone else's server** | The operator, through the database or its backups. Admins, only with `ADMIN_EXPORT` on (below). The people a note is [shared with](sharing-with-people.md). |
+| **Connected, someone else's server** | The people a note is [shared with](sharing-with-people.md). The operator and the admins hold what the browser sealed and no key that opens it. |
 
-Notes are not end-to-end encrypted yet. [Encryption](encryption.md) has the design that is planned: every account's notes encrypted in the browser, so that the server stores what it cannot read.
-Until it is built, anyone who needs notes the server cannot read should use open mode, or run their own server.
+Notes are being moved to end-to-end encryption: [Encryption](encryption.md) has the design, and
+says which parts are built. A note's title, text, tags and colour are sealed in the browser before
+they reach the server. Until the rest is built (the shared document a note is edited in and its
+images, among others), anyone who needs notes the server cannot read should use open mode, or run
+their own server.
 
 ## What an admin can see
 
@@ -32,13 +35,10 @@ An [admin](accounts.md) administers accounts, not their contents. From inside th
   that a note was shared, never what the note says.
 
 An admin does not see the notes themselves: no view, route or search in the app reads another
-account's notes. Two actions come close, and both are visible to the account's owner:
+account's notes, and the server has nothing readable to hand over. There is no export of another
+account's notes; a person exports their own from the app. One action comes close, and it is visible
+to the account's owner:
 
-- **Downloading an account's notes** (`GET /api/admin/users/:id/export`), for a data request or a
-  move to another server. It is off unless the server sets `ADMIN_EXPORT=on`
-  ([Server Deployment](../server/deployment.md#turning-features-off)), and it answers `404`, as a
-  route that does not exist, otherwise. When it is on, each download is recorded as
-  `admin.user_exported`.
 - **Issuing a temporary password** (local sign-in only). An admin who used it to sign in as someone
   would first have to choose a new password, which signs the owner out everywhere, turns off their
   two-factor sign-in and removes their passkeys, and leaves their own password not working. It is recorded as
@@ -103,7 +103,9 @@ database provides.
 
 - **Open mode** keeps everything in `localStorage` and IndexedDB, as private as the browser profile.
 - **Connected mode** keeps the notes in memory, and an offline copy of each note opened for editing in
-  IndexedDB (`manifesto:yjs:<id>`), so an edit made offline survives a reload.
+  IndexedDB (`manifesto:yjs-sealed:<id>`), so an edit made offline survives a reload. The copy is
+  the sealed log of the note's edits, as the server holds it. A browser that kept readable copies
+  before notes were sealed (`manifesto:yjs:<id>`) deletes them the next time a note is opened.
 - **Signing out** leaves none of the account's notes behind: the list leaves memory, the reminders
   stop (in the page and in the service worker's copy, which is handed an empty list), and the offline
   copies are deleted. A session that ends because the server refused it (`401`) empties the list and

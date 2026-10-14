@@ -33,7 +33,6 @@ export const DEFAULT_SERVER_FEATURES: ServerFeatures = {
   magicLinks: false,
   pushReminders: false,
   twoFactor: true,
-  adminExport: false,
   mcpSignIn: false,
 };
 

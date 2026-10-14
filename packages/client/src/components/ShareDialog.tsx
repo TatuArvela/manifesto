@@ -18,12 +18,15 @@ import { currentUser, userLookupMode } from "../state/auth.js";
 import { notes } from "../state/notesStore.js";
 import { serverFeature } from "../state/serverFeatures.js";
 import {
+  changedKeys,
   findUsers,
+  keyStatusOf,
   leaveNote,
   removeShare,
   setShareRole,
   shareDialog,
   shareNote,
+  trustKeys,
 } from "../state/sharing.js";
 import {
   listMyTeams,
@@ -112,6 +115,7 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
   const isOwner = role === "owner";
   const [leaving, setLeaving] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showKeys, setShowKeys] = useState(false);
 
   useEscapeStack(true, onClose);
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
@@ -168,7 +172,11 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
 
           <ul class="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-700">
             {owner && (
-              <PersonRow person={owner} isMe={owner.id === me?.id}>
+              <PersonRow
+                person={owner}
+                isMe={owner.id === me?.id}
+                showKey={showKeys}
+              >
                 <span class="text-sm text-neutral-500 dark:text-neutral-400">
                   {t("sharing.role.owner")}
                 </span>
@@ -181,9 +189,28 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
                 member={member}
                 isMe={member.id === me?.id}
                 canManage={isOwner}
+                showKey={showKeys}
               />
             ))}
           </ul>
+
+          {members.length > 0 && (
+            <div class="flex flex-col gap-1.5">
+              <button
+                type="button"
+                class="self-start text-sm underline text-neutral-600 dark:text-neutral-300 cursor-pointer"
+                aria-expanded={showKeys}
+                onClick={() => setShowKeys((shown) => !shown)}
+              >
+                {t(showKeys ? "sharing.keys.hide" : "sharing.keys.show")}
+              </button>
+              {showKeys && (
+                <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                  {t("sharing.keys.explain")}
+                </p>
+              )}
+            </div>
+          )}
 
           {isOwner && members.length === 0 && (
             <p class="text-sm text-neutral-500 dark:text-neutral-400">
@@ -241,15 +268,83 @@ function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
   );
 }
 
+/**
+ * A person's key: its fingerprint while the dialog is comparing keys, and
+ * always the warning when it is not the key this account remembers for them.
+ */
+function PersonKey({
+  person,
+  showing,
+}: {
+  person: ShareUser;
+  showing: boolean;
+}) {
+  const [status, setStatus] = useState<
+    { fingerprint: string; changed: boolean } | null | undefined
+  >(undefined);
+  const [busy, setBusy] = useState(false);
+  // A key this session met and could not use, because it is not the one
+  // remembered: said whether or not keys are being compared.
+  const changed = changedKeys.value.has(person.id);
+  const wanted = showing || changed;
+
+  useEffect(() => {
+    if (!wanted) return;
+    let cancelled = false;
+    void keyStatusOf(person.id).then((found) => {
+      if (!cancelled) setStatus(found);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Read again once a changed key is trusted.
+  }, [person.id, wanted, changed]);
+
+  if (!wanted || status === undefined) return null;
+  const name = person.displayName || person.username;
+  if (status?.changed) {
+    return (
+      <div role="alert" class="mt-1 text-xs text-red-600 dark:text-red-400">
+        <p>{t("sharing.keys.changed", { name })}</p>
+        <p class="font-mono mt-0.5">
+          {t("sharing.keys.fingerprint", { fingerprint: status.fingerprint })}
+        </p>
+        <button
+          type="button"
+          class="mt-1 underline cursor-pointer disabled:opacity-60"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await trustKeys(person.id);
+            setBusy(false);
+          }}
+        >
+          {t("sharing.keys.trust")}
+        </button>
+      </div>
+    );
+  }
+  if (!showing) return null;
+  return (
+    <p class="mt-0.5 text-xs font-mono text-neutral-500 dark:text-neutral-400">
+      {status
+        ? t("sharing.keys.fingerprint", { fingerprint: status.fingerprint })
+        : t("sharing.keys.none")}
+    </p>
+  );
+}
+
 function PersonRow({
   person,
   isMe,
   secondary,
+  showKey = false,
   children,
 }: {
   person: ShareUser;
   isMe: boolean;
   secondary?: string | undefined;
+  showKey?: boolean | undefined;
   children?: preact.ComponentChildren;
 }) {
   const name = person.displayName || person.username;
@@ -269,6 +364,7 @@ function PersonRow({
             {details.join(" · ")}
           </p>
         )}
+        <PersonKey person={person} showing={showKey} />
       </div>
       <div class="flex items-center gap-1 shrink-0">{children}</div>
     </li>
@@ -280,11 +376,13 @@ function MemberRow({
   member,
   isMe,
   canManage,
+  showKey,
 }: {
   note: Note;
   member: NoteMember;
   isMe: boolean;
   canManage: boolean;
+  showKey: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const name = member.displayName || member.username;
@@ -299,6 +397,7 @@ function MemberRow({
     <PersonRow
       person={member}
       isMe={isMe}
+      showKey={showKey}
       secondary={
         [
           member.accepted ? null : t("sharing.invited"),

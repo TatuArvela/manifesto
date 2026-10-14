@@ -1,10 +1,10 @@
-import type { Note, NoteUpdate } from "@manifesto/shared";
+import type { SealedNote, SealedNoteUpdate } from "@manifesto/shared";
+import { type ReferringRow, referencesOf } from "../attachmentMapping.js";
 import {
   decodeCursor,
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
-  searchPattern,
   splitPage,
 } from "../noteMapping.js";
 import {
@@ -29,9 +29,12 @@ import {
   type NotesRepo,
 } from "../types.js";
 import type { PgPool } from "./database.js";
+import { inTransaction } from "./sharesRepo.js";
 
 /** See the SQLite copy: same columns, same ordering, same reasons. */
-const LIST_COLUMNS = INSERT_COLUMNS.filter((c) => c !== "images")
+const LIST_COLUMNS = INSERT_COLUMNS.filter(
+  (c) => c !== "images" && c !== "preview_refs" && c !== "image_count",
+)
   .map((c) => `n.${c}`)
   .join(", ");
 
@@ -49,13 +52,13 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
   async function view(
     rows: ViewRow[],
     viewerId: string,
-    listed: boolean,
-  ): Promise<Note[]> {
-    const notes = rows.map((row) => rowToViewNote(row, listed));
+  ): Promise<SealedNote[]> {
+    const notes = rows.map((row) => rowToViewNote(row));
     if (rows.length === 0) return notes;
     const ids = rows.map((row) => row.id);
     const members = await pool.query<MemberRow>(
       `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at,
+              s.offered_key, s.wrapped_key_version,
               u.username, u.display_name, u.avatar_color,
               s.via_team, t.name AS team_name
        FROM note_shares s JOIN users u ON u.id = s.user_id
@@ -77,8 +80,8 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
    * One half of a listing: the user's own notes, or those shared with them.
    * Over-fetched by one, as the SQLite copy explains.
    */
-  /** Narrows a listing to a search (`like`) or to changes (`since`). */
-  type Filter = { like: string } | { since: string } | null;
+  /** Narrows a listing to changes (`since`). */
+  type Filter = { since: string } | null;
 
   async function half(
     kind: "own" | "shared",
@@ -98,11 +101,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
            FROM note_shares s JOIN notes n ON n.id = s.note_id
            WHERE s.user_id = $1 AND s.accepted_at IS NOT NULL
              AND n.trashed = FALSE`;
-    if (filter && "like" in filter) {
-      const p = param(filter.like);
-      sql += ` AND (LOWER(n.title) LIKE LOWER(${p})
-                 OR LOWER(n.content) LIKE LOWER(${p}))`;
-    } else if (filter) {
+    if (filter) {
       const p = param(filter.since);
       sql += ` AND (n.updated_at > ${p} OR n.members_changed_at > ${p})`;
     }
@@ -129,7 +128,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       mergePages(own, shared, options.limit),
       options.limit,
     );
-    return { notes: await view(kept, userId, true), nextCursor };
+    return { notes: await view(kept, userId), nextCursor };
   }
 
   async function acceptedRole(
@@ -152,9 +151,10 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
   async function recipientUpdate(
     id: string,
     userId: string,
-    changes: NoteUpdate,
+    changes: SealedNoteUpdate,
     updatedAt: string,
     expectedUpdatedAt: string | undefined,
+    expectedKeyVersion: number | undefined,
   ): Promise<boolean> {
     const client = await pool.connect();
     try {
@@ -183,6 +183,10 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       if (expectedUpdatedAt !== undefined) {
         params.push(expectedUpdatedAt);
         where += ` AND updated_at = $${params.length}`;
+      }
+      if (expectedKeyVersion !== undefined) {
+        params.push(expectedKeyVersion);
+        where += ` AND key_version = $${params.length}`;
       }
       const written = await client.query(
         `UPDATE notes SET ${assignments.join(", ")} ${where}`,
@@ -250,7 +254,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       return result.rows.map((row) => row.id);
     },
 
-    async getById(id: string, userId: string): Promise<Note | null> {
+    async getById(id: string, userId: string): Promise<SealedNote | null> {
       // Two plain reads rather than a join with a compound `ON`, which is the
       // shape of query pg-mem is least reliable about.
       const found = await pool.query<ViewRow>(
@@ -260,7 +264,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       const note = found.rows[0];
       if (!note) return null;
       if (note.user_id === userId) {
-        return (await view([note], userId, false))[0] ?? null;
+        return (await view([note], userId))[0] ?? null;
       }
       if (note.trashed) return null;
       const share = await pool.query<ViewRow>(
@@ -270,7 +274,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       );
       const overlay = share.rows[0];
       if (!overlay) return null;
-      return (await view([{ ...note, ...overlay }], userId, false))[0] ?? null;
+      return (await view([{ ...note, ...overlay }], userId))[0] ?? null;
     },
 
     async access(id: string, userId: string): Promise<NoteAccess | null> {
@@ -290,7 +294,16 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       return (await ownerOf(id)) !== null;
     },
 
-    async insert(input: InsertNoteInput): Promise<Note> {
+    async attachmentIds(id: string): Promise<string[]> {
+      const found = await pool.query<ReferringRow>(
+        `SELECT images, preview_refs FROM notes WHERE id = $1`,
+        [id],
+      );
+      const [row] = found.rows;
+      return row ? referencesOf(row) : [];
+    },
+
+    async insert(input: InsertNoteInput): Promise<SealedNote> {
       await pool.query(
         `INSERT INTO notes (${INSERT_COLUMNS.join(", ")})
          VALUES (${INSERT_COLUMNS.map((_, i) => `$${i + 1}`).join(", ")})`,
@@ -305,10 +318,11 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     async update(
       id: string,
       userId: string,
-      changes: NoteUpdate,
+      changes: SealedNoteUpdate,
       updatedAt: string,
       expectedUpdatedAt?: string,
-    ): Promise<Note | null> {
+      expectedKeyVersion?: number,
+    ): Promise<SealedNote | null> {
       const owner = await ownerOf(id);
       if (!owner) return null;
       if (owner.user_id !== userId) {
@@ -318,6 +332,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
           changes,
           updatedAt,
           expectedUpdatedAt,
+          expectedKeyVersion,
         );
         return written ? await repo.getById(id, userId) : null;
       }
@@ -334,10 +349,65 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         params.push(expectedUpdatedAt);
         where += ` AND updated_at = $${params.length}`;
       }
+      // And on the key the words were sealed under, for the same reason.
+      if (expectedKeyVersion !== undefined) {
+        params.push(expectedKeyVersion);
+        where += ` AND key_version = $${params.length}`;
+      }
       const sql = `UPDATE notes SET ${assignments.join(", ")} ${where}`;
       const result = await pool.query(sql, params);
       if ((result.rowCount ?? 0) === 0) return null;
       return await repo.getById(id, userId);
+    },
+
+    async rekey(
+      id,
+      ownerId,
+      rekeyed,
+      fromVersion,
+      updatedAt,
+      expectedUpdatedAt,
+      links,
+    ) {
+      const { columns, values } = noteUpdateColumns(rekeyed, "native");
+      const params = [
+        ...values,
+        updatedAt,
+        id,
+        ownerId,
+        fromVersion,
+        expectedUpdatedAt,
+      ];
+      const assignments = [...columns, "updated_at"].map(
+        (column, i) => `${column} = $${i + 1}`,
+      );
+      const at = columns.length + 2;
+      // The note, its feeds and its live links move to the new key together:
+      // a link left on the old key would stop opening, with nothing left to
+      // say so.
+      return inTransaction(pool, async (query) => {
+        const result = await query(
+          `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
+             reminder_key = ''
+           WHERE id = $${at} AND user_id = $${at + 1}
+             AND key_version = $${at + 2} AND updated_at = $${at + 3}`,
+          params,
+        );
+        if ((result.rowCount ?? 0) === 0) return false;
+        // Every feed's copy of the key is of the one before.
+        await query(
+          `UPDATE note_shares SET reminder_key = '' WHERE note_id = $1`,
+          [id],
+        );
+        for (const link of links) {
+          await query(
+            `UPDATE public_links SET wrapped_key = $1
+             WHERE token = $2 AND note_id = $3 AND mode = 'live'`,
+            [link.wrappedKey, link.token, id],
+          );
+        }
+        return true;
+      });
     },
 
     async delete(id: string, userId: string): Promise<boolean> {
@@ -346,16 +416,6 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         [id, userId],
       );
       return (result.rowCount ?? 0) > 0;
-    },
-
-    async search(
-      userId: string,
-      query: string,
-      options: ListNotesOptions,
-    ): Promise<NotePage> {
-      const like = searchPattern(query);
-      if (like === null) return { notes: [], nextCursor: null };
-      return page(userId, { like }, options);
     },
   };
 

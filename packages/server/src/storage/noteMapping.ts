@@ -1,15 +1,16 @@
 import type {
   AutoNoteSource,
-  LinkPreview,
-  Note,
   NoteReminder,
-  NoteUpdate,
+  SealedNote,
+  SealedNoteUpdate,
 } from "@manifesto/shared";
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { CIPHERTEXT_PREFIX, NoteColor, NoteFont } from "@manifesto/shared";
+import { AT_REST, atRest } from "./atRest.js";
 
 /**
  * The `notes` row as either driver returns it, and the mapping between it and
- * the `Note` the rest of the server deals in.
+ * the `SealedNote` the rest of the server deals in. A note's words are
+ * ciphertext in their columns: nothing here opens one.
  *
  * Both drivers store the same shape; the only real difference is that SQLite
  * has no boolean type, so its flags come back as 0/1 where Postgres returns
@@ -27,20 +28,28 @@ export interface NoteRow {
   user_id: string;
   title: string;
   content: string;
+  excerpt?: string;
   color: string;
   font: string;
+  wrapped_key?: string;
+  key_version?: number | string;
+  previous_keys?: string;
+  rekey_due?: number | string;
+  reminder_key?: string;
   pinned: RowBoolean;
   archived: RowBoolean;
   trashed: RowBoolean;
   trashed_at: string | null;
   position: number | string;
   tags: string;
-  images: string;
+  /** The attachment references `image_list` names, readable. */
+  images?: string;
+  /** The note's images, sealed. */
+  image_list?: string;
   link_previews: string;
   reminder: string | null;
   readonly: RowBoolean;
   source: string | null;
-  image_count?: number | string;
   created_at: string;
   updated_at: string;
 }
@@ -65,54 +74,84 @@ export function parseJson<T>(raw: string | null, fallback: T): T {
   }
 }
 
+/** A reminder as its column holds it, under the server key. One that does
+ * not open (the key it was under is gone) is no reminder. */
+export function storedReminder(
+  raw: string | null | undefined,
+): NoteReminder | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  return parseJson<NoteReminder | null>(
+    atRest.open(raw, AT_REST.reminder),
+    null,
+  );
+}
+
 /** `false !== 0` is true, so a driver's own flags cannot be read as numbers. */
 export function asBoolean(raw: RowBoolean): boolean {
   return raw === true || raw === 1;
 }
 
-export function rowToNote(row: NoteRow): Note {
-  const note: Note = {
+/**
+ * A sealed column as it goes out: a ciphertext, or empty. A share's own
+ * colour and tags start as the column defaults, which are not ciphertext and
+ * mean "never set"; nothing readable is ever sent where a ciphertext belongs.
+ */
+export function sealedColumn(raw: string | null | undefined): string {
+  return raw?.startsWith(CIPHERTEXT_PREFIX) ? raw : "";
+}
+
+/** The feed's copy of the note key, which is there only with a reminder. */
+export function setReminderKey(
+  note: SealedNote,
+  raw: string | null | undefined,
+): void {
+  const wrapped = note.reminder ? sealedColumn(raw) : "";
+  if (wrapped) note.reminderKey = wrapped;
+  else delete note.reminderKey;
+}
+
+export function rowToNote(row: NoteRow): SealedNote {
+  const note: SealedNote = {
     id: row.id,
-    title: row.title,
-    content: row.content,
-    color: parseColor(row.color),
-    font: parseFont(row.font),
+    key: sealedColumn(row.wrapped_key),
+    keyVersion: Number(row.key_version ?? 1),
+    title: sealedColumn(row.title),
+    content: sealedColumn(row.content),
+    excerpt: sealedColumn(row.excerpt),
+    font: sealedColumn(row.font),
+    images: sealedColumn(row.image_list),
+    linkPreviews: sealedColumn(row.link_previews),
+    color: sealedColumn(row.color),
+    tags: sealedColumn(row.tags),
     pinned: asBoolean(row.pinned),
     archived: asBoolean(row.archived),
     trashed: asBoolean(row.trashed),
     trashedAt: row.trashed_at,
     // Postgres hands back wide integer types as strings.
     position: Number(row.position),
-    tags: parseJson<string[]>(row.tags, []),
-    images: parseJson<string[]>(row.images, []),
-    linkPreviews: parseJson<LinkPreview[]>(row.link_previews, []),
-    reminder: parseJson<NoteReminder | null>(row.reminder, null),
+    reminder: storedReminder(row.reminder),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+  const previous = sealedColumn(row.previous_keys);
+  if (previous) note.previousKeys = previous;
+  if (Number(row.rekey_due ?? 0) === 1) note.rekeyDue = true;
+  setReminderKey(note, row.reminder_key);
   if (asBoolean(row.readonly)) note.readonly = true;
   const source = parseJson<AutoNoteSource | null>(row.source, null);
   if (source) note.source = source;
   return note;
 }
 
-/**
- * The note as a listing returns it: attachments left behind, with the count
- * standing in for them. `images` is empty rather than absent so the shape of a
- * `Note` never changes. What changes is whether the bytes are in it, which
- * `imageCount` is what tells you.
- */
-export function rowToListedNote(row: NoteRow): Note {
-  const note = rowToNote(row);
-  note.imageCount = Number(row.image_count ?? note.images.length);
-  note.images = [];
-  return note;
-}
-
 /** Every field of a note an update may touch, and its column. */
 const FIELD_TO_COLUMN = {
+  key: "wrapped_key",
+  keyVersion: "key_version",
+  previousKeys: "previous_keys",
+  reminderKey: "reminder_key",
   title: "title",
   content: "content",
+  excerpt: "excerpt",
   color: "color",
   font: "font",
   pinned: "pinned",
@@ -121,8 +160,10 @@ const FIELD_TO_COLUMN = {
   trashedAt: "trashed_at",
   position: "position",
   tags: "tags",
-  images: "images",
+  images: "image_list",
+  imageRefs: "images",
   linkPreviews: "link_previews",
+  previewRefs: "preview_refs",
   reminder: "reminder",
   readonly: "readonly",
   source: "source",
@@ -170,20 +211,22 @@ function toColumnValue(
     case "trashedAt":
       return (value as string | null | undefined) ?? null;
     case "reminder":
+      // When, and how it repeats: the server reads these to fire it, so
+      // they are under its own key and not the account's.
+      return value === null || value === undefined
+        ? null
+        : atRest.seal(JSON.stringify(value), AT_REST.reminder);
     case "source":
       return value === null || value === undefined
         ? null
         : JSON.stringify(value);
     case "position":
       return Number(value ?? 0);
-    case "tags":
-    case "images":
-    case "linkPreviews":
+    case "keyVersion":
+      return Number(value ?? 1);
+    case "imageRefs":
+    case "previewRefs":
       return JSON.stringify(value ?? []);
-    case "color":
-      return (value as string | undefined) ?? NoteColor.Default;
-    case "font":
-      return (value as string | undefined) ?? NoteFont.Default;
     default:
       return (value as string | null | undefined) ?? "";
   }
@@ -197,7 +240,7 @@ function toColumnValue(
  * cannot disagree with the column it counts.
  */
 export function noteUpdateColumns(
-  changes: NoteUpdate,
+  changes: SealedNoteUpdate & { previousKeys?: string },
   booleans: BooleanStyle,
 ): { columns: string[]; values: ColumnValue[] } {
   const columns: string[] = [];
@@ -212,9 +255,9 @@ export function noteUpdateColumns(
         booleans,
       ),
     );
-    if (field === "images") {
+    if (field === "imageRefs") {
       columns.push("image_count");
-      values.push(changes.images?.length ?? 0);
+      values.push(changes.imageRefs?.length ?? 0);
     }
   }
   return { columns, values };
@@ -236,7 +279,7 @@ export function noteInsertValues(
     input.id,
     input.userId,
     ...NOTE_FIELDS.map((field) => toColumnValue(field, data[field], booleans)),
-    (data.images as string[] | undefined)?.length ?? 0,
+    (data.imageRefs as string[] | undefined)?.length ?? 0,
     input.createdAt,
     input.updatedAt,
   ];
@@ -245,7 +288,7 @@ export function noteInsertValues(
 /**
  * The `LIKE` pattern for a search, or null when there is nothing left to
  * search for. Wildcards are stripped rather than escaped: a bare `%` would
- * otherwise match every note, and SQL `ESCAPE` is not available to us because
+ * otherwise match every row, and SQL `ESCAPE` is not available to us because
  * pg-mem (which the Postgres driver's tests run against) does not parse it.
  */
 export function searchPattern(query: string): string | null {

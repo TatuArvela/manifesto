@@ -48,7 +48,7 @@ export function createPostgresOAuthRepo(pool: PgPool): OAuthRepo {
     async createCode(code) {
       await pool.query(
         `INSERT INTO oauth_codes (${OAUTH_CODE_COLUMNS})
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           code.codeHash,
           code.clientId,
@@ -59,6 +59,7 @@ export function createPostgresOAuthRepo(pool: PgPool): OAuthRepo {
           JSON.stringify(code.scopes),
           code.grantExpiresAt,
           code.expiresAt,
+          code.wrappedKeys,
         ],
       );
     },

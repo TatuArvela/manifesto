@@ -48,7 +48,10 @@ export interface ServerSecretsRepo {
   get(name: string): Promise<string | null>;
   /**
    * Stores `value` unless the name already holds one, and answers with what
-   * it holds afterwards, so two processes starting at once agree on one.
+   * it holds afterwards, so two processes starting at once agree on one. A
+   * value that no longer opens under the server key counts as none and is
+   * replaced: answering with one that was not stored would have every
+   * process, and every start, use another.
    */
   setIfAbsent(name: string, value: string, now: string): Promise<string>;
 }

@@ -1,8 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
-import type {
-  InvitationsResponse,
-  NoteResponse,
-  ShareRole,
+import {
+  type InvitationsResponse,
+  type NoteResponse,
+  roleOf,
+  type SealedNote,
+  type ShareRole,
 } from "@manifesto/shared";
 import { Hono } from "hono";
 import { audit } from "../audit/audit.js";
@@ -15,7 +17,12 @@ import { HttpError } from "../middleware/error.js";
 import type { AccessChanges } from "../sharing/accessChanges.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { StorageDriver } from "../storage/types.js";
-import { shareCreateSchema, shareUpdateSchema } from "../validation/schemas.js";
+import {
+  heldKeySchema,
+  offeredKeySchema,
+  shareCreateSchema,
+  shareUpdateSchema,
+} from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
 
 export interface ShareRoutesDeps {
@@ -64,7 +71,7 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
   async function ownerView(noteId: string, userId: string) {
     const note = await storage.notes.getById(noteId, userId);
     if (!note) throw new HttpError(404, "Note not found");
-    const body: NoteResponse = { note };
+    const body: NoteResponse<SealedNote> = { note };
     return body;
   }
 
@@ -74,7 +81,7 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
     async (c) => {
       const { userId } = c.get("auth");
       const noteId = c.req.param("id") as string;
-      const { userId: recipientId, role } = c.req.valid("json");
+      const { userId: recipientId, role, key } = c.req.valid("json");
       await requireOwner(noteId, userId);
       const note = await storage.notes.getById(noteId, userId);
       if (!note) throw new HttpError(404, "Note not found");
@@ -94,11 +101,20 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
       }
       const recipient = await storage.users.findById(recipientId);
       if (!recipient) throw new HttpError(404, "User not found");
+      // Signed by whoever sends it, or the recipient's client would refuse
+      // it anyway; and for the key the note is under now.
+      if (
+        key &&
+        (key.signer !== userId || key.keyVersion !== note.keyVersion)
+      ) {
+        throw new HttpError(422, "key: Not a key of this note from you");
+      }
       const created = await storage.shares.create({
         noteId,
         userId: recipientId,
         role,
         createdAt: nowIso(),
+        offeredKey: key ?? null,
       });
       if (created === "exists") {
         // Someone who has the note through a team can be given it directly,
@@ -111,6 +127,7 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
           throw new HttpError(409, "The note is already shared with this user");
         }
         await storage.shares.setViaTeam(noteId, recipientId, null);
+        if (key) await storage.shares.offerKey(noteId, recipientId, key);
         if (existing.role !== role) {
           await storage.shares.setRole(noteId, recipientId, role);
           await announceRole(noteId, recipientId, existing.acceptedAt, role);
@@ -146,7 +163,6 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
           mailLocale(recipient.locale?.split("-")[0]),
           {
             owner: owner?.displayName || owner?.username || "",
-            title: note.title,
             link: deps.mail.appUrl,
           },
         );
@@ -184,6 +200,85 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
           detail: { from: before.role, to: role },
         });
         await noteEvents.changed(noteId);
+      }
+      return c.json(await ownerView(noteId, userId));
+    },
+  );
+
+  /**
+   * Hands someone on the note its key, wrapped to their public key and
+   * signed by the caller. Anyone who holds the note may: a share to a team
+   * reaches members the owner's client never wrapped for, and whoever of the
+   * note's holders is online first does it. The recipient's client decides
+   * whether to trust it, by the signature and by whether it opens the note.
+   * Only someone still waiting is handed one: a key they hold, or one they
+   * were offered and have not taken yet, is replaced by the owner alone, or
+   * any holder could put a key of their own making in its place.
+   */
+  notes.put(
+    "/:id/shares/:userId/key",
+    zValidator("json", offeredKeySchema, validatorHook),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const noteId = c.req.param("id") as string;
+      const recipientId = c.req.param("userId") as string;
+      const key = c.req.valid("json");
+      const note = await storage.notes.getById(noteId, userId);
+      // Only someone who holds the key can wrap it: the owner, or a
+      // recipient whose own copy is the one the note is under.
+      if (!note || note.key === "") throw new HttpError(404, "Note not found");
+      if (key.signer !== userId || key.keyVersion !== note.keyVersion) {
+        throw new HttpError(422, "Not a key of this note from you");
+      }
+      const ownerId = note.sharing?.owner.id;
+      if (roleOf(note) !== "owner" && ownerId !== undefined) {
+        // As the owner sees the note: an invitation is not among the
+        // members a recipient is shown.
+        const whole = await storage.notes.getById(noteId, ownerId);
+        const member = whole?.sharing?.members.find(
+          (m) => m.id === recipientId,
+        );
+        if (!member) throw new HttpError(404, "Share not found");
+        if (!member.waitingForKey) {
+          throw new HttpError(409, "They are not waiting for this note's key");
+        }
+      }
+      if (!(await storage.shares.offerKey(noteId, recipientId, key))) {
+        throw new HttpError(404, "Share not found");
+      }
+      const share = (await storage.shares.audience(noteId))?.shares.find(
+        (s) => s.userId === recipientId,
+      );
+      if (share?.acceptedAt === null) {
+        await noteEvents.invited(noteId, recipientId);
+      }
+      await noteEvents.changed(noteId);
+      return c.body(null, 204);
+    },
+  );
+
+  /**
+   * The note key as the caller now keeps it, after the note's key was
+   * replaced: opened from what they were offered, wrapped under their own
+   * notes key. Their own to write, like the rest of their share.
+   */
+  notes.put(
+    "/:id/held-key",
+    zValidator("json", heldKeySchema, validatorHook),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const noteId = c.req.param("id") as string;
+      const held = c.req.valid("json");
+      const note = await storage.notes.getById(noteId, userId);
+      if (!note) throw new HttpError(404, "Note not found");
+      if (roleOf(note) === "owner") {
+        throw new HttpError(409, "The owner's key is the note's own");
+      }
+      if (held.keyVersion !== note.keyVersion) {
+        throw new HttpError(409, "The note is under another key now");
+      }
+      if (!(await storage.shares.holdKey(noteId, userId, held))) {
+        throw new HttpError(404, "Note not found");
       }
       return c.json(await ownerView(noteId, userId));
     },
@@ -249,22 +344,35 @@ export function createInvitationRoutes(deps: InvitationRoutesDeps) {
     return c.json(body);
   });
 
-  invitations.post("/:noteId/accept", async (c) => {
-    const { userId } = c.get("auth");
-    const noteId = c.req.param("noteId") as string;
-    if (!(await storage.shares.accept(noteId, userId, nowIso()))) {
-      throw new HttpError(404, "Invitation not found");
-    }
-    const note = await storage.notes.getById(noteId, userId);
-    if (!note) throw new HttpError(404, "Invitation not found");
-    // The user's other tabs still show the invitation.
-    noteEvents.answered(noteId, userId);
-    await noteEvents.changed(noteId);
-    // Whoever is looking at the note right now shows up for them at once.
-    accessChanges.announce({ noteId, userIds: [userId], change: "gained" });
-    const body: NoteResponse = { note };
-    return c.json(body);
-  });
+  // Accepting keeps the note's key: the recipient's client opened what it
+  // was offered and sends it back wrapped under its own notes key. An
+  // invitation still waiting for a key cannot be accepted yet.
+  invitations.post(
+    "/:noteId/accept",
+    zValidator("json", heldKeySchema, validatorHook),
+    async (c) => {
+      const { userId } = c.get("auth");
+      const noteId = c.req.param("noteId") as string;
+      const held = c.req.valid("json");
+      const invitation = await storage.shares.getInvitation(noteId, userId);
+      if (!invitation) throw new HttpError(404, "Invitation not found");
+      if (held.keyVersion !== invitation.keyVersion) {
+        throw new HttpError(409, "The note is under another key now");
+      }
+      if (!(await storage.shares.accept(noteId, userId, nowIso(), held))) {
+        throw new HttpError(404, "Invitation not found");
+      }
+      const note = await storage.notes.getById(noteId, userId);
+      if (!note) throw new HttpError(404, "Invitation not found");
+      // The user's other tabs still show the invitation.
+      noteEvents.answered(noteId, userId);
+      await noteEvents.changed(noteId);
+      // Whoever is looking at the note right now shows up for them at once.
+      accessChanges.announce({ noteId, userIds: [userId], change: "gained" });
+      const body: NoteResponse<SealedNote> = { note };
+      return c.json(body);
+    },
+  );
 
   invitations.post("/:noteId/decline", async (c) => {
     const { userId } = c.get("auth");

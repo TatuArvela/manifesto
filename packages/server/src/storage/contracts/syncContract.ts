@@ -2,7 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { nowIso } from "../../lib/time.js";
 import type { StorageDriver } from "../types.js";
-import { claimed } from "./claimed.js";
+import { claimed, heldKey } from "./claimed.js";
 
 /**
  * What `GET /api/sync` reads, run against both drivers: which notes count as
@@ -91,13 +91,15 @@ export function describeSyncContract(
     });
 
     it("lists a note whose members changed, for everyone on it", async () => {
-      expect(await storage.shares.accept("shared", "alice", T2)).toBe(true);
+      expect(await storage.shares.accept("shared", "alice", T2, heldKey)).toBe(
+        true,
+      );
       expect(await changed("owner")).toEqual(["shared"]);
       expect(await changed("alice")).toEqual(["shared"]);
     });
 
     it("stamps a role change and a removal", async () => {
-      await storage.shares.accept("shared", "alice", T1);
+      await storage.shares.accept("shared", "alice", T1, heldKey);
       expect(await changed("owner")).toEqual([]);
 
       await storage.shares.setRole("shared", "alice", "view");
@@ -117,7 +119,7 @@ export function describeSyncContract(
     });
 
     it("stamps a share that expires from its recipient's trash", async () => {
-      await storage.shares.accept("shared", "alice", T1);
+      await storage.shares.accept("shared", "alice", T1, heldKey);
       await storage.notes.update(
         "shared",
         "alice",
@@ -136,7 +138,7 @@ export function describeSyncContract(
       expect(await ids("owner")).toEqual(["old", "shared"]);
       expect(await ids("alice")).toEqual([]);
 
-      await storage.shares.accept("shared", "alice", T1);
+      await storage.shares.accept("shared", "alice", T1, heldKey);
       expect(await ids("alice")).toEqual(["shared"]);
 
       await storage.notes.update("shared", "owner", { trashed: true }, T2);

@@ -58,7 +58,9 @@ export function NoteCardEditor({
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const { ydoc, awareness, synced, outdated } = useNoteYDoc(note.id);
+  const { ydoc, awareness, synced, outdated, unreadable } = useNoteYDoc(
+    note.id,
+  );
   // Withheld until the provider has synced; see NoteYDoc.synced. NoteEditor
   // keys the editor on this, so it remounts once collaboration is ready.
   const collab =
@@ -406,9 +408,27 @@ export function NoteCardEditor({
         // instead would write this build's reading of it over whatever newer
         // content it failed to understand, so the text waits for a reload.
         contentLocked={outdated}
-        notice={outdated && <OutdatedEditorNotice />}
+        notice={
+          outdated ? (
+            <OutdatedEditorNotice />
+          ) : (
+            unreadable > 0 && <UnopenedEditsNotice />
+          )
+        }
       />
     </>
+  );
+}
+
+/** Some of what was written to the note's document did not open here. */
+function UnopenedEditsNotice() {
+  return (
+    <div
+      role="status"
+      class="mb-2 rounded-lg bg-black/5 px-3 py-2 text-sm dark:bg-white/10"
+    >
+      {t("editor.unopenedEdits")}
+    </div>
   );
 }
 

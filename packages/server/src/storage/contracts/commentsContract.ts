@@ -18,6 +18,7 @@ function comment(overrides: Partial<StoredComment> = {}): StoredComment {
     noteId: "n1",
     authorId: "u1",
     body: "First",
+    keyVersion: 1,
     createdAt: T0,
     editedAt: null,
     ...overrides,
@@ -109,11 +110,12 @@ export function describeCommentsContract(
 
     it("changes a comment's text and says when", async () => {
       await storage.comments.create(comment(), 10);
-      expect(await storage.comments.setBody("c1", "Second", T2)).toBe(true);
+      // With the key it is now under, which may have been replaced since.
+      expect(await storage.comments.setBody("c1", "Second", 2, T2)).toBe(true);
       expect(await storage.comments.get("c1")).toEqual(
-        comment({ body: "Second", editedAt: T2 }),
+        comment({ body: "Second", keyVersion: 2, editedAt: T2 }),
       );
-      expect(await storage.comments.setBody("nope", "x", T2)).toBe(false);
+      expect(await storage.comments.setBody("nope", "x", 1, T2)).toBe(false);
     });
 
     it("deletes one comment, once", async () => {

@@ -53,7 +53,8 @@ describe("API tokens", () => {
       ...body,
     });
     expect(res.status).toBe(201);
-    return (await res.json()) as ApiTokenCreatedResponse;
+    const created = (await res.json()) as ApiTokenCreatedResponse;
+    return { ...created, secret: defined(created.secret) };
   }
 
   it("mints a token that reads and writes notes unless told otherwise", async () => {

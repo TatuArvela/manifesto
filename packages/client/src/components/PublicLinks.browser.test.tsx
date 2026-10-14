@@ -2,11 +2,22 @@ import {
   type Note,
   NoteColor,
   NoteFont,
+  newLinkKey,
   type PublicLink,
   type PublicNote,
+  sealSharedFields,
+  snapshotKey,
 } from "@manifesto/shared";
 import { render } from "preact";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { answerConfirmation } from "../state/confirm.js";
 import { notes } from "../state/notesStore.js";
 import { locale } from "../state/prefs.js";
@@ -23,15 +34,34 @@ import { PublicNotePage } from "./PublicNotePage.js";
 const SERVER = "http://server.test";
 const TOKEN = "AbCdEfGhIjKlMnOpQrStUv";
 
-const shown: PublicNote = {
-  title: "Recipe",
-  content: "**Flour** and water",
-  color: NoteColor.Yellow,
-  font: NoteFont.Default,
-  images: [],
-  linkPreviews: [],
-  updatedAt: "2026-04-01T00:00:00.000Z",
-};
+/** The key in the link's address, and the note as a snapshot link's server
+ * hands it over: sealed under a key derived from that one. The page has no
+ * account, so it opens this for real whatever the rest of this project hands
+ * through. */
+const LINK_KEY = newLinkKey();
+let shown: PublicNote;
+
+beforeAll(async () => {
+  const key = await snapshotKey(LINK_KEY);
+  if (!key) throw new Error("no snapshot key");
+  const sealed = await sealSharedFields(key, "n1", {
+    title: "Recipe",
+    content: "**Flour** and water",
+    font: NoteFont.Default,
+    images: [],
+    linkPreviews: [],
+  });
+  shown = {
+    id: "n1",
+    keyVersion: 1,
+    title: sealed.title ?? "",
+    content: sealed.content ?? "",
+    font: sealed.font ?? "",
+    images: sealed.images ?? "",
+    linkPreviews: sealed.linkPreviews ?? "",
+    updatedAt: "2026-04-01T00:00:00.000Z",
+  };
+});
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -51,6 +81,7 @@ function makeLink(overrides: Partial<PublicLink> = {}): PublicLink {
     viewCount: 3,
     lastViewedAt: null,
     createdAt: "2026-04-01T00:00:00.000Z",
+    sealedLinkKey: "",
     ...overrides,
   };
 }
@@ -66,6 +97,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   storageConnection.value = { serverUrl: SERVER, token: "tok" };
   toasts.value = [];
+  history.replaceState(history.state, "", `#k=${LINK_KEY}`);
 });
 
 afterEach(() => {
@@ -75,6 +107,7 @@ afterEach(() => {
   storageConnection.value = { serverUrl: null, token: null };
   publicLinksDialog.value = null;
   notes.value = [];
+  history.replaceState(history.state, "", location.pathname);
 });
 
 describe("public link addresses", () => {
@@ -88,7 +121,9 @@ describe("public link addresses", () => {
 
 describe("PublicNotePage", () => {
   it("shows the note, rendered and sanitized, and reads it only once", async () => {
-    fetchMock.mockResolvedValue(json({ note: shown, access: null }));
+    fetchMock.mockResolvedValue(
+      json({ note: shown, wrappedKey: null, access: null }),
+    );
     render(<PublicNotePage token={TOKEN} />, host);
     await vi.waitFor(() => {
       expect(host.querySelector("h1")?.textContent).toBe("Recipe");
@@ -104,7 +139,9 @@ describe("PublicNotePage", () => {
     fetchMock
       .mockResolvedValueOnce(json({ passwordRequired: true }, 401))
       .mockResolvedValueOnce(json({ error: "Wrong password" }, 403))
-      .mockResolvedValueOnce(json({ note: shown, access: "key" }));
+      .mockResolvedValueOnce(
+        json({ note: shown, wrappedKey: null, access: "key" }),
+      );
     render(<PublicNotePage token={TOKEN} />, host);
 
     const input = await vi.waitFor(() => {
@@ -143,6 +180,21 @@ describe("PublicNotePage", () => {
     expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body))).toEqual({
       password: "sesame",
     });
+  });
+
+  it("shows nothing without the key in the address, or with another link's", async () => {
+    for (const hash of ["", `#k=${newLinkKey()}`]) {
+      history.replaceState(history.state, "", `${location.pathname}${hash}`);
+      fetchMock.mockResolvedValue(
+        json({ note: shown, wrappedKey: null, access: null }),
+      );
+      render(<PublicNotePage token={TOKEN} />, host);
+      await vi.waitFor(() => {
+        expect(host.textContent).toContain("does not open a note");
+      });
+      expect(host.textContent).not.toContain("Recipe");
+      render(null, host);
+    }
   });
 
   it("says the same thing however a link fails", async () => {

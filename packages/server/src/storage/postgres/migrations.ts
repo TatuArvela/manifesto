@@ -1,6 +1,8 @@
 import {
+  BEFORE_ENCRYPTION,
   LEDGER_TABLE_SQL,
   type Migration,
+  MigrationRefusedError,
   pendingMigrations,
 } from "../migrations.js";
 import type { PgClient, PgPool } from "./database.js";
@@ -397,6 +399,131 @@ CREATE TABLE server_secrets (
 );
 `;
 
+/** See the SQLite copy. */
+const ACCOUNT_KEYS = `
+CREATE TABLE account_keys (
+  user_id                      TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  version                      INTEGER NOT NULL,
+  wrapped_by_secret            TEXT NOT NULL,
+  wrapped_by_recovery          TEXT NOT NULL,
+  recovery_verifier_hash       TEXT NOT NULL,
+  exchange_public_key          TEXT NOT NULL,
+  signing_public_key           TEXT NOT NULL,
+  wrapped_exchange_private_key TEXT NOT NULL,
+  wrapped_signing_private_key  TEXT NOT NULL,
+  created_at                   TEXT NOT NULL,
+  updated_at                   TEXT NOT NULL
+);
+DROP TABLE totp_recovery_codes;
+`;
+
+/**
+ * Notes sealed in the browser. The columns that held a note's words now hold
+ * ciphertext, and beside them go the note key wrapped for its owner (and, in
+ * `note_shares`, for each recipient), the version of that key, the excerpt,
+ * and the sealed list of images. `images` keeps the attachment references
+ * that list names and `preview_refs` those of the link previews, since the
+ * server can read neither any more and still has to keep the attachments.
+ * Preferences written before were readable, so they go.
+ */
+const SEALED_NOTES = `
+ALTER TABLE notes ADD COLUMN excerpt TEXT NOT NULL DEFAULT '';
+ALTER TABLE notes ADD COLUMN image_list TEXT NOT NULL DEFAULT '';
+ALTER TABLE notes ADD COLUMN preview_refs TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE notes ADD COLUMN wrapped_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE notes ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE note_shares ADD COLUMN wrapped_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE note_versions ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
+DELETE FROM user_prefs;
+`;
+
+/**
+ * A note key on its way to someone the note is shared with: wrapped to their
+ * public key and signed (`offered_key`, as JSON), until their client keeps it
+ * under their own notes key (`wrapped_key`, at `wrapped_key_version`).
+ */
+const SHARE_KEYS = `
+ALTER TABLE note_shares ADD COLUMN offered_key TEXT;
+ALTER TABLE note_shares ADD COLUMN wrapped_key_version INTEGER NOT NULL DEFAULT 0;
+`;
+
+/** A comment's text is sealed under its note's key; this is which one. */
+const COMMENT_KEYS = `
+ALTER TABLE note_comments ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
+`;
+
+/**
+ * The keys a token carries, wrapped under a key derived from its secret, so
+ * the server can open them only while a request presents the token.
+ */
+const TOKEN_KEYS = `
+ALTER TABLE api_tokens ADD COLUMN wrapped_keys TEXT;
+`;
+
+/**
+ * A public link's keys, neither of which the server can use: the note key
+ * wrapped by the link key (a live link), and the link key sealed for its
+ * owner to copy the address again.
+ */
+const LINK_KEYS = `
+ALTER TABLE public_links ADD COLUMN wrapped_key TEXT;
+ALTER TABLE public_links ADD COLUMN sealed_link_key TEXT NOT NULL DEFAULT '';
+`;
+
+/**
+ * Replacing a note's key: the keys it was under before, sealed under the one
+ * it is under now, and whether its owner's app is to replace it because
+ * someone who held it no longer holds the note.
+ */
+const NOTE_REKEY = `
+ALTER TABLE notes ADD COLUMN previous_keys TEXT NOT NULL DEFAULT '';
+ALTER TABLE notes ADD COLUMN rekey_due INTEGER NOT NULL DEFAULT 0;
+`;
+
+/**
+ * The public keys an account has seen of the people it shares with, each
+ * sealed under that account's own key: the server keeps the list and reads
+ * none of it.
+ */
+const SEEN_KEYS = `
+CREATE TABLE seen_keys (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  peer_id    TEXT NOT NULL,
+  sealed     TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, peer_id)
+);
+`;
+
+/**
+ * A note's key as a calendar feed opens it: wrapped under its reader's
+ * reminder key while the note has a reminder. The owner's copy is on the
+ * note and a recipient's on their share, like the reminder itself.
+ */
+const REMINDER_KEYS = `
+ALTER TABLE notes ADD COLUMN reminder_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE note_shares ADD COLUMN reminder_key TEXT NOT NULL DEFAULT '';
+`;
+
+/**
+ * The keys an assistant's sign-in carries from the consent page to its
+ * tokens: wrapped under the code until it is traded in, and then under the
+ * refresh token beside the copy under the access token.
+ */
+const OAUTH_KEYS = `
+ALTER TABLE oauth_codes ADD COLUMN wrapped_keys TEXT;
+ALTER TABLE api_tokens ADD COLUMN refresh_wrapped_keys TEXT;
+`;
+
+/**
+ * The key of an image a token uploaded, wrapped under its uploader's notes
+ * key until a note names the image: the server keeps nothing between the
+ * upload and the note that follows, so it is kept here, unreadable.
+ */
+const ATTACHMENT_KEYS = `
+ALTER TABLE attachments ADD COLUMN wrapped_key TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -424,6 +551,20 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0024-sign-in-links", sql: SIGN_IN_LINKS },
   { id: "0025-note-comments", sql: NOTE_COMMENTS },
   { id: "0026-web-push", sql: WEB_PUSH },
+  // Refused on the first step of encryption, so a database that is turned
+  // away is still the one the older version left. The second keeps the
+  // refusal for a database an earlier build stopped in between.
+  { id: "0027-account-keys", sql: ACCOUNT_KEYS, refuseIf: BEFORE_ENCRYPTION },
+  { id: "0028-sealed-notes", sql: SEALED_NOTES, refuseIf: BEFORE_ENCRYPTION },
+  { id: "0029-share-keys", sql: SHARE_KEYS },
+  { id: "0030-comment-keys", sql: COMMENT_KEYS },
+  { id: "0031-token-keys", sql: TOKEN_KEYS },
+  { id: "0032-link-keys", sql: LINK_KEYS },
+  { id: "0033-note-rekey", sql: NOTE_REKEY },
+  { id: "0034-seen-keys", sql: SEEN_KEYS },
+  { id: "0035-reminder-keys", sql: REMINDER_KEYS },
+  { id: "0036-oauth-keys", sql: OAUTH_KEYS },
+  { id: "0037-attachment-keys", sql: ATTACHMENT_KEYS },
 ];
 
 /**
@@ -496,6 +637,12 @@ export async function runMigrations(
           [migration.id],
         );
         if (done.rows.length > 0) return;
+        if (
+          migration.refuseIf &&
+          (await client.query(migration.refuseIf.sql)).rows.length > 0
+        ) {
+          throw new MigrationRefusedError(migration.refuseIf.message);
+        }
         await client.query(migration.sql);
         await client.query(
           `INSERT INTO schema_migrations (id, applied_at) VALUES ($1, $2)`,

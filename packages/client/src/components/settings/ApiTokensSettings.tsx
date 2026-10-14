@@ -153,7 +153,7 @@ export function ApiTokensSettings() {
       );
       return;
     }
-    setSecret(result.created.secret);
+    setSecret(result.created.secret ?? null);
     setSecretKind(kind);
     setName("");
     setPassword("");
@@ -195,6 +195,9 @@ export function ApiTokensSettings() {
     <div class="space-y-4">
       <p class="text-sm text-neutral-600 dark:text-neutral-300">
         {t("tokens.hint", { server: SERVER_ORIGIN ?? "" })}
+      </p>
+      <p class="text-sm text-neutral-600 dark:text-neutral-300">
+        {t("tokens.keyWarning")}
       </p>
 
       {secret && (

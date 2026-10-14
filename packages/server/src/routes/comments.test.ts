@@ -13,6 +13,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ct } from "../storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
@@ -289,6 +290,81 @@ describe("comments beside a shared note", () => {
     expect(await rig.storage.comments.get(comment.id)).toBeNull();
   });
 
+  it("stores a comment sealed, under the id its writer chose, and refuses a readable one", async () => {
+    const send = (body: object) =>
+      rig.rawRequest(path(), {
+        method: "POST",
+        headers: authHeaders(owner.token),
+        body: JSON.stringify(body),
+      });
+    const sealed = { id: "c-chosen", keyVersion: 1, body: ct("Hello") };
+    expect((await send(sealed)).status).toBe(201);
+    const [stored] = await rig.storage.comments.listByNote(noteId);
+    expect(stored).toMatchObject(sealed);
+    // The id is what the text is bound to, so it cannot be had twice.
+    expect((await send(sealed)).status).toBe(409);
+    expect((await send({ ...sealed, id: "c2", body: "Hello" })).status).toBe(
+      422,
+    );
+    expect((await send({ id: "c3", body: ct("x") })).status).toBe(422);
+  });
+
+  it("lets a token that carries keys read and write comments in plain words, sealed at rest", async () => {
+    const minted = await call(owner, "POST", "/api/tokens", {
+      name: "Script",
+      password: "test-pass-12",
+    });
+    expect(minted.status).toBe(201);
+    const script: Account = {
+      token: ((await minted.json()) as { secret: string }).secret,
+      userId: owner.userId,
+    };
+    // A note the token wrote, so it is sealed under keys the token opens.
+    const made = await call(script, "POST", "/api/notes", baseNote);
+    const own = ((await made.json()) as { note: Note }).note.id;
+    const at = (commentId?: string) =>
+      `/api/notes/${own}/comments${commentId ? `/${commentId}` : ""}`;
+
+    const posted = await call(script, "POST", at(), { body: "  Booked.  " });
+    expect(posted.status).toBe(201);
+    const { comment } = (await posted.json()) as NoteCommentResponse;
+    expect(comment).toMatchObject({ body: "Booked.", keyVersion: 1 });
+    // What is stored is not the words.
+    const [stored] = await rig.storage.comments.listByNote(own);
+    expect(stored?.body).toMatch(/^e1\./);
+    expect(stored?.body).not.toContain("Booked");
+
+    const listed = (await (
+      await call(script, "GET", at())
+    ).json()) as NoteCommentsResponse;
+    expect(listed.comments.map((c) => c.body)).toEqual(["Booked."]);
+
+    // The same words again are no edit; other words are.
+    const same = await call(script, "PUT", at(comment.id), { body: "Booked." });
+    expect(((await same.json()) as NoteCommentResponse).comment.editedAt).toBe(
+      null,
+    );
+    const changed = await call(script, "PUT", at(comment.id), {
+      body: "Booked for two.",
+    });
+    const edited = ((await changed.json()) as NoteCommentResponse).comment;
+    expect(edited.body).toBe("Booked for two.");
+    expect(edited.editedAt).not.toBeNull();
+
+    expect((await call(script, "POST", at(), { body: "   " })).status).toBe(
+      422,
+    );
+    expect(
+      (
+        await call(script, "POST", at(), {
+          body: "x".repeat(MAX_COMMENT_LENGTH + 1),
+        })
+      ).status,
+    ).toBe(422);
+    // A note sealed with keys the token does not hold is not its to read.
+    expect((await call(script, "GET", path())).status).toBe(409);
+  });
+
   it("holds only so many comments on one note", async () => {
     for (let i = 0; i < MAX_COMMENTS_PER_NOTE; i++) {
       await rig.storage.comments.create(
@@ -297,6 +373,7 @@ describe("comments beside a shared note", () => {
           noteId,
           authorId: owner.userId,
           body: "x",
+          keyVersion: 1,
           createdAt: "2026-04-01T00:00:00.000Z",
           editedAt: null,
         },

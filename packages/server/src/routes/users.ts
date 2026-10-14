@@ -1,7 +1,12 @@
-import type { DirectoryUser, UserLookupResponse } from "@manifesto/shared";
+import type {
+  AccountPublicKeysResponse,
+  DirectoryUser,
+  UserLookupResponse,
+} from "@manifesto/shared";
 import { Hono } from "hono";
 import type { ServerConfig } from "../config.js";
 import type { AuthContext } from "../middleware/authBearer.js";
+import { HttpError } from "../middleware/error.js";
 import type { StorageDriver, User } from "../storage/types.js";
 
 interface UsersDeps {
@@ -65,6 +70,27 @@ export function createUsersRoutes(deps: UsersDeps) {
     );
     const body: UserLookupResponse = {
       users: found.map((user) => toDirectoryUser(user, false)),
+    };
+    return c.json(body);
+  });
+
+  /**
+   * An account's public keys, for wrapping a note key to and for checking
+   * what it signed. Public by nature, so any signed-in account may ask, by
+   * id. `404` for an account that has not been set up yet, which then has
+   * nothing to wrap to.
+   */
+  users.get("/:id/keys", async (c) => {
+    const id = c.req.param("id");
+    const keys = await deps.storage.accountKeys.get(id);
+    if (!keys) throw new HttpError(404, "This account has no keys yet");
+    const body: AccountPublicKeysResponse = {
+      userId: id,
+      version: keys.version,
+      publicKeys: {
+        exchange: keys.exchangePublicKey,
+        signing: keys.signingPublicKey,
+      },
     };
     return c.json(body);
   });

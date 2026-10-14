@@ -1,9 +1,4 @@
-import {
-  createHmac,
-  randomBytes,
-  randomInt,
-  timingSafeEqual,
-} from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 /**
  * Time-based one-time passwords (RFC 6238 over RFC 4226), the six-digit codes
@@ -85,6 +80,8 @@ export function verifyTotp(
   const digits = code.replace(/\s/g, "");
   if (!/^\d{6}$/.test(digits)) return null;
   const key = base32Decode(secret);
+  // No secret is not a secret: its codes are anyone's to work out.
+  if (key.length === 0) return null;
   const now = totpStep(nowMs);
   for (let step = now - WINDOW; step <= now + WINDOW; step++) {
     const expected = Buffer.from(hotp(key, step));
@@ -108,28 +105,4 @@ export function otpauthUri(
     period: String(TOTP_STEP_SECONDS),
   });
   return `otpauth://totp/${label}?${params}`;
-}
-
-/**
- * One-time recovery codes, for when the authenticator is lost: ten groups of
- * four, from an alphabet with no look-alike characters. Stored hashed.
- */
-const RECOVERY_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
-
-export function newRecoveryCodes(count = 10): string[] {
-  return Array.from({ length: count }, () => {
-    // `randomInt` rejects rather than folds, so every character is equally
-    // likely: 256 is not a multiple of the alphabet's 31.
-    const chars = Array.from(
-      { length: 8 },
-      () => RECOVERY_ALPHABET[randomInt(RECOVERY_ALPHABET.length)],
-    );
-    return `${chars.slice(0, 4).join("")}-${chars.slice(4).join("")}`;
-  });
-}
-
-/** A recovery code as typed: case and separators do not matter. */
-export function normalizeRecoveryCode(code: string): string {
-  const bare = code.toLowerCase().replace(/[^a-z0-9]/g, "");
-  return bare.length === 8 ? `${bare.slice(0, 4)}-${bare.slice(4)}` : bare;
 }

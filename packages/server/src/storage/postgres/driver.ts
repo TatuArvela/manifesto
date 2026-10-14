@@ -1,5 +1,6 @@
 import type { PostgresConfig } from "../../config.js";
 import type { StorageDriver } from "../types.js";
+import { createPostgresAccountKeysRepo } from "./accountKeysRepo.js";
 import { createPostgresApiTokensRepo } from "./apiTokensRepo.js";
 import { createPostgresAttachmentsRepo } from "./attachmentsRepo.js";
 import { createPostgresAuditRepo } from "./auditRepo.js";
@@ -70,6 +71,7 @@ export async function createPostgresStorage(
     teams: createPostgresTeamsRepo(pool),
     twoFactor: createPostgresTwoFactorRepo(pool),
     passkeys: createPostgresPasskeysRepo(pool),
+    accountKeys: createPostgresAccountKeysRepo(pool),
     prefs: createPostgresPrefsRepo(pool),
     passwordResets: createPostgresMailedLinksRepo(pool, "password_resets"),
     signInLinks: createPostgresMailedLinksRepo(pool, "sign_in_links"),

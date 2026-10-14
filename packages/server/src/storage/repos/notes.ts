@@ -1,9 +1,9 @@
 import type {
-  LinkPreview,
-  Note,
-  NoteCreate,
-  NoteUpdate,
-  NoteVersion,
+  NoteRekeyRequest,
+  SealedNote,
+  SealedNoteCreate,
+  SealedNoteUpdate,
+  SealedNoteVersion,
   ShareRole,
 } from "@manifesto/shared";
 
@@ -20,22 +20,23 @@ declare const claimed: unique symbol;
  */
 export type ClaimedImages = string[] & { readonly [claimed]: "images" };
 
-/** The same for the thumbnails and favicons of a note's link previews,
- * which `claimPreviewImages` makes. */
-export type ClaimedPreviews = LinkPreview[] & {
-  readonly [claimed]: "previews";
+/** A new note as storage takes it: the attachments it names claimed. */
+export type StoredNoteCreate = Omit<
+  SealedNoteCreate,
+  "id" | "imageRefs" | "previewRefs"
+> & {
+  imageRefs: ClaimedImages;
+  previewRefs: ClaimedImages;
 };
 
-/** A new note as storage takes it: its images claimed. */
-export type StoredNoteCreate = Omit<NoteCreate, "images" | "linkPreviews"> & {
-  images: ClaimedImages;
-  linkPreviews: ClaimedPreviews;
-};
-
-/** A change to a note as storage takes it: any images it sets, claimed. */
-export type StoredNoteUpdate = Omit<NoteUpdate, "images" | "linkPreviews"> & {
-  images?: ClaimedImages;
-  linkPreviews?: ClaimedPreviews;
+/** A change to a note as storage takes it: any attachments it names,
+ * claimed. */
+export type StoredNoteUpdate = Omit<
+  SealedNoteUpdate,
+  "imageRefs" | "previewRefs"
+> & {
+  imageRefs?: ClaimedImages;
+  previewRefs?: ClaimedImages;
 };
 
 export interface InsertNoteInput {
@@ -48,12 +49,7 @@ export interface InsertNoteInput {
 
 /** One page of a listing, plus the cursor that reaches the next one. */
 export interface NotePage {
-  /**
-   * Attachments are stripped: each note carries `imageCount` and an empty
-   * `images`. A listing exists to say what notes there are, and sending every
-   * attachment of every note is what made that answer unbounded.
-   */
-  notes: Note[];
+  notes: SealedNote[];
   nextCursor: string | null;
 }
 
@@ -93,13 +89,18 @@ export class NoteAccessError extends Error {
  * position, tags and reminder in place of the owner's, and every note that has
  * members carries `sharing`.
  */
+/** A note's shared fields under a new key; see `NotesRepo.rekey`. */
+export type RekeyedNote = Omit<NoteRekeyRequest, "links">;
+
+/** A live public link's copy of the new key, wrapped by its link key. */
+export type RewrappedLink = NonNullable<NoteRekeyRequest["links"]>[number];
+
 export interface NotesRepo {
-  /** One page of the notes the user can see, newest first, without
-   * attachments. */
+  /** One page of the notes the user can see, newest first. */
   listByUser(userId: string, options: ListNotesOptions): Promise<NotePage>;
   /**
    * One page of the notes the user can see whose row or members changed after
-   * `since` (an ISO timestamp), newest first, without attachments. A shared
+   * `since` (an ISO timestamp), newest first. A shared
    * note's personal fields need no column of their own: a recipient's write
    * stamps the note's `updated_at` like any other.
    */
@@ -110,13 +111,18 @@ export interface NotesRepo {
   ): Promise<NotePage>;
   /** The ids of every note the user can see, in no particular order. */
   visibleIds(userId: string): Promise<string[]>;
-  /** A single note the user can see, attachments and all. */
-  getById(id: string, userId: string): Promise<Note | null>;
+  /** A single note the user can see. */
+  getById(id: string, userId: string): Promise<SealedNote | null>;
   /** The user's role on a note they can see, or null. */
   access(id: string, userId: string): Promise<NoteAccess | null>;
   /** Whether any note, anyone's, has this id. */
   exists(id: string): Promise<boolean>;
-  insert(input: InsertNoteInput): Promise<Note>;
+  /**
+   * The ids of the attachments a note names, in its images and its link
+   * previews: the server's own record, which no reader is sent.
+   */
+  attachmentIds(id: string): Promise<string[]>;
+  insert(input: InsertNoteInput): Promise<SealedNote>;
   /**
    * Update a note, optionally constrained by the current `updated_at` for
    * optimistic concurrency. Returns null when the user cannot see the note
@@ -128,6 +134,10 @@ export interface NotesRepo {
    * stamp the note's `updated_at` either way, so everyone holds one
    * concurrency token. Throws `NoteAccessError` when the role does not allow
    * a field.
+   *
+   * `expectedKeyVersion` holds the write to the key its words were sealed
+   * under, in the same statement: null as well when the note has left that
+   * key, so a write that raced a replacement stores nothing nobody can open.
    */
   update(
     id: string,
@@ -135,16 +145,30 @@ export interface NotesRepo {
     changes: StoredNoteUpdate,
     updatedAt: string,
     expectedUpdatedAt?: string,
-  ): Promise<Note | null>;
+    expectedKeyVersion?: number,
+  ): Promise<SealedNote | null>;
+  /**
+   * Puts the owner's note under a new key: its sealed fields, the owner's
+   * wrapped copy and the keys before it, all at once, and only while the
+   * note is still under `fromVersion` and as it was at `expectedUpdatedAt`:
+   * the fields were sealed again from a read, and a write since then is not
+   * in them. Each live link in `links` gets its copy of the new key in the
+   * same write, so the note never moves without them; a link named that is
+   * gone or not live is passed over. Everyone else's copy of the key is then
+   * behind, and they wait for the new one. False when the note is not this
+   * owner's, its key has moved on, or it changed since that read.
+   */
+  rekey(
+    id: string,
+    ownerId: string,
+    rekeyed: RekeyedNote,
+    fromVersion: number,
+    updatedAt: string,
+    expectedUpdatedAt: string,
+    links: readonly RewrappedLink[],
+  ): Promise<boolean>;
   /** Owner only. The note's shares go with it. */
   delete(id: string, userId: string): Promise<boolean>;
-  /** One page of matches among the notes the user can see, newest first,
-   * without attachments. */
-  search(
-    userId: string,
-    query: string,
-    options: ListNotesOptions,
-  ): Promise<NotePage>;
 }
 
 /**
@@ -177,6 +201,11 @@ export interface AttachmentMeta {
   contentType: string;
   size: number;
   createdAt: string;
+  /**
+   * For an image a token uploaded: its key, wrapped under the uploader's
+   * notes key, until a note names the image. Null for one the app sealed.
+   */
+  wrappedKey: string | null;
 }
 
 export interface StoredAttachment extends AttachmentMeta {
@@ -190,7 +219,11 @@ export interface StoredAttachment extends AttachmentMeta {
  * conflict retry or a stale tab does, never stores it twice.
  */
 export interface AttachmentsRepo {
-  put(input: Omit<StoredAttachment, "size">): Promise<AttachmentMeta>;
+  put(
+    input: Omit<StoredAttachment, "size" | "wrappedKey"> & {
+      wrappedKey?: string | null;
+    },
+  ): Promise<AttachmentMeta>;
   get(id: string): Promise<StoredAttachment | null>;
   meta(id: string): Promise<AttachmentMeta | null>;
   /**
@@ -208,19 +241,22 @@ export interface AttachmentsRepo {
 }
 
 /**
- * A note's earlier title and content (connected mode's version history). The
- * repo keeps each note to `MAX_NOTE_VERSIONS` and `NOTE_VERSION_MAX_AGE_DAYS`
- * as versions are added; a deleted note takes its versions with it.
+ * A note's earlier title and content (connected mode's version history),
+ * sealed like the note. The repo keeps each note to `MAX_NOTE_VERSIONS` and
+ * `NOTE_VERSION_MAX_AGE_DAYS` as versions are added; a deleted note takes its
+ * versions with it.
  */
 export interface VersionsRepo {
   /** Newest first. */
-  list(noteId: string): Promise<NoteVersion[]>;
+  list(noteId: string): Promise<SealedNoteVersion[]>;
+  /** False when a version already has this id, which changes nothing. */
   add(input: {
     id: string;
     noteId: string;
     authorId: string;
+    keyVersion: number;
     title: string;
     content: string;
     createdAt: string;
-  }): Promise<void>;
+  }): Promise<boolean>;
 }

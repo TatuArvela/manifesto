@@ -41,15 +41,14 @@ describe("feature registry", () => {
         spec.default === "on",
       );
     }
-    expect(toggles.adminExport).toBe(false);
   });
 
   it("reads each variable", () => {
-    const toggles = load({ SHARING: "off", CALENDAR: "0", ADMIN_EXPORT: "on" });
+    const toggles = load({ SHARING: "off", CALENDAR: "0", MCP: "on" });
     expect(toggles).toMatchObject({
       sharing: false,
       calendar: false,
-      adminExport: true,
+      mcp: true,
     });
   });
 
@@ -83,7 +82,6 @@ describe("feature registry", () => {
     expect(cfg.passkeys).toBe(false);
     expect(cfg.linkPreviews).toBe(true);
     expect(cfg.mcp).toBe(true);
-    expect(cfg.adminExport).toBe(false);
   });
 
   it("is listed where a host looks for it", () => {

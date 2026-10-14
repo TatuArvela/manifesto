@@ -6,6 +6,7 @@ import type { ServerConfig } from "../config.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
 import type { Broadcaster } from "../ws/broadcaster.js";
+import { sealingClient } from "./sealingClient.js";
 
 export const TEST_CONFIG: ServerConfig = {
   port: 0,
@@ -42,11 +43,14 @@ export const TEST_CONFIG: ServerConfig = {
   mail: null,
   backup: null,
   metricsToken: null,
+  // A key of the tests' own, so nothing is written beside a database.
+  dataEncryptionKey: "dGVzdC1zZXJ2ZXIta2V5LXRlc3Qtc2VydmVyLWtleS0",
+  dataEncryptionKeyPrevious: null,
+  dataKeyFile: null,
   metricsPort: null,
   metricsHost: "127.0.0.1",
   clientDir: null,
   auditRetentionDays: 180,
-  adminExport: false,
   // Off: no test should reach GitHub.
   updateCheckRepo: null,
   userLookup: "search",
@@ -72,7 +76,8 @@ export async function bootTestAppWith(
     authProvider,
     broadcaster,
     app,
-    request: async (input, init) => app.request(input, init),
+    request: sealingClient(async (input, init) => app.request(input, init)),
+    rawRequest: async (input, init) => app.request(input, init),
     close: async () => storage.close(),
   };
 }
@@ -83,7 +88,14 @@ export interface TestRig {
   authProvider: AuthProvider;
   broadcaster: Broadcaster;
   app: Hono;
+  /**
+   * A request as the app makes it: a note in it is sealed on the way out and
+   * what comes back is opened (`sealingClient`), so a test speaks of a
+   * note's words as its user does.
+   */
   request: (input: string, init?: RequestInit) => Promise<Response>;
+  /** The request exactly as given, for what the server does with it. */
+  rawRequest: (input: string, init?: RequestInit) => Promise<Response>;
   close: () => Promise<void>;
 }
 
@@ -100,7 +112,8 @@ export async function bootTestApp(): Promise<TestRig> {
     authProvider,
     broadcaster,
     app,
-    request: async (input, init) => app.request(input, init),
+    request: sealingClient(async (input, init) => app.request(input, init)),
+    rawRequest: async (input, init) => app.request(input, init),
     close: async () => storage.close(),
   };
 }

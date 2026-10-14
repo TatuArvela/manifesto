@@ -1,4 +1,4 @@
-import type { Note, WebSocketEvent } from "@manifesto/shared";
+import type { SealedNote, WebSocketEvent } from "@manifesto/shared";
 import type {
   NoteAudience,
   NoteShare,
@@ -20,7 +20,7 @@ import type { AccessChanges } from "./accessChanges.js";
  */
 export interface NoteEvents {
   /** A new note. Only its owner holds it yet. */
-  created(note: Note, ownerId: string): void;
+  created(note: SealedNote, ownerId: string): void;
   /**
    * A note changed. Everyone who can see it gets their copy, and everyone who
    * has accepted it but can no longer see it (the owner trashed it) is told it

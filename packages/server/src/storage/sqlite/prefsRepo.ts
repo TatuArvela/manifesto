@@ -9,6 +9,7 @@ export function createSqlitePrefsRepo(db: SqliteDB): PrefsRepo {
      ON CONFLICT (user_id) DO UPDATE SET prefs = excluded.prefs,
        updated_at = excluded.updated_at`,
   );
+  const clearStmt = db.prepare(`DELETE FROM user_prefs WHERE user_id = ?`);
   const read = (userId: string) =>
     parsePrefs(
       (getStmt.get(userId) as { prefs: string } | undefined)?.prefs ?? null,
@@ -34,6 +35,9 @@ export function createSqlitePrefsRepo(db: SqliteDB): PrefsRepo {
     },
     async merge(userId, patch, at, maxBytes) {
       return merge(userId, patch, at, maxBytes);
+    },
+    async clear(userId) {
+      clearStmt.run(userId);
     },
   };
 }

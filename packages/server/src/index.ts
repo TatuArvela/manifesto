@@ -19,12 +19,25 @@ import { logger } from "./lib/logger.js";
 import { createMetricsApp } from "./lib/metricsServer.js";
 import { createShutdown } from "./lib/shutdown.js";
 import { createStorage } from "./storage/index.js";
+import { MigrationRefusedError } from "./storage/migrations.js";
+import { moveToCurrentKey } from "./storage/serverKey.js";
 import { VERSION } from "./version.js";
 import { attachAppSocket } from "./ws/appSocket.js";
 import { attachYjsSocket } from "./ws/yjsSocket.js";
 
 const cfg = loadConfig();
-const storage = await createStorage(cfg);
+const storage = await createStorage(cfg).catch((err: unknown) => {
+  // A database this version will not run on: said plainly, with no stack,
+  // since nothing is wrong with the server.
+  if (err instanceof MigrationRefusedError) {
+    logger.error(err.message);
+    process.exit(1);
+  }
+  throw err;
+});
+// What the server stores for itself goes under its current key: a value
+// from before it had one, or under the key before, is rewritten.
+await moveToCurrentKey(storage, cfg.dataEncryptionKeyPrevious !== null);
 // Before the server listens, so no request can reach a server nobody can
 // administer.
 const initialAdmin = await ensureInitialAdmin(storage, cfg);

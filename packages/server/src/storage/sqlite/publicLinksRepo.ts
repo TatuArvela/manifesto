@@ -10,7 +10,8 @@ export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {
   const insertStmt = db.prepare(
     `INSERT INTO public_links (${PUBLIC_LINK_COLUMNS})
      VALUES (@token, @noteId, @ownerId, @mode, @snapshot, @passwordHash,
-             @expiresAt, @maxViews, @viewCount, @lastViewedAt, @createdAt)`,
+             @expiresAt, @maxViews, @viewCount, @lastViewedAt, @createdAt,
+             @wrappedKey, @sealedLinkKey)`,
   );
   const byNoteStmt = db.prepare(
     `SELECT ${PUBLIC_LINK_COLUMNS} FROM public_links WHERE note_id = ?
@@ -18,6 +19,11 @@ export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {
   );
   const getStmt = db.prepare(
     `SELECT ${PUBLIC_LINK_COLUMNS} FROM public_links WHERE token = ?`,
+  );
+  const liveGoneStmt = db.prepare(
+    `UPDATE notes SET rekey_due = 1 WHERE id = ? AND EXISTS (
+       SELECT 1 FROM public_links
+       WHERE token = ? AND note_id = ? AND mode = 'live')`,
   );
   const deleteStmt = db.prepare(
     `DELETE FROM public_links WHERE token = ? AND note_id = ?`,
@@ -45,6 +51,8 @@ export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {
       return row ? rowToPublicLink(row) : null;
     },
     async delete(token, noteId) {
+      // A live link gave whoever had it the note's key.
+      liveGoneStmt.run(noteId, token, noteId);
       return deleteStmt.run(token, noteId).changes > 0;
     },
     async recordView(token, at) {

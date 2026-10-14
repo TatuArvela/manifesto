@@ -1,3 +1,4 @@
+import { AT_REST, atRest } from "../atRest.js";
 import type { TotpState, TwoFactorRepo } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
@@ -9,7 +10,9 @@ interface TotpRow {
 
 export function rowToTotp(row: TotpRow): TotpState {
   return {
-    secret: row.secret,
+    // Under the server key; one that no longer opens matches no code
+    // (`verifyTotp` refuses an empty secret).
+    secret: atRest.open(row.secret, AT_REST.totpSecret) ?? "",
     enabledAt: row.enabled_at,
     lastStep: Number(row.last_step),
   };
@@ -30,32 +33,9 @@ export function createSqliteTwoFactorRepo(db: SqliteDB): TwoFactorRepo {
     `UPDATE user_totp SET enabled_at = ?, last_step = ? WHERE user_id = ?`,
   );
   const disableStmt = db.prepare(`DELETE FROM user_totp WHERE user_id = ?`);
-  const clearCodesStmt = db.prepare(
-    `DELETE FROM totp_recovery_codes WHERE user_id = ?`,
-  );
-  const addCodeStmt = db.prepare(
-    `INSERT INTO totp_recovery_codes (user_id, code_hash) VALUES (?, ?)`,
-  );
   const advanceStmt = db.prepare(
     `UPDATE user_totp SET last_step = ? WHERE user_id = ? AND last_step < ?`,
   );
-  const useCodeStmt = db.prepare(
-    `UPDATE totp_recovery_codes SET used_at = ?
-     WHERE user_id = ? AND code_hash = ? AND used_at IS NULL`,
-  );
-  const remainingStmt = db.prepare(
-    `SELECT COUNT(*) AS n FROM totp_recovery_codes
-     WHERE user_id = ? AND used_at IS NULL`,
-  );
-
-  const replaceCodes = db.transaction((userId: string, hashes: string[]) => {
-    clearCodesStmt.run(userId);
-    for (const hash of hashes) addCodeStmt.run(userId, hash);
-  });
-  const disable = db.transaction((userId: string) => {
-    disableStmt.run(userId);
-    clearCodesStmt.run(userId);
-  });
 
   return {
     async get(userId) {
@@ -63,28 +43,19 @@ export function createSqliteTwoFactorRepo(db: SqliteDB): TwoFactorRepo {
       return row ? rowToTotp(row) : null;
     },
     async begin(userId, secret, at) {
-      return beginStmt.run(userId, secret, at).changes > 0;
+      return (
+        beginStmt.run(userId, atRest.seal(secret, AT_REST.totpSecret), at)
+          .changes > 0
+      );
     },
     async enable(userId, at, step) {
       enableStmt.run(at, step, userId);
     },
     async disable(userId) {
-      disable(userId);
-    },
-    async removeAuthenticator(userId) {
       disableStmt.run(userId);
     },
     async advanceStep(userId, step) {
       return advanceStmt.run(step, userId, step).changes > 0;
-    },
-    async replaceRecoveryCodes(userId, hashes) {
-      replaceCodes(userId, hashes);
-    },
-    async useRecoveryCode(userId, hash, at) {
-      return useCodeStmt.run(at, userId, hash).changes > 0;
-    },
-    async remainingRecoveryCodes(userId) {
-      return (remainingStmt.get(userId) as { n: number }).n;
     },
   };
 }

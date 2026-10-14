@@ -26,7 +26,8 @@ export function createSqliteOAuthRepo(db: SqliteDB): OAuthRepo {
   const insertCodeStmt = db.prepare(
     `INSERT INTO oauth_codes (${OAUTH_CODE_COLUMNS})
      VALUES (@codeHash, @clientId, @clientName, @userId, @redirectUri,
-             @codeChallenge, @scopes, @grantExpiresAt, @expiresAt)`,
+             @codeChallenge, @scopes, @grantExpiresAt, @expiresAt,
+             @wrappedKeys)`,
   );
   const redeemStmt = db.prepare(
     `DELETE FROM oauth_codes WHERE code_hash = ? RETURNING ${OAUTH_CODE_COLUMNS}`,

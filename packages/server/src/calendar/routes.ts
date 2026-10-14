@@ -1,11 +1,17 @@
-import { MAX_NOTES_PAGE_SIZE, type Note } from "@manifesto/shared";
+import {
+  MAX_NOTES_PAGE_SIZE,
+  openReminderKey,
+  openSharedFields,
+  type SealedNote,
+  unwrapFeedKey,
+} from "@manifesto/shared";
 import { Hono } from "hono";
 import type { ServerConfig } from "../config.js";
 import { nowIso } from "../lib/time.js";
 import { CALENDAR_TOKEN_PREFIX, hashToken } from "../lib/token.js";
 import { HttpError } from "../middleware/error.js";
 import type { StorageDriver } from "../storage/types.js";
-import { remindersCalendar } from "./ics.js";
+import { type CalendarNote, remindersCalendar } from "./ics.js";
 
 /**
  * `GET /api/calendar/<token>.ics`: a user's reminders, for a calendar app to
@@ -38,14 +44,42 @@ export function createCalendarRoutes(deps: {
     if (!user) throw notFound;
     await storage.apiTokens.touch(token.id, now);
 
-    const notes: Note[] = [];
+    // The address carries the account's reminder key, wrapped under a key
+    // made from the address itself: opened for this request and kept
+    // nowhere. It opens the notes that have a reminder, through the copy of
+    // each one's key their reader left for it, and no others. A note without
+    // that copy, or a feed made without a key, is named by the fallback.
+    const feed = token.wrappedKeys
+      ? await unwrapFeedKey(secret, token.wrappedKeys)
+      : null;
+    const named = async (note: SealedNote) => {
+      const key = feed
+        ? await openReminderKey(
+            feed.reminders,
+            { userId: user.id, version: feed.version },
+            note.id,
+            note.keyVersion,
+            note.reminderKey,
+          )
+        : null;
+      if (!key) return { title: "", content: "" };
+      const { title, content } = await openSharedFields(key, note.id, note);
+      return { title, content };
+    };
+    const notes: CalendarNote[] = [];
     let cursor: string | undefined;
     do {
       const page = await storage.notes.listByUser(user.id, {
         limit: MAX_NOTES_PAGE_SIZE,
         ...(cursor !== undefined && { cursor }),
       });
-      notes.push(...page.notes);
+      for (const note of page.notes) {
+        const { id, reminder, trashed } = note;
+        // Only a note the feed will show is opened.
+        const words =
+          reminder && !trashed ? await named(note) : { title: "", content: "" };
+        notes.push({ id, reminder, trashed, ...words });
+      }
       cursor = page.nextCursor ?? undefined;
     } while (cursor !== undefined);
 

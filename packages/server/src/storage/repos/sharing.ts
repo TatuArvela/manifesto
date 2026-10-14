@@ -1,6 +1,7 @@
 import type {
+  OfferedKey,
   PublicLink,
-  PublicNote,
+  PublicSnapshot,
   ShareInvitation,
   ShareRole,
   ShareUser,
@@ -36,6 +37,14 @@ export interface CreateShareInput {
   createdAt: string;
   /** The team it comes through, if it does. */
   viaTeam?: string | null;
+  /** The note key wrapped for them, when the inviter could make one. */
+  offeredKey?: OfferedKey | null;
+}
+
+/** A note key as its holder keeps it, and which key it is. */
+export interface HeldKey {
+  key: string;
+  keyVersion: number;
 }
 
 export interface SharesRepo {
@@ -52,11 +61,32 @@ export interface SharesRepo {
     teamId: string | null,
   ): Promise<boolean>;
   /**
-   * Accept an invitation to a note that is not in its owner's trash. The
-   * recipient starts with the note's color and at the end of their manual
-   * order. False when there was no such invitation.
+   * Accept an invitation to a note that is not in its owner's trash, keeping
+   * the note key as the recipient wrapped it for themselves. The recipient
+   * starts at the head of their manual order. False when there was no such
+   * invitation.
    */
-  accept(noteId: string, userId: string, acceptedAt: string): Promise<boolean>;
+  accept(
+    noteId: string,
+    userId: string,
+    acceptedAt: string,
+    held: HeldKey,
+  ): Promise<boolean>;
+  /**
+   * Hand someone on the note its key, wrapped to their public key. Replaces
+   * an earlier offer. False when they hold no invitation or share.
+   */
+  offerKey(
+    noteId: string,
+    userId: string,
+    offered: OfferedKey,
+  ): Promise<boolean>;
+  /**
+   * The note key as an accepted recipient now keeps it, after the note's key
+   * was replaced; the offer it came from is done with. False when they hold
+   * no accepted share.
+   */
+  holdKey(noteId: string, userId: string, held: HeldKey): Promise<boolean>;
   /** Remove an invitation or a share, returning what it was. */
   delete(noteId: string, userId: string): Promise<NoteShare | null>;
   /** The invitations waiting for a user, newest first, leaving out notes in
@@ -85,8 +115,16 @@ export type { ShareUser };
 export interface StoredPublicLink extends PublicLink {
   ownerId: string;
   passwordHash: string | null;
-  /** The note as it stood when a `snapshot` link was made; null for `live`. */
-  snapshot: PublicNote | null;
+  /** The note as it stood when a `snapshot` link was made, sealed for the
+   * link; null for `live`. */
+  snapshot: StoredSnapshot | null;
+  /** A `live` link's copy of the note key, wrapped by the link key. */
+  wrappedKey: string | null;
+}
+
+/** A snapshot as kept: what the owner's browser sealed, and when. */
+export interface StoredSnapshot extends PublicSnapshot {
+  updatedAt: string;
 }
 
 export interface PublicLinksRepo {
@@ -161,7 +199,9 @@ export interface StoredComment {
   noteId: string;
   /** Null once the author's account is gone. */
   authorId: string | null;
+  /** Sealed under the note key of `keyVersion`. */
   body: string;
+  keyVersion: number;
   createdAt: string;
   editedAt: string | null;
 }
@@ -182,6 +222,11 @@ export interface CommentsRepo {
    */
   create(comment: StoredComment, limit: number): Promise<boolean>;
   /** False when there is no such comment. */
-  setBody(id: string, body: string, editedAt: string): Promise<boolean>;
+  setBody(
+    id: string,
+    body: string,
+    keyVersion: number,
+    editedAt: string,
+  ): Promise<boolean>;
   delete(id: string): Promise<boolean>;
 }

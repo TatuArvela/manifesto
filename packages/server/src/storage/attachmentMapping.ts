@@ -1,9 +1,4 @@
-import {
-  attachmentIdOf,
-  isAttachmentRef,
-  type LinkPreview,
-  previewImages,
-} from "@manifesto/shared";
+import { attachmentIdOf, isAttachmentRef } from "@manifesto/shared";
 import { parseJson } from "./noteMapping.js";
 import type { AttachmentMeta, StoredAttachment } from "./types.js";
 
@@ -14,11 +9,12 @@ export interface AttachmentRow {
   content_type: string;
   size: number | string;
   created_at: string;
+  wrapped_key?: string | null;
   data?: Buffer | Uint8Array;
 }
 
 export const ATTACHMENT_META_COLUMNS =
-  "id, owner_id, sha256, content_type, size, created_at";
+  "id, owner_id, sha256, content_type, size, created_at, wrapped_key";
 
 export function rowToAttachmentMeta(row: AttachmentRow): AttachmentMeta {
   return {
@@ -28,6 +24,7 @@ export function rowToAttachmentMeta(row: AttachmentRow): AttachmentMeta {
     contentType: row.content_type,
     size: Number(row.size),
     createdAt: row.created_at,
+    wrappedKey: row.wrapped_key ?? null,
   };
 }
 
@@ -38,7 +35,8 @@ export function rowToStoredAttachment(row: AttachmentRow): StoredAttachment {
   };
 }
 
-/** The attachment ids a note's stored `images` column refers to. */
+/** The attachment ids a column of references (`images`, `preview_refs`)
+ * names. */
 export function referencedIds(imagesJson: string | null): string[] {
   const parsed = parseJson<unknown>(imagesJson, []);
   if (!Array.isArray(parsed)) return [];
@@ -47,38 +45,23 @@ export function referencedIds(imagesJson: string | null): string[] {
     .map(attachmentIdOf);
 }
 
-/** The attachment ids a note's stored `link_previews` column refers to: each
- * preview's thumbnail and favicon. */
-export function referencedPreviewIds(previewsJson: string | null): string[] {
-  const parsed = parseJson<unknown>(previewsJson, []);
-  if (!Array.isArray(parsed)) return [];
-  return previewImages(
-    parsed.filter((p): p is LinkPreview => typeof p === "object" && p !== null),
-  )
-    .filter((i) => typeof i === "string" && isAttachmentRef(i))
-    .map(attachmentIdOf);
-}
-
-/** A note row's two image-holding columns, as stored. */
+/**
+ * A note row's two columns of attachment references: those of its images and
+ * those of its link previews' thumbnails and icons. The note itself names
+ * them inside ciphertext, so these are what the server knows.
+ */
 export interface ReferringRow {
   images: string;
-  link_previews: string;
+  preview_refs: string;
 }
 
-/**
- * Selects the notes that may refer to an attachment. `LIKE` alone decides
- * nothing: a preview's title is free text and can spell out an id, so a match
- * is confirmed with `referencesOf` before it counts.
- */
+/** Selects the notes that refer to any attachment at all. */
 export const REFERRING_NOTES_WHERE =
-  "(images LIKE '%attachment:%' OR link_previews LIKE '%attachment:%')";
+  "(images LIKE '%attachment:%' OR preview_refs LIKE '%attachment:%')";
 
 /** Every attachment id a note row refers to, from its images and previews. */
 export function referencesOf(row: ReferringRow): string[] {
-  return [
-    ...referencedIds(row.images),
-    ...referencedPreviewIds(row.link_previews),
-  ];
+  return [...referencedIds(row.images), ...referencedIds(row.preview_refs)];
 }
 
 /** The `LIKE` pattern finding a note whose images refer to `id`. ULIDs hold

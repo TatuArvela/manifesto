@@ -1,5 +1,6 @@
 import type { ShareInvitation, ShareRole } from "@manifesto/shared";
 import {
+  heldKey,
   type InvitationRow,
   membersChangedAt,
   rowToInvitation,
@@ -8,6 +9,7 @@ import {
 } from "../shareMapping.js";
 import type {
   CreateShareInput,
+  HeldKey,
   NoteAudience,
   NoteShare,
   SharesRepo,
@@ -16,10 +18,12 @@ import type { PgPool } from "./database.js";
 
 /** See the SQLite copy: same queries, same reasons. */
 
-const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team`;
+const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team,
+  offered_key, wrapped_key_version`;
 
 const INVITATION_SELECT = `
-  SELECT s.note_id, s.role, s.created_at, n.title, n.content, n.color, n.font,
+  SELECT s.note_id, s.role, s.created_at, n.title, n.content, n.font,
+         n.key_version, s.offered_key,
          n.user_id AS owner_id, u.username, u.display_name, u.avatar_color,
          s.via_team, t.name AS team_name
   FROM note_shares s
@@ -33,7 +37,7 @@ function isUniqueViolation(err: unknown): boolean {
   return err instanceof Error && (err as { code?: string }).code === "23505";
 }
 
-async function inTransaction<T>(
+export async function inTransaction<T>(
   pool: PgPool,
   run: (query: PgPool["query"]) => Promise<T>,
 ): Promise<T> {
@@ -87,14 +91,16 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
     async create(input: CreateShareInput): Promise<"ok" | "exists"> {
       try {
         await pool.query(
-          `INSERT INTO note_shares (note_id, user_id, role, created_at, via_team)
-           VALUES ($1, $2, $3, $4, $5)`,
+          `INSERT INTO note_shares
+             (note_id, user_id, role, created_at, via_team, offered_key)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
           [
             input.noteId,
             input.userId,
             input.role,
             input.createdAt,
             input.viaTeam ?? null,
+            input.offeredKey ? JSON.stringify(input.offeredKey) : null,
           ],
         );
         await stampMembers(
@@ -137,6 +143,7 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
       noteId: string,
       userId: string,
       acceptedAt: string,
+      held: HeldKey,
     ): Promise<boolean> {
       return inTransaction(pool, async (query) => {
         const note = await query<{ trashed: boolean; color: string }>(
@@ -146,14 +153,42 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
         const row = note.rows[0];
         if (!row || row.trashed) return false;
         const result = await query(
-          `UPDATE note_shares SET accepted_at = $1, color = $2, position = $3
-           WHERE note_id = $4 AND user_id = $5 AND accepted_at IS NULL`,
-          [acceptedAt, row.color, -Date.parse(acceptedAt), noteId, userId],
+          `UPDATE note_shares
+           SET accepted_at = $1, position = $2, wrapped_key = $3,
+               wrapped_key_version = $4, offered_key = NULL
+           WHERE note_id = $5 AND user_id = $6 AND accepted_at IS NULL`,
+          [
+            acceptedAt,
+            -Date.parse(acceptedAt),
+            held.key,
+            held.keyVersion,
+            noteId,
+            userId,
+          ],
         );
         if ((result.rowCount ?? 0) === 0) return false;
         await stampMembers(query, noteId, acceptedAt);
         return true;
       });
+    },
+
+    async offerKey(noteId, userId, offered) {
+      const result = await pool.query(
+        `UPDATE note_shares SET offered_key = $1
+         WHERE note_id = $2 AND user_id = $3`,
+        [JSON.stringify(offered), noteId, userId],
+      );
+      return (result.rowCount ?? 0) > 0;
+    },
+
+    async holdKey(noteId, userId, held) {
+      const result = await pool.query(
+        `UPDATE note_shares
+         SET wrapped_key = $1, wrapped_key_version = $2, offered_key = NULL
+         WHERE note_id = $3 AND user_id = $4 AND accepted_at IS NOT NULL`,
+        [held.key, held.keyVersion, noteId, userId],
+      );
+      return (result.rowCount ?? 0) > 0;
     },
 
     async delete(noteId: string, userId: string): Promise<NoteShare | null> {
@@ -170,6 +205,9 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
           [noteId, userId],
         );
         await stampMembers(query, noteId, membersChangedAt());
+        if (heldKey(row)) {
+          await query(`UPDATE notes SET rekey_due = 1 WHERE id = $1`, [noteId]);
+        }
         return rowToShare(row);
       });
     },
@@ -204,7 +242,8 @@ export function createPostgresSharesRepo(pool: PgPool): SharesRepo {
 
     async listByOwner(ownerId: string): Promise<NoteShare[]> {
       const result = await pool.query<ShareRow>(
-        `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at, s.via_team
+        `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at, s.via_team,
+                s.offered_key, s.wrapped_key_version
          FROM note_shares s JOIN notes n ON n.id = s.note_id
          WHERE n.user_id = $1`,
         [ownerId],

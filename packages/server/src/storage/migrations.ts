@@ -21,7 +21,37 @@ export interface Migration {
    */
   id: string;
   sql: string;
+  /**
+   * A step that must not run on some databases: when `sql` finds a row, the
+   * runner stops with `message` and changes nothing.
+   */
+  refuseIf?: { sql: string; message: string };
 }
+
+/** What a refused step throws, for the start-up code to print as it is. */
+export class MigrationRefusedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MigrationRefusedError";
+  }
+}
+
+/**
+ * Notes written before encryption are readable where they lie, and changing
+ * them in place would leave the old text in the database's free pages and in
+ * every backup. So the encrypted version starts on an empty database
+ * (`docs/specification/features/encryption.md`, "A server from before
+ * encryption"), and this is what a server started on an older one says.
+ */
+export const BEFORE_ENCRYPTION = {
+  sql: "SELECT 1 FROM notes LIMIT 1",
+  message:
+    "This database holds notes from before end-to-end encryption, and this " +
+    "version of the server does not upgrade them in place. Start it on an " +
+    "empty database: each person exports their notes from Settings on the " +
+    "older version and imports them here. See " +
+    "docs/specification/features/encryption.md.",
+};
 
 /** Where a database records what it has already run. */
 export const LEDGER_TABLE_SQL = `

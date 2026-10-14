@@ -1,7 +1,7 @@
 import {
   MAX_NOTE_VERSIONS,
   NOTE_VERSION_MAX_AGE_DAYS,
-  type NoteVersion,
+  type SealedNoteVersion,
 } from "@manifesto/shared";
 import type { VersionsRepo } from "../types.js";
 import type { SqliteDB } from "./database.js";
@@ -9,16 +9,23 @@ import type { SqliteDB } from "./database.js";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface VersionRow {
+  id: string;
   note_id: string;
+  key_version: number | string;
   title: string;
   content: string;
   created_at: string;
 }
 
-export function rowToVersion(row: VersionRow): NoteVersion {
+export const VERSION_COLUMNS =
+  "id, note_id, key_version, title, content, created_at";
+
+export function rowToVersion(row: VersionRow): SealedNoteVersion {
   return {
+    id: row.id,
     noteId: row.note_id,
     timestamp: row.created_at,
+    keyVersion: Number(row.key_version),
     title: row.title,
     content: row.content,
   };
@@ -26,12 +33,14 @@ export function rowToVersion(row: VersionRow): NoteVersion {
 
 export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
   const listStmt = db.prepare(
-    `SELECT note_id, title, content, created_at FROM note_versions
+    `SELECT ${VERSION_COLUMNS} FROM note_versions
      WHERE note_id = ? ORDER BY created_at DESC, id DESC`,
   );
   const insertStmt = db.prepare(
-    `INSERT INTO note_versions (id, note_id, author_id, title, content, created_at)
-     VALUES (@id, @noteId, @authorId, @title, @content, @createdAt)`,
+    `INSERT INTO note_versions
+       (id, note_id, author_id, key_version, title, content, created_at)
+     VALUES (@id, @noteId, @authorId, @keyVersion, @title, @content, @createdAt)
+     ON CONFLICT (id) DO NOTHING`,
   );
   const expireStmt = db.prepare(
     `DELETE FROM note_versions WHERE note_id = ? AND created_at < ?`,
@@ -44,12 +53,13 @@ export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
   );
 
   const add = db.transaction((input: Parameters<VersionsRepo["add"]>[0]) => {
-    insertStmt.run(input);
+    if (insertStmt.run(input).changes === 0) return false;
     const cutoff = new Date(
       Date.now() - NOTE_VERSION_MAX_AGE_DAYS * DAY_MS,
     ).toISOString();
     expireStmt.run(input.noteId, cutoff);
     trimStmt.run({ noteId: input.noteId, keep: MAX_NOTE_VERSIONS });
+    return true;
   });
 
   return {
@@ -57,7 +67,7 @@ export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
       return (listStmt.all(noteId) as VersionRow[]).map(rowToVersion);
     },
     async add(input) {
-      add(input);
+      return add(input);
     },
   };
 }

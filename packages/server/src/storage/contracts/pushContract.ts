@@ -175,5 +175,32 @@ export function describePushContract(
       ).toBe("first");
       expect(await storage.serverSecrets.get("vapid")).toBe("first");
     });
+
+    it("rewrites a column value by value, leaving alone what it is told to", async () => {
+      await storage.serverSecrets.setIfAbsent("one", "a", T0);
+      await storage.serverSecrets.setIfAbsent("two", "b", T0);
+      await storage.pushSubscriptions.save(subscription());
+      expect(
+        await storage.maintenance.rewriteColumn(
+          "server_secrets",
+          ["name"],
+          "value",
+          (stored) => (stored === "a" ? "A" : null),
+        ),
+      ).toBe(1);
+      expect(await storage.serverSecrets.get("one")).toBe("A");
+      expect(await storage.serverSecrets.get("two")).toBe("b");
+      expect(
+        await storage.maintenance.rewriteColumn(
+          "push_subscriptions",
+          ["id"],
+          "auth",
+          (stored) => `${stored}!`,
+        ),
+      ).toBe(1);
+      expect((await storage.pushSubscriptions.listByUser("u1"))[0]?.auth).toBe(
+        "secret!",
+      );
+    });
   });
 }

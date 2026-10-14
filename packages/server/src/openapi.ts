@@ -4,6 +4,7 @@ import { ACCOUNT_OPERATIONS } from "./openapi/account.js";
 import { ADMIN_OPERATIONS } from "./openapi/admin.js";
 import { AUTH_OPERATIONS } from "./openapi/auth.js";
 import { AUTH_FACTOR_OPERATIONS } from "./openapi/authFactors.js";
+import { KEY_OPERATIONS } from "./openapi/keys.js";
 import { MCP_OPERATIONS } from "./openapi/mcp.js";
 import { NOTE_OPERATIONS } from "./openapi/notes.js";
 import { isPublicSurface, type Operation } from "./openapi/operation.js";
@@ -31,6 +32,7 @@ export const OPERATIONS: Operation[] = [
   ...SERVER_OPERATIONS,
   ...AUTH_OPERATIONS,
   ...AUTH_FACTOR_OPERATIONS,
+  ...KEY_OPERATIONS,
   ...NOTE_OPERATIONS,
   ...SHARING_OPERATIONS,
   ...ACCOUNT_OPERATIONS,
@@ -115,8 +117,9 @@ function publicParts() {
         role: { enum: ["edit", "view"] },
         accepted: { type: "boolean" },
         team: teamRef,
+        waitingForKey: { type: "boolean" },
       },
-      ["team"],
+      ["team", "waitingForKey"],
     ),
     NoteSharing: exact({
       role: { enum: ["owner", "edit", "view"] },
@@ -130,8 +133,9 @@ function publicParts() {
         owner: ref("ShareUser"),
         title: { type: "string" },
         content: { type: "string" },
-        color: ref("NoteColor"),
-        font: ref("NoteFont"),
+        font: { type: "string" },
+        keyVersion: { type: "integer" },
+        offered: { type: ["object", "null"] },
         invitedAt: { type: "string" },
         team: teamRef,
       },
@@ -162,6 +166,7 @@ function publicParts() {
       // Null once whoever wrote it no longer has the note.
       author: nullableRef("ShareUser"),
       body: { type: "string" },
+      keyVersion: { type: "integer" },
       createdAt: { type: "string" },
       editedAt: nullable("string"),
     }),
@@ -253,30 +258,38 @@ function components() {
         viewCount: { type: "integer" },
         lastViewedAt: { type: ["string", "null"] },
         createdAt: { type: "string" },
+        sealedLinkKey: { type: "string" },
       }),
       PublicLinkResponse: exact({ link: ref("PublicLink") }),
       PublicLinksResponse: exact({ links: listOf(ref("PublicLink")) }),
       PublicNoteResponse: exact(
         {
           note: exact({
+            id: { type: "string" },
+            keyVersion: { type: "integer" },
             title: { type: "string" },
             content: { type: "string" },
-            color: ref("NoteColor"),
-            font: ref("NoteFont"),
-            images: listOf({ type: "string" }),
-            linkPreviews: listOf(ref("LinkPreview")),
+            font: { type: "string" },
+            images: { type: "string" },
+            linkPreviews: { type: "string" },
             updatedAt: { type: "string" },
           }),
+          wrappedKey: nullable("string"),
           access: nullable("string"),
         },
         ["access"],
       ),
       PublicNoteLockedResponse: exact({ passwordRequired: { const: true } }),
-      NotesImportResponse: exact({
-        created: { type: "integer" },
-        updated: { type: "integer" },
-        skipped: { type: "integer" },
-      }),
+      NotesImportResponse: exact(
+        {
+          created: { type: "integer" },
+          updated: { type: "integer" },
+          skipped: { type: "integer" },
+          taken: { type: "array", items: { type: "string" } },
+          stale: { type: "array", items: { type: "string" } },
+        },
+        ["taken", "stale"],
+      ),
       Error: exact({ error: { type: "string" }, code: { type: "string" } }, [
         "code",
       ]),
@@ -320,11 +333,18 @@ function components() {
       }),
       TwoFactorStatusResponse: shape({
         enabled: { type: "boolean" },
-        recoveryCodesRemaining: { type: "integer" },
+        authenticator: { type: "boolean" },
       }),
       TwoFactorSetupResponse: shape({ secret: { type: "string" } }),
-      TwoFactorRecoveryCodesResponse: shape({
-        recoveryCodes: { type: "array", items: { type: "string" } },
+      AccountKeysResponse: shape({
+        keys: { type: ["object", "null"] },
+        sessionEndsAt: { type: "string" },
+      }),
+      RecoveryOpenResponse: shape({
+        userId: { type: "string" },
+        version: { type: "integer" },
+        wrappedByRecovery: { type: "string" },
+        hasPassword: { type: "boolean" },
       }),
       NoteVersionsResponse: exact({ versions: listOf(ref("NoteVersion")) }),
       InvitationsResponse: exact({
@@ -345,10 +365,7 @@ function components() {
       OAuthAuthorizeResponse: shape({ redirectTo: { type: "string" } }),
       PasskeysResponse: shape({ passkeys: { type: "array" } }),
       PasskeyOptionsResponse: shape({ options: { type: "object" } }),
-      PasskeyAddedResponse: shape({
-        passkey: { type: "object" },
-        recoveryCodes: { type: ["array", "null"] },
-      }),
+      PasskeyAddedResponse: shape({ passkey: { type: "object" } }),
       PasskeySignInOptionsResponse: shape({ options: { type: "object" } }),
       ApiTokenCreatedResponse: shape({
         token: { type: "object" },
@@ -361,6 +378,9 @@ function components() {
       }),
       AdminUsersResponse: shape({ users: { type: "array" } }),
       AttachmentUploadResponse: exact({ ref: { type: "string" } }),
+      AttachmentsClaimResponse: exact({
+        refs: { type: "array", items: { type: "string" } },
+      }),
       AdminOverviewResponse: shape({
         version: { type: "string" },
         uptimeSeconds: { type: "integer" },

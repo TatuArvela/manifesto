@@ -1,4 +1,5 @@
 import {
+  heldKey,
   membersChangedAt,
   rowToShare,
   type ShareRow,
@@ -10,6 +11,7 @@ import type {
   NoteShare,
 } from "../types.js";
 import type { PgPool } from "./database.js";
+import { inTransaction } from "./sharesRepo.js";
 
 interface ExpiredRow {
   id: string;
@@ -49,23 +51,33 @@ export function createPostgresMaintenanceRepo(pool: PgPool): MaintenanceRepo {
     },
 
     async cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]> {
-      const result = await pool.query<ShareRow>(
-        `DELETE FROM note_shares
-           WHERE trashed = TRUE
-             AND trashed_at IS NOT NULL
-             AND trashed_at < $1
-         RETURNING note_id, user_id, role, created_at, accepted_at, via_team`,
-        [cutoffIso],
-      );
-      // An expired share leaves the note's members, as a removal does.
-      const at = membersChangedAt();
-      for (const noteId of new Set(result.rows.map((row) => row.note_id))) {
-        await pool.query(
-          `UPDATE notes SET members_changed_at = $1 WHERE id = $2`,
-          [at, noteId],
+      return inTransaction(pool, async (query) => {
+        const result = await query<ShareRow>(
+          `DELETE FROM note_shares
+             WHERE trashed = TRUE
+               AND trashed_at IS NOT NULL
+               AND trashed_at < $1
+           RETURNING note_id, user_id, role, created_at, accepted_at, via_team,
+             offered_key, wrapped_key_version`,
+          [cutoffIso],
         );
-      }
-      return result.rows.map(rowToShare);
+        // An expired share leaves the note's members, as a removal does,
+        // and leaves the note due a new key as one does (`shares.delete`):
+        // whoever held the old one still does.
+        const at = membersChangedAt();
+        for (const noteId of new Set(result.rows.map((row) => row.note_id))) {
+          await query(
+            `UPDATE notes SET members_changed_at = $1 WHERE id = $2`,
+            [at, noteId],
+          );
+        }
+        for (const noteId of new Set(
+          result.rows.filter(heldKey).map((row) => row.note_id),
+        )) {
+          await query(`UPDATE notes SET rekey_due = 1 WHERE id = $1`, [noteId]);
+        }
+        return result.rows.map(rowToShare);
+      });
     },
 
     async cleanupTrashedBefore(
@@ -80,6 +92,28 @@ export function createPostgresMaintenanceRepo(pool: PgPool): MaintenanceRepo {
         [cutoffIso],
       );
       return result.rows.map((row) => ({ id: row.id, userId: row.user_id }));
+    },
+    async rewriteColumn(table, keys, column, rewrite) {
+      const found = await pool.query<Record<string, string>>(
+        `SELECT ${[...keys, column].join(", ")} FROM ${table}
+         WHERE ${column} IS NOT NULL AND ${column} <> ''`,
+      );
+      let written = 0;
+      for (const row of found.rows) {
+        const stored = row[column];
+        if (typeof stored !== "string") continue;
+        const next = rewrite(stored);
+        if (next === null) continue;
+        const where = keys.map((key, i) => `${key} = $${i + 2}`).join(" AND ");
+        // Only while the row still holds what was read.
+        const result = await pool.query(
+          `UPDATE ${table} SET ${column} = $1
+           WHERE ${where} AND ${column} = $${keys.length + 2}`,
+          [next, ...keys.map((key) => row[key]), stored],
+        );
+        written += result.rowCount ?? 0;
+      }
+      return written;
     },
   };
 }

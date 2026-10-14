@@ -13,8 +13,9 @@ export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {
       await pool.query(
         `INSERT INTO api_tokens
            (id, user_id, name, kind, scopes, token_hash, prefix, created_at, last_used_at, expires_at,
-            oauth_client_id, refresh_hash, access_expires_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+            oauth_client_id, refresh_hash, access_expires_at, wrapped_keys,
+            refresh_wrapped_keys)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
         [
           input.id,
           input.userId,
@@ -29,6 +30,8 @@ export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {
           input.oauthClientId ?? null,
           input.refreshHash ?? null,
           input.accessExpiresAt,
+          input.wrappedKeys ?? null,
+          input.refreshWrappedKeys ?? null,
         ],
       );
     },
@@ -53,9 +56,17 @@ export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {
       const result = await pool.query(
         `UPDATE api_tokens
          SET previous_refresh_hash = refresh_hash, refresh_hash = $1,
-             token_hash = $2, access_expires_at = $3
+             token_hash = $2, access_expires_at = $3,
+             wrapped_keys = $5, refresh_wrapped_keys = $6
          WHERE refresh_hash = $4`,
-        [next.refreshHash, next.tokenHash, next.accessExpiresAt, current],
+        [
+          next.refreshHash,
+          next.tokenHash,
+          next.accessExpiresAt,
+          current,
+          next.wrappedKeys,
+          next.refreshWrappedKeys,
+        ],
       );
       return result.rowCount === 1;
     },

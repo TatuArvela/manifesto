@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver, StoredPublicLink } from "../types.js";
-import { claimedImages, claimedPreviews } from "./claimed.js";
+import { claimed, ct } from "./claimed.js";
 
 /**
  * Public links, the same in both drivers: a view is counted only while the
@@ -28,6 +28,8 @@ function link(overrides: Partial<StoredPublicLink> = {}): StoredPublicLink {
     viewCount: 0,
     lastViewedAt: null,
     createdAt: T0,
+    wrappedKey: ct("the note key, for the link"),
+    sealedLinkKey: ct("the link key, for its owner"),
     ...overrides,
   };
 }
@@ -54,7 +56,7 @@ export function describePublicLinksContract(
       await storage.notes.insert({
         id: "n1",
         userId: "owner",
-        data: {
+        data: claimed({
           title: "",
           content: "",
           color: NoteColor.Default,
@@ -65,10 +67,10 @@ export function describePublicLinksContract(
           trashedAt: null,
           position: 0,
           tags: [],
-          images: claimedImages([]),
-          linkPreviews: claimedPreviews([]),
+          images: [],
+          linkPreviews: [],
           reminder: null,
-        },
+        }),
         createdAt: T0,
         updatedAt: T0,
       });
@@ -81,13 +83,14 @@ export function describePublicLinksContract(
     it("stores, lists, reads back and revokes a link", async () => {
       const made = link({
         mode: "snapshot",
+        wrappedKey: null,
         snapshot: {
-          title: "t",
-          content: "c",
-          color: NoteColor.Blue,
-          font: NoteFont.Default,
-          images: [],
-          linkPreviews: [],
+          title: ct("t"),
+          content: ct("c"),
+          font: ct("default"),
+          images: ct("[]"),
+          linkPreviews: ct("[]"),
+          refs: [],
           updatedAt: T0,
         },
         passwordHash: "hash",
@@ -123,6 +126,100 @@ export function describePublicLinksContract(
       expect(await storage.publicLinks.get("tok")).toBeNull();
     });
 
+    it("leaves the note due a new key when a live link or a key's holder goes, until it is given one", async () => {
+      const due = async () =>
+        (await storage.notes.getById("n1", "owner"))?.rekeyDue === true;
+      const rekeyed = (keyVersion: number) => ({
+        keyVersion,
+        key: ct(`key ${keyVersion}`),
+        previousKeys: ct("before"),
+        title: ct("t"),
+        content: ct("c"),
+        excerpt: ct("c"),
+        font: ct("default"),
+        images: ct("[]"),
+        linkPreviews: ct("[]"),
+      });
+
+      // A snapshot holds no key of the note's.
+      await storage.publicLinks.create(
+        link({ token: "copy", mode: "snapshot", wrappedKey: null }),
+      );
+      await storage.publicLinks.delete("copy", "n1");
+      expect(await due()).toBe(false);
+
+      await storage.publicLinks.create(link({ token: "gone" }));
+      await storage.publicLinks.create(link({ token: "stays" }));
+      await storage.publicLinks.delete("gone", "n1");
+      expect(await due()).toBe(true);
+
+      // Only from the version it is at, only by its owner, and only while
+      // the note is as it was read.
+      const read =
+        (await storage.notes.getById("n1", "owner"))?.updatedAt ?? "";
+      const rewrapped = [
+        { token: "stays", wrappedKey: ct("again") },
+        { token: "nope", wrappedKey: ct("x") },
+      ];
+      const rekey = (owner: string, to: number, from: number, at = read) =>
+        storage.notes.rekey("n1", owner, rekeyed(to), from, T1, at, rewrapped);
+      expect(await rekey("owner", 3, 2)).toBe(false);
+      expect(await rekey("else", 2, 1)).toBe(false);
+      expect(await rekey("owner", 2, 1, "2001-01-01T00:00:00.000Z")).toBe(
+        false,
+      );
+      expect((await storage.notes.getById("n1", "owner"))?.keyVersion).toBe(1);
+      // A refused move leaves the links on the key they had.
+      expect((await storage.publicLinks.get("stays"))?.wrappedKey).not.toBe(
+        ct("again"),
+      );
+      expect(await rekey("owner", 2, 1)).toBe(true);
+      expect(await storage.notes.getById("n1", "owner")).toMatchObject({
+        keyVersion: 2,
+        key: ct("key 2"),
+        previousKeys: ct("before"),
+        title: ct("t"),
+        updatedAt: T1,
+      });
+      expect(await due()).toBe(false);
+      // The live link moved with the note; the one named that is not there
+      // was passed over.
+      expect((await storage.publicLinks.get("stays"))?.wrappedKey).toBe(
+        ct("again"),
+      );
+      expect(await storage.publicLinks.get("nope")).toBeNull();
+
+      // Someone who accepted held the key; someone only invited, without
+      // one offered, did not.
+      for (const id of ["alice", "bob"]) {
+        await storage.users.create({
+          id,
+          username: id,
+          passwordHash: "h",
+          displayName: "",
+          avatarColor: "#123456",
+          provider: "local",
+          externalId: null,
+          createdAt: T0,
+        });
+        await storage.shares.create({
+          noteId: "n1",
+          userId: id,
+          role: "view",
+          createdAt: T0,
+        });
+      }
+      await storage.shares.delete("n1", "bob");
+      expect(await due()).toBe(false);
+      await storage.shares.accept("n1", "alice", T0, {
+        key: ct("held"),
+        keyVersion: 2,
+      });
+      // Not the recipient's to be told.
+      await storage.shares.delete("n1", "alice");
+      expect(await due()).toBe(true);
+    });
+
     it("keeps a usable snapshot's pictures from the sweep, and lets an expired one's go", async () => {
       await storage.attachments.put({
         id: IMAGE_ID,
@@ -136,13 +233,16 @@ export function describePublicLinksContract(
         link({
           mode: "snapshot",
           expiresAt: "2026-07-01T00:00:00.000Z",
+          wrappedKey: null,
+          // What the copy shows is sealed; the references are what the
+          // sweep reads.
           snapshot: {
-            title: "",
-            content: "",
-            color: NoteColor.Default,
-            font: NoteFont.Default,
-            images: [`attachment:${IMAGE_ID}`],
-            linkPreviews: [],
+            title: ct(""),
+            content: ct(""),
+            font: ct("default"),
+            images: ct("sealed list"),
+            linkPreviews: ct("[]"),
+            refs: [`attachment:${IMAGE_ID}`],
             updatedAt: T0,
           },
         }),

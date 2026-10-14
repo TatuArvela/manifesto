@@ -1,4 +1,5 @@
 import { WEBHOOK_EVENTS, type WebhookEventName } from "@manifesto/shared";
+import { AT_REST, atRest } from "./atRest.js";
 import { parseJson } from "./noteMapping.js";
 import type { StoredWebhook } from "./types.js";
 
@@ -24,7 +25,8 @@ export function rowToWebhook(row: WebhookRow): StoredWebhook {
     id: row.id,
     userId: row.user_id,
     url: row.url,
-    secret: row.secret,
+    // Under the server key; one that no longer opens signs nothing.
+    secret: atRest.open(row.secret, AT_REST.webhookSecret) ?? "",
     events: Array.isArray(events)
       ? events.filter((e): e is WebhookEventName => KNOWN.has(e))
       : [],

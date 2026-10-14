@@ -11,7 +11,9 @@ export type ErrorCode =
   | "confirmation_required"
   | "password_incorrect"
   /** An account without a password has to have signed in recently. */
-  | "reauthentication_required";
+  | "reauthentication_required"
+  /** The recovery key sent is not the account's. */
+  | "recovery_key_invalid";
 
 export interface ErrorResponse {
   error: string;

@@ -50,12 +50,17 @@ In an export or import file an image is a base64 `data:` URL (`IMAGE_DATA_URL_PA
 
 Over-cap images are refused by the client before they are stored, so the user gets a message naming the file rather than an error from a later save.
 
-A listing leaves even the references out, so a card fetches only what it
-shows. A note from `GET /api/notes` or `GET /api/search`
-carries `imageCount` and an empty `images`, and `GET /api/notes/:id` returns it
-whole. `imageCount` is derived by the server from `images` on every write and is
-never accepted from a client; in open mode it is absent, because nothing there
-is ever separated from its note. See [API](api.md#attachments-are-not-in-a-listing).
+A card fetches only the images it shows: a note carries references, and the bytes of each
+come from `GET /api/attachments/:id`.
+
+### On the server
+
+This page describes a note as the app holds it. In connected mode the server never sees one in
+this form: the browser seals `title`, `content`, `font`, `images`, `linkPreviews`, `color` and
+`tags` before the note leaves, and the server stores a `SealedNote`
+([API](api.md#sealed-notes), [Encryption](features/encryption.md)). The limits on this page
+(a title's 500 characters, 50 tags) are kept by the client that seals a note, and applied again by
+the client that opens one.
 
 ### Identifiers
 

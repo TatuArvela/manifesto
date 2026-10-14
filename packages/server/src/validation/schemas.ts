@@ -2,16 +2,31 @@ import {
   API_TOKEN_KINDS,
   API_TOKEN_SCOPES,
   ATTACHMENT_REF_PATTERN,
+  isCiphertext,
+  MAX_ATTACHMENTS_PER_CLAIM,
   MAX_COMMENT_LENGTH,
   MAX_IMAGES_PER_NOTE,
+  MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
+  MAX_LINK_PREVIEW_TITLE_LENGTH,
   MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
+  MAX_NOTE_CONTENT_LENGTH,
+  MAX_NOTE_TITLE_LENGTH,
   MAX_NOTES_PER_IMPORT,
+  MAX_PREVIOUS_KEYS_LENGTH,
   MAX_PUBLIC_LINK_VIEWS,
+  MAX_TAG_LENGTH,
+  MAX_TAGS_PER_NOTE,
+  MAX_TOKEN_KEYS_LENGTH,
+  MAX_WRAPPED_KEY_LENGTH,
   NoteColor,
   NoteFont,
+  OFFERED_KEY_MAX,
+  PUBLIC_KEY_LENGTH,
   PUBLIC_LINK_MODES,
+  RECOVERY_VERIFIER_LENGTH,
   REMINDER_RECURRENCES,
+  SEALED_FIELD_MAX,
   SHARE_ROLES,
   WEBHOOK_EVENTS,
 } from "@manifesto/shared";
@@ -78,13 +93,33 @@ export const authLocaleSchema = z.object({
 });
 
 /**
- * A patch of an account's preferences: up to 100 keys, each set to any JSON
- * value or to `null` to remove it. The server never reads the values; how
+ * A value sealed in the browser: a ciphertext by its shape, which is all the
+ * server can say about one. Anything else in its place is refused, so a
+ * faulty client cannot store readable text where a ciphertext belongs.
+ */
+const sealed = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .refine((value) => isCiphertext(value, max), {
+      message: "Must be a ciphertext",
+    });
+
+/** An id chosen by the client that seals what it names: a note's, a
+ * version's, a comment's. */
+const noteIdSchema = z.string().regex(/^[0-9A-Za-z_-]{1,64}$/);
+
+/** A sealed value, or nothing where one was never set. */
+const sealedOrEmpty = (max: number) => z.union([z.literal(""), sealed(max)]);
+
+/**
+ * A patch of an account's preferences: up to 100 keys, each set to a value
+ * sealed under the account's personal key, or to `null` to remove it. How
  * large the whole may grow is checked when it is merged.
  */
 export const accountPrefsUpdateSchema = z.object({
   prefs: z
-    .record(z.string().min(1).max(64), z.json())
+    .record(z.string().min(1).max(64), sealed(SEALED_FIELD_MAX.pref).nullable())
     .refine((prefs) => Object.keys(prefs).length <= 100, {
       message: "At most 100 preferences",
     }),
@@ -129,7 +164,7 @@ export const passkeyRegistrationSchema = z.object({
 
 export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.exactOptional(),
-  /** An authenticator code, or a recovery code, when two-factor is on. */
+  /** An authenticator code, when two-factor is on. */
   otp: z.string().trim().min(1).max(32).exactOptional(),
   /** Or a passkey's answer to the challenge the first attempt was given. */
   passkey: passkeyAuthenticationSchema.exactOptional(),
@@ -156,6 +191,76 @@ export const twoFactorEnableSchema = z.object({
   code: z.string().trim().min(6).max(10),
 });
 
+/**
+ * A wrapped key: a ciphertext by its shape, which is all the server can say
+ * about one. Anything else in its place is refused, so a faulty client cannot
+ * store a key where a wrapped key belongs.
+ */
+const wrappedKey = sealed(MAX_WRAPPED_KEY_LENGTH);
+
+/** An uncompressed P-256 point as base64url: 65 bytes, the first of them 4. */
+const publicKey = z
+  .string()
+  .length(PUBLIC_KEY_LENGTH)
+  .regex(/^B[A-Za-z0-9_-]+$/, "Must be a P-256 public key");
+
+/** What a recovery key proves itself with: 32 bytes as base64url. */
+const recoveryVerifier = z
+  .string()
+  .length(RECOVERY_VERIFIER_LENGTH)
+  .regex(/^[A-Za-z0-9_-]+$/, "Must be base64url");
+
+const recoveryKeyWrap = {
+  wrappedByRecovery: wrappedKey,
+  recoveryVerifier,
+};
+
+/** `PUT /api/auth/keys`. */
+export const accountKeysSetupSchema = z.object({
+  ...recoveryKeyWrap,
+  wrappedBySecret: wrappedKey,
+  publicKeys: z.object({ exchange: publicKey, signing: publicKey }),
+  wrappedPrivateKeys: z.object({ exchange: wrappedKey, signing: wrappedKey }),
+});
+
+/** `POST /api/auth/keys/secret`. */
+export const secretKeyReplaceSchema = z.object({
+  password: confirmationPassword,
+  wrappedBySecret: wrappedKey,
+});
+
+/** `POST /api/auth/keys/recovery`. */
+export const recoveryKeyReplaceSchema = z.object({
+  password: confirmationPassword,
+  ...recoveryKeyWrap,
+});
+
+/** `POST /api/auth/keys/confirm` and `DELETE /api/auth/keys`. */
+export const keysConfirmSchema = z.object({
+  password: confirmationPassword,
+});
+
+/** `POST /api/auth/keys/recover`. */
+export const recoveryOpenSchema = z.object({ verifier: recoveryVerifier });
+
+/** `POST /api/auth/keys/recover/complete`. */
+export const recoveryCompleteSchema = z.object({
+  verifier: recoveryVerifier,
+  wrappedBySecret: wrappedKey,
+  ...recoveryKeyWrap,
+});
+
+/** `POST /api/auth/recovery`. */
+export const recoverySignInOpenSchema = recoveryOpenSchema.extend({
+  username: usernameSchema,
+});
+
+/** `POST /api/auth/recovery/complete`. */
+export const recoverySignInCompleteSchema = recoveryCompleteSchema.extend({
+  username: usernameSchema,
+  newPassword: passwordSchema,
+});
+
 export const passwordChangeSchema = z.object({
   // Only compared with the stored hash, so it is held to the length cap and
   // not to today's rules, which an older password may predate.
@@ -179,9 +284,37 @@ export const adminUpdateUserSchema = z
 
 const shareRoleSchema = z.enum(SHARE_ROLES);
 
+/**
+ * A note key wrapped to someone's public key and signed: shapes only, since
+ * the server can open none of it. The recipient's client checks the
+ * signature against the key it remembers for the signer.
+ */
+export const offeredKeySchema = z.object({
+  keyVersion: z.number().int().min(1),
+  ephemeral: publicKey,
+  wrapped: sealed(OFFERED_KEY_MAX.wrapped),
+  signer: z.string().min(1).max(64),
+  signature: z
+    .string()
+    .min(1)
+    .max(OFFERED_KEY_MAX.signature)
+    .regex(/^[A-Za-z0-9_-]+$/, "Must be base64url"),
+});
+
 export const shareCreateSchema = z.object({
   userId: z.string().min(1).max(64),
   role: shareRoleSchema,
+  key: offeredKeySchema.exactOptional(),
+});
+
+/** `PUT /api/auth/keys/seen/:userId`: someone's public keys as this account
+ * remembers them, sealed under its own key. */
+export const seenKeySchema = z.object({ sealed: sealed(1024) });
+
+/** `POST /api/invitations/:noteId/accept` and `PUT /api/notes/:id/held-key`. */
+export const heldKeySchema = z.object({
+  key: wrappedKey,
+  keyVersion: z.number().int().min(1),
 });
 
 export const shareUpdateSchema = z.object({ role: shareRoleSchema });
@@ -212,12 +345,42 @@ export const teamShareCreateSchema = z.object({
 });
 
 /** `POST /api/notes/:id/links`. */
-export const publicLinkCreateSchema = z.object({
-  mode: z.enum(PUBLIC_LINK_MODES),
-  expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
-  password: z.string().min(1).max(256).exactOptional(),
-  maxViews: z.number().int().min(1).max(MAX_PUBLIC_LINK_VIEWS).exactOptional(),
-});
+export const publicLinkCreateSchema = z
+  .object({
+    mode: z.enum(PUBLIC_LINK_MODES),
+    expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
+    password: z.string().min(1).max(256).exactOptional(),
+    maxViews: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_PUBLIC_LINK_VIEWS)
+      .exactOptional(),
+    // The link key, sealed for the owner; the server never holds the key.
+    sealedLinkKey: sealed(MAX_WRAPPED_KEY_LENGTH),
+    // A live link: the note key, wrapped by the link key.
+    wrappedKey: wrappedKey.exactOptional(),
+    // A snapshot link: the note as it is, sealed for the link.
+    snapshot: z
+      .object({
+        title: sealed(SEALED_FIELD_MAX.title),
+        content: sealed(SEALED_FIELD_MAX.content),
+        font: sealed(SEALED_FIELD_MAX.font),
+        images: sealed(SEALED_FIELD_MAX.images),
+        linkPreviews: sealed(SEALED_FIELD_MAX.linkPreviews),
+        refs: z
+          .array(z.string().regex(ATTACHMENT_REF_PATTERN))
+          .max(MAX_IMAGES_PER_NOTE + MAX_LINK_PREVIEWS_PER_NOTE * 2),
+      })
+      .exactOptional(),
+  })
+  .refine(
+    (body) =>
+      body.mode === "live"
+        ? body.wrappedKey !== undefined && body.snapshot === undefined
+        : body.snapshot !== undefined && body.wrappedKey === undefined,
+    { message: "A live link takes wrappedKey, a snapshot link takes snapshot" },
+  );
 
 /** `POST /api/public/:token/unlock`. */
 export const publicLinkUnlockSchema = z.object({
@@ -252,9 +415,6 @@ const previewImageSchema = z.union([
   z.string().regex(ATTACHMENT_REF_PATTERN, "Upload preview images first"),
   httpUrlSchema,
 ]);
-
-export const MAX_LINK_PREVIEW_TITLE_LENGTH = 500;
-export const MAX_LINK_PREVIEW_DESCRIPTION_LENGTH = 2000;
 
 const linkPreviewSchema = z
   .object({
@@ -308,8 +468,8 @@ const autoNoteSourceSchema = z.object({
 // payload with multi-MB notes and OOM the server. The numbers are generous
 // for normal use but reject obviously-pathological inputs.
 const noteFields = {
-  title: z.string().max(500),
-  content: z.string().max(100_000),
+  title: z.string().max(MAX_NOTE_TITLE_LENGTH),
+  content: z.string().max(MAX_NOTE_CONTENT_LENGTH),
   color: noteColorSchema,
   font: noteFontSchema,
   pinned: z.boolean(),
@@ -320,7 +480,7 @@ const noteFields = {
   // immediately, or never. The routes stamp it from `trashed` and the
   // server clock, and zod strips whatever a client sends.
   position: z.number(),
-  tags: z.array(z.string().min(1).max(64)).max(50),
+  tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(MAX_TAGS_PER_NOTE),
   // References from `POST /api/attachments`; the bytes never ride in a note.
   images: z
     .array(z.string().regex(ATTACHMENT_REF_PATTERN, "Upload images first"))
@@ -357,6 +517,123 @@ export const noteVersionCreateSchema = z.object({
 });
 export const noteUpdateSchema = z.object(exactPartial(noteFields));
 
+// The same requests from the app, whose notes are sealed before they leave
+// the browser. Every value in someone's words is a ciphertext; what the
+// server acts on stays as it was.
+
+const attachmentRefs = (max: number) =>
+  z
+    .array(z.string().regex(ATTACHMENT_REF_PATTERN, "Upload images first"))
+    .max(max);
+
+const sealedNoteFields = {
+  title: sealed(SEALED_FIELD_MAX.title),
+  content: sealed(SEALED_FIELD_MAX.content),
+  excerpt: sealed(SEALED_FIELD_MAX.excerpt),
+  font: sealed(SEALED_FIELD_MAX.font),
+  images: sealed(SEALED_FIELD_MAX.images),
+  // What the two sealed lists name, which the server keeps the images by.
+  imageRefs: attachmentRefs(MAX_IMAGES_PER_NOTE),
+  linkPreviews: sealed(SEALED_FIELD_MAX.linkPreviews),
+  // A thumbnail and an icon for each preview.
+  previewRefs: attachmentRefs(MAX_LINK_PREVIEWS_PER_NOTE * 2),
+  color: sealedOrEmpty(SEALED_FIELD_MAX.color),
+  tags: sealedOrEmpty(SEALED_FIELD_MAX.tags),
+  // The note key for a calendar feed, while the note has a reminder.
+  reminderKey: sealedOrEmpty(MAX_WRAPPED_KEY_LENGTH).exactOptional(),
+  pinned: noteFields.pinned,
+  archived: noteFields.archived,
+  trashed: noteFields.trashed,
+  position: noteFields.position,
+  reminder: noteFields.reminder,
+  readonly: noteFields.readonly,
+  source: noteFields.source,
+} as const;
+
+/** `POST /api/attachments/claim`. */
+export const attachmentsClaimSchema = z.object({
+  noteId: noteIdSchema.exactOptional(),
+  refs: attachmentRefs(MAX_ATTACHMENTS_PER_CLAIM),
+});
+
+/** `POST /api/notes` from the app. */
+export const sealedNoteCreateSchema = z.object({
+  id: noteIdSchema,
+  key: wrappedKey,
+  keyVersion: z.number().int().min(1),
+  ...sealedNoteFields,
+});
+
+/** `POST /api/notes/import` from the app. A note already there keeps the
+ * key it has, which the client sealed this copy under. */
+export const sealedNotesImportSchema = z.object({
+  notes: z
+    .array(
+      sealedNoteCreateSchema.extend({
+        createdAt: z.iso.datetime({ offset: true }).exactOptional(),
+      }),
+    )
+    .max(MAX_NOTES_PER_IMPORT),
+});
+
+/**
+ * `PUT /api/notes/:id` from the app. A sealed list travels with the
+ * references it names, and the text with its excerpt, or the server's record
+ * of either would fall behind what the note says.
+ */
+export const sealedNoteUpdateSchema = z
+  .object({
+    ...exactPartial(sealedNoteFields),
+    // Which note key the sealed values are under. Checked against the
+    // note's, so a change sealed under a key since replaced is refused
+    // and not stored where nobody could open it.
+    keyVersion: z.number().int().min(1).exactOptional(),
+  })
+  .refine(
+    (body) =>
+      (body.images === undefined) === (body.imageRefs === undefined) &&
+      (body.linkPreviews === undefined) === (body.previewRefs === undefined) &&
+      (body.content === undefined) === (body.excerpt === undefined),
+    {
+      message:
+        "images comes with imageRefs, linkPreviews with previewRefs, content with excerpt",
+    },
+  );
+
+/**
+ * `PUT /api/notes/:id/key`: the note under a new key. Everything everyone on
+ * the note shares comes sealed again, with none of it left under the old key.
+ */
+export const noteRekeySchema = z.object({
+  keyVersion: z.number().int().min(2),
+  key: wrappedKey,
+  previousKeys: sealed(MAX_PREVIOUS_KEYS_LENGTH),
+  title: sealed(SEALED_FIELD_MAX.title),
+  content: sealed(SEALED_FIELD_MAX.content),
+  excerpt: sealed(SEALED_FIELD_MAX.excerpt),
+  font: sealed(SEALED_FIELD_MAX.font),
+  images: sealed(SEALED_FIELD_MAX.images),
+  linkPreviews: sealed(SEALED_FIELD_MAX.linkPreviews),
+  links: z
+    .array(
+      z.object({
+        token: z.string().min(1).max(64),
+        wrappedKey,
+      }),
+    )
+    .max(100)
+    .exactOptional(),
+});
+
+/** `POST /api/notes/:id/versions` from the app. */
+export const sealedVersionCreateSchema = z.object({
+  id: noteIdSchema,
+  keyVersion: z.number().int().min(1),
+  title: sealed(SEALED_FIELD_MAX.title),
+  content: sealed(SEALED_FIELD_MAX.content),
+  timestamp: z.string().max(40).exactOptional(),
+});
+
 /** `POST /api/tokens`. An MCP token's tools reach notes and nothing else,
  * so it takes only the note scopes. */
 export const apiTokenCreateSchema = z
@@ -369,8 +646,25 @@ export const apiTokenCreateSchema = z
       .min(1)
       .max(API_TOKEN_SCOPES.length)
       .exactOptional(),
+    // A token the app made, to carry keys: the secret's SHA-256, its first
+    // characters for a list to show, and the keys wrapped under it.
+    tokenHash: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .exactOptional(),
+    prefix: z
+      .string()
+      .regex(/^mf[pmc]_[A-Za-z0-9_-]{6}$/)
+      .exactOptional(),
+    wrappedKeys: sealed(MAX_TOKEN_KEYS_LENGTH).exactOptional(),
     password: confirmationPassword,
   })
+  .refine(
+    (body) =>
+      (body.tokenHash === undefined) === (body.prefix === undefined) &&
+      (body.tokenHash === undefined) === (body.wrappedKeys === undefined),
+    { message: "tokenHash, prefix and wrappedKeys come together" },
+  )
   .refine(
     (body) =>
       body.kind !== "mcp" ||
@@ -395,19 +689,32 @@ export const oauthRegisterSchema = z.object({
 });
 
 /** `POST /api/oauth/authorize`: the consent page's answer. */
-export const oauthAuthorizeSchema = z.object({
-  clientId: z.string().min(1).max(2000),
-  redirectUri: z.string().min(1).max(2000),
-  // A base64url SHA-256, which is 43 characters.
-  codeChallenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-  state: z.string().max(2000).exactOptional(),
-  scopes: z
-    .array(z.enum(["notes:read", "notes:write"]))
-    .min(1)
-    .max(2),
-  expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
-  password: confirmationPassword,
-});
+export const oauthAuthorizeSchema = z
+  .object({
+    clientId: z.string().min(1).max(2000),
+    redirectUri: z.string().min(1).max(2000),
+    // A base64url SHA-256, which is 43 characters.
+    codeChallenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+    state: z.string().max(2000).exactOptional(),
+    scopes: z
+      .array(z.enum(["notes:read", "notes:write"]))
+      .min(1)
+      .max(2),
+    expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
+    password: confirmationPassword,
+    // A code the app made, to carry keys: its SHA-256, and the keys wrapped
+    // under a key derived from it.
+    codeHash: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .exactOptional(),
+    wrappedKeys: sealed(MAX_TOKEN_KEYS_LENGTH).exactOptional(),
+  })
+  .refine(
+    (body) =>
+      (body.codeHash === undefined) === (body.wrappedKeys === undefined),
+    { message: "codeHash and wrappedKeys come together" },
+  );
 
 /** `POST /api/webhooks`. Where it may point is checked on every delivery,
  * against the resolved address; this only refuses what is never a webhook. */
@@ -428,9 +735,23 @@ export const webhookCreateSchema = z.object({
 /** `PUT /api/webhooks/:id`. */
 export const webhookUpdateSchema = z.object({ active: z.boolean() });
 
-/** `POST /api/notes/:id/comments` and `PUT .../comments/:commentId`. Plain
- * text; a comment of nothing but space is no comment. */
+/** `PUT /api/notes/:id/comments/:commentId`: the comment's text sealed under
+ * the note key. Its length is the sealing client's to hold. */
 export const noteCommentSchema = z.object({
+  body: sealed(SEALED_FIELD_MAX.comment),
+  keyVersion: z.number().int().min(1),
+});
+
+/** `POST /api/notes/:id/comments`, under an id the client chose. */
+export const noteCommentCreateSchema = noteCommentSchema.extend({
+  id: noteIdSchema,
+});
+
+/**
+ * A comment from a token that carries a key: its words, which the server
+ * seals under the note's key. The same body writes a new one and changes one.
+ */
+export const commentTextSchema = z.object({
   body: z.string().trim().min(1).max(MAX_COMMENT_LENGTH),
 });
 

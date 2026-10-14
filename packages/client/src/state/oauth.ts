@@ -5,6 +5,7 @@ import type {
   OAuthClientInfo,
 } from "@manifesto/shared";
 import { apiFetch } from "../storage/apiRequest.js";
+import { sealer } from "../storage/sealing.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
@@ -91,14 +92,35 @@ export type AllowResult =
   | { kind: "too-many" }
   | { kind: "failed" };
 
-/** Lets the assistant in, and sends the browser back to it with the code. */
+/**
+ * Lets the assistant in, and sends the browser back to it with the code.
+ *
+ * An assistant reaches notes, so its grant carries the keys to open them.
+ * The code is made here and the keys wrapped under it, and the server is
+ * sent the code's hash: it first sees the code when the assistant trades it
+ * in, and wraps the keys again for the tokens it hands out.
+ */
 export async function allowClient(
   request: AuthorizeRequest,
   scopes: readonly ApiTokenScope[],
   expiresInDays: number | null,
   password: string,
 ): Promise<AllowResult> {
+  const sealing = sealer.peek();
+  if (!sealing) return { kind: "failed" };
+  let made: Awaited<ReturnType<typeof sealing.newToken>>;
+  try {
+    // A code is a token's secret for two minutes, and wrapped under alike.
+    made = await sealing.newToken("");
+  } catch (err) {
+    console.warn("Failed to make an assistant's keys:", err);
+    return { kind: "failed" };
+  }
   const body: OAuthAuthorizeRequest = {
+    ...(made && {
+      codeHash: made.fields.tokenHash,
+      wrappedKeys: made.fields.wrappedKeys,
+    }),
     clientId: request.clientId,
     redirectUri: request.redirectUri,
     codeChallenge: request.codeChallenge,
@@ -112,7 +134,16 @@ export async function allowClient(
   const refusal = res && (await confirmationRefusal(res));
   if (refusal) return { kind: "refused", refusal };
   if (!res?.ok) return { kind: "failed" };
-  navigateTo(((await res.json()) as OAuthAuthorizeResponse).redirectTo);
+  const { redirectTo } = (await res.json()) as OAuthAuthorizeResponse;
+  if (!made) {
+    navigateTo(redirectTo);
+    return { kind: "ok" };
+  }
+  // The server never had the code: it comes back without one, to an address
+  // it checked, and the code is added here.
+  const target = new URL(redirectTo);
+  target.searchParams.set("code", made.secret);
+  navigateTo(target.href);
   return { kind: "ok" };
 }
 

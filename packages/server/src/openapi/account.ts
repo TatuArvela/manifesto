@@ -8,19 +8,9 @@ import {
 import { noContent, notFound, type Operation, ok } from "./operation.js";
 
 /**
- * What an account keeps beside its notes: the export, API tokens and webhooks.
+ * What an account keeps beside its notes: API tokens and webhooks.
  */
 export const ACCOUNT_OPERATIONS: Operation[] = [
-  {
-    method: "get",
-    path: "/api/export",
-    tag: "Account",
-    summary: "Every note the account owns, as a zip of JSON and Markdown",
-    auth: "any",
-    limits: ["user"],
-    scope: "notes:read",
-    responses: { "200": { description: "application/zip" } },
-  },
   {
     method: "get",
     path: "/api/tokens",

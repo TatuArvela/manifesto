@@ -66,9 +66,6 @@ export interface AdminUser {
 
 export interface AdminUsersResponse {
   users: AdminUser[];
-  /** Whether the server lets an admin download an account's notes
-   * (`ADMIN_EXPORT`). */
-  adminExport: boolean;
 }
 
 export interface AdminUserResponse {

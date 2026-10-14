@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver } from "../types.js";
-import { claimedImages, claimedPreviews } from "./claimed.js";
+import { claimed } from "./claimed.js";
 
 /**
  * Teams, the same in both drivers: names unique within a source, members
@@ -34,7 +34,7 @@ export function describeTeamsContract(
       await storage.notes.insert({
         id: "n1",
         userId: "owner",
-        data: {
+        data: claimed({
           title: "",
           content: "",
           color: "default" as never,
@@ -45,10 +45,10 @@ export function describeTeamsContract(
           trashedAt: null,
           position: 0,
           tags: [],
-          images: claimedImages([]),
-          linkPreviews: claimedPreviews([]),
+          images: [],
+          linkPreviews: [],
           reminder: null,
-        },
+        }),
         createdAt: T0,
         updatedAt: T0,
       });

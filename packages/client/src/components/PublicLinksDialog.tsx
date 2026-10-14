@@ -10,8 +10,8 @@ import { notes } from "../state/notesStore.js";
 import {
   createPublicLink,
   listPublicLinks,
+  publicLinkAddress,
   publicLinksDialog,
-  publicLinkUrl,
   revokePublicLink,
 } from "../state/publicLinks.js";
 import { showError, showSuccess } from "../state/ui.js";
@@ -50,9 +50,12 @@ export function PublicLinksDialogHost() {
   );
 }
 
-async function copyLink(token: string) {
+async function copyLink(link: PublicLink) {
   try {
-    await navigator.clipboard.writeText(publicLinkUrl(token));
+    // The whole address: the link, and the key that opens what it shows.
+    const address = await publicLinkAddress(link);
+    if (address === null) throw new Error("The link's key did not open");
+    await navigator.clipboard.writeText(address);
     showSuccess(t("noteCard.linkCopied"));
   } catch {
     showError(t("publicLink.copyFailed"));
@@ -127,10 +130,10 @@ function PublicLinksDialog({
           </p>
 
           <CreateLinkForm
-            noteId={note.id}
+            note={note}
             onCreated={(link) => {
               setLinks((held) => [link, ...(held ?? [])]);
-              void copyLink(link.token);
+              void copyLink(link);
             }}
           />
 
@@ -171,10 +174,10 @@ function PublicLinksDialog({
 }
 
 function CreateLinkForm({
-  noteId,
+  note,
   onCreated,
 }: {
-  noteId: string;
+  note: Note;
   onCreated: (link: PublicLink) => void;
 }) {
   const [mode, setMode] = useState<PublicLinkMode>("live");
@@ -188,7 +191,7 @@ function CreateLinkForm({
     if (busy) return;
     setBusy(true);
     const views = Number.parseInt(maxViews, 10);
-    const link = await createPublicLink(noteId, {
+    const link = await createPublicLink(note, {
       mode,
       ...(days > 0 && { expiresInDays: days }),
       ...(Number.isFinite(views) && views > 0 && { maxViews: views }),
@@ -332,7 +335,7 @@ function LinkRow({
         class={iconButtonClass}
         aria-label={t("publicLink.copy")}
         title={t("publicLink.copy")}
-        onClick={() => void copyLink(link.token)}
+        onClick={() => void copyLink(link)}
       >
         <Copy class="w-4 h-4" />
       </button>

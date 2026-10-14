@@ -51,9 +51,14 @@ desktop browsers).
   list does not fire the same occurrence again.
 - **The time zone.** A reminder's time is a wall-clock time. The server reads it in the zone the
   reminder was made in (`NoteReminder.timezone`), not its own.
-- **What is sent, and to whom.** The note's title (for an untitled note "Untitled reminder", in the
-  language the account last used the app in) and the first 140 characters of its text, encrypted to the browser's subscription keys (RFC 8291), so the push service that carries
-  it (Google's, Apple's or Mozilla's) cannot read it. The request is signed with the server's own key
+- **What is sent, and to whom.** The server cannot read a note
+  ([Encryption](encryption.md#reminders)), so it sends the note's title and the first 140
+  characters of its text as it holds them, sealed, with the note's key as its reader keeps it.
+  The service worker opens them with the account key the device holds while it is signed in, and
+  shows the title (for an untitled note "Untitled reminder", in the language the account last used
+  the app in) and that text. A device that is signed out shows "Untitled reminder" and nothing of
+  the note. The whole message is also encrypted to the browser's subscription keys (RFC 8291), so
+  the push service that carries it (Google's, Apple's or Mozilla's) cannot read even that much. The request is signed with the server's own key
   (VAPID, RFC 8292), which is made on first use and kept in the database; nothing has to be
   configured. Both are written over `node:crypto` in `push/webPush.ts` rather than taken from a
   library, and the encryption is tested against the RFC's own example.
@@ -109,6 +114,9 @@ gives an address to subscribe to, and a `webcal:` link that opens the device's c
 - The address is the secret. It is shown once, when the token is made, and anyone who has it can read
   the reminders; revoking the token in Settings stops the feed. It opens nothing else, and is not a
   sign-in token anywhere.
+- Notes are [encrypted](encryption.md#tokens-that-carry-a-key), so the address carries a key: the
+  one that opens the notes that have a reminder, and no others. A reminder set by a script shows as
+  "Reminder", without the note's name or text, until the app has next been open on that account.
 - Calendar apps fetch the feed on their own schedule, often every few hours, so a changed reminder can
   take that long to show there. The app's own notifications stay the ones that arrive on time.
 - The calendar is named after the token, so two devices can each have their own.

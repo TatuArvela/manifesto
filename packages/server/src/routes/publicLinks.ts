@@ -1,13 +1,14 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { zValidator } from "@hono/zod-validator";
-import type {
-  Note,
-  PublicLink,
-  PublicLinkResponse,
-  PublicLinksResponse,
-  PublicNote,
-  PublicNoteLockedResponse,
-  PublicNoteResponse,
+import {
+  attachmentIdOf,
+  type PublicLink,
+  type PublicLinkResponse,
+  type PublicLinksResponse,
+  type PublicNote,
+  type PublicNoteLockedResponse,
+  type PublicNoteResponse,
+  type SealedNote,
 } from "@manifesto/shared";
 import { type Context, Hono } from "hono";
 import { audit } from "../audit/audit.js";
@@ -17,7 +18,6 @@ import { hashPassword, verifyPassword } from "../lib/password.js";
 import { nowIso } from "../lib/time.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { HttpError } from "../middleware/error.js";
-import { referencesOf } from "../storage/attachmentMapping.js";
 import type { StorageDriver, StoredPublicLink } from "../storage/types.js";
 import {
   publicLinkCreateSchema,
@@ -56,19 +56,27 @@ export function toPublicLink(link: StoredPublicLink): PublicLink {
     viewCount: link.viewCount,
     lastViewedAt: link.lastViewedAt,
     createdAt: link.createdAt,
+    sealedLinkKey: link.sealedLinkKey,
   };
 }
 
-/** What a public link shows of a note; see `PublicNote`. */
-function publicNoteOf(note: Note): PublicNote {
+/**
+ * What a public link hands over of a note; see `PublicNote`. A live link
+ * gives the note's own sealed fields, which the page opens with the note key
+ * the link carries; a snapshot gives the copy its owner sealed for it. None
+ * of it opens without the link key, which is in the address and never here.
+ */
+function publicNoteOf(link: StoredPublicLink, live: SealedNote): PublicNote {
+  const from = link.snapshot ?? live;
   return {
-    title: note.title,
-    content: note.content,
-    color: note.color,
-    font: note.font,
-    images: note.images,
-    linkPreviews: note.linkPreviews,
-    updatedAt: note.updatedAt,
+    id: live.id,
+    keyVersion: link.snapshot ? 1 : live.keyVersion,
+    title: from.title,
+    content: from.content,
+    font: from.font,
+    images: from.images,
+    linkPreviews: from.linkPreviews,
+    updatedAt: from.updatedAt,
   };
 }
 
@@ -99,7 +107,7 @@ export function registerPublicLinkRoutes(
   notes: AuthedApp,
   { storage, cfg }: PublicLinkDeps,
 ): void {
-  async function ownNote(c: Context, noteId: string): Promise<Note> {
+  async function ownNote(c: Context, noteId: string): Promise<SealedNote> {
     const { userId } = c.get("auth") as AuthContext;
     const access = await storage.notes.access(noteId, userId);
     if (!access) throw new HttpError(404, "Note not found");
@@ -135,12 +143,24 @@ export function registerPublicLinkRoutes(
       }
       const body = c.req.valid("json");
       const now = nowIso();
+      // A snapshot serves only pictures the note itself names: the copy is
+      // sealed, so what it shows is the owner's word, held to that here.
+      if (body.snapshot) {
+        const named = new Set(await storage.notes.attachmentIds(note.id));
+        if (
+          !body.snapshot.refs.every((ref) => named.has(attachmentIdOf(ref)))
+        ) {
+          throw new HttpError(422, "snapshot.refs: Not this note's images");
+        }
+      }
       const link: StoredPublicLink = {
         token: randomBytes(16).toString("base64url"),
         noteId: note.id,
         ownerId: userId,
         mode: body.mode,
-        snapshot: body.mode === "snapshot" ? publicNoteOf(note) : null,
+        snapshot: body.snapshot ? { ...body.snapshot, updatedAt: now } : null,
+        wrappedKey: body.wrappedKey ?? null,
+        sealedLinkKey: body.sealedLinkKey,
         passwordHash: body.password
           ? await hashPassword(body.password, cfg)
           : null,
@@ -248,14 +268,18 @@ export function createPublicRoutes({
     // it brings them back.
     const live = await storage.notes.getById(link.noteId, link.ownerId);
     if (!live || live.trashed) throw notFound();
-    return { link, note: link.snapshot ?? publicNoteOf(live) };
+    return { link, note: publicNoteOf(link, live) };
   }
 
   async function view(link: StoredPublicLink, note: PublicNote, now: string) {
     if (!(await storage.publicLinks.recordView(link.token, now))) {
       throw notFound();
     }
-    return { note, access: accessKey(link) } satisfies PublicNoteResponse;
+    return {
+      note,
+      wrappedKey: link.wrappedKey,
+      access: accessKey(link),
+    } satisfies PublicNoteResponse;
   }
 
   routes.get("/:token", async (c) => {
@@ -297,7 +321,7 @@ export function createPublicRoutes({
 
   routes.get("/:token/attachments/:id", async (c) => {
     const now = nowIso();
-    const { link, note } = await open(c.req.param("token"), now);
+    const { link } = await open(c.req.param("token"), now);
     const id = c.req.param("id");
     const usedUp = link.maxViews !== null && link.viewCount >= link.maxViews;
     if (
@@ -314,15 +338,16 @@ export function createPublicRoutes({
     }
     // Only a picture the note shows: the token is not a key to the owner's
     // other attachments.
-    const shown = referencesOf({
-      images: JSON.stringify(note.images),
-      link_previews: JSON.stringify(note.linkPreviews),
-    });
+    const shown = link.snapshot
+      ? link.snapshot.refs.map(attachmentIdOf)
+      : await storage.notes.attachmentIds(link.noteId);
     if (!shown.includes(id)) throw notFound();
     const attachment = await storage.attachments.get(id);
     if (!attachment) throw notFound();
+    // Sealed, like every image: the page opens it with the key the note
+    // holds for it.
     return c.body(new Uint8Array(attachment.data), 200, {
-      "Content-Type": attachment.contentType,
+      "Content-Type": "application/octet-stream",
       "Content-Length": String(attachment.size),
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; sandbox",

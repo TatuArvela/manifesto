@@ -4,9 +4,12 @@ import type {
   NoteCommentsResponse,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
+import { ulid } from "ulid";
 import { t } from "../i18n/index.js";
 import type { MessageKey } from "../i18n/messages/index.js";
 import { ApiError, apiJson } from "../storage/apiRequest.js";
+import { sealer } from "../storage/sealing.js";
+import { sealedNote } from "../storage/shareKeys.js";
 import { showError } from "./ui.js";
 
 /**
@@ -63,19 +66,33 @@ function reloadIfLoading(noteId: string): void {
 }
 
 /**
- * A comment the server sent, from a reply or the socket: added, or put in the
- * place of the copy held. Ignored for a note whose comments are not loaded,
- * which will ask for all of them when it is opened.
+ * A comment the server sent, from a reply or the socket, sealed as it came:
+ * opened, then added or put in the place of the copy held. Ignored for a note
+ * whose comments are not loaded, which will ask for all of them when it is
+ * opened, and for one that does not open. Never rejects.
  */
-export function receiveComment(comment: NoteComment): void {
-  reloadIfLoading(comment.noteId);
-  const held = noteComments.value.get(comment.noteId);
+export async function receiveComment(sealed: NoteComment): Promise<void> {
+  reloadIfLoading(sealed.noteId);
+  if (!noteComments.value.has(sealed.noteId)) return;
+  let comment: NoteComment | undefined;
+  try {
+    [comment] =
+      (await sealer
+        .peek()
+        ?.openComments(sealed.noteId, [sealed], sealedNote(sealed.noteId))) ??
+      [];
+  } catch (err) {
+    console.warn("Failed to open a comment:", err);
+  }
+  if (!comment) return;
+  const opened = comment;
+  const held = noteComments.value.get(sealed.noteId);
   if (!held) return;
   setFor(
-    comment.noteId,
-    held.some((c) => c.id === comment.id)
-      ? held.map((c) => (c.id === comment.id ? comment : c))
-      : [...held, comment],
+    opened.noteId,
+    held.some((c) => c.id === opened.id)
+      ? held.map((c) => (c.id === opened.id ? opened : c))
+      : [...held, opened],
   );
 }
 
@@ -113,9 +130,14 @@ export async function loadComments(noteId: string): Promise<boolean> {
       "GET",
       `/notes/${noteId}/comments`,
     );
+    // Sealed under the note's key; one that does not open is left out.
+    const opened =
+      (await sealer
+        .peek()
+        ?.openComments(noteId, body?.comments ?? [], sealedNote(noteId))) ?? [];
     if (!current()) return true;
     loading.delete(noteId);
-    setFor(noteId, body?.comments ?? []);
+    setFor(noteId, opened);
     setFailed(noteId, false);
     return true;
   } catch (err) {
@@ -141,12 +163,19 @@ export async function addComment(
   body: string,
 ): Promise<boolean> {
   try {
+    const sealing = sealer.peek();
+    if (!sealing) throw new ApiError(0);
+    // The id is chosen here: the sealed text is bound to it.
+    const id = ulid();
     const res = await apiJson<NoteCommentResponse>(
       "POST",
       `/notes/${noteId}/comments`,
-      { body },
+      {
+        id,
+        ...(await sealing.sealComment(noteId, id, body, sealedNote(noteId))),
+      },
     );
-    if (res) receiveComment(res.comment);
+    if (res) await receiveComment(res.comment);
     return true;
   } catch (err) {
     report(`Failed to comment on ${noteId}:`, err, "comments.error.addFailed");
@@ -159,12 +188,21 @@ export async function editComment(
   body: string,
 ): Promise<boolean> {
   try {
+    // The same words again are no edit: sealed anew they would look like one.
+    if (body.trim() === comment.body) return true;
+    const sealing = sealer.peek();
+    if (!sealing) throw new ApiError(0);
     const res = await apiJson<NoteCommentResponse>(
       "PUT",
       `/notes/${comment.noteId}/comments/${comment.id}`,
-      { body },
+      await sealing.sealComment(
+        comment.noteId,
+        comment.id,
+        body,
+        sealedNote(comment.noteId),
+      ),
     );
-    if (res) receiveComment(res.comment);
+    if (res) await receiveComment(res.comment);
     return true;
   } catch (err) {
     report(

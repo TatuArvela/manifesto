@@ -167,4 +167,6 @@ export interface PrefsRepo {
     at: string,
     maxBytes: number,
   ): Promise<AccountPrefs | "tooLarge">;
+  /** Removes everything stored for the account. */
+  clear(userId: string): Promise<void>;
 }

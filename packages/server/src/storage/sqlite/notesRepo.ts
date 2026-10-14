@@ -1,10 +1,10 @@
-import type { Note, NoteUpdate } from "@manifesto/shared";
+import type { SealedNote, SealedNoteUpdate } from "@manifesto/shared";
+import { type ReferringRow, referencesOf } from "../attachmentMapping.js";
 import {
   decodeCursor,
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
-  searchPattern,
   splitPage,
 } from "../noteMapping.js";
 import {
@@ -27,15 +27,16 @@ import {
   NoteAccessError,
   type NotePage,
   type NotesRepo,
+  type RekeyedNote,
+  type RewrappedLink,
 } from "../types.js";
 import type { SqliteDB } from "./database.js";
 
-/**
- * Everything but the attachments. Listing queries select this so the bytes
- * never leave the database, which is the point of leaving them out of the
- * response.
- */
-const LIST_COLUMNS = INSERT_COLUMNS.filter((c) => c !== "images");
+/** Everything a reader is sent: the attachment references are the server's
+ * own record and stay behind. */
+const LIST_COLUMNS = INSERT_COLUMNS.filter(
+  (c) => c !== "images" && c !== "preview_refs" && c !== "image_count",
+);
 
 /**
  * Ordered by `updated_at DESC, id DESC`, so a cursor is a place in a total
@@ -49,8 +50,6 @@ const AFTER_CURSOR = `AND (n.updated_at < @afterUpdatedAt
   OR (n.updated_at = @afterUpdatedAt AND n.id < @afterId))`;
 /** Row or members changed after `@since`; see `members_changed_at`. */
 const CHANGED = `AND (n.updated_at > @since OR n.members_changed_at > @since)`;
-const MATCHES = `AND (LOWER(n.title) LIKE LOWER(@like)
-  OR LOWER(n.content) LIKE LOWER(@like))`;
 
 /** The user's own notes. */
 const OWN_FROM = `SELECT ${LIST_COLUMNS.map((c) => `n.${c}`).join(", ")}
@@ -76,10 +75,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
   const own = {
     first: db.prepare(`${OWN_FROM} ${PAGE_ORDER}`),
     after: db.prepare(`${OWN_FROM} ${AFTER_CURSOR} ${PAGE_ORDER}`),
-    search: db.prepare(`${OWN_FROM} ${MATCHES} ${PAGE_ORDER}`),
-    searchAfter: db.prepare(
-      `${OWN_FROM} ${MATCHES} ${AFTER_CURSOR} ${PAGE_ORDER}`,
-    ),
     changed: db.prepare(`${OWN_FROM} ${CHANGED} ${PAGE_ORDER}`),
     changedAfter: db.prepare(
       `${OWN_FROM} ${CHANGED} ${AFTER_CURSOR} ${PAGE_ORDER}`,
@@ -88,10 +83,6 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
   const shared = {
     first: db.prepare(`${SHARED_FROM} ${PAGE_ORDER}`),
     after: db.prepare(`${SHARED_FROM} ${AFTER_CURSOR} ${PAGE_ORDER}`),
-    search: db.prepare(`${SHARED_FROM} ${MATCHES} ${PAGE_ORDER}`),
-    searchAfter: db.prepare(
-      `${SHARED_FROM} ${MATCHES} ${AFTER_CURSOR} ${PAGE_ORDER}`,
-    ),
     changed: db.prepare(`${SHARED_FROM} ${CHANGED} ${PAGE_ORDER}`),
     changedAfter: db.prepare(
       `${SHARED_FROM} ${CHANGED} ${AFTER_CURSOR} ${PAGE_ORDER}`,
@@ -129,13 +120,14 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
 
   /** The notes as `viewerId` sees them, with `sharing` where they have
    * members. */
-  function view(rows: ViewRow[], viewerId: string, listed: boolean): Note[] {
-    const notes = rows.map((row) => rowToViewNote(row, listed));
+  function view(rows: ViewRow[], viewerId: string): SealedNote[] {
+    const notes = rows.map((row) => rowToViewNote(row));
     if (rows.length === 0) return notes;
     const ids = rows.map((row) => row.id);
     const members = db
       .prepare(
         `SELECT s.note_id, s.user_id, s.role, s.created_at, s.accepted_at,
+                s.offered_key, s.wrapped_key_version,
                 u.username, u.display_name, u.avatar_color,
                 s.via_team, t.name AS team_name
          FROM note_shares s JOIN users u ON u.id = s.user_id
@@ -154,8 +146,8 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     return attachSharing(rows, notes, viewerId, members, users);
   }
 
-  /** Narrows a listing to a search (`like`) or to changes (`since`). */
-  type Filter = { like: string } | { since: string } | null;
+  /** Narrows a listing to changes (`since`). */
+  type Filter = { since: string } | null;
 
   function page(
     userId: string,
@@ -176,22 +168,66 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
         ? after
           ? set.after
           : set.first
-        : "like" in filter
-          ? after
-            ? set.searchAfter
-            : set.search
-          : after
-            ? set.changedAfter
-            : set.changed;
+        : after
+          ? set.changedAfter
+          : set.changed;
     const rows = mergePages(
       pick(own).all(params) as ViewRow[],
       pick(shared).all(params) as ViewRow[],
       limit,
     );
     const { page: kept, nextCursor } = splitPage(rows, limit);
-    return { notes: view(kept, userId, true), nextCursor };
+    return { notes: view(kept, userId), nextCursor };
   }
 
+  const clearFeedKeysStmt = db.prepare(
+    `UPDATE note_shares SET reminder_key = '' WHERE note_id = ?`,
+  );
+  const rewrapStmt = db.prepare(
+    `UPDATE public_links SET wrapped_key = ?
+     WHERE token = ? AND note_id = ? AND mode = 'live'`,
+  );
+  /**
+   * The note, its feeds and its live links move to the new key as one
+   * transaction: a link left on the old key would stop opening, with nothing
+   * left to say so.
+   */
+  const rekeyTx = db.transaction(
+    (
+      id: string,
+      ownerId: string,
+      rekeyed: RekeyedNote,
+      fromVersion: number,
+      updatedAt: string,
+      expectedUpdatedAt: string,
+      links: readonly RewrappedLink[],
+    ): boolean => {
+      const { columns, values } = noteUpdateColumns(rekeyed, "integer");
+      const assignments = [...columns, "updated_at"].map((c) => `${c} = ?`);
+      const info = db
+        .prepare(
+          `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
+             reminder_key = ''
+           WHERE id = ? AND user_id = ? AND key_version = ?
+             AND updated_at = ?`,
+        )
+        .run([
+          ...values,
+          updatedAt,
+          id,
+          ownerId,
+          fromVersion,
+          expectedUpdatedAt,
+        ]);
+      if (info.changes === 0) return false;
+      // Every feed's copy of the key is of the one before.
+      clearFeedKeysStmt.run(id);
+      for (const link of links) {
+        rewrapStmt.run(link.wrappedKey, link.token, id);
+      }
+      return true;
+    },
+  );
   /**
    * A recipient's write, as one transaction: their role is read and the note's
    * `updated_at` compared in the same lock that writes both rows, so a share
@@ -201,9 +237,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     (
       id: string,
       userId: string,
-      changes: NoteUpdate,
+      changes: SealedNoteUpdate,
       updatedAt: string,
       expectedUpdatedAt: string | undefined,
+      expectedKeyVersion: number | undefined,
     ): boolean => {
       const share = acceptedRoleStmt.get(id, userId) as
         | { role: string }
@@ -219,6 +256,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       if (expectedUpdatedAt !== undefined) {
         where += ` AND updated_at = ?`;
         params.push(expectedUpdatedAt);
+      }
+      if (expectedKeyVersion !== undefined) {
+        where += ` AND key_version = ?`;
+        params.push(expectedKeyVersion);
       }
       const assignments = [...note.columns, "updated_at"].map(
         (column) => `${column} = ?`,
@@ -263,9 +304,9 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       );
     },
 
-    async getById(id: string, userId: string): Promise<Note | null> {
+    async getById(id: string, userId: string): Promise<SealedNote | null> {
       const row = getStmt.get({ id, userId }) as ViewRow | undefined;
-      return row ? (view([row], userId, false)[0] ?? null) : null;
+      return row ? (view([row], userId)[0] ?? null) : null;
     },
 
     async access(id: string, userId: string): Promise<NoteAccess | null> {
@@ -287,7 +328,14 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       return ownerStmt.get(id) !== undefined;
     },
 
-    async insert(input: InsertNoteInput): Promise<Note> {
+    async attachmentIds(id: string): Promise<string[]> {
+      const row = db
+        .prepare(`SELECT images, preview_refs FROM notes WHERE id = ?`)
+        .get(id) as ReferringRow | undefined;
+      return row ? referencesOf(row) : [];
+    },
+
+    async insert(input: InsertNoteInput): Promise<SealedNote> {
       insertStmt.run(noteInsertValues(input, "integer"));
       const note = await repo.getById(input.id, input.userId);
       if (!note)
@@ -298,10 +346,11 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     async update(
       id: string,
       userId: string,
-      changes: NoteUpdate,
+      changes: SealedNoteUpdate,
       updatedAt: string,
       expectedUpdatedAt?: string,
-    ): Promise<Note | null> {
+      expectedKeyVersion?: number,
+    ): Promise<SealedNote | null> {
       const owner = ownerStmt.get(id) as OwnerRow | undefined;
       if (!owner) return null;
       if (owner.user_id !== userId) {
@@ -311,6 +360,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
           changes,
           updatedAt,
           expectedUpdatedAt,
+          expectedKeyVersion,
         );
         return written ? await repo.getById(id, userId) : null;
       }
@@ -326,25 +376,40 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
         where += ` AND updated_at = ?`;
         params.push(expectedUpdatedAt);
       }
+      // And on the key the words were sealed under, for the same reason.
+      if (expectedKeyVersion !== undefined) {
+        where += ` AND key_version = ?`;
+        params.push(expectedKeyVersion);
+      }
       const sql = `UPDATE notes SET ${assignments.join(", ")} ${where}`;
       const info = db.prepare(sql).run(params);
       if (info.changes === 0) return null;
       return await repo.getById(id, userId);
     },
 
+    async rekey(
+      id,
+      ownerId,
+      rekeyed,
+      fromVersion,
+      updatedAt,
+      expectedUpdatedAt,
+      links,
+    ) {
+      return rekeyTx(
+        id,
+        ownerId,
+        rekeyed,
+        fromVersion,
+        updatedAt,
+        expectedUpdatedAt,
+        links,
+      );
+    },
+
     async delete(id: string, userId: string): Promise<boolean> {
       const info = deleteStmt.run(id, userId);
       return info.changes > 0;
-    },
-
-    async search(
-      userId: string,
-      query: string,
-      options: ListNotesOptions,
-    ): Promise<NotePage> {
-      const like = searchPattern(query);
-      if (like === null) return { notes: [], nextCursor: null };
-      return page(userId, { like }, options);
     },
   };
 

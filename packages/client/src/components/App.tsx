@@ -8,6 +8,7 @@ import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { revealApp } from "../splash.js";
+import { keyState, takeSecretKeyFromAddress } from "../state/accountKeys.js";
 import { startAccountLocaleReport } from "../state/accountLocale.js";
 import { checkForUpdate } from "../state/admin.js";
 import {
@@ -59,6 +60,7 @@ import { ConnectionStatus } from "./ConnectionStatus.js";
 import { DrawingPad } from "./DrawingPad.js";
 import { Header } from "./Header.js";
 import { InvitationList } from "./InvitationList.js";
+import { KeyScreen } from "./KeyScreen.js";
 import { LoginScreen } from "./LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
@@ -72,6 +74,7 @@ import { MobileNav, Sidebar } from "./Sidebar.js";
 import { SettingsDialog } from "./settings/SettingsDialog.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
+import { UnopenedNotes } from "./UnopenedNotes.js";
 import { WelcomeDialog } from "./WelcomeDialog.js";
 
 // True only on the *very first render* of a page that landed with `#token=`
@@ -86,16 +89,31 @@ const oidcInFlight =
 export function App() {
   const ready = useOidcRedirectOnce(oidcInFlight);
   const signIn = ready && isServerMode && authToken.value === null;
+  // Signed in is not unlocked: until the account's keys are on this device,
+  // the secret key (or the set-up of the keys) is all there is to show.
+  const keys = keyState.value;
+  const locked = ready && isServerMode && !signIn && keys !== "unlocked";
+  // While the device is only being asked what it holds, the loading screen
+  // stays rather than a card flashing past on every start.
+  const lockedScreen = locked && keys !== "checking" && keys !== "none";
   useEffect(() => {
-    if (signIn) revealApp();
+    if (signIn || lockedScreen) revealApp();
     // A mailed link opened where someone is signed in already has nothing to
     // do, and `LoginScreen` is not there to take its token. Left in the
     // address it would sign them back in the moment they signed out.
-    else if (ready) takeSignInLinkToken();
-  }, [signIn, ready]);
+    if (ready && !signIn) takeSignInLinkToken();
+  }, [signIn, lockedScreen, ready]);
+  useEffect(() => {
+    // A secret key scanned from another device's Settings arrives in the
+    // address, whether or not anyone is signed in here yet.
+    if (isServerMode) takeSecretKeyFromAddress();
+  }, []);
   if (!ready) return null;
   if (signIn) {
     return <LoginScreen />;
+  }
+  if (locked) {
+    return lockedScreen ? <KeyScreen /> : null;
   }
   return <MainApp />;
 }
@@ -369,12 +387,14 @@ function MainApp() {
               <div class="max-w-xl mx-auto">
                 <NoteInput />
                 {isActive && <InvitationList />}
+                {isActive && <UnopenedNotes />}
                 <NoteGrid />
               </div>
             ) : (
               <>
                 <NoteInput />
                 {isActive && <InvitationList />}
+                {isActive && <UnopenedNotes />}
                 <NoteGrid />
               </>
             )}

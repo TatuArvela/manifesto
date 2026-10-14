@@ -14,6 +14,7 @@ import { createAuthProvider } from "../auth/index.js";
 import { hashToken } from "../lib/token.js";
 import { PUSH_DROP_AFTER } from "../push/sender.js";
 import { fromB64url } from "../push/webPush.js";
+import { ct, plain } from "../storage/contracts/claimed.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
@@ -22,6 +23,7 @@ import {
   type TestPushService,
   type TestSubscription,
 } from "../test/pushReceiver.js";
+import { sealingClient } from "../test/sealingClient.js";
 import { authHeaders, TEST_CONFIG } from "../test/setup.js";
 import { isDueForPush, pushDueReminders } from "./pushReminders.js";
 
@@ -106,8 +108,9 @@ describe("push reminders", () => {
   let userId: string;
   let events: WebSocketEvent[];
 
-  const request = (path: string, init?: RequestInit) =>
-    handle.app.request(path, init);
+  const request = sealingClient(async (path, init) =>
+    handle.app.request(path, init),
+  );
   const call = (method: string, path: string, body?: unknown) =>
     request(path, {
       method,
@@ -142,6 +145,15 @@ describe("push reminders", () => {
       noteEvents: handle.noteEvents,
       now: () => now,
     });
+
+  /** Writes sealed fields over a note, as a client's save would. */
+  const rewrite = (id: string, changes: Record<string, unknown>) =>
+    storage.notes.update(
+      id,
+      userId,
+      changes as Parameters<typeof storage.notes.update>[2],
+      "2026-10-03T11:00:01.000Z",
+    );
 
   const reminderOf = async (id: string) =>
     ((await (await call("GET", `/api/notes/${id}`)).json()) as { note: Note })
@@ -178,7 +190,7 @@ describe("push reminders", () => {
     await storage.close();
   });
 
-  it("sends a due reminder nobody fired, readable only by the browser, and marks it fired", async () => {
+  it("sends a due reminder nobody fired, its words sealed for the account's own devices, and marks it fired", async () => {
     const note = await addNote({ reminder: reminder() });
     await subscribe();
     await pass();
@@ -188,19 +200,31 @@ describe("push reminders", () => {
     expect(sent?.path).toBe("/device-1");
     expect(sent?.headers["content-encoding"]).toBe("aes128gcm");
     expect(sent?.headers.ttl).toBe("3600");
-    // Nothing of the note travels in the clear.
-    expect(sent?.body.toString("latin1")).not.toContain("Dentist");
     const message = JSON.parse(
       browser.decrypt(sent?.body as Buffer),
     ) as ReminderPush;
-    expect(message).toEqual({
+    const { sealed, ...readable } = message;
+    // What any holder of the subscription reads: that there is a reminder.
+    expect(readable).toEqual({
       type: "reminder",
       noteId: note.id,
-      title: "Dentist",
-      body: "Bring the x-rays and the referral",
+      title: "Untitled reminder",
+      body: "",
       next: null,
       firedAt: "2026-10-03T12:00:00.000Z",
     });
+    // What only a device with the account's keys opens: the title and the
+    // first of the text as the note holds them, and the note's key as its
+    // reader keeps it.
+    const stored = await storage.notes.getById(note.id, userId);
+    expect(sealed).toEqual({
+      keyVersion: 1,
+      key: stored?.key,
+      title: stored?.title,
+      excerpt: stored?.excerpt,
+    });
+    expect(plain(sealed?.title ?? "")).toBe("Dentist");
+    expect(plain(sealed?.excerpt ?? "")).toContain("Bring the");
 
     expect(await reminderOf(note.id)).toEqual({
       ...reminder(),
@@ -212,6 +236,24 @@ describe("push reminders", () => {
     // And the next pass has nothing to do.
     await pass(NOW + 30_000);
     expect(service.received).toHaveLength(1);
+  });
+
+  it("leaves out what does not fit a push, the text before the title", async () => {
+    const long = await addNote({
+      title: "t".repeat(450),
+      content: "ö".repeat(1200),
+      reminder: reminder(),
+    });
+    await subscribe();
+    // A title of its sealed size alone is under the limit; with an
+    // excerpt as long as this one, which no real client seals, it is not.
+    const stored = await storage.notes.getById(long.id, userId);
+    await rewrite(long.id, { excerpt: ct("ö".repeat(1200)) });
+    await pass();
+    const message = JSON.parse(
+      browser.decrypt(service.received[0]?.body as Buffer),
+    ) as ReminderPush;
+    expect(message.sealed).toMatchObject({ title: stored?.title, excerpt: "" });
   });
 
   it("signs the request with the key browsers subscribe with", async () => {
@@ -269,9 +311,11 @@ describe("push reminders", () => {
       browser.decrypt(service.received[0]?.body as Buffer),
     ) as ReminderPush;
     expect(message.next).toEqual({ time: "2026-10-04T11:58:00" });
-    // No title: named as the client names it, with the text as the body.
+    // No title: named as the client names it, and the text is the device's
+    // to open.
     expect(message.title).toBe("Untitled reminder");
-    expect(message.body).toBe("Bring the x-rays and the referral");
+    expect(message.body).toBe("");
+    expect(plain(message.sealed?.title ?? "")).toBe("");
     expect(await reminderOf(note.id)).toMatchObject({
       time: "2026-10-04T11:58:00",
       recurrence: "daily",
@@ -295,7 +339,7 @@ describe("push reminders", () => {
   });
 
   it("sends to every browser the account has subscribed", async () => {
-    await addNote({ reminder: reminder() });
+    const note = await addNote({ reminder: reminder() });
     const phone = newTestSubscription();
     await subscribe("laptop");
     await subscribe("phone", phone);
@@ -305,7 +349,7 @@ describe("push reminders", () => {
       "/phone",
     ]);
     const toPhone = service.received.find((r) => r.path === "/phone");
-    expect(phone.decrypt(toPhone?.body as Buffer)).toContain("Dentist");
+    expect(phone.decrypt(toPhone?.body as Buffer)).toContain(note.id);
     expect(() => browser.decrypt(toPhone?.body as Buffer)).toThrow();
   });
 

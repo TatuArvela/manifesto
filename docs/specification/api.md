@@ -86,6 +86,7 @@ feature off when the server does not say it has it, rather than trying it and fa
 | `POST`   | `/api/notes`     | Create a note        |
 | `POST`   | `/api/notes/import` | Import up to 100 notes, keeping their ids |
 | `PUT`    | `/api/notes/:id` | Update a note        |
+| `PUT`    | `/api/notes/:id/key` | Put the note under a new key (owner, session only) |
 | `DELETE` | `/api/notes/:id` | Permanently delete   |
 | `DELETE` | `/api/notes`     | Permanently delete every note the user owns |
 
@@ -97,13 +98,51 @@ removes the note from their notes (their share goes, the note stays with everyon
 `204`, as emptying it from their own trash. `DELETE /api/notes` deletes only the notes the user
 owns; the ones shared with them stay.
 
-`POST /api/notes/import` takes `{ "notes": NoteImport[] }`, at most `MAX_NOTES_PER_IMPORT` (100)
-per request, each a note as `POST /api/notes` takes it plus the `id` and `createdAt` it had where it
+`POST /api/notes/import` takes `{ "notes": [...] }`, at most `MAX_NOTES_PER_IMPORT` (100)
+per request, each a note as `POST /api/notes` takes it plus the `createdAt` it had where it
 came from. An `id` the user owns is updated in place, so importing the same backup twice changes
-nothing; an `id` shared with them is skipped; an `id` taken by anyone else's note, or absent, gets a
-new one. Images must be attachment references, as for any note write. It answers
-`{ "created": number, "updated": number, "skipped": number }`. A backup larger than one request, by
-count or by the 1 MiB body limit, is sent in several.
+nothing; an `id` shared with them is skipped. An `id` taken by anyone else's note is not imported
+and is named in `taken`: a sealed note is bound to its id, so the client seals it again under a new
+one and sends it once more. A note the user owns is written only under the key it has: one that
+arrives under another `key` or `keyVersion` (sealed before the note's key was replaced) is not
+written and is named in `stale`, and the client reads the note again and seals under its key.
+Images must be attachment references, as for any note write. It answers
+`{ "created": number, "updated": number, "skipped": number, "taken"?: string[], "stale"?: string[] }`. A backup larger
+than one request, by count or by the 1 MiB body limit, is sent in several.
+
+#### Sealed notes
+
+The app seals a note in the browser before it sends it, and the server stores and returns it
+sealed ([Encryption](features/encryption.md)). A token that carries keys is the exception: for a
+request that presents one the server opens and seals with those keys, so it sends and is sent a
+readable `Note`, with an `id` the server assigns, as this page describes everywhere else. A token
+without keys is refused the note routes with `403`. Every route above takes and answers a
+`SealedNote` (`packages/shared/src/api/sealed.ts`) for a session:
+
+- **Sealed under the note key**: `title`, `content`, `excerpt` (the first 140 characters of the
+  text), `font`, `images` (the list of the note's images) and `linkPreviews`.
+- **Sealed under the reader's personal key**: `color` and `tags`. Either is `""` when never set,
+  which is how a shared note first reaches its recipient.
+- **`reminderKey`**, on a note with a reminder, is the note key wrapped under the reader's own
+  reminder key, for their calendar feed. It is the reader's own, like the reminder.
+- **`key`** is the note key wrapped under the reader's own notes key, and `keyVersion` says which
+  note key the values are under. `previousKeys`, present once the key has been replaced, is the
+  keys before it sealed under the one the note has now: what opens the versions, comments and
+  edits written under them. `rekeyDue: true` tells the owner, and nobody else, that someone who
+  held the key no longer holds the note.
+- **Readable**, since the server acts on them: `id`, `pinned`, `archived`, `trashed`, `trashedAt`,
+  `position`, `reminder`, `readonly`, `source`, `sharing`, `createdAt` and `updatedAt`.
+
+A sealed value is `e1.` and the base64url of a nonce, the ciphertext and its tag. The server checks
+that shape and a size for each field, and answers `422` for anything else in a sealed field: it
+holds no key, so the shape is all it can check. It can no longer hold a title to 500 characters or
+a note to 50 tags; the client that seals a note does.
+
+The client chooses a new note's `id`, since every sealed value is bound to the id of its note:
+`POST /api/notes` takes it, and answers `409` for one that is taken. A write that carries `images`
+carries `imageRefs` beside it, and one that carries `linkPreviews` carries `previewRefs`: the
+`attachment:` references each sealed list names, which is how the server knows which images a note
+still uses. They are never sent back. `content` travels with `excerpt`.
 
 ### Sharing
 
@@ -111,15 +150,18 @@ Bearer-protected, and share the per-user API limit.
 
 | Method   | Path                                 | Description |
 |----------|--------------------------------------|-------------|
-| `POST`   | `/api/notes/:id/shares`              | Invite an account: `{ userId, role }`, `201` `{ note }` |
+| `POST`   | `/api/notes/:id/shares`              | Invite an account: `{ userId, role, key? }`, `201` `{ note }` |
+| `PUT`    | `/api/notes/:id/shares/:userId/key`  | Hand someone on the note its key (`OfferedKey`), as anyone who holds it: `204`; `409` when they are not waiting for one and the caller is not the owner |
+| `PUT`    | `/api/notes/:id/held-key`            | A recipient keeps the note's replaced key under their own notes key: `{ key, keyVersion }`, `{ note }` |
+| `GET`    | `/api/users/:id/keys`                | An account's public keys: `{ userId, version, publicKeys }`; `404` until it has any |
 | `PUT`    | `/api/notes/:id/shares/:userId`      | Change their role: `{ role }`, `{ note }` |
 | `DELETE` | `/api/notes/:id/shares/:userId`      | Remove them or withdraw the invitation (owner), or leave the note (the user themselves): `204` |
 | `GET`    | `/api/invitations`                   | Invitations waiting for the signed-in user: `{ invitations: ShareInvitation[] }` |
-| `POST`   | `/api/invitations/:noteId/accept`    | Accept: `{ note }`, the recipient's copy |
+| `POST`   | `/api/invitations/:noteId/accept`    | Accept, keeping the note's key: `{ key, keyVersion }`, answered with `{ note }`, the recipient's copy |
 | `POST`   | `/api/invitations/:noteId/decline`   | Decline: `204` |
 | `GET`    | `/api/notes/:id/comments`            | The [comments](features/sharing-with-people.md#comments) beside a note, oldest first: `{ comments: NoteComment[] }`. Anyone who can see the note |
-| `POST`   | `/api/notes/:id/comments`            | Write one: `{ body }` (1 to 2000 characters, trimmed), `201` `{ comment }`; `409` when the note holds 500 |
-| `PUT`    | `/api/notes/:id/comments/:commentId` | Change one's own: `{ body }`, `{ comment }` with `editedAt` set; `403` for anyone else's |
+| `POST`   | `/api/notes/:id/comments`            | Write one: `{ id, body, keyVersion }`, the text sealed under the note key and bound to the id the client chose, `201` `{ comment }`; `409` when the note holds 500, or the id is taken |
+| `PUT`    | `/api/notes/:id/comments/:commentId` | Change one's own: `{ body, keyVersion }`, `{ comment }` with `editedAt` set; `403` for anyone else's |
 | `DELETE` | `/api/notes/:id/comments/:commentId` | Delete one's own, or any as the note's owner: `204` |
 | `GET`    | `/api/users?q=`                      | Accounts to share with: `{ users: DirectoryUser[] }` |
 | `GET`    | `/api/teams`                         | The teams the signed-in user is in: `{ teams: Team[] }` |
@@ -128,11 +170,21 @@ Bearer-protected, and share the per-user API limit.
 | `PUT`    | `/api/notes/:id/team-shares/:teamId` | Change the team's role, and its members' with it: `{ role }`, `{ teamShares }` |
 | `DELETE` | `/api/notes/:id/team-shares/:teamId` | Stop sharing with the team, taking the note from those who had it through it: `204` |
 | `GET`    | `/api/notes/:id/links`               | The note's [public links](features/sharing.md#public-links) (owner): `{ links: PublicLink[] }` |
-| `POST`   | `/api/notes/:id/links`               | Publish it: `{ mode, expiresInDays?, password?, maxViews? }`, `201` `{ link }` (owner) |
+| `POST`   | `/api/notes/:id/links`               | Publish it: `{ mode, expiresInDays?, password?, maxViews?, sealedLinkKey, wrappedKey? or snapshot? }`, `201` `{ link }` (owner) |
 | `DELETE` | `/api/notes/:id/links/:token`        | Revoke a link: `204` (owner) |
 
 `role` is `"edit"` or `"view"`. The `{ note }` a share route returns is the owner's copy, with
 `sharing` brought up to date.
+
+A comment's `body` is a ciphertext, and `keyVersion` says which note key it is under. The server
+holds it to the shape and size of one (`422` otherwise) and can no longer hold its text to 1 to 2000
+characters or trim it: the client that seals it does.
+
+A token that carries keys reads and writes a comment in plain words, as it does a note: it sends
+`{ body }` (trimmed, 1 to 2000 characters, `422` otherwise) with no `id` or `keyVersion`, the
+server seals it under the note's key and chooses the id, and every `body` it is answered with is
+readable. A comment that does not open with the token's keys is left out of the list, and a note
+whose key they do not open is `409`.
 
 - Inviting, changing a role and removing someone else are the owner's: another participant gets
   `403`, and someone who cannot see the note `404`.
@@ -141,22 +193,82 @@ Bearer-protected, and share the per-user API limit.
 - Accepting or declining an invitation that is not there (withdrawn, the note trashed or deleted, or
   already answered) is `404`. Declining is for invitations only; leaving an accepted note is the
   `DELETE` above.
-- `ShareInvitation` is `{ noteId, role, owner: ShareUser, title, content, color, font, invitedAt }`:
-  the note's text whole, with the owner's color and its font, so the invitation can show the note
-  itself. Attachments and link previews come with the note once it is accepted. Invitations to a
-  note in the trash are not listed.
+- `ShareInvitation` is `{ noteId, role, owner: ShareUser, title, content, font, keyVersion, offered,
+  invitedAt }`: the note's title, text and font, sealed under its note key, so the invitation can
+  show the note itself. The owner's colour is their own and is not part of it. Attachments and link
+  previews come with the note once it is accepted. Invitations to a note in the trash are not listed.
+
+#### Handing the note's key on
+
+A shared note is sealed, so everyone on it needs its key ([Encryption](features/encryption.md#sharing)):
+
+- **`OfferedKey`** is `{ keyVersion, ephemeral, wrapped, signer, signature }`: the note key sealed
+  under what an ephemeral P-256 key and the recipient's public key agree on, and signed by the
+  account that wrapped it, over the note, the version, the recipient and the wrap. The server stores
+  and passes it on, and checks only its shape, that `signer` is the caller, and that it is for the
+  key the note is under.
+- **With the invitation**: the owner's client sends it as `key` when the recipient has public keys.
+  Without one the invitation's `offered` is `null`: it is waiting for a key, shows nothing, and
+  cannot be accepted yet.
+- **Later, by anyone who holds the note**: `PUT /api/notes/:id/shares/:userId/key`. A share to a
+  team reaches members the owner's client never wrapped for, and the first client of anyone on the
+  note does it. `NoteMember.waitingForKey` is `true` while nobody has, for everyone on the note to
+  see. Only someone waiting is handed one this way: for a person who holds the key, or has an offer
+  of it they have not taken, anyone but the owner is answered `409`, or any holder could put a key
+  of their own making in place of the real one. The recipient's client checks the signature and
+  that the key opens the note's sealed fields, and keeps none that fails either.
+- **Accepting** sends the key back wrapped under the recipient's own notes key, as they keep the
+  key of a note of their own; `409` when it is for another key than the note is now under.
+- **A recipient whose copy is behind** the note's key (after it was replaced) is sent the note with
+  `key: ""` and the current `offered`, takes it, and stores it with `PUT /api/notes/:id/held-key`.
+- **A note is due a new key** when a share whose holder was ever handed the key ends (removed,
+  left, declined, withdrawn, expired from the recipient's trash, the team's or the account's going)
+  or a live public link is revoked.
+  The owner's app then sends `PUT /api/notes/:id/key` with `{ keyVersion, key, previousKeys, title,
+  content, excerpt, font, images, linkPreviews, links? }`: everything under the note key sealed
+  again, `keyVersion` one more than the note's (`409` otherwise), and for each live link that
+  stays `{ token, wrappedKey }`. `If-Match` carries the `updatedAt` of the note those fields were
+  sealed again from and is required (`428` without it): a note written since is answered `412`,
+  and the app reads it again, so replacing a key never undoes someone's edit. The server moves the
+  whole note at once and answers `{ note }`.
+  Everyone else on the note is then `waitingForKey` until a client holding the new key wraps it
+  for them. A `PUT /api/notes/:id` that carries sealed words says which key they are under in
+  `keyVersion`, and is answered `409` when the note has left that key; the check is part of the
+  write, so a replacement cannot land between the two. A token's write is held to the key the
+  server sealed it under in the same way.
+
+The recipient's client uses no offered key whose signature does not check against the signing key
+of the account it names, and takes that signing key only if it is the one it remembers for them.
+
+| Method | Path                            | Description |
+| ------ | ------------------------------- | ----------- |
+| `GET`  | `/api/auth/keys/seen`           | `{ seen }`: the public keys this account has seen of others, by account id, each sealed under its own personal key |
+| `PUT`  | `/api/auth/keys/seen/:userId`   | `{ sealed }`: remember that account's keys, over what was remembered before; `204`, or `409` past 5000 accounts |
+
+Session only. The server hands out public keys (`GET /api/users/:id/keys`), so it could hand out
+one of its own; this list is how a client tells a key it has met from one that changed. The server
+keeps it and can read none of it. It goes when the account's keys do.
 
 A public link is read without an account, and none of these send a bearer token:
 
 | Method   | Path                                   | Description |
 |----------|----------------------------------------|-------------|
-| `GET`    | `/api/public/:token`                   | The note: `{ note: PublicNote, access: null }`, counting a view; `401` `{ passwordRequired: true }` for a link with a password, counting nothing |
-| `POST`   | `/api/public/:token/unlock`            | With `{ password }`: `{ note, access }`, counting a view; `403` for a wrong one |
-| `GET`    | `/api/public/:token/attachments/:id`   | A picture the note shows, and no other; a link with a password needs `X-Link-Access: <access>` |
+| `GET`    | `/api/public/:token`                   | The note: `{ note: PublicNote, wrappedKey, access: null }`, counting a view; `401` `{ passwordRequired: true }` for a link with a password, counting nothing |
+| `POST`   | `/api/public/:token/unlock`            | With `{ password }`: `{ note, wrappedKey, access }`, counting a view; `403` for a wrong one |
+| `GET`    | `/api/public/:token/attachments/:id`   | A picture the note shows, sealed, and no other; a link with a password needs `X-Link-Access: <access>` |
 
 `mode` is `"live"` or `"snapshot"`. `PublicLink` is `{ token, noteId, mode, expiresAt, hasPassword,
-maxViews, viewCount, lastViewedAt, createdAt }`; `PublicNote` is `{ title, content, color, font,
-images, linkPreviews, updatedAt }`. Every public route answers the same `404` for a link that does not
+maxViews, viewCount, lastViewedAt, createdAt, sealedLinkKey }`; `PublicNote` is `{ id, keyVersion,
+title, content, font, images, linkPreviews, updatedAt }`, every word of it sealed.
+
+What a link shows opens only with its **link key**, 256 random bits the owner's app makes and puts
+in the fragment of the address (`/p/<token>#k=<key>`), which no browser sends to a server. The key
+is not the token, and the server never holds it. A `live` link is created with `wrappedKey`, the
+note key wrapped by the link key, and answers with the note's own sealed fields; a `snapshot` link
+is created with `snapshot`, a copy of the note sealed under a key derived from the link key, and
+the attachment references it names, which must be the note's. `sealedLinkKey` is the link key
+sealed under the owner's personal key, handed back so the owner can copy the address again. The
+password, the expiry and the view limit stay gates the server keeps. Every public route answers the same `404` for a link that does not
 open (never made, revoked, expired, used up, its note in the trash; with `PUBLIC_LINKS=off`, the 404 of
 a route that does not exist), sends
 `Cache-Control: no-store` and `X-Robots-Tag: noindex`, and is limited per address; `unlock` also per
@@ -180,6 +292,11 @@ includes `email`. Either way the caller is never among the results, and an empty
 | Method   | Path              | Description          |
 |----------|-------------------|----------------------|
 | `GET`    | `/api/search?q=`  | Search notes, one page at a time |
+
+The server cannot read a note, so it cannot search one for the app, which searches the notes it
+has opened in memory ([Search](features/search.md)). A session is answered `403`. The route is for
+a token that carries a key: the server opens the account's notes in memory for the request and
+returns those whose title or text holds `q`, whatever its case, newest first.
 
 ### Sync
 
@@ -230,6 +347,14 @@ with a reminder that is not in the trash, at the reminder's time in its timezone
 as it does (`RRULE`), fifteen minutes long, with an alarm when it starts. It may be cached for five
 minutes; any failure (a wrong, revoked or expired token, or an address without `.ics`) is `404`. See
 [Reminders](features/reminders.md#calendar-feed).
+
+The app makes a feed's address as it makes a token that carries keys (`tokenHash`, `prefix`,
+`wrappedKeys`), and what it wraps is the account's reminder key alone. A sealed note that has a
+reminder carries `reminderKey`, the note key wrapped under its reader's reminder key, which the
+client sends with the reminder; the server clears it when the reminder is cleared or the note's key
+is replaced, and hands it back only to that reader. For a request to the feed's address the server
+opens the reminder key from the address and, through `reminderKey`, each note that has a reminder.
+An event whose note has no copy yet is named "Reminder" and holds no text.
 
 `POST /api/tokens` with `"kind": "mcp"` mints a token for an AI assistant instead: it starts with
 `mfm_`, works at `/api/mcp` and nowhere else (the REST API and both sockets answer `403` or close
@@ -287,7 +412,7 @@ An assistant can also be given its token by signing in through the browser (OAut
 | `POST` | `/api/oauth/register` | Register a public client (RFC 7591) |
 | `POST` | `/api/oauth/token` | A form: trade a code and its PKCE verifier, or a refresh token, for an hour's `mfm_` token and the next `mfr_` refresh token |
 | `GET`  | `/api/oauth/client` | Session only: the client a consent is about (`OAuthClientInfo`) |
-| `POST` | `/api/oauth/authorize` | Session only, with the password: agree (`OAuthAuthorizeRequest`), answered with the client's redirect address carrying the code |
+| `POST` | `/api/oauth/authorize` | Session only, with the password: agree (`OAuthAuthorizeRequest`), answered with the client's redirect address. With `codeHash` and `wrappedKeys` (the app's own code, and the keys the grant carries wrapped under it) the address comes without a code, which the app adds; without them the server makes the code and the grant reaches no note |
 
 The first four answer any origin (CORS `*`), since they carry nothing a browser adds by itself.
 `/api/capabilities` says whether the server offers this, in `features.mcpSignIn`.
@@ -310,8 +435,12 @@ Session-only, and the web client's own. See [Reminders](features/reminders.md#pu
 
 | Method   | Path                         | Description          |
 |----------|------------------------------|----------------------|
-| `GET`    | `/api/notes/:id/versions`    | The note's versions, newest first (`NoteVersionsResponse`) |
-| `POST`   | `/api/notes/:id/versions`    | Add a version (`NoteVersionCreateRequest`); owner and editors |
+| `GET`    | `/api/notes/:id/versions`    | The note's versions, newest first: `{ versions: SealedNoteVersion[] }` |
+| `POST`   | `/api/notes/:id/versions`    | Add a version (`SealedNoteVersionCreateRequest`); owner and editors |
+
+A version's `title` and `content` are sealed under the note key and bound to the version's own
+`id`, which the client chooses (`409` for one that is taken). `keyVersion` says which note key it is
+under.
 
 See [Version History](features/version-history.md).
 
@@ -319,11 +448,24 @@ See [Version History](features/version-history.md).
 
 | Method   | Path                     | Description          |
 |----------|--------------------------|----------------------|
-| `POST`   | `/api/attachments`       | Upload an image: the raw file, its type in `Content-Type`; answers `{ ref }` |
-| `GET`    | `/api/attachments/:id`   | The bytes of an image a note refers to as `attachment:<id>` |
+| `POST`   | `/api/attachments`       | Upload an image sealed in the browser: the sealed bytes, its address in `X-Attachment-Address`; answers `{ ref }` |
+| `POST`   | `/api/attachments/claim` | Make images the owner's of the note about to name them: `{ noteId?, refs }`, answered with `{ refs }`, the reference to name for each |
+| `GET`    | `/api/attachments/:id`   | The sealed bytes of an image a note refers to as `attachment:<id>`, as `application/octet-stream` |
 
-A note's `images` holds `attachment:<id>` references from uploads; see
-[Attachments](features/attachments.md).
+A note's sealed `images` names `attachment:<id>` references from uploads, with the key and type of
+each; see [Attachments](features/attachments.md).
+
+A token that carries keys sends and is sent the image itself:
+
+- `POST /api/attachments` takes the image's bytes with no `X-Attachment-Address`. The server
+  checks that they are a PNG, JPEG, GIF, WebP or AVIF image (`415` otherwise, whatever the
+  `Content-Type` says), seals them, and answers `{ ref }` to put in a note's `images`.
+- `GET /api/attachments/:id?note=<note id>` answers the image, with its own `Content-Type`. `note`
+  is a note the token's account holds that names the image: the key that opens an image is inside
+  the note. It may be left out for an image the same account uploaded with a token, and is `400`
+  when it is needed and missing.
+- A token attaches images to notes its own account owns. One uploaded for a note someone else owns
+  is refused when the note is written (`422`), as any image that is not the owner's is.
 
 ### Link previews
 
@@ -355,16 +497,18 @@ Endpoints under `/api/auth/*` are owned by the configured auth provider. Two pro
 | `POST`   | `/api/auth/login`     | Log in               |
 | `POST`   | `/api/auth/logout`    | Log out              |
 | `POST`   | `/api/auth/password`  | Change your own password |
-| `GET`    | `/api/auth/two-factor` | Whether two-factor is on, whether an authenticator app is set up, and recovery codes left |
-| `POST`   | `/api/auth/two-factor/setup`, `/enable`, `/disable`, `/recovery-codes` | The authenticator app, and replacing the recovery codes |
+| `GET`    | `/api/auth/two-factor` | Whether two-factor is on, and whether an authenticator app is set up: `{ enabled, authenticator }` |
+| `POST`   | `/api/auth/two-factor/setup`, `/enable`, `/disable` | The authenticator app; `enable` and `disable` answer `204` |
 | `GET`    | `/api/auth/passkeys`  | Your passkeys (`PasskeysResponse`), never their keys |
 | `POST`   | `/api/auth/passkeys/options` | With `{ password }`: options for `navigator.credentials.create()` |
-| `POST`   | `/api/auth/passkeys`  | `{ name?, response }`: add the passkey the browser made; `recoveryCodes` when it is the first second factor |
+| `POST`   | `/api/auth/passkeys`  | `{ name?, response }`: add the passkey the browser made |
 | `DELETE` | `/api/auth/passkeys/:id` | With `{ password }`: remove one |
 | `POST`   | `/api/auth/passkey/options` | Public: a challenge to sign in with a passkey alone |
 | `POST`   | `/api/auth/passkey/login` | Public: `{ response }`, the browser's answer; `AuthSuccessResponse` |
 | `POST`   | `/api/auth/sign-in-link` | Public: `{ email, locale? }`, mails a sign-in link; always `204` |
 | `POST`   | `/api/auth/sign-in-link/confirm` | Public: `{ token, otp?, passkey? }`; `AuthSuccessResponse` |
+| `POST`   | `/api/auth/recovery`  | Public: `{ username, verifier }`, the first step of signing in with the [recovery key](#account-keys); `RecoveryOpenResponse` |
+| `POST`   | `/api/auth/recovery/complete` | Public: the second step, with `newPassword` and the new wrapped keys; `AuthSuccessResponse` |
 
 Passkey options and answers are WebAuthn's JSON forms, binary values as base64url. A ceremony is
 accepted only from a page this server's client is served from (an `Origin` in `CORS_ORIGINS`, that of
@@ -387,7 +531,8 @@ With two-factor sign-in on, a right password answers `403` with
 `code: "two_factor_required"` and `twoFactor: { authenticator, passkey }`: whether
 the account has an authenticator app, and a challenge for its passkeys on this
 address (null when it has none there). The same request sent again with `otp`
-(an authenticator or recovery code) or `passkey` (the browser's answer) signs in.
+(an authenticator code) or `passkey` (the browser's answer) signs in. There are no recovery
+codes: an account that has lost its factors signs in with its [recovery key](#account-keys).
 
 `POST /api/auth/sign-in-link/confirm` signs in with the token of a mailed link (`MAGIC_LINKS`, and only
 with `SMTP_URL`; otherwise both routes are `404`). A token that is unknown, used or older than 15 minutes
@@ -441,9 +586,39 @@ Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
 | `GET`    | `/api/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment), and on start to pick up admin rights granted or revoked since sign-in. |
 | `PUT`    | `/api/auth/me`        | Bearer-protected: set or clear (`null`) your own email address with `{ email }`: `{ user: AuthUser }`. An account that signs in with single sign-on is `409`, since the identity provider owns its address. |
 | `GET`    | `/api/auth/me/activity` | A session only: your own lines of the audit log, where you are the actor or the target, newest first, as `AuditLogResponse` (`limit`, `before`). An entry where someone else acted on you has `ip: null`. |
-| `GET`    | `/api/auth/me/prefs`  | Bearer-protected: your [preferences](features/preferences.md) as your clients sent them, `{ prefs }`, where `prefs` is a flat object the server never reads. `{}` until a client has sent any. |
-| `PATCH`  | `/api/auth/me/prefs`  | Bearer-protected: set some preferences with `{ prefs }`, a key set to `null` removing it: `{ prefs }` with the result. At most 100 keys of up to 64 characters; `413` if the result would pass 16 KB as JSON. Every socket of the account hears `prefs:updated`. |
+| `GET`    | `/api/auth/me/prefs`  | Bearer-protected: your [preferences](features/preferences.md) as your clients sent them, `{ prefs }`, a flat object whose values are each sealed under the account's personal key and bound to their name. `{}` until a client has sent any. |
+| `PATCH`  | `/api/auth/me/prefs`  | Bearer-protected: set some preferences with `{ prefs }`, each value sealed and a key set to `null` removing it: `{ prefs }` with the result. At most 100 keys of up to 64 characters; `422` for a value that is not a ciphertext, `413` if the result would pass 32 KB as JSON. Every socket of the account hears `prefs:updated`. |
 | `PUT`    | `/api/auth/me/locale` | Bearer-protected: record the language your client is set to with `{ locale }` (a tag such as `fi`): `204`. `AuthUser.locale` gives it back. Mail sent to you by someone else's action, a share invitation, is written in it. |
+
+#### Account keys
+
+The keys an account's notes are encrypted with ([Encryption](features/encryption.md#keys)) are made
+and wrapped in the browser. The server stores them, hands them back to the account's own sessions and
+can open none of them. All of these are session-only, and the ones that check a password or the
+recovery key are throttled like a sign-in (10 requests per 15 minutes per address, and the per-name
+budget of failed attempts).
+
+| Method   | Path                              | Description |
+|----------|-----------------------------------|-------------|
+| `GET`    | `/api/auth/keys`                  | `AccountKeysResponse`: `{ keys, sessionEndsAt }`. `keys` is null before the account is set up, and otherwise `{ version, wrappedBySecret, publicKeys, wrappedPrivateKeys }`. `sessionEndsAt` is when this session ends at the latest, which is when a device removes the keys it holds. |
+| `PUT`    | `/api/auth/keys`                  | `AccountKeysSetupRequest`: the account's first keys. `204`, or `409` once it has some. |
+| `DELETE` | `/api/auth/keys`                  | With `{ password? }`: remove the account's keys, so it is set up again. For when the secret key and the recovery key are both lost. `204`; ends the account's other sessions and tokens. |
+| `POST`   | `/api/auth/keys/confirm`          | With `{ password? }`: `204` when the [confirmation](features/accounts.md#confirming-a-change-from-a-session) holds. The client asks before it shows the secret key it holds. |
+| `POST`   | `/api/auth/keys/secret`           | `{ password?, wrappedBySecret }`: a new secret key. `204`; ends the account's other sessions, and leaves its tokens. |
+| `POST`   | `/api/auth/keys/recovery`         | `{ password?, wrappedByRecovery, recoveryVerifier }`: a new recovery key. `204`. |
+| `POST`   | `/api/auth/keys/recover`          | `{ verifier }`: the first step of using the recovery key while signed in. `RecoveryOpenResponse`: `{ userId, version, wrappedByRecovery, hasPassword }`. A wrong key is `403` with `code: "recovery_key_invalid"`. |
+| `POST`   | `/api/auth/keys/recover/complete` | `{ verifier, wrappedBySecret, wrappedByRecovery, recoveryVerifier }`: the second step, a new secret key and recovery key in place of the ones used. `204`; `409` if the recovery key was spent meanwhile. Ends the account's other sessions and tokens. |
+
+Every wrapped key is a ciphertext: `e1.` and the base64url of a nonce, the AES-256-GCM ciphertext
+and its tag. The server refuses anything else in its place with `422`, which is all it can check. A
+public key is an uncompressed P-256 point as base64url. The recovery key never reaches the server:
+`verifier` is 32 bytes the browser derives from it, as base64url, and the server holds its SHA-256.
+
+`POST /api/auth/recovery` and `/api/auth/recovery/complete` are the same two steps with nobody signed
+in, for a local account that has lost its password or its second factors: they take `username`
+beside the rest, the second takes `newPassword`, sets it, ends every session and token the account
+had and answers `AuthSuccessResponse`. A wrong key and a username nobody holds answer the same `401`.
+An account that signs in through single sign-on signs in there and uses the routes above.
 
 `AuthUser` is `{ id, username, displayName, avatarColor, email, isAdmin }`, where `email` is a
 string or `null`.
@@ -461,12 +636,11 @@ database on every request (`403` otherwise). Shares the per-user API limit. See
 
 | Method   | Path                              | Description |
 |----------|-----------------------------------|-------------|
-| `GET`    | `/api/admin/users`                | Every account, by username: `{ users: AdminUser[], adminExport }`, where `adminExport` says whether the export below is on |
+| `GET`    | `/api/admin/users`                | Every account, by username: `{ users: AdminUser[] }` |
 | `POST`   | `/api/admin/users`                | Create an account from `{ username, email? }`: `201` `{ user, temporaryPassword }` |
 | `PUT`    | `/api/admin/users/:id`            | Grant or revoke admin with `{ isAdmin }`, set or clear the address with `{ email }`, or both: `{ user }` |
 | `POST`   | `/api/admin/users/:id/password`   | Reset the password and end every session of the account: `{ user, temporaryPassword }` |
 | `DELETE` | `/api/admin/users/:id`            | Delete the account with its notes and sessions: `204` |
-| `GET`    | `/api/admin/users/:id/export`     | Everything the account owns, as the zip `GET /api/export` gives its owner. Only with `ADMIN_EXPORT` on; otherwise `404`, as for a route that does not exist |
 | `GET`    | `/api/admin/checks`               | What the overview's [setup checks](features/accounts.md#setup-checks) read: `{ appUrl, trustProxy, proxy, backup, mail }` |
 | `POST`   | `/api/admin/checks/mail`          | Send a test message to the caller's own address: `{ sent }`. `409` without mail set up or an address on the account |
 
@@ -507,7 +681,7 @@ The web client reads it before anyone signs in, to choose what to show. It repla
 
 `features` names each of them, as `SERVER_FEATURES` in `@manifesto/shared` lists them: `sharing`,
 `teams`, `publicLinks`, `linkPreviews`, `calendar`, `apiTokens`, `mcp`, `webhooks`, `passkeys`,
-`magicLinks`, `pushReminders`, `twoFactor` and `adminExport`. The variable that switches each, and
+`magicLinks`, `pushReminders` and `twoFactor`. The variable that switches each, and
 what it covers, is in
 [Deployment](server/deployment.md#turning-features-off). `teams` needs `sharing`, and is reported
 off with it.
@@ -516,7 +690,7 @@ An operation that belongs to one is marked `x-feature` in `/api/openapi.json`. W
 off, it answers the same `404` as a path the server has no route for, before authentication, so a
 caller cannot tell a feature that is off from one the server never had. The ways out of a feature are
 never marked and stay open: `DELETE /api/notes/:id/shares/:userId`, the team shares' listing and
-`DELETE`, the passkeys' listing and `DELETE`, the two-factor status, `disable` and new recovery codes,
+`DELETE`, the passkeys' listing and `DELETE`, the two-factor status and `disable`,
 and the tokens' listing and `DELETE`. A personal API token (`apiTokens`) or an MCP token (`mcp`)
 whose feature is off is refused wherever it is presented, as an unknown token is, and `POST
 /api/tokens` answers `403` for a kind whose feature is off.
@@ -525,10 +699,10 @@ whose feature is off is refused wherever it is presented, as an unknown token is
 
 - Content type: `application/json`
 - Note objects follow the schema defined in [Data Model](data-model.md)
-- `POST /api/notes` accepts a note without `id`, `createdAt`, or `updatedAt` (server assigns these). `trashedAt` is server-assigned too: it is derived from `trashed`, and a value sent by a client is ignored
+- `POST /api/notes` accepts a note without `createdAt` or `updatedAt` (the server assigns these), under an `id` the client chose. `trashedAt` is server-assigned too: it is derived from `trashed`, and a value sent by a client is ignored
 - `PUT /api/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
-- List endpoints return `{ "notes": Note[], "nextCursor": string | null }`
-- Single note endpoints return `{ "note": Note }`
+- List endpoints return `{ "notes": [...], "nextCursor": string | null }`
+- Single note endpoints return `{ "note": ... }`, the note [sealed](#sealed-notes)
 - Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (`password_change_required`, and `email_taken` to tell a taken address from a taken username)
 - `PUT /api/auth/me`, `POST /api/tokens`, `POST /api/webhooks` and the two-factor changes take the account's `password` in the body. Without it they answer `403` with `confirmation_required`, with a wrong one `403` with `password_incorrect`, and after too many wrong ones `429`. An account without a password answers `403` with `reauthentication_required` unless its session was signed in within 15 minutes; `GET /api/auth/login?reauth=1` signs in again. See [Accounts](features/accounts.md#confirming-a-change-from-a-session)
 
@@ -584,22 +758,11 @@ write.
 
 The checkpoint is kept by the client. The server stores nothing per device.
 
-### Attachments are not in a listing
+### Images in a listing
 
-A note returned by a list endpoint carries `imageCount` and an **empty**
-`images`. The bytes come from `GET /api/notes/:id`, which returns the note
-whole.
-
-This is what makes a listing's size a function of how many notes a user has
-rather than of how many pictures they have attached, each of which may be up to
-5 MB, inlined as a `data:` URL in the note itself (see
-[Data Model](data-model.md#images)). A client must therefore not read an empty
-`images` as "this note has no pictures": compare it with `imageCount`, and fetch
-the note before doing anything that needs the bytes: drawing them, exporting
-the note, or writing a new list of attachments back.
-
-In open mode nothing is ever separated from its note, so `imageCount` is absent
-there and `images` is always complete.
+A listed note carries its sealed `images`, like any other field: the list holds references, a few
+dozen bytes an image, and the bytes of each come from `GET /api/attachments/:id` when a card draws
+it. `imageCount` is no longer sent.
 
 ## WebSocket APIs
 
@@ -659,3 +822,10 @@ Awareness states are rewritten on the way in: each carries the authenticated use
 The connection URL carries the client's editor schema version as `?editor=<n>`. A version below the server's `EDITOR_SCHEMA_VERSION`, or one that is not a number, is refused at the `Auth` message with the reason `editor-outdated` (see [Collaborative Editing](features/collaborative-editing.md#editor-versions)). A URL without the parameter counts as version 1.
 
 Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres). A frame, and a note's whole state, may be at most 8 MiB: a larger frame closes the socket with `1009` before it is read, and a state that has grown past it is not stored and its editors are disconnected with the same code.
+
+What that document holds is ciphertext. The note's text is in a second document that never leaves
+the browser; the one synced here is a list (`log`) of entries, each an edit to the first or a
+snapshot of all of it, sealed under a key derived from the note key
+([Collaborative Editing](features/collaborative-editing.md#sealed), [Encryption](features/encryption.md#collaboration)).
+An awareness state is `{ sealed }`, a cursor sealed the same way, beside the `user` the server
+stamps on it.

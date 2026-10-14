@@ -34,6 +34,12 @@ are here because breaking one fails silently, often from a file the guide is not
 - A security-relevant action writes an `audit(...)` entry (action in `AUDIT_ACTIONS`, a message in
   both catalogues); one a stolen session could abuse also calls `requireConfirmation`.
 - Server-side outbound requests to user-supplied addresses go through `safeFetch`, never `fetch`.
+- Encrypting goes through `seal` / `unseal` with `associatedData`; the account key stays a
+  `CryptoKey` that cannot be exported, and no key a person holds is sent to the server.
+- A value the server stores to read by itself (a secret, a reminder's time) goes through `atRest`
+  and its column into `AT_REST_COLUMNS`, or replacing the server key loses it.
+- A note's words cross to the server only through the `Sealer` (`storage/sealing.ts`), sealed; a
+  new field of them is added in `shared/src/crypto/noteSeal.ts` and the sealed schema together.
 - Quantifiers stay bounded in anything reachable from a card render.
 - Commit messages follow the `commit-message` skill, PR descriptions the `pr-description` skill.
 - When a change alters what an area guide says, update the guide in the same commit, and add a
@@ -125,6 +131,7 @@ code is enough. Read one by hand when planning a change before touching its file
 | `components.md` | Dropdown, confirmation, Escape, shortcuts, Back, modals |
 | `api-contract.md` | `OPERATIONS`, protection, features, the compatibility policy |
 | `accounts.md` | admins, sessions, tokens, confirmation, audit |
+| `encryption.md` | account keys, unlocking, the recovery key, sealed notes and their tests |
 | `sharing.md` | shares between accounts, teams |
 | `server.md` | storage drivers, auth providers, attachments, MCP, webhooks, jobs |
 

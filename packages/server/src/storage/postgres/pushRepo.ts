@@ -1,7 +1,9 @@
+import { AT_REST, atRest } from "../atRest.js";
 import {
   PUSH_COLUMNS,
   type PushRow,
   rowToPushSubscription,
+  sealedSubscription,
 } from "../pushMapping.js";
 import type { PushSubscriptionsRepo, ServerSecretsRepo } from "../types.js";
 import type { PgPool } from "./database.js";
@@ -12,7 +14,8 @@ export function createPostgresPushSubscriptionsRepo(
   pool: PgPool,
 ): PushSubscriptionsRepo {
   return {
-    async save(subscription) {
+    async save(given) {
+      const subscription = sealedSubscription(given);
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
@@ -101,20 +104,34 @@ export function createPostgresPushSubscriptionsRepo(
 export function createPostgresServerSecretsRepo(
   pool: PgPool,
 ): ServerSecretsRepo {
-  const read = async (name: string) => {
+  const stored = async (name: string) => {
     const result = await pool.query<{ value: string }>(
       `SELECT value FROM server_secrets WHERE name = $1`,
       [name],
     );
-    return result.rows[0]?.value ?? null;
+    return result.rows[0]?.value;
+  };
+  const read = async (name: string) => {
+    const held = await stored(name);
+    return held === undefined ? null : atRest.open(held, AT_REST.serverSecret);
   };
   return {
     get: read,
     async setIfAbsent(name, value, now) {
+      const sealed = atRest.seal(value, AT_REST.serverSecret);
       await pool.query(
         `INSERT INTO server_secrets (name, value, created_at)
          VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING`,
-        [name, value, now],
+        [name, sealed, now],
+      );
+      const held = await read(name);
+      if (held !== null) return held;
+      // What the name holds does not open. Only if it is still that value,
+      // so that of two processes that find it so, one's is kept by both.
+      await pool.query(
+        `UPDATE server_secrets SET value = $1, created_at = $2
+         WHERE name = $3 AND value = $4`,
+        [sealed, now, name, await stored(name)],
       );
       return (await read(name)) ?? value;
     },

@@ -184,6 +184,13 @@ export const en = {
   "editor.outdated":
     "A newer version is in use. Reload to keep editing this note.",
   "editor.outdated.reload": "Reload",
+  "editor.unopenedEdits":
+    "Some changes to this note could not be opened on this device and are not shown.",
+  "notes.unopened": {
+    one: "{count} note is not shown: its key has not arrived or does not open on this device.",
+    other:
+      "{count} notes are not shown: their keys have not arrived or do not open on this device.",
+  },
   "editor.metadata.created": "Created {date}",
   "editor.metadata.edited": "Edited {date}",
   "editor.imageAlt": "Delete image",
@@ -440,6 +447,8 @@ export const en = {
   "tokens.title": "API tokens",
   "tokens.hint":
     "A token lets a script, a shortcut or a bot use your notes on {server} without your password. It reaches only what you give it access to, and never your password, your tokens or other accounts.",
+  "tokens.keyWarning":
+    "Your notes are encrypted, so a token that reaches them carries a key. While a request made with it runs, the server can read your notes, and whoever holds the token can read all of them, whatever access it was given. Revoke one that may have leaked.",
   "tokens.name": "Name",
   "tokens.namePlaceholder": "What will use it?",
   "tokens.nameRequired": "Give the token a name",
@@ -552,10 +561,9 @@ export const en = {
     "Signing in asks for a second factor as well as your password: a code from an authenticator app, or a passkey.",
   "twoFactor.loading": "Loading...",
   "twoFactor.isOff": "Two-factor sign-in is off.",
-  "twoFactor.isOn": "Two-factor sign-in is on. Recovery codes left: {count}.",
+  "twoFactor.isOn": "Two-factor sign-in is on.",
   "twoFactor.turnOn": "Set up an authenticator app",
   "twoFactor.turnOff": "Remove the authenticator app",
-  "twoFactor.newCodes": "New recovery codes",
   "twoFactor.password": "Your password",
   "twoFactor.continue": "Continue",
   "twoFactor.addToApp":
@@ -565,11 +573,6 @@ export const en = {
   "twoFactor.openInApp": "Open in an authenticator app on this device",
   "twoFactor.code": "Code",
   "twoFactor.confirm": "Turn on",
-  "twoFactor.recoveryHint":
-    "Keep these recovery codes somewhere safe. Each signs you in once if you lose your authenticator app and passkeys. They are not shown again.",
-  "twoFactor.copy": "Copy",
-  "twoFactor.copied": "Recovery codes copied",
-  "twoFactor.saved": "I have saved them",
   "twoFactor.turnedOn": "The authenticator app is set up",
   "twoFactor.turnedOff": "The authenticator app is removed",
   "twoFactor.wrongPassword": "That password is not right",
@@ -598,6 +601,89 @@ export const en = {
   "passkeys.exists": "This device already has a passkey for this account",
   "passkeys.tooMany": "You have as many passkeys as allowed; remove one first",
   "passkeys.failed": "The passkey could not be added; try again",
+  "keys.title": "Encryption keys",
+  "keys.secretKey": "Secret key",
+  "keys.recoveryKey": "Recovery key",
+  "keys.continue": "Continue",
+  "keys.retry": "Try again",
+  "keys.failed": "That did not work; try again",
+  "keys.unsupported":
+    "Your notes are encrypted in this browser, which works only over a secure connection. Open this page at an address that starts with https.",
+  "keys.signedInAs": "Signed in as {name}.",
+  "keys.setup.title": "Keep your keys",
+  "keys.setup.hint":
+    "Your notes are encrypted in this browser before they reach the server, so nobody who runs it can read them. These two keys open them. They are shown this once: save or print the sheet now.",
+  "keys.setup.finish": "Continue to my notes",
+  "keys.unlock.title": "Enter your secret key",
+  "keys.unlock.hint":
+    "Signing in showed who you are; your secret key opens your notes. Type it, paste it, or scan its code from Settings on a device that is signed in.",
+  "keys.unlock.submit": "Unlock",
+  "keys.unlock.invalid":
+    "That is not a secret key: it is SK and seven groups of four letters and digits",
+  "keys.unlock.wrong": "That secret key does not open this account",
+  "keys.unlock.isRecoveryKey":
+    "That is your recovery key. Enter the secret key here, or use the recovery key below.",
+  "keys.unlock.useRecoveryKey": "Use the recovery key instead",
+  "keys.unlock.lostBoth": "I have lost both keys",
+  "keys.recover.title": "Use your recovery key",
+  "keys.recover.hint":
+    "The recovery key on your sheet opens your notes when the secret key is lost. Using it replaces both keys with new ones.",
+  "keys.recover.signInHint":
+    "With your username, the recovery key signs you in when the password, the authenticator app and the passkeys are all lost. You choose a new password, and both keys are replaced with new ones.",
+  "keys.recover.invalid":
+    "That is not a recovery key: it is RK and seven groups of four letters and digits",
+  "keys.recover.wrong": "That recovery key does not open this account",
+  "keys.recover.isSecretKey":
+    "That is your secret key. The recovery key starts with RK.",
+  "keys.recover.used":
+    "That recovery key was used already; start over with the newest one",
+  "keys.recover.sheetTitle": "Keep your new keys",
+  "keys.recover.sheetHint":
+    "The keys you had stop working when you continue. Save or print this sheet first: it is shown this once.",
+  "keys.recover.finish": "Replace the keys and unlock",
+  "keys.recover.finishSignIn": "Set the password and sign in",
+  "keys.startAgain.title": "Start the account again",
+  "keys.startAgain.hint":
+    "Without the secret key or the recovery key nothing opens what this account holds: not you, not an admin, not whoever runs the server. Starting again gives the account new keys, and what the old ones encrypted cannot be read again.",
+  "keys.startAgain.submit": "Start again with new keys",
+  "keys.sheet.title": "Your keys for {appName}",
+  "keys.sheet.server": "Server",
+  "keys.sheet.username": "Username",
+  "keys.sheet.secretKeyHint":
+    "Opens your notes. Asked for each time you sign in.",
+  "keys.sheet.recoveryKeyHint":
+    "Brings the account back when the sign-in and the secret key are both lost. Keep it on this sheet only.",
+  "keys.sheet.keepSafe":
+    "Keep this sheet somewhere safe, away from your device. Without these keys nobody can open your notes, and nobody can make the same keys again.",
+  "keys.sheet.download": "Save as a file",
+  "keys.sheet.print": "Print",
+  "keys.sheet.kept": "I have saved or printed this sheet",
+  "keys.settings.hint":
+    "Your notes are opened with keys that only you hold. The server keeps them wrapped and cannot use them.",
+  "keys.settings.secretAbout":
+    "The secret key is on this device for as long as you are signed in. Show it to unlock another device, or make a new one if someone else may have it.",
+  "keys.settings.recoveryAbout":
+    "The recovery key is on your sheet and on no device, so it cannot be shown again. If the sheet is lost, make a new one now, while you can still sign in.",
+  "keys.settings.reveal": "Show the secret key",
+  "keys.settings.newSecret": "Make a new secret key",
+  "keys.settings.newRecovery": "Make a new recovery key",
+  "keys.settings.revealHint":
+    "Confirm it is you before the secret key is shown.",
+  "keys.settings.newSecretHint":
+    "A new secret key signs out every other device, and each asks for the new key when it signs in again. The old key stops working.",
+  "keys.settings.newRecoveryHint":
+    "A new recovery key takes the place of the one on your sheet, which stops working.",
+  "keys.settings.revealed":
+    "This is your secret key. Type or paste it on the other device when it asks.",
+  "keys.settings.qrLabel": "QR code that carries your secret key",
+  "keys.settings.qrHint":
+    "Or scan this code with the other device's camera, which opens the app there with the key filled in. Anyone who sees this screen can copy the key.",
+  "keys.settings.hide": "Hide",
+  "keys.settings.madeSecret":
+    "This is your new secret key. Save it with your sheet: the old one stops working once you say you have.",
+  "keys.settings.madeRecovery":
+    "This is your new recovery key. Save it in place of the old one, which stops working once you say you have.",
+  "keys.settings.kept": "Use the new key",
   "login.oidcNotInGroup":
     "Your account is not one allowed to sign in here. Ask whoever runs this server.",
   "login.oidcNotRegistered":
@@ -629,24 +715,21 @@ export const en = {
   "login.or": "or",
   "login.withPassword": "Sign in with a password instead",
   "login.twoFactor.title": "Confirm it is you",
-  "login.twoFactor.hint":
-    "Enter the code from your authenticator app, or one of your recovery codes.",
+  "login.twoFactor.hint": "Enter the code from your authenticator app.",
+  "login.twoFactor.passkeyHint": "Use one of your passkeys.",
   "login.twoFactor.code": "Code",
   "login.twoFactor.submit": "Sign in",
   "login.twoFactorRequired": "Enter a code",
   "login.twoFactorInvalid": "That code is not right",
-  "login.twoFactor.recoveryHint":
-    "Use one of your passkeys, or enter one of your recovery codes.",
-  "login.twoFactor.recoveryCode": "Recovery code",
   "login.twoFactor.usePasskey": "Use a passkey",
   "login.withPasskey": "Sign in with a passkey",
   "login.passkeyUnknown": "That passkey does not sign in to an account here",
   "login.passkeyFailed": "The passkey did not work; try again",
+  "login.recover.link": "Sign in with your recovery key",
+  "login.recover.lostFactor": "Lost it? Use your recovery key",
   "account.updateAvailable": "Version {version} is available",
   "overview.updateAvailable": "Version {version} is out.",
   "overview.updateNotes": "What changed",
-  "admin.exportNotes": "Download notes",
-  "admin.exportFailed": "The notes could not be downloaded",
   "admin.tab.overview": "Overview",
   "overview.loading": "Loading the overview...",
   "overview.failed": "The overview could not be loaded",
@@ -756,7 +839,6 @@ export const en = {
   "audit.deletedAccount": "a deleted account",
   "audit.from": "from {ip}",
   "audit.action.account.registered": "Account created by sign-up",
-  "audit.action.account.exported": "Downloaded their notes",
   "audit.action.auth.signed_in": "Signed in",
   "audit.action.auth.sign_in_failed": "Sign-in failed",
   "audit.action.auth.signed_out": "Signed out",
@@ -768,6 +850,11 @@ export const en = {
   "audit.action.auth.two_factor_disabled": "Two-factor sign-in turned off",
   "audit.action.auth.passkey_added": "Passkey added",
   "audit.action.auth.passkey_removed": "Passkey removed",
+  "audit.action.keys.created": "Encryption keys set up",
+  "audit.action.keys.secret_key_replaced": "New secret key made",
+  "audit.action.keys.recovery_key_replaced": "New recovery key made",
+  "audit.action.keys.recovery_key_used": "Recovery key used",
+  "audit.action.keys.started_again": "Account started again with new keys",
   "audit.action.token.created": "API token created",
   "audit.action.token.revoked": "API token revoked",
   "audit.action.webhook.created": "Webhook added",
@@ -787,7 +874,6 @@ export const en = {
   "audit.action.admin.admin_revoked": "Admin taken away",
   "audit.action.admin.email_changed": "Email address changed by an admin",
   "audit.action.admin.password_reset": "Temporary password issued",
-  "audit.action.admin.user_exported": "Account's notes downloaded by an admin",
   "audit.action.admin.team_created": "Team created",
   "audit.action.admin.team_updated": "Team renamed",
   "audit.action.admin.team_member_added": "Added to a team",
@@ -1040,6 +1126,19 @@ export const en = {
   "sharing.invitation.accept": "Accept",
   "sharing.invitation.decline": "Decline",
   "sharing.invitation.received": "{name} wants to share a note with you",
+  "sharing.invitation.waiting":
+    "Waiting for this note's key. It arrives when someone who has the note is next online.",
+  "sharing.error.waitingForKey": "This note's key has not arrived yet",
+  "sharing.keys.show": "Compare keys",
+  "sharing.keys.hide": "Hide keys",
+  "sharing.keys.explain":
+    "Read these to each other, in person or on a call. If both screens show the same letters for a person, nobody has put a key of their own between you.",
+  "sharing.keys.fingerprint": "Key {fingerprint}",
+  "sharing.keys.none": "No key yet",
+  "sharing.keys.changed":
+    "{name}'s key has changed. Nothing is shared with the new key until you trust it. Compare it with them first.",
+  "sharing.keys.trust": "Trust new key",
+  "sharing.keys.trustFailed": "Could not save that. Try again.",
   "sharing.card.sharedWith": "Shared with {names}.",
   "sharing.card.waiting": "Waiting for {names} to accept.",
   "sharing.card.sharedBy": "Shared by {name}",

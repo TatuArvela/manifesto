@@ -5,11 +5,17 @@ import type {
   InvitationsResponse,
   Note,
   NoteCreate,
+  PublicLink,
+  PublicNoteResponse,
+  SealedNote,
+  SeenKeysResponse,
   UserLookupResponse,
   WebSocketEvent,
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ct, heldKey } from "../storage/contracts/claimed.js";
+import { openedAnswer } from "../test/sealingClient.js";
 import {
   authHeaders,
   bootTestApp,
@@ -102,7 +108,10 @@ describe("sharing notes between accounts", () => {
   }
 
   function eventsFor(userId: string) {
-    return events.filter((e) => e.userId === userId).map((e) => e.event);
+    // Read as the app would show them: a note in an event is sealed.
+    return events
+      .filter((e) => e.userId === userId)
+      .map((e) => openedAnswer(e.event) as WebSocketEvent);
   }
 
   it("invites, and the note arrives only once the invitation is accepted", async () => {
@@ -457,13 +466,367 @@ describe("sharing notes between accounts", () => {
       noteId: note.id,
     });
   });
+});
 
-  it("finds shared notes in search", async () => {
-    const note = await createNote();
-    await shareAccepted(note.id, alice, "view");
-    const res = await call(alice, "GET", "/api/search?q=milk");
-    const body = (await res.json()) as { notes: Note[] };
-    expect(body.notes.map((n) => n.id)).toEqual([note.id]);
+describe("handing a shared note's key on", () => {
+  let rig: TestRig;
+  let owner: { token: string; userId: string };
+  let alice: { token: string; userId: string };
+  let bob: { token: string; userId: string };
+
+  beforeEach(async () => {
+    rig = await bootTestApp();
+    owner = await registerTestUser(rig, "olivia");
+    alice = await registerTestUser(rig, "alice");
+    bob = await registerTestUser(rig, "bob");
+  });
+
+  afterEach(async () => {
+    await rig.close();
+  });
+
+  const call = (
+    who: { token: string },
+    method: string,
+    path: string,
+    body?: unknown,
+  ) =>
+    rig.request(path, {
+      method,
+      headers: authHeaders(who.token),
+      ...(body !== undefined && { body: JSON.stringify(body) }),
+    });
+
+  const offer = (signer: string, keyVersion = 1) => ({
+    keyVersion,
+    ephemeral: `B${"A".repeat(86)}`,
+    wrapped: ct("wrapped for them"),
+    signer,
+    signature: "c2lnbmF0dXJl",
+  });
+
+  async function note(): Promise<Note> {
+    const res = await call(owner, "POST", "/api/notes", baseNote);
+    return ((await res.json()) as { note: Note }).note;
+  }
+
+  const invitationOf = async (who: { token: string }) =>
+    (
+      (await (
+        await call(who, "GET", "/api/invitations")
+      ).json()) as InvitationsResponse
+    ).invitations[0];
+
+  it("takes the key with the invitation, when the owner's client could wrap it", async () => {
+    const { id } = await note();
+    const res = await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: alice.userId,
+      role: "edit",
+      key: offer(owner.userId),
+    });
+    expect(res.status).toBe(201);
+    expect((await invitationOf(alice))?.offered).toEqual(offer(owner.userId));
+    // Signed by someone else, or for another key, it is not the owner's to
+    // send.
+    for (const key of [offer(bob.userId), offer(owner.userId, 2)]) {
+      const bad = await call(owner, "POST", `/api/notes/${id}/shares`, {
+        userId: bob.userId,
+        role: "edit",
+        key,
+      });
+      expect(bad.status).toBe(422);
+    }
+  });
+
+  it("lets anyone who holds the note wrap its key for someone still waiting", async () => {
+    const { id } = await note();
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: alice.userId,
+      role: "view",
+    });
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: bob.userId,
+      role: "view",
+    });
+    expect((await invitationOf(bob))?.offered).toBeNull();
+    const put = (who: { token: string; userId: string }, signer = who.userId) =>
+      call(
+        who,
+        "PUT",
+        `/api/notes/${id}/shares/${bob.userId}/key`,
+        offer(signer),
+      );
+    // Someone who has not accepted holds no key to wrap.
+    expect((await put(alice)).status).toBe(404);
+    await call(alice, "POST", `/api/invitations/${id}/accept`);
+    expect((await put(alice, owner.userId)).status).toBe(422);
+    expect((await put(alice)).status).toBe(204);
+    expect((await invitationOf(bob))?.offered?.signer).toBe(alice.userId);
+    // Offered one, bob is not waiting: nobody but the owner puts another in
+    // its place, or any holder could swap in a key of their own making.
+    expect((await put(alice)).status).toBe(409);
+    expect((await invitationOf(bob))?.offered?.signer).toBe(alice.userId);
+    expect((await put(owner)).status).toBe(204);
+    expect((await invitationOf(bob))?.offered?.signer).toBe(owner.userId);
+    // Nobody is waiting any more, as everyone on the note can see.
+    const seen = await call(owner, "GET", `/api/notes/${id}`);
+    const { note: ownerView } = (await seen.json()) as { note: Note };
+    expect(ownerView.sharing?.members.some((m) => m.waitingForKey)).toBe(false);
+  });
+
+  it("refuses an invitation's acceptance under another key, and a readable one", async () => {
+    const { id } = await note();
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: alice.userId,
+      role: "edit",
+    });
+    const accept = (body: object) =>
+      rig.rawRequest(`/api/invitations/${id}/accept`, {
+        method: "POST",
+        headers: authHeaders(alice.token),
+        body: JSON.stringify(body),
+      });
+    expect((await accept({})).status).toBe(422);
+    expect((await accept({ key: "readable", keyVersion: 1 })).status).toBe(422);
+    expect((await accept({ ...heldKey, keyVersion: 2 })).status).toBe(409);
+    expect((await accept(heldKey)).status).toBe(200);
+  });
+
+  const sealedAs = async (who: { token: string }, id: string) =>
+    (
+      (await (
+        await rig.rawRequest(`/api/notes/${id}`, {
+          headers: authHeaders(who.token),
+        })
+      ).json()) as { note: SealedNote }
+    ).note;
+
+  const rekeyed = (keyVersion: number, extra: object = {}) => ({
+    keyVersion,
+    key: ct(`owner's copy of key ${keyVersion}`),
+    previousKeys: ct("the keys before"),
+    title: ct("Groceries"),
+    content: ct("- [ ] Milk"),
+    excerpt: ct("- [ ] Milk"),
+    font: ct("default"),
+    images: ct("[]"),
+    linkPreviews: ct("[]"),
+    ...extra,
+  });
+
+  /** As the app sends it: from the note as it was just read, unless a test
+   * says which read (`ifMatch`), or sends none (null). */
+  const rekey = async (
+    who: { token: string },
+    id: string,
+    body: object,
+    ifMatch?: string | null,
+  ) => {
+    const read =
+      ifMatch === undefined ? (await sealedAs(who, id)).updatedAt : ifMatch;
+    return rig.rawRequest(`/api/notes/${id}/key`, {
+      method: "PUT",
+      headers: {
+        ...authHeaders(who.token),
+        ...(read !== null && { "If-Match": read }),
+      },
+      body: JSON.stringify(body),
+    });
+  };
+
+  it("is due a new key once someone who held it is gone, which only the owner is told", async () => {
+    const { id } = await note();
+    for (const who of [alice, bob]) {
+      await call(owner, "POST", `/api/notes/${id}/shares`, {
+        userId: who.userId,
+        role: "edit",
+      });
+    }
+    // Bob was never handed a key: his going gives nothing away.
+    await call(owner, "DELETE", `/api/notes/${id}/shares/${bob.userId}`);
+    expect((await sealedAs(owner, id)).rekeyDue).toBeUndefined();
+
+    await call(alice, "POST", `/api/invitations/${id}/accept`);
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: bob.userId,
+      role: "edit",
+    });
+    await call(bob, "POST", `/api/invitations/${id}/accept`);
+    // Alice leaves, holding the key.
+    await call(alice, "DELETE", `/api/notes/${id}`);
+    expect((await sealedAs(owner, id)).rekeyDue).toBe(true);
+    expect((await sealedAs(bob, id)).rekeyDue).toBeUndefined();
+  });
+
+  it("moves the whole note to a new key at once, and leaves everyone else waiting for it", async () => {
+    const { id } = await note();
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: alice.userId,
+      role: "edit",
+    });
+    await call(owner, "POST", `/api/notes/${id}/shares`, {
+      userId: bob.userId,
+      role: "edit",
+    });
+    await call(alice, "POST", `/api/invitations/${id}/accept`);
+    await call(bob, "POST", `/api/invitations/${id}/accept`);
+    await call(owner, "DELETE", `/api/notes/${id}/shares/${alice.userId}`);
+
+    // Not a recipient's to do, not to a version it is not next at, and not
+    // with anything readable in it.
+    expect((await rekey(bob, id, rekeyed(2))).status).toBe(404);
+    expect((await rekey(owner, id, rekeyed(3))).status).toBe(409);
+    expect(
+      (await rekey(owner, id, rekeyed(2, { title: "Groceries" }))).status,
+    ).toBe(422);
+    const { title: _title, ...partial } = rekeyed(2);
+    expect((await rekey(owner, id, partial)).status).toBe(422);
+    // Not without saying which read the fields were sealed again from, and
+    // not from one the note has been written since: Bob's edit, made while
+    // the owner's app was sealing, is not in what it sends.
+    expect((await rekey(owner, id, rekeyed(2), null)).status).toBe(428);
+    const read = (await sealedAs(owner, id)).updatedAt;
+    const edit = await rig.rawRequest(`/api/notes/${id}`, {
+      method: "PUT",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ title: ct("Bob's edit"), keyVersion: 1 }),
+    });
+    expect(edit.status).toBe(200);
+    expect((await rekey(owner, id, rekeyed(2), read)).status).toBe(412);
+    expect(await sealedAs(owner, id)).toMatchObject({
+      keyVersion: 1,
+      title: ct("Bob's edit"),
+    });
+
+    const done = await rekey(owner, id, rekeyed(2));
+    expect(done.status).toBe(200);
+    const mine = ((await done.json()) as { note: SealedNote }).note;
+    expect(mine).toMatchObject({
+      keyVersion: 2,
+      key: ct("owner's copy of key 2"),
+      previousKeys: ct("the keys before"),
+    });
+    expect(mine.rekeyDue).toBeUndefined();
+    expect(mine.sharing?.members).toEqual([
+      expect.objectContaining({ id: bob.userId, waitingForKey: true }),
+    ]);
+    expect((await rekey(owner, id, rekeyed(2))).status).toBe(409);
+
+    // Bob's copy is behind: he is handed nothing that opens the note, and
+    // what he seals under the old key is refused.
+    const behind = await sealedAs(bob, id);
+    expect(behind).toMatchObject({ keyVersion: 2, key: "" });
+    expect(behind.offered).toBeUndefined();
+    const stale = await rig.rawRequest(`/api/notes/${id}`, {
+      method: "PUT",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ title: ct("Under the old key"), keyVersion: 1 }),
+    });
+    expect(stale.status).toBe(409);
+
+    // The owner's client wraps the new key for him, and he keeps it.
+    expect(
+      (
+        await call(
+          owner,
+          "PUT",
+          `/api/notes/${id}/shares/${bob.userId}/key`,
+          offer(owner.userId, 2),
+        )
+      ).status,
+    ).toBe(204);
+    expect((await sealedAs(bob, id)).offered).toEqual(offer(owner.userId, 2));
+    const kept = await rig.rawRequest(`/api/notes/${id}/held-key`, {
+      method: "PUT",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ key: ct("bob's copy of key 2"), keyVersion: 2 }),
+    });
+    expect(kept.status).toBe(200);
+    expect(await sealedAs(bob, id)).toMatchObject({
+      key: ct("bob's copy of key 2"),
+      previousKeys: ct("the keys before"),
+    });
+    const fresh = await rig.rawRequest(`/api/notes/${id}`, {
+      method: "PUT",
+      headers: authHeaders(bob.token),
+      body: JSON.stringify({ title: ct("Under the new key"), keyVersion: 2 }),
+    });
+    expect(fresh.status).toBe(200);
+  });
+
+  it("is due a new key when a live link is revoked, and hands the new one to the links that stay", async () => {
+    const { id } = await note();
+    const publish = async (mode: string) =>
+      (
+        (await (
+          await call(owner, "POST", `/api/notes/${id}/links`, { mode })
+        ).json()) as { link: PublicLink }
+      ).link.token;
+    const copy = await publish("snapshot");
+    const gone = await publish("live");
+    const stays = await publish("live");
+
+    await call(owner, "DELETE", `/api/notes/${id}/links/${copy}`);
+    expect((await sealedAs(owner, id)).rekeyDue).toBeUndefined();
+    await call(owner, "DELETE", `/api/notes/${id}/links/${gone}`);
+    expect((await sealedAs(owner, id)).rekeyDue).toBe(true);
+
+    const done = await rekey(
+      owner,
+      id,
+      rekeyed(2, {
+        links: [{ token: stays, wrappedKey: ct("key 2, for the link") }],
+      }),
+    );
+    expect(done.status).toBe(200);
+    const shown = (await (
+      await rig.rawRequest(`/api/public/${stays}`)
+    ).json()) as PublicNoteResponse;
+    expect(shown.wrappedKey).toBe(ct("key 2, for the link"));
+    expect(shown.note.keyVersion).toBe(2);
+  });
+
+  it("keeps what an account remembers of other people's keys, sealed and its own", async () => {
+    const seen = async (who: { token: string }) =>
+      (
+        (await (
+          await call(who, "GET", "/api/auth/keys/seen")
+        ).json()) as SeenKeysResponse
+      ).seen;
+    expect(await seen(owner)).toEqual({});
+    const put = (sealed: string) =>
+      call(owner, "PUT", `/api/auth/keys/seen/${alice.userId}`, { sealed });
+    expect((await put("their keys, readable")).status).toBe(422);
+    expect((await put(ct("first sight"))).status).toBe(204);
+    expect((await put(ct("agreed to since"))).status).toBe(204);
+    expect(await seen(owner)).toEqual({
+      [alice.userId]: ct("agreed to since"),
+    });
+    // Nobody else's list.
+    expect(await seen(alice)).toEqual({});
+  });
+
+  it("gives out an account's public keys once it has them", async () => {
+    const before = await call(owner, "GET", `/api/users/${alice.userId}/keys`);
+    expect(before.status).toBe(404);
+    const publicKeys = {
+      exchange: `B${"x".repeat(86)}`,
+      signing: `B${"y".repeat(86)}`,
+    };
+    const setup = await call(alice, "PUT", "/api/auth/keys", {
+      wrappedBySecret: ct("a"),
+      wrappedByRecovery: ct("b"),
+      recoveryVerifier: "v".repeat(43),
+      publicKeys,
+      wrappedPrivateKeys: { exchange: ct("c"), signing: ct("d") },
+    });
+    expect(setup.status).toBe(204);
+    const res = await call(owner, "GET", `/api/users/${alice.userId}/keys`);
+    expect(await res.json()).toEqual({
+      userId: alice.userId,
+      version: 1,
+      publicKeys,
+    });
   });
 });
 

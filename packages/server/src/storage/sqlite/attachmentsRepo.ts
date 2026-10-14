@@ -19,8 +19,10 @@ import type { SqliteDB } from "./database.js";
 export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
   const insertStmt = db.prepare(
     `INSERT INTO attachments
-       (id, owner_id, sha256, content_type, size, data, created_at)
-     VALUES (@id, @ownerId, @sha256, @contentType, @size, @data, @createdAt)
+       (id, owner_id, sha256, content_type, size, data, created_at,
+        wrapped_key)
+     VALUES (@id, @ownerId, @sha256, @contentType, @size, @data, @createdAt,
+        @wrappedKey)
      ON CONFLICT (owner_id, sha256) DO UPDATE SET unreferenced_since = NULL`,
   );
   const byHashStmt = db.prepare(
@@ -32,14 +34,14 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
     `SELECT ${ATTACHMENT_META_COLUMNS} FROM attachments WHERE id = ?`,
   );
   const sharedRefStmt = db.prepare(
-    `SELECT n.images, n.link_previews
+    `SELECT n.images, n.preview_refs
      FROM note_shares s JOIN notes n ON n.id = s.note_id
      WHERE s.user_id = @userId AND s.accepted_at IS NOT NULL
        AND n.user_id = @ownerId AND n.trashed = 0
-       AND (n.images LIKE @pattern OR n.link_previews LIKE @pattern)`,
+       AND (n.images LIKE @pattern OR n.preview_refs LIKE @pattern)`,
   );
   const referringStmt = db.prepare(
-    `SELECT images, link_previews FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
+    `SELECT images, preview_refs FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
   );
   const snapshotsStmt = db.prepare(
     `SELECT snapshot FROM public_links WHERE ${usableSnapshotsWhere("?")}`,
@@ -86,7 +88,11 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
 
   return {
     async put(input) {
-      insertStmt.run({ ...input, size: input.data.length });
+      insertStmt.run({
+        ...input,
+        size: input.data.length,
+        wrappedKey: input.wrappedKey ?? null,
+      });
       const row = byHashStmt.get(input.ownerId, input.sha256) as AttachmentRow;
       return rowToAttachmentMeta(row);
     },

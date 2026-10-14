@@ -115,13 +115,7 @@ export const FEATURES: Record<ServerFeature, FeatureSpec> = {
     env: "TWO_FACTOR",
     default: "on",
     description:
-      "Turning on two-factor sign-in with an authenticator app. Off, nobody can turn it on, but an account that has it is still asked for its code, and can turn it off or replace its recovery codes.",
-  },
-  adminExport: {
-    env: "ADMIN_EXPORT",
-    default: "off",
-    description:
-      "An admin downloading any account's notes, for a data request or a move. Off (the default), an admin cannot read another account's notes from inside the app.",
+      "Turning on two-factor sign-in with an authenticator app. Off, nobody can turn it on, but an account that has it is still asked for its code, and can turn it off.",
   },
 };
 

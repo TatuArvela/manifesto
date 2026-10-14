@@ -1,6 +1,24 @@
-import type { Note, NoteCreate, NoteVersionsResponse } from "@manifesto/shared";
-import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
+import type {
+  ApiTokenCreatedResponse,
+  Note,
+  NoteCreate,
+  NoteVersionsResponse,
+  SealedNote,
+} from "@manifesto/shared";
+import {
+  MAX_NOTE_VERSIONS,
+  NoteColor,
+  NoteFont,
+  noteSealKey,
+  resealSharedFields,
+  sealPreviousKeys,
+  unwrapNoteKey,
+  wrapNoteKey,
+} from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ct } from "../storage/contracts/claimed.js";
+import { defined } from "../test/defined.js";
+import { testAccountKeys } from "../test/keyedTokens.js";
 import {
   authHeaders,
   bootTestApp,
@@ -102,6 +120,62 @@ describe("version routes", () => {
     ).toBe(404);
   });
 
+  it("opens for a token what was written before the note's key was replaced", async () => {
+    const minted = await call(owner, "POST", "/api/tokens", {
+      password: "test-pass-12",
+      name: "script",
+    });
+    const script = {
+      ...owner,
+      token: defined(((await minted.json()) as ApiTokenCreatedResponse).secret),
+    };
+    // Written by the token, so under keys the server really opens with.
+    const made = await call(script, "POST", "/api/notes", baseNote);
+    const id = ((await made.json()) as { note: Note }).note.id;
+    const add = (content: string) =>
+      call(script, "POST", `/api/notes/${id}/versions`, { title: "", content });
+    expect((await add("before")).status).toBe(201);
+
+    // The owner's app replaces the key, as `Sealer.rekey` does.
+    const read = await rig.rawRequest(`/api/notes/${id}`, {
+      headers: authHeaders(owner.token),
+    });
+    const sealed = ((await read.json()) as { note: SealedNote }).note;
+    const account = await testAccountKeys(owner.userId);
+    const oldRaw = await unwrapNoteKey(
+      account,
+      id,
+      sealed.keyVersion,
+      sealed.key,
+    );
+    if (!oldRaw) throw new Error("The test keys do not open the note");
+    const raw = crypto.getRandomValues(new Uint8Array(32));
+    const key = await noteSealKey(raw, 2);
+    const fields = await resealSharedFields(
+      await noteSealKey(oldRaw, 1),
+      key,
+      id,
+      sealed,
+    );
+    expect(fields).not.toBeNull();
+    const rekeyed = await rig.rawRequest(`/api/notes/${id}/key`, {
+      method: "PUT",
+      headers: { ...authHeaders(owner.token), "If-Match": sealed.updatedAt },
+      body: JSON.stringify({
+        keyVersion: 2,
+        key: await wrapNoteKey(account, id, 2, raw),
+        previousKeys: await sealPreviousKeys(key, id, new Map([[1, oldRaw]])),
+        ...fields,
+      }),
+    });
+    expect(rekeyed.status).toBe(200);
+    expect((await add("after")).status).toBe(201);
+
+    const res = await call(script, "GET", `/api/notes/${id}/versions`);
+    const history = ((await res.json()) as NoteVersionsResponse).versions;
+    expect(history.map((v) => v.content)).toEqual(["after", "before"]);
+  });
+
   it("keeps a brought-across version's own date", async () => {
     const then = new Date(Date.now() - 86_400_000).toISOString();
     await call(owner, "POST", `/api/notes/${note.id}/versions`, {
@@ -118,8 +192,9 @@ describe("version routes", () => {
         id: `v${String(i).padStart(3, "0")}`,
         noteId: note.id,
         authorId: owner.userId,
-        title: "",
-        content: String(i),
+        keyVersion: 1,
+        title: ct(""),
+        content: ct(String(i)),
         createdAt: new Date(Date.now() - (100 - i) * 1000).toISOString(),
       });
     }

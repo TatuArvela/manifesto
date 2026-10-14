@@ -70,6 +70,20 @@ export async function mapPreviewImages(
 /** Maximum number of link previews on one note. */
 export const MAX_LINK_PREVIEWS_PER_NOTE = 20;
 
+export const MAX_LINK_PREVIEW_TITLE_LENGTH = 500;
+export const MAX_LINK_PREVIEW_DESCRIPTION_LENGTH = 2000;
+
+// How large a note's own words may be. The server cannot count inside a
+// ciphertext, so the client that seals a note holds it to these, and a client
+// that opens one leaves out a value past them.
+export const MAX_NOTE_TITLE_LENGTH = 500;
+export const MAX_NOTE_CONTENT_LENGTH = 100_000;
+export const MAX_TAGS_PER_NOTE = 50;
+export const MAX_TAG_LENGTH = 64;
+
+/** How much of a note's text is kept beside it for a notification to show. */
+export const NOTE_EXCERPT_LENGTH = 140;
+
 /** Longest URL a link preview may point at. */
 export const MAX_LINK_PREVIEW_URL_LENGTH = 2048;
 
@@ -250,6 +264,12 @@ export interface NoteMember extends ShareUser {
   /** The team this person has the note through; absent when shared with
    * them directly. */
   team?: TeamRef;
+  /**
+   * True while nobody has wrapped the note's key for this person, so they
+   * can open nothing of it yet. The first client of anyone holding the note
+   * wraps it for them.
+   */
+  waitingForKey?: boolean;
 }
 
 /**

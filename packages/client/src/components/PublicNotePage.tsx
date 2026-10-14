@@ -1,4 +1,4 @@
-import { NoteColor, type PublicNote } from "@manifesto/shared";
+import { NoteColor } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
 import { APP_NAME } from "../config.js";
@@ -8,6 +8,7 @@ import {
   loadPublicImage,
   openPublicNote,
   type PublicNoteResult,
+  type ShownPublicNote,
   unlockPublicNote,
 } from "../state/publicLinks.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
@@ -134,7 +135,7 @@ function PublicNoteView({
   access,
 }: {
   token: string;
-  note: PublicNote;
+  note: ShownPublicNote;
   access: string | null;
 }) {
   const colors = noteColorMap[note.color] ?? noteColorMap[NoteColor.Default];

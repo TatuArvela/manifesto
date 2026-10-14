@@ -1,5 +1,6 @@
 import type { WebSocketEvent } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ct } from "../storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
@@ -47,7 +48,10 @@ describe("account preferences", () => {
     rig.broadcaster.subscribe((userId, event) => heard.push([userId, event]));
     await patch(alice.token, { theme: "dark" });
     expect(heard).toEqual([
-      [alice.userId, { type: "prefs:updated", prefs: { theme: "dark" } }],
+      [
+        alice.userId,
+        { type: "prefs:updated", prefs: { theme: ct(JSON.stringify("dark")) } },
+      ],
     ]);
     const bobs = await rig.request("/api/auth/me/prefs", {
       headers: authHeaders(bob.token),
@@ -58,8 +62,21 @@ describe("account preferences", () => {
   it("refuses what is not an object of preferences, or too large", async () => {
     expect((await patch(alice.token, ["dark"])).status).toBe(422);
     expect((await patch(alice.token, { "": 1 })).status).toBe(422);
-    const big = await patch(alice.token, { note: "x".repeat(20_000) });
+    // Each value within what one may be, and the whole past what all may.
+    const big = await patch(
+      alice.token,
+      Object.fromEntries(
+        Array.from({ length: 4 }, (_, i) => [`note${i}`, "x".repeat(8_000)]),
+      ),
+    );
     expect(big.status).toBe(413);
+    // Readable where a sealed value belongs.
+    const readable = await rig.rawRequest("/api/auth/me/prefs", {
+      method: "PATCH",
+      headers: authHeaders(alice.token),
+      body: JSON.stringify({ prefs: { theme: "dark" } }),
+    });
+    expect(readable.status).toBe(422);
   });
 
   it("wants a signed-in user", async () => {

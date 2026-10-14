@@ -20,7 +20,8 @@ import {
   parseLocalISO,
   snapReminderToFuture,
 } from "./state/reminderTime.js";
-import { afterPush, readReminderPush } from "./swPush.js";
+import { loadDeviceKeys } from "./storage/deviceKeys.js";
+import { afterPush, readReminderPush, wordedPush } from "./swPush.js";
 
 declare const self: ServiceWorkerGlobalScope & {
   registration: ServiceWorkerRegistration & {
@@ -367,8 +368,11 @@ async function receivePush(payload: unknown): Promise<void> {
     await self.registration.showNotification(await installedName());
     return;
   }
-  await self.registration.showNotification(push.title, {
-    body: push.body,
+  // Opened here, with the account key this device keeps while signed in:
+  // the server sent the title and text sealed, and cannot read them.
+  const worded = await wordedPush(push, await loadDeviceKeys());
+  await self.registration.showNotification(worded.title, {
+    body: worded.body,
     tag: push.noteId,
     data: { noteId: push.noteId },
   });

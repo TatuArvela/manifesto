@@ -1,5 +1,4 @@
 import type { TwoFactorStatusResponse } from "@manifesto/shared";
-import { Copy } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { type MessageKey, t } from "../../i18n/index.js";
 import { currentUser } from "../../state/auth.js";
@@ -10,7 +9,6 @@ import {
   enableTwoFactor,
   groupSecret,
   otpauthLink,
-  renewRecoveryCodes,
   twoFactorStatus,
 } from "../../state/twoFactor.js";
 import { showSuccess } from "../../state/ui.js";
@@ -27,9 +25,8 @@ const secondaryClass =
 type Step =
   | { kind: "loading" }
   | { kind: "status"; status: TwoFactorStatusResponse }
-  | { kind: "password"; purpose: "begin" | "disable" | "renew" }
-  | { kind: "scan"; secret: string }
-  | { kind: "codes"; codes: string[] };
+  | { kind: "password"; purpose: "begin" | "disable" }
+  | { kind: "scan"; secret: string };
 
 const FAILURE_KEYS: Record<string, MessageKey> = {
   "wrong-password": "twoFactor.wrongPassword",
@@ -40,8 +37,8 @@ const FAILURE_KEYS: Record<string, MessageKey> = {
 /**
  * Two-factor sign-in for a local account: an authenticator app (password,
  * then the secret into the app, then a code to prove it took), passkeys, or
- * both, with one set of recovery codes handed out once with the first of
- * them, and the password asked again to remove either.
+ * both, and the password asked again to remove either. Whoever loses every
+ * factor signs in with the recovery key, which the account's keys page holds.
  */
 export function TwoFactorSettings() {
   const [step, setStep] = useState<Step>({ kind: "loading" });
@@ -57,7 +54,7 @@ export function TwoFactorSettings() {
       setError(t("twoFactor.failed"));
       setStep({
         kind: "status",
-        status: { enabled: false, recoveryCodesRemaining: 0 },
+        status: { enabled: false },
       });
     }
   }, []);
@@ -79,51 +76,36 @@ export function TwoFactorSettings() {
     else setError(t(FAILURE_KEYS[result.kind] ?? "twoFactor.failed"));
   };
 
-  const submitPassword =
-    (purpose: "begin" | "disable" | "renew") => (e: Event) => {
-      e.preventDefault();
-      if (purpose === "begin") {
-        void run(
-          () => beginTwoFactor(password),
-          (r) => {
-            setPassword("");
-            setCode("");
-            setStep({ kind: "scan", secret: (r as { secret: string }).secret });
-          },
-        );
-      } else if (purpose === "disable") {
-        void run(
-          () => disableTwoFactor(password),
-          () => {
-            setPassword("");
-            showSuccess(t("twoFactor.turnedOff"));
-            void load();
-          },
-        );
-      } else {
-        void run(
-          () => renewRecoveryCodes(password),
-          (r) => {
-            setPassword("");
-            setStep({
-              kind: "codes",
-              codes: (r as { recoveryCodes: string[] }).recoveryCodes,
-            });
-          },
-        );
-      }
-    };
+  const submitPassword = (purpose: "begin" | "disable") => (e: Event) => {
+    e.preventDefault();
+    if (purpose === "begin") {
+      void run(
+        () => beginTwoFactor(password),
+        (r) => {
+          setPassword("");
+          setCode("");
+          setStep({ kind: "scan", secret: (r as { secret: string }).secret });
+        },
+      );
+    } else {
+      void run(
+        () => disableTwoFactor(password),
+        () => {
+          setPassword("");
+          showSuccess(t("twoFactor.turnedOff"));
+          void load();
+        },
+      );
+    }
+  };
 
   const submitCode = (e: Event) => {
     e.preventDefault();
     void run(
       () => enableTwoFactor(code.trim()),
-      (r) => {
+      () => {
         showSuccess(t("twoFactor.turnedOn"));
-        const codes = (r as { recoveryCodes: string[] }).recoveryCodes;
-        // Passkeys already had codes, which cover the app too.
-        if (codes.length === 0) void load();
-        else setStep({ kind: "codes", codes });
+        void load();
       },
     );
   };
@@ -140,27 +122,16 @@ export function TwoFactorSettings() {
   if (step.kind === "loading") {
     body = <p class="text-sm text-neutral-500">{t("twoFactor.loading")}</p>;
   } else if (step.kind === "status") {
-    const { enabled, recoveryCodesRemaining } = step.status;
+    const { enabled } = step.status;
     // A server from before passkeys has only the app, so on means the app.
     const authenticator = step.status.authenticator ?? enabled;
     body = (
       <div class="space-y-3">
         <p class="text-sm">
-          {enabled
-            ? t("twoFactor.isOn", { count: String(recoveryCodesRemaining) })
-            : t("twoFactor.isOff")}
+          {enabled ? t("twoFactor.isOn") : t("twoFactor.isOff")}
         </p>
         {errorLine}
         <div class="flex flex-wrap justify-end gap-2">
-          {enabled && (
-            <button
-              type="button"
-              class={secondaryClass}
-              onClick={() => setStep({ kind: "password", purpose: "renew" })}
-            >
-              {t("twoFactor.newCodes")}
-            </button>
-          )}
           {authenticator ? (
             <button
               type="button"
@@ -184,10 +155,7 @@ export function TwoFactorSettings() {
           )}
         </div>
         {step.status.authenticator !== undefined && (
-          <PasskeySettings
-            onChange={() => void load()}
-            onRecoveryCodes={(codes) => setStep({ kind: "codes", codes })}
-          />
+          <PasskeySettings onChange={() => void load()} />
         )}
       </div>
     );
@@ -218,7 +186,7 @@ export function TwoFactorSettings() {
         </div>
       </form>
     );
-  } else if (step.kind === "scan") {
+  } else {
     body = (
       <form onSubmit={submitCode} class="space-y-3">
         <p class="text-sm">{t("twoFactor.addToApp")}</p>
@@ -263,40 +231,6 @@ export function TwoFactorSettings() {
           </button>
         </div>
       </form>
-    );
-  } else {
-    const text = step.codes.join("\n");
-    body = (
-      <div class="space-y-3">
-        <p class="text-sm">{t("twoFactor.recoveryHint")}</p>
-        <ul class="grid grid-cols-2 gap-1 font-mono text-sm rounded-lg bg-neutral-100 dark:bg-neutral-900 p-3 select-all">
-          {step.codes.map((c) => (
-            <li key={c}>{c}</li>
-          ))}
-        </ul>
-        <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            class={`${secondaryClass} inline-flex items-center gap-1.5`}
-            onClick={() => {
-              void navigator.clipboard
-                ?.writeText(text)
-                .then(() => showSuccess(t("twoFactor.copied")))
-                .catch(() => {});
-            }}
-          >
-            <Copy class="w-4 h-4" />
-            {t("twoFactor.copy")}
-          </button>
-          <button
-            type="button"
-            class={primaryClass}
-            onClick={() => void load()}
-          >
-            {t("twoFactor.saved")}
-          </button>
-        </div>
-      </div>
     );
   }
 

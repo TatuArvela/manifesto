@@ -6,7 +6,7 @@ import {
   NoteAccessError,
   type StorageDriver,
 } from "../types.js";
-import { claimed } from "./claimed.js";
+import { claimed, claimedUpdate, ct, heldKey, opened } from "./claimed.js";
 
 /**
  * What both drivers must do for sharing notes between accounts, run against
@@ -92,7 +92,9 @@ export function describeSharingContract(
         }),
       ).toBe("ok");
       if (accept) {
-        expect(await storage.shares.accept("n1", userId, T2)).toBe(true);
+        expect(await storage.shares.accept("n1", userId, T2, heldKey)).toBe(
+          true,
+        );
       }
     }
 
@@ -112,10 +114,13 @@ export function describeSharingContract(
             displayName: "Olivia",
             avatarColor: "#123456",
           },
-          title: "Groceries",
-          content: "- [ ] Milk",
-          color: NoteColor.Yellow,
-          font: NoteFont.Default,
+          // Sealed, as the note is; the colour is the owner's own and is
+          // not part of what is offered. Nobody has wrapped the key yet.
+          title: ct("Groceries"),
+          content: ct("- [ ] Milk"),
+          font: ct(NoteFont.Default),
+          keyVersion: 1,
+          offered: null,
           invitedAt: T1,
         },
       ]);
@@ -123,6 +128,42 @@ export function describeSharingContract(
         noteId: "n1",
       });
       expect(await storage.shares.getInvitation("n1", "bob")).toBeNull();
+    });
+
+    it("carries a key offered to someone until they keep it as their own", async () => {
+      const offered = {
+        keyVersion: 1,
+        ephemeral: "B".repeat(87),
+        wrapped: ct("wrapped to alice"),
+        signer: "owner",
+        signature: "sig",
+      };
+      await share("alice", "edit", false);
+      // Until someone wraps it for her, everyone on the note sees her wait.
+      const waiting = await storage.notes.getById("n1", "owner");
+      expect(waiting?.sharing?.members).toMatchObject([
+        { id: "alice", waitingForKey: true },
+      ]);
+      expect(await storage.shares.offerKey("n1", "bob", offered)).toBe(false);
+      expect(await storage.shares.offerKey("n1", "alice", offered)).toBe(true);
+      expect(
+        (await storage.shares.getInvitation("n1", "alice"))?.offered,
+      ).toEqual(offered);
+      const told = await storage.notes.getById("n1", "owner");
+      expect(told?.sharing?.members[0]?.waitingForKey).toBeUndefined();
+
+      // Not hers to keep before she has accepted.
+      expect(await storage.shares.holdKey("n1", "alice", heldKey)).toBe(false);
+      expect(await storage.shares.accept("n1", "alice", T2, heldKey)).toBe(
+        true,
+      );
+      const hers = await storage.notes.getById("n1", "alice");
+      expect(hers?.key).toBe(heldKey.key);
+      expect(hers?.offered).toBeUndefined();
+      expect(
+        (await storage.notes.getById("n1", "owner"))?.sharing?.members[0]
+          ?.waitingForKey,
+      ).toBeUndefined();
     });
 
     it("refuses a second invitation to the same person", async () => {
@@ -141,9 +182,11 @@ export function describeSharingContract(
       await share("alice", "edit");
 
       const seen = await storage.notes.getById("n1", "alice");
-      expect(seen).toMatchObject({
+      // The colour and the tags are each person's own, under their own key,
+      // so a recipient starts with neither.
+      expect(seen && opened(seen)).toMatchObject({
         title: "Groceries",
-        color: NoteColor.Yellow,
+        color: NoteColor.Default,
         pinned: false,
         archived: false,
         tags: [],
@@ -164,7 +207,9 @@ export function describeSharingContract(
         (await storage.notes.listByUser("alice", PAGE)).notes.map((n) => n.id),
       ).toEqual(["n1"]);
       // Accepting twice is not a thing.
-      expect(await storage.shares.accept("n1", "alice", T3)).toBe(false);
+      expect(await storage.shares.accept("n1", "alice", T3, heldKey)).toBe(
+        false,
+      );
     });
 
     it("tells the owner about invitations and recipients only about members", async () => {
@@ -200,16 +245,16 @@ export function describeSharingContract(
       const alices = await storage.notes.update(
         "n1",
         "alice",
-        {
+        claimedUpdate({
           tags: ["errands"],
           pinned: true,
           color: NoteColor.Blue,
           title: "Shopping",
-        },
+        }),
         T3,
         T0,
       );
-      expect(alices).toMatchObject({
+      expect(alices && opened(alices)).toMatchObject({
         title: "Shopping",
         tags: ["errands"],
         pinned: true,
@@ -218,7 +263,7 @@ export function describeSharingContract(
       });
 
       const owners = await storage.notes.getById("n1", "owner");
-      expect(owners).toMatchObject({
+      expect(owners && opened(owners)).toMatchObject({
         title: "Shopping",
         tags: ["home"],
         pinned: true,
@@ -241,14 +286,24 @@ export function describeSharingContract(
       await share("alice", "view");
 
       await expect(
-        storage.notes.update("n1", "alice", { content: "hijacked" }, T3),
+        storage.notes.update(
+          "n1",
+          "alice",
+          claimedUpdate({ content: "hijacked" }),
+          T3,
+        ),
       ).rejects.toBeInstanceOf(NoteAccessError);
       // Nothing half-written: not the content, not the pin sent with it.
       await expect(
-        storage.notes.update("n1", "alice", { pinned: true, title: "x" }, T3),
+        storage.notes.update(
+          "n1",
+          "alice",
+          claimedUpdate({ pinned: true, title: "x" }),
+          T3,
+        ),
       ).rejects.toBeInstanceOf(NoteAccessError);
       const after = await storage.notes.getById("n1", "alice");
-      expect(after).toMatchObject({
+      expect(after && opened(after)).toMatchObject({
         content: "- [ ] Milk",
         title: "Groceries",
         pinned: false,
@@ -325,7 +380,40 @@ export function describeSharingContract(
       expect(expired).toMatchObject([{ noteId: "n1", userId: "alice" }]);
       expect(await storage.notes.getById("n1", "alice")).toBeNull();
       expect(await storage.notes.getById("n1", "bob")).not.toBeNull();
-      expect(await storage.notes.getById("n1", "owner")).not.toBeNull();
+      // Whoever left still holds the note's key, as after a removal.
+      expect((await storage.notes.getById("n1", "owner"))?.rekeyDue).toBe(true);
+    });
+
+    it("writes only while the note is under the key the write names", async () => {
+      await share("alice", "edit");
+      const held = await storage.notes.getById("n1", "owner");
+      if (!held) throw new Error("the note is not there");
+      const other = held.keyVersion + 1;
+      for (const writer of ["owner", "alice"]) {
+        expect(
+          await storage.notes.update(
+            "n1",
+            writer,
+            { title: ct("sealed under a key that is gone") },
+            T3,
+            undefined,
+            other,
+          ),
+        ).toBeNull();
+      }
+      expect((await storage.notes.getById("n1", "owner"))?.updatedAt).toBe(
+        held.updatedAt,
+      );
+      expect(
+        await storage.notes.update(
+          "n1",
+          "alice",
+          { title: ct("sealed under the key it has") },
+          T3,
+          undefined,
+          held.keyVersion,
+        ),
+      ).toMatchObject({ updatedAt: T3 });
     });
 
     it("hides a note from everyone else while it is in the owner's trash", async () => {
@@ -345,7 +433,7 @@ export function describeSharingContract(
         await storage.notes.update("n1", "alice", { pinned: true }, T3),
       ).toBeNull();
       expect(await storage.shares.listInvitations("bob")).toEqual([]);
-      expect(await storage.shares.accept("n1", "bob", T3)).toBe(false);
+      expect(await storage.shares.accept("n1", "bob", T3, heldKey)).toBe(false);
       expect((await storage.shares.audience("n1"))?.trashed).toBe(true);
 
       await storage.notes.update("n1", "owner", { trashed: false }, T3);
@@ -370,7 +458,7 @@ export function describeSharingContract(
       await storage.notes.update(
         "n1",
         "owner",
-        { title: "Later" },
+        claimedUpdate({ title: "Later" }),
         "2026-04-03T00:00:00.000Z",
       );
 
@@ -384,18 +472,6 @@ export function describeSharingContract(
       });
       expect(second.notes.map((n) => n.id)).toEqual(["a1"]);
       expect(second.nextCursor).toBeNull();
-    });
-
-    it("searches the notes shared with a user too", async () => {
-      await share("alice", "view");
-      expect(
-        (await storage.notes.search("alice", "milk", PAGE)).notes.map(
-          (n) => n.id,
-        ),
-      ).toEqual(["n1"]);
-      expect((await storage.notes.search("bob", "milk", PAGE)).notes).toEqual(
-        [],
-      );
     });
 
     it("changes roles and removes shares, saying what was removed", async () => {

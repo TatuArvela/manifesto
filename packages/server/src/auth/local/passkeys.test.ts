@@ -4,7 +4,6 @@ import type {
   PasskeyOptionsResponse,
   PasskeySignInOptionsResponse,
   PasskeysResponse,
-  TwoFactorRecoveryCodesResponse,
   TwoFactorRequiredResponse,
   TwoFactorSetupResponse,
   TwoFactorStatusResponse,
@@ -90,10 +89,9 @@ describe("passkeys", () => {
   const passkeyLogin = (response: unknown) =>
     call("POST", "/api/auth/passkey/login", { response }, { as: null });
 
-  it("adds a passkey, which turns two-factor on with recovery codes", async () => {
+  it("adds a passkey, which turns two-factor on", async () => {
     const { added } = await addPasskey();
     expect(added.passkey).toMatchObject({ name: "Laptop", synced: true });
-    expect(added.recoveryCodes).toHaveLength(10);
     const listed = (await (
       await call("GET", "/api/auth/passkeys")
     ).json()) as PasskeysResponse;
@@ -102,14 +100,7 @@ describe("passkeys", () => {
     const status = (await (
       await call("GET", "/api/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
-    expect(status).toEqual({
-      enabled: true,
-      authenticator: false,
-      recoveryCodesRemaining: 10,
-    });
-    // A second passkey shares the codes rather than replacing them.
-    const second = await addPasskey();
-    expect(second.added.recoveryCodes).toBeNull();
+    expect(status).toEqual({ enabled: true, authenticator: false });
   });
 
   it("asks for the password before adding one", async () => {
@@ -176,11 +167,9 @@ describe("passkeys", () => {
     expect(body.twoFactor?.passkey).toBeNull();
   });
 
-  it("takes a recovery code when passkeys are the only second factor", async () => {
-    const { added } = await addPasskey();
-    const code = (added.recoveryCodes as string[])[0];
-    expect((await login({ otp: code })).status).toBe(200);
-    expect((await login({ otp: code })).status).toBe(401);
+  it("takes no typed code when passkeys are the only second factor", async () => {
+    await addPasskey();
+    expect((await login({ otp: "123456" })).status).toBe(401);
   });
 
   it("signs in with a passkey alone", async () => {
@@ -238,29 +227,22 @@ describe("passkeys", () => {
     expect(res.status).toBe(400);
   });
 
-  it("turns two-factor off with the last passkey, and keeps the codes while one is left", async () => {
+  it("turns two-factor off with the last passkey, and keeps it on while one is left", async () => {
     const setup = (await (
       await call("POST", "/api/auth/two-factor/setup", { password: PASSWORD })
     ).json()) as TwoFactorSetupResponse;
-    const enabled = (await (
-      await call("POST", "/api/auth/two-factor/enable", {
-        code: hotp(base32Decode(setup.secret), totpStep(Date.now()) - 1),
-      })
-    ).json()) as TwoFactorRecoveryCodesResponse;
-    expect(enabled.recoveryCodes).toHaveLength(10);
+    const enabled = await call("POST", "/api/auth/two-factor/enable", {
+      code: hotp(base32Decode(setup.secret), totpStep(Date.now()) - 1),
+    });
+    expect(enabled.status).toBe(204);
     const { added } = await addPasskey();
-    expect(added.recoveryCodes).toBeNull();
 
-    // The authenticator goes; the passkey keeps two-factor on, codes and all.
+    // The authenticator goes; the passkey keeps two-factor on.
     await call("POST", "/api/auth/two-factor/disable", { password: PASSWORD });
     let status = (await (
       await call("GET", "/api/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
-    expect(status).toEqual({
-      enabled: true,
-      authenticator: false,
-      recoveryCodesRemaining: 10,
-    });
+    expect(status).toEqual({ enabled: true, authenticator: false });
 
     const removed = await call(
       "DELETE",
@@ -271,11 +253,7 @@ describe("passkeys", () => {
     status = (await (
       await call("GET", "/api/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
-    expect(status).toEqual({
-      enabled: false,
-      authenticator: false,
-      recoveryCodesRemaining: 0,
-    });
+    expect(status).toEqual({ enabled: false, authenticator: false });
     expect((await login()).status).toBe(200);
   });
 

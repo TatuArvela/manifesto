@@ -1,7 +1,5 @@
 import {
   APP_SOCKET_HEARTBEAT_MS,
-  NoteColor,
-  NoteFont,
   type PresenceUser,
   type ShareInvitation,
   type WebSocketClientEvent,
@@ -19,7 +17,12 @@ import {
   receiveComment,
   reloadComments,
 } from "../state/comments.js";
-import { forgetNote, receiveNote, syncNotes } from "../state/notesStore.js";
+import {
+  forgetNote,
+  notes,
+  receiveNote,
+  syncNotes,
+} from "../state/notesStore.js";
 import {
   receiveAccountPrefs,
   refreshAccountPrefs,
@@ -35,6 +38,7 @@ import {
   receiveInvitation,
 } from "../state/sharing.js";
 import { editingNoteId } from "../state/ui.js";
+import { sealer } from "../storage/sealing.js";
 import { trackConnection } from "./connectionOutage.js";
 
 const SUBPROTOCOL = "manifesto-session";
@@ -116,12 +120,8 @@ function isShareUser(value: unknown): boolean {
   );
 }
 
-const noteColors = new Set<unknown>(Object.values(NoteColor));
-const noteFonts = new Set<unknown>(Object.values(NoteFont));
-
-/** Color and font are checked against the enums, not just typed as strings:
- * the invitation card indexes `noteColorMap` and `noteFontFamilies` with them,
- * and an unknown key throws while it renders. */
+/** The shape only: what an invitation shows is sealed, and is checked when
+ * it is opened (`state/sharing.ts`). */
 function isInvitation(value: unknown): value is ShareInvitation {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
@@ -131,8 +131,9 @@ function isInvitation(value: unknown): value is ShareInvitation {
     isShareUser(v.owner) &&
     typeof v.title === "string" &&
     typeof v.content === "string" &&
-    noteColors.has(v.color) &&
-    noteFonts.has(v.font) &&
+    typeof v.font === "string" &&
+    typeof v.keyVersion === "number" &&
+    (v.offered === null || typeof v.offered === "object") &&
     typeof v.invitedAt === "string"
   );
 }
@@ -196,13 +197,83 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
   }
 }
 
-function applyServerEvent(event: WebSocketEvent) {
+/** What an event is about: events about one note wait for each other, and
+ * for nothing else. */
+function subjectOf(event: Exclude<WebSocketEvent, { type: "heartbeat" }>) {
   switch (event.type) {
     case "note:created":
     case "note:updated":
-      receiveNote(event.note);
-      break;
+      return event.note.id;
     case "note:deleted":
+      return event.id;
+    case "invitation:created":
+      return event.invitation.noteId;
+    case "comment:created":
+    case "comment:updated":
+      return event.comment.noteId;
+    case "prefs:updated":
+      return "prefs";
+    default:
+      return event.noteId;
+  }
+}
+
+/**
+ * The last event being applied for each subject. A note arrives sealed, and
+ * opening it takes a moment (a request, when its key is offered), so events
+ * about the same note wait for each other: a deletion must not overtake the
+ * update before it. Another note's events do not wait behind a slow one.
+ */
+const applying = new Map<string, Promise<void>>();
+
+/**
+ * Raised each time a reconnect starts catching up through `syncNotes`. An
+ * event the socket before it delivered may still be opening when the sync
+ * has already dropped its note; that event is older than the sync, so it may
+ * refresh a note still held but never bring one back.
+ */
+let catchUps = 0;
+
+function queueServerEvent(event: WebSocketEvent) {
+  // A heartbeat is about the socket, not the notes: it waits for nothing, or
+  // a slow note would have a live socket taken for a silent one.
+  if (event.type === "heartbeat") {
+    hearsHeartbeats = true;
+    return;
+  }
+  const subject = subjectOf(event);
+  // Sent to the session that was unlocked when it arrived: one locked or
+  // signed out since does not apply it under whoever comes next.
+  const session = sealer.peek();
+  const heardAt = catchUps;
+  const next = (applying.get(subject) ?? Promise.resolve())
+    .then(() =>
+      sealer.peek() === session ? applyServerEvent(event, heardAt) : undefined,
+    )
+    .catch((err) => console.warn("Failed to apply a server event:", err))
+    .finally(() => {
+      if (applying.get(subject) === next) applying.delete(subject);
+    });
+  applying.set(subject, next);
+}
+
+async function applyServerEvent(event: WebSocketEvent, heardAt: number) {
+  switch (event.type) {
+    case "note:created":
+    case "note:updated": {
+      // Null while locked, and for a note whose key did not open: either
+      // way there is nothing readable to show.
+      const note = await sealer.peek()?.open(event.note);
+      if (!note) break;
+      // Overtaken by a catch-up while it opened: one the sync dropped stays
+      // dropped.
+      const stale = heardAt !== catchUps;
+      if (stale && !notes.peek().some((n) => n.id === note.id)) break;
+      receiveNote(note);
+      break;
+    }
+    case "note:deleted":
+      sealer.peek()?.forget(event.id);
       forgetNote(event.id);
       break;
     case "presence:join":
@@ -212,23 +283,20 @@ function applyServerEvent(event: WebSocketEvent) {
       recordPresenceLeave(event.noteId, event.userId);
       break;
     case "invitation:created":
-      receiveInvitation(event.invitation);
+      await receiveInvitation(event.invitation);
       break;
     case "invitation:removed":
       forgetInvitation(event.noteId);
       break;
     case "comment:created":
     case "comment:updated":
-      receiveComment(event.comment);
+      await receiveComment(event.comment);
       break;
     case "comment:deleted":
       forgetComment(event.noteId, event.id);
       break;
     case "prefs:updated":
-      receiveAccountPrefs(event.prefs);
-      break;
-    case "heartbeat":
-      hearsHeartbeats = true;
+      await receiveAccountPrefs(event.prefs);
       break;
   }
 }
@@ -303,6 +371,7 @@ function connect(token: string) {
       // it cannot). `receiveNote` keeps the notes that did not change and
       // handles any racing events that arrive between this fire and the
       // response.
+      catchUps++;
       syncNotes().catch(() => {
         // Network blip during the catch-up fetch is fine; the next user
         // action or full reload will retry.
@@ -324,7 +393,7 @@ function connect(token: string) {
     } catch {
       return;
     }
-    if (isServerEvent(parsed)) applyServerEvent(parsed);
+    if (isServerEvent(parsed)) queueServerEvent(parsed);
   };
 
   ws.onclose = (event) => lost(event.code);

@@ -9,6 +9,8 @@ import {
   isServerMode,
   WS_ORIGIN,
 } from "../state/auth.js";
+import { sealer } from "../storage/sealing.js";
+import { sealedNote } from "../storage/shareKeys.js";
 import type { YjsConnectionStatus, YjsSession } from "./yjsSession.js";
 
 export type { YjsConnectionStatus } from "./yjsSession.js";
@@ -31,6 +33,12 @@ export interface NoteYDoc {
    * a reload.
    */
   outdated: boolean;
+  /**
+   * How many entries of the sealed document did not open on this device
+   * (another key, or damage). They are passed over, so the editor may be
+   * showing less than was written, and the caller says so.
+   */
+  unreadable: number;
 }
 
 const IDLE: NoteYDoc = {
@@ -39,6 +47,7 @@ const IDLE: NoteYDoc = {
   status: "disabled",
   synced: false,
   outdated: false,
+  unreadable: 0,
 };
 
 function wsUrl(): string | null {
@@ -64,6 +73,11 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
   // rotation (login swap, server-forced logout) tears down the provider and
   // re-establishes the connection with the new credentials.
   const token = authToken.value;
+  // A note whose key was replaced while it is open starts again under the
+  // new one: nothing more is written under a key someone removed holds.
+  const keyVersion = noteId
+    ? (sealer.value?.replaced.value.get(noteId) ?? 0)
+    : 0;
 
   useEffect(() => {
     const url = wsUrl();
@@ -84,23 +98,41 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
     // editor awaits the same memoized promise.
     void loadYjsCollab().catch(() => {});
 
-    import("./yjsSession.js").then(
-      ({ createYjsSession }) => {
+    // The document is sealed with the note's key, so there is none to open
+    // without it: locked, or a note whose key has not reached this account.
+    const sealing = sealer.peek();
+    const documentKey = sealing
+      ? sealing.documentKey(noteId, sealedNote(noteId))
+      : Promise.reject(new Error("locked"));
+
+    Promise.all([import("./yjsSession.js"), documentKey]).then(
+      ([{ createYjsSession }, ring]) => {
         if (cancelled) return;
         session = createYjsSession({
           url,
           noteId,
           token,
+          key: ring?.key ?? null,
+          older: ring?.older,
           user: user
             ? { id: user.id, name: user.displayName, color: user.avatarColor }
             : null,
+          // A session that was destroyed still speaks: its socket closes
+          // once the last edits are sealed, and `synced` waits on entries
+          // being opened. By then the state is the next session's, and
+          // marking that one synced would bind an editor to an empty
+          // document.
           onStatus: (status) => {
-            setState((prev) => ({ ...prev, status }));
+            if (!cancelled) setState((prev) => ({ ...prev, status }));
           },
           onSynced: () => {
-            setState((prev) => ({ ...prev, synced: true }));
+            if (!cancelled) setState((prev) => ({ ...prev, synced: true }));
+          },
+          onUnreadable: (unreadable) => {
+            if (!cancelled) setState((prev) => ({ ...prev, unreadable }));
           },
           onAuthenticationFailed: (reason) => {
+            if (cancelled) return;
             setState((prev) => ({
               ...prev,
               status: "disconnected",
@@ -115,6 +147,7 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
           status: "connecting",
           synced: false,
           outdated: false,
+          unreadable: 0,
         });
       },
       () => {
@@ -128,7 +161,7 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
       session?.destroy();
       setState(IDLE);
     };
-  }, [noteId, token]);
+  }, [noteId, token, keyVersion]);
 
   return state;
 }

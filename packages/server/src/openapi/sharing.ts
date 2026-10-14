@@ -1,5 +1,7 @@
 import {
-  noteCommentSchema,
+  commentTextSchema,
+  heldKeySchema,
+  offeredKeySchema,
   publicLinkCreateSchema,
   publicLinkUnlockSchema,
   shareCreateSchema,
@@ -36,6 +38,41 @@ export const SHARING_OPERATIONS: Operation[] = [
     scope: "sharing",
     body: shareUpdateSchema,
     responses: ok("NoteResponse"),
+  },
+  {
+    method: "put",
+    path: "/api/notes/:id/shares/:userId/key",
+    tag: "Sharing",
+    summary:
+      "Hand someone on the note its key, wrapped to their public key and signed (anyone who holds it)",
+    auth: "session",
+    feature: "sharing",
+    limits: ["user"],
+    body: offeredKeySchema,
+    responses: { ...noContent, ...notFound },
+  },
+  {
+    method: "put",
+    path: "/api/notes/:id/held-key",
+    tag: "Sharing",
+    summary:
+      "Keep the note's replaced key under your own notes key (a recipient)",
+    auth: "session",
+    limits: ["user"],
+    body: heldKeySchema,
+    responses: { ...ok("NoteResponse"), ...notFound },
+  },
+  {
+    method: "get",
+    path: "/api/users/:id/keys",
+    tag: "Sharing",
+    summary: "An account's public keys, to wrap a note key to",
+    auth: "session",
+    limits: ["user"],
+    responses: {
+      "200": { description: "The account's public keys" },
+      ...notFound,
+    },
   },
   {
     method: "delete",
@@ -203,11 +240,13 @@ export const SHARING_OPERATIONS: Operation[] = [
     method: "post",
     path: "/api/invitations/:noteId/accept",
     tag: "Sharing",
-    summary: "Accept an invitation",
+    summary:
+      "Accept an invitation, keeping the note's key under your own notes key",
     auth: "any",
     feature: "sharing",
     limits: ["user"],
     scope: "sharing",
+    body: heldKeySchema,
     responses: ok("NoteResponse"),
   },
   {
@@ -252,7 +291,7 @@ export const SHARING_OPERATIONS: Operation[] = [
     feature: "sharing",
     limits: ["user"],
     scope: "notes:write",
-    body: noteCommentSchema,
+    body: commentTextSchema,
     responses: {
       "201": { description: "Written", schema: "NoteCommentResponse" },
       "409": { description: "The note holds no more", schema: "Error" },
@@ -267,7 +306,7 @@ export const SHARING_OPERATIONS: Operation[] = [
     feature: "sharing",
     limits: ["user"],
     scope: "notes:write",
-    body: noteCommentSchema,
+    body: commentTextSchema,
     responses: ok("NoteCommentResponse"),
   },
   {

@@ -1,7 +1,11 @@
 # Encryption
 
-**Status: planned before 1.0.0, design chosen, not yet built.** Today Manifesto does not encrypt notes
-itself. This page says what protects notes now and the design chosen:
+**Status: planned before 1.0.0, design chosen, being built.** Steps 1 to 3 and 5 of
+[the order of building](#order-of-building) are in place, and part of step 4: every account has its
+keys and is unlocked with its secret key, and a note's title, text, tags, colour, images and shared
+document are sealed in the browser. The rest
+is not, and [what is built so far](#what-is-built-so-far) lists what still reaches the server
+readable. This page says what protects notes now and the design chosen:
 [end-to-end encryption for every account](#the-design-end-to-end-for-every-account) in connected
 mode. Notes are encrypted in the browser before they reach the server, and the server stores them
 without a key that opens them.
@@ -132,7 +136,9 @@ the recovery key.
 
 An account is set up at its first sign-in. The browser makes both keys and shows them once, on one
 sheet to save or print, with the server's address and the username, and the user has to confirm they
-kept it. Making a new secret key or recovery key is written to the audit log.
+kept it. A new secret key or recovery key is shown the same way before anything is replaced, and the
+old one goes on working until the user confirms they kept the new one. Making either is written to
+the audit log.
 
 While a device is signed in it also holds the account key, in IndexedDB as a key the page can use and
 cannot read out, so the service worker can use it. It goes with the secret key when the session ends.
@@ -151,7 +157,7 @@ no device.
   written afterwards. [Changing keys](#changing-keys) has what that involves. The account's other
   sessions end, and it is written to the audit log.
 - **One thing for losing everything.** It takes the place of the ten recovery codes that
-  [two-factor sign-in](accounts.md#two-factor-sign-in) has today, which could sign in and open
+  [two-factor sign-in](accounts.md#two-factor-sign-in) had, which could sign in and open
   nothing.
 - **The server never sees it.** The browser derives two values from it: one the server holds a hash
   of, to check the sign-in, and one that wraps the account key.
@@ -341,7 +347,8 @@ Replacing it: the server takes the new key and, beside it, the one before
 (`DATA_ENCRYPTION_KEY_PREVIOUS`). Each value carries the id of the key it is under, and a job at
 start-up moves the old ones over and says in the log when the previous key can be removed. Losing the
 server key loses reminder times, webhooks and authenticator set-ups, which can be made again. It loses
-no note.
+no note. The key that signs push messages is made again the first time one is sent, in place of the
+one that no longer opens, so devices subscribe to reminders anew.
 
 ### What it does not protect
 
@@ -434,6 +441,87 @@ for as long as any account had not signed in.
 8. Replacing the account key.
 
 Steps 2 to 7 are released together: a server half way would hold notes its own features cannot read.
+
+### What is built so far
+
+Steps 1 to 7 are built. Step 8, replacing the account key, is not, and a few things are built
+narrower than the sections above describe; each is said where it applies below. Nothing of the
+app's own screens has been run in a browser yet, so none of this is released:
+
+- **Sealed in the browser**: a note's title, text, excerpt, font, link previews and list of images
+  under its note key, its tags and colour under the reader's personal key, its versions, and the
+  account's preferences. The server refuses anything else in their place, refuses to start on a
+  database that holds notes from before, and has no search, export or admin export of notes.
+- **Images** are sealed before upload, each under a key made from the account key and the image's
+  bytes and found by an HMAC of them, with the key and type carried in the note. The server stores
+  and serves bytes of no stated kind, and the client checks what it opens.
+- **The shared document** a note is edited in is sealed: the readable document stays in the
+  browser, and what the server syncs and stores is a list of sealed edits and snapshots, with
+  cursors sealed beside it. This is narrower than [Collaboration](#collaboration) describes in one
+  way: the server still runs Yjs for the room, merging the list of sealed entries, so the rules
+  about which edits and snapshots are kept are followed by the clients that compact a note and not
+  enforced by the server.
+- **Nothing a person writes reaches the server readable any more**, outside a request made with a
+  token that carries a key.
+- **Sharing a note** hands its key on: wrapped to the recipient's public key and signed by whoever
+  wrapped it, opened and checked by their client, and kept under their own notes key when they
+  accept. A member of a team waits until the first client of anyone holding the note wraps it for
+  them. An invitation's mail no longer names the note.
+- **A note gets a new key** when someone who held the old one stops holding the note, or a live
+  public link is revoked: the server marks the note, and the first device of its owner to see that
+  seals the title, text, images and previews again under a new key, keeps the old keys sealed under
+  it for the versions, comments and edits they wrote, and hands the new one to the links that stay
+  and, as they come online, to the people still on the note. A note keeps its last 1024 keys; past
+  that the oldest go, and what was written under them stops opening. Narrower than
+  [Sharing](#sharing) describes in two ways: the shared document is not sealed again, so what was
+  typed before stays in the log under the old key until the clients compact it away, and a live
+  link that runs out, as opposed to one revoked, does not mark the note.
+- **Whose key it is.** An account remembers the public keys it has seen of the people it shares
+  with, in a list the server keeps sealed under the account's own key. The first key seen for
+  someone is taken; a different one later is wrapped to by nobody and checks no signature until
+  the person agrees to it in the People dialog, which says the key changed and shows its
+  fingerprint. The same dialog shows everyone's fingerprint to compare. Two limits: a new key is
+  never taken without asking, since keys are not yet signed with the ones they replace (that comes
+  with [replacing the account key](#order-of-building)), and a server that drops an entry from the
+  list is met as a first sight of that person, which only comparing fingerprints catches.
+- **Public links** carry a link key in the fragment of their address. A live link stores the note
+  key wrapped by it; a snapshot stores a copy of the note sealed under a key derived from it. The
+  owner's copy of the link key is sealed under their personal key. The page opens the note, and its
+  pictures, in the browser.
+- **Comments** are sealed under the note key, each bound to an id its writer chose.
+- **An API or MCP token made in Settings** carries the notes key and the personal key, wrapped
+  under a key derived from its secret, which the app makes and the server never sees until the
+  token is used. For a request that presents it the server opens and seals notes in memory: notes,
+  versions, comments, sync, import and `GET /api/search` work as before, and so do the MCP tools.
+  Webhooks carry no content.
+- **A calendar feed's address** is made in the app like any token that carries a key, and carries
+  the reminder key alone. A note with a reminder has its key wrapped under its reader's reminder
+  key, by the client that sets the reminder; the copy goes when the reminder does and when the
+  note's key is replaced. A reminder set by a script, which holds no reminder key, has no copy
+  until a device of the account next sees the note and leaves one; until then the feed names that
+  event "Reminder".
+- **An assistant signed in through the browser** carries the same two keys. The consent page makes
+  the code and wraps the keys under it; the server is sent the code's hash and first sees the code
+  when the assistant trades it in. At that exchange, and at every refresh, the server wraps the
+  keys again for the new access and refresh tokens and writes over the copies before them.
+- **Images through a token**: a token sends an image as it is and the server seals it, under a
+  key made for that image and kept with it, wrapped under the account's notes key, until a note
+  names the image and takes the key into its sealed list. Reading one, the token says which note
+  it is in and is sent the image itself. Such an image is stored once for each upload, since its
+  key does not come from its bytes. A token cannot attach an image to a note someone else owns.
+- **Not built of tokens yet**: Settings does not offer to replace every key when a token is
+  revoked, since that is step 8.
+- **A push message** for a reminder carries the note's sealed title and excerpt and the reader's
+  wrapped copy of the note key, beside words that say only that there is a reminder. The service
+  worker opens them with the account key the device keeps while signed in, and shows the title
+  and the first of the text; a device without the key shows the bare words. A message too large
+  for a push service loses the excerpt first and then the title.
+- **The server key** seals what the server reads by itself: reminder times, webhook secrets,
+  authenticator secrets, the key that signs push messages and the keys of push subscriptions. It is
+  the operator's (`DATA_ENCRYPTION_KEY`) or kept in a key file made on first start; each value
+  names the key it is under, and a start-up moves everything to the current one.
+- **Using the recovery key** replaces the secret key and the recovery key, and keeps the account key
+  and the key pairs. Replacing those is step 8, which has to re-encrypt what is under them.
 
 ## What it costs
 

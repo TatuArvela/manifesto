@@ -79,12 +79,25 @@ export interface ApiTokenCreateRequest {
   scopes?: ApiTokenScope[];
   /** Days until it stops working; left out for a token that does not expire. */
   expiresInDays?: number;
+  /**
+   * For a token that reaches notes, which the app makes itself: the hash of
+   * its secret, the start of the secret that a list of tokens shows, and the
+   * keys it carries, wrapped under a key derived from the secret. The server
+   * never sees the secret until the token is used. All three, or none.
+   */
+  tokenHash?: string;
+  prefix?: string;
+  wrappedKeys?: string;
 }
 
 export interface ApiTokenCreatedResponse {
   token: ApiToken;
-  /** The bearer token itself. Shown this once; the server keeps only a hash. */
-  secret: string;
+  /**
+   * The bearer token itself, for one the server made. Shown this once; the
+   * server keeps only a hash. Absent for a token the app made, whose secret
+   * the server was never told.
+   */
+  secret?: string;
 }
 
 /**
@@ -121,9 +134,21 @@ export interface OAuthAuthorizeRequest {
   /** Days until the grant ends; left out for one that does not. */
   expiresInDays?: number;
   password?: string;
+  /**
+   * For a grant that reaches notes: the SHA-256 of a code the app made, and
+   * the keys the grant carries wrapped under a key derived from that code.
+   * The server first sees the code when the assistant trades it in. They
+   * come together.
+   */
+  codeHash?: string;
+  wrappedKeys?: string;
 }
 
 export interface OAuthAuthorizeResponse {
-  /** The client's redirect address with the code on it, to send the browser to. */
+  /**
+   * The client's redirect address, to send the browser to: with the code on
+   * it when the server made the code, and without when the app did, which
+   * then adds `code` itself.
+   */
   redirectTo: string;
 }

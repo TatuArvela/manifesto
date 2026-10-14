@@ -1,7 +1,9 @@
+import { AT_REST, atRest } from "../atRest.js";
 import {
   PUSH_COLUMNS,
   type PushRow,
   rowToPushSubscription,
+  sealedSubscription,
 } from "../pushMapping.js";
 import type { PushSubscriptionsRepo, ServerSecretsRepo } from "../types.js";
 import type { SqliteDB } from "./database.js";
@@ -44,7 +46,7 @@ export function createSqlitePushSubscriptionsRepo(
   );
   return {
     async save(subscription) {
-      save({ ...subscription });
+      save({ ...sealedSubscription(subscription) });
     },
     async listByUser(userId) {
       return (byUserStmt.all(userId) as PushRow[]).map(rowToPushSubscription);
@@ -77,14 +79,28 @@ export function createSqliteServerSecretsRepo(db: SqliteDB): ServerSecretsRepo {
     `INSERT INTO server_secrets (name, value, created_at) VALUES (?, ?, ?)
      ON CONFLICT (name) DO NOTHING`,
   );
-  const read = (name: string) =>
-    (getStmt.get(name) as { value: string } | undefined)?.value ?? null;
+  const replaceStmt = db.prepare(
+    `UPDATE server_secrets SET value = ?, created_at = ?
+     WHERE name = ? AND value = ?`,
+  );
+  const stored = (name: string) =>
+    (getStmt.get(name) as { value: string } | undefined)?.value;
+  const read = (name: string) => {
+    const held = stored(name);
+    return held === undefined ? null : atRest.open(held, AT_REST.serverSecret);
+  };
   return {
     async get(name) {
       return read(name);
     },
     async setIfAbsent(name, value, now) {
-      insertStmt.run(name, value, now);
+      const sealed = atRest.seal(value, AT_REST.serverSecret);
+      insertStmt.run(name, sealed, now);
+      const held = read(name);
+      if (held !== null) return held;
+      // What the name holds does not open. Only if it is still that value,
+      // so that of two processes that find it so, one's is kept by both.
+      replaceStmt.run(sealed, now, name, stored(name));
       return read(name) ?? value;
     },
   };

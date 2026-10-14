@@ -1,4 +1,11 @@
-import type { ReminderPush } from "@manifesto/shared";
+import {
+  deriveKey,
+  isCiphertext,
+  openNoteKey,
+  openSharedFields,
+  type ReminderPush,
+  type SealedReminder,
+} from "@manifesto/shared";
 
 // What the service worker makes of a push message, kept apart from `sw.ts` so
 // it can be tested: that file runs Workbox as it loads.
@@ -30,14 +37,81 @@ export function readReminderPush(payload: unknown): ReminderPush | null {
     }
     next = { time: n.time, ...(n.day !== undefined && { day: Number(n.day) }) };
   }
+  const sealed = readSealed(p.sealed);
   return {
     type: "reminder",
     noteId: p.noteId,
     title: p.title,
     body: p.body,
+    ...(sealed && { sealed }),
     next,
     firedAt: p.firedAt,
   };
+}
+
+/** The sealed half of a reminder, or null for anything not shaped as one:
+ * the message is then shown as a device without a key shows it. */
+function readSealed(value: unknown): SealedReminder | null {
+  if (!value || typeof value !== "object") return null;
+  const s = value as Record<string, unknown>;
+  if (!Number.isInteger(s.keyVersion) || Number(s.keyVersion) < 1) return null;
+  if (!isCiphertext(s.key, 1024)) return null;
+  if (!isCiphertext(s.title, 8192)) return null;
+  if (s.excerpt !== "" && !isCiphertext(s.excerpt, 8192)) return null;
+  return {
+    keyVersion: Number(s.keyVersion),
+    key: s.key as string,
+    title: s.title as string,
+    excerpt: s.excerpt as string,
+  };
+}
+
+/** The account key a signed-in device holds, as far as a push needs it. */
+export interface PushKeys {
+  userId: string;
+  version: number;
+  accountKey: CryptoKey;
+  /** ISO time after which the keys are not to be used. */
+  endsAt: string;
+}
+
+/**
+ * What the notification says. A device that holds the account's keys opens
+ * the note's title and the first of its text, and words them as the app does
+ * when it fires a reminder itself (`reminderScheduler.ts`). A device without
+ * keys (signed out, or the session run out), or a message that does not
+ * open, shows what the server sent: that there is a reminder, and no more.
+ */
+export async function wordedPush(
+  push: ReminderPush,
+  keys: PushKeys | null,
+  now = Date.now(),
+): Promise<{ title: string; body: string }> {
+  const plain = { title: push.title, body: push.body };
+  const { sealed } = push;
+  if (!sealed || !keys || !(Date.parse(keys.endsAt) > now)) return plain;
+  try {
+    const notes = await deriveKey(keys.accountKey, "account/notes");
+    const key = await openNoteKey(
+      { userId: keys.userId, version: keys.version, notes, personal: notes },
+      push.noteId,
+      sealed.keyVersion,
+      sealed.key,
+    );
+    if (!key) return plain;
+    const opened = await openSharedFields(key, push.noteId, {
+      title: sealed.title,
+      ...(sealed.excerpt !== "" && { excerpt: sealed.excerpt }),
+    });
+    return {
+      // An untitled note keeps the name the server gave it, which is the
+      // app's own for one, in the account's language.
+      title: opened.title.trim() || push.title,
+      body: opened.excerpt.replace(/\s+/g, " ").trim().slice(0, 140),
+    };
+  } catch {
+    return plain;
+  }
 }
 
 /** The worker's own copy of a reminder, as far as a push changes it. */

@@ -1,6 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { claimed } from "../contracts/claimed.js";
+import { claimed, claimedUpdate, opened } from "../contracts/claimed.js";
 import type { NotesRepo } from "../types.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
@@ -69,9 +69,9 @@ describe("sqlite notesRepo", () => {
       createdAt: NOW,
       updatedAt: NOW,
     });
-    expect(note.title).toBe("Hello");
-    expect(note.color).toBe(NoteColor.Yellow);
-    expect(note.tags).toEqual(["a"]);
+    expect(opened(note).title).toBe("Hello");
+    expect(opened(note).color).toBe(NoteColor.Yellow);
+    expect(opened(note).tags).toEqual(["a"]);
     expect(await repo.getById("n1", "u1")).toMatchObject({ id: "n1" });
   });
 
@@ -110,12 +110,12 @@ describe("sqlite notesRepo", () => {
     const updated = await repo.update(
       "n1",
       "u1",
-      { title: "Renamed", pinned: true },
+      claimedUpdate({ title: "Renamed", pinned: true }),
       "2026-04-02T00:00:00.000Z",
     );
-    expect(updated?.title).toBe("Renamed");
+    expect(updated && opened(updated).title).toBe("Renamed");
     expect(updated?.pinned).toBe(true);
-    expect(updated?.content).toBe("Body");
+    expect(updated && opened(updated).content).toBe("Body");
     expect(updated?.updatedAt).toBe("2026-04-02T00:00:00.000Z");
     expect(updated?.createdAt).toBe(NOW);
   });
@@ -131,12 +131,12 @@ describe("sqlite notesRepo", () => {
     const result = await repo.update(
       "n1",
       "u2",
-      { title: "x" },
+      claimedUpdate({ title: "x" }),
       "2026-04-02T00:00:00.000Z",
     );
     expect(result).toBeNull();
     const original = await repo.getById("n1", "u1");
-    expect(original?.title).toBe("Title");
+    expect(original && opened(original).title).toBe("Title");
   });
 
   it("deletes notes, scoped to the owning user", async () => {
@@ -150,38 +150,6 @@ describe("sqlite notesRepo", () => {
     expect(await repo.delete("n1", "u2")).toBe(false);
     expect(await repo.delete("n1", "u1")).toBe(true);
     expect(await repo.getById("n1", "u1")).toBeNull();
-  });
-
-  it("searches by case-insensitive substring on title and content", async () => {
-    await repo.insert({
-      id: "n1",
-      userId: "u1",
-      data: claimed({
-        ...baseNoteData,
-        title: "Shopping list",
-        content: "Eggs and milk",
-      }),
-      createdAt: NOW,
-      updatedAt: NOW,
-    });
-    await repo.insert({
-      id: "n2",
-      userId: "u1",
-      data: claimed({
-        ...baseNoteData,
-        title: "Trip notes",
-        content: "fly to LAX",
-      }),
-      createdAt: NOW,
-      updatedAt: NOW,
-    });
-    expect(
-      (await repo.search("u1", "EGGS", PAGE)).notes.map((n) => n.id),
-    ).toEqual(["n1"]);
-    expect(
-      (await repo.search("u1", "trip", PAGE)).notes.map((n) => n.id),
-    ).toEqual(["n2"]);
-    expect((await repo.search("u2", "trip", PAGE)).notes).toEqual([]);
   });
 
   it("preserves null reminder on round-trip", async () => {

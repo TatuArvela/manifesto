@@ -1,3 +1,6 @@
+import { setSealingForTests } from "../storage/sealing.js";
+import { plainSealing } from "./plainSealing.js";
+
 /**
  * Setup for the `browser` test project only.
  *
@@ -44,3 +47,10 @@ window.addEventListener(
   },
   true,
 );
+
+/**
+ * These tests are about the store, the socket and the screens, with fake
+ * servers that answer in readable notes. Sealing has tests of its own in the
+ * node project, so here notes pass through as they are.
+ */
+setSealingForTests(plainSealing);

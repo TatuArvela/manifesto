@@ -1,10 +1,8 @@
 import type {
-  TwoFactorRecoveryCodesResponse,
   TwoFactorSetupResponse,
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { defined } from "../../test/defined.js";
 import {
   authHeaders,
   bootTestApp,
@@ -45,7 +43,7 @@ describe("two-factor sign-in", () => {
   const codeAt = (secret: string, offsetSteps = 0) =>
     hotp(base32Decode(secret), totpStep(Date.now()) + offsetSteps);
 
-  /** Turns two-factor on; returns the secret and the recovery codes. */
+  /** Turns two-factor on; returns the secret. */
   async function turnOn() {
     const setup = await call("POST", "/api/auth/two-factor/setup", {
       password: PASSWORD,
@@ -56,10 +54,8 @@ describe("two-factor sign-in", () => {
     const enabled = await call("POST", "/api/auth/two-factor/enable", {
       code: codeAt(secret, -1),
     });
-    expect(enabled.status).toBe(200);
-    const { recoveryCodes } =
-      (await enabled.json()) as TwoFactorRecoveryCodesResponse;
-    return { secret, recoveryCodes };
+    expect(enabled.status).toBe(204);
+    return { secret };
   }
 
   it("asks for a code after the password, and signs in with one", async () => {
@@ -108,19 +104,12 @@ describe("two-factor sign-in", () => {
     expect((await login({ otp: code })).status).toBe(401);
   });
 
-  it("takes a recovery code once, however it is typed", async () => {
-    const { recoveryCodes } = await turnOn();
-    const typed = defined(recoveryCodes[0]).toUpperCase().replace("-", " ");
-    expect((await login({ otp: typed })).status).toBe(200);
-    expect((await login({ otp: recoveryCodes[0] })).status).toBe(401);
+  it("says it is on, and with what", async () => {
+    await turnOn();
     const status = (await (
       await call("GET", "/api/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
-    expect(status).toEqual({
-      enabled: true,
-      authenticator: true,
-      recoveryCodesRemaining: 9,
-    });
+    expect(status).toEqual({ enabled: true, authenticator: true });
   });
 
   it("needs the password to turn it off, and then asks for no code", async () => {

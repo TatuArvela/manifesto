@@ -32,12 +32,15 @@ type Mode = "signIn" | "register" | "changePassword" | "twoFactor";
 export function LocalLoginForm({
   onForgot,
   onEmailLink,
+  onRecover,
   canRegister,
   passkeys,
 }: {
   onForgot?: (() => void) | undefined;
   /** Opens "email me a sign-in link", where the server offers it. */
   onEmailLink?: (() => void) | undefined;
+  /** Opens signing in with the recovery key, for whoever lost the rest. */
+  onRecover: () => void;
   canRegister: boolean;
   /** Whether the server and this browser can sign in with a passkey. */
   passkeys: boolean;
@@ -197,6 +200,7 @@ export function LocalLoginForm({
         submitting={submitting}
         onSubmit={onSubmit}
         onPasskey={() => void answerWithPasskey()}
+        onRecover={onRecover}
         onBack={backToSignIn}
       />
     );
@@ -335,6 +339,11 @@ export function LocalLoginForm({
         {mode === "signIn" && onForgot && (
           <button type="button" class={quietClass} onClick={onForgot}>
             {t("login.forgot.link")}
+          </button>
+        )}
+        {mode === "signIn" && (
+          <button type="button" class={quietClass} onClick={onRecover}>
+            {t("login.recover.link")}
           </button>
         )}
       </form>

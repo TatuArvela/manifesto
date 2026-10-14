@@ -15,6 +15,7 @@ import type { ServerConfig } from "../config.js";
 import { isFeatureOn, TOKEN_FEATURES } from "../features.js";
 import { isoPlusDays, nowIso } from "../lib/time.js";
 import {
+  API_TOKEN_PREFIX,
   CALENDAR_TOKEN_PREFIX,
   hashToken,
   MAX_API_TOKENS_PER_USER,
@@ -68,6 +69,9 @@ export function createTokenRoutes(deps: TokenDeps) {
         kind = "api",
         scopes,
         password,
+        tokenHash,
+        prefix,
+        wrappedKeys,
       } = c.req.valid("json");
       if (!isFeatureOn(deps.cfg, TOKEN_FEATURES[kind])) {
         throw new HttpError(403, "This server has that kind of token off");
@@ -78,13 +82,26 @@ export function createTokenRoutes(deps: TokenDeps) {
       if (existing.length >= MAX_API_TOKENS_PER_USER) {
         throw new HttpError(409, "Revoke a token before creating another");
       }
-      const secret = newApiToken(
+      const kindPrefix =
         kind === "mcp"
           ? MCP_TOKEN_PREFIX
           : kind === "calendar"
             ? CALENDAR_TOKEN_PREFIX
-            : undefined,
-      );
+            : API_TOKEN_PREFIX;
+      // A token that reaches notes carries their keys, so the app makes it
+      // and the server is told its hash, never the secret. The secret has to
+      // be one of this kind's, or the token would be looked for among the
+      // wrong ones when it is presented.
+      if (tokenHash !== undefined && !prefix?.startsWith(kindPrefix)) {
+        throw new HttpError(422, "prefix: Not a token of this kind");
+      }
+      if (
+        tokenHash !== undefined &&
+        (await deps.storage.apiTokens.findByHash(tokenHash))
+      ) {
+        throw new HttpError(409, "A token already has this secret");
+      }
+      const secret = tokenHash === undefined ? newApiToken(kindPrefix) : null;
       const now = nowIso();
       // In the one order the list uses, each once. A calendar token reaches
       // one feed, which no scope names.
@@ -99,7 +116,7 @@ export function createTokenRoutes(deps: TokenDeps) {
         name,
         kind,
         scopes: granted,
-        prefix: secret.slice(0, SHOWN_PREFIX_LENGTH),
+        prefix: secret?.slice(0, SHOWN_PREFIX_LENGTH) ?? prefix ?? "",
         createdAt: now,
         lastUsedAt: null,
         expiresAt:
@@ -108,8 +125,9 @@ export function createTokenRoutes(deps: TokenDeps) {
       await deps.storage.apiTokens.create({
         ...token,
         userId,
-        tokenHash: hashToken(secret),
+        tokenHash: secret ? hashToken(secret) : (tokenHash ?? ""),
         accessExpiresAt: null,
+        wrappedKeys: wrappedKeys ?? null,
       });
       audit(deps.storage, c, {
         action: "token.created",
@@ -121,7 +139,10 @@ export function createTokenRoutes(deps: TokenDeps) {
           scopes: granted.join(" "),
         },
       });
-      const body: ApiTokenCreatedResponse = { token, secret };
+      const body: ApiTokenCreatedResponse = {
+        token,
+        ...(secret !== null && { secret }),
+      };
       return c.json(body, 201);
     },
   );

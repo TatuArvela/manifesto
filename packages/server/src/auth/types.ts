@@ -22,6 +22,12 @@ export interface AuthIdentity {
   scopes?: readonly ApiTokenScope[];
   /** When a session was signed in; absent for a token. */
   signedInAt?: string;
+  /**
+   * For a token that carries keys: those keys, wrapped under a key derived
+   * from the token itself. Whoever holds the token being presented opens
+   * them for the one request.
+   */
+  wrappedKeys?: string;
   username: string;
   displayName: string;
   avatarColor: string;
