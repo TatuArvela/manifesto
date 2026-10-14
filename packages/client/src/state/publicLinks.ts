@@ -106,11 +106,16 @@ export async function createPublicLink(
     "sealedLinkKey" | "wrappedKey" | "snapshot"
   >,
 ): Promise<PublicLink | null> {
+  // Locked: there is no key to give the link, and one without it opens
+  // nothing.
+  const sealing = sealer.peek();
+  if (!sealing) {
+    console.warn("Cannot seal a note for its link while locked");
+    return null;
+  }
   let fields: object = {};
   try {
-    const made = await sealer
-      .peek()
-      ?.publish(note, request.mode, sealedNote(note.id));
+    const made = await sealing.publish(note, request.mode, sealedNote(note.id));
     if (made) fields = made.fields;
   } catch (err) {
     console.warn("Failed to seal a note for its link:", err);
