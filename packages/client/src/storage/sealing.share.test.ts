@@ -24,7 +24,7 @@ import {
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import { createAccountKeys } from "../utils/keyMaterial.js";
-import { Sealer } from "./sealing.js";
+import { Sealer, setOfferHandler } from "./sealing.js";
 
 /**
  * A note's key going from its owner to someone it is shared with: wrapped to
@@ -228,6 +228,46 @@ describe("handing a note's key to someone it is shared with", () => {
       alice.load,
     );
     expect((await alice.sealer.open(behind))?.title).toBe("Trip plan");
+  });
+
+  it("takes an offered key once, however often the note arrives before the server keeps her copy", async () => {
+    const owner = await account("u-owner");
+    const alice = await account("u-alice");
+    const note = stored(await owner.sealer.sealNew("n1", draft));
+    const offered = await owner.sealer.offerKey(
+      "n1",
+      { userId: alice.userId, exchange: alice.publicKeys.exchange },
+      async () => note,
+      owner.load,
+    );
+    if (!offered) throw new Error("no offer");
+    const behind: SealedNote = {
+      ...note,
+      key: "",
+      color: "",
+      tags: "",
+      offered,
+    };
+    let taken = 0;
+    setOfferHandler(async (sealing, sealed) => {
+      taken++;
+      if (!sealed.offered) return;
+      await sealing.adoptOffered(
+        sealed.id,
+        sealed.offered,
+        owner.publicKeys.signing,
+        alice.load,
+        sealed,
+      );
+    });
+    try {
+      for (let i = 0; i < 3; i++) {
+        expect((await alice.sealer.open(behind))?.title).toBe("Trip plan");
+      }
+      expect(taken).toBe(1);
+    } finally {
+      setOfferHandler(null);
+    }
   });
 
   it("gives two people the same short fingerprint for the same keys, and another for others", async () => {

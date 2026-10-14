@@ -418,6 +418,21 @@ describe("RestApiAdapter", () => {
         );
       }
     });
+
+    it("says what the server said on a 412 whose note does not open here", async () => {
+      const unopened = new RestApiAdapter("https://api.example.com", "t", {
+        sealer: { ...plainSealing, open: async () => null },
+      });
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(
+          { error: "Note has changed", note: makeNote({ id: "X" }) },
+          { status: 412 },
+        ),
+      );
+      await expect(
+        unopened.update("X", { title: "y" }, { ifMatch: "stale" }),
+      ).rejects.toThrow("Note has changed");
+    });
   });
 
   describe("error envelope + 401 handling", () => {

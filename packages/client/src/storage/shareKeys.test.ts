@@ -14,6 +14,7 @@ import {
   changedKeys,
   forgetPublicKeys,
   keyStatusOf,
+  publicKeysOf as keysGiven,
   replaceNoteKey,
   supplyKey,
   trustChangedKeys,
@@ -226,6 +227,27 @@ describe("handing someone a note's key", () => {
     for (const id of publicKeysOf.keys()) forgetPublicKeys(id);
     publicKeysOf.set("u-alice", await someKeys());
     expect(await supplyKey("n1", "u-alice")).toBe("unable");
+  });
+});
+
+describe("asking for someone's keys", () => {
+  it("asks again for someone who had none, once they have set them up", async () => {
+    await unlock(await testKeys("u-me"));
+    expect(await trustedKeysOf("u-bob")).toBeNull();
+    expect(await supplyKey("n1", "u-bob")).toBe("unable");
+    publicKeysOf.set("u-bob", await someKeys());
+    expect(await trustedKeysOf("u-bob")).not.toBeNull();
+  });
+
+  it("keeps nothing from one unlocked account to the next", async () => {
+    await unlock(await testKeys("u-me"));
+    publicKeysOf.set("u-alice", await someKeys());
+    await keysGiven("u-alice");
+    const now = await someKeys();
+    publicKeysOf.set("u-alice", now);
+    // Another account in the same tab, with nothing forgotten by hand.
+    storageKeys.value = { ...(await testKeys("u-other")) };
+    expect((await keysGiven("u-alice"))?.publicKeys).toEqual(now);
   });
 });
 

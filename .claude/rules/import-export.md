@@ -41,5 +41,7 @@ turns their contents into notes, and `utils/noteDownload.ts` saves one note out.
 caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
 code runs. The full export is a zip in both modes, laid out by `exportArchiveFiles` in
 `@manifesto/shared` so the server's download and open mode's `exportArchive` stay the same archive;
-importing one files its `versions.json` through `restoreVersions`. Export is one of the three callers that genuinely needs image bytes rather than
+importing one files its `versions.json` through `restoreVersions`. In connected mode the archive
+holds the notes the account owns (`sharing.role`), never one shared with it, and is refused while
+one of its own did not open on this device (`Sealer.missesOwnNotes`). Export is one of the three callers that genuinely needs image bytes rather than
 `imageCount`; see `pagination.md`.

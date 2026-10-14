@@ -8,6 +8,7 @@ paths:
   - "packages/client/src/utils/keyMaterial.ts"
   - "packages/client/src/storage/deviceKeys.ts"
   - "packages/client/src/storage/sealing.ts"
+  - "packages/client/src/storage/accountSealing.ts"
   - "packages/client/src/storage/shareKeys.ts"
   - "packages/client/src/state/sharing.ts"
   - "packages/client/src/state/comments.ts"
@@ -101,10 +102,13 @@ for any new flow that makes a key someone has to hold.
   reused key.
 - **Nothing above the storage layer holds a ciphertext, and nothing below it a readable note.**
   `storage/sealing.ts` (`Sealer`) seals what `RestApiAdapter` sends and opens what it and the app
-  socket receive; the store, the views and the editor deal in `Note` as in open mode. A new request
+  socket receive (what is sealed under the account's keys alone, about no note, is
+  `storage/accountSealing.ts`); the store, the views and the editor deal in `Note` as in open mode. A new request
   that carries a note's words goes through the `Sealer`, never around it. A note that does not
   open is left out and counted in `Sealer.unreadable`, which `UnopenedNotes` shows on the board;
-  `forget` takes it out again. `openAll` opens a few notes at a time and keeps their order.
+  `forget` takes it out again, with whatever else the `Sealer` had marked the note for. An export
+  is refused while one of the account's own notes is among them (`missesOwnNotes`), and leaves
+  out a note shared with the account, which is its owner's to back up. `openAll` opens a few notes at a time and keeps their order.
 - **The server stores only what is shaped as a ciphertext** where one belongs: `sealed` in
   `validation/schemas.ts` on the way in, and `sealedColumn` (`storage/noteMapping.ts`) on the way
   out, so a column's readable default is never sent as a value.
@@ -176,7 +180,8 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
 
 - A recipient is sent `key` only while their copy is the key the note is under (`rowToViewNote`);
   behind it they get `key: ""` and the current offer, which `Sealer.open` takes through the handler
-  `storage/shareKeys.ts` registers, and stores with `PUT /held-key`.
+  `storage/shareKeys.ts` registers, and stores with `PUT /held-key`. An offer of a key the
+  `Sealer` already holds is not taken again while that request has not landed.
 - The requests live in `shareKeys.ts`, not `sealing.ts`: sealing must not import `apiRequest.ts`
   (it would close a cycle through `storage/index.ts`).
 - `state/sharing.ts` shows an invitation only once its key checked and opened (`Invitation.waiting`
@@ -184,10 +189,12 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   `waitingForKey`, as the owner or as any other holder. What it has tried is named with the key
   the note was last moved to (`Sealer.replaced`), so a second replacement supplies everyone again,
   and a `supplyKey` that `failed` (a request that did not get through, as opposed to `unable`) is
-  forgotten and tried when the connection is back. `wrapKeyFor` tells the two apart by what the
-  lookups kept: `publicKeysOf` and `rememberedBy` both forget a request that failed, so a new
-  request on the way to a key needs the same, or its failure reads as `unable` and is never
-  retried.
+  forgotten and tried when the connection is back. `wrapKeyFor` tells the two apart: `lookUpKeys`
+  answers `none` or `failed` for an account's public keys, and `rememberedBy` forgets a request
+  that failed, so what it still holds says which it was. A new request on the way to a key needs
+  the same, or its failure reads as `unable` and is never retried. Only keys found are kept, and
+  only for the `Sealer` that asked: an account with none yet is asked again, since it may set
+  them up at any moment, and another account unlocked in the tab starts with nothing.
 - Any note the server answers with outside the adapter (the share routes) is opened with
   `sealer.peek()?.open(...)` before `receiveNote`.
 - **Whose key it is.** Nothing wraps to, or checks a signature against, a key straight from
@@ -274,7 +281,8 @@ the link by the token and never sees the key. `Sealer.publish` makes the key and
 stores: for a live link the note key wrapped by it, for a snapshot a copy of the note sealed under
 a key derived from it, with the attachment references that copy names. The owner's own copy of the
 link key is sealed under their personal key (`sealedLinkKey`), which is how the dialog copies an
-address again (`publicLinkAddress`). The page has no account and no `Sealer`: `state/publicLinks.ts`
+address again (`publicLinkAddress`); a link just made comes back from `createPublicLink` with its
+address, and is never sent without the sealed parts `publish` makes. The page has no account and no `Sealer`: `state/publicLinks.ts`
 reads the key from `location.hash`, opens the note with the shared functions, and opens each
 picture with the key the note holds for it. A link without its key shows the same "gone" as one
 that is not there. Its browser test seals a real note for that reason, though the rest of that

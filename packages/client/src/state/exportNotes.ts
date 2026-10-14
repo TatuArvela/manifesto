@@ -3,6 +3,7 @@ import { exportArchiveFiles, hasUnloadedImages } from "@manifesto/shared";
 import { APP_FILE_SLUG } from "../config.js";
 import { t } from "../i18n/index.js";
 import { storage } from "../storage/index.js";
+import { sealer } from "../storage/sealing.js";
 import { writeZip } from "../utils/zip.js";
 import { saveFile } from "./accountExport.js";
 import { inlineImages, inlinePreviewImages } from "./attachments.js";
@@ -24,6 +25,12 @@ const EXPORT_IMAGE_CONCURRENCY = 6;
  * as a file the user would trust.
  */
 export async function exportNotes(): Promise<Note[] | null> {
+  // A note this account owns that did not open on this device is not in
+  // `notes`, and a backup without it is the partial one refused below.
+  if (sealer.peek()?.missesOwnNotes()) {
+    showError(t("error.exportUnopened"));
+    return null;
+  }
   const missing = notes.value.filter(hasUnloadedImages).map((n) => n.id);
   for (let i = 0; i < missing.length; i += EXPORT_IMAGE_CONCURRENCY) {
     await Promise.all(
@@ -41,8 +48,11 @@ export async function exportNotes(): Promise<Note[] | null> {
   }
   // Who else holds a note, and the server's attachment references, mean
   // nothing in a file imported somewhere else: the file carries the bytes.
+  // A note shared with this account is its owner's to back up, and imported
+  // it would only be refused as someone else's.
   const plain: Note[] = [];
-  for (const { sharing: _sharing, ...note } of notes.value) {
+  for (const { sharing, ...note } of notes.value) {
+    if ((sharing?.role ?? "owner") !== "owner") continue;
     const images = await inlineImages(note.images);
     if (images === null) {
       showError(t("error.exportFailed"));

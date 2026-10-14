@@ -50,6 +50,7 @@ export const plainSealing: NoteSealing = {
   open: async (sealed) => sealed as unknown as Note,
   openAll: async (sealed) => sealed as unknown as Note[],
   holds: () => true,
+  missesOwnNotes: () => false,
   forget: () => {},
   sealNew: async (_id, note) => note as unknown as SealedNoteCreate,
   sealUpdate: async (_id, changes) => changes as unknown as SealedNoteUpdate,

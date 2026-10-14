@@ -12,13 +12,9 @@ import {
   type SharedSealed,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
+import type { SeenKeys } from "./accountSealing.js";
 import { ApiError, apiFetch, apiJson } from "./apiRequest.js";
-import {
-  type NoteSealing,
-  type SeenKeys,
-  sealer,
-  setOfferHandler,
-} from "./sealing.js";
+import { type NoteSealing, sealer, setOfferHandler } from "./sealing.js";
 
 /**
  * Handing a shared note's key from account to account
@@ -28,30 +24,54 @@ import {
  * itself must not import.
  */
 
-/** Each account's public keys, as the server gave them this session. */
-const publicKeys = new Map<string, Promise<AccountPublicKeysResponse | null>>();
+/** What asking for an account's public keys came to: its keys, `none` for
+ * an account not set up yet, or `failed` when the request did not get
+ * through. */
+type KeysLookup = AccountPublicKeysResponse | "none" | "failed";
 
-/** An account's public keys, or null when it has none yet or they could not
- * be read. Asked once a session for each account. */
-export function publicKeysOf(
-  userId: string,
-): Promise<AccountPublicKeysResponse | null> {
+/**
+ * Each account's public keys, as the server gave them to the sealing in
+ * `cachedFor`. Only keys are kept: an account with none yet may set them up
+ * at any moment, and a request that failed is asked again. Another account
+ * unlocked (or the same one unlocked again) starts with nothing kept.
+ */
+const publicKeys = new Map<string, Promise<KeysLookup>>();
+let cachedFor: NoteSealing | null = null;
+
+function lookUpKeys(userId: string): Promise<KeysLookup> {
+  const sealing = sealer.peek();
+  if (sealing !== cachedFor) {
+    publicKeys.clear();
+    cachedFor = sealing;
+  }
   let pending = publicKeys.get(userId);
   if (!pending) {
     pending = apiJson<AccountPublicKeysResponse>(
       "GET",
       `/users/${encodeURIComponent(userId)}/keys`,
-    ).catch((err) => {
-      // An account that is not set up yet may be tomorrow; one that could
-      // not be asked about, in a moment.
-      if (!(err instanceof ApiError && err.status === 404)) {
+    ).then(
+      (keys): KeysLookup => keys ?? "failed",
+      (err): KeysLookup =>
+        err instanceof ApiError && err.status === 404 ? "none" : "failed",
+    );
+    const asked = pending;
+    publicKeys.set(userId, asked);
+    void asked.then((found) => {
+      if (typeof found === "string" && publicKeys.get(userId) === asked) {
         publicKeys.delete(userId);
       }
-      return null;
     });
-    publicKeys.set(userId, pending);
   }
   return pending;
+}
+
+/** An account's public keys, or null when it has none yet or they could not
+ * be read. */
+export async function publicKeysOf(
+  userId: string,
+): Promise<AccountPublicKeysResponse | null> {
+  const found = await lookUpKeys(userId);
+  return typeof found === "string" ? null : found;
 }
 
 /** Forget what was learned of an account's keys, so the next use asks. */
@@ -243,15 +263,16 @@ async function wrapKeyFor(
 ): Promise<OfferedKey | "unable" | "failed"> {
   const sealing = sealer.peek();
   if (!sealing?.handsKeysOn) return "unable";
+  const found = await lookUpKeys(recipientId);
+  // An account with no keys yet has nothing to wrap to.
+  if (found === "none") return "unable";
+  if (found === "failed") return "failed";
   // Only to a key this account has seen for them before, or sees first now.
   const recipient = await trustedKeysOf(recipientId);
   if (!recipient) {
-    // Both lookups keep an answer and forget a request that failed, so what
-    // is still there says which it was.
-    if (!publicKeys.has(recipientId)) return "failed";
-    // An account with no keys yet.
-    if ((await publicKeysOf(recipientId)) === null) return "unable";
-    // A changed key nobody has agreed to, or a list that could not be read.
+    // A changed key nobody has agreed to, or a list that could not be read:
+    // `rememberedBy` forgets a request that failed, so what is still there
+    // says which it was.
     return remembered.has(sealing) ? "unable" : "failed";
   }
   // A note not opened here is read for its key, which is a request too.
