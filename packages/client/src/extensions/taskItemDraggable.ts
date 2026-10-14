@@ -7,6 +7,7 @@ import {
   DecorationSet,
   type NodeViewConstructor,
 } from "@milkdown/kit/prose/view";
+import { t } from "../i18n/index.js";
 import { emptyParagraphAroundListKeymap } from "./listParagraphKeymap.js";
 import { endTaskItemDragOf, startTaskItemDrag } from "./taskItemDrag.js";
 import {
@@ -14,6 +15,9 @@ import {
   isTaskItem,
   toggleSubtreeChecked,
 } from "./taskListStructure.js";
+
+/** Gives each item's text an id its checkbox can be named by. */
+let nextItemId = 0;
 
 const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
   const listItem = document.createElement("li");
@@ -24,6 +28,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
   const content = document.createElement("div");
   const deleteButton = document.createElement("button");
   content.className = "task-item-content";
+  content.id = `task-item-${++nextItemId}`;
 
   const setItemAttrs = (n: ProseNode) => {
     listItem.dataset.itemType = "task";
@@ -39,10 +44,15 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
   handleWrapper.className =
     "task-item-drag-handle text-black/40 dark:text-white/40 cursor-grab active:cursor-grabbing";
   handleWrapper.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>`;
-  handleWrapper.setAttribute("aria-label", "Drag to reorder");
+  // A pointer's way to move the item, with nothing for a screen reader to do
+  // with it: a keyboard moves an item by moving its text. It was labelled, in
+  // English whatever the language, but a label on a plain `div` is ignored.
+  handleWrapper.setAttribute("aria-hidden", "true");
 
   checkboxWrapper.contentEditable = "false";
   checkbox.type = "checkbox";
+  // Named by the item's own text; the label around it holds only the box.
+  checkbox.setAttribute("aria-labelledby", content.id);
   checkbox.addEventListener("mousedown", (event) => event.preventDefault());
   checkbox.addEventListener("change", (event) => {
     if (!view.editable) {
@@ -89,7 +99,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
   deleteButton.tabIndex = -1;
   deleteButton.className = "task-item-delete text-black/40 dark:text-white/40";
   deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  deleteButton.setAttribute("aria-label", "Remove item");
+  deleteButton.setAttribute("aria-label", t("editor.removeItem"));
   deleteButton.addEventListener("mousedown", (e) => {
     e.preventDefault();
     e.stopPropagation();

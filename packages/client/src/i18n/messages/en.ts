@@ -133,6 +133,7 @@ export const en = {
   "editor.calcResult":
     "Result {result}. Tab or Enter writes it in, Escape dismisses it.",
   "editor.removeTag": "Remove tag {tag}",
+  "editor.removeItem": "Remove item",
   "editor.color": "Color",
   "editor.changeColor": "Change color",
   "editor.font": "Font",

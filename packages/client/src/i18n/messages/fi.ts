@@ -136,6 +136,7 @@ export const fi: Messages = {
   "editor.calcResult":
     "Tulos {result}. Sarkain tai Enter kirjoittaa sen, Esc hylkää sen.",
   "editor.removeTag": "Poista tunniste {tag}",
+  "editor.removeItem": "Poista kohta",
   "editor.color": "Väri",
   "editor.changeColor": "Vaihda väriä",
   "editor.font": "Fontti",
