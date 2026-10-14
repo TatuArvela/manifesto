@@ -133,9 +133,22 @@ function report(
 
 const byId = (noteId: string) => (i: Invitation) => i.noteId === noteId;
 
+/**
+ * The notes whose invitation the socket added or took away while a load was
+ * opening its list. The load's answer is older than those, so it leaves them
+ * as they are now.
+ */
+const changedDuringLoad = new Set<string>();
+let loading = 0;
+
+function touched(noteId: string): void {
+  if (loading > 0) changedDuringLoad.add(noteId);
+}
+
 /** Add or refresh one invitation, as the socket reports it. Never rejects. */
 export async function receiveInvitation(raw: ShareInvitation): Promise<void> {
   const invitation = await opened(raw);
+  touched(invitation.noteId);
   const known = invitations.value.some(byId(invitation.noteId));
   invitations.value = [
     invitation,
@@ -151,6 +164,7 @@ export async function receiveInvitation(raw: ShareInvitation): Promise<void> {
 }
 
 export function forgetInvitation(noteId: string): void {
+  touched(noteId);
   heldKeys.delete(noteId);
   invitations.value = invitations.value.filter((i) => i.noteId !== noteId);
 }
@@ -161,17 +175,31 @@ export async function loadInvitations(): Promise<boolean> {
     invitations.value = [];
     return true;
   }
+  loading++;
   try {
     const body = await apiJson<InvitationsResponse>("GET", "/invitations");
-    const list: Invitation[] = [];
-    for (const raw of body?.invitations ?? []) list.push(await opened(raw));
-    invitations.value = list;
+    // Each may wait on a key lookup, so they open side by side.
+    const list = await Promise.all((body?.invitations ?? []).map(opened));
+    const settled = invitations.value.filter((i) =>
+      changedDuringLoad.has(i.noteId),
+    );
+    invitations.value = [
+      ...settled,
+      ...list.filter((i) => !changedDuringLoad.has(i.noteId)),
+    ];
+    // One taken away meanwhile keeps no key this load may have opened for it.
+    for (const noteId of changedDuringLoad) {
+      if (!settled.some(byId(noteId))) heldKeys.delete(noteId);
+    }
     return true;
   } catch (err) {
     // Not worth a toast on start: the notes are what the user came for, and
     // the next reconnect or reload asks again.
     console.error("Failed to load invitations:", err);
     return false;
+  } finally {
+    loading--;
+    if (loading === 0) changedDuringLoad.clear();
   }
 }
 
