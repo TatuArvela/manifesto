@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
-import { useCallback, useEffect, useRef } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { useEscapeStack } from "../hooks/useEscapeStack.js";
 
 let nextId = 0;
 
@@ -81,6 +82,14 @@ export function Tooltip({
 
   useEffect(() => cancelPending, [cancelPending]);
 
+  // Escape hides a tooltip without moving the pointer or focus off its
+  // trigger, so one covering what someone is reading can be put away. It
+  // passes the press on: a tooltip is never what Escape was meant for alone.
+  // Followed through the popover's own `toggle` event, since
+  // `hideAllTooltips` hides it from outside this component.
+  const [shown, setShown] = useState(false);
+  useEscapeStack(shown, hide, { passThrough: true });
+
   return (
     // biome-ignore lint/a11y/useSemanticElements: tooltip wrapper needs span
     <span
@@ -102,6 +111,7 @@ export function Tooltip({
       <div
         ref={popoverRef}
         popover="manual"
+        onToggle={(e) => setShown(e.newState === "open")}
         class="tooltip"
         style={{ positionAnchor: idRef.current }}
       >

@@ -34,7 +34,8 @@ paths:
   new dismissable layer only has to call `useEscapeStack(active, close)`; binding your own brings
   back the bug where one press closed the picker *and* the editor under it. Ordering is by
   activation, not nesting (Preact runs a child's effects first), so a layer must not become active
-  in the same render as one it sits inside. `Dropdown` closes its own panel rather than leaving it
+  in the same render as one it sits inside. A tooltip registers with `passThrough`: Escape hides it
+  and still reaches the layer below, so it never costs a second press. `Dropdown` closes its own panel rather than leaving it
   to the Popover API, because Chromium skips the light-dismiss when focus is inside ProseMirror.
 - **Single-key shortcuts** go through `hooks/useShortcut.ts` and nowhere else, like Escape. The
   dispatcher, not the binding, decides when a key is not a shortcut (typing, an `aria-modal` layer or

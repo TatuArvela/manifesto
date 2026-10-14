@@ -23,13 +23,19 @@ import { useLayoutEffect, useRef } from "preact/hooks";
 
 interface Entry {
   run: () => void;
+  /** Hands the press on to the layer below as well, as a tooltip does. */
+  passThrough: boolean;
 }
 
 const stack: Entry[] = [];
 
 function onKeyDown(event: KeyboardEvent) {
   if (event.key !== "Escape") return;
-  stack[stack.length - 1]?.run();
+  // A copy: a handler can take its own layer, or others, off the stack.
+  for (const entry of [...stack].reverse()) {
+    entry.run();
+    if (!entry.passThrough) return;
+  }
 }
 
 function register(entry: Entry) {
@@ -43,7 +49,17 @@ function unregister(entry: Entry) {
   if (stack.length === 0) document.removeEventListener("keydown", onKeyDown);
 }
 
-export function useEscapeStack(active: boolean, onEscape: () => void): void {
+/**
+ * `passThrough` is for something that only sits over the page rather than
+ * being a layer of it: a tooltip. Escape puts it away and still reaches the
+ * layer below, so a keyboard user in the note editor, where a focused button
+ * always shows its tooltip, is not made to press Escape twice to close it.
+ */
+export function useEscapeStack(
+  active: boolean,
+  onEscape: () => void,
+  { passThrough = false }: { passThrough?: boolean } = {},
+): void {
   const handler = useRef(onEscape);
   handler.current = onEscape;
 
@@ -51,10 +67,10 @@ export function useEscapeStack(active: boolean, onEscape: () => void): void {
     if (!active) return;
     // Called through the ref: a handler that closes over state has a new
     // identity every render, and re-registering it would jump the queue.
-    const entry: Entry = { run: () => handler.current() };
+    const entry: Entry = { run: () => handler.current(), passThrough };
     register(entry);
     return () => unregister(entry);
-  }, [active]);
+  }, [active, passThrough]);
 }
 
 /** Test seam: the stack is module state and outlives an unmounted component. */

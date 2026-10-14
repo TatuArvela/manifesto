@@ -19,11 +19,13 @@ let host: HTMLDivElement;
 function Layer({
   active = true,
   onEscape,
+  passThrough = false,
 }: {
   active?: boolean;
   onEscape: () => void;
+  passThrough?: boolean;
 }) {
-  useEscapeStack(active, onEscape);
+  useEscapeStack(active, onEscape, { passThrough });
   return null;
 }
 
@@ -67,6 +69,26 @@ describe("useEscapeStack", () => {
     // used to dismiss itself *and* close the editor on the same key press.
     expect(picker).toHaveBeenCalledTimes(1);
     expect(editor).not.toHaveBeenCalled();
+  });
+
+  it("lets a pass-through layer hand the same press on", () => {
+    // A tooltip over the editor: Escape puts it away and still closes the
+    // editor, rather than costing a keyboard user a second press.
+    const editor = vi.fn();
+    const tooltip = vi.fn();
+
+    show(<Layer onEscape={editor} />);
+    show(
+      <>
+        <Layer onEscape={editor} />
+        <Layer onEscape={tooltip} passThrough />
+      </>,
+    );
+
+    pressEscape();
+
+    expect(tooltip).toHaveBeenCalledTimes(1);
+    expect(editor).toHaveBeenCalledTimes(1);
   });
 
   it("hands the key back to the layer below once the top leaves", () => {
