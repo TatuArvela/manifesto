@@ -30,10 +30,13 @@ export function corsMiddleware(cfg: ServerConfig): MiddlewareHandler {
     // it gives nothing away: anything but a browser can send it already, and
     // the server believes it only with `TRUST_PROXY`, behind a proxy that
     // replaces it.
+    // `X-Attachment-Address` names a sealed image on its upload: the body is
+    // ciphertext, so the server cannot find the image any other way.
     allowHeaders: [
       "Authorization",
       "Content-Type",
       "If-Match",
+      "X-Attachment-Address",
       "X-Forwarded-For",
     ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
