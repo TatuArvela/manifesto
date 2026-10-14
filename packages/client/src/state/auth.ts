@@ -512,10 +512,10 @@ export const authProviderName = signal<AuthProviderName | null>(null);
 
 /**
  * How the share dialog finds people on this server: suggestions as you type,
- * or only a whole username or address. `search` until the server says, which
- * is the server's own default and the friendlier guess.
+ * or only a whole username or address. `exact` until the server says, which
+ * is the server's own default and the one that shows nobody's address.
  */
-export const userLookupMode = signal<UserLookupMode>("search");
+export const userLookupMode = signal<UserLookupMode>("exact");
 
 /** Every way in this server offers; both kinds side by side is possible. */
 export const authProviders = signal<AuthProviderName[]>([]);

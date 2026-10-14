@@ -281,11 +281,11 @@ names it: `NoteMember.team` and `ShareInvitation.team` are `{ id, name }`, absen
 The rules for what a team share does to each member are in
 [Sharing with people](features/sharing-with-people.md#teams).
 
-`GET /api/users` depends on `USER_LOOKUP`. Under `search` (the default) it returns up to 10
-accounts whose username, display name or email contains `q`, regardless of case, each as
-`DirectoryUser` `{ id, username, displayName, avatarColor, email? }`. Under `exact` it returns
-only an account whose username or email address is `q` exactly (regardless of case), and never
-includes `email`. Either way the caller is never among the results, and an empty `q` returns none.
+`GET /api/users` depends on `USER_LOOKUP`. Under `exact` (the default) it returns only an account
+whose username or email address is `q` exactly (regardless of case), each as `DirectoryUser`
+`{ id, username, displayName, avatarColor, email? }`, and never includes `email`. Under `search`
+it returns up to 10 accounts whose username, display name or email contains `q`, regardless of
+case, with `email`. Either way the caller is never among the results, and an empty `q` returns none.
 
 ### Search
 

@@ -44,6 +44,17 @@ to the account's owner:
   two-factor sign-in and removes their passkeys, and leaves their own password not working. It is recorded as
   `admin.password_reset`.
 
+## What other users can see
+
+Someone sharing a note looks the other person up, and what that lookup shows is `USER_LOOKUP`
+([Sharing with people](sharing-with-people.md#inviting)). Under `exact`, the default, it finds an
+account only by its whole username or email address and never shows the address, so the list of
+accounts cannot be browsed. Under `search` it suggests accounts as the owner types, with their email
+addresses, so anyone who can sign in can collect every address on the server. That suits a team whose
+members all know each other, and no server where anyone may register.
+
+Beyond that, someone on a note sees the names of the others on it, and the names on its comments.
+
 ## What a user can see about their account
 
 Settings has an **Activity** page for every signed-in user (`GET /api/auth/me/activity`): the audit

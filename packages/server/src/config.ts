@@ -426,7 +426,7 @@ export function loadConfig(): ServerConfig {
     updateCheckRepo: envBool("UPDATE_CHECK", true)
       ? process.env.UPDATE_CHECK_REPO?.trim() || "TatuArvela/manifesto"
       : null,
-    userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "search"),
+    userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "exact"),
     initialAdminPassword: loadInitialAdminPassword(),
   };
 }
