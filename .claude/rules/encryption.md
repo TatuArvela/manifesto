@@ -180,7 +180,8 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
 
 - A recipient is sent `key` only while their copy is the key the note is under (`rowToViewNote`);
   behind it they get `key: ""` and the current offer, which `Sealer.open` takes through the handler
-  `storage/shareKeys.ts` registers, and stores with `PUT /held-key`.
+  `storage/shareKeys.ts` registers, and stores with `PUT /held-key`. An offer of a key the
+  `Sealer` already holds is not taken again while that request has not landed.
 - The requests live in `shareKeys.ts`, not `sealing.ts`: sealing must not import `apiRequest.ts`
   (it would close a cycle through `storage/index.ts`).
 - `state/sharing.ts` shows an invitation only once its key checked and opened (`Invitation.waiting`

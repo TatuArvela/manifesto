@@ -452,8 +452,14 @@ export class Sealer {
   /** The note as its reader sees it; null when its key does not open. */
   async open(sealed: SealedNote): Promise<Note | null> {
     const account = await this.account;
-    // No copy of the key of their own, and one offered: taken first.
-    if (sealed.key === "" && sealed.offered && offerHandler) {
+    // No copy of the key of their own, and one offered: taken first, unless
+    // it was taken already and the server has not stored the copy yet.
+    if (
+      sealed.key === "" &&
+      sealed.offered &&
+      offerHandler &&
+      this.noteKeys.get(sealed.id)?.key.version !== sealed.offered.keyVersion
+    ) {
       await offerHandler(this, sealed);
     }
     const known = this.noteKeys.get(sealed.id);
