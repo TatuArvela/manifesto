@@ -50,10 +50,12 @@ export function PublicLinksDialogHost() {
   );
 }
 
-async function copyLink(link: PublicLink) {
+/** Copies a link's whole address: the link, and the key that opens what it
+ * shows. A link just made comes with its address; an older one's key is
+ * opened from the copy the server keeps for its owner. */
+async function copyLink(link: PublicLink, known?: string) {
   try {
-    // The whole address: the link, and the key that opens what it shows.
-    const address = await publicLinkAddress(link);
+    const address = known ?? (await publicLinkAddress(link));
     if (address === null) throw new Error("The link's key did not open");
     await navigator.clipboard.writeText(address);
     showSuccess(t("noteCard.linkCopied"));
@@ -131,9 +133,9 @@ function PublicLinksDialog({
 
           <CreateLinkForm
             note={note}
-            onCreated={(link) => {
+            onCreated={(link, address) => {
               setLinks((held) => [link, ...(held ?? [])]);
-              void copyLink(link);
+              void copyLink(link, address);
             }}
           />
 
@@ -178,7 +180,7 @@ function CreateLinkForm({
   onCreated,
 }: {
   note: Note;
-  onCreated: (link: PublicLink) => void;
+  onCreated: (link: PublicLink, address: string) => void;
 }) {
   const [mode, setMode] = useState<PublicLinkMode>("live");
   const [days, setDays] = useState<number>(0);
@@ -191,20 +193,20 @@ function CreateLinkForm({
     if (busy) return;
     setBusy(true);
     const views = Number.parseInt(maxViews, 10);
-    const link = await createPublicLink(note, {
+    const created = await createPublicLink(note, {
       mode,
       ...(days > 0 && { expiresInDays: days }),
       ...(Number.isFinite(views) && views > 0 && { maxViews: views }),
       ...(password && { password }),
     });
     setBusy(false);
-    if (!link) {
+    if (!created) {
       showError(t("publicLink.createFailed"));
       return;
     }
     setPassword("");
     setMaxViews("");
-    onCreated(link);
+    onCreated(created.link, created.address);
   };
 
   return (

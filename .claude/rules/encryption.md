@@ -278,7 +278,8 @@ the link by the token and never sees the key. `Sealer.publish` makes the key and
 stores: for a live link the note key wrapped by it, for a snapshot a copy of the note sealed under
 a key derived from it, with the attachment references that copy names. The owner's own copy of the
 link key is sealed under their personal key (`sealedLinkKey`), which is how the dialog copies an
-address again (`publicLinkAddress`). The page has no account and no `Sealer`: `state/publicLinks.ts`
+address again (`publicLinkAddress`); a link just made comes back from `createPublicLink` with its
+address, and is never sent without the sealed parts `publish` makes. The page has no account and no `Sealer`: `state/publicLinks.ts`
 reads the key from `location.hash`, opens the note with the shared functions, and opens each
 picture with the key the note holds for it. A link without its key shows the same "gone" as one
 that is not there. Its browser test seals a real note for that reason, though the rest of that

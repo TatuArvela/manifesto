@@ -96,7 +96,8 @@ export async function listPublicLinks(
 /**
  * Publishes `note`. The link key is made here; the server is sent the note
  * key wrapped by it (a live link) or the note sealed under it (a snapshot),
- * and never the key.
+ * and never the key. Resolves with the new link and its whole address, or
+ * null when it could not be made.
  */
 export async function createPublicLink(
   note: Note,
@@ -104,7 +105,7 @@ export async function createPublicLink(
     PublicLinkCreateRequest,
     "sealedLinkKey" | "wrappedKey" | "snapshot"
   >,
-): Promise<PublicLink | null> {
+): Promise<{ link: PublicLink; address: string } | null> {
   // Locked: there is no key to give the link, and one without it opens
   // nothing.
   const sealing = sealer.peek();
@@ -112,20 +113,31 @@ export async function createPublicLink(
     console.warn("Cannot seal a note for its link while locked");
     return null;
   }
-  let fields: object = {};
+  let made: Awaited<ReturnType<typeof sealing.publish>>;
   try {
-    const made = await sealing.publish(note, request.mode, sealedNote(note.id));
-    if (made) fields = made.fields;
+    made = await sealing.publish(note, request.mode, sealedNote(note.id));
   } catch (err) {
     console.warn("Failed to seal a note for its link:", err);
     return null;
   }
-  const res = await apiFetch("POST", `/notes/${note.id}/links`, {
-    ...request,
-    ...fields,
-  });
-  if (!res?.ok) return null;
-  return ((await res.json()) as PublicLinkResponse).link;
+  // Only sealing handed through (a test) makes a link with no key: a real
+  // one sent without the sealed parts would never open.
+  if (!made && sealing.handsKeysOn) {
+    console.warn("Failed to seal a note for its link");
+    return null;
+  }
+  try {
+    const res = await apiFetch("POST", `/notes/${note.id}/links`, {
+      ...request,
+      ...made?.fields,
+    });
+    if (!res?.ok) return null;
+    const { link } = (await res.json()) as PublicLinkResponse;
+    return { link, address: publicLinkUrl(link.token, made?.linkKey) };
+  } catch (err) {
+    console.warn("Failed to create a public link:", err);
+    return null;
+  }
 }
 
 export async function revokePublicLink(
