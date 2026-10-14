@@ -1,7 +1,15 @@
 import { deleteLocalNoteCopies } from "../realtime/localNoteCopies.js";
-import { logout } from "./auth.js";
+import {
+  clearAuthLocal,
+  type DeleteAccountResult,
+  logout,
+  requestAccountDeletion,
+} from "./auth.js";
 import { notes } from "./notesStore.js";
-import { removePushSubscription } from "./pushSubscription.js";
+import {
+  dropBrowserPushSubscription,
+  removePushSubscription,
+} from "./pushSubscription.js";
 
 /**
  * Sign out and leave none of the account's notes in this browser: the list in
@@ -17,4 +25,22 @@ export async function signOut(): Promise<void> {
   await removePushSubscription();
   await logout();
   await deleteLocalNoteCopies(ids);
+}
+
+/**
+ * Delete the signed-in account, then leave this browser as a sign-out does.
+ * The server has already dropped the session and the push subscription with
+ * the account, so there is nobody left to tell; only the browser's own
+ * copies go.
+ */
+export async function deleteOwnAccount(
+  password: string,
+): Promise<DeleteAccountResult> {
+  const ids = notes.value.map((n) => n.id);
+  const result = await requestAccountDeletion(password);
+  if (result !== "ok") return result;
+  clearAuthLocal();
+  await dropBrowserPushSubscription();
+  await deleteLocalNoteCopies(ids);
+  return "ok";
 }

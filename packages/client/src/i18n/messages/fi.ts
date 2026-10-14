@@ -857,6 +857,7 @@ export const fi: Messages = {
   "audit.action.auth.signed_in": "Kirjautui sisään",
   "audit.action.auth.sign_in_failed": "Kirjautuminen epäonnistui",
   "audit.action.auth.signed_out": "Kirjautui ulos",
+  "audit.action.auth.account_deleted": "Poisti oman tilinsä",
   "audit.action.auth.password_changed": "Salasana vaihdettu",
   "audit.action.auth.password_reset_requested":
     "Salasanan vaihtolinkki lähetetty",
@@ -1201,6 +1202,17 @@ export const fi: Messages = {
   "account.email.managed": "Osoitetta hallitaan kirjautumispalvelussasi.",
   "account.email.failed":
     "Osoitteen tallentaminen epäonnistui. Yritä uudelleen.",
+  "account.delete.title": "Poista tili",
+  "account.delete.hint":
+    "Poistaa tilisi ja kaikki sen omistamat muistiinpanot myös niiltä, joiden kanssa ne on jaettu. Vie muistiinpanosi ensin, jos haluat säilyttää ne.",
+  "account.delete.start": "Poista tili…",
+  "account.delete.warning":
+    "Tätä ei voi perua. Muistiinpanosi, niiden historia ja kuvat, jakosi, tunnuksesi ja webhookisi poistetaan, ja sinut kirjataan ulos kaikkialta. Muiden kanssasi jakamat muistiinpanot jäävät heille.",
+  "account.delete.confirm": "Poista tilini",
+  "account.delete.done": "Tilisi on poistettu.",
+  "account.delete.lastAdmin":
+    "Olet ainoa ylläpitäjä. Tee ensin joku toinen ylläpitäjäksi.",
+  "account.delete.failed": "Tilin poistaminen ei onnistunut. Yritä uudelleen.",
 
   // Login screen
   "login.tabSignIn": "Kirjaudu",

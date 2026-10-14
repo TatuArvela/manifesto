@@ -8,6 +8,7 @@ import {
   updateEmail,
 } from "../../state/auth.js";
 import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
+import { deleteOwnAccount } from "../../state/signOut.js";
 import { showSuccess } from "../../state/ui.js";
 import { Avatar } from "../Avatar.js";
 import { buttonClass } from "../buttonClasses.js";
@@ -117,7 +118,94 @@ export function AccountSettings() {
           <PasswordForm />
         </Section>
       )}
+
+      <Section title={t("account.delete.title")}>
+        <DeleteAccountForm />
+      </Section>
     </div>
+  );
+}
+
+/**
+ * Delete your own account, and every note it owns. Two steps, the second
+ * with the password, so neither a stray click nor a stolen session does it.
+ * Once it is gone this browser is left as a sign-out leaves it.
+ */
+function DeleteAccountForm() {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const cancel = () => {
+    setOpen(false);
+    setPassword("");
+    setRefusal(null);
+    setError(null);
+  };
+
+  const submit = async (event: Event) => {
+    event.preventDefault();
+    if (busy) return;
+    setRefusal(null);
+    setError(null);
+    setBusy(true);
+    const result = await deleteOwnAccount(password);
+    setBusy(false);
+    if (result === "ok") {
+      showSuccess(t("account.delete.done"));
+      return;
+    }
+    if (result === "last-admin") {
+      setError(t("account.delete.lastAdmin"));
+    } else if (result === "failed") {
+      setError(t("account.delete.failed"));
+    } else {
+      setRefusal(result);
+    }
+  };
+
+  if (!open) {
+    return (
+      <>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          {t("account.delete.hint")}
+        </p>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class={buttonClass("danger")}
+            onClick={() => setOpen(true)}
+          >
+            {t("account.delete.start")}
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} class="space-y-3">
+      <p class="text-sm text-neutral-700 dark:text-neutral-200">
+        {t("account.delete.warning")}
+      </p>
+      <ConfirmPasswordField value={password} onInput={setPassword} />
+      {refusal && <ConfirmationError refusal={refusal} />}
+      {error && (
+        <p class="text-sm text-red-600 dark:text-red-400" role="alert">
+          {error}
+        </p>
+      )}
+      <div class="flex justify-end gap-2">
+        <button type="button" class={buttonClass("secondary")} onClick={cancel}>
+          {t("confirm.cancel")}
+        </button>
+        <button type="submit" disabled={busy} class={buttonClass("danger")}>
+          {busy ? t("login.submitting") : t("account.delete.confirm")}
+        </button>
+      </div>
+    </form>
   );
 }
 

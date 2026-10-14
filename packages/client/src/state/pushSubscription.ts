@@ -116,6 +116,19 @@ export async function ensurePushSubscription(): Promise<boolean> {
  * out: the server forgets it, and the browser gives it up, so the next
  * account to sign in here starts with its own.
  */
+/**
+ * Unsubscribe this browser without telling the server, for when the account
+ * it was subscribed for is gone and took the server's row with it.
+ */
+export async function dropBrowserPushSubscription(): Promise<void> {
+  try {
+    const manager = await pushManager(false);
+    await (await manager?.getSubscription())?.unsubscribe();
+  } catch (err) {
+    console.warn("Removing the push subscription failed:", err);
+  }
+}
+
 export async function removePushSubscription(): Promise<void> {
   try {
     const manager = await pushManager(false);

@@ -1,6 +1,7 @@
 import {
   accountPrefsUpdateSchema,
   authLocaleSchema,
+  authMeDeleteSchema,
   authMeUpdateSchema,
   loginSchema,
   passwordChangeSchema,
@@ -36,6 +37,17 @@ export const AUTH_OPERATIONS: Operation[] = [
     limits: [],
     body: authMeUpdateSchema,
     responses: ok("AuthMeResponse"),
+  },
+  {
+    method: "delete",
+    path: "/api/auth/me",
+    tag: "Auth",
+    summary:
+      "Delete the signed-in user's account and everything it holds, with the password",
+    auth: "session",
+    limits: ["sign-in"],
+    body: authMeDeleteSchema,
+    responses: noContent,
   },
   {
     method: "get",

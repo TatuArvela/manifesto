@@ -841,6 +841,7 @@ export const en = {
   "audit.action.auth.signed_in": "Signed in",
   "audit.action.auth.sign_in_failed": "Sign-in failed",
   "audit.action.auth.signed_out": "Signed out",
+  "audit.action.auth.account_deleted": "Deleted their account",
   "audit.action.auth.password_changed": "Password changed",
   "audit.action.auth.password_reset_requested": "Password reset link sent",
   "audit.action.auth.password_reset": "Password reset by link",
@@ -1178,6 +1179,17 @@ export const en = {
   "account.email.taken": "Another account already uses that address",
   "account.email.managed": "Your sign-in provider manages this address.",
   "account.email.failed": "Could not save the address. Please try again.",
+  "account.delete.title": "Delete account",
+  "account.delete.hint":
+    "Deletes your account and every note it owns, for everyone they are shared with. Export your notes first if you want to keep them.",
+  "account.delete.start": "Delete account…",
+  "account.delete.warning":
+    "This cannot be undone. Your notes, their history and images, your shares, tokens and webhooks are deleted, and you are signed out everywhere. Notes others shared with you stay theirs.",
+  "account.delete.confirm": "Delete my account",
+  "account.delete.done": "Your account has been deleted.",
+  "account.delete.lastAdmin":
+    "You are the only admin. Make someone else an admin first.",
+  "account.delete.failed": "Could not delete the account. Please try again.",
 
   // Login screen
   "login.tabSignIn": "Sign in",

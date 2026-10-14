@@ -487,6 +487,40 @@ export async function updateEmail(
   }
 }
 
+export type DeleteAccountResult =
+  | "ok"
+  | "last-admin"
+  | "failed"
+  | ConfirmationRefusal;
+
+/**
+ * Ask the server to delete the signed-in account. Only the request: what the
+ * device does after it is `deleteOwnAccount` (`signOut.ts`).
+ */
+export async function requestAccountDeletion(
+  password: string,
+): Promise<DeleteAccountResult> {
+  const token = authToken.value;
+  if (SERVER_URL === null || !token) return "failed";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/auth/me`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(password ? { password } : {}),
+    });
+    if (res.status === 401) clearAuthLocal();
+    if (res.status === 409) return "last-admin";
+    const refusal = await confirmationRefusal(res);
+    if (refusal) return refusal;
+    return res.ok ? "ok" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
 /** Drop local auth state without contacting the server (used on 401). */
 export function clearAuthLocal(): void {
   authToken.value = null;
