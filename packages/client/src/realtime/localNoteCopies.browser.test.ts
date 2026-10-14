@@ -90,4 +90,11 @@ describe("deleteReadableNoteCopies", () => {
     expect(await existing(mine)).toEqual([sealed]);
     indexedDB.deleteDatabase(sealed);
   });
+
+  it("looks no further once a listing has found them all", async () => {
+    // The test above listed every copy; no code makes a readable one since.
+    const listing = vi.spyOn(indexedDB, "databases");
+    await deleteReadableNoteCopies([id("later")]);
+    expect(listing).not.toHaveBeenCalled();
+  });
 });

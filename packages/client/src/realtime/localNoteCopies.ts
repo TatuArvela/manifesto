@@ -33,6 +33,14 @@ export async function deleteLocalNoteCopies(
 }
 
 /**
+ * Readable copies are made by no code any more, so once a listing has found
+ * them all there are none left to look for, and a note opened later costs no
+ * second pass. Without a listing, each note is deleted once by its id.
+ */
+let readableCopiesGone = false;
+const readableCopiesDeleted = new Set<string>();
+
+/**
  * Delete every copy from before the shared document was sealed, which holds
  * a note's text readable and is of no use to anything now. `noteIds` as
  * above. Never rejects.
@@ -40,28 +48,38 @@ export async function deleteLocalNoteCopies(
 export async function deleteReadableNoteCopies(
   noteIds: readonly string[],
 ): Promise<void> {
-  if (typeof indexedDB === "undefined") return;
-  await deleteCopies([READABLE_COPY_PREFIX], noteIds);
+  if (typeof indexedDB === "undefined" || readableCopiesGone) return;
+  const ids = noteIds.filter((id) => !readableCopiesDeleted.has(id));
+  if (ids.length === 0) return;
+  for (const id of ids) readableCopiesDeleted.add(id);
+  if (await deleteCopies([READABLE_COPY_PREFIX], ids)) {
+    readableCopiesGone = true;
+  }
 }
 
+/** Whether the browser listed its databases, so every copy was found. */
 async function deleteCopies(
   prefixes: readonly string[],
   noteIds: readonly string[],
-): Promise<void> {
+): Promise<boolean> {
   const names = new Set(
     prefixes.flatMap((prefix) => noteIds.map((id) => `${prefix}${id}`)),
   );
+  let listed = false;
   try {
-    for (const db of (await indexedDB.databases?.()) ?? []) {
+    const databases = await indexedDB.databases?.();
+    for (const db of databases ?? []) {
       const name = db.name;
       if (name !== undefined && prefixes.some((p) => name.startsWith(p))) {
         names.add(name);
       }
     }
+    listed = databases !== undefined;
   } catch {
     // Listing is refused in some private modes; the ids still apply.
   }
   await Promise.all([...names].map(deleteDatabase));
+  return listed;
 }
 
 function deleteDatabase(name: string): Promise<void> {
