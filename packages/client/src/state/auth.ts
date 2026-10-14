@@ -129,10 +129,14 @@ effect(() => {
   if (typeof localStorage === "undefined") return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    if (token && user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
+    try {
+      if (token && user) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // Storage refused: signed in for this tab, until it closes.
     }
   }, 50);
 });
