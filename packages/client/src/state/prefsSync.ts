@@ -6,7 +6,7 @@ import type {
 import { effect, untracked } from "@preact/signals";
 import { apiFetch } from "../storage/apiRequest.js";
 import { storageConnection } from "../storage/index.js";
-import { sealer } from "../storage/sealing.js";
+import { type NoteSealing, sealer } from "../storage/sealing.js";
 import {
   ACCOUNT_PREF_KEYS,
   accountPrefsSnapshot,
@@ -57,15 +57,22 @@ function schedulePush() {
   pushTimer = setTimeout(() => void push(), PUSH_DELAY_MS);
 }
 
+/**
+ * Whether `sealing` is still the account's: a lock, an unlock or another
+ * account signing in while something was being sealed or opened makes what
+ * it was doing another session's business.
+ */
+const stillCurrent = (sealing: NoteSealing) => sealer.peek() === sealing;
+
 async function push(): Promise<void> {
   const sealing = sealer.peek();
   if (!ready || dirty.size === 0 || !sealing) return;
   const snapshot = accountPrefsSnapshot();
   const patch: AccountPrefs = {};
   for (const key of dirty) patch[key] = snapshot[key];
-  const res = await apiFetch("PATCH", "/auth/me/prefs", {
-    prefs: await sealing.sealPrefs(patch),
-  });
+  const prefs = await sealing.sealPrefs(patch);
+  if (!stillCurrent(sealing)) return;
+  const res = await apiFetch("PATCH", "/auth/me/prefs", { prefs });
   // Offline or refused: the keys stay dirty, for the next change or the
   // next time the socket reconnects.
   if (!res?.ok) return;
@@ -96,7 +103,7 @@ export async function refreshAccountPrefs(): Promise<void> {
   const sealing = sealer.peek();
   if (!sealing) return;
   const res = await apiFetch("GET", "/auth/me/prefs");
-  if (!res?.ok) return;
+  if (!res?.ok || !stillCurrent(sealing)) return;
   let sealed: SealedAccountPrefs;
   try {
     sealed = ((await res.json()) as SealedAccountPrefsResponse).prefs ?? {};
@@ -107,6 +114,7 @@ export async function refreshAccountPrefs(): Promise<void> {
   // A value that does not open reads as one the server lacks, and is sent
   // again from here.
   const prefs = await sealing.openPrefs(sealed);
+  if (!stillCurrent(sealing)) return;
   adopt(prefs);
   // The keys the server lacks: every one for an account with nothing stored,
   // or a preference newer than the client that last wrote.
@@ -125,7 +133,7 @@ export async function receiveAccountPrefs(
   const sealing = sealer.peek();
   if (!ready || !sealing) return;
   const prefs = await sealing.openPrefs(sealed);
-  if (ready) adopt(prefs);
+  if (ready && stillCurrent(sealing)) adopt(prefs);
 }
 
 /**
