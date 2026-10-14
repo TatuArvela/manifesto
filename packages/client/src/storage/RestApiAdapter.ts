@@ -538,8 +538,11 @@ export class RestApiAdapter implements StorageAdapter {
         // No answer to read: nothing was said to be taken.
       }
     };
+    /** Ids whose key this import made, rather than one the device held. */
+    const madeHere = new Set<string>();
     const add = async (id: string, payload: Plain) => {
       const { id: _id, createdAt, ...fields } = payload;
+      if (!sealing.holds(id)) madeHere.add(id);
       const item: SealedNoteImport = {
         ...(await sealing.sealOver(id, fields)),
         createdAt,
@@ -570,7 +573,9 @@ export class RestApiAdapter implements StorageAdapter {
     // device's making, since a sealed note cannot be given one by the server.
     const again = taken.splice(0);
     for (const id of again) {
-      sealing.forget(id);
+      // A key this import made for the id is no key of that note's; one the
+      // device held (a note shared with the account) still is.
+      if (madeHere.has(id)) sealing.forget(id);
       const payload = plain.get(id);
       if (payload) await add(ulid(), payload);
     }
