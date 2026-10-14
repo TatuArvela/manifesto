@@ -134,16 +134,23 @@ export async function allowClient(
   const refusal = res && (await confirmationRefusal(res));
   if (refusal) return { kind: "refused", refusal };
   if (!res?.ok) return { kind: "failed" };
-  const { redirectTo } = (await res.json()) as OAuthAuthorizeResponse;
-  if (!made) {
-    navigateTo(redirectTo);
-    return { kind: "ok" };
+  let target: string;
+  try {
+    const { redirectTo } = (await res.json()) as OAuthAuthorizeResponse;
+    if (made) {
+      // The server never had the code: it comes back without one, to an
+      // address it checked, and the code is added here.
+      const url = new URL(redirectTo);
+      url.searchParams.set("code", made.secret);
+      target = url.href;
+    } else {
+      target = redirectTo;
+    }
+  } catch (err) {
+    console.warn("The server's answer to letting an assistant in:", err);
+    return { kind: "failed" };
   }
-  // The server never had the code: it comes back without one, to an address
-  // it checked, and the code is added here.
-  const target = new URL(redirectTo);
-  target.searchParams.set("code", made.secret);
-  navigateTo(target.href);
+  navigateTo(target);
   return { kind: "ok" };
 }
 
