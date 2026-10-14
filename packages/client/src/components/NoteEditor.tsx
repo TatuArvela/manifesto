@@ -5,14 +5,12 @@ import type {
   NoteReminder,
 } from "@manifesto/shared";
 import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
-import { redoCommand, undoCommand } from "@milkdown/kit/plugin/history";
-import { redoDepth, undoDepth } from "@milkdown/kit/prose/history";
 import { TextSelection } from "@milkdown/kit/prose/state";
-import { callCommand } from "@milkdown/kit/utils";
 import { ArrowLeft, Pin, PinOff } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../colors.js";
+import { editorHistory } from "../extensions/editorHistory.js";
 import {
   docHasDatedItems,
   sortItemsByDateIn,
@@ -280,14 +278,27 @@ export function NoteEditor({
   // belongs to a document that is about to be replaced, so they stand down
   // there; the textarea's own undo (Cmd+Z) covers raw edits, toolbar ones
   // included.
+  // In collab that history is `yUndoPlugin`'s, not Milkdown's, so both go
+  // through `editorHistory`, which asks the state which one it has.
   const canUndo =
     editor && !rawMode
-      ? editor.action((ctx) => undoDepth(ctx.get(editorStateCtx)) > 0)
+      ? editor.action((ctx) => {
+          const state = ctx.get(editorStateCtx);
+          return editorHistory(state).undo(state);
+        })
       : false;
   const canRedo =
     editor && !rawMode
-      ? editor.action((ctx) => redoDepth(ctx.get(editorStateCtx)) > 0)
+      ? editor.action((ctx) => {
+          const state = ctx.get(editorStateCtx);
+          return editorHistory(state).redo(state);
+        })
       : false;
+  const runHistory = (which: "undo" | "redo") =>
+    editor?.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      editorHistory(view.state)[which](view.state, view.dispatch);
+    });
   const hasCheckedItems = rawTextarea
     ? textHasCheckedItems(rawTextarea.value)
     : editor
@@ -541,8 +552,8 @@ export function NoteEditor({
         menuItems={menuItems?.({ checkedItems, datedItems }) ?? []}
         canUndo={canUndo}
         canRedo={canRedo}
-        onUndo={() => editor?.action(callCommand(undoCommand.key))}
-        onRedo={() => editor?.action(callCommand(redoCommand.key))}
+        onUndo={() => runHistory("undo")}
+        onRedo={() => runHistory("redo")}
         onDelete={onDelete}
         deleteLabel={deleteLabel}
         onDone={onDone}
