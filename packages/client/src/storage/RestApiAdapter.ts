@@ -146,10 +146,12 @@ export class RestApiAdapter implements StorageAdapter {
       if (!res.ok) await this.fail(res, failure);
       const data = (await res.json()) as NotesResponse<SealedNote>;
       notes.push(...(await sealing.openAll(data.notes)));
-      cursor = data.nextCursor ?? null;
-      // A page that came back empty cannot be followed by a useful one, and a
-      // server that kept handing back the same cursor would spin here.
+      // A page that came back empty cannot be followed by a useful one.
       if (data.notes.length === 0) break;
+      const next = data.nextCursor ?? null;
+      // A server that kept handing back the same cursor would spin here.
+      if (next !== null && next === cursor) throw new Error(failure);
+      cursor = next;
     } while (cursor !== null);
     return notes;
   }
