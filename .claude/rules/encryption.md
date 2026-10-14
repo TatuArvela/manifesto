@@ -189,10 +189,12 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   `waitingForKey`, as the owner or as any other holder. What it has tried is named with the key
   the note was last moved to (`Sealer.replaced`), so a second replacement supplies everyone again,
   and a `supplyKey` that `failed` (a request that did not get through, as opposed to `unable`) is
-  forgotten and tried when the connection is back. `wrapKeyFor` tells the two apart by what the
-  lookups kept: `publicKeysOf` and `rememberedBy` both forget a request that failed, so a new
-  request on the way to a key needs the same, or its failure reads as `unable` and is never
-  retried.
+  forgotten and tried when the connection is back. `wrapKeyFor` tells the two apart: `lookUpKeys`
+  answers `none` or `failed` for an account's public keys, and `rememberedBy` forgets a request
+  that failed, so what it still holds says which it was. A new request on the way to a key needs
+  the same, or its failure reads as `unable` and is never retried. Only keys found are kept, and
+  only for the `Sealer` that asked: an account with none yet is asked again, since it may set
+  them up at any moment, and another account unlocked in the tab starts with nothing.
 - Any note the server answers with outside the adapter (the share routes) is opened with
   `sealer.peek()?.open(...)` before `receiveNote`.
 - **Whose key it is.** Nothing wraps to, or checks a signature against, a key straight from
