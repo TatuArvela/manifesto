@@ -657,7 +657,12 @@ export class Sealer {
           ...fields,
           ...(rewrapped.length > 0 && { links: rewrapped }),
         },
-        commit: () => this.hold(id, { key, wrapped, previous: previousKeys }),
+        // Under its new key the note is not due one, which the next read
+        // would only say again.
+        commit: () => {
+          this.hold(id, { key, wrapped, previous: previousKeys });
+          toggleIn(this.due, id, false);
+        },
       };
     } finally {
       wipe(raw);
