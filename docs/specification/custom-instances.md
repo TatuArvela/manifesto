@@ -161,6 +161,7 @@ already saved in a browser.
 | The window title as the instance's name alone, without " · Manifesto" | `VITE_TITLE_APP_NAME=off` |
 | Any logo's dark-theme version | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` |
 | The owning organisation's name and logo, on the login screen and in About | `VITE_ORG_NAME`, `VITE_ORG_LOGO` |
+| A link to the deployment's privacy notice, on the login screen and in About | `VITE_PRIVACY_URL` |
 | Export and crash-backup filenames | derived from `VITE_APP_NAME` |
 | PWA manifest description, HTML meta description | `VITE_APP_DESCRIPTION` |
 | Header mark, favicon, PWA icon | `VITE_APP_ICONS_DIR` |

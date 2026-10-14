@@ -7,6 +7,7 @@ import {
   INSTANCE_NAME,
   ORG_LOGO,
   ORG_NAME,
+  PRIVACY_URL,
   WELCOME_ENABLED,
 } from "../../config.js";
 import { t } from "../../i18n/index.js";
@@ -111,6 +112,16 @@ export function AboutSettings({ onClose }: { onClose: () => void }) {
           >
             {t("settings.about.repo")}
           </a>
+          {PRIVACY_URL !== null && (
+            <a
+              class={linkRowClass}
+              href={PRIVACY_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {t("privacy.notice")}
+            </a>
+          )}
           {WELCOME_ENABLED && (
             <button
               type="button"

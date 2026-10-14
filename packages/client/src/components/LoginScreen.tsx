@@ -1,6 +1,6 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
-import { APP_LOGO, APP_NAME, INSTANCE_NAME } from "../config.js";
+import { APP_LOGO, APP_NAME, INSTANCE_NAME, PRIVACY_URL } from "../config.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import {
   beginOidcSignIn,
@@ -86,6 +86,21 @@ export function LoginScreen() {
         {discovery.kind === "ready" && <SignInOptions auth={discovery.auth} />}
 
         <OrgCredit class="mt-6" />
+
+        {/* Where an account is made, so the notice is there before anything
+            is handed over. */}
+        {PRIVACY_URL !== null && (
+          <p class="mt-4 text-xs text-center">
+            <a
+              href={PRIVACY_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              class="text-blue-700 dark:text-blue-300 hover:underline"
+            >
+              {t("privacy.notice")}
+            </a>
+          </p>
+        )}
 
         {SERVER_ORIGIN !== null && (
           <p class="mt-6 text-xs text-center text-neutral-500 dark:text-neutral-500 break-all">

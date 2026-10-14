@@ -1179,6 +1179,7 @@ export const en = {
   "account.email.taken": "Another account already uses that address",
   "account.email.managed": "Your sign-in provider manages this address.",
   "account.email.failed": "Could not save the address. Please try again.",
+  "privacy.notice": "Privacy notice",
   "account.delete.title": "Delete account",
   "account.delete.hint":
     "Deletes your account and every note it owns, for everyone they are shared with. Export your notes first if you want to keep them.",

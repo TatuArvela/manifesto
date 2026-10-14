@@ -1202,6 +1202,7 @@ export const fi: Messages = {
   "account.email.managed": "Osoitetta hallitaan kirjautumispalvelussasi.",
   "account.email.failed":
     "Osoitteen tallentaminen epäonnistui. Yritä uudelleen.",
+  "privacy.notice": "Tietosuojaseloste",
   "account.delete.title": "Poista tili",
   "account.delete.hint":
     "Poistaa tilisi ja kaikki sen omistamat muistiinpanot myös niiltä, joiden kanssa ne on jaettu. Vie muistiinpanosi ensin, jos haluat säilyttää ne.",

@@ -1,3 +1,5 @@
+import { resolvePrivacyUrl } from "./utils/privacyUrl.js";
+
 /**
  * Branding: the product name shown to users.
  *
@@ -255,6 +257,15 @@ export const INSTANCE_LOGO: Logo | null = resolveLogo(
 export const ORG_NAME: string | null = resolveBrandText(
   "org-name",
   __BRANDING__.orgName,
+);
+
+/**
+ * Where the operator's privacy notice is: who holds what, for how long, and
+ * how to ask for it. Linked from the sign-in screen, where an account is
+ * made, and from About. Null when the deployment did not set one.
+ */
+export const PRIVACY_URL: string | null = resolvePrivacyUrl(
+  resolveBrandText("privacy-url", __BRANDING__.privacyUrl),
 );
 
 /** The organisation's logo, beside its name. */

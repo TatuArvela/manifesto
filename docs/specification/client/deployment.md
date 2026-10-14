@@ -68,6 +68,20 @@ a release bundle set the meta tag in `index.html` (and `404.html`):
 <meta name="welcome-dialog" content="off" />
 ```
 
+## Privacy notice
+
+A deployment that serves other people links its privacy notice from the sign-in screen, where an
+account is made, and from About in Settings. Build with `VITE_PRIVACY_URL`, or in a release bundle set
+the meta tag in `index.html` (and `404.html`):
+
+```html
+<meta name="privacy-url" content="https://example.com/privacy" />
+```
+
+It takes an `https://` (or `http://`) address, or a path on the same site such as `/privacy.html`;
+anything else shows no link. Unset, there is none.
+[Privacy](../features/privacy.md#the-operators-privacy-notice) is a starting point for what it says.
+
 ## Rebranding
 
 For a complete branded deployment end to end, see
@@ -98,6 +112,7 @@ the same as providing a service.
 | Dark-theme variant of any of the three logos | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` | `app-logo-dark`, `instance-logo-dark`, `org-logo-dark` | none |
 | Organisation name | `VITE_ORG_NAME` | `org-name` | none |
 | Organisation logo | `VITE_ORG_LOGO` | `org-logo` | none |
+| Privacy notice address | `VITE_PRIVACY_URL` | `privacy-url` | none |
 | One-line description (PWA manifest + HTML `<meta name="description">`) | `VITE_APP_DESCRIPTION` | `description` | `Sticky-note style note-taking app.` |
 | Favicon, PWA icon, and the stock logo file | `VITE_APP_ICONS_DIR` | | the stock `public/` icons |
 
@@ -185,7 +200,7 @@ below, which is two edits rather than one.
 
 | File | What to change |
 |---|---|
-| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `title-app-name`, `org-name` and `org-logo` meta tags (and each logo's `-dark` tag), and `<meta name="welcome-dialog">` to switch the welcome off |
+| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `title-app-name`, `org-name` and `org-logo` meta tags (and each logo's `-dark` tag), `<meta name="welcome-dialog">` to switch the welcome off, and `<meta name="privacy-url">` for the privacy notice |
 | `404.html` | the same tags (it is a copy of `index.html` for SPA fallback) |
 | `manifest.webmanifest` | `name`, `short_name`, `description` |
 | `logo.svg`, `favicon.svg`, `icon-1024.png` | overwrite with your own |

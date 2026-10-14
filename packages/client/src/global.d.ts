@@ -13,4 +13,5 @@ declare const __BRANDING__: {
   appLogoDark: string;
   instanceLogoDark: string;
   orgLogoDark: string;
+  privacyUrl: string;
 };
