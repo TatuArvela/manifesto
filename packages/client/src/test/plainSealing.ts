@@ -34,8 +34,11 @@ export const plainSealing: NoteSealing = {
     key: "",
     keyVersion: offered.keyVersion,
   }),
-  openPreview: async (_noteId, _keyVersion, sealed) =>
-    sealed as unknown as Pick<Note, "title" | "content" | "font">,
+  openPreview: async (_noteId, _keyVersion, { title, content, font }) => ({
+    title,
+    content,
+    font: font as Note["font"],
+  }),
   sealUpload: async (image) => ({
     body: image,
     headers: { "Content-Type": image.type },

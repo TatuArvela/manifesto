@@ -232,7 +232,8 @@ describe("NoteComments", () => {
     expect(requests.at(-1)).toEqual({
       method: "POST",
       path: "/notes/n1/comments",
-      body: { body: "Yes please" },
+      // The writer chooses the id, since the sealed text is bound to it.
+      body: { id: expect.any(String), body: "Yes please", keyVersion: 1 },
     });
     expect(field.value).toBe("");
     expect(toggle()?.textContent).toBe(plural("comments.count", 1));
