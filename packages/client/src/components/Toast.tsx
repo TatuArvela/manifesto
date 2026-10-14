@@ -1,12 +1,13 @@
 import { X } from "lucide-preact";
 import { t } from "../i18n/index.js";
-import { dismissToast, toasts } from "../state/ui.js";
+import { dismissToast, holdToasts, toasts } from "../state/ui.js";
 
 /**
  * The toast stack. The region is on the page even while empty, since a
  * screen reader announces only what arrives in a live region that already
  * exists. On a phone it spans the width and sits above the new-note button
- * (`NoteInput`), which it would otherwise cover.
+ * (`NoteInput`), which it would otherwise cover. Pointing at it or focusing
+ * it holds the successes that would otherwise leave on their own.
  */
 export function Toasts() {
   return (
@@ -14,6 +15,15 @@ export function Toasts() {
       class="fixed layer-toast flex flex-col gap-2 pointer-events-none right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] max-md:left-4 max-md:bottom-[calc(6rem+env(safe-area-inset-bottom))] md:max-w-sm"
       role="status"
       aria-live="polite"
+      onPointerEnter={() => holdToasts(true)}
+      onPointerLeave={() => holdToasts(false)}
+      onFocusIn={() => holdToasts(true)}
+      onFocusOut={(e) => {
+        const to = e.relatedTarget;
+        if (!(to instanceof Node && e.currentTarget.contains(to))) {
+          holdToasts(false);
+        }
+      }}
     >
       {toasts.value.map((toast) => (
         <div

@@ -157,12 +157,47 @@ export function showSuccess(message: string) {
   showToast("success", message);
 }
 
+/** How long a success stays up, counted while the stack is not held. */
+export const SUCCESS_TOAST_MS = 5000;
+/** The most toasts on screen at once; the oldest goes when another comes. */
+export const MAX_TOASTS = 5;
+
+/** Successes whose time ran out while the stack was held. */
+const expired = new Set<number>();
+let held = false;
+
+function expireLater(id: number) {
+  setTimeout(() => {
+    if (held) expired.add(id);
+    else dismissToast(id);
+  }, SUCCESS_TOAST_MS);
+}
+
+/**
+ * An error stays until it is dismissed: it is what someone has to act on,
+ * and one that left after five seconds was gone before a slow reader, or a
+ * screen reader still speaking, had finished with it. A success leaves by
+ * itself, but not while the stack is held (`holdToasts`).
+ */
 function showToast(type: ToastType, message: string) {
   const id = nextToastId++;
-  toasts.value = [...toasts.value, { id, type, message }];
-  setTimeout(() => dismissToast(id), 5000);
+  toasts.value = [...toasts.value, { id, type, message }].slice(-MAX_TOASTS);
+  if (type === "success") expireLater(id);
+}
+
+/**
+ * Held while the pointer or keyboard focus is on the stack, so a toast does
+ * not leave from under the person reading or dismissing it. Those whose time
+ * ran out meanwhile get a fresh one on release.
+ */
+export function holdToasts(hold: boolean) {
+  held = hold;
+  if (hold) return;
+  for (const id of expired) expireLater(id);
+  expired.clear();
 }
 
 export function dismissToast(id: number) {
+  expired.delete(id);
   toasts.value = toasts.value.filter((t) => t.id !== id);
 }

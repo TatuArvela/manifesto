@@ -4,13 +4,17 @@ import {
   activeView,
   dismissToast,
   exitSearch,
+  holdToasts,
+  MAX_TOASTS,
   previousView,
   SEARCH_DEBOUNCE_MS,
+  SUCCESS_TOAST_MS,
   searchColors,
   searchInput,
   searchQuery,
   searchTypes,
   showError,
+  showSuccess,
   toasts,
   typeSearch,
 } from "./ui.js";
@@ -22,6 +26,7 @@ describe("error notifications", () => {
   });
 
   afterEach(() => {
+    holdToasts(false);
     vi.useRealTimers();
   });
 
@@ -46,23 +51,36 @@ describe("error notifications", () => {
     expect(toasts.value[0]?.message).toBe("Error 2");
   });
 
-  it("errors auto-dismiss after 5 seconds", () => {
-    showError("Temporary error");
+  it("keeps an error until it is dismissed", () => {
+    showError("Still here");
+    vi.advanceTimersByTime(60_000);
     expect(toasts.value).toHaveLength(1);
-    vi.advanceTimersByTime(5000);
+  });
+
+  it("lets a success go after 5 seconds", () => {
+    showSuccess("Saved");
+    vi.advanceTimersByTime(SUCCESS_TOAST_MS - 1);
+    expect(toasts.value).toHaveLength(1);
+    vi.advanceTimersByTime(1);
     expect(toasts.value).toHaveLength(0);
   });
 
-  it("multiple errors stack and auto-dismiss independently", () => {
-    showError("Error 1");
-    vi.advanceTimersByTime(2000);
-    showError("Error 2");
-    expect(toasts.value).toHaveLength(2);
-    vi.advanceTimersByTime(3000); // 5s after Error 1
+  it("keeps a success while the stack is held, and for its time after", () => {
+    showSuccess("Saved");
+    holdToasts(true);
+    vi.advanceTimersByTime(SUCCESS_TOAST_MS * 3);
     expect(toasts.value).toHaveLength(1);
-    expect(toasts.value[0]?.message).toBe("Error 2");
-    vi.advanceTimersByTime(2000); // 5s after Error 2
+    holdToasts(false);
+    vi.advanceTimersByTime(SUCCESS_TOAST_MS - 1);
+    expect(toasts.value).toHaveLength(1);
+    vi.advanceTimersByTime(1);
     expect(toasts.value).toHaveLength(0);
+  });
+
+  it("shows at most a few, dropping the oldest", () => {
+    for (let i = 0; i < MAX_TOASTS + 2; i++) showError(`Error ${i}`);
+    expect(toasts.value).toHaveLength(MAX_TOASTS);
+    expect(toasts.value[0]?.message).toBe("Error 2");
   });
 });
 
