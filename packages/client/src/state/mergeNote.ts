@@ -1,4 +1,9 @@
-import type { LinkPreview, Note, NoteUpdate } from "@manifesto/shared";
+import {
+  imageAltsOf,
+  type LinkPreview,
+  type Note,
+  type NoteUpdate,
+} from "@manifesto/shared";
 import { sameValue } from "./incomingNote.js";
 
 function mergeStringArray(
@@ -45,6 +50,36 @@ function mergeLinkPreviews(
 }
 
 /**
+ * Each image's description after a merge: the one this writer gave it where
+ * they changed it, the server's otherwise. Keyed by image, so it follows the
+ * merged list whatever either writer added, removed or moved.
+ */
+function mergeImageAlts(
+  base: Note,
+  desired: NoteUpdate,
+  current: Note,
+  images: string[],
+): string[] {
+  const altsBy = (note: Pick<Note, "images" | "imageAlts">) => {
+    const alts = imageAltsOf(note);
+    return new Map(note.images.map((image, i) => [image, alts[i] ?? ""]));
+  };
+  const before = altsBy(base);
+  const mine = altsBy({
+    images: desired.images ?? base.images,
+    imageAlts: desired.imageAlts ?? base.imageAlts ?? [],
+  });
+  const theirs = altsBy(current);
+  const alts = images.map((image) => {
+    const own = mine.get(image);
+    return own !== undefined && own !== (before.get(image) ?? "")
+      ? own
+      : (theirs.get(image) ?? own ?? "");
+  });
+  return alts.some((alt) => alt !== "") ? alts : [];
+}
+
+/**
  * 3-way merge for a NoteUpdate that lost the optimistic-concurrency race.
  *
  * - `base`: the snapshot the user was looking at when they triggered the
@@ -56,7 +91,7 @@ function mergeLinkPreviews(
  * fields (`tags`, `images`, `linkPreviews`) are merged 3-way: items
  * the user added survive concurrent additions; items the user removed
  * are removed from the current state; items added by the other writer
- * are preserved.
+ * are preserved. `imageAlts` is merged by image, beside the merged list.
  */
 export function mergeNoteUpdate(
   base: Note,
@@ -73,6 +108,20 @@ export function mergeNoteUpdate(
       desired.images,
       current.images,
     );
+  }
+  // The descriptions are sealed inside the image list, so they go with it.
+  if (desired.images !== undefined || desired.imageAlts !== undefined) {
+    const images = merged.images ?? current.images;
+    merged.images = images;
+    const alts = mergeImageAlts(base, desired, current, images);
+    // Left out when there is nothing to keep and nothing to clear.
+    if (
+      alts.length > 0 ||
+      desired.imageAlts !== undefined ||
+      current.imageAlts !== undefined
+    ) {
+      merged.imageAlts = alts;
+    }
   }
   if (desired.linkPreviews !== undefined) {
     merged.linkPreviews = mergeLinkPreviews(

@@ -23,6 +23,7 @@ import {
   togglePin,
 } from "../state/index.js";
 import { iconBtnClass } from "./editorButtons.js";
+import type { CardPopoverKind } from "./NoteCardPopovers.js";
 import { PresenceAvatars } from "./PresenceAvatars.js";
 import { Tooltip } from "./Tooltip.js";
 
@@ -160,6 +161,7 @@ export function CardActions({
   colorBtnRef,
   tagsBtnRef,
   menuBtnRef,
+  openPopover,
   onToggleColorPicker,
   onToggleTags,
   onToggleMenu,
@@ -171,6 +173,8 @@ export function CardActions({
   colorBtnRef: preact.Ref<HTMLButtonElement>;
   tagsBtnRef: preact.Ref<HTMLButtonElement>;
   menuBtnRef: preact.Ref<HTMLButtonElement>;
+  /** Which of the card's panels is open, for its button's `aria-expanded`. */
+  openPopover: CardPopoverKind | null;
   onToggleColorPicker: () => void;
   onToggleTags: () => void;
   onToggleMenu: () => void;
@@ -262,6 +266,7 @@ export function CardActions({
               class={iconBtnClass}
               onClick={onToggleColorPicker}
               aria-label={t("noteCard.changeColor")}
+              aria-expanded={openPopover === "color"}
             >
               <Palette class="w-4 h-4" />
             </button>
@@ -273,6 +278,7 @@ export function CardActions({
               class={iconBtnClass}
               onClick={onToggleTags}
               aria-label={t("noteMenu.tags")}
+              aria-expanded={openPopover === "tags"}
             >
               <Tag class="w-4 h-4" />
             </button>
@@ -284,6 +290,7 @@ export function CardActions({
               class={iconBtnClass}
               onClick={onToggleMenu}
               aria-label={t("noteMenu.moreOptions")}
+              aria-expanded={openPopover === "menu"}
             >
               <EllipsisVertical class="w-4 h-4" />
             </button>

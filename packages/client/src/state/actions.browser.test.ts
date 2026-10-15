@@ -8,7 +8,10 @@ import { hasCheckedItems, hasChecklist } from "../utils/markdown.js";
 import {
   archiveNote,
   deleteCheckedItems,
+  describeImage,
   leavingNotes,
+  moveNoteBy,
+  noteMoveTarget,
   permanentlyDeleteNote,
   restoreNote,
   sortItemsByDate,
@@ -633,5 +636,82 @@ describe("the storage quota message", () => {
 
     quotaRefusedAt.value = at + 60_001;
     expect(quotaToasts()).toHaveLength(2);
+  });
+});
+
+describe("moving a note one step", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+    activeView.value = "active";
+    searchQuery.value = "";
+    sortMode.value = "default";
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  const titles = () => sortedNotes.value.map((n) => n.title);
+
+  it("moves within the board's order and says where it landed", async () => {
+    await createNoteOrFail({ title: "A" });
+    await createNoteOrFail({ title: "B" });
+    await createNoteOrFail({ title: "C" });
+    const first = defined(sortedNotes.value[0]);
+    const order = titles();
+
+    expect(await moveNoteBy(first.id, 1)).toEqual({ position: 2, count: 3 });
+    expect(titles()).toEqual([order[1], order[0], order[2]]);
+  });
+
+  it("does not move past either end, or out of manual order", async () => {
+    await createNoteOrFail({ title: "A" });
+    await createNoteOrFail({ title: "B" });
+    const first = defined(sortedNotes.value[0]);
+    const last = defined(sortedNotes.value.at(-1));
+
+    expect(noteMoveTarget(first.id, -1)).toBe(null);
+    expect(noteMoveTarget(last.id, 1)).toBe(null);
+    expect(await moveNoteBy(first.id, -1)).toBe(null);
+
+    sortMode.value = "updated";
+    expect(noteMoveTarget(first.id, 1)).toBe(null);
+  });
+});
+
+describe("describing an image", () => {
+  const PNG =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  const GIF = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+  });
+
+  it("keeps each description with its image as the images change", async () => {
+    const created = await createNoteOrFail({ images: [PNG, GIF] });
+    const [first = "", second = ""] = created.images;
+    expect(await describeImage(created.id, second, "A grey square")).toBe(true);
+    const described = notes.value.find((n) => n.id === created.id);
+    expect(described?.imageAlts).toEqual(["", "A grey square"]);
+
+    // Removing the first image takes nothing of the second's description.
+    await updateNote(created.id, { images: [second] });
+    expect(notes.value.find((n) => n.id === created.id)?.imageAlts).toEqual([
+      "A grey square",
+    ]);
+    // And removing the described one leaves no description behind.
+    await updateNote(created.id, { images: [first] });
+    expect(notes.value.find((n) => n.id === created.id)?.imageAlts).toEqual([]);
+  });
+
+  it("leaves a note alone when the image has gone", async () => {
+    const created = await createNoteOrFail({ images: [PNG] });
+    expect(await describeImage(created.id, "local:gone", "x")).toBe(false);
+    expect(notes.value.find((n) => n.id === created.id)).not.toHaveProperty(
+      "imageAlts",
+    );
   });
 });

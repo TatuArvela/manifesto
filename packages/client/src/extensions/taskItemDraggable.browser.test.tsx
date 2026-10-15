@@ -2,6 +2,7 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cdp, page } from "vitest/browser";
 import { MilkdownEditor } from "../components/MilkdownEditor.js";
+import { t } from "../i18n/index.js";
 import { defined } from "../test/defined.js";
 import "../styles.css";
 
@@ -147,5 +148,25 @@ describe("a checklist row on a touch screen", () => {
 
     expect(document.querySelector(".task-item-drag-ghost")).toBeNull();
     expect(layer).not.toHaveBeenCalled();
+  });
+});
+
+describe("a checklist row for a screen reader", () => {
+  it("names the box by the item's text and the X in the reader's language", async () => {
+    await mount("- [ ] Milk");
+    const [row] = rows();
+    const box = row?.querySelector<HTMLInputElement>(":scope > label input");
+    const labelledBy = box?.getAttribute("aria-labelledby") ?? "";
+    expect(document.getElementById(labelledBy)?.textContent).toBe("Milk");
+    expect(
+      row
+        ?.querySelector(":scope > .task-item-delete")
+        ?.getAttribute("aria-label"),
+    ).toBe(t("editor.removeItem"));
+    expect(
+      row
+        ?.querySelector(":scope > .task-item-drag-handle")
+        ?.getAttribute("aria-hidden"),
+    ).toBe("true");
   });
 });

@@ -105,6 +105,7 @@ export const fi: Messages = {
   "noteCard.restoreNote": "Palauta muistiinpano",
   "noteCard.deletePermanently": "Poista pysyvästi",
   "noteCard.select": "Valitse",
+  "noteCard.untitled": "Nimetön muistiinpano",
   "noteCard.deselect": "Poista valinta",
   "noteCard.linkCopied": "Linkki kopioitu leikepöydälle",
   "noteCard.trashedAt": "Poistettu {date}",
@@ -131,7 +132,11 @@ export const fi: Messages = {
 
   // Note editor
   "editor.titlePlaceholder": "Otsikko",
+  "editor.contentLabel": "Muistiinpanon teksti",
+  "editor.calcResult":
+    "Tulos {result}. Sarkain tai Enter kirjoittaa sen, Esc hylkää sen.",
   "editor.removeTag": "Poista tunniste {tag}",
+  "editor.removeItem": "Poista kohta",
   "editor.color": "Väri",
   "editor.changeColor": "Vaihda väriä",
   "editor.font": "Fontti",
@@ -170,6 +175,8 @@ export const fi: Messages = {
   "noteMenu.exportMarkdown": "Lataa Markdownina",
   "noteMenu.exportJson": "Lataa JSON-tiedostona",
   "noteMenu.archive": "Arkistoi",
+  "noteMenu.moveEarlier": "Siirrä aiemmaksi",
+  "noteMenu.moveLater": "Siirrä myöhemmäksi",
   "noteMenu.unarchive": "Palauta arkistosta",
   "noteMenu.deleteChecked": "Poista valitut kohdat",
   "noteMenu.sortByDate": "Järjestä kohdat päivämäärän mukaan",
@@ -197,8 +204,12 @@ export const fi: Messages = {
   },
   "editor.metadata.created": "Luotu {date}",
   "editor.metadata.edited": "Muokattu {date}",
-  "editor.imageAlt": "Poista kuva",
+  "editor.deleteImage": "Poista kuva",
   "editor.openImage": "Avaa kuva",
+  "editor.openImageNamed": "Avaa kuva: {description}",
+  "editor.describeImage": "Kuvaile kuva",
+  "editor.imageDescription": "Kuvan kuvaus",
+  "editor.imageDescriptionHint": "Mitä kuvassa näkyy, sille joka ei näe sitä",
   "editor.openLink": "Avaa linkki",
   "editor.imageViewer": "Kuvakatselin",
   "editor.closeImage": "Sulje kuva",
@@ -242,6 +253,7 @@ export const fi: Messages = {
   },
   "noteGrid.pinned": "Kiinnitetyt",
   "noteGrid.others": "Muut",
+  "noteGrid.moved": "Siirretty kohtaan {position}/{count}",
 
   // Tags view
   "tags.all": "Kaikki",
@@ -903,6 +915,9 @@ export const fi: Messages = {
   "shortcuts.search": "Haku",
   "shortcuts.next": "Seuraava muistiinpano",
   "shortcuts.previous": "Edellinen muistiinpano",
+  "shortcuts.moveLater": "Siirrä muistiinpanoa myöhemmäksi",
+  "shortcuts.moveEarlier": "Siirrä muistiinpanoa aiemmaksi",
+  "shortcuts.shift": "Vaihto",
   "shortcuts.open": "Avaa valittu muistiinpano",
   "shortcuts.archive":
     "Arkistoi valittu muistiinpano tai palauta se arkistosta",

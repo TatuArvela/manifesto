@@ -2,6 +2,7 @@ import type { ComponentChildren } from "preact";
 import { createPortal } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
+import { tabbableIn } from "../hooks/useFocusTrap.js";
 import { computePanelPosition, type DropdownPlacement } from "./Dropdown.js";
 import { hideAllTooltips } from "./Tooltip.js";
 
@@ -77,6 +78,35 @@ export function CardPopover({
   // while it is open.
   useEscapeStack(!leaving, onClose);
 
+  // Focus goes in once the panel is placed (a hidden panel takes no focus),
+  // to the current choice where there is one marked, unless something in it
+  // has taken focus itself (the tag picker's field). The panel is portalled
+  // to the end of the page, so without this the keyboard never reached it:
+  // Tab from its trigger went on to the next card.
+  const placed = pos !== null;
+  useEffect(() => {
+    const panel = popoverRef.current;
+    if (!placed || !panel || panel.contains(document.activeElement)) return;
+    const current = panel.querySelector<HTMLElement>(
+      '[aria-pressed="true"], [aria-checked="true"]',
+    );
+    (current ?? tabbableIn(panel)[0])?.focus();
+  }, [placed]);
+
+  // And back to the trigger once it closes, if focus was in the panel and
+  // nothing else has taken it: a choice that opens a dialog keeps the
+  // dialog's focus, which its own trap has moved by the time this runs.
+  useEffect(() => {
+    const panel = popoverRef.current;
+    if (!leaving || !panel) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && !panel.contains(active)) return;
+    const anchor = anchorRef.current;
+    if (anchor?.isConnected && !anchor.closest('[data-leaving="true"]')) {
+      anchor.focus();
+    }
+  }, [leaving, anchorRef]);
+
   return createPortal(
     <>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
@@ -90,6 +120,12 @@ export function CardPopover({
         data-placed={pos ? "true" : undefined}
         data-leaving={leaving ? "true" : undefined}
         inert={leaving}
+        // Tabbing out of the panel closes it, as a menu does, rather than
+        // leaving it open over a page the keyboard has moved on through.
+        onFocusOut={(e) => {
+          const to = e.relatedTarget;
+          if (to instanceof Node && !e.currentTarget.contains(to)) onClose();
+        }}
         style={{
           top: `${pos?.top ?? 0}px`,
           left: `${pos?.left ?? 0}px`,

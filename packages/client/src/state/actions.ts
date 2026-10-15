@@ -1,9 +1,20 @@
-import { isTagWithin, type Note, type NoteColor } from "@manifesto/shared";
+import {
+  imageAltsOf,
+  isTagWithin,
+  type Note,
+  type NoteColor,
+} from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { sortChecklistByDate } from "../utils/itemDate.js";
 import { removeCheckedItems, toggleChecklistItem } from "../utils/markdown.js";
 import { asBatch, type Batch } from "./failures.js";
-import { allNotes, deleteNote, notes, updateNote } from "./notesStore.js";
+import {
+  allNotes,
+  deleteNote,
+  ensureImages,
+  notes,
+  updateNote,
+} from "./notesStore.js";
 import {
   byPosition,
   headPosition,
@@ -15,10 +26,13 @@ import { animations, hiddenTags, tagColors } from "./prefs.js";
 import { exitSelectMode } from "./selection.js";
 import { activeTag, selectedNotes } from "./ui.js";
 import {
+  canReorder,
   inViewLocation,
+  pinnedNotes,
   setTagColor,
   setTagHidden,
   sortedNotes,
+  unpinnedNotes,
 } from "./views.js";
 
 /**
@@ -431,7 +445,66 @@ export async function reorderNotes(
   await updateNote(movedId, { position: next });
 }
 
+/**
+ * Where a note could move one step to, earlier (`-1`) or later (`1`), within
+ * its section of the board (pinned or not): the keyboard's way of doing what
+ * a drag does. Null where it cannot: the board is not in manual order, or the
+ * note is already at that end.
+ */
+export function noteMoveTarget(
+  id: string,
+  delta: -1 | 1,
+): { ids: string[]; from: number; to: number } | null {
+  if (!canReorder.peek()) return null;
+  const note = allNotes.peek().find((n) => n.id === id);
+  if (!note) return null;
+  const ids = (note.pinned ? pinnedNotes : unpinnedNotes)
+    .peek()
+    .map((n) => n.id);
+  const from = ids.indexOf(id);
+  const to = from + delta;
+  if (from === -1 || to < 0 || to >= ids.length) return null;
+  return { ids, from, to };
+}
+
+/**
+ * Moves a note one step, as `noteMoveTarget` finds it. Says where it landed,
+ * one-based, for the caller to announce, or null if it did not move.
+ */
+export async function moveNoteBy(
+  id: string,
+  delta: -1 | 1,
+): Promise<{ position: number; count: number } | null> {
+  const target = noteMoveTarget(id, delta);
+  if (!target) return null;
+  await reorderNotes(target.ids, target.from, target.to);
+  return { position: target.to + 1, count: target.ids.length };
+}
+
 // --- Checklists ---
+
+/**
+ * Gives one of a note's images its description, or takes it away with "".
+ * The image is found by its reference, since another writer may have moved
+ * it; one that has meanwhile been removed is left alone.
+ */
+export async function describeImage(
+  id: string,
+  image: string,
+  alt: string,
+): Promise<boolean> {
+  // The descriptions are written with the list, so the list has to be whole.
+  const images = await ensureImages(id);
+  const note = notes.value.find((n) => n.id === id);
+  const index = images?.indexOf(image) ?? -1;
+  if (!images || !note || index === -1) return false;
+  const alts = imageAltsOf({ images, imageAlts: note.imageAlts ?? [] });
+  alts[index] = alt;
+  return updateNote(id, {
+    images,
+    imageAlts: alts.some((a) => a !== "") ? alts : [],
+  });
+}
 
 export async function deleteCheckedItems(id: string) {
   const note = notes.value.find((n) => n.id === id);

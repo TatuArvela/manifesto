@@ -107,7 +107,7 @@ State lives in `packages/client/src/state/` and is reactive via `@preact/signals
 - **`actions.ts`**: the user-level actions built on the store: trash, archive, restore and pin with their exit animations, tags, bulk operations on the selection, `reorderNotes`, checklist toggling.
 - **`views.ts`**: what the current view shows: `filteredNotes`, `sortedNotes`, `pinnedNotes` / `unpinnedNotes`, `allTags`, `tagCounts`, `canReorder`.
 - **`selection.ts`**, **`ordering.ts`** (pure position arithmetic), **`exportNotes.ts`**, and **`failures.ts`** (`reportFailure` and `asBatch`, how actions report without rejecting).
-- **`ui.ts`**: transient UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`, `selectMode`, `selectedNotes`, `showSettings`, plus the toast queue (`toasts`, `showError`, `showSuccess`, `dismissToast`).
+- **`ui.ts`**: transient UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`, `selectMode`, `selectedNotes`, `showSettings`, plus the toast queue (`toasts`, `showError`, `showSuccess`, `dismissToast`, `holdToasts`): an error stays until dismissed, a success leaves after five seconds unless the stack is pointed at or focused.
 - **`prefs.ts`**: user preferences persisted to `localStorage` under `manifesto:prefs` via a debounced `effect()`. Covers `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`, `defaultEditMode`, `noteCorners`, `animations`, `boardColor`, `boardCustomColor`, `boardTexture`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`, `decimalSeparator`, and `locale`. The ones not in `DEVICE_PREFS` follow the account in connected mode through
   `prefsSync.ts`, which reads the server's copy at sign-in and on reconnect, sends each change here as a
   patch, and adopts `prefs:updated` from the app socket ([Preferences](../features/preferences.md)).
@@ -221,12 +221,22 @@ Three-way preference (`system`, `light`, or `dark`) stored in `prefs.ts`. A sign
 ## Responsive Design
 
 - **Desktop / tablet** (≥ 768 px): Collapsed icon-only sidebar rail on the left, centered search bar in the header, multi-column grid.
-- **Mobile** (< 768 px): Sidebar is replaced by a horizontal nav bar under the header. The header shows a search icon button (opens the search view with an inline input) and the view/sort/settings controls. A floating `+` button at the bottom-right opens the new-note modal. Touch targets are sized for thumbs; pinch-zoom is disabled via the viewport meta.
+- **Mobile** (< 768 px): Sidebar is replaced by a horizontal nav bar under the header. The header shows a search icon button (opens the search view with an inline input) and the view/sort/settings controls. A floating `+` button at the bottom-right opens the new-note modal. Touch targets are sized for thumbs. The page can be pinch-zoomed: the viewport meta sets no maximum scale, and focusing a field does not zoom because text fields are 16 px on a phone and `touch-action: manipulation` turns off double-tap zoom.
 
 ## Accessibility
 
-- Semantic HTML (`<main>`, `<nav>`, `<article>` for notes)
-- Keyboard navigation (Tab through notes, Enter to open, Escape to close editor)
-- ARIA labels on icon-only buttons
-- Focus management when opening/closing modals
-- Sufficient color contrast in all themes
+The target is WCAG 2.1 AA; what that covers, what is still open, and what a deployment may need to publish
+are in [Accessibility](../accessibility.md). In the client that comes down to:
+
+- Semantic HTML: `<main>`, `<nav>`, headings for the board's sections, and an `<article>` for each note,
+  opened through a visually hidden button (`[data-card-open]`) rather than by making the card a button,
+  which would hide the controls inside it.
+- Keyboard: Tab or `j` / `k` through cards, Enter to open, `Shift j` / `Shift k` to reorder, Escape to
+  close the newest layer (`useEscapeStack`). Modals trap Tab (`useFocusTrap`); dropdowns and card
+  popovers move focus in on opening and back to their trigger on closing.
+- Names and states: every icon-only button has an `aria-label` from the catalogue; buttons that open a
+  panel carry `aria-expanded`, and the current option in a picker `aria-pressed`.
+- Announcements: live regions for toasts, the connection status, inline calculation results and
+  reordering (`boardAnnouncement`).
+- Contrast of 4.5:1 for text and 3:1 for controls in both themes, and one focus ring
+  (`:focus-visible` in `styles/setup.css`).

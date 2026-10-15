@@ -8,6 +8,7 @@ Settings also links to.
 | `c` | New note (switches to the notes view first) |
 | `/` | Search |
 | `j` / `k` | Focus the next / previous card |
+| `Shift j` / `Shift k` | Move the focused card one place later / earlier, in manual order |
 | `Enter` | Open the focused card (a card's own behaviour, not a board shortcut) |
 | `e` | Archive the focused card, or unarchive it in the archive |
 | `#` | Move the focused card to the trash, asking first if "Confirm deletions" is on |
@@ -15,6 +16,12 @@ Settings also links to.
 
 Cards are walked in the order they are drawn: pinned first, then the rest, as filtered and sorted. When a
 card leaves the board (`e`, `#`), focus moves to its neighbour so the next press has something to act on.
+
+Moving a card is the keyboard's way of doing what dragging does, so it works where dragging does
+(`canReorder`: the notes or auto-notes view in manual order, with no search) and keeps the card within
+its section, pinned or not. Focus stays on the moved card, and a screen reader hears where it landed
+("Moved to 3 of 10"). The card menu offers the same as "Move earlier" and "Move later", for anyone who
+uses neither a pointer that can drag nor these keys.
 
 ## When shortcuts are off
 

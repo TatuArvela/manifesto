@@ -102,6 +102,7 @@ export const en = {
   "noteCard.restoreNote": "Restore note",
   "noteCard.deletePermanently": "Delete permanently",
   "noteCard.select": "Select",
+  "noteCard.untitled": "Untitled note",
   "noteCard.deselect": "Deselect",
   "noteCard.linkCopied": "Link copied to clipboard",
   "noteCard.trashedAt": "Trashed {date}",
@@ -128,7 +129,11 @@ export const en = {
 
   // Note editor
   "editor.titlePlaceholder": "Title",
+  "editor.contentLabel": "Note text",
+  "editor.calcResult":
+    "Result {result}. Tab or Enter writes it in, Escape dismisses it.",
   "editor.removeTag": "Remove tag {tag}",
+  "editor.removeItem": "Remove item",
   "editor.color": "Color",
   "editor.changeColor": "Change color",
   "editor.font": "Font",
@@ -166,6 +171,8 @@ export const en = {
   "noteMenu.exportMarkdown": "Download as Markdown",
   "noteMenu.exportJson": "Download as JSON",
   "noteMenu.archive": "Archive",
+  "noteMenu.moveEarlier": "Move earlier",
+  "noteMenu.moveLater": "Move later",
   "noteMenu.unarchive": "Unarchive",
   "noteMenu.deleteChecked": "Delete checked items",
   "noteMenu.sortByDate": "Sort items by date",
@@ -193,8 +200,13 @@ export const en = {
   },
   "editor.metadata.created": "Created {date}",
   "editor.metadata.edited": "Edited {date}",
-  "editor.imageAlt": "Delete image",
+  "editor.deleteImage": "Delete image",
   "editor.openImage": "Open image",
+  "editor.openImageNamed": "Open image: {description}",
+  "editor.describeImage": "Describe image",
+  "editor.imageDescription": "Image description",
+  "editor.imageDescriptionHint":
+    "What the image shows, for someone who cannot see it",
   "editor.openLink": "Open link",
   "editor.imageViewer": "Image viewer",
   "editor.closeImage": "Close image",
@@ -238,6 +250,7 @@ export const en = {
   },
   "noteGrid.pinned": "Pinned",
   "noteGrid.others": "Others",
+  "noteGrid.moved": "Moved to {position} of {count}",
 
   // Tags view
   "tags.all": "All",
@@ -884,6 +897,9 @@ export const en = {
   "shortcuts.search": "Search",
   "shortcuts.next": "Next note",
   "shortcuts.previous": "Previous note",
+  "shortcuts.moveLater": "Move note later",
+  "shortcuts.moveEarlier": "Move note earlier",
+  "shortcuts.shift": "Shift",
   "shortcuts.open": "Open the focused note",
   "shortcuts.archive": "Archive or unarchive the focused note",
   "shortcuts.trash": "Move the focused note to the trash",

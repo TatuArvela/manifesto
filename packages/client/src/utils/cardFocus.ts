@@ -2,11 +2,11 @@
  * Keyboard focus among the cards on the board, for the `j` / `k` shortcuts.
  * Cards are found in the DOM rather than in the note list, because what the
  * reader moves through is what is on screen: the filtered, sorted, pinned-first
- * grid, in its reading order. `[data-note-card]` is the card's own focus
- * target, and only a card that can be activated has a tab stop.
+ * grid, in its reading order. A card's focus target is its open button,
+ * `[data-card-open]`, which only a card that can be activated has.
  */
 
-const CARD = "[data-note-card][tabindex]";
+const CARD = "[data-note-card] [data-card-open]";
 
 function visibleCards(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>(CARD)].filter(
@@ -17,9 +17,12 @@ function visibleCards(): HTMLElement[] {
 
 function focusedCard(): HTMLElement | null {
   const active = document.activeElement;
-  return active instanceof Element
-    ? active.closest<HTMLElement>("[data-note-card]")
-    : null;
+  if (!(active instanceof Element)) return null;
+  return (
+    active
+      .closest("[data-note-card]")
+      ?.querySelector<HTMLElement>("[data-card-open]") ?? null
+  );
 }
 
 /** The note whose card holds keyboard focus, or null. */

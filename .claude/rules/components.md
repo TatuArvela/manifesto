@@ -19,6 +19,11 @@ paths:
   only while open and get their exit from `usePresence`. The slide is a
   translation and never a scale, because the browsers without anchor positioning place the panel
   from a measured `getBoundingClientRect` and a scaled box measures smaller than it lands.
+  `Dropdown` sets `aria-expanded` on its trigger's button itself, and hands focus back to it when
+  a panel closes with focus inside. A `CardPopover` is portalled to the end of the page, so it
+  moves focus in once placed (to the option marked `aria-pressed` / `aria-checked`, else the first
+  control) and back to its anchor on close; without that the keyboard never reached it. Mark the
+  current option in a picker with `aria-pressed`, which both a screen reader and this focus read.
 - **Confirming a deletion** goes through the `confirmRequest` signal in `state/confirm.ts`, which
   `ConfirmDialogHost` renders, one question at a time: a second question answers the first with
   "no" rather than stacking, so the promise behind a replaced prompt always settles and no caller
@@ -29,7 +34,8 @@ paths:
   new dismissable layer only has to call `useEscapeStack(active, close)`; binding your own brings
   back the bug where one press closed the picker *and* the editor under it. Ordering is by
   activation, not nesting (Preact runs a child's effects first), so a layer must not become active
-  in the same render as one it sits inside. `Dropdown` closes its own panel rather than leaving it
+  in the same render as one it sits inside. A tooltip registers with `passThrough`: Escape hides it
+  and still reaches the layer below, so it never costs a second press. `Dropdown` closes its own panel rather than leaving it
   to the Popover API, because Chromium skips the light-dismiss when focus is inside ProseMirror.
 - **Single-key shortcuts** go through `hooks/useShortcut.ts` and nowhere else, like Escape. The
   dispatcher, not the binding, decides when a key is not a shortcut (typing, an `aria-modal` layer or

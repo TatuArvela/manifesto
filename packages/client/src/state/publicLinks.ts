@@ -156,6 +156,8 @@ export interface ShownPublicNote {
   color: NoteColor;
   font: NoteFont;
   images: string[];
+  /** In step with `images`, as on a note. */
+  imageAlts?: string[];
   linkPreviews: LinkPreview[];
   updatedAt: string;
 }
@@ -207,6 +209,7 @@ async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
       color: NoteColor.Default,
       font: opened.font,
       images: opened.images,
+      ...(opened.imageAlts !== undefined && { imageAlts: opened.imageAlts }),
       linkPreviews: opened.linkPreviews,
       updatedAt: note.updatedAt,
     },

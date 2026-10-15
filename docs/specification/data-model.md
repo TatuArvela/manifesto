@@ -21,6 +21,7 @@ A note is the fundamental entity in Manifesto.
 | `position`  | `number`         | Yes      | Sort position for manual ordering (default sort mode) |
 | `tags`      | `string[]`       | Yes      | Tags attached to the note                |
 | `images`    | `string[]`       | Yes      | References to attached images: `attachment:<id>` in connected mode, `local:<sha256>` in open mode; see [Images](#images) |
+| `imageAlts` | `string[]`       | No       | Each image's description, in the order of `images`, `""` for one without; absent when none has one. See [Images](#images) |
 | `linkPreviews` | `LinkPreview[]` | Yes    | Link preview cards attached to the note  |
 | `reminder`  | `NoteReminder \| null` | Yes | Scheduled reminder, or `null` when not set |
 | `createdAt` | `string`         | Yes      | ISO 8601 creation timestamp              |
@@ -49,6 +50,12 @@ What an image may be, checked by the client before storing and by the server on 
 In an export or import file an image is a base64 `data:` URL (`IMAGE_DATA_URL_PATTERN`, `MAX_IMAGE_DATA_URL_BYTES`), which is the one place bytes and a note travel together.
 
 Over-cap images are refused by the client before they are stored, so the user gets a message naming the file rather than an error from a later save.
+
+Each image may have a description (`imageAlts`), up to 1000 characters (`MAX_IMAGE_ALT_LENGTH`): the
+text a screen reader reads in its place, which every view of the note uses as the image's `alt`. It is
+kept in step with `images` (an image keeps its own wherever it moves, a removed one takes its own
+with it, and a drawing made over an image takes that image's), and in a sealed note it is inside the
+image's entry in the sealed list, so it is never written apart from the list.
 
 A card fetches only the images it shows: a note carries references, and the bytes of each
 come from `GET /api/attachments/:id`.
@@ -134,7 +141,7 @@ The fields of a shared note split in two, declared once in `@manifesto/shared` a
 
 | Shared by everyone | Each participant's own |
 |--------------------|------------------------|
-| `title`, `content`, `font`, `images`, `linkPreviews` | `color`, `pinned`, `archived`, `trashed`, `trashedAt`, `position`, `tags`, `reminder` |
+| `title`, `content`, `font`, `images`, `imageAlts`, `linkPreviews` | `color`, `pinned`, `archived`, `trashed`, `trashedAt`, `position`, `tags`, `reminder` |
 
 `readonly` and `source` are the owner's alone. A recipient's `trashed` is their own trash; the
 owner's is different, because a note in its owner's trash is not shown to anyone else at all.

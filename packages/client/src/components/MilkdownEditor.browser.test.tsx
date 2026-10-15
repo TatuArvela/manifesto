@@ -6,6 +6,8 @@ import { userEvent } from "vitest/browser";
 import * as Y from "yjs";
 import { editorHistory } from "../extensions/editorHistory.js";
 import { DEFAULT_FRAGMENT_NAME } from "../extensions/yjsCollab.js";
+import { t } from "../i18n/index.js";
+import { inlineCalculations } from "../state/prefs.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 
 /**
@@ -315,6 +317,47 @@ describe("MilkdownEditor undo with a shared document", () => {
 });
 
 describe("MilkdownEditor teardown", () => {
+  it("names its text field for a screen reader", async () => {
+    const host = mountHost();
+    render(<MilkdownEditor content="Milk" onChange={() => {}} />, host);
+    const view = await vi.waitFor(() => {
+      const el = host.querySelector(".ProseMirror");
+      if (!el) throw new Error("no editor yet");
+      return el;
+    });
+    expect(view.getAttribute("role")).toBe("textbox");
+    expect(view.getAttribute("aria-multiline")).toBe("true");
+    expect(view.getAttribute("aria-label")).toBe(t("editor.contentLabel"));
+    expect(host.querySelector("textarea")?.getAttribute("aria-label")).toBe(
+      t("editor.contentLabel"),
+    );
+  });
+
+  it("announces a calculation's result, which the text does not carry", async () => {
+    const before = inlineCalculations.value;
+    inlineCalculations.value = true;
+    const host = mountHost();
+    render(<MilkdownEditor content="" onChange={() => {}} />, host);
+    const view = await vi.waitFor(() => {
+      const el = host.querySelector<HTMLElement>(".ProseMirror");
+      if (!el) throw new Error("no editor yet");
+      return el;
+    });
+    const status = host.querySelector('[role="status"]');
+    expect(status?.textContent).toBe("");
+
+    view.focus();
+    // A result is offered once the "=" is typed.
+    document.execCommand("insertText", false, "200+300=");
+
+    await vi.waitFor(() => {
+      expect(status?.textContent).toBe(
+        t("editor.calcResult", { result: "500" }),
+      );
+    });
+    inlineCalculations.value = before;
+  });
+
   it("does not throw when destroyed inside the listener debounce", async () => {
     // `@milkdown/plugin-listener` gives no way to cancel its pending
     // serialization, and the timer runs where no caller can catch it: the

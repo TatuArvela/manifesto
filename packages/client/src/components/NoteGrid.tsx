@@ -2,6 +2,7 @@ import { Search, StickyNote } from "lucide-preact";
 import { plural, t } from "../i18n/index.js";
 import {
   activeView,
+  boardAnnouncement,
   canReorder,
   notesHiddenByTag,
   notesLoaded,
@@ -55,6 +56,9 @@ export function NoteGrid() {
 
   return (
     <div class="mt-4">
+      <p class="sr-only" role="status">
+        {boardAnnouncement.value}
+      </p>
       {pinned.length > 0 && (
         <section>
           <h2 class={headingClass}>{t("noteGrid.pinned")}</h2>

@@ -187,6 +187,9 @@ export function attachmentIdOf(ref: string): string {
 /** Maximum number of images attachable to one note. */
 export const MAX_IMAGES_PER_NOTE = 20;
 
+/** The longest description an image may have, in UTF-16 units. */
+export const MAX_IMAGE_ALT_LENGTH = 1000;
+
 /**
  * Matches an accepted image data URL. Anchored at both ends, with the base64
  * payload constrained to the base64 alphabet so a `data:` URL cannot smuggle a
@@ -293,6 +296,7 @@ export const SHARED_NOTE_FIELDS = [
   "content",
   "font",
   "images",
+  "imageAlts",
   "linkPreviews",
 ] as const;
 
@@ -334,6 +338,15 @@ export interface Note {
    */
   images: string[];
   /**
+   * What each image shows, in words, for whoever cannot see it: its `alt`,
+   * in the order of `images`, with "" (or no entry) for an image nobody has
+   * described. Absent on a note none of whose images has a description.
+   * Whatever writes `images` keeps it in step (`carriedImageAlts`), and a
+   * sealed note carries each description inside its image's entry, so it
+   * goes wherever the image goes.
+   */
+  imageAlts?: string[];
+  /**
    * How many images the note has, whether or not `images` is loaded. Set by
    * the server; absent in open mode, where `images` is always complete and
    * its length is the answer.
@@ -368,6 +381,32 @@ export function imageCountOf(
   note: Pick<Note, "images" | "imageCount">,
 ): number {
   return note.imageCount ?? note.images.length;
+}
+
+/** Each image's description, one for every image: "" where it has none. */
+export function imageAltsOf(
+  note: Pick<Note, "images" | "imageAlts">,
+): string[] {
+  return note.images.map((_, i) => note.imageAlts?.[i] ?? "");
+}
+
+/**
+ * The descriptions `before` gave its images, carried over to `images`: an
+ * image keeps its own wherever it moved to, and a new one has none. Empty
+ * when none of them has one, which is what a note without descriptions
+ * holds.
+ */
+export function carriedImageAlts(
+  before: Pick<Note, "images" | "imageAlts">,
+  images: readonly string[],
+): string[] {
+  const byImage = new Map<string, string>();
+  for (const [i, image] of before.images.entries()) {
+    const alt = before.imageAlts?.[i];
+    if (alt && !byImage.has(image)) byImage.set(image, alt);
+  }
+  const alts = images.map((image) => byImage.get(image) ?? "");
+  return alts.some((alt) => alt !== "") ? alts : [];
 }
 
 /** Whether this note has attachments whose bytes have not been fetched yet. */

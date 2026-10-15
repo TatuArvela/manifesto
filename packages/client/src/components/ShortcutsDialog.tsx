@@ -45,7 +45,9 @@ export function ShortcutsDialog() {
               <Fragment key={key}>
                 <dt>
                   <kbd class="inline-block min-w-7 text-center px-1.5 py-0.5 rounded-md border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-700 font-mono text-xs">
-                    {key}
+                    {/^[A-Z]$/.test(key)
+                      ? `${t("shortcuts.shift")} ${key.toLowerCase()}`
+                      : key}
                   </kbd>
                 </dt>
                 <dd class="text-neutral-700 dark:text-neutral-300">

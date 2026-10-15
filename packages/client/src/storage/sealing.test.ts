@@ -11,6 +11,7 @@ import {
   type SealedNote,
   type SealedNoteCreate,
   sealNewNote,
+  sealNoteUpdate,
   tokenHashOf,
   unwrapFeedKey,
   unwrapTokenKeys,
@@ -134,6 +135,50 @@ describe("sealing a note", () => {
     expect(theirs?.note.linkPreviews).toEqual([
       { url: "https://example.com/b", title: "Kept", domain: "example.com" },
     ]);
+  });
+
+  it("seals each image's description inside its entry, and opens it in step", async () => {
+    const account = await accountOf(await testKeys());
+    const first = "attachment:01J00000000000000000000001";
+    const second = "attachment:01J00000000000000000000002";
+    const imageKeys = new Map([
+      [first, { key: "a".repeat(43), type: "image/png" as const }],
+      [second, { key: "b".repeat(43), type: "image/jpeg" as const }],
+    ]);
+    const { sealed, key } = await sealNewNote(
+      account,
+      "n1",
+      { ...draft, images: [first, second], imageAlts: ["", "A red bicycle"] },
+      imageKeys,
+    );
+    // Nothing of a description travels beside the sealed list.
+    expect(JSON.stringify(sealed)).not.toContain("bicycle");
+    const opened = await openSealedNote(account, served(sealed), key);
+    expect(opened?.note.images).toEqual([first, second]);
+    expect(opened?.note.imageAlts).toEqual(["", "A red bicycle"]);
+
+    // A note none of whose images is described has no list at all.
+    const plain = await sealNewNote(
+      account,
+      "n2",
+      { ...draft, images: [first] },
+      imageKeys,
+    );
+    const bare = await openSealedNote(account, served(plain.sealed), plain.key);
+    expect(bare?.note).not.toHaveProperty("imageAlts");
+
+    // The descriptions are sealed with the list, never on their own.
+    await expect(
+      sealNoteUpdate(account, key, "n1", { imageAlts: ["x"] }, imageKeys),
+    ).rejects.toBeInstanceOf(NoteLimitError);
+    await expect(
+      sealNewNote(
+        account,
+        "n3",
+        { ...draft, images: [first], imageAlts: ["x".repeat(1001)] },
+        imageKeys,
+      ),
+    ).rejects.toBeInstanceOf(NoteLimitError);
   });
 
   it("names a link preview by the host its URL opens", async () => {

@@ -43,6 +43,7 @@ function CardColorPicker({
                 onClose();
               }}
               aria-label={c.label}
+              aria-pressed={note.color === c.value}
             />
           </Tooltip>
         ))}

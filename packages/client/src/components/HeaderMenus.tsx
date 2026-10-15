@@ -57,6 +57,7 @@ export function SortMenu({ buttonClass }: { buttonClass: string }) {
               ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
               : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
           }`}
+          aria-pressed={sortMode.value === opt.value}
           onClick={() => {
             sortMode.value = opt.value;
             setShowSortMenu(false);
@@ -99,6 +100,7 @@ export function ViewMenu({ buttonClass }: { buttonClass: string }) {
             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
             : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
         }`}
+        aria-pressed={viewMode.value === "grid"}
         onClick={() => {
           viewMode.value = "grid";
         }}
@@ -113,6 +115,7 @@ export function ViewMenu({ buttonClass }: { buttonClass: string }) {
             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
             : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
         }`}
+        aria-pressed={viewMode.value === "list"}
         onClick={() => {
           viewMode.value = "list";
         }}
@@ -128,6 +131,7 @@ export function ViewMenu({ buttonClass }: { buttonClass: string }) {
             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
             : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
         }`}
+        aria-pressed={noteSize.value === "square"}
         onClick={() => {
           noteSize.value = "square";
         }}
@@ -142,6 +146,7 @@ export function ViewMenu({ buttonClass }: { buttonClass: string }) {
             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
             : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
         }`}
+        aria-pressed={noteSize.value === "fit"}
         onClick={() => {
           noteSize.value = "fit";
         }}
@@ -159,6 +164,7 @@ export function ViewMenu({ buttonClass }: { buttonClass: string }) {
                 ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
                 : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
+            aria-pressed={noteScale.value === "big"}
             onClick={() => {
               noteScale.value = "big";
             }}
@@ -173,6 +179,7 @@ export function ViewMenu({ buttonClass }: { buttonClass: string }) {
                 ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
                 : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
             }`}
+            aria-pressed={noteScale.value === "small"}
             onClick={() => {
               noteScale.value = "small";
             }}

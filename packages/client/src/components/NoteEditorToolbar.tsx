@@ -139,6 +139,7 @@ export function NoteEditorToolbar({
                 class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
                 onClick={() => onColorChange(c.value)}
                 aria-label={c.label}
+                aria-pressed={color === c.value}
               />
             </Tooltip>
           ))}
@@ -180,6 +181,7 @@ export function NoteEditorToolbar({
                     }}
                     onClick={() => onFontChange(f)}
                     aria-label={label}
+                    aria-pressed={font === f}
                   >
                     Aa
                   </button>

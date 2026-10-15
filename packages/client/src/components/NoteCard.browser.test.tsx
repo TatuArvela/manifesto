@@ -222,12 +222,12 @@ describe("NoteCard editing modal", () => {
     storeNote(note);
     show(note);
 
-    const card = host.querySelector("article");
-    expect(card?.getAttribute("role")).toBe("button");
-    expect(card?.tabIndex).toBe(0);
+    const open = host.querySelector<HTMLButtonElement>("[data-card-open]");
+    expect(open?.tagName).toBe("BUTTON");
+    expect(open?.textContent).toBe("Shopping");
 
-    card?.focus();
-    expect(document.activeElement).toBe(card);
+    open?.focus();
+    expect(document.activeElement).toBe(open);
     await userEvent.keyboard("{Enter}");
 
     await vi.waitFor(() => {
@@ -235,22 +235,43 @@ describe("NoteCard editing modal", () => {
     });
   });
 
-  it("is not a button in the trash, where pressing it does nothing", () => {
+  it("is an article around its controls, not a button hiding them", () => {
+    // A button's children are presentational, so a card that was one hid
+    // its pin, colour and menu buttons from a screen reader.
+    const note = makeNote(NOTE_ID, "Shopping");
+    storeNote(note);
+    show(note);
+
+    const card = host.querySelector("article");
+    expect(card?.getAttribute("role")).toBe(null);
+    expect(card?.hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("names an untitled card by its first line", () => {
+    const note = {
+      ...makeNote(NOTE_ID, ""),
+      content: "- [ ] Milk\n- [ ] Eggs",
+    };
+    storeNote(note);
+    show(note);
+
+    expect(host.querySelector("[data-card-open]")?.textContent).toBe("Milk");
+  });
+
+  it("has nothing to open in the trash, where pressing it does nothing", () => {
     const note = makeNote(NOTE_ID, "Shopping");
     storeNote(note);
     activeView.value = "trash";
     show({ ...note, trashed: true });
 
-    const card = host.querySelector("article");
-    expect(card?.getAttribute("role")).toBe(null);
-    expect(card?.tabIndex).toBe(-1);
+    expect(host.querySelector("[data-card-open]")).toBe(null);
   });
 
   it("keeps Tab inside the editor and gives focus back on close", async () => {
     const note = makeNote(NOTE_ID, "Shopping");
     storeNote(note);
     show(note);
-    const card = host.querySelector("article") as HTMLElement;
+    const card = host.querySelector("[data-card-open]") as HTMLElement;
     card.focus();
 
     editingNoteId.value = note.id;
@@ -321,5 +342,39 @@ describe("the card menu", () => {
     expect(open).toHaveLength(1);
     expect(open[0]?.textContent).toContain(t("reminder.header"));
     await pressEscape();
+  });
+});
+
+describe("a card's popovers from the keyboard", () => {
+  it("takes focus to the current colour and gives it back on Escape", async () => {
+    // The panel is portalled to the end of the page, and nothing moved focus
+    // into it: Tab from its button went on to the next card.
+    const note = makeNote(NOTE_ID, "Card");
+    storeNote(note);
+    show(note);
+    const trigger = host.querySelector<HTMLButtonElement>(
+      `button[aria-label="${t("noteCard.changeColor")}"]`,
+    );
+    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+    trigger?.focus();
+    trigger?.click();
+
+    const current = await vi.waitFor(() => {
+      const swatch = document.querySelector<HTMLButtonElement>(
+        '.card-popover button[aria-pressed="true"]',
+      );
+      if (!swatch) throw new Error("no current colour");
+      return swatch;
+    });
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(current);
+    });
+    expect(trigger?.getAttribute("aria-expanded")).toBe("true");
+
+    await pressEscape();
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(trigger);
+    });
+    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
   });
 });

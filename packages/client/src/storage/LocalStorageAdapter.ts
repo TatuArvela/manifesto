@@ -251,6 +251,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       position: input.position ?? -Date.now(),
       tags: input.tags ?? [],
       images,
+      ...(input.imageAlts !== undefined && { imageAlts: input.imageAlts }),
       linkPreviews,
       reminder: input.reminder ?? null,
       createdAt: now,

@@ -30,7 +30,7 @@ import {
   showError,
   viewMode,
 } from "../state/index.js";
-import { placeImages } from "../utils/drawing.js";
+import { placedImageAlts, placeImages } from "../utils/drawing.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import {
   isMorphSource,
@@ -85,6 +85,7 @@ export function NoteInput() {
   const [pinned, setPinned] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
+  const [imageAlts, setImageAlts] = useState<string[]>([]);
   const drafts = useDraftLinkPreviews();
   const linkPreviews = drafts.previews;
   const [closing, setClosing] = useState(false);
@@ -208,6 +209,7 @@ export function NoteInput() {
       position: 0,
       tags,
       images,
+      ...(imageAlts.length > 0 && { imageAlts }),
       linkPreviews,
       reminder: null,
       createdAt: now,
@@ -223,6 +225,7 @@ export function NoteInput() {
     setPinned(false);
     setTags([]);
     setImages([]);
+    setImageAlts([]);
     drafts.clear();
   };
 
@@ -308,6 +311,7 @@ export function NoteInput() {
       pinned,
       tags,
       images,
+      imageAlts,
       linkPreviews,
     };
     if (
@@ -339,6 +343,7 @@ export function NoteInput() {
     setTitle(incoming.title);
     setContent(incoming.content);
     setImages(incoming.images);
+    setImageAlts([]);
     drafts.add(extractUrls(incoming.content));
     // No gesture to grow out of: the app has just been opened for this.
     setMorphing(false);
@@ -489,12 +494,26 @@ export function NoteInput() {
             font={font}
             onFontChange={setFont}
             images={images}
-            onAddImages={(urls, replaces) =>
-              setImages(placeImages(images, urls, replaces))
-            }
-            onRemoveImage={(index) =>
-              setImages(images.filter((_, i) => i !== index))
-            }
+            imageAlts={imageAlts}
+            onAddImages={(urls, replaces) => {
+              const placed = placeImages(images, urls, replaces);
+              setImages(placed);
+              setImageAlts(
+                placedImageAlts({ images, imageAlts }, placed, urls, replaces),
+              );
+            }}
+            onRemoveImage={(index) => {
+              setImages(images.filter((_, i) => i !== index));
+              setImageAlts(imageAlts.filter((_, i) => i !== index));
+            }}
+            onDescribeImage={(image, alt) => {
+              const index = images.indexOf(image);
+              if (index === -1) return;
+              const alts = images.map((_, i) =>
+                i === index ? alt : (imageAlts[i] ?? ""),
+              );
+              setImageAlts(alts.some((a) => a !== "") ? alts : []);
+            }}
             linkPreviews={linkPreviews}
             onAddLinkPreviews={drafts.add}
             onRemoveLinkPreview={drafts.remove}

@@ -27,6 +27,7 @@ export function NoteCardBody({
   isSquare,
   viewOnly,
   reminderChipRef,
+  reminderOpen,
   onToggleReminder,
 }: {
   note: Note;
@@ -39,6 +40,8 @@ export function NoteCardBody({
   isSquare: boolean;
   viewOnly: boolean;
   reminderChipRef: preact.RefObject<HTMLButtonElement | null>;
+  /** Whether the reminder picker is open, for the chip's `aria-expanded`. */
+  reminderOpen: boolean;
   onToggleReminder: () => void;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -85,7 +88,11 @@ export function NoteCardBody({
               aria-hidden="true"
             />
           ) : (
-            <ImageGallery images={images} fill={isImageOnly && isSquare} />
+            <ImageGallery
+              images={images}
+              alts={note.imageAlts}
+              fill={isImageOnly && isSquare}
+            />
           )}
         </div>
       )}
@@ -146,6 +153,7 @@ export function NoteCardBody({
                   reminder={note.reminder}
                   anchorRef={reminderChipRef}
                   onClick={onToggleReminder}
+                  expanded={reminderOpen}
                   onClear={() => updateNote(note.id, { reminder: null })}
                 />
               )}

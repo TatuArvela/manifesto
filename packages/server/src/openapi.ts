@@ -44,6 +44,8 @@ const noteResponseSchema = noteCreateSchema.extend({
   id: z.string(),
   trashedAt: z.string().nullable(),
   imageCount: z.number().int().optional(),
+  // Written by the app alone; a token's change of images keeps them.
+  imageAlts: z.array(z.string()).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

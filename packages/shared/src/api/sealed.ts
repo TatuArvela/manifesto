@@ -18,6 +18,7 @@ export interface SealedNote
     | "content"
     | "font"
     | "images"
+    | "imageAlts"
     | "imageCount"
     | "linkPreviews"
     | "color"
@@ -61,7 +62,7 @@ export interface SealedNote
   /** The first characters of the text, for a notification to show. */
   excerpt: string;
   font: string;
-  /** The note's images, in order. */
+  /** The note's images, in order, each with its description. */
   images: string;
   linkPreviews: string;
   // Under the reader's personal key; empty for one never set.

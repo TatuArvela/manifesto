@@ -177,3 +177,38 @@ describe("closing", () => {
     host.remove();
   });
 });
+
+describe("trigger state", () => {
+  it("says whether the panel is open, and takes focus back from it", async () => {
+    let setOpen: (open: boolean) => void = () => {};
+    function Harness() {
+      const [open, set] = useState(false);
+      setOpen = set;
+      return h(Dropdown, {
+        open,
+        onClose: () => set(false),
+        trigger: h("button", { type: "button" }, "more"),
+        children: h("button", { type: "button", id: "item" }, "item"),
+      });
+    }
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    render(h(Harness, null), host);
+    const trigger = host.querySelector("button") as HTMLButtonElement;
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+    await tick();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    setOpen(true);
+    await tick();
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+
+    (host.querySelector("#item") as HTMLButtonElement).focus();
+    setOpen(false);
+    await tick();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+    render(null, host);
+    host.remove();
+  });
+});
