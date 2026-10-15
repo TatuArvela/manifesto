@@ -205,8 +205,13 @@ export function Dropdown({
 
   // The trigger says whether its panel is open, for every dropdown at once
   // rather than each caller remembering to (most had not). And a panel that
-  // closes with focus in it hands focus back to the trigger: the panel turns
-  // inert, which would otherwise drop focus to the page.
+  // closes with focus in it hands focus back to the trigger. Where the focus
+  // was is read in render, before the commit makes the panel inert: Chromium
+  // moves focus out of inert content to the page before any effect runs.
+  const focusWasInPanel = useRef(false);
+  if (!open && panelRef.current?.contains(document.activeElement)) {
+    focusWasInPanel.current = true;
+  }
   useEffect(() => {
     const anchor = anchorRef.current;
     const panel = panelRef.current;
@@ -214,7 +219,8 @@ export function Dropdown({
       ...(anchor?.querySelectorAll<HTMLElement>("button") ?? []),
     ].find((b) => !panel?.contains(b));
     button?.setAttribute("aria-expanded", String(open));
-    if (!open && panel?.contains(document.activeElement)) button?.focus();
+    if (!open && focusWasInPanel.current) button?.focus();
+    focusWasInPanel.current = false;
   }, [open]);
 
   // Script-side placement, only where CSS can't do it. Kept in sync while open
