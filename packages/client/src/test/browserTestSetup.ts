@@ -54,3 +54,12 @@ window.addEventListener(
  * node project, so here notes pass through as they are.
  */
 setSealingForTests(plainSealing);
+
+/**
+ * Every catalogue is fetched on demand, and the switch to one waits for it.
+ * Fetched here, once, a test that sets `locale` reads that language at once,
+ * as a user whose catalogue is already here does. Through `messages/`, which
+ * imports nothing a test mocks.
+ */
+const { loadCatalogue } = await import("../i18n/messages/index.js");
+await loadCatalogue("fi");

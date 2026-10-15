@@ -1,13 +1,14 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { effect } from "@preact/signals";
+import { effect, signal } from "@preact/signals";
 import { colorPickerSwatches } from "../colors.js";
 import { APP_NAME } from "../config.js";
 import type { DefaultNoteFont } from "../state/prefs.js";
 import { locale } from "../state/prefs.js";
 import { DEFAULT_LOCALE, type Locale } from "./locales.js";
 import {
+  catalogues,
+  loadCatalogue,
   type MessageKey,
-  messages,
   type PluralEntry,
 } from "./messages/index.js";
 
@@ -18,9 +19,29 @@ export {
   type Locale,
   SUPPORTED_LOCALES,
 } from "./locales.js";
-export type { MessageKey } from "./messages/index.js";
+export { loadCatalogue, type MessageKey } from "./messages/index.js";
 
 type Vars = Record<string, string | number>;
+
+/**
+ * The language on screen: the chosen `locale` once its catalogue is here,
+ * and until then the one before it, so that switching never flashes English.
+ * `main.tsx` loads the saved choice's catalogue before the first render, so
+ * a page opens in its language from the start. Everything below reads this
+ * rather than `locale`, so strings, dates and numbers change together.
+ */
+const shown = signal<Locale>(DEFAULT_LOCALE);
+
+effect(() => {
+  const wanted = locale.value;
+  if (catalogues[wanted]) {
+    shown.value = wanted;
+    return;
+  }
+  void loadCatalogue(wanted).then((ok) => {
+    if (ok && locale.peek() === wanted) shown.value = wanted;
+  });
+});
 
 function interpolate(template: string, vars?: Vars): string {
   return template.replace(/\{(\w+)\}/g, (match, name) => {
@@ -33,12 +54,12 @@ function interpolate(template: string, vars?: Vars): string {
 }
 
 function lookupRaw(loc: Locale, key: MessageKey): unknown {
-  return (messages[loc] as Record<string, unknown>)[key];
+  return (catalogues[loc] as Record<string, unknown> | undefined)?.[key];
 }
 
 function resolveString(key: MessageKey): string {
   // Read the signal so callers using t() from render bodies subscribe.
-  const active = locale.value;
+  const active = shown.value;
   let raw = lookupRaw(active, key);
   if (typeof raw !== "string") {
     if (active !== DEFAULT_LOCALE) {
@@ -55,7 +76,7 @@ function resolveString(key: MessageKey): string {
 }
 
 function resolvePlural(key: MessageKey, n: number): string {
-  const active = locale.value;
+  const active = shown.value;
   let raw = lookupRaw(active, key) as PluralEntry | string | undefined;
   if (!raw || typeof raw === "string") {
     if (active !== DEFAULT_LOCALE) {
@@ -73,7 +94,7 @@ function resolvePlural(key: MessageKey, n: number): string {
 }
 
 /**
- * Translate a key for the current locale. Reads `locale.value` internally, so
+ * Translate a key for the current locale. Reads the language on screen, so
  * every call subscribes during render. **Always call inside component render
  * bodies**, not at module scope, or the string will freeze to the load-time
  * locale.
@@ -93,14 +114,14 @@ export function plural(key: MessageKey, n: number, vars?: Vars): string {
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(locale.value, {
+  return new Date(iso).toLocaleString(shown.value, {
     dateStyle: "medium",
     timeStyle: "short",
   });
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(locale.value, {
+  return new Date(iso).toLocaleDateString(shown.value, {
     dateStyle: "medium",
   });
 }
@@ -108,10 +129,10 @@ export function formatDate(iso: string): string {
 /**
  * Names joined the way the language joins them ("Alice, Bob and Carol",
  * "Alice, Bob ja Carol"), so no message has to spell out a separator. Reads
- * `locale.value`, so the same render-body rule as `t()` applies.
+ * the language on screen, so the same render-body rule as `t()` applies.
  */
 export function formatList(items: string[]): string {
-  return new Intl.ListFormat(locale.value, { type: "conjunction" }).format(
+  return new Intl.ListFormat(shown.value, { type: "conjunction" }).format(
     items,
   );
 }
@@ -127,10 +148,11 @@ export function formatList(items: string[]): string {
  *
  * Divides by 1024², which is how Windows and most file managers label sizes and
  * how `MAX_IMAGE_SOURCE_BYTES` (currently the only value rendered here) is
- * defined. Reads `locale.value`, so the same render-body rule as `t()` applies.
+ * defined. Reads the language on screen, so the same render-body rule as
+ * `t()` applies.
  */
 export function formatFileSize(bytes: number): string {
-  return new Intl.NumberFormat(locale.value, {
+  return new Intl.NumberFormat(shown.value, {
     style: "unit",
     unit: "megabyte",
     unitDisplay: "short",
@@ -187,9 +209,9 @@ export function getColorPickerColors(): {
   }));
 }
 
-// Keep <html lang> in sync with the active locale.
+// Keep <html lang> in sync with the language on screen.
 if (typeof document !== "undefined") {
   effect(() => {
-    document.documentElement.lang = locale.value;
+    document.documentElement.lang = shown.value;
   });
 }
