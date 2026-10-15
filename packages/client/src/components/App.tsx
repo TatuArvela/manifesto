@@ -63,6 +63,7 @@ import { Header } from "./Header.js";
 import { InvitationList } from "./InvitationList.js";
 import { KeyScreen } from "./KeyScreen.js";
 import { LoginScreen } from "./LoginScreen.js";
+import { loadEditor } from "./lazyEditor.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
 import { ReminderBanner } from "./ReminderBanner.js";
@@ -157,6 +158,10 @@ function MainApp() {
     selectMode.value,
   );
   useBoardShortcuts();
+  // The board is up without the editor; fetch it now, before a note is opened.
+  useEffect(() => {
+    void loadEditor();
+  }, []);
   // Whether the saved user has been checked against the server. Admin rights
   // can change while signed out, so the `/admin` route waits for the answer
   // before deciding someone does not belong on it.

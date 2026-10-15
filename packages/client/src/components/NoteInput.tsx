@@ -44,7 +44,7 @@ import {
 } from "../utils/noteDownload.js";
 import { Backdrop } from "./Backdrop.js";
 import { gridColumns } from "./gridColumns.js";
-import { NoteEditor } from "./NoteEditor.js";
+import { useEditor } from "./lazyEditor.js";
 import { NoteSheet } from "./NoteSheet.js";
 
 const ctaKeys: MessageKey[] = [
@@ -120,16 +120,27 @@ export function NoteInput() {
     [],
   );
 
-  const modalRef = useFocusTrap<HTMLDivElement>(expanded && !closing);
+  // The sheet waits for the editor, since it grows out of the pad with the
+  // editor inside; `expanded` is that it was asked for, `open` that it is up.
+  const editor = useEditor(expanded, () => {
+    focusCatcherRef.current?.blur();
+    reset();
+    setMorphing(false);
+    setExpanded(false);
+    showError(t("error.viewUnavailable"));
+  });
+  const open = expanded && editor !== null;
+
+  const modalRef = useFocusTrap<HTMLDivElement>(open && !closing);
 
   // Layout, not effect, so the panel's first frame is already over its source.
   useLayoutEffect(() => {
     const from = morphFromRef.current;
     const panel = panelRef.current;
-    if (!expanded || !from || !panel) return;
+    if (!open || !from || !panel) return;
     morphFromRef.current = null;
     morphIn(panel, from.rect, { opaque: from.opaque });
-  }, [expanded]);
+  }, [open]);
 
   // Re-pick colors when the default note color setting changes
   const colorSetting = defaultNoteColor.value;
@@ -364,7 +375,7 @@ export function NoteInput() {
   // shows nothing, so the same hooks must run in those too.
   if (!isActiveView) return null;
 
-  const topNoteHidden = lifting || (expanded && !closing);
+  const topNoteHidden = lifting || (open && !closing);
   const topNoteClass = lifting
     ? "note-stack-top note-lift-off"
     : topNoteHidden
@@ -451,7 +462,7 @@ export function NoteInput() {
         </button>
       )}
 
-      {expanded && (
+      {open && (
         <NoteSheet
           label={t("nav.newNote")}
           dialogRef={modalRef}
@@ -468,7 +479,7 @@ export function NoteInput() {
           closing={closing}
           onBack={() => closeModal()}
         >
-          <NoteEditor
+          <editor.NoteEditor
             title={title}
             onTitleChange={setTitle}
             content={content}

@@ -6,6 +6,8 @@ paths:
   - "packages/client/src/components/NoteEditor*.tsx"
   - "packages/client/src/components/NoteCardEditor.tsx"
   - "packages/client/src/components/FormattingToolbar.tsx"
+  - "packages/client/src/components/lazyEditor.ts"
+  - "packages/client/src/components/editorChunk.ts"
   - "packages/client/src/realtime/**"
   - "packages/client/src/utils/editorMarkdown.ts"
   - "packages/client/src/utils/remarkRenderer.ts"
@@ -54,6 +56,15 @@ shows the local note instead of the shared document and writes that copy over ev
 the next save. That is why `useMilkdownEditor` takes a `ready` flag. Open mode is the default
 build and can never sync, so keeping these three chunks out of the entry is worth ~130 KB
 minified to every user who will never use them.
+
+The editor itself is a chunk of its own too: `components/editorChunk.ts` is the only way in to
+`NoteEditor` and `NoteCardEditor`, and only `components/lazyEditor.ts` imports it. `App` fetches it
+once the board is up. A card or the new-note sheet that is asked to open before it has arrived
+waits for it (`useEditor`), because the panel grows out of the card measured with the editor
+inside; opening it empty and filling it later morphs to the wrong size. A card this user may only
+read opens at once, since `NoteReadonlyView` needs no editor. A static import of anything that
+brings Milkdown in, from anywhere the board reaches, puts the whole editor back in the entry chunk
+with nothing failing to say so.
 
 Adding, removing or changing the attributes of a node or mark (a preset, a plugin, anything in
 `extensions/`) means raising `EDITOR_SCHEMA_VERSION` in `@manifesto/shared`. `/api/yjs` refuses an
