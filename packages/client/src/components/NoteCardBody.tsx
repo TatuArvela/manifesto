@@ -88,7 +88,11 @@ export function NoteCardBody({
               aria-hidden="true"
             />
           ) : (
-            <ImageGallery images={images} fill={isImageOnly && isSquare} />
+            <ImageGallery
+              images={images}
+              alts={note.imageAlts}
+              fill={isImageOnly && isSquare}
+            />
           )}
         </div>
       )}

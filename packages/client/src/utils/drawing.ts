@@ -2,6 +2,7 @@
 // Kept apart from the pad that collects them so the geometry can be tested
 // without a pointer.
 
+import { carriedImageAlts, type Note } from "@manifesto/shared";
 import { MAX_IMAGE_EDGE } from "./shrinkImage.js";
 
 /** The drawing's own size, whatever size it is shown at: 4 by 3. */
@@ -167,4 +168,26 @@ export function placeImages(
     return [...images, ...added];
   }
   return images.flatMap((image) => (image === replaces ? added : [image]));
+}
+
+/**
+ * The descriptions to go with `placeImages`' answer: each image keeps its
+ * own, and a drawing made over an image takes that image's, which still says
+ * what is under the lines. Empty when no image has one.
+ */
+export function placedImageAlts(
+  before: Pick<Note, "images" | "imageAlts">,
+  placed: readonly string[],
+  added: readonly string[],
+  replaces?: string,
+): string[] {
+  const alts = carriedImageAlts(before, placed);
+  const under =
+    replaces === undefined
+      ? ""
+      : (before.imageAlts?.[before.images.indexOf(replaces)] ?? "");
+  if (!under) return alts;
+  return placed.map((image, i) =>
+    added.includes(image) ? under : (alts[i] ?? ""),
+  );
 }

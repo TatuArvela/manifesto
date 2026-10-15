@@ -28,17 +28,22 @@ client's own conventions (one focus ring, named layers, the Escape stack) are in
 - **Time**: apart from what security needs (a sign-in link or code that expires, a session that ends),
   nothing the app asks of a person has a time limit. An error message stays until it is
   dismissed, and a success message does not leave while it is pointed at or focused.
+- **Images**: an image or a drawing in a note can be given a description, from its "Describe image"
+  button or the field under it in the image viewer, and every view of the note, a public link's page
+  included, shows it as the image's `alt`. It is kept with the note, sealed with the image, exported
+  and imported, and follows a drawing made over the image.
 - **Language**: the page's `lang` follows the chosen language, English or Finnish.
 
 ## Known gaps
 
 These are open, and a deployment that publishes a statement should list them:
 
-- **Images have no text alternative.** Images attached to a note, and drawings, are shown with an empty
-  `alt`, and there is nowhere yet to write a description for one (WCAG 1.1.1, EN 301 549 11.8.2). Giving
-  them one is a change to the note's data model, and its sealed contents, still to be designed.
+- **An image is described only if someone describes it.** An image without a description is shown
+  with an empty `alt`, and its button is named "Open image" alone; nothing asks for one when an image
+  is added (WCAG 1.1.1, EN 301 549 11.8.2). A token or an assistant can keep descriptions but not
+  write them, and a link preview's thumbnail has none.
 - **Drawing needs a pointer.** The drawing pad follows the pointer's path, which WCAG exempts from the
-  keyboard requirement, but a drawing then has no description either (above).
+  keyboard requirement; a drawing can be described like any image.
 - **Not yet tested with assistive technology.** The app has been reviewed against WCAG 2.1 AA from its
   code, and its browser tests check names, roles and focus, but it has not been tested end to end with
   screen readers (NVDA, JAWS, VoiceOver, TalkBack) or with speech input.

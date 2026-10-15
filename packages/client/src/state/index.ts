@@ -13,6 +13,7 @@ export {
   bulkTrash,
   deleteCheckedItems,
   deleteTag,
+  describeImage,
   type LeaveStyle,
   leavingNotes,
   moveNoteBy,

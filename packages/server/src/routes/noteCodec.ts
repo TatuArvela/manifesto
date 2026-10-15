@@ -1,6 +1,7 @@
 import {
   type AccountSealKeys,
   attachmentIdOf,
+  carriedImageAlts,
   type ImageKey,
   isAttachmentRef,
   mapPreviewImages,
@@ -274,6 +275,12 @@ async function sealedChanges(
   if (!opened) {
     throw new HttpError(409, "This token cannot open the note's key");
   }
+  // A token cannot describe an image, but its new list of images keeps the
+  // descriptions the app gave them, each with its own image.
+  const described =
+    plain.images && opened.note.imageAlts
+      ? { ...plain, imageAlts: carriedImageAlts(opened.note, plain.images) }
+      : plain;
   // The images the note already names keep their keys, and one the token
   // uploaded brings the key kept with it; any other has none here, and
   // sealing refuses it.
@@ -286,10 +293,10 @@ async function sealedChanges(
       ? await ownedByOwner(
           storage,
           { ownerId: access.ownerId, writerId: keys.userId },
-          plain,
+          described,
           imageKeys,
         )
-      : plain;
+      : described;
   const sealed = await sealing(() =>
     sealNoteUpdate(keys, opened.key, id, changes, imageKeys),
   );

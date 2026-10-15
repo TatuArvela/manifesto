@@ -21,6 +21,7 @@ import { forceUpdateApp } from "../serviceWorker.js";
 import {
   addLinkPreviews,
   addTag,
+  describeImage,
   ensureImages,
   notes,
   showError,
@@ -29,7 +30,7 @@ import {
   updateStoredNote,
 } from "../state/index.js";
 import { recordVersion } from "../state/versions.js";
-import { placeImages } from "../utils/drawing.js";
+import { placedImageAlts, placeImages } from "../utils/drawing.js";
 import { isPhoneLayout } from "../utils/phoneSheets.js";
 import { Backdrop } from "./Backdrop.js";
 import { getEditorMarkdown } from "./MilkdownEditor.js";
@@ -332,13 +333,26 @@ export function NoteCardEditor({
         font={note.font}
         onFontChange={(font) => updateNote(note.id, { font })}
         images={note.images}
+        imageAlts={note.imageAlts}
         onAddImages={async (urls, replaces) => {
           const images = await currentImages();
           if (images === null) return;
+          const placed = placeImages(images, urls, replaces);
+          const before = notes.value.find((n) => n.id === note.id) ?? note;
+          const imageAlts = placedImageAlts(
+            { images, imageAlts: before.imageAlts ?? [] },
+            placed,
+            urls,
+            replaces,
+          );
           await updateNote(note.id, {
-            images: placeImages(images, urls, replaces),
+            images: placed,
+            ...(imageAlts.length > 0 && { imageAlts }),
           });
         }}
+        onDescribeImage={(image, alt) =>
+          void describeImage(note.id, image, alt)
+        }
         onRemoveImage={async (index) => {
           const images = await currentImages();
           if (images === null) return;

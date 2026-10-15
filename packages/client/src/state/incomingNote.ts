@@ -53,7 +53,11 @@ export function foldIncoming(held: Note | undefined, incoming: Note): Note {
     held.updatedAt === incoming.updatedAt &&
     hasUnloadedImages(incoming) &&
     held.images.length === imageCountOf(incoming)
-      ? { ...incoming, images: held.images }
+      ? {
+          ...incoming,
+          images: held.images,
+          ...(held.imageAlts !== undefined && { imageAlts: held.imageAlts }),
+        }
       : incoming;
   return sameValue(held, next) ? held : next;
 }

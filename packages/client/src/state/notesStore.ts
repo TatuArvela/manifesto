@@ -1,5 +1,6 @@
 import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
 import {
+  carriedImageAlts,
   hasUnloadedImages,
   PERSONAL_NOTE_FIELDS,
   roleOf,
@@ -299,6 +300,9 @@ export async function createNote(
     position: input.position ?? headPosition(notes.peek()),
     tags: input.tags ?? [],
     images: input.images ?? [],
+    ...(input.imageAlts?.some((alt) => alt !== "") && {
+      imageAlts: input.imageAlts,
+    }),
     linkPreviews: input.linkPreviews ?? [],
     reminder: input.reminder ?? null,
   };
@@ -336,6 +340,23 @@ function refusalFor(note: Note, changes: NoteUpdate): MessageKey | null {
 }
 
 /**
+ * `changes` with the images' descriptions kept in step: a write of `images`
+ * alone carries each description over to wherever its image now is, and
+ * drops those of the images it removed. Without it, open mode would keep the
+ * old list of descriptions against the new list of images.
+ */
+function withImageAlts(base: Note | null, changes: NoteUpdate): NoteUpdate {
+  if (
+    !base?.imageAlts ||
+    changes.images === undefined ||
+    changes.imageAlts !== undefined
+  ) {
+    return changes;
+  }
+  return { ...changes, imageAlts: carriedImageAlts(base, changes.images) };
+}
+
+/**
  * Shows `changes` at once, sends them, and folds the answer in. A 412 is
  * merged three ways against the server's copy and retried once. `batch` is
  * where a failure is counted when this is one of a group.
@@ -356,7 +377,7 @@ export async function updateNote(
  */
 export async function updateStoredNote(
   id: string,
-  changes: NoteUpdate,
+  requested: NoteUpdate,
   batch?: Batch,
 ): Promise<Note | null> {
   // An auto-note keeps its metadata in the override sidecar; its title and
@@ -364,10 +385,11 @@ export async function updateStoredNote(
   // and reads back there with the override laid over it: null only when the
   // plugin no longer makes the note.
   if (isGeneratedNoteId(id)) {
-    updateAutoNoteOverride(id, overrideFrom(changes));
+    updateAutoNoteOverride(id, overrideFrom(requested));
     return generatedNotes.value.find((n) => n.id === id) ?? null;
   }
   const base = notes.value.find((n) => n.id === id) ?? null;
+  const changes = withImageAlts(base, requested);
   const refusal = base ? refusalFor(base, changes) : null;
   if (refusal) {
     reportFailure(

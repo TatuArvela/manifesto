@@ -1,9 +1,20 @@
-import { isTagWithin, type Note, type NoteColor } from "@manifesto/shared";
+import {
+  imageAltsOf,
+  isTagWithin,
+  type Note,
+  type NoteColor,
+} from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { sortChecklistByDate } from "../utils/itemDate.js";
 import { removeCheckedItems, toggleChecklistItem } from "../utils/markdown.js";
 import { asBatch, type Batch } from "./failures.js";
-import { allNotes, deleteNote, notes, updateNote } from "./notesStore.js";
+import {
+  allNotes,
+  deleteNote,
+  ensureImages,
+  notes,
+  updateNote,
+} from "./notesStore.js";
 import {
   byPosition,
   headPosition,
@@ -471,6 +482,29 @@ export async function moveNoteBy(
 }
 
 // --- Checklists ---
+
+/**
+ * Gives one of a note's images its description, or takes it away with "".
+ * The image is found by its reference, since another writer may have moved
+ * it; one that has meanwhile been removed is left alone.
+ */
+export async function describeImage(
+  id: string,
+  image: string,
+  alt: string,
+): Promise<boolean> {
+  // The descriptions are written with the list, so the list has to be whole.
+  const images = await ensureImages(id);
+  const note = notes.value.find((n) => n.id === id);
+  const index = images?.indexOf(image) ?? -1;
+  if (!images || !note || index === -1) return false;
+  const alts = imageAltsOf({ images, imageAlts: note.imageAlts ?? [] });
+  alts[index] = alt;
+  return updateNote(id, {
+    images,
+    imageAlts: alts.some((a) => a !== "") ? alts : [],
+  });
+}
 
 export async function deleteCheckedItems(id: string) {
   const note = notes.value.find((n) => n.id === id);

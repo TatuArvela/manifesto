@@ -50,7 +50,17 @@ removed meanwhile). This is how a drawing is changed after it is saved, and how 
   screen.
 - The result is a PNG, which keeps lines crisp however often a drawing is reopened, unless that comes
   to over a megabyte, as it does over a photo: then it is a JPEG. An animated GIF becomes a still.
-- Done with nothing drawn leaves the image as it was. The original is replaced, not kept.
+- Done with nothing drawn leaves the image as it was. The original is replaced, not kept, and the
+  drawing takes its description, which still says what is under the lines.
+
+### Describing an image
+
+Each image in an open note also has a **Describe image** button, which opens the image viewer with
+the focus on a description field under the image; the viewer has the field whenever the note can be
+changed. The description is what a screen reader reads in the image's place: every view of the note
+shows it as the image's `alt`, and names the image's open button with it. It is saved when the field
+is left, the viewer moves to another image or closes, and only if it changed. See
+[Images](../data-model.md#images) for how it is kept, and [Accessibility](../accessibility.md).
 
 ## Shrinking on attach
 

@@ -4,7 +4,12 @@ import type {
   NoteReminder,
   NoteVersion,
 } from "@manifesto/shared";
-import { NoteColor, NoteFont, REMINDER_RECURRENCES } from "@manifesto/shared";
+import {
+  MAX_IMAGE_ALT_LENGTH,
+  NoteColor,
+  NoteFont,
+  REMINDER_RECURRENCES,
+} from "@manifesto/shared";
 import { ulid } from "ulid";
 import {
   frontmatterBoolean,
@@ -145,6 +150,8 @@ export function normalizeImportedNote(
       : null;
   const updatedAt = date(raw.updatedAt) ?? date(raw.createdAt) ?? now;
   const trashed = raw.trashed === true;
+  const images = parseStringArray(raw.images);
+  const imageAlts = parseImageAlts(raw.imageAlts, images.length);
   return {
     id: typeof raw.id === "string" && NOTE_ID.test(raw.id) ? raw.id : ulid(),
     title: raw.title as string,
@@ -167,12 +174,28 @@ export function normalizeImportedNote(
         ? raw.position
         : -Date.now(),
     tags: parseStringArray(raw.tags),
-    images: parseStringArray(raw.images),
+    images,
+    ...(imageAlts && { imageAlts }),
     linkPreviews: parseLinkPreviews(raw.linkPreviews),
     reminder: parseReminder(raw.reminder),
     createdAt: date(raw.createdAt) ?? updatedAt,
     updatedAt,
   };
+}
+
+/**
+ * A file's descriptions of its note's images, one for each image: "" for one
+ * that is missing, not text, or too long. Undefined when none is left.
+ */
+function parseImageAlts(raw: unknown, count: number): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const alts = Array.from({ length: count }, (_, i) => {
+    const alt: unknown = raw[i];
+    return typeof alt === "string" && alt.length <= MAX_IMAGE_ALT_LENGTH
+      ? alt
+      : "";
+  });
+  return alts.some((alt) => alt !== "") ? alts : undefined;
 }
 
 export function isValidNoteShape(item: unknown): item is Note {
@@ -213,6 +236,8 @@ export function parseSingleNoteJson(data: unknown): Partial<NoteCreate> {
   }
   if (Array.isArray(raw.images)) {
     out.images = raw.images.filter((i): i is string => typeof i === "string");
+    const imageAlts = parseImageAlts(raw.imageAlts, out.images.length);
+    if (imageAlts) out.imageAlts = imageAlts;
   }
   if (Array.isArray(raw.linkPreviews)) {
     out.linkPreviews = parseLinkPreviews(raw.linkPreviews);

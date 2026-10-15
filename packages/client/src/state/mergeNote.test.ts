@@ -46,6 +46,40 @@ describe("mergeNoteUpdate", () => {
     ]);
   });
 
+  it("keeps each image's description with its image through a merge", () => {
+    // This writer described "a" while the other added "c" and described "b".
+    const base = makeNote({ images: ["a", "b"] });
+    const desired = { images: ["a", "b"], imageAlts: ["Apple", ""] };
+    const current = makeNote({
+      images: ["a", "b", "c"],
+      imageAlts: ["", "Bee", ""],
+    });
+    const merged = mergeNoteUpdate(base, desired, current);
+    expect(merged.images).toEqual(["a", "b", "c"]);
+    expect(merged.imageAlts).toEqual(["Apple", "Bee", ""]);
+  });
+
+  it("drops the description of an image this writer removed", () => {
+    const base = makeNote({ images: ["a", "b"], imageAlts: ["Apple", "Bee"] });
+    const desired = { images: ["b"], imageAlts: ["Bee"] };
+    const current = makeNote({
+      images: ["a", "b"],
+      imageAlts: ["Apple", "Bee"],
+    });
+    const merged = mergeNoteUpdate(base, desired, current);
+    expect(merged.images).toEqual(["b"]);
+    expect(merged.imageAlts).toEqual(["Bee"]);
+  });
+
+  it("leaves descriptions out of a merge that had none to keep", () => {
+    const merged = mergeNoteUpdate(
+      makeNote({ images: ["a"] }),
+      { images: ["a", "b"] },
+      makeNote({ images: ["a"] }),
+    );
+    expect(merged).not.toHaveProperty("imageAlts");
+  });
+
   it("client wins on scalar fields", () => {
     const base = makeNote({ title: "Old" });
     const desired = { title: "Renamed" };

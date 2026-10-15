@@ -134,7 +134,7 @@ export function NoteReadonlyView({
         />
         {note.images.length > 0 && (
           <div class="mt-3 -mx-4">
-            <ImageGallery images={note.images} />
+            <ImageGallery images={note.images} alts={note.imageAlts} />
           </div>
         )}
         {note.linkPreviews.length > 0 && (

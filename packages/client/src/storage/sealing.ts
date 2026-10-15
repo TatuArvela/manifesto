@@ -723,12 +723,28 @@ export class Sealer {
     const held = this.noteKeys.get(id);
     if (!held) return this.sealNew(id, note);
     const account = await this.account;
-    const { title, content, font, images, linkPreviews, color, tags, ...rest } =
-      note;
+    const {
+      title,
+      content,
+      font,
+      images,
+      imageAlts,
+      linkPreviews,
+      color,
+      tags,
+      ...rest
+    } = note;
     const shared = await sealSharedFields(
       held.key,
       id,
-      { title, content, font, images, linkPreviews },
+      {
+        title,
+        content,
+        font,
+        images,
+        ...(imageAlts !== undefined && { imageAlts }),
+        linkPreviews,
+      },
       this.imageKeys,
     );
     const personal = await sealPersonalFields(account, id, { color, tags });
@@ -795,7 +811,13 @@ export class Sealer {
   async publish(
     note: Pick<
       Note,
-      "id" | "title" | "content" | "font" | "images" | "linkPreviews"
+      | "id"
+      | "title"
+      | "content"
+      | "font"
+      | "images"
+      | "imageAlts"
+      | "linkPreviews"
     >,
     mode: PublicLinkMode,
     fetch: () => Promise<SealedNote | null>,

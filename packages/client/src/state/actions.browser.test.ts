@@ -8,6 +8,7 @@ import { hasCheckedItems, hasChecklist } from "../utils/markdown.js";
 import {
   archiveNote,
   deleteCheckedItems,
+  describeImage,
   leavingNotes,
   moveNoteBy,
   noteMoveTarget,
@@ -676,5 +677,41 @@ describe("moving a note one step", () => {
 
     sortMode.value = "updated";
     expect(noteMoveTarget(first.id, 1)).toBe(null);
+  });
+});
+
+describe("describing an image", () => {
+  const PNG =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  const GIF = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+  });
+
+  it("keeps each description with its image as the images change", async () => {
+    const created = await createNoteOrFail({ images: [PNG, GIF] });
+    const [first = "", second = ""] = created.images;
+    expect(await describeImage(created.id, second, "A grey square")).toBe(true);
+    const described = notes.value.find((n) => n.id === created.id);
+    expect(described?.imageAlts).toEqual(["", "A grey square"]);
+
+    // Removing the first image takes nothing of the second's description.
+    await updateNote(created.id, { images: [second] });
+    expect(notes.value.find((n) => n.id === created.id)?.imageAlts).toEqual([
+      "A grey square",
+    ]);
+    // And removing the described one leaves no description behind.
+    await updateNote(created.id, { images: [first] });
+    expect(notes.value.find((n) => n.id === created.id)?.imageAlts).toEqual([]);
+  });
+
+  it("leaves a note alone when the image has gone", async () => {
+    const created = await createNoteOrFail({ images: [PNG] });
+    expect(await describeImage(created.id, "local:gone", "x")).toBe(false);
+    expect(notes.value.find((n) => n.id === created.id)).not.toHaveProperty(
+      "imageAlts",
+    );
   });
 });

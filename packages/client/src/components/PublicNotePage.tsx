@@ -165,11 +165,12 @@ function PublicNoteView({
       )}
       {note.images.length > 0 && (
         <div class="mt-4 grid gap-2 grid-cols-1 sm:grid-cols-2">
-          {note.images.map((ref) => (
+          {note.images.map((ref, i) => (
             <PublicImage
               key={ref}
               token={token}
               imageRef={ref}
+              alt={note.imageAlts?.[i] ?? ""}
               access={access}
             />
           ))}
@@ -203,10 +204,12 @@ function PublicNoteView({
 function PublicImage({
   token,
   imageRef,
+  alt,
   access,
 }: {
   token: string;
   imageRef: string;
+  alt: string;
   access: string | null;
 }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -229,5 +232,5 @@ function PublicImage({
   }, [token, imageRef, access]);
 
   if (!url) return null;
-  return <img src={url} alt="" class="w-full rounded-lg object-cover" />;
+  return <img src={url} alt={alt} class="w-full rounded-lg object-cover" />;
 }

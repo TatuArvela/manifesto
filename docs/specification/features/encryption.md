@@ -252,7 +252,8 @@ read ([Attachments](attachments.md)).
   attachment is found by an HMAC of the bytes under the account key. The same image attached twice by
   one account is still stored once, and the stored value says nothing to someone without the key.
 - **The key travels in the note**: the note's image list, encrypted under the note key, holds each
-  image's id, key and type, which is how everyone on a shared note opens its images.
+  image's id, key and type, which is how everyone on a shared note opens its images, and its
+  description when it has one.
 - **Ids and sizes stay readable**, so the server can still sweep images no note refers to.
 - **The type** is no longer read by the server from the leading bytes; the client records it, and
   the server serves every image as opaque bytes. The type in a note was written by whoever attached

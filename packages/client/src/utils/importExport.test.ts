@@ -109,6 +109,23 @@ describe("parseSingleNoteJson", () => {
     expect(result.font).toBeUndefined();
   });
 
+  it("keeps each image's description, one for every image", () => {
+    const result = parseSingleNoteJson({
+      title: "T",
+      content: "B",
+      images: ["data:image/png;base64,AAAA", "data:image/png;base64,BBBB"],
+      imageAlts: [42, "A cat", "one too many"],
+    });
+    expect(result.imageAlts).toEqual(["", "A cat"]);
+    const none = parseSingleNoteJson({
+      title: "T",
+      content: "B",
+      images: ["data:image/png;base64,AAAA"],
+      imageAlts: ["x".repeat(1001)],
+    });
+    expect(none).not.toHaveProperty("imageAlts");
+  });
+
   it("throws when title or content is missing", () => {
     expect(() => parseSingleNoteJson({ title: "T" })).toThrow();
     expect(() => parseSingleNoteJson({ content: "B" })).toThrow();

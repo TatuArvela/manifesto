@@ -43,7 +43,13 @@ export async function sealPublicLink(
   account: AccountSealKeys,
   note: Pick<
     Note,
-    "id" | "title" | "content" | "font" | "images" | "linkPreviews"
+    | "id"
+    | "title"
+    | "content"
+    | "font"
+    | "images"
+    | "imageAlts"
+    | "linkPreviews"
   >,
   mode: PublicLinkMode,
   noteKey: () => Promise<{ version: number; raw: Uint8Array<ArrayBuffer> }>,
@@ -75,6 +81,7 @@ export async function sealPublicLink(
       content: note.content,
       font: note.font,
       images: note.images,
+      ...(note.imageAlts !== undefined && { imageAlts: note.imageAlts }),
       linkPreviews: note.linkPreviews,
     },
     imageKeys,
