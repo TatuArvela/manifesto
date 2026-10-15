@@ -76,4 +76,35 @@ describe("the editor on a phone", () => {
       textBottom,
     );
   });
+
+  it("scrolls a line longer than the note sideways, inside the note", async () => {
+    renderEditor("x".repeat(400));
+
+    const text = await vi.waitFor(() => {
+      const prose = host.querySelector<HTMLElement>(
+        ".milkdown-editor .ProseMirror",
+      );
+      expect(prose?.textContent).toContain("xxxx");
+      return prose as HTMLElement;
+    });
+
+    expect(text.scrollWidth).toBeGreaterThan(text.clientWidth);
+    expect(text.getBoundingClientRect().right).toBeLessThanOrEqual(375);
+    // Room for an overlay scrollbar, which would otherwise cover the line.
+    expect(getComputedStyle(text).paddingBottom).not.toBe("0px");
+  });
+
+  it("makes no room for a scrollbar under text that does not scroll", async () => {
+    renderEditor("Short");
+
+    const text = await vi.waitFor(() => {
+      const prose = host.querySelector<HTMLElement>(
+        ".milkdown-editor .ProseMirror",
+      );
+      expect(prose?.textContent).toContain("Short");
+      return prose as HTMLElement;
+    });
+
+    expect(getComputedStyle(text).paddingBottom).toBe("0px");
+  });
 });
