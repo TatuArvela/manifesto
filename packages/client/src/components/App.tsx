@@ -74,6 +74,7 @@ import { MobileNav, Sidebar } from "./Sidebar.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 import { UnopenedNotes } from "./UnopenedNotes.js";
+import { UnsentNotes } from "./UnsentNotes.js";
 import { WelcomeDialog } from "./WelcomeDialog.js";
 
 // Fetched the first time they open, since most sessions never do.
@@ -440,6 +441,7 @@ function MainApp() {
                 <NoteInput />
                 {isActive && <InvitationList />}
                 {isActive && <UnopenedNotes />}
+                {isActive && <UnsentNotes />}
                 <NoteGrid />
               </div>
             ) : (
@@ -447,6 +449,7 @@ function MainApp() {
                 <NoteInput />
                 {isActive && <InvitationList />}
                 {isActive && <UnopenedNotes />}
+                {isActive && <UnsentNotes />}
                 <NoteGrid />
               </>
             )}

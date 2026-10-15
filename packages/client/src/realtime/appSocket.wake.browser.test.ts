@@ -47,6 +47,7 @@ vi.mock("../state/sharing.js", () => ({
   receiveInvitation: () => {},
 }));
 vi.mock("../state/ui.js", () => ({ editingNoteId }));
+vi.mock("../state/unsentNotes.js", () => ({ sendUnsent: async () => {} }));
 
 const dialled: FakeSocket[] = [];
 

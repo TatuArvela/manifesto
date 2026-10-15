@@ -127,7 +127,10 @@ the recovery key.
 - **Offline copies.** The copy of a note kept for editing offline
   ([Privacy](privacy.md#on-the-device)) is encrypted under a key derived from the account key. Today
   a session the server ended leaves those copies readable, so that edits made offline are not lost;
-  encrypted, they are kept and cannot be read until the account is unlocked there again.
+  encrypted, they are kept and cannot be read until the account is unlocked there again. The same
+  holds for the new-note composer's draft and for new notes waiting to be sent: each is sealed under
+  a key of its own derived from the account key, bound to the account, its key version and the
+  record, and opens only once the account is unlocked there again. Signing out deletes them.
 - **At every sign-in**, then, the secret key is entered again: typed, pasted from wherever the user
   keeps it, or scanned as a QR code from Settings on a device that is signed in, which shows it after
   a confirmation.
@@ -490,6 +493,10 @@ app's own screens has been run in a browser yet, so none of this is released:
   owner's copy of the link key is sealed under their personal key. The page opens the note, and its
   pictures, in the browser.
 - **Comments** are sealed under the note key, each bound to an id its writer chose.
+- **Notes not stored yet**: the composer's draft and new notes waiting for the server are kept on
+  the device sealed under a key derived from the account key, and kept through a session the server
+  ended. A note queued while the account key is replaced (step 8) would no longer open; nothing
+  re-seals them yet.
 - **An API or MCP token made in Settings** carries the notes key and the personal key, wrapped
   under a key derived from its secret, which the app makes and the server never sees until the
   token is used. For a request that presents it the server opens and seals notes in memory: notes,

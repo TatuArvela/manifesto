@@ -197,6 +197,26 @@ export const fi: Messages = {
   "editor.outdated.reload": "Lataa uudelleen",
   "editor.unopenedEdits":
     "Osaa tämän muistiinpanon muutoksista ei voitu avata tällä laitteella, eikä niitä näytetä.",
+  "unsent.heading": {
+    one: "{count} muistiinpano odottaa lähettämistä",
+    other: "{count} muistiinpanoa odottaa lähettämistä",
+  },
+  "unsent.explanation":
+    "Ne säilytetään tällä laitteella ja lähetetään heti, kun palvelimeen saadaan yhteys.",
+  "unsent.untitled": "Nimetön muistiinpano",
+  "unsent.refused":
+    "Palvelin ei ottanut tätä muistiinpanoa vastaan sellaisenaan. Muokkaa tai hylkää se.",
+  "unsent.edit": "Muokkaa",
+  "unsent.discard": "Hylkää",
+  "unsent.discardConfirm": "Hylätäänkö tämä muistiinpano?",
+  "unsent.discardBody": "Sitä ei ole lähetetty, joten sitä ei voi palauttaa.",
+  "unsent.sending": "Lähetetään…",
+  "unsent.signOutTitle": {
+    one: "Kirjaudutaanko ulos, vaikka {count} muistiinpano on lähettämättä?",
+    other: "Kirjaudutaanko ulos, vaikka {count} muistiinpanoa on lähettämättä?",
+  },
+  "unsent.signOutBody":
+    "Uloskirjautuminen poistaa ne tältä laitteelta, eikä niitä ole vielä tallennettu muualle.",
   "notes.unopened": {
     one: "{count} muistiinpanoa ei näytetä: sen avain ei ole saapunut tai ei aukea tällä laitteella.",
     other:

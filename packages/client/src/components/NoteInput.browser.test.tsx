@@ -2,6 +2,7 @@ import type { LinkPreview } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
+import { clearDraft, flushDraft, loadDraft } from "../state/composerDraft.js";
 import { incomingShare } from "../state/incomingShare.js";
 import {
   activeView,
@@ -11,6 +12,11 @@ import {
 } from "../state/index.js";
 import { LocalStorageAdapter } from "../storage/index.js";
 import { NoteInput } from "./NoteInput.js";
+
+// The composer keeps its draft on the device, which outlives a test: one
+// left behind would open in the next.
+beforeEach(() => clearDraft());
+afterEach(() => clearDraft());
 
 /**
  * `noteQuips` was persisted and never read: the setting saved, survived a
@@ -110,6 +116,72 @@ describe("NoteInput with an empty draft", () => {
       expect(document.querySelector('[role="dialog"]')).toBeNull(),
     );
     expect(notes.value).toHaveLength(0);
+  });
+});
+
+describe("NoteInput keeps its draft", () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    notes.value = [];
+    await clearDraft();
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    activeView.value = "active";
+    render(<NoteInput />, host);
+  });
+
+  afterEach(async () => {
+    render(null, host);
+    host.remove();
+    localStorage.clear();
+    notes.value = [];
+    await clearDraft();
+  });
+
+  async function open(): Promise<HTMLInputElement> {
+    (host.querySelector(".note-stack") as HTMLElement).click();
+    return await vi.waitFor(() => {
+      const title = document.querySelector<HTMLInputElement>(
+        `[role="dialog"] input[aria-label="${t("editor.titlePlaceholder")}"]`,
+      );
+      expect(title).toBeTruthy();
+      return title as HTMLInputElement;
+    });
+  }
+
+  function type(field: HTMLInputElement, text: string) {
+    field.value = text;
+    field.dispatchEvent(new InputEvent("input", { bubbles: true }));
+  }
+
+  it("brings a draft back after the page went away mid-note", async () => {
+    type(await open(), "Half a thought");
+    await vi.waitFor(async () => {
+      await flushDraft();
+      expect((await loadDraft())?.title).toBe("Half a thought");
+    });
+
+    // As a reload would: the composer is gone without being closed.
+    render(null, host);
+    render(<NoteInput />, host);
+    await open();
+    await vi.waitFor(() => {
+      const shown = document.querySelector<HTMLInputElement>(
+        `[role="dialog"] input[aria-label="${t("editor.titlePlaceholder")}"]`,
+      );
+      expect(shown?.value).toBe("Half a thought");
+    });
+  });
+
+  it("forgets the draft once the note is saved", async () => {
+    type(await open(), "Saved properly");
+    await vi.waitFor(async () => {
+      await flushDraft();
+      expect(await loadDraft()).not.toBeNull();
+    });
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(await loadDraft()).toBeNull();
   });
 });
 

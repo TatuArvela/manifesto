@@ -38,6 +38,7 @@ import {
   receiveInvitation,
 } from "../state/sharing.js";
 import { editingNoteId } from "../state/ui.js";
+import { sendUnsent } from "../state/unsentNotes.js";
 import { sealer } from "../storage/sealing.js";
 import { trackConnection } from "./connectionOutage.js";
 
@@ -379,6 +380,7 @@ function connect(token: string) {
       void loadInvitations();
       void refreshAccountPrefs();
       reloadComments();
+      void sendUnsent();
     } else {
       hasOpenedOnce = true;
     }

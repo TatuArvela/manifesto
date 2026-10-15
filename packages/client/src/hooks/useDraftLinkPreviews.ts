@@ -18,6 +18,8 @@ export interface DraftLinkPreviews {
   previews: LinkPreview[];
   add(urls: string[]): void;
   remove(index: number): void;
+  /** Puts back the previews of a kept draft, as they were kept. */
+  restore(previews: LinkPreview[]): void;
   /** Hands over the previews still loading; the draft stops waiting on them. */
   takePending(): Promise<LinkPreview | null>[];
   clear(): void;
@@ -62,6 +64,10 @@ export function useDraftLinkPreviews(): DraftLinkPreviews {
     },
     remove(index) {
       setPreviews(latest.current.filter((_, i) => i !== index));
+    },
+    restore(previews) {
+      pending.current = new Map();
+      setPreviews(previews);
     },
     takePending() {
       const handed = [...pending.current.values()];

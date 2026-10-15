@@ -14,12 +14,17 @@ import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { holdFocus, useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
 import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
+import {
+  type ComposerDraft,
+  clearDraft,
+  isEmptyDraft,
+  loadDraft,
+  saveDraft,
+} from "../state/composerDraft.js";
 import { type IncomingShare, incomingShare } from "../state/incomingShare.js";
 import {
   activeView,
   animations,
-  applyLinkPreviews,
-  createNote,
   defaultNoteColor,
   defaultNoteFont,
   newNoteRequested,
@@ -30,6 +35,7 @@ import {
   showError,
   viewMode,
 } from "../state/index.js";
+import { queueNote } from "../state/unsentNotes.js";
 import { placedImageAlts, placeImages } from "../utils/drawing.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import {
@@ -108,6 +114,15 @@ export function NoteInput() {
   const morphFromRef = useRef<{ rect: RectLike; opaque: boolean } | null>(null);
   const [morphing, setMorphing] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Whether the kept draft has been read since the editor opened. Until it
+  // has, what the editor holds is not written over it: an editor that has
+  // only just opened is empty, and would clear the draft it is about to show.
+  const [draftRead, setDraftRead] = useState(false);
+  // Which opening a draft that arrives belongs to.
+  const openingRef = useRef(0);
+  // Raised as a kept draft is put in, to build the editor again around it:
+  // the editor takes its text when it is built and follows only itself after.
+  const [filled, setFilled] = useState(0);
 
   const after = (ms: number, fn: () => void) => {
     timersRef.current.push(setTimeout(fn, ms));
@@ -218,6 +233,7 @@ export function NoteInput() {
   };
 
   const reset = () => {
+    setDraftRead(false);
     setTitle("");
     setContent("");
     setColor(stackColor);
@@ -227,6 +243,35 @@ export function NoteInput() {
     setImages([]);
     setImageAlts([]);
     drafts.clear();
+  };
+
+  /** Puts a kept draft into the editor. */
+  const fill = (draft: ComposerDraft) => {
+    setTitle(draft.title);
+    setContent(draft.content);
+    setColor(draft.color);
+    setFont(draft.font);
+    setPinned(draft.pinned);
+    setTags(draft.tags);
+    setImages(draft.images);
+    setImageAlts(draft.imageAlts);
+    drafts.restore(draft.linkPreviews);
+    setFilled((n) => n + 1);
+  };
+
+  /**
+   * Reads the kept draft into the editor as it opens. `incoming` is a note
+   * shared to the app, which takes the editor instead: a kept draft is then
+   * saved as a note of its own rather than written over.
+   */
+  const readDraft = (incoming = false) => {
+    const opening = ++openingRef.current;
+    void loadDraft().then((kept) => {
+      if (opening !== openingRef.current) return;
+      if (kept && incoming) void queueNote(kept);
+      else if (kept) fill(kept);
+      setDraftRead(true);
+    });
   };
 
   const cycleCta = () => {
@@ -256,6 +301,7 @@ export function NoteInput() {
     // the focus trap neither takes focus off it nor gives focus back to it.
     holdFocus(focusCatcherRef.current);
     setStackColor(pickDefaultColor());
+    readDraft();
     // With motion off there is nothing to wait for or grow out of.
     if (!animations.value) {
       setMorphing(false);
@@ -321,19 +367,20 @@ export function NoteInput() {
       snap.images.length > 0 ||
       snap.linkPreviews.length > 0
     ) {
-      const pending = drafts.takePending();
-      void createNote(snap).then((note) => {
-        if (note && pending.length > 0)
-          void applyLinkPreviews(note.id, pending);
-      });
+      void queueNote(snap, drafts.takePending());
     } else {
       void drafts.takePending();
     }
+    // After the note is queued, which keeps it: nothing is between the two.
+    openingRef.current++;
+    void clearDraft();
     finishClose();
   };
 
   const discardNote = () => {
     void drafts.takePending();
+    openingRef.current++;
+    void clearDraft();
     finishClose();
   };
 
@@ -345,6 +392,7 @@ export function NoteInput() {
     setImages(incoming.images);
     setImageAlts([]);
     drafts.add(extractUrls(incoming.content));
+    readDraft(true);
     // No gesture to grow out of: the app has just been opened for this.
     setMorphing(false);
     setExpanded(true);
@@ -353,6 +401,37 @@ export function NoteInput() {
   // not run again whenever the handlers are rebuilt.
   const openersRef = useRef({ openNew, openShare });
   openersRef.current = { openNew, openShare };
+
+  // The draft is kept as it changes, so a page put away loses none of it.
+  useEffect(() => {
+    if (!expanded || closing || !draftRead) return;
+    const draft: ComposerDraft = {
+      title,
+      content,
+      color,
+      font,
+      pinned,
+      tags,
+      images,
+      imageAlts,
+      linkPreviews,
+    };
+    if (isEmptyDraft(draft)) void clearDraft();
+    else saveDraft(draft);
+  }, [
+    expanded,
+    closing,
+    draftRead,
+    title,
+    content,
+    color,
+    font,
+    pinned,
+    tags,
+    images,
+    imageAlts,
+    linkPreviews,
+  ]);
 
   // Escape closes the editor, saving as clicking outside does. Anything
   // opened from inside the editor registers later and takes the key first.
@@ -485,6 +564,7 @@ export function NoteInput() {
           onBack={() => closeModal()}
         >
           <editor.NoteEditor
+            key={filled}
             title={title}
             onTitleChange={setTitle}
             content={content}

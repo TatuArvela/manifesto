@@ -26,7 +26,11 @@ import {
 } from "@manifesto/shared";
 import { ulid } from "ulid";
 import { dataUrlToBlob } from "../utils/dataUrl.js";
-import type { NoteChanges, StorageAdapter } from "./StorageAdapter.js";
+import type {
+  CreateOptions,
+  NoteChanges,
+  StorageAdapter,
+} from "./StorageAdapter.js";
 import { LockedError, type NoteSealing } from "./sealing.js";
 
 /** Under the server's 1 MiB body limit, with room for the request's own
@@ -62,6 +66,17 @@ export class NoteConflictError extends Error {
   constructor(public currentNote: Note) {
     super("Note has changed");
     this.name = "NoteConflictError";
+  }
+}
+
+/** A request the server answered with a refusal: `status` says which. */
+export class RequestError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "RequestError";
   }
 }
 
@@ -121,7 +136,7 @@ export class RestApiAdapter implements StorageAdapter {
     } catch {
       // body was not JSON; keep the fallback message
     }
-    throw new Error(errorMessage(data, fallback));
+    throw new RequestError(res.status, errorMessage(data, fallback));
   }
 
   /**
@@ -432,10 +447,13 @@ export class RestApiAdapter implements StorageAdapter {
     };
   }
 
-  async create(note: NoteCreate): Promise<Note> {
+  async create(note: NoteCreate, options: CreateOptions = {}): Promise<Note> {
     const sealing = this.sealing();
-    // The id is chosen here: everything sealed is bound to it.
-    const sealed = await sealing.sealNew(ulid(), await this.withUploads(note));
+    // The id is chosen on this side: everything sealed is bound to it.
+    const sealed = await sealing.sealNew(
+      options.id ?? ulid(),
+      await this.withUploads(note),
+    );
     const res = await fetch(`${this.baseUrl}/api/notes`, {
       method: "POST",
       headers: this.headers(),

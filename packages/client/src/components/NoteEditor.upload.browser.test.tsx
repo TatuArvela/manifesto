@@ -2,10 +2,16 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { forgetAttachmentUrls } from "../state/attachments.js";
+import { clearDraft } from "../state/composerDraft.js";
 import { drawingRequest } from "../state/drawing.js";
 import { activeView, notes } from "../state/index.js";
 import { currentStorage } from "../storage/index.js";
 import { NoteInput } from "./NoteInput.js";
+
+// The composer keeps its draft on the device, which outlives a test: one
+// left behind would open in the next.
+beforeEach(() => clearDraft());
+afterEach(() => clearDraft());
 
 const REF = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV";
 const PNG = Uint8Array.from(

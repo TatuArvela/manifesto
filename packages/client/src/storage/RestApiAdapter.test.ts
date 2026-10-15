@@ -230,14 +230,44 @@ describe("RestApiAdapter", () => {
       expect(result).toEqual(created);
       const init = lastCallInit(fetchMock);
       expect(init.method).toBe("POST");
-      expect(JSON.parse(init.body as string)).toEqual(input);
+      expect(JSON.parse(init.body as string)).toEqual({
+        ...input,
+        id: expect.any(String),
+      });
     });
 
-    it("throws on failure", async () => {
-      fetchMock.mockResolvedValueOnce(new Response("", { status: 400 }));
-      await expect(adapter.create({} as never)).rejects.toThrow(
-        "Failed to create note",
+    it("sends the note under the id it is given", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ note: makeNote({ id: "01CHOSEN" }) }),
       );
+      await adapter.create(
+        {
+          title: "Queued",
+          content: "",
+          color: NoteColor.Default,
+          font: NoteFont.Default,
+          pinned: false,
+          archived: false,
+          trashed: false,
+          trashedAt: null,
+          position: 0,
+          tags: [],
+          images: [],
+          linkPreviews: [],
+          reminder: null,
+        },
+        { id: "01CHOSEN" },
+      );
+      expect(JSON.parse(lastCallInit(fetchMock).body as string).id).toBe(
+        "01CHOSEN",
+      );
+    });
+
+    it("throws on failure, saying what the server answered", async () => {
+      fetchMock.mockResolvedValueOnce(new Response("", { status: 400 }));
+      const refusal = adapter.create({} as never);
+      await expect(refusal).rejects.toThrow("Failed to create note");
+      await expect(refusal).rejects.toMatchObject({ status: 400 });
     });
   });
 

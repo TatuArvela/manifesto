@@ -193,6 +193,26 @@ export const en = {
   "editor.outdated.reload": "Reload",
   "editor.unopenedEdits":
     "Some changes to this note could not be opened on this device and are not shown.",
+  "unsent.heading": {
+    one: "{count} note is waiting to be sent",
+    other: "{count} notes are waiting to be sent",
+  },
+  "unsent.explanation":
+    "They are kept on this device and sent as soon as the server can be reached.",
+  "unsent.untitled": "Untitled note",
+  "unsent.refused":
+    "The server would not take this note as it is. Edit it, or discard it.",
+  "unsent.edit": "Edit",
+  "unsent.discard": "Discard",
+  "unsent.discardConfirm": "Discard this note?",
+  "unsent.discardBody": "It has not been sent, so it cannot be brought back.",
+  "unsent.sending": "Sending…",
+  "unsent.signOutTitle": {
+    one: "Sign out with {count} note not sent?",
+    other: "Sign out with {count} notes not sent?",
+  },
+  "unsent.signOutBody":
+    "Signing out removes them from this device, and they are not stored anywhere else yet.",
   "notes.unopened": {
     one: "{count} note is not shown: its key has not arrived or does not open on this device.",
     other:

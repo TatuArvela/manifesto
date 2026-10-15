@@ -6,6 +6,10 @@ Notes are the core entity in Manifesto. A note is a card with a title, markdown 
 
 A persistent "Take a note..." input bar sits at the top of the note grid. On focus, it expands to reveal separate title and content fields. Pressing Done (✓) creates the note, even an empty one. Closing any other way (Escape, clicking outside, the back arrow on phones) creates it only if it has a title, content, images or link previews, so opening the pad by accident leaves nothing behind. The discard button (✕) throws the draft away.
 
+The draft is kept on the device as it is written, and comes back the next time the pad is opened, so a reload, a closed tab or a phone putting the app away loses nothing. Saving or discarding the note clears it. One draft is kept a device: two tabs writing at once keep whichever wrote last. A note shared to the installed app opens in the pad in its place, and a draft already kept is then saved as a note of its own.
+
+In connected mode a new note is queued on the device before it is sent, so one written while the server cannot be reached is not lost. It is sent as soon as there is reason to think the server is back (the browser going online, the app reconnecting, the account being unlocked), under the id it was given when queued, so a note whose answer was lost is found rather than made twice. A note sent at once never shows as waiting; one that is not is listed above the board as waiting to be sent, where it can be taken back into the pad to be changed, or discarded. One the server refuses as it is (too long, say) is not sent again, and says so. These notes are not on the board until they land, since they are stored nowhere else yet.
+
 Opening the pad peels its top sheet off first, and only once the sheet is free does the editor grow out of it. On a phone, where the pad is a floating + button, the editor grows out of the button.
 
 New notes default to: color `default` (or the user's chosen default color, which may be random), font `default` (or user's chosen default), not pinned, not archived, not trashed, no tags.

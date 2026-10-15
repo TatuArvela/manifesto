@@ -1,9 +1,11 @@
 import { LogOut, UserCog } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { t } from "../i18n/index.js";
+import { plural, t } from "../i18n/index.js";
 import { currentUser, isServerMode } from "../state/auth.js";
+import { askConfirmation } from "../state/confirm.js";
 import { signOut } from "../state/signOut.js";
 import { openSettings } from "../state/ui.js";
+import { unsentNotes } from "../state/unsentNotes.js";
 import { Avatar } from "./Avatar.js";
 import { Dropdown } from "./Dropdown.js";
 import { menuDividerClass, menuItemClass, menuPanelClass } from "./NoteMenu.js";
@@ -71,9 +73,21 @@ export function AccountMenu() {
       <button
         type="button"
         class={menuItemClass}
-        onClick={() => {
+        onClick={async () => {
           setOpen(false);
-          void signOut();
+          // Signing out takes them off this device, the only place they are.
+          const unsent = unsentNotes.peek().length;
+          if (
+            unsent > 0 &&
+            !(await askConfirmation({
+              title: plural("unsent.signOutTitle", unsent),
+              body: t("unsent.signOutBody"),
+              confirmLabel: t("login.signOut"),
+            }))
+          ) {
+            return;
+          }
+          await signOut();
         }}
       >
         <LogOut class="w-4 h-4" />
