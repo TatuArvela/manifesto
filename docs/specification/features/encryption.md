@@ -1,11 +1,11 @@
 # Encryption
 
-**Status: planned before 1.0.0, design chosen, being built.** Steps 1 to 3 and 5 of
-[the order of building](#order-of-building) are in place, and part of step 4: every account has its
-keys and is unlocked with its secret key, and a note's title, text, tags, colour, images and shared
-document are sealed in the browser. The rest
-is not, and [what is built so far](#what-is-built-so-far) lists what still reaches the server
-readable. This page says what protects notes now and the design chosen:
+**Status: planned before 1.0.0, design chosen, being built.** Steps 1 to 7 of
+[the order of building](#order-of-building) are in place: every account has its keys and is unlocked
+with its secret key, and everything a person writes in a note (its title, text, tags, colour, images,
+shared document, versions and comments) is sealed in the browser. Step 8, replacing the account key,
+is not, and [what is built so far](#what-is-built-so-far) says where the build is narrower than the
+design. None of it is released yet. This page says what protects notes now and the design chosen:
 [end-to-end encryption for every account](#the-design-end-to-end-for-every-account) in connected
 mode. Notes are encrypted in the browser before they reach the server, and the server stores them
 without a key that opens them.

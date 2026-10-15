@@ -199,7 +199,12 @@ export function createLocalAuthRouter(
         audit(deps.storage, c, {
           action: "auth.sign_in_failed",
           targetId: user?.id ?? null,
-          detail: { username, reason: "unknown_account" },
+          // A name no account holds is not kept: it is often a password
+          // typed into the wrong field, or someone else's address.
+          detail: {
+            ...(user && { username: user.username }),
+            reason: "unknown_account",
+          },
         });
         throw new HttpError(401, "Invalid username or password");
       }

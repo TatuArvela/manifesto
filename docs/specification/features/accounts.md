@@ -64,7 +64,8 @@ things: **Account settings**, which opens the Settings modal on the account's pa
 Open mode has no accounts, so the button is not there at all.
 
 The Settings modal lists the account's pages above the general ones, headed by the user as a profile
-card: **Account** (email address and, under local sign-in, **Change password**), **Two-factor
+card: **Account** (email address, under local sign-in **Change password**, and
+[**Delete account**](#deleting-your-own-account)), **Two-factor
 sign-in** under local sign-in, **API tokens**, and **Webhooks** when the server enables them. Open
 mode shows only the general pages.
 
@@ -135,6 +136,27 @@ one twice. It is offered only under local sign-in. A successful change keeps the
 ends every other session of the account, including its open sockets. A wrong current password counts
 against the same per-account budget as a failed sign-in, and `429` answers while the account is locked.
 
+## Deleting your own account
+
+**Delete account** at the foot of the Account settings page removes the account and everything it
+holds, the same as an admin's delete from the Users view: its notes, their versions and images, its
+shares both ways, public links, sessions, tokens, webhooks, passkeys, keys and preferences. Its notes
+disappear for everyone they were shared with; notes others shared with it stay theirs, and a comment
+it wrote on one stays there without a name ("Former participant"). It is offered under every kind of
+sign-in, and asks twice: a first press opens the step that explains what goes, and that step takes
+the password (or, under single sign-on, a recent sign-in), as the other
+[confirmed changes](#confirming-a-change-from-a-session) do.
+
+`DELETE /api/auth/me` does it, from a session only, and is audited as `auth.account_deleted`. The
+last admin is refused (`409`) and asked to make someone else an admin first. The browser it was done
+from is then left as signing out leaves it: the session, the offline copies of notes and the push
+subscription go. Under single sign-on with `OIDC_AUTO_REGISTER` on, signing in again makes a new,
+empty account.
+
+What stays after an account is deleted, until it expires: the [audit log](#audit-log)'s entries about
+it, for `AUDIT_RETENTION_DAYS`, and the [backups](../server/deployment.md) taken before, for as long as
+the operator keeps them.
+
 ## Confirming a change from a session
 
 A session can be stolen: a device left signed in, a token lifted from a browser. `sessionOnly` already
@@ -146,7 +168,8 @@ the changes that would let whoever holds one keep the account or its notes ask a
 - adding a **webhook**, which sends every note from then on to its address,
 - turning **two-factor sign-in** on or off, or adding or removing a **passkey** (these asked before),
 - showing the **secret key**, replacing it or the **recovery key**, or starting the account again
-  ([Encryption](encryption.md#unlocking)).
+  ([Encryption](encryption.md#unlocking)),
+- [deleting the account](#deleting-your-own-account).
 
 An account with a password confirms with it, typed into the same form. Wrong passwords count against
 the same per-name budget as signing in, ten in fifteen minutes, so a stolen session cannot guess at
@@ -313,8 +336,10 @@ Accounts from single sign-on have no password here and are not offered a reset.
 ## Audit log
 
 The server records who did what to which account or note, and from where, in `audit_log`: sign-ins
-(with the method, and whether two-factor was used), failed sign-ins (with the name tried and why:
-unknown account, wrong password, wrong code, a passkey refused, or single sign-on refused), sign-outs, password changes and
+(with the method, and whether two-factor was used), failed sign-ins (with why: unknown account, wrong
+password, wrong code, a passkey refused, or single sign-on refused, and the account's name when the
+name tried matched one; a name that matched none is not kept, since it is often a password typed into
+the wrong field), sign-outs, accounts their owners deleted, password changes and
 resets, two-factor turned on or off, passkeys added or removed, API tokens and webhooks created or
 removed, a browser subscribed to push reminders (with the push service it uses, once a browser, not
 at each renewal), shares created, changed

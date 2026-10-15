@@ -86,6 +86,11 @@ export const authMeUpdateSchema = z.object({
   password: confirmationPassword,
 });
 
+/** Deleting one's own account: only the confirmation. */
+export const authMeDeleteSchema = z.object({
+  password: confirmationPassword,
+});
+
 /** A language tag such as `fi` or `en-GB`; mail falls back to English for one
  * it has no text in. */
 export const authLocaleSchema = z.object({

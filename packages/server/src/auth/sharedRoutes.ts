@@ -7,16 +7,20 @@ import {
   type SealedAccountPrefsResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
+import { audit } from "../audit/audit.js";
 import { auditPage } from "../audit/auditPage.js";
 import type { ServerConfig } from "../config.js";
+import { logger } from "../lib/logger.js";
 import { nowIso } from "../lib/time.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
+import { deleteAccount } from "../sharing/deleteAccount.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
   accountPrefsUpdateSchema,
   authLocaleSchema,
+  authMeDeleteSchema,
   authMeUpdateSchema,
 } from "../validation/schemas.js";
 import { validatorHook } from "../validation/zValidator.js";
@@ -35,7 +39,8 @@ interface SharedAuthRoutesDeps {
   broadcaster?: Broadcaster;
   loginAttempts: LoginAttempts;
   revocations: SessionRevocations;
-  /** For starting an account again, which takes its notes from everyone. */
+  /** For starting an account again or deleting it, either of which takes
+   * its notes from everyone. */
   noteEvents: NoteEvents;
 }
 
@@ -93,6 +98,34 @@ export function createAuthSharedRoutes(
         user: toAuthUser({ ...user, email }),
       };
       return c.json(body);
+    },
+  );
+
+  /**
+   * Deletes the signed-in user's account, as an admin's delete does: its
+   * notes go from everyone they were shared with, and its sessions end. With
+   * the password, since a stolen session must not be able to erase the
+   * account (`requireConfirmation`), and from a session only. The last admin
+   * is refused (`409`), as everywhere else.
+   */
+  router.delete(
+    "/me",
+    zValidator("json", authMeDeleteSchema, validatorHook),
+    async (c) => {
+      const auth = c.get("auth");
+      await requireConfirmation(deps, auth, c.req.valid("json").password);
+      const result = await deleteAccount(deps, auth.userId);
+      if (result === "not-found") throw new HttpError(401, "User not found");
+      if (result === "last-admin") {
+        throw new HttpError(409, "The server must keep at least one admin");
+      }
+      logger.info("A user deleted their account", { userId: auth.userId });
+      audit(deps.storage, c, {
+        action: "auth.account_deleted",
+        actorId: auth.userId,
+        targetId: auth.userId,
+      });
+      return c.body(null, 204);
     },
   );
 

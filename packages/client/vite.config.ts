@@ -147,6 +147,8 @@ function resolveBranding(env: Record<string, string>) {
       ? "instance"
       : "app",
     orgName: pick(env.VITE_ORG_NAME, ""),
+    // Where the operator's privacy notice is, linked from sign-in and About.
+    privacyUrl: pick(env.VITE_PRIVACY_URL, ""),
     appLogo,
     orgLogo,
     appLogoDark,
@@ -184,7 +186,8 @@ function applyBranding(
     .replaceAll("%ORG_LOGO%", branding.orgLogo?.name ?? "")
     .replaceAll("%APP_LOGO_DARK%", branding.appLogoDark?.name ?? "")
     .replaceAll("%INSTANCE_LOGO_DARK%", branding.instanceLogoDark?.name ?? "")
-    .replaceAll("%ORG_LOGO_DARK%", branding.orgLogoDark?.name ?? "");
+    .replaceAll("%ORG_LOGO_DARK%", branding.orgLogoDark?.name ?? "")
+    .replaceAll("%PRIVACY_URL%", encode(branding.privacyUrl));
 }
 
 /**
@@ -373,6 +376,7 @@ export default defineConfig(({ mode }) => {
         appLogoDark: branding.appLogoDark?.name ?? "",
         instanceLogoDark: branding.instanceLogoDark?.name ?? "",
         orgLogoDark: branding.orgLogoDark?.name ?? "",
+        privacyUrl: branding.privacyUrl,
       }),
     },
     resolve: {

@@ -7,6 +7,7 @@ paths:
   - "packages/client/public/**"
   - "packages/client/src/components/BrandLogo.tsx"
   - "packages/client/src/utils/serverCsp.ts"
+  - "packages/client/src/utils/privacyUrl.ts"
   - "packages/client/src/storage/apiRequest.ts"
   - "packages/client/src/state/auth.ts"
   - "packages/client/src/main.tsx"
@@ -40,10 +41,13 @@ publishes as `app-logo.<ext>`, `instance-logo.<ext>`, `org-logo.<ext>`, each wit
 `BrandLogo`, never a bare `<img>`: it picks the variant by the app's `.dark` class, and inverts
 only the app's logo, only when it has no dark variant.
 
-Besides those, two more deployment parameters are read from `index.html`:
-`welcome-dialog` and `manifesto-server` (`resolveServerUrl`, feeding `SERVER_URL` /
-`isServerMode` in `state/auth.ts`). The last one is not branding and carries a trap the others
-do not. The server address and the CSP
+Besides those, three more deployment parameters are read from `index.html`:
+`welcome-dialog`, `privacy-url` (`PRIVACY_URL`, the operator's privacy notice, linked from the
+sign-in screen and About) and `manifesto-server` (`resolveServerUrl`, feeding `SERVER_URL` /
+`isServerMode` in `state/auth.ts`). `privacy-url` becomes a link's `href`, so it goes through
+`resolvePrivacyUrl` (`utils/privacyUrl.ts`), which takes only an `http(s):` URL or a path on the
+site; a new parameter that ends up in an `href` needs the same. The last one is not branding and
+carries a trap the others do not. The server address and the CSP
 that permits reaching it live in the same file, and the build writes both
 together (`cspForServer` derives `connect-src` from `VITE_MANIFESTO_SERVER`)
 while a hand edit writes one and forgets the other. Forgetting it gives a login

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LOCAL_COPY_PREFIX } from "../realtime/localNoteCopies.js";
 import { authToken, currentUser } from "./auth.js";
 import { notes } from "./notesStore.js";
-import { signOut } from "./signOut.js";
+import { deleteOwnAccount, signOut } from "./signOut.js";
 
 /**
  * Signing out must leave none of the account's notes in this browser. The
@@ -108,5 +108,23 @@ describe("signOut", () => {
     });
     await expect(signOut()).resolves.toBeUndefined();
     expect(authToken.value).toBeNull();
+  });
+});
+
+describe("deleteOwnAccount", () => {
+  it("keeps the session and the offline copies when the account was not deleted", async () => {
+    // This build is open mode, so the request cannot be made: the case of
+    // any refusal, after which nothing on the device may be lost.
+    const id = `d-${unique()}`;
+    const copy = `${LOCAL_COPY_PREFIX}${id}`;
+    await createDatabase(copy);
+    notes.value = [note(id)];
+
+    expect(await deleteOwnAccount("test-pass-12")).toBe("failed");
+
+    expect(authToken.value).toBe("session-token");
+    vi.restoreAllMocks();
+    expect(await existing([copy])).toEqual([copy]);
+    indexedDB.deleteDatabase(copy);
   });
 });

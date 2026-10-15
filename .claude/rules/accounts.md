@@ -6,6 +6,8 @@ paths:
   - "packages/server/src/routes/admin*.ts"
   - "packages/server/src/routes/tokens*.ts"
   - "packages/server/src/storage/contracts/adminContract.ts"
+  - "packages/server/src/sharing/deleteAccount.ts"
+  - "packages/client/src/state/signOut.ts"
   - "packages/client/src/state/auth.ts"
   - "packages/client/src/state/admin.ts"
   - "packages/client/src/components/settings/**"
@@ -56,9 +58,19 @@ the password, counted against the sign-in budget in the shared `loginAttempts`, 
 without one a sign-in within 15 minutes. A new action of that kind calls it too, and its client form
 uses `ConfirmPasswordField` and `ConfirmationError`.
 
+An account is deleted through `deleteAccount` (`sharing/deleteAccount.ts`), whoever asks: the admin's
+`DELETE /api/admin/users/:id` and the owner's own `DELETE /api/auth/me` (session only, with
+`requireConfirmation`). It reads the account's shares before the cascade takes them, so the people on
+the other end hear of it, and closes its sockets. A new table that holds something of an account's
+references `users(id) ON DELETE CASCADE` (or `SET NULL` where the row is someone else's, like a
+comment's author), or deleting the account leaves it behind. On the client `deleteOwnAccount`
+(`state/signOut.ts`) leaves the browser as a sign-out does, and only once the server said yes.
+
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
-catalogues, which `AuditLog.test.ts` checks. The request's address is keyed on `c.req`, never
+catalogues, which `AuditLog.test.ts` checks. An entry's `detail` holds only what the server
+already knows about an account: a failed sign-in names the account it matched, never a name that
+matched none, since that is often a password typed into the wrong field. The request's address is keyed on `c.req`, never
 `c.req.raw`: `bodyLimit` replaces the raw request whenever there is a body. Each user reads their
 own lines on the Activity page of Settings (`/api/auth/me/activity`, built by the same `auditPage`
 as the admin's log), so an admin action that reaches into an account must be audited with that

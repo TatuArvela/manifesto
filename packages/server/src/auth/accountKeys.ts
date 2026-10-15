@@ -96,7 +96,12 @@ async function recoveryKeysOf(
     audit(deps.storage, c, {
       action: "auth.sign_in_failed",
       targetId: user?.id ?? null,
-      detail: { username, reason: "recovery_key" },
+      // Only an account's own name: one nobody holds is often a password
+      // typed into the wrong field (as at `/login`).
+      detail: {
+        ...(user && { username: user.username }),
+        reason: "recovery_key",
+      },
     });
     throw new HttpError(
       status,

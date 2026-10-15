@@ -25,6 +25,7 @@ import { newId } from "../lib/ulid.js";
 import type { Mailer, MailStatus } from "../mail/mailer.js";
 import type { AuthContext } from "../middleware/authBearer.js";
 import { emailTaken, HttpError } from "../middleware/error.js";
+import { deleteAccount } from "../sharing/deleteAccount.js";
 import type { NoteEvents } from "../sharing/noteEvents.js";
 import type { TeamShares } from "../sharing/teamShares.js";
 import {
@@ -262,18 +263,7 @@ export function createAdminRoutes(deps: AdminDeps) {
   admin.delete("/users/:id", async (c) => {
     const id = c.req.param("id") as string;
     refuseSelf(c, id);
-    // Read before the delete: the shares go with the account by cascade,
-    // and the people on the other end of them still have to hear about it.
-    const onTheirNotes = await deps.storage.shares.listByOwner(id);
-    const onOthersNotes = await deps.storage.shares.listByRecipient(id);
-    refuseGuarded(await deps.storage.users.delete(id));
-    // The rows went with the user by cascade; what is left to end is any
-    // socket still open on one of them.
-    deps.revocations.revoke({ userId: id });
-    deps.noteEvents.ended(onTheirNotes);
-    for (const noteId of new Set(onOthersNotes.map((s) => s.noteId))) {
-      await deps.noteEvents.changed(noteId);
-    }
+    refuseGuarded(await deleteAccount(deps, id));
     logger.info("Admin deleted an account", {
       adminId: c.get("auth").userId,
       userId: id,

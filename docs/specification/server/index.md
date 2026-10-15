@@ -129,8 +129,8 @@ accepted (`null` while it is an invitation), and their own copy of the personal 
   trash hides a note from recipients while a recipient's is their own, an expired recipient trash
   removes only their share, cascades take shares along.
 
-`USER_LOOKUP` decides what `GET /api/users` answers: matches as the owner types (`search`), or only an
-exact username or address, never showing the address (`exact`).
+`USER_LOOKUP` decides what `GET /api/users` answers: only an exact username or address, never
+showing the address (`exact`, the default), or matches as the owner types (`search`).
 
 ### Link previews
 

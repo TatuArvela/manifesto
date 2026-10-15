@@ -38,10 +38,14 @@ To invite someone, the owner looks them up, picks a role, and chooses **Invite**
 
 | `USER_LOOKUP` | The owner types | Matches | Shows |
 |---|---|---|---|
-| `search` *(default)* | Any part of a name | Username, display name or email address containing it, as they type | Name, username and email |
-| `exact` | A whole username or email, then **Find** | Only an account with exactly that username or address (case-insensitive) | Name and username, never the address |
+| `exact` *(default)* | A whole username or email, then **Find** | Only an account with exactly that username or address (case-insensitive) | Name and username, never the address |
+| `search` | Any part of a name | Username, display name or email address containing it, as they type | Name, username and email |
 
-`search` suits a team that knows each other. `exact` is for a server where the list of accounts is nobody's business: nobody can browse it, and knowing someone's username does not reveal their address. Both leave out the person searching and are rate-limited like the rest of the API.
+`exact` is the default because the list of accounts is nobody's business unless the operator says
+otherwise: nobody can browse it, and knowing someone's username does not reveal their address.
+`search` suits a team that knows each other, on a server where only its members have accounts.
+Under it anyone who can sign in can collect every address on the server, ten at a time, so it is no
+setting for a server that lets anyone register. Both leave out the person searching and are rate-limited like the rest of the API.
 
 ## Accepting
 
