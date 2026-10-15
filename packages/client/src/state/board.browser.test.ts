@@ -64,7 +64,7 @@ describe("board picture", () => {
   });
 
   it("gives the board back to the composition when set aside, and keeps it on offer", async () => {
-    boardColor.value = "sage";
+    boardColor.value = "green";
     boardTexture.value = "dots";
     await setBoardImage(await photo(40, 40));
     await vi.waitFor(() => expect(boardImageVar()).toContain("blob:"));
@@ -74,7 +74,7 @@ describe("board picture", () => {
     expect(boardImageVar()).toBe("");
     expect(document.documentElement.dataset.boardPicture).toBeUndefined();
     expect(boardImageUrl.value).toContain("blob:");
-    expect(document.documentElement.dataset.boardColor).toBe("sage");
+    expect(document.documentElement.dataset.boardColor).toBe("green");
     expect(document.documentElement.dataset.boardTexture).toBe("dots");
   });
 

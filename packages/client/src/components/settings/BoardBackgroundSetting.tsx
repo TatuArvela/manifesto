@@ -8,11 +8,12 @@ import {
 } from "../../state/board.js";
 import {
   BOARD_COLORS,
+  BOARD_NEUTRALS,
   BOARD_TEXTURES,
-  type BoardColorChoice,
   type BoardTextureChoice,
   boardColor,
   boardCustomColor,
+  boardGradient,
   boardImageStamp,
   boardTexture,
   boardUsePicture,
@@ -21,10 +22,17 @@ import {
   resolvedBoardColor,
   resolvedBoardTexture,
 } from "../../state/index.js";
+import { BoardGradientPicker } from "./BoardGradientPicker.js";
+import { BoardInkPicker } from "./BoardInkPicker.js";
+import { boardColorLabel } from "./boardLabels.js";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =
   "outline-2 outline-offset-2 outline-blue-500 dark:outline-blue-400";
+
+/** Between the groups of the composer: each colour, then the pattern. In the
+ * shade of the small separators inside the swatch rows. */
+const divider = <hr class="border-neutral-300 dark:border-white/15" />;
 
 const legendClass =
   "text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2";
@@ -53,10 +61,6 @@ function BoardPreview({ class: className }: { class: string }) {
   );
 }
 
-function colorLabel(color: BoardColorChoice): string {
-  return t(`settings.boardBackground.${color}`);
-}
-
 function textureLabel(texture: BoardTextureChoice): string {
   return t(`settings.boardBackground.texture.${texture}`);
 }
@@ -83,17 +87,27 @@ export function BoardBackgroundSetting() {
   );
   const color = boardColor.value;
   const texture = boardTexture.value;
+  const gradient = boardGradient.value;
+  // A colour fading to another reads as one choice, "Sand to Mist".
+  const colorSummary =
+    gradient === "none"
+      ? boardColorLabel(color)
+      : t("settings.boardBackground.gradient.summary", {
+          from: boardColorLabel(color),
+          to: boardColorLabel(gradient),
+        });
+  const plainColor = color === "none" && gradient === "none";
 
   const summary = showingPicture
     ? t("settings.boardBackground.picture")
-    : color === "none" && texture === "none"
+    : plainColor && texture === "none"
       ? t("settings.boardBackground.none")
       : texture === "none"
-        ? colorLabel(color)
-        : color === "none"
+        ? colorSummary
+        : plainColor
           ? textureLabel(texture)
           : t("settings.boardBackground.summary", {
-              color: colorLabel(color),
+              color: colorSummary,
               texture: textureLabel(texture),
             });
 
@@ -175,7 +189,9 @@ export function BoardBackgroundSetting() {
                       {t("settings.boardBackground.color")}
                     </legend>
                     <div class="flex flex-wrap gap-2 sm:gap-2.5">
-                      {(["none", ...BOARD_COLORS] as const).map((choice) => (
+                      {(
+                        ["none", ...BOARD_NEUTRALS, ...BOARD_COLORS] as const
+                      ).map((choice) => (
                         <button
                           key={choice}
                           type="button"
@@ -186,9 +202,9 @@ export function BoardBackgroundSetting() {
                               boardColor.value = choice;
                             })
                           }
-                          aria-label={colorLabel(choice)}
+                          aria-label={boardColorLabel(choice)}
                           aria-pressed={composing && color === choice}
-                          title={colorLabel(choice)}
+                          title={boardColorLabel(choice)}
                         >
                           {choice === "none" && (
                             <Ban class="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
@@ -208,9 +224,9 @@ export function BoardBackgroundSetting() {
                             boardColor.value = "random";
                           })
                         }
-                        aria-label={colorLabel("random")}
+                        aria-label={boardColorLabel("random")}
                         aria-pressed={composing && color === "random"}
-                        title={colorLabel("random")}
+                        title={boardColorLabel("random")}
                       >
                         <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                       </button>
@@ -222,7 +238,7 @@ export function BoardBackgroundSetting() {
                       The rainbow rim is what says "any colour" before one is set. */}
                       <label
                         class={`relative w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer p-[3px] bg-[conic-gradient(#f87171,#facc15,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500 ${composing && color === "custom" ? selectedClass : ""}`}
-                        title={colorLabel("custom")}
+                        title={boardColorLabel("custom")}
                       >
                         <span
                           data-board-swatch="custom"
@@ -232,7 +248,7 @@ export function BoardBackgroundSetting() {
                           type="color"
                           class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           value={boardCustomColor.value}
-                          aria-label={colorLabel("custom")}
+                          aria-label={boardColorLabel("custom")}
                           onClick={() =>
                             compose(() => {
                               boardColor.value = "custom";
@@ -248,6 +264,15 @@ export function BoardBackgroundSetting() {
                       </label>
                     </div>
                   </fieldset>
+
+                  {divider}
+
+                  <BoardGradientPicker
+                    composing={composing}
+                    compose={compose}
+                  />
+
+                  {divider}
 
                   <fieldset>
                     <legend class={legendClass}>
@@ -293,6 +318,8 @@ export function BoardBackgroundSetting() {
                       ))}
                     </div>
                   </fieldset>
+
+                  <BoardInkPicker composing={composing} compose={compose} />
                 </>
               ) : hasPicture ? (
                 <div class="space-y-3">

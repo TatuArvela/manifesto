@@ -1,9 +1,22 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { batch, computed, effect, type Signal, signal } from "@preact/signals";
 import {
+  DARK_THEME_INK,
+  inkHex,
+  LIGHT_THEME_INK,
+  pickedInk,
+  pictureTextures,
+  type TextureInk,
+} from "../utils/boardTextures.js";
+import {
   ACCOUNT_PREF_KEYS,
+  BOARD_COLORS,
+  BOARD_GRADIENT_DIRECTIONS,
   type BoardColor,
   type BoardColorChoice,
+  type BoardGradientChoice,
+  type BoardGradientDirection,
+  type BoardInk,
   type BoardTexture,
   type LoadedPrefs,
   PREF_KEYS,
@@ -19,6 +32,11 @@ import {
 export type {
   BoardColor,
   BoardColorChoice,
+  BoardGradientChoice,
+  BoardGradientDirection,
+  BoardGradientDirectionChoice,
+  BoardInk,
+  BoardNeutral,
   BoardTexture,
   BoardTextureChoice,
   DarkHue,
@@ -38,6 +56,9 @@ export type {
 export {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,
+  BOARD_GRADIENT_DIRECTIONS,
+  BOARD_INKS,
+  BOARD_NEUTRALS,
   BOARD_TEXTURES,
   DARK_HUES,
   DEFAULT_BOARD_CUSTOM_COLOR,
@@ -89,7 +110,12 @@ export const confirmBeforeDelete = pref("confirmBeforeDelete");
 export const defaultEditMode = pref("defaultEditMode");
 export const boardColor = pref("boardColor");
 export const boardCustomColor = pref("boardCustomColor");
+export const boardGradient = pref("boardGradient");
+export const boardGradientCustomColor = pref("boardGradientCustomColor");
+export const boardGradientDirection = pref("boardGradientDirection");
 export const boardTexture = pref("boardTexture");
+export const boardInk = pref("boardInk");
+export const boardInkColor = pref("boardInkColor");
 export const boardUsePicture = pref("boardUsePicture");
 export const boardImageStamp = pref("boardImageStamp");
 
@@ -149,6 +175,72 @@ export function rerollBoardTexture() {
   let next = rollBoardTexture();
   while (next === current) next = rollBoardTexture();
   randomBoardTexture.value = next;
+}
+
+/** A preset for the gradient's "random", never the board's own colour. */
+function rollBoardGradient(except: string | undefined): BoardColor {
+  const color = resolvedBoardColor.peek();
+  const first = color === "none" || color === "custom" ? undefined : color;
+  let next = rollBoardColor(first);
+  while (next === except) next = rollBoardColor(first);
+  return next;
+}
+
+/**
+ * The preset the gradient's "random" stands for in this tab, rolled like
+ * `randomBoardColor` and never the same as it, or the board would be flat.
+ */
+const randomBoardGradient = signal<BoardColor>(rollBoardGradient(undefined));
+
+/** The colour the board actually fades to, with "random" resolved. */
+export const resolvedBoardGradient = computed<
+  Exclude<BoardGradientChoice, "random">
+>(() =>
+  boardGradient.value === "random"
+    ? randomBoardGradient.value
+    : boardGradient.value,
+);
+
+/** Picks another random gradient colour, never the one showing now. */
+export function rerollBoardGradient() {
+  randomBoardGradient.value = rollBoardGradient(randomBoardGradient.peek());
+}
+
+/** The colourful preset the pattern colour's "random" stands for in this tab. */
+const randomBoardInk = signal<BoardColor>(pickOne(BOARD_COLORS));
+
+/** The pattern colour actually drawn in, with "random" resolved. */
+export const resolvedBoardInk = computed<Exclude<BoardInk, "random">>(() =>
+  boardInk.value === "random" ? randomBoardInk.value : boardInk.value,
+);
+
+/** Picks another random pattern colour, never the one showing now. */
+export function rerollBoardInk() {
+  const current = randomBoardInk.peek();
+  randomBoardInk.value = pickOne(
+    BOARD_COLORS.filter((color) => color !== current),
+  );
+}
+
+/** The direction "random" stands for in this tab. */
+const randomBoardGradientDirection = signal<BoardGradientDirection>(
+  pickOne(BOARD_GRADIENT_DIRECTIONS),
+);
+
+/** The direction the board actually fades in, with "random" resolved. */
+export const resolvedBoardGradientDirection = computed<BoardGradientDirection>(
+  () =>
+    boardGradientDirection.value === "random"
+      ? randomBoardGradientDirection.value
+      : boardGradientDirection.value,
+);
+
+/** Picks another random direction, never the one showing now. */
+export function rerollBoardGradientDirection() {
+  const current = randomBoardGradientDirection.peek();
+  randomBoardGradientDirection.value = pickOne(
+    BOARD_GRADIENT_DIRECTIONS.filter((way) => way !== current),
+  );
 }
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
@@ -280,8 +372,9 @@ effect(() => {
 
 // Attributes on <html>, like the dark hue: styles.css keys the board's colour
 // and texture off them, in both themes. A custom colour is handed over as
-// `--board-custom`, which the dark theme deepens. The picture, which covers
-// both, is applied by state/board.ts.
+// `--board-custom`, which the dark theme deepens, and likewise the gradient's
+// second custom colour. The picture, which covers both, is applied by
+// state/board.ts.
 effect(() => {
   const root = document.documentElement;
   const color = resolvedBoardColor.value;
@@ -291,6 +384,39 @@ effect(() => {
   if (texture === "none") delete root.dataset.boardTexture;
   else root.dataset.boardTexture = texture;
   root.style.setProperty("--board-custom", boardCustomColor.value);
+  const gradient = resolvedBoardGradient.value;
+  if (gradient === "none") {
+    delete root.dataset.boardGradient;
+    delete root.dataset.boardGradientDirection;
+  } else {
+    root.dataset.boardGradient = gradient;
+    root.dataset.boardGradientDirection = resolvedBoardGradientDirection.value;
+  }
+  // Every colour, preset or picked, is drawn alike from `--board-ink-custom`.
+  const ink = resolvedBoardInk.value;
+  const inkColor = ink === "auto" ? null : inkHex(ink, boardInkColor.value);
+  if (ink === "auto") delete root.dataset.boardInk;
+  else root.dataset.boardInk = inkColor ? "custom" : ink;
+  root.style.setProperty("--board-ink-custom", inkColor ?? boardInkColor.value);
+  root.style.setProperty(
+    "--board-gradient-custom",
+    boardGradientCustomColor.value,
+  );
+});
+
+// The picture textures, drawn in the pattern colour: the theme's own ink in
+// each theme, or the one picked in both.
+effect(() => {
+  const root = document.documentElement;
+  const ink = resolvedBoardInk.value;
+  const picked = ink === "auto" ? null : pickedInk(ink, boardInkColor.value);
+  const paint = (theme: "light" | "dark", textureInk: TextureInk) => {
+    for (const [name, image] of Object.entries(pictureTextures(textureInk))) {
+      root.style.setProperty(`--board-texture-${name}-${theme}`, image);
+    }
+  };
+  paint("light", picked ?? LIGHT_THEME_INK);
+  paint("dark", picked ?? DARK_THEME_INK);
 });
 
 // --- Dark hue ---
