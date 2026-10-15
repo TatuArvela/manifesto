@@ -1,7 +1,14 @@
 import { MAX_IMAGE_ALT_LENGTH } from "@manifesto/shared";
 import { Captions, ChevronLeft, ChevronRight, PenLine, X } from "lucide-preact";
 import { createPortal } from "preact";
-import { useCallback, useEffect, useId, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
@@ -288,12 +295,15 @@ function ImageDescription({
     latest.current.alt = text;
   }, [image]);
 
-  // On arrival, and on the way out, which is when the viewer closed or moved
-  // to another image (the component is keyed by its image).
   useEffect(() => {
     if (autoFocus) fieldRef.current?.focus();
-    return save;
-  }, [autoFocus, save]);
+  }, [autoFocus]);
+
+  // On the way out, which is when the viewer closed or moved to another
+  // image (the component is keyed by its image). A layout effect, whose
+  // cleanup runs as the field is removed: an effect's cleanup ran too late
+  // for the close to have saved by the next frame.
+  useLayoutEffect(() => save, [save]);
 
   return (
     <div class="pointer-events-auto absolute bottom-4 inset-x-4 mx-auto max-w-xl">
