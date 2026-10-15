@@ -60,6 +60,14 @@ RUN pnpm --filter @manifesto/server deploy --prod --legacy /prod
 FROM node:24.21.0-alpine AS runtime
 WORKDIR /app
 
+# Take Alpine's fixes released since the base image was built, and remove the
+# package managers it ships with: the server runs on `node` alone, and npm's
+# own bundled dependencies were the most of what an image scan reported.
+RUN apk upgrade --no-cache \
+  && rm -rf /usr/local/lib/node_modules /opt/yarn-* \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+    /usr/local/bin/yarn /usr/local/bin/yarnpkg
+
 # Run as a non-root user so a container escape doesn't write into /etc.
 RUN addgroup -S manifesto && adduser -S manifesto -G manifesto
 
