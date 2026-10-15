@@ -218,8 +218,14 @@ describe("NoteInput link previews", () => {
   }
 
   const cardDomains = (dialog: HTMLElement) =>
-    [...dialog.querySelectorAll(".group\\/lp .truncate + .truncate")].map(
-      (el) => el.textContent,
+    [
+      ...dialog.querySelectorAll(
+        `button[aria-label="${t("linkPreview.remove")}"]`,
+      ),
+    ].map(
+      (button) =>
+        button.parentElement?.querySelector(".truncate + .truncate")
+          ?.textContent,
     );
 
   it("adds a card for every link pasted into the body, and none for the title", async () => {
