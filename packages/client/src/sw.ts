@@ -88,12 +88,19 @@ async function receiveShare(request: Request): Promise<Response> {
   return Response.redirect(`${scope}?${SHARE_TARGET_PARAM}`, 303);
 }
 
-precacheAndRoute(self.__WB_MANIFEST);
-registerRoute(
-  new NavigationRoute(createHandlerBoundToURL("index.html"), {
-    denylist: [/^\/api\//, /\.[^/]+$/],
-  }),
-);
+// Under `pnpm dev` the manifest is only `index.html`, with no revision, so
+// Workbox would cache the first copy it fetched and serve it for good: a CSP
+// or meta tag from an earlier run (another `VITE_MANIFESTO_SERVER`, or none)
+// against fresh scripts, until a hard reload bypassed the worker. The dev
+// server answers every route itself, so in dev navigations go to it.
+if (!import.meta.env.DEV) {
+  precacheAndRoute(self.__WB_MANIFEST);
+  registerRoute(
+    new NavigationRoute(createHandlerBoundToURL("index.html"), {
+      denylist: [/^\/api\//, /\.[^/]+$/],
+    }),
+  );
+}
 
 // The header logo and favicon, cached so they still show offline. They are
 // not precached like the rest of the shell because an instance rebrands by
