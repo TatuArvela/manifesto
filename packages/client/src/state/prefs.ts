@@ -44,6 +44,7 @@ export type {
   DefaultNoteColor,
   DefaultNoteFont,
   EditMode,
+  LightHue,
   LoadedPrefs,
   NoteCorners,
   NoteScale,
@@ -62,6 +63,7 @@ export {
   BOARD_TEXTURES,
   DARK_HUES,
   DEFAULT_BOARD_CUSTOM_COLOR,
+  LIGHT_HUES,
   MAX_TAG_COLORS,
   parsePrefs,
 } from "./prefParsers.js";
@@ -100,6 +102,7 @@ export const inlineCalculations = pref("inlineCalculations");
 export const decimalSeparator = pref("decimalSeparator");
 export const noteCorners = pref("noteCorners");
 export const animations = pref("animations");
+export const lightHue = pref("lightHue");
 export const darkHue = pref("darkHue");
 export const noteQuips = pref("noteQuips");
 export const formattingToolbar = pref("formattingToolbar");
@@ -419,13 +422,19 @@ effect(() => {
   paint("dark", picked ?? DARK_THEME_INK);
 });
 
-// --- Dark hue ---
+// --- Light and dark hue ---
 
 // Published as an attribute on <html> rather than a class so the stylesheet can
 // key one `--dark-tint-*` pair off it; the dark neutral ramp is derived from
 // that pair, so every `neutral` utility in the app re-tints at once.
 effect(() => {
   document.documentElement.dataset.darkHue = darkHue.value;
+});
+
+// The light theme's counterpart, keyed the same way: `--light-tint-*` drive
+// the light neutral ramp and the white the page is drawn on.
+effect(() => {
+  document.documentElement.dataset.lightHue = lightHue.value;
 });
 
 // --- Theme ---

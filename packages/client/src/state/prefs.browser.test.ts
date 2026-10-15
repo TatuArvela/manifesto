@@ -8,6 +8,7 @@ import {
   darkHue,
   defaultNoteColor,
   defaultNoteFont,
+  lightHue,
   locale,
   noteCorners,
   noteQuips,
@@ -316,6 +317,14 @@ describe("darkHue", () => {
     expect(parsePrefs('{"darkHue":"black"}').darkHue).toBe("black");
   });
 
+  it("reads the shade once called violet as lavender", () => {
+    expect(parsePrefs('{"darkHue":"violet"}').darkHue).toBe("lavender");
+  });
+
+  it("accepts the preset colours after the greys", () => {
+    expect(parsePrefs('{"darkHue":"teal"}').darkHue).toBe("teal");
+  });
+
   it("falls back to neutral for an unrecognised value", () => {
     expect(parsePrefs('{"darkHue":"chartreuse"}').darkHue).toBe("neutral");
   });
@@ -327,6 +336,31 @@ describe("darkHue", () => {
     darkHue.value = "neutral";
     expect(document.documentElement.dataset.darkHue).toBe("neutral");
     darkHue.value = previous;
+  });
+});
+
+describe("lightHue", () => {
+  it("defaults to white, the light theme as it was", () => {
+    expect(parsePrefs(null).lightHue).toBe("white");
+    expect(parsePrefs("{}").lightHue).toBe("white");
+  });
+
+  it("round-trips a preset colour", () => {
+    expect(parsePrefs('{"lightHue":"pink"}').lightHue).toBe("pink");
+  });
+
+  it("falls back to white for a dark shade or an unrecognised value", () => {
+    expect(parsePrefs('{"lightHue":"midnight"}').lightHue).toBe("white");
+    expect(parsePrefs('{"lightHue":"chartreuse"}').lightHue).toBe("white");
+  });
+
+  it("publishes the hue on <html> for the stylesheet to key off", () => {
+    const previous = lightHue.value;
+    lightHue.value = "blue";
+    expect(document.documentElement.dataset.lightHue).toBe("blue");
+    lightHue.value = "white";
+    expect(document.documentElement.dataset.lightHue).toBe("white");
+    lightHue.value = previous;
   });
 });
 
