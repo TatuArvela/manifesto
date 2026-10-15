@@ -51,3 +51,9 @@ paths:
 - **Layers over the board** are the `layer-*` utilities in `styles/setup.css`, never a bare
   `z-[n]`. The confirmation and the toasts are the top two, because any sheet can raise either:
   a confirmation numbered under a nested sheet was asked behind the dialog that asked it.
+- **Rarely opened parts** (Settings, the admin view, the share and public link dialogs, the
+  drawing pad) are fetched on first open through `hooks/useLazyModule.ts`, from a module-level
+  `import()` in `App.tsx`. A static import of either
+  from anywhere the board reaches puts it back in the entry chunk, with nothing failing to say so;
+  check the build's chunk list after adding one. A fetch that fails closes what asked for it and
+  shows `error.viewUnavailable`, since an open tab can outlive a deploy's chunks.

@@ -2,6 +2,7 @@ import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useBoardShortcuts } from "../hooks/useBoardShortcuts.js";
+import { useLazyModule } from "../hooks/useLazyModule.js";
 import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
@@ -22,7 +23,7 @@ import {
 } from "../state/auth.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import { initBoardBackground } from "../state/board.js";
-import { drawingRequest } from "../state/drawing.js";
+import { closeDrawing, drawingRequest } from "../state/drawing.js";
 import { takeIncomingShare } from "../state/incomingShare.js";
 import {
   activeView,
@@ -34,6 +35,7 @@ import {
   notes,
   selectMode,
   showError,
+  showSettings,
   showShortcuts,
   showSuccess,
   showWelcome,
@@ -43,9 +45,10 @@ import {
 } from "../state/index.js";
 import { takeConsentPage } from "../state/oauth.js";
 import { startPrefsSync } from "../state/prefsSync.js";
+import { publicLinksDialog } from "../state/publicLinks.js";
 import { ensurePushSubscription } from "../state/pushSubscription.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
-import { loadInvitations } from "../state/sharing.js";
+import { loadInvitations, shareDialog } from "../state/sharing.js";
 import { restoreVersions } from "../state/versions.js";
 import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";
@@ -54,28 +57,35 @@ import {
   type SharedNotePayload,
 } from "../utils/shareLink.js";
 import { AutoNotesView } from "./AutoNotesView.js";
-import { AdminView } from "./admin/AdminView.js";
 import { ConfirmDialogHost } from "./ConfirmDialog.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
-import { DrawingPad } from "./DrawingPad.js";
 import { Header } from "./Header.js";
 import { InvitationList } from "./InvitationList.js";
 import { KeyScreen } from "./KeyScreen.js";
 import { LoginScreen } from "./LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
-import { PublicLinksDialogHost } from "./PublicLinksDialog.js";
 import { ReminderBanner } from "./ReminderBanner.js";
 import { SearchView } from "./SearchView.js";
-import { ShareDialogHost } from "./ShareDialog.js";
 import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { ShortcutsDialog } from "./ShortcutsDialog.js";
 import { MobileNav, Sidebar } from "./Sidebar.js";
-import { SettingsDialog } from "./settings/SettingsDialog.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 import { UnopenedNotes } from "./UnopenedNotes.js";
 import { WelcomeDialog } from "./WelcomeDialog.js";
+
+// Fetched the first time they open, since most sessions never do.
+const loadSettingsDialog = () =>
+  import("./settings/SettingsDialog.js").then((m) => m.SettingsDialog);
+const loadAdminView = () =>
+  import("./admin/AdminView.js").then((m) => m.AdminView);
+const loadShareDialog = () =>
+  import("./ShareDialog.js").then((m) => m.ShareDialogHost);
+const loadPublicLinksDialog = () =>
+  import("./PublicLinksDialog.js").then((m) => m.PublicLinksDialogHost);
+const loadDrawingPad = () =>
+  import("./DrawingPad.js").then((m) => m.DrawingPad);
 
 // True only on the *very first render* of a page that landed with `#token=`
 // in the URL. The OIDC consumer runs once (in useEffect, after this render
@@ -279,6 +289,43 @@ function MainApp() {
     if (isAdminView && userChecked && !isAdmin) activeView.value = "active";
   }, [isAdminView, userChecked, isAdmin]);
 
+  const AdminView = useLazyModule(loadAdminView, isAdminView && isAdmin, () => {
+    activeView.value = "active";
+    showError(t("error.viewUnavailable"));
+  });
+  const SettingsDialog = useLazyModule(
+    loadSettingsDialog,
+    showSettings.value,
+    () => {
+      showSettings.value = false;
+      showError(t("error.viewUnavailable"));
+    },
+  );
+  const ShareDialogHost = useLazyModule(
+    loadShareDialog,
+    shareDialog.value !== null,
+    () => {
+      shareDialog.value = null;
+      showError(t("error.viewUnavailable"));
+    },
+  );
+  const PublicLinksDialogHost = useLazyModule(
+    loadPublicLinksDialog,
+    publicLinksDialog.value !== null,
+    () => {
+      publicLinksDialog.value = null;
+      showError(t("error.viewUnavailable"));
+    },
+  );
+  const DrawingPad = useLazyModule(
+    loadDrawingPad,
+    drawingRequest.value !== null,
+    () => {
+      closeDrawing();
+      showError(t("error.viewUnavailable"));
+    },
+  );
+
   // An admin hears about a newer release in the account menu.
   useEffect(() => {
     if (userChecked && isAdmin) void checkForUpdate();
@@ -342,7 +389,7 @@ function MainApp() {
               />
             )}
             {isAdminView ? (
-              isAdmin && <AdminView />
+              isAdmin && AdminView && <AdminView />
             ) : isSearchView ? (
               isList ? (
                 <div class="max-w-xl mx-auto">
@@ -415,11 +462,11 @@ function MainApp() {
           }}
         />
       )}
-      <SettingsDialog />
-      <ShareDialogHost />
-      <PublicLinksDialogHost />
+      {SettingsDialog && <SettingsDialog />}
+      {ShareDialogHost && <ShareDialogHost />}
+      {PublicLinksDialogHost && <PublicLinksDialogHost />}
       {/* Under the confirmation it asks before a drawing is discarded. */}
-      {drawingRequest.value && <DrawingPad />}
+      {drawingRequest.value && DrawingPad && <DrawingPad />}
       <ConfirmDialogHost />
       <ReminderBanner />
       <ConnectionStatus />

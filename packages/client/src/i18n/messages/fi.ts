@@ -947,6 +947,8 @@ export const fi: Messages = {
     "Kaikkia muistiinpanojasi ei voitu avata tällä laitteella, joten vientiä ei tallennettu puutteellisena. Lataa sivu uudelleen ja yritä uudelleen.",
   "error.imagesUnavailable":
     "Muistiinpanon liitteitä ei saatu ladattua, joten muutosta ei tallennettu. Tarkista yhteys ja yritä uudelleen.",
+  "error.viewUnavailable":
+    "Avaaminen epäonnistui. Tarkista yhteys tai lataa {appName} uudelleen.",
   "error.bulkFailed": {
     one: "{count} muistiinpanoa ei voitu muuttaa.",
     other: "{count} muistiinpanoa ei voitu muuttaa.",
