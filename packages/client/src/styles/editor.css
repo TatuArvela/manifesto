@@ -9,6 +9,33 @@
 
 .milkdown-editor .ProseMirror {
   outline: none;
+  /* A line that cannot break (a pasted hash, a long URL) scrolls sideways
+     inside the note rather than running out over the board. The text, not
+     `.milkdown-editor`, is the scroller, so the link tooltip beside it is
+     never clipped. Chromium gives an editable area `overflow-wrap:
+     break-word` of its own, which would break the line instead, and other
+     browsers do not, so it is set here for all of them. */
+  overflow-x: auto;
+  overflow-wrap: normal;
+}
+
+/* An overlay scrollbar (macOS, phones) is drawn over the last line rather
+   than beside it, so room is made under the text, but only while it does
+   scroll: a scroll timeline is inactive on a box that cannot, and an
+   animation on an inactive timeline has no effect. Without support for it
+   (Firefox), the scrollbar may still cover the last line. */
+@keyframes editor-scrollbar-room {
+  from,
+  to {
+    padding-bottom: 1rem;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .milkdown-editor .ProseMirror {
+    animation: editor-scrollbar-room linear both;
+    animation-timeline: scroll(self x);
+  }
 }
 
 /* "Open link", under the link the caret is in (extensions/linkTooltip.ts).
