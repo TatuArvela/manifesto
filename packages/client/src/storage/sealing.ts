@@ -11,7 +11,6 @@ import {
   type NoteSealKey,
   type NoteUpdate,
   type NoteVersion,
-  newLinkKey,
   noteSealKey,
   type OfferedKey,
   offerNoteKey,
@@ -19,14 +18,12 @@ import {
   openImage,
   openNoteKey,
   openOfferedKey,
-  openPref,
   openPreviousKeys,
   openSealedNote,
   openSharedFields,
   opensSharedFields,
   openVersion,
   type PublicLink,
-  type PublicLinkCreateRequest,
   type PublicLinkMode,
   resealSharedFields,
   SEALED_SHARED_NOTE_FIELDS,
@@ -42,11 +39,9 @@ import {
   sealNewNote,
   sealNoteUpdate,
   sealPersonalFields,
-  sealPref,
   sealPreviousKeys,
   sealSharedFields,
   sealVersion,
-  snapshotKey,
   unwrapNoteKey,
   verifyOfferedKey,
   wipe,
@@ -70,6 +65,11 @@ import {
   sealPrefs,
   sealSeenKeys,
 } from "./accountSealing.js";
+import {
+  openPublicLinkKey,
+  type SealedPublicLink,
+  sealPublicLink,
+} from "./linkSealing.js";
 
 /**
  * Sealing and opening for everything that crosses to the server in connected
@@ -791,14 +791,7 @@ export class Sealer {
     return this.ringOf(noteId, fetch);
   }
 
-  /**
-   * What publishing a note takes: a new link key, which goes into the link's
-   * address and nowhere else, and what the server is sent. A live link gets
-   * the note key wrapped by the link key; a snapshot gets a copy of the note
-   * as it is now, sealed under a key derived from the link key. Either way
-   * the link key is also sealed for this account, so its owner can copy the
-   * address again.
-   */
+  /** What publishing a note takes; see `sealPublicLink`. */
   async publish(
     note: Pick<
       Note,
@@ -806,77 +799,22 @@ export class Sealer {
     >,
     mode: PublicLinkMode,
     fetch: () => Promise<SealedNote | null>,
-  ): Promise<{
-    linkKey: string;
-    fields: Pick<
-      PublicLinkCreateRequest,
-      "sealedLinkKey" | "wrappedKey" | "snapshot"
-    >;
-  } | null> {
+  ): Promise<SealedPublicLink | null> {
     const account = await this.account;
-    const linkKey = newLinkKey();
-    const sealedLinkKey = await sealPref(account, `link/${note.id}`, linkKey);
-    if (mode === "live") {
+    const noteKey = async () => {
       const held = await this.keyOf(note.id, fetch);
-      const raw = await unwrapNoteKey(
-        account,
-        note.id,
-        held.key.version,
-        held.wrapped,
-      );
+      const version = held.key.version;
+      const raw = await unwrapNoteKey(account, note.id, version, held.wrapped);
       if (!raw) throw new NoteKeyError(note.id);
-      try {
-        return {
-          linkKey,
-          fields: {
-            sealedLinkKey,
-            wrappedKey: await wrapForLink(
-              linkKey,
-              note.id,
-              held.key.version,
-              raw,
-            ),
-          },
-        };
-      } finally {
-        wipe(raw);
-      }
-    }
-    const key = await snapshotKey(linkKey);
-    if (!key) return null;
-    const sealed = await sealSharedFields(
-      key,
-      note.id,
-      {
-        title: note.title,
-        content: note.content,
-        font: note.font,
-        images: note.images,
-        linkPreviews: note.linkPreviews,
-      },
-      this.imageKeys,
-    );
-    return {
-      linkKey,
-      fields: {
-        sealedLinkKey,
-        snapshot: {
-          title: sealed.title ?? "",
-          content: sealed.content ?? "",
-          font: sealed.font ?? "",
-          images: sealed.images ?? "",
-          linkPreviews: sealed.linkPreviews ?? "",
-          refs: [...(sealed.imageRefs ?? []), ...(sealed.previewRefs ?? [])],
-        },
-      },
+      return { version, raw };
     };
+    return sealPublicLink(account, note, mode, noteKey, this.imageKeys);
   }
 
   /** A link's key, from the copy sealed for its owner; null when it does
    * not open. */
   async openLinkKey(noteId: string, sealed: string): Promise<string | null> {
-    const opened = await openPref(await this.account, `link/${noteId}`, sealed);
-    return typeof opened === "string" ? opened : null;
+    return openPublicLinkKey(await this.account, noteId, sealed);
   }
 
   /** A new token that carries keys (`newKeyedToken`). */
