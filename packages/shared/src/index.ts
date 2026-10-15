@@ -225,7 +225,6 @@ export {
   openPersonalFields,
   openPref,
   openPreviousKeys,
-  openReminderKey,
   openSealedNote,
   openSharedFields,
   openSharedFieldsUnder,
@@ -243,10 +242,13 @@ export {
   sealVersion,
   unwrapImageKey,
   unwrapNoteKey,
-  wrapForReminders,
   wrapImageKey,
   wrapNoteKey,
 } from "./crypto/noteSeal.js";
+export {
+  openReminderKey,
+  wrapForReminders,
+} from "./crypto/reminderKeySeal.js";
 export {
   associatedData,
   cryptoAvailable,
