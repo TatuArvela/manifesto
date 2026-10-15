@@ -5,11 +5,13 @@ import { OAuthConsentPage } from "./components/OAuthConsentPage.js";
 import { PublicNotePage } from "./components/PublicNotePage.js";
 import { ServerSetupError } from "./components/ServerSetupError.js";
 import { applyFavicon, FAVICON, WINDOW_TITLE } from "./config.js";
+import { loadCatalogue } from "./i18n/index.js";
 import { offerLaunchImage } from "./launchImage.js";
 import { registerServiceWorker } from "./serviceWorker.js";
 import { capSplash, revealApp } from "./splash.js";
 import { SERVER_URL } from "./state/auth.js";
 import { isOAuthConsentPath } from "./state/oauth.js";
+import { locale } from "./state/prefs.js";
 import { publicLinkToken } from "./state/publicLinks.js";
 import { serverSetupProblem } from "./utils/serverCsp.js";
 import "./assets/fonts/fonts.css";
@@ -31,25 +33,32 @@ const publicToken = publicLinkToken(window.location.pathname);
 // So does the page an AI assistant sends the browser to when it signs in.
 const oauthConsent = isOAuthConsentPath(window.location.pathname);
 
-const root = document.getElementById("app");
-if (root)
-  render(
-    <ErrorBoundary>
-      {setupProblem ? (
-        <ServerSetupError problem={setupProblem} />
-      ) : publicToken ? (
-        <PublicNotePage token={publicToken} />
-      ) : oauthConsent ? (
-        <OAuthConsentPage />
-      ) : (
-        <App />
-      )}
-    </ErrorBoundary>,
-    root,
-  );
-// A setup error is the whole page, and ready now; the app says when it is.
-if (setupProblem) revealApp();
-else capSplash();
-// Measured now, while the splash is still on screen to be measured.
-offerLaunchImage();
-registerServiceWorker();
+// Opened in its language from the first frame: the saved language's
+// catalogue, when it is not English, comes before the first render. It is
+// precached, so this waits on the network only on a first visit.
+void loadCatalogue(locale.peek()).then(start);
+
+function start() {
+  const root = document.getElementById("app");
+  if (root)
+    render(
+      <ErrorBoundary>
+        {setupProblem ? (
+          <ServerSetupError problem={setupProblem} />
+        ) : publicToken ? (
+          <PublicNotePage token={publicToken} />
+        ) : oauthConsent ? (
+          <OAuthConsentPage />
+        ) : (
+          <App />
+        )}
+      </ErrorBoundary>,
+      root,
+    );
+  // A setup error is the whole page, and ready now; the app says when it is.
+  if (setupProblem) revealApp();
+  else capSplash();
+  // Measured now, while the splash is still on screen to be measured.
+  offerLaunchImage();
+  registerServiceWorker();
+}

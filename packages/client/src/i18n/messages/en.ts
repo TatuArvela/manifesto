@@ -928,6 +928,8 @@ export const en = {
     "Some of your notes could not be opened on this device, so the export was cancelled rather than saved without them. Reload the page and try again.",
   "error.imagesUnavailable":
     "Could not load this note's attachments, so the change was not saved. Check your connection and try again.",
+  "error.viewUnavailable":
+    "Could not open this. Check your connection, or reload {appName}.",
   "error.bulkFailed": {
     one: "{count} note could not be changed.",
     other: "{count} notes could not be changed.",

@@ -8,6 +8,7 @@ paths:
   - "packages/client/src/utils/keyMaterial.ts"
   - "packages/client/src/storage/deviceKeys.ts"
   - "packages/client/src/storage/sealing.ts"
+  - "packages/client/src/storage/linkSealing.ts"
   - "packages/client/src/storage/accountSealing.ts"
   - "packages/client/src/storage/shareKeys.ts"
   - "packages/client/src/state/sharing.ts"
@@ -279,7 +280,8 @@ for tests that hand sealing through.
 A link's address is `/p/<token>#k=<link key>` (`shared/src/crypto/linkSeal.ts`). The server finds
 the link by the token and never sees the key. `Sealer.publish` makes the key and what the server
 stores: for a live link the note key wrapped by it, for a snapshot a copy of the note sealed under
-a key derived from it, with the attachment references that copy names. The owner's own copy of the
+a key derived from it, with the attachment references that copy names. The sealing itself is
+`storage/linkSealing.ts`, handed the account's keys by the `Sealer`, which it never imports. The owner's own copy of the
 link key is sealed under their personal key (`sealedLinkKey`), which is how the dialog copies an
 address again (`publicLinkAddress`); a link just made comes back from `createPublicLink` with its
 address, and is never sent without the sealed parts `publish` makes. The page has no account and no `Sealer`: `state/publicLinks.ts`

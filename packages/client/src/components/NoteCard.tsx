@@ -18,18 +18,19 @@ import {
   recentlyPinned,
   selectedNotes,
   selectMode,
+  showError,
   toggleSelectNote,
   viewMode,
 } from "../state/index.js";
 import { contentIsOnlyPreviewUrls } from "../utils/linkPreview.js";
 import { MORPH_MS } from "../utils/morph.js";
+import { useEditor } from "./lazyEditor.js";
 import { NoteCardBody } from "./NoteCardBody.js";
 import {
   CardActions,
   CardSelectButton,
   CardStatusBar,
 } from "./NoteCardControls.js";
-import { NoteCardEditor } from "./NoteCardEditor.js";
 import { type CardPopoverKind, NoteCardPopovers } from "./NoteCardPopovers.js";
 import { NoteReadonlyView } from "./NoteReadonlyView.js";
 import { NoteSheet } from "./NoteSheet.js";
@@ -62,6 +63,14 @@ export const NoteCard = memo(function NoteCard({
   onTouchDragEnd?: (e: PointerEvent, didDrag: boolean) => void;
 }) {
   const isEditing = useComputed(() => editingNoteId.value === note.id).value;
+  // A note this user may only read opens without the editor; any other waits
+  // for it, and stands down if it cannot be fetched.
+  const needsEditor = !note.readonly && roleOf(note) !== "view";
+  const editor = useEditor(isEditing && needsEditor, () => {
+    if (editingNoteId.peek() === note.id) editingNoteId.value = null;
+    showError(t("error.viewUnavailable"));
+  });
+  const open = isEditing && (!needsEditor || editor !== null);
   const leaving = useComputed(() => leavingNotes.value.get(note.id)).value;
   const isSelectMode = selectMode.value;
   const isSelected = useComputed(() => selectedNotes.value.has(note.id)).value;
@@ -81,7 +90,7 @@ export const NoteCard = memo(function NoteCard({
     panelRef,
     modalRef,
     closeModal,
-  } = useCardModal(isEditing);
+  } = useCardModal(open);
   const [openPopover, setOpenPopover] = useState<CardPopoverKind | null>(null);
   // What is drawn: the open popover, or the one just closed while it fades.
   const { shown: shownPopover, leaving: popoverLeaving } = usePresence(
@@ -238,7 +247,7 @@ export const NoteCard = memo(function NoteCard({
             "shadow-sm group-hover:shadow-lg",
             // Gone while it morphs into the editor, since the editor is it;
             // a ghost of it otherwise, to show where the note lives.
-            isEditing && !closing && (morphing ? "opacity-0" : "opacity-20"),
+            open && !closing && (morphing ? "opacity-0" : "opacity-20"),
             noteSize.value === "square" &&
               viewMode.value === "list" &&
               "w-full",
@@ -376,10 +385,10 @@ export const NoteCard = memo(function NoteCard({
           closing={closing}
           onBack={closeModal}
         >
-          {note.readonly || viewOnly ? (
+          {!needsEditor ? (
             <NoteReadonlyView note={note} onClose={closeModal} />
           ) : (
-            <NoteCardEditor note={note} onClose={closeModal} />
+            editor && <editor.NoteCardEditor note={note} onClose={closeModal} />
           )}
         </NoteSheet>
       )}
