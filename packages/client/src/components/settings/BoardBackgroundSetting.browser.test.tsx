@@ -54,26 +54,26 @@ afterEach(() => {
 
 describe("board background composer", () => {
   it("puts the chosen colour and texture on the board together", async () => {
-    button(t("settings.boardBackground.sage")).click();
+    button(t("color.green")).click();
     button(t("settings.boardBackground.texture.dots")).click();
     await nextFrame();
 
     const style = getComputedStyle(board);
-    const sage = getComputedStyle(document.documentElement)
-      .getPropertyValue("--board-sage")
+    const green = getComputedStyle(document.documentElement)
+      .getPropertyValue("--board-green")
       .trim();
-    expect(boardColor.value).toBe("sage");
+    expect(boardColor.value).toBe("green");
     expect(boardTexture.value).toBe("dots");
     expect(style.backgroundImage).toContain("radial-gradient");
     // Hex in the stylesheet, rgb once computed.
     const probe = document.createElement("span");
-    probe.style.color = sage;
+    probe.style.color = green;
     document.body.appendChild(probe);
     expect(style.backgroundColor).toBe(getComputedStyle(probe).color);
     probe.remove();
     expect(
       button(
-        `${t("settings.boardBackground")}: ${t("settings.boardBackground.summary", { color: t("settings.boardBackground.sage"), texture: t("settings.boardBackground.texture.dots") })}`,
+        `${t("settings.boardBackground")}: ${t("settings.boardBackground.summary", { color: t("color.green"), texture: t("settings.boardBackground.texture.dots") })}`,
       ),
     ).toBeTruthy();
   });

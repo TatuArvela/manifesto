@@ -110,14 +110,14 @@ describe("parsePrefs", () => {
       JSON.stringify({
         boardColor: "custom",
         boardCustomColor: "#AABBCC",
-        boardTexture: "cork",
+        boardTexture: "dots",
         boardUsePicture: true,
         boardImageStamp: 42,
       }),
     );
     expect(composed.boardColor).toBe("custom");
     expect(composed.boardCustomColor).toBe("#aabbcc");
-    expect(composed.boardTexture).toBe("cork");
+    expect(composed.boardTexture).toBe("dots");
     expect(composed.boardUsePicture).toBe(true);
     expect(composed.boardImageStamp).toBe(42);
 
@@ -151,6 +151,26 @@ describe("parsePrefs", () => {
     );
     expect(random.boardColor).toBe("random");
     expect(random.boardTexture).toBe("random");
+  });
+
+  it("reads a retired board colour as the preset nearest it", () => {
+    const retired = parsePrefs(
+      JSON.stringify({ boardColor: "sage", boardGradient: "caramel" }),
+    );
+    expect(retired.boardColor).toBe("green");
+    expect(retired.boardGradient).toBe("orange");
+  });
+
+  it("reads a retired texture as paper", () => {
+    expect(
+      parsePrefs(JSON.stringify({ boardTexture: "cork" })).boardTexture,
+    ).toBe("paper");
+    expect(
+      parsePrefs(JSON.stringify({ boardTexture: "felt" })).boardTexture,
+    ).toBe("paper");
+    expect(
+      parsePrefs(JSON.stringify({ boardTexture: "linen" })).boardTexture,
+    ).toBe("paper");
   });
 
   it("refuses a custom board colour that is anything but a hex colour", () => {

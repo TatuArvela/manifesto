@@ -1,0 +1,298 @@
+/**
+ * The board textures that are pictures rather than gradients: the paper
+ * grain, which is SVG turbulence, and the stars, hearts and confetti. A data URI cannot
+ * read a custom property, so each is drawn here in the ink it is wanted in and
+ * handed to the stylesheet as one, where the gradient textures simply read
+ * `--board-ink`.
+ */
+
+/** A colour as fractions of one, and how strongly to draw in it. */
+export interface TextureInk {
+  rgb: readonly [number, number, number];
+  /**
+   * A multiple of the light theme's faint ink, which is 1: the grains' alpha
+   * and the shapes' opacity both scale by it.
+   */
+  strength: number;
+}
+
+export type PictureTexture = "paper" | "stars" | "hearts" | "confetti";
+
+/**
+ * The colourful pattern colours, as the note colours' vivid shades: drawn
+ * translucent like a custom colour, so one shade reads on light and dark.
+ */
+export const INK_COLORS = {
+  red: "#ef4444",
+  orange: "#f97316",
+  yellow: "#eab308",
+  green: "#22c55e",
+  teal: "#14b8a6",
+  blue: "#3b82f6",
+  purple: "#a855f7",
+  pink: "#ec4899",
+} as const;
+
+export type InkColor = keyof typeof INK_COLORS;
+
+/** Every pattern colour but the theme's own. */
+export type PickedInkChoice = "white" | "black" | InkColor | "custom";
+
+/** The theme's own faint ink: drawn in darker on light, lighter on dark. */
+export const LIGHT_THEME_INK: TextureInk = { rgb: [0, 0, 0], strength: 1 };
+export const DARK_THEME_INK: TextureInk = { rgb: [1, 1, 1], strength: 0.75 };
+
+/**
+ * A picked colour is meant to be seen, so it is drawn several times stronger
+ * than the theme's ink, in step with the gradient textures' `--board-ink`.
+ */
+const PICKED_STRENGTH = { white: 5, black: 2, custom: 6 } as const;
+
+/**
+ * The colour a choice draws in, as `#rrggbb`, or null for white and black,
+ * which have strengths of their own. `customHex` is a validated `#rrggbb`.
+ */
+export function inkHex(
+  choice: PickedInkChoice,
+  customHex: string,
+): string | null {
+  if (choice === "white" || choice === "black") return null;
+  return choice === "custom" ? customHex : INK_COLORS[choice];
+}
+
+/** The ink for a pattern colour choice; `customHex` is a validated `#rrggbb`. */
+export function pickedInk(
+  choice: PickedInkChoice,
+  customHex: string,
+): TextureInk {
+  if (choice === "white")
+    return { rgb: [1, 1, 1], strength: PICKED_STRENGTH.white };
+  if (choice === "black")
+    return { rgb: [0, 0, 0], strength: PICKED_STRENGTH.black };
+  const hex = inkHex(choice, customHex) ?? customHex;
+  const channel = (at: number) =>
+    Number.parseInt(hex.slice(at, at + 2), 16) / 255;
+  return {
+    rgb: [channel(1), channel(3), channel(5)],
+    strength: PICKED_STRENGTH.custom,
+  };
+}
+
+interface Noise {
+  size: number;
+  frequency: number;
+  octaves: number;
+  /** The alpha row of the colour matrix at strength 1: noise alpha times
+   * `slope`, plus `offset`, which cuts the faintest grain away. */
+  slope: number;
+  offset: number;
+}
+
+const NOISE: Record<"paper", Noise> = {
+  paper: { size: 160, frequency: 0.8, octaves: 3, slope: 0.2, offset: -0.05 },
+};
+
+const STARS = [
+  "M15.0 9.1 L16.2 13.7 L20.9 14.8 L16.8 17.4 L17.3 22.2 L13.6 19.1 L9.1 21.0 L10.9 16.5 L7.7 12.9 L12.5 13.2Z",
+  "M42.9 35.6 L44.8 38.1 L47.8 37.6 L46.0 40.1 L47.4 42.9 L44.5 42.0 L42.3 44.2 L42.3 41.1 L39.5 39.7 L42.4 38.7Z",
+  "M50.9 7.7 L50.9 9.4 L52.5 10.1 L50.9 10.7 L50.7 12.4 L49.6 11.1 L47.9 11.4 L48.9 10.0 L48.0 8.5 L49.7 8.9Z",
+  "M17.7 45.0 L18.7 46.8 L20.7 46.8 L19.3 48.3 L20.0 50.2 L18.1 49.3 L16.5 50.6 L16.8 48.5 L15.1 47.4 L17.1 47.0Z",
+];
+
+/**
+ * One heart, about nineteen units wide at scale 1, placed five times at its
+ * own size and tilt. Laid out apart from the stars, so the two patterns do
+ * not share an arrangement, and each far enough inside the 60-unit tile that
+ * none is cut at an edge.
+ */
+const HEART = "M0 7 C-9.33 0.78 -8.56 -7 0 -2.72 C8.56 -7 9.33 0.78 0 7Z";
+const HEARTS = [
+  { x: 42, y: 15, turn: 10, scale: 0.8 },
+  { x: 14, y: 28, turn: -14, scale: 0.55 },
+  { x: 33, y: 47, turn: 6, scale: 0.7 },
+  { x: 52, y: 38, turn: -8, scale: 0.4 },
+  { x: 10, y: 51, turn: 12, scale: 0.35 },
+];
+
+/** Opacity of the stars and hearts at strength 1. */
+const SHAPE_OPACITY = 0.09;
+
+/**
+ * The stars and hearts are laid out on a 60-unit tile and drawn half as large
+ * again, on a 90px one (`--board-texture-stars-size` in preferences.css).
+ */
+const SHAPE_SCALE = 1.5;
+const SHAPE_TILE = 60 * SHAPE_SCALE;
+
+const round = (n: number) => Number(n.toFixed(3));
+
+/** Confetti's tile, in px: wide, so the eye does not find it repeating. */
+export const CONFETTI_TILE = 320;
+
+interface ConfettiPiece {
+  x: number;
+  y: number;
+  /** A strip of paper turned to `turn` degrees, or a round dot. */
+  strip: boolean;
+  turn: number;
+  /** Whether it is drawn at the stronger of the two opacities. */
+  strong: boolean;
+}
+
+/** A small seeded generator, so the confetti falls the same way every load. */
+function seeded(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** The shortest way from `b` to `a` along one axis of the tile, signed. */
+function across(a: number, b: number): number {
+  return (
+    ((((a - b + CONFETTI_TILE / 2) % CONFETTI_TILE) + CONFETTI_TILE) %
+      CONFETTI_TILE) -
+    CONFETTI_TILE / 2
+  );
+}
+
+/**
+ * Where the confetti lies, measured around the tile's edges throughout, so a
+ * seam is as evenly covered as the middle and the tile does not show. Each
+ * piece first goes in the best of a growing number of random spots, the one
+ * farthest from those already down, which spreads it with no grid to see.
+ * That still leaves holes, so the pieces then push off their neighbours for
+ * a few rounds: enough to close them (the largest falls from 43px to 31px,
+ * against 27px for a perfect lattice), not so many that a lattice appears.
+ */
+function scatterConfetti(count: number): ConfettiPiece[] {
+  const random = seeded(20261016);
+  const spots: { x: number; y: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    let best = { x: 0, y: 0, room: -1 };
+    for (let tries = 0; tries < 3 * i + 1; tries++) {
+      const x = random() * CONFETTI_TILE;
+      const y = random() * CONFETTI_TILE;
+      let room = Number.POSITIVE_INFINITY;
+      for (const other of spots) {
+        room = Math.min(
+          room,
+          Math.hypot(across(x, other.x), across(y, other.y)),
+        );
+      }
+      if (room > best.room) best = { x, y, room };
+    }
+    spots.push({ x: best.x, y: best.y });
+  }
+
+  const reach = 60;
+  for (let pass = 0; pass < 40; pass++) {
+    const pushed = spots.map(({ x, y }, i) => {
+      let dx = 0;
+      let dy = 0;
+      for (const [j, other] of spots.entries()) {
+        if (i === j) continue;
+        const ox = across(x, other.x);
+        const oy = across(y, other.y);
+        const d = Math.hypot(ox, oy);
+        if (d >= reach) continue;
+        const weight = (reach - d) / reach / Math.max(d, 1);
+        dx += ox * weight;
+        dy += oy * weight;
+      }
+      const wrap = (v: number) =>
+        ((v % CONFETTI_TILE) + CONFETTI_TILE) % CONFETTI_TILE;
+      return { x: wrap(x + dx * 8), y: wrap(y + dy * 8) };
+    });
+    spots.splice(0, spots.length, ...pushed);
+  }
+
+  return spots.map(({ x, y }) => ({
+    x: round(x),
+    y: round(y),
+    strip: random() < 0.7,
+    turn: Math.round(random() * 180),
+    strong: random() < 0.45,
+  }));
+}
+
+/** Exported for its test, which holds the scatter free of holes. */
+export const CONFETTI: readonly ConfettiPiece[] = scatterConfetti(52);
+
+/** A piece as SVG, and again past each edge it comes near, so it is never cut. */
+function confettiPiece({ x, y, strip, turn }: ConfettiPiece): string {
+  const reach = 6;
+  const xs = [x];
+  const ys = [y];
+  if (x < reach) xs.push(x + CONFETTI_TILE);
+  if (x > CONFETTI_TILE - reach) xs.push(x - CONFETTI_TILE);
+  if (y < reach) ys.push(y + CONFETTI_TILE);
+  if (y > CONFETTI_TILE - reach) ys.push(y - CONFETTI_TILE);
+  return xs
+    .flatMap((px) =>
+      ys.map((py) =>
+        strip
+          ? `<rect x='-1.25' y='-3.5' width='2.5' height='7' rx='0.6' transform='translate(${round(px)} ${round(py)}) rotate(${turn})'/>`
+          : `<circle cx='${round(px)}' cy='${round(py)}' r='2'/>`,
+      ),
+    )
+    .join("");
+}
+
+function confetti(ink: TextureInk): string {
+  const [r, g, b] = ink.rgb.map((c) => Math.round(c * 255));
+  const opacity = (factor: number) =>
+    round(Math.min(1, SHAPE_OPACITY * factor * ink.strength));
+  const group = (strong: boolean, factor: number) =>
+    `<g fill-opacity='${opacity(factor)}'>${CONFETTI.filter(
+      (piece) => piece.strong === strong,
+    )
+      .map(confettiPiece)
+      .join("")}</g>`;
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${CONFETTI_TILE}' height='${CONFETTI_TILE}'><g fill='rgb(${r},${g},${b})'>${group(false, 0.8)}${group(true, 1.6)}</g></svg>`,
+  );
+}
+
+function dataUrl(svg: string): string {
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+function noise(texture: Noise, ink: TextureInk): string {
+  const [r, g, b] = ink.rgb.map(round);
+  const slope = round(texture.slope * ink.strength);
+  const offset = round(texture.offset * ink.strength);
+  const matrix = `0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${b} 0 0 0 ${slope} ${offset}`;
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${texture.size}' height='${texture.size}'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='${texture.frequency}' numOctaves='${texture.octaves}' stitchTiles='stitch'/><feColorMatrix values='${matrix}'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`,
+  );
+}
+
+function shapes(paths: string, ink: TextureInk): string {
+  const [r, g, b] = ink.rgb.map((c) => Math.round(c * 255));
+  const opacity = round(Math.min(1, SHAPE_OPACITY * ink.strength));
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${SHAPE_TILE}' height='${SHAPE_TILE}'><g transform='scale(${SHAPE_SCALE})' fill='rgb(${r},${g},${b})' fill-opacity='${opacity}'>${paths}</g></svg>`,
+  );
+}
+
+/** Every picture texture drawn in `ink`, each as a CSS `url(...)`. */
+export function pictureTextures(
+  ink: TextureInk,
+): Record<PictureTexture, string> {
+  return {
+    paper: noise(NOISE.paper, ink),
+    stars: shapes(STARS.map((d) => `<path d='${d}'/>`).join(""), ink),
+    hearts: shapes(
+      HEARTS.map(
+        ({ x, y, turn, scale }) =>
+          `<path transform='translate(${x} ${y}) rotate(${turn}) scale(${scale})' d='${HEART}'/>`,
+      ).join(""),
+      ink,
+    ),
+    confetti: confetti(ink),
+  };
+}

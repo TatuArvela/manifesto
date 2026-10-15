@@ -1,6 +1,11 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { isLocale, type Locale } from "../i18n/locales.js";
+import {
+  INK_COLORS,
+  type InkColor,
+  type PickedInkChoice,
+} from "../utils/boardTextures.js";
 
 // What each preference may hold and how a stored value is read back: the
 // types, the lists of choices, and `PREF_PARSERS`, the one table that loading,
@@ -22,35 +27,67 @@ export type NoteCorners = "straight" | "rounded";
 export type EditMode = "normal" | "raw";
 /** A colour a tag can be given: any note colour but the plain one. */
 export type TagColor = Exclude<NoteColor, NoteColor.Default>;
-/** A preset board tint, each with a light and a dark shade in styles.css. */
-export type BoardColor =
-  | "sand"
-  | "sage"
-  | "mist"
-  | "blush"
-  | "lavender"
-  | "caramel";
 /**
- * The board's colour: the page's own, a preset, `boardCustomColor`, or a
- * preset picked at random on each visit.
+ * A preset board colour, each with a light and a dark shade in styles.css:
+ * the hues of the note colours, which the pattern colours share.
  */
-export type BoardColorChoice = "none" | BoardColor | "custom" | "random";
+export type BoardColor = InkColor;
+/** White, gray and black boards, each a light and a dark shade too. */
+export type BoardNeutral = "white" | "gray" | "black";
+/**
+ * The board's colour: the page's own, a neutral, a preset,
+ * `boardCustomColor`, or a preset picked at random on each visit.
+ */
+export type BoardColorChoice =
+  | "none"
+  | BoardNeutral
+  | BoardColor
+  | "custom"
+  | "random";
 /** Drawn over the board's colour in CSS, in ink that follows the theme. */
 export type BoardTexture =
   | "none"
   | "paper"
-  | "cork"
-  | "felt"
-  | "linen"
   | "dots"
   | "grid"
   | "lines"
   | "confetti"
   | "waves"
   | "stars"
-  | "hearts";
+  | "hearts"
+  | "bubbles"
+  | "stripes";
+/**
+ * What the textures are drawn in: the theme's own faint ink, white, black, a
+ * colourful preset, `boardInkColor`, or a colourful preset picked at random on
+ * each visit.
+ */
+export type BoardInk = "auto" | PickedInkChoice | "random";
 /** A texture, or a different one picked at random on each visit. */
 export type BoardTextureChoice = BoardTexture | "random";
+/**
+ * The colour the board fades to from its own, or "none" for a flat board.
+ * "custom" is `boardGradientCustomColor`, a second picked colour, and
+ * "random" a preset picked on each visit, like the first colour's.
+ */
+export type BoardGradientChoice =
+  | "none"
+  | BoardNeutral
+  | BoardColor
+  | "custom"
+  | "random";
+/** Which way the board's colour fades into the gradient's, as a CSS side or corner. */
+export type BoardGradientDirection =
+  | "top"
+  | "top-right"
+  | "right"
+  | "bottom-right"
+  | "bottom"
+  | "bottom-left"
+  | "left"
+  | "top-left";
+/** A direction, or one picked at random on each visit. */
+export type BoardGradientDirectionChoice = BoardGradientDirection | "random";
 export type DarkHue =
   | "neutral"
   | "midnight"
@@ -62,21 +99,21 @@ export type DarkHue =
   | "ocean"
   | "black";
 
-export const BOARD_COLORS: readonly BoardColor[] = [
-  "sand",
-  "sage",
-  "mist",
-  "blush",
-  "lavender",
-  "caramel",
+/** In compass order from the top, which is how Settings lays them out. */
+export const BOARD_GRADIENT_DIRECTIONS: readonly BoardGradientDirection[] = [
+  "top",
+  "top-right",
+  "right",
+  "bottom-right",
+  "bottom",
+  "bottom-left",
+  "left",
+  "top-left",
 ];
 
 export const BOARD_TEXTURES: readonly BoardTexture[] = [
   "none",
   "paper",
-  "cork",
-  "felt",
-  "linen",
   "dots",
   "grid",
   "lines",
@@ -84,21 +121,85 @@ export const BOARD_TEXTURES: readonly BoardTexture[] = [
   "waves",
   "stars",
   "hearts",
+  "bubbles",
+  "stripes",
+];
+
+/**
+ * The preset colours, the same eight for the board and its pattern, each
+ * drawn in a shade that suits where it is used.
+ */
+export const BOARD_COLORS = Object.keys(INK_COLORS) as BoardColor[];
+
+/** Light to dark, which is how Settings lays them out. */
+export const BOARD_NEUTRALS: readonly BoardNeutral[] = [
+  "white",
+  "gray",
+  "black",
+];
+
+/**
+ * The muted presets the board had before, each read as the preset nearest
+ * it, so a board kept in one stays coloured.
+ */
+const RETIRED_BOARD_COLORS: Record<string, BoardColor> = {
+  sand: "orange",
+  caramel: "orange",
+  sage: "green",
+  mist: "blue",
+  blush: "pink",
+  lavender: "purple",
+};
+
+function parsePresetColor(value: unknown): BoardNeutral | BoardColor | "none" {
+  if (typeof value !== "string") return "none";
+  if ((BOARD_COLORS as readonly string[]).includes(value)) {
+    return value as BoardColor;
+  }
+  if ((BOARD_NEUTRALS as readonly string[]).includes(value)) {
+    return value as BoardNeutral;
+  }
+  return RETIRED_BOARD_COLORS[value] ?? "none";
+}
+
+export const BOARD_INKS: readonly BoardInk[] = [
+  "auto",
+  "white",
+  "black",
+  ...BOARD_COLORS,
+  "custom",
+  "random",
 ];
 
 /** What the custom colour starts as before one is picked: a warm corkboard. */
 export const DEFAULT_BOARD_CUSTOM_COLOR = "#d9bf94";
+/** The pattern colour's start, until one is picked: a soft rose. */
+export const DEFAULT_BOARD_INK_COLOR = "#e0607a";
+/** The second custom colour's start: a dusk blue to fade the corkboard into. */
+export const DEFAULT_BOARD_GRADIENT_CUSTOM_COLOR = "#9fb7d4";
 
 function parseBoardColor(value: unknown): BoardColorChoice {
   if (value === "custom" || value === "random") return value;
-  return typeof value === "string" &&
-    (BOARD_COLORS as readonly string[]).includes(value)
-    ? (value as BoardColor)
-    : "none";
+  return parsePresetColor(value);
 }
+
+function parseBoardGradient(value: unknown): BoardGradientChoice {
+  if (value === "custom" || value === "random") return value;
+  return parsePresetColor(value);
+}
+
+/** Textures the board had before, each read as the nearest one left. */
+const RETIRED_BOARD_TEXTURES: Record<string, BoardTexture> = {
+  cork: "paper",
+  felt: "paper",
+  linen: "paper",
+};
 
 function parseBoardTexture(value: unknown): BoardTextureChoice {
   if (value === "random") return "random";
+  if (typeof value === "string" && value in RETIRED_BOARD_TEXTURES) {
+    return RETIRED_BOARD_TEXTURES[value] ?? "none";
+  }
   return typeof value === "string" &&
     (BOARD_TEXTURES as readonly string[]).includes(value)
     ? (value as BoardTexture)
@@ -116,9 +217,12 @@ export function rollBoardTexture(): BoardTexture {
   return pickOne(BOARD_TEXTURES.filter((texture) => texture !== "none"));
 }
 
-/** A preset: the page's own colour is no colour, and a custom one is chosen. */
-export function rollBoardColor(): BoardColor {
-  return pickOne(BOARD_COLORS);
+/**
+ * A coloured preset: the page's own colour is no colour, a neutral hardly
+ * one, and a custom one is chosen.
+ */
+export function rollBoardColor(except?: string | undefined): BoardColor {
+  return pickOne(BOARD_COLORS.filter((color) => color !== except));
 }
 
 /**
@@ -126,10 +230,11 @@ export function rollBoardColor(): BoardColor {
  * The value is written into a CSS custom property, so anything freer would be
  * a way to inject arbitrary CSS through a hand-edited preferences blob.
  */
-function parseHexColor(value: unknown): string {
-  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
-    ? value.toLowerCase()
-    : DEFAULT_BOARD_CUSTOM_COLOR;
+function hexColor(fallback: string) {
+  return (value: unknown): string =>
+    typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
+      ? value.toLowerCase()
+      : fallback;
 }
 
 const DECIMAL_SEPARATOR_VALUES: readonly DecimalSeparator[] = [
@@ -272,8 +377,16 @@ export const PREF_PARSERS = {
   confirmBeforeDelete: flag(false),
   defaultEditMode: oneOf<EditMode>(["normal", "raw"], "normal"),
   boardColor: parseBoardColor,
-  boardCustomColor: parseHexColor,
+  boardCustomColor: hexColor(DEFAULT_BOARD_CUSTOM_COLOR),
+  boardGradient: parseBoardGradient,
+  boardGradientCustomColor: hexColor(DEFAULT_BOARD_GRADIENT_CUSTOM_COLOR),
+  boardGradientDirection: oneOf<BoardGradientDirectionChoice>(
+    [...BOARD_GRADIENT_DIRECTIONS, "random"],
+    "bottom-right",
+  ),
   boardTexture: parseBoardTexture,
+  boardInk: oneOf(BOARD_INKS, "auto"),
+  boardInkColor: hexColor(DEFAULT_BOARD_INK_COLOR),
   /**
    * Whether the picture on file covers the board, in place of the colour and
    * texture. Those are kept, so turning the picture off brings them back.

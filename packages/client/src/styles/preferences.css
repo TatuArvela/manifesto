@@ -51,14 +51,25 @@
    in the light theme and mixed deep into the page colour in the dark one, so a
    pastel chosen in daylight does not glare behind dark notes at night. */
 :root {
-  --board-sand: #f3ead9;
-  --board-sage: #e2eadd;
-  --board-mist: #dfe7ee;
-  --board-blush: #f2e2e1;
-  --board-lavender: #e8e3f1;
-  --board-caramel: #dcc39b;
+  /* The neutrals, light to dark in either theme. Black is a charcoal in the
+     light theme and white a slate in the dark one, so the dark or light text
+     of the page's headings still reads over them. */
+  --board-white: #ffffff;
+  --board-gray: #d4d4d4;
+  --board-black: #525252;
+  /* A clear pastel, a step stronger than a note of the same colour, so the
+     note still stands off it. */
+  --board-red: #fecaca;
+  --board-orange: #fed7aa;
+  --board-yellow: #fef08a;
+  --board-green: #bbf7d0;
+  --board-teal: #99f6e4;
+  --board-blue: #bfdbfe;
+  --board-purple: #e9d5ff;
+  --board-pink: #fbcfe8;
   --board-page: var(--color-white);
   --board-custom-shade: var(--board-custom);
+  --board-gradient-custom-shade: var(--board-gradient-custom);
   --board-scrim: rgb(255 255 255 / 0.15);
   /* The ink textures are drawn in: darker than the colour under them. */
   --board-ink: rgb(0 0 0 / 0.07);
@@ -66,16 +77,27 @@
 }
 
 :root.dark {
-  --board-sand: #29241b;
-  --board-sage: #1d2720;
-  --board-mist: #1b232c;
-  --board-blush: #2b1f21;
-  --board-lavender: #232030;
-  --board-caramel: #3b2e1f;
+  --board-white: #525252;
+  --board-gray: #2e2e2e;
+  --board-black: #0a0a0a;
+  /* A step deeper than a dark note of the same colour. */
+  --board-red: #450a0a;
+  --board-orange: #431407;
+  --board-yellow: #422006;
+  --board-green: #052e16;
+  --board-teal: #042f2e;
+  --board-blue: #172554;
+  --board-purple: #3b0764;
+  --board-pink: #500724;
   --board-page: var(--color-neutral-900);
   --board-custom-shade: color-mix(
     in oklab,
     var(--board-custom) 30%,
+    var(--color-neutral-900)
+  );
+  --board-gradient-custom-shade: color-mix(
+    in oklab,
+    var(--board-gradient-custom) 30%,
     var(--color-neutral-900)
   );
   --board-scrim: rgb(0 0 0 / 0.4);
@@ -85,50 +107,154 @@
   --board-ink-strong: rgb(255 255 255 / 0.11);
 }
 
-:root[data-board-color="sand"] {
-  --board-color: var(--board-sand);
+:root[data-board-color="white"] {
+  --board-color: var(--board-white);
 }
-:root[data-board-color="sage"] {
-  --board-color: var(--board-sage);
+:root[data-board-color="gray"] {
+  --board-color: var(--board-gray);
 }
-:root[data-board-color="mist"] {
-  --board-color: var(--board-mist);
+:root[data-board-color="black"] {
+  --board-color: var(--board-black);
 }
-:root[data-board-color="blush"] {
-  --board-color: var(--board-blush);
+:root[data-board-color="red"] {
+  --board-color: var(--board-red);
 }
-:root[data-board-color="lavender"] {
-  --board-color: var(--board-lavender);
+:root[data-board-color="orange"] {
+  --board-color: var(--board-orange);
 }
-:root[data-board-color="caramel"] {
-  --board-color: var(--board-caramel);
+:root[data-board-color="yellow"] {
+  --board-color: var(--board-yellow);
+}
+:root[data-board-color="green"] {
+  --board-color: var(--board-green);
+}
+:root[data-board-color="teal"] {
+  --board-color: var(--board-teal);
+}
+:root[data-board-color="blue"] {
+  --board-color: var(--board-blue);
+}
+:root[data-board-color="purple"] {
+  --board-color: var(--board-purple);
+}
+:root[data-board-color="pink"] {
+  --board-color: var(--board-pink);
 }
 :root[data-board-color="custom"] {
   --board-color: var(--board-custom-shade);
 }
 
+/* Gradient: the board's colour (or the page's, with none) fading to a second
+   one, toward a side or corner. The direction attribute is only set alongside
+   the colour, so it alone writes the gradient. A corner keyword rather than an
+   angle, so a
+   diagonal runs corner to corner on a board of any shape. It is the bottom
+   layer under the texture, and covers the board once rather than tiling. */
+:root[data-board-gradient="white"] {
+  --board-color-to: var(--board-white);
+}
+:root[data-board-gradient="gray"] {
+  --board-color-to: var(--board-gray);
+}
+:root[data-board-gradient="black"] {
+  --board-color-to: var(--board-black);
+}
+:root[data-board-gradient="red"] {
+  --board-color-to: var(--board-red);
+}
+:root[data-board-gradient="orange"] {
+  --board-color-to: var(--board-orange);
+}
+:root[data-board-gradient="yellow"] {
+  --board-color-to: var(--board-yellow);
+}
+:root[data-board-gradient="green"] {
+  --board-color-to: var(--board-green);
+}
+:root[data-board-gradient="teal"] {
+  --board-color-to: var(--board-teal);
+}
+:root[data-board-gradient="blue"] {
+  --board-color-to: var(--board-blue);
+}
+:root[data-board-gradient="purple"] {
+  --board-color-to: var(--board-purple);
+}
+:root[data-board-gradient="pink"] {
+  --board-color-to: var(--board-pink);
+}
+:root[data-board-gradient="custom"] {
+  --board-color-to: var(--board-gradient-custom-shade);
+}
+:root[data-board-gradient-direction="top"] {
+  --board-gradient: linear-gradient(
+    to top,
+    var(--board-color, var(--board-page)),
+    var(--board-color-to)
+  );
+}
+:root[data-board-gradient-direction="top-right"] {
+  --board-gradient: linear-gradient(
+    to top right,
+    var(--board-color, var(--board-page)),
+    var(--board-color-to)
+  );
+}
+:root[data-board-gradient-direction="right"] {
+  --board-gradient: linear-gradient(
+    to right,
+    var(--board-color, var(--board-page)),
+    var(--board-color-to)
+  );
+}
+:root[data-board-gradient-direction="bottom-right"] {
+  --board-gradient: linear-gradient(
+    to bottom right,
+    var(--board-color, var(--board-page)),
+    var(--board-color-to)
+  );
+}
+:root[data-board-gradient-direction="bottom"] {
+  --board-gradient: linear-gradient(
+    to bottom,
+    var(--board-color, var(--board-page)),
+    var(--board-color-to)
+  );
+}
+:root[data-board-gradient-direction="bottom-left"] {
+  --board-gradient: linear-gradient(
+    to bottom left,
+    var(--board-color, var(--board-page)),
+    var(--board-color-to)
+  );
+}
+:root[data-board-gradient-direction="left"] {
+  --board-gradient: linear-gradient(
+    to left,
+    var(--board-color, var(--board-page)),
+    var(--board-color-to)
+  );
+}
+:root[data-board-gradient-direction="top-left"] {
+  --board-gradient: linear-gradient(
+    to top left,
+    var(--board-color, var(--board-page)),
+    var(--board-color-to)
+  );
+}
+
 /* Textures. Each is a background-image and a matching background-size, named
-   once here and used both by the board and by its tile in Settings. The noise
-   ones are SVG turbulence with the ink baked in, since a data URI cannot read a
-   custom property, so they come in a light and a dark version, as do the
-   stars and hearts drawn the same way; the rest are gradients in
-   `--board-ink`. */
+   once here and used both by the board and by its tile in Settings. Most are
+   gradients in `--board-ink`. The paper grain, the stars, the hearts and the
+   confetti are SVG, which cannot read a custom property, so state/prefs.ts draws each in
+   the pattern colour (utils/boardTextures.ts) and hands it over as a light
+   and a dark version, the same one twice once a colour is picked.
+   A texture of several layers lists one size per layer: a shorter list
+   cycles, and would carry the texture's tile on into the gradient drawn
+   under it (styles.test.ts holds every texture to this). */
 :root {
-  --board-texture-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.200 -0.050'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --board-texture-paper: var(--board-texture-paper-light);
   --board-texture-paper-size: 160px 160px;
-  --board-texture-cork: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.950 -0.380'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --board-texture-cork-size: 200px 200px;
-  --board-texture-felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.12' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.260 -0.080'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --board-texture-felt-size: 250px 250px;
-  --board-texture-linen:
-    var(--board-texture-paper),
-    repeating-linear-gradient(0deg, var(--board-ink) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(
-      90deg,
-      var(--board-ink) 0 1px,
-      transparent 1px 4px
-    );
-  --board-texture-linen-size: 160px 160px, auto, auto;
   --board-texture-dots: radial-gradient(
     circle,
     var(--board-ink-strong) 1.25px,
@@ -138,83 +264,152 @@
   --board-texture-grid:
     linear-gradient(var(--board-ink) 1px, transparent 1px),
     linear-gradient(90deg, var(--board-ink) 1px, transparent 1px);
-  --board-texture-grid-size: 24px 24px;
+  --board-texture-grid-size: 24px 24px, 24px 24px;
   --board-texture-lines: repeating-linear-gradient(
     to bottom,
     transparent 0 27px,
     var(--board-ink-strong) 27px 28px
   );
   --board-texture-lines-size: auto;
-  /* The playful ones. Confetti is the only texture in colour: a handful of
-     translucent dots, which read on every board colour in either theme. */
-  --board-texture-confetti:
+  --board-texture-confetti: var(--board-texture-confetti-light);
+  --board-texture-confetti-size: 320px 320px;
+  /* Waves: a running line of arcs, each tile holding the trough of one
+     (a ring centred on its top edge) and the crest of the next (one centred
+     on its bottom edge), which meet across the tile boundary as an S. */
+  --board-texture-waves:
     radial-gradient(
-      circle at 12% 20%,
-      rgb(239 68 68 / 0.3) 2.5px,
-      transparent 3px
+      circle at 12px 0,
+      transparent 10.5px,
+      var(--board-ink-strong) 11px 12px,
+      transparent 12.5px
     ),
     radial-gradient(
-      circle at 62% 12%,
-      rgb(59 130 246 / 0.3) 2px,
-      transparent 2.5px
-    ),
-    radial-gradient(
-      circle at 38% 58%,
-      rgb(234 179 8 / 0.35) 3px,
-      transparent 3.5px
-    ),
-    radial-gradient(
-      circle at 86% 46%,
-      rgb(34 197 94 / 0.3) 2px,
-      transparent 2.5px
-    ),
-    radial-gradient(
-      circle at 20% 86%,
-      rgb(168 85 247 / 0.3) 2px,
-      transparent 2.5px
-    ),
-    radial-gradient(
-      circle at 74% 82%,
-      rgb(236 72 153 / 0.3) 2.5px,
-      transparent 3px
+      circle at 36px 36px,
+      transparent 10.5px,
+      var(--board-ink-strong) 11px 12px,
+      transparent 12.5px
     );
-  --board-texture-confetti-size: 72px 72px;
-  --board-texture-waves: radial-gradient(
-    circle at 50% 100%,
-    transparent 15px,
-    var(--board-ink-strong) 15px 16px,
-    transparent 16px
+  --board-texture-waves-size: 48px 36px, 48px 36px;
+  /* Bubbles: a scatter of round dots of every size, some fainter than others,
+     each well inside its tile so none is cut at an edge. Large and filled,
+     they would outweigh the rest at full ink, so they take it more lightly. */
+  --board-bubble: color-mix(in srgb, var(--board-ink) 65%, transparent);
+  --board-bubble-strong: color-mix(
+    in srgb,
+    var(--board-ink-strong) 65%,
+    transparent
   );
-  --board-texture-waves-size: 32px 24px;
-  --board-texture-stars: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='rgba(0,0,0,0.09)'%3E%3Cpath d='M15.0 9.1 L16.2 13.7 L20.9 14.8 L16.8 17.4 L17.3 22.2 L13.6 19.1 L9.1 21.0 L10.9 16.5 L7.7 12.9 L12.5 13.2Z'/%3E%3Cpath d='M42.9 35.6 L44.8 38.1 L47.8 37.6 L46.0 40.1 L47.4 42.9 L44.5 42.0 L42.3 44.2 L42.3 41.1 L39.5 39.7 L42.4 38.7Z'/%3E%3Cpath d='M50.9 7.7 L50.9 9.4 L52.5 10.1 L50.9 10.7 L50.7 12.4 L49.6 11.1 L47.9 11.4 L48.9 10.0 L48.0 8.5 L49.7 8.9Z'/%3E%3Cpath d='M17.7 45.0 L18.7 46.8 L20.7 46.8 L19.3 48.3 L20.0 50.2 L18.1 49.3 L16.5 50.6 L16.8 48.5 L15.1 47.4 L17.1 47.0Z'/%3E%3C/g%3E%3C/svg%3E");
-  --board-texture-stars-size: 60px 60px;
-  --board-texture-hearts: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='rgba(0,0,0,0.09)'%3E%3Cpath transform='translate(16 18) rotate(-12)' d='M0 6.3 C-8.4 0.7000000000000001 -7.700000000000001 -6.3 0 -2.4499999999999997 C7.700000000000001 -6.3 8.4 0.7000000000000001 0 6.3Z'/%3E%3Cpath transform='translate(46 44) rotate(14)' d='M0 4.5 C-6.0 0.5 -5.5 -4.5 0 -1.75 C5.5 -4.5 6.0 0.5 0 4.5Z'/%3E%3Cpath transform='translate(50 12) rotate(6)' d='M0 2.7 C-3.5999999999999996 0.30000000000000004 -3.3000000000000003 -2.7 0 -1.0499999999999998 C3.3000000000000003 -2.7 3.5999999999999996 0.30000000000000004 0 2.7Z'/%3E%3Cpath transform='translate(14 50) rotate(-4)' d='M0 3.15 C-4.2 0.35000000000000003 -3.8500000000000005 -3.15 0 -1.2249999999999999 C3.8500000000000005 -3.15 4.2 0.35000000000000003 0 3.15Z'/%3E%3C/g%3E%3C/svg%3E");
-  --board-texture-hearts-size: 60px 60px;
+  --board-texture-bubbles:
+    radial-gradient(
+      circle at 14px 18px,
+      var(--board-bubble-strong) 9px,
+      transparent 9.75px
+    ),
+    radial-gradient(
+      circle at 46px 10px,
+      var(--board-bubble) 5px,
+      transparent 5.75px
+    ),
+    radial-gradient(
+      circle at 80px 26px,
+      var(--board-bubble) 12px,
+      transparent 12.75px
+    ),
+    radial-gradient(
+      circle at 108px 10px,
+      var(--board-bubble-strong) 6px,
+      transparent 6.75px
+    ),
+    radial-gradient(
+      circle at 30px 52px,
+      var(--board-bubble) 6px,
+      transparent 6.75px
+    ),
+    radial-gradient(
+      circle at 62px 62px,
+      var(--board-bubble-strong) 14px,
+      transparent 14.75px
+    ),
+    radial-gradient(
+      circle at 100px 64px,
+      var(--board-bubble) 8px,
+      transparent 8.75px
+    ),
+    radial-gradient(
+      circle at 14px 94px,
+      var(--board-bubble) 11px,
+      transparent 11.75px
+    ),
+    radial-gradient(
+      circle at 44px 104px,
+      var(--board-bubble-strong) 7px,
+      transparent 7.75px
+    ),
+    radial-gradient(
+      circle at 82px 100px,
+      var(--board-bubble-strong) 10px,
+      transparent 10.75px
+    ),
+    radial-gradient(
+      circle at 110px 110px,
+      var(--board-bubble) 5px,
+      transparent 5.75px
+    );
+  --board-texture-bubbles-size:
+    120px 120px,
+    120px 120px,
+    120px 120px,
+    120px 120px,
+    120px 120px,
+    120px 120px,
+    120px 120px,
+    120px 120px,
+    120px 120px,
+    120px 120px,
+    120px 120px;
+  --board-texture-stripes: repeating-linear-gradient(
+    -45deg,
+    var(--board-ink) 0 16px,
+    transparent 16px 32px
+  );
+  --board-texture-stripes-size: auto;
+  --board-texture-stars: var(--board-texture-stars-light);
+  --board-texture-stars-size: 90px 90px;
+  --board-texture-hearts: var(--board-texture-hearts-light);
+  --board-texture-hearts-size: 90px 90px;
 }
 
 :root.dark {
-  --board-texture-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.150 -0.038'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --board-texture-cork: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.712 -0.285'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --board-texture-felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.12' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.195 -0.060'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --board-texture-stars: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='rgba(255,255,255,0.07)'%3E%3Cpath d='M15.0 9.1 L16.2 13.7 L20.9 14.8 L16.8 17.4 L17.3 22.2 L13.6 19.1 L9.1 21.0 L10.9 16.5 L7.7 12.9 L12.5 13.2Z'/%3E%3Cpath d='M42.9 35.6 L44.8 38.1 L47.8 37.6 L46.0 40.1 L47.4 42.9 L44.5 42.0 L42.3 44.2 L42.3 41.1 L39.5 39.7 L42.4 38.7Z'/%3E%3Cpath d='M50.9 7.7 L50.9 9.4 L52.5 10.1 L50.9 10.7 L50.7 12.4 L49.6 11.1 L47.9 11.4 L48.9 10.0 L48.0 8.5 L49.7 8.9Z'/%3E%3Cpath d='M17.7 45.0 L18.7 46.8 L20.7 46.8 L19.3 48.3 L20.0 50.2 L18.1 49.3 L16.5 50.6 L16.8 48.5 L15.1 47.4 L17.1 47.0Z'/%3E%3C/g%3E%3C/svg%3E");
-  --board-texture-hearts: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='rgba(255,255,255,0.07)'%3E%3Cpath transform='translate(16 18) rotate(-12)' d='M0 6.3 C-8.4 0.7000000000000001 -7.700000000000001 -6.3 0 -2.4499999999999997 C7.700000000000001 -6.3 8.4 0.7000000000000001 0 6.3Z'/%3E%3Cpath transform='translate(46 44) rotate(14)' d='M0 4.5 C-6.0 0.5 -5.5 -4.5 0 -1.75 C5.5 -4.5 6.0 0.5 0 4.5Z'/%3E%3Cpath transform='translate(50 12) rotate(6)' d='M0 2.7 C-3.5999999999999996 0.30000000000000004 -3.3000000000000003 -2.7 0 -1.0499999999999998 C3.3000000000000003 -2.7 3.5999999999999996 0.30000000000000004 0 2.7Z'/%3E%3Cpath transform='translate(14 50) rotate(-4)' d='M0 3.15 C-4.2 0.35000000000000003 -3.8500000000000005 -3.15 0 -1.2249999999999999 C3.8500000000000005 -3.15 4.2 0.35000000000000003 0 3.15Z'/%3E%3C/g%3E%3C/svg%3E");
+  --board-texture-paper: var(--board-texture-paper-dark);
+  --board-texture-stars: var(--board-texture-stars-dark);
+  --board-texture-hearts: var(--board-texture-hearts-dark);
+  --board-texture-confetti: var(--board-texture-confetti-dark);
+}
+
+/* Pattern colour. The textures drawn in `--board-ink` take it: picked rather
+   than the theme's, it is drawn a good deal stronger, since a colour chosen is
+   a colour meant to be seen. Declared after the dark theme's ink, which it
+   overrides. */
+:root[data-board-ink="white"] {
+  --board-ink: rgb(255 255 255 / 0.4);
+  --board-ink-strong: rgb(255 255 255 / 0.6);
+}
+:root[data-board-ink="black"] {
+  --board-ink: rgb(0 0 0 / 0.14);
+  --board-ink-strong: rgb(0 0 0 / 0.26);
+}
+:root[data-board-ink="custom"] {
+  --board-ink: color-mix(in srgb, var(--board-ink-custom) 45%, transparent);
+  --board-ink-strong: color-mix(
+    in srgb,
+    var(--board-ink-custom) 70%,
+    transparent
+  );
 }
 
 :root[data-board-texture="paper"] {
   --board-texture: var(--board-texture-paper);
   --board-texture-size: var(--board-texture-paper-size);
-}
-:root[data-board-texture="cork"] {
-  --board-texture: var(--board-texture-cork);
-  --board-texture-size: var(--board-texture-cork-size);
-}
-:root[data-board-texture="felt"] {
-  --board-texture: var(--board-texture-felt);
-  --board-texture-size: var(--board-texture-felt-size);
-}
-:root[data-board-texture="linen"] {
-  --board-texture: var(--board-texture-linen);
-  --board-texture-size: var(--board-texture-linen-size);
 }
 :root[data-board-texture="dots"] {
   --board-texture: var(--board-texture-dots);
@@ -245,10 +440,20 @@
   --board-texture-size: var(--board-texture-hearts-size);
 }
 
+:root[data-board-texture="bubbles"] {
+  --board-texture: var(--board-texture-bubbles);
+  --board-texture-size: var(--board-texture-bubbles-size);
+}
+:root[data-board-texture="stripes"] {
+  --board-texture: var(--board-texture-stripes);
+  --board-texture-size: var(--board-texture-stripes-size);
+}
 .board {
   background-color: var(--board-color, transparent);
-  background-image: var(--board-texture, none);
-  background-size: var(--board-texture-size, auto);
+  background-image: var(--board-texture, none), var(--board-gradient, none);
+  background-size:
+    var(--board-texture-size, auto),
+    100% 100%;
   transition: background-color 300ms ease;
   /* Its own stacking context, so it paints its background first: the
      new-note pad tucks its base behind the sheets with a negative z-index,
@@ -272,72 +477,104 @@
 .board-swatch {
   background-color: var(--board-page);
 }
-.board-swatch[data-board-swatch="sand"] {
-  background-color: var(--board-sand);
+.board-swatch[data-board-swatch="white"] {
+  background-color: var(--board-white);
 }
-.board-swatch[data-board-swatch="sage"] {
-  background-color: var(--board-sage);
+.board-swatch[data-board-swatch="gray"] {
+  background-color: var(--board-gray);
 }
-.board-swatch[data-board-swatch="mist"] {
-  background-color: var(--board-mist);
+.board-swatch[data-board-swatch="black"] {
+  background-color: var(--board-black);
 }
-.board-swatch[data-board-swatch="blush"] {
-  background-color: var(--board-blush);
+.board-swatch[data-board-swatch="red"] {
+  background-color: var(--board-red);
 }
-.board-swatch[data-board-swatch="lavender"] {
-  background-color: var(--board-lavender);
+.board-swatch[data-board-swatch="orange"] {
+  background-color: var(--board-orange);
 }
-.board-swatch[data-board-swatch="caramel"] {
-  background-color: var(--board-caramel);
+.board-swatch[data-board-swatch="yellow"] {
+  background-color: var(--board-yellow);
+}
+.board-swatch[data-board-swatch="green"] {
+  background-color: var(--board-green);
+}
+.board-swatch[data-board-swatch="teal"] {
+  background-color: var(--board-teal);
+}
+.board-swatch[data-board-swatch="blue"] {
+  background-color: var(--board-blue);
+}
+.board-swatch[data-board-swatch="purple"] {
+  background-color: var(--board-purple);
+}
+.board-swatch[data-board-swatch="pink"] {
+  background-color: var(--board-pink);
 }
 .board-swatch[data-board-swatch="custom"] {
   background-color: var(--board-custom-shade);
 }
+.board-swatch[data-board-swatch="ink-white"] {
+  background-color: white;
+}
+.board-swatch[data-board-swatch="ink-auto"] {
+  background-color: #a3a3a3;
+}
+.board-swatch[data-board-swatch="ink-black"] {
+  background-color: black;
+}
+.board-swatch[data-board-swatch="ink-custom"] {
+  background-color: var(--board-ink-custom);
+}
+.board-swatch[data-board-swatch="gradient-custom"] {
+  background-color: var(--board-gradient-custom-shade);
+}
 
+/* Each tile names its texture in `--tile-texture`, so the gradient can be laid
+   under every one of them in a single rule. */
 .board-texture-tile {
   background-color: var(--board-color, var(--board-page));
+  background-image: var(--tile-texture, none), var(--board-gradient, none);
+  background-size:
+    var(--tile-texture-size, auto),
+    100% 100%;
 }
 .board-texture-tile[data-texture="paper"] {
-  background-image: var(--board-texture-paper);
-  background-size: var(--board-texture-paper-size);
-}
-.board-texture-tile[data-texture="cork"] {
-  background-image: var(--board-texture-cork);
-  background-size: var(--board-texture-cork-size);
-}
-.board-texture-tile[data-texture="felt"] {
-  background-image: var(--board-texture-felt);
-  background-size: var(--board-texture-felt-size);
-}
-.board-texture-tile[data-texture="linen"] {
-  background-image: var(--board-texture-linen);
-  background-size: var(--board-texture-linen-size);
+  --tile-texture: var(--board-texture-paper);
+  --tile-texture-size: var(--board-texture-paper-size);
 }
 .board-texture-tile[data-texture="dots"] {
-  background-image: var(--board-texture-dots);
-  background-size: var(--board-texture-dots-size);
+  --tile-texture: var(--board-texture-dots);
+  --tile-texture-size: var(--board-texture-dots-size);
 }
 .board-texture-tile[data-texture="grid"] {
-  background-image: var(--board-texture-grid);
-  background-size: var(--board-texture-grid-size);
+  --tile-texture: var(--board-texture-grid);
+  --tile-texture-size: var(--board-texture-grid-size);
 }
 .board-texture-tile[data-texture="lines"] {
-  background-image: var(--board-texture-lines);
-  background-size: var(--board-texture-lines-size);
+  --tile-texture: var(--board-texture-lines);
+  --tile-texture-size: var(--board-texture-lines-size);
 }
 .board-texture-tile[data-texture="confetti"] {
-  background-image: var(--board-texture-confetti);
-  background-size: var(--board-texture-confetti-size);
+  --tile-texture: var(--board-texture-confetti);
+  --tile-texture-size: var(--board-texture-confetti-size);
 }
 .board-texture-tile[data-texture="waves"] {
-  background-image: var(--board-texture-waves);
-  background-size: var(--board-texture-waves-size);
+  --tile-texture: var(--board-texture-waves);
+  --tile-texture-size: var(--board-texture-waves-size);
 }
 .board-texture-tile[data-texture="stars"] {
-  background-image: var(--board-texture-stars);
-  background-size: var(--board-texture-stars-size);
+  --tile-texture: var(--board-texture-stars);
+  --tile-texture-size: var(--board-texture-stars-size);
 }
 .board-texture-tile[data-texture="hearts"] {
-  background-image: var(--board-texture-hearts);
-  background-size: var(--board-texture-hearts-size);
+  --tile-texture: var(--board-texture-hearts);
+  --tile-texture-size: var(--board-texture-hearts-size);
+}
+.board-texture-tile[data-texture="bubbles"] {
+  --tile-texture: var(--board-texture-bubbles);
+  --tile-texture-size: var(--board-texture-bubbles-size);
+}
+.board-texture-tile[data-texture="stripes"] {
+  --tile-texture: var(--board-texture-stripes);
+  --tile-texture-size: var(--board-texture-stripes-size);
 }
