@@ -42,7 +42,7 @@ function LinkPreviewRow({
   const clickable = variant === "card";
   const content = (
     <div
-      class={`group/lp relative flex items-stretch rounded-lg overflow-hidden bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 ${clickable ? "hover:bg-black/10 dark:hover:bg-white/10 transition-colors" : ""}`}
+      class={`relative flex items-stretch rounded-lg overflow-hidden bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 ${clickable ? "hover:bg-black/10 dark:hover:bg-white/10 transition-colors" : ""}`}
     >
       <div class="w-20 shrink-0 bg-black/10 dark:bg-white/10 flex items-center justify-center">
         {preview.image ? (
@@ -74,7 +74,7 @@ function LinkPreviewRow({
       {onRemove && (
         <button
           type="button"
-          class="absolute top-1 right-1 p-1 rounded-full bg-black/40 text-white opacity-0 group-hover/lp:opacity-100 focus-visible:opacity-100 hover:bg-black/60 transition-opacity cursor-pointer"
+          class="absolute top-1 right-1 p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-100 hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
