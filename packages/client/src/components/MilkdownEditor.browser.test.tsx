@@ -334,6 +334,7 @@ describe("MilkdownEditor teardown", () => {
   });
 
   it("announces a calculation's result, which the text does not carry", async () => {
+    const before = inlineCalculations.value;
     inlineCalculations.value = true;
     const host = mountHost();
     render(<MilkdownEditor content="" onChange={() => {}} />, host);
@@ -346,13 +347,15 @@ describe("MilkdownEditor teardown", () => {
     expect(status?.textContent).toBe("");
 
     view.focus();
-    document.execCommand("insertText", false, "200+300");
+    // A result is offered once the "=" is typed.
+    document.execCommand("insertText", false, "200+300=");
 
     await vi.waitFor(() => {
       expect(status?.textContent).toBe(
         t("editor.calcResult", { result: "500" }),
       );
     });
+    inlineCalculations.value = before;
   });
 
   it("does not throw when destroyed inside the listener debounce", async () => {
