@@ -1,0 +1,128 @@
+/* The light theme's tinted page and neutral ramp, and the swatches that show it. */
+
+/* --- Light shade --------------------------------------------------------
+
+   The light theme's counterpart of dark-shade.css. The light theme is drawn
+   mostly on white (`bg-white`, the board's own page), so a tint of the
+   neutral ramp alone would hardly show: `--color-white` is redefined with
+   it. That is safe because the dark theme is the only one that uses white as
+   anything but a surface, and these rules are scoped to the light theme. The
+   few white glyphs on coloured buttons take the same faint cast, which does
+   not read at that lightness.
+
+   `--light-tint-c` / `--light-tint-h` are the cast, in the hue of one of the
+   board's preset colours. Chroma tapers off towards the dark end, which is
+   the light theme's text, for the reason the dark ramp tapers towards its
+   light end. `--light-dim` takes the surfaces down from full white, which can
+   carry no colour at all, just far enough to make room for the cast.
+
+   The `[data-light-hue]` rules are not scoped to `html`, so the settings
+   swatches can set the attribute on themselves to sample a shade. */
+:root {
+  --light-tint-c: 0;
+  --light-tint-h: 0;
+  --light-dim: 0%;
+}
+
+[data-light-hue="white"] {
+  --light-tint-c: 0;
+  --light-tint-h: 0;
+  --light-dim: 0%;
+}
+
+[data-light-hue="red"] {
+  --light-tint-c: 0.03;
+  --light-tint-h: 25;
+  --light-dim: 2.5%;
+}
+
+[data-light-hue="orange"] {
+  --light-tint-c: 0.03;
+  --light-tint-h: 55;
+  --light-dim: 2.5%;
+}
+
+/* Yellow needs more chroma than the rest to read as a colour this light. */
+[data-light-hue="yellow"] {
+  --light-tint-c: 0.045;
+  --light-tint-h: 100;
+  --light-dim: 2.5%;
+}
+
+[data-light-hue="green"] {
+  --light-tint-c: 0.03;
+  --light-tint-h: 150;
+  --light-dim: 2.5%;
+}
+
+[data-light-hue="teal"] {
+  --light-tint-c: 0.03;
+  --light-tint-h: 185;
+  --light-dim: 2.5%;
+}
+
+[data-light-hue="blue"] {
+  --light-tint-c: 0.03;
+  --light-tint-h: 255;
+  --light-dim: 2.5%;
+}
+
+[data-light-hue="purple"] {
+  --light-tint-c: 0.03;
+  --light-tint-h: 305;
+  --light-dim: 2.5%;
+}
+
+[data-light-hue="pink"] {
+  --light-tint-c: 0.03;
+  --light-tint-h: 350;
+  --light-dim: 2.5%;
+}
+
+html:not(.dark) {
+  --color-white: oklch(
+    calc(100% - var(--light-dim)) var(--light-tint-c) var(--light-tint-h)
+  );
+  --color-neutral-50: oklch(
+    calc(98.5% - var(--light-dim)) var(--light-tint-c) var(--light-tint-h)
+  );
+  --color-neutral-100: oklch(
+    calc(97% - var(--light-dim)) var(--light-tint-c) var(--light-tint-h)
+  );
+  --color-neutral-200: oklch(
+    calc(92.2% - var(--light-dim) * 0.5) calc(var(--light-tint-c) * 0.9)
+      var(--light-tint-h)
+  );
+  --color-neutral-300: oklch(
+    87% calc(var(--light-tint-c) * 0.8) var(--light-tint-h)
+  );
+  --color-neutral-400: oklch(
+    70.8% calc(var(--light-tint-c) * 0.6) var(--light-tint-h)
+  );
+  --color-neutral-500: oklch(
+    55.6% calc(var(--light-tint-c) * 0.45) var(--light-tint-h)
+  );
+  --color-neutral-600: oklch(
+    43.9% calc(var(--light-tint-c) * 0.35) var(--light-tint-h)
+  );
+  --color-neutral-700: oklch(
+    37.1% calc(var(--light-tint-c) * 0.3) var(--light-tint-h)
+  );
+  --color-neutral-800: oklch(
+    26.9% calc(var(--light-tint-c) * 0.25) var(--light-tint-h)
+  );
+  --color-neutral-900: oklch(
+    20.5% calc(var(--light-tint-c) * 0.2) var(--light-tint-h)
+  );
+  --color-neutral-950: oklch(
+    14.5% calc(var(--light-tint-c) * 0.15) var(--light-tint-h)
+  );
+}
+
+/* A literal sample, like the dark swatch: the white the page and the top bar
+   are drawn on. The ring around it is what sets White apart from the panel. */
+.light-hue-swatch {
+  background-color: oklch(
+    calc(100% - var(--light-dim)) var(--light-tint-c) var(--light-tint-h)
+  );
+}

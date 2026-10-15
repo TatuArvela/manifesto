@@ -88,16 +88,23 @@ export type BoardGradientDirection =
   | "top-left";
 /** A direction, or one picked at random on each visit. */
 export type BoardGradientDirectionChoice = BoardGradientDirection | "random";
+/**
+ * The dark theme's shade: a grey with a cast, a dimmed or black one, or a
+ * tint in the hue of one of the board's preset colours.
+ */
 export type DarkHue =
   | "neutral"
   | "midnight"
   | "mauve"
-  | "violet"
+  | "lavender"
   | "indigo"
   | "slate"
   | "steel"
   | "ocean"
-  | "black";
+  | "black"
+  | BoardColor;
+/** The light theme's shade: plain white, or a tint of a preset colour. */
+export type LightHue = "white" | BoardColor;
 
 /** In compass order from the top, which is how Settings lays them out. */
 export const BOARD_GRADIENT_DIRECTIONS: readonly BoardGradientDirection[] = [
@@ -249,13 +256,17 @@ export const DARK_HUES: readonly DarkHue[] = [
   "neutral",
   "midnight",
   "mauve",
-  "violet",
+  "lavender",
   "indigo",
   "slate",
   "steel",
   "ocean",
   "black",
+  ...BOARD_COLORS,
 ];
+
+/** White, then the preset colours in the board's order. */
+export const LIGHT_HUES: readonly LightHue[] = ["white", ...BOARD_COLORS];
 
 /**
  * First-run default for the animations preference: follow the OS accessibility
@@ -356,7 +367,10 @@ export const PREF_PARSERS = {
   // toggle, their choice wins.
   animations: (value: unknown): boolean =>
     typeof value === "boolean" ? value : !prefersReducedMotion(),
-  darkHue: oneOf(DARK_HUES, "neutral"),
+  lightHue: oneOf(LIGHT_HUES, "white"),
+  // Lavender was called violet until purple joined the list beside it.
+  darkHue: (value: unknown) =>
+    oneOf(DARK_HUES, "neutral")(value === "violet" ? "lavender" : value),
   noteQuips: flag(true),
   formattingToolbar: flag(true),
   /**

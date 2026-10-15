@@ -92,11 +92,14 @@ export function SettingsSelect<T extends string>({
   options,
   onChange,
   label,
+  disabled = false,
 }: {
   value: T;
   options: SettingsOption<T>[];
   onChange: (value: T) => void;
   label: string;
+  /** Shown as it stands but not opened, for a setting that does not apply now. */
+  disabled?: boolean | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const labelledBy = useContext(ControlLabelId);
@@ -114,8 +117,9 @@ export function SettingsSelect<T extends string>({
       trigger={
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 text-sm rounded-lg cursor-pointer transition-colors bg-white dark:bg-neutral-700 ring-1 ring-inset ring-neutral-200 dark:ring-0 hover:bg-neutral-100 dark:hover:bg-neutral-600"
+          class="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 text-sm rounded-lg cursor-pointer transition-colors bg-white dark:bg-neutral-700 ring-1 ring-inset ring-neutral-200 dark:ring-0 hover:bg-neutral-100 dark:hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-neutral-700"
           onClick={() => setOpen(!open)}
+          disabled={disabled}
           id={triggerId}
           aria-label={labelledBy ? undefined : label}
           aria-labelledby={labelledBy && `${labelledBy} ${triggerId}`}

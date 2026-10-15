@@ -5,6 +5,7 @@
    one. Add to the partial a rule belongs to, not to the end of this list. */
 @import "./styles/setup.css";
 @import "./styles/dark-shade.css";
+@import "./styles/light-shade.css";
 @import "./styles/popovers.css";
 @import "./styles/preferences.css";
 @import "./styles/note-cards.css";

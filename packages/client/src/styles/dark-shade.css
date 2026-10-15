@@ -14,7 +14,8 @@
    surface reads as a choice. The hues run warm to cool along the violet-blue
    arc at a chroma low enough that each reads as a grey with a cast rather than
    a colour. The point is matching the dark mode of the OS or editor beside
-   it, and those sit in a narrow band.
+   it, and those sit in a narrow band. The board's preset colours follow at a higher
+   chroma, for a dark theme that is meant to read as that colour.
 
    `--dark-dim` deepens instead of tinting: it is subtracted from the lightness
    of the dark end, tapering to nothing by the 400 step so text keeps its
@@ -47,7 +48,7 @@
   --dark-dim: 0%;
 }
 
-[data-dark-hue="violet"] {
+[data-dark-hue="lavender"] {
   --dark-tint-c: 0.014;
   --dark-tint-h: 295;
   --dark-dim: 0%;
@@ -81,6 +82,56 @@
   --dark-tint-c: 0;
   --dark-tint-h: 0;
   --dark-dim: 20.5%;
+}
+
+/* The board's preset colours, as tints strong enough to read as the colour
+   rather than as a cast, in the hues the light shades use. */
+[data-dark-hue="red"] {
+  --dark-tint-c: 0.035;
+  --dark-tint-h: 25;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="orange"] {
+  --dark-tint-c: 0.035;
+  --dark-tint-h: 55;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="yellow"] {
+  --dark-tint-c: 0.035;
+  --dark-tint-h: 100;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="green"] {
+  --dark-tint-c: 0.035;
+  --dark-tint-h: 150;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="teal"] {
+  --dark-tint-c: 0.035;
+  --dark-tint-h: 185;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="blue"] {
+  --dark-tint-c: 0.035;
+  --dark-tint-h: 255;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="purple"] {
+  --dark-tint-c: 0.035;
+  --dark-tint-h: 305;
+  --dark-dim: 0%;
+}
+
+[data-dark-hue="pink"] {
+  --dark-tint-c: 0.035;
+  --dark-tint-h: 350;
+  --dark-dim: 0%;
 }
 
 html.dark {
