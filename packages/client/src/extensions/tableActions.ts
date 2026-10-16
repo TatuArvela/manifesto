@@ -75,7 +75,7 @@ export function availableTableActions(state: EditorState): TableAction[] {
  * `prosemirror-tables`, which copies the row above: under the header row
  * that is a second header row, and Markdown has room for one.
  */
-function addBodyRowAfter(
+export function addBodyRowAfter(
   state: EditorState,
   dispatch: (tr: Transaction) => void,
 ): boolean {

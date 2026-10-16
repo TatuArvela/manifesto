@@ -98,3 +98,46 @@ describe("Backspace at the start of a block", () => {
     expect(markdown(editor)).toBe("let x");
   });
 });
+
+describe("Tab in a list or a table", () => {
+  it("keeps focus on a list's first item, which cannot be indented", async () => {
+    const editor = await mount("- [ ] Milk\n- [ ] Bread");
+    caretAt(editor, "Milk");
+    await userEvent.keyboard("{Tab}");
+    expect(viewOf(editor).hasFocus()).toBe(true);
+    expect(markdown(editor)).toBe("- [ ] Milk\n- [ ] Bread");
+  });
+
+  it("still indents an item that can be", async () => {
+    const editor = await mount("- [ ] Milk\n- [ ] Bread");
+    caretAt(editor, "Bread");
+    await userEvent.keyboard("{Tab}");
+    expect(markdown(editor)).toMatch(/^- \[ \] Milk\n +- \[ \] Bread$/);
+  });
+
+  it("adds a row from the last cell and stays in the table", async () => {
+    const editor = await mount("| a | b |\n| - | - |\n| c | d |");
+    caretAt(editor, "d");
+    await userEvent.keyboard("{Tab}");
+    const view = viewOf(editor);
+    expect(view.hasFocus()).toBe(true);
+    expect(view.state.doc.firstChild?.childCount).toBe(3);
+    expect(view.state.selection.$from.node(-2)).toBe(
+      view.state.doc.firstChild?.lastChild,
+    );
+  });
+
+  it("keeps focus on Shift-Tab from the first cell", async () => {
+    const editor = await mount("| a | b |\n| - | - |\n| c | d |");
+    caretAt(editor, "a");
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(viewOf(editor).hasFocus()).toBe(true);
+  });
+
+  it("leaves Tab in a plain paragraph to the browser", async () => {
+    const editor = await mount("Text");
+    caretAt(editor, "Text");
+    await userEvent.keyboard("{Tab}");
+    expect(viewOf(editor).hasFocus()).toBe(false);
+  });
+});
