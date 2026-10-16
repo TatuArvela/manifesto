@@ -257,6 +257,7 @@ export const fi: Messages = {
   "format.italic": "Kursivointi",
   "format.quote": "Lainaus",
   "format.code": "Koodi",
+  "format.codeBlock": "Koodilohko",
   "format.link": "Linkki",
   "format.linkAdd": "Lisää",
   "format.linkPlaceholder": "https://...",

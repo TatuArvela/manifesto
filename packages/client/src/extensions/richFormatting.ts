@@ -14,6 +14,7 @@ import type { EditorState } from "@milkdown/kit/prose/state";
 import { callCommand } from "@milkdown/kit/utils";
 import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
 import { insertBlock } from "./blockInsertion.js";
+import { toggleCodeBlock } from "./codeBlockToggle.js";
 import {
   toggleSubscriptCommand,
   toggleSuperscriptCommand,
@@ -40,6 +41,7 @@ export const emptyFormats: ActiveFormats = {
   subscript: false,
   superscript: false,
   table: false,
+  codeBlock: false,
 };
 
 function isMarkActive(state: EditorState, mark: MarkType | undefined): boolean {
@@ -91,6 +93,7 @@ export function getActiveFormats(editor: Editor): ActiveFormats {
       subscript: isMarkActive(state, marks.subscript),
       superscript: isMarkActive(state, marks.superscript),
       table: !!findNodeAncestor(state, nodes.table),
+      codeBlock: !!findNodeAncestor(state, nodes.code_block),
     };
   });
 }
@@ -144,6 +147,13 @@ export function applyFormat(
         const view = ctx.get(editorViewCtx);
         const hr = view.state.schema.nodes.hr;
         const tr = hr && insertBlock(view.state, hr.create(), false);
+        if (tr) view.dispatch(tr);
+      });
+      break;
+    case "codeBlock":
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const tr = toggleCodeBlock(view.state);
         if (tr) view.dispatch(tr);
       });
       break;

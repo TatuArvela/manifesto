@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
   Quote,
   SeparatorHorizontal,
+  SquareCode,
   Strikethrough,
   Subscript,
   Superscript,
@@ -381,6 +382,11 @@ export function FormattingToolbar({
             {/* Whole blocks, put in rather than toggled. */}
             <div class="max-sm:hidden w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
             <div class="flex items-center gap-0.5">
+              {fmtBtn(
+                "codeBlock",
+                t("format.codeBlock"),
+                <SquareCode class="w-4 h-4" />,
+              )}
               {fmtBtn(
                 "divider",
                 t("format.divider"),

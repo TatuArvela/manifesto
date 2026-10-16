@@ -224,6 +224,30 @@ describe("whole blocks in raw mode", () => {
   });
 });
 
+describe("code blocks in raw mode", () => {
+  it("fences the lines the selection touches", () => {
+    expect(format("a\nb|c\nd", "codeBlock")).toBe("a\n```\nb|c\n```\nd");
+    expect(format("‹ab\ncd›", "codeBlock")).toBe("```\n‹ab\ncd›\n```");
+  });
+
+  it("takes the fences off the block the caret is in", () => {
+    expect(format("a\n```js\nb|c\n```\nd", "codeBlock")).toBe("a\nb|c\nd");
+    expect(format("```\n|\n```", "codeBlock")).toBe("|");
+    expect(format("|```\n```", "codeBlock")).toBe("|");
+  });
+
+  it("runs an unclosed block to the end", () => {
+    expect(format("```\nb|c", "codeBlock")).toBe("b|c");
+    expect(active("```\na\nb|")).toMatchObject({ codeBlock: true });
+  });
+
+  it("tells a closing fence from an opening one", () => {
+    expect(active("```\na\n```\nb|")).toMatchObject({ codeBlock: false });
+    expect(active("```\na|\n```")).toMatchObject({ codeBlock: true });
+    expect(active("~~~\n```\na|\n~~~")).toMatchObject({ codeBlock: true });
+  });
+});
+
 describe("links in raw mode", () => {
   it("wraps the selection as a link", () => {
     const [value, start, end] = parse("see ‹docs› now");

@@ -254,6 +254,7 @@ export const en = {
   "format.italic": "Italic",
   "format.quote": "Quote",
   "format.code": "Code",
+  "format.codeBlock": "Code block",
   "format.link": "Link",
   "format.linkAdd": "Add",
   "format.linkPlaceholder": "https://...",

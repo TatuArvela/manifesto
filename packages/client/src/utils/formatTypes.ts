@@ -19,7 +19,8 @@ export type FormatType =
   | "subscript"
   | "superscript"
   | "divider"
-  | "table";
+  | "table"
+  | "codeBlock";
 
 export interface ActiveFormats {
   heading: number | false;
@@ -37,6 +38,7 @@ export interface ActiveFormats {
   superscript: boolean;
   /** Only ever true in the rich editor; see `getRawActiveFormats`. */
   table: boolean;
+  codeBlock: boolean;
 }
 
 /** A change to a text field's value, with where its selection ends up. */

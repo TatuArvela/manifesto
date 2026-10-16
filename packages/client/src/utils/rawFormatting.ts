@@ -1,5 +1,9 @@
 import type { ActiveFormats, FormatType, TextEdit } from "./formatTypes.js";
-import { insertRawBlock } from "./rawBlockFormatting.js";
+import {
+  inRawCodeBlock,
+  insertRawBlock,
+  toggleRawCodeBlock,
+} from "./rawBlockFormatting.js";
 import {
   type InlineFormat,
   inlineRange,
@@ -123,6 +127,8 @@ export function applyRawFormat(
     case "table":
       // The caret goes into the first header cell.
       return insertRawBlock(value, start, end, RAW_TABLE, 2);
+    case "codeBlock":
+      return toggleRawCodeBlock(value, start, end);
     default:
       return toggleBlock(value, start, end, type, arg);
   }
@@ -155,6 +161,7 @@ export function getRawActiveFormats(
     // as on, and those are the rich editor's alone: in the text, a row is a
     // line to type.
     table: false,
+    codeBlock: inRawCodeBlock(value, start),
   };
 }
 
