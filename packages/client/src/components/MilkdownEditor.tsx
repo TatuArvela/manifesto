@@ -7,6 +7,7 @@ import {
   rootCtx,
 } from "@milkdown/kit/core";
 import { clipboard } from "@milkdown/kit/plugin/clipboard";
+import { gapCursorPlugin } from "@milkdown/kit/plugin/cursor";
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
@@ -203,6 +204,7 @@ export function MilkdownEditor({
       .use(taskItemDraggable)
       .use(inlineCalculationsPlugin)
       .use(editorKeys)
+      .use(gapCursorPlugin)
       .use(itemDatesPlugin)
       .use(linkTooltip)
       .use(documentWatcher(() => documentChangedRef.current()));

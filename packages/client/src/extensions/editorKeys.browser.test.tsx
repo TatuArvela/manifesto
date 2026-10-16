@@ -1,4 +1,5 @@
 import { type Editor, editorViewCtx } from "@milkdown/kit/core";
+import { GapCursor } from "@milkdown/kit/prose/gapcursor";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { render } from "preact";
@@ -156,5 +157,46 @@ describe("spaces in the text", () => {
     await userEvent.keyboard(" ");
     const after = viewOf(editor).coordsAtPos(6).left;
     expect(after).toBeGreaterThan(before);
+  });
+});
+
+describe("arrows at either end of the note", () => {
+  it("reach the gap after a table that ends the note, and type there", async () => {
+    const editor = await mount("| a | b |\n| - | - |\n| c | d |");
+    caretAt(editor, "d", 1);
+    await userEvent.keyboard("{ArrowDown}");
+    expect(viewOf(editor).state.selection).toBeInstanceOf(GapCursor);
+    await userEvent.keyboard("after");
+    expect(markdown(editor)).toMatch(/\| c \| d \|\n\nafter$/);
+  });
+
+  it("reach the gap before a divider that starts the note", async () => {
+    const editor = await mount("---\n\nText");
+    caretAt(editor, "Text");
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    expect(viewOf(editor).state.selection).toBeInstanceOf(GapCursor);
+  });
+
+  it("leave a code block that ends the note for a new paragraph", async () => {
+    const editor = await mount("```\nlet x\n```");
+    caretAt(editor, "let x", 5);
+    await userEvent.keyboard("{ArrowDown}after");
+    expect(markdown(editor)).toBe("```\nlet x\n```\n\nafter");
+  });
+
+  it("leave a code block that starts the note for a new paragraph", async () => {
+    const editor = await mount("```\nlet x\n```");
+    caretAt(editor, "let x");
+    await userEvent.keyboard("{ArrowLeft}before");
+    expect(markdown(editor)).toBe("before\n\n```\nlet x\n```");
+  });
+
+  it("move through a code block with text after it as before", async () => {
+    const editor = await mount("```\nlet x\n```\n\nText");
+    caretAt(editor, "let x", 5);
+    await userEvent.keyboard("{ArrowDown}");
+    expect(viewOf(editor).state.selection.$from.parent.textContent).toBe(
+      "Text",
+    );
   });
 });

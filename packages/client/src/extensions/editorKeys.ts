@@ -4,7 +4,7 @@ import { headingKeymap, listItemKeymap } from "@milkdown/kit/preset/commonmark";
 import { setBlockType } from "@milkdown/kit/prose/commands";
 import { keymap } from "@milkdown/kit/prose/keymap";
 import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
-import type { Command } from "@milkdown/kit/prose/state";
+import { type Command, TextSelection } from "@milkdown/kit/prose/state";
 import { goToNextCell, isInTable } from "@milkdown/kit/prose/tables";
 import { addBodyRowAfter } from "./tableActions.js";
 
@@ -86,6 +86,37 @@ const tabIn =
   };
 
 /**
+ * An arrow off the far side of a code block that starts or ends the note
+ * adds a paragraph there and moves into it.
+ *
+ * Above and below a table or a divider at either end, the gap cursor gives
+ * the caret somewhere to stand, and typing there makes the paragraph. It
+ * does not stand beside a code block, whose text the caret can already be
+ * in, so there was no way past one from the keyboard: Enter only adds a
+ * line inside it.
+ */
+const leaveCodeBlock =
+  (dir: "up" | "down" | "left" | "right"): Command =>
+  (state, dispatch, view) => {
+    const { $from, empty } = state.selection;
+    const { code_block, paragraph } = state.schema.nodes;
+    if (!empty || !paragraph || $from.parent.type !== code_block) return false;
+    if ($from.depth !== 1 || !view?.endOfTextblock(dir)) return false;
+    const forward = dir === "down" || dir === "right";
+    const index = $from.index(0);
+    if (forward ? index !== state.doc.childCount - 1 : index !== 0) {
+      return false;
+    }
+    if (dispatch) {
+      const pos = forward ? $from.after(1) : $from.before(1);
+      const tr = state.tr.insert(pos, paragraph.create());
+      tr.setSelection(TextSelection.create(tr.doc, pos + 1));
+      dispatch(tr.scrollIntoView());
+    }
+    return true;
+  };
+
+/**
  * The keys handled here rather than by a preset. A plugin's keymap runs
  * ahead of every preset's, which Milkdown adds after `prosePluginsCtx`.
  */
@@ -96,6 +127,10 @@ export const editorKeys: MilkdownPlugin = (ctx) => () => {
       Backspace: backspaceToParagraph,
       Tab: tabIn(1),
       "Shift-Tab": tabIn(-1),
+      ArrowUp: leaveCodeBlock("up"),
+      ArrowDown: leaveCodeBlock("down"),
+      ArrowLeft: leaveCodeBlock("left"),
+      ArrowRight: leaveCodeBlock("right"),
     }),
   ]);
 };

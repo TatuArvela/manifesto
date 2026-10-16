@@ -54,6 +54,36 @@
   outline: none;
 }
 
+/* The gap cursor (`prosemirror-gapcursor`), where the caret stands between
+   two blocks that hold no text of their own, such as before a table at the
+   top of a note or after a divider at the end of one: a short blinking line
+   in the text's colour, shown only while the editor has focus. */
+.milkdown-editor .ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.milkdown-editor .ProseMirror-gapcursor::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid currentColor;
+  animation: gapcursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes gapcursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.milkdown-editor .ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
 /* ProseMirror ends a line whose last thing is not text (a line break, an
    image) with an empty image and a break, so the caret has a line to stand
    on. Tailwind's preflight makes every image a block, which pushed that
