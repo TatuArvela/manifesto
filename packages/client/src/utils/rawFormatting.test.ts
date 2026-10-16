@@ -192,6 +192,23 @@ describe("block formats in raw mode", () => {
   });
 });
 
+describe("whole blocks in raw mode", () => {
+  it("puts a divider under the caret's paragraph, apart from it", () => {
+    // Straight under the text, `---` would underline it as a heading.
+    expect(format("Fir|st", "divider")).toBe("First\n\n---\n\n|");
+    expect(format("Fir|st\nline\n\nNext", "divider")).toBe(
+      "First\nline\n\n---\n\n|Next",
+    );
+  });
+
+  it("puts a divider on a blank line in place of it", () => {
+    expect(format("|", "divider")).toBe("---\n\n|");
+    expect(format("Above\n\n|\n\nBelow", "divider")).toBe(
+      "Above\n\n---\n\n|Below",
+    );
+  });
+});
+
 describe("links in raw mode", () => {
   it("wraps the selection as a link", () => {
     const [value, start, end] = parse("see ‹docs› now");

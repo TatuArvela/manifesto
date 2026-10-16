@@ -13,6 +13,7 @@ import type { MarkType, NodeType } from "@milkdown/kit/prose/model";
 import type { EditorState } from "@milkdown/kit/prose/state";
 import { callCommand } from "@milkdown/kit/utils";
 import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
+import { insertBlock } from "./blockInsertion.js";
 import {
   toggleSubscriptCommand,
   toggleSuperscriptCommand,
@@ -134,6 +135,14 @@ export function applyFormat(
       break;
     case "superscript":
       editor.action(callCommand(toggleSuperscriptCommand.key));
+      break;
+    case "divider":
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const hr = view.state.schema.nodes.hr;
+        const tr = hr && insertBlock(view.state, hr.create(), false);
+        if (tr) view.dispatch(tr);
+      });
       break;
   }
 }

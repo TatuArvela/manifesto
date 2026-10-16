@@ -268,6 +268,7 @@ export const fi: Messages = {
   "format.underline": "Alleviivaus",
   "format.subscript": "Alaindeksi",
   "format.superscript": "Yläindeksi",
+  "format.divider": "Erotinviiva",
 
   // Version history
   "versions.title": "Versiohistoria",

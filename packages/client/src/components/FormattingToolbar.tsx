@@ -17,6 +17,7 @@ import {
   ListOrdered,
   MoreHorizontal,
   Quote,
+  SeparatorHorizontal,
   Strikethrough,
   Subscript,
   Superscript,
@@ -300,6 +301,16 @@ export function FormattingToolbar({
               t("format.bulletList"),
               <List class="w-4 h-4" />,
             )}
+            {/* The checklist beside the other lists on a wide screen. On a
+                phone it stays out of the fold, on the row itself (below), as
+                the one format a note is most often started with. */}
+            <div class="max-sm:hidden flex">
+              {fmtBtn(
+                "checklist",
+                t("format.checklist"),
+                <ListChecks class="w-4 h-4" />,
+              )}
+            </div>
 
             {/* The marks the wide layout keeps behind its "more" menu. There
                 is no room for that menu on a phone, so they are spelled out
@@ -328,15 +339,27 @@ export function FormattingToolbar({
                 <Superscript class="w-4 h-4" />,
               )}
             </div>
+
+            {/* Whole blocks, put in rather than toggled. */}
+            <div class="max-sm:hidden w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+            <div class="flex items-center gap-0.5">
+              {fmtBtn(
+                "divider",
+                t("format.divider"),
+                <SeparatorHorizontal class="w-4 h-4" />,
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {fmtBtn(
-        "checklist",
-        t("format.checklist"),
-        <ListChecks class="w-4 h-4" />,
-      )}
+      <div class="sm:hidden flex">
+        {fmtBtn(
+          "checklist",
+          t("format.checklist"),
+          <ListChecks class="w-4 h-4" />,
+        )}
+      </div>
 
       <div class="max-sm:hidden w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 

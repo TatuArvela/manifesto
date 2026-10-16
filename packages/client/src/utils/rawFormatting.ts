@@ -1,4 +1,5 @@
 import type { ActiveFormats, FormatType, TextEdit } from "./formatTypes.js";
+import { insertRawBlock } from "./rawBlockFormatting.js";
 import {
   type InlineFormat,
   inlineRange,
@@ -28,7 +29,8 @@ export type { TextEdit } from "./formatTypes.js";
  *
  * Everything but {@link applyTextEdit} is pure string work (the inline
  * formats in `rawInlineFormatting.ts`, the line ones in
- * `rawLineFormatting.ts`), so it is tested in the Node project.
+ * `rawLineFormatting.ts`, whole blocks in `rawBlockFormatting.ts`), so it is
+ * tested in the Node project.
  */
 
 // --- Links ---
@@ -108,6 +110,8 @@ export function applyRawFormat(
     case "subscript":
     case "superscript":
       return toggleInline(value, start, end, type);
+    case "divider":
+      return insertRawBlock(value, start, end, "---", "---".length + 2);
     default:
       return toggleBlock(value, start, end, type, arg);
   }

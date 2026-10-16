@@ -265,6 +265,7 @@ export const en = {
   "format.underline": "Underline",
   "format.subscript": "Subscript",
   "format.superscript": "Superscript",
+  "format.divider": "Divider",
 
   // Version history
   "versions.title": "Version history",

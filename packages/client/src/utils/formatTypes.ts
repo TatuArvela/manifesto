@@ -17,7 +17,8 @@ export type FormatType =
   | "strikethrough"
   | "underline"
   | "subscript"
-  | "superscript";
+  | "superscript"
+  | "divider";
 
 export interface ActiveFormats {
   heading: number | false;
