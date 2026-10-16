@@ -128,8 +128,9 @@ describe("the note menu across its three surfaces", () => {
     expect(menuRows().filter((row) => sharedRows.includes(row))).toEqual(
       sharedRows,
     );
-    // The card is the only surface with a reminder picker to open from here.
-    expect(menuRows()).toContain(t("noteMenu.reminder"));
+    // The bell is on the card's toolbar, as on the editor's, not in here.
+    expect(menuRows()).not.toContain(t("reminder.set"));
+    expect(menuRows()).toContain(t("noteMenu.versionHistory"));
     expect(menuRows()).toContain(t("noteMenu.delete"));
   });
 

@@ -163,7 +163,6 @@ export const en = {
   "noteMenu.more": "More",
   "noteMenu.moreOptions": "More options",
   "noteMenu.tags": "Tags",
-  "noteMenu.reminder": "Remind me",
   "noteMenu.versionHistory": "Version history",
   "noteMenu.shareLink": "Share link",
   "noteMenu.publicLinks": "Public links",

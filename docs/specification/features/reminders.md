@@ -5,7 +5,8 @@ Notes can have a scheduled reminder that fires as a device notification at the c
 ## Behavior
 
 - Each note has at most one active reminder
-- A reminder is set via the bell button in the note editor toolbar, or the "Remind me" item in the note card's kebab menu
+- A reminder is set via the bell button, which sits second (after the colour) on both the note editor's
+  toolbar and the card's, or from the reminder's own chip on a card that has one
 - The picker offers a date, a time, and a recurrence (none, daily, weekly, monthly, yearly)
 - A reminder chip on the card surfaces the next fire time; past-due reminders are highlighted
 - The sidebar "Reminders" view lists all notes with an active reminder, sorted by next fire time

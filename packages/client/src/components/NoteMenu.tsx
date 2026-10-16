@@ -7,7 +7,6 @@ import {
   ArrowLeftToLine,
   ArrowRight,
   ArrowRightToLine,
-  Bell,
   Braces,
   CalendarArrowDown,
   ChevronLeft,
@@ -446,10 +445,8 @@ export interface NoteMenuOptions {
    * preference to the stored note, which lags by the auto-save debounce.
    */
   draft?: { title: string; content: string };
-  /** Adds "Remind me", only where there is a picker for it to open. */
-  onOpenReminder?: () => void;
   /** Adds "Version history", only where there is a panel to show. */
-  onShowVersions?: () => void;
+  onShowVersions?: (() => void) | undefined;
   /**
    * Adds "Delete checked items". The card rewrites the stored note; the editor
    * has to go through its own document, which in collab mode is the only copy
@@ -475,7 +472,7 @@ export interface NoteMenuOptions {
  * with its auto-note markers still attached.
  *
  * Grouped by what the reader came to do, most particular first: this note's
- * own tools (a reminder, its history, its checklist), then sending it
+ * own tools (its history, its checklist), then sending it
  * somewhere (sharing, a file, a copy), then where it sits (its place on the
  * board, the archive), and Delete last on its own. The rarer rows of a group
  * share a submenu, so the panel opens at nine rows or fewer.
@@ -489,15 +486,6 @@ export function noteMenuItems(
   const content = draft?.content ?? note.content;
   const role = roleOf(note);
   const items: NoteMenuItem[] = [];
-
-  if (options.onOpenReminder) {
-    items.push({
-      id: "reminder",
-      icon: <Bell class="w-4 h-4" />,
-      label: t("noteMenu.reminder"),
-      onSelect: options.onOpenReminder,
-    });
-  }
 
   if (options.onShowVersions) {
     items.push({

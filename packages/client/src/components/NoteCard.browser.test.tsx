@@ -314,26 +314,16 @@ describe("NoteCard editing modal", () => {
   });
 });
 
-describe("the card menu", () => {
-  it("hands over to the reminder picker on Remind me", async () => {
-    // The menu closes itself after every item, and that close used to take
-    // down the reminder picker the item had just opened in its place.
+describe("the card's bell", () => {
+  it("opens the reminder picker from the toolbar", async () => {
     const note = makeNote(NOTE_ID, "Card");
     storeNote(note);
     show(note);
-    host
-      .querySelector<HTMLButtonElement>(
-        `button[aria-label="${t("noteMenu.moreOptions")}"]`,
-      )
-      ?.click();
-    const remind = await vi.waitFor(() => {
-      const item = [
-        ...document.querySelectorAll<HTMLButtonElement>(".card-popover button"),
-      ].find((el) => el.textContent?.includes(t("noteMenu.reminder")));
-      if (!item) throw new Error("no Remind me item");
-      return item;
-    });
-    remind.click();
+    const bell = host.querySelector<HTMLButtonElement>(
+      `button[aria-label="${t("reminder.set")}"]`,
+    );
+    expect(bell).not.toBeNull();
+    bell?.click();
 
     await new Promise((resolve) => setTimeout(resolve, 300));
     const open = [

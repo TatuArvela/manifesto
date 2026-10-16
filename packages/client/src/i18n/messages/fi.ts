@@ -167,7 +167,6 @@ export const fi: Messages = {
   "noteMenu.more": "Lisää",
   "noteMenu.moreOptions": "Lisää toimintoja",
   "noteMenu.tags": "Tunnisteet",
-  "noteMenu.reminder": "Muistuta minua",
   "noteMenu.versionHistory": "Versiohistoria",
   "noteMenu.shareLink": "Jaa linkkinä",
   "noteMenu.publicLinks": "Julkiset linkit",

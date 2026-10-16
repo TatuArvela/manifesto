@@ -25,7 +25,7 @@ Clicking a NoteCard opens the NoteEditor as a modal overlay, grown out of the ca
 - Color picker
 - Font picker, the "T" button (Default, Serif, Monospace, Permanent Marker, Comic Relief, Rouge Script); on a phone it lives in the kebab menu
 - Tag button, opening the tag picker
-- Kebab menu, in groups: the note's own tools (reminder, version history, Checklist), sending it
+- Kebab menu, in groups: the note's own tools (version history, Checklist), sending it
   somewhere (Share, Download, Duplicate), where it sits (Move, Archive), and Delete. Checklist, Share,
   Download and Move are submenus. With a mouse one opens beside the menu as the pointer rests on its
   row (or on a press, or the right arrow); on a touch screen it opens in place of the menu, behind a
