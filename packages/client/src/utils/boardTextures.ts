@@ -1,6 +1,6 @@
 /**
  * The board textures that are pictures rather than gradients: the paper
- * grain, which is SVG turbulence, and the stars, hearts and confetti. A data URI cannot
+ * grain, which is SVG turbulence, and the stars, hearts, confetti and sawtooth. A data URI cannot
  * read a custom property, so each is drawn here in the ink it is wanted in and
  * handed to the stylesheet as one, where the gradient textures simply read
  * `--board-ink`.
@@ -16,7 +16,12 @@ export interface TextureInk {
   strength: number;
 }
 
-export type PictureTexture = "paper" | "stars" | "hearts" | "confetti";
+export type PictureTexture =
+  | "paper"
+  | "stars"
+  | "hearts"
+  | "confetti"
+  | "sawtooth";
 
 /**
  * The colourful pattern colours, as the note colours' vivid shades: drawn
@@ -139,6 +144,40 @@ interface ConfettiPiece {
   strong: boolean;
 }
 
+/**
+ * The sawtooth is the logo itself, in rows turned 45° up from the level: its
+ * 1080-unit square laid edge to edge, so its notches make teeth along both
+ * sides of each row, and between the rows a line about the logo's stroke
+ * wide with the notches as barbs on it, like barbed wire. The logo repeats
+ * every 540 units along a row.
+ *
+ * A turned pattern repeats on a level tile only when going across it and
+ * down it both land on whole teeth and whole rows, which at 45° takes rows
+ * a whole fraction of a tooth apart. Five halves of one makes the line 270
+ * units wide, against the 253.622 of the logo's straight columns, and
+ * repeats every 5 teeth and 2 rows: a tile 2700√2 units square, drawn at
+ * 81px a logo as 286px. Each row is one path, so no seam shows within it.
+ */
+const SAWTOOTH_TURN = -45;
+const SAWTOOTH_TOOTH = 540;
+const SAWTOOTH_ROW = (SAWTOOTH_TOOTH * 5) / 2;
+const SAWTOOTH_UNITS = {
+  width: 5 * SAWTOOTH_TOOTH * Math.SQRT2,
+  height: 5 * SAWTOOTH_TOOTH * Math.SQRT2,
+} as const;
+export const SAWTOOTH_TILE = { width: 286, height: 286 } as const;
+
+/** One tooth of the logo along a row's top edge, then back along its foot. */
+const TOOTH_TOP = "l286.378-286.378h253.622v286.378";
+const TOOTH_FOOT = "h-253.622v-286.378l-286.378 286.378";
+
+/**
+ * Opacity of the sawtooth at strength 1: a third of the light theme's
+ * `--board-ink`, since its rows cover four fifths of the board where the
+ * gradient textures cover half or less.
+ */
+const SAWTOOTH_OPACITY = 0.025;
+
 /** A small seeded generator, so the confetti falls the same way every load. */
 function seeded(seed: number): () => number {
   let state = seed;
@@ -257,6 +296,43 @@ function confetti(ink: TextureInk): string {
   );
 }
 
+/**
+ * Every row that crosses the tile, as one long row drawn once and placed
+ * again at each row's offset, all turned together. The rows' reach is the
+ * tile's corners measured along and across them, with a tooth and a row to
+ * spare at each end, and starts on a whole tooth so the rows stay in step.
+ */
+function sawtooth(ink: TextureInk): string {
+  const [r, g, b] = ink.rgb.map((c) => Math.round(c * 255));
+  const opacity = round(Math.min(1, SAWTOOTH_OPACITY * ink.strength));
+  const turn = (SAWTOOTH_TURN * Math.PI) / 180;
+  const { width, height } = SAWTOOTH_UNITS;
+  const corners = [
+    [0, 0],
+    [width, 0],
+    [0, height],
+    [width, height],
+  ] as const;
+  const along = corners.map(
+    ([x, y]) => x * Math.cos(turn) + y * Math.sin(turn),
+  );
+  const across = corners.map(
+    ([x, y]) => -x * Math.sin(turn) + y * Math.cos(turn),
+  );
+  const first = Math.floor(Math.min(...along) / SAWTOOTH_TOOTH) - 1;
+  const teeth = Math.ceil(Math.max(...along) / SAWTOOTH_TOOTH) + 1 - first;
+  const firstRow = Math.floor(Math.min(...across) / SAWTOOTH_ROW) - 2;
+  const lastRow = Math.ceil(Math.max(...across) / SAWTOOTH_ROW) + 1;
+  const row = `M${first * SAWTOOTH_TOOTH} 286.378${TOOTH_TOP.repeat(teeth)}v793.622${TOOTH_FOOT.repeat(teeth)}Z`;
+  const rows: string[] = [];
+  for (let n = firstRow; n <= lastRow; n++) {
+    rows.push(`<use href='#r' y='${round(n * SAWTOOTH_ROW)}'/>`);
+  }
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${SAWTOOTH_TILE.width}' height='${SAWTOOTH_TILE.height}' viewBox='0 0 ${width} ${round(height)}' preserveAspectRatio='none'><defs><path id='r' d='${row}'/></defs><g transform='rotate(${SAWTOOTH_TURN})' fill='rgb(${r},${g},${b})' fill-opacity='${opacity}'>${rows.join("")}</g></svg>`,
+  );
+}
+
 function dataUrl(svg: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
@@ -294,5 +370,6 @@ export function pictureTextures(
       ink,
     ),
     confetti: confetti(ink),
+    sawtooth: sawtooth(ink),
   };
 }

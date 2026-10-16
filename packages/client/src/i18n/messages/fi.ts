@@ -366,6 +366,7 @@ export const fi: Messages = {
   "settings.boardBackground.texture.hearts": "Sydämet",
   "settings.boardBackground.texture.bubbles": "Kuplat",
   "settings.boardBackground.texture.stripes": "Raidat",
+  "settings.boardBackground.texture.sawtooth": "Sahalaita",
   "settings.boardBackground.ink": "Kuvion väri",
   "settings.boardBackground.ink.auto": "Harmaa",
   "settings.boardBackground.ink.white": "Valkoinen",

@@ -36,6 +36,13 @@ describe("pictureTextures", () => {
     expect(svgOf(hearts).match(/<path /g)).toHaveLength(5);
   });
 
+  it("draws the sawtooth lighter than the gradient textures' ink", () => {
+    const { sawtooth } = pictureTextures(pickedInk("custom", "#ff8000"));
+    expect(svgOf(sawtooth)).toContain(
+      "fill='rgb(255,128,0)' fill-opacity='0.15'",
+    );
+  });
+
   it("puts nothing in a quoted url() that could close it", () => {
     for (const url of Object.values(
       pictureTextures(pickedInk("black", "#000000")),
