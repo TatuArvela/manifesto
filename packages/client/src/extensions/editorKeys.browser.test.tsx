@@ -82,3 +82,19 @@ describe("Delete at the start of a block", () => {
     expect(markdown(editor)).toBe("## itle");
   });
 });
+
+describe("Backspace at the start of a block", () => {
+  it("turns a heading of any level into a paragraph at once", async () => {
+    const editor = await mount("### Title");
+    caretAt(editor, "Title");
+    await userEvent.keyboard("{Backspace}");
+    expect(markdown(editor)).toBe("Title");
+  });
+
+  it("turns a code block into a paragraph, even first in the note", async () => {
+    const editor = await mount("```\nlet x\n```");
+    caretAt(editor, "let x");
+    await userEvent.keyboard("{Backspace}");
+    expect(markdown(editor)).toBe("let x");
+  });
+});

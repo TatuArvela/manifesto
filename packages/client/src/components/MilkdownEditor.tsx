@@ -24,7 +24,7 @@ import {
 } from "preact/hooks";
 import type * as Y from "yjs";
 import { documentWatcher } from "../extensions/documentWatcher.js";
-import { configureEditorKeys } from "../extensions/editorKeys.js";
+import { configureEditorKeys, editorKeys } from "../extensions/editorKeys.js";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { itemDatesPlugin } from "../extensions/itemDates.js";
 import { linkTooltip } from "../extensions/linkTooltip.js";
@@ -202,6 +202,7 @@ export function MilkdownEditor({
       .use(manifestoInlineMarks)
       .use(taskItemDraggable)
       .use(inlineCalculationsPlugin)
+      .use(editorKeys)
       .use(itemDatesPlugin)
       .use(linkTooltip)
       .use(documentWatcher(() => documentChangedRef.current()));
