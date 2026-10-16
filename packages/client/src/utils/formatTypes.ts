@@ -20,7 +20,10 @@ export type FormatType =
   | "superscript"
   | "divider"
   | "table"
-  | "codeBlock";
+  | "codeBlock"
+  | "indent"
+  | "outdent"
+  | "clearFormatting";
 
 export interface ActiveFormats {
   heading: number | false;

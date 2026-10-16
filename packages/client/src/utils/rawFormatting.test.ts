@@ -248,6 +248,56 @@ describe("code blocks in raw mode", () => {
   });
 });
 
+describe("indenting in raw mode", () => {
+  it("nests an item under the one above, to where its text starts", () => {
+    expect(format("- a\n- |b", "indent")).toBe("- a\n  - |b");
+    expect(format("1. a\n2. |b", "indent")).toBe("1. a\n   2. |b");
+  });
+
+  it("does not indent the first item, with nothing to nest under", () => {
+    expect(format("- |a\n- b", "indent")).toBe("- |a\n- b");
+  });
+
+  it("takes the items nested under it along", () => {
+    expect(format("- a\n- |b\n  - c\n- d", "indent")).toBe(
+      "- a\n  - |b\n    - c\n- d",
+    );
+    expect(format("- a\n  - |b\n    - c", "outdent")).toBe("- a\n- |b\n  - c");
+  });
+
+  it("indents selected siblings to the same level", () => {
+    expect(format("- a\n‹- b\n- c›", "indent")).toBe("- a\n  ‹- b\n  - c›");
+  });
+
+  it("leaves a line that is not an item alone", () => {
+    expect(format("Te|xt", "indent")).toBe("Te|xt");
+    expect(format("- |a", "outdent")).toBe("- |a");
+  });
+});
+
+describe("clearing formatting in raw mode", () => {
+  it("takes the marks off the selection and keeps links", () => {
+    expect(
+      format(
+        "‹**bold** _it_ ~~gone~~ <u>under</u> [link](https://x.y)›",
+        "clearFormatting",
+      ),
+    ).toBe("‹bold it gone under [link](https://x.y)›");
+  });
+
+  it("clears the caret's line, heading and all, when nothing is selected", () => {
+    expect(format("## A **b|old** title", "clearFormatting")).toBe(
+      "A b|old title",
+    );
+  });
+
+  it("leaves a bullet, snake_case and arithmetic as they are", () => {
+    expect(format("* snake_case is 2 * 3|", "clearFormatting")).toBe(
+      "* snake_case is 2 * 3|",
+    );
+  });
+});
+
 describe("links in raw mode", () => {
   it("wraps the selection as a link", () => {
     const [value, start, end] = parse("see ‹docs› now");

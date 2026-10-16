@@ -10,6 +10,8 @@ import {
   ChevronUp,
   Code,
   Heading,
+  IndentDecrease,
+  IndentIncrease,
   Italic,
   Link,
   List,
@@ -17,6 +19,7 @@ import {
   ListOrdered,
   MoreHorizontal,
   Quote,
+  RemoveFormatting,
   SeparatorHorizontal,
   SquareCode,
   Strikethrough,
@@ -388,7 +391,7 @@ export function FormattingToolbar({
           </button>
         </Tooltip>
 
-        {/* The rarer marks and the whole blocks, on a
+        {/* The rarer marks, the whole blocks, indenting and clearing, on a
             bar of their own under the button that opens it, running back to
             its left. On a phone that button is near the row's start, so the
             bar spans the row instead and wraps. It stays open while it is
@@ -462,6 +465,22 @@ export function FormattingToolbar({
                 </button>
               ))}
             </Dropdown>
+            <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+            {fmtBtn(
+              "indent",
+              t("format.indent"),
+              <IndentIncrease class="w-4 h-4" />,
+            )}
+            {fmtBtn(
+              "outdent",
+              t("format.outdent"),
+              <IndentDecrease class="w-4 h-4" />,
+            )}
+            {fmtBtn(
+              "clearFormatting",
+              t("format.clearFormatting"),
+              <RemoveFormatting class="w-4 h-4" />,
+            )}
           </div>
         )}
       </div>
