@@ -24,6 +24,7 @@ import {
 } from "preact/hooks";
 import type * as Y from "yjs";
 import { documentWatcher } from "../extensions/documentWatcher.js";
+import { configureEditorKeys } from "../extensions/editorKeys.js";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { itemDatesPlugin } from "../extensions/itemDates.js";
 import { linkTooltip } from "../extensions/linkTooltip.js";
@@ -172,6 +173,7 @@ export function MilkdownEditor({
             "aria-label": t("editor.contentLabel"),
           },
         }));
+        configureEditorKeys(ctx);
         ctx.update(remarkStringifyOptionsCtx, (prev) => ({
           ...prev,
           bullet: "-" as const,
