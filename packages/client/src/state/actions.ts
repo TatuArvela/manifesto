@@ -445,15 +445,18 @@ export async function reorderNotes(
   await updateNote(movedId, { position: next });
 }
 
+/** One step earlier or later, or all the way to either end. */
+export type NoteMoveStep = -1 | 1 | "start" | "end";
+
 /**
- * Where a note could move one step to, earlier (`-1`) or later (`1`), within
- * its section of the board (pinned or not): the keyboard's way of doing what
- * a drag does. Null where it cannot: the board is not in manual order, or the
- * note is already at that end.
+ * Where a note could move to, one step earlier (`-1`) or later (`1`) or to
+ * either end of its section of the board (pinned or not): the keyboard's way
+ * of doing what a drag does. Null where it cannot: the board is not in manual
+ * order, or the note is already at that end.
  */
 export function noteMoveTarget(
   id: string,
-  delta: -1 | 1,
+  step: NoteMoveStep,
 ): { ids: string[]; from: number; to: number } | null {
   if (!canReorder.peek()) return null;
   const note = allNotes.peek().find((n) => n.id === id);
@@ -462,20 +465,22 @@ export function noteMoveTarget(
     .peek()
     .map((n) => n.id);
   const from = ids.indexOf(id);
-  const to = from + delta;
-  if (from === -1 || to < 0 || to >= ids.length) return null;
+  const to =
+    step === "start" ? 0 : step === "end" ? ids.length - 1 : from + step;
+  if (from === -1 || to === from || to < 0 || to >= ids.length) return null;
   return { ids, from, to };
 }
 
 /**
- * Moves a note one step, as `noteMoveTarget` finds it. Says where it landed,
+ * Moves a note one step, or to the start or end of its section, as
+ * `noteMoveTarget` finds it. Says where it landed,
  * one-based, for the caller to announce, or null if it did not move.
  */
 export async function moveNoteBy(
   id: string,
-  delta: -1 | 1,
+  step: NoteMoveStep,
 ): Promise<{ position: number; count: number } | null> {
-  const target = noteMoveTarget(id, delta);
+  const target = noteMoveTarget(id, step);
   if (!target) return null;
   await reorderNotes(target.ids, target.from, target.to);
   return { position: target.to + 1, count: target.ids.length };

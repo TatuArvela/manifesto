@@ -665,6 +665,27 @@ describe("moving a note one step", () => {
     expect(titles()).toEqual([order[1], order[0], order[2]]);
   });
 
+  it("moves to either end of the order", async () => {
+    await createNoteOrFail({ title: "A" });
+    await createNoteOrFail({ title: "B" });
+    await createNoteOrFail({ title: "C" });
+    const order = titles();
+    const first = defined(sortedNotes.value[0]);
+    const last = defined(sortedNotes.value.at(-1));
+
+    expect(await moveNoteBy(first.id, "end")).toEqual({
+      position: 3,
+      count: 3,
+    });
+    expect(titles()).toEqual([order[1], order[2], order[0]]);
+
+    expect(await moveNoteBy(last.id, "start")).toEqual({
+      position: 1,
+      count: 3,
+    });
+    expect(titles()).toEqual([order[2], order[1], order[0]]);
+  });
+
   it("does not move past either end, or out of manual order", async () => {
     await createNoteOrFail({ title: "A" });
     await createNoteOrFail({ title: "B" });
@@ -673,6 +694,8 @@ describe("moving a note one step", () => {
 
     expect(noteMoveTarget(first.id, -1)).toBe(null);
     expect(noteMoveTarget(last.id, 1)).toBe(null);
+    expect(noteMoveTarget(first.id, "start")).toBe(null);
+    expect(noteMoveTarget(last.id, "end")).toBe(null);
     expect(await moveNoteBy(first.id, -1)).toBe(null);
 
     sortMode.value = "updated";

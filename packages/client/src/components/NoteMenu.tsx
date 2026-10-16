@@ -4,7 +4,9 @@ import {
   ArchiveRestore,
   ArrowLeft,
   ArrowLeftRight,
+  ArrowLeftToLine,
   ArrowRight,
+  ArrowRightToLine,
   Bell,
   Braces,
   CalendarArrowDown,
@@ -638,25 +640,39 @@ export function noteMenuItems(
   // The board's manual order, for whoever cannot drag: a keyboard, a screen
   // reader, a switch. Offered only where a drag would work, and only the
   // directions the card can go.
-  const move: NoteMenuAction[] = [];
-  if (noteMoveTarget(note.id, -1)) {
-    move.push({
-      id: "move-earlier",
-      icon: <ArrowLeft class="w-4 h-4" />,
-      label: t("noteMenu.earlier"),
-      fullLabel: t("noteMenu.moveEarlier"),
-      onSelect: () => void moveCard(note.id, -1),
-    });
-  }
-  if (noteMoveTarget(note.id, 1)) {
-    move.push({
-      id: "move-later",
-      icon: <ArrowRight class="w-4 h-4" />,
-      label: t("noteMenu.later"),
-      fullLabel: t("noteMenu.moveLater"),
-      onSelect: () => void moveCard(note.id, 1),
-    });
-  }
+  const moves = [
+    [
+      "move-start",
+      "start",
+      <ArrowLeftToLine class="w-4 h-4" />,
+      "toStart",
+      "moveToStart",
+    ],
+    [
+      "move-earlier",
+      -1,
+      <ArrowLeft class="w-4 h-4" />,
+      "earlier",
+      "moveEarlier",
+    ],
+    ["move-later", 1, <ArrowRight class="w-4 h-4" />, "later", "moveLater"],
+    [
+      "move-end",
+      "end",
+      <ArrowRightToLine class="w-4 h-4" />,
+      "toEnd",
+      "moveToEnd",
+    ],
+  ] as const;
+  const move: NoteMenuAction[] = moves
+    .filter(([, step]) => noteMoveTarget(note.id, step))
+    .map(([id, step, icon, label, fullLabel]) => ({
+      id,
+      icon,
+      label: t(`noteMenu.${label}`),
+      fullLabel: t(`noteMenu.${fullLabel}`),
+      onSelect: () => void moveCard(note.id, step),
+    }));
   items.push({
     kind: "submenu",
     id: "move-menu",
