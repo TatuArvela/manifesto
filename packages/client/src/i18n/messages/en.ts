@@ -262,6 +262,7 @@ export const en = {
   "format.bulletList": "Bullet list",
   "format.checklist": "Checklist",
   "format.moreFormatting": "More formatting",
+  "format.moreControls": "Formatting buttons",
   "format.strikethrough": "Strikethrough",
   "format.underline": "Underline",
   "format.subscript": "Subscript",

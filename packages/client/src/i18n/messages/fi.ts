@@ -265,6 +265,7 @@ export const fi: Messages = {
   "format.bulletList": "Luettelomerkit",
   "format.checklist": "Tehtävälista",
   "format.moreFormatting": "Lisää muotoiluja",
+  "format.moreControls": "Muotoilupainikkeet",
   "format.strikethrough": "Yliviivaus",
   "format.underline": "Alleviivaus",
   "format.subscript": "Alaindeksi",
