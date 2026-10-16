@@ -5,7 +5,13 @@ import { useBoardShortcuts } from "../hooks/useBoardShortcuts.js";
 import { useLazyModule } from "../hooks/useLazyModule.js";
 import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
+import { usePresence } from "../hooks/usePresence.js";
 import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
+import {
+  PANE_SLIDE_MS,
+  usePaneSlide,
+  useViewTransition,
+} from "../hooks/useViewTransition.js";
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { revealApp } from "../splash.js";
@@ -27,6 +33,7 @@ import { closeDrawing, drawingRequest } from "../state/drawing.js";
 import { takeIncomingShare } from "../state/incomingShare.js";
 import {
   activeView,
+  animations,
   createNote,
   editingNoteId,
   importNotes,
@@ -149,6 +156,8 @@ function MainApp() {
   const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+  const viewRef = useRef<HTMLDivElement>(null);
+  const paneRef = useRef<HTMLElement>(null);
   const marquee = useMarqueeSelection(mainRef);
   const topBarRef = useRef<HTMLDivElement>(null);
   const scrollAway = !stickyTopBar.value;
@@ -346,6 +355,13 @@ function MainApp() {
   // is a block above the notes, inside what scrolls.
   const wide = useMediaQuery("(min-width: 768px)");
   const tagsPane = isTagsView && wide;
+  const pane = usePresence(
+    tagsPane ? true : null,
+    animations.value ? PANE_SLIDE_MS : 0,
+  );
+  usePaneSlide(paneRef, mainRef, viewRef, tagsPane);
+  // After the pane: see `useViewTransition`.
+  useViewTransition(mainRef, viewRef);
   const tagsSurface =
     "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800";
 
@@ -367,17 +383,20 @@ function MainApp() {
         </div>
         <div class="flex flex-1 overflow-hidden relative z-0">
           <Sidebar />
-          {tagsPane && (
+          {pane.shown && (
             // The tag tree as a sidebar of the Tags view: part of the shell
             // like the rail beside it, so the board and its notes start
-            // after it and scroll without it. The outer box holds its place
-            // and clips the pane as it slides in.
+            // after it and scroll without it. It opens and closes as a
+            // drawer (`usePaneSlide`), so the tree inside keeps its width and
+            // rides on the edge, and stays on screen until it has closed.
             <aside
-              class="w-72 shrink-0 overflow-hidden z-[4]"
+              ref={paneRef}
+              class="w-72 shrink-0 flex justify-end overflow-hidden z-[4]"
               aria-label={t("nav.tags")}
+              inert={pane.leaving}
             >
               <div
-                class={`tags-pane h-full overflow-y-auto ${tagsSurface} border-x`}
+                class={`w-72 shrink-0 h-full overflow-y-auto ${tagsSurface} border-x`}
               >
                 <TagsView pane />
               </div>
@@ -394,65 +413,67 @@ function MainApp() {
                 style={{ height: `${topBarHeight}px` }}
               />
             )}
-            {isAdminView ? (
-              isAdmin && AdminView && <AdminView />
-            ) : isSearchView ? (
-              isList ? (
+            <div ref={viewRef}>
+              {isAdminView ? (
+                isAdmin && AdminView && <AdminView />
+              ) : isSearchView ? (
+                isList ? (
+                  <div class="max-w-xl mx-auto">
+                    <SearchView />
+                    <NoteGrid />
+                  </div>
+                ) : (
+                  <>
+                    <SearchView />
+                    <NoteGrid />
+                  </>
+                )
+              ) : isTagsView ? (
+                <>
+                  {!tagsPane && (
+                    // On a phone the same tree on the same surface, as a band
+                    // across the top of what scrolls: out to the edges, so it
+                    // reads as the shell and not as a card on the board.
+                    <div
+                      class={`-mx-4 -mt-2 mb-4 ${tagsSurface} border-b shadow-sm`}
+                    >
+                      <TagsView />
+                    </div>
+                  )}
+                  {isList ? (
+                    <div class="max-w-xl mx-auto">
+                      <NoteGrid />
+                    </div>
+                  ) : (
+                    <NoteGrid />
+                  )}
+                </>
+              ) : isAutoNotesView ? (
+                isList ? (
+                  <div class="max-w-xl mx-auto">
+                    <AutoNotesView />
+                  </div>
+                ) : (
+                  <AutoNotesView />
+                )
+              ) : isList ? (
                 <div class="max-w-xl mx-auto">
-                  <SearchView />
+                  <NoteInput />
+                  {isActive && <InvitationList />}
+                  {isActive && <UnopenedNotes />}
+                  {isActive && <UnsentNotes />}
                   <NoteGrid />
                 </div>
               ) : (
                 <>
-                  <SearchView />
+                  <NoteInput />
+                  {isActive && <InvitationList />}
+                  {isActive && <UnopenedNotes />}
+                  {isActive && <UnsentNotes />}
                   <NoteGrid />
                 </>
-              )
-            ) : isTagsView ? (
-              <>
-                {!tagsPane && (
-                  // On a phone the same tree on the same surface, as a band
-                  // across the top of what scrolls: out to the edges, so it
-                  // reads as the shell and not as a card on the board.
-                  <div
-                    class={`-mx-4 -mt-2 mb-4 ${tagsSurface} border-b shadow-sm`}
-                  >
-                    <TagsView />
-                  </div>
-                )}
-                {isList ? (
-                  <div class="max-w-xl mx-auto">
-                    <NoteGrid />
-                  </div>
-                ) : (
-                  <NoteGrid />
-                )}
-              </>
-            ) : isAutoNotesView ? (
-              isList ? (
-                <div class="max-w-xl mx-auto">
-                  <AutoNotesView />
-                </div>
-              ) : (
-                <AutoNotesView />
-              )
-            ) : isList ? (
-              <div class="max-w-xl mx-auto">
-                <NoteInput />
-                {isActive && <InvitationList />}
-                {isActive && <UnopenedNotes />}
-                {isActive && <UnsentNotes />}
-                <NoteGrid />
-              </div>
-            ) : (
-              <>
-                <NoteInput />
-                {isActive && <InvitationList />}
-                {isActive && <UnopenedNotes />}
-                {isActive && <UnsentNotes />}
-                <NoteGrid />
-              </>
-            )}
+              )}
+            </div>
           </main>
         </div>
       </div>
