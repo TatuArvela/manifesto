@@ -40,7 +40,6 @@ import {
   availableTableActions,
   type TableAction,
 } from "../extensions/tableActions.js";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { t } from "../i18n/index.js";
 import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
 import {
@@ -98,8 +97,6 @@ export function FormattingToolbar({
         : getActiveFormats(editor),
     );
   }, [editor, rawTextarea, tick]);
-
-  useEscapeStack(showExtras, () => setShowExtras(false));
 
   useEffect(() => {
     if (showLinkMenu) linkInputRef.current?.focus();
@@ -224,7 +221,7 @@ export function FormattingToolbar({
   );
 
   return (
-    <div class="relative flex flex-wrap items-center gap-0.5 py-0.5 mb-2 border-b border-black/5 dark:border-white/5">
+    <div class="flex flex-wrap items-center gap-0.5 py-0.5 mb-2 border-b border-black/5 dark:border-white/5">
       {/* The secondary controls. On a wide screen this is an ordinary flex item
           and they sit inline, exactly where they have always been. On a phone
           it drops to a full-width line of its own below the row (`order-2`,
@@ -376,114 +373,115 @@ export function FormattingToolbar({
 
       <div class="max-sm:hidden w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
-      <div class="sm:relative flex">
-        <Tooltip label={t("format.moreFormatting")}>
-          <button
-            type="button"
-            class={showExtras ? btnActive : btnInactive}
-            onMouseDown={preventFocus}
-            onClick={() => setShowExtras(!showExtras)}
-            aria-label={t("format.moreFormatting")}
-            aria-expanded={showExtras}
-            disabled={disabled}
-          >
-            <MoreHorizontal class="w-4 h-4" />
-          </button>
-        </Tooltip>
-
-        {/* The rarer marks, the whole blocks, indenting and clearing, on a
-            bar of their own under the button that opens it, running back to
-            its left. On a phone that button is near the row's start, so the
-            bar spans the row instead and wraps. It stays open while it is
-            used, unlike a menu, so a run of changes does not mean reopening
-            it for each one; the button that opened it, or Escape, puts it
-            away. */}
-        {showExtras && (
-          <div
-            role="toolbar"
-            aria-label={t("format.moreFormatting")}
-            class="absolute top-full mt-1 z-10 flex flex-wrap sm:right-0 sm:w-max max-sm:inset-x-0 items-center gap-0.5 p-1 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800"
-          >
-            {fmtBtn(
-              "strikethrough",
-              t("format.strikethrough"),
-              <Strikethrough class="w-4 h-4" />,
-            )}
-            {fmtBtn(
-              "subscript",
-              t("format.subscript"),
-              <Subscript class="w-4 h-4" />,
-            )}
-            {fmtBtn(
-              "superscript",
-              t("format.superscript"),
-              <Superscript class="w-4 h-4" />,
-            )}
-            <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
-            {fmtBtn(
-              "divider",
-              t("format.divider"),
-              <SeparatorHorizontal class="w-4 h-4" />,
-            )}
-            {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
-            {fmtBtn(
-              "codeBlock",
-              t("format.codeBlock"),
-              <SquareCode class="w-4 h-4" />,
-            )}
-            <Dropdown
-              open={tableActions !== null}
-              onClose={() => setTableActions(null)}
-              trigger={
-                <Tooltip label={t("format.table")}>
-                  <button
-                    type="button"
-                    class={af.table ? btnActive : btnInactive}
-                    onMouseDown={preventFocus}
-                    onClick={onTableClick}
-                    aria-label={t("format.table")}
-                    aria-haspopup={
-                      af.table && !rawTextarea ? "menu" : undefined
-                    }
-                    disabled={disabled}
-                  >
-                    <Table class="w-4 h-4" />
-                  </button>
-                </Tooltip>
-              }
-              panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
+      {/* The rarer marks, the whole blocks, indenting and clearing, on a bar
+          of their own: beside the button that opens it, continuing the row,
+          or above it and back to its left where there is no room. It stays
+          open while it is used, unlike a menu, so a run of changes does not
+          mean reopening it for each one; the button that opened it, or
+          Escape, puts it away. */}
+      <Dropdown
+        open={showExtras}
+        onClose={() => setShowExtras(false)}
+        placement="inline-end"
+        persistent
+        trigger={
+          <Tooltip label={t("format.moreFormatting")}>
+            <button
+              type="button"
+              class={showExtras ? btnActive : btnInactive}
+              onMouseDown={preventFocus}
+              onClick={() => setShowExtras(!showExtras)}
+              aria-label={t("format.moreFormatting")}
+              disabled={disabled}
             >
-              {(tableActions ?? []).map((action) => (
+              <MoreHorizontal class="w-4 h-4" />
+            </button>
+          </Tooltip>
+        }
+        panelClass="w-max rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800"
+      >
+        <div
+          role="toolbar"
+          aria-label={t("format.moreFormatting")}
+          class="flex flex-wrap items-center gap-0.5 p-1"
+        >
+          {fmtBtn(
+            "strikethrough",
+            t("format.strikethrough"),
+            <Strikethrough class="w-4 h-4" />,
+          )}
+          {fmtBtn(
+            "subscript",
+            t("format.subscript"),
+            <Subscript class="w-4 h-4" />,
+          )}
+          {fmtBtn(
+            "superscript",
+            t("format.superscript"),
+            <Superscript class="w-4 h-4" />,
+          )}
+          <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+          {fmtBtn(
+            "divider",
+            t("format.divider"),
+            <SeparatorHorizontal class="w-4 h-4" />,
+          )}
+          {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
+          {fmtBtn(
+            "codeBlock",
+            t("format.codeBlock"),
+            <SquareCode class="w-4 h-4" />,
+          )}
+          <Dropdown
+            open={tableActions !== null}
+            onClose={() => setTableActions(null)}
+            trigger={
+              <Tooltip label={t("format.table")}>
                 <button
-                  key={action}
                   type="button"
-                  class="flex items-center w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer whitespace-nowrap"
+                  class={af.table ? btnActive : btnInactive}
                   onMouseDown={preventFocus}
-                  onClick={() => runTableAction(action)}
+                  onClick={onTableClick}
+                  aria-label={t("format.table")}
+                  aria-haspopup={af.table && !rawTextarea ? "menu" : undefined}
+                  disabled={disabled}
                 >
-                  {tableActionLabels[action]}
+                  <Table class="w-4 h-4" />
                 </button>
-              ))}
-            </Dropdown>
-            <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
-            {fmtBtn(
-              "indent",
-              t("format.indent"),
-              <IndentIncrease class="w-4 h-4" />,
-            )}
-            {fmtBtn(
-              "outdent",
-              t("format.outdent"),
-              <IndentDecrease class="w-4 h-4" />,
-            )}
-            {fmtBtn(
-              "clearFormatting",
-              t("format.clearFormatting"),
-              <RemoveFormatting class="w-4 h-4" />,
-            )}
-          </div>
-        )}
-      </div>
+              </Tooltip>
+            }
+            panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
+          >
+            {(tableActions ?? []).map((action) => (
+              <button
+                key={action}
+                type="button"
+                class="flex items-center w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer whitespace-nowrap"
+                onMouseDown={preventFocus}
+                onClick={() => runTableAction(action)}
+              >
+                {tableActionLabels[action]}
+              </button>
+            ))}
+          </Dropdown>
+          <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+          {fmtBtn(
+            "indent",
+            t("format.indent"),
+            <IndentIncrease class="w-4 h-4" />,
+          )}
+          {fmtBtn(
+            "outdent",
+            t("format.outdent"),
+            <IndentDecrease class="w-4 h-4" />,
+          )}
+          {fmtBtn(
+            "clearFormatting",
+            t("format.clearFormatting"),
+            <RemoveFormatting class="w-4 h-4" />,
+          )}
+        </div>
+      </Dropdown>
 
       <Tooltip label={t("format.moreControls")}>
         <button

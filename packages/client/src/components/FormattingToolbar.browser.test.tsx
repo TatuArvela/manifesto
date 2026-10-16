@@ -96,30 +96,43 @@ describe("FormattingToolbar's floating bar", () => {
     return { host, toolbarHost, button };
   }
 
+  /** Whether the bar's panel is open; it stays in the page while closed. */
+  const barOpen = (toolbarHost: HTMLElement) =>
+    toolbarHost
+      .querySelector('[role="toolbar"]')
+      ?.closest(".dropdown-panel")
+      ?.getAttribute("data-open") === "true";
+
   it("opens from its button and stays open while it is used", async () => {
     const { host, toolbarHost, button } = await mountToolbar("Text");
-    const bar = () => toolbarHost.querySelector('[role="toolbar"]');
-    expect(bar()).toBeNull();
+    expect(barOpen(toolbarHost)).toBe(false);
     button(t("format.moreFormatting"))?.click();
-    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    await vi.waitFor(() => expect(barOpen(toolbarHost)).toBe(true));
     button(t("format.quote"))?.click();
     await vi.waitFor(() =>
       expect(host.querySelector(".ProseMirror blockquote")).not.toBeNull(),
     );
-    expect(bar()).not.toBeNull();
+    expect(barOpen(toolbarHost)).toBe(true);
     button(t("format.moreFormatting"))?.click();
-    await vi.waitFor(() => expect(bar()).toBeNull());
+    await vi.waitFor(() => expect(barOpen(toolbarHost)).toBe(false));
+  });
+
+  it("stays open when the text is clicked", async () => {
+    const { host, toolbarHost, button } = await mountToolbar("Text");
+    button(t("format.moreFormatting"))?.click();
+    await vi.waitFor(() => expect(barOpen(toolbarHost)).toBe(true));
+    host
+      .querySelector(".ProseMirror")
+      ?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(barOpen(toolbarHost)).toBe(true);
   });
 
   it("closes on Escape", async () => {
     const { toolbarHost, button } = await mountToolbar("Text");
     button(t("format.moreFormatting"))?.click();
-    await vi.waitFor(() =>
-      expect(toolbarHost.querySelector('[role="toolbar"]')).not.toBeNull(),
-    );
+    await vi.waitFor(() => expect(barOpen(toolbarHost)).toBe(true));
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await vi.waitFor(() =>
-      expect(toolbarHost.querySelector('[role="toolbar"]')).toBeNull(),
-    );
+    await vi.waitFor(() => expect(barOpen(toolbarHost)).toBe(false));
   });
 });
