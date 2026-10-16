@@ -18,7 +18,8 @@ export type FormatType =
   | "underline"
   | "subscript"
   | "superscript"
-  | "divider";
+  | "divider"
+  | "table";
 
 export interface ActiveFormats {
   heading: number | false;
@@ -34,6 +35,8 @@ export interface ActiveFormats {
   underline: boolean;
   subscript: boolean;
   superscript: boolean;
+  /** Only ever true in the rich editor; see `getRawActiveFormats`. */
+  table: boolean;
 }
 
 /** A change to a text field's value, with where its selection ends up. */

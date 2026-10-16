@@ -269,6 +269,12 @@ export const fi: Messages = {
   "format.subscript": "Alaindeksi",
   "format.superscript": "Yläindeksi",
   "format.divider": "Erotinviiva",
+  "format.table": "Taulukko",
+  "format.tableAddRow": "Lisää rivi alle",
+  "format.tableAddColumn": "Lisää sarake oikealle",
+  "format.tableDeleteRow": "Poista rivi",
+  "format.tableDeleteColumn": "Poista sarake",
+  "format.tableDelete": "Poista taulukko",
 
   // Version history
   "versions.title": "Versiohistoria",

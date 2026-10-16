@@ -1,4 +1,4 @@
-import { type Editor, editorViewCtx } from "@milkdown/kit/core";
+import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
 import {
   toggleLinkCommand,
   updateLinkCommand,
@@ -21,6 +21,7 @@ import {
   Strikethrough,
   Subscript,
   Superscript,
+  Table,
   Underline,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
@@ -30,6 +31,11 @@ import {
   emptyFormats,
   getActiveFormats,
 } from "../extensions/richFormatting.js";
+import {
+  applyTableAction,
+  availableTableActions,
+  type TableAction,
+} from "../extensions/tableActions.js";
 import { t } from "../i18n/index.js";
 import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
 import {
@@ -70,6 +76,7 @@ export function FormattingToolbar({
   const [showHeadingMenu, setShowHeadingMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showLinkMenu, setShowLinkMenu] = useState(false);
+  const [tableActions, setTableActions] = useState<TableAction[] | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const linkInputRef = useRef<HTMLInputElement | null>(null);
@@ -138,6 +145,37 @@ export function FormattingToolbar({
   };
 
   const preventFocus = (e: MouseEvent) => e.preventDefault();
+
+  // In a table the button opens the table's menu; anywhere else it makes one.
+  const onTableClick = () => {
+    if (tableActions) {
+      setTableActions(null);
+      return;
+    }
+    if (rawTextarea || !af.table) {
+      onFormat("table");
+      return;
+    }
+    setTableActions(
+      editor.action((ctx) => availableTableActions(ctx.get(editorStateCtx))),
+    );
+  };
+
+  const runTableAction = (action: TableAction) => {
+    setTableActions(null);
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      applyTableAction(view.state, action, view.dispatch);
+    });
+  };
+
+  const tableActionLabels: Record<TableAction, string> = {
+    addRowAfter: t("format.tableAddRow"),
+    addColumnAfter: t("format.tableAddColumn"),
+    deleteRow: t("format.tableDeleteRow"),
+    deleteColumn: t("format.tableDeleteColumn"),
+    deleteTable: t("format.tableDelete"),
+  };
   const onFormat = (type: FormatType, arg?: string) => {
     if (!rawTextarea) {
       applyFormat(editor, type, arg);
@@ -348,6 +386,40 @@ export function FormattingToolbar({
                 t("format.divider"),
                 <SeparatorHorizontal class="w-4 h-4" />,
               )}
+              <Dropdown
+                open={tableActions !== null}
+                onClose={() => setTableActions(null)}
+                trigger={
+                  <Tooltip label={t("format.table")}>
+                    <button
+                      type="button"
+                      class={af.table ? btnActive : btnInactive}
+                      onMouseDown={preventFocus}
+                      onClick={onTableClick}
+                      aria-label={t("format.table")}
+                      aria-haspopup={
+                        af.table && !rawTextarea ? "menu" : undefined
+                      }
+                      disabled={disabled}
+                    >
+                      <Table class="w-4 h-4" />
+                    </button>
+                  </Tooltip>
+                }
+                panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
+              >
+                {(tableActions ?? []).map((action) => (
+                  <button
+                    key={action}
+                    type="button"
+                    class="flex items-center w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer whitespace-nowrap"
+                    onMouseDown={preventFocus}
+                    onClick={() => runTableAction(action)}
+                  >
+                    {tableActionLabels[action]}
+                  </button>
+                ))}
+              </Dropdown>
             </div>
           </div>
         </div>

@@ -19,6 +19,7 @@ import {
   toggleSuperscriptCommand,
   toggleUnderlineCommand,
 } from "./manifestoInlineMarks.js";
+import { insertTable } from "./tableActions.js";
 
 // The formatting toolbar's reading and writing of the rich editor: which
 // formats the selection has, and applying one. The raw-mode counterpart, for
@@ -38,6 +39,7 @@ export const emptyFormats: ActiveFormats = {
   underline: false,
   subscript: false,
   superscript: false,
+  table: false,
 };
 
 function isMarkActive(state: EditorState, mark: MarkType | undefined): boolean {
@@ -88,6 +90,7 @@ export function getActiveFormats(editor: Editor): ActiveFormats {
       underline: isMarkActive(state, marks.underline),
       subscript: isMarkActive(state, marks.subscript),
       superscript: isMarkActive(state, marks.superscript),
+      table: !!findNodeAncestor(state, nodes.table),
     };
   });
 }
@@ -141,6 +144,13 @@ export function applyFormat(
         const view = ctx.get(editorViewCtx);
         const hr = view.state.schema.nodes.hr;
         const tr = hr && insertBlock(view.state, hr.create(), false);
+        if (tr) view.dispatch(tr);
+      });
+      break;
+    case "table":
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const tr = insertTable(view.state);
         if (tr) view.dispatch(tr);
       });
       break;

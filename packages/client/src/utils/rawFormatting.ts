@@ -92,6 +92,14 @@ export function removeRawLink(
 
 // --- Public API ---
 
+/** An empty table, the size the rich editor makes one. */
+const RAW_TABLE = [
+  "|   |   |   |",
+  "| - | - | - |",
+  "|   |   |   |",
+  "|   |   |   |",
+].join("\n");
+
 export function applyRawFormat(
   value: string,
   start: number,
@@ -112,6 +120,9 @@ export function applyRawFormat(
       return toggleInline(value, start, end, type);
     case "divider":
       return insertRawBlock(value, start, end, "---", "---".length + 2);
+    case "table":
+      // The caret goes into the first header cell.
+      return insertRawBlock(value, start, end, RAW_TABLE, 2);
     default:
       return toggleBlock(value, start, end, type, arg);
   }
@@ -140,6 +151,10 @@ export function getRawActiveFormats(
     underline: inline("underline"),
     subscript: inline("subscript"),
     superscript: inline("superscript"),
+    // The table button is a menu of row and column changes while it reads
+    // as on, and those are the rich editor's alone: in the text, a row is a
+    // line to type.
+    table: false,
   };
 }
 

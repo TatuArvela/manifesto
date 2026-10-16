@@ -207,6 +207,21 @@ describe("whole blocks in raw mode", () => {
       "Above\n\n---\n\n|Below",
     );
   });
+
+  it("puts an empty table in with the caret in its first cell", () => {
+    expect(format("Tex|t", "table")).toBe(
+      [
+        "Text",
+        "",
+        "| |  |   |   |",
+        "| - | - | - |",
+        "|   |   |   |",
+        "|   |   |   |",
+        "",
+        "",
+      ].join("\n"),
+    );
+  });
 });
 
 describe("links in raw mode", () => {

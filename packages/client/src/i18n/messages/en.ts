@@ -266,6 +266,12 @@ export const en = {
   "format.subscript": "Subscript",
   "format.superscript": "Superscript",
   "format.divider": "Divider",
+  "format.table": "Table",
+  "format.tableAddRow": "Add a row below",
+  "format.tableAddColumn": "Add a column to the right",
+  "format.tableDeleteRow": "Remove row",
+  "format.tableDeleteColumn": "Remove column",
+  "format.tableDelete": "Remove table",
 
   // Version history
   "versions.title": "Version history",

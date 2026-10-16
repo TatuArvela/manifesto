@@ -163,6 +163,65 @@
   margin-bottom: 0.75em;
 }
 
+/* Tables. A wide one scrolls sideways (the editor's text does, see
+   `editor.css`, and on a card the table does by itself), so cells keep to the
+   width of their text rather than squeezing it into a column a word wide. */
+.prose table,
+.milkdown-editor table {
+  border-collapse: collapse;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose th,
+.prose td,
+.milkdown-editor th,
+.milkdown-editor td {
+  border: 1px solid var(--color-neutral-300);
+  padding: 0.25em 0.5em;
+  min-width: 3em;
+  vertical-align: top;
+}
+
+.prose th,
+.milkdown-editor th {
+  font-weight: 600;
+  background-color: rgb(0 0 0 / 0.04);
+}
+
+.dark .prose th,
+.dark .prose td,
+.dark .milkdown-editor th,
+.dark .milkdown-editor td {
+  border-color: var(--color-neutral-600);
+}
+
+.dark .prose th,
+.dark .milkdown-editor th {
+  background-color: rgb(255 255 255 / 0.05);
+}
+
+/* On a card nothing else scrolls, so a table too wide for it scrolls by
+   itself rather than running out over the board. */
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* A cell holds one paragraph, whose margins would double the padding. */
+.milkdown-editor th p,
+.milkdown-editor td p {
+  margin: 0;
+}
+
+/* Cells selected together (a drag across them, Shift and an arrow from one
+   cell to the next). `prosemirror-tables` hides the browser's own selection
+   then, so without this a selection of cells is invisible. */
+.milkdown-editor .selectedCell {
+  background-color: rgb(59 130 246 / 0.15);
+}
+
 /* Strong and emphasis */
 .prose strong,
 .milkdown-editor strong {
