@@ -203,6 +203,10 @@ export const NoteCard = memo(function NoteCard({
             "w-full max-w-sm mx-auto",
         )}
         data-leaving={leaving}
+        // A card with one of its menus open keeps the look of a hovered one.
+        // The menu's backdrop covers the card, so the pointer is no longer
+        // over it, and its buttons faded out from under the menu they opened.
+        data-popover-open={openPopover !== null || undefined}
         data-note-id={note.id}
         onAnimationEnd={(e) => {
           if (e.target === e.currentTarget) setPinSettling(false);
@@ -244,7 +248,7 @@ export const NoteCard = memo(function NoteCard({
               : !isTrashView
                 ? "p-4 pb-2"
                 : "p-4",
-            "shadow-sm group-hover:shadow-lg",
+            "shadow-sm group-hover:shadow-lg group-data-popover-open:shadow-lg",
             // Gone while it morphs into the editor, since the editor is it;
             // a ghost of it otherwise, to show where the note lives.
             open && !closing && (morphing ? "opacity-0" : "opacity-20"),

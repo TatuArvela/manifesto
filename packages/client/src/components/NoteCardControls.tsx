@@ -46,7 +46,7 @@ export function CardSelectButton({
         // focus ring on something invisible leaves nothing to look at.
         isSelectMode || isSelected
           ? "opacity-100"
-          : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100",
+          : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100",
         "transition-opacity duration-200",
       )}
     >
@@ -105,7 +105,7 @@ export function CardStatusBar({
         // shadow of their own rather than joining the neutral ramp.
         overlay
           ? "text-white [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.7))]"
-          : "text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
+          : "text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-data-popover-open:text-neutral-800 dark:group-data-popover-open:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
         // Faded rather than switched, both ways. Visibility is in the
         // transition so it waits for the fade out, and still hides the
         // buttons from Tab once it has finished.
@@ -117,7 +117,7 @@ export function CardStatusBar({
         <Tooltip label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}>
           <button
             type="button"
-            class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100"} transition-opacity`}
+            class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100"} transition-opacity`}
             onClick={() => togglePin(note.id)}
             aria-label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
           >
@@ -190,7 +190,7 @@ export function CardActions({
           : "mt-auto pt-3 -ml-1.5",
         isSelectMode
           ? "invisible opacity-0"
-          : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100",
+          : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100",
       )}
       onClick={(e) => {
         if (e.target !== e.currentTarget) e.stopPropagation();
