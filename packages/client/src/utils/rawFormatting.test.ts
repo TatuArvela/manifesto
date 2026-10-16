@@ -151,9 +151,10 @@ describe("block formats in raw mode", () => {
     );
   });
 
-  it("turns bullets into tasks and tasks back into bullets", () => {
+  it("turns bullets into tasks and tasks back into plain lines", () => {
     expect(format("- mi|lk", "checklist")).toBe("- [ ] mi|lk");
-    expect(format("- [x] mi|lk", "checklist")).toBe("- mi|lk");
+    expect(format("- [x] mi|lk", "checklist")).toBe("mi|lk");
+    expect(format("- [ ] mi|lk", "unorderedList")).toBe("- mi|lk");
   });
 
   it("keeps a task's nesting", () => {

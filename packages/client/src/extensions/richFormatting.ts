@@ -4,16 +4,10 @@ import {
   toggleInlineCodeCommand,
   toggleStrongCommand,
   wrapInBlockquoteCommand,
-  wrapInBulletListCommand,
   wrapInHeadingCommand,
-  wrapInOrderedListCommand,
 } from "@milkdown/kit/preset/commonmark";
 import { toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
-import type {
-  MarkType,
-  NodeType,
-  ResolvedPos,
-} from "@milkdown/kit/prose/model";
+import type { MarkType, NodeType } from "@milkdown/kit/prose/model";
 import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
 import type { EditorState, Transaction } from "@milkdown/kit/prose/state";
 import { liftTarget } from "@milkdown/kit/prose/transform";
@@ -21,6 +15,8 @@ import { callCommand } from "@milkdown/kit/utils";
 import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
 import { insertBlock } from "./blockInsertion.js";
 import { toggleCodeBlock } from "./codeBlockToggle.js";
+import { coveredRange } from "./coveredRange.js";
+import { toggleList } from "./listToggle.js";
 import {
   toggleSubscriptCommand,
   toggleSuperscriptCommand,
@@ -136,14 +132,17 @@ export function applyFormat(
       });
       break;
     case "numberedList":
-      editor.action(callCommand(wrapInOrderedListCommand.key));
-      break;
     case "unorderedList":
-      editor.action(callCommand(wrapInBulletListCommand.key));
+    case "checklist": {
+      const kind =
+        type === "numberedList"
+          ? "ordered"
+          : type === "unorderedList"
+            ? "bullet"
+            : "task";
+      editor.action((ctx) => toggleList(ctx.get(editorViewCtx), kind));
       break;
-    case "checklist":
-      toggleChecklist(editor);
-      break;
+    }
     case "underline":
       editor.action(callCommand(toggleUnderlineCommand.key));
       break;
@@ -193,39 +192,6 @@ export function applyFormat(
       });
       break;
   }
-}
-
-/**
- * The selection without its edges that only touch a line: dragged to the
- * end of a line, a selection reaches the start of the next one, and dragged
- * up from below it can start at the end of the line above, while selecting
- * nothing of either. Ends at the first and last text the selection covers,
- * counting an empty line it spans, or is the selection itself when it covers
- * no text (a caret).
- */
-function coveredRange(state: EditorState): {
-  $from: ResolvedPos;
-  $to: ResolvedPos;
-} {
-  const { from, to, empty, $from, $to } = state.selection;
-  if (empty) return { $from, $to };
-  let first = -1;
-  let last = -1;
-  state.doc.nodesBetween(from, to, (node, pos) => {
-    if (!node.isTextblock) return true;
-    const start = pos + 1;
-    const end = start + node.content.size;
-    const covers =
-      Math.min(to, end) > Math.max(from, start) ||
-      (node.content.size === 0 && from < start && to > end);
-    if (covers) {
-      if (first === -1) first = Math.max(from, start);
-      last = Math.min(to, end);
-    }
-    return false;
-  });
-  if (first === -1) return { $from, $to };
-  return { $from: state.doc.resolve(first), $to: state.doc.resolve(last) };
 }
 
 /** The depth of the innermost quote the covered selection starts in. */
@@ -286,39 +252,4 @@ function clearFormatting(state: EditorState): Transaction | null {
   }
   tr.setStoredMarks([]);
   return tr.docChanged || state.storedMarks ? tr : null;
-}
-
-/**
- * Toggle list items between plain bullets and task items. If not already in
- * a list, wrap first. Then flip `checked` between `null` (plain) and `false`
- * (task, unchecked) on every list item in the selection.
- */
-function toggleChecklist(editor: Editor): void {
-  const pre = editor.action((ctx) => ctx.get(editorStateCtx));
-  const listItemType = pre.schema.nodes.list_item;
-  if (!listItemType) return;
-
-  if (!findNodeAncestor(pre, listItemType)) {
-    editor.action(callCommand(wrapInBulletListCommand.key));
-  }
-
-  editor.action((ctx) => {
-    const state = ctx.get(editorStateCtx);
-    const view = ctx.get(editorViewCtx);
-    const current = findNodeAncestor(state, listItemType);
-    const isTaskItem = !!(current && current.attrs.checked != null);
-
-    const { from, to } = state.selection;
-    const tr = state.tr;
-    state.doc.nodesBetween(from, to, (node, pos) => {
-      if (node.type === listItemType) {
-        tr.setNodeMarkup(pos, undefined, {
-          ...node.attrs,
-          checked: isTaskItem ? null : false,
-        });
-      }
-      return true;
-    });
-    if (tr.docChanged) view.dispatch(tr);
-  });
 }

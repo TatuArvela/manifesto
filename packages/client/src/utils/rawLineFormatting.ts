@@ -135,12 +135,13 @@ export function toggleBlock(
         break;
       }
       case "checklist": {
-        // Mirrors the rich editor: a task item toggles back to a plain list
-        // item rather than out of the list altogether.
+        // Mirrors the rich editor: tasks toggle out of the list altogether,
+        // as the other list buttons do, rather than into plain bullets.
         const all = lines.every((l) => l.box !== "");
         for (const l of lines) {
           if (all) {
             l.box = "";
+            l.marker = "";
           } else if (l.box === "") {
             if (l.marker === "") l.marker = "- ";
             l.box = "[ ] ";
