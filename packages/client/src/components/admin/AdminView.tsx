@@ -31,6 +31,7 @@ import {
 } from "../../state/auth.js";
 import { serverFeature } from "../../state/serverFeatures.js";
 import { Avatar } from "../Avatar.js";
+import { boardCard } from "../boardCard.js";
 import { buttonClass } from "../buttonClasses.js";
 import { Dropdown } from "../Dropdown.js";
 import { menuItemClass, menuPanelClass } from "../NoteMenu.js";
@@ -79,7 +80,7 @@ export function AdminView() {
   return (
     <div
       data-marquee-ignore
-      class="w-full max-w-2xl mx-auto py-4 flex flex-col gap-4"
+      class={`w-full max-w-2xl mx-auto my-4 p-4 md:p-5 flex flex-col gap-4 ${boardCard}`}
     >
       <div
         class="flex gap-1 self-start rounded-lg bg-neutral-100 dark:bg-neutral-800 p-1"

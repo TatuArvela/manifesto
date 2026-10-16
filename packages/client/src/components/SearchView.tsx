@@ -35,6 +35,7 @@ import {
   toggleSearchType,
   typeSearch,
 } from "../state/index.js";
+import { boardCard } from "./boardCard.js";
 
 const TYPE_META: {
   key: SearchType;
@@ -182,7 +183,9 @@ export function SearchView() {
     // Centred on its own, rather than relying on the wrapper App puts around
     // the search view, which only exists in list mode. `max-w-xl` matches the
     // header's search field, so the filters line up under it in both modes.
-    <div class="mt-4 mb-6 flex flex-col gap-3 max-w-xl mx-auto">
+    <div
+      class={`mt-4 mb-6 p-4 flex flex-col gap-3 max-w-xl mx-auto ${boardCard}`}
+    >
       {/* Mobile-only search input (desktop uses the header's input). */}
       <div class="relative md:hidden">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
