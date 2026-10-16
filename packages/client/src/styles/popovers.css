@@ -185,3 +185,67 @@
     overflow-y: auto;
   }
 }
+
+/* A menu's submenu (`NoteMenu`) opens in place of its rows: they slide in
+   from the side they came from, from the right going in and from the left
+   coming back, so the step reads as a move deeper and back out rather than
+   the panel's text changing under the pointer. Only a translation and a fade,
+   as above, and none on the menu as it first opens, which has the panel's own
+   entry. */
+.menu-level[data-enter="forward"] {
+  animation: menu-level-forward 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.menu-level[data-enter="back"] {
+  animation: menu-level-back 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes menu-level-forward {
+  from {
+    opacity: 0;
+    translate: 1.5rem 0;
+  }
+}
+
+@keyframes menu-level-back {
+  from {
+    opacity: 0;
+    translate: -1.5rem 0;
+  }
+}
+
+/* Beside the menu instead (a pointer that can hover): the submenu comes out
+   of the panel's edge, on the side `MenuFlyout` chose, and laps 10px over
+   it, so the two read as one stack rather than two menus side by side. The
+   box it is placed in stops inside the panel's 1px border, hence 9px. Keep
+   `FLYOUT_OVERLAP` in NoteMenu.tsx the same. */
+.menu-flyout[data-side="right"] {
+  left: calc(100% - 9px);
+  animation: menu-flyout-right 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.menu-flyout[data-side="left"] {
+  right: calc(100% - 9px);
+  animation: menu-flyout-left 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes menu-flyout-right {
+  from {
+    opacity: 0;
+    translate: -0.25rem 0;
+  }
+}
+
+@keyframes menu-flyout-left {
+  from {
+    opacity: 0;
+    translate: 0.25rem 0;
+  }
+}
+
+/* The UA stylesheet gives a `[popover]` `overflow: auto`, which would cut a
+   flyout off at the edge of the `Dropdown` it stands out of. Only while one
+   is open, so a tall panel of anything else still scrolls. */
+.dropdown-panel:has(.menu-flyout) {
+  overflow: visible;
+}

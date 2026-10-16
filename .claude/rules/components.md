@@ -24,6 +24,13 @@ paths:
   moves focus in once placed (to the option marked `aria-pressed` / `aria-checked`, else the first
   control) and back to its anchor on close; without that the keyboard never reached it. Mark the
   current option in a picker with `aria-pressed`, which both a screen reader and this focus read.
+- **A note's menu** is one list, `noteMenuItems` in `NoteMenu.tsx`, which every surface renders
+  through `NoteMenu`; a surface adds rows of its own (`before`) rather than a menu of its own.
+  Rarer rows go in a `submenu` item, which `arrangeMenu` drops when empty and replaces with its row
+  (under `fullLabel`) when that row is alone. A submenu opens beside the panel where the pointer can
+  hover (`MenuFlyout`, placed inside the panel's box because a `Dropdown` is in the top layer) and in
+  place of the rows on a touch screen; both take Escape before the panel does. A `Dropdown` keeps
+  `NoteMenu` mounted while closed, so pass it `open` or it reopens inside a submenu.
 - **Confirming a deletion** goes through the `confirmRequest` signal in `state/confirm.ts`, which
   `ConfirmDialogHost` renders, one question at a time: a second question answers the first with
   "no" rather than stacking, so the promise behind a replaced prompt always settles and no caller

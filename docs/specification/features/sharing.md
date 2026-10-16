@@ -10,7 +10,8 @@ with an expiry, a password and a view limit.
 
 ### Generating a Share Link
 
-1. User opens a note and selects **Share link** from the kebab menu (or from the card's kebab menu)
+1. User opens a note and selects **Share > Share link** from the kebab menu (or from the card's kebab menu; with
+   nothing else under Share, as in open mode, **Share link** is in the menu itself)
 2. The app encodes the note's shareable fields into a compressed, URL-safe string
 3. The full URL (`https://host/#share=<payload>`) is copied to the clipboard
 4. A toast confirms "Link copied to clipboard"

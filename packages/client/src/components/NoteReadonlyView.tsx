@@ -312,6 +312,7 @@ export function NoteReadonlyView({
           <NoteMenu
             items={noteMenuItems(note, { onDismiss: onClose })}
             onClose={() => setShowMenu(false)}
+            open={showMenu}
           />
         </Dropdown>
 

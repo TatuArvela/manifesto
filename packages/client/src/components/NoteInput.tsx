@@ -1,11 +1,5 @@
 import type { Note, NoteColor, NoteFont } from "@manifesto/shared";
-import {
-  Braces,
-  CalendarArrowDown,
-  FileText,
-  ListX,
-  Plus,
-} from "lucide-preact";
+import { Plus } from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
@@ -51,6 +45,7 @@ import {
 import { Backdrop } from "./Backdrop.js";
 import { gridColumns } from "./gridColumns.js";
 import { useEditor } from "./lazyEditor.js";
+import { checklistSubmenu, downloadSubmenu } from "./NoteMenu.js";
 import { NoteSheet } from "./NoteSheet.js";
 
 const ctaKeys: MessageKey[] = [
@@ -610,17 +605,11 @@ export function NoteInput() {
             }
             onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
             menuItems={({ checkedItems, datedItems }) => [
-              {
-                id: "export-markdown",
-                icon: <FileText class="w-4 h-4" />,
-                label: t("noteMenu.exportMarkdown"),
-                onSelect: () => downloadNoteAsMarkdown({ title, content }),
-              },
-              {
-                id: "export-json",
-                icon: <Braces class="w-4 h-4" />,
-                label: t("noteMenu.exportJson"),
-                onSelect: async () => {
+              checklistSubmenu({ checkedItems, datedItems }),
+              { kind: "divider", id: "send" },
+              downloadSubmenu({
+                markdown: () => downloadNoteAsMarkdown({ title, content }),
+                json: async () => {
                   // The file carries the bytes, not references only
                   // this browser or server can read.
                   const inlined = await inlineImages(images);
@@ -634,28 +623,7 @@ export function NoteInput() {
                     linkPreviews: await inlinePreviewImages(linkPreviews),
                   });
                 },
-              },
-              ...(datedItems.present
-                ? [
-                    {
-                      id: "sort-by-date",
-                      icon: <CalendarArrowDown class="w-4 h-4" />,
-                      label: t("noteMenu.sortByDate"),
-                      onSelect: datedItems.sort,
-                    } as const,
-                  ]
-                : []),
-              { kind: "divider", id: "destructive" },
-              ...(checkedItems.present
-                ? [
-                    {
-                      id: "delete-checked",
-                      icon: <ListX class="w-4 h-4" />,
-                      label: t("noteMenu.deleteChecked"),
-                      onSelect: checkedItems.remove,
-                    } as const,
-                  ]
-                : []),
+              }),
             ]}
             onDone={() => closeModal(true)}
             onBack={() => closeModal()}

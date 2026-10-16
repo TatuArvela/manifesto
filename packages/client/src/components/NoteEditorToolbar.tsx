@@ -107,6 +107,69 @@ export function NoteEditorToolbar({
     </Tooltip>
   );
 
+  // The font and raw-mode controls the phone's bar has no room for, and
+  // Draw, above the menu's own rows and gone with them while a submenu is
+  // open.
+  const phoneRows = (
+    <>
+      <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
+        {t("editor.font")}
+      </div>
+      <div class="sm:hidden flex gap-1 px-3 pb-2">
+        {Object.values(NoteFont).map((f) => {
+          const label = getFontLabel(f);
+          return (
+            <button
+              key={f}
+              type="button"
+              class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+              style={{ fontFamily: noteFontFamilies[f] || undefined }}
+              onClick={() => onFontChange(f)}
+              aria-label={label}
+            >
+              Aa
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Raw / Normal mode toggle (mobile only) */}
+      <button
+        type="button"
+        class={`sm:hidden ${menuItemClass}`}
+        onClick={() => {
+          onToggleRawMode();
+          closeAllMenus();
+        }}
+      >
+        {rawMode ? <Eye class="w-4 h-4" /> : <Code class="w-4 h-4" />}
+        {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
+      </button>
+
+      <div class={`sm:hidden ${menuDividerClass}`} />
+
+      {/* In the menu rather than on the bar: a phone's bar has no room
+          for another tool, and a drawing is made far less often than a
+          picture is attached. */}
+      {onDraw && !disabled && (
+        <>
+          <button
+            type="button"
+            class={menuItemClass}
+            onClick={() => {
+              onDraw();
+              closeAllMenus();
+            }}
+          >
+            <PenLine class="w-4 h-4" />
+            {t("editor.draw")}
+          </button>
+          <div class={menuDividerClass} />
+        </>
+      )}
+    </>
+  );
+
   return (
     <div class="note-sheet-bottom px-3 pt-1.5 sm:pb-2 flex flex-wrap items-center gap-0.5">
       <div class="flex items-center gap-0.5">
@@ -251,63 +314,12 @@ export function NoteEditorToolbar({
           placement="bottom-start"
           panelClass={menuPanelClass}
         >
-          <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
-            {t("editor.font")}
-          </div>
-          <div class="sm:hidden flex gap-1 px-3 pb-2">
-            {Object.values(NoteFont).map((f) => {
-              const label = getFontLabel(f);
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                  style={{ fontFamily: noteFontFamilies[f] || undefined }}
-                  onClick={() => onFontChange(f)}
-                  aria-label={label}
-                >
-                  Aa
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Raw / Normal mode toggle (mobile only) */}
-          <button
-            type="button"
-            class={`sm:hidden ${menuItemClass}`}
-            onClick={() => {
-              onToggleRawMode();
-              closeAllMenus();
-            }}
-          >
-            {rawMode ? <Eye class="w-4 h-4" /> : <Code class="w-4 h-4" />}
-            {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
-          </button>
-
-          <div class={`sm:hidden ${menuDividerClass}`} />
-
-          {/* In the menu rather than on the bar: a phone's bar has no room
-              for another tool, and a drawing is made far less often than a
-              picture is attached. */}
-          {onDraw && !disabled && (
-            <>
-              <button
-                type="button"
-                class={menuItemClass}
-                onClick={() => {
-                  onDraw();
-                  closeAllMenus();
-                }}
-              >
-                <PenLine class="w-4 h-4" />
-                {t("editor.draw")}
-              </button>
-              <div class={menuDividerClass} />
-            </>
-          )}
-
-          <NoteMenu items={menuItems} onClose={() => setShowMenu(false)} />
+          <NoteMenu
+            items={menuItems}
+            onClose={() => setShowMenu(false)}
+            open={showMenu}
+            before={phoneRows}
+          />
         </Dropdown>
 
         {/* Normal / Raw mode toggle (desktop only; on mobile, lives in the kebab menu) */}
