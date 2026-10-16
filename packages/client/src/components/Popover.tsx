@@ -22,7 +22,7 @@ export function CardPopover({
   anchorRef,
   onClose,
   children,
-  placement = "top-start",
+  placement = "bottom-start",
   leaving = false,
 }: {
   anchorRef: preact.RefObject<HTMLElement | null>;

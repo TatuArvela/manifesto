@@ -129,7 +129,7 @@ export function NoteEditorToolbar({
               </button>
             </Tooltip>
           }
-          placement="top-start"
+          placement="bottom-start"
           panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
         >
           {pickerColors.map((c) => (
@@ -166,7 +166,7 @@ export function NoteEditorToolbar({
                 </button>
               </Tooltip>
             }
-            placement="top-start"
+            placement="bottom-start"
             panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
           >
             {Object.values(NoteFont).map((f) => {
@@ -248,7 +248,7 @@ export function NoteEditorToolbar({
               </button>
             </Tooltip>
           }
-          placement="top-start"
+          placement="bottom-start"
           panelClass={menuPanelClass}
         >
           <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">

@@ -366,7 +366,7 @@ export function ReminderPicker({
     <Dropdown
       open={open}
       onClose={() => setOpen(false)}
-      placement={align === "right" ? "top-end" : "top-start"}
+      placement={align === "right" ? "bottom-end" : "bottom-start"}
       panelClass={panelClass}
       trigger={
         <Tooltip label={label}>
