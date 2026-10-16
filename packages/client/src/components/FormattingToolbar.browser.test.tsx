@@ -1,6 +1,8 @@
-import type { Editor } from "@milkdown/kit/core";
+import { type Editor, editorViewCtx } from "@milkdown/kit/core";
+import { TextSelection } from "@milkdown/kit/prose/state";
 import { createRef, render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { page } from "vitest/browser";
 import { t } from "../i18n/index.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
@@ -93,7 +95,12 @@ describe("FormattingToolbar's floating bar", () => {
       toolbarHost.querySelector<HTMLButtonElement>(
         `button[aria-label="${label}"]`,
       );
-    return { host, toolbarHost, button };
+    return {
+      host,
+      toolbarHost,
+      button,
+      editor: editor as unknown as Editor,
+    };
   }
 
   /** Whether the bar's panel is open; it stays in the page while closed. */
@@ -126,6 +133,52 @@ describe("FormattingToolbar's floating bar", () => {
       ?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(barOpen(toolbarHost)).toBe(true);
+  });
+
+  it("takes a quote off with real clicks, not nesting it", async () => {
+    // Reported twice from the app: Quote pressed in quoted text nested it.
+    const note = [
+      "- Ccc",
+      "",
+      "| a | b |",
+      "| - | - |",
+      "| c | d |",
+      "",
+      "```",
+      "Aaa",
+      "```",
+      "",
+      "> Bbb",
+      "",
+      "After",
+    ].join("\n");
+    const { host, editor } = await mountToolbar(note);
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      let at = -1;
+      view.state.doc.descendants((node, pos) => {
+        if (at === -1 && node.isText && node.text?.includes("Bbb")) at = pos;
+        return at === -1;
+      });
+      view.focus();
+      view.dispatch(
+        view.state.tr.setSelection(
+          TextSelection.create(view.state.doc, at + 1),
+        ),
+      );
+    });
+    await page
+      .getByRole("button", { name: t("format.moreFormatting") })
+      .click();
+    await page.getByRole("button", { name: t("format.quote") }).click();
+    await vi.waitFor(() =>
+      expect(host.querySelector(".ProseMirror blockquote")).toBeNull(),
+    );
+    await page.getByRole("button", { name: t("format.quote") }).click();
+    await vi.waitFor(() =>
+      expect(host.querySelectorAll(".ProseMirror blockquote")).toHaveLength(1),
+    );
+    expect(host.querySelector(".ProseMirror blockquote blockquote")).toBeNull();
   });
 
   it("closes on Escape", async () => {
