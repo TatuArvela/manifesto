@@ -141,3 +141,20 @@ describe("Tab in a list or a table", () => {
     expect(viewOf(editor).hasFocus()).toBe(false);
   });
 });
+
+describe("spaces in the text", () => {
+  it("are laid out as typed, so a trailing one moves the caret", async () => {
+    // ProseMirror needs this and its stylesheet was never loaded: with
+    // `normal`, a space at the end of a line took up no room.
+    const editor = await mount("Text");
+    const dom = viewOf(editor).dom;
+    expect(getComputedStyle(dom).whiteSpace).toMatch(
+      /^(pre-wrap|break-spaces)$/,
+    );
+    caretAt(editor, "Text", 4);
+    const before = viewOf(editor).coordsAtPos(5).left;
+    await userEvent.keyboard(" ");
+    const after = viewOf(editor).coordsAtPos(6).left;
+    expect(after).toBeGreaterThan(before);
+  });
+});

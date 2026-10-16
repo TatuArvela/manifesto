@@ -17,6 +17,52 @@
      browsers do not, so it is set here for all of them. */
   overflow-x: auto;
   overflow-wrap: normal;
+  /* What ProseMirror's own stylesheet (`prosemirror-view/style/
+     prosemirror.css`) sets and requires, which nothing here loaded. With the
+     default `normal`, a space typed at the end of a line, or a second one in
+     a row, collapsed on screen while staying in the text: the caret seemed
+     not to move, and the arrows took two presses to cross one gap. */
+  white-space: break-spaces;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0;
+}
+
+/* The rest of ProseMirror's own stylesheet. A selection of table cells, and
+   a selected node, hide the browser's selection under this class; without
+   it, the highlight showed over the cells' text as well. */
+.milkdown-editor .ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+
+.milkdown-editor .ProseMirror-hideselection {
+  caret-color: transparent;
+}
+
+.milkdown-editor .ProseMirror [draggable][contenteditable="false"] {
+  user-select: text;
+}
+
+/* A selected divider or table (Backspace just after one selects it first,
+   and the next press removes it). Unmarked, the first press looked like it
+   did nothing. */
+.milkdown-editor .ProseMirror-selectednode {
+  outline: 2px solid rgb(59 130 246 / 0.6);
+  outline-offset: 2px;
+}
+
+.milkdown-editor li.ProseMirror-selectednode {
+  outline: none;
+}
+
+/* ProseMirror ends a line whose last thing is not text (a line break, an
+   image) with an empty image and a break, so the caret has a line to stand
+   on. Tailwind's preflight makes every image a block, which pushed that
+   empty line down a second time. Preflight is in the base layer, so this
+   wins without the `!important` ProseMirror's own copy needs. */
+.milkdown-editor img.ProseMirror-separator {
+  display: inline;
+  border: none;
+  margin: 0;
 }
 
 /* An overlay scrollbar (macOS, phones) is drawn over the last line rather
