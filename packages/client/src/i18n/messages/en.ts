@@ -268,6 +268,8 @@ export const en = {
   "format.superscript": "Superscript",
   "format.divider": "Divider",
   "format.table": "Table",
+  "format.tableRow": "Row",
+  "format.tableColumn": "Column",
   "format.tableAddRow": "Add a row below",
   "format.tableAddColumn": "Add a column to the right",
   "format.tableDeleteRow": "Remove row",

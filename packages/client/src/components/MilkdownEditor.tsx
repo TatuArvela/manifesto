@@ -30,6 +30,7 @@ import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { itemDatesPlugin } from "../extensions/itemDates.js";
 import { linkTooltip } from "../extensions/linkTooltip.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
+import { tableBar } from "../extensions/tableBar.js";
 import { taskItemDraggable } from "../extensions/taskItemDraggable.js";
 import {
   DEFAULT_FRAGMENT_NAME,
@@ -207,6 +208,7 @@ export function MilkdownEditor({
       .use(gapCursorPlugin)
       .use(itemDatesPlugin)
       .use(linkTooltip)
+      .use(tableBar)
       .use(documentWatcher(() => documentChangedRef.current()));
     const collabPlugin = collabFactoryRef.current;
     if (collabRef.current && collabPlugin) {

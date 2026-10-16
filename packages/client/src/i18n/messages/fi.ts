@@ -271,6 +271,8 @@ export const fi: Messages = {
   "format.superscript": "Yläindeksi",
   "format.divider": "Erotinviiva",
   "format.table": "Taulukko",
+  "format.tableRow": "Rivi",
+  "format.tableColumn": "Sarake",
   "format.tableAddRow": "Lisää rivi alle",
   "format.tableAddColumn": "Lisää sarake oikealle",
   "format.tableDeleteRow": "Poista rivi",
