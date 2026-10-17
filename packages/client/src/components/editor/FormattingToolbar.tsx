@@ -1,19 +1,12 @@
-import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
-import {
-  toggleLinkCommand,
-  updateLinkCommand,
-} from "@milkdown/kit/preset/commonmark";
-import { callCommand } from "@milkdown/kit/utils";
+import type { Editor } from "@milkdown/kit/core";
 import {
   Bold,
   ChevronDown,
   ChevronUp,
   Code,
-  Heading,
   IndentDecrease,
   IndentIncrease,
   Italic,
-  Link,
   List,
   ListChecks,
   ListOrdered,
@@ -25,32 +18,33 @@ import {
   Strikethrough,
   Subscript,
   Superscript,
-  Table,
   Underline,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import {
   applyFormat,
   emptyFormats,
   getActiveFormats,
 } from "../../extensions/richFormatting.js";
-import {
-  applyTableAction,
-  availableTableActions,
-  type TableAction,
-} from "../../extensions/tableActions.js";
 import { t } from "../../i18n/index.js";
 import type { ActiveFormats, FormatType } from "../../utils/formatTypes.js";
 import {
   applyRawFormat,
-  applyRawLink,
   applyTextEdit,
   getRawActiveFormats,
-  removeRawLink,
 } from "../../utils/rawFormatting.js";
 import { Dropdown } from "../Dropdown.js";
 import { Tooltip } from "../Tooltip.js";
+import {
+  FormatButton,
+  type FormattingTarget,
+  HeadingMenu,
+  keepFocus,
+  LinkMenu,
+  TableMenu,
+  toolbarButtonClass,
+} from "./FormattingMenus.js";
 
 interface FormattingToolbarProps {
   editor: Editor;
@@ -65,10 +59,9 @@ interface FormattingToolbarProps {
   onAddLink?: (url: string) => void;
 }
 
-const btnBase =
-  "p-1.5 max-sm:p-2.5 rounded cursor-pointer disabled:opacity-30 disabled:cursor-default";
-const btnInactive = `${btnBase} hover:bg-black/5 dark:hover:bg-white/5`;
-const btnActive = `${btnBase} bg-black/10 dark:bg-white/15`;
+function Separator() {
+  return <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />;
+}
 
 export function FormattingToolbar({
   editor,
@@ -77,13 +70,8 @@ export function FormattingToolbar({
   disabled,
   onAddLink,
 }: FormattingToolbarProps) {
-  const [showHeadingMenu, setShowHeadingMenu] = useState(false);
   const [showExtras, setShowExtras] = useState(false);
-  const [showLinkMenu, setShowLinkMenu] = useState(false);
-  const [tableActions, setTableActions] = useState<TableAction[] | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [linkUrl, setLinkUrl] = useState("");
-  const linkInputRef = useRef<HTMLInputElement | null>(null);
   const [af, setAf] = useState<ActiveFormats>(emptyFormats);
 
   useEffect(() => {
@@ -98,88 +86,6 @@ export function FormattingToolbar({
     );
   }, [editor, rawTextarea, tick]);
 
-  useEffect(() => {
-    if (showLinkMenu) linkInputRef.current?.focus();
-  }, [showLinkMenu]);
-
-  const closeLinkMenu = () => {
-    setShowLinkMenu(false);
-    setLinkUrl("");
-  };
-
-  const onLinkClick = () => {
-    if (af.link) {
-      if (rawTextarea) {
-        const edit = removeRawLink(
-          rawTextarea.value,
-          rawTextarea.selectionStart,
-          rawTextarea.selectionEnd,
-        );
-        if (edit) applyTextEdit(rawTextarea, edit);
-      } else {
-        editor.action(callCommand(toggleLinkCommand.key, {}));
-      }
-      return;
-    }
-    setLinkUrl("");
-    setShowLinkMenu(true);
-  };
-
-  const applyLink = () => {
-    const url = linkUrl.trim();
-    if (url) {
-      if (rawTextarea) {
-        applyTextEdit(
-          rawTextarea,
-          applyRawLink(
-            rawTextarea.value,
-            rawTextarea.selectionStart,
-            rawTextarea.selectionEnd,
-            url,
-          ),
-        );
-      } else {
-        editor.action(callCommand(updateLinkCommand.key, { href: url }));
-      }
-      if (onAddLink && /^https?:\/\//i.test(url)) onAddLink(url);
-    }
-    closeLinkMenu();
-    if (rawTextarea) rawTextarea.focus();
-    else editor.action((ctx) => ctx.get(editorViewCtx).focus());
-  };
-
-  const preventFocus = (e: MouseEvent) => e.preventDefault();
-
-  // In a table the button opens the table's menu; anywhere else it makes one.
-  const onTableClick = () => {
-    if (tableActions) {
-      setTableActions(null);
-      return;
-    }
-    if (rawTextarea || !af.table) {
-      onFormat("table");
-      return;
-    }
-    setTableActions(
-      editor.action((ctx) => availableTableActions(ctx.get(editorStateCtx))),
-    );
-  };
-
-  const runTableAction = (action: TableAction) => {
-    setTableActions(null);
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx);
-      applyTableAction(view.state, action, view.dispatch);
-    });
-  };
-
-  const tableActionLabels: Record<TableAction, string> = {
-    addRowAfter: t("format.tableAddRow"),
-    addColumnAfter: t("format.tableAddColumn"),
-    deleteRow: t("format.tableDeleteRow"),
-    deleteColumn: t("format.tableDeleteColumn"),
-    deleteTable: t("format.tableDelete"),
-  };
   const onFormat = (type: FormatType, arg?: string) => {
     if (!rawTextarea) {
       applyFormat(editor, type, arg);
@@ -194,30 +100,21 @@ export function FormattingToolbar({
     );
     if (edit) applyTextEdit(rawTextarea, edit);
   };
+  const target: FormattingTarget = { editor, rawTextarea, disabled, onFormat };
 
   const isActive = (type: FormatType): boolean => {
     const v = af[type as keyof ActiveFormats];
     return v === true || (typeof v === "number" && v !== 0);
   };
 
-  const fmtBtn = (
-    type: FormatType,
-    label: string,
-    icon: ComponentChildren,
-    arg?: string,
-  ) => (
-    <Tooltip label={label}>
-      <button
-        type="button"
-        class={isActive(type) ? btnActive : btnInactive}
-        onMouseDown={preventFocus}
-        onClick={() => onFormat(type, arg)}
-        aria-label={label}
-        disabled={disabled}
-      >
-        {icon}
-      </button>
-    </Tooltip>
+  const fmtBtn = (type: FormatType, label: string, icon: ComponentChildren) => (
+    <FormatButton
+      label={label}
+      icon={icon}
+      active={isActive(type)}
+      onClick={() => onFormat(type)}
+      disabled={disabled}
+    />
   );
 
   return (
@@ -242,44 +139,7 @@ export function FormattingToolbar({
           }`}
         >
           <div class="flex flex-wrap items-center gap-0.5 max-sm:pt-1.5 max-sm:pb-0.5">
-            <Dropdown
-              open={showHeadingMenu}
-              onClose={() => setShowHeadingMenu(false)}
-              trigger={
-                <Tooltip label={t("format.heading")}>
-                  <button
-                    type="button"
-                    class={`${af.heading ? btnActive : btnInactive} flex items-center gap-0.5`}
-                    onMouseDown={preventFocus}
-                    onClick={() => setShowHeadingMenu(!showHeadingMenu)}
-                    aria-label={t("format.heading")}
-                    disabled={disabled}
-                  >
-                    <Heading class="w-4 h-4" />
-                    <ChevronDown class="w-3 h-3 opacity-50" />
-                  </button>
-                </Tooltip>
-              }
-              panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
-            >
-              {[1, 2, 3, 4].map((level) => (
-                <button
-                  key={level}
-                  type="button"
-                  class="flex items-center gap-2 w-full px-3 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-                  onMouseDown={preventFocus}
-                  onClick={() => {
-                    onFormat("heading", String(level));
-                    setShowHeadingMenu(false);
-                  }}
-                >
-                  <span class="font-semibold">H{level}</span>
-                  <span class="text-neutral-500 dark:text-neutral-400 text-xs">
-                    {t("format.headingLevel", { level })}
-                  </span>
-                </button>
-              ))}
-            </Dropdown>
+            <HeadingMenu target={target} active={Boolean(af.heading)} />
 
             {fmtBtn("bold", t("format.bold"), <Bold class="w-4 h-4" />)}
             {fmtBtn("italic", t("format.italic"), <Italic class="w-4 h-4" />)}
@@ -290,54 +150,11 @@ export function FormattingToolbar({
             )}
             {fmtBtn("code", t("format.code"), <Code class="w-4 h-4" />)}
 
-            <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+            <Separator />
 
-            <Dropdown
-              open={showLinkMenu}
-              onClose={closeLinkMenu}
-              trigger={
-                <Tooltip label={t("format.link")}>
-                  <button
-                    type="button"
-                    class={af.link ? btnActive : btnInactive}
-                    onMouseDown={preventFocus}
-                    onClick={onLinkClick}
-                    aria-label={t("format.link")}
-                    disabled={disabled}
-                  >
-                    <Link class="w-4 h-4" />
-                  </button>
-                </Tooltip>
-              }
-              panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 p-1.5"
-            >
-              <form
-                class="flex items-center gap-1"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  applyLink();
-                }}
-              >
-                <input
-                  ref={linkInputRef}
-                  type="url"
-                  value={linkUrl}
-                  onInput={(e) =>
-                    setLinkUrl((e.target as HTMLInputElement).value)
-                  }
-                  placeholder={t("format.linkPlaceholder")}
-                  class="px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded focus:outline-none focus:border-blue-500 w-56"
-                />
-                <button
-                  type="submit"
-                  class="px-2 py-1 max-sm:py-1.5 text-sm max-sm:text-base rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer"
-                >
-                  {t("format.linkAdd")}
-                </button>
-              </form>
-            </Dropdown>
+            <LinkMenu target={target} active={af.link} onAddLink={onAddLink} />
 
-            <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+            <Separator />
 
             {fmtBtn(
               "unorderedList",
@@ -388,8 +205,8 @@ export function FormattingToolbar({
           <Tooltip label={t("format.moreFormatting")}>
             <button
               type="button"
-              class={showExtras ? btnActive : btnInactive}
-              onMouseDown={preventFocus}
+              class={toolbarButtonClass(showExtras)}
+              onMouseDown={keepFocus}
               onClick={() => setShowExtras(!showExtras)}
               aria-label={t("format.moreFormatting")}
               disabled={disabled}
@@ -420,7 +237,7 @@ export function FormattingToolbar({
             t("format.superscript"),
             <Superscript class="w-4 h-4" />,
           )}
-          <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+          <Separator />
           {fmtBtn(
             "divider",
             t("format.divider"),
@@ -432,39 +249,8 @@ export function FormattingToolbar({
             t("format.codeBlock"),
             <SquareCode class="w-4 h-4" />,
           )}
-          <Dropdown
-            open={tableActions !== null}
-            onClose={() => setTableActions(null)}
-            trigger={
-              <Tooltip label={t("format.table")}>
-                <button
-                  type="button"
-                  class={af.table ? btnActive : btnInactive}
-                  onMouseDown={preventFocus}
-                  onClick={onTableClick}
-                  aria-label={t("format.table")}
-                  aria-haspopup={af.table && !rawTextarea ? "menu" : undefined}
-                  disabled={disabled}
-                >
-                  <Table class="w-4 h-4" />
-                </button>
-              </Tooltip>
-            }
-            panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
-          >
-            {(tableActions ?? []).map((action) => (
-              <button
-                key={action}
-                type="button"
-                class="flex items-center w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer whitespace-nowrap"
-                onMouseDown={preventFocus}
-                onClick={() => runTableAction(action)}
-              >
-                {tableActionLabels[action]}
-              </button>
-            ))}
-          </Dropdown>
-          <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+          <TableMenu target={target} inTable={af.table} />
+          <Separator />
           {fmtBtn(
             "indent",
             t("format.indent"),
@@ -486,8 +272,8 @@ export function FormattingToolbar({
       <Tooltip label={t("format.moreControls")}>
         <button
           type="button"
-          class={`sm:hidden ${expanded ? btnActive : btnInactive}`}
-          onMouseDown={preventFocus}
+          class={`sm:hidden ${toolbarButtonClass(expanded)}`}
+          onMouseDown={keepFocus}
           onClick={() => setExpanded(!expanded)}
           aria-label={t("format.moreControls")}
           aria-expanded={expanded}
