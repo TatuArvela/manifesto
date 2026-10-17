@@ -166,4 +166,30 @@ describe("preferences that follow the account", () => {
       timeout: 2000,
     });
   });
+
+  it("takes only the device's preferences from another tab", async () => {
+    serve();
+    signIn();
+    await vi.waitFor(() => expect(patches.length).toBeGreaterThan(0), {
+      timeout: 2000,
+    });
+    patches = [];
+    theme.value = "dark";
+    // The other tab saved on adopting an echo from before this change, so
+    // its copy has the theme as it was; its own sticky bar is still taken.
+    const value = JSON.stringify({ theme: "system", stickyTopBar: false });
+    localStorage.setItem("manifesto:prefs", value);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "manifesto:prefs",
+        newValue: value,
+        storageArea: localStorage,
+      }),
+    );
+    expect(theme.value).toBe("dark");
+    expect(stickyTopBar.value).toBe(false);
+    await vi.waitFor(() => expect(sent()).toEqual({ theme: "dark" }), {
+      timeout: 2000,
+    });
+  });
 });

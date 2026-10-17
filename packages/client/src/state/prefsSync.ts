@@ -13,6 +13,7 @@ import {
   accountPrefsSnapshot,
   adoptAccountPrefs,
   isApplyingRemotePrefs,
+  setAccountPrefsFromServer,
 } from "./prefs.ts";
 import { defaultPrefsOf, serverDefaultPrefs } from "./serverDefaults.ts";
 
@@ -182,6 +183,9 @@ export function startPrefsSync(): void {
       ready = false;
       dirty.clear();
       clearTimeout(pushTimer);
+      // Signed in, the server's copy is read at the unlock, so another
+      // tab's account preferences are no longer this tab's to take.
+      setAccountPrefsFromServer(serverUrl !== null && !!token);
       if (serverUrl === null || !token || !unlocked) return;
       void refreshAccountPrefs();
     });
