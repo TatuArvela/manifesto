@@ -4,33 +4,18 @@ import type {
   NoteFont,
   NoteReminder,
 } from "@manifesto/shared";
-import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
-import { TextSelection } from "@milkdown/kit/prose/state";
+import type { Editor } from "@milkdown/kit/core";
 import { ArrowLeft, Pin, PinOff } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "../../colors.js";
-import { editorHistory } from "../../extensions/editorHistory.js";
-import {
-  docHasDatedItems,
-  sortItemsByDateIn,
-} from "../../extensions/itemDates.js";
-import {
-  deleteCheckedItemsIn,
-  docHasCheckedItems,
-} from "../../extensions/taskListStructure.js";
+import { useEditorTicks } from "../../hooks/useEditorTicks.js";
 import { useImageUploads } from "../../hooks/useImageUploads.js";
+import { useNotePaste } from "../../hooks/useNotePaste.js";
 import { usePresence } from "../../hooks/usePresence.js";
 import { t } from "../../i18n/index.js";
 import { closeDrawing, requestDrawing } from "../../state/drawing.js";
 import { defaultEditMode, formattingToolbar } from "../../state/prefs.js";
-import { hasDatedItems, sortChecklistByDate } from "../../utils/itemDate.js";
-import { extractUrls } from "../../utils/linkPreview.js";
-import {
-  removeCheckedItems,
-  hasCheckedItems as textHasCheckedItems,
-} from "../../utils/markdown.js";
-import { applyTextEdit } from "../../utils/rawFormatting.js";
 import type { NoteMenuItem } from "../card/NoteMenu.js";
 import { ImageGallery } from "../ImageGallery.js";
 import { LinkPreviewList } from "../LinkPreviewList.js";
@@ -44,6 +29,7 @@ import { editorButtonClass, editorIconClass } from "./editorButtons.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 import { NoteEditorToolbar } from "./NoteEditorToolbar.js";
+import { textActions } from "./textActions.js";
 
 interface NoteEditorProps {
   title: string;
@@ -150,22 +136,13 @@ export function NoteEditor({
   onEditorReady,
   collab,
 }: NoteEditorProps) {
-  const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
-  const reminderChipPicker = usePresence(
-    showReminderChipPicker || null,
-    CARD_POPOVER_EXIT_MS,
-  );
   // Read once, when the editor opens: changing the default mid-edit should
   // not flip a note that is already open.
   const [rawMode, setRawMode] = useState(
     () => defaultEditMode.peek() === "raw",
   );
   const [editor, setEditor] = useState<Editor | null>(null);
-  // Counter bumped on every editor transaction; drives undo/redo button
-  // state and toolbar active-format refresh.
-  const [txCount, setTxCount] = useState(0);
   const titleRef = useRef<HTMLInputElement>(null);
-  const reminderChipRef = useRef<HTMLButtonElement>(null);
   const rawTextareaRef = useRef<HTMLTextAreaElement>(null);
   // The textarea is always mounted, only hidden, so this is the one switch for
   // everything that edits "the note's text": in raw mode that is the textarea,
@@ -195,216 +172,23 @@ export function NoteEditor({
     if (imageFiles.length > 0) attachFiles(imageFiles);
   };
 
-  useEffect(() => {
-    if (disabled) return;
-    const handlePaste = async (e: ClipboardEvent) => {
-      if (!e.clipboardData) return;
-      const imageItems = [...e.clipboardData.items].filter((it) =>
-        it.type.startsWith("image/"),
-      );
-      if (imageItems.length > 0) {
-        const files = imageItems
-          .map((it) => it.getAsFile())
-          .filter((f): f is File => f !== null);
-        if (files.length > 0) {
-          e.preventDefault();
-          attachFiles(files);
-          return;
-        }
-      }
-      // Only text pasted into the note's body becomes a card. The listener is
-      // on the document, so it also hears a URL pasted into the title, the
-      // toolbar's link box or a tag field, none of which is asking for one.
-      if (e.target instanceof HTMLInputElement) return;
-      const text = e.clipboardData.getData("text");
-      if (text) {
-        const urls = extractUrls(text);
-        if (urls.length > 0) onAddLinkPreviews(urls);
-      }
-    };
-    document.addEventListener("paste", handlePaste);
-    return () => document.removeEventListener("paste", handlePaste);
-  }, [disabled, onAddLinkPreviews, attachFiles]);
-
-  useEffect(() => {
-    if (!editor) return;
-    let cancelled = false;
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx);
-      const prev =
-        view.props.dispatchTransaction?.bind(view) ??
-        ((tr: Parameters<typeof view.state.apply>[0]) =>
-          view.updateState(view.state.apply(tr)));
-      view.setProps({
-        dispatchTransaction(tr) {
-          prev(tr);
-          if (!cancelled) setTxCount((c) => c + 1);
-        },
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [editor]);
-
-  // The rich editor's transactions are what refresh the toolbar in rich mode;
-  // in raw mode the textarea's typing and caret moves have to do it instead.
-  useEffect(() => {
-    const textarea = rawTextareaRef.current;
-    if (!rawMode || !textarea) return;
-    const bump = () => setTxCount((c) => c + 1);
-    const onSelectionChange = () => {
-      if (document.activeElement === textarea) bump();
-    };
-    const events = ["input", "select", "keyup", "mouseup", "focus"] as const;
-    for (const type of events) textarea.addEventListener(type, bump);
-    document.addEventListener("selectionchange", onSelectionChange);
-    return () => {
-      for (const type of events) textarea.removeEventListener(type, bump);
-      document.removeEventListener("selectionchange", onSelectionChange);
-    };
-  }, [rawMode]);
-
-  const focusText = (at: "start" | "end") => {
-    if (rawTextarea) {
-      const pos = at === "start" ? 0 : rawTextarea.value.length;
-      rawTextarea.focus();
-      rawTextarea.setSelectionRange(pos, pos);
-      return;
-    }
-    editor?.action((ctx) => {
-      const view = ctx.get(editorViewCtx);
-      view.focus();
-      const { doc } = view.state;
-      view.dispatch(
-        view.state.tr.setSelection(
-          at === "start"
-            ? TextSelection.atStart(doc)
-            : TextSelection.atEnd(doc),
-        ),
-      );
-    });
-  };
+  useNotePaste({ disabled, attachFiles, onAddLinkPreviews });
+  // Drives the undo buttons and the toolbar's active formats.
+  const tick = useEditorTicks(editor, rawMode, rawTextareaRef);
+  const actions = textActions(editor, rawMode, rawTextarea);
 
   const colors = noteColorMap[color];
-
-  // Read straight off the editor on every render rather than memoised: the
-  // `txCount` bump in `dispatchTransaction` is what schedules that render, so
-  // these are as fresh as the last transaction.
-  //
-  // The undo buttons drive the rich editor's history, which in raw mode
-  // belongs to a document that is about to be replaced, so they stand down
-  // there; the textarea's own undo (Cmd+Z) covers raw edits, toolbar ones
-  // included.
-  // In collab that history is `yUndoPlugin`'s, not Milkdown's, so both go
-  // through `editorHistory`, which asks the state which one it has.
-  const canUndo =
-    editor && !rawMode
-      ? editor.action((ctx) => {
-          const state = ctx.get(editorStateCtx);
-          return editorHistory(state).undo(state);
-        })
-      : false;
-  const canRedo =
-    editor && !rawMode
-      ? editor.action((ctx) => {
-          const state = ctx.get(editorStateCtx);
-          return editorHistory(state).redo(state);
-        })
-      : false;
-  const runHistory = (which: "undo" | "redo") =>
-    editor?.action((ctx) => {
-      const view = ctx.get(editorViewCtx);
-      editorHistory(view.state)[which](view.state, view.dispatch);
-    });
-  const hasCheckedItems = rawTextarea
-    ? textHasCheckedItems(rawTextarea.value)
-    : editor
-      ? editor.action((ctx) => docHasCheckedItems(ctx.get(editorStateCtx).doc))
-      : false;
-
-  const deleteCheckedItems = () => {
-    if (rawTextarea) {
-      const value = removeCheckedItems(rawTextarea.value);
-      const caret = Math.min(rawTextarea.selectionStart, value.length);
-      applyTextEdit(rawTextarea, {
-        value,
-        selectionStart: caret,
-        selectionEnd: caret,
-      });
-      return;
-    }
-    if (!editor) return;
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx);
-      deleteCheckedItemsIn(view);
-      view.focus();
-    });
-  };
-
-  const checkedItems = { present: hasCheckedItems, remove: deleteCheckedItems };
-
-  const datedItems = {
-    present: rawTextarea
-      ? hasDatedItems(rawTextarea.value)
-      : editor
-        ? editor.action((ctx) => docHasDatedItems(ctx.get(editorStateCtx).doc))
-        : false,
-    sort: () => {
-      if (rawTextarea) {
-        const value = sortChecklistByDate(rawTextarea.value);
-        const caret = Math.min(rawTextarea.selectionStart, value.length);
-        applyTextEdit(rawTextarea, {
-          value,
-          selectionStart: caret,
-          selectionEnd: caret,
-        });
-        return;
-      }
-      if (!editor) return;
-      editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx);
-        sortItemsByDateIn(view);
-        view.focus();
-      });
-    },
-  };
 
   return (
     <article
       class={`${colors.bg} ${colors.border} note-surface note-color-transition relative z-10 sm:border sm:shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col`}
     >
-      {/* Top bar: back (mobile only) + pin. On desktop, pin floats absolute
-          top-right; on mobile, this is a flex row above the title. */}
-      <div class="note-sheet-top max-sm:flex max-sm:items-center max-sm:justify-between max-sm:px-2.5">
-        <div class="sm:hidden">
-          <button
-            type="button"
-            class={editorButtonClass}
-            onClick={onBack ?? onDone}
-            aria-label={t("editor.back")}
-          >
-            <ArrowLeft class="w-5 h-5 max-sm:w-6 max-sm:h-6" />
-          </button>
-        </div>
-        <div class="sm:absolute sm:top-2 sm:right-2 flex items-center gap-0.5">
-          <Tooltip label={pinned ? t("noteCard.unpin") : t("noteCard.pin")}>
-            <button
-              type="button"
-              class={`${editorButtonClass} transition-opacity`}
-              onClick={onPinToggle}
-              aria-label={pinned ? t("noteCard.unpin") : t("noteCard.pin")}
-              disabled={disabled}
-            >
-              {pinned ? (
-                <PinOff class={editorIconClass} />
-              ) : (
-                <Pin class={editorIconClass} />
-              )}
-            </button>
-          </Tooltip>
-        </div>
-      </div>
+      <EditorTopBar
+        pinned={pinned}
+        onPinToggle={onPinToggle}
+        onBack={onBack ?? onDone}
+        disabled={disabled}
+      />
 
       {images.length > 0 && (
         <ImageGallery
@@ -443,7 +227,7 @@ export function NoteEditor({
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              focusText("start");
+              actions.focusText("start");
             }
           }}
           disabled={disabled}
@@ -457,7 +241,7 @@ export function NoteEditor({
           <FormattingToolbar
             editor={editor}
             rawTextarea={rawTextarea}
-            tick={txCount}
+            tick={tick}
             disabled={disabled}
             onAddLink={(url) => onAddLinkPreviews([url])}
           />
@@ -474,7 +258,7 @@ export function NoteEditor({
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
           onClick={(e) => {
             if (e.target !== e.currentTarget) return;
-            focusText("end");
+            actions.focusText("end");
           }}
         >
           <MilkdownEditor
@@ -510,52 +294,12 @@ export function NoteEditor({
           </div>
         )}
 
-        {(tags.length > 0 || reminder) && (
-          <div class="flex flex-wrap gap-1 mt-2 items-center">
-            {tags.map((tag) => (
-              <TagChip key={tag} tag={tag}>
-                <button
-                  type="button"
-                  class="hover:text-red-500 cursor-pointer"
-                  onClick={() => onRemoveTag(tag)}
-                  aria-label={t("editor.removeTag", { tag })}
-                >
-                  ×
-                </button>
-              </TagChip>
-            ))}
-            {reminder && (
-              <span class="relative">
-                <ReminderChip
-                  reminder={reminder}
-                  anchorRef={reminderChipRef}
-                  onClick={() =>
-                    setShowReminderChipPicker(!showReminderChipPicker)
-                  }
-                  expanded={showReminderChipPicker}
-                  onClear={
-                    onReminderChange ? () => onReminderChange(null) : undefined
-                  }
-                />
-                {reminderChipPicker.shown && onReminderChange && (
-                  <CardPopover
-                    anchorRef={reminderChipRef}
-                    onClose={() => setShowReminderChipPicker(false)}
-                    leaving={reminderChipPicker.leaving}
-                  >
-                    <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 w-72">
-                      <ReminderPickerPanel
-                        reminder={reminder}
-                        onChange={onReminderChange}
-                        onDone={() => setShowReminderChipPicker(false)}
-                      />
-                    </div>
-                  </CardPopover>
-                )}
-              </span>
-            )}
-          </div>
-        )}
+        <EditorChips
+          tags={tags}
+          onRemoveTag={onRemoveTag}
+          reminder={reminder}
+          onReminderChange={onReminderChange}
+        />
       </div>
 
       <NoteEditorToolbar
@@ -571,16 +315,132 @@ export function NoteEditor({
         onDraw={() => requestDrawing((file) => attachFiles([file]))}
         rawMode={rawMode}
         onToggleRawMode={() => setRawMode(!rawMode)}
-        menuItems={menuItems?.({ checkedItems, datedItems }) ?? []}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={() => runHistory("undo")}
-        onRedo={() => runHistory("redo")}
+        menuItems={
+          menuItems?.({
+            checkedItems: actions.checkedItems,
+            datedItems: actions.datedItems,
+          }) ?? []
+        }
+        canUndo={actions.canUndo}
+        canRedo={actions.canRedo}
+        onUndo={() => actions.runHistory("undo")}
+        onRedo={() => actions.runHistory("redo")}
         onDelete={onDelete}
         deleteLabel={deleteLabel}
         onDone={onDone}
         disabled={disabled}
       />
     </article>
+  );
+}
+
+/**
+ * Back (on a phone only) and the pin. On a wide screen the pin floats at the
+ * top right; on a phone this is a row above the title.
+ */
+function EditorTopBar({
+  pinned,
+  onPinToggle,
+  onBack,
+  disabled,
+}: {
+  pinned: boolean;
+  onPinToggle: () => void;
+  onBack: () => void;
+  disabled: boolean | undefined;
+}) {
+  const pinLabel = pinned ? t("noteCard.unpin") : t("noteCard.pin");
+  return (
+    <div class="note-sheet-top max-sm:flex max-sm:items-center max-sm:justify-between max-sm:px-2.5">
+      <div class="sm:hidden">
+        <button
+          type="button"
+          class={editorButtonClass}
+          onClick={onBack}
+          aria-label={t("editor.back")}
+        >
+          <ArrowLeft class="w-5 h-5 max-sm:w-6 max-sm:h-6" />
+        </button>
+      </div>
+      <div class="sm:absolute sm:top-2 sm:right-2 flex items-center gap-0.5">
+        <Tooltip label={pinLabel}>
+          <button
+            type="button"
+            class={`${editorButtonClass} transition-opacity`}
+            onClick={onPinToggle}
+            aria-label={pinLabel}
+            disabled={disabled}
+          >
+            {pinned ? (
+              <PinOff class={editorIconClass} />
+            ) : (
+              <Pin class={editorIconClass} />
+            )}
+          </button>
+        </Tooltip>
+      </div>
+    </div>
+  );
+}
+
+/** The note's tags, each with its remove button, and its reminder. */
+function EditorChips({
+  tags,
+  onRemoveTag,
+  reminder,
+  onReminderChange,
+}: {
+  tags: string[];
+  onRemoveTag: (tag: string) => void;
+  reminder: NoteReminder | null | undefined;
+  onReminderChange: ((reminder: NoteReminder | null) => void) | undefined;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const picker = usePresence(pickerOpen || null, CARD_POPOVER_EXIT_MS);
+  const chipRef = useRef<HTMLButtonElement>(null);
+  if (tags.length === 0 && !reminder) return null;
+  return (
+    <div class="flex flex-wrap gap-1 mt-2 items-center">
+      {tags.map((tag) => (
+        <TagChip key={tag} tag={tag}>
+          <button
+            type="button"
+            class="hover:text-red-500 cursor-pointer"
+            onClick={() => onRemoveTag(tag)}
+            aria-label={t("editor.removeTag", { tag })}
+          >
+            ×
+          </button>
+        </TagChip>
+      ))}
+      {reminder && (
+        <span class="relative">
+          <ReminderChip
+            reminder={reminder}
+            anchorRef={chipRef}
+            onClick={() => setPickerOpen(!pickerOpen)}
+            expanded={pickerOpen}
+            onClear={
+              onReminderChange ? () => onReminderChange(null) : undefined
+            }
+          />
+          {picker.shown && onReminderChange && (
+            <CardPopover
+              anchorRef={chipRef}
+              onClose={() => setPickerOpen(false)}
+              leaving={picker.leaving}
+            >
+              <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 w-72">
+                <ReminderPickerPanel
+                  reminder={reminder}
+                  onChange={onReminderChange}
+                  onDone={() => setPickerOpen(false)}
+                />
+              </div>
+            </CardPopover>
+          )}
+        </span>
+      )}
+    </div>
   );
 }
