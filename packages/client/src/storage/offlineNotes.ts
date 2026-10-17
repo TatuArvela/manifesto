@@ -1,6 +1,6 @@
-import { fromUtf8, utf8 } from "@manifesto/shared";
+import { utf8 } from "@manifesto/shared";
 import { accountSubkey } from "../utils/keyMaterial.js";
-import { associatedData, seal, unseal } from "../utils/seal.js";
+import { associatedData, seal, unsealText } from "../utils/seal.js";
 import type { StorageKeys } from "./sealing.js";
 
 /**
@@ -163,12 +163,11 @@ export async function openOffline(
 ): Promise<unknown> {
   let json: string = stored;
   if (owner.keys) {
-    const bytes = await unseal(
+    const text = await unsealText(
       await sealingKey(owner.keys),
       stored,
       dataFor(owner.keys, kind, id),
     );
-    const text = bytes ? fromUtf8(bytes) : null;
     if (text === null) return null;
     json = text;
   }

@@ -8,4 +8,5 @@ export {
   deriveKey,
   seal,
   unseal,
+  unsealText,
 } from "@manifesto/shared";

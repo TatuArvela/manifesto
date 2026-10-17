@@ -1,5 +1,5 @@
 import { CIPHERTEXT_PREFIX } from "../api/keys.js";
-import { base64urlToBytes, bytesToBase64url, utf8 } from "./bytes.js";
+import { base64urlToBytes, bytesToBase64url, fromUtf8, utf8 } from "./bytes.js";
 
 /**
  * The one way anything is encrypted: AES-256-GCM, a random 96-bit nonce for
@@ -123,6 +123,18 @@ export async function unseal(
     return null;
   }
   return unsealBytes(key, bytes, data);
+}
+
+/** `unseal` read as UTF-8 text; null for nothing given, or for what does not
+ * open or is not text. */
+export async function unsealText(
+  key: CryptoKey,
+  sealed: string | null | undefined,
+  data: Uint8Array<ArrayBuffer>,
+): Promise<string | null> {
+  if (!sealed) return null;
+  const bytes = await unseal(key, sealed, data);
+  return bytes ? fromUtf8(bytes) : null;
 }
 
 /**

@@ -11,12 +11,8 @@ import {
   ATTACHMENT_REF_PREFIX,
   attachmentIdOf,
   isAttachmentRef,
-  type LinkPreview,
   MAX_IMAGE_ALT_LENGTH,
   MAX_IMAGES_PER_NOTE,
-  MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
-  MAX_LINK_PREVIEW_TITLE_LENGTH,
-  MAX_LINK_PREVIEW_URL_LENGTH,
   MAX_LINK_PREVIEWS_PER_NOTE,
   MAX_NOTE_CONTENT_LENGTH,
   MAX_NOTE_TITLE_LENGTH,
@@ -30,68 +26,40 @@ import {
   type NoteUpdate,
   type NoteVersion,
 } from "../note.js";
+import { utf8, wipe } from "./bytes.js";
+import type { ImageKey } from "./imageSeal.js";
 import {
-  base64urlToBytes,
-  bytesToBase64url,
-  fromUtf8,
-  utf8,
-  wipe,
-} from "./bytes.js";
-import { type ImageKey, isImageKey } from "./imageSeal.js";
+  checkedImages,
+  checkedLinkPreviews,
+  checkedTags,
+  type ImageEntry,
+  type ImageKeys,
+} from "./noteChecks.js";
 import {
-  associatedData,
-  derivable,
-  deriveKey,
-  seal,
-  sealedLength,
-  unseal,
-} from "./seal.js";
+  type AccountSealKeys,
+  type NoteSealKey,
+  newNoteKey,
+  noteSealKey,
+  openNoteKey,
+  personalData,
+  sharedData,
+  wrapNoteKey,
+} from "./noteKey.js";
+import { seal, sealedLength, unsealText } from "./seal.js";
 
 /**
  * A note's words, sealed and opened
  * (`docs/specification/features/encryption.md`, "Keys").
  *
  * What everyone on a note sees (title, text, excerpt, font, link previews)
- * is under the note key. What is one person's own (colour, tags) is under
- * their personal key. The note key is stored wrapped under its holder's notes
- * key. Both sides of a readable request use this: the browser always, and
- * the server for a token that carries a key.
+ * is under the note key (`noteKey.ts`). What is one person's own (colour,
+ * tags) is under their personal key. Both sides of a readable request use
+ * this: the browser always, and the server for a token that carries a key.
  *
  * What is opened was written by some client and checked by no server, so
- * every value is checked here before it is handed on, and one that fails is
- * left out.
+ * every value is checked before it is handed on (`noteChecks.ts`), and one
+ * that fails is left out.
  */
-
-/** The keys of an account that a note is sealed and opened with. */
-export interface AccountSealKeys {
-  userId: string;
-  /** The version of the account key these come from. */
-  version: number;
-  /** Wraps note keys. */
-  notes: CryptoKey;
-  /** Seals what is one person's own. */
-  personal: CryptoKey;
-}
-
-/**
- * A note's key, ready to use and not readable: a key for each job, derived
- * from the note key. Edits and cursor states are many, so each has a key of
- * its own, apart from the one that seals the note's fields: random nonces are
- * safe for about 2^32 messages under one key. Those two are derived the
- * first time they are asked for: every note of a listing is opened, and only
- * the one whose editor opens needs them.
- */
-export interface NoteSealKey {
-  version: number;
-  /** Seals the note's fields, its versions and its comments. */
-  fields: CryptoKey;
-  /** Seals the edits and snapshots of its shared document. */
-  edits(): Promise<CryptoKey>;
-  /** Seals the cursor states of the people editing it. */
-  presence(): Promise<CryptoKey>;
-}
-
-const NOTE_KEY_BYTES = 32;
 
 /** Colours and fonts are few, and the length of a ciphertext would name the
  * one inside, so each is padded to this many characters. */
@@ -128,87 +96,6 @@ export class NoteLimitError extends Error {
   }
 }
 
-/** 256 random bits for a new note. The caller wipes them once wrapped. */
-export function newNoteKey(): Uint8Array<ArrayBuffer> {
-  return crypto.getRandomValues(new Uint8Array(NOTE_KEY_BYTES));
-}
-
-/** The key that seals a note's fields, from the note key's bytes. */
-export async function noteSealKey(
-  raw: Uint8Array<ArrayBuffer>,
-  version: number,
-): Promise<NoteSealKey> {
-  const base = await derivable(raw);
-  let edits: Promise<CryptoKey> | undefined;
-  let presence: Promise<CryptoKey> | undefined;
-  return {
-    version,
-    fields: await deriveKey(base, "note/fields"),
-    edits: () => {
-      edits ??= deriveKey(base, "note/edits");
-      return edits;
-    },
-    presence: () => {
-      presence ??= deriveKey(base, "note/presence");
-      return presence;
-    },
-  };
-}
-
-function noteKeyData(
-  account: AccountSealKeys,
-  noteId: string,
-  keyVersion: number,
-): Uint8Array<ArrayBuffer> {
-  return associatedData({
-    id: noteId,
-    field: `note-key/${keyVersion}`,
-    version: account.version,
-    account: account.userId,
-  });
-}
-
-/** The note key as its holder stores it: under their notes key. */
-export function wrapNoteKey(
-  account: AccountSealKeys,
-  noteId: string,
-  keyVersion: number,
-  raw: Uint8Array<ArrayBuffer>,
-): Promise<string> {
-  return seal(account.notes, raw, noteKeyData(account, noteId, keyVersion));
-}
-
-/** The note key's bytes, for wrapping to someone else; null when `wrapped`
- * does not open. The caller wipes them. */
-export function unwrapNoteKey(
-  account: AccountSealKeys,
-  noteId: string,
-  keyVersion: number,
-  wrapped: string,
-): Promise<Uint8Array<ArrayBuffer> | null> {
-  return unseal(
-    account.notes,
-    wrapped,
-    noteKeyData(account, noteId, keyVersion),
-  );
-}
-
-/** The key of a note as its holder uses it; null when it does not open. */
-export async function openNoteKey(
-  account: AccountSealKeys,
-  noteId: string,
-  keyVersion: number,
-  wrapped: string,
-): Promise<NoteSealKey | null> {
-  const raw = await unwrapNoteKey(account, noteId, keyVersion, wrapped);
-  if (!raw) return null;
-  try {
-    return await noteSealKey(raw, keyVersion);
-  } finally {
-    wipe(raw);
-  }
-}
-
 /** The first characters of a note's text, whole ones. */
 export function excerptOf(content: string): string {
   return Array.from(content.slice(0, NOTE_EXCERPT_LENGTH * 2))
@@ -227,159 +114,8 @@ export type SharedSealed = Pick<
 >;
 type PersonalSealed = Pick<SealedNote, "color" | "tags">;
 
-function sharedData(key: NoteSealKey, noteId: string, field: string) {
-  return associatedData({ id: noteId, field, version: key.version });
-}
-
-function personalData(account: AccountSealKeys, id: string, field: string) {
-  return associatedData({
-    id,
-    field,
-    version: account.version,
-    account: account.userId,
-  });
-}
-
 const colors = new Set<string>(Object.values(NoteColor));
 const fonts = new Set<string>(Object.values(NoteFont));
-
-function isHttpUrl(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    value.length <= MAX_LINK_PREVIEW_URL_LENGTH &&
-    /^https?:\/\//i.test(value) &&
-    URL.canParse(value)
-  );
-}
-
-/**
- * Link previews as a note may hold them, from anything: each card checked
- * as the server checked one, a card that fails left out, and an image that
- * is not an attachment dropped from its card.
- *
- * The card shows `domain` as where the link goes, so it is always the URL's
- * own host, whatever was sealed: a writer could otherwise have a card name
- * one site and open another, on a shared note or a public link, and the
- * server cannot look inside to put it right.
- */
-export function checkedLinkPreviews(
-  raw: unknown,
-  found?: Map<string, ImageKey>,
-): LinkPreview[] {
-  if (!Array.isArray(raw)) return [];
-  // In a sealed note a thumbnail is an entry with its key; in the app, and
-  // in what is about to be sealed, it is the reference alone.
-  const imageOf = (value: unknown): string | undefined => {
-    if (typeof value === "string") {
-      return isAttachmentRef(value) ? value : undefined;
-    }
-    const entry = entryRef(value);
-    if (!entry) return undefined;
-    found?.set(...entry);
-    return entry[0];
-  };
-  const out: LinkPreview[] = [];
-  for (const item of raw) {
-    if (out.length >= MAX_LINK_PREVIEWS_PER_NOTE) break;
-    if (typeof item !== "object" || item === null) continue;
-    const p = item as Record<string, unknown>;
-    if (!isHttpUrl(p.url)) continue;
-    if (
-      typeof p.title !== "string" ||
-      p.title.length > MAX_LINK_PREVIEW_TITLE_LENGTH
-    ) {
-      continue;
-    }
-    const description =
-      typeof p.description === "string" &&
-      p.description.length <= MAX_LINK_PREVIEW_DESCRIPTION_LENGTH
-        ? p.description
-        : undefined;
-    const image = imageOf(p.image);
-    const favicon = imageOf(p.favicon);
-    out.push({
-      url: p.url,
-      title: p.title,
-      ...(description !== undefined && { description }),
-      ...(image !== undefined && { image }),
-      ...(favicon !== undefined && { favicon }),
-      domain: new URL(p.url).host,
-    });
-  }
-  return out;
-}
-
-/** One image as a sealed note names it: the attachment, what opens it, and
- * what it shows in words, when someone has said. */
-interface ImageEntry extends ImageKey {
-  id: string;
-  alt?: string;
-}
-
-/**
- * What opens each image a note holds, by its `attachment:` reference. A note
- * in the app holds references alone; their keys are kept beside it, handed
- * to whatever seals the note and taken from whatever opens it.
- */
-export type ImageKeys = ReadonlyMap<string, ImageKey>;
-
-/** The reference an entry names, when the entry is whole; else null. */
-function entryRef(item: unknown): [string, ImageKey] | null {
-  if (!isImageKey(item)) return null;
-  const { id, key, type } = item as ImageEntry;
-  const ref = `${ATTACHMENT_REF_PREFIX}${typeof id === "string" ? id : ""}`;
-  return isAttachmentRef(ref) ? [ref, { key, type }] : null;
-}
-
-/**
- * A note's images as references, from the sealed list's JSON. An entry
- * without a key and a type this app takes is left out, since it could not be
- * opened. Each one's key goes into `found`, and its description, "" for none
- * or one past `MAX_IMAGE_ALT_LENGTH`, into `alts` in step with the answer.
- */
-export function checkedImages(
-  raw: unknown,
-  found: Map<string, ImageKey>,
-  alts: string[] = [],
-): string[] {
-  if (!Array.isArray(raw)) return [];
-  const out: string[] = [];
-  for (const item of raw) {
-    if (out.length >= MAX_IMAGES_PER_NOTE) break;
-    const entry = entryRef(item);
-    if (!entry) continue;
-    out.push(entry[0]);
-    found.set(...entry);
-    const { alt } = item as Partial<ImageEntry>;
-    alts.push(
-      typeof alt === "string" && alt.length <= MAX_IMAGE_ALT_LENGTH ? alt : "",
-    );
-  }
-  return out;
-}
-
-/** Tags as a note may hold them, from anything. */
-export function checkedTags(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  const out: string[] = [];
-  for (const tag of raw) {
-    if (out.length >= MAX_TAGS_PER_NOTE) break;
-    if (typeof tag !== "string") continue;
-    if (tag.length === 0 || tag.length > MAX_TAG_LENGTH) continue;
-    if (!out.includes(tag)) out.push(tag);
-  }
-  return out;
-}
-
-async function openText(
-  key: CryptoKey,
-  sealed: string | undefined,
-  data: Uint8Array<ArrayBuffer>,
-): Promise<string | null> {
-  if (!sealed) return null;
-  const bytes = await unseal(key, sealed, data);
-  return bytes ? fromUtf8(bytes) : null;
-}
 
 function parsed(text: string | null): unknown {
   if (text === null) return null;
@@ -551,7 +287,7 @@ async function openSharedTexts(
   sealed: Partial<SharedSealed>,
 ): Promise<SharedTexts> {
   const open = (field: keyof SharedSealed) =>
-    openText(key.fields, sealed[field], sharedData(key, noteId, field));
+    unsealText(key.fields, sealed[field], sharedData(key, noteId, field));
   return {
     title: await open("title"),
     content: await open("content"),
@@ -615,7 +351,7 @@ export async function opensSharedFields(
   sealed: Partial<SharedSealed>,
 ): Promise<boolean> {
   for (const field of provingFields(sealed)) {
-    const opened = await openText(
+    const opened = await unsealText(
       key.fields,
       sealed[field],
       sharedData(key, noteId, field),
@@ -633,14 +369,14 @@ export async function openPersonalFields(
 ): Promise<PersonalPlain> {
   const color =
     (
-      await openText(
+      await unsealText(
         account.personal,
         sealed.color,
         personalData(account, noteId, "color"),
       )
     )?.trimEnd() ?? "";
   const tags = parsed(
-    await openText(
+    await unsealText(
       account.personal,
       sealed.tags,
       personalData(account, noteId, "tags"),
@@ -823,12 +559,12 @@ export async function openVersion(
   sealed: SealedNoteVersion,
 ): Promise<NoteVersion | null> {
   if (sealed.keyVersion !== key.version) return null;
-  const title = await openText(
+  const title = await unsealText(
     key.fields,
     sealed.title,
     sharedData(key, sealed.id, "version/title"),
   );
-  const content = await openText(
+  const content = await unsealText(
     key.fields,
     sealed.content,
     sharedData(key, sealed.id, "version/content"),
@@ -878,7 +614,7 @@ export async function openComment(
   comment: { id: string; keyVersion: number; body: string },
 ): Promise<string | null> {
   if (comment.keyVersion !== key.version) return null;
-  const text = await openText(
+  const text = await unsealText(
     key.fields,
     comment.body,
     sharedData(key, comment.id, "comment"),
@@ -907,7 +643,7 @@ export async function openPref(
   sealed: unknown,
 ): Promise<unknown> {
   if (typeof sealed !== "string") return undefined;
-  const text = await openText(
+  const text = await unsealText(
     account.personal,
     sealed,
     personalData(account, name, "pref"),
@@ -918,80 +654,6 @@ export async function openPref(
   } catch {
     return undefined;
   }
-}
-
-function previousKeysData(key: NoteSealKey, noteId: string) {
-  return sharedData(key, noteId, "previous-keys");
-}
-
-/**
- * How many earlier keys a note carries. The list grows by one with every
- * replacement and the server holds it to a length, so past this many the
- * oldest go: what was written under them (a version, a comment from that
- * long ago) stops opening, which is the lesser loss beside a note that can
- * no longer leave a key someone removed still holds.
- */
-export const MAX_PREVIOUS_KEYS = 1024;
-
-/** The longest a note's sealed list of earlier keys may be: each is a
- * version and 32 bytes in base64, well under 64 bytes of JSON. */
-export const MAX_PREVIOUS_KEYS_LENGTH = sealedLength(MAX_PREVIOUS_KEYS * 64);
-
-/**
- * The keys a note was under before, by version, sealed under the key it is
- * under now, so that whoever holds the note still opens what was written
- * under them. Someone removed held those keys already; they are never given
- * the new one. Only the newest `MAX_PREVIOUS_KEYS` are kept.
- */
-export async function sealPreviousKeys(
-  key: NoteSealKey,
-  noteId: string,
-  previous: ReadonlyMap<number, Uint8Array<ArrayBuffer>>,
-): Promise<string> {
-  const listed: Record<string, string> = {};
-  const newest = [...previous]
-    .sort(([a], [b]) => b - a)
-    .slice(0, MAX_PREVIOUS_KEYS);
-  for (const [version, raw] of newest) {
-    listed[String(version)] = bytesToBase64url(raw);
-  }
-  return seal(
-    key.fields,
-    utf8(JSON.stringify(listed)),
-    previousKeysData(key, noteId),
-  );
-}
-
-/** A note's earlier keys, raw, by version. Empty when there are none or
- * they do not open. The caller wipes them. */
-export async function openPreviousKeys(
-  key: NoteSealKey,
-  noteId: string,
-  sealed: string | undefined,
-): Promise<Map<number, Uint8Array<ArrayBuffer>>> {
-  const out = new Map<number, Uint8Array<ArrayBuffer>>();
-  if (!sealed) return out;
-  const text = await openText(
-    key.fields,
-    sealed,
-    previousKeysData(key, noteId),
-  );
-  if (text === null) return out;
-  try {
-    const listed = JSON.parse(text) as Record<string, unknown>;
-    for (const [name, value] of Object.entries(listed)) {
-      const version = Number(name);
-      if (!Number.isInteger(version) || version < 1 || version >= key.version) {
-        continue;
-      }
-      if (typeof value !== "string") continue;
-      const raw = base64urlToBytes(value);
-      if (raw.length === 32) out.set(version, raw);
-    }
-  } catch {
-    out.clear();
-  }
-  return out;
 }
 
 /**
@@ -1020,7 +682,7 @@ export async function resealSharedFields(
     const text =
       sealed[field] === ""
         ? ""
-        : await openText(
+        : await unsealText(
             from.fields,
             sealed[field],
             sharedData(from, noteId, field),
@@ -1033,52 +695,4 @@ export async function resealSharedFields(
     );
   }
   return out;
-}
-
-function imageKeyData(account: AccountSealKeys, attachmentId: string) {
-  return associatedData({
-    id: attachmentId,
-    field: "attachment-key",
-    version: account.version,
-    account: account.userId,
-  });
-}
-
-/**
- * An uploaded image's key, kept for its uploader until a note names the
- * image: wrapped under their notes key and bound to the attachment. Only a
- * token's upload needs it, since the server holds nothing between two
- * requests; the app keeps the key in memory.
- */
-export function wrapImageKey(
-  account: AccountSealKeys,
-  attachmentId: string,
-  key: ImageKey,
-): Promise<string> {
-  return seal(
-    account.notes,
-    utf8(JSON.stringify(key)),
-    imageKeyData(account, attachmentId),
-  );
-}
-
-/** The key `wrapImageKey` kept; null when it does not open for this account. */
-export async function unwrapImageKey(
-  account: AccountSealKeys,
-  attachmentId: string,
-  wrapped: string | null | undefined,
-): Promise<ImageKey | null> {
-  if (!wrapped) return null;
-  const text = await openText(
-    account.notes,
-    wrapped,
-    imageKeyData(account, attachmentId),
-  );
-  if (text === null) return null;
-  try {
-    const key: unknown = JSON.parse(text);
-    return isImageKey(key) ? key : null;
-  } catch {
-    return null;
-  }
 }

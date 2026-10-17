@@ -1,18 +1,12 @@
-import {
-  base64urlToBytes,
-  bytesToBase64url,
-  fromUtf8,
-  utf8,
-  wipe,
-} from "./bytes.js";
-import type { AccountSealKeys } from "./noteSeal.js";
+import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.js";
+import type { AccountSealKeys } from "./noteKey.js";
 import {
   associatedData,
   derivable,
   deriveKey,
   seal,
   sealingKey,
-  unseal,
+  unsealText,
 } from "./seal.js";
 
 /**
@@ -90,8 +84,7 @@ export async function openTokenKeyMaterial(
   secret: string,
   wrapped: string,
 ): Promise<TokenKeyMaterial | null> {
-  const bytes = await unseal(await wrapKeyOf(secret), wrapped, DATA);
-  const text = bytes ? fromUtf8(bytes) : null;
+  const text = await unsealText(await wrapKeyOf(secret), wrapped, DATA);
   if (text === null) return null;
   try {
     const parsed = JSON.parse(text) as {
@@ -178,8 +171,7 @@ export async function unwrapFeedKey(
   secret: string,
   wrapped: string,
 ): Promise<{ version: number; reminders: CryptoKey } | null> {
-  const bytes = await unseal(await wrapKeyOf(secret), wrapped, FEED_DATA);
-  const text = bytes ? fromUtf8(bytes) : null;
+  const text = await unsealText(await wrapKeyOf(secret), wrapped, FEED_DATA);
   if (text === null) return null;
   let reminders: Uint8Array<ArrayBuffer> | undefined;
   try {
