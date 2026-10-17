@@ -160,6 +160,16 @@ export function formatFileSize(bytes: number): string {
   }).format(bytes / (1024 * 1024));
 }
 
+/**
+ * A whole percentage the way the language writes it ("10%", "10 %"). Reads
+ * the language on screen, so the same render-body rule as `t()` applies.
+ */
+export function formatPercent(percent: number): string {
+  return new Intl.NumberFormat(shown.value, { style: "percent" }).format(
+    percent / 100,
+  );
+}
+
 export function getFontLabel(font: DefaultNoteFont): string {
   switch (font) {
     case NoteFont.Default:

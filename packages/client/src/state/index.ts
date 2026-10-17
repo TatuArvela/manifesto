@@ -76,6 +76,7 @@ export {
   boardInk,
   boardInkColor,
   boardTexture,
+  boardTextureOpacity,
   boardUsePicture,
   confirmBeforeDelete,
   DARK_HUES,

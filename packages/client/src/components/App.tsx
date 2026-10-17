@@ -402,79 +402,83 @@ function MainApp() {
               </div>
             </aside>
           )}
-          <main
-            ref={mainRef}
-            class={`board flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
-          >
-            {topBarHeight > 0 && (
-              <div
-                aria-hidden="true"
-                class="md:hidden"
-                style={{ height: `${topBarHeight}px` }}
-              />
-            )}
-            <div ref={viewRef}>
-              {isAdminView ? (
-                isAdmin && AdminView && <AdminView />
-              ) : isSearchView ? (
-                isList ? (
+          {/* The board behind the notes: colour, gradient and texture, which
+            stay put while `main` scrolls the notes over them. */}
+          <div class="board-frame flex flex-1 min-w-0">
+            <main
+              ref={mainRef}
+              class={`board flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
+            >
+              {topBarHeight > 0 && (
+                <div
+                  aria-hidden="true"
+                  class="md:hidden"
+                  style={{ height: `${topBarHeight}px` }}
+                />
+              )}
+              <div ref={viewRef}>
+                {isAdminView ? (
+                  isAdmin && AdminView && <AdminView />
+                ) : isSearchView ? (
+                  isList ? (
+                    <div class="max-w-xl mx-auto">
+                      <SearchView />
+                      <NoteGrid />
+                    </div>
+                  ) : (
+                    <>
+                      <SearchView />
+                      <NoteGrid />
+                    </>
+                  )
+                ) : isTagsView ? (
+                  <>
+                    {!tagsPane && (
+                      // On a phone the same tree on the same surface, as a band
+                      // across the top of what scrolls: out to the edges, so it
+                      // reads as the shell and not as a card on the board.
+                      <div
+                        class={`-mx-4 -mt-2 mb-4 ${tagsSurface} border-b shadow-sm`}
+                      >
+                        <TagsView />
+                      </div>
+                    )}
+                    {isList ? (
+                      <div class="max-w-xl mx-auto">
+                        <NoteGrid />
+                      </div>
+                    ) : (
+                      <NoteGrid />
+                    )}
+                  </>
+                ) : isAutoNotesView ? (
+                  isList ? (
+                    <div class="max-w-xl mx-auto">
+                      <AutoNotesView />
+                    </div>
+                  ) : (
+                    <AutoNotesView />
+                  )
+                ) : isList ? (
                   <div class="max-w-xl mx-auto">
-                    <SearchView />
+                    <NoteInput />
+                    {isActive && <InvitationList />}
+                    {isActive && <UnopenedNotes />}
+                    {isActive && <UnsentNotes />}
                     <NoteGrid />
                   </div>
                 ) : (
                   <>
-                    <SearchView />
+                    <NoteInput />
+                    {isActive && <InvitationList />}
+                    {isActive && <UnopenedNotes />}
+                    {isActive && <UnsentNotes />}
                     <NoteGrid />
                   </>
-                )
-              ) : isTagsView ? (
-                <>
-                  {!tagsPane && (
-                    // On a phone the same tree on the same surface, as a band
-                    // across the top of what scrolls: out to the edges, so it
-                    // reads as the shell and not as a card on the board.
-                    <div
-                      class={`-mx-4 -mt-2 mb-4 ${tagsSurface} border-b shadow-sm`}
-                    >
-                      <TagsView />
-                    </div>
-                  )}
-                  {isList ? (
-                    <div class="max-w-xl mx-auto">
-                      <NoteGrid />
-                    </div>
-                  ) : (
-                    <NoteGrid />
-                  )}
-                </>
-              ) : isAutoNotesView ? (
-                isList ? (
-                  <div class="max-w-xl mx-auto">
-                    <AutoNotesView />
-                  </div>
-                ) : (
-                  <AutoNotesView />
-                )
-              ) : isList ? (
-                <div class="max-w-xl mx-auto">
-                  <NoteInput />
-                  {isActive && <InvitationList />}
-                  {isActive && <UnopenedNotes />}
-                  {isActive && <UnsentNotes />}
-                  <NoteGrid />
-                </div>
-              ) : (
-                <>
-                  <NoteInput />
-                  {isActive && <InvitationList />}
-                  {isActive && <UnopenedNotes />}
-                  {isActive && <UnsentNotes />}
-                  <NoteGrid />
-                </>
-              )}
-            </div>
-          </main>
+                )}
+              </div>
+            </main>
+          </div>
         </div>
       </div>
       {/* Outside the shell: a phone pins the shell under an open note, and

@@ -1,20 +1,12 @@
 /**
  * The board textures that are pictures rather than gradients: the paper
- * grain, which is SVG turbulence, and the stars, hearts, confetti and sawtooth. A data URI cannot
- * read a custom property, so each is drawn here in the ink it is wanted in and
- * handed to the stylesheet as one, where the gradient textures simply read
- * `--board-ink`.
+ * grain, which is SVG turbulence, and the stars, hearts, confetti and
+ * sawtooth. Every texture is a mask over one layer behind the board, which
+ * takes the pattern's colour as its background and the pattern's opacity as
+ * its own (`.board-frame::before` in preferences.css). So these are drawn
+ * once, in opaque black, and handed to the stylesheet as they are: only their
+ * shape is read, and neither the colour nor the opacity redraws them.
  */
-
-/** A colour as fractions of one, and how strongly to draw in it. */
-export interface TextureInk {
-  rgb: readonly [number, number, number];
-  /**
-   * A multiple of the light theme's faint ink, which is 1: the grains' alpha
-   * and the shapes' opacity both scale by it.
-   */
-  strength: number;
-}
 
 export type PictureTexture =
   | "paper"
@@ -43,59 +35,43 @@ export type InkColor = keyof typeof INK_COLORS;
 /** Every pattern colour but the theme's own. */
 export type PickedInkChoice = "white" | "black" | InkColor | "custom";
 
-/** The theme's own faint ink: drawn in darker on light, lighter on dark. */
-export const LIGHT_THEME_INK: TextureInk = { rgb: [0, 0, 0], strength: 1 };
-export const DARK_THEME_INK: TextureInk = { rgb: [1, 1, 1], strength: 0.75 };
+/**
+ * The pattern's opacity, in percent: one value for every texture, gradient or
+ * picture, and every colour, so the slider in Settings means the same thing
+ * whichever is chosen.
+ */
+export const MIN_TEXTURE_OPACITY = 0;
+export const MAX_TEXTURE_OPACITY = 100;
+export const DEFAULT_TEXTURE_OPACITY = 10;
 
 /**
- * A picked colour is meant to be seen, so it is drawn several times stronger
- * than the theme's ink, in step with the gradient textures' `--board-ink`.
+ * The colour a picked pattern colour draws in, as `#rrggbb`. `customHex` is
+ * a validated `#rrggbb`.
  */
-const PICKED_STRENGTH = { white: 5, black: 2, custom: 6 } as const;
-
-/**
- * The colour a choice draws in, as `#rrggbb`, or null for white and black,
- * which have strengths of their own. `customHex` is a validated `#rrggbb`.
- */
-export function inkHex(
-  choice: PickedInkChoice,
-  customHex: string,
-): string | null {
-  if (choice === "white" || choice === "black") return null;
+export function inkHex(choice: PickedInkChoice, customHex: string): string {
+  if (choice === "white") return "#ffffff";
+  if (choice === "black") return "#000000";
   return choice === "custom" ? customHex : INK_COLORS[choice];
-}
-
-/** The ink for a pattern colour choice; `customHex` is a validated `#rrggbb`. */
-export function pickedInk(
-  choice: PickedInkChoice,
-  customHex: string,
-): TextureInk {
-  if (choice === "white")
-    return { rgb: [1, 1, 1], strength: PICKED_STRENGTH.white };
-  if (choice === "black")
-    return { rgb: [0, 0, 0], strength: PICKED_STRENGTH.black };
-  const hex = inkHex(choice, customHex) ?? customHex;
-  const channel = (at: number) =>
-    Number.parseInt(hex.slice(at, at + 2), 16) / 255;
-  return {
-    rgb: [channel(1), channel(3), channel(5)],
-    strength: PICKED_STRENGTH.custom,
-  };
 }
 
 interface Noise {
   size: number;
   frequency: number;
   octaves: number;
-  /** The alpha row of the colour matrix at strength 1: noise alpha times
-   * `slope`, plus `offset`, which cuts the faintest grain away. */
-  slope: number;
-  offset: number;
 }
 
 const NOISE: Record<"paper", Noise> = {
-  paper: { size: 160, frequency: 0.8, octaves: 3, slope: 0.2, offset: -0.05 },
+  paper: { size: 160, frequency: 0.8, octaves: 3 },
 };
+
+/**
+ * The alpha row of the grain's colour matrix: noise alpha times the slope,
+ * plus the offset, which cuts the faintest grain away. The noise sits about
+ * the middle, so the grain runs from nothing to fully drawn and is half
+ * drawn on average: a mask of it, unlike one of shapes, has every degree.
+ */
+const GRAIN_SLOPE = 2;
+const GRAIN_OFFSET = -0.5;
 
 const STARS = [
   "M15.0 9.1 L16.2 13.7 L20.9 14.8 L16.8 17.4 L17.3 22.2 L13.6 19.1 L9.1 21.0 L10.9 16.5 L7.7 12.9 L12.5 13.2Z",
@@ -119,9 +95,6 @@ const HEARTS = [
   { x: 10, y: 51, turn: 12, scale: 0.35 },
 ];
 
-/** Opacity of the stars and hearts at strength 1. */
-const SHAPE_OPACITY = 0.09;
-
 /**
  * The stars and hearts are laid out on a 60-unit tile and drawn half as large
  * again, on a 90px one (`--board-texture-stars-size` in preferences.css).
@@ -140,8 +113,6 @@ interface ConfettiPiece {
   /** A strip of paper turned to `turn` degrees, or a round dot. */
   strip: boolean;
   turn: number;
-  /** Whether it is drawn at the stronger of the two opacities. */
-  strong: boolean;
 }
 
 /**
@@ -170,13 +141,6 @@ export const SAWTOOTH_TILE = { width: 286, height: 286 } as const;
 /** One tooth of the logo along a row's top edge, then back along its foot. */
 const TOOTH_TOP = "l286.378-286.378h253.622v286.378";
 const TOOTH_FOOT = "h-253.622v-286.378l-286.378 286.378";
-
-/**
- * Opacity of the sawtooth at strength 1: a third of the light theme's
- * `--board-ink`, since its rows cover four fifths of the board where the
- * gradient textures cover half or less.
- */
-const SAWTOOTH_OPACITY = 0.025;
 
 /** A small seeded generator, so the confetti falls the same way every load. */
 function seeded(seed: number): () => number {
@@ -254,7 +218,6 @@ function scatterConfetti(count: number): ConfettiPiece[] {
     y: round(y),
     strip: random() < 0.7,
     turn: Math.round(random() * 180),
-    strong: random() < 0.45,
   }));
 }
 
@@ -281,18 +244,9 @@ function confettiPiece({ x, y, strip, turn }: ConfettiPiece): string {
     .join("");
 }
 
-function confetti(ink: TextureInk): string {
-  const [r, g, b] = ink.rgb.map((c) => Math.round(c * 255));
-  const opacity = (factor: number) =>
-    round(Math.min(1, SHAPE_OPACITY * factor * ink.strength));
-  const group = (strong: boolean, factor: number) =>
-    `<g fill-opacity='${opacity(factor)}'>${CONFETTI.filter(
-      (piece) => piece.strong === strong,
-    )
-      .map(confettiPiece)
-      .join("")}</g>`;
+function confetti(): string {
   return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${CONFETTI_TILE}' height='${CONFETTI_TILE}'><g fill='rgb(${r},${g},${b})'>${group(false, 0.8)}${group(true, 1.6)}</g></svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${CONFETTI_TILE}' height='${CONFETTI_TILE}'>${CONFETTI.map(confettiPiece).join("")}</svg>`,
   );
 }
 
@@ -302,9 +256,7 @@ function confetti(ink: TextureInk): string {
  * tile's corners measured along and across them, with a tooth and a row to
  * spare at each end, and starts on a whole tooth so the rows stay in step.
  */
-function sawtooth(ink: TextureInk): string {
-  const [r, g, b] = ink.rgb.map((c) => Math.round(c * 255));
-  const opacity = round(Math.min(1, SAWTOOTH_OPACITY * ink.strength));
+function sawtooth(): string {
   const turn = (SAWTOOTH_TURN * Math.PI) / 180;
   const { width, height } = SAWTOOTH_UNITS;
   const corners = [
@@ -329,7 +281,7 @@ function sawtooth(ink: TextureInk): string {
     rows.push(`<use href='#r' y='${round(n * SAWTOOTH_ROW)}'/>`);
   }
   return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${SAWTOOTH_TILE.width}' height='${SAWTOOTH_TILE.height}' viewBox='0 0 ${width} ${round(height)}' preserveAspectRatio='none'><defs><path id='r' d='${row}'/></defs><g transform='rotate(${SAWTOOTH_TURN})' fill='rgb(${r},${g},${b})' fill-opacity='${opacity}'>${rows.join("")}</g></svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${SAWTOOTH_TILE.width}' height='${SAWTOOTH_TILE.height}' viewBox='0 0 ${width} ${round(height)}' preserveAspectRatio='none'><defs><path id='r' d='${row}'/></defs><g transform='rotate(${SAWTOOTH_TURN})'>${rows.join("")}</g></svg>`,
   );
 }
 
@@ -337,39 +289,31 @@ function dataUrl(svg: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-function noise(texture: Noise, ink: TextureInk): string {
-  const [r, g, b] = ink.rgb.map(round);
-  const slope = round(texture.slope * ink.strength);
-  const offset = round(texture.offset * ink.strength);
-  const matrix = `0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${b} 0 0 0 ${slope} ${offset}`;
+function noise(texture: Noise): string {
+  const matrix = `0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ${GRAIN_SLOPE} ${GRAIN_OFFSET}`;
   return dataUrl(
     `<svg xmlns='http://www.w3.org/2000/svg' width='${texture.size}' height='${texture.size}'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='${texture.frequency}' numOctaves='${texture.octaves}' stitchTiles='stitch'/><feColorMatrix values='${matrix}'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`,
   );
 }
 
-function shapes(paths: string, ink: TextureInk): string {
-  const [r, g, b] = ink.rgb.map((c) => Math.round(c * 255));
-  const opacity = round(Math.min(1, SHAPE_OPACITY * ink.strength));
+function shapes(paths: string): string {
   return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${SHAPE_TILE}' height='${SHAPE_TILE}'><g transform='scale(${SHAPE_SCALE})' fill='rgb(${r},${g},${b})' fill-opacity='${opacity}'>${paths}</g></svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${SHAPE_TILE}' height='${SHAPE_TILE}'><g transform='scale(${SHAPE_SCALE})'>${paths}</g></svg>`,
   );
 }
 
-/** Every picture texture drawn in `ink`, each as a CSS `url(...)`. */
-export function pictureTextures(
-  ink: TextureInk,
-): Record<PictureTexture, string> {
+/** Every picture texture as a mask, each a CSS `url(...)`. */
+export function pictureTextures(): Record<PictureTexture, string> {
   return {
-    paper: noise(NOISE.paper, ink),
-    stars: shapes(STARS.map((d) => `<path d='${d}'/>`).join(""), ink),
+    paper: noise(NOISE.paper),
+    stars: shapes(STARS.map((d) => `<path d='${d}'/>`).join("")),
     hearts: shapes(
       HEARTS.map(
         ({ x, y, turn, scale }) =>
           `<path transform='translate(${x} ${y}) rotate(${turn}) scale(${scale})' d='${HEART}'/>`,
       ).join(""),
-      ink,
     ),
-    confetti: confetti(ink),
-    sawtooth: sawtooth(ink),
+    confetti: confetti(),
+    sawtooth: sawtooth(),
   };
 }

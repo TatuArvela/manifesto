@@ -1,13 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { batch, computed, effect, type Signal, signal } from "@preact/signals";
-import {
-  DARK_THEME_INK,
-  inkHex,
-  LIGHT_THEME_INK,
-  pickedInk,
-  pictureTextures,
-  type TextureInk,
-} from "../utils/boardTextures.js";
+import { inkHex, pictureTextures } from "../utils/boardTextures.js";
 import {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,
@@ -119,6 +112,7 @@ export const boardGradientDirection = pref("boardGradientDirection");
 export const boardTexture = pref("boardTexture");
 export const boardInk = pref("boardInk");
 export const boardInkColor = pref("boardInkColor");
+export const boardTextureOpacity = pref("boardTextureOpacity");
 export const boardUsePicture = pref("boardUsePicture");
 export const boardImageStamp = pref("boardImageStamp");
 
@@ -395,32 +389,42 @@ effect(() => {
     root.dataset.boardGradient = gradient;
     root.dataset.boardGradientDirection = resolvedBoardGradientDirection.value;
   }
-  // Every colour, preset or picked, is drawn alike from `--board-ink-custom`.
-  const ink = resolvedBoardInk.value;
-  const inkColor = ink === "auto" ? null : inkHex(ink, boardInkColor.value);
-  if (ink === "auto") delete root.dataset.boardInk;
-  else root.dataset.boardInk = inkColor ? "custom" : ink;
-  root.style.setProperty("--board-ink-custom", inkColor ?? boardInkColor.value);
+  // The custom pattern colour's swatch in Settings shows it.
+  root.style.setProperty("--board-ink-custom", boardInkColor.value);
   root.style.setProperty(
     "--board-gradient-custom",
     boardGradientCustomColor.value,
   );
 });
 
-// The picture textures, drawn in the pattern colour: the theme's own ink in
-// each theme, or the one picked in both.
+// The pattern's colour and opacity, which the texture layer behind the board
+// takes as they are (`.board-frame::before` in preferences.css): a change of
+// either redraws nothing. "auto" leaves the theme's own ink, black or white.
 effect(() => {
   const root = document.documentElement;
   const ink = resolvedBoardInk.value;
-  const picked = ink === "auto" ? null : pickedInk(ink, boardInkColor.value);
-  const paint = (theme: "light" | "dark", textureInk: TextureInk) => {
-    for (const [name, image] of Object.entries(pictureTextures(textureInk))) {
-      root.style.setProperty(`--board-texture-${name}-${theme}`, image);
-    }
-  };
-  paint("light", picked ?? LIGHT_THEME_INK);
-  paint("dark", picked ?? DARK_THEME_INK);
+  if (ink === "auto") delete root.dataset.boardInk;
+  else {
+    root.dataset.boardInk = "";
+    root.style.setProperty(
+      "--board-ink-picked",
+      inkHex(ink, boardInkColor.value),
+    );
+  }
+  root.style.setProperty(
+    "--board-texture-opacity",
+    String(boardTextureOpacity.value / 100),
+  );
 });
+
+// The picture textures, as masks the layer reads like the gradient ones. Only
+// their shape counts, so they are drawn once, at load.
+for (const [name, image] of Object.entries(pictureTextures())) {
+  document.documentElement.style.setProperty(
+    `--board-texture-${name}-mask`,
+    image,
+  );
+}
 
 // --- Light and dark hue ---
 

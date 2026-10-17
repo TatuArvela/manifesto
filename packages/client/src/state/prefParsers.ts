@@ -2,8 +2,11 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { detectBrowserLocale } from "../i18n/detect.js";
 import { isLocale, type Locale } from "../i18n/locales.js";
 import {
+  DEFAULT_TEXTURE_OPACITY,
   INK_COLORS,
   type InkColor,
+  MAX_TEXTURE_OPACITY,
+  MIN_TEXTURE_OPACITY,
   type PickedInkChoice,
 } from "../utils/boardTextures.js";
 
@@ -403,6 +406,14 @@ export const PREF_PARSERS = {
   boardTexture: parseBoardTexture,
   boardInk: oneOf(BOARD_INKS, "auto"),
   boardInkColor: hexColor(DEFAULT_BOARD_INK_COLOR),
+  /** How opaque the pattern is drawn, in whole percent, whatever its colour. */
+  boardTextureOpacity: (value: unknown): number =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.min(
+          MAX_TEXTURE_OPACITY,
+          Math.max(MIN_TEXTURE_OPACITY, Math.round(value)),
+        )
+      : DEFAULT_TEXTURE_OPACITY,
   /**
    * Whether the picture on file covers the board, in place of the colour and
    * texture. Those are kept, so turning the picture off brings them back.
