@@ -448,6 +448,7 @@ export const fi: Messages = {
   "settings.formattingToolbar": "Muotoilupalkki",
   "settings.stickyTopBar": "Pidä yläpalkki näkyvissä puhelimella",
   "settings.checkedItemsLast": "Valitut kohdat loppuun",
+  "settings.openLinksInBrowser": "Avaa linkit selaimessa",
   "settings.confirmBeforeDelete": "Vahvista poistot",
   "settings.decimalSeparator": "Desimaalierotin",
   "settings.decimalSeparator.auto": "Automaattinen",

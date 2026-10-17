@@ -3,6 +3,7 @@ import { Shuffle } from "lucide-preact";
 import { noteFontFamilies } from "#/colors.ts";
 import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.tsx";
 import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
+import { canOpenInSystemBrowser } from "#/state/externalLinks.ts";
 import {
   checkedItemsLast,
   confirmBeforeDelete,
@@ -16,6 +17,7 @@ import {
   type EditMode,
   formattingToolbar,
   inlineCalculations,
+  openLinksInBrowser,
 } from "#/state/prefs.ts";
 import {
   SettingsGroup,
@@ -50,6 +52,19 @@ export function FeaturesSettings() {
             label={t("settings.checkedItemsLast")}
           />
         </SettingsRow>
+
+        {/* Only where a link could open anywhere but the browser. */}
+        {canOpenInSystemBrowser() && (
+          <SettingsRow label={t("settings.openLinksInBrowser")}>
+            <Switch
+              checked={openLinksInBrowser.value}
+              onChange={(checked) => {
+                openLinksInBrowser.value = checked;
+              }}
+              label={t("settings.openLinksInBrowser")}
+            />
+          </SettingsRow>
+        )}
 
         <SettingsRow label={t("settings.confirmBeforeDelete")}>
           <Switch

@@ -442,6 +442,7 @@ export const en = {
   "settings.formattingToolbar": "Formatting Toolbar",
   "settings.stickyTopBar": "Keep Top Bar in View on Phones",
   "settings.checkedItemsLast": "Checked Items Last",
+  "settings.openLinksInBrowser": "Open Links in Browser",
   "settings.confirmBeforeDelete": "Confirm Deletions",
   "settings.decimalSeparator": "Decimal Separator",
   "settings.decimalSeparator.auto": "Auto",

@@ -11,6 +11,7 @@ import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
 import { useNoteFromReminder } from "#/hooks/useNoteFromReminder.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { useScrollAwayBar } from "#/hooks/useScrollAwayBar.ts";
+import { useSystemBrowserLinks } from "#/hooks/useSystemBrowserLinks.ts";
 import {
   PANE_SLIDE_MS,
   usePaneSlide,
@@ -137,6 +138,7 @@ function MainApp() {
   const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
   const drag = useFileDropImport();
   useBoardPaste();
+  useSystemBrowserLinks();
   const mainRef = useRef<HTMLElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<HTMLElement>(null);

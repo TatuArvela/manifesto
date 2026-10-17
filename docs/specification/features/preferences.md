@@ -20,6 +20,17 @@ Behavior. The first starts open and the rest closed, and the browser remembers w
 left (in `localStorage`, as a convenience of this device and not a preference that follows the
 account).
 
+## Opening links in the browser
+
+On a phone, the installed app opens a link in a view of its own over the app, without the reader's
+tabs, bookmarks or sign-ins. "Open Links in Browser" (Features, shown only in the app installed on
+iOS, iPadOS or Android, off by default) hands web links to the system's browser instead: every link
+that would open in a new tab (a note's links, preview cards, the editor's "Open link") goes through
+an address that asks the system to open it, `x-safari-https:` on iOS and iPadOS 17 and later, and an
+`intent:` with no package on Android, which falls back to the plain link where nothing takes it. A
+link with a modifier key held, and any that is not `http:` or `https:` (a mail address), opens as it
+always has. The code is `utils/systemBrowser.ts` and `state/externalLinks.ts`.
+
 ## What follows the account
 
 In connected mode every preference follows the account except the ones that belong to the device:
@@ -30,6 +41,7 @@ In connected mode every preference follows the account except the ones that belo
 | `noteScale` | How big the cards are suits the size of this screen. |
 | `animations` | Starts from this device's reduced-motion setting. |
 | `boardUsePicture`, `boardImageStamp` | The board picture is kept in this browser's IndexedDB and never uploaded. |
+| `openLinksInBrowser` | Does anything only in the app installed on a phone. |
 
 The list is `DEVICE_PREFS` in `state/prefParsers.ts`; a new preference follows the account unless it is
 added there. Open mode has no account and keeps everything on the device.
@@ -93,7 +105,7 @@ set:
 | `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `confetti`, `waves`, `stars`, `hearts`, `bubbles`, `stripes`, `sawtooth`, `random` |
 | `boardInk` | `auto` (default), `white`, `black`, a board colour, `custom`, `random` |
 | `boardTextureOpacity` | a whole percentage from 0 to 100 (default 10) |
-| `noteScale`, `animations`, `stickyTopBar` | the device's own: `big` or `small`, and `true` or `false`; taken only on a first visit |
+| `noteScale`, `animations`, `stickyTopBar`, `openLinksInBrowser` | the device's own: `big` or `small`, and `true` or `false`; taken only on a first visit |
 
 ## On the server
 
