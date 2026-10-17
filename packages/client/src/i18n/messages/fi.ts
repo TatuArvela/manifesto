@@ -137,6 +137,8 @@ export const fi: Messages = {
     "Tulos {result}. Sarkain tai Enter kirjoittaa sen, Esc hylkää sen.",
   "editor.removeTag": "Poista tunniste {tag}",
   "editor.removeItem": "Poista kohta",
+  "editor.itemDate": "Aseta kohdalle päivämäärä",
+  "editor.itemDateChange": "Vaihda päivämäärää",
   "editor.color": "Väri",
   "editor.changeColor": "Vaihda väriä",
   "editor.font": "Fontti",

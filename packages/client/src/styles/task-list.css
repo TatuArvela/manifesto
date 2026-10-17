@@ -243,6 +243,20 @@
   }
 }
 
+/* The date picker's input under the bar's date button, never seen: it is
+   there for the browser to open its calendar from (extensions/checklistBar.ts). */
+.checklist-bar-picker {
+  position: absolute;
+  left: 0.25rem;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Nothing hovers on a touch screen, so a handle that waits for a cursor is a
    handle that is never there. Drawn faintly at all times instead, only while
    the note is editable, which is the only time it does anything. */
