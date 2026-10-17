@@ -1,13 +1,13 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { batch, computed, effect, type Signal, signal } from "@preact/signals";
 import {
-  DARK_THEME_INK,
-  inkHex,
-  LIGHT_THEME_INK,
-  pickedInk,
-  pictureTextures,
-  type TextureInk,
-} from "../utils/boardTextures.js";
+  batch,
+  computed,
+  effect,
+  type Signal,
+  signal,
+  untracked,
+} from "@preact/signals";
+import { inkHex, pictureTextures } from "../utils/boardTextures.js";
 import {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,
@@ -28,6 +28,7 @@ import {
   rollBoardTexture,
   type ThemeMode,
 } from "./prefParsers.js";
+import { serverDefaultPrefs } from "./serverDefaults.js";
 
 export type {
   BoardColor,
@@ -80,6 +81,15 @@ function loadPrefs(): LoadedPrefs {
   }
 }
 
+/** Whether this browser had no preferences of its own when the page loaded. */
+const freshDevice = (() => {
+  try {
+    return localStorage.getItem(PREFS_KEY) === null;
+  } catch {
+    return false;
+  }
+})();
+
 const loaded = loadPrefs();
 const prefSignals: Partial<Record<PrefKey, Signal<unknown>>> = {};
 
@@ -119,6 +129,7 @@ export const boardGradientDirection = pref("boardGradientDirection");
 export const boardTexture = pref("boardTexture");
 export const boardInk = pref("boardInk");
 export const boardInkColor = pref("boardInkColor");
+export const boardTextureOpacity = pref("boardTextureOpacity");
 export const boardUsePicture = pref("boardUsePicture");
 export const boardImageStamp = pref("boardImageStamp");
 
@@ -322,10 +333,15 @@ export function accountPrefsSnapshot(): Record<string, unknown> {
  * left as it is. Saved here, since this tab is the first to hear of it.
  */
 export function adoptAccountPrefs(blob: Record<string, unknown>) {
+  adoptPrefs(blob, ACCOUNT_PREF_KEYS as PrefKey[]);
+}
+
+/** Each of `keys` that `blob` holds, read by its parser, then saved. */
+function adoptPrefs(blob: Record<string, unknown>, keys: readonly PrefKey[]) {
   applyingRemotePrefs = true;
   try {
     batch(() => {
-      for (const key of ACCOUNT_PREF_KEYS as PrefKey[]) {
+      for (const key of keys) {
         if (!(key in blob)) continue;
         prefSignal(key).value = PREF_PARSERS[key](blob[key], blob);
       }
@@ -335,6 +351,20 @@ export function adoptAccountPrefs(blob: Record<string, unknown>) {
   }
   savePrefs();
 }
+
+// The server's defaults, on a browser that had no preferences of its own
+// when it loaded and nobody signed in: every key, the device's own included,
+// at once, so the sign-in screen of a first visit already looks as the host
+// chose. Once. Signed in, the account's copy decides (`prefsSync.ts`).
+let defaultsApplied = false;
+effect(() => {
+  const defaults = serverDefaultPrefs.value;
+  if (!defaults || defaults.signedIn || !freshDevice || defaultsApplied) {
+    return;
+  }
+  defaultsApplied = true;
+  untracked(() => adoptPrefs(defaults.prefs, PREF_KEYS));
+});
 
 // Persist preferences when any pref signal changes (debounced)
 let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -395,32 +425,42 @@ effect(() => {
     root.dataset.boardGradient = gradient;
     root.dataset.boardGradientDirection = resolvedBoardGradientDirection.value;
   }
-  // Every colour, preset or picked, is drawn alike from `--board-ink-custom`.
-  const ink = resolvedBoardInk.value;
-  const inkColor = ink === "auto" ? null : inkHex(ink, boardInkColor.value);
-  if (ink === "auto") delete root.dataset.boardInk;
-  else root.dataset.boardInk = inkColor ? "custom" : ink;
-  root.style.setProperty("--board-ink-custom", inkColor ?? boardInkColor.value);
+  // The custom pattern colour's swatch in Settings shows it.
+  root.style.setProperty("--board-ink-custom", boardInkColor.value);
   root.style.setProperty(
     "--board-gradient-custom",
     boardGradientCustomColor.value,
   );
 });
 
-// The picture textures, drawn in the pattern colour: the theme's own ink in
-// each theme, or the one picked in both.
+// The pattern's colour and opacity, which the texture layer behind the board
+// takes as they are (`.board-frame::before` in preferences.css): a change of
+// either redraws nothing. "auto" leaves the theme's own ink, black or white.
 effect(() => {
   const root = document.documentElement;
   const ink = resolvedBoardInk.value;
-  const picked = ink === "auto" ? null : pickedInk(ink, boardInkColor.value);
-  const paint = (theme: "light" | "dark", textureInk: TextureInk) => {
-    for (const [name, image] of Object.entries(pictureTextures(textureInk))) {
-      root.style.setProperty(`--board-texture-${name}-${theme}`, image);
-    }
-  };
-  paint("light", picked ?? LIGHT_THEME_INK);
-  paint("dark", picked ?? DARK_THEME_INK);
+  if (ink === "auto") delete root.dataset.boardInk;
+  else {
+    root.dataset.boardInk = "";
+    root.style.setProperty(
+      "--board-ink-picked",
+      inkHex(ink, boardInkColor.value),
+    );
+  }
+  root.style.setProperty(
+    "--board-texture-opacity",
+    String(boardTextureOpacity.value / 100),
+  );
 });
+
+// The picture textures, as masks the layer reads like the gradient ones. Only
+// their shape counts, so they are drawn once, at load.
+for (const [name, image] of Object.entries(pictureTextures())) {
+  document.documentElement.style.setProperty(
+    `--board-texture-${name}-mask`,
+    image,
+  );
+}
 
 // --- Light and dark hue ---
 

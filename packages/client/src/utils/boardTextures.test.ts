@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONFETTI,
   CONFETTI_TILE,
-  LIGHT_THEME_INK,
-  pickedInk,
+  inkHex,
   pictureTextures,
 } from "./boardTextures.js";
 
@@ -13,40 +12,29 @@ function svgOf(url: string): string {
 }
 
 describe("pictureTextures", () => {
-  it("draws the grains in the ink's colour", () => {
-    const { paper } = pictureTextures(pickedInk("custom", "#ff8000"));
+  it("draws the grain as alpha alone, from nothing to fully drawn", () => {
+    const { paper } = pictureTextures();
     expect(svgOf(paper)).toContain(
-      "values='0 0 0 0 1 0 0 0 0 0.502 0 0 0 0 0 0 0 0 1.2 -0.3'",
+      "values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 -0.5'",
     );
   });
 
-  it("keeps the light theme's grain as it was drawn before", () => {
-    const { paper } = pictureTextures(LIGHT_THEME_INK);
-    expect(svgOf(paper)).toContain(
-      "values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 -0.05'",
-    );
+  it("draws every shape opaque, leaving colour and opacity to the layer", () => {
+    const textures = pictureTextures();
+    expect(svgOf(textures.hearts).match(/<path /g)).toHaveLength(5);
+    for (const name of ["stars", "hearts", "confetti", "sawtooth"] as const) {
+      expect(svgOf(textures[name]), name).not.toMatch(/fill|opacity/);
+    }
   });
 
-  it("fills the stars and hearts in the ink, never past fully opaque", () => {
-    const { stars, hearts } = pictureTextures({
-      rgb: [1, 1, 1],
-      strength: 50,
-    });
-    expect(svgOf(stars)).toContain("fill='rgb(255,255,255)' fill-opacity='1'");
-    expect(svgOf(hearts).match(/<path /g)).toHaveLength(5);
-  });
-
-  it("draws the sawtooth lighter than the gradient textures' ink", () => {
-    const { sawtooth } = pictureTextures(pickedInk("custom", "#ff8000"));
-    expect(svgOf(sawtooth)).toContain(
-      "fill='rgb(255,128,0)' fill-opacity='0.15'",
-    );
+  it("names a picked colour as the hex the layer is filled with", () => {
+    expect(inkHex("white", "#123456")).toBe("#ffffff");
+    expect(inkHex("blue", "#123456")).toBe("#3b82f6");
+    expect(inkHex("custom", "#123456")).toBe("#123456");
   });
 
   it("puts nothing in a quoted url() that could close it", () => {
-    for (const url of Object.values(
-      pictureTextures(pickedInk("black", "#000000")),
-    )) {
+    for (const url of Object.values(pictureTextures())) {
       expect(url.slice(5, -2)).not.toMatch(/["\\\n]/);
     }
   });

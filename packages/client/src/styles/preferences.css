@@ -71,9 +71,8 @@
   --board-custom-shade: var(--board-custom);
   --board-gradient-custom-shade: var(--board-gradient-custom);
   --board-scrim: rgb(255 255 255 / 0.15);
-  /* The ink textures are drawn in: darker than the colour under them. */
-  --board-ink: rgb(0 0 0 / 0.07);
-  --board-ink-strong: rgb(0 0 0 / 0.15);
+  /* The colour the pattern is drawn in, unless one is picked. */
+  --board-ink: #000000;
 }
 
 :root.dark {
@@ -101,10 +100,7 @@
     var(--color-neutral-900)
   );
   --board-scrim: rgb(0 0 0 / 0.4);
-  /* Lighter than the colour under them, and fainter: dark surfaces show it
-     more. */
-  --board-ink: rgb(255 255 255 / 0.05);
-  --board-ink-strong: rgb(255 255 255 / 0.11);
+  --board-ink: #ffffff;
 }
 
 :root[data-board-color="white"] {
@@ -243,118 +239,80 @@
   );
 }
 
-/* Textures. Each is a background-image and a matching background-size, named
-   once here and used both by the board and by its tile in Settings. Most are
-   gradients in `--board-ink`. The paper grain, the stars, the hearts, the
-   confetti and the sawtooth are SVG, which cannot read a custom property, so state/prefs.ts draws each in
-   the pattern colour (utils/boardTextures.ts) and hands it over as a light
-   and a dark version, the same one twice once a colour is picked.
+/* Textures. Each is a mask-image and a matching mask-size, named once here
+   and used both by the board and by its tile in Settings. The mask is laid
+   over a layer of `--board-ink` at `--board-texture-opacity` (`::before` on
+   `.board-frame` and `.board-texture-tile`), so a texture is only a shape,
+   drawn in opaque black: changing the pattern's colour or opacity redraws
+   none of them, and every mark of every texture comes out at the one
+   opacity. Most are gradients. The paper grain, the stars, the hearts, the
+   confetti and the sawtooth are SVG, drawn once at load by state/prefs.ts
+   (utils/boardTextures.ts), since a few are worked out rather than written.
    A texture of several layers lists one size per layer: a shorter list
-   cycles, and would carry the texture's tile on into the gradient drawn
-   under it (styles.test.ts holds every texture to this). */
+   cycles (styles.test.ts holds every texture to this). */
 :root {
-  --board-texture-paper: var(--board-texture-paper-light);
+  --board-texture-paper: var(--board-texture-paper-mask);
   --board-texture-paper-size: 160px 160px;
   --board-texture-dots: radial-gradient(
     circle,
-    var(--board-ink-strong) 1.25px,
+    #000 1.25px,
     transparent 1.75px
   );
   --board-texture-dots-size: 22px 22px;
   --board-texture-grid:
-    linear-gradient(var(--board-ink) 1px, transparent 1px),
-    linear-gradient(90deg, var(--board-ink) 1px, transparent 1px);
+    linear-gradient(#000 1px, transparent 1px),
+    linear-gradient(90deg, #000 1px, transparent 1px);
   --board-texture-grid-size: 24px 24px, 24px 24px;
   --board-texture-lines: repeating-linear-gradient(
     to bottom,
     transparent 0 27px,
-    var(--board-ink-strong) 27px 28px
+    #000 27px 28px
   );
   --board-texture-lines-size: auto;
-  --board-texture-confetti: var(--board-texture-confetti-light);
+  --board-texture-confetti: var(--board-texture-confetti-mask);
   --board-texture-confetti-size: 320px 320px;
   /* Waves: a running line of arcs, each tile holding the trough of one
-     (a ring centred on its top edge) and the crest of the next (one centred
-     on its bottom edge), which meet across the tile boundary as an S. */
+     (a ring centred on its top edge) and the crest of the next (centred on
+     its bottom edge), which meet across the tile boundary as an S. The line
+     runs 11.5px from each centre, so the tile is four of that wide, and the
+     joins fall a quarter and three quarters across. A join on a side edge
+     would split its line between two tiles, each drawing only its own half,
+     out of step with the arc it meets; so the trough is centred and the
+     crest sits on the side edges, drawn at both, each tile its own half. */
   --board-texture-waves:
     radial-gradient(
-      circle at 12px 0,
+      circle at 23px 0,
       transparent 10.5px,
-      var(--board-ink-strong) 11px 12px,
+      #000 11px 12px,
       transparent 12.5px
     ),
     radial-gradient(
-      circle at 36px 36px,
+      circle at 0 36px,
       transparent 10.5px,
-      var(--board-ink-strong) 11px 12px,
+      #000 11px 12px,
+      transparent 12.5px
+    ),
+    radial-gradient(
+      circle at 46px 36px,
+      transparent 10.5px,
+      #000 11px 12px,
       transparent 12.5px
     );
-  --board-texture-waves-size: 48px 36px, 48px 36px;
-  /* Bubbles: a scatter of round dots of every size, some fainter than others,
-     each well inside its tile so none is cut at an edge. Large and filled,
-     they would outweigh the rest at full ink, so they take it more lightly. */
-  --board-bubble: color-mix(in srgb, var(--board-ink) 65%, transparent);
-  --board-bubble-strong: color-mix(
-    in srgb,
-    var(--board-ink-strong) 65%,
-    transparent
-  );
+  --board-texture-waves-size: 46px 36px, 46px 36px, 46px 36px;
+  /* Bubbles: a scatter of round dots of every size, each well inside its
+     tile so none is cut at an edge. */
   --board-texture-bubbles:
-    radial-gradient(
-      circle at 14px 18px,
-      var(--board-bubble-strong) 9px,
-      transparent 9.75px
-    ),
-    radial-gradient(
-      circle at 46px 10px,
-      var(--board-bubble) 5px,
-      transparent 5.75px
-    ),
-    radial-gradient(
-      circle at 80px 26px,
-      var(--board-bubble) 12px,
-      transparent 12.75px
-    ),
-    radial-gradient(
-      circle at 108px 10px,
-      var(--board-bubble-strong) 6px,
-      transparent 6.75px
-    ),
-    radial-gradient(
-      circle at 30px 52px,
-      var(--board-bubble) 6px,
-      transparent 6.75px
-    ),
-    radial-gradient(
-      circle at 62px 62px,
-      var(--board-bubble-strong) 14px,
-      transparent 14.75px
-    ),
-    radial-gradient(
-      circle at 100px 64px,
-      var(--board-bubble) 8px,
-      transparent 8.75px
-    ),
-    radial-gradient(
-      circle at 14px 94px,
-      var(--board-bubble) 11px,
-      transparent 11.75px
-    ),
-    radial-gradient(
-      circle at 44px 104px,
-      var(--board-bubble-strong) 7px,
-      transparent 7.75px
-    ),
-    radial-gradient(
-      circle at 82px 100px,
-      var(--board-bubble-strong) 10px,
-      transparent 10.75px
-    ),
-    radial-gradient(
-      circle at 110px 110px,
-      var(--board-bubble) 5px,
-      transparent 5.75px
-    );
+    radial-gradient(circle at 14px 18px, #000 9px, transparent 9.75px),
+    radial-gradient(circle at 46px 10px, #000 5px, transparent 5.75px),
+    radial-gradient(circle at 80px 26px, #000 12px, transparent 12.75px),
+    radial-gradient(circle at 108px 10px, #000 6px, transparent 6.75px),
+    radial-gradient(circle at 30px 52px, #000 6px, transparent 6.75px),
+    radial-gradient(circle at 62px 62px, #000 14px, transparent 14.75px),
+    radial-gradient(circle at 100px 64px, #000 8px, transparent 8.75px),
+    radial-gradient(circle at 14px 94px, #000 11px, transparent 11.75px),
+    radial-gradient(circle at 44px 104px, #000 7px, transparent 7.75px),
+    radial-gradient(circle at 82px 100px, #000 10px, transparent 10.75px),
+    radial-gradient(circle at 110px 110px, #000 5px, transparent 5.75px);
   --board-texture-bubbles-size:
     120px 120px,
     120px 120px,
@@ -369,45 +327,22 @@
     120px 120px;
   --board-texture-stripes: repeating-linear-gradient(
     -45deg,
-    var(--board-ink) 0 16px,
+    #000 0 16px,
     transparent 16px 32px
   );
   --board-texture-stripes-size: auto;
-  --board-texture-stars: var(--board-texture-stars-light);
+  --board-texture-stars: var(--board-texture-stars-mask);
   --board-texture-stars-size: 90px 90px;
-  --board-texture-hearts: var(--board-texture-hearts-light);
+  --board-texture-hearts: var(--board-texture-hearts-mask);
   --board-texture-hearts-size: 90px 90px;
-  --board-texture-sawtooth: var(--board-texture-sawtooth-light);
+  --board-texture-sawtooth: var(--board-texture-sawtooth-mask);
   --board-texture-sawtooth-size: 286px 286px;
 }
 
-:root.dark {
-  --board-texture-paper: var(--board-texture-paper-dark);
-  --board-texture-stars: var(--board-texture-stars-dark);
-  --board-texture-hearts: var(--board-texture-hearts-dark);
-  --board-texture-confetti: var(--board-texture-confetti-dark);
-  --board-texture-sawtooth: var(--board-texture-sawtooth-dark);
-}
-
-/* Pattern colour. The textures drawn in `--board-ink` take it: picked rather
-   than the theme's, it is drawn a good deal stronger, since a colour chosen is
-   a colour meant to be seen. Declared after the dark theme's ink, which it
-   overrides. */
-:root[data-board-ink="white"] {
-  --board-ink: rgb(255 255 255 / 0.4);
-  --board-ink-strong: rgb(255 255 255 / 0.6);
-}
-:root[data-board-ink="black"] {
-  --board-ink: rgb(0 0 0 / 0.14);
-  --board-ink-strong: rgb(0 0 0 / 0.26);
-}
-:root[data-board-ink="custom"] {
-  --board-ink: color-mix(in srgb, var(--board-ink-custom) 45%, transparent);
-  --board-ink-strong: color-mix(
-    in srgb,
-    var(--board-ink-custom) 70%,
-    transparent
-  );
+/* A picked pattern colour, in either theme. Declared after the dark theme's
+   ink, which it overrides. */
+:root[data-board-ink] {
+  --board-ink: var(--board-ink-picked);
 }
 
 :root[data-board-texture="paper"] {
@@ -455,23 +390,42 @@
   --board-texture: var(--board-texture-sawtooth);
   --board-texture-size: var(--board-texture-sawtooth-size);
 }
-.board {
+/* `.board-frame` holds the scrolling `.board` and draws behind it, so the
+   colour, gradient and texture stay put while the notes scroll over them. The
+   texture is a layer of its own, under everything in the frame, so that its
+   opacity is the layer's: the slider in Settings changes one number and
+   nothing is redrawn. */
+.board-frame {
+  position: relative;
+  isolation: isolate;
   background-color: var(--board-color, transparent);
-  background-image: var(--board-texture, none), var(--board-gradient, none);
-  background-size:
-    var(--board-texture-size, auto),
-    100% 100%;
+  background-image: var(--board-gradient, none);
   transition: background-color 300ms ease;
-  /* Its own stacking context, so it paints its background first: the
-     new-note pad tucks its base behind the sheets with a negative z-index,
-     which would otherwise put it under this background and out of sight. */
+}
+:root[data-board-texture] .board-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--board-ink);
+  mask-image: var(--board-texture);
+  mask-size: var(--board-texture-size);
+  opacity: var(--board-texture-opacity, 0.1);
+}
+.board {
+  /* Its own stacking context, so the new-note pad, which tucks its base
+     behind the sheets with a negative z-index, stays above the frame. */
   isolation: isolate;
 }
 
 /* The picture covers the colour and texture alike, under a thin scrim in the
    page's own colour so headings and empty-view text stay legible over a busy
    photo. The attribute is only set once the picture has loaded. */
-:root[data-board-picture] .board {
+:root[data-board-picture] .board-frame::before {
+  display: none;
+}
+:root[data-board-picture] .board-frame {
   background-image:
     linear-gradient(var(--board-scrim), var(--board-scrim)),
     var(--board-image, none);
@@ -539,11 +493,22 @@
 /* Each tile names its texture in `--tile-texture`, so the gradient can be laid
    under every one of them in a single rule. */
 .board-texture-tile {
+  position: relative;
+  isolation: isolate;
   background-color: var(--board-color, var(--board-page));
-  background-image: var(--tile-texture, none), var(--board-gradient, none);
-  background-size:
-    var(--tile-texture-size, auto),
-    100% 100%;
+  background-image: var(--board-gradient, none);
+}
+.board-texture-tile:not([data-texture="none"])::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-color: var(--board-ink);
+  mask-image: var(--tile-texture);
+  mask-size: var(--tile-texture-size);
+  opacity: var(--board-texture-opacity, 0.1);
 }
 .board-texture-tile[data-texture="paper"] {
   --tile-texture: var(--board-texture-paper);

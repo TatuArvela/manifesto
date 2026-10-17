@@ -60,6 +60,14 @@ describe("GET /api/capabilities", () => {
     expect(body.auth.registration).toBe(false);
   });
 
+  it("hands out the host's default preferences, or none", async () => {
+    expect((await capabilities()).body.defaultPrefs).toEqual({});
+    const { body } = await capabilities({
+      defaultPrefs: { theme: "dark", boardTexture: "dots" },
+    });
+    expect(body.defaultPrefs).toEqual({ theme: "dark", boardTexture: "dots" });
+  });
+
   it("reports every feature of the registry, requirements included", async () => {
     const { body } = await capabilities({
       sharing: false,

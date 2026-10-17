@@ -6,6 +6,7 @@ import {
   boardColor,
   boardCustomColor,
   boardTexture,
+  boardTextureOpacity,
   boardUsePicture,
 } from "../../state/index.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
@@ -31,8 +32,8 @@ beforeEach(async () => {
   boardTexture.value = "none";
   boardUsePicture.value = false;
   host = document.createElement("div");
-  board = document.createElement("main");
-  board.className = "board";
+  board = document.createElement("div");
+  board.className = "board-frame";
   // The board fades between colours; read where it lands, not the fade.
   board.style.transition = "none";
   document.body.append(host, board);
@@ -49,6 +50,7 @@ afterEach(() => {
   board.remove();
   boardColor.value = "none";
   boardTexture.value = "none";
+  boardTextureOpacity.value = 10;
   document.documentElement.classList.remove("dark");
 });
 
@@ -59,12 +61,13 @@ describe("board background composer", () => {
     await nextFrame();
 
     const style = getComputedStyle(board);
+    const layer = getComputedStyle(board, "::before");
     const green = getComputedStyle(document.documentElement)
       .getPropertyValue("--board-green")
       .trim();
     expect(boardColor.value).toBe("green");
     expect(boardTexture.value).toBe("dots");
-    expect(style.backgroundImage).toContain("radial-gradient");
+    expect(layer.getPropertyValue("mask-image")).toContain("radial-gradient");
     // Hex in the stylesheet, rgb once computed.
     const probe = document.createElement("span");
     probe.style.color = green;
@@ -76,6 +79,23 @@ describe("board background composer", () => {
         `${t("settings.boardBackground")}: ${t("settings.boardBackground.summary", { color: t("color.green"), texture: t("settings.boardBackground.texture.dots") })}`,
       ),
     ).toBeTruthy();
+  });
+
+  it("changes only the texture layer's opacity with the slider", async () => {
+    button(t("settings.boardBackground.texture.stars")).click();
+    await nextFrame();
+    const layer = () => getComputedStyle(board, "::before");
+    const mask = layer().getPropertyValue("mask-image");
+    expect(mask).toContain("data:image/svg+xml");
+    const slider = host.querySelector<HTMLInputElement>('input[type="range"]');
+    if (!slider) throw new Error("no opacity slider");
+    slider.value = "25";
+    slider.dispatchEvent(new InputEvent("input", { bubbles: true }));
+    await nextFrame();
+    expect(boardTextureOpacity.value).toBe(25);
+    expect(layer().opacity).toBe("0.25");
+    // The same drawing: the slider never redraws a texture.
+    expect(layer().getPropertyValue("mask-image")).toBe(mask);
   });
 
   it("deepens a custom colour in the dark theme rather than using it as picked", async () => {

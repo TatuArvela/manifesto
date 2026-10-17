@@ -1,5 +1,6 @@
 import type {
   AccountPrefs,
+  CapabilitiesResponse,
   SealedAccountPrefs,
   SealedAccountPrefsResponse,
 } from "@manifesto/shared";
@@ -13,6 +14,7 @@ import {
   adoptAccountPrefs,
   isApplyingRemotePrefs,
 } from "./prefs.js";
+import { defaultPrefsOf, serverDefaultPrefs } from "./serverDefaults.js";
 
 /**
  * Connected mode keeps the account's preferences on the server, so hidden
@@ -95,6 +97,28 @@ function adopt(prefs: AccountPrefs) {
 }
 
 /**
+ * The host's default preferences, asking the server for them if it has not
+ * been asked yet: an account signing in for the first time may get here
+ * before the app's own request for the capabilities has come back. Empty
+ * when the server cannot say.
+ */
+async function hostDefaults(): Promise<AccountPrefs> {
+  const known = serverDefaultPrefs.peek();
+  if (known) return known.prefs;
+  const res = await apiFetch("GET", "/capabilities");
+  if (!res?.ok) return {};
+  try {
+    const prefs = defaultPrefsOf(
+      (await res.json()) as Partial<CapabilitiesResponse>,
+    );
+    serverDefaultPrefs.value = { prefs, signedIn: true };
+    return prefs;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Reads the server's copy and adopts it: at sign-in, and again after the app
  * socket reconnects, since a change made elsewhere meanwhile was never heard.
  * Never rejects.
@@ -115,12 +139,19 @@ export async function refreshAccountPrefs(): Promise<void> {
   // again from here.
   const prefs = await sealing.openPrefs(sealed);
   if (!stillCurrent(sealing)) return;
-  adopt(prefs);
   // The keys the server lacks: every one for an account with nothing stored,
   // or a preference newer than the client that last wrote.
-  for (const key of ACCOUNT_PREF_KEYS) {
-    if (!(key in prefs)) dirty.add(key);
+  const missing = ACCOUNT_PREF_KEYS.filter((key) => !(key in prefs));
+  const defaults = missing.length > 0 ? await hostDefaults() : {};
+  if (!stillCurrent(sealing)) return;
+  // Each takes the host's default where there is one, and this device's
+  // value where not; either is then stored as the account's own.
+  const filled: AccountPrefs = {};
+  for (const key of missing) {
+    if (key in defaults) filled[key] = defaults[key];
   }
+  adopt({ ...filled, ...prefs });
+  for (const key of missing) dirty.add(key);
   ready = true;
   if (dirty.size > 0) schedulePush();
 }

@@ -419,6 +419,7 @@ export const en = {
   "settings.boardBackground.ink.black": "Black",
   "settings.boardBackground.ink.random": "Random",
   "settings.boardBackground.ink.custom": "Custom Pattern Color",
+  "settings.boardBackground.opacity": "Pattern Opacity",
   "settings.boardBackground.texture.random": "Random",
   "settings.boardBackground.picture": "Picture",
   "settings.boardBackground.mode.compose": "Color & Pattern",

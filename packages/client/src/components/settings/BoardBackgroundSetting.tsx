@@ -24,6 +24,7 @@ import {
 } from "../../state/index.js";
 import { BoardGradientPicker } from "./BoardGradientPicker.js";
 import { BoardInkPicker } from "./BoardInkPicker.js";
+import { BoardOpacitySlider } from "./BoardOpacitySlider.js";
 import { boardColorLabel } from "./boardLabels.js";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
@@ -320,6 +321,8 @@ export function BoardBackgroundSetting() {
                   </fieldset>
 
                   <BoardInkPicker composing={composing} compose={compose} />
+
+                  <BoardOpacitySlider compose={compose} />
                 </>
               ) : hasPicture ? (
                 <div class="space-y-3">
