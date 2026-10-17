@@ -138,7 +138,7 @@ of every note they own. In open mode nothing was ever separated, so it resolves
 without a round trip.
 
 Which adapter is live is decided by `currentStorage` in `storage/index.ts`, a
-computed over the `storageConnection` signal that `state/auth.ts` writes: a
+computed over the `storageConnection` signal that `state/account/auth.ts` writes: a
 server URL plus a token selects `RestApiAdapter`, anything else selects
 `LocalStorageAdapter`. The connection is pushed in rather than read out so that
 storage, which sits underneath the session, does not import the session's state

@@ -5,7 +5,7 @@ paths:
   - "packages/client/src/state/notesStore.ts"
   - "packages/client/src/state/pendingWrites.ts"
   - "packages/client/src/state/incomingNote.ts"
-  - "packages/client/src/state/signOut.ts"
+  - "packages/client/src/state/account/signOut.ts"
   - "packages/client/src/state/unsentNotes.ts"
   - "packages/client/src/components/ConnectionStatus.tsx"
   - "packages/server/src/ws/**"
@@ -26,7 +26,7 @@ drivers or recipients' devices never hear of it (`storage/contracts/syncContract
 `realtime/yjsProvider.ts` holds `/api/yjs`, one `HocuspocusProvider` per open note, with
 `y-indexeddb` underneath so an offline edit survives a reload. What both of those hold is a sealed
 log of the document's edits, not the document (`sealedDocument.ts`; see `encryption.md`). Those copies outlive the session, so the account menu signs out through `signOut`
-(`state/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
+(`state/account/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
 entry stays free of Yjs); the notes list itself empties on any end of a session, a 401 included. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding in `editor.md`.
 
 A reconnect also sends the new notes queued while the server was out of reach (`sendUnsent`,

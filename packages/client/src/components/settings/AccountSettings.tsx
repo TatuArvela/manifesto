@@ -6,9 +6,9 @@ import {
   changePassword,
   currentUser,
   updateEmail,
-} from "../../state/auth.js";
-import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
-import { deleteOwnAccount } from "../../state/signOut.js";
+} from "../../state/account/auth.js";
+import type { ConfirmationRefusal } from "../../state/account/passwordConfirmation.js";
+import { deleteOwnAccount } from "../../state/account/signOut.js";
 import { showSuccess } from "../../state/ui.js";
 import { Avatar } from "../Avatar.js";
 import { buttonClass } from "../buttonClasses.js";

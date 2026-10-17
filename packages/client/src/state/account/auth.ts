@@ -11,17 +11,17 @@ import type {
   UserLookupMode,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { resolveServerOrigin, resolveServerUrl } from "../config.js";
-import type { MessageKey } from "../i18n/messages/index.js";
-import { storageConnection } from "../storage/index.js";
-import { getPasskey } from "../utils/webauthn.js";
+import { resolveServerOrigin, resolveServerUrl } from "../../config.js";
+import type { MessageKey } from "../../i18n/messages/index.js";
+import { storageConnection } from "../../storage/index.js";
+import { getPasskey } from "../../utils/webauthn.js";
+import { defaultPrefsOf, serverDefaultPrefs } from "../serverDefaults.js";
+import { adoptServerFeatures } from "../serverFeatures.js";
 import { markOidcFlow, takeOidcFlow } from "./oidcFlow.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
 } from "./passwordConfirmation.js";
-import { defaultPrefsOf, serverDefaultPrefs } from "./serverDefaults.js";
-import { adoptServerFeatures } from "./serverFeatures.js";
 
 export interface CurrentUser {
   id: string;
@@ -728,8 +728,8 @@ export type RecoveryAnswer<T> =
 /**
  * One of the two steps of signing in with the recovery key and the username
  * (`/api/auth/recovery`, `/api/auth/recovery/complete`), with nobody signed
- * in. `state/accountKeys.ts` does the work with the keys; the requests live
- * here, where the others without a session do. Never rejects.
+ * in. `accountKeys.ts` does the work with the keys; the requests live here,
+ * where the others without a session do. Never rejects.
  */
 export async function recoveryRequest<T>(
   step: "open" | "complete",

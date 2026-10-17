@@ -15,9 +15,11 @@ import {
 import { plural, t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { revealApp } from "../splash.js";
-import { keyState, takeSecretKeyFromAddress } from "../state/accountKeys.js";
-import { startAccountLocaleReport } from "../state/accountLocale.js";
-import { checkForUpdate } from "../state/admin.js";
+import {
+  keyState,
+  takeSecretKeyFromAddress,
+} from "../state/account/accountKeys.js";
+import { startAccountLocaleReport } from "../state/account/accountLocale.js";
 import {
   authToken,
   consumeOidcRedirect,
@@ -26,7 +28,9 @@ import {
   isServerMode,
   refreshCurrentUser,
   takeSignInLinkToken,
-} from "../state/auth.js";
+} from "../state/account/auth.js";
+import { takeConsentPage } from "../state/account/oauth.js";
+import { checkForUpdate } from "../state/admin.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import { initBoardBackground } from "../state/board.js";
 import { closeDrawing, drawingRequest } from "../state/drawing.js";
@@ -38,7 +42,6 @@ import {
   notes,
   updateNote,
 } from "../state/notesStore.js";
-import { takeConsentPage } from "../state/oauth.js";
 import { animations, stickyTopBar, viewMode } from "../state/prefs.js";
 import { startPrefsSync } from "../state/prefsSync.js";
 import { publicLinksDialog } from "../state/publicLinks.js";

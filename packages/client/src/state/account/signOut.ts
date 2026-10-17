@@ -1,5 +1,10 @@
-import { deleteLocalNoteCopies } from "../realtime/localNoteCopies.js";
-import { dropAllOffline } from "../storage/offlineNotes.js";
+import { deleteLocalNoteCopies } from "../../realtime/localNoteCopies.js";
+import { dropAllOffline } from "../../storage/offlineNotes.js";
+import { notes } from "../notesStore.js";
+import {
+  dropBrowserPushSubscription,
+  removePushSubscription,
+} from "../pushSubscription.js";
 import {
   clearAuthLocal,
   currentUser,
@@ -7,11 +12,6 @@ import {
   logout,
   requestAccountDeletion,
 } from "./auth.js";
-import { notes } from "./notesStore.js";
-import {
-  dropBrowserPushSubscription,
-  removePushSubscription,
-} from "./pushSubscription.js";
 
 /**
  * Sign out and leave none of the account's notes in this browser: the list in

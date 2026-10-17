@@ -31,6 +31,7 @@ import { moveCard } from "../../hooks/useBoardShortcuts.js";
 import { useEscapeStack } from "../../hooks/useEscapeStack.js";
 import { useMediaQuery } from "../../hooks/useMediaQuery.js";
 import { t } from "../../i18n/index.js";
+import { isServerMode } from "../../state/account/auth.js";
 import {
   archiveNote,
   noteMoveTarget,
@@ -39,7 +40,6 @@ import {
   unarchiveNote,
 } from "../../state/actions.js";
 import { inlineImages, inlinePreviewImages } from "../../state/attachments.js";
-import { isServerMode } from "../../state/auth.js";
 import { drawnWithoutImages } from "../../state/autoNotes.js";
 import { confirmDeletion } from "../../state/confirm.js";
 import { createNote, ensureImages } from "../../state/notesStore.js";

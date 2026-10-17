@@ -6,7 +6,7 @@ import {
   requestSignInLink,
   signInWithLink,
   TwoFactorRequiredError,
-} from "../../state/auth.js";
+} from "../../state/account/auth.js";
 import { locale } from "../../state/prefs.js";
 import { getPasskey } from "../../utils/webauthn.js";
 import { type SecondFactor, TwoFactorStep } from "./LoginSteps.js";

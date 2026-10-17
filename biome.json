@@ -288,7 +288,12 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["../hooks/**", "../components/**"],
+                    "group": [
+                      "../hooks/**",
+                      "../../hooks/**",
+                      "../components/**",
+                      "../../components/**"
+                    ],
                     "message": "Hooks and components are UI, built on state/, realtime/ and extensions/: move what they share down, as state/sheetHistory.ts did."
                   },
                   {
@@ -561,7 +566,7 @@
       "includes": [
         "packages/client/src/**",
         "!packages/client/src/storage/**",
-        "!packages/client/src/state/auth.ts",
+        "!packages/client/src/state/account/auth.ts",
         "!packages/client/src/state/publicLinks.ts",
         "!packages/client/src/autoNotes/registry.ts",
         "!**/*.test.ts",

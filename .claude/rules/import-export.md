@@ -7,7 +7,7 @@ paths:
   - "packages/client/src/utils/noteDownload.ts"
   - "packages/client/src/utils/zip.ts"
   - "packages/client/src/state/exportNotes.ts"
-  - "packages/client/src/state/accountExport.ts"
+  - "packages/client/src/state/account/accountExport.ts"
   - "packages/client/src/state/publicLinks.ts"
   - "packages/client/src/components/sharing/SharedNoteDialog.tsx"
   - "packages/client/src/components/PublicNotePage.tsx"

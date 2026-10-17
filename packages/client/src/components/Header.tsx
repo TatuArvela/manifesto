@@ -2,8 +2,8 @@ import { Search, Settings, X } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { HEADER_BRAND, INSTANCE_NAME } from "../config.js";
 import { t } from "../i18n/index.js";
+import { currentUser } from "../state/account/auth.js";
 import { availableUpdate } from "../state/admin.js";
-import { currentUser } from "../state/auth.js";
 import {
   activeView,
   exitSearch,

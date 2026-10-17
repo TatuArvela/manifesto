@@ -17,7 +17,7 @@ const editingNoteId = signal<string | null>(null);
 const notes = signal<unknown[]>([]);
 const syncNotes = vi.fn(async () => {});
 
-vi.mock("../state/auth.js", () => ({
+vi.mock("../state/account/auth.js", () => ({
   authToken,
   clearAuthLocal: () => {
     authToken.value = null;

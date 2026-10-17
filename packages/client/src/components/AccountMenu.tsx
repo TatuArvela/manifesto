@@ -1,9 +1,9 @@
 import { LogOut, UserCog } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { plural, t } from "../i18n/index.js";
-import { currentUser, isServerMode } from "../state/auth.js";
+import { currentUser, isServerMode } from "../state/account/auth.js";
+import { signOut } from "../state/account/signOut.js";
 import { askConfirmation } from "../state/confirm.js";
-import { signOut } from "../state/signOut.js";
 import { openSettings } from "../state/ui.js";
 import { unsentNotes } from "../state/unsentNotes.js";
 import { Avatar } from "./Avatar.js";

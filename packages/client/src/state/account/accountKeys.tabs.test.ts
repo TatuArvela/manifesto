@@ -1,9 +1,9 @@
 import type { AccountKeysSetupRequest } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DeviceKeys } from "../storage/deviceKeys.js";
+import type { DeviceKeys } from "../../storage/deviceKeys.js";
 
-vi.mock("../config.js", async (original) => ({
-  ...(await original<typeof import("../config.js")>()),
+vi.mock("../../config.js", async (original) => ({
+  ...(await original<typeof import("../../config.js")>()),
   resolveServerUrl: () => "https://notes.example",
   resolveServerOrigin: () => "https://notes.example",
 }));
@@ -14,7 +14,7 @@ vi.mock("../config.js", async (original) => ({
 let device: DeviceKeys | null = null;
 /** False for a browser that refuses IndexedDB: nothing is kept or read. */
 let deviceKeeps = true;
-vi.mock("../storage/deviceKeys.js", () => ({
+vi.mock("../../storage/deviceKeys.js", () => ({
   saveDeviceKeys: async (keys: DeviceKeys) => {
     if (!deviceKeeps) return false;
     device = keys;
@@ -28,7 +28,7 @@ vi.mock("../storage/deviceKeys.js", () => ({
 
 const { authToken, currentUser } = await import("./auth.js");
 const keys = await import("./accountKeys.js");
-const { storageKeys } = await import("../storage/sealing.js");
+const { storageKeys } = await import("../../storage/sealing.js");
 
 const USER = {
   id: "01HZX3KQ0000000000000000AA",

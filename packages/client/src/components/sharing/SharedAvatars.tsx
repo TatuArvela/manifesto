@@ -1,6 +1,6 @@
 import { type Note, roleOf, type ShareUser } from "@manifesto/shared";
 import { formatList, t } from "../../i18n/index.js";
-import { currentUser } from "../../state/auth.js";
+import { currentUser } from "../../state/account/auth.js";
 import { shareDialog } from "../../state/sharing.js";
 import { Avatar } from "../Avatar.js";
 import { Tooltip } from "../Tooltip.js";

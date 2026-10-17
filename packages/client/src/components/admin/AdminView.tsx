@@ -14,6 +14,11 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { useEscapeStack } from "../../hooks/useEscapeStack.js";
 import { formatDate, plural, t } from "../../i18n/index.js";
 import {
+  authProviders,
+  currentUser,
+  fetchCapabilities,
+} from "../../state/account/auth.js";
+import {
   adminUsers,
   createAccount,
   deleteAccount,
@@ -24,11 +29,6 @@ import {
   setAccountAdmin,
   setAccountEmail,
 } from "../../state/admin.js";
-import {
-  authProviders,
-  currentUser,
-  fetchCapabilities,
-} from "../../state/auth.js";
 import { serverFeature } from "../../state/serverFeatures.js";
 import { Avatar } from "../Avatar.js";
 import { boardCard } from "../boardCard.js";

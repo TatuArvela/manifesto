@@ -13,10 +13,10 @@ import {
   createApiToken,
   listApiTokens,
   revokeApiToken,
-} from "../../state/apiTokens.js";
-import { SERVER_ORIGIN } from "../../state/auth.js";
+} from "../../state/account/apiTokens.js";
+import { SERVER_ORIGIN } from "../../state/account/auth.js";
+import type { ConfirmationRefusal } from "../../state/account/passwordConfirmation.js";
 import { askConfirmation } from "../../state/confirm.js";
-import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
 import {
   offeredTokenKinds,
   serverFeature,

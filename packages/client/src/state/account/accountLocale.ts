@@ -1,8 +1,8 @@
 import { effect, untracked } from "@preact/signals";
-import { apiFetch } from "../storage/apiRequest.js";
-import { storageConnection } from "../storage/index.js";
+import { apiFetch } from "../../storage/apiRequest.js";
+import { storageConnection } from "../../storage/index.js";
+import { locale } from "../prefs.js";
 import { currentUser } from "./auth.js";
-import { locale } from "./prefs.js";
 
 let reportingLocale: string | null = null;
 let stop: (() => void) | null = null;

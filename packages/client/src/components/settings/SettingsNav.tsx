@@ -12,12 +12,12 @@ import {
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { type MessageKey, t } from "../../i18n/index.js";
-import { currentUser, isServerMode } from "../../state/auth.js";
+import { currentUser, isServerMode } from "../../state/account/auth.js";
+import { hasSecondFactor } from "../../state/account/twoFactor.js";
 import {
   offeredTokenKinds,
   serverFeature,
 } from "../../state/serverFeatures.js";
-import { hasSecondFactor } from "../../state/twoFactor.js";
 import type { SettingsTab } from "../../state/ui.js";
 import { Avatar } from "../Avatar.js";
 import { hasOwnPassword } from "./AccountSettings.js";

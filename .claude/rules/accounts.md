@@ -7,8 +7,8 @@ paths:
   - "packages/server/src/routes/tokens*.ts"
   - "packages/server/src/storage/contracts/adminContract.ts"
   - "packages/server/src/sharing/deleteAccount.ts"
-  - "packages/client/src/state/signOut.ts"
-  - "packages/client/src/state/auth.ts"
+  - "packages/client/src/state/account/signOut.ts"
+  - "packages/client/src/state/account/auth.ts"
   - "packages/client/src/state/admin.ts"
   - "packages/client/src/components/settings/**"
   - "packages/client/src/components/AccountMenu.tsx"
@@ -64,7 +64,7 @@ An account is deleted through `deleteAccount` (`sharing/deleteAccount.ts`), whoe
 the other end hear of it, and closes its sockets. A new table that holds something of an account's
 references `users(id) ON DELETE CASCADE` (or `SET NULL` where the row is someone else's, like a
 comment's author), or deleting the account leaves it behind. On the client `deleteOwnAccount`
-(`state/signOut.ts`) leaves the browser as a sign-out does, and only once the server said yes.
+(`state/account/signOut.ts`) leaves the browser as a sign-out does, and only once the server said yes.
 
 Security-relevant actions write an audit entry with `audit(storage, c, {...})` (`audit/audit.ts`),
 fire-and-forget; a new one needs its action in `AUDIT_ACTIONS` (shared) and a message in both
@@ -102,7 +102,7 @@ moves. Under single sign-on an address is stored only when the provider sends `e
 
 A temporary password yields no session: login answers `403 password_change_required` until the same
 request carries `newPassword`. The client never shows a server's `error` text, which is English:
-`loginErrorKey` (`state/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map
+`loginErrorKey` (`state/account/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map
 failures to catalogue messages by status. `AccountMenu` in the header only names the account, opens
 Settings on its page (`openSettings("account")`) and signs out; the account's pages (`AccountSettings`,
 `TwoFactorSettings`, `KeysSettings`, `ApiTokensSettings`, `WebhooksSettings`) are tabs of `SettingsDialog`, which lives in

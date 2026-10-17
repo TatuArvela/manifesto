@@ -8,7 +8,7 @@ import {
   completeRecovery,
   type KeySheet,
   type RecoveryResult,
-} from "../../state/accountKeys.js";
+} from "../../state/account/accountKeys.js";
 import { userKeyKindOf } from "../../utils/userKey.js";
 import { KeepSheetStep } from "./KeySheet.js";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";

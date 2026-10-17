@@ -6,7 +6,11 @@ import { APP_LOGO } from "../config.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../hooks/useFocusTrap.js";
 import { t } from "../i18n/index.js";
-import { currentUser, isServerMode, SERVER_ORIGIN } from "../state/auth.js";
+import {
+  currentUser,
+  isServerMode,
+  SERVER_ORIGIN,
+} from "../state/account/auth.js";
 import { showWelcome } from "../state/ui.js";
 import { markWelcomed } from "../state/welcome.js";
 import { Backdrop } from "./Backdrop.js";

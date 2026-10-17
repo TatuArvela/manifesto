@@ -9,7 +9,7 @@ import {
   Users,
 } from "lucide-preact";
 import { t } from "../i18n/index.js";
-import { currentUser, isServerMode } from "../state/auth.js";
+import { currentUser, isServerMode } from "../state/account/auth.js";
 import { exitSelectMode } from "../state/selection.js";
 import {
   type AppView,

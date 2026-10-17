@@ -9,7 +9,7 @@ import {
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../../i18n/index.js";
-import { currentUser, userLookupMode } from "../../state/auth.js";
+import { currentUser, userLookupMode } from "../../state/account/auth.js";
 import { notes } from "../../state/notesStore.js";
 import { locale } from "../../state/prefs.js";
 import {

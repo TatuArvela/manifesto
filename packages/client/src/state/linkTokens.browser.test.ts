@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { takeResetToken, takeSignInLinkToken } from "./auth.js";
+import { takeResetToken, takeSignInLinkToken } from "./account/auth.js";
 
 const TOKEN = "ab".repeat(32);
 

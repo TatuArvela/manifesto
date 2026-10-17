@@ -9,7 +9,7 @@ paths:
   - "packages/client/src/utils/serverCsp.ts"
   - "packages/client/src/utils/privacyUrl.ts"
   - "packages/client/src/storage/apiRequest.ts"
-  - "packages/client/src/state/auth.ts"
+  - "packages/client/src/state/account/auth.ts"
   - "packages/client/src/main.tsx"
   - "docs/specification/custom-instances.md"
 ---
@@ -44,7 +44,7 @@ only the app's logo, only when it has no dark variant.
 Besides those, three more deployment parameters are read from `index.html`:
 `welcome-dialog`, `privacy-url` (`PRIVACY_URL`, the operator's privacy notice, linked from the
 sign-in screen and About) and `manifesto-server` (`resolveServerUrl`, feeding `SERVER_URL` /
-`isServerMode` in `state/auth.ts`). `privacy-url` becomes a link's `href`, so it goes through
+`isServerMode` in `state/account/auth.ts`). `privacy-url` becomes a link's `href`, so it goes through
 `resolvePrivacyUrl` (`utils/privacyUrl.ts`), which takes only an `http(s):` URL or a path on the
 site; a new parameter that ends up in an `href` needs the same. The last one is not branding and
 carries a trap the others do not. The server address and the CSP

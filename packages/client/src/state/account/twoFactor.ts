@@ -3,8 +3,8 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import { APP_NAME, INSTANCE_NAME } from "../config.js";
-import { apiFetch } from "../storage/apiRequest.js";
+import { APP_NAME, INSTANCE_NAME } from "../../config.js";
+import { apiFetch } from "../../storage/apiRequest.js";
 import { currentUser } from "./auth.js";
 
 /**

@@ -21,8 +21,8 @@ const attempts: { token: string; otp: string | undefined }[] = [];
 /** What the server makes of the link: fine, wanting a code, or spent. */
 let account: "plain" | "twoFactor" | "expired" = "plain";
 
-vi.mock("../../state/auth.js", async (original) => {
-  const actual = await original<typeof import("../../state/auth.js")>();
+vi.mock("../../state/account/auth.js", async (original) => {
+  const actual = await original<typeof import("../../state/account/auth.js")>();
   return {
     ...actual,
     fetchCapabilities: async () => ({ auth }),

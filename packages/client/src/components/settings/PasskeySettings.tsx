@@ -7,7 +7,7 @@ import {
   addPasskey,
   listPasskeys,
   removePasskey,
-} from "../../state/passkeys.js";
+} from "../../state/account/passkeys.js";
 import { serverFeature } from "../../state/serverFeatures.js";
 import { showSuccess } from "../../state/ui.js";
 import { passkeysSupported } from "../../utils/webauthn.js";

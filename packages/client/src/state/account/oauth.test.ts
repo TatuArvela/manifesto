@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "../storage/index.js";
+import { storageConnection } from "../../storage/index.js";
 import {
   isOAuthConsentPath,
   lookUpClient,

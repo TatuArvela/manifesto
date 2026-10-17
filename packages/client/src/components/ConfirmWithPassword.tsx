@@ -1,9 +1,13 @@
 import { t } from "../i18n/index.js";
-import { beginOidcSignIn, currentUser, oidcReauthUrl } from "../state/auth.js";
+import {
+  beginOidcSignIn,
+  currentUser,
+  oidcReauthUrl,
+} from "../state/account/auth.js";
 import {
   CONFIRMATION_MESSAGES,
   type ConfirmationRefusal,
-} from "../state/passwordConfirmation.js";
+} from "../state/account/passwordConfirmation.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

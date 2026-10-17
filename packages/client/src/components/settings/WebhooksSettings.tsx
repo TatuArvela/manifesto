@@ -2,8 +2,8 @@ import type { Webhook } from "@manifesto/shared";
 import { Copy, Send, Trash2 } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { formatDateTime, t } from "../../i18n/index.js";
+import type { ConfirmationRefusal } from "../../state/account/passwordConfirmation.js";
 import { askConfirmation } from "../../state/confirm.js";
-import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
 import { showError, showSuccess } from "../../state/ui.js";
 import {
   createWebhook,

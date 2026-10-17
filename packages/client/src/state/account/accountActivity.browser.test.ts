@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "../storage/index.js";
+import { storageConnection } from "../../storage/index.js";
 import { loadAccountActivity } from "./accountActivity.js";
 
 const SERVER = "http://server.test";

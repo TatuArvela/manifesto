@@ -5,9 +5,9 @@
  * IndexedDB rather than `localStorage` because only it stores such a key.
  *
  * A device holds them for as long as it is signed in and no longer: whoever
- * ends the session removes them (`state/accountKeys.ts`), and `endsAt` is the
- * day the session runs out at the latest, so a device that was off when that
- * happened removes them itself the next time it starts.
+ * ends the session removes them (`state/account/accountKeys.ts`), and
+ * `endsAt` is the day the session runs out at the latest, so a device that
+ * was off when that happened removes them itself the next time it starts.
  *
  * Nothing here rejects. A browser that refuses IndexedDB (some private
  * windows) leaves the keys in the page's memory alone, and the secret key is

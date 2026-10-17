@@ -19,7 +19,7 @@ const connectionOutage = signal(false);
 
 vi.mock("../realtime/appSocket.js", () => ({ connectionStatus }));
 vi.mock("../realtime/connectionOutage.js", () => ({ connectionOutage }));
-vi.mock("../state/auth.js", () => ({ isServerMode: true }));
+vi.mock("../state/account/auth.js", () => ({ isServerMode: true }));
 
 const { ConnectionStatus } = await import("./ConnectionStatus.js");
 const { t } = await import("../i18n/index.js");
