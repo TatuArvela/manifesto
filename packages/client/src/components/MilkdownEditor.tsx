@@ -7,6 +7,7 @@ import {
   rootCtx,
 } from "@milkdown/kit/core";
 import { clipboard } from "@milkdown/kit/plugin/clipboard";
+import { gapCursorPlugin } from "@milkdown/kit/plugin/cursor";
 import { history } from "@milkdown/kit/plugin/history";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
@@ -24,10 +25,12 @@ import {
 } from "preact/hooks";
 import type * as Y from "yjs";
 import { documentWatcher } from "../extensions/documentWatcher.js";
+import { configureEditorKeys, editorKeys } from "../extensions/editorKeys.js";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
 import { itemDatesPlugin } from "../extensions/itemDates.js";
 import { linkTooltip } from "../extensions/linkTooltip.js";
 import { manifestoInlineMarks } from "../extensions/manifestoInlineMarks.js";
+import { tableBar } from "../extensions/tableBar.js";
 import { taskItemDraggable } from "../extensions/taskItemDraggable.js";
 import {
   DEFAULT_FRAGMENT_NAME,
@@ -172,6 +175,7 @@ export function MilkdownEditor({
             "aria-label": t("editor.contentLabel"),
           },
         }));
+        configureEditorKeys(ctx);
         ctx.update(remarkStringifyOptionsCtx, (prev) => ({
           ...prev,
           bullet: "-" as const,
@@ -200,8 +204,11 @@ export function MilkdownEditor({
       .use(manifestoInlineMarks)
       .use(taskItemDraggable)
       .use(inlineCalculationsPlugin)
+      .use(editorKeys)
+      .use(gapCursorPlugin)
       .use(itemDatesPlugin)
       .use(linkTooltip)
+      .use(tableBar)
       .use(documentWatcher(() => documentChangedRef.current()));
     const collabPlugin = collabFactoryRef.current;
     if (collabRef.current && collabPlugin) {

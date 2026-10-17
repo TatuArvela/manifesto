@@ -9,7 +9,12 @@ export type DropdownPlacement =
   | "bottom-start"
   | "bottom-end"
   | "top-start"
-  | "top-end";
+  | "top-end"
+  /**
+   * Beside the trigger, after it, centred on it; where that runs off the
+   * viewport, above the trigger with its trailing edge on the trigger's.
+   */
+  | "inline-end";
 
 /**
  * Whether the browser can position the panel against its trigger in CSS.
@@ -42,6 +47,9 @@ export function computePanelPosition(
   viewport: { width: number; height: number },
   placement: DropdownPlacement,
 ): { left: number; top: number } {
+  if (placement === "inline-end") {
+    return besideTrigger(anchor, panel, viewport);
+  }
   const [block, inline] = placement.split("-");
 
   const below = anchor.bottom + EDGE_GAP;
@@ -66,6 +74,32 @@ export function computePanelPosition(
 
   return {
     left: clamp(left, EDGE_GAP, viewport.width - panel.width - EDGE_GAP),
+    top: clamp(top, EDGE_GAP, viewport.height - panel.height - EDGE_GAP),
+  };
+}
+
+/** `inline-end`, as `@position-try --dd-above-end` falls back in CSS. */
+function besideTrigger(
+  anchor: { top: number; bottom: number; left: number; right: number },
+  panel: { width: number; height: number },
+  viewport: { width: number; height: number },
+): { left: number; top: number } {
+  const beside = anchor.right + EDGE_GAP;
+  if (beside + panel.width <= viewport.width - EDGE_GAP) {
+    const middle = (anchor.top + anchor.bottom) / 2 - panel.height / 2;
+    return {
+      left: beside,
+      top: clamp(middle, EDGE_GAP, viewport.height - panel.height - EDGE_GAP),
+    };
+  }
+  const above = anchor.top - panel.height - EDGE_GAP;
+  const top = above >= EDGE_GAP ? above : anchor.bottom + EDGE_GAP;
+  return {
+    left: clamp(
+      anchor.right - panel.width,
+      EDGE_GAP,
+      viewport.width - panel.width - EDGE_GAP,
+    ),
     top: clamp(top, EDGE_GAP, viewport.height - panel.height - EDGE_GAP),
   };
 }
@@ -106,6 +140,11 @@ export const DROPDOWN_EXIT_MS = 140;
  * Before opening, any other open dropdown panel is asked to close through its
  * `toggle` event: neither the browser's auto-popover stack nor a module-level
  * tracker proved reliable across the modal portal, so the DOM is queried.
+ *
+ * A `persistent` panel is a bar to work from rather than a menu to choose
+ * from: a press outside it does not close it, nor does another dropdown
+ * opening (one inside it, say), and it stays until its trigger is pressed
+ * again or Escape.
  */
 export function Dropdown({
   open,
@@ -114,6 +153,7 @@ export function Dropdown({
   children,
   panelClass,
   placement = "bottom-start",
+  persistent = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -121,6 +161,7 @@ export function Dropdown({
   children: ComponentChildren;
   panelClass?: string | undefined;
   placement?: DropdownPlacement;
+  persistent?: boolean;
 }) {
   const idRef = useRef("");
   if (!idRef.current) idRef.current = `--dd-${++nextId}`;
@@ -162,7 +203,7 @@ export function Dropdown({
   // browser's light-dismiss did. The trigger's own press is left to the
   // trigger, which toggles.
   useEffect(() => {
-    if (!open) return;
+    if (!open || persistent) return;
     const onPointerDown = (e: PointerEvent) => {
       const target = e.target as Node | null;
       if (anchorRef.current?.contains(target)) return;
@@ -171,7 +212,7 @@ export function Dropdown({
     document.addEventListener("pointerdown", onPointerDown, true);
     return () =>
       document.removeEventListener("pointerdown", onPointerDown, true);
-  }, [open]);
+  }, [open, persistent]);
 
   useEffect(() => {
     const el = panelRef.current;
@@ -184,7 +225,9 @@ export function Dropdown({
       // nothing hides it.
       hideAllTooltips();
       document
-        .querySelectorAll<HTMLElement>(".dropdown-panel:popover-open")
+        .querySelectorAll<HTMLElement>(
+          ".dropdown-panel:popover-open:not([data-persistent])",
+        )
         .forEach((other) => {
           if (other !== el) other.hidePopover();
         });
@@ -268,6 +311,7 @@ export function Dropdown({
         ref={panelRef}
         popover="manual"
         data-placement={placement}
+        data-persistent={persistent ? "true" : undefined}
         data-open={open ? "true" : undefined}
         data-leaving={leaving ? "true" : undefined}
         inert={leaving}

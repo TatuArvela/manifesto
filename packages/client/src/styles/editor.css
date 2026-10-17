@@ -17,6 +17,82 @@
      browsers do not, so it is set here for all of them. */
   overflow-x: auto;
   overflow-wrap: normal;
+  /* What ProseMirror's own stylesheet (`prosemirror-view/style/
+     prosemirror.css`) sets and requires, which nothing here loaded. With the
+     default `normal`, a space typed at the end of a line, or a second one in
+     a row, collapsed on screen while staying in the text: the caret seemed
+     not to move, and the arrows took two presses to cross one gap. */
+  white-space: break-spaces;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0;
+}
+
+/* The rest of ProseMirror's own stylesheet. A selection of table cells, and
+   a selected node, hide the browser's selection under this class; without
+   it, the highlight showed over the cells' text as well. */
+.milkdown-editor .ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+
+.milkdown-editor .ProseMirror-hideselection {
+  caret-color: transparent;
+}
+
+.milkdown-editor .ProseMirror [draggable][contenteditable="false"] {
+  user-select: text;
+}
+
+/* A selected divider or table (Backspace just after one selects it first,
+   and the next press removes it). Unmarked, the first press looked like it
+   did nothing. */
+.milkdown-editor .ProseMirror-selectednode {
+  outline: 2px solid rgb(59 130 246 / 0.6);
+  outline-offset: 2px;
+}
+
+.milkdown-editor li.ProseMirror-selectednode {
+  outline: none;
+}
+
+/* The gap cursor (`prosemirror-gapcursor`), where the caret stands between
+   two blocks that hold no text of their own, such as before a table at the
+   top of a note or after a divider at the end of one: a short blinking line
+   in the text's colour, shown only while the editor has focus. */
+.milkdown-editor .ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.milkdown-editor .ProseMirror-gapcursor::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid currentColor;
+  animation: gapcursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes gapcursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.milkdown-editor .ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+/* ProseMirror ends a line whose last thing is not text (a line break, an
+   image) with an empty image and a break, so the caret has a line to stand
+   on. Tailwind's preflight makes every image a block, which pushed that
+   empty line down a second time. Preflight is in the base layer, so this
+   wins without the `!important` ProseMirror's own copy needs. */
+.milkdown-editor img.ProseMirror-separator {
+  display: inline;
+  border: none;
+  margin: 0;
 }
 
 /* An overlay scrollbar (macOS, phones) is drawn over the last line rather
@@ -91,6 +167,92 @@
 
 .dark .link-tooltip button:hover {
   background-color: var(--color-neutral-300);
+}
+
+/* The row and column buttons over the table the caret is in
+   (extensions/tableBar.ts). Drawn like the formatting toolbar's floating bar
+   (`FormattingToolbar`), and faded like the link tooltip. */
+.table-bar {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.25rem;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.5rem;
+  background-color: var(--color-white);
+  color: var(--color-neutral-800);
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  opacity: 0;
+  transform: translateY(4px);
+  visibility: hidden;
+  transition:
+    opacity 120ms ease-in,
+    transform 120ms ease-in,
+    visibility 0s linear 120ms;
+}
+
+.table-bar[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out,
+    visibility 0s;
+}
+
+.table-bar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.table-bar-button:hover:not(:disabled) {
+  background-color: rgb(0 0 0 / 0.05);
+}
+
+.table-bar-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.table-bar-rule {
+  width: 1px;
+  height: 1rem;
+  margin: 0 0.125rem;
+  background-color: rgb(0 0 0 / 0.1);
+}
+
+.dark .table-bar {
+  border-color: var(--color-neutral-700);
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-100);
+}
+
+.dark .table-bar-button:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 0.05);
+}
+
+.dark .table-bar-rule {
+  background-color: rgb(255 255 255 / 0.1);
+}
+
+/* A phone's finger needs a bigger target than a pointer does. */
+@media (max-width: 639px) {
+  .table-bar-button {
+    padding: 0.625rem;
+  }
 }
 
 /* Headings, paragraphs and lists are shared with .prose; see above. */

@@ -94,4 +94,26 @@ describe("computePanelPosition", () => {
     expect(left).toBe(4);
     expect(top).toBe(4);
   });
+
+  it("sits beside the trigger for inline-end, centred on it", () => {
+    const position = computePanelPosition(
+      triggerAt(200, 100),
+      { width: 160, height: 40 },
+      VIEWPORT,
+      "inline-end",
+    );
+    // 4px after the trigger's right edge, centred on its 30px height.
+    expect(position).toEqual({ left: 304, top: 95 });
+  });
+
+  it("goes above and back to the left for inline-end without room after", () => {
+    const position = computePanelPosition(
+      triggerAt(800, 100),
+      { width: 160, height: 40 },
+      VIEWPORT,
+      "inline-end",
+    );
+    // Trailing edge on the trigger's right edge, 4px above its top.
+    expect(position).toEqual({ left: 740, top: 56 });
+  });
 });

@@ -17,7 +17,13 @@ export type FormatType =
   | "strikethrough"
   | "underline"
   | "subscript"
-  | "superscript";
+  | "superscript"
+  | "divider"
+  | "table"
+  | "codeBlock"
+  | "indent"
+  | "outdent"
+  | "clearFormatting";
 
 export interface ActiveFormats {
   heading: number | false;
@@ -33,6 +39,9 @@ export interface ActiveFormats {
   underline: boolean;
   subscript: boolean;
   superscript: boolean;
+  /** Only ever true in the rich editor; see `getRawActiveFormats`. */
+  table: boolean;
+  codeBlock: boolean;
 }
 
 /** A change to a text field's value, with where its selection ends up. */

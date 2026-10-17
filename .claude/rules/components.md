@@ -24,6 +24,9 @@ paths:
   moves focus in once placed (to the option marked `aria-pressed` / `aria-checked`, else the first
   control) and back to its anchor on close; without that the keyboard never reached it. Mark the
   current option in a picker with `aria-pressed`, which both a screen reader and this focus read.
+  A `persistent` dropdown (the formatting toolbar's floating bar) is a bar to work from: neither an
+  outside press nor another dropdown opening closes it, so a menu inside it (the table's) can open
+  without taking the bar down; only its trigger and Escape do.
 - **A note's menu** is one list, `noteMenuItems` in `NoteMenu.tsx`, which every surface renders
   through `NoteMenu`; a surface adds rows of its own (`before`) rather than a menu of its own.
   Rarer rows go in a `submenu` item, which `arrangeMenu` drops when empty and replaces with its row

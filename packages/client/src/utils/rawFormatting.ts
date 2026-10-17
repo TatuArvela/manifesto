@@ -1,5 +1,10 @@
 import type { ActiveFormats, FormatType, TextEdit } from "./formatTypes.js";
 import {
+  inRawCodeBlock,
+  insertRawBlock,
+  toggleRawCodeBlock,
+} from "./rawBlockFormatting.js";
+import {
   type InlineFormat,
   inlineRange,
   toggleInline,
@@ -13,6 +18,7 @@ import {
   parseLine,
   toggleBlock,
 } from "./rawLineFormatting.js";
+import { shiftListItems } from "./rawListIndent.js";
 
 export type { TextEdit } from "./formatTypes.js";
 
@@ -28,7 +34,8 @@ export type { TextEdit } from "./formatTypes.js";
  *
  * Everything but {@link applyTextEdit} is pure string work (the inline
  * formats in `rawInlineFormatting.ts`, the line ones in
- * `rawLineFormatting.ts`), so it is tested in the Node project.
+ * `rawLineFormatting.ts`, whole blocks in `rawBlockFormatting.ts`), so it is
+ * tested in the Node project.
  */
 
 // --- Links ---
@@ -88,7 +95,64 @@ export function removeRawLink(
   };
 }
 
+// --- Clearing ---
+
+/** A private-use character, which no note's markup is made of. */
+const CARET = "\uE000";
+const TAG_RE = /<\/?(?:u|sub|sup)>/g;
+// A run of markers that opens a span: at a line's start or after a space or
+// bracket, and before text. A `* ` bullet is followed by a space, so stays.
+const OPENING_RE = /(^|[\s([{])[*_~`]+(?=[^\s*_~`])/gm;
+// One that closes a span: after text, and before a line's end, a space or
+// punctuation. An underscore inside `snake_case` is neither.
+const CLOSING_RE = /([^\s*_~`])[*_~`]+(?=$|[\s)\]}.,;:!?])/gm;
+const HEADING_RE =
+  /^([ \t]*(?:> ?)*(?:(?:[-*+]|\d+[.)]) +)?(?:\[[ xX]\] )?)#{1,6}(?: +|$)/gm;
+
+/**
+ * Takes the marks off the selection, or the caret's line, and a heading back
+ * to text: what the rich editor's Clear formatting does. Links stay, since
+ * where they go is part of the text.
+ */
+function clearRawFormatting(
+  value: string,
+  start: number,
+  end: number,
+): TextEdit {
+  const [from, to] =
+    start === end ? lineRange(value, start, end) : [start, end];
+  const lineStart = start === end || from === 0 || value[from - 1] === "\n";
+  // The caret rides through the cleaning as a character of its own, so it
+  // stays on the letter it was beside however much markup goes before it.
+  let text =
+    start === end
+      ? value.slice(from, start) + CARET + value.slice(start, to)
+      : value.slice(from, to);
+  text = text.replace(TAG_RE, "");
+  text = text.replace(OPENING_RE, "$1").replace(CLOSING_RE, "$1");
+  if (lineStart) text = text.replace(HEADING_RE, "$1");
+  const at = from + Math.max(0, text.indexOf(CARET));
+  text = text.replace(CARET, "");
+  const next = value.slice(0, from) + text + value.slice(to);
+  if (start !== end) {
+    return {
+      value: next,
+      selectionStart: from,
+      selectionEnd: from + text.length,
+    };
+  }
+  return { value: next, selectionStart: at, selectionEnd: at };
+}
+
 // --- Public API ---
+
+/** An empty table, the size the rich editor makes one. */
+const RAW_TABLE = [
+  "|   |   |   |",
+  "| - | - | - |",
+  "|   |   |   |",
+  "|   |   |   |",
+].join("\n");
 
 export function applyRawFormat(
   value: string,
@@ -108,6 +172,19 @@ export function applyRawFormat(
     case "subscript":
     case "superscript":
       return toggleInline(value, start, end, type);
+    case "divider":
+      return insertRawBlock(value, start, end, "---", "---".length + 2);
+    case "table":
+      // The caret goes into the first header cell.
+      return insertRawBlock(value, start, end, RAW_TABLE, 2);
+    case "codeBlock":
+      return toggleRawCodeBlock(value, start, end);
+    case "indent":
+      return shiftListItems(value, start, end, 1);
+    case "outdent":
+      return shiftListItems(value, start, end, -1);
+    case "clearFormatting":
+      return clearRawFormatting(value, start, end);
     default:
       return toggleBlock(value, start, end, type, arg);
   }
@@ -136,6 +213,11 @@ export function getRawActiveFormats(
     underline: inline("underline"),
     subscript: inline("subscript"),
     superscript: inline("superscript"),
+    // The table button is a menu of row and column changes while it reads
+    // as on, and those are the rich editor's alone: in the text, a row is a
+    // line to type.
+    table: false,
+    codeBlock: inRawCodeBlock(value, start),
   };
 }
 

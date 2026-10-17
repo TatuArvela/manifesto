@@ -1,4 +1,4 @@
-import { type Editor, editorViewCtx } from "@milkdown/kit/core";
+import { type Editor, editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
 import {
   toggleLinkCommand,
   updateLinkCommand,
@@ -10,6 +10,8 @@ import {
   ChevronUp,
   Code,
   Heading,
+  IndentDecrease,
+  IndentIncrease,
   Italic,
   Link,
   List,
@@ -17,9 +19,13 @@ import {
   ListOrdered,
   MoreHorizontal,
   Quote,
+  RemoveFormatting,
+  SeparatorHorizontal,
+  SquareCode,
   Strikethrough,
   Subscript,
   Superscript,
+  Table,
   Underline,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
@@ -29,6 +35,11 @@ import {
   emptyFormats,
   getActiveFormats,
 } from "../extensions/richFormatting.js";
+import {
+  applyTableAction,
+  availableTableActions,
+  type TableAction,
+} from "../extensions/tableActions.js";
 import { t } from "../i18n/index.js";
 import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
 import {
@@ -67,8 +78,9 @@ export function FormattingToolbar({
   onAddLink,
 }: FormattingToolbarProps) {
   const [showHeadingMenu, setShowHeadingMenu] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showExtras, setShowExtras] = useState(false);
   const [showLinkMenu, setShowLinkMenu] = useState(false);
+  const [tableActions, setTableActions] = useState<TableAction[] | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const linkInputRef = useRef<HTMLInputElement | null>(null);
@@ -137,6 +149,37 @@ export function FormattingToolbar({
   };
 
   const preventFocus = (e: MouseEvent) => e.preventDefault();
+
+  // In a table the button opens the table's menu; anywhere else it makes one.
+  const onTableClick = () => {
+    if (tableActions) {
+      setTableActions(null);
+      return;
+    }
+    if (rawTextarea || !af.table) {
+      onFormat("table");
+      return;
+    }
+    setTableActions(
+      editor.action((ctx) => availableTableActions(ctx.get(editorStateCtx))),
+    );
+  };
+
+  const runTableAction = (action: TableAction) => {
+    setTableActions(null);
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      applyTableAction(view.state, action, view.dispatch);
+    });
+  };
+
+  const tableActionLabels: Record<TableAction, string> = {
+    addRowAfter: t("format.tableAddRow"),
+    addColumnAfter: t("format.tableAddColumn"),
+    deleteRow: t("format.tableDeleteRow"),
+    deleteColumn: t("format.tableDeleteColumn"),
+    deleteTable: t("format.tableDelete"),
+  };
   const onFormat = (type: FormatType, arg?: string) => {
     if (!rawTextarea) {
       applyFormat(editor, type, arg);
@@ -240,8 +283,14 @@ export function FormattingToolbar({
 
             {fmtBtn("bold", t("format.bold"), <Bold class="w-4 h-4" />)}
             {fmtBtn("italic", t("format.italic"), <Italic class="w-4 h-4" />)}
-            {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
+            {fmtBtn(
+              "underline",
+              t("format.underline"),
+              <Underline class="w-4 h-4" />,
+            )}
             {fmtBtn("code", t("format.code"), <Code class="w-4 h-4" />)}
+
+            <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
             <Dropdown
               open={showLinkMenu}
@@ -291,123 +340,156 @@ export function FormattingToolbar({
             <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
             {fmtBtn(
-              "numberedList",
-              t("format.numberedList"),
-              <ListOrdered class="w-4 h-4" />,
-            )}
-            {fmtBtn(
               "unorderedList",
               t("format.bulletList"),
               <List class="w-4 h-4" />,
             )}
-
-            {/* The marks the wide layout keeps behind its "more" menu. There
-                is no room for that menu on a phone, so they are spelled out
-                here instead, inside the fold that reveals them. No rule ahead
-                of them: the row they land on depends on how much fits, and a
-                rule that wraps to the start of a line separates nothing. */}
-            <div class="sm:hidden flex items-center gap-0.5">
+            {fmtBtn(
+              "numberedList",
+              t("format.numberedList"),
+              <ListOrdered class="w-4 h-4" />,
+            )}
+            {/* The checklist beside the other lists on a wide screen. On a
+                phone it stays out of the fold, on the row itself (below), as
+                the one format a note is most often started with. */}
+            <div class="max-sm:hidden flex">
               {fmtBtn(
-                "strikethrough",
-                t("format.strikethrough"),
-                <Strikethrough class="w-4 h-4" />,
-              )}
-              {fmtBtn(
-                "underline",
-                t("format.underline"),
-                <Underline class="w-4 h-4" />,
-              )}
-              {fmtBtn(
-                "subscript",
-                t("format.subscript"),
-                <Subscript class="w-4 h-4" />,
-              )}
-              {fmtBtn(
-                "superscript",
-                t("format.superscript"),
-                <Superscript class="w-4 h-4" />,
+                "checklist",
+                t("format.checklist"),
+                <ListChecks class="w-4 h-4" />,
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {fmtBtn(
-        "checklist",
-        t("format.checklist"),
-        <ListChecks class="w-4 h-4" />,
-      )}
+      <div class="sm:hidden flex">
+        {fmtBtn(
+          "checklist",
+          t("format.checklist"),
+          <ListChecks class="w-4 h-4" />,
+        )}
+      </div>
 
       <div class="max-sm:hidden w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
 
-      <div class="max-sm:hidden flex">
-        <Dropdown
-          open={showMoreMenu}
-          onClose={() => setShowMoreMenu(false)}
-          trigger={
-            <Tooltip label={t("format.moreFormatting")}>
-              <button
-                type="button"
-                class={btnInactive}
-                onMouseDown={preventFocus}
-                onClick={() => setShowMoreMenu(!showMoreMenu)}
-                aria-label={t("format.moreFormatting")}
-                disabled={disabled}
-              >
-                <MoreHorizontal class="w-4 h-4" />
-              </button>
-            </Tooltip>
-          }
-          panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
-        >
-          {(
-            [
-              [
-                "strikethrough",
-                t("format.strikethrough"),
-                <Strikethrough class="w-4 h-4" />,
-              ],
-              [
-                "underline",
-                t("format.underline"),
-                <Underline class="w-4 h-4" />,
-              ],
-              [
-                "subscript",
-                t("format.subscript"),
-                <Subscript class="w-4 h-4" />,
-              ],
-              [
-                "superscript",
-                t("format.superscript"),
-                <Superscript class="w-4 h-4" />,
-              ],
-            ] as [FormatType, string, ComponentChildren][]
-          ).map(([type, label, icon]) => (
+      {/* The rarer marks, the whole blocks, indenting and clearing, on a bar
+          of their own: beside the button that opens it, continuing the row,
+          or above it and back to its left where there is no room. It stays
+          open while it is used, unlike a menu, so a run of changes does not
+          mean reopening it for each one; the button that opened it, or
+          Escape, puts it away. */}
+      <Dropdown
+        open={showExtras}
+        onClose={() => setShowExtras(false)}
+        placement="inline-end"
+        persistent
+        trigger={
+          <Tooltip label={t("format.moreFormatting")}>
             <button
-              key={type}
               type="button"
-              class={`flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer ${isActive(type) ? "bg-black/10 dark:bg-white/15" : ""}`}
+              class={showExtras ? btnActive : btnInactive}
               onMouseDown={preventFocus}
-              onClick={() => {
-                onFormat(type);
-                setShowMoreMenu(false);
-              }}
+              onClick={() => setShowExtras(!showExtras)}
+              aria-label={t("format.moreFormatting")}
+              disabled={disabled}
             >
-              {icon}
-              {label}
+              <MoreHorizontal class="w-4 h-4" />
             </button>
-          ))}
-        </Dropdown>
-      </div>
+          </Tooltip>
+        }
+        panelClass="w-max rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800"
+      >
+        <div
+          role="toolbar"
+          aria-label={t("format.moreFormatting")}
+          class="flex flex-wrap items-center gap-0.5 p-1"
+        >
+          {fmtBtn(
+            "strikethrough",
+            t("format.strikethrough"),
+            <Strikethrough class="w-4 h-4" />,
+          )}
+          {fmtBtn(
+            "subscript",
+            t("format.subscript"),
+            <Subscript class="w-4 h-4" />,
+          )}
+          {fmtBtn(
+            "superscript",
+            t("format.superscript"),
+            <Superscript class="w-4 h-4" />,
+          )}
+          <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+          {fmtBtn(
+            "divider",
+            t("format.divider"),
+            <SeparatorHorizontal class="w-4 h-4" />,
+          )}
+          {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
+          {fmtBtn(
+            "codeBlock",
+            t("format.codeBlock"),
+            <SquareCode class="w-4 h-4" />,
+          )}
+          <Dropdown
+            open={tableActions !== null}
+            onClose={() => setTableActions(null)}
+            trigger={
+              <Tooltip label={t("format.table")}>
+                <button
+                  type="button"
+                  class={af.table ? btnActive : btnInactive}
+                  onMouseDown={preventFocus}
+                  onClick={onTableClick}
+                  aria-label={t("format.table")}
+                  aria-haspopup={af.table && !rawTextarea ? "menu" : undefined}
+                  disabled={disabled}
+                >
+                  <Table class="w-4 h-4" />
+                </button>
+              </Tooltip>
+            }
+            panelClass="bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1"
+          >
+            {(tableActions ?? []).map((action) => (
+              <button
+                key={action}
+                type="button"
+                class="flex items-center w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer whitespace-nowrap"
+                onMouseDown={preventFocus}
+                onClick={() => runTableAction(action)}
+              >
+                {tableActionLabels[action]}
+              </button>
+            ))}
+          </Dropdown>
+          <div class="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+          {fmtBtn(
+            "indent",
+            t("format.indent"),
+            <IndentIncrease class="w-4 h-4" />,
+          )}
+          {fmtBtn(
+            "outdent",
+            t("format.outdent"),
+            <IndentDecrease class="w-4 h-4" />,
+          )}
+          {fmtBtn(
+            "clearFormatting",
+            t("format.clearFormatting"),
+            <RemoveFormatting class="w-4 h-4" />,
+          )}
+        </div>
+      </Dropdown>
 
-      <Tooltip label={t("format.moreFormatting")}>
+      <Tooltip label={t("format.moreControls")}>
         <button
           type="button"
           class={`sm:hidden ${expanded ? btnActive : btnInactive}`}
           onMouseDown={preventFocus}
           onClick={() => setExpanded(!expanded)}
-          aria-label={t("format.moreFormatting")}
+          aria-label={t("format.moreControls")}
           aria-expanded={expanded}
           disabled={disabled}
         >

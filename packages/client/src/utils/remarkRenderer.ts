@@ -63,6 +63,7 @@ const PURIFY_CONFIG = {
     "type",
     "checked",
     "disabled", // task-list checkboxes
+    "align", // table cells
   ],
 };
 
