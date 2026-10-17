@@ -33,7 +33,8 @@ vi.stubGlobal("matchMedia", (query: string) => {
   return realMatchMedia(query);
 });
 
-const { moveInto, ReorderableGrid } = await import("./ReorderableGrid.js");
+const { ReorderableGrid } = await import("./ReorderableGrid.js");
+const { moveInto } = await import("../hooks/useReorderDrag.js");
 
 function makeNote(id: string, title: string, position: number): Note {
   return {
