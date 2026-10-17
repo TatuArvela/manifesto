@@ -672,7 +672,9 @@ boolean for each feature a host can turn off, below, plus `mcpSignIn` and `userL
 are found to share with), the
 `limits` a caller would otherwise meet as a `413`, `409` or `422` (request and image bytes, images and
 link previews per note, notes per page and per import, versions kept and for how long, tokens,
-webhooks and passkeys per account, public link views, preferences bytes), and `editorSchemaVersion`.
+webhooks and passkeys per account, public link views, preferences bytes), `editorSchemaVersion`, and
+`defaultPrefs`, the preferences the host set as the server's defaults (`DEFAULT_PREFS`, empty unless
+set; see [Preferences](features/preferences.md#defaults-from-the-server)).
 Each value is read from what enforces it, so it cannot drift from the server's behaviour.
 
 The web client reads it before anyone signs in, to choose what to show. It replaced

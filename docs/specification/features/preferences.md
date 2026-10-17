@@ -22,9 +22,10 @@ added there. Open mode has no account and keeps everything on the device.
 ## How they move
 
 - **Signing in** reads the account's copy (`GET /api/auth/me/prefs`). For every key it has, the
-  account's value replaces this device's; for every key it lacks, this device sends its own. So an
-  account with nothing stored takes the settings of the first device that signs in after the upgrade,
-  and a device signing in later takes the account's.
+  account's value replaces this device's; for every key it lacks, the server's default for it is taken
+  if the host set one ([below](#defaults-from-the-server)), and this device's own value if not, and
+  sent. So an account with nothing stored starts from the host's defaults and the settings of the
+  first device that signs in, and a device signing in later takes the account's.
 - **A change here** is sent a moment later as a patch of just the keys it touched
   (`PATCH /api/auth/me/prefs`). Two devices changing different settings at once keep both.
 - **A change elsewhere** arrives on the app socket as `prefs:updated`, with the whole copy, and is
@@ -39,6 +40,45 @@ added there. Open mode has no account and keeps everything on the device.
 What the server sends is read the way a hand-edited `localStorage` blob is: each key through its
 parser, a value it does not recognise falling back to the default. So a preference a newer client
 wrote cannot break an older one, and an older client ignores a key it does not know.
+
+## Defaults from the server
+
+A host can choose the preferences new accounts start from with `DEFAULT_PREFS`
+([Deployment](../server/deployment.md#environment-variables)): one JSON object, keyed by the names
+below, which `/api/capabilities` hands to every client as `defaultPrefs`. The server checks only that it
+is a JSON object within `MAX_ACCOUNT_PREFS_BYTES`; the client reads each value through its parser, as
+it reads the account's, so one it does not recognise falls back to the client's own default.
+
+- **Signing in**, a key the account has never stored takes the default, and is stored as the account's
+  own from then on. A default never replaces a value the account has, so changing `DEFAULT_PREFS` later
+  reaches only the keys accounts still lack (a preference added in a later release, say). A change made
+  on this device and not yet sent wins over it, as over the account's copy.
+- **A first visit**, a browser with no preferences of its own and nobody signed in, takes every
+  default at once, the device's own included, so the sign-in screen already looks as the host chose.
+  On a device that has preferences, a device's own preference (the table above) never takes one.
+
+The names are the keys of `PREF_PARSERS` in `state/prefParsers.ts`. The ones a host is most likely to
+set:
+
+| Key | Values |
+|---|---|
+| `theme` | `system` (default), `light`, `dark` |
+| `lightHue` | `white` (default), or a board colour: `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink` |
+| `darkHue` | `neutral` (default), `midnight`, `mauve`, `lavender`, `indigo`, `slate`, `steel`, `ocean`, `black`, or a board colour |
+| `locale` | `en`, `fi`; the browser's language by default |
+| `viewMode` | `grid` (default), `list` |
+| `noteSize` | `fit` (default), `square` |
+| `noteCorners` | `straight` (default), `rounded` |
+| `defaultNoteColor` | `default` (default), `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `brown`, `gray`, `random` |
+| `defaultEditMode` | `normal` (default), `raw` |
+| `confirmBeforeDelete`, `inlineCalculations`, `noteQuips`, `formattingToolbar` | `true` or `false` |
+| `boardColor`, `boardGradient` | `none` (default), `white`, `gray`, `black`, a board colour, `custom`, `random` |
+| `boardCustomColor`, `boardGradientCustomColor`, `boardInkColor` | a `#rrggbb` colour |
+| `boardGradientDirection` | `top`, `top-right`, `right`, `bottom-right` (default), `bottom`, `bottom-left`, `left`, `top-left`, `random` |
+| `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `confetti`, `waves`, `stars`, `hearts`, `bubbles`, `stripes`, `sawtooth`, `random` |
+| `boardInk` | `auto` (default), `white`, `black`, a board colour, `custom`, `random` |
+| `boardTextureOpacity` | a whole percentage from 0 to 100 (default 10) |
+| `noteScale`, `animations`, `stickyTopBar` | the device's own: `big` or `small`, and `true` or `false`; taken only on a first visit |
 
 ## On the server
 

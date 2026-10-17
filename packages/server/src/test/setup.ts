@@ -55,6 +55,7 @@ export const TEST_CONFIG: ServerConfig = {
   updateCheckRepo: null,
   userLookup: "search",
   initialAdminPassword: null,
+  defaultPrefs: {},
 };
 
 export async function bootTestAppWith(

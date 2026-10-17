@@ -1,4 +1,5 @@
 import type { AuthProviderName } from "./auth.js";
+import type { AccountPrefs } from "./prefs.js";
 
 /**
  * How a note's owner finds the person to share it with. `search` offers
@@ -88,4 +89,11 @@ export interface CapabilitiesResponse {
   /** The editor's schema version; `/api/yjs` refuses an editor older than
    * it (`EDITOR_SCHEMA_VERSION`). */
   editorSchemaVersion: number;
+  /**
+   * The preferences the host has set as this server's defaults
+   * (`DEFAULT_PREFS`), keyed as `AccountPrefs` is, or empty. A client takes
+   * each for a key the account has never stored. Absent from a server older
+   * than the feature.
+   */
+  defaultPrefs?: AccountPrefs;
 }

@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { type AccountPrefs, MAX_ACCOUNT_PREFS_BYTES } from "@manifesto/shared";
 import {
   FEATURES,
   type FeatureToggles,
@@ -159,6 +160,13 @@ export interface ServerConfig extends FeatureToggles {
    * generated one, for deployments that cannot read the server's output. It
    * still has to be changed at first sign-in. */
   initialAdminPassword: string | null;
+  /**
+   * The preferences a new account starts from, keyed as the client keys
+   * them (`DEFAULT_PREFS`), or empty. The client takes each for a key the
+   * account has never stored, in place of its own default; the server
+   * never reads a value, as it never reads an account's own.
+   */
+  defaultPrefs: AccountPrefs;
 }
 
 const DEFAULT_DATA_DIR = "./data";
@@ -271,6 +279,31 @@ function loadBackupConfig(dataDir: string): BackupConfig | null {
     keep,
     dir: process.env.BACKUP_DIR?.trim() || `${dataDir}/backups`,
   };
+}
+
+/**
+ * `DEFAULT_PREFS`: a JSON object of preferences. Refused at start when it is
+ * not one, or larger than an account's own may grow, rather than handed to
+ * every client to refuse in turn.
+ */
+export function parseDefaultPrefs(raw: string | undefined): AccountPrefs {
+  const value = raw?.trim();
+  if (!value) return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error("Invalid DEFAULT_PREFS: not valid JSON");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Invalid DEFAULT_PREFS: must be a JSON object");
+  }
+  if (Buffer.byteLength(JSON.stringify(parsed)) > MAX_ACCOUNT_PREFS_BYTES) {
+    throw new Error(
+      `Invalid DEFAULT_PREFS: larger than ${MAX_ACCOUNT_PREFS_BYTES} bytes`,
+    );
+  }
+  return parsed as AccountPrefs;
 }
 
 function loadAppUrl(): string | null {
@@ -428,6 +461,7 @@ export function loadConfig(): ServerConfig {
       : null,
     userLookup: envEnum("USER_LOOKUP", USER_LOOKUP_MODES, "exact"),
     initialAdminPassword: loadInitialAdminPassword(),
+    defaultPrefs: parseDefaultPrefs(process.env.DEFAULT_PREFS),
   };
 }
 

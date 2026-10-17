@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "../storage/index.js";
 import { hiddenTags, stickyTopBar, theme } from "./prefs.js";
 import { receiveAccountPrefs, startPrefsSync } from "./prefsSync.js";
+import { serverDefaultPrefs } from "./serverDefaults.js";
 
 const SERVER = "http://server.test";
 const fetchMock = vi.fn<typeof fetch>();
@@ -46,6 +47,7 @@ beforeEach(() => {
   stickyTopBar.value = true;
   stored = {};
   patches = [];
+  serverDefaultPrefs.value = { prefs: {}, signedIn: true };
   startPrefsSync();
 });
 
@@ -77,6 +79,24 @@ describe("preferences that follow the account", () => {
     expect(sent()).not.toHaveProperty("theme");
     expect(sent()).not.toHaveProperty("hiddenTags");
     expect(sent()).toHaveProperty("locale");
+  });
+
+  it("gives a key the account lacks the host's default, and stores it", async () => {
+    serverDefaultPrefs.value = {
+      prefs: { theme: "dark", hiddenTags: ["work"], stickyTopBar: false },
+      signedIn: true,
+    };
+    stored = { hiddenTags: ["private"] };
+    serve();
+    signIn();
+    await vi.waitFor(() => expect(theme.value).toBe("dark"));
+    // The account's own value wins over the default.
+    expect(hiddenTags.value).toEqual(["private"]);
+    // A device's own preference is never the account's to set.
+    expect(stickyTopBar.value).toBe(true);
+    await vi.waitFor(() => expect(patches).toHaveLength(1), { timeout: 2000 });
+    expect(sent()).toMatchObject({ theme: "dark" });
+    expect(sent()).not.toHaveProperty("hiddenTags");
   });
 
   it("reads a value it does not know as its default", async () => {

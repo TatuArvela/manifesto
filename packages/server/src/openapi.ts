@@ -332,6 +332,7 @@ function components() {
         },
         limits: { type: "object", additionalProperties: { type: "integer" } },
         editorSchemaVersion: { type: "integer" },
+        defaultPrefs: { type: "object" },
       }),
       TwoFactorStatusResponse: shape({
         enabled: { type: "boolean" },

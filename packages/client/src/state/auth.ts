@@ -20,6 +20,7 @@ import {
   type ConfirmationRefusal,
   confirmationRefusal,
 } from "./passwordConfirmation.js";
+import { defaultPrefsOf, serverDefaultPrefs } from "./serverDefaults.js";
 import { adoptServerFeatures } from "./serverFeatures.js";
 
 export interface CurrentUser {
@@ -560,7 +561,8 @@ export const passwordFormCollapsed = signal(false);
 /**
  * What the server offers, read once something needs it (the sign-in screen,
  * the admin view, the app's start), with the signals the rest of the client
- * reads set from it: which features are on goes to `serverFeatures`. Null
+ * reads set from it: which features are on goes to `serverFeatures`, and
+ * the host's default preferences to `serverDefaultPrefs`. Null
  * when the server cannot be reached.
  */
 export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> {
@@ -575,6 +577,10 @@ export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> 
     passwordFormCollapsed.value = auth.passwordForm === "collapsed";
     userLookupMode.value = features.userLookup;
     adoptServerFeatures(features);
+    serverDefaultPrefs.value = {
+      prefs: defaultPrefsOf(capabilities),
+      signedIn: authToken.peek() !== null,
+    };
     return capabilities;
   } catch {
     return null;

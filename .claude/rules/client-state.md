@@ -60,6 +60,11 @@ State lives in `packages/client/src/state/` using @preact/signals:
   (`/api/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
   added there. Whatever arrives from the server goes through `PREF_PARSERS` like a hand-edited blob,
   and `adoptAccountPrefs` saves it itself, since the save effect skips a change from elsewhere.
+  The host's defaults (`DEFAULT_PREFS`, `defaultPrefs` in `/api/capabilities`) are held in
+  `serverDefaults.ts`, a module with no side effects and no imports of state, so `auth.ts` and
+  `prefsSync.ts` both set it without loading each other or `prefs.ts`. `prefsSync.ts` gives one
+  to each key the account lacks at sign-in (asking `/api/capabilities` itself if the answer has
+  not arrived), and `prefs.ts` applies them all on a first visit.
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   `routing.md`). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.

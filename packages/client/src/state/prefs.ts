@@ -1,5 +1,12 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { batch, computed, effect, type Signal, signal } from "@preact/signals";
+import {
+  batch,
+  computed,
+  effect,
+  type Signal,
+  signal,
+  untracked,
+} from "@preact/signals";
 import { inkHex, pictureTextures } from "../utils/boardTextures.js";
 import {
   ACCOUNT_PREF_KEYS,
@@ -21,6 +28,7 @@ import {
   rollBoardTexture,
   type ThemeMode,
 } from "./prefParsers.js";
+import { serverDefaultPrefs } from "./serverDefaults.js";
 
 export type {
   BoardColor,
@@ -72,6 +80,15 @@ function loadPrefs(): LoadedPrefs {
     return parsePrefs(null);
   }
 }
+
+/** Whether this browser had no preferences of its own when the page loaded. */
+const freshDevice = (() => {
+  try {
+    return localStorage.getItem(PREFS_KEY) === null;
+  } catch {
+    return false;
+  }
+})();
 
 const loaded = loadPrefs();
 const prefSignals: Partial<Record<PrefKey, Signal<unknown>>> = {};
@@ -316,10 +333,15 @@ export function accountPrefsSnapshot(): Record<string, unknown> {
  * left as it is. Saved here, since this tab is the first to hear of it.
  */
 export function adoptAccountPrefs(blob: Record<string, unknown>) {
+  adoptPrefs(blob, ACCOUNT_PREF_KEYS as PrefKey[]);
+}
+
+/** Each of `keys` that `blob` holds, read by its parser, then saved. */
+function adoptPrefs(blob: Record<string, unknown>, keys: readonly PrefKey[]) {
   applyingRemotePrefs = true;
   try {
     batch(() => {
-      for (const key of ACCOUNT_PREF_KEYS as PrefKey[]) {
+      for (const key of keys) {
         if (!(key in blob)) continue;
         prefSignal(key).value = PREF_PARSERS[key](blob[key], blob);
       }
@@ -329,6 +351,20 @@ export function adoptAccountPrefs(blob: Record<string, unknown>) {
   }
   savePrefs();
 }
+
+// The server's defaults, on a browser that had no preferences of its own
+// when it loaded and nobody signed in: every key, the device's own included,
+// at once, so the sign-in screen of a first visit already looks as the host
+// chose. Once. Signed in, the account's copy decides (`prefsSync.ts`).
+let defaultsApplied = false;
+effect(() => {
+  const defaults = serverDefaultPrefs.value;
+  if (!defaults || defaults.signedIn || !freshDevice || defaultsApplied) {
+    return;
+  }
+  defaultsApplied = true;
+  untracked(() => adoptPrefs(defaults.prefs, PREF_KEYS));
+});
 
 // Persist preferences when any pref signal changes (debounced)
 let saveTimeout: ReturnType<typeof setTimeout> | undefined;
