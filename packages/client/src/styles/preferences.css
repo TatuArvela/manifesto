@@ -40,6 +40,20 @@
   border-radius: var(--note-radius);
 }
 
+/* Note tilt: a user preference (Settings > Appearance > Notes). Each card in
+   the grid carries its own angle as `--note-tilt` (utils/noteTilt.ts), and a
+   messy board, `.notes-messy` on <html>, leans it by that much. `rotate` is
+   its own property, so it adds to the drag's and the reordering's
+   `transform` rather than replacing it. A card straightens as it is pointed
+   at, picked up or opened, as a note is when someone reaches for it. */
+:root.notes-messy .note-tilt {
+  rotate: var(--note-tilt, 0deg);
+}
+
+:root.notes-messy .note-tilt:is(:hover, :focus-within, .note-held) {
+  rotate: 0deg;
+}
+
 /* Board background: user preferences (Settings > Appearance > Board
    Background), keyed off attributes on <html> by state/prefs.ts. The board is
    composed of a colour and a texture over it, or covered whole by a picture.

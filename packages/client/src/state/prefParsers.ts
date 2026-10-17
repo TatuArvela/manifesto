@@ -27,6 +27,8 @@ export type DefaultNoteColor = NoteColor | "random";
 export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
+/** Whether the cards sit level on the board, or each leans a little. */
+export type NoteTilt = "tidy" | "messy";
 export type EditMode = "normal" | "raw";
 /** A colour a tag can be given: any note colour but the plain one. */
 export type TagColor = Exclude<NoteColor, NoteColor.Default>;
@@ -373,6 +375,7 @@ export const PREF_PARSERS = {
   inlineCalculations: flag(true),
   decimalSeparator: oneOf(DECIMAL_SEPARATOR_VALUES, "auto"),
   noteCorners: oneOf<NoteCorners>(["straight", "rounded"], "straight"),
+  noteTilt: oneOf<NoteTilt>(["tidy", "messy"], "tidy"),
   // First-run default follows the OS setting; once the user flips the
   // toggle, their choice wins.
   animations: (value: unknown): boolean =>

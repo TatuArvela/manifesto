@@ -19,6 +19,7 @@ export const SETTINGS_INDEX: readonly {
   { tab: "appearance", label: "settings.theme" },
   { tab: "appearance", label: "settings.lightHue" },
   { tab: "appearance", label: "settings.darkHue" },
+  { tab: "appearance", label: "settings.noteTilt" },
   { tab: "appearance", label: "settings.noteCorners" },
   { tab: "appearance", label: "settings.boardBackground" },
   { tab: "appearance", label: "settings.stickyTopBar" },

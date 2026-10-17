@@ -16,6 +16,7 @@ import {
   locale,
   noteCorners,
   noteQuips,
+  noteTilt,
   stickyTopBar,
   type ThemeMode,
   theme,
@@ -148,6 +149,20 @@ export function AppearanceSettings() {
         title={t("settings.group.notes")}
         fold={{ id: "notes", open: false }}
       >
+        <SettingsRow label={t("settings.noteTilt")}>
+          <SettingsSelect
+            label={t("settings.noteTilt")}
+            value={noteTilt.value}
+            options={[
+              { value: "tidy", label: t("settings.noteTilt.tidy") },
+              { value: "messy", label: t("settings.noteTilt.messy") },
+            ]}
+            onChange={(next) => {
+              noteTilt.value = next;
+            }}
+          />
+        </SettingsRow>
+
         <SettingsRow label={t("settings.noteCorners")}>
           <Switch
             checked={noteCorners.value === "rounded"}

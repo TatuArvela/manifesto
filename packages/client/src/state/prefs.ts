@@ -111,6 +111,7 @@ export const locale = pref("locale");
 export const inlineCalculations = pref("inlineCalculations");
 export const decimalSeparator = pref("decimalSeparator");
 export const noteCorners = pref("noteCorners");
+export const noteTilt = pref("noteTilt");
 export const animations = pref("animations");
 export const lightHue = pref("lightHue");
 export const darkHue = pref("darkHue");
@@ -413,6 +414,17 @@ effect(() => {
   document.documentElement.classList.toggle(
     "notes-rounded",
     noteCorners.value === "rounded",
+  );
+});
+
+// --- Note tilt ---
+
+// A class on <html> too: each card carries its own angle as `--note-tilt`
+// whatever the setting, and the stylesheet applies it only on a messy board.
+effect(() => {
+  document.documentElement.classList.toggle(
+    "notes-messy",
+    noteTilt.value === "messy",
   );
 });
 

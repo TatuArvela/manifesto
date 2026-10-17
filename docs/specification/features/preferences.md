@@ -96,6 +96,7 @@ set:
 | `viewMode` | `grid` (default), `list` |
 | `noteSize` | `fit` (default), `square` |
 | `noteCorners` | `straight` (default), `rounded` |
+| `noteTilt` | `tidy` (default), `messy` |
 | `defaultNoteColor` | `default` (default), `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `brown`, `gray`, `random` |
 | `defaultEditMode` | `normal` (default), `raw` |
 | `confirmBeforeDelete`, `inlineCalculations`, `noteQuips`, `formattingToolbar`, `checkedItemsLast` | `true` or `false` |

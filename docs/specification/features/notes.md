@@ -87,6 +87,12 @@ In connected mode, manual ordering is per-user: each user has their own arrangem
 
 Toggled via a ViewToggle button in the header.
 
+**Board Style** (Settings, Appearance, Notes) is **Tidy** by default, every card level. On a **Messy**
+board each card in the grid leans a degree or two, as real sticky notes do: between half a degree
+and two either way, worked out from the note's id, so a note always leans the same way on every
+device and reload. A card straightens while it is pointed at, focused or held. The list view stays
+level, since its cards are as wide as the board and a degree there is a visible step at the edge.
+
 ## Selecting Notes
 
 Selected notes can be pinned, tagged, recoloured, archived or deleted together from the header, which turns into a selection bar while anything is selected. Its tag panel lists every tag with a box that is checked when all of the selected notes carry the tag, dashed when only some do, and empty when none do: choosing a tag they all carry takes it from them, choosing any other gives it to the ones still missing it, and a new tag can be typed in. The panel and the selection stay as they are after a tag is changed, so several can be changed in a row; the other actions end the selection. The colour panel marks the colour the selected notes share, if they share one.

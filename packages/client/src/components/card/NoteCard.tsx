@@ -27,6 +27,7 @@ import {
 import { cardName } from "#/utils/cardName.ts";
 import { contentIsOnlyPreviewUrls } from "#/utils/linkPreview.ts";
 import { MORPH_MS } from "#/utils/morph.ts";
+import { noteTilt } from "#/utils/noteTilt.ts";
 import { NoteCardBody } from "./NoteCardBody.tsx";
 import {
   CardActions,
@@ -276,9 +277,13 @@ export const NoteCard = memo(function NoteCard({
               "w-full",
             draggable && "note-draggable",
             held && "note-held",
+            // A list's cards are as wide as the board, where a degree is a
+            // step at the edge, so only the grid's lean.
+            viewMode.value === "grid" && "note-tilt",
           )}
           style={{
             aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
+            "--note-tilt": `${noteTilt(note.id)}deg`,
             transitionDelay:
               closing && morphing ? `${MORPH_MS - CARD_FADE_MS}ms` : undefined,
           }}
