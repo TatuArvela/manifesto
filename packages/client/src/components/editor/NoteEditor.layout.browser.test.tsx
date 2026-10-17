@@ -1,4 +1,4 @@
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { NoteColor, NoteFont, NoteInk } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
@@ -26,6 +26,8 @@ function renderEditor(content: string) {
       onColorChange={noop}
       font={NoteFont.Default}
       onFontChange={noop}
+      ink={NoteInk.Default}
+      onInkChange={noop}
       images={[]}
       onAddImages={noop}
       onRemoveImage={noop}

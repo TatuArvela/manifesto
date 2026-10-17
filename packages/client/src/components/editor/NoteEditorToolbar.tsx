@@ -1,4 +1,9 @@
-import { type NoteColor, NoteFont, type NoteReminder } from "@manifesto/shared";
+import {
+  type NoteColor,
+  NoteFont,
+  type NoteInk,
+  type NoteReminder,
+} from "@manifesto/shared";
 import {
   Check,
   Code,
@@ -23,6 +28,7 @@ import {
   type NoteMenuItem,
 } from "#/components/card/NoteMenu.tsx";
 import { Dropdown } from "#/components/Dropdown.tsx";
+import { InkPicker } from "#/components/InkPicker.tsx";
 import { ReminderPicker } from "#/components/ReminderPicker.tsx";
 import { TagPickerButton } from "#/components/TagPicker.tsx";
 import { Tooltip } from "#/components/Tooltip.tsx";
@@ -40,6 +46,8 @@ export function NoteEditorToolbar({
   onColorChange,
   font,
   onFontChange,
+  ink,
+  onInkChange,
   tags,
   onAddTag,
   reminder,
@@ -62,6 +70,8 @@ export function NoteEditorToolbar({
   onColorChange: (color: NoteColor) => void;
   font: NoteFont;
   onFontChange: (font: NoteFont) => void;
+  ink: NoteInk;
+  onInkChange: (ink: NoteInk) => void;
   tags: string[];
   onAddTag: (tag: string) => void;
   reminder?: NoteReminder | null | undefined;
@@ -132,6 +142,12 @@ export function NoteEditorToolbar({
           />
         ))}
       </div>
+      <div class="sm:hidden px-3 pt-1 text-xs text-neutral-500 dark:text-neutral-400">
+        {t("editor.ink")}
+      </div>
+      <div class="sm:hidden px-2 pb-2">
+        <InkPicker value={ink} onChange={onInkChange} />
+      </div>
 
       {/* Raw / Normal mode toggle (mobile only) */}
       <button
@@ -194,18 +210,21 @@ export function NoteEditorToolbar({
               />
             }
             placement="bottom-start"
-            panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
+            panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex flex-col gap-1"
           >
-            {Object.values(NoteFont).map((f) => (
-              <Tooltip key={f} label={getFontLabel(f)}>
-                <FontButton
-                  font={f}
-                  selected={font === f}
-                  onClick={() => onFontChange(f)}
-                  pressed
-                />
-              </Tooltip>
-            ))}
+            <div class="flex gap-1">
+              {Object.values(NoteFont).map((f) => (
+                <Tooltip key={f} label={getFontLabel(f)}>
+                  <FontButton
+                    font={f}
+                    selected={font === f}
+                    onClick={() => onFontChange(f)}
+                    pressed
+                  />
+                </Tooltip>
+              ))}
+            </div>
+            <InkPicker value={ink} onChange={onInkChange} />
           </Dropdown>
         </div>
 

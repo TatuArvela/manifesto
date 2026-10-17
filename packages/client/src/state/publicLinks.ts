@@ -5,6 +5,7 @@ import {
   type Note,
   NoteColor,
   type NoteFont,
+  type NoteInk,
   type NoteSealKey,
   openImage,
   openLinkedKey,
@@ -155,6 +156,7 @@ export interface ShownPublicNote {
   content: string;
   color: NoteColor;
   font: NoteFont;
+  ink?: NoteInk;
   images: string[];
   /** In step with `images`, as on a note. */
   imageAlts?: string[];
@@ -208,6 +210,7 @@ async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
       content: opened.content,
       color: NoteColor.Default,
       font: opened.font,
+      ...(opened.ink !== undefined && { ink: opened.ink }),
       images: opened.images,
       ...(opened.imageAlts !== undefined && { imageAlts: opened.imageAlts }),
       linkPreviews: opened.linkPreviews,

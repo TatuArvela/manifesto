@@ -138,6 +138,8 @@ export const en = {
   "editor.itemDateChange": "Change the date",
   "editor.color": "Color",
   "editor.changeColor": "Change color",
+  "editor.ink": "Ink",
+  "editor.ink.default": "Plain",
   "editor.font": "Font",
   "editor.changeFont": "Change font",
   "editor.draw": "Draw",

@@ -1,4 +1,4 @@
-import type { Note, NoteColor } from "@manifesto/shared";
+import { type Note, type NoteColor, NoteInk } from "@manifesto/shared";
 import { type Editor, EditorStatus } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
 import {
@@ -313,6 +313,8 @@ export function NoteCardEditor({
         }
         font={note.font}
         onFontChange={(font) => updateNote(note.id, { font })}
+        ink={note.ink ?? NoteInk.Default}
+        onInkChange={(ink) => updateNote(note.id, { ink })}
         images={note.images}
         imageAlts={note.imageAlts}
         initialFiles={intent?.kind === "attach" ? intent.files : undefined}

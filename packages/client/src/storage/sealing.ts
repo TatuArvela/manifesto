@@ -630,6 +630,7 @@ export class Sealer {
       title,
       content,
       font,
+      ink,
       images,
       imageAlts,
       linkPreviews,
@@ -644,6 +645,7 @@ export class Sealer {
         title,
         content,
         font,
+        ...(ink !== undefined && { ink }),
         images,
         ...(imageAlts !== undefined && { imageAlts }),
         linkPreviews,
@@ -718,6 +720,7 @@ export class Sealer {
       | "title"
       | "content"
       | "font"
+      | "ink"
       | "images"
       | "imageAlts"
       | "linkPreviews"

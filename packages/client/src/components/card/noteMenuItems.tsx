@@ -235,6 +235,7 @@ export function noteMenuItems(
           content,
           color: note.color,
           font: note.font,
+          ...(note.ink !== undefined && { ink: note.ink }),
           tags: [...note.tags],
         });
       },

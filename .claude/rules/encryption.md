@@ -345,11 +345,14 @@ shared note's key.
 A field added to a note's words is added in `noteSeal.ts` (seal, open, check; a list's check in
 `noteChecks.ts`), `SealedNote`, the
 sealed schema and `SEALED_SHARED_NOTE_FIELDS` or the personal list, and `shareMapping.test.ts`
-fails until someone has decided which. An image's description (`Note.imageAlts`) is the one that
-is not: it is sealed inside its image's entry in the `images` list (`ImageEntry.alt`), so it has
-no column and is never written apart from the list. `sealSharedFields` refuses `imageAlts`
+fails until someone has decided which. Two fields are not. An image's description
+(`Note.imageAlts`) is sealed inside its image's entry in the `images` list (`ImageEntry.alt`), so it
+has no column and is never written apart from the list. `sealSharedFields` refuses `imageAlts`
 without `images`, the client's `updateStoredNote` and the token codec carry the descriptions
-over whenever `images` alone is written, and `SealedNote` omits the field.
+over whenever `images` alone is written, and `SealedNote` omits the field. A note's ink
+(`Note.ink`) is sealed the same way inside the font's value (`font|ink`, within its padding;
+`fontText` / `fontAndInk`): `sealSharedFields` refuses `ink` without `font`, and
+`withInkCarried` (shared) is how the store and the token codec send each with the other.
 
 ## Push
 

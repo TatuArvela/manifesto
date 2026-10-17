@@ -2,10 +2,12 @@ import type { Note, NoteCreate, NoteUpdate } from "@manifesto/shared";
 import {
   carriedImageAlts,
   hasUnloadedImages,
+  NoteInk,
   PERSONAL_NOTE_FIELDS,
   roleOf,
   SHARED_NOTE_FIELDS,
   TRASH_RETENTION_DAYS,
+  withInkCarried,
 } from "@manifesto/shared";
 import { batch, computed, effect, signal } from "@preact/signals";
 import type { MessageKey } from "#/i18n/index.ts";
@@ -292,6 +294,8 @@ export function noteCreateFrom(input: Partial<NoteCreate>): NoteCreate {
     content: input.content ?? "",
     color: input.color ?? pickDefaultColor(),
     font: input.font ?? pickDefaultFont(),
+    ...(input.ink !== undefined &&
+      input.ink !== NoteInk.Default && { ink: input.ink }),
     pinned: input.pinned ?? false,
     archived: input.archived ?? false,
     trashed: input.trashed ?? false,
@@ -394,7 +398,10 @@ export async function updateStoredNote(
     return generatedNotes.value.find((n) => n.id === id) ?? null;
   }
   const base = notes.value.find((n) => n.id === id) ?? null;
-  const changes = withImageAlts(base, requested);
+  const changes = withImageAlts(
+    base,
+    base ? withInkCarried(base, requested) : requested,
+  );
   const refusal = base ? refusalFor(base, changes) : null;
   if (refusal) {
     reportFailure(

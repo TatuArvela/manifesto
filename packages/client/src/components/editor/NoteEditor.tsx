@@ -2,6 +2,7 @@ import type {
   LinkPreview,
   NoteColor,
   NoteFont,
+  NoteInk,
   NoteReminder,
 } from "@manifesto/shared";
 import type { Editor } from "@milkdown/kit/core";
@@ -40,6 +41,8 @@ interface NoteEditorProps {
   onColorChange: (color: NoteColor) => void;
   font: NoteFont;
   onFontChange: (font: NoteFont) => void;
+  ink: NoteInk;
+  onInkChange: (ink: NoteInk) => void;
   images: string[];
   /** What each image shows, in words, in step with `images`. */
   imageAlts?: string[] | undefined;
@@ -107,6 +110,8 @@ export function NoteEditor({
   onColorChange,
   font,
   onFontChange,
+  ink,
+  onInkChange,
   images,
   imageAlts,
   onAddImages,
@@ -231,6 +236,7 @@ export function NoteEditor({
             }
           }}
           disabled={disabled}
+          data-ink={ink}
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
         />
 
@@ -255,6 +261,7 @@ export function NoteEditor({
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard users tab into the inner contentEditable directly */}
         <div
           class="max-sm:flex-1 max-sm:cursor-text"
+          data-ink={ink}
           style={{ fontFamily: noteFontFamilies[font] || undefined }}
           onClick={(e) => {
             if (e.target !== e.currentTarget) return;
@@ -307,6 +314,8 @@ export function NoteEditor({
         onColorChange={onColorChange}
         font={font}
         onFontChange={onFontChange}
+        ink={ink}
+        onInkChange={onInkChange}
         tags={tags}
         onAddTag={onAddTag}
         reminder={reminder}

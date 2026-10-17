@@ -13,6 +13,7 @@ A note is the fundamental entity in Manifesto.
 | `content`   | `string`         | Yes      | Markdown content (can be empty string)   |
 | `color`     | `NoteColor`      | Yes      | Color theme for the note                 |
 | `font`      | `NoteFont`       | Yes      | Font style for the note                  |
+| `ink`       | `NoteInk`        | No       | The colour the note is written in; absent for the theme's own text colour. Sealed with `font`; see [NoteInk](#noteink) |
 
 | `pinned`    | `boolean`        | Yes      | Whether the note is pinned to the top    |
 | `archived`  | `boolean`        | Yes      | Whether the note is archived             |
@@ -106,6 +107,23 @@ default | serif | monospace | permanent-marker | comic-relief | rouge-script
 
 Each value is a kind of face rather than a named one, so a note looks alike on every device. The client labels them Sans-serif, Serif, Monospace, Marker, Comic and Script. `default` is the base application font, a sans-serif. `serif` and `monospace` are system font stacks ending in their generic family. `permanent-marker`, `comic-relief` and `rouge-script` are decorative web fonts loaded on demand.
 
+## NoteInk
+
+An enum of the colours a note's text can be written in, whatever paper (`color`) it is on.
+
+```
+default | blue | red | green | purple
+```
+
+`default` is the theme's own text colour, and a note in it carries no `ink` at all. Each other ink
+is drawn in one shade on light paper and another on dark, so it reads on every note colour; links,
+code and date chips keep their own colours. The ink is the note's own like its font, which everyone
+on a shared note sees alike, and it has no field of its own on the wire: it is sealed with the font,
+in the same value (`font|ink`, padded to the font's length), as an image's description is sealed in
+its image's entry. A write of either therefore carries the other: the client and the token API both
+take the font along with a new ink, and the ink along with a new font. A client from before inks
+reads such a note's font as `default`.
+
 ## LinkPreview
 
 A preview card attached to a note for a URL. Created only when a link is inserted via the editor toolbar or when a URL is pasted into the note's body, never regenerated on save. A note holds at most 20. See [Link Previews](features/link-previews.md).
@@ -141,7 +159,7 @@ The fields of a shared note split in two, declared once in `@manifesto/shared` a
 
 | Shared by everyone | Each participant's own |
 |--------------------|------------------------|
-| `title`, `content`, `font`, `images`, `imageAlts`, `linkPreviews` | `color`, `pinned`, `archived`, `trashed`, `trashedAt`, `position`, `tags`, `reminder` |
+| `title`, `content`, `font`, `ink`, `images`, `imageAlts`, `linkPreviews` | `color`, `pinned`, `archived`, `trashed`, `trashedAt`, `position`, `tags`, `reminder` |
 
 `readonly` and `source` are the owner's alone. A recipient's `trashed` is their own trash; the
 owner's is different, because a note in its owner's trash is not shown to anyone else at all.

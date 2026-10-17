@@ -17,6 +17,7 @@ export interface SealedNote
     | "title"
     | "content"
     | "font"
+    | "ink"
     | "images"
     | "imageAlts"
     | "imageCount"

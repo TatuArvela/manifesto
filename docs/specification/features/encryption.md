@@ -62,7 +62,7 @@ server and is unchanged; its notes are as private as the browser profile, as tod
 What is encrypted under which:
 
 - **Under the note key**, what everyone on the note sees: title, text, an excerpt (the first 140
-  characters of the text, for [notifications](#reminders)), font, the list of images with their keys,
+  characters of the text, for [notifications](#reminders)), font and ink (one value), the list of images with their keys,
   link previews, [versions](version-history.md), comments and the collaborative document.
 - **Under the account key**, what is one person's own and in their words: a note's tags and colour
   (for a recipient of a shared note too, since those are theirs), and the
@@ -76,7 +76,7 @@ off under a key that has been replaced.
 - **Edits and cursor states**, which are many, are each under a key derived from the note key for
   that purpose. Random nonces are safe for about 2^32 messages under one key, which is far past what
   a note sees once these are apart from the rest.
-- **Values with few possibilities** (colour, font) are padded to one length, since the length of a
+- **Values with few possibilities** (colour, font with its ink) are padded to one length, since the length of a
   ciphertext would otherwise name them.
 - **The server refuses** anything in an encrypted field that is not shaped as a ciphertext, so a
   faulty client cannot store readable text there.

@@ -16,6 +16,7 @@ import {
   MAX_WRAPPED_KEY_LENGTH,
   NoteColor,
   NoteFont,
+  NoteInk,
   REMINDER_RECURRENCES,
   SEALED_FIELD_MAX,
 } from "@manifesto/shared";
@@ -33,6 +34,7 @@ import {
 
 export const noteColorSchema = z.nativeEnum(NoteColor);
 export const noteFontSchema = z.nativeEnum(NoteFont);
+export const noteInkSchema = z.nativeEnum(NoteInk);
 
 /**
  * Only http(s) URLs are accepted for the link-preview fields, the ones a
@@ -116,6 +118,8 @@ const noteFields = {
   content: z.string().max(MAX_NOTE_CONTENT_LENGTH),
   color: noteColorSchema,
   font: noteFontSchema,
+  // Sealed with the font: a token's write of either keeps the other.
+  ink: noteInkSchema.exactOptional(),
   pinned: z.boolean(),
   archived: z.boolean(),
   trashed: z.boolean(),

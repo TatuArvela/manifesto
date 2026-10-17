@@ -87,6 +87,11 @@ In connected mode, manual ordering is per-user: each user has their own arrangem
 
 Toggled via a ViewToggle button in the header.
 
+A note is written in an **ink** as well as a font: the theme's own text colour by default, or blue,
+red, green or purple, picked beside the font in the editor (in its menu on a phone) and from a card's
+font button. Everyone on a shared note sees the same ink, as they see the same font; the paper colour
+is each person's own. See [NoteInk](../data-model.md#noteink).
+
 A view with no notes in it shows a drawing of what it holds when it holds something, with a line
 saying why it is empty and how a note gets there: a pad of blank notes on the Notes view, a tidy
 archive box on the Archive, an emptied bin on the Trash (which also says how long it keeps a note),

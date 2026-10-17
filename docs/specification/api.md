@@ -120,7 +120,8 @@ without keys is refused the note routes with `403`. Every route above takes and 
 `SealedNote` (`packages/shared/src/api/sealed.ts`) for a session:
 
 - **Sealed under the note key**: `title`, `content`, `excerpt` (the first 140 characters of the
-  text), `font`, `images` (the list of the note's images) and `linkPreviews`.
+  text), `font` (and inside it the `ink`, which has no field of its own), `images` (the list of
+  the note's images) and `linkPreviews`.
 - **Sealed under the reader's personal key**: `color` and `tags`. Either is `""` when never set,
   which is how a shared note first reaches its recipient.
 - **`reminderKey`**, on a note with a reminder, is the note key wrapped under the reader's own

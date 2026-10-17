@@ -1,4 +1,4 @@
-import { NoteColor, NoteFont } from "@manifesto/shared";
+import { NoteColor, NoteFont, NoteInk } from "@manifesto/shared";
 import { z } from "zod";
 import { ACCOUNT_OPERATIONS } from "./openapi/account.ts";
 import { ADMIN_OPERATIONS } from "./openapi/admin.ts";
@@ -100,6 +100,7 @@ function publicParts() {
     // Named, so a generated client has one type for a color wherever a
     // response carries one.
     NoteColor: { type: "string", enum: Object.values(NoteColor) },
+    NoteInk: { type: "string", enum: Object.values(NoteInk) },
     NoteFont: { type: "string", enum: Object.values(NoteFont) },
     LinkPreview: exact(
       {
@@ -177,7 +178,7 @@ function publicParts() {
 
 function components() {
   // The note itself comes from the zod schema; who it is shared with is the
-  // one part of it described by hand, and its color and font point at the
+  // one part of it described by hand, and its color, font and ink point at the
   // named enums the other responses use.
   const converted = toSchema(noteResponseSchema, "output") as {
     properties: Record<string, unknown>;
@@ -188,6 +189,7 @@ function components() {
       ...converted.properties,
       color: ref("NoteColor"),
       font: ref("NoteFont"),
+      ink: ref("NoteInk"),
       sharing: ref("NoteSharing"),
     },
   };

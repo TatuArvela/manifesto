@@ -141,6 +141,8 @@ export const fi: Messages = {
   "editor.itemDateChange": "Vaihda päivämäärää",
   "editor.color": "Väri",
   "editor.changeColor": "Vaihda väriä",
+  "editor.ink": "Muste",
+  "editor.ink.default": "Tavallinen",
   "editor.font": "Fontti",
   "editor.changeFont": "Vaihda fonttia",
   "editor.draw": "Piirrä",

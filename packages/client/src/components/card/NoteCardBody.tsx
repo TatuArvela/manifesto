@@ -154,6 +154,7 @@ export function NoteCardBody({
               // from the images.
               isSquare && !isImageOnly ? "flex-1 min-h-0" : "max-h-80",
             )}
+            data-ink={note.ink}
             style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
           >
             {note.title && (
