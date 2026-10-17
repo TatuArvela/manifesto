@@ -308,11 +308,18 @@ describe("MilkdownEditor undo with a shared document", () => {
       });
 
     await vi.waitFor(() => expect(editorText()).toContain("Shared start"));
+    // The editor's DOM is there before `onEditorReady` runs, from an effect a
+    // render later. Without the editor, `canUndo` is false for no reason and
+    // `caretToEnd` focuses nothing, so the typing goes to the page.
+    await vi.waitFor(() => expect(editor).not.toBeNull());
     expect(canUndo()).toBe(false);
 
     // The caret goes to the end directly: the key for it differs by platform
     // (Ctrl+End, but Cmd+Down on a Mac), and the keys are not what this tests.
     caretToEnd();
+    expect(document.activeElement?.classList.contains("ProseMirror")).toBe(
+      true,
+    );
     await userEvent.keyboard(" and mine");
     await vi.waitFor(() =>
       expect(fragmentText(ydoc)).toContain("Shared start and mine"),
