@@ -3,7 +3,6 @@ import {
   type AccountSealKeys,
   type HeldKeyRequest,
   type ImageKey,
-  type ImageKeySource,
   type Note,
   type NoteComment,
   type NoteCreate,
@@ -13,15 +12,11 @@ import {
   type NoteVersion,
   noteSealKey,
   type OfferedKey,
-  offerNoteKey,
   openComment,
-  openImage,
   openNoteKey,
-  openOfferedKey,
   openPreviousKeys,
   openSealedNote,
   openSharedFields,
-  opensSharedFields,
   openVersion,
   type PublicLink,
   type PublicLinkMode,
@@ -35,7 +30,6 @@ import {
   type SealedNoteVersionCreateRequest,
   type SharedSealed,
   sealComment,
-  sealImage,
   sealNewNote,
   sealNoteUpdate,
   sealPersonalFields,
@@ -43,7 +37,6 @@ import {
   sealSharedFields,
   sealVersion,
   unwrapNoteKey,
-  verifyOfferedKey,
   wipe,
   wrapForLink,
   wrapForReminders,
@@ -51,11 +44,7 @@ import {
 } from "@manifesto/shared";
 import { computed, type Signal, signal } from "@preact/signals";
 import { ulid } from "ulid";
-import {
-  accountImageKeys,
-  accountSubkey,
-  openPrivateKey,
-} from "#/utils/keyMaterial.ts";
+import { accountImageKeys, accountSubkey } from "#/utils/keyMaterial.ts";
 import {
   type NewToken,
   newKeyedToken,
@@ -65,6 +54,8 @@ import {
   sealPrefs,
   sealSeenKeys,
 } from "./accountSealing.ts";
+import { ImageKeyRing, type ImageUpload } from "./imageKeyRing.ts";
+import { offerHeldKey, PrivateKeys, takeOfferedKey } from "./keyOffers.ts";
 import {
   openPublicLinkKey,
   type SealedPublicLink,
@@ -109,24 +100,6 @@ export class NoteKeyError extends Error {
     super("The note's key could not be opened");
     this.name = "NoteKeyError";
   }
-}
-
-/** An image that is not one of the kinds a note may hold, whatever the file
- * was called. */
-export class ImageKindError extends Error {
-  constructor() {
-    super("Not a PNG, JPEG, GIF, WebP or AVIF image");
-    this.name = "ImageKindError";
-  }
-}
-
-/** An image as it goes to the server: what to send, and with which headers. */
-export interface ImageUpload {
-  body: Blob;
-  headers: Record<string, string>;
-  /** What opens it, to keep once the server has named it; null when it was
-   * sent as it is. */
-  key: ImageKey | null;
 }
 
 /** What is known of a note's key: the key to use, and its wrapped copy as
@@ -177,17 +150,11 @@ function toggleIn(
  */
 export class Sealer {
   private readonly account: Promise<AccountSealKeys>;
-  private readonly images: Promise<ImageKeySource>;
   /** Wraps the key of each note that has a reminder, for a calendar feed. */
   private readonly reminders: Promise<CryptoKey>;
   private readonly noteKeys = new Map<string, HeldNoteKey>();
-  /**
-   * What opens each image this device has met, by its reference: from every
-   * note opened, and every image uploaded. A note in the app names its
-   * images by reference alone, and this is where their keys wait to be
-   * sealed back into it.
-   */
-  private readonly imageKeys = new Map<string, ImageKey>();
+  /** What opens each image this device has met, by its reference. */
+  private readonly images: ImageKeyRing;
   /** Whether a note's images have to be made its owner's before it names
    * them (`POST /api/attachments/claim`). */
   readonly claimsImages: boolean = true;
@@ -195,10 +162,7 @@ export class Sealer {
   readonly handsKeysOn: boolean = true;
   private readonly keys: StorageKeys;
   /** The account's private keys, opened the first time one is needed. */
-  private privateKeys: Promise<{
-    exchange: CryptoKey;
-    signing: CryptoKey;
-  } | null> | null = null;
+  private readonly privateKeys: PrivateKeys;
   /** Notes that arrived and did not open, by id: what the board says it
    * is not showing (`UnopenedNotes`). */
   readonly unreadable = signal<ReadonlySet<string>>(new Set());
@@ -235,38 +199,9 @@ export class Sealer {
       notes: await accountSubkey(keys.accountKey, "notes"),
       personal: await accountSubkey(keys.accountKey, "personal"),
     }))();
-    this.images = accountImageKeys(keys.accountKey);
+    this.images = new ImageKeyRing(accountImageKeys(keys.accountKey));
+    this.privateKeys = new PrivateKeys(keys.accountKey, keys.userId);
     this.reminders = accountSubkey(keys.accountKey, "reminder");
-  }
-
-  /**
-   * The account's two private keys, opened with the account key from what
-   * the server holds wrapped (`load`). Null when they could not be read or
-   * do not open; asked again the next time, then.
-   */
-  private async ownPrivateKeys(load: () => Promise<AccountKeys | null>) {
-    this.privateKeys ??= (async () => {
-      // A failure is a null too, or it would be kept and answered to every
-      // later caller until the account is unlocked again.
-      try {
-        return await this.openPrivateKeys(load);
-      } catch (err) {
-        console.warn("Failed to open this account's private keys:", err);
-        return null;
-      }
-    })();
-    const opened = await this.privateKeys;
-    if (!opened) this.privateKeys = null;
-    return opened;
-  }
-
-  private async openPrivateKeys(load: () => Promise<AccountKeys | null>) {
-    const held = await load();
-    if (!held) return null;
-    const { accountKey, userId } = this.keys;
-    const exchange = await openPrivateKey(accountKey, userId, held, "exchange");
-    const signing = await openPrivateKey(accountKey, userId, held, "signing");
-    return exchange && signing ? { exchange, signing } : null;
   }
 
   /**
@@ -280,28 +215,19 @@ export class Sealer {
     fetch: () => Promise<SealedNote | null>,
     load: () => Promise<AccountKeys | null>,
   ): Promise<OfferedKey | null> {
-    const own = await this.ownPrivateKeys(load);
+    const own = await this.privateKeys.get(load);
     if (!own) return null;
     const account = await this.account;
     const held = await this.keyOf(noteId, fetch);
-    const raw = await unwrapNoteKey(
+    const offered = await offerHeldKey(
       account,
+      own.signing,
       noteId,
-      held.key.version,
-      held.wrapped,
+      { version: held.key.version, wrapped: held.wrapped },
+      recipient,
     );
-    if (!raw) throw new NoteKeyError(noteId);
-    try {
-      return await offerNoteKey(
-        { noteId, recipientId: recipient.userId },
-        held.key.version,
-        raw,
-        recipient.exchange,
-        { userId: this.keys.userId, signing: own.signing },
-      );
-    } finally {
-      wipe(raw);
-    }
+    if (!offered) throw new NoteKeyError(noteId);
+    return offered;
   }
 
   /**
@@ -321,26 +247,17 @@ export class Sealer {
     load: () => Promise<AccountKeys | null>,
     words?: Partial<SharedSealed>,
   ): Promise<HeldKeyRequest | null> {
-    const context = { noteId, recipientId: this.keys.userId };
-    if (!(await verifyOfferedKey(context, offered, signerKey))) return null;
-    const own = await this.ownPrivateKeys(load);
-    if (!own) return null;
-    const raw = await openOfferedKey(context, offered, own.exchange);
-    if (!raw) return null;
-    try {
-      const key = await noteSealKey(raw, offered.keyVersion);
-      if (words && !(await opensSharedFields(key, noteId, words))) return null;
-      const wrapped = await wrapNoteKey(
-        await this.account,
-        noteId,
-        offered.keyVersion,
-        raw,
-      );
-      this.hold(noteId, { key, wrapped, previous: "" });
-      return { key: wrapped, keyVersion: offered.keyVersion };
-    } finally {
-      wipe(raw);
-    }
+    const adopted = await takeOfferedKey(
+      await this.account,
+      noteId,
+      offered,
+      signerKey,
+      async () => (await this.privateKeys.get(load))?.exchange ?? null,
+      words,
+    );
+    if (!adopted) return null;
+    this.hold(noteId, { ...adopted, previous: "" });
+    return { key: adopted.wrapped, keyVersion: offered.keyVersion };
   }
 
   /**
@@ -364,52 +281,29 @@ export class Sealer {
 
   /** An image sealed for upload. Rejects with `ImageKindError` for a file
    * that is not an image a note may hold. */
-  async sealUpload(image: Blob): Promise<ImageUpload> {
-    const sealed = await sealImage(
-      await this.images,
-      new Uint8Array(await image.arrayBuffer()),
-    );
-    if (!sealed) throw new ImageKindError();
-    return {
-      body: new Blob([sealed.bytes], { type: "application/octet-stream" }),
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "X-Attachment-Address": sealed.address,
-      },
-      key: sealed.key,
-    };
+  sealUpload(image: Blob): Promise<ImageUpload> {
+    return this.images.seal(image);
   }
 
   /** Keeps what opens the image the server has just named `ref`. */
   keepImageKey(ref: string, key: ImageKey | null): void {
-    if (key) this.imageKeys.set(ref, key);
+    this.images.keep(ref, key);
   }
 
-  /**
-   * What opens the image `ref` names, or null when this device has none: for
-   * what keeps a note on the device before it is sent, since a reference
-   * alone opens nothing after a reload.
-   */
+  /** What opens the image `ref` names, or null when this device has none. */
   imageKeyOf(ref: string): ImageKey | null {
-    return this.imageKeys.get(ref) ?? null;
+    return this.images.keyOf(ref);
   }
 
   /** `to` is the same sealed image as `from`, stored again for a note's
-   * owner: the same key opens it. */
+   * owner. */
   sameImage(from: string, to: string): void {
-    const key = this.imageKeys.get(from);
-    if (key) this.imageKeys.set(to, key);
+    this.images.same(from, to);
   }
 
-  /** The image `ref` names, from its sealed bytes. Rejects when this device
-   * has no key for it, or it does not open as the image its note says. */
-  async openDownload(ref: string, sealed: Blob): Promise<Blob> {
-    const key = this.imageKeys.get(ref);
-    const image = key
-      ? await openImage(key, new Uint8Array(await sealed.arrayBuffer()))
-      : null;
-    if (!key || !image) throw new Error("The image could not be opened");
-    return new Blob([image], { type: key.type });
+  /** The image `ref` names, from its sealed bytes. */
+  openDownload(ref: string, sealed: Blob): Promise<Blob> {
+    return this.images.open(ref, sealed);
   }
 
   /** Keeps a note's key, and says so when it is not the one held before. */
@@ -520,7 +414,7 @@ export class Sealer {
         !sealed.reminderKey &&
         this.noteKeys.has(sealed.id),
     );
-    for (const [ref, key] of opened.imageKeys) this.imageKeys.set(ref, key);
+    this.images.keepAll(opened.imageKeys);
     toggleIn(this.unreadable, sealed.id, false);
     this.unopenedOwn.delete(sealed.id);
     return opened.note;
@@ -573,7 +467,7 @@ export class Sealer {
       await this.account,
       id,
       note,
-      this.imageKeys,
+      this.images.byRef,
     );
     const held = { key, wrapped: sealed.key, previous: "" };
     this.hold(id, held);
@@ -710,7 +604,7 @@ export class Sealer {
       key,
       id,
       changes,
-      this.imageKeys,
+      this.images.byRef,
     );
     // A reminder being set: the note's key goes under the reminder key with
     // it, so a calendar feed can name the event.
@@ -754,7 +648,7 @@ export class Sealer {
         ...(imageAlts !== undefined && { imageAlts }),
         linkPreviews,
       },
-      this.imageKeys,
+      this.images.byRef,
     );
     const personal = await sealPersonalFields(account, id, { color, tags });
     return {
@@ -839,7 +733,7 @@ export class Sealer {
       if (!raw) throw new NoteKeyError(note.id);
       return { version, raw };
     };
-    return sealPublicLink(account, note, mode, noteKey, this.imageKeys);
+    return sealPublicLink(account, note, mode, noteKey, this.images.byRef);
   }
 
   /** A link's key, from the copy sealed for its owner; null when it does

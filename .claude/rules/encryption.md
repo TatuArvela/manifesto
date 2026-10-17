@@ -8,6 +8,8 @@ paths:
   - "packages/client/src/storage/deviceKeys.ts"
   - "packages/client/src/storage/offlineNotes.ts"
   - "packages/client/src/storage/sealing.ts"
+  - "packages/client/src/storage/imageKeyRing.ts"
+  - "packages/client/src/storage/keyOffers.ts"
   - "packages/client/src/storage/linkSealing.ts"
   - "packages/client/src/storage/accountSealing.ts"
   - "packages/client/src/storage/shareKeys.ts"
@@ -157,7 +159,7 @@ sealing client does (`sealImage` refuses what is not one of five image types) an
 does again (`openImage`), since the type in a note is whoever attached the image's word.
 
 In the app a note still names its images as `attachment:<id>` strings, in `images` and in a
-preview's `image` / `favicon`. The key and type of each wait in the `Sealer`'s `imageKeys`, filled
+preview's `image` / `favicon`. The key and type of each wait in the `Sealer`'s `ImageKeyRing` (`storage/imageKeyRing.ts`), filled
 from every note it opens and every upload it makes, and are sealed back into the note with the
 reference. A note that names an image the device has no key for is refused, not sent without one.
 
@@ -174,7 +176,7 @@ owner's copy.
 Everyone on a shared note needs its key (`shared/src/crypto/shareSeal.ts`). It is wrapped to the
 recipient's ECDH public key through an ephemeral key (`offerNoteKey`) and signed with the wrapper's
 ECDSA key over the note, the version, the recipient and the wrap; the recipient's client uses none
-whose signature fails (`Sealer.adoptOffered`), since wrapping to a public key proves nothing about
+whose signature fails (`Sealer.adoptOffered`, the work in `storage/keyOffers.ts`), since wrapping to a public key proves nothing about
 who wrapped. A signature says who wrapped a key, not that it is the note's, and anyone on a note
 may wrap one, so `adoptOfferedKey` also holds the key to the note's sealed fields
 (`opensSharedFields`): `openSharedFields` reads a field that does not open as empty, and a wrong
