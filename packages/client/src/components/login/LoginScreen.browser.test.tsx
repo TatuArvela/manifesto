@@ -23,15 +23,6 @@ vi.mock("#/state/account/auth.ts", async (original) => {
   return {
     ...actual,
     fetchCapabilities: async () => ({ auth }),
-    takeResetToken: () => resetToken,
-    requestPasswordReset: async (email: string) => {
-      requested.push(email);
-      return true;
-    },
-    confirmPasswordReset: async (token: string, password: string) => {
-      resets.push({ token, password });
-      return "ok";
-    },
     login: async (
       _username: string,
       password: string,
@@ -44,6 +35,19 @@ vi.mock("#/state/account/auth.ts", async (original) => {
     },
   };
 });
+
+vi.mock("#/state/account/mailedLinks.ts", async (original) => ({
+  ...(await original<typeof import("#/state/account/mailedLinks.ts")>()),
+  takeResetToken: () => resetToken,
+  requestPasswordReset: async (email: string) => {
+    requested.push(email);
+    return true;
+  },
+  confirmPasswordReset: async (token: string, password: string) => {
+    resets.push({ token, password });
+    return "ok";
+  },
+}));
 
 let host: HTMLDivElement;
 

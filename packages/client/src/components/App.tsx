@@ -21,13 +21,10 @@ import {
   keyState,
   takeSecretKeyFromAddress,
 } from "#/state/account/accountKeys.ts";
-import {
-  authToken,
-  consumeOidcRedirect,
-  isServerMode,
-  takeSignInLinkToken,
-} from "#/state/account/auth.ts";
+import { authToken, isServerMode } from "#/state/account/auth.ts";
+import { takeSignInLinkToken } from "#/state/account/mailedLinks.ts";
 import { takeConsentPage } from "#/state/account/oauth.ts";
+import { consumeOidcRedirect } from "#/state/account/oidcSignIn.ts";
 import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
 import { animations, stickyTopBar, viewMode } from "#/state/prefs.ts";
 import { publicLinksDialog } from "#/state/publicLinks.ts";

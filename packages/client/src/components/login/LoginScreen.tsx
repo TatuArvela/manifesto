@@ -5,16 +5,17 @@ import { buttonClass } from "#/components/buttonClasses.ts";
 import { OrgCredit } from "#/components/OrgCredit.tsx";
 import { APP_LOGO, APP_NAME, INSTANCE_NAME, PRIVACY_URL } from "#/config.ts";
 import { type MessageKey, t } from "#/i18n/index.ts";
+import { fetchCapabilities, SERVER_ORIGIN } from "#/state/account/auth.ts";
+import {
+  takeResetToken,
+  takeSignInLinkToken,
+} from "#/state/account/mailedLinks.ts";
 import {
   beginOidcSignIn,
-  fetchCapabilities,
   type OidcRefusal,
   oidcLoginUrl,
   oidcRefusal,
-  SERVER_ORIGIN,
-  takeResetToken,
-  takeSignInLinkToken,
-} from "#/state/account/auth.ts";
+} from "#/state/account/oidcSignIn.ts";
 import { passkeysSupported } from "#/utils/webauthn.ts";
 import { LocalLoginForm } from "./LocalLoginForm.tsx";
 import {

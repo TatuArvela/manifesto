@@ -3,10 +3,12 @@ import { type MessageKey, t } from "#/i18n/index.ts";
 import {
   AuthRequestError,
   loginErrorKey,
-  requestSignInLink,
-  signInWithLink,
   TwoFactorRequiredError,
 } from "#/state/account/auth.ts";
+import {
+  requestSignInLink,
+  signInWithLink,
+} from "#/state/account/mailedLinks.ts";
 import { locale } from "#/state/prefs.ts";
 import { getPasskey } from "#/utils/webauthn.ts";
 import { type SecondFactor, TwoFactorStep } from "./LoginSteps.tsx";
