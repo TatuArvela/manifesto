@@ -272,22 +272,33 @@
   --board-texture-confetti: var(--board-texture-confetti-mask);
   --board-texture-confetti-size: 320px 320px;
   /* Waves: a running line of arcs, each tile holding the trough of one
-     (a ring centred on its top edge) and the crest of the next (one centred
-     on its bottom edge), which meet across the tile boundary as an S. */
+     (a ring centred on its top edge) and the crest of the next (centred on
+     its bottom edge), which meet across the tile boundary as an S. The line
+     runs 11.5px from each centre, so the tile is four of that wide, and the
+     joins fall a quarter and three quarters across. A join on a side edge
+     would split its line between two tiles, each drawing only its own half,
+     out of step with the arc it meets; so the trough is centred and the
+     crest sits on the side edges, drawn at both, each tile its own half. */
   --board-texture-waves:
     radial-gradient(
-      circle at 12px 0,
+      circle at 23px 0,
       transparent 10.5px,
       #000 11px 12px,
       transparent 12.5px
     ),
     radial-gradient(
-      circle at 36px 36px,
+      circle at 0 36px,
+      transparent 10.5px,
+      #000 11px 12px,
+      transparent 12.5px
+    ),
+    radial-gradient(
+      circle at 46px 36px,
       transparent 10.5px,
       #000 11px 12px,
       transparent 12.5px
     );
-  --board-texture-waves-size: 48px 36px, 48px 36px;
+  --board-texture-waves-size: 46px 36px, 46px 36px, 46px 36px;
   /* Bubbles: a scatter of round dots of every size, each well inside its
      tile so none is cut at an edge. */
   --board-texture-bubbles:
