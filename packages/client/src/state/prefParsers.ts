@@ -383,6 +383,8 @@ export const PREF_PARSERS = {
     oneOf(DARK_HUES, "neutral")(value === "violet" ? "lavender" : value),
   noteQuips: flag(true),
   formattingToolbar: flag(true),
+  /** Whether ticking a checklist item moves it below the ones still to do. */
+  checkedItemsLast: flag(false),
   /**
    * On a phone, whether the top bar stays at the top of the screen while the
    * board scrolls, or scrolls away with it. Wider screens always keep it.

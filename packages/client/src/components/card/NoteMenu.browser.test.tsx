@@ -185,7 +185,11 @@ describe("a note shared with the user", () => {
     },
     members: [],
   });
-  const checkedItems = { present: true, remove: () => {} };
+  const checkedItems = {
+    present: true,
+    remove: () => {},
+    uncheck: () => {},
+  };
   const datedItems = { present: true, sort: () => {} };
   /** Every row's id, those inside a submenu included. */
   const ids = (note: Note) =>
@@ -205,6 +209,15 @@ describe("a note shared with the user", () => {
   it("does not offer a viewer to delete checked items", () => {
     expect(ids(makeNote({ sharing: sharing("view") }))).not.toContain(
       "delete-checked",
+    );
+  });
+
+  it("offers unchecking all items to someone who can edit, not a viewer", () => {
+    expect(ids(makeNote({ sharing: sharing("edit") }))).toContain(
+      "uncheck-all",
+    );
+    expect(ids(makeNote({ sharing: sharing("view") }))).not.toContain(
+      "uncheck-all",
     );
   });
 

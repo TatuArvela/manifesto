@@ -4,6 +4,7 @@ import { noteFontFamilies } from "#/colors.ts";
 import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.tsx";
 import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
 import {
+  checkedItemsLast,
   confirmBeforeDelete,
   type DecimalSeparator,
   type DefaultNoteColor,
@@ -37,6 +38,16 @@ export function FeaturesSettings() {
               formattingToolbar.value = checked;
             }}
             label={t("settings.formattingToolbar")}
+          />
+        </SettingsRow>
+
+        <SettingsRow label={t("settings.checkedItemsLast")}>
+          <Switch
+            checked={checkedItemsLast.value}
+            onChange={(checked) => {
+              checkedItemsLast.value = checked;
+            }}
+            label={t("settings.checkedItemsLast")}
           />
         </SettingsRow>
 

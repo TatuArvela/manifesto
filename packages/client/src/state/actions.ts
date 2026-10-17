@@ -6,7 +6,12 @@ import {
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { sortChecklistByDate } from "#/utils/itemDate.ts";
-import { removeCheckedItems, toggleChecklistItem } from "#/utils/markdown.ts";
+import {
+  moveCheckedLast,
+  removeCheckedItems,
+  toggleChecklistItem,
+  uncheckAllItems,
+} from "#/utils/markdown.ts";
 import { asBatch, type Batch } from "./failures.ts";
 import {
   allNotes,
@@ -22,7 +27,12 @@ import {
   POSITION_STEP,
   positionBetween,
 } from "./ordering.ts";
-import { animations, hiddenTags, tagColors } from "./prefs.ts";
+import {
+  animations,
+  checkedItemsLast,
+  hiddenTags,
+  tagColors,
+} from "./prefs.ts";
 import { exitSelectMode } from "./selection.ts";
 import { activeTag, selectedNotes } from "./ui.ts";
 import {
@@ -519,6 +529,15 @@ export async function deleteCheckedItems(id: string) {
   await updateNote(id, { content: next });
 }
 
+/** Unticks every item of a note's checklists, for a list used again. */
+export async function uncheckAll(id: string) {
+  const note = notes.value.find((n) => n.id === id);
+  if (!note) return;
+  const next = uncheckAllItems(note.content);
+  if (next === note.content) return;
+  await updateNote(id, { content: next });
+}
+
 export async function sortItemsByDate(id: string) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
@@ -530,7 +549,8 @@ export async function sortItemsByDate(id: string) {
 export async function toggleCheckbox(id: string, lineIndex: number) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
-  const next = toggleChecklistItem(note.content, lineIndex);
-  if (next === null) return;
+  const toggled = toggleChecklistItem(note.content, lineIndex);
+  if (toggled === null) return;
+  const next = checkedItemsLast.value ? moveCheckedLast(toggled) : toggled;
   await updateNote(id, { content: next });
 }

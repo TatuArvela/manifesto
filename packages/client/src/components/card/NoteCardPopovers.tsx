@@ -9,6 +9,7 @@ import {
   addTag,
   deleteCheckedItems,
   sortItemsByDate,
+  uncheckAll,
 } from "#/state/actions.ts";
 import { updateNote } from "#/state/notesStore.ts";
 import { hasDatedItems } from "#/utils/itemDate.ts";
@@ -116,6 +117,7 @@ function CardMenu({
             checkedItems: {
               present: hasCheckedItems(note.content),
               remove: () => deleteCheckedItems(note.id),
+              uncheck: () => uncheckAll(note.id),
             },
             datedItems: {
               present: hasDatedItems(note.content),

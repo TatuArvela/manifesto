@@ -1,7 +1,7 @@
 import {
   markFencedLines,
   parseChecklistLine,
-  segmentContent,
+  sortChecklist,
 } from "./markdown.ts";
 
 /**
@@ -91,48 +91,14 @@ export function hasDatedItems(content: string): boolean {
   });
 }
 
-interface ItemNode {
-  line: string;
-  indent: number;
-  key: string;
-  children: ItemNode[];
-}
-
-function sortedLines(items: ItemNode[]): string[] {
-  // `sort` is stable, so items sharing a date, and the undated ones, keep the
-  // order they were written in.
-  return [...items]
-    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
-    .flatMap((item) => [item.line, ...sortedLines(item.children)]);
-}
-
 /**
  * `content` with its checklist items in date order, soonest first and undated
- * last. Items are sorted among their siblings only, in each run of checklist
- * lines, and an item's indented children move with it, sorted in turn.
+ * last (`sortChecklist`: among siblings, children moving with their item).
+ * Items sharing a date, and the undated ones, keep the order they had.
  */
 export function sortChecklistByDate(content: string): string {
-  const out: string[] = [];
-  for (const segment of segmentContent(content)) {
-    if (segment.type !== "checklist") {
-      out.push(...segment.lines);
-      continue;
-    }
-    const roots: ItemNode[] = [];
-    const open: ItemNode[] = [];
-    for (const line of segment.lines) {
-      const parsed = parseChecklistLine(line);
-      const node: ItemNode = {
-        line,
-        indent: parsed?.indent.length ?? 0,
-        key: (parsed && labelDate(parsed.label)) ?? UNDATED,
-        children: [],
-      };
-      while ((open.at(-1)?.indent ?? -1) >= node.indent) open.pop();
-      (open.at(-1)?.children ?? roots).push(node);
-      open.push(node);
-    }
-    out.push(...sortedLines(roots));
-  }
-  return out.join("\n");
+  return sortChecklist(
+    content,
+    (item) => (item && labelDate(item.label)) ?? UNDATED,
+  );
 }

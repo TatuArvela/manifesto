@@ -32,6 +32,26 @@ An item is given a date by writing it in the item's text as `@` and an ISO date:
 
 An item's date does not notify: a reminder belongs to the note (see [Non-goals](../non-goals.md)).
 
+## Checked Items Last
+
+With "Checked Items Last" on (Settings, Features; the `checkedItemsLast` preference, off by default),
+ticking an item moves it below the items still to do, and unticking one moves it back up, to the end
+of the ones still to do. Each list is ordered among its siblings, nested items moving with their
+parent, and both groups keep the order they had. The order is written into the Markdown, so it is
+the same on every device and for everyone a note is shared with; the preference only decides
+whether a tick by this user reorders. On a card the toggle and the move are one write, and in the
+editor one step, which a single undo reverts.
+
+## Uncheck All
+
+"Uncheck all" in the note's Checklist menu, shown when the note has a ticked item, unticks every
+item at once, for a packing or shopping list used again. A note shared only to view does not offer it.
+
+## Progress
+
+A card whose note has two or more checklist items draws a thin bar under its text, filled by the
+share of items ticked, nested ones counted. Its label ("3 of 5 done") is what a screen reader reads.
+
 ## Interaction from the Card View
 
 Checkboxes can be toggled directly from the note card in the grid/list view, without opening the editor. This is essential for quick-use scenarios like shopping lists.

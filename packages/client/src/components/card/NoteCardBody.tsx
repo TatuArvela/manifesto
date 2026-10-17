@@ -9,9 +9,41 @@ import { LinkPreviewList } from "#/components/LinkPreviewList.tsx";
 import { ReminderChip } from "#/components/ReminderChip.tsx";
 import { SharedAvatars } from "#/components/sharing/SharedAvatars.tsx";
 import { TagChip } from "#/components/TagChip.tsx";
+import { t } from "#/i18n/index.ts";
 import { toggleCheckbox } from "#/state/actions.ts";
 import { drawnWithoutImages } from "#/state/autoNotes.ts";
 import { updateNote } from "#/state/notesStore.ts";
+import { checklistProgress } from "#/utils/markdown.ts";
+
+/**
+ * How far along a note's checklists are, as a thin bar under the text. Drawn
+ * from two items on: one item is either done or not, which its box says.
+ */
+function ChecklistProgress({ content }: { content: string }) {
+  const { done, total } = checklistProgress(content);
+  if (total < 2) return null;
+  const label = t("card.checklistProgress", {
+    done: String(done),
+    total: String(total),
+  });
+  return (
+    <div
+      class="mt-2 h-1 rounded-full bg-black/10 dark:bg-white/15 overflow-hidden"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={done}
+      aria-valuetext={label}
+      title={label}
+    >
+      <div
+        class="h-full rounded-full bg-current opacity-50 transition-[width] duration-300"
+        style={{ width: `${(done / total) * 100}%` }}
+      />
+    </div>
+  );
+}
 
 /**
  * What a card shows of its note: the pictures, then either a link hero (for a
@@ -140,6 +172,8 @@ export function NoteCardBody({
               noImages={drawnWithoutImages(note)}
             />
           </div>
+
+          <ChecklistProgress content={note.content} />
 
           {hasLinkPreviews && (
             <div class="mt-3">
