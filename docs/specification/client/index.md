@@ -42,12 +42,15 @@ packages/client/src/
 ├── styles.css            # Tailwind v4 entry: imports the partials in styles/, in cascade order
 ├── styles/               # The stylesheet by subject (@theme tokens in setup.css)
 ├── colors.ts             # NoteColor → Tailwind class maps (light + dark)
-├── components/           # All UI components (see hierarchy below)
+├── autoNotes/            # The auto-note plugin sandbox, its registry and standard library
+├── components/           # All UI components (see Component Hierarchy below)
 │   ├── admin/            # AdminView and its pages (overview, teams, audit log)
+│   ├── login/            # LoginScreen and its forms, and the screen and sheet for an account's keys
 │   └── settings/         # SettingsDialog, one file per tab, and the rows and selects they share
 ├── extensions/           # ProseMirror/Milkdown extensions
-├── hooks/                # Preact hooks (currently: useMilkdownEditor)
+├── hooks/                # Preact hooks (the editor, Escape, shortcuts, Back, masonry, gestures)
 ├── i18n/                 # Translation framework + en/fi message bundles
+├── realtime/             # The app socket, the collaborative document and its sealing
 ├── state/                # Signals, actions, preferences, reminder scheduler
 ├── storage/              # StorageAdapter interface + Local/Rest implementations
 ├── test/                 # Helpers only tests import, and the browser project's setup file

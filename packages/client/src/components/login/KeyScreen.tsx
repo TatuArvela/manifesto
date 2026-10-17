@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
-import { APP_LOGO, APP_NAME } from "../config.js";
-import { type MessageKey, t } from "../i18n/index.js";
+import { APP_LOGO, APP_NAME } from "../../config.js";
+import { type MessageKey, t } from "../../i18n/index.js";
 import {
   checkAccountKeys,
   completeSetup,
@@ -10,17 +10,17 @@ import {
   startAgain,
   type UnlockResult,
   unlock,
-} from "../state/accountKeys.js";
-import { currentUser } from "../state/auth.js";
-import type { ConfirmationRefusal } from "../state/passwordConfirmation.js";
-import { signOut } from "../state/signOut.js";
-import { userKeyKindOf } from "../utils/userKey.js";
-import { BrandLogo } from "./BrandLogo.js";
-import { buttonClass } from "./buttonClasses.js";
+} from "../../state/accountKeys.js";
+import { currentUser } from "../../state/auth.js";
+import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
+import { signOut } from "../../state/signOut.js";
+import { userKeyKindOf } from "../../utils/userKey.js";
+import { BrandLogo } from "../BrandLogo.js";
+import { buttonClass } from "../buttonClasses.js";
 import {
   ConfirmationError,
   ConfirmPasswordField,
-} from "./ConfirmWithPassword.js";
+} from "../ConfirmWithPassword.js";
 import { KeepSheetStep } from "./KeySheet.js";
 import { quietClass, submitClass } from "./loginFormClasses.js";
 import { Field, RecoveryForm, UserKeyInput } from "./RecoveryForms.js";

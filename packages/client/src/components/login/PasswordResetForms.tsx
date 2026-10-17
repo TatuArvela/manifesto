@@ -1,8 +1,11 @@
 import { useState } from "preact/hooks";
-import { t } from "../i18n/index.js";
-import { confirmPasswordReset, requestPasswordReset } from "../state/auth.js";
-import { locale } from "../state/prefs.js";
-import { showSuccess } from "../state/ui.js";
+import { t } from "../../i18n/index.js";
+import {
+  confirmPasswordReset,
+  requestPasswordReset,
+} from "../../state/auth.js";
+import { locale } from "../../state/prefs.js";
+import { showSuccess } from "../../state/ui.js";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
 
 /** Asks for a reset link by mail; says the same whatever the address. */

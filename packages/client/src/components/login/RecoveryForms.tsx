@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { type MessageKey, t } from "../i18n/index.js";
+import { type MessageKey, t } from "../../i18n/index.js";
 import {
   abandonRecovery,
   beginRecovery,
@@ -8,8 +8,8 @@ import {
   completeRecovery,
   type KeySheet,
   type RecoveryResult,
-} from "../state/accountKeys.js";
-import { userKeyKindOf } from "../utils/userKey.js";
+} from "../../state/accountKeys.js";
+import { userKeyKindOf } from "../../utils/userKey.js";
 import { KeepSheetStep } from "./KeySheet.js";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
 

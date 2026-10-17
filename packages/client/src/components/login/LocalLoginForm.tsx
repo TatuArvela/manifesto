@@ -1,6 +1,6 @@
 import { KeyRound, Mail } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { t } from "../i18n/index.js";
+import { t } from "../../i18n/index.js";
 import {
   login,
   loginErrorKey,
@@ -8,8 +8,8 @@ import {
   register,
   signInWithPasskey,
   TwoFactorRequiredError,
-} from "../state/auth.js";
-import { getPasskey } from "../utils/webauthn.js";
+} from "../../state/auth.js";
+import { getPasskey } from "../../utils/webauthn.js";
 import {
   ChangePasswordStep,
   type SecondFactor,
