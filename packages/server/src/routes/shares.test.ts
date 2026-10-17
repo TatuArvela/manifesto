@@ -892,6 +892,36 @@ describe("finding people to share with", () => {
     expect(features.userLookup).toBe("exact");
     await rig.close();
   });
+
+  it("never offers the account asking, by name or by address", async () => {
+    const { rig, find } = await setup("exact");
+    expect(await find("olivia")).toEqual([]);
+    await rig.close();
+  });
+
+  it("names an account once when its username and its address both match", async () => {
+    const { rig, find } = await setup("exact");
+    const carol = await registerTestUser(rig, "carol@example.com");
+    const set = await rig.request("/api/auth/me", {
+      method: "PUT",
+      headers: authHeaders(carol.token),
+      body: JSON.stringify({
+        email: "carol@example.com",
+        password: "test-pass-12",
+      }),
+    });
+    expect(set.status).toBe(200);
+    expect(await find("carol@example.com")).toMatchObject([
+      { username: "carol@example.com" },
+    ]);
+    await rig.close();
+  });
+
+  it("answers a query longer than any address with nobody", async () => {
+    const { rig, find } = await setup("search");
+    expect(await find("a".repeat(255))).toEqual([]);
+    await rig.close();
+  });
 });
 
 describe("email addresses on accounts", () => {
