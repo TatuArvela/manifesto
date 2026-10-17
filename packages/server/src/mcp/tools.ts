@@ -9,7 +9,7 @@ import {
   type NotesResponse,
 } from "@manifesto/shared";
 import { z } from "zod";
-import { noteColorSchema } from "#/validation/schemas.ts";
+import { noteColorSchema } from "#/validation/noteSchemas.ts";
 
 /**
  * The tools `/api/mcp` offers an AI assistant. Each one is REST calls and

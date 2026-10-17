@@ -3,6 +3,14 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { edgeScroll, scrollParent } from "#/utils/edgeScroll.ts";
 import {
+  dropLevel,
+  INDENT_PX,
+  listBoundaryAt,
+  neighborIndex,
+  slotAt,
+  touchLift,
+} from "./taskItemDropTarget.ts";
+import {
   endOfOuterList,
   getDeletionRange,
   getItemLevel,
@@ -15,19 +23,8 @@ import {
 // it by how far sideways it is dropped. One drag at a time, held in module
 // state, since there is only one pointer doing it.
 
-const INDENT_PX = 24;
 const DRAG_THRESHOLD_PX = 4;
 const INDICATOR_HEIGHT_PX = 2;
-/**
- * How far above a finger a touch drag aims, at most. The finger covers the row
- * it is on and the line under it, so the item is held up where it can be seen
- * and the drop goes where the item is drawn, not under the fingertip.
- *
- * The lift grows with the finger's travel, at half its pace, rather than
- * being there from the start: lifted at once, the aim began a row up, and an
- * item let go where it was picked up moved one slot.
- */
-const TOUCH_LIFT_PX = 44;
 
 type TaskItemInfo = {
   pos: number;
@@ -110,31 +107,18 @@ function collectTaskItems(view: EditorView): TaskItemInfo[] {
 }
 
 /**
- * The slot before the first item whose line's middle is below `y`. Measured
- * on the whole line, not the checkbox: a box at the top of a long item put the
- * middle of the item in the slot after it.
+ * Measured on the whole line, not the checkbox: a box at the top of a long
+ * item put the middle of the item in the slot after it.
  */
 function findSlot(items: TaskItemInfo[], y: number): number {
-  for (const [i, item] of items.entries()) {
-    const rect = item.line.getBoundingClientRect();
-    if (y < rect.top + rect.height / 2) return i;
-  }
-  return items.length;
-}
-
-function effectiveNeighborIdx(
-  slot: number,
-  sourceIdx: number,
-  side: "above" | "below",
-): number {
-  if (side === "above") {
-    let idx = slot - 1;
-    if (idx === sourceIdx) idx--;
-    return idx;
-  }
-  let idx = slot;
-  if (idx === sourceIdx) idx++;
-  return idx;
+  return slotAt(
+    items.length,
+    (i) => {
+      const rect = items[i]?.line.getBoundingClientRect();
+      return rect ? rect.top + rect.height / 2 : Number.POSITIVE_INFINITY;
+    },
+    y,
+  );
 }
 
 function computeAtListEnd(
@@ -143,36 +127,11 @@ function computeAtListEnd(
   sourceIdx: number,
   clientY: number,
 ): boolean {
-  const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
-  const belowIdx = effectiveNeighborIdx(slot, sourceIdx, "below");
-  const above = items[aboveIdx];
-  const below = items[belowIdx];
-  if (!above || !below) return false;
-  if (above.outerListPos < 0 || below.outerListPos < 0) return false;
-  if (above.outerListPos === below.outerListPos) return false;
-  const aboveBottom = above.dom.getBoundingClientRect().bottom;
-  const belowTop = below.label.getBoundingClientRect().top;
+  const boundary = listBoundaryAt(items, slot, sourceIdx);
+  if (!boundary) return false;
+  const aboveBottom = boundary.above.dom.getBoundingClientRect().bottom;
+  const belowTop = boundary.below.label.getBoundingClientRect().top;
   return clientY < (aboveBottom + belowTop) / 2;
-}
-
-function computeTargetLevel(
-  items: TaskItemInfo[],
-  slot: number,
-  sourceIdx: number,
-  sourceLevel: number,
-  deltaX: number,
-  atListEnd: boolean,
-): number {
-  const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
-  const above = aboveIdx >= 0 ? items[aboveIdx] : null;
-
-  const belowIdx = effectiveNeighborIdx(slot, sourceIdx, "below");
-  const below = !atListEnd && belowIdx < items.length ? items[belowIdx] : null;
-
-  const maxLevel = above ? above.level + 1 : 1;
-  const minLevel = below ? below.level : 1;
-  const desired = sourceLevel + Math.round(deltaX / INDENT_PX);
-  return Math.max(minLevel, Math.min(maxLevel, desired));
 }
 
 function levelXFor(
@@ -203,8 +162,7 @@ function slotY(
 ): number {
   if (items.length === 0) return 0;
   if (atListEnd) {
-    const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
-    const ref = items[aboveIdx];
+    const ref = items[neighborIndex(slot, sourceIdx, "above")];
     if (ref)
       return Math.max(
         ref.label.getBoundingClientRect().bottom,
@@ -309,7 +267,7 @@ function applyDrop(state: DragState) {
   const next = items[slot];
   const last = items.at(-1);
   if (atListEnd) {
-    const aboveIdx = effectiveNeighborIdx(slot, sourceIdx, "above");
+    const aboveIdx = neighborIndex(slot, sourceIdx, "above");
     const above = aboveIdx >= 0 ? items[aboveIdx] : null;
     if (!above) return;
     const end = endOfOuterList(doc, above.pos);
@@ -421,8 +379,7 @@ function aimY(state: DragState): number {
 
 function updateLift(state: DragState) {
   if (!state.touch) return;
-  const travel = Math.abs(state.lastY - state.startY);
-  state.lift = Math.max(state.lift, Math.min(TOUCH_LIFT_PX, travel / 2));
+  state.lift = touchLift(state.lift, state.lastY - state.startY);
 }
 
 /** Works out where the pointer would drop the item, and shows it. */
@@ -435,7 +392,7 @@ function aim(state: DragState) {
     state.sourceIdx,
     y,
   );
-  state.targetLevel = computeTargetLevel(
+  state.targetLevel = dropLevel(
     state.items,
     state.slot,
     state.sourceIdx,

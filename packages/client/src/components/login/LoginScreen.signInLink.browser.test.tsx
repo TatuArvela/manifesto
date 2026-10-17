@@ -26,6 +26,15 @@ vi.mock("#/state/account/auth.ts", async (original) => {
   return {
     ...actual,
     fetchCapabilities: async () => ({ auth }),
+  };
+});
+
+vi.mock("#/state/account/mailedLinks.ts", async (original) => {
+  const { AuthRequestError, TwoFactorRequiredError } = await import(
+    "#/state/account/auth.ts"
+  );
+  return {
+    ...(await original<typeof import("#/state/account/mailedLinks.ts")>()),
     takeResetToken: () => null,
     takeSignInLinkToken: () => linkToken,
     requestSignInLink: async (email: string) => {
@@ -34,11 +43,11 @@ vi.mock("#/state/account/auth.ts", async (original) => {
     },
     signInWithLink: async (token: string, otp?: string) => {
       attempts.push({ token, otp });
-      if (account === "expired") throw new actual.AuthRequestError(410, "gone");
+      if (account === "expired") throw new AuthRequestError(410, "gone");
       if (account === "plain") return;
-      if (otp === undefined) throw new actual.TwoFactorRequiredError("code");
+      if (otp === undefined) throw new TwoFactorRequiredError("code");
       if (otp !== "123456") {
-        throw new actual.AuthRequestError(401, "no", "two_factor_invalid");
+        throw new AuthRequestError(401, "no", "two_factor_invalid");
       }
     },
   };

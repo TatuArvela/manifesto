@@ -26,7 +26,7 @@ import {
   loginSchema,
   passwordChangeSchema,
   registerSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import { createLoginAttempts, type LoginAttempts } from "./loginAttempts.ts";
 import {

@@ -1,9 +1,6 @@
 import { t } from "#/i18n/index.ts";
-import {
-  beginOidcSignIn,
-  currentUser,
-  oidcReauthUrl,
-} from "#/state/account/auth.ts";
+import { currentUser } from "#/state/account/auth.ts";
+import { beginOidcSignIn, oidcReauthUrl } from "#/state/account/oidcSignIn.ts";
 import {
   CONFIRMATION_MESSAGES,
   type ConfirmationRefusal,

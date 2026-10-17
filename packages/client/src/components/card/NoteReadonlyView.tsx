@@ -42,7 +42,8 @@ import { drawnWithoutImages, refreshAutoNotes } from "#/state/autoNotes.ts";
 import { ensureImages, updateNote } from "#/state/notesStore.ts";
 import { renderMarkdown } from "#/utils/remarkRenderer.ts";
 import { withoutImages } from "#/utils/stripImages.ts";
-import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.tsx";
+import { menuPanelClass, NoteMenu } from "./NoteMenu.tsx";
+import { noteMenuItems } from "./noteMenuItems.tsx";
 
 /**
  * A note that can be looked at and organized but not written: an automatic

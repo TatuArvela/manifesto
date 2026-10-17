@@ -3,7 +3,7 @@ import type { LinkPreviewResponse } from "@manifesto/shared";
 import { Hono } from "hono";
 import type { LinkPreviewFetcher } from "#/linkPreview/fetchPreview.ts";
 import type { AuthContext } from "#/middleware/authBearer.ts";
-import { linkPreviewQuerySchema } from "#/validation/schemas.ts";
+import { linkPreviewQuerySchema } from "#/validation/noteSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 
 interface LinkPreviewDeps {

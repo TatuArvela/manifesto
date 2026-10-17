@@ -7,13 +7,9 @@ import { t } from "#/i18n/index.ts";
 import { notes } from "#/state/notesStore.ts";
 import { editingNoteId } from "#/state/ui.ts";
 import { NoteCard } from "./NoteCard.tsx";
-import {
-  arrangeMenu,
-  NoteMenu,
-  type NoteMenuItem,
-  noteMenuItems,
-} from "./NoteMenu.tsx";
+import { arrangeMenu, NoteMenu, type NoteMenuItem } from "./NoteMenu.tsx";
 import { NoteReadonlyView } from "./NoteReadonlyView.tsx";
+import { noteMenuItems } from "./noteMenuItems.tsx";
 
 /**
  * Three surfaces used to carry three copies of the same menu, and the copies

@@ -18,8 +18,8 @@ import {
   type StorageDriver,
   type StoredNoteUpdate,
 } from "#/storage/types.ts";
+import { noteRekeySchema } from "#/validation/noteSchemas.ts";
 import { readPageParams } from "#/validation/pageParams.ts";
-import { noteRekeySchema } from "#/validation/schemas.ts";
 import { registerCommentRoutes } from "./comments.ts";
 import {
   bodyOf,

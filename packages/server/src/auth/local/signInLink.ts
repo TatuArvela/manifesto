@@ -18,7 +18,7 @@ import type { StorageDriver, User } from "#/storage/types.ts";
 import {
   signInLinkConfirmSchema,
   signInLinkRequestSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import type { LoginAttempts } from "./loginAttempts.ts";
 import { mailedLinks } from "./mailedLink.ts";

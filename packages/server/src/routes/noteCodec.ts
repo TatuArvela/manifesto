@@ -50,7 +50,7 @@ import {
   type sealedNoteUpdateSchema,
   sealedNoteUpdateSchema as sealedUpdate,
   sealedVersionCreateSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/noteSchemas.ts";
 
 /**
  * Notes for a token that carries a key

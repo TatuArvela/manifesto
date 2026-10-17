@@ -38,7 +38,7 @@ import {
 import {
   adminCreateUserSchema,
   adminUpdateUserSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import { VERSION } from "#/version.ts";
 import { registerAdminCheckRoutes } from "./adminChecks.ts";

@@ -8,6 +8,8 @@ paths:
   - "packages/client/src/storage/deviceKeys.ts"
   - "packages/client/src/storage/offlineNotes.ts"
   - "packages/client/src/storage/sealing.ts"
+  - "packages/client/src/storage/imageKeyRing.ts"
+  - "packages/client/src/storage/keyOffers.ts"
   - "packages/client/src/storage/linkSealing.ts"
   - "packages/client/src/storage/accountSealing.ts"
   - "packages/client/src/storage/shareKeys.ts"
@@ -15,6 +17,7 @@ paths:
   - "packages/client/src/state/comments.ts"
   - "packages/client/src/state/publicLinks.ts"
   - "packages/client/src/components/sharing/ShareDialog.tsx"
+  - "packages/client/src/components/sharing/ShareMembers.tsx"
   - "packages/server/src/routes/publicLinks.ts"
   - "packages/client/src/realtime/sealedDocument.ts"
   - "packages/client/src/realtime/yjsSession.ts"
@@ -111,7 +114,7 @@ for any new flow that makes a key someone has to hold.
   is refused while one of the account's own notes is among them (`missesOwnNotes`), and leaves
   out a note shared with the account, which is its owner's to back up. `openAll` opens a few notes at a time and keeps their order.
 - **The server stores only what is shaped as a ciphertext** where one belongs: `sealed` in
-  `validation/schemas.ts` on the way in, and `sealedColumn` (`storage/noteMapping.ts`) on the way
+  `validation/fields.ts` on the way in, and `sealedColumn` (`storage/noteMapping.ts`) on the way
   out, so a column's readable default is never sent as a value.
 - **What is opened is checked.** It was written by some client and checked by no server, so
   `shared/src/crypto/noteSeal.ts` holds every opened value to what a note may hold (the lists through
@@ -157,7 +160,7 @@ sealing client does (`sealImage` refuses what is not one of five image types) an
 does again (`openImage`), since the type in a note is whoever attached the image's word.
 
 In the app a note still names its images as `attachment:<id>` strings, in `images` and in a
-preview's `image` / `favicon`. The key and type of each wait in the `Sealer`'s `imageKeys`, filled
+preview's `image` / `favicon`. The key and type of each wait in the `Sealer`'s `ImageKeyRing` (`storage/imageKeyRing.ts`), filled
 from every note it opens and every upload it makes, and are sealed back into the note with the
 reference. A note that names an image the device has no key for is refused, not sent without one.
 
@@ -174,7 +177,7 @@ owner's copy.
 Everyone on a shared note needs its key (`shared/src/crypto/shareSeal.ts`). It is wrapped to the
 recipient's ECDH public key through an ephemeral key (`offerNoteKey`) and signed with the wrapper's
 ECDSA key over the note, the version, the recipient and the wrap; the recipient's client uses none
-whose signature fails (`Sealer.adoptOffered`), since wrapping to a public key proves nothing about
+whose signature fails (`Sealer.adoptOffered`, the work in `storage/keyOffers.ts`), since wrapping to a public key proves nothing about
 who wrapped. A signature says who wrapped a key, not that it is the note's, and anyone on a note
 may wrap one, so `adoptOfferedKey` also holds the key to the note's sealed fields
 (`opensSharedFields`): `openSharedFields` reads a field that does not open as empty, and a wrong
@@ -213,7 +216,7 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   remembered key, and then retries what waited on it. A key counts as remembered only once the
   server has kept it (`remember`): a first key it does not keep is not trusted, and a changed key
   it does not take leaves the remembered one in place, since an account with no entry is met as
-  new and its key would be trusted unasked next session. A list that could not be read trusts nobody. `PersonKey` asks for a key's status only while keys are being compared or one is
+  new and its key would be trusted unasked next session. A list that could not be read trusts nobody. `PersonKey` (`ShareMembers.tsx`) asks for a key's status only while keys are being compared or one is
   marked changed, so opening the dialog costs no request.
 - **Replacing a note's key.** Both drivers mark a note `rekey_due` inside `shares.delete` (when
   the share ever held a key, `heldKey`), `maintenance.cleanupTrashedSharesBefore` (a share expired

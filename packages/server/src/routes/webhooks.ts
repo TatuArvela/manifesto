@@ -18,7 +18,7 @@ import { listedWebhook } from "#/storage/webhookMapping.ts";
 import {
   webhookCreateSchema,
   webhookUpdateSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accessSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import type { WebhookDispatcher } from "#/webhooks/dispatcher.ts";
 

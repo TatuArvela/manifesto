@@ -22,7 +22,7 @@ import type { StorageDriver, StoredPublicLink } from "#/storage/types.ts";
 import {
   publicLinkCreateSchema,
   publicLinkUnlockSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/sharingSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;

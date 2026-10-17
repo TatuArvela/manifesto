@@ -202,6 +202,25 @@ describe("the day a reminder repeats on", () => {
       day: 31,
     });
   });
+
+  it("moves a daily or weekly reminder days behind to its next occurrence", () => {
+    // The repeat day stayed the day the reminder was set for, and stepping
+    // from it went back to the day after: the snap landed in the past and
+    // stayed there.
+    const now = parseLocalISO("2026-10-06T09:01:00");
+    expect(
+      snapReminderToFuture(
+        { time: "2026-10-03T09:00:00", recurrence: "daily" },
+        now,
+      ),
+    ).toEqual({ time: "2026-10-07T09:00:00", recurrence: "daily" });
+    expect(
+      snapReminderToFuture(
+        { time: "2026-09-01T09:00:00", recurrence: "weekly" },
+        now,
+      ),
+    ).toEqual({ time: "2026-10-13T09:00:00", recurrence: "weekly" });
+  });
 });
 
 describe("snapToFuture", () => {

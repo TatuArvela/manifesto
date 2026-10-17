@@ -95,12 +95,14 @@ export function nextOccurrence(
   if (recurrence === "none") return null;
   const src = partsOf(time);
   const { y, mo } = src;
+  // Only a step by date lands on `day`. A daily or weekly one steps from
+  // `time` itself: `snapToFuture` passes the same `day` at every step.
   const d = day ?? src.d;
   switch (recurrence) {
     case "daily":
-      return atClock(y, mo, d + 1, src);
+      return atClock(y, mo, src.d + 1, src);
     case "weekly":
-      return atClock(y, mo, d + 7, src);
+      return atClock(y, mo, src.d + 7, src);
     case "monthly": {
       const lastDay = new Date(y, mo + 2, 0, 12).getDate();
       return atClock(y, mo + 1, Math.min(d, lastDay), src);

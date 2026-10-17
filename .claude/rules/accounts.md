@@ -91,7 +91,7 @@ stays live unaudited nor starts the cooldown. The budget is checked only where a
 answered, since it guards guesses and an account without one has none to make here; `succeed` is called
 only when a factor held. `endUserSessions` voids the account's links, sign-in and reset alike, and a route that changes an
 email address calls `signInLinks.deleteByUser` and `passwordResets.deleteByUser` itself: a link of
-either kind left in the old mailbox is the account, for whoever reads it. On the client the landing step spends the link
+either kind left in the old mailbox is the account, for whoever reads it. On the client (`state/account/mailedLinks.ts`) the landing step spends the link
 on a press, never on mount (a mail scanner loads the page too), and `App` takes the token out of the
 address when someone is signed in already.
 

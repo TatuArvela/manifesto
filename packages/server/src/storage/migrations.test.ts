@@ -66,6 +66,44 @@ describe("both drivers declare the same migrations", () => {
       PG_MIGRATIONS.map((m) => m.id),
     );
   });
+
+  // The same ids say nothing of what each step does: a column added in one
+  // driver's step and forgotten in the other's passes every test that runs
+  // on the first, and fails in production on the second.
+  // Columns by name, not their types or nullability: the types differ on
+  // purpose (`INTEGER` booleans against `BOOLEAN`), and pg-mem reports every
+  // column as `NOT NULL`.
+  it("builds the same tables with the same columns", async () => {
+    const sqlite = new Database(":memory:");
+    runSqliteMigrations(sqlite);
+    const lite: Record<string, string[]> = {};
+    const tables = sqlite
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+      )
+      .all() as { name: string }[];
+    for (const { name } of tables) {
+      const columns = sqlite.pragma(`table_info(${name})`) as {
+        name: string;
+      }[];
+      lite[name] = columns.map((c) => c.name).sort();
+    }
+
+    const pool = newTestPool();
+    await runPgMigrations(pool);
+    const { rows } = await pool.query<{
+      table_name: string;
+      column_name: string;
+    }>(
+      "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'",
+    );
+    const pg: Record<string, string[]> = {};
+    for (const { table_name, column_name } of rows) {
+      pg[table_name] = [...(pg[table_name] ?? []), column_name].sort();
+    }
+
+    expect(lite).toEqual(pg);
+  });
 });
 
 describe("sqlite migration runner", () => {

@@ -10,7 +10,7 @@ import {
   useState,
 } from "preact/hooks";
 import { Backdrop } from "#/components/Backdrop.tsx";
-import { noteMenuItems } from "#/components/card/NoteMenu.tsx";
+import { noteMenuItems } from "#/components/card/noteMenuItems.tsx";
 import { NoteComments } from "#/components/NoteComments.tsx";
 import { NoteSheet } from "#/components/NoteSheet.tsx";
 import { SharedPeople } from "#/components/sharing/SharedAvatars.tsx";

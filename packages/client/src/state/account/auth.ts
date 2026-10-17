@@ -17,7 +17,6 @@ import { defaultPrefsOf, serverDefaultPrefs } from "#/state/serverDefaults.ts";
 import { adoptServerFeatures } from "#/state/serverFeatures.ts";
 import { storageConnection } from "#/storage/index.ts";
 import { getPasskey } from "#/utils/webauthn.ts";
-import { markOidcFlow, takeOidcFlow } from "./oidcFlow.ts";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
@@ -283,7 +282,30 @@ export function loginErrorKey(
   }
 }
 
-async function authRequest(
+/**
+ * A request with no session of this tab's behind it, as the sign-in screens
+ * make: `body` is sent as JSON in a POST, and `bearer` names a session the
+ * server just handed over. `fetch` is allowed here and in `storage/`, so the
+ * modules beside this one (`mailedLinks.ts`, `oidcSignIn.ts`) send through
+ * it. Rejects as `fetch` does, and when no server is configured.
+ */
+export async function requestWithoutSession(
+  path: string,
+  { body, bearer }: { body?: unknown; bearer?: string } = {},
+): Promise<Response> {
+  if (SERVER_URL === null) throw new Error("Server is not configured");
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (bearer !== undefined) headers.Authorization = `Bearer ${bearer}`;
+  return fetch(`${SERVER_URL}${path}`, {
+    ...(body !== undefined && { method: "POST", body: JSON.stringify(body) }),
+    headers,
+  });
+}
+
+/** Signs in or registers, throwing what the server refused as an
+ * `AuthRequestError` (or one of its kinds). */
+export async function authRequest(
   path: string,
   body: unknown,
 ): Promise<AuthSuccessResponse> {
@@ -587,139 +609,6 @@ export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> 
   }
 }
 
-export function buildOidcLoginUrl(): string | null {
-  if (SERVER_URL === null) return null;
-  return `${SERVER_URL}/api/auth/login`;
-}
-
-export const oidcLoginUrl = buildOidcLoginUrl();
-
-/** Signs in through the identity provider again, which asks for real rather
- * than reusing its own session: what an account without a password is sent to
- * when an action needs a recent sign-in. */
-export const oidcReauthUrl =
-  oidcLoginUrl === null ? null : `${oidcLoginUrl}?reauth=1`;
-
-/**
- * What a link to either address above runs as it is followed: the session
- * that comes back is taken only in a tab that left this mark.
- */
-export const beginOidcSignIn = (): void => markOidcFlow();
-
-/**
- * Asks for a reset link to be mailed. The server answers the same whether or
- * not the address has an account, so this says only whether the request got
- * there. `locale` picks the mail's language.
- */
-export async function requestPasswordReset(
-  email: string,
-  locale: string,
-): Promise<boolean> {
-  if (SERVER_URL === null) return false;
-  try {
-    const res = await fetch(`${SERVER_URL}/api/auth/password-reset`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, locale }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-/** Sets a new password with a mailed link's token. */
-export async function confirmPasswordReset(
-  token: string,
-  newPassword: string,
-): Promise<"ok" | "expired" | "failed"> {
-  if (SERVER_URL === null) return "failed";
-  try {
-    const res = await fetch(`${SERVER_URL}/api/auth/password-reset/confirm`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, newPassword }),
-    });
-    if (res.status === 410) return "expired";
-    return res.ok ? "ok" : "failed";
-  } catch {
-    return "failed";
-  }
-}
-
-/**
- * A mailed link's token, taken from the fragment once and removed from the
- * address bar, so it is not left in history or shown over someone's shoulder.
- */
-function takeLinkToken(name: "reset" | "signin"): string | null {
-  if (typeof window === "undefined") return null;
-  const match = /^#(reset|signin)=([0-9a-f]{16,200})$/.exec(
-    window.location.hash,
-  );
-  if (match?.[1] !== name) return null;
-  history.replaceState(
-    null,
-    "",
-    `${window.location.pathname}${window.location.search}`,
-  );
-  return match[2] ?? null;
-}
-
-/** A mailed reset link's token, from `#reset=`. */
-export function takeResetToken(): string | null {
-  return takeLinkToken("reset");
-}
-
-/** A mailed sign-in link's token, from `#signin=`. */
-export function takeSignInLinkToken(): string | null {
-  return takeLinkToken("signin");
-}
-
-/**
- * Asks for a sign-in link to be mailed. As with a reset, the server answers
- * the same whether or not the address has an account, so `sent` says only
- * that the request got there. The refusals are told apart because each asks
- * something different of the person: wait, or fix the address.
- */
-export async function requestSignInLink(
-  email: string,
-  locale: string,
-): Promise<"sent" | "throttled" | "invalid" | "failed"> {
-  if (SERVER_URL === null) return "failed";
-  try {
-    const res = await fetch(`${SERVER_URL}/api/auth/sign-in-link`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, locale }),
-    });
-    if (res.ok) return "sent";
-    if (res.status === 429) return "throttled";
-    return res.status === 422 ? "invalid" : "failed";
-  } catch {
-    return "failed";
-  }
-}
-
-/**
- * Signs in with a mailed link's token. Throws as `login` does: a
- * `TwoFactorRequiredError` when the account has a second factor, after which
- * the same token is sent again with the code or the passkey's answer, and an
- * `AuthRequestError` with status 410 for a link that is spent or expired.
- */
-export async function signInWithLink(
-  token: string,
-  otp?: string,
-  passkey?: PasskeyAuthenticationResponse,
-): Promise<void> {
-  const result = await authRequest("/api/auth/sign-in-link/confirm", {
-    token,
-    ...(otp === undefined ? {} : { otp }),
-    ...(passkey === undefined ? {} : { passkey }),
-  });
-  authToken.value = result.token;
-  currentUser.value = result.user;
-}
-
 /** How a step of signing in with the recovery key went. */
 export type RecoveryAnswer<T> =
   | { kind: "ok"; body: T }
@@ -757,71 +646,6 @@ export async function recoveryRequest<T>(
 export function adoptSession(session: AuthSuccessResponse): void {
   authToken.value = session.token;
   currentUser.value = session.user;
-}
-
-export type OidcRefusal =
-  | "not_in_group"
-  | "not_registered"
-  | "groups_unavailable";
-
-/**
- * Why the server turned away a single sign-on the identity provider accepted:
- * not in the group allowed to sign in, no account while registration is off,
- * or groups that could not be read. Set from the callback's `#error=`, for
- * the login screen to say.
- */
-export const oidcRefusal = signal<OidcRefusal | null>(null);
-
-/**
- * After an OIDC callback the server redirects to the client with the session
- * token in the URL fragment (`#token=...`). Picks it up, fetches the current
- * user via /api/auth/me, populates the auth signals, and clears the fragment
- * from the address bar so refreshes don't re-trigger the flow.
- */
-export async function consumeOidcRedirect(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-  if (SERVER_URL === null) return false;
-  const hash = window.location.hash;
-  const refusal =
-    /^#error=(not_in_group|not_registered|groups_unavailable)$/.exec(hash);
-  if (refusal) {
-    oidcRefusal.value = refusal[1] as OidcRefusal;
-    history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${window.location.search}`,
-    );
-    return false;
-  }
-  if (!hash?.includes("token=")) return false;
-  const params = new URLSearchParams(hash.replace(/^#/, ""));
-  const token = params.get("token");
-  if (!token) return false;
-
-  // Wipe the hash before any await so a slow /me round-trip doesn't leave the
-  // token sitting in the address bar.
-  history.replaceState(
-    null,
-    "",
-    `${window.location.pathname}${window.location.search}`,
-  );
-
-  // Only a sign-in this tab sent the browser to: a `#token=` in a link
-  // someone was handed is the sender's session, not theirs (`oidcFlow.ts`).
-  if (!takeOidcFlow()) return false;
-
-  try {
-    const res = await fetch(`${SERVER_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return false;
-    const body = (await res.json()) as AuthMeResponse;
-    authToken.value = token;
-    currentUser.value = body.user;
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export type { AuthProviderName, UserLookupMode };

@@ -17,7 +17,7 @@ import type { StorageDriver } from "#/storage/types.ts";
 import {
   oauthAuthorizeSchema,
   oauthRegisterSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accessSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import {
   MAX_CLIENT_NAME_LENGTH,

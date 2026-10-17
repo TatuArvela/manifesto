@@ -3,7 +3,7 @@ import { t } from "#/i18n/index.ts";
 import {
   confirmPasswordReset,
   requestPasswordReset,
-} from "#/state/account/auth.ts";
+} from "#/state/account/mailedLinks.ts";
 import { locale } from "#/state/prefs.ts";
 import { showSuccess } from "#/state/ui.ts";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";

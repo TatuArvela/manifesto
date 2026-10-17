@@ -7,6 +7,7 @@ paths:
   - "packages/server/src/push/**"
   - "packages/server/src/jobs/pushReminders.ts"
   - "packages/client/src/swPush.ts"
+  - "packages/client/src/swReminders.ts"
   - "packages/client/src/state/pushSubscription.ts"
   - "packages/shared/src/reminderTime.ts"
 ---
@@ -16,7 +17,9 @@ paths:
 Reminders fire from three places and must not double-fire: the page, the service worker, and in
 connected mode the server. `state/reminderScheduler.ts` runs timers
 in the page; `sw.ts` holds its own copy of the reminder list in IndexedDB and fires via
-`periodicSync` (falling back to a poll) so a reminder still arrives with the tab closed. The page
+`periodicSync` (falling back to a poll) so a reminder still arrives with the tab closed. What the
+worker decides about each stored reminder (wait, fire, or skip past a long-missed one) is
+`swReminders.ts`, kept out of `sw.ts` so it tests, since that file runs Workbox as it loads. The page
 pushes the list down with `sync-reminders` and the worker reports back with `reminder-fired`, which
 `serviceWorker.ts` turns into the `lastFiredAt` / next-occurrence write. Dedupe is a 60s window;
 catch-up for a missed fire is one hour. `reminderTime.ts` in `@manifesto/shared` owns recurrence maths

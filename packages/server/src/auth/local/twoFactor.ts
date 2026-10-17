@@ -14,7 +14,7 @@ import type { StorageDriver } from "#/storage/types.ts";
 import {
   twoFactorEnableSchema,
   twoFactorPasswordSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import type { LoginAttempts } from "./loginAttempts.ts";
 

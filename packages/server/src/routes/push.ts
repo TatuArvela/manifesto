@@ -16,7 +16,7 @@ import type { StorageDriver } from "#/storage/types.ts";
 import {
   pushSubscribeSchema,
   pushUnsubscribeSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 
 /**
