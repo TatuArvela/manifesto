@@ -18,18 +18,16 @@ import {
 } from "../realtime/contentAgreement.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
 import { forceUpdateApp } from "../serviceWorker.js";
+import { addTag, describeImage, togglePin } from "../state/actions.js";
 import { takeEditorIntent } from "../state/editorIntent.js";
+import { addLinkPreviews } from "../state/linkPreviews.js";
 import {
-  addLinkPreviews,
-  addTag,
-  describeImage,
   ensureImages,
   notes,
-  showError,
-  togglePin,
   updateNote,
   updateStoredNote,
-} from "../state/index.js";
+} from "../state/notesStore.js";
+import { showError } from "../state/ui.js";
 import { recordVersion } from "../state/versions.js";
 import { placedImageAlts, placeImages } from "../utils/drawing.js";
 import { isPhoneLayout } from "../utils/phoneSheets.js";

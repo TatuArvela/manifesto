@@ -32,30 +32,30 @@ import { initBoardBackground } from "../state/board.js";
 import { closeDrawing, drawingRequest } from "../state/drawing.js";
 import { takeIncomingShare } from "../state/incomingShare.js";
 import {
-  activeView,
-  animations,
   createNote,
-  editingNoteId,
   importNotes,
-  initRouter,
   loadNotes,
   notes,
+  updateNote,
+} from "../state/notesStore.js";
+import { takeConsentPage } from "../state/oauth.js";
+import { animations, stickyTopBar, viewMode } from "../state/prefs.js";
+import { startPrefsSync } from "../state/prefsSync.js";
+import { publicLinksDialog } from "../state/publicLinks.js";
+import { ensurePushSubscription } from "../state/pushSubscription.js";
+import { initReminderScheduler } from "../state/reminderScheduler.js";
+import { initRouter } from "../state/router.js";
+import { loadInvitations, shareDialog } from "../state/sharing.js";
+import {
+  activeView,
+  editingNoteId,
   selectMode,
   showError,
   showSettings,
   showShortcuts,
   showSuccess,
   showWelcome,
-  stickyTopBar,
-  updateNote,
-  viewMode,
-} from "../state/index.js";
-import { takeConsentPage } from "../state/oauth.js";
-import { startPrefsSync } from "../state/prefsSync.js";
-import { publicLinksDialog } from "../state/publicLinks.js";
-import { ensurePushSubscription } from "../state/pushSubscription.js";
-import { initReminderScheduler } from "../state/reminderScheduler.js";
-import { loadInvitations, shareDialog } from "../state/sharing.js";
+} from "../state/ui.js";
 import { restoreVersions } from "../state/versions.js";
 import { welcomeIfNew } from "../state/welcome.js";
 import { importFiles, isImportableFile } from "../utils/importExport.js";

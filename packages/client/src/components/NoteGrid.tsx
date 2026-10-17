@@ -1,15 +1,14 @@
 import { Search, StickyNote } from "lucide-preact";
 import { plural, t } from "../i18n/index.js";
+import { reorderNotes } from "../state/actions.js";
+import { notesLoaded } from "../state/notesStore.js";
+import { activeView, boardAnnouncement } from "../state/ui.js";
 import {
-  activeView,
-  boardAnnouncement,
   canReorder,
   notesHiddenByTag,
-  notesLoaded,
   pinnedNotes,
-  reorderNotes,
   unpinnedNotes,
-} from "../state/index.js";
+} from "../state/views.js";
 import { boardCard } from "./boardCard.js";
 import { ReorderableGrid } from "./ReorderableGrid.js";
 

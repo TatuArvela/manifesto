@@ -2,7 +2,7 @@ import { formatPercent, t } from "../../i18n/index.js";
 import {
   boardTextureOpacity,
   resolvedBoardTexture,
-} from "../../state/index.js";
+} from "../../state/prefs.js";
 import {
   MAX_TEXTURE_OPACITY,
   MIN_TEXTURE_OPACITY,

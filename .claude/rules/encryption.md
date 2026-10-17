@@ -3,7 +3,6 @@ paths:
   - "packages/shared/src/api/keys.ts"
   - "packages/shared/src/api/sealed.ts"
   - "packages/shared/src/crypto/**"
-  - "packages/client/src/utils/seal.ts"
   - "packages/client/src/utils/userKey.ts"
   - "packages/client/src/utils/keyMaterial.ts"
   - "packages/client/src/storage/deviceKeys.ts"

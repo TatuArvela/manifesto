@@ -1,6 +1,6 @@
+import { associatedData, seal, unseal } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { accountSubkey, createAccountKeys } from "../utils/keyMaterial.js";
-import { associatedData, seal, unseal } from "../utils/seal.js";
 import {
   clearDeviceKeys,
   type DeviceKeys,

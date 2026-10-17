@@ -11,7 +11,7 @@ import {
   selectMode,
   showSettings,
   typeSearch,
-} from "../state/index.js";
+} from "../state/ui.js";
 import { AccountMenu } from "./AccountMenu.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { SortMenu, ViewMenu } from "./HeaderMenus.js";

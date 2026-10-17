@@ -29,12 +29,12 @@ import {
   searchInput,
   searchLocations,
   searchTypes,
-  sortedNotes,
   toggleSearchColor,
   toggleSearchLocation,
   toggleSearchType,
   typeSearch,
-} from "../state/index.js";
+} from "../state/ui.js";
+import { sortedNotes } from "../state/views.js";
 import { boardCard } from "./boardCard.js";
 
 const TYPE_META: {

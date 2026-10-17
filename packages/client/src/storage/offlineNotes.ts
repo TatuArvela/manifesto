@@ -1,6 +1,5 @@
-import { utf8 } from "@manifesto/shared";
+import { associatedData, seal, unsealText, utf8 } from "@manifesto/shared";
 import { accountSubkey } from "../utils/keyMaterial.js";
-import { associatedData, seal, unsealText } from "../utils/seal.js";
 import type { StorageKeys } from "./sealing.js";
 
 /**

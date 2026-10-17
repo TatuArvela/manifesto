@@ -2,7 +2,8 @@ import { render } from "preact";
 import { useRef } from "preact/hooks";
 import { act } from "preact/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { activeTag, activeView, animations } from "../state/index.js";
+import { animations } from "../state/prefs.js";
+import { activeTag, activeView } from "../state/ui.js";
 import { defined } from "../test/defined.js";
 import { usePaneSlide, useViewTransition } from "./useViewTransition.js";
 

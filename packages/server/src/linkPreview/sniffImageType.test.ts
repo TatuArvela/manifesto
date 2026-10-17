@@ -1,5 +1,5 @@
+import { sniffImageType } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { sniffImageType } from "./sniff.js";
 
 const bytes = (...values: (number | string)[]) =>
   Uint8Array.from(

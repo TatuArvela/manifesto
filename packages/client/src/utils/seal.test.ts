@@ -1,13 +1,13 @@
-import { isCiphertext } from "@manifesto/shared";
-import { describe, expect, it } from "vitest";
 import {
   associatedData,
   derivable,
   deriveBytes,
   deriveKey,
+  isCiphertext,
   seal,
   unseal,
-} from "./seal.js";
+} from "@manifesto/shared";
+import { describe, expect, it } from "vitest";
 
 const text = (value: string) => new TextEncoder().encode(value);
 const read = (bytes: Uint8Array | null) =>

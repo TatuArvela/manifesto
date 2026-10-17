@@ -5,7 +5,8 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { animations, editingNoteId } from "../state/index.js";
+import { animations } from "../state/prefs.js";
+import { editingNoteId } from "../state/ui.js";
 import {
   isMorphSource,
   MORPH_MS,

@@ -3,7 +3,8 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "../styles.css";
 import { t } from "../i18n/index.js";
-import { editingNoteId, notes } from "../state/index.js";
+import { notes } from "../state/notesStore.js";
+import { editingNoteId } from "../state/ui.js";
 import { NoteCard } from "./NoteCard.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
 import {

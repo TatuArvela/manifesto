@@ -1,8 +1,11 @@
 /// <reference lib="webworker" />
 import {
+  advanceReminder,
   MAX_IMAGES_PER_NOTE,
+  parseLocalISO,
   REMINDER_RECURRENCES,
   type ReminderRecurrence,
+  snapReminderToFuture,
 } from "@manifesto/shared";
 import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
@@ -15,11 +18,6 @@ import {
   SHARE_TEXT_KEY,
   sharedTextFromForm,
 } from "./shareTarget.js";
-import {
-  advanceReminder,
-  parseLocalISO,
-  snapReminderToFuture,
-} from "./state/reminderTime.js";
 import { loadDeviceKeys } from "./storage/deviceKeys.js";
 import { afterPush, readReminderPush, wordedPush } from "./swPush.js";
 

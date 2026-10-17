@@ -7,7 +7,7 @@ import {
   useState,
 } from "preact/hooks";
 import { useMasonryGrid } from "../hooks/useMasonryGrid.js";
-import { animations, noteSize, viewMode } from "../state/index.js";
+import { animations, noteSize, viewMode } from "../state/prefs.js";
 import { edgeScroll, scrollParent } from "../utils/edgeScroll.js";
 import { gridColumns } from "./gridColumns.js";
 import { NoteCard } from "./NoteCard.js";

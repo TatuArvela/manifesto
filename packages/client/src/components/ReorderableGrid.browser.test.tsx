@@ -1,14 +1,9 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { options, render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  editingNoteId,
-  noteSize,
-  notes,
-  selectedNotes,
-  selectMode,
-  viewMode,
-} from "../state/index.js";
+import { notes } from "../state/notesStore.js";
+import { noteSize, viewMode } from "../state/prefs.js";
+import { editingNoteId, selectedNotes, selectMode } from "../state/ui.js";
 import { defined } from "../test/defined.js";
 import "../styles.css";
 

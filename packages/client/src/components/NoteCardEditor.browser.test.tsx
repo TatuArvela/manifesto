@@ -28,7 +28,7 @@ vi.mock("../realtime/yjsProvider.js", () => ({
 }));
 
 const { NoteCardEditor } = await import("./NoteCardEditor.js");
-const { notes } = await import("../state/index.js");
+const { notes } = await import("../state/notesStore.js");
 
 const NOTE_ID = "01JQZK8V0000000000000NOTE";
 

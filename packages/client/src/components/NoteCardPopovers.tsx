@@ -5,8 +5,8 @@ import {
   addTag,
   deleteCheckedItems,
   sortItemsByDate,
-  updateNote,
-} from "../state/index.js";
+} from "../state/actions.js";
+import { updateNote } from "../state/notesStore.js";
 import { hasDatedItems } from "../utils/itemDate.js";
 import { hasCheckedItems } from "../utils/markdown.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";

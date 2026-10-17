@@ -20,13 +20,13 @@ import {
 import { useRef } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { t } from "../i18n/index.js";
-import { refreshAutoNotes } from "../state/autoNotes.js";
-import { confirmDeletion } from "../state/confirm.js";
 import {
   permanentlyDeleteNote,
   restoreNote,
   togglePin,
-} from "../state/index.js";
+} from "../state/actions.js";
+import { refreshAutoNotes } from "../state/autoNotes.js";
+import { confirmDeletion } from "../state/confirm.js";
 import { iconBtnClass } from "./editorButtons.js";
 import type { CardPopoverKind } from "./NoteCardPopovers.js";
 import { PresenceAvatars } from "./PresenceAvatars.js";

@@ -1,4 +1,5 @@
 import {
+  derivable,
   isCiphertext,
   type SealedNote,
   type SealedNoteCreate,
@@ -8,7 +9,6 @@ import {
   type SealedNoteVersionCreateRequest,
 } from "@manifesto/shared";
 import type { StorageKeys } from "../storage/sealing.js";
-import { derivable } from "../utils/seal.js";
 
 /**
  * A server as the client meets it in connected mode, kept in memory: it

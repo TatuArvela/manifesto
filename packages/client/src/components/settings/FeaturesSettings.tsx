@@ -14,7 +14,7 @@ import {
   type EditMode,
   formattingToolbar,
   inlineCalculations,
-} from "../../state/index.js";
+} from "../../state/prefs.js";
 import { Switch, ThreeWayToggle } from "../ToggleSwitch.js";
 import {
   SettingsGroup,

@@ -5,6 +5,7 @@ import type {
   RecoveryCompleteRequest,
   RecoveryOpenResponse,
 } from "@manifesto/shared";
+import { cryptoAvailable } from "@manifesto/shared";
 import { computed, effect, signal, untracked } from "@preact/signals";
 import { apiFetch } from "../storage/apiRequest.js";
 import {
@@ -26,7 +27,6 @@ import {
   replaceSecretKey,
   unlockAccountKey,
 } from "../utils/keyMaterial.js";
-import { cryptoAvailable } from "../utils/seal.js";
 import { parseUserKey } from "../utils/userKey.js";
 import {
   adoptSession,

@@ -4,7 +4,8 @@ import { t } from "../i18n/index.js";
 import { forgetAttachmentUrls } from "../state/attachments.js";
 import { clearDraft } from "../state/composerDraft.js";
 import { drawingRequest } from "../state/drawing.js";
-import { activeView, notes } from "../state/index.js";
+import { notes } from "../state/notesStore.js";
+import { activeView } from "../state/ui.js";
 import { currentStorage } from "../storage/index.js";
 import { NoteInput } from "./NoteInput.js";
 

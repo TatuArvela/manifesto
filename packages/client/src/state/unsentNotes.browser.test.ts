@@ -1,4 +1,4 @@
-import { type Note, NoteLimitError } from "@manifesto/shared";
+import { derivable, type Note, NoteLimitError } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "../storage/index.js";
 import { dropAllOffline } from "../storage/offlineNotes.js";
@@ -8,7 +8,6 @@ import {
   type StorageKeys,
   storageKeys,
 } from "../storage/sealing.js";
-import { derivable } from "../utils/seal.js";
 import { notes } from "./notesStore.js";
 import {
   discardUnsent,

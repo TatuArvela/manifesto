@@ -9,21 +9,18 @@ import { useNoteImages } from "../hooks/useNoteImages.js";
 import { usePresence } from "../hooks/usePresence.js";
 import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
 import { formatDate, t } from "../i18n/index.js";
+import { leavingNotes, recentlyPinned } from "../state/actions.js";
 import { requestDrawing } from "../state/drawing.js";
 import { openNoteWith } from "../state/editorIntent.js";
+import { noteSize, viewMode } from "../state/prefs.js";
+import { enterSelectMode, toggleSelectNote } from "../state/selection.js";
 import {
   activeView,
   editingNoteId,
-  enterSelectMode,
-  leavingNotes,
-  noteSize,
-  recentlyPinned,
   selectedNotes,
   selectMode,
   showError,
-  toggleSelectNote,
-  viewMode,
-} from "../state/index.js";
+} from "../state/ui.js";
 import { cardName } from "../utils/cardName.js";
 import { contentIsOnlyPreviewUrls } from "../utils/linkPreview.js";
 import { MORPH_MS } from "../utils/morph.js";

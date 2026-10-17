@@ -4,12 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { escapeStackDepth } from "../hooks/useEscapeStack.js";
 import { t } from "../i18n/index.js";
-import {
-  activeView,
-  animations,
-  editingNoteId,
-  notes,
-} from "../state/index.js";
+import { notes } from "../state/notesStore.js";
+import { animations } from "../state/prefs.js";
+import { activeView, editingNoteId } from "../state/ui.js";
 import { NoteCard } from "./NoteCard.js";
 
 /**

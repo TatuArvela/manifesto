@@ -1,6 +1,4 @@
 import type { NoteReminder } from "@manifesto/shared";
-import { describe, expect, it } from "vitest";
-import { defined } from "../test/defined.js";
 import {
   advanceReminder,
   formatLocalISO,
@@ -11,7 +9,9 @@ import {
   reminderAt,
   snapReminderToFuture,
   snapToFuture,
-} from "./reminderTime.js";
+} from "@manifesto/shared";
+import { describe, expect, it } from "vitest";
+import { defined } from "../test/defined.js";
 
 /**
  * The recurrence maths on its own, in the Node project. The scheduler's

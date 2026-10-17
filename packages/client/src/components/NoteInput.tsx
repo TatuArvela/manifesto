@@ -17,18 +17,16 @@ import {
 } from "../state/composerDraft.js";
 import { type IncomingShare, incomingShare } from "../state/incomingShare.js";
 import {
-  activeView,
   animations,
   defaultNoteColor,
   defaultNoteFont,
-  newNoteRequested,
   noteQuips,
   noteSize,
   pickDefaultColor,
   pickDefaultFont,
-  showError,
   viewMode,
-} from "../state/index.js";
+} from "../state/prefs.js";
+import { activeView, newNoteRequested, showError } from "../state/ui.js";
 import { queueNote } from "../state/unsentNotes.js";
 import { placedImageAlts, placeImages } from "../utils/drawing.js";
 import { extractUrls } from "../utils/linkPreview.js";

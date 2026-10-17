@@ -1,12 +1,12 @@
 import { Download, Trash2, Upload } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
 import { type MessageKey, plural, t } from "../../i18n/index.js";
+import { downloadExport } from "../../state/exportNotes.js";
 import {
   createNote,
   deleteAllNotes,
-  downloadExport,
   importNotes,
-} from "../../state/index.js";
+} from "../../state/notesStore.js";
 import { restoreVersions } from "../../state/versions.js";
 import { importFiles } from "../../utils/importExport.js";
 import { Bookmarklet } from "../Bookmarklet.js";

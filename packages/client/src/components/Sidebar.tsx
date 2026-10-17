@@ -10,13 +10,13 @@ import {
 } from "lucide-preact";
 import { t } from "../i18n/index.js";
 import { currentUser, isServerMode } from "../state/auth.js";
+import { exitSelectMode } from "../state/selection.js";
 import {
   type AppView,
   activeTag,
   activeView,
-  exitSelectMode,
   selectMode,
-} from "../state/index.js";
+} from "../state/ui.js";
 import { Tooltip } from "./Tooltip.js";
 
 /** Sidebar width when collapsed (icon-only) */

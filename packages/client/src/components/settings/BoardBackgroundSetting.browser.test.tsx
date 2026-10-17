@@ -8,7 +8,7 @@ import {
   boardTexture,
   boardTextureOpacity,
   boardUsePicture,
-} from "../../state/index.js";
+} from "../../state/prefs.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
 
 let host: HTMLDivElement;
