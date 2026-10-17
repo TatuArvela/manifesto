@@ -73,8 +73,11 @@ export function AppearanceSettings() {
     })),
   ];
   return (
-    <div class="space-y-6">
-      <SettingsGroup>
+    <div class="space-y-3">
+      <SettingsGroup
+        title={t("settings.group.theme")}
+        fold={{ id: "theme", open: true }}
+      >
         <SettingsRow label={t("settings.language")}>
           <SettingsSelect
             label={t("settings.language")}
@@ -139,7 +142,12 @@ export function AppearanceSettings() {
             />
           </SettingsRow>
         </div>
+      </SettingsGroup>
 
+      <SettingsGroup
+        title={t("settings.group.notes")}
+        fold={{ id: "notes", open: false }}
+      >
         <SettingsRow label={t("settings.noteCorners")}>
           <Switch
             checked={noteCorners.value === "rounded"}
@@ -151,11 +159,17 @@ export function AppearanceSettings() {
         </SettingsRow>
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.boardBackground")}>
+      <SettingsGroup
+        title={t("settings.boardBackground")}
+        fold={{ id: "board", open: false }}
+      >
         <BoardBackgroundSetting />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.group.behavior")}>
+      <SettingsGroup
+        title={t("settings.group.behavior")}
+        fold={{ id: "behavior", open: false }}
+      >
         <SettingsRow label={t("settings.stickyTopBar")}>
           <Switch
             checked={stickyTopBar.value}

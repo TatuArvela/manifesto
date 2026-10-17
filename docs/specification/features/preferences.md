@@ -5,6 +5,21 @@ note defaults, hidden tags and the rest. Each client keeps them in `localStorage
 `manifesto:prefs`; in connected mode most of them also follow the account, so a tag hidden on the
 laptop is hidden on the phone.
 
+## Finding a setting
+
+The search field at the top of Settings' sidebar finds a setting by its label, and a page by its name,
+in the language the app is shown in, ignoring case and accents; every word typed has to match. The
+results take the place of the page list while there is text in the field, each setting named with
+the page it is on. Choosing one (or Enter, for the first) opens that page, unfolds the section the
+setting is in, scrolls it into view and lights it for a moment. What can be found is
+`SETTINGS_INDEX` in `components/settings/settingsIndex.ts`: a setting added to a page needs a line
+there.
+
+The Appearance page is in sections that fold: Language and Theme, Notes, Board Background and
+Behavior. The first starts open and the rest closed, and the browser remembers which way each was
+left (in `localStorage`, as a convenience of this device and not a preference that follows the
+account).
+
 ## What follows the account
 
 In connected mode every preference follows the account except the ones that belong to the device:

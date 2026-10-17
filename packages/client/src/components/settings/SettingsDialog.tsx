@@ -1,5 +1,5 @@
-import { X } from "lucide-preact";
-import { useEffect } from "preact/hooks";
+import { Search, X } from "lucide-preact";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { Backdrop } from "#/components/Backdrop.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
@@ -26,6 +26,11 @@ import {
   secondFactorOffered,
   TABS,
 } from "./SettingsNav.tsx";
+import {
+  findSettingRow,
+  type SettingsHit,
+  searchSettings,
+} from "./settingsIndex.ts";
 import { TwoFactorSettings } from "./TwoFactorSettings.tsx";
 import { WebhooksSettings } from "./WebhooksSettings.tsx";
 
@@ -39,6 +44,37 @@ export function SettingsDialog() {
   const handleClose = () => {
     showSettings.value = false;
   };
+
+  const [query, setQuery] = useState("");
+  // The setting a search result was chosen for, found on its page once that
+  // page has rendered.
+  const [jump, setJump] = useState<string | null>(null);
+  const paneRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) setQuery("");
+  }, [isOpen]);
+
+  useEffect(() => {
+    const pane = paneRef.current;
+    if (!jump || !pane) return;
+    setJump(null);
+    const row = findSettingRow(pane, jump);
+    if (!row) return;
+    row.scrollIntoView({ block: "center" });
+    row.classList.remove("settings-found");
+    // Read between the two so the class coming back restarts the animation.
+    void row.offsetWidth;
+    row.classList.add("settings-found");
+    row.addEventListener(
+      "animationend",
+      () => row.classList.remove("settings-found"),
+      { once: true },
+    );
+    row
+      .querySelector<HTMLElement>("button, input, select, [tabindex]")
+      ?.focus({ preventScroll: true });
+  }, [jump]);
 
   // A select menu inside the modal registers after it and closes alone.
   useEscapeStack(isOpen, handleClose);
@@ -70,6 +106,17 @@ export function SettingsDialog() {
   };
   const update = user?.isAdmin ? availableUpdate.value : null;
   const title = t(tab === "account" ? "account.menu" : TABS[tab].label);
+  const tabName = (a: SettingsTab) =>
+    t(a === "account" ? "account.menu" : TABS[a].label);
+  const hits = searchSettings(
+    query,
+    [...account, ...GENERAL_TABS].map((a) => ({ tab: a, name: tabName(a) })),
+  );
+  const choose = (hit: SettingsHit) => {
+    setQuery("");
+    select(hit.tab);
+    setJump(hit.label);
+  };
 
   return (
     <>
@@ -100,44 +147,97 @@ export function SettingsDialog() {
                 <X class="w-5 h-5" />
               </button>
             </div>
-            <nav
-              aria-label={t("settings.title")}
-              class="flex sm:flex-col gap-1 sm:gap-0 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto px-3 pb-3 sm:pb-2"
-            >
-              {account.length > 0 && (
-                <NavGroup title={t("account.menu")}>
-                  <AccountNavItem
-                    active={tab === "account"}
-                    onSelect={select}
-                  />
-                  {account
-                    .filter((a) => a !== "account")
-                    .map((a) => (
-                      <NavItem
-                        key={a}
-                        tab={a as Exclude<SettingsTab, "account">}
-                        active={tab === a}
-                        onSelect={select}
-                      />
-                    ))}
-                </NavGroup>
-              )}
-              <NavGroup
-                title={
-                  account.length > 0 ? t("settings.group.general") : undefined
-                }
+            <div class="px-3 pb-2 shrink-0">
+              <label class="relative block">
+                <span class="sr-only">{t("settings.search")}</span>
+                <Search
+                  class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none"
+                  aria-hidden="true"
+                />
+                <input
+                  type="search"
+                  value={query}
+                  onInput={(e) => setQuery(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    const first = hits[0];
+                    if (e.key === "Enter" && first) {
+                      e.preventDefault();
+                      choose(first);
+                    }
+                  }}
+                  placeholder={t("settings.search")}
+                  class="w-full pl-8 pr-2 py-1.5 text-sm rounded-lg bg-white dark:bg-neutral-800 ring-1 ring-inset ring-neutral-200 dark:ring-neutral-700 placeholder:text-neutral-400 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
+            </div>
+            {query.trim() !== "" ? (
+              <section
+                aria-label={t("settings.searchResults")}
+                aria-live="polite"
+                class="flex flex-col gap-0.5 overflow-y-auto max-h-64 sm:max-h-none px-3 pb-3 sm:pb-2"
               >
-                {GENERAL_TABS.map((g) => (
-                  <NavItem
-                    key={g}
-                    tab={g as Exclude<SettingsTab, "account">}
-                    active={tab === g}
-                    onSelect={select}
-                    badge={g === "about" && update !== null}
-                  />
-                ))}
-              </NavGroup>
-            </nav>
+                {hits.length === 0 ? (
+                  <p class="px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400">
+                    {t("settings.searchNone")}
+                  </p>
+                ) : (
+                  hits.map((hit) => (
+                    <button
+                      key={`${hit.tab}:${hit.label ?? ""}`}
+                      type="button"
+                      class="flex flex-col items-start w-full px-3 py-2 rounded-lg text-left text-sm cursor-pointer text-neutral-700 dark:text-neutral-200 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60"
+                      onClick={() => choose(hit)}
+                    >
+                      <span>{hit.label ?? tabName(hit.tab)}</span>
+                      {hit.label !== null && (
+                        <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                          {tabName(hit.tab)}
+                        </span>
+                      )}
+                    </button>
+                  ))
+                )}
+              </section>
+            ) : (
+              <nav
+                aria-label={t("settings.title")}
+                class="flex sm:flex-col gap-1 sm:gap-0 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto px-3 pb-3 sm:pb-2"
+              >
+                {account.length > 0 && (
+                  <NavGroup title={t("account.menu")}>
+                    <AccountNavItem
+                      active={tab === "account"}
+                      onSelect={select}
+                    />
+                    {account
+                      .filter((a) => a !== "account")
+                      .map((a) => (
+                        <NavItem
+                          key={a}
+                          tab={a as Exclude<SettingsTab, "account">}
+                          active={tab === a}
+                          onSelect={select}
+                        />
+                      ))}
+                  </NavGroup>
+                )}
+                <NavGroup
+                  title={
+                    account.length > 0 ? t("settings.group.general") : undefined
+                  }
+                >
+                  {GENERAL_TABS.map((g) => (
+                    <NavItem
+                      key={g}
+                      tab={g as Exclude<SettingsTab, "account">}
+                      active={tab === g}
+                      onSelect={select}
+                      badge={g === "about" && update !== null}
+                    />
+                  ))}
+                </NavGroup>
+              </nav>
+            )}
           </aside>
 
           <div class="flex flex-col flex-1 min-w-0 min-h-0">
@@ -155,6 +255,7 @@ export function SettingsDialog() {
             {/* Keyed on the page, so a new one starts scrolled to the top. */}
             <div
               key={tab}
+              ref={paneRef}
               class="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-5"
             >
               {tab === "account" && <AccountSettings />}
