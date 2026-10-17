@@ -295,6 +295,18 @@ export const en = {
   "versions.emptyContent": "(empty)",
 
   // Note grid
+  "empty.archive.title": "The archive is empty",
+  "empty.archive.hint": "Notes you archive are kept here, out of the way.",
+  "empty.trash.title": "The trash is empty",
+  "empty.trash.hint": {
+    one: "Deleted notes wait here for {count} day before they are gone for good.",
+    other:
+      "Deleted notes wait here for {count} days before they are gone for good.",
+  },
+  "empty.reminders.title": "No reminders",
+  "empty.reminders.hint": "A note with a reminder shows up here.",
+  "empty.tag.title": "Nothing is tagged {tag}",
+  "empty.tag.hint": "Give a note this tag and it shows up here.",
   "noteGrid.empty": "No notes yet",
   "noteGrid.emptyHint": "Time to jot something down!",
   "noteGrid.hiddenByTag": {

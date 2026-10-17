@@ -87,6 +87,14 @@ In connected mode, manual ordering is per-user: each user has their own arrangem
 
 Toggled via a ViewToggle button in the header.
 
+A view with no notes in it shows a drawing of what it holds when it holds something, with a line
+saying why it is empty and how a note gets there: a pad of blank notes on the Notes view, a tidy
+archive box on the Archive, an emptied bin on the Trash (which also says how long it keeps a note),
+a quiet alarm clock on Reminders, a blank tag for a tag with no notes, and a magnifying glass on
+Search. The drawings are line work in the text colour, so they follow the theme, and a screen reader
+skips them for the words. Notes kept out of the Notes view by a hidden tag are counted instead of
+called none.
+
 **Board Style** (Settings, Appearance, Notes) is **Tidy** by default, every card level. On a **Messy**
 board each card in the grid leans a degree or two, as real sticky notes do: between half a degree
 and two either way, worked out from the note's id, so a note always leans the same way on every

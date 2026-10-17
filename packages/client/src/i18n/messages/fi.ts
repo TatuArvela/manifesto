@@ -298,6 +298,19 @@ export const fi: Messages = {
   "versions.emptyContent": "(tyhjä)",
 
   // Note grid
+  "empty.archive.title": "Arkisto on tyhjä",
+  "empty.archive.hint":
+    "Arkistoimasi muistiinpanot säilyvät täällä poissa tieltä.",
+  "empty.trash.title": "Roskakori on tyhjä",
+  "empty.trash.hint": {
+    one: "Poistetut muistiinpanot odottavat täällä {count} päivän ennen kuin ne poistuvat lopullisesti.",
+    other:
+      "Poistetut muistiinpanot odottavat täällä {count} päivää ennen kuin ne poistuvat lopullisesti.",
+  },
+  "empty.reminders.title": "Ei muistutuksia",
+  "empty.reminders.hint": "Muistiinpano, jossa on muistutus, näkyy täällä.",
+  "empty.tag.title": "Tunnisteella {tag} ei ole muistiinpanoja",
+  "empty.tag.hint": "Anna muistiinpanolle tämä tunniste, niin se näkyy täällä.",
   "noteGrid.empty": "Ei vielä muistiinpanoja",
   "noteGrid.emptyHint": "On aika kirjoittaa jotain!",
   "noteGrid.hiddenByTag": {

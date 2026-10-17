@@ -1,5 +1,4 @@
-import { Search, StickyNote } from "lucide-preact";
-import { plural, t } from "#/i18n/index.ts";
+import { t } from "#/i18n/index.ts";
 import { reorderNotes } from "#/state/actions.ts";
 import { notesLoaded } from "#/state/notesStore.ts";
 import { activeView, boardAnnouncement } from "#/state/ui.ts";
@@ -9,7 +8,7 @@ import {
   pinnedNotes,
   unpinnedNotes,
 } from "#/state/views.ts";
-import { boardCard } from "./boardCard.ts";
+import { EmptyBoard } from "./EmptyBoard.tsx";
 import { ReorderableGrid } from "./ReorderableGrid.tsx";
 
 export function NoteGrid() {
@@ -24,33 +23,7 @@ export function NoteGrid() {
     // notes yet", and saying so would send someone looking for lost notes.
     const hiddenByTag =
       activeView.value === "active" ? notesHiddenByTag.value : 0;
-    // On a card of its own, so it stays legible over a board picture or a
-    // busy texture, and not selectable: it is a message, not content.
-    return (
-      <div class="flex justify-center py-16">
-        <div
-          class={`flex flex-col items-center text-center select-none px-10 py-8 ${boardCard} text-neutral-500 dark:text-neutral-400`}
-        >
-          {isSearch ? (
-            <Search class="w-12 h-12 mb-4" />
-          ) : (
-            <StickyNote class="w-12 h-12 mb-4" />
-          )}
-          {hiddenByTag > 0 ? (
-            <p class="text-sm">{plural("noteGrid.hiddenByTag", hiddenByTag)}</p>
-          ) : (
-            <>
-              <p class="text-lg text-neutral-700 dark:text-neutral-200">
-                {isSearch ? t("search.empty") : t("noteGrid.empty")}
-              </p>
-              <p class="text-sm">
-                {isSearch ? t("search.emptyHint") : t("noteGrid.emptyHint")}
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-    );
+    return <EmptyBoard view={activeView.value} hiddenByTag={hiddenByTag} />;
   }
 
   const headingClass =
