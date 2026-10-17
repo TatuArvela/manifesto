@@ -56,7 +56,8 @@ export type BoardTexture =
   | "stars"
   | "hearts"
   | "bubbles"
-  | "stripes";
+  | "stripes"
+  | "sawtooth";
 /**
  * What the textures are drawn in: the theme's own faint ink, white, black, a
  * colourful preset, `boardInkColor`, or a colourful preset picked at random on
@@ -130,6 +131,7 @@ export const BOARD_TEXTURES: readonly BoardTexture[] = [
   "hearts",
   "bubbles",
   "stripes",
+  "sawtooth",
 ];
 
 /**

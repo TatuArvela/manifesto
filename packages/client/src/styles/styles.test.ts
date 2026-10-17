@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CONFETTI_TILE } from "../utils/boardTextures.js";
+import { CONFETTI_TILE, SAWTOOTH_TILE } from "../utils/boardTextures.js";
 
 // Read from disk: Vitest blanks a stylesheet imported in a test, `?raw` too.
 const css = readFileSync(new URL("./preferences.css", import.meta.url), "utf8");
@@ -51,6 +51,12 @@ describe("board textures", () => {
   it("tiles confetti at the size it is drawn on", () => {
     expect(sizes.get("confetti")?.trim()).toBe(
       `${CONFETTI_TILE}px ${CONFETTI_TILE}px`,
+    );
+  });
+
+  it("tiles the sawtooth at the size it is drawn on", () => {
+    expect(sizes.get("sawtooth")?.trim()).toBe(
+      `${SAWTOOTH_TILE.width}px ${SAWTOOTH_TILE.height}px`,
     );
   });
 });

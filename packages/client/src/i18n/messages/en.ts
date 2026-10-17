@@ -382,6 +382,7 @@ export const en = {
   "settings.boardBackground.texture.hearts": "Hearts",
   "settings.boardBackground.texture.bubbles": "Bubbles",
   "settings.boardBackground.texture.stripes": "Stripes",
+  "settings.boardBackground.texture.sawtooth": "Sawtooth",
   "settings.boardBackground.ink": "Pattern Color",
   "settings.boardBackground.ink.auto": "Gray",
   "settings.boardBackground.ink.white": "White",
