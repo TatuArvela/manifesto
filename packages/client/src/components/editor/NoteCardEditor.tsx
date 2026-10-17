@@ -10,7 +10,7 @@ import {
   useState,
 } from "preact/hooks";
 import { useEscapeStack } from "../../hooks/useEscapeStack.js";
-import { useFocusTrap } from "../../hooks/useFocusTrap.js";
+import { useVersionsPanel } from "../../hooks/useVersionsPanel.js";
 import { formatDateTime, t } from "../../i18n/index.js";
 import {
   localAgreement,
@@ -84,30 +84,6 @@ export function NoteCardEditor({
   agreementRef.current = agreement;
   const [editor, setEditor] = useState<Editor | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const [showVersions, setShowVersions] = useState(false);
-  const [versionsClosing, setVersionsClosing] = useState(false);
-  const versionsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
-  // Opened a render after the editor, not with it: the history's Escape has
-  // to register after the editor's, or one press would close the editor
-  // under it (see `useEscapeStack`).
-  useEffect(() => {
-    if (intent?.kind === "versions") setShowVersions(true);
-  }, [intent]);
-
-  const closeVersions = () => {
-    setVersionsClosing(true);
-    if (versionsCloseTimerRef.current)
-      clearTimeout(versionsCloseTimerRef.current);
-    versionsCloseTimerRef.current = setTimeout(() => {
-      versionsCloseTimerRef.current = null;
-      setShowVersions(false);
-      setVersionsClosing(false);
-    }, 150);
-  };
-
   // Capture original state for version history (set once on mount)
   const originalTitleRef = useRef(note.title);
   const originalContentRef = useRef(note.content);
@@ -204,10 +180,7 @@ export function NoteCardEditor({
   // inside the editor register after this one and take the key first, so a
   // press over the version panel closes the panel, not the editor.
   useEscapeStack(true, () => saveAndCloseRef.current());
-  useEscapeStack(showVersions && !versionsClosing, closeVersions);
-  const versionsRef = useFocusTrap<HTMLDivElement>(
-    showVersions && !versionsClosing,
-  );
+  const versions = useVersionsPanel(intent?.kind === "versions");
 
   // The editor is one of the places that needs the bytes, not the count: its
   // "add an image" handler writes `[...note.images, ...urls]`, and doing that
@@ -295,21 +268,21 @@ export function NoteCardEditor({
 
   return (
     <>
-      {showVersions && (
+      {versions.shown && (
         <NoteSheet
           label={t("noteMenu.versionHistory")}
-          dialogRef={versionsRef}
+          dialogRef={versions.dialogRef}
           layer="layer-nested"
-          motion={`transition-all duration-150 ${versionsClosing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
+          motion={`transition-all duration-150 ${versions.closing ? "opacity-0 sm:scale-95" : "max-sm:animate-fade-in sm:animate-scale-in"}`}
           backdrop={
             <Backdrop
-              onDismiss={closeVersions}
-              closing={versionsClosing}
+              onDismiss={versions.close}
+              closing={versions.closing}
               class="layer-nested-backdrop"
             />
           }
-          closing={versionsClosing}
-          onBack={closeVersions}
+          closing={versions.closing}
+          onBack={versions.close}
         >
           <VersionHistory
             noteId={note.id}
@@ -323,9 +296,9 @@ export function NoteCardEditor({
                 title: restoredTitle,
                 content: restoredContent,
               });
-              closeVersions();
+              versions.close();
             }}
-            onClose={closeVersions}
+            onClose={versions.close}
           />
         </NoteSheet>
       )}
@@ -390,7 +363,7 @@ export function NoteCardEditor({
             // The live buffer, not the stored note: auto-save is debounced, and
             // duplicating or sharing right after a keystroke must copy it.
             draft: { title, content },
-            onShowVersions: () => setShowVersions(true),
+            onShowVersions: versions.open,
             checkedItems,
             datedItems,
             // Archiving, trashing and restoring all move the note out of the
