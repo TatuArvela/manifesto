@@ -1,12 +1,12 @@
 import type { Note, NoteVersion } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { saveVersion } from "#/storage/VersionStorage.js";
-import { importFiles } from "#/utils/importExport.js";
-import { readZip } from "#/utils/zip.js";
-import { exportArchive } from "./exportNotes.js";
-import { notes } from "./notesStore.js";
-import { hiddenTags } from "./prefs.js";
+import { saveVersion } from "#/storage/VersionStorage.ts";
+import { importFiles } from "#/utils/importExport.ts";
+import { readZip } from "#/utils/zip.ts";
+import { exportArchive } from "./exportNotes.ts";
+import { notes } from "./notesStore.ts";
+import { hiddenTags } from "./prefs.ts";
 
 const note = (id: string, title: string, trashed = false): Note => ({
   id,

@@ -1,9 +1,9 @@
 import { TRASH_RETENTION_DAYS } from "@manifesto/shared";
-import { logger } from "#/lib/logger.js";
-import { startPeriodicJob } from "#/lib/periodic.js";
-import { isoMinusDays } from "#/lib/time.js";
-import type { NoteEvents } from "#/sharing/noteEvents.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { logger } from "#/lib/logger.ts";
+import { startPeriodicJob } from "#/lib/periodic.ts";
+import { isoMinusDays } from "#/lib/time.ts";
+import type { NoteEvents } from "#/sharing/noteEvents.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
 

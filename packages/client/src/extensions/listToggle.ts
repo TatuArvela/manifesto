@@ -5,7 +5,7 @@ import {
   TextSelection,
   type Transaction,
 } from "@milkdown/kit/prose/state";
-import { coveredRange } from "./coveredRange.js";
+import { coveredRange } from "./coveredRange.ts";
 
 // The toolbar's three list buttons in the rich editor. Raw mode's are in
 // `utils/rawLineFormatting.ts`.

@@ -4,15 +4,15 @@ import {
   type ServerFeature,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { ServerConfig } from "#/config.js";
-import { OPERATIONS, type Operation } from "#/openapi.js";
-import { defined } from "#/test/defined.js";
+import type { ServerConfig } from "#/config.ts";
+import { OPERATIONS, type Operation } from "#/openapi.ts";
+import { defined } from "#/test/defined.ts";
 import {
   authHeaders,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
+} from "#/test/setup.ts";
 
 /**
  * Every operation is protected as `OPERATIONS` declares it, and nothing else

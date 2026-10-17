@@ -3,9 +3,9 @@ import type {
   NoteAudience,
   NoteShare,
   StorageDriver,
-} from "#/storage/types.js";
-import type { Broadcaster } from "#/ws/broadcaster.js";
-import type { AccessChanges } from "./accessChanges.js";
+} from "#/storage/types.ts";
+import type { Broadcaster } from "#/ws/broadcaster.ts";
+import type { AccessChanges } from "./accessChanges.ts";
 
 /**
  * Who hears about a note or an invitation to one, and what each of them

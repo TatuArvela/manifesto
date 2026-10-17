@@ -30,12 +30,12 @@ import {
 } from "@manifesto/shared";
 import type { Context } from "hono";
 import type { z } from "zod";
-import { adoptImages } from "#/attachments/store.js";
-import { nowIso } from "#/lib/time.js";
-import { newId } from "#/lib/ulid.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { adoptImages } from "#/attachments/store.ts";
+import { nowIso } from "#/lib/time.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   commentTextSchema,
   noteCommentCreateSchema,
@@ -50,7 +50,7 @@ import {
   type sealedNoteUpdateSchema,
   sealedNoteUpdateSchema as sealedUpdate,
   sealedVersionCreateSchema,
-} from "#/validation/schemas.js";
+} from "#/validation/schemas.ts";
 
 /**
  * Notes for a token that carries a key

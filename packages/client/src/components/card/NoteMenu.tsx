@@ -27,31 +27,31 @@ import {
 } from "lucide-preact";
 import type { ComponentChildren, VNode } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { moveCard } from "#/hooks/useBoardShortcuts.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useMediaQuery } from "#/hooks/useMediaQuery.js";
-import { t } from "#/i18n/index.js";
-import { isServerMode } from "#/state/account/auth.js";
+import { moveCard } from "#/hooks/useBoardShortcuts.ts";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
+import { t } from "#/i18n/index.ts";
+import { isServerMode } from "#/state/account/auth.ts";
 import {
   archiveNote,
   noteMoveTarget,
   restoreNote,
   trashNote,
   unarchiveNote,
-} from "#/state/actions.js";
-import { inlineImages, inlinePreviewImages } from "#/state/attachments.js";
-import { drawnWithoutImages } from "#/state/autoNotes.js";
-import { confirmDeletion } from "#/state/confirm.js";
-import { createNote, ensureImages } from "#/state/notesStore.js";
-import { publicLinksDialog } from "#/state/publicLinks.js";
-import { serverFeature } from "#/state/serverFeatures.js";
-import { shareDialog } from "#/state/sharing.js";
-import { showError, showSuccess } from "#/state/ui.js";
+} from "#/state/actions.ts";
+import { inlineImages, inlinePreviewImages } from "#/state/attachments.ts";
+import { drawnWithoutImages } from "#/state/autoNotes.ts";
+import { confirmDeletion } from "#/state/confirm.ts";
+import { createNote, ensureImages } from "#/state/notesStore.ts";
+import { publicLinksDialog } from "#/state/publicLinks.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
+import { shareDialog } from "#/state/sharing.ts";
+import { showError, showSuccess } from "#/state/ui.ts";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
-} from "#/utils/noteDownload.js";
-import { buildShareUrl } from "#/utils/shareLink.js";
+} from "#/utils/noteDownload.ts";
+import { buildShareUrl } from "#/utils/shareLink.ts";
 
 /**
  * The panel a kebab menu draws itself on. `Dropdown` takes it as `panelClass`;

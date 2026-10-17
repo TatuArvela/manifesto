@@ -12,15 +12,15 @@ import {
   type ShareInvitation,
   sniffImageType,
 } from "@manifesto/shared";
-import { newId } from "#/lib/ulid.js";
+import { newId } from "#/lib/ulid.ts";
 import {
   ciphertext,
   opened,
   plain,
   sealedCreate,
   sealedUpdate,
-} from "#/storage/contracts/claimed.js";
-import { keyedToken } from "./keyedTokens.js";
+} from "#/storage/contracts/claimed.ts";
+import { keyedToken } from "./keyedTokens.ts";
 
 /**
  * A test's requests, sent the way the app sends them. The app seals a note

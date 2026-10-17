@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 
 let nextId = 0;
 

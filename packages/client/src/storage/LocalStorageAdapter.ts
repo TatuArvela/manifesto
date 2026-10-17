@@ -11,21 +11,21 @@ import {
   previewImages,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
-import { dataUrlToBlob } from "#/utils/dataUrl.js";
+import { dataUrlToBlob } from "#/utils/dataUrl.ts";
 import {
   clearLocalImages,
   getLocalImage,
   putLocalImage,
   sweepLocalImages,
-} from "./localImages.js";
-import { openModeImageRefs } from "./offlineNotes.js";
-import { isQuotaError, reportQuotaRefusal } from "./quota.js";
+} from "./localImages.ts";
+import { openModeImageRefs } from "./offlineNotes.ts";
+import { isQuotaError, reportQuotaRefusal } from "./quota.ts";
 import type {
   CreateOptions,
   NoteChanges,
   StorageAdapter,
-} from "./StorageAdapter.js";
-import { getVersions, saveVersion } from "./VersionStorage.js";
+} from "./StorageAdapter.ts";
+import { getVersions, saveVersion } from "./VersionStorage.ts";
 
 const STORAGE_KEY = "manifesto:notes";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type AnyNode, pairChildren } from "./pairInlineTags.js";
+import { type AnyNode, pairChildren } from "./pairInlineTags.ts";
 
 const html = (value: string): AnyNode => ({ type: "html", value });
 const text = (value: string): AnyNode => ({ type: "text", value });

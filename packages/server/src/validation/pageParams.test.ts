@@ -3,9 +3,9 @@ import {
   MAX_NOTES_PAGE_SIZE,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { HttpError } from "#/middleware/error.js";
-import { encodeCursor } from "#/storage/noteMapping.js";
-import { readPageParams } from "./pageParams.js";
+import { HttpError } from "#/middleware/error.ts";
+import { encodeCursor } from "#/storage/noteMapping.ts";
+import { readPageParams } from "./pageParams.ts";
 
 describe("readPageParams", () => {
   it("gives a page of the default size when no limit is asked for", () => {

@@ -17,25 +17,25 @@ import {
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
 import type { Context, Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import { requireConfirmation } from "#/auth/confirmation.js";
-import { issueSession } from "#/auth/session.js";
-import { toAuthUser } from "#/auth/users.js";
-import type { ServerConfig } from "#/config.js";
-import { publicOrigin } from "#/lib/origin.js";
-import { nowIso } from "#/lib/time.js";
-import { newId } from "#/lib/ulid.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import { listedPasskey } from "#/storage/passkeyMapping.js";
-import type { StorageDriver, StoredPasskey } from "#/storage/types.js";
+import { audit } from "#/audit/audit.ts";
+import { requireConfirmation } from "#/auth/confirmation.ts";
+import { issueSession } from "#/auth/session.ts";
+import { toAuthUser } from "#/auth/users.ts";
+import type { ServerConfig } from "#/config.ts";
+import { publicOrigin } from "#/lib/origin.ts";
+import { nowIso } from "#/lib/time.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import { listedPasskey } from "#/storage/passkeyMapping.ts";
+import type { StorageDriver, StoredPasskey } from "#/storage/types.ts";
 import {
   passkeyAddSchema,
   passkeyLoginSchema,
   twoFactorPasswordSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import type { LoginAttempts } from "./loginAttempts.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import type { LoginAttempts } from "./loginAttempts.ts";
 
 /** Enough for every device and key a person owns, and a bound on a script. */
 export const MAX_PASSKEYS_PER_USER = 20;

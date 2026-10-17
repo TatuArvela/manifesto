@@ -1,9 +1,9 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { currentUser } from "#/state/account/auth.js";
-import { shareDialog } from "#/state/sharing.js";
-import { SharedPeople } from "./SharedAvatars.js";
+import { currentUser } from "#/state/account/auth.ts";
+import { shareDialog } from "#/state/sharing.ts";
+import { SharedPeople } from "./SharedAvatars.tsx";
 
 let host: HTMLDivElement;
 

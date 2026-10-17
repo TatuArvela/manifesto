@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_IMAGE_EDGE, shrinkImage } from "./shrinkImage.js";
+import { MAX_IMAGE_EDGE, shrinkImage } from "./shrinkImage.ts";
 
 /** A noisy image, so the encoders cannot squeeze it to nothing. */
 function picture(width: number, height: number, type: string, quality = 1) {

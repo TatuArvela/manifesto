@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createUpdateReloader } from "./updateReload.js";
+import { createUpdateReloader } from "./updateReload.ts";
 
 function setup({
   hadController = true,

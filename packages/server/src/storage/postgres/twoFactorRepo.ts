@@ -1,7 +1,7 @@
-import { AT_REST, atRest } from "#/storage/atRest.js";
-import { rowToTotp } from "#/storage/sqlite/twoFactorRepo.js";
-import type { TwoFactorRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+import { AT_REST, atRest } from "#/storage/atRest.ts";
+import { rowToTotp } from "#/storage/sqlite/twoFactorRepo.ts";
+import type { TwoFactorRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 /** See the SQLite copy. `begin` reads before it writes rather than using a
  * conditional upsert, which pg-mem does not parse. */

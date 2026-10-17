@@ -1,12 +1,12 @@
 import type { AuditAction } from "@manifesto/shared";
-import { audit } from "#/audit/audit.js";
-import type { ServerConfig } from "#/config.js";
-import { logger } from "#/lib/logger.js";
-import { hashToken, newSessionToken } from "#/lib/token.js";
-import type { Mailer } from "#/mail/mailer.js";
-import { type MailLocale, mailLocale } from "#/mail/templates.js";
-import { HttpError } from "#/middleware/error.js";
-import type { MailedLinksRepo, StorageDriver, User } from "#/storage/types.js";
+import { audit } from "#/audit/audit.ts";
+import type { ServerConfig } from "#/config.ts";
+import { logger } from "#/lib/logger.ts";
+import { hashToken, newSessionToken } from "#/lib/token.ts";
+import type { Mailer } from "#/mail/mailer.ts";
+import { type MailLocale, mailLocale } from "#/mail/templates.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { MailedLinksRepo, StorageDriver, User } from "#/storage/types.ts";
 
 /** The least time between two links of one kind for one account, so the
  * address cannot be used to flood someone's inbox. */

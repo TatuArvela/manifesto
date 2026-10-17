@@ -17,9 +17,9 @@ import {
   SHARE_TARGET_PARAM,
   SHARE_TEXT_KEY,
   sharedTextFromForm,
-} from "./shareTarget.js";
-import { loadDeviceKeys } from "./storage/deviceKeys.js";
-import { afterPush, readReminderPush, wordedPush } from "./swPush.js";
+} from "./shareTarget.ts";
+import { loadDeviceKeys } from "./storage/deviceKeys.ts";
+import { afterPush, readReminderPush, wordedPush } from "./swPush.ts";
 
 declare const self: ServiceWorkerGlobalScope & {
   registration: ServiceWorkerRegistration & {

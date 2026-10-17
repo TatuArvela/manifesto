@@ -2,7 +2,7 @@ import {
   markFencedLines,
   parseChecklistLine,
   segmentContent,
-} from "./markdown.js";
+} from "./markdown.ts";
 
 /**
  * A date on a checklist item: an `@2026-10-02` token in the item's own text.

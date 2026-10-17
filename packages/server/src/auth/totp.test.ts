@@ -5,7 +5,7 @@ import {
   hotp,
   otpauthUri,
   verifyTotp,
-} from "./totp.js";
+} from "./totp.ts";
 
 // RFC 4226 appendix D and RFC 6238 appendix B use this ASCII key.
 const KEY = Buffer.from("12345678901234567890");

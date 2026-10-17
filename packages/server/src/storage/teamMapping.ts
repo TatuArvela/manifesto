@@ -1,6 +1,6 @@
 import type { TeamSource } from "@manifesto/shared";
-import { parseRole } from "./shareMapping.js";
-import type { NoteTeamShare, StoredTeam } from "./types.js";
+import { parseRole } from "./shareMapping.ts";
+import type { NoteTeamShare, StoredTeam } from "./types.ts";
 
 /** A `teams` row with its member count, as both drivers read it. */
 export interface TeamRow {

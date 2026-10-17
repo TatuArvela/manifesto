@@ -1,13 +1,13 @@
 import type { Note } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { buildZip } from "#/test/zipTestSupport.js";
-import { importFiles } from "#/utils/importExport.js";
-import { evernoteImporter } from "./evernote.js";
-import { htmlImporter } from "./html.js";
-import { htmlToMarkdown } from "./htmlToMarkdown.js";
-import { joplinImporter, parseJoplinItem } from "./joplin.js";
-import { simplenoteImporter } from "./simplenote.js";
-import { standardNotesImporter } from "./standardNotes.js";
+import { buildZip } from "#/test/zipTestSupport.ts";
+import { importFiles } from "#/utils/importExport.ts";
+import { evernoteImporter } from "./evernote.ts";
+import { htmlImporter } from "./html.ts";
+import { htmlToMarkdown } from "./htmlToMarkdown.ts";
+import { joplinImporter, parseJoplinItem } from "./joplin.ts";
+import { simplenoteImporter } from "./simplenote.ts";
+import { standardNotesImporter } from "./standardNotes.ts";
 
 const file = (name: string, content: string | Uint8Array) =>
   new File([content as BlobPart], name);

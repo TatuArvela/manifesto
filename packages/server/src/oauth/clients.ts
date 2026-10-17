@@ -1,6 +1,6 @@
-import { safeFetch } from "#/linkPreview/safeFetch.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { redirectUriProblem } from "./redirectUris.js";
+import { safeFetch } from "#/linkPreview/safeFetch.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { redirectUriProblem } from "./redirectUris.ts";
 
 /** An OAuth client as the consent page and the token endpoint need it. */
 export interface ResolvedClient {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { renderMarkdown } from "./remarkRenderer.js";
-import { withoutImages } from "./stripImages.js";
+import { renderMarkdown } from "./remarkRenderer.ts";
+import { withoutImages } from "./stripImages.ts";
 
 describe("withoutImages", () => {
   it("takes every image out and leaves what it was called", () => {

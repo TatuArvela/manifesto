@@ -5,8 +5,8 @@ import {
   notesImportSchema,
   noteUpdateSchema,
   noteVersionCreateSchema,
-} from "#/validation/schemas.js";
-import { noContent, notFound, type Operation, ok } from "./operation.js";
+} from "#/validation/schemas.ts";
+import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
 /**
  * Notes, their versions, attachments and link previews, and the ways to read

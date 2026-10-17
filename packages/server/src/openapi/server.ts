@@ -1,4 +1,4 @@
-import { type Operation, ok } from "./operation.js";
+import { type Operation, ok } from "./operation.ts";
 
 /** The server itself: liveness, this document, and what it offers. */
 export const SERVER_OPERATIONS: Operation[] = [

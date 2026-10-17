@@ -5,13 +5,13 @@ import {
   type NoteFont,
 } from "@manifesto/shared";
 import { computed, effect, signal } from "@preact/signals";
-import { grantedReads, plugins, setPluginError } from "#/autoNotes/registry.js";
-import { runPlugin } from "#/autoNotes/sandbox.js";
-import type { ApproxLabels } from "#/autoNotes/stdlib.js";
-import type { AutoNoteResult, PluginNote } from "#/autoNotes/types.js";
-import { t } from "#/i18n/index.js";
-import { autoNoteOverrides, generatedNoteId } from "./autoNoteOverrides.js";
-import { locale } from "./prefs.js";
+import { grantedReads, plugins, setPluginError } from "#/autoNotes/registry.ts";
+import { runPlugin } from "#/autoNotes/sandbox.ts";
+import type { ApproxLabels } from "#/autoNotes/stdlib.ts";
+import type { AutoNoteResult, PluginNote } from "#/autoNotes/types.ts";
+import { t } from "#/i18n/index.ts";
+import { autoNoteOverrides, generatedNoteId } from "./autoNoteOverrides.ts";
+import { locale } from "./prefs.ts";
 
 function buildApproxLabels(): ApproxLabels {
   return {

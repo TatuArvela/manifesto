@@ -6,7 +6,7 @@ import {
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
+} from "#/test/setup.ts";
 
 describe("audit log", () => {
   let rig: TestRig;

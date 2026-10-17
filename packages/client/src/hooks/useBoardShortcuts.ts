@@ -1,26 +1,26 @@
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 import {
   archiveNote,
   moveNoteBy,
   type NoteMoveStep,
   trashNote,
   unarchiveNote,
-} from "#/state/actions.js";
-import { confirmDeletion } from "#/state/confirm.js";
-import { allNotes } from "#/state/notesStore.js";
+} from "#/state/actions.ts";
+import { confirmDeletion } from "#/state/confirm.ts";
+import { allNotes } from "#/state/notesStore.ts";
 import {
   activeTag,
   activeView,
   boardAnnouncement,
   newNoteRequested,
   showShortcuts,
-} from "#/state/ui.js";
+} from "#/state/ui.ts";
 import {
   cardAfterFocused,
   focusedNoteId,
   moveCardFocus,
-} from "#/utils/cardFocus.js";
-import { useShortcut } from "./useShortcut.js";
+} from "#/utils/cardFocus.ts";
+import { useShortcut } from "./useShortcut.ts";
 
 /**
  * The shortcuts listed on the `?` sheet, as `[key, message]` pairs, in the

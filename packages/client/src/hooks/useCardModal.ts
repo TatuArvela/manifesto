@@ -5,8 +5,8 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { animations } from "#/state/prefs.js";
-import { editingNoteId } from "#/state/ui.js";
+import { animations } from "#/state/prefs.ts";
+import { editingNoteId } from "#/state/ui.ts";
 import {
   isMorphSource,
   MORPH_MS,
@@ -15,8 +15,8 @@ import {
   type RectLike,
   settle,
   viewportSize,
-} from "#/utils/morph.js";
-import { useFocusTrap } from "./useFocusTrap.js";
+} from "#/utils/morph.ts";
+import { useFocusTrap } from "./useFocusTrap.ts";
 
 /**
  * How long the modal's plain fade runs, either way, where there is no card to

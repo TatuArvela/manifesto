@@ -8,30 +8,30 @@ import {
   TRASH_RETENTION_DAYS,
 } from "@manifesto/shared";
 import { batch, computed, effect, signal } from "@preact/signals";
-import type { MessageKey } from "#/i18n/index.js";
+import type { MessageKey } from "#/i18n/index.ts";
 import {
   currentStorage,
   LocalStorageAdapter,
   storage,
   storageConnection,
-} from "#/storage/index.js";
-import { subscribeToExternalNotes } from "#/storage/LocalStorageAdapter.js";
-import { NoteConflictError } from "#/storage/RestApiAdapter.js";
-import { type StorageKeys, storageKeys } from "#/storage/sealing.js";
-import { deleteVersions } from "#/storage/VersionStorage.js";
+} from "#/storage/index.ts";
+import { subscribeToExternalNotes } from "#/storage/LocalStorageAdapter.ts";
+import { NoteConflictError } from "#/storage/RestApiAdapter.ts";
+import { type StorageKeys, storageKeys } from "#/storage/sealing.ts";
+import { deleteVersions } from "#/storage/VersionStorage.ts";
 import {
   clearAutoNoteOverride,
   isGeneratedNoteId,
   overrideFrom,
   updateAutoNoteOverride,
-} from "./autoNoteOverrides.js";
-import { generatedNotes } from "./autoNotes.js";
-import { asBatch, type Batch, reportFailure } from "./failures.js";
-import { foldIncoming, foldIncomingList, sameValue } from "./incomingNote.js";
-import { mergeNoteUpdate } from "./mergeNote.js";
-import { headPosition } from "./ordering.js";
-import { createPendingWrites } from "./pendingWrites.js";
-import { pickDefaultColor, pickDefaultFont } from "./prefs.js";
+} from "./autoNoteOverrides.ts";
+import { generatedNotes } from "./autoNotes.ts";
+import { asBatch, type Batch, reportFailure } from "./failures.ts";
+import { foldIncoming, foldIncomingList, sameValue } from "./incomingNote.ts";
+import { mergeNoteUpdate } from "./mergeNote.ts";
+import { headPosition } from "./ordering.ts";
+import { createPendingWrites } from "./pendingWrites.ts";
+import { pickDefaultColor, pickDefaultFont } from "./prefs.ts";
 
 /**
  * The notes and the actions that talk to storage about them.

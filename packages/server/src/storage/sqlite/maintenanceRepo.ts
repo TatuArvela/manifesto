@@ -3,14 +3,14 @@ import {
   membersChangedAt,
   rowToShare,
   type ShareRow,
-} from "#/storage/shareMapping.js";
-import { composeStats } from "#/storage/statsMapping.js";
+} from "#/storage/shareMapping.ts";
+import { composeStats } from "#/storage/statsMapping.ts";
 import type {
   ExpiredTrashedNote,
   MaintenanceRepo,
   NoteShare,
-} from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 interface ExpiredRow {
   id: string;

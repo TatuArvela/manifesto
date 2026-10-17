@@ -1,5 +1,5 @@
-import { AT_REST, atRest } from "./atRest.js";
-import type { StoredPushSubscription } from "./types.js";
+import { AT_REST, atRest } from "./atRest.ts";
+import type { StoredPushSubscription } from "./types.ts";
 
 /** A subscription as it is stored: the browser's two keys, which whoever
  * holds them could send it messages with, under the server key. */

@@ -1,5 +1,5 @@
-import type { PendingUpload } from "#/hooks/useImageUploads.js";
-import { t } from "#/i18n/index.js";
+import type { PendingUpload } from "#/hooks/useImageUploads.ts";
+import { t } from "#/i18n/index.ts";
 
 /** Images being stored: the file as it was picked, with progress, or marked
  * as failed with a retry. */

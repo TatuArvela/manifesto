@@ -1,12 +1,12 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createAccessChanges } from "#/sharing/accessChanges.js";
-import { createNoteEvents } from "#/sharing/noteEvents.js";
-import { claimed, heldKey } from "#/storage/contracts/claimed.js";
-import { createSqliteStorage } from "#/storage/sqlite/driver.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { type Broadcaster, createBroadcaster } from "#/ws/broadcaster.js";
-import { startTrashCleanup } from "./trashCleanup.js";
+import { createAccessChanges } from "#/sharing/accessChanges.ts";
+import { createNoteEvents } from "#/sharing/noteEvents.ts";
+import { claimed, heldKey } from "#/storage/contracts/claimed.ts";
+import { createSqliteStorage } from "#/storage/sqlite/driver.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { type Broadcaster, createBroadcaster } from "#/ws/broadcaster.ts";
+import { startTrashCleanup } from "./trashCleanup.ts";
 
 const baseNote = {
   title: "x",

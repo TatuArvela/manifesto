@@ -1,15 +1,15 @@
-import { AT_REST, atRest } from "#/storage/atRest.js";
+import { AT_REST, atRest } from "#/storage/atRest.ts";
 import {
   PUSH_COLUMNS,
   type PushRow,
   rowToPushSubscription,
   sealedSubscription,
-} from "#/storage/pushMapping.js";
+} from "#/storage/pushMapping.ts";
 import type {
   PushSubscriptionsRepo,
   ServerSecretsRepo,
-} from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqlitePushSubscriptionsRepo(
   db: SqliteDB,

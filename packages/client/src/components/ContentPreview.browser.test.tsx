@@ -1,7 +1,7 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ContentPreview } from "./ContentPreview.js";
+import { ContentPreview } from "./ContentPreview.tsx";
 
 /**
  * What a card actually shows. The pieces below it (the checklist parser, the

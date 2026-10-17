@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import type { ServerConfig } from "#/config.js";
-import { renderMetrics } from "./metrics.js";
-import { safeEqual } from "./token.js";
+import type { ServerConfig } from "#/config.ts";
+import { renderMetrics } from "./metrics.ts";
+import { safeEqual } from "./token.ts";
 
 /**
  * `/metrics` as a handler of its own, mounted on the main app or on the

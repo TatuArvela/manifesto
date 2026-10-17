@@ -1,9 +1,9 @@
 import { Search, Settings, X } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
-import { HEADER_BRAND, INSTANCE_NAME } from "#/config.js";
-import { t } from "#/i18n/index.js";
-import { currentUser } from "#/state/account/auth.js";
-import { availableUpdate } from "#/state/admin.js";
+import { HEADER_BRAND, INSTANCE_NAME } from "#/config.ts";
+import { t } from "#/i18n/index.ts";
+import { currentUser } from "#/state/account/auth.ts";
+import { availableUpdate } from "#/state/admin.ts";
 import {
   activeView,
   exitSearch,
@@ -11,15 +11,15 @@ import {
   selectMode,
   showSettings,
   typeSearch,
-} from "#/state/ui.js";
-import { AccountMenu } from "./AccountMenu.js";
-import { BrandLogo } from "./BrandLogo.js";
-import { SortMenu, ViewMenu } from "./HeaderMenus.js";
+} from "#/state/ui.ts";
+import { AccountMenu } from "./AccountMenu.tsx";
+import { BrandLogo } from "./BrandLogo.tsx";
+import { SortMenu, ViewMenu } from "./HeaderMenus.tsx";
 import {
   SELECTION_BAR_LEAVE_MS,
   SelectionToolbar,
-} from "./SelectionToolbar.js";
-import { Tooltip } from "./Tooltip.js";
+} from "./SelectionToolbar.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 /**
  * The header's icon buttons, in the same grey as the navigation beside them:

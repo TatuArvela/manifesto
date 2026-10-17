@@ -1,12 +1,12 @@
 import { Fragment } from "preact";
 import { useState } from "preact/hooks";
-import { BOARD_SHORTCUTS } from "#/hooks/useBoardShortcuts.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { t } from "#/i18n/index.js";
-import { showShortcuts } from "#/state/ui.js";
-import { Backdrop } from "./Backdrop.js";
-import { buttonClass } from "./buttonClasses.js";
+import { BOARD_SHORTCUTS } from "#/hooks/useBoardShortcuts.ts";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { t } from "#/i18n/index.ts";
+import { showShortcuts } from "#/state/ui.ts";
+import { Backdrop } from "./Backdrop.tsx";
+import { buttonClass } from "./buttonClasses.ts";
 
 /** How long the fade-out runs; matches the `duration-150` classes below. */
 const CLOSE_MS = 150;

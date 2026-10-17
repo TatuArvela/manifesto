@@ -2,12 +2,12 @@ import { prosePluginsCtx } from "@milkdown/kit/core";
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { type EditorState, Plugin, PluginKey } from "@milkdown/kit/prose/state";
 import { Decoration, DecorationSet } from "@milkdown/kit/prose/view";
-import { t } from "#/i18n/index.js";
-import { inlineCalculations, resolvedDecimalSeparator } from "#/state/prefs.js";
+import { t } from "#/i18n/index.ts";
+import { inlineCalculations, resolvedDecimalSeparator } from "#/state/prefs.ts";
 import {
   evaluateExpression,
   formatResult,
-} from "#/utils/evaluateExpression.js";
+} from "#/utils/evaluateExpression.ts";
 
 type CalcState =
   | { active: false; dismissedAt: number | null }

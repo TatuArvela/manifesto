@@ -18,18 +18,18 @@ import {
   it,
   vi,
 } from "vitest";
-import { answerConfirmation } from "#/state/confirm.js";
-import { notes } from "#/state/notesStore.js";
-import { locale } from "#/state/prefs.js";
+import { answerConfirmation } from "#/state/confirm.ts";
+import { notes } from "#/state/notesStore.ts";
+import { locale } from "#/state/prefs.ts";
 import {
   publicLinksDialog,
   publicLinkToken,
   publicLinkUrl,
-} from "#/state/publicLinks.js";
-import { toasts } from "#/state/ui.js";
-import { storageConnection } from "#/storage/index.js";
-import { PublicNotePage } from "./PublicNotePage.js";
-import { PublicLinksDialogHost } from "./sharing/PublicLinksDialog.js";
+} from "#/state/publicLinks.ts";
+import { toasts } from "#/state/ui.ts";
+import { storageConnection } from "#/storage/index.ts";
+import { PublicNotePage } from "./PublicNotePage.tsx";
+import { PublicLinksDialogHost } from "./sharing/PublicLinksDialog.tsx";
 
 const SERVER = "http://server.test";
 const TOKEN = "AbCdEfGhIjKlMnOpQrStUv";

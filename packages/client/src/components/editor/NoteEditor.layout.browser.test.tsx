@@ -2,7 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
-import { NoteEditor } from "./NoteEditor.js";
+import { NoteEditor } from "./NoteEditor.tsx";
 import "#/styles.css";
 
 /**

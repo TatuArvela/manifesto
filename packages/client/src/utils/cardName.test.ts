@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardName } from "./cardName.js";
+import { cardName } from "./cardName.ts";
 
 describe("cardName", () => {
   it("is the title when there is one", () => {

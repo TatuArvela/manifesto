@@ -1,4 +1,4 @@
-import { markFencedLines } from "./markdown.js";
+import { markFencedLines } from "./markdown.ts";
 
 // What the rich editor's serializer writes, brought in line with what the
 // preview renders, so a note read out of the editor round-trips unchanged.

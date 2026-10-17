@@ -1,7 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { useContext, useId } from "preact/hooks";
-import { ControlLabelId } from "./controlLabel.js";
-import { Tooltip } from "./Tooltip.js";
+import { ControlLabelId } from "./controlLabel.ts";
+import { Tooltip } from "./Tooltip.tsx";
 
 /**
  * Plain on/off switch for a boolean setting, with no icon per state. Use this

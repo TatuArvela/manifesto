@@ -1,6 +1,6 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initReminderScheduler, parseLocalISO } from "./reminderScheduler.js";
+import { initReminderScheduler, parseLocalISO } from "./reminderScheduler.ts";
 
 /**
  * One real fire through the scheduler, in a file of its own because

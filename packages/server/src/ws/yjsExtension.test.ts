@@ -5,7 +5,7 @@ import {
   MAX_YJS_BYTES,
   type YjsAuthContext,
   YjsPersistenceExtension,
-} from "./yjsExtension.js";
+} from "./yjsExtension.ts";
 
 /** A store payload for a document holding `text`, with one connection. */
 function payloadOf(text: string) {

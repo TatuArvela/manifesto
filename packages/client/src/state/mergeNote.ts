@@ -4,7 +4,7 @@ import {
   type Note,
   type NoteUpdate,
 } from "@manifesto/shared";
-import { sameValue } from "./incomingNote.js";
+import { sameValue } from "./incomingNote.ts";
 
 function mergeStringArray(
   base: string[],

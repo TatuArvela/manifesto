@@ -5,12 +5,12 @@ import type {
   ApiTokenScope,
   ApiTokensResponse,
 } from "@manifesto/shared";
-import { apiFetch } from "#/storage/apiRequest.js";
-import { sealer } from "#/storage/sealing.js";
+import { apiFetch } from "#/storage/apiRequest.ts";
+import { sealer } from "#/storage/sealing.ts";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./passwordConfirmation.js";
+} from "./passwordConfirmation.ts";
 
 /**
  * The signed-in user's personal API tokens. Each call resolves with what

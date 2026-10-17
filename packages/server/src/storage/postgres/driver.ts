@@ -1,35 +1,35 @@
-import type { PostgresConfig } from "#/config.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { createPostgresAccountKeysRepo } from "./accountKeysRepo.js";
-import { createPostgresApiTokensRepo } from "./apiTokensRepo.js";
-import { createPostgresAttachmentsRepo } from "./attachmentsRepo.js";
-import { createPostgresAuditRepo } from "./auditRepo.js";
-import { createPostgresCommentsRepo } from "./commentsRepo.js";
+import type { PostgresConfig } from "#/config.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { createPostgresAccountKeysRepo } from "./accountKeysRepo.ts";
+import { createPostgresApiTokensRepo } from "./apiTokensRepo.ts";
+import { createPostgresAttachmentsRepo } from "./attachmentsRepo.ts";
+import { createPostgresAuditRepo } from "./auditRepo.ts";
+import { createPostgresCommentsRepo } from "./commentsRepo.ts";
 import {
   openPostgres,
   type PgPool,
   type PostgresOpenOptions,
-} from "./database.js";
-import { createPostgresMailedLinksRepo } from "./mailedLinksRepo.js";
-import { createPostgresMaintenanceRepo } from "./maintenanceRepo.js";
-import { runMigrations } from "./migrations.js";
-import { createPostgresNotesRepo } from "./notesRepo.js";
-import { createPostgresOAuthRepo } from "./oauthRepo.js";
-import { createPostgresPasskeysRepo } from "./passkeysRepo.js";
-import { createPostgresPrefsRepo } from "./prefsRepo.js";
-import { createPostgresPublicLinksRepo } from "./publicLinksRepo.js";
+} from "./database.ts";
+import { createPostgresMailedLinksRepo } from "./mailedLinksRepo.ts";
+import { createPostgresMaintenanceRepo } from "./maintenanceRepo.ts";
+import { runMigrations } from "./migrations.ts";
+import { createPostgresNotesRepo } from "./notesRepo.ts";
+import { createPostgresOAuthRepo } from "./oauthRepo.ts";
+import { createPostgresPasskeysRepo } from "./passkeysRepo.ts";
+import { createPostgresPrefsRepo } from "./prefsRepo.ts";
+import { createPostgresPublicLinksRepo } from "./publicLinksRepo.ts";
 import {
   createPostgresPushSubscriptionsRepo,
   createPostgresServerSecretsRepo,
-} from "./pushRepo.js";
-import { createPostgresSessionsRepo } from "./sessionsRepo.js";
-import { createPostgresSharesRepo } from "./sharesRepo.js";
-import { createPostgresTeamsRepo } from "./teamsRepo.js";
-import { createPostgresTwoFactorRepo } from "./twoFactorRepo.js";
-import { createPostgresUsersRepo } from "./usersRepo.js";
-import { createPostgresVersionsRepo } from "./versionsRepo.js";
-import { createPostgresWebhooksRepo } from "./webhooksRepo.js";
-import { createPostgresYjsStore } from "./yjsStore.js";
+} from "./pushRepo.ts";
+import { createPostgresSessionsRepo } from "./sessionsRepo.ts";
+import { createPostgresSharesRepo } from "./sharesRepo.ts";
+import { createPostgresTeamsRepo } from "./teamsRepo.ts";
+import { createPostgresTwoFactorRepo } from "./twoFactorRepo.ts";
+import { createPostgresUsersRepo } from "./usersRepo.ts";
+import { createPostgresVersionsRepo } from "./versionsRepo.ts";
+import { createPostgresWebhooksRepo } from "./webhooksRepo.ts";
+import { createPostgresYjsStore } from "./yjsStore.ts";
 
 export interface PostgresStorageDriver extends StorageDriver {
   readonly pool: PgPool;

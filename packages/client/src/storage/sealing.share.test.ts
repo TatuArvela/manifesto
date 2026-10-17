@@ -23,8 +23,8 @@ import {
   snapshotKey,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { createAccountKeys } from "#/utils/keyMaterial.js";
-import { Sealer, setOfferHandler } from "./sealing.js";
+import { createAccountKeys } from "#/utils/keyMaterial.ts";
+import { Sealer, setOfferHandler } from "./sealing.ts";
 
 /**
  * A note's key going from its owner to someone it is shared with: wrapped to

@@ -5,9 +5,9 @@ import {
 import {
   rowToVersion,
   VERSION_COLUMNS,
-} from "#/storage/sqlite/versionsRepo.js";
-import type { VersionsRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/sqlite/versionsRepo.ts";
+import type { VersionsRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

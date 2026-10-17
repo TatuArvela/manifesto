@@ -2,9 +2,9 @@ import {
   type AuditRow,
   auditFilter,
   rowToAudit,
-} from "#/storage/auditMapping.js";
-import type { AuditRecord, AuditRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/auditMapping.ts";
+import type { AuditRecord, AuditRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 export function createPostgresAuditRepo(pool: PgPool): AuditRepo {
   return {

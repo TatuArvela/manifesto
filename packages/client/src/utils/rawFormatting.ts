@@ -1,15 +1,15 @@
-import type { ActiveFormats, FormatType, TextEdit } from "./formatTypes.js";
+import type { ActiveFormats, FormatType, TextEdit } from "./formatTypes.ts";
 import {
   inRawCodeBlock,
   insertRawBlock,
   toggleRawCodeBlock,
-} from "./rawBlockFormatting.js";
+} from "./rawBlockFormatting.ts";
 import {
   type InlineFormat,
   inlineRange,
   toggleInline,
   wrappedBy,
-} from "./rawInlineFormatting.js";
+} from "./rawInlineFormatting.ts";
 import {
   headingLevel,
   isBullet,
@@ -17,10 +17,10 @@ import {
   lineRange,
   parseLine,
   toggleBlock,
-} from "./rawLineFormatting.js";
-import { shiftListItems } from "./rawListIndent.js";
+} from "./rawLineFormatting.ts";
+import { shiftListItems } from "./rawListIndent.ts";
 
-export type { TextEdit } from "./formatTypes.js";
+export type { TextEdit } from "./formatTypes.ts";
 
 /**
  * The formatting toolbar in raw mode.

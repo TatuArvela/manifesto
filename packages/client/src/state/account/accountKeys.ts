@@ -7,14 +7,14 @@ import type {
 } from "@manifesto/shared";
 import { cryptoAvailable } from "@manifesto/shared";
 import { computed, effect, signal, untracked } from "@preact/signals";
-import { apiFetch } from "#/storage/apiRequest.js";
+import { apiFetch } from "#/storage/apiRequest.ts";
 import {
   clearDeviceKeys,
   type DeviceKeys,
   loadDeviceKeys,
   saveDeviceKeys,
-} from "#/storage/deviceKeys.js";
-import { storageKeys } from "#/storage/sealing.js";
+} from "#/storage/deviceKeys.ts";
+import { storageKeys } from "#/storage/sealing.ts";
 import {
   createAccountKeys,
   type NewAccountKeys,
@@ -26,8 +26,8 @@ import {
   replaceRecoveryKey,
   replaceSecretKey,
   unlockAccountKey,
-} from "#/utils/keyMaterial.js";
-import { parseUserKey } from "#/utils/userKey.js";
+} from "#/utils/keyMaterial.ts";
+import { parseUserKey } from "#/utils/userKey.ts";
 import {
   adoptSession,
   authToken,
@@ -35,11 +35,11 @@ import {
   isServerMode,
   recoveryRequest,
   SERVER_ORIGIN,
-} from "./auth.js";
+} from "./auth.ts";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./passwordConfirmation.js";
+} from "./passwordConfirmation.ts";
 
 /**
  * The account's keys on this device

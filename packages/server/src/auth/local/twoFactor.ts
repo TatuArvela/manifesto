@@ -4,19 +4,19 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import { requireConfirmation } from "#/auth/confirmation.js";
-import { newTotpSecret, verifyTotp } from "#/auth/totp.js";
-import { nowIso } from "#/lib/time.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { audit } from "#/audit/audit.ts";
+import { requireConfirmation } from "#/auth/confirmation.ts";
+import { newTotpSecret, verifyTotp } from "#/auth/totp.ts";
+import { nowIso } from "#/lib/time.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   twoFactorEnableSchema,
   twoFactorPasswordSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import type { LoginAttempts } from "./loginAttempts.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import type { LoginAttempts } from "./loginAttempts.ts";
 
 /**
  * Checks a typed second factor at sign-in: an authenticator code, each step

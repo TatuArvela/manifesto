@@ -3,9 +3,9 @@ import {
   type ApiTokenRow,
   listedToken,
   rowToApiToken,
-} from "#/storage/apiTokenMapping.js";
-import type { ApiTokensRepo } from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/apiTokenMapping.ts";
+import type { ApiTokensRepo } from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqliteApiTokensRepo(db: SqliteDB): ApiTokensRepo {
   const insertStmt = db.prepare(

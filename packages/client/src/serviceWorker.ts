@@ -1,8 +1,8 @@
 import type { NoteReminder } from "@manifesto/shared";
 import { reminderAt } from "@manifesto/shared";
-import { SHARE_CACHE } from "./shareTarget.js";
-import { notes, updateNote } from "./state/notesStore.js";
-import { createUpdateReloader, pageIsIdle } from "./utils/updateReload.js";
+import { SHARE_CACHE } from "./shareTarget.ts";
+import { notes, updateNote } from "./state/notesStore.ts";
+import { createUpdateReloader, pageIsIdle } from "./utils/updateReload.ts";
 
 interface SwMessage {
   type: "reminder-fired" | "open-note";

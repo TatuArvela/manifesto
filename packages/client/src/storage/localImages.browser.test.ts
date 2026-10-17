@@ -1,13 +1,13 @@
 import { isLocalImageRef, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defined } from "#/test/defined.js";
-import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
+import { defined } from "#/test/defined.ts";
+import { LocalStorageAdapter } from "./LocalStorageAdapter.ts";
 import {
   clearLocalImages,
   getLocalImage,
   putLocalImage,
   sweepLocalImages,
-} from "./localImages.js";
+} from "./localImages.ts";
 
 const GIF = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
 const gifBlob = () =>

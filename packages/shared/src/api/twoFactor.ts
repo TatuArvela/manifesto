@@ -1,4 +1,4 @@
-import type { ErrorResponse } from "./errors.js";
+import type { ErrorResponse } from "./errors.ts";
 
 /** `GET /api/auth/two-factor`. */
 export interface TwoFactorStatusResponse {

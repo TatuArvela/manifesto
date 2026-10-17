@@ -1,11 +1,11 @@
 import { Ban, ChevronDown, ImagePlus, Shuffle, Trash2 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 import {
   boardImageUrl,
   removeBoardImage,
   setBoardImage,
-} from "#/state/board.js";
+} from "#/state/board.ts";
 import {
   BOARD_COLORS,
   BOARD_NEUTRALS,
@@ -21,11 +21,11 @@ import {
   rerollBoardTexture,
   resolvedBoardColor,
   resolvedBoardTexture,
-} from "#/state/prefs.js";
-import { BoardGradientPicker } from "./BoardGradientPicker.js";
-import { BoardInkPicker } from "./BoardInkPicker.js";
-import { BoardOpacitySlider } from "./BoardOpacitySlider.js";
-import { boardColorLabel } from "./boardLabels.js";
+} from "#/state/prefs.ts";
+import { BoardGradientPicker } from "./BoardGradientPicker.tsx";
+import { BoardInkPicker } from "./BoardInkPicker.tsx";
+import { BoardOpacitySlider } from "./BoardOpacitySlider.tsx";
+import { boardColorLabel } from "./boardLabels.ts";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =

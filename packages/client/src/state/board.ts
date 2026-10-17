@@ -1,13 +1,13 @@
 import { effect, signal } from "@preact/signals";
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 import {
   deleteBoardImage,
   loadBoardImage,
   saveBoardImage,
   shrinkBoardImage,
-} from "#/storage/boardImage.js";
-import { boardImageStamp, boardUsePicture } from "./prefs.js";
-import { showError } from "./ui.js";
+} from "#/storage/boardImage.ts";
+import { boardImageStamp, boardUsePicture } from "./prefs.ts";
+import { showError } from "./ui.ts";
 
 /**
  * An object URL for the board picture on file, or null with none. Kept while

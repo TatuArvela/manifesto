@@ -11,13 +11,13 @@ import {
   Webhook,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
-import { Avatar } from "#/components/Avatar.js";
-import { type MessageKey, t } from "#/i18n/index.js";
-import { currentUser, isServerMode } from "#/state/account/auth.js";
-import { hasSecondFactor } from "#/state/account/twoFactor.js";
-import { offeredTokenKinds, serverFeature } from "#/state/serverFeatures.js";
-import type { SettingsTab } from "#/state/ui.js";
-import { hasOwnPassword } from "./AccountSettings.js";
+import { Avatar } from "#/components/Avatar.tsx";
+import { type MessageKey, t } from "#/i18n/index.ts";
+import { currentUser, isServerMode } from "#/state/account/auth.ts";
+import { hasSecondFactor } from "#/state/account/twoFactor.ts";
+import { offeredTokenKinds, serverFeature } from "#/state/serverFeatures.ts";
+import type { SettingsTab } from "#/state/ui.ts";
+import { hasOwnPassword } from "./AccountSettings.tsx";
 
 type TabInfo = {
   label: MessageKey;

@@ -1,6 +1,6 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { mergeNoteUpdate } from "./mergeNote.js";
+import { mergeNoteUpdate } from "./mergeNote.ts";
 
 function makeNote(overrides: Partial<Note> = {}): Note {
   return {

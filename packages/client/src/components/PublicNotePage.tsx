@@ -1,18 +1,18 @@
 import { NoteColor } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "#/colors.js";
-import { APP_NAME } from "#/config.js";
-import { t } from "#/i18n/index.js";
-import { revealApp } from "#/splash.js";
+import { noteColorMap, noteFontFamilies } from "#/colors.ts";
+import { APP_NAME } from "#/config.ts";
+import { t } from "#/i18n/index.ts";
+import { revealApp } from "#/splash.ts";
 import {
   loadPublicImage,
   openPublicNote,
   type PublicNoteResult,
   type ShownPublicNote,
   unlockPublicNote,
-} from "#/state/publicLinks.js";
-import { renderMarkdown } from "#/utils/remarkRenderer.js";
-import { buttonClass } from "./buttonClasses.js";
+} from "#/state/publicLinks.ts";
+import { renderMarkdown } from "#/utils/remarkRenderer.ts";
+import { buttonClass } from "./buttonClasses.ts";
 
 /**
  * The page a public link opens, rendered in place of the app: no account, no

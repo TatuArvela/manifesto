@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from "./locales.js";
+import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from "./locales.ts";
 
 /**
  * Pick the first supported locale from the browser's language preferences.

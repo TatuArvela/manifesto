@@ -6,9 +6,9 @@
   "author": "Tatu Arvela",
   "type": "module",
   "imports": {
-    "#/*": {
-      "manifesto-source": "./src/*",
-      "default": "./dist/*"
+    "#/*.ts": {
+      "manifesto-source": "./src/*.ts",
+      "default": "./dist/*.js"
     }
   },
   "exports": {

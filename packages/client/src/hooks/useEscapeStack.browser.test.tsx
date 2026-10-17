@@ -1,7 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { escapeStackDepth, useEscapeStack } from "./useEscapeStack.js";
+import { escapeStackDepth, useEscapeStack } from "./useEscapeStack.ts";
 
 /**
  * The point of the stack is that one Escape reaches exactly one layer, so every

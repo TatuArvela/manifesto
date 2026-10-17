@@ -5,14 +5,14 @@ import {
   EmailTakenError,
   NoteAccessError,
   type StorageDriver,
-} from "#/storage/types.js";
+} from "#/storage/types.ts";
 import {
   ciphertext,
   claimed,
   claimedUpdate,
   heldKey,
   opened,
-} from "./claimed.js";
+} from "./claimed.ts";
 
 /**
  * What both drivers must do for sharing notes between accounts, run against

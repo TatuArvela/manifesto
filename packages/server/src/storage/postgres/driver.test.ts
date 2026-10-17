@@ -1,22 +1,22 @@
 import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { describeAccountKeysContract } from "#/storage/contracts/accountKeysContract.js";
-import { describeAdminContract } from "#/storage/contracts/adminContract.js";
-import { describeAttachmentsContract } from "#/storage/contracts/attachmentsContract.js";
-import { claimed, claimedUpdate, opened } from "#/storage/contracts/claimed.js";
-import { describeCommentsContract } from "#/storage/contracts/commentsContract.js";
-import { describeOAuthContract } from "#/storage/contracts/oauthContract.js";
-import { describePasskeysContract } from "#/storage/contracts/passkeysContract.js";
-import { describePrefsContract } from "#/storage/contracts/prefsContract.js";
-import { describePublicLinksContract } from "#/storage/contracts/publicLinksContract.js";
-import { describePushContract } from "#/storage/contracts/pushContract.js";
-import { describeSharingContract } from "#/storage/contracts/sharingContract.js";
-import { describeStatsContract } from "#/storage/contracts/statsContract.js";
-import { describeSyncContract } from "#/storage/contracts/syncContract.js";
-import { describeTeamsContract } from "#/storage/contracts/teamsContract.js";
-import { UsernameTakenError } from "#/storage/types.js";
-import { createPostgresStorage, type PostgresStorageDriver } from "./driver.js";
-import { newTestPool } from "./testDb.js";
+import { describeAccountKeysContract } from "#/storage/contracts/accountKeysContract.ts";
+import { describeAdminContract } from "#/storage/contracts/adminContract.ts";
+import { describeAttachmentsContract } from "#/storage/contracts/attachmentsContract.ts";
+import { claimed, claimedUpdate, opened } from "#/storage/contracts/claimed.ts";
+import { describeCommentsContract } from "#/storage/contracts/commentsContract.ts";
+import { describeOAuthContract } from "#/storage/contracts/oauthContract.ts";
+import { describePasskeysContract } from "#/storage/contracts/passkeysContract.ts";
+import { describePrefsContract } from "#/storage/contracts/prefsContract.ts";
+import { describePublicLinksContract } from "#/storage/contracts/publicLinksContract.ts";
+import { describePushContract } from "#/storage/contracts/pushContract.ts";
+import { describeSharingContract } from "#/storage/contracts/sharingContract.ts";
+import { describeStatsContract } from "#/storage/contracts/statsContract.ts";
+import { describeSyncContract } from "#/storage/contracts/syncContract.ts";
+import { describeTeamsContract } from "#/storage/contracts/teamsContract.ts";
+import { UsernameTakenError } from "#/storage/types.ts";
+import { createPostgresStorage, type PostgresStorageDriver } from "./driver.ts";
+import { newTestPool } from "./testDb.ts";
 
 async function bootStorage(): Promise<PostgresStorageDriver> {
   return createPostgresStorage(

@@ -1,17 +1,17 @@
-import { deleteLocalNoteCopies } from "#/realtime/localNoteCopies.js";
-import { notes } from "#/state/notesStore.js";
+import { deleteLocalNoteCopies } from "#/realtime/localNoteCopies.ts";
+import { notes } from "#/state/notesStore.ts";
 import {
   dropBrowserPushSubscription,
   removePushSubscription,
-} from "#/state/pushSubscription.js";
-import { dropAllOffline } from "#/storage/offlineNotes.js";
+} from "#/state/pushSubscription.ts";
+import { dropAllOffline } from "#/storage/offlineNotes.ts";
 import {
   clearAuthLocal,
   currentUser,
   type DeleteAccountResult,
   logout,
   requestAccountDeletion,
-} from "./auth.js";
+} from "./auth.ts";
 
 /**
  * Sign out and leave none of the account's notes in this browser: the list in

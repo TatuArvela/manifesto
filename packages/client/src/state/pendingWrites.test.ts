@@ -1,6 +1,6 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { createPendingWrites } from "./pendingWrites.js";
+import { createPendingWrites } from "./pendingWrites.ts";
 
 function makeNote(overrides: Partial<Note> = {}): Note {
   return {

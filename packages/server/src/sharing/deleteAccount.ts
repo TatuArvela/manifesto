@@ -1,6 +1,6 @@
-import type { SessionRevocations } from "#/auth/revocations.js";
-import type { AdminGuardedResult, StorageDriver } from "#/storage/types.js";
-import type { NoteEvents } from "./noteEvents.js";
+import type { SessionRevocations } from "#/auth/revocations.ts";
+import type { AdminGuardedResult, StorageDriver } from "#/storage/types.ts";
+import type { NoteEvents } from "./noteEvents.ts";
 
 /**
  * Deletes an account and everything that hangs off it, whoever asked: an

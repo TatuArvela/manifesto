@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { asBatch, type Batch, reportFailure } from "./failures.js";
-import { locale } from "./prefs.js";
-import { toasts } from "./ui.js";
+import { asBatch, type Batch, reportFailure } from "./failures.ts";
+import { locale } from "./prefs.ts";
+import { toasts } from "./ui.ts";
 
 /**
  * How note actions report what went wrong: one toast for one failed action,

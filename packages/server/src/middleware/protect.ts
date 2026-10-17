@@ -1,12 +1,12 @@
 import type { Context, MiddlewareHandler } from "hono";
-import type { AuthProvider } from "#/auth/types.js";
-import type { ServerConfig } from "#/config.js";
-import { isFeatureOn } from "#/features.js";
-import { OPERATIONS, type Operation } from "#/openapi.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { type AuthContext, createAuthMiddleware } from "./authBearer.js";
-import { HttpError } from "./error.js";
-import { perUserApiRateLimit, rateLimit } from "./rateLimit.js";
+import type { AuthProvider } from "#/auth/types.ts";
+import type { ServerConfig } from "#/config.ts";
+import { isFeatureOn } from "#/features.ts";
+import { OPERATIONS, type Operation } from "#/openapi.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { type AuthContext, createAuthMiddleware } from "./authBearer.ts";
+import { HttpError } from "./error.ts";
+import { perUserApiRateLimit, rateLimit } from "./rateLimit.ts";
 
 /**
  * The rate-limit buckets an operation can draw from. An `address` bucket

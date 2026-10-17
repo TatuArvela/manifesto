@@ -8,16 +8,16 @@ import {
   StretchHorizontal,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 import {
   noteScale,
   noteSize,
   type SortMode,
   sortMode,
   viewMode,
-} from "#/state/prefs.js";
-import { Dropdown } from "./Dropdown.js";
-import { Tooltip } from "./Tooltip.js";
+} from "#/state/prefs.ts";
+import { Dropdown } from "./Dropdown.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 /** The header's sort order menu. */
 export function SortMenu({ buttonClass }: { buttonClass: string }) {

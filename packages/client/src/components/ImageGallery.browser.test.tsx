@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ImageGallery } from "./ImageGallery.js";
+import { ImageGallery } from "./ImageGallery.tsx";
 
 const PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";

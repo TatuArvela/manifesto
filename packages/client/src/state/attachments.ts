@@ -5,10 +5,10 @@ import {
   mapPreviewImages,
 } from "@manifesto/shared";
 import { effect } from "@preact/signals";
-import { storage, storageConnection } from "#/storage/index.js";
-import { storageKeys } from "#/storage/sealing.js";
-import { blobToDataUrl } from "#/utils/dataUrl.js";
-import { shrinkImage } from "#/utils/shrinkImage.js";
+import { storage, storageConnection } from "#/storage/index.ts";
+import { storageKeys } from "#/storage/sealing.ts";
+import { blobToDataUrl } from "#/utils/dataUrl.ts";
+import { shrinkImage } from "#/utils/shrinkImage.ts";
 
 /**
  * Images the server keeps in its attachment store reach a note as

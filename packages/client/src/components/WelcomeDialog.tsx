@@ -1,21 +1,21 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { Cloud, HardDrive } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "#/colors.js";
-import { APP_LOGO } from "#/config.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { t } from "#/i18n/index.js";
+import { noteColorMap, noteFontFamilies } from "#/colors.ts";
+import { APP_LOGO } from "#/config.ts";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { t } from "#/i18n/index.ts";
 import {
   currentUser,
   isServerMode,
   SERVER_ORIGIN,
-} from "#/state/account/auth.js";
-import { showWelcome } from "#/state/ui.js";
-import { markWelcomed } from "#/state/welcome.js";
-import { Backdrop } from "./Backdrop.js";
-import { BrandLogo } from "./BrandLogo.js";
-import { buttonClass } from "./buttonClasses.js";
+} from "#/state/account/auth.ts";
+import { showWelcome } from "#/state/ui.ts";
+import { markWelcomed } from "#/state/welcome.ts";
+import { Backdrop } from "./Backdrop.tsx";
+import { BrandLogo } from "./BrandLogo.tsx";
+import { buttonClass } from "./buttonClasses.ts";
 
 /** How long the fade-out runs; matches the `duration-150` classes below. */
 const CLOSE_MS = 150;

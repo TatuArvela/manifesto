@@ -1,22 +1,22 @@
 import { randomBytes } from "node:crypto";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, describe, expect, it } from "vitest";
-import { TEST_CONFIG } from "#/test/setup.js";
+import { TEST_CONFIG } from "#/test/setup.ts";
 import {
   AT_REST,
   AT_REST_COLUMNS,
   createAtRest,
   parseServerKey,
   useAtRest,
-} from "./atRest.js";
-import { claimed } from "./contracts/claimed.js";
-import { createStorage } from "./index.js";
+} from "./atRest.ts";
+import { claimed } from "./contracts/claimed.ts";
+import { createStorage } from "./index.ts";
 import {
   type KeyFiles,
   loadServerKeys,
   moveToCurrentKey,
-} from "./serverKey.js";
-import type { StorageDriver } from "./types.js";
+} from "./serverKey.ts";
+import type { StorageDriver } from "./types.ts";
 
 const A = randomBytes(32);
 const B = randomBytes(32);

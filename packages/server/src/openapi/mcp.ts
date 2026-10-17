@@ -1,8 +1,8 @@
 import {
   oauthAuthorizeSchema,
   oauthRegisterSchema,
-} from "#/validation/schemas.js";
-import { type Operation, ok } from "./operation.js";
+} from "#/validation/schemas.ts";
+import { type Operation, ok } from "./operation.ts";
 
 /** The MCP endpoint and the OAuth flow that lets an assistant sign in to it. */
 export const MCP_OPERATIONS: Operation[] = [

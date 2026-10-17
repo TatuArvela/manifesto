@@ -1,6 +1,6 @@
-import type { NoteComment } from "./comments.js";
-import type { SealedAccountPrefs, SealedNote } from "./sealed.js";
-import type { ShareInvitation } from "./sharing.js";
+import type { NoteComment } from "./comments.ts";
+import type { SealedAccountPrefs, SealedNote } from "./sealed.ts";
+import type { ShareInvitation } from "./sharing.ts";
 
 // --- WebSocket events (server → client) ---
 

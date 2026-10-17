@@ -1,4 +1,4 @@
-import type { ServerStats } from "./types.js";
+import type { ServerStats } from "./types.ts";
 
 interface CountRow {
   key: string;

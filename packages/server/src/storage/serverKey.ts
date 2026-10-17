@@ -1,15 +1,15 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import type { ServerConfig } from "#/config.js";
-import { logger } from "#/lib/logger.js";
+import type { ServerConfig } from "#/config.ts";
+import { logger } from "#/lib/logger.ts";
 import {
   AT_REST_COLUMNS,
   atRest,
   newServerKey,
   parseServerKey,
   type ServerKeys,
-} from "./atRest.js";
-import type { StorageDriver } from "./types.js";
+} from "./atRest.ts";
+import type { StorageDriver } from "./types.ts";
 
 /** What is asked of the file system, so a test can stand in for it. */
 export interface KeyFiles {

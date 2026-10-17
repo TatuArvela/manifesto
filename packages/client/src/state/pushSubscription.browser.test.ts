@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "#/storage/index.js";
+import { storageConnection } from "#/storage/index.ts";
 import {
   ensurePushSubscription,
   removePushSubscription,
-} from "./pushSubscription.js";
-import { DEFAULT_SERVER_FEATURES, serverFeatures } from "./serverFeatures.js";
+} from "./pushSubscription.ts";
+import { DEFAULT_SERVER_FEATURES, serverFeatures } from "./serverFeatures.ts";
 
 const SERVER = "http://server.test";
 /** 65 bytes, as a push key is; the content does not matter here. */

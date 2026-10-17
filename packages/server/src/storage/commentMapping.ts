@@ -1,4 +1,4 @@
-import type { StoredComment } from "./types.js";
+import type { StoredComment } from "./types.ts";
 
 export const COMMENT_COLUMNS =
   "id, note_id, author_id, body, key_version, created_at, edited_at";

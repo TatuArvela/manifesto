@@ -1,5 +1,5 @@
 import type { Note } from "@manifesto/shared";
-import { type Importer, importedNote } from "./importer.js";
+import { type Importer, importedNote } from "./importer.ts";
 
 type Record_ = Record<string, unknown>;
 

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { defined } from "#/test/defined.js";
+import { defined } from "#/test/defined.ts";
 import {
   isChecklistLine,
   markFencedLines,
   parseChecklistLine,
   segmentContent,
   setChecklistChecked,
-} from "./markdown.js";
+} from "./markdown.ts";
 
 describe("isChecklistLine", () => {
   it("matches standard checklist syntax", () => {

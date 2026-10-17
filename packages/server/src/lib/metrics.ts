@@ -1,4 +1,4 @@
-import { jobStatuses } from "./periodic.js";
+import { jobStatuses } from "./periodic.ts";
 
 /**
  * Prometheus metrics, in its text format, for `GET /metrics`. Written out

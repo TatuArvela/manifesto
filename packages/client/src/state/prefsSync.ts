@@ -5,16 +5,16 @@ import type {
   SealedAccountPrefsResponse,
 } from "@manifesto/shared";
 import { effect, untracked } from "@preact/signals";
-import { apiFetch } from "#/storage/apiRequest.js";
-import { storageConnection } from "#/storage/index.js";
-import { type NoteSealing, sealer } from "#/storage/sealing.js";
+import { apiFetch } from "#/storage/apiRequest.ts";
+import { storageConnection } from "#/storage/index.ts";
+import { type NoteSealing, sealer } from "#/storage/sealing.ts";
 import {
   ACCOUNT_PREF_KEYS,
   accountPrefsSnapshot,
   adoptAccountPrefs,
   isApplyingRemotePrefs,
-} from "./prefs.js";
-import { defaultPrefsOf, serverDefaultPrefs } from "./serverDefaults.js";
+} from "./prefs.ts";
+import { defaultPrefsOf, serverDefaultPrefs } from "./serverDefaults.ts";
 
 /**
  * Connected mode keeps the account's preferences on the server, so hidden

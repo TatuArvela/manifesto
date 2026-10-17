@@ -1,6 +1,6 @@
 import { AUDIT_ACTIONS, type AuditAction } from "@manifesto/shared";
-import { parseJson } from "./noteMapping.js";
-import type { AuditListOptions, AuditRecord } from "./types.js";
+import { parseJson } from "./noteMapping.ts";
+import type { AuditListOptions, AuditRecord } from "./types.ts";
 
 export interface AuditRow {
   id: string;

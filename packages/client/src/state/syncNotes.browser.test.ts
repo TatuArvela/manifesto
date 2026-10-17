@@ -5,8 +5,8 @@ import {
   type SyncResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "#/storage/index.js";
-import { loadNotes, notes, receiveNote, syncNotes } from "./notesStore.js";
+import { storageConnection } from "#/storage/index.ts";
+import { loadNotes, notes, receiveNote, syncNotes } from "./notesStore.ts";
 
 /**
  * Catching up after a reconnect: what changed since the last read, and the

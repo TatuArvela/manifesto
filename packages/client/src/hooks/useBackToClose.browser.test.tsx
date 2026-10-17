@@ -1,8 +1,8 @@
 import type { ComponentChildren } from "preact";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { afterHistorySettles } from "#/state/sheetHistory.js";
-import { useBackToClose } from "./useBackToClose.js";
+import { afterHistorySettles } from "#/state/sheetHistory.ts";
+import { useBackToClose } from "./useBackToClose.ts";
 
 /**
  * Real history on a real page: what matters is which entry the browser ends

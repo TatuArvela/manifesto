@@ -6,21 +6,21 @@ import {
   type WebhooksResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import { requireConfirmation } from "#/auth/confirmation.js";
-import type { LoginAttempts } from "#/auth/local/loginAttempts.js";
-import { nowIso } from "#/lib/time.js";
-import { newId } from "#/lib/ulid.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { listedWebhook } from "#/storage/webhookMapping.js";
+import { audit } from "#/audit/audit.ts";
+import { requireConfirmation } from "#/auth/confirmation.ts";
+import type { LoginAttempts } from "#/auth/local/loginAttempts.ts";
+import { nowIso } from "#/lib/time.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { listedWebhook } from "#/storage/webhookMapping.ts";
 import {
   webhookCreateSchema,
   webhookUpdateSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import type { WebhookDispatcher } from "#/webhooks/dispatcher.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import type { WebhookDispatcher } from "#/webhooks/dispatcher.ts";
 
 interface WebhookDeps {
   storage: StorageDriver;

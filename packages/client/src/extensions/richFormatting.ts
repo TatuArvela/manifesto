@@ -12,17 +12,17 @@ import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
 import type { EditorState, Transaction } from "@milkdown/kit/prose/state";
 import { liftTarget } from "@milkdown/kit/prose/transform";
 import { callCommand } from "@milkdown/kit/utils";
-import type { ActiveFormats, FormatType } from "#/utils/formatTypes.js";
-import { insertBlock } from "./blockInsertion.js";
-import { toggleCodeBlock } from "./codeBlockToggle.js";
-import { coveredRange } from "./coveredRange.js";
-import { toggleList } from "./listToggle.js";
+import type { ActiveFormats, FormatType } from "#/utils/formatTypes.ts";
+import { insertBlock } from "./blockInsertion.ts";
+import { toggleCodeBlock } from "./codeBlockToggle.ts";
+import { coveredRange } from "./coveredRange.ts";
+import { toggleList } from "./listToggle.ts";
 import {
   toggleSubscriptCommand,
   toggleSuperscriptCommand,
   toggleUnderlineCommand,
-} from "./manifestoInlineMarks.js";
-import { insertTable } from "./tableActions.js";
+} from "./manifestoInlineMarks.ts";
+import { insertTable } from "./tableActions.ts";
 
 // The formatting toolbar's reading and writing of the rich editor: which
 // formats the selection has, and applying one. The raw-mode counterpart, for

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { jobStatuses, startPeriodicJob } from "./periodic.js";
+import { jobStatuses, startPeriodicJob } from "./periodic.ts";
 
 describe("job statuses", () => {
   it("records each run's outcome, and forgets a stopped job", async () => {

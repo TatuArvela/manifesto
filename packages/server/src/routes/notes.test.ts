@@ -15,14 +15,14 @@ import {
   ciphertext,
   sealedCreate,
   sealedUpdate,
-} from "#/storage/contracts/claimed.js";
-import { defined } from "#/test/defined.js";
+} from "#/storage/contracts/claimed.ts";
+import { defined } from "#/test/defined.ts";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
+} from "#/test/setup.ts";
 
 const baseNote: NoteCreate = {
   title: "",

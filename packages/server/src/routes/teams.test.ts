@@ -7,17 +7,17 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createAccessChanges } from "#/sharing/accessChanges.js";
-import { createNoteEvents } from "#/sharing/noteEvents.js";
-import { createTeamShares } from "#/sharing/teamShares.js";
-import { syncOidcTeams } from "#/sharing/teamSync.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { createAccessChanges } from "#/sharing/accessChanges.ts";
+import { createNoteEvents } from "#/sharing/noteEvents.ts";
+import { createTeamShares } from "#/sharing/teamShares.ts";
+import { syncOidcTeams } from "#/sharing/teamSync.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
+} from "#/test/setup.ts";
 
 const baseNote: NoteCreate = {
   title: "Plan",

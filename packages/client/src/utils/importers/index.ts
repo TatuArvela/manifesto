@@ -1,13 +1,13 @@
 import type { Note } from "@manifesto/shared";
-import { evernoteImporter } from "./evernote.js";
-import { htmlImporter } from "./html.js";
-import type { Importer } from "./importer.js";
-import { joplinImporter } from "./joplin.js";
-import { simplenoteImporter } from "./simplenote.js";
-import { standardNotesImporter } from "./standardNotes.js";
+import { evernoteImporter } from "./evernote.ts";
+import { htmlImporter } from "./html.ts";
+import type { Importer } from "./importer.ts";
+import { joplinImporter } from "./joplin.ts";
+import { simplenoteImporter } from "./simplenote.ts";
+import { standardNotesImporter } from "./standardNotes.ts";
 
-export type { Importer } from "./importer.js";
-export { checkImportSize, MAX_IMPORT_BYTES } from "./importer.js";
+export type { Importer } from "./importer.ts";
+export { checkImportSize, MAX_IMPORT_BYTES } from "./importer.ts";
 
 /**
  * Every other app's format this one reads, beside its own export, Markdown

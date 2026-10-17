@@ -4,7 +4,7 @@ import {
   MAX_IMAGE_SOURCE_BYTES,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import { formatFileSize, t } from "#/i18n/index.js";
+import { formatFileSize, t } from "#/i18n/index.ts";
 import {
   MAX_SHARED_TEXT,
   SHARE_CACHE,
@@ -13,9 +13,9 @@ import {
   SHARE_TEXT_KEY,
   type SharedText,
   sharedTextToDraft,
-} from "#/shareTarget.js";
-import { shrinkImage } from "#/utils/shrinkImage.js";
-import { activeTag, activeView, showError } from "./ui.js";
+} from "#/shareTarget.ts";
+import { shrinkImage } from "#/utils/shrinkImage.ts";
+import { activeTag, activeView, showError } from "./ui.ts";
 
 export interface IncomingShare {
   title: string;

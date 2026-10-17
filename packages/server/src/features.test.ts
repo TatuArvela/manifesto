@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
 import { SERVER_FEATURES } from "@manifesto/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadConfig } from "./config.js";
+import { loadConfig } from "./config.ts";
 import {
   FEATURES,
   featureStates,
   isFeatureOn,
   loadFeatureToggles,
-} from "./features.js";
-import { TEST_CONFIG } from "./test/setup.js";
+} from "./features.ts";
+import { TEST_CONFIG } from "./test/setup.ts";
 
 /** The same reading of a boolean `loadConfig` uses, over a given env. */
 function parserFor(env: NodeJS.ProcessEnv) {

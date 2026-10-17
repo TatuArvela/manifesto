@@ -1,7 +1,7 @@
 import { signal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 
-type EditorChunk = typeof import("./editorChunk.js");
+type EditorChunk = typeof import("./editorChunk.ts");
 
 /**
  * The editor, fetched apart from the board: it is the largest thing in the
@@ -20,7 +20,7 @@ let loading: Promise<boolean> | null = null;
  */
 export function loadEditor(): Promise<boolean> {
   if (editorChunk.value) return Promise.resolve(true);
-  loading ??= import("./editorChunk.js").then(
+  loading ??= import("./editorChunk.ts").then(
     (chunk) => {
       editorChunk.value = chunk;
       return true;

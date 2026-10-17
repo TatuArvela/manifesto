@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { SessionsRepo } from "#/storage/types.js";
-import { openDatabase, type SqliteDB } from "./database.js";
-import { createSqliteSessionsRepo } from "./sessionsRepo.js";
-import { createSqliteUsersRepo } from "./usersRepo.js";
+import type { SessionsRepo } from "#/storage/types.ts";
+import { openDatabase, type SqliteDB } from "./database.ts";
+import { createSqliteSessionsRepo } from "./sessionsRepo.ts";
+import { createSqliteUsersRepo } from "./usersRepo.ts";
 
 describe("sqlite sessionsRepo", () => {
   let db: SqliteDB;

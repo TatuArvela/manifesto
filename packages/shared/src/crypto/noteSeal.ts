@@ -1,12 +1,12 @@
-import { MAX_COMMENT_LENGTH } from "#/api/comments.js";
-import { MAX_ACCOUNT_PREFS_BYTES } from "#/api/prefs.js";
+import { MAX_COMMENT_LENGTH } from "#/api/comments.ts";
+import { MAX_ACCOUNT_PREFS_BYTES } from "#/api/prefs.ts";
 import type {
   SealedNote,
   SealedNoteCreate,
   SealedNoteRefs,
   SealedNoteUpdate,
   SealedNoteVersion,
-} from "#/api/sealed.js";
+} from "#/api/sealed.ts";
 import {
   ATTACHMENT_REF_PREFIX,
   attachmentIdOf,
@@ -25,16 +25,16 @@ import {
   NoteFont,
   type NoteUpdate,
   type NoteVersion,
-} from "#/note.js";
-import { utf8, wipe } from "./bytes.js";
-import type { ImageKey } from "./imageSeal.js";
+} from "#/note.ts";
+import { utf8, wipe } from "./bytes.ts";
+import type { ImageKey } from "./imageSeal.ts";
 import {
   checkedImages,
   checkedLinkPreviews,
   checkedTags,
   type ImageEntry,
   type ImageKeys,
-} from "./noteChecks.js";
+} from "./noteChecks.ts";
 import {
   type AccountSealKeys,
   type NoteSealKey,
@@ -44,8 +44,8 @@ import {
   personalData,
   sharedData,
   wrapNoteKey,
-} from "./noteKey.js";
-import { seal, sealedLength, unsealText } from "./seal.js";
+} from "./noteKey.ts";
+import { seal, sealedLength, unsealText } from "./seal.ts";
 
 /**
  * A note's words, sealed and opened

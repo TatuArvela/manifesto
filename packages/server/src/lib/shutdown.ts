@@ -1,4 +1,4 @@
-import { logger } from "./logger.js";
+import { logger } from "./logger.ts";
 
 /**
  * The pieces a running server holds open, in the order they have to be let go

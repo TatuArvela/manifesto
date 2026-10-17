@@ -3,18 +3,18 @@ import { editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
 import type { Node } from "@milkdown/kit/prose/model";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
-import { editorHistory } from "#/extensions/editorHistory.js";
-import { docHasDatedItems, sortItemsByDateIn } from "#/extensions/itemDates.js";
+import { editorHistory } from "#/extensions/editorHistory.ts";
+import { docHasDatedItems, sortItemsByDateIn } from "#/extensions/itemDates.ts";
 import {
   deleteCheckedItemsIn,
   docHasCheckedItems,
-} from "#/extensions/taskListStructure.js";
-import { hasDatedItems, sortChecklistByDate } from "#/utils/itemDate.js";
+} from "#/extensions/taskListStructure.ts";
+import { hasDatedItems, sortChecklistByDate } from "#/utils/itemDate.ts";
 import {
   removeCheckedItems,
   hasCheckedItems as textHasCheckedItems,
-} from "#/utils/markdown.js";
-import { applyTextEdit } from "#/utils/rawFormatting.js";
+} from "#/utils/markdown.ts";
+import { applyTextEdit } from "#/utils/rawFormatting.ts";
 
 /**
  * What the editor's toolbar and menu do to a note's text, against whichever

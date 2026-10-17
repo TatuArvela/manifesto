@@ -6,15 +6,15 @@ import {
   rowToInvitation,
   rowToShare,
   type ShareRow,
-} from "#/storage/shareMapping.js";
+} from "#/storage/shareMapping.ts";
 import type {
   CreateShareInput,
   HeldKey,
   NoteAudience,
   NoteShare,
   SharesRepo,
-} from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team,
   offered_key, wrapped_key_version`;

@@ -4,7 +4,7 @@ import https from "node:https";
 import { isIP, type LookupFunction } from "node:net";
 import type { Readable } from "node:stream";
 import zlib from "node:zlib";
-import { isPublicAddress } from "./addressPolicy.js";
+import { isPublicAddress } from "./addressPolicy.ts";
 
 export interface SafeFetchOptions {
   /** Most bytes to read, after decompression. */

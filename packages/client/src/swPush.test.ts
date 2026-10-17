@@ -5,14 +5,14 @@ import {
   type ReminderPush,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { Sealer } from "./storage/sealing.js";
+import { Sealer } from "./storage/sealing.ts";
 import {
   afterPush,
   type PushKeys,
   readReminderPush,
   wordedPush,
-} from "./swPush.js";
-import { testKeys } from "./test/sealedServer.js";
+} from "./swPush.ts";
+import { testKeys } from "./test/sealedServer.ts";
 
 const push: ReminderPush = {
   type: "reminder",

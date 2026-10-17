@@ -1,7 +1,7 @@
 import { type AdminUser, PROXY_PROBE_ADDRESS } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
-import { storageConnection } from "#/storage/index.js";
+import { t } from "#/i18n/index.ts";
+import { storageConnection } from "#/storage/index.ts";
 import {
   adminUsers,
   createAccount,
@@ -12,9 +12,9 @@ import {
   resetAccountPassword,
   sendTestMail,
   setAccountAdmin,
-} from "./admin.js";
-import { locale } from "./prefs.js";
-import { activeView, toasts } from "./ui.js";
+} from "./admin.ts";
+import { locale } from "./prefs.ts";
+import { activeView, toasts } from "./ui.ts";
 
 const SERVER = "http://server.test";
 

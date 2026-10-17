@@ -1,5 +1,5 @@
-import { CIPHERTEXT_PREFIX } from "#/api/keys.js";
-import { base64urlToBytes, bytesToBase64url, fromUtf8, utf8 } from "./bytes.js";
+import { CIPHERTEXT_PREFIX } from "#/api/keys.ts";
+import { base64urlToBytes, bytesToBase64url, fromUtf8, utf8 } from "./bytes.ts";
 
 /**
  * The one way anything is encrypted: AES-256-GCM, a random 96-bit nonce for

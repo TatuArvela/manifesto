@@ -3,11 +3,11 @@ import type {
   WebhookCreatedResponse,
   WebhooksResponse,
 } from "@manifesto/shared";
-import { apiFetch } from "#/storage/apiRequest.js";
+import { apiFetch } from "#/storage/apiRequest.ts";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./account/passwordConfirmation.js";
+} from "./account/passwordConfirmation.ts";
 
 /**
  * The signed-in user's webhooks. Like the API token calls, each resolves with

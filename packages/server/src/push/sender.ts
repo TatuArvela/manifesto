@@ -1,15 +1,15 @@
-import type { ServerConfig } from "#/config.js";
-import { logger } from "#/lib/logger.js";
-import { countMetric } from "#/lib/metrics.js";
-import { nowIso } from "#/lib/time.js";
-import { FetchRefused, safeFetch } from "#/linkPreview/safeFetch.js";
-import type { StorageDriver, StoredPushSubscription } from "#/storage/types.js";
+import type { ServerConfig } from "#/config.ts";
+import { logger } from "#/lib/logger.ts";
+import { countMetric } from "#/lib/metrics.ts";
+import { nowIso } from "#/lib/time.ts";
+import { FetchRefused, safeFetch } from "#/linkPreview/safeFetch.ts";
+import type { StorageDriver, StoredPushSubscription } from "#/storage/types.ts";
 import {
   encryptPayload,
   generateVapidKeys,
   type VapidKeys,
   vapidAuthorization,
-} from "./webPush.js";
+} from "./webPush.ts";
 
 /** Sends that may fail in a row before a subscription is dropped. */
 export const PUSH_DROP_AFTER = 10;

@@ -5,7 +5,7 @@ import {
   getVersions,
   resetVersionMigrationForTests,
   saveVersion,
-} from "./VersionStorage.js";
+} from "./VersionStorage.ts";
 
 const LEGACY_KEY = "manifesto:versions";
 const keyFor = (noteId: string) => `manifesto:versions:${noteId}`;

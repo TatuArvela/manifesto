@@ -10,7 +10,7 @@ import {
   lastOccurrence,
   lastPast,
   relativeDays,
-} from "./stdlib.js";
+} from "./stdlib.ts";
 
 const EN_LABELS: ApproxLabels = {
   today: "Today",

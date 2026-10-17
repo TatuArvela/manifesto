@@ -1,11 +1,11 @@
-import { toAutoNoteResults } from "./results.js";
-import type { ApproxLabels } from "./stdlib.js";
-import { buildStdlibPrelude } from "./stdlib.js";
+import { toAutoNoteResults } from "./results.ts";
+import type { ApproxLabels } from "./stdlib.ts";
+import { buildStdlibPrelude } from "./stdlib.ts";
 import type {
   AutoNoteResult,
   PluginContextInput,
   PluginNote,
-} from "./types.js";
+} from "./types.ts";
 
 // Why the sandbox is a frame from a real URL with the plugin in a worker
 // inside it is in `docs/specification/features/auto-notes.md` ("Execution

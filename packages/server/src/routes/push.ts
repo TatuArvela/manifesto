@@ -4,20 +4,20 @@ import {
   type PushKeyResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import { nowIso } from "#/lib/time.js";
-import { hashToken } from "#/lib/token.js";
-import { newId } from "#/lib/ulid.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { PushSender } from "#/push/sender.js";
-import { isUsableTarget } from "#/push/webPush.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { audit } from "#/audit/audit.ts";
+import { nowIso } from "#/lib/time.ts";
+import { hashToken } from "#/lib/token.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { PushSender } from "#/push/sender.ts";
+import { isUsableTarget } from "#/push/webPush.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   pushSubscribeSchema,
   pushUnsubscribeSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
 
 /**
  * `/api/push`: a browser subscribing to this account's reminders as push

@@ -1,5 +1,5 @@
-import type { AuthProviderName } from "./auth.js";
-import type { AccountPrefs } from "./prefs.js";
+import type { AuthProviderName } from "./auth.ts";
+import type { AccountPrefs } from "./prefs.ts";
 
 /**
  * How a note's owner finds the person to share it with. `search` offers

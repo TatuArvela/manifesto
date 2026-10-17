@@ -1,17 +1,17 @@
 import type { Note } from "@manifesto/shared";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { noteFontFamilies } from "#/colors.js";
-import { ContentPreview } from "#/components/ContentPreview.js";
-import { ImageGallery } from "#/components/ImageGallery.js";
-import { LinkPreviewHero } from "#/components/LinkPreviewHero.js";
-import { LinkPreviewList } from "#/components/LinkPreviewList.js";
-import { ReminderChip } from "#/components/ReminderChip.js";
-import { SharedAvatars } from "#/components/sharing/SharedAvatars.js";
-import { TagChip } from "#/components/TagChip.js";
-import { toggleCheckbox } from "#/state/actions.js";
-import { drawnWithoutImages } from "#/state/autoNotes.js";
-import { updateNote } from "#/state/notesStore.js";
+import { noteFontFamilies } from "#/colors.ts";
+import { ContentPreview } from "#/components/ContentPreview.tsx";
+import { ImageGallery } from "#/components/ImageGallery.tsx";
+import { LinkPreviewHero } from "#/components/LinkPreviewHero.tsx";
+import { LinkPreviewList } from "#/components/LinkPreviewList.tsx";
+import { ReminderChip } from "#/components/ReminderChip.tsx";
+import { SharedAvatars } from "#/components/sharing/SharedAvatars.tsx";
+import { TagChip } from "#/components/TagChip.tsx";
+import { toggleCheckbox } from "#/state/actions.ts";
+import { drawnWithoutImages } from "#/state/autoNotes.ts";
+import { updateNote } from "#/state/notesStore.ts";
 
 /**
  * What a card shows of its note: the pictures, then either a link hero (for a

@@ -6,10 +6,10 @@ import {
   type ShareInvitation,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "#/storage/index.js";
-import { exportNotes } from "./exportNotes.js";
-import { notes, updateNote } from "./notesStore.js";
-import { locale } from "./prefs.js";
+import { storageConnection } from "#/storage/index.ts";
+import { exportNotes } from "./exportNotes.ts";
+import { notes, updateNote } from "./notesStore.ts";
+import { locale } from "./prefs.ts";
 import {
   acceptInvitation,
   declineInvitation,
@@ -20,8 +20,8 @@ import {
   receiveInvitation,
   removeShare,
   shareNote,
-} from "./sharing.js";
-import { editingNoteId, toasts } from "./ui.js";
+} from "./sharing.ts";
+import { editingNoteId, toasts } from "./ui.ts";
 
 const SERVER = "http://server.test";
 

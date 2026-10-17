@@ -1,16 +1,16 @@
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "#/colors.js";
-import { Avatar } from "#/components/Avatar.js";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { ContentPreview } from "#/components/ContentPreview.js";
-import { t } from "#/i18n/index.js";
+import { noteColorMap, noteFontFamilies } from "#/colors.ts";
+import { Avatar } from "#/components/Avatar.tsx";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { ContentPreview } from "#/components/ContentPreview.tsx";
+import { t } from "#/i18n/index.ts";
 import {
   acceptInvitation,
   declineInvitation,
   type Invitation,
   invitations,
-} from "#/state/sharing.js";
+} from "#/state/sharing.ts";
 
 /**
  * Notes other people have offered, above the Notes view's grid. Nothing

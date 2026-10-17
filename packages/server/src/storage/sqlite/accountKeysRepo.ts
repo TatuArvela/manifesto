@@ -3,9 +3,9 @@ import {
   type AccountKeysRow,
   accountKeysValues,
   rowToAccountKeys,
-} from "#/storage/accountKeysMapping.js";
-import type { AccountKeysRepo } from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/accountKeysMapping.ts";
+import type { AccountKeysRepo } from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqliteAccountKeysRepo(db: SqliteDB): AccountKeysRepo {
   const getStmt = db.prepare(

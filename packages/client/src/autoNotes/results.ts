@@ -1,5 +1,5 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import type { AutoNoteResult } from "./types.js";
+import type { AutoNoteResult } from "./types.ts";
 
 /**
  * How many notes one plugin invocation may produce. A loop that appends a

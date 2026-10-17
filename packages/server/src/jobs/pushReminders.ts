@@ -6,13 +6,13 @@ import {
   type ReminderPush,
   type SealedNote,
 } from "@manifesto/shared";
-import { logger } from "#/lib/logger.js";
-import { startPeriodicJob } from "#/lib/periodic.js";
-import { type MailLocale, mailLocale } from "#/mail/templates.js";
-import type { PushSender } from "#/push/sender.js";
-import { MAX_PAYLOAD_BYTES } from "#/push/webPush.js";
-import type { NoteEvents } from "#/sharing/noteEvents.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { logger } from "#/lib/logger.ts";
+import { startPeriodicJob } from "#/lib/periodic.ts";
+import { type MailLocale, mailLocale } from "#/mail/templates.ts";
+import type { PushSender } from "#/push/sender.ts";
+import { MAX_PAYLOAD_BYTES } from "#/push/webPush.ts";
+import type { NoteEvents } from "#/sharing/noteEvents.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 
 /** How often the server looks for reminders that have come due. */
 const TICK_MS = 30_000;

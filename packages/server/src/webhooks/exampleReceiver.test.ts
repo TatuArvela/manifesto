@@ -11,13 +11,13 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createApp } from "#/app.js";
-import { createAuthProvider } from "#/auth/index.js";
-import { createStorage } from "#/storage/index.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { keyedToken } from "#/test/keyedTokens.js";
-import { authHeaders, TEST_CONFIG } from "#/test/setup.js";
-import { signDelivery, type WebhookDispatcher } from "./dispatcher.js";
+import { createApp } from "#/app.ts";
+import { createAuthProvider } from "#/auth/index.ts";
+import { createStorage } from "#/storage/index.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { keyedToken } from "#/test/keyedTokens.ts";
+import { authHeaders, TEST_CONFIG } from "#/test/setup.ts";
+import { signDelivery, type WebhookDispatcher } from "./dispatcher.ts";
 
 /**
  * `docs/examples/webhooks/receiver.mjs` is documentation people copy, so it

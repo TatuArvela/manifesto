@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { t } from "#/i18n/index.js";
-import { answerConfirmation, confirmRequest } from "#/state/confirm.js";
-import { Backdrop } from "./Backdrop.js";
-import { buttonClass } from "./buttonClasses.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { t } from "#/i18n/index.ts";
+import { answerConfirmation, confirmRequest } from "#/state/confirm.ts";
+import { Backdrop } from "./Backdrop.tsx";
+import { buttonClass } from "./buttonClasses.ts";
 
 /**
  * The one place a destructive action stops to ask. Driven by the

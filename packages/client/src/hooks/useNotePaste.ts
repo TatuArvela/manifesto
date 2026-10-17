@@ -1,5 +1,5 @@
 import { useEffect } from "preact/hooks";
-import { extractUrls } from "#/utils/linkPreview.js";
+import { extractUrls } from "#/utils/linkPreview.ts";
 
 /**
  * Takes what is pasted while a note is open: pictures are attached, and the

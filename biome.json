@@ -53,6 +53,7 @@
         "noUnusedFunctionParameters": "error",
         "noUnusedPrivateClassMembers": "error",
         "noUndeclaredDependencies": "error",
+        "useImportExtensions": "error",
         "useExhaustiveDependencies": {
           "level": "error",
           "options": {
@@ -232,7 +233,7 @@
                       "#/autoNotes/**",
                       "#/utils/**",
                       "#/state/**",
-                      "!#/state/prefs.js"
+                      "!#/state/prefs.ts"
                     ],
                     "message": "i18n/ may read only the locale preference (state/prefs.ts), which imports nothing from i18n/ but locales.ts."
                   },

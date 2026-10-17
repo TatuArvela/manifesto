@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver, StoredAccountKeys } from "#/storage/types.js";
+import type { StorageDriver, StoredAccountKeys } from "#/storage/types.ts";
 
 /**
  * An account's wrapped keys, the same in both drivers: the first set-up is

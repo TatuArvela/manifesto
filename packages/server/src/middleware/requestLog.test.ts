@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defined } from "#/test/defined.js";
-import { requestLog } from "./requestLog.js";
+import { defined } from "#/test/defined.ts";
+import { requestLog } from "./requestLog.ts";
 
 function buildApp() {
   const app = new Hono();

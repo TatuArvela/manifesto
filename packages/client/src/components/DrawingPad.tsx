@@ -1,14 +1,14 @@
 import { isStoredImageRef, NoteColor } from "@manifesto/shared";
 import { Check, Eraser, Trash2, Undo, X } from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { useBackToClose } from "#/hooks/useBackToClose.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { getColorLabel, t } from "#/i18n/index.js";
-import { attachmentObjectUrl } from "#/state/attachments.js";
-import { askConfirmation } from "#/state/confirm.js";
-import { closeDrawing, drawingRequest } from "#/state/drawing.js";
-import { showError } from "#/state/ui.js";
+import { useBackToClose } from "#/hooks/useBackToClose.ts";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { getColorLabel, t } from "#/i18n/index.ts";
+import { attachmentObjectUrl } from "#/state/attachments.ts";
+import { askConfirmation } from "#/state/confirm.ts";
+import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
+import { showError } from "#/state/ui.ts";
 import {
   BLANK_PAPER,
   drawingPoint,
@@ -20,7 +20,7 @@ import {
   penScale,
   renderDrawing,
   type Stroke,
-} from "#/utils/drawing.js";
+} from "#/utils/drawing.ts";
 
 const INKS = [
   { color: "#171717", name: null },

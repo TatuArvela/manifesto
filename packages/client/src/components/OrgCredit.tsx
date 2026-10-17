@@ -1,5 +1,5 @@
-import { ORG_LOGO, ORG_NAME } from "#/config.js";
-import { BrandLogo } from "./BrandLogo.js";
+import { ORG_LOGO, ORG_NAME } from "#/config.ts";
+import { BrandLogo } from "./BrandLogo.tsx";
 
 /**
  * The organisation that owns this copy of the app, when the deployment says:

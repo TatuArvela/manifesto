@@ -7,7 +7,7 @@ import {
   signal,
   untracked,
 } from "@preact/signals";
-import { inkHex, pictureTextures } from "#/utils/boardTextures.js";
+import { inkHex, pictureTextures } from "#/utils/boardTextures.ts";
 import {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,
@@ -27,8 +27,8 @@ import {
   rollBoardColor,
   rollBoardTexture,
   type ThemeMode,
-} from "./prefParsers.js";
-import { serverDefaultPrefs } from "./serverDefaults.js";
+} from "./prefParsers.ts";
+import { serverDefaultPrefs } from "./serverDefaults.ts";
 
 export type {
   BoardColor,
@@ -54,7 +54,7 @@ export type {
   TagColor,
   ThemeMode,
   ViewMode,
-} from "./prefParsers.js";
+} from "./prefParsers.ts";
 export {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,
@@ -67,7 +67,7 @@ export {
   LIGHT_HUES,
   MAX_TAG_COLORS,
   parsePrefs,
-} from "./prefParsers.js";
+} from "./prefParsers.ts";
 
 // --- Persisted preferences ---
 

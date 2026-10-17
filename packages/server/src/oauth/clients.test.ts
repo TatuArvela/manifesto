@@ -4,7 +4,7 @@ import {
   createClientResolver,
   isMetadataDocumentId,
   MAX_CLIENT_NAME_LENGTH,
-} from "./clients.js";
+} from "./clients.ts";
 
 type Storage = Parameters<typeof createClientResolver>[0]["storage"];
 

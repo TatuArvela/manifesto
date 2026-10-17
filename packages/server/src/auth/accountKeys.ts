@@ -7,20 +7,20 @@ import {
   type SeenKeysResponse,
 } from "@manifesto/shared";
 import type { Context, Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import type { ServerConfig } from "#/config.js";
-import { hashPassword } from "#/lib/password.js";
-import { isoPlusDays, nowIso } from "#/lib/time.js";
-import { hashToken, safeEqual } from "#/lib/token.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import { emptyAccount } from "#/sharing/emptyAccount.js";
-import type { NoteEvents } from "#/sharing/noteEvents.js";
+import { audit } from "#/audit/audit.ts";
+import type { ServerConfig } from "#/config.ts";
+import { hashPassword } from "#/lib/password.ts";
+import { isoPlusDays, nowIso } from "#/lib/time.ts";
+import { hashToken, safeEqual } from "#/lib/token.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import { emptyAccount } from "#/sharing/emptyAccount.ts";
+import type { NoteEvents } from "#/sharing/noteEvents.ts";
 import type {
   StorageDriver,
   StoredAccountKeys,
   User,
-} from "#/storage/types.js";
+} from "#/storage/types.ts";
 import {
   accountKeysSetupSchema,
   keysConfirmSchema,
@@ -31,13 +31,13 @@ import {
   recoverySignInOpenSchema,
   secretKeyReplaceSchema,
   seenKeySchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import { requireConfirmation } from "./confirmation.js";
-import type { LoginAttempts } from "./local/loginAttempts.js";
-import type { SessionRevocations } from "./revocations.js";
-import { endUserSessions, issueSession } from "./session.js";
-import { toAuthUser } from "./users.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import { requireConfirmation } from "./confirmation.ts";
+import type { LoginAttempts } from "./local/loginAttempts.ts";
+import type { SessionRevocations } from "./revocations.ts";
+import { endUserSessions, issueSession } from "./session.ts";
+import { toAuthUser } from "./users.ts";
 
 // The keys an account's notes are encrypted with
 // (`docs/specification/features/encryption.md`). Everything here is wrapped

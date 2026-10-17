@@ -3,9 +3,9 @@ import {
   type AccountKeysRow,
   accountKeysValues,
   rowToAccountKeys,
-} from "#/storage/accountKeysMapping.js";
-import type { AccountKeysRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/accountKeysMapping.ts";
+import type { AccountKeysRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 /** SQLSTATE 23505, as `usersRepo` reads it. */
 function isUniqueViolation(err: unknown): boolean {

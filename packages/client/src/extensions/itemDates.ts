@@ -17,8 +17,8 @@ import {
   itemDateClass,
   localIsoDate,
   UNDATED,
-} from "#/utils/itemDate.js";
-import { activeTaskItem, isListNode, isTaskItem } from "./taskListStructure.js";
+} from "#/utils/itemDate.ts";
+import { activeTaskItem, isListNode, isTaskItem } from "./taskListStructure.ts";
 
 // Dates on checklist items in the editor (see `utils/itemDate.ts`). The token
 // stays ordinary text in the item, so the schema is untouched; a decoration

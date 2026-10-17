@@ -1,26 +1,26 @@
 import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useBoardShortcuts } from "#/hooks/useBoardShortcuts.js";
-import { useFileDropImport } from "#/hooks/useFileDropImport.js";
-import { useLazyModule } from "#/hooks/useLazyModule.js";
-import { useMarqueeSelection } from "#/hooks/useMarqueeSelection.js";
-import { useMediaQuery } from "#/hooks/useMediaQuery.js";
-import { usePresence } from "#/hooks/usePresence.js";
-import { useScrollAwayBar } from "#/hooks/useScrollAwayBar.js";
+import { useBoardShortcuts } from "#/hooks/useBoardShortcuts.ts";
+import { useFileDropImport } from "#/hooks/useFileDropImport.ts";
+import { useLazyModule } from "#/hooks/useLazyModule.ts";
+import { useMarqueeSelection } from "#/hooks/useMarqueeSelection.ts";
+import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
+import { usePresence } from "#/hooks/usePresence.ts";
+import { useScrollAwayBar } from "#/hooks/useScrollAwayBar.ts";
 import {
   PANE_SLIDE_MS,
   usePaneSlide,
   useViewTransition,
-} from "#/hooks/useViewTransition.js";
-import { t } from "#/i18n/index.js";
-import { startAppSocket } from "#/realtime/appSocket.js";
-import { revealApp } from "#/splash.js";
+} from "#/hooks/useViewTransition.ts";
+import { t } from "#/i18n/index.ts";
+import { startAppSocket } from "#/realtime/appSocket.ts";
+import { revealApp } from "#/splash.ts";
 import {
   keyState,
   takeSecretKeyFromAddress,
-} from "#/state/account/accountKeys.js";
-import { startAccountLocaleReport } from "#/state/account/accountLocale.js";
+} from "#/state/account/accountKeys.ts";
+import { startAccountLocaleReport } from "#/state/account/accountLocale.ts";
 import {
   authToken,
   consumeOidcRedirect,
@@ -29,21 +29,21 @@ import {
   isServerMode,
   refreshCurrentUser,
   takeSignInLinkToken,
-} from "#/state/account/auth.js";
-import { takeConsentPage } from "#/state/account/oauth.js";
-import { checkForUpdate } from "#/state/admin.js";
-import { initAutoNotes } from "#/state/autoNotes.js";
-import { initBoardBackground } from "#/state/board.js";
-import { closeDrawing, drawingRequest } from "#/state/drawing.js";
-import { takeIncomingShare } from "#/state/incomingShare.js";
-import { loadNotes, notes, updateNote } from "#/state/notesStore.js";
-import { animations, stickyTopBar, viewMode } from "#/state/prefs.js";
-import { startPrefsSync } from "#/state/prefsSync.js";
-import { publicLinksDialog } from "#/state/publicLinks.js";
-import { ensurePushSubscription } from "#/state/pushSubscription.js";
-import { initReminderScheduler } from "#/state/reminderScheduler.js";
-import { initRouter } from "#/state/router.js";
-import { loadInvitations, shareDialog } from "#/state/sharing.js";
+} from "#/state/account/auth.ts";
+import { takeConsentPage } from "#/state/account/oauth.ts";
+import { checkForUpdate } from "#/state/admin.ts";
+import { initAutoNotes } from "#/state/autoNotes.ts";
+import { initBoardBackground } from "#/state/board.ts";
+import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
+import { takeIncomingShare } from "#/state/incomingShare.ts";
+import { loadNotes, notes, updateNote } from "#/state/notesStore.ts";
+import { animations, stickyTopBar, viewMode } from "#/state/prefs.ts";
+import { startPrefsSync } from "#/state/prefsSync.ts";
+import { publicLinksDialog } from "#/state/publicLinks.ts";
+import { ensurePushSubscription } from "#/state/pushSubscription.ts";
+import { initReminderScheduler } from "#/state/reminderScheduler.ts";
+import { initRouter } from "#/state/router.ts";
+import { loadInvitations, shareDialog } from "#/state/sharing.ts";
 import {
   activeView,
   editingNoteId,
@@ -52,44 +52,46 @@ import {
   showSettings,
   showShortcuts,
   showWelcome,
-} from "#/state/ui.js";
-import { welcomeIfNew } from "#/state/welcome.js";
+} from "#/state/ui.ts";
+import { welcomeIfNew } from "#/state/welcome.ts";
 import {
   decodeShareFromHash,
   type SharedNotePayload,
-} from "#/utils/shareLink.js";
-import { AutoNotesView } from "./AutoNotesView.js";
-import { ConfirmDialogHost } from "./ConfirmDialog.js";
-import { ConnectionStatus } from "./ConnectionStatus.js";
-import { loadEditor } from "./editor/lazyEditor.js";
-import { Header } from "./Header.js";
-import { KeyScreen } from "./login/KeyScreen.js";
-import { LoginScreen } from "./login/LoginScreen.js";
-import { NoteGrid } from "./NoteGrid.js";
-import { NoteInput } from "./NoteInput.js";
-import { ReminderBanner } from "./ReminderBanner.js";
-import { SearchView } from "./SearchView.js";
-import { ShortcutsDialog } from "./ShortcutsDialog.js";
-import { MobileNav, Sidebar } from "./Sidebar.js";
-import { InvitationList } from "./sharing/InvitationList.js";
-import { SharedNoteDialog } from "./sharing/SharedNoteDialog.js";
-import { TagsView } from "./TagsView.js";
-import { Toasts } from "./Toast.js";
-import { UnopenedNotes } from "./UnopenedNotes.js";
-import { UnsentNotes } from "./UnsentNotes.js";
-import { WelcomeDialog } from "./WelcomeDialog.js";
+} from "#/utils/shareLink.ts";
+import { AutoNotesView } from "./AutoNotesView.tsx";
+import { ConfirmDialogHost } from "./ConfirmDialog.tsx";
+import { ConnectionStatus } from "./ConnectionStatus.tsx";
+import { loadEditor } from "./editor/lazyEditor.ts";
+import { Header } from "./Header.tsx";
+import { KeyScreen } from "./login/KeyScreen.tsx";
+import { LoginScreen } from "./login/LoginScreen.tsx";
+import { NoteGrid } from "./NoteGrid.tsx";
+import { NoteInput } from "./NoteInput.tsx";
+import { ReminderBanner } from "./ReminderBanner.tsx";
+import { SearchView } from "./SearchView.tsx";
+import { ShortcutsDialog } from "./ShortcutsDialog.tsx";
+import { MobileNav, Sidebar } from "./Sidebar.tsx";
+import { InvitationList } from "./sharing/InvitationList.tsx";
+import { SharedNoteDialog } from "./sharing/SharedNoteDialog.tsx";
+import { TagsView } from "./TagsView.tsx";
+import { Toasts } from "./Toast.tsx";
+import { UnopenedNotes } from "./UnopenedNotes.tsx";
+import { UnsentNotes } from "./UnsentNotes.tsx";
+import { WelcomeDialog } from "./WelcomeDialog.tsx";
 
 // Fetched the first time they open, since most sessions never do.
 const loadSettingsDialog = () =>
-  import("./settings/SettingsDialog.js").then((m) => m.SettingsDialog);
+  import("./settings/SettingsDialog.tsx").then((m) => m.SettingsDialog);
 const loadAdminView = () =>
-  import("./admin/AdminView.js").then((m) => m.AdminView);
+  import("./admin/AdminView.tsx").then((m) => m.AdminView);
 const loadShareDialog = () =>
-  import("./sharing/ShareDialog.js").then((m) => m.ShareDialogHost);
+  import("./sharing/ShareDialog.tsx").then((m) => m.ShareDialogHost);
 const loadPublicLinksDialog = () =>
-  import("./sharing/PublicLinksDialog.js").then((m) => m.PublicLinksDialogHost);
+  import("./sharing/PublicLinksDialog.tsx").then(
+    (m) => m.PublicLinksDialogHost,
+  );
 const loadDrawingPad = () =>
-  import("./DrawingPad.js").then((m) => m.DrawingPad);
+  import("./DrawingPad.tsx").then((m) => m.DrawingPad);
 
 // True only on the *very first render* of a page that landed with `#token=`
 // in the URL. The OIDC consumer runs once (in useEffect, after this render

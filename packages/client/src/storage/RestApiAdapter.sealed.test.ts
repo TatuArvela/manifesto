@@ -7,17 +7,17 @@ import {
   type SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defined } from "#/test/defined.js";
-import { SealedServer, testKeys } from "#/test/sealedServer.js";
-import { createAccountKeys } from "#/utils/keyMaterial.js";
-import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
+import { defined } from "#/test/defined.ts";
+import { SealedServer, testKeys } from "#/test/sealedServer.ts";
+import { createAccountKeys } from "#/utils/keyMaterial.ts";
+import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.ts";
 import {
   ImageKindError,
   LockedError,
   Sealer,
   type StorageKeys,
   setOfferHandler,
-} from "./sealing.js";
+} from "./sealing.ts";
 
 /**
  * The adapter against a server that holds only what it is sent: every word of

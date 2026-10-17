@@ -1,5 +1,5 @@
 import { ArrowUp, Ban, Shuffle } from "lucide-preact";
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 import {
   BOARD_COLORS,
   BOARD_NEUTRALS,
@@ -13,8 +13,8 @@ import {
   rerollBoardGradientDirection,
   resolvedBoardGradient,
   resolvedBoardGradientDirection,
-} from "#/state/prefs.js";
-import { boardColorLabel } from "./boardLabels.js";
+} from "#/state/prefs.ts";
+import { boardColorLabel } from "./boardLabels.ts";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =

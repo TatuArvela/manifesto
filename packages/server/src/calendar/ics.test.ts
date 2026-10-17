@@ -1,6 +1,6 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { escapeText, foldLine, remindersCalendar, rruleOf } from "./ics.js";
+import { escapeText, foldLine, remindersCalendar, rruleOf } from "./ics.ts";
 
 function note(overrides: Partial<Note>): Note {
   return {

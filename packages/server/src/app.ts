@@ -1,75 +1,75 @@
 import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import { recordClientAddress } from "./audit/audit.js";
-import { createLoginAttempts } from "./auth/local/loginAttempts.js";
+import { recordClientAddress } from "./audit/audit.ts";
+import { createLoginAttempts } from "./auth/local/loginAttempts.ts";
 import {
   createSessionRevocations,
   type SessionRevocations,
-} from "./auth/revocations.js";
-import { createAuthSharedRoutes } from "./auth/sharedRoutes.js";
-import type { AuthProvider } from "./auth/types.js";
-import { createCalendarRoutes } from "./calendar/routes.js";
-import { mountClient } from "./client/serveClient.js";
-import { offersMcpSignIn, type ServerConfig } from "./config.js";
-import { isFeatureOn } from "./features.js";
-import type { UpdateStatus } from "./jobs/updateCheck.js";
-import { countMetric } from "./lib/metrics.js";
-import { metricsHandler } from "./lib/metricsServer.js";
-import { MAX_REQUEST_BYTES } from "./lib/requestLimits.js";
+} from "./auth/revocations.ts";
+import { createAuthSharedRoutes } from "./auth/sharedRoutes.ts";
+import type { AuthProvider } from "./auth/types.ts";
+import { createCalendarRoutes } from "./calendar/routes.ts";
+import { mountClient } from "./client/serveClient.ts";
+import { offersMcpSignIn, type ServerConfig } from "./config.ts";
+import { isFeatureOn } from "./features.ts";
+import type { UpdateStatus } from "./jobs/updateCheck.ts";
+import { countMetric } from "./lib/metrics.ts";
+import { metricsHandler } from "./lib/metricsServer.ts";
+import { MAX_REQUEST_BYTES } from "./lib/requestLimits.ts";
 import {
   createLinkPreviewFetcher,
   type LinkPreviewFetcher,
-} from "./linkPreview/fetchPreview.js";
+} from "./linkPreview/fetchPreview.ts";
 import {
   createSmtpMailer,
   type Mailer,
   withMailStatus,
-} from "./mail/mailer.js";
-import { createMcpRoutes } from "./mcp/routes.js";
-import { corsMiddleware } from "./middleware/cors.js";
-import { HttpError, onError } from "./middleware/error.js";
-import { createProtection } from "./middleware/protect.js";
-import { requestLog } from "./middleware/requestLog.js";
+} from "./mail/mailer.ts";
+import { createMcpRoutes } from "./mcp/routes.ts";
+import { corsMiddleware } from "./middleware/cors.ts";
+import { HttpError, onError } from "./middleware/error.ts";
+import { createProtection } from "./middleware/protect.ts";
+import { requestLog } from "./middleware/requestLog.ts";
 import {
   type ClientMetadataFetcher,
   createClientResolver,
-} from "./oauth/clients.js";
+} from "./oauth/clients.ts";
 import {
   createOAuthRoutes,
   createWellKnownRoutes,
   resourceMetadataChallenge,
-} from "./oauth/routes.js";
-import { buildOpenApiDocument } from "./openapi.js";
-import { createPushSender, type PushSender } from "./push/sender.js";
-import { createAdminRoutes } from "./routes/admin.js";
-import { createAttachmentRoutes } from "./routes/attachments.js";
-import { createCapabilitiesRoutes } from "./routes/capabilities.js";
-import { createLinkPreviewRoutes } from "./routes/linkPreview.js";
-import { createNotesRoutes } from "./routes/notes.js";
-import { createPublicRoutes } from "./routes/publicLinks.js";
-import { createPushRoutes } from "./routes/push.js";
-import { createSearchRoutes } from "./routes/search.js";
-import { createInvitationRoutes } from "./routes/shares.js";
-import { createSyncRoutes } from "./routes/sync.js";
-import { createTeamRoutes } from "./routes/teams.js";
-import { createTokenRoutes } from "./routes/tokens.js";
-import { createUsersRoutes } from "./routes/users.js";
-import { createWebhookRoutes } from "./routes/webhooks.js";
+} from "./oauth/routes.ts";
+import { buildOpenApiDocument } from "./openapi.ts";
+import { createPushSender, type PushSender } from "./push/sender.ts";
+import { createAdminRoutes } from "./routes/admin.ts";
+import { createAttachmentRoutes } from "./routes/attachments.ts";
+import { createCapabilitiesRoutes } from "./routes/capabilities.ts";
+import { createLinkPreviewRoutes } from "./routes/linkPreview.ts";
+import { createNotesRoutes } from "./routes/notes.ts";
+import { createPublicRoutes } from "./routes/publicLinks.ts";
+import { createPushRoutes } from "./routes/push.ts";
+import { createSearchRoutes } from "./routes/search.ts";
+import { createInvitationRoutes } from "./routes/shares.ts";
+import { createSyncRoutes } from "./routes/sync.ts";
+import { createTeamRoutes } from "./routes/teams.ts";
+import { createTokenRoutes } from "./routes/tokens.ts";
+import { createUsersRoutes } from "./routes/users.ts";
+import { createWebhookRoutes } from "./routes/webhooks.ts";
 import {
   type AccessChanges,
   createAccessChanges,
-} from "./sharing/accessChanges.js";
-import { createNoteEvents, type NoteEvents } from "./sharing/noteEvents.js";
-import { createTeamShares } from "./sharing/teamShares.js";
-import { syncOidcTeams } from "./sharing/teamSync.js";
-import type { StorageDriver } from "./storage/types.js";
-import { VERSION } from "./version.js";
+} from "./sharing/accessChanges.ts";
+import { createNoteEvents, type NoteEvents } from "./sharing/noteEvents.ts";
+import { createTeamShares } from "./sharing/teamShares.ts";
+import { syncOidcTeams } from "./sharing/teamSync.ts";
+import type { StorageDriver } from "./storage/types.ts";
+import { VERSION } from "./version.ts";
 import {
   createWebhookDispatcher,
   type WebhookDispatcher,
-} from "./webhooks/dispatcher.js";
-import { type Broadcaster, createBroadcaster } from "./ws/broadcaster.js";
+} from "./webhooks/dispatcher.ts";
+import { type Broadcaster, createBroadcaster } from "./ws/broadcaster.ts";
 
 export interface AppDeps {
   cfg: ServerConfig;

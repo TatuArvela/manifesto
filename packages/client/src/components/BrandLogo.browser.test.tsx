@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { afterEach, describe, expect, it } from "vitest";
-import { BrandLogo } from "./BrandLogo.js";
+import { BrandLogo } from "./BrandLogo.tsx";
 import "#/styles.css";
 
 let host: HTMLDivElement;

@@ -1,12 +1,12 @@
 import { associatedData, seal, unseal } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { accountSubkey, createAccountKeys } from "#/utils/keyMaterial.js";
+import { accountSubkey, createAccountKeys } from "#/utils/keyMaterial.ts";
 import {
   clearDeviceKeys,
   type DeviceKeys,
   loadDeviceKeys,
   saveDeviceKeys,
-} from "./deviceKeys.js";
+} from "./deviceKeys.ts";
 
 const USER = "01HZX3KQ0000000000000000AA";
 const data = associatedData({ id: "n1", field: "title", version: 1 });

@@ -1,6 +1,6 @@
 import type { PushKeyResponse } from "@manifesto/shared";
-import { apiFetch, apiJson } from "#/storage/apiRequest.js";
-import { serverFeature } from "./serverFeatures.js";
+import { apiFetch, apiJson } from "#/storage/apiRequest.ts";
+import { serverFeature } from "./serverFeatures.ts";
 
 /**
  * This browser's push subscription for the signed-in account, in connected

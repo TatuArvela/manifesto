@@ -1,6 +1,6 @@
 import type { PublicLinkMode } from "@manifesto/shared";
-import { referencedIds } from "./attachmentMapping.js";
-import type { StoredPublicLink, StoredSnapshot } from "./types.js";
+import { referencedIds } from "./attachmentMapping.ts";
+import type { StoredPublicLink, StoredSnapshot } from "./types.ts";
 
 /** A `public_links` row as both drivers read it. */
 export interface PublicLinkRow {

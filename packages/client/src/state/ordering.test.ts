@@ -6,7 +6,7 @@ import {
   headPositions,
   POSITION_STEP,
   positionBetween,
-} from "./ordering.js";
+} from "./ordering.ts";
 
 function at(id: string, position: number): Note {
   return { id, position } as Note;

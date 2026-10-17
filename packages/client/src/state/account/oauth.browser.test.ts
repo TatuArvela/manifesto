@@ -3,7 +3,7 @@ import {
   forgetConsentPage,
   rememberConsentPage,
   takeConsentPage,
-} from "./oauth.js";
+} from "./oauth.ts";
 
 describe("coming back to the consent page after single sign-on", () => {
   const start = window.location.href;

@@ -1,5 +1,5 @@
 import type { NoteColor, NoteFont } from "@manifesto/shared";
-import type { ApproxLabels } from "./stdlib.js";
+import type { ApproxLabels } from "./stdlib.ts";
 
 export type PluginOrigin =
   | { kind: "inline"; source: string }

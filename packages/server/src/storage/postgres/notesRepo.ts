@@ -2,14 +2,14 @@ import type { SealedNote, SealedNoteUpdate } from "@manifesto/shared";
 import {
   type ReferringRow,
   referencesOf,
-} from "#/storage/attachmentMapping.js";
+} from "#/storage/attachmentMapping.ts";
 import {
   decodeCursor,
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
   splitPage,
-} from "#/storage/noteMapping.js";
+} from "#/storage/noteMapping.ts";
 import {
   attachSharing,
   forbiddenFields,
@@ -22,7 +22,7 @@ import {
   splitChanges,
   type UserBriefRow,
   type ViewRow,
-} from "#/storage/shareMapping.js";
+} from "#/storage/shareMapping.ts";
 import {
   type InsertNoteInput,
   type ListNotesOptions,
@@ -30,9 +30,9 @@ import {
   NoteAccessError,
   type NotePage,
   type NotesRepo,
-} from "#/storage/types.js";
-import type { PgPool } from "./database.js";
-import { inTransaction } from "./sharesRepo.js";
+} from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
+import { inTransaction } from "./sharesRepo.ts";
 
 /** See the SQLite copy: same columns, same ordering, same reasons. */
 const LIST_COLUMNS = INSERT_COLUMNS.filter(

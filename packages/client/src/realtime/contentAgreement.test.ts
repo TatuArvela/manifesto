@@ -5,7 +5,7 @@ import {
   contentHash,
   localAgreement,
   sharedAgreement,
-} from "./contentAgreement.js";
+} from "./contentAgreement.ts";
 
 const SAVED_AT = "2026-01-01T00:00:10.000Z";
 const LATER = "2026-01-01T00:00:20.000Z";

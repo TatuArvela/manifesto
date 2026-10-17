@@ -5,8 +5,8 @@ import {
   importedNote,
   MAX_IMPORT_BYTES,
   splitTitle,
-} from "./importer.js";
-import { IMPORTERS, importerForFile, notesFromForeignJson } from "./index.js";
+} from "./importer.ts";
+import { IMPORTERS, importerForFile, notesFromForeignJson } from "./index.ts";
 
 const NOW = "2026-09-01T12:00:00.000Z";
 

@@ -3,8 +3,8 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import { render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
-import { MilkdownEditor } from "#/components/editor/MilkdownEditor.js";
-import { t } from "#/i18n/index.js";
+import { MilkdownEditor } from "#/components/editor/MilkdownEditor.tsx";
+import { t } from "#/i18n/index.ts";
 import "#/styles.css";
 
 let host: HTMLDivElement;

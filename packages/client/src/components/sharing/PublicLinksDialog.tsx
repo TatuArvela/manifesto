@@ -2,21 +2,21 @@ import type { Note, PublicLink, PublicLinkMode } from "@manifesto/shared";
 import { Copy, Globe, KeyRound, Trash2 } from "lucide-preact";
 import { createPortal } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import { Backdrop } from "#/components/Backdrop.js";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { formatDateTime, plural, t } from "#/i18n/index.js";
-import { askConfirmation } from "#/state/confirm.js";
-import { notes } from "#/state/notesStore.js";
+import { Backdrop } from "#/components/Backdrop.tsx";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { formatDateTime, plural, t } from "#/i18n/index.ts";
+import { askConfirmation } from "#/state/confirm.ts";
+import { notes } from "#/state/notesStore.ts";
 import {
   createPublicLink,
   listPublicLinks,
   publicLinkAddress,
   publicLinksDialog,
   revokePublicLink,
-} from "#/state/publicLinks.js";
-import { showError, showSuccess } from "#/state/ui.js";
+} from "#/state/publicLinks.ts";
+import { showError, showSuccess } from "#/state/ui.ts";
 
 const iconButtonClass =
   "inline-flex items-center justify-center p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-60 cursor-pointer";

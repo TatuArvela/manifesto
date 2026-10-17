@@ -6,10 +6,10 @@ import {
   type SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { testKeys } from "#/test/sealedServer.js";
-import { createAccountKeys } from "#/utils/keyMaterial.js";
-import { storageConnection } from "./index.js";
-import { sealer, storageKeys } from "./sealing.js";
+import { testKeys } from "#/test/sealedServer.ts";
+import { createAccountKeys } from "#/utils/keyMaterial.ts";
+import { storageConnection } from "./index.ts";
+import { sealer, storageKeys } from "./sealing.ts";
 import {
   changedKeys,
   forgetPublicKeys,
@@ -19,7 +19,7 @@ import {
   supplyKey,
   trustChangedKeys,
   trustedKeysOf,
-} from "./shareKeys.js";
+} from "./shareKeys.ts";
 
 /**
  * Whose key it is. The server hands out public keys and keeps the list of

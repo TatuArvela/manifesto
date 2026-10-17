@@ -6,13 +6,13 @@ import {
 } from "@milkdown/kit/prose/state";
 import { tableNodes } from "@milkdown/kit/prose/tables";
 import { describe, expect, it } from "vitest";
-import { defined } from "#/test/defined.js";
+import { defined } from "#/test/defined.ts";
 import {
   applyTableAction,
   availableTableActions,
   createTable,
   insertTable,
-} from "./tableActions.js";
+} from "./tableActions.ts";
 
 // The table nodes as `@milkdown/preset-gfm` has them: a header row of its own
 // type, then at least one row of plain cells.

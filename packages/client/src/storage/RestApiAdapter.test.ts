@@ -1,9 +1,9 @@
 import type { Note } from "@manifesto/shared";
 import { MAX_NOTES_PER_IMPORT, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defined } from "#/test/defined.js";
-import { plainSealing } from "#/test/plainSealing.js";
-import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
+import { defined } from "#/test/defined.ts";
+import { plainSealing } from "#/test/plainSealing.ts";
+import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.ts";
 
 type FetchMock = ReturnType<typeof vi.fn<typeof fetch>>;
 

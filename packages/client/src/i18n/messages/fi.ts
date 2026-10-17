@@ -1,4 +1,4 @@
-import type { Messages } from "./index.js";
+import type { Messages } from "./index.ts";
 
 export const fi: Messages = {
   // Sidebar / navigation / view titles

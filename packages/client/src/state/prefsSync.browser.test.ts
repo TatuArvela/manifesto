@@ -1,9 +1,9 @@
 import type { SealedAccountPrefs } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "#/storage/index.js";
-import { hiddenTags, stickyTopBar, theme } from "./prefs.js";
-import { receiveAccountPrefs, startPrefsSync } from "./prefsSync.js";
-import { serverDefaultPrefs } from "./serverDefaults.js";
+import { storageConnection } from "#/storage/index.ts";
+import { hiddenTags, stickyTopBar, theme } from "./prefs.ts";
+import { receiveAccountPrefs, startPrefsSync } from "./prefsSync.ts";
+import { serverDefaultPrefs } from "./serverDefaults.ts";
 
 const SERVER = "http://server.test";
 const fetchMock = vi.fn<typeof fetch>();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeHtml, extractMetadata } from "./parseHtml.js";
+import { decodeHtml, extractMetadata } from "./parseHtml.ts";
 
 const PAGE = new URL("https://example.com/articles/one");
 

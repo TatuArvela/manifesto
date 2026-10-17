@@ -8,8 +8,8 @@ import {
   recoverySignInOpenSchema,
   secretKeyReplaceSchema,
   seenKeySchema,
-} from "#/validation/schemas.js";
-import { noContent, type Operation, ok } from "./operation.js";
+} from "#/validation/schemas.ts";
+import { noContent, type Operation, ok } from "./operation.ts";
 
 const refused = {
   "403": { description: "Not the recovery key", schema: "Error" },

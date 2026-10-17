@@ -5,7 +5,7 @@ import {
   decodeShareFromHash,
   encodeSharePayload,
   type SharedNotePayload,
-} from "./shareLink.js";
+} from "./shareLink.ts";
 
 const samplePayload: SharedNotePayload = {
   title: "Shopping list",

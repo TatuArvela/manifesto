@@ -6,30 +6,30 @@ import {
 } from "@manifesto/shared";
 import { batch, effect, signal, untracked } from "@preact/signals";
 import { ulid } from "ulid";
-import { storage, storageConnection } from "#/storage/index.js";
+import { storage, storageConnection } from "#/storage/index.ts";
 import {
   dropOffline,
   keepOffline,
   type OfflineOwner,
   readOffline,
-} from "#/storage/offlineNotes.js";
-import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.js";
-import { LockedError, storageKeys } from "#/storage/sealing.js";
+} from "#/storage/offlineNotes.ts";
+import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.ts";
+import { LockedError, storageKeys } from "#/storage/sealing.ts";
 import {
   type ComposerDraft,
   isEmptyDraft,
   loadDraft,
   replaceDraft,
-} from "./composerDraft.js";
-import { applyLinkPreviews } from "./linkPreviews.js";
-import { createNote, noteCreateFrom, receiveNote } from "./notesStore.js";
+} from "./composerDraft.ts";
+import { applyLinkPreviews } from "./linkPreviews.ts";
+import { createNote, noteCreateFrom, receiveNote } from "./notesStore.ts";
 import {
   imageKeysOf,
   keptFields,
   offlineOwner,
   restoreImageKeys,
-} from "./offlineOwner.js";
-import { newNoteRequested } from "./ui.js";
+} from "./offlineOwner.ts";
+import { newNoteRequested } from "./ui.ts";
 
 /**
  * New notes the server has not taken yet, in connected mode. Closing the

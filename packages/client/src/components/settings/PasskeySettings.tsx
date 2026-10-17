@@ -1,17 +1,17 @@
 import type { Passkey } from "@manifesto/shared";
 import { KeyRound, Trash2 } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { formatDateTime, type MessageKey, t } from "#/i18n/index.js";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { formatDateTime, type MessageKey, t } from "#/i18n/index.ts";
 import {
   type AddPasskeyResult,
   addPasskey,
   listPasskeys,
   removePasskey,
-} from "#/state/account/passkeys.js";
-import { serverFeature } from "#/state/serverFeatures.js";
-import { showSuccess } from "#/state/ui.js";
-import { passkeysSupported } from "#/utils/webauthn.js";
+} from "#/state/account/passkeys.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
+import { showSuccess } from "#/state/ui.ts";
+import { passkeysSupported } from "#/utils/webauthn.ts";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

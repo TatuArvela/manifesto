@@ -4,8 +4,8 @@ import {
   type Migration,
   MigrationRefusedError,
   pendingMigrations,
-} from "#/storage/migrations.js";
-import type { PgClient, PgPool } from "./database.js";
+} from "#/storage/migrations.ts";
+import type { PgClient, PgPool } from "./database.ts";
 
 const INITIAL_SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (

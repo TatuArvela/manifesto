@@ -12,7 +12,7 @@ import {
   generateVapidKeys,
   isUsableTarget,
   vapidAuthorization,
-} from "./webPush.js";
+} from "./webPush.ts";
 
 /** What a browser does with a push body: RFC 8291 from the receiving end. */
 function decrypt(body: Buffer, receiverPrivate: Buffer, auth: Buffer): string {

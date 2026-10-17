@@ -1,15 +1,15 @@
-import { AT_REST, atRest } from "#/storage/atRest.js";
+import { AT_REST, atRest } from "#/storage/atRest.ts";
 import {
   PUSH_COLUMNS,
   type PushRow,
   rowToPushSubscription,
   sealedSubscription,
-} from "#/storage/pushMapping.js";
+} from "#/storage/pushMapping.ts";
 import type {
   PushSubscriptionsRepo,
   ServerSecretsRepo,
-} from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 /** See the SQLite copy. The failure count is read after it is written rather
  * than returned by the update, as the webhooks' is, for pg-mem's sake. */

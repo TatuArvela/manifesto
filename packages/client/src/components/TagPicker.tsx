@@ -1,11 +1,11 @@
 import { normalizeTag } from "@manifesto/shared";
 import { Square, SquareCheck, SquareMinus, Tag } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { t } from "#/i18n/index.js";
-import { allTags } from "#/state/views.js";
-import { tagCoverage } from "#/utils/tagCoverage.js";
-import { Dropdown, type DropdownPlacement } from "./Dropdown.js";
-import { Tooltip } from "./Tooltip.js";
+import { t } from "#/i18n/index.ts";
+import { allTags } from "#/state/views.ts";
+import { tagCoverage } from "#/utils/tagCoverage.ts";
+import { Dropdown, type DropdownPlacement } from "./Dropdown.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 /** The panel a tag picker draws itself on, wherever it opens. */
 export const tagPickerPanelClass =

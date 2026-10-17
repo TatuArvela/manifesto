@@ -9,11 +9,11 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { t } from "#/i18n/index.js";
-import { Backdrop } from "./Backdrop.js";
-import { StoredImage } from "./StoredImage.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { t } from "#/i18n/index.ts";
+import { Backdrop } from "./Backdrop.tsx";
+import { StoredImage } from "./StoredImage.tsx";
 
 interface ImageGalleryProps {
   images: string[];

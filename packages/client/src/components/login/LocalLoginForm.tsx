@@ -1,6 +1,6 @@
 import { KeyRound, Mail } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 import {
   login,
   loginErrorKey,
@@ -8,14 +8,14 @@ import {
   register,
   signInWithPasskey,
   TwoFactorRequiredError,
-} from "#/state/account/auth.js";
-import { getPasskey } from "#/utils/webauthn.js";
+} from "#/state/account/auth.ts";
+import { getPasskey } from "#/utils/webauthn.ts";
 import {
   ChangePasswordStep,
   type SecondFactor,
   TwoFactorStep,
-} from "./LoginSteps.js";
-import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
+} from "./LoginSteps.tsx";
+import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
 /**
  * `changePassword` is the step after signing in with a temporary password an

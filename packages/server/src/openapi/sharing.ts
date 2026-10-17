@@ -7,8 +7,8 @@ import {
   shareCreateSchema,
   shareUpdateSchema,
   teamShareCreateSchema,
-} from "#/validation/schemas.js";
-import { noContent, notFound, type Operation, ok } from "./operation.js";
+} from "#/validation/schemas.ts";
+import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
 /**
  * Sharing a note: with accounts and teams, by invitation, and through public

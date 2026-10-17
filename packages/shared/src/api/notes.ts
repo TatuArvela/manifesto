@@ -1,4 +1,4 @@
-import type { LinkPreview, Note, NoteCreate, NoteVersion } from "#/note.js";
+import type { LinkPreview, Note, NoteCreate, NoteVersion } from "#/note.ts";
 
 // --- Pagination ---
 

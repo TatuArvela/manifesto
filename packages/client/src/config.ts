@@ -1,4 +1,4 @@
-import { resolvePrivacyUrl } from "./utils/privacyUrl.js";
+import { resolvePrivacyUrl } from "./utils/privacyUrl.ts";
 
 /**
  * Branding: the product name shown to users.

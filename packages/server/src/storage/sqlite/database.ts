@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import Database from "better-sqlite3";
-import { runMigrations } from "./migrations.js";
+import { runMigrations } from "./migrations.ts";
 
 export type SqliteDB = Database.Database;
 

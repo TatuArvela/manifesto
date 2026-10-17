@@ -1,5 +1,5 @@
 import pg from "pg";
-import { logger } from "#/lib/logger.js";
+import { logger } from "#/lib/logger.ts";
 
 export type PgPool = pg.Pool;
 export type PgClient = pg.PoolClient;

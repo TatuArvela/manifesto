@@ -4,19 +4,19 @@ import type {
   NoteCreate,
 } from "@manifesto/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createApp } from "#/app.js";
-import { createAuthProvider } from "#/auth/index.js";
-import type { ServerConfig } from "#/config.js";
-import type { LinkPreviewFetcher } from "#/linkPreview/fetchPreview.js";
-import { sealedCreate } from "#/storage/contracts/claimed.js";
-import { createStorage } from "#/storage/index.js";
-import { sealingClient } from "#/test/sealingClient.js";
+import { createApp } from "#/app.ts";
+import { createAuthProvider } from "#/auth/index.ts";
+import type { ServerConfig } from "#/config.ts";
+import type { LinkPreviewFetcher } from "#/linkPreview/fetchPreview.ts";
+import { sealedCreate } from "#/storage/contracts/claimed.ts";
+import { createStorage } from "#/storage/index.ts";
+import { sealingClient } from "#/test/sealingClient.ts";
 import {
   authHeaders,
   registerTestUser,
   TEST_CONFIG,
   type TestRig,
-} from "#/test/setup.js";
+} from "#/test/setup.ts";
 
 const PREVIEW: LinkPreview = {
   url: "https://example.com/post",

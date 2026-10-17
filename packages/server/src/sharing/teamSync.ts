@@ -1,7 +1,7 @@
-import { nowIso } from "#/lib/time.js";
-import { newId } from "#/lib/ulid.js";
-import type { StorageDriver } from "#/storage/types.js";
-import type { TeamShares } from "./teamShares.js";
+import { nowIso } from "#/lib/time.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import type { TeamShares } from "./teamShares.ts";
 
 /**
  * Puts a user in exactly the identity provider's teams it just named for

@@ -8,18 +8,18 @@ import {
 } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
-import { currentUser, userLookupMode } from "#/state/account/auth.js";
-import { notes } from "#/state/notesStore.js";
-import { locale } from "#/state/prefs.js";
+import { t } from "#/i18n/index.ts";
+import { currentUser, userLookupMode } from "#/state/account/auth.ts";
+import { notes } from "#/state/notesStore.ts";
+import { locale } from "#/state/prefs.ts";
 import {
   DEFAULT_SERVER_FEATURES,
   serverFeatures,
-} from "#/state/serverFeatures.js";
-import { shareDialog } from "#/state/sharing.js";
-import { toasts } from "#/state/ui.js";
-import { storageConnection } from "#/storage/index.js";
-import { ShareDialogHost } from "./ShareDialog.js";
+} from "#/state/serverFeatures.ts";
+import { shareDialog } from "#/state/sharing.ts";
+import { toasts } from "#/state/ui.ts";
+import { storageConnection } from "#/storage/index.ts";
+import { ShareDialogHost } from "./ShareDialog.tsx";
 
 const SERVER = "http://server.test";
 

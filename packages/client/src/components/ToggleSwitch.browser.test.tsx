@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { afterEach, describe, expect, it } from "vitest";
-import { SettingsRow } from "./settings/SettingsControls.js";
-import { Switch, ThreeWayToggle } from "./ToggleSwitch.js";
+import { SettingsRow } from "./settings/SettingsControls.tsx";
+import { Switch, ThreeWayToggle } from "./ToggleSwitch.tsx";
 
 const OPTIONS = [
   { icon: "a", label: "System" },

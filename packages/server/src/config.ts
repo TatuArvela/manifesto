@@ -5,7 +5,7 @@ import {
   type FeatureToggles,
   isFeatureOn,
   loadFeatureToggles,
-} from "./features.js";
+} from "./features.ts";
 export type StorageDriverName = "sqlite" | "postgres";
 export type AuthProviderName = "local" | "oidc";
 export type UserLookupMode = "search" | "exact";

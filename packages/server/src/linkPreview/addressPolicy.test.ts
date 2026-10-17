@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isLocalNetworkAddress, isPublicAddress } from "./addressPolicy.js";
+import { isLocalNetworkAddress, isPublicAddress } from "./addressPolicy.ts";
 
 describe("isPublicAddress", () => {
   it.each([

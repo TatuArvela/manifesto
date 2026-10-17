@@ -4,8 +4,8 @@ import type {
 } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
-import { LoginScreen } from "./LoginScreen.js";
+import { t } from "#/i18n/index.ts";
+import { LoginScreen } from "./LoginScreen.tsx";
 
 const OPTIONS: PasskeyRequestOptions = {
   challenge: "Y2hhbGxlbmdl",
@@ -31,13 +31,13 @@ const logins: {
 }[] = [];
 let passkeySignIns = 0;
 
-vi.mock("#/utils/webauthn.js", () => ({
+vi.mock("#/utils/webauthn.ts", () => ({
   passkeysSupported: () => true,
   getPasskey: async () => ANSWER,
 }));
 
-vi.mock("#/state/account/auth.js", async (original) => {
-  const actual = await original<typeof import("#/state/account/auth.js")>();
+vi.mock("#/state/account/auth.ts", async (original) => {
+  const actual = await original<typeof import("#/state/account/auth.ts")>();
   return {
     ...actual,
     fetchCapabilities: async () => ({

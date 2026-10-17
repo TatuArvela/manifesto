@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CONFETTI_TILE, SAWTOOTH_TILE } from "#/utils/boardTextures.js";
+import { CONFETTI_TILE, SAWTOOTH_TILE } from "#/utils/boardTextures.ts";
 
 // Read from disk: Vitest blanks a stylesheet imported in a test, `?raw` too.
 const css = readFileSync(new URL("./preferences.css", import.meta.url), "utf8");

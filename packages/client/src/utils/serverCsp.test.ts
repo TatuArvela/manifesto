@@ -3,7 +3,7 @@ import {
   findServerSetupProblem,
   missingConnectSources,
   requiredConnectOrigins,
-} from "./serverCsp.js";
+} from "./serverCsp.ts";
 
 const SHIPPED_CSP =
   "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'";

@@ -7,12 +7,12 @@ import {
 import { MessageSquare, Pencil, Trash2, X } from "lucide-preact";
 import { createPortal } from "preact";
 import { useContext, useEffect, useState } from "preact/hooks";
-import { noteColorMap } from "#/colors.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useMediaQuery } from "#/hooks/useMediaQuery.js";
-import { usePresence } from "#/hooks/usePresence.js";
-import { formatDateTime, plural, t } from "#/i18n/index.js";
-import { currentUser } from "#/state/account/auth.js";
+import { noteColorMap } from "#/colors.ts";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
+import { usePresence } from "#/hooks/usePresence.ts";
+import { formatDateTime, plural, t } from "#/i18n/index.ts";
+import { currentUser } from "#/state/account/auth.ts";
 import {
   addComment,
   commentLoadsFailed,
@@ -21,16 +21,16 @@ import {
   forgetComments,
   loadComments,
   noteComments,
-} from "#/state/comments.js";
-import { askConfirmation } from "#/state/confirm.js";
-import { serverFeature } from "#/state/serverFeatures.js";
-import { Avatar } from "./Avatar.js";
-import { buttonClass } from "./buttonClasses.js";
+} from "#/state/comments.ts";
+import { askConfirmation } from "#/state/confirm.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
+import { Avatar } from "./Avatar.tsx";
+import { buttonClass } from "./buttonClasses.ts";
 import {
   SHEET_ASIDE_EXIT_MS,
   SHEET_ASIDE_QUERY,
   SheetAside,
-} from "./NoteSheet.js";
+} from "./NoteSheet.tsx";
 
 const fieldClass =
   "w-full rounded-lg border border-black/15 dark:border-white/15 bg-white/60 dark:bg-black/20 px-2 py-1.5 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

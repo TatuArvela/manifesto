@@ -4,7 +4,7 @@ import {
   type NoteVersion,
 } from "@manifesto/shared";
 import { compressToUTF16, decompressFromUTF16 } from "lz-string";
-import { isQuotaError, reportQuotaRefusal } from "./quota.js";
+import { isQuotaError, reportQuotaRefusal } from "./quota.ts";
 
 /**
  * One key per note, `manifesto:versions:<id>`, each an LZ-compressed list.

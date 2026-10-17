@@ -1,8 +1,8 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { plural } from "#/i18n/index.js";
-import { defined } from "#/test/defined.js";
-import { createNoteOrFail } from "#/test/testSupport.js";
+import { plural } from "#/i18n/index.ts";
+import { defined } from "#/test/defined.ts";
+import { createNoteOrFail } from "#/test/testSupport.ts";
 import {
   addTagToNotes,
   bulkArchive,
@@ -16,28 +16,28 @@ import {
   removeTagFromNotes,
   renameTag,
   reorderNotes,
-} from "./actions.js";
-import { asBatch } from "./failures.js";
-import { notes, updateNote } from "./notesStore.js";
-import { hiddenTags, sortMode } from "./prefs.js";
+} from "./actions.ts";
+import { asBatch } from "./failures.ts";
+import { notes, updateNote } from "./notesStore.ts";
+import { hiddenTags, sortMode } from "./prefs.ts";
 import {
   enterSelectMode,
   exitSelectMode,
   toggleSelectNote,
-} from "./selection.js";
+} from "./selection.ts";
 import {
   activeView,
   searchQuery,
   selectedNotes,
   selectMode,
   toasts,
-} from "./ui.js";
+} from "./ui.ts";
 import {
   notesHiddenByTag,
   setTagHidden,
   sortedNotes,
   tagCounts,
-} from "./views.js";
+} from "./views.ts";
 
 const baseNote: Note = {
   id: "",

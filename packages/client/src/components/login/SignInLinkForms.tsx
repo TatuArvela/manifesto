@@ -1,16 +1,16 @@
 import { useState } from "preact/hooks";
-import { type MessageKey, t } from "#/i18n/index.js";
+import { type MessageKey, t } from "#/i18n/index.ts";
 import {
   AuthRequestError,
   loginErrorKey,
   requestSignInLink,
   signInWithLink,
   TwoFactorRequiredError,
-} from "#/state/account/auth.js";
-import { locale } from "#/state/prefs.js";
-import { getPasskey } from "#/utils/webauthn.js";
-import { type SecondFactor, TwoFactorStep } from "./LoginSteps.js";
-import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
+} from "#/state/account/auth.ts";
+import { locale } from "#/state/prefs.ts";
+import { getPasskey } from "#/utils/webauthn.ts";
+import { type SecondFactor, TwoFactorStep } from "./LoginSteps.tsx";
+import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
 /** What to say about a link that could not be asked for. */
 const REQUEST_FAILURES = {

@@ -1,5 +1,5 @@
 import type pg from "pg";
-import { searchPattern } from "#/storage/noteMapping.js";
+import { searchPattern } from "#/storage/noteMapping.ts";
 import {
   type AdminGuardedResult,
   type CreateUserInput,
@@ -10,8 +10,8 @@ import {
   type UserSearchOptions,
   type UserSummary,
   type UsersRepo,
-} from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 interface UserRow {
   id: string;

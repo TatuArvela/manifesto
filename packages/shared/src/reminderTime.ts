@@ -1,4 +1,4 @@
-import type { NoteReminder, ReminderRecurrence } from "./note.js";
+import type { NoteReminder, ReminderRecurrence } from "./note.ts";
 
 // When a reminder is due and where it goes next. Pure, and in the shared
 // package because three things have to agree on it: the page's scheduler, the

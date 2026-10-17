@@ -1,10 +1,10 @@
 import type { ComponentChildren } from "preact";
 import { createPortal } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { tabbableIn } from "#/hooks/useFocusTrap.js";
-import { computePanelPosition, type DropdownPlacement } from "./Dropdown.js";
-import { hideAllTooltips } from "./Tooltip.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { tabbableIn } from "#/hooks/useFocusTrap.ts";
+import { computePanelPosition, type DropdownPlacement } from "./Dropdown.tsx";
+import { hideAllTooltips } from "./Tooltip.tsx";
 
 /**
  * Renders children in a fixed-position portal next to the anchor button.

@@ -12,7 +12,7 @@ import {
   isInTable,
   selectedRect,
 } from "@milkdown/kit/prose/tables";
-import { insertBlock } from "./blockInsertion.js";
+import { insertBlock } from "./blockInsertion.ts";
 
 // The table menu on the formatting toolbar: making a table, and the row and
 // column changes offered while the caret is in one.

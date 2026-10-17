@@ -3,43 +3,43 @@ import { zValidator } from "@hono/zod-validator";
 import type { AuthSuccessResponse } from "@manifesto/shared";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import { registerRecoverySignInRoutes } from "#/auth/accountKeys.js";
-import type { SessionRevocations } from "#/auth/revocations.js";
+import { audit } from "#/audit/audit.ts";
+import { registerRecoverySignInRoutes } from "#/auth/accountKeys.ts";
+import type { SessionRevocations } from "#/auth/revocations.ts";
 import {
   endUserSessions,
   issueSession,
   revokeSession,
-} from "#/auth/session.js";
-import type { AuthProviderRouter } from "#/auth/types.js";
-import { pickAvatarColor, toAuthUser } from "#/auth/users.js";
-import type { ServerConfig } from "#/config.js";
-import { hashPassword, verifyPassword } from "#/lib/password.js";
-import { nowIso } from "#/lib/time.js";
-import { newId } from "#/lib/ulid.js";
-import type { Mailer } from "#/mail/mailer.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { emailTaken, HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { EmailTakenError } from "#/storage/types.js";
+} from "#/auth/session.ts";
+import type { AuthProviderRouter } from "#/auth/types.ts";
+import { pickAvatarColor, toAuthUser } from "#/auth/users.ts";
+import type { ServerConfig } from "#/config.ts";
+import { hashPassword, verifyPassword } from "#/lib/password.ts";
+import { nowIso } from "#/lib/time.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { Mailer } from "#/mail/mailer.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { emailTaken, HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { EmailTakenError } from "#/storage/types.ts";
 import {
   loginSchema,
   passwordChangeSchema,
   registerSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import { createLoginAttempts, type LoginAttempts } from "./loginAttempts.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import { createLoginAttempts, type LoginAttempts } from "./loginAttempts.ts";
 import {
   createPasskeyChallenges,
   createPasskeySecondFactor,
   registerPasskeyRoutes,
-} from "./passkeys.js";
-import { registerPasswordResetRoutes } from "./passwordReset.js";
+} from "./passkeys.ts";
+import { registerPasswordResetRoutes } from "./passwordReset.ts";
 import {
   registerSignInLinkRoutes,
   type SecondFactorCheck,
-} from "./signInLink.js";
-import { checkSecondFactor, registerTwoFactorRoutes } from "./twoFactor.js";
+} from "./signInLink.ts";
+import { checkSecondFactor, registerTwoFactorRoutes } from "./twoFactor.ts";
 
 interface LocalRouterDeps {
   storage: StorageDriver;

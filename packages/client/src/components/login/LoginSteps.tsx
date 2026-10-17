@@ -1,7 +1,7 @@
 import type { PasskeyRequestOptions } from "@manifesto/shared";
-import { t } from "#/i18n/index.js";
-import { passkeysSupported } from "#/utils/webauthn.js";
-import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
+import { t } from "#/i18n/index.ts";
+import { passkeysSupported } from "#/utils/webauthn.ts";
+import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
 // The steps a password sign-in can pass through after the password itself.
 // Presentational: `LocalLoginForm` holds the fields and does the signing in.

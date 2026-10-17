@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { containsTerms, foldForSearch, searchTerms } from "./searchText.js";
+import { containsTerms, foldForSearch, searchTerms } from "./searchText.ts";
 
 describe("foldForSearch", () => {
   it("lowers case and takes accents off", () => {

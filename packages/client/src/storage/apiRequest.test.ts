@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, apiFetch, apiJson } from "./apiRequest.js";
-import { storageConnection } from "./index.js";
+import { ApiError, apiFetch, apiJson } from "./apiRequest.ts";
+import { storageConnection } from "./index.ts";
 
 const fetchMock = vi.fn<typeof fetch>();
 const onUnauthorized = vi.fn();

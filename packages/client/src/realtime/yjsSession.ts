@@ -6,12 +6,12 @@ import * as Y from "yjs";
 import {
   deleteReadableNoteCopies,
   LOCAL_COPY_PREFIX,
-} from "./localNoteCopies.js";
+} from "./localNoteCopies.ts";
 import {
   joinSealedAwareness,
   joinSealedDocument,
   type SealedDocument,
-} from "./sealedDocument.js";
+} from "./sealedDocument.ts";
 
 /**
  * Every import of the collaboration stack (Yjs, Hocuspocus, y-indexeddb)

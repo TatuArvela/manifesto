@@ -24,27 +24,27 @@ import {
   useState,
 } from "preact/hooks";
 import type * as Y from "yjs";
-import { checklistBar } from "#/extensions/checklistBar.js";
-import { documentWatcher } from "#/extensions/documentWatcher.js";
-import { configureEditorKeys, editorKeys } from "#/extensions/editorKeys.js";
-import { inlineCalculationsPlugin } from "#/extensions/inlineCalculations.js";
-import { itemDatesPlugin } from "#/extensions/itemDates.js";
-import { linkTooltip } from "#/extensions/linkTooltip.js";
-import { manifestoInlineMarks } from "#/extensions/manifestoInlineMarks.js";
-import { tableBar } from "#/extensions/tableBar.js";
-import { taskItemDraggable } from "#/extensions/taskItemDraggable.js";
+import { checklistBar } from "#/extensions/checklistBar.ts";
+import { documentWatcher } from "#/extensions/documentWatcher.ts";
+import { configureEditorKeys, editorKeys } from "#/extensions/editorKeys.ts";
+import { inlineCalculationsPlugin } from "#/extensions/inlineCalculations.ts";
+import { itemDatesPlugin } from "#/extensions/itemDates.ts";
+import { linkTooltip } from "#/extensions/linkTooltip.ts";
+import { manifestoInlineMarks } from "#/extensions/manifestoInlineMarks.ts";
+import { tableBar } from "#/extensions/tableBar.ts";
+import { taskItemDraggable } from "#/extensions/taskItemDraggable.ts";
 import {
   DEFAULT_FRAGMENT_NAME,
   loadYjsCollab,
   type YjsCollabFactory,
-} from "#/extensions/yjsCollab.js";
-import { useMilkdownEditor } from "#/hooks/useMilkdownEditor.js";
-import { t } from "#/i18n/index.js";
+} from "#/extensions/yjsCollab.ts";
+import { useMilkdownEditor } from "#/hooks/useMilkdownEditor.ts";
+import { t } from "#/i18n/index.ts";
 import {
   normalizeMarkdown,
   replaceTextareaText,
-} from "#/utils/editorMarkdown.js";
-import { rebaseEdit } from "#/utils/textMerge.js";
+} from "#/utils/editorMarkdown.ts";
+import { rebaseEdit } from "#/utils/textMerge.ts";
 
 /** The editor's document as markdown, normalized as `normalizeMarkdown` says. */
 export function getEditorMarkdown(editor: Editor): string {

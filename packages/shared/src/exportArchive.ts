@@ -1,4 +1,4 @@
-import type { Note, NoteVersion } from "./note.js";
+import type { Note, NoteVersion } from "./note.ts";
 
 /**
  * The layout of an export archive, which both modes write: a server for an

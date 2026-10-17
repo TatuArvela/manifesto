@@ -2,9 +2,9 @@ import {
   PUBLIC_LINK_COLUMNS,
   type PublicLinkRow,
   rowToPublicLink,
-} from "#/storage/publicLinkMapping.js";
-import type { PublicLinksRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/publicLinkMapping.ts";
+import type { PublicLinksRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 /** See the SQLite copy: the same statements. */
 export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {

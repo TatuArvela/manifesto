@@ -1,9 +1,9 @@
 import type { NoteColor } from "@manifesto/shared";
 import { afterEach, describe, expect, it } from "vitest";
-import { defined } from "#/test/defined.js";
+import { defined } from "#/test/defined.ts";
 import openTasksExample from "../../../../docs/examples/open-tasks.js?raw";
-import { resetSandbox, runPlugin } from "./sandbox.js";
-import type { ApproxLabels } from "./stdlib.js";
+import { resetSandbox, runPlugin } from "./sandbox.ts";
+import type { ApproxLabels } from "./stdlib.ts";
 
 const EN_LABELS: ApproxLabels = {
   today: "Today",

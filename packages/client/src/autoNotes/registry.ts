@@ -1,7 +1,7 @@
 import { effect, signal } from "@preact/signals";
 import { ulid } from "ulid";
-import { extractPluginReads, extractPluginTitle } from "./parse.js";
-import type { PluginOrigin, PluginSource } from "./types.js";
+import { extractPluginReads, extractPluginTitle } from "./parse.ts";
+import type { PluginOrigin, PluginSource } from "./types.ts";
 
 const STORAGE_KEY = "manifesto:auto-notes";
 

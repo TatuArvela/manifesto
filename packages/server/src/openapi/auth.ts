@@ -10,8 +10,8 @@ import {
   registerSchema,
   signInLinkConfirmSchema,
   signInLinkRequestSchema,
-} from "#/validation/schemas.js";
-import { noContent, type Operation, ok } from "./operation.js";
+} from "#/validation/schemas.ts";
+import { noContent, type Operation, ok } from "./operation.ts";
 
 /**
  * The signed-in account and the ways into and out of it: register, sign in,

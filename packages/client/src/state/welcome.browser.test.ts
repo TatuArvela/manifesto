@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { showWelcome } from "./ui.js";
-import { markWelcomed, welcomeIfNew } from "./welcome.js";
+import { showWelcome } from "./ui.ts";
+import { markWelcomed, welcomeIfNew } from "./welcome.ts";
 
 // The test build is open mode with the dialog left on, which is the default a
 // fresh instance ships with.

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { serverSetupProblem } from "./serverCsp.js";
+import { serverSetupProblem } from "./serverCsp.ts";
 
 /**
  * The half that reads the document it was served as. The policy is injected

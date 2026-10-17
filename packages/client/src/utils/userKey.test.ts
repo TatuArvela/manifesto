@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newUserKey, parseUserKey, userKeyKindOf } from "./userKey.js";
+import { newUserKey, parseUserKey, userKeyKindOf } from "./userKey.ts";
 
 describe("newUserKey", () => {
   it("is seven groups of four behind the prefix of its kind", () => {

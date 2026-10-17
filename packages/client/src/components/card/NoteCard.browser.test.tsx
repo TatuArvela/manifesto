@@ -10,13 +10,13 @@ import {
   vi,
 } from "vitest";
 import { userEvent } from "vitest/browser";
-import { loadEditor } from "#/components/editor/lazyEditor.js";
-import { escapeStackDepth } from "#/hooks/useEscapeStack.js";
-import { t } from "#/i18n/index.js";
-import { notes } from "#/state/notesStore.js";
-import { animations } from "#/state/prefs.js";
-import { activeView, editingNoteId } from "#/state/ui.js";
-import { NoteCard } from "./NoteCard.js";
+import { loadEditor } from "#/components/editor/lazyEditor.ts";
+import { escapeStackDepth } from "#/hooks/useEscapeStack.ts";
+import { t } from "#/i18n/index.ts";
+import { notes } from "#/state/notesStore.ts";
+import { animations } from "#/state/prefs.ts";
+import { activeView, editingNoteId } from "#/state/ui.ts";
+import { NoteCard } from "./NoteCard.tsx";
 
 /**
  * Two things meet in this component: `editingNoteId` is the only thing that

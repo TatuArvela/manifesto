@@ -4,8 +4,8 @@ import {
   cardAfterFocused,
   focusedNoteId,
   moveCardFocus,
-} from "#/utils/cardFocus.js";
-import { useShortcut } from "./useShortcut.js";
+} from "#/utils/cardFocus.ts";
+import { useShortcut } from "./useShortcut.ts";
 
 let host: HTMLDivElement;
 

@@ -25,13 +25,13 @@ import {
   previewImages,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
-import { dataUrlToBlob } from "#/utils/dataUrl.js";
+import { dataUrlToBlob } from "#/utils/dataUrl.ts";
 import type {
   CreateOptions,
   NoteChanges,
   StorageAdapter,
-} from "./StorageAdapter.js";
-import { LockedError, type NoteSealing } from "./sealing.js";
+} from "./StorageAdapter.ts";
+import { LockedError, type NoteSealing } from "./sealing.ts";
 
 /** Under the server's 1 MiB body limit, with room for the request's own
  * wrapping. */

@@ -1,6 +1,6 @@
-import { mergePrefs, parsePrefs } from "#/storage/prefsMapping.js";
-import type { PrefsRepo } from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+import { mergePrefs, parsePrefs } from "#/storage/prefsMapping.ts";
+import type { PrefsRepo } from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqlitePrefsRepo(db: SqliteDB): PrefsRepo {
   const getStmt = db.prepare(`SELECT prefs FROM user_prefs WHERE user_id = ?`);

@@ -5,12 +5,12 @@ import {
   openSealedNote,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import { encodeCursor } from "#/storage/noteMapping.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { readPageParams } from "#/validation/pageParams.js";
-import { tokenKeys } from "./noteCodec.js";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import { encodeCursor } from "#/storage/noteMapping.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { readPageParams } from "#/validation/pageParams.ts";
+import { tokenKeys } from "./noteCodec.ts";
 
 /**
  * `/api/search`. The server cannot read a note, so it cannot search one: the

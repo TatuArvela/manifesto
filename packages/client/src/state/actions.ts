@@ -5,26 +5,26 @@ import {
   type NoteColor,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import { sortChecklistByDate } from "#/utils/itemDate.js";
-import { removeCheckedItems, toggleChecklistItem } from "#/utils/markdown.js";
-import { asBatch, type Batch } from "./failures.js";
+import { sortChecklistByDate } from "#/utils/itemDate.ts";
+import { removeCheckedItems, toggleChecklistItem } from "#/utils/markdown.ts";
+import { asBatch, type Batch } from "./failures.ts";
 import {
   allNotes,
   deleteNote,
   ensureImages,
   notes,
   updateNote,
-} from "./notesStore.js";
+} from "./notesStore.ts";
 import {
   byPosition,
   headPosition,
   headPositions,
   POSITION_STEP,
   positionBetween,
-} from "./ordering.js";
-import { animations, hiddenTags, tagColors } from "./prefs.js";
-import { exitSelectMode } from "./selection.js";
-import { activeTag, selectedNotes } from "./ui.js";
+} from "./ordering.ts";
+import { animations, hiddenTags, tagColors } from "./prefs.ts";
+import { exitSelectMode } from "./selection.ts";
+import { activeTag, selectedNotes } from "./ui.ts";
 import {
   canReorder,
   inViewLocation,
@@ -33,7 +33,7 @@ import {
   setTagHidden,
   sortedNotes,
   unpinnedNotes,
-} from "./views.js";
+} from "./views.ts";
 
 /**
  * The user-level note actions: each one a thing a button does, built on the

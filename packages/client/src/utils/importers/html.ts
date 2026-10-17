@@ -1,5 +1,5 @@
-import { htmlToMarkdown } from "./htmlToMarkdown.js";
-import { checkImportSize, type Importer, importedNote } from "./importer.js";
+import { htmlToMarkdown } from "./htmlToMarkdown.ts";
+import { checkImportSize, type Importer, importedNote } from "./importer.ts";
 
 /**
  * A web page or an exported note as HTML: one note, titled by the page's

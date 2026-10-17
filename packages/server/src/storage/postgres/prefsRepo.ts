@@ -1,6 +1,6 @@
-import { mergePrefs, parsePrefs } from "#/storage/prefsMapping.js";
-import type { PrefsRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+import { mergePrefs, parsePrefs } from "#/storage/prefsMapping.ts";
+import type { PrefsRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 /**
  * See the SQLite copy. The row is created first if missing, so that the

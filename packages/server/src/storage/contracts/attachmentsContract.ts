@@ -1,7 +1,7 @@
 import { type LinkPreview, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver } from "#/storage/types.js";
-import { claimed, heldKey } from "./claimed.js";
+import type { StorageDriver } from "#/storage/types.ts";
+import { claimed, heldKey } from "./claimed.ts";
 
 /** The attachment store's rules, run against both drivers. */
 

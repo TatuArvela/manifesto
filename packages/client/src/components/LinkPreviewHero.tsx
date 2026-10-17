@@ -1,6 +1,6 @@
 import type { LinkPreview } from "@manifesto/shared";
 import { Link as LinkIcon } from "lucide-preact";
-import { StoredImage } from "./StoredImage.js";
+import { StoredImage } from "./StoredImage.tsx";
 
 export function LinkPreviewHero({
   preview,

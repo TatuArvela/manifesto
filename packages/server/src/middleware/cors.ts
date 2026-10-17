@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
-import type { ServerConfig } from "#/config.js";
+import type { ServerConfig } from "#/config.ts";
 
 /**
  * What an assistant calls to sign in to `/api/mcp`, some from a web page (the

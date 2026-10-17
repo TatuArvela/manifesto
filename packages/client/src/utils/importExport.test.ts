@@ -1,13 +1,13 @@
 import type { Note, NoteCreate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { importFiles, isImportableFile } from "./importExport.js";
+import { importFiles, isImportableFile } from "./importExport.ts";
 import {
   parseMarkdownToNote,
   parseNoteJson,
   parseSingleNoteJson,
-} from "./importedNote.js";
-import { noteToMarkdown } from "./noteDownload.js";
+} from "./importedNote.ts";
+import { noteToMarkdown } from "./noteDownload.ts";
 
 const baseNote: Note = {
   id: "01HXYZ",

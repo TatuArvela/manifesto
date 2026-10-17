@@ -1,4 +1,4 @@
-import { presenceByNote } from "#/state/presence.js";
+import { presenceByNote } from "#/state/presence.ts";
 
 function initials(name: string): string {
   const [first = "", ...rest] = name.trim().split(/\s+/);

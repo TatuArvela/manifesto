@@ -4,7 +4,7 @@ import {
   LocalStorageAdapter,
   RestApiAdapter,
   storageConnection,
-} from "./index.js";
+} from "./index.ts";
 
 /**
  * Which backend a note goes to follows the session, but storage is the layer

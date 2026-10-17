@@ -1,7 +1,7 @@
-import { AT_REST, atRest } from "#/storage/atRest.js";
-import type { WebhooksRepo } from "#/storage/types.js";
-import { rowToWebhook, type WebhookRow } from "#/storage/webhookMapping.js";
-import type { PgPool } from "./database.js";
+import { AT_REST, atRest } from "#/storage/atRest.ts";
+import type { WebhooksRepo } from "#/storage/types.ts";
+import { rowToWebhook, type WebhookRow } from "#/storage/webhookMapping.ts";
+import type { PgPool } from "./database.ts";
 
 /** See the SQLite copy. The failure count is read, then written, rather than
  * computed in one `CASE`, which pg-mem handles unreliably; a webhook's

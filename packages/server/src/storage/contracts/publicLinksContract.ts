@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver, StoredPublicLink } from "#/storage/types.js";
-import { ciphertext, claimed } from "./claimed.js";
+import type { StorageDriver, StoredPublicLink } from "#/storage/types.ts";
+import { ciphertext, claimed } from "./claimed.ts";
 
 /**
  * Public links, the same in both drivers: a view is counted only while the

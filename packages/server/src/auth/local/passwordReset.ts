@@ -1,23 +1,23 @@
 import { zValidator } from "@hono/zod-validator";
 import type { Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import type { SessionRevocations } from "#/auth/revocations.js";
-import { endUserSessions } from "#/auth/session.js";
-import type { ServerConfig } from "#/config.js";
-import { hashPassword } from "#/lib/password.js";
-import { nowIso } from "#/lib/time.js";
-import { hashToken } from "#/lib/token.js";
-import type { Mailer } from "#/mail/mailer.js";
-import { passwordResetMail } from "#/mail/templates.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { audit } from "#/audit/audit.ts";
+import type { SessionRevocations } from "#/auth/revocations.ts";
+import { endUserSessions } from "#/auth/session.ts";
+import type { ServerConfig } from "#/config.ts";
+import { hashPassword } from "#/lib/password.ts";
+import { nowIso } from "#/lib/time.ts";
+import { hashToken } from "#/lib/token.ts";
+import type { Mailer } from "#/mail/mailer.ts";
+import { passwordResetMail } from "#/mail/templates.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import { mailedLinks } from "./mailedLink.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import { mailedLinks } from "./mailedLink.ts";
 
 /** How long a link works. */
 export const RESET_LINK_MINUTES = 30;

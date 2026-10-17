@@ -7,23 +7,23 @@ import {
 } from "@manifesto/shared";
 import { Copy, Trash2 } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { buttonClass } from "#/components/buttonClasses.js";
+import { buttonClass } from "#/components/buttonClasses.ts";
 import {
   ConfirmationError,
   ConfirmPasswordField,
-} from "#/components/ConfirmWithPassword.js";
-import { APP_FILE_SLUG } from "#/config.js";
-import { formatDateTime, type MessageKey, t } from "#/i18n/index.js";
+} from "#/components/ConfirmWithPassword.tsx";
+import { APP_FILE_SLUG } from "#/config.ts";
+import { formatDateTime, type MessageKey, t } from "#/i18n/index.ts";
 import {
   createApiToken,
   listApiTokens,
   revokeApiToken,
-} from "#/state/account/apiTokens.js";
-import { SERVER_ORIGIN } from "#/state/account/auth.js";
-import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
-import { askConfirmation } from "#/state/confirm.js";
-import { offeredTokenKinds, serverFeature } from "#/state/serverFeatures.js";
-import { showError, showSuccess } from "#/state/ui.js";
+} from "#/state/account/apiTokens.ts";
+import { SERVER_ORIGIN } from "#/state/account/auth.ts";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
+import { askConfirmation } from "#/state/confirm.ts";
+import { offeredTokenKinds, serverFeature } from "#/state/serverFeatures.ts";
+import { showError, showSuccess } from "#/state/ui.ts";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

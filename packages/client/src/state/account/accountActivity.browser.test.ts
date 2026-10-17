@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "#/storage/index.js";
-import { loadAccountActivity } from "./accountActivity.js";
+import { storageConnection } from "#/storage/index.ts";
+import { loadAccountActivity } from "./accountActivity.ts";
 
 const SERVER = "http://server.test";
 const fetchMock = vi.fn<typeof fetch>();

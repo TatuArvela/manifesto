@@ -1,29 +1,29 @@
 import type { Server as HttpServer } from "node:http";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
-import { createApp } from "./app.js";
-import { createAuthProvider } from "./auth/index.js";
+import { createApp } from "./app.ts";
+import { createAuthProvider } from "./auth/index.ts";
 import {
   announceInitialAdmin,
   ensureInitialAdmin,
-} from "./auth/initialAdmin.js";
-import { loadConfig } from "./config.js";
-import { isFeatureOn } from "./features.js";
-import { startAttachmentCleanup } from "./jobs/attachmentCleanup.js";
-import { startPushReminders } from "./jobs/pushReminders.js";
-import { startScheduledBackup } from "./jobs/scheduledBackup.js";
-import { startSessionCleanup } from "./jobs/sessionCleanup.js";
-import { startTrashCleanup } from "./jobs/trashCleanup.js";
-import { startUpdateCheck } from "./jobs/updateCheck.js";
-import { logger } from "./lib/logger.js";
-import { createMetricsApp } from "./lib/metricsServer.js";
-import { createShutdown } from "./lib/shutdown.js";
-import { createStorage } from "./storage/index.js";
-import { MigrationRefusedError } from "./storage/migrations.js";
-import { moveToCurrentKey } from "./storage/serverKey.js";
-import { VERSION } from "./version.js";
-import { attachAppSocket } from "./ws/appSocket.js";
-import { attachYjsSocket } from "./ws/yjsSocket.js";
+} from "./auth/initialAdmin.ts";
+import { loadConfig } from "./config.ts";
+import { isFeatureOn } from "./features.ts";
+import { startAttachmentCleanup } from "./jobs/attachmentCleanup.ts";
+import { startPushReminders } from "./jobs/pushReminders.ts";
+import { startScheduledBackup } from "./jobs/scheduledBackup.ts";
+import { startSessionCleanup } from "./jobs/sessionCleanup.ts";
+import { startTrashCleanup } from "./jobs/trashCleanup.ts";
+import { startUpdateCheck } from "./jobs/updateCheck.ts";
+import { logger } from "./lib/logger.ts";
+import { createMetricsApp } from "./lib/metricsServer.ts";
+import { createShutdown } from "./lib/shutdown.ts";
+import { createStorage } from "./storage/index.ts";
+import { MigrationRefusedError } from "./storage/migrations.ts";
+import { moveToCurrentKey } from "./storage/serverKey.ts";
+import { VERSION } from "./version.ts";
+import { attachAppSocket } from "./ws/appSocket.ts";
+import { attachYjsSocket } from "./ws/yjsSocket.ts";
 
 const cfg = loadConfig();
 const storage = await createStorage(cfg).catch((err: unknown) => {

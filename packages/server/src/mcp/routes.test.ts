@@ -5,16 +5,16 @@ import type {
   SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { defined } from "#/test/defined.js";
-import { heldKeyOf } from "#/test/keyedTokens.js";
+import { defined } from "#/test/defined.ts";
+import { heldKeyOf } from "#/test/keyedTokens.ts";
 import {
   authHeaders,
   bootTestApp,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
-import { MAX_BATCH } from "./routes.js";
+} from "#/test/setup.ts";
+import { MAX_BATCH } from "./routes.ts";
 
 interface RpcAnswer {
   jsonrpc: "2.0";

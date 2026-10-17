@@ -1,5 +1,5 @@
-import type { YjsStore } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+import type { YjsStore } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 interface YjsStateRow {
   yjs_state: Buffer | null;

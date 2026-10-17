@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeMarkdown } from "./editorMarkdown.js";
+import { normalizeMarkdown } from "./editorMarkdown.ts";
 
 describe("normalizeMarkdown", () => {
   const fence = "```";

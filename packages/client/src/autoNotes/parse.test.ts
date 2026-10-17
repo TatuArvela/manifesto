@@ -4,7 +4,7 @@ import {
   extractPluginTitle,
   MAX_READ_TAGS,
   MissingTitleError,
-} from "./parse.js";
+} from "./parse.ts";
 
 describe("extractPluginTitle", () => {
   it("reads the title from the first line", () => {

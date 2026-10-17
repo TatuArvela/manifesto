@@ -4,7 +4,7 @@ import {
   presenceByNote,
   recordPresenceJoin,
   recordPresenceLeave,
-} from "./presence.js";
+} from "./presence.ts";
 
 describe("presence signal", () => {
   afterEach(() => {

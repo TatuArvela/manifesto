@@ -4,7 +4,7 @@ import {
   bytesToBase64url,
   creationOptionsFromJSON,
   requestOptionsFromJSON,
-} from "./webauthn.js";
+} from "./webauthn.ts";
 
 describe("passkey JSON", () => {
   it("turns base64url into bytes and back, padding and all", () => {

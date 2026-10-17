@@ -4,23 +4,23 @@ import {
   roleOf,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { claimImages } from "#/attachments/store.js";
-import type { ServerConfig } from "#/config.js";
-import { nowIso } from "#/lib/time.js";
-import type { Mailer } from "#/mail/mailer.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { AccessChanges } from "#/sharing/accessChanges.js";
-import type { NoteEvents } from "#/sharing/noteEvents.js";
-import type { TeamShares } from "#/sharing/teamShares.js";
+import { claimImages } from "#/attachments/store.ts";
+import type { ServerConfig } from "#/config.ts";
+import { nowIso } from "#/lib/time.ts";
+import type { Mailer } from "#/mail/mailer.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { AccessChanges } from "#/sharing/accessChanges.ts";
+import type { NoteEvents } from "#/sharing/noteEvents.ts";
+import type { TeamShares } from "#/sharing/teamShares.ts";
 import {
   NoteAccessError,
   type StorageDriver,
   type StoredNoteUpdate,
-} from "#/storage/types.js";
-import { readPageParams } from "#/validation/pageParams.js";
-import { noteRekeySchema } from "#/validation/schemas.js";
-import { registerCommentRoutes } from "./comments.js";
+} from "#/storage/types.ts";
+import { readPageParams } from "#/validation/pageParams.ts";
+import { noteRekeySchema } from "#/validation/schemas.ts";
+import { registerCommentRoutes } from "./comments.ts";
 import {
   bodyOf,
   createBody,
@@ -29,11 +29,11 @@ import {
   notesOut,
   tokenKeys,
   updateBody,
-} from "./noteCodec.js";
-import { registerPublicLinkRoutes } from "./publicLinks.js";
-import { registerShareRoutes } from "./shares.js";
-import { registerTeamShareRoutes } from "./teams.js";
-import { registerVersionRoutes } from "./versions.js";
+} from "./noteCodec.ts";
+import { registerPublicLinkRoutes } from "./publicLinks.ts";
+import { registerShareRoutes } from "./shares.ts";
+import { registerTeamShareRoutes } from "./teams.ts";
+import { registerVersionRoutes } from "./versions.ts";
 
 interface NotesDeps {
   storage: StorageDriver;

@@ -1,10 +1,10 @@
 import type { AuditAction } from "@manifesto/shared";
 import type { MiddlewareHandler } from "hono";
-import { logger } from "#/lib/logger.js";
-import { nowIso } from "#/lib/time.js";
-import { newId } from "#/lib/ulid.js";
-import { clientAddress } from "#/middleware/rateLimit.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { logger } from "#/lib/logger.ts";
+import { nowIso } from "#/lib/time.ts";
+import { newId } from "#/lib/ulid.ts";
+import { clientAddress } from "#/middleware/rateLimit.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 
 /**
  * The audit log: sign-ins and failed ones, changes to how an account is

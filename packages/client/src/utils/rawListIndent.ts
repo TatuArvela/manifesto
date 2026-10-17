@@ -1,5 +1,5 @@
-import type { TextEdit } from "./formatTypes.js";
-import { lineRange, parseLine } from "./rawLineFormatting.js";
+import type { TextEdit } from "./formatTypes.ts";
+import { lineRange, parseLine } from "./rawLineFormatting.ts";
 
 // Raw mode's Indent and Outdent: list items moved a level in or out by their
 // leading spaces, taking the items nested under them along, as the rich

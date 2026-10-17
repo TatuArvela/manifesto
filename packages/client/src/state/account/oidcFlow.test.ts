@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markOidcFlow, OIDC_FLOW_MS, takeOidcFlow } from "./oidcFlow.js";
+import { markOidcFlow, OIDC_FLOW_MS, takeOidcFlow } from "./oidcFlow.ts";
 
 function fakeStorage() {
   const held = new Map<string, string>();

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createShutdown } from "./shutdown.js";
+import { createShutdown } from "./shutdown.ts";
 
 /**
  * Order and idempotency are the whole content of this module, so that is what

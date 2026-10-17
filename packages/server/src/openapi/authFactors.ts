@@ -3,8 +3,8 @@ import {
   passkeyLoginSchema,
   twoFactorEnableSchema,
   twoFactorPasswordSchema,
-} from "#/validation/schemas.js";
-import { noContent, notFound, type Operation, ok } from "./operation.js";
+} from "#/validation/schemas.ts";
+import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
 /** Second factors and passkeys, set up by an account and used to sign in. */
 export const AUTH_FACTOR_OPERATIONS: Operation[] = [

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "preact/hooks";
-import { BrandLogo } from "#/components/BrandLogo.js";
-import { buttonClass } from "#/components/buttonClasses.js";
+import { BrandLogo } from "#/components/BrandLogo.tsx";
+import { buttonClass } from "#/components/buttonClasses.ts";
 import {
   ConfirmationError,
   ConfirmPasswordField,
-} from "#/components/ConfirmWithPassword.js";
-import { APP_LOGO, APP_NAME } from "#/config.js";
-import { type MessageKey, t } from "#/i18n/index.js";
+} from "#/components/ConfirmWithPassword.tsx";
+import { APP_LOGO, APP_NAME } from "#/config.ts";
+import { type MessageKey, t } from "#/i18n/index.ts";
 import {
   checkAccountKeys,
   completeSetup,
@@ -16,14 +16,14 @@ import {
   startAgain,
   type UnlockResult,
   unlock,
-} from "#/state/account/accountKeys.js";
-import { currentUser } from "#/state/account/auth.js";
-import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
-import { signOut } from "#/state/account/signOut.js";
-import { userKeyKindOf } from "#/utils/userKey.js";
-import { KeepSheetStep } from "./KeySheet.js";
-import { quietClass, submitClass } from "./loginFormClasses.js";
-import { Field, RecoveryForm, UserKeyInput } from "./RecoveryForms.js";
+} from "#/state/account/accountKeys.ts";
+import { currentUser } from "#/state/account/auth.ts";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
+import { signOut } from "#/state/account/signOut.ts";
+import { userKeyKindOf } from "#/utils/userKey.ts";
+import { KeepSheetStep } from "./KeySheet.tsx";
+import { quietClass, submitClass } from "./loginFormClasses.ts";
+import { Field, RecoveryForm, UserKeyInput } from "./RecoveryForms.tsx";
 
 function ErrorLine({ message }: { message: string | null }) {
   if (!message) return null;

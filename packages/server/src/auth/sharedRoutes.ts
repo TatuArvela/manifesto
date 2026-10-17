@@ -7,30 +7,30 @@ import {
   type SealedAccountPrefsResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import { auditPage } from "#/audit/auditPage.js";
-import type { ServerConfig } from "#/config.js";
-import { logger } from "#/lib/logger.js";
-import { nowIso } from "#/lib/time.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { emailTaken, HttpError } from "#/middleware/error.js";
-import { deleteAccount } from "#/sharing/deleteAccount.js";
-import type { NoteEvents } from "#/sharing/noteEvents.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { audit } from "#/audit/audit.ts";
+import { auditPage } from "#/audit/auditPage.ts";
+import type { ServerConfig } from "#/config.ts";
+import { logger } from "#/lib/logger.ts";
+import { nowIso } from "#/lib/time.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { emailTaken, HttpError } from "#/middleware/error.ts";
+import { deleteAccount } from "#/sharing/deleteAccount.ts";
+import type { NoteEvents } from "#/sharing/noteEvents.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   accountPrefsUpdateSchema,
   authLocaleSchema,
   authMeDeleteSchema,
   authMeUpdateSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import type { Broadcaster } from "#/ws/broadcaster.js";
-import { registerAccountKeyRoutes } from "./accountKeys.js";
-import { requireConfirmation } from "./confirmation.js";
-import type { LoginAttempts } from "./local/loginAttempts.js";
-import type { SessionRevocations } from "./revocations.js";
-import type { AuthProviderRouter } from "./types.js";
-import { toAuthUser } from "./users.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import type { Broadcaster } from "#/ws/broadcaster.ts";
+import { registerAccountKeyRoutes } from "./accountKeys.ts";
+import { requireConfirmation } from "./confirmation.ts";
+import type { LoginAttempts } from "./local/loginAttempts.ts";
+import type { SessionRevocations } from "./revocations.ts";
+import type { AuthProviderRouter } from "./types.ts";
+import { toAuthUser } from "./users.ts";
 
 interface SharedAuthRoutesDeps {
   cfg: ServerConfig;

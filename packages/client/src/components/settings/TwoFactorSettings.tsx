@@ -1,9 +1,9 @@
 import type { TwoFactorStatusResponse } from "@manifesto/shared";
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { QrCode } from "#/components/QrCode.js";
-import { type MessageKey, t } from "#/i18n/index.js";
-import { currentUser } from "#/state/account/auth.js";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { QrCode } from "#/components/QrCode.tsx";
+import { type MessageKey, t } from "#/i18n/index.ts";
+import { currentUser } from "#/state/account/auth.ts";
 import {
   beginTwoFactor,
   disableTwoFactor,
@@ -11,10 +11,10 @@ import {
   groupSecret,
   otpauthLink,
   twoFactorStatus,
-} from "#/state/account/twoFactor.js";
-import { serverFeature } from "#/state/serverFeatures.js";
-import { showSuccess } from "#/state/ui.js";
-import { PasskeySettings } from "./PasskeySettings.js";
+} from "#/state/account/twoFactor.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
+import { showSuccess } from "#/state/ui.ts";
+import { PasskeySettings } from "./PasskeySettings.tsx";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

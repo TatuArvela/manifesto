@@ -1,6 +1,6 @@
-import type { AccountPublicKeys } from "#/api/keys.js";
-import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.js";
-import { associatedData, derivable, deriveKey, seal, unseal } from "./seal.js";
+import type { AccountPublicKeys } from "#/api/keys.ts";
+import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.ts";
+import { associatedData, derivable, deriveKey, seal, unseal } from "./seal.ts";
 
 /**
  * Handing a note key to another account

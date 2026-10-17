@@ -16,19 +16,19 @@ import {
   Trash2,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { getColorPickerColors, plural, t } from "#/i18n/index.js";
-import { deleteTag, renameTag } from "#/state/actions.js";
-import { askConfirmation } from "#/state/confirm.js";
-import { notesLoaded } from "#/state/notesStore.js";
-import { hiddenTags, type TagColor, tagColors } from "#/state/prefs.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { getColorPickerColors, plural, t } from "#/i18n/index.ts";
+import { deleteTag, renameTag } from "#/state/actions.ts";
+import { askConfirmation } from "#/state/confirm.ts";
+import { notesLoaded } from "#/state/notesStore.ts";
+import { hiddenTags, type TagColor, tagColors } from "#/state/prefs.ts";
 import {
   activeTag,
   showError,
   tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
-} from "#/state/ui.js";
+} from "#/state/ui.ts";
 import {
   allTags,
   childTags,
@@ -37,11 +37,11 @@ import {
   setTagHidden,
   tagColorOf,
   tagCounts,
-} from "#/state/views.js";
-import { buttonClass } from "./buttonClasses.js";
-import { Dropdown } from "./Dropdown.js";
-import { tagTint } from "./TagChip.js";
-import { Tooltip } from "./Tooltip.js";
+} from "#/state/views.ts";
+import { buttonClass } from "./buttonClasses.ts";
+import { Dropdown } from "./Dropdown.tsx";
+import { tagTint } from "./TagChip.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 // The actions on the selected tag are a list under the tree, flat so they are
 // not taken for more tags.

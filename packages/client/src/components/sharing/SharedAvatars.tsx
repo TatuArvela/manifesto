@@ -1,9 +1,9 @@
 import { type Note, roleOf, type ShareUser } from "@manifesto/shared";
-import { Avatar } from "#/components/Avatar.js";
-import { Tooltip } from "#/components/Tooltip.js";
-import { formatList, t } from "#/i18n/index.js";
-import { currentUser } from "#/state/account/auth.js";
-import { shareDialog } from "#/state/sharing.js";
+import { Avatar } from "#/components/Avatar.tsx";
+import { Tooltip } from "#/components/Tooltip.tsx";
+import { formatList, t } from "#/i18n/index.ts";
+import { currentUser } from "#/state/account/auth.ts";
+import { shareDialog } from "#/state/sharing.ts";
 
 /** How many faces a card shows before the rest become a count. */
 const SHOWN = 3;

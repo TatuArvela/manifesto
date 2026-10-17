@@ -1,13 +1,13 @@
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { buttonClass } from "#/components/buttonClasses.js";
+import { buttonClass } from "#/components/buttonClasses.ts";
 import {
   ConfirmationError,
   ConfirmPasswordField,
-} from "#/components/ConfirmWithPassword.js";
-import { KeepSheetStep } from "#/components/login/KeySheet.js";
-import { QrCode } from "#/components/QrCode.js";
-import { t } from "#/i18n/index.js";
+} from "#/components/ConfirmWithPassword.tsx";
+import { KeepSheetStep } from "#/components/login/KeySheet.tsx";
+import { QrCode } from "#/components/QrCode.tsx";
+import { t } from "#/i18n/index.ts";
 import {
   abandonRenewal,
   completeRenewal,
@@ -16,8 +16,8 @@ import {
   revealSecretKey,
   secretKeyAddress,
   sheetFor,
-} from "#/state/account/accountKeys.js";
-import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
+} from "#/state/account/accountKeys.ts";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
 
 /** What each button asks the password for. */
 type Purpose = "reveal" | "newSecret" | "newRecovery";

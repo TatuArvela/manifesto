@@ -5,9 +5,9 @@ import {
   formatFileSize,
   type MessageKey,
   t,
-} from "#/i18n/index.js";
-import { loadAdminOverview } from "#/state/admin.js";
-import { SetupChecks } from "./SetupChecks.js";
+} from "#/i18n/index.ts";
+import { loadAdminOverview } from "#/state/admin.ts";
+import { SetupChecks } from "./SetupChecks.tsx";
 
 /** The jobs the server runs, by the names it gives them. */
 const JOB_NAMES: Record<string, MessageKey> = {

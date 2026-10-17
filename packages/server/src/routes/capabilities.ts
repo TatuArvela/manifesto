@@ -13,18 +13,18 @@ import {
   NOTE_VERSION_MAX_AGE_DAYS,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { MAX_PASSKEYS_PER_USER } from "#/auth/local/passkeys.js";
+import { MAX_PASSKEYS_PER_USER } from "#/auth/local/passkeys.ts";
 import {
   offersMcpSignIn,
   type ServerConfig,
   signsInLocally,
   signsInWithOidc,
-} from "#/config.js";
-import { featureStates, isFeatureOn } from "#/features.js";
-import { MAX_REQUEST_BYTES } from "#/lib/requestLimits.js";
-import { MAX_API_TOKENS_PER_USER } from "#/lib/token.js";
-import { VERSION } from "#/version.js";
-import { MAX_WEBHOOKS_PER_USER } from "./webhooks.js";
+} from "#/config.ts";
+import { featureStates, isFeatureOn } from "#/features.ts";
+import { MAX_REQUEST_BYTES } from "#/lib/requestLimits.ts";
+import { MAX_API_TOKENS_PER_USER } from "#/lib/token.ts";
+import { VERSION } from "#/version.ts";
+import { MAX_WEBHOOKS_PER_USER } from "./webhooks.ts";
 
 /**
  * `GET /api/capabilities`: the one place a client or a script reads what this

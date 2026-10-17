@@ -1,5 +1,5 @@
-import type { OfferedKey } from "#/crypto/shareSeal.js";
-import { type Note, PERSONAL_NOTE_FIELDS } from "#/note.js";
+import type { OfferedKey } from "#/crypto/shareSeal.ts";
+import { type Note, PERSONAL_NOTE_FIELDS } from "#/note.ts";
 
 // Notes as the server stores them and as a signed-in app sends and receives
 // them: every value in someone's words is a ciphertext the server cannot

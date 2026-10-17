@@ -10,7 +10,7 @@ import {
   REFRESH_TOKEN_PREFIX,
   SHOWN_PREFIX_LENGTH,
   safeEqual,
-} from "./token.js";
+} from "./token.ts";
 
 describe("tokens", () => {
   it("mints session tokens of 256 random bits, never the same twice", () => {

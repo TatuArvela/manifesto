@@ -21,7 +21,7 @@ import {
   sortMode,
   theme,
   viewMode,
-} from "./prefs.js";
+} from "./prefs.ts";
 
 const PREFS_KEY = "manifesto:prefs";
 

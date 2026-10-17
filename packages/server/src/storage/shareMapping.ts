@@ -14,7 +14,7 @@ import {
   SEALED_SHARED_NOTE_FIELDS,
   SHARE_ROLES,
 } from "@manifesto/shared";
-import { nowIso } from "#/lib/time.js";
+import { nowIso } from "#/lib/time.ts";
 import {
   asBoolean,
   type NoteRow,
@@ -24,8 +24,8 @@ import {
   sealedColumn,
   setReminderKey,
   storedReminder,
-} from "./noteMapping.js";
-import type { NoteShare } from "./types.js";
+} from "./noteMapping.ts";
+import type { NoteShare } from "./types.ts";
 
 /**
  * The mapping between shared notes as the drivers store them and as one user

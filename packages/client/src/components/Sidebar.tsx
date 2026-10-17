@@ -8,11 +8,11 @@ import {
   Trash2,
   Users,
 } from "lucide-preact";
-import { t } from "#/i18n/index.js";
-import { currentUser, isServerMode } from "#/state/account/auth.js";
-import { exitSelectMode } from "#/state/selection.js";
-import { type AppView, activeTag, activeView, selectMode } from "#/state/ui.js";
-import { Tooltip } from "./Tooltip.js";
+import { t } from "#/i18n/index.ts";
+import { currentUser, isServerMode } from "#/state/account/auth.ts";
+import { exitSelectMode } from "#/state/selection.ts";
+import { type AppView, activeTag, activeView, selectMode } from "#/state/ui.ts";
+import { Tooltip } from "./Tooltip.tsx";
 
 /** Sidebar width when collapsed (icon-only) */
 const COLLAPSED_W = 56;
