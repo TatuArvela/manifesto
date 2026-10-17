@@ -171,7 +171,9 @@ function parsePresetColor(value: unknown): BoardNeutral | BoardColor | "none" {
   if ((BOARD_NEUTRALS as readonly string[]).includes(value)) {
     return value as BoardNeutral;
   }
-  return RETIRED_BOARD_COLORS[value] ?? "none";
+  return Object.hasOwn(RETIRED_BOARD_COLORS, value)
+    ? (RETIRED_BOARD_COLORS[value] ?? "none")
+    : "none";
 }
 
 export const BOARD_INKS: readonly BoardInk[] = [
@@ -209,7 +211,10 @@ const RETIRED_BOARD_TEXTURES: Record<string, BoardTexture> = {
 
 function parseBoardTexture(value: unknown): BoardTextureChoice {
   if (value === "random") return "random";
-  if (typeof value === "string" && value in RETIRED_BOARD_TEXTURES) {
+  if (
+    typeof value === "string" &&
+    Object.hasOwn(RETIRED_BOARD_TEXTURES, value)
+  ) {
     return RETIRED_BOARD_TEXTURES[value] ?? "none";
   }
   return typeof value === "string" &&
