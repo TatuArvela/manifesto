@@ -22,7 +22,7 @@ import {
   adminTeamUpdateSchema,
   shareUpdateSchema,
   teamShareCreateSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/sharingSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;

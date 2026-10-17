@@ -17,7 +17,7 @@ import {
   type StorageDriver,
   UsernameTakenError,
 } from "#/storage/types.ts";
-import { emailSchema } from "#/validation/schemas.ts";
+import { emailSchema } from "#/validation/accountSchemas.ts";
 import type { OidcDiscoveryClient } from "./provider.ts";
 
 interface OidcRouterDeps {

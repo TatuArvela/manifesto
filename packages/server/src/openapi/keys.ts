@@ -7,8 +7,8 @@ import {
   recoverySignInCompleteSchema,
   recoverySignInOpenSchema,
   secretKeyReplaceSchema,
-  seenKeySchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
+import { seenKeySchema } from "#/validation/sharingSchemas.ts";
 import { noContent, type Operation, ok } from "./operation.ts";
 
 const refused = {

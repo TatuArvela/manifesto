@@ -30,8 +30,8 @@ import {
   recoverySignInCompleteSchema,
   recoverySignInOpenSchema,
   secretKeyReplaceSchema,
-  seenKeySchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
+import { seenKeySchema } from "#/validation/sharingSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import { requireConfirmation } from "./confirmation.ts";
 import type { LoginAttempts } from "./local/loginAttempts.ts";

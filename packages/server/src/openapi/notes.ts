@@ -5,7 +5,7 @@ import {
   notesImportSchema,
   noteUpdateSchema,
   noteVersionCreateSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/noteSchemas.ts";
 import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
 /**

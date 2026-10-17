@@ -193,7 +193,7 @@ code is enough. Read one by hand when planning a change before touching its file
   them ship in the image.
 - `exactOptionalPropertyTypes` keeps "absent" and "present but `undefined`" apart. The wire types
   in `@manifesto/shared` stay `?: T`, since JSON cannot carry an `undefined`, so a request schema
-  uses zod's `.exactOptional()` (and `exactPartial` in `validation/schemas.ts`), never `.optional()`
+  uses zod's `.exactOptional()` (and `exactPartial` in `validation/fields.ts`), never `.optional()`
   or `.partial()`, which `validation/wireTypes.ts` would refuse. An internal option or a prop that
   callers pass through from somewhere optional is declared `?: T | undefined`.
 - `noUncheckedIndexedAccess` types every `list[i]` and regex group as possibly `undefined`, and

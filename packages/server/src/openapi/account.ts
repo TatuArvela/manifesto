@@ -1,10 +1,12 @@
 import {
   apiTokenCreateSchema,
-  pushSubscribeSchema,
-  pushUnsubscribeSchema,
   webhookCreateSchema,
   webhookUpdateSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accessSchemas.ts";
+import {
+  pushSubscribeSchema,
+  pushUnsubscribeSchema,
+} from "#/validation/accountSchemas.ts";
 import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
 /**

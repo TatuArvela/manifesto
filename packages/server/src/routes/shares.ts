@@ -22,7 +22,7 @@ import {
   offeredKeySchema,
   shareCreateSchema,
   shareUpdateSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/sharingSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 
 export interface ShareRoutesDeps {

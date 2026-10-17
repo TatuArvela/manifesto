@@ -1,7 +1,7 @@
 import {
   oauthAuthorizeSchema,
   oauthRegisterSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accessSchemas.ts";
 import { type Operation, ok } from "./operation.ts";
 
 /** The MCP endpoint and the OAuth flow that lets an assistant sign in to it. */

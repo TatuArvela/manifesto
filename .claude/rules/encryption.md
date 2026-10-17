@@ -111,7 +111,7 @@ for any new flow that makes a key someone has to hold.
   is refused while one of the account's own notes is among them (`missesOwnNotes`), and leaves
   out a note shared with the account, which is its owner's to back up. `openAll` opens a few notes at a time and keeps their order.
 - **The server stores only what is shaped as a ciphertext** where one belongs: `sealed` in
-  `validation/schemas.ts` on the way in, and `sealedColumn` (`storage/noteMapping.ts`) on the way
+  `validation/fields.ts` on the way in, and `sealedColumn` (`storage/noteMapping.ts`) on the way
   out, so a column's readable default is never sent as a value.
 - **What is opened is checked.** It was written by some client and checked by no server, so
   `shared/src/crypto/noteSeal.ts` holds every opened value to what a note may hold (the lists through

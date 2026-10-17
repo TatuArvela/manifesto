@@ -29,34 +29,40 @@ import type {
 } from "@manifesto/shared";
 import type { z } from "zod";
 import type {
+  apiTokenCreateSchema,
+  webhookCreateSchema,
+} from "./accessSchemas.ts";
+import type {
   accountKeysSetupSchema,
   accountPrefsUpdateSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
-  apiTokenCreateSchema,
-  attachmentsClaimSchema,
   authMeUpdateSchema,
-  heldKeySchema,
-  noteCreateSchema,
-  noteRekeySchema,
-  notesImportSchema,
-  noteUpdateSchema,
-  noteVersionCreateSchema,
   passwordChangeSchema,
   recoveryCompleteSchema,
   recoveryKeyReplaceSchema,
   recoveryOpenSchema,
   registerSchema,
+  secretKeyReplaceSchema,
+} from "./accountSchemas.ts";
+import type {
+  attachmentsClaimSchema,
+  noteCreateSchema,
+  noteRekeySchema,
+  notesImportSchema,
+  noteUpdateSchema,
+  noteVersionCreateSchema,
   sealedNoteCreateSchema,
   sealedNotesImportSchema,
   sealedNoteUpdateSchema,
   sealedVersionCreateSchema,
-  secretKeyReplaceSchema,
+} from "./noteSchemas.ts";
+import type {
+  heldKeySchema,
   seenKeySchema,
   shareCreateSchema,
   shareUpdateSchema,
-  webhookCreateSchema,
-} from "./schemas.ts";
+} from "./sharingSchemas.ts";
 
 /**
  * The request bodies are declared twice: as TypeScript types in

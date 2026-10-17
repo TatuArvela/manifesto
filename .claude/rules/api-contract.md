@@ -17,7 +17,8 @@ paths:
 `packages/shared/src/api.ts` declares the wire types (one module per area in `src/api/`, all re-exported from
 it) and `docs/specification/api.md` is the source of truth.
 `GET /api/openapi.json` is generated from `src/openapi.ts`, whose request bodies are the validation
-schemas; a new route must be added to `OPERATIONS` there (through its area's list in `src/openapi/`),
+schemas (`validation/`, one file per area: `accountSchemas.ts`, `noteSchemas.ts`, `sharingSchemas.ts`,
+`accessSchemas.ts`, built from the pieces in `fields.ts`); a new route must be added to `OPERATIONS` there (through its area's list in `src/openapi/`),
 or `openapi.test.ts` fails.
 
 The document is meant to be generated from (`node dist/cli.js openapi` prints it with no database). A

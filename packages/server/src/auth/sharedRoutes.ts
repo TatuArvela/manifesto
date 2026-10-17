@@ -22,7 +22,7 @@ import {
   authLocaleSchema,
   authMeDeleteSchema,
   authMeUpdateSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import type { Broadcaster } from "#/ws/broadcaster.ts";
 import { registerAccountKeyRoutes } from "./accountKeys.ts";

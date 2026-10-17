@@ -33,7 +33,7 @@ import {
   passkeyAddSchema,
   passkeyLoginSchema,
   twoFactorPasswordSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import type { LoginAttempts } from "./loginAttempts.ts";
 

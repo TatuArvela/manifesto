@@ -27,7 +27,7 @@ import { newId } from "#/lib/ulid.ts";
 import type { AuthContext } from "#/middleware/authBearer.ts";
 import { HttpError } from "#/middleware/error.ts";
 import type { StorageDriver } from "#/storage/types.ts";
-import { apiTokenCreateSchema } from "#/validation/schemas.ts";
+import { apiTokenCreateSchema } from "#/validation/accessSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 
 interface TokenDeps {

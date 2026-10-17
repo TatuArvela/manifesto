@@ -10,7 +10,7 @@ import {
   registerSchema,
   signInLinkConfirmSchema,
   signInLinkRequestSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/accountSchemas.ts";
 import { noContent, type Operation, ok } from "./operation.ts";
 
 /**

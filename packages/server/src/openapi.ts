@@ -10,7 +10,7 @@ import { NOTE_OPERATIONS } from "./openapi/notes.ts";
 import { isPublicSurface, type Operation } from "./openapi/operation.ts";
 import { SERVER_OPERATIONS } from "./openapi/server.ts";
 import { SHARING_OPERATIONS } from "./openapi/sharing.ts";
-import { noteCreateSchema } from "./validation/schemas.ts";
+import { noteCreateSchema } from "./validation/noteSchemas.ts";
 
 export { isPublicSurface, type Operation } from "./openapi/operation.ts";
 

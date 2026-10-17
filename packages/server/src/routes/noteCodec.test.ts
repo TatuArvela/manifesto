@@ -11,7 +11,7 @@ import { HttpError } from "#/middleware/error.ts";
 import { claimedImages } from "#/storage/contracts/claimed.ts";
 import { testAccountKeys } from "#/test/keyedTokens.ts";
 import { bootTestApp, registerTestUser, type TestRig } from "#/test/setup.ts";
-import { noteCreateSchema } from "#/validation/schemas.ts";
+import { noteCreateSchema } from "#/validation/noteSchemas.ts";
 import {
   bodyOf,
   commentBody,

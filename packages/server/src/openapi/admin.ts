@@ -1,9 +1,11 @@
 import {
   adminCreateUserSchema,
+  adminUpdateUserSchema,
+} from "#/validation/accountSchemas.ts";
+import {
   adminTeamCreateSchema,
   adminTeamUpdateSchema,
-  adminUpdateUserSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/sharingSchemas.ts";
 import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
 /** The admin API: accounts, teams, the audit log, the update check and the

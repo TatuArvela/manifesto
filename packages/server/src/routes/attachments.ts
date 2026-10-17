@@ -21,7 +21,7 @@ import { newId } from "#/lib/ulid.ts";
 import type { AuthContext } from "#/middleware/authBearer.ts";
 import { HttpError } from "#/middleware/error.ts";
 import type { StorageDriver } from "#/storage/types.ts";
-import { attachmentsClaimSchema } from "#/validation/schemas.ts";
+import { attachmentsClaimSchema } from "#/validation/noteSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
 import { tokenKeys } from "./noteCodec.ts";
 

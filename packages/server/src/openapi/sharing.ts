@@ -1,5 +1,5 @@
+import { commentTextSchema } from "#/validation/noteSchemas.ts";
 import {
-  commentTextSchema,
   heldKeySchema,
   offeredKeySchema,
   publicLinkCreateSchema,
@@ -7,7 +7,7 @@ import {
   shareCreateSchema,
   shareUpdateSchema,
   teamShareCreateSchema,
-} from "#/validation/schemas.ts";
+} from "#/validation/sharingSchemas.ts";
 import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
 /**
