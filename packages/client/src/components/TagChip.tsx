@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { tagChipColors } from "../colors.js";
-import { tagColorOf } from "../state/index.js";
+import { tagColorOf } from "../state/views.js";
 
 const PLAIN = "bg-neutral-200/60 dark:bg-neutral-700/60";
 

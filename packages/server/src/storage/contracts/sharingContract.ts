@@ -6,7 +6,13 @@ import {
   NoteAccessError,
   type StorageDriver,
 } from "../types.js";
-import { claimed, claimedUpdate, ct, heldKey, opened } from "./claimed.js";
+import {
+  ciphertext,
+  claimed,
+  claimedUpdate,
+  heldKey,
+  opened,
+} from "./claimed.js";
 
 /**
  * What both drivers must do for sharing notes between accounts, run against
@@ -116,9 +122,9 @@ export function describeSharingContract(
           },
           // Sealed, as the note is; the colour is the owner's own and is
           // not part of what is offered. Nobody has wrapped the key yet.
-          title: ct("Groceries"),
-          content: ct("- [ ] Milk"),
-          font: ct(NoteFont.Default),
+          title: ciphertext("Groceries"),
+          content: ciphertext("- [ ] Milk"),
+          font: ciphertext(NoteFont.Default),
           keyVersion: 1,
           offered: null,
           invitedAt: T1,
@@ -134,7 +140,7 @@ export function describeSharingContract(
       const offered = {
         keyVersion: 1,
         ephemeral: "B".repeat(87),
-        wrapped: ct("wrapped to alice"),
+        wrapped: ciphertext("wrapped to alice"),
         signer: "owner",
         signature: "sig",
       };
@@ -394,7 +400,7 @@ export function describeSharingContract(
           await storage.notes.update(
             "n1",
             writer,
-            { title: ct("sealed under a key that is gone") },
+            { title: ciphertext("sealed under a key that is gone") },
             T3,
             undefined,
             other,
@@ -408,7 +414,7 @@ export function describeSharingContract(
         await storage.notes.update(
           "n1",
           "alice",
-          { title: ct("sealed under the key it has") },
+          { title: ciphertext("sealed under the key it has") },
           T3,
           undefined,
           held.keyVersion,

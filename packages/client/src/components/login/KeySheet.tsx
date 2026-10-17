@@ -3,7 +3,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { APP_FILE_SLUG } from "../../config.js";
 import { t } from "../../i18n/index.js";
-import type { KeySheet } from "../../state/accountKeys.js";
+import type { KeySheet } from "../../state/account/accountKeys.js";
 import { downloadFile } from "../../utils/noteDownload.js";
 import { buttonClass } from "../buttonClasses.js";
 import { submitClass } from "./loginFormClasses.js";

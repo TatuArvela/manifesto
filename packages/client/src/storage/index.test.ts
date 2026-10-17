@@ -8,9 +8,9 @@ import {
 
 /**
  * Which backend a note goes to follows the session, but storage is the layer
- * underneath the session, not above it. It used to import the auth signals
- * directly, so anything that touched a note pulled the login screen's state in
- * with it; `state/auth.ts` pushes the connection in now.
+ * underneath the session, not above it. Were it to import the auth signals,
+ * anything that touched a note would pull the login screen's state in with
+ * it, so `state/account/auth.ts` pushes the connection in.
  *
  * That inversion is only safe if the adapter still changes the moment the
  * connection does, which is what these check.

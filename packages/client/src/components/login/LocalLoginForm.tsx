@@ -8,7 +8,7 @@ import {
   register,
   signInWithPasskey,
   TwoFactorRequiredError,
-} from "../../state/auth.js";
+} from "../../state/account/auth.js";
 import { getPasskey } from "../../utils/webauthn.js";
 import {
   ChangePasswordStep,

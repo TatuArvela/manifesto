@@ -13,7 +13,7 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ct } from "../storage/contracts/claimed.js";
+import { ciphertext } from "../storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
@@ -297,7 +297,7 @@ describe("comments beside a shared note", () => {
         headers: authHeaders(owner.token),
         body: JSON.stringify(body),
       });
-    const sealed = { id: "c-chosen", keyVersion: 1, body: ct("Hello") };
+    const sealed = { id: "c-chosen", keyVersion: 1, body: ciphertext("Hello") };
     expect((await send(sealed)).status).toBe(201);
     const [stored] = await rig.storage.comments.listByNote(noteId);
     expect(stored).toMatchObject(sealed);
@@ -306,7 +306,7 @@ describe("comments beside a shared note", () => {
     expect((await send({ ...sealed, id: "c2", body: "Hello" })).status).toBe(
       422,
     );
-    expect((await send({ id: "c3", body: ct("x") })).status).toBe(422);
+    expect((await send({ id: "c3", body: ciphertext("x") })).status).toBe(422);
   });
 
   it("lets a token that carries keys read and write comments in plain words, sealed at rest", async () => {

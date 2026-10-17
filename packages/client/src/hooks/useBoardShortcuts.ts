@@ -1,18 +1,20 @@
 import { t } from "../i18n/index.js";
-import { confirmDeletion } from "../state/confirm.js";
 import {
-  activeTag,
-  activeView,
   archiveNote,
   moveNoteBy,
   type NoteMoveStep,
-  newNoteRequested,
-  showShortcuts,
   trashNote,
   unarchiveNote,
-} from "../state/index.js";
+} from "../state/actions.js";
+import { confirmDeletion } from "../state/confirm.js";
 import { allNotes } from "../state/notesStore.js";
-import { boardAnnouncement } from "../state/ui.js";
+import {
+  activeTag,
+  activeView,
+  boardAnnouncement,
+  newNoteRequested,
+  showShortcuts,
+} from "../state/ui.js";
 import {
   cardAfterFocused,
   focusedNoteId,

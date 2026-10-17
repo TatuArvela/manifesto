@@ -7,7 +7,7 @@ vi.mock("../../config.js", async (original) => ({
   resolveServerUrl: () => "https://notes.example",
 }));
 
-import { currentUser } from "../../state/auth.js";
+import { currentUser } from "../../state/account/auth.js";
 import {
   adoptServerFeatures,
   DEFAULT_SERVER_FEATURES,

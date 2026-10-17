@@ -3,6 +3,7 @@ paths:
   - "packages/client/src/state/**"
   - "packages/client/src/storage/**"
   - "packages/client/src/components/NoteInput.tsx"
+  - "packages/client/src/hooks/useComposerFields.ts"
   - "packages/client/src/components/UnsentNotes.tsx"
 ---
 
@@ -68,4 +69,4 @@ State lives in `packages/client/src/state/` using @preact/signals:
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   `routing.md`). `initRouter()` is called once from `App` on mount. The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.
-- **`auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` reads `/api/capabilities` (`fetchCapabilities`, which also fills `serverFeatures`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL. It takes the token only where `takeOidcFlow()` (`oidcFlow.ts`) finds the mark this tab left on its way out, so every link to `oidcLoginUrl` / `oidcReauthUrl` carries `onClick={beginOidcSignIn}` (and `onAuxClick`); a new one without it starts a sign-in whose return is ignored. Taken on sight, a `#token=` in a link would sign its reader in to the sender's account.
+- **`account/auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` reads `/api/capabilities` (`fetchCapabilities`, which also fills `serverFeatures`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL. It takes the token only where `takeOidcFlow()` (`oidcFlow.ts`) finds the mark this tab left on its way out, so every link to `oidcLoginUrl` / `oidcReauthUrl` carries `onClick={beginOidcSignIn}` (and `onAuxClick`); a new one without it starts a sign-in whose return is ignored. Taken on sight, a `#token=` in a link would sign its reader in to the sender's account.

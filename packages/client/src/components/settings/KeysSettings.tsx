@@ -9,8 +9,8 @@ import {
   revealSecretKey,
   secretKeyAddress,
   sheetFor,
-} from "../../state/accountKeys.js";
-import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
+} from "../../state/account/accountKeys.js";
+import type { ConfirmationRefusal } from "../../state/account/passwordConfirmation.js";
 import { buttonClass } from "../buttonClasses.js";
 import {
   ConfirmationError,

@@ -138,7 +138,7 @@ of every note they own. In open mode nothing was ever separated, so it resolves
 without a round trip.
 
 Which adapter is live is decided by `currentStorage` in `storage/index.ts`, a
-computed over the `storageConnection` signal that `state/auth.ts` writes: a
+computed over the `storageConnection` signal that `state/account/auth.ts` writes: a
 server URL plus a token selects `RestApiAdapter`, anything else selects
 `LocalStorageAdapter`. The connection is pushed in rather than read out so that
 storage, which sits underneath the session, does not import the session's state
@@ -146,7 +146,7 @@ storage, which sits underneath the session, does not import the session's state
 
 ### Editor
 
-Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor is instantiated in `hooks/useMilkdownEditor.ts` and rendered by `components/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (`callCommand(undoCommand)` / `redoCommand`); there is no separate undo/redo hook.
+Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor is instantiated in `hooks/useMilkdownEditor.ts` and rendered by `components/editor/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (`callCommand(undoCommand)` / `redoCommand`); there is no separate undo/redo hook.
 
 Custom ProseMirror behavior lives in `packages/client/src/extensions/`:
 

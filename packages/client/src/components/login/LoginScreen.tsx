@@ -16,7 +16,7 @@ import {
   SERVER_ORIGIN,
   takeResetToken,
   takeSignInLinkToken,
-} from "../../state/auth.js";
+} from "../../state/account/auth.js";
 import { passkeysSupported } from "../../utils/webauthn.js";
 import { BrandLogo } from "../BrandLogo.js";
 import { buttonClass } from "../buttonClasses.js";

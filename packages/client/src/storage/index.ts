@@ -17,7 +17,7 @@ export interface StorageConnection {
 }
 
 /**
- * Set by `state/auth.ts`, which is the module that knows about sessions.
+ * Set by `state/account/auth.ts`, the module that knows about sessions.
  * Pushed in rather than read out, so storage, the bottom layer of the app,
  * never imports one of its own callers: anything touching a note would pull
  * the login screen's state in with it.

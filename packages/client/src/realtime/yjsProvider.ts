@@ -8,7 +8,7 @@ import {
   currentUser,
   isServerMode,
   WS_ORIGIN,
-} from "../state/auth.js";
+} from "../state/account/auth.js";
 import { sealer } from "../storage/sealing.js";
 import { sealedNote } from "../storage/shareKeys.js";
 import type { YjsConnectionStatus, YjsSession } from "./yjsSession.js";

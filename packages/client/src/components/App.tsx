@@ -2,6 +2,7 @@ import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useBoardShortcuts } from "../hooks/useBoardShortcuts.js";
+import { useFileDropImport } from "../hooks/useFileDropImport.js";
 import { useLazyModule } from "../hooks/useLazyModule.js";
 import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -12,12 +13,14 @@ import {
   usePaneSlide,
   useViewTransition,
 } from "../hooks/useViewTransition.js";
-import { plural, t } from "../i18n/index.js";
+import { t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { revealApp } from "../splash.js";
-import { keyState, takeSecretKeyFromAddress } from "../state/accountKeys.js";
-import { startAccountLocaleReport } from "../state/accountLocale.js";
-import { checkForUpdate } from "../state/admin.js";
+import {
+  keyState,
+  takeSecretKeyFromAddress,
+} from "../state/account/accountKeys.js";
+import { startAccountLocaleReport } from "../state/account/accountLocale.js";
 import {
   authToken,
   consumeOidcRedirect,
@@ -26,39 +29,31 @@ import {
   isServerMode,
   refreshCurrentUser,
   takeSignInLinkToken,
-} from "../state/auth.js";
+} from "../state/account/auth.js";
+import { takeConsentPage } from "../state/account/oauth.js";
+import { checkForUpdate } from "../state/admin.js";
 import { initAutoNotes } from "../state/autoNotes.js";
 import { initBoardBackground } from "../state/board.js";
 import { closeDrawing, drawingRequest } from "../state/drawing.js";
 import { takeIncomingShare } from "../state/incomingShare.js";
-import {
-  activeView,
-  animations,
-  createNote,
-  editingNoteId,
-  importNotes,
-  initRouter,
-  loadNotes,
-  notes,
-  selectMode,
-  showError,
-  showSettings,
-  showShortcuts,
-  showSuccess,
-  showWelcome,
-  stickyTopBar,
-  updateNote,
-  viewMode,
-} from "../state/index.js";
-import { takeConsentPage } from "../state/oauth.js";
+import { loadNotes, notes, updateNote } from "../state/notesStore.js";
+import { animations, stickyTopBar, viewMode } from "../state/prefs.js";
 import { startPrefsSync } from "../state/prefsSync.js";
 import { publicLinksDialog } from "../state/publicLinks.js";
 import { ensurePushSubscription } from "../state/pushSubscription.js";
 import { initReminderScheduler } from "../state/reminderScheduler.js";
+import { initRouter } from "../state/router.js";
 import { loadInvitations, shareDialog } from "../state/sharing.js";
-import { restoreVersions } from "../state/versions.js";
+import {
+  activeView,
+  editingNoteId,
+  selectMode,
+  showError,
+  showSettings,
+  showShortcuts,
+  showWelcome,
+} from "../state/ui.js";
 import { welcomeIfNew } from "../state/welcome.js";
-import { importFiles, isImportableFile } from "../utils/importExport.js";
 import {
   decodeShareFromHash,
   type SharedNotePayload,
@@ -66,18 +61,18 @@ import {
 import { AutoNotesView } from "./AutoNotesView.js";
 import { ConfirmDialogHost } from "./ConfirmDialog.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
+import { loadEditor } from "./editor/lazyEditor.js";
 import { Header } from "./Header.js";
-import { InvitationList } from "./InvitationList.js";
-import { loadEditor } from "./lazyEditor.js";
 import { KeyScreen } from "./login/KeyScreen.js";
 import { LoginScreen } from "./login/LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
 import { ReminderBanner } from "./ReminderBanner.js";
 import { SearchView } from "./SearchView.js";
-import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { ShortcutsDialog } from "./ShortcutsDialog.js";
 import { MobileNav, Sidebar } from "./Sidebar.js";
+import { InvitationList } from "./sharing/InvitationList.js";
+import { SharedNoteDialog } from "./sharing/SharedNoteDialog.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 import { UnopenedNotes } from "./UnopenedNotes.js";
@@ -90,9 +85,9 @@ const loadSettingsDialog = () =>
 const loadAdminView = () =>
   import("./admin/AdminView.js").then((m) => m.AdminView);
 const loadShareDialog = () =>
-  import("./ShareDialog.js").then((m) => m.ShareDialogHost);
+  import("./sharing/ShareDialog.js").then((m) => m.ShareDialogHost);
 const loadPublicLinksDialog = () =>
-  import("./PublicLinksDialog.js").then((m) => m.PublicLinksDialogHost);
+  import("./sharing/PublicLinksDialog.js").then((m) => m.PublicLinksDialogHost);
 const loadDrawingPad = () =>
   import("./DrawingPad.js").then((m) => m.DrawingPad);
 
@@ -154,7 +149,7 @@ function useOidcRedirectOnce(blockUntilDone: boolean): boolean {
 
 function MainApp() {
   const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
-  const [dragActive, setDragActive] = useState(false);
+  const dragActive = useFileDropImport();
   const mainRef = useRef<HTMLElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<HTMLElement>(null);
@@ -230,70 +225,6 @@ function MainApp() {
       window.removeEventListener("reminder:open-note", openHandler);
       stopAutoNotes();
       stopBoardBackground();
-    };
-  }, []);
-
-  useEffect(() => {
-    let dragDepth = 0;
-    const hasFiles = (e: DragEvent) =>
-      Array.from(e.dataTransfer?.types ?? []).includes("Files");
-
-    const onDragEnter = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      dragDepth++;
-      setDragActive(true);
-    };
-    const onDragOver = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
-    };
-    const onDragLeave = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      dragDepth = Math.max(0, dragDepth - 1);
-      if (dragDepth === 0) setDragActive(false);
-    };
-    const onDrop = async (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      dragDepth = 0;
-      setDragActive(false);
-      const files = [...(e.dataTransfer?.files ?? [])].filter(isImportableFile);
-      if (files.length === 0) {
-        showError(t("settings.data.importFailed"));
-        return;
-      }
-      const summary = await importFiles(files, {
-        createNote: (input) => createNote(input),
-        importBulk: (n) => importNotes(n),
-        importVersions: (versions) => restoreVersions(versions),
-      });
-      if (summary.bulkCount > 0) {
-        showSuccess(plural("settings.data.importedCount", summary.bulkCount));
-      } else if (summary.singleCount === 1) {
-        showSuccess(t("settings.data.importedSingle"));
-      } else if (summary.singleCount > 1) {
-        showSuccess(plural("settings.data.importedCount", summary.singleCount));
-      }
-      if (
-        summary.failedCount > 0 &&
-        summary.bulkCount + summary.singleCount === 0
-      ) {
-        showError(t("settings.data.importFailed"));
-      }
-    };
-
-    window.addEventListener("dragenter", onDragEnter);
-    window.addEventListener("dragover", onDragOver);
-    window.addEventListener("dragleave", onDragLeave);
-    window.addEventListener("drop", onDrop);
-    return () => {
-      window.removeEventListener("dragenter", onDragEnter);
-      window.removeEventListener("dragover", onDragOver);
-      window.removeEventListener("dragleave", onDragLeave);
-      window.removeEventListener("drop", onDrop);
     };
   }, []);
 

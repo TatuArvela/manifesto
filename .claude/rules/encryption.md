@@ -3,7 +3,6 @@ paths:
   - "packages/shared/src/api/keys.ts"
   - "packages/shared/src/api/sealed.ts"
   - "packages/shared/src/crypto/**"
-  - "packages/client/src/utils/seal.ts"
   - "packages/client/src/utils/userKey.ts"
   - "packages/client/src/utils/keyMaterial.ts"
   - "packages/client/src/storage/deviceKeys.ts"
@@ -15,7 +14,7 @@ paths:
   - "packages/client/src/state/sharing.ts"
   - "packages/client/src/state/comments.ts"
   - "packages/client/src/state/publicLinks.ts"
-  - "packages/client/src/components/ShareDialog.tsx"
+  - "packages/client/src/components/sharing/ShareDialog.tsx"
   - "packages/server/src/routes/publicLinks.ts"
   - "packages/client/src/realtime/sealedDocument.ts"
   - "packages/client/src/realtime/yjsSession.ts"
@@ -23,10 +22,10 @@ paths:
   - "packages/server/src/routes/noteCodec.ts"
   - "packages/server/src/routes/tokens.ts"
   - "packages/server/src/test/keyedTokens.ts"
-  - "packages/client/src/state/apiTokens.ts"
+  - "packages/client/src/state/account/apiTokens.ts"
   - "packages/server/src/calendar/routes.ts"
   - "packages/server/src/oauth/tokenEndpoint.ts"
-  - "packages/client/src/state/oauth.ts"
+  - "packages/client/src/state/account/oauth.ts"
   - "packages/client/src/swPush.ts"
   - "packages/server/src/jobs/pushReminders.ts"
   - "packages/server/src/storage/atRest.ts"
@@ -35,7 +34,7 @@ paths:
   - "packages/client/src/storage/RestApiAdapter.ts"
   - "packages/server/src/attachments/store.ts"
   - "packages/server/src/routes/attachments.ts"
-  - "packages/client/src/state/accountKeys.ts"
+  - "packages/client/src/state/account/accountKeys.ts"
   - "packages/client/src/test/plainSealing.ts"
   - "packages/client/src/test/sealedServer.ts"
   - "packages/client/src/components/UnopenedNotes.tsx"
@@ -64,7 +63,7 @@ lands. Until they all have, nothing here is released.
 
 ## Unlocking
 
-Signing in opens nothing. `keyState` (`state/accountKeys.ts`) is what `App` shows the board on:
+Signing in opens nothing. `keyState` (`state/account/accountKeys.ts`) is what `App` shows the board on:
 `setup` for an account with no keys (the browser makes them and shows the sheet once), `locked` until
 the secret key is entered, `unlocked` after. It follows the session through one effect, so a
 sign-out and a session the server ended both remove the keys with no caller having to remember; a
@@ -303,7 +302,7 @@ project hands sealing through.
 A script cannot seal or open a note, so a token that reaches notes carries the notes key and the
 personal key (never the account key), wrapped under a key derived from its secret
 (`shared/src/crypto/tokenSeal.ts`). The app makes the secret (`Sealer.newToken`,
-`state/apiTokens.ts`) and sends its hash, so the server first sees it when it is used; a calendar
+`state/account/apiTokens.ts`) and sends its hash, so the server first sees it when it is used; a calendar
 token and one for the account alone are still made by the server. `createAuthMiddleware` opens the
 keys for the request (`auth.keys`) and nothing keeps them. `routes/noteCodec.ts` is the whole
 translation: `tokenKeys(c)` is null for a session, which is answered sealed, and for a token every

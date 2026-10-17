@@ -11,7 +11,7 @@ import {
   clearAuthLocal,
   isServerMode,
   WS_ORIGIN,
-} from "../state/auth.js";
+} from "../state/account/auth.js";
 import {
   forgetComment,
   receiveComment,

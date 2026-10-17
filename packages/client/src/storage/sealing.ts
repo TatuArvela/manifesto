@@ -89,9 +89,9 @@ export interface StorageKeys {
 }
 
 /**
- * Set by `state/accountKeys.ts` while the account is unlocked, and null
- * otherwise. Pushed in for the same reason as `storageConnection`: storage
- * never imports the state that knows about unlocking.
+ * Set by `state/account/accountKeys.ts` while the account is unlocked, and
+ * null otherwise. Pushed in for the same reason as `storageConnection`:
+ * storage never imports the state that knows about unlocking.
  */
 export const storageKeys = signal<StorageKeys | null>(null);
 

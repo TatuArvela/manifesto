@@ -148,8 +148,9 @@ code is enough. Read one by hand when planning a change before touching its file
 - Tests use real `localStorage`; clear in `beforeEach`/`afterEach`
 - Signal state is set directly in tests (e.g., `notes.value = []`)
 - A module that a test mocks with a factory calling `importOriginal` must not sit in an import cycle
-  (`state/auth.ts` is mocked so). The original then imports the mocked module back while its factory
-  is still running, and the browser project hangs with no error at all, only files that never report.
+  (`state/account/auth.ts` is mocked so). The original then imports the mocked module back while its
+  factory is still running, and the browser project hangs with no error at all, only files that never
+  report.
 
 ## Code Style
 
@@ -171,11 +172,11 @@ code is enough. Read one by hand when planning a change before touching its file
 - A source file stops at 1000 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
   exempt). Split along a seam rather than raising the limit.
 - Several rules in this file are lint errors rather than prose, with their exceptions listed as
-  overrides in `biome.json`: `fetch` in the client only in `storage/`,
-  `state/auth.ts`, `state/publicLinks.ts` and `autoNotes/registry.ts`; `process.env` only in
-  `config.ts` and `lib/logger.ts` (so `configDocs.test.ts` can hold `deployment.md` to every variable
-  read); `console` only `error` and `warn`; no default exports outside `*.config.ts`; nothing but
-  tests imports `src/test/`. `biome-plugins/` holds the two rules Biome has no built-in for:
+  overrides in `biome.json`: `fetch` in the client only in `storage/`, `state/account/auth.ts`,
+  `state/publicLinks.ts` and `autoNotes/registry.ts`; `process.env` only in `config.ts` and
+  `lib/logger.ts` (so `configDocs.test.ts` can hold `deployment.md` to every variable read);
+  `console` only `error` and `warn`; no default exports outside `*.config.ts`; nothing but tests
+  imports `src/test/`. `biome-plugins/` holds the two rules Biome has no built-in for:
   `endUserSessions.grit` and `noteEvents.grit`.
 - `tsconfig.base.json` adds `verbatimModuleSyntax`, `noImplicitOverride`, `noImplicitReturns`,
   `noFallthroughCasesInSwitch`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess` and

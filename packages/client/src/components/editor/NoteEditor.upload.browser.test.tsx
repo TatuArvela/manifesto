@@ -1,0 +1,246 @@
+import { render } from "preact";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { t } from "../../i18n/index.js";
+import { forgetAttachmentUrls } from "../../state/attachments.js";
+import { clearDraft } from "../../state/composerDraft.js";
+import { drawingRequest } from "../../state/drawing.js";
+import { notes } from "../../state/notesStore.js";
+import { activeView } from "../../state/ui.js";
+import { currentStorage } from "../../storage/index.js";
+import { NoteInput } from "../NoteInput.js";
+import { loadEditor } from "./lazyEditor.js";
+
+// The composer keeps its draft on the device, which outlives a test: one
+// left behind would open in the next.
+// The app fetches the editor as soon as the board is up (`MainApp`), well
+// before a note is usually opened. Fetched here the same way, or the first
+// test to open one also waits out the whole chunk loading.
+beforeAll(() => loadEditor());
+
+beforeEach(() => clearDraft());
+afterEach(() => clearDraft());
+
+const REF = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV";
+const PNG = Uint8Array.from(
+  atob(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  ),
+  (c) => c.charCodeAt(0),
+);
+
+let host: HTMLDivElement;
+let putImage: ReturnType<typeof vi.fn>;
+
+async function openDraft(): Promise<HTMLElement> {
+  (host.querySelector(".note-stack") as HTMLElement).click();
+  return await vi.waitFor(() => {
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog?.querySelector(".ProseMirror")).toBeTruthy();
+    return dialog as HTMLElement;
+  });
+}
+
+function attach(dialog: HTMLElement) {
+  const input = dialog.querySelector<HTMLInputElement>(
+    'input[type="file"]',
+  ) as HTMLInputElement;
+  const files = new DataTransfer();
+  files.items.add(new File([PNG], "dot.png", { type: "image/png" }));
+  input.files = files.files;
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+describe("attaching an image", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    notes.value = [];
+    forgetAttachmentUrls();
+    activeView.value = "active";
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    render(<NoteInput />, host);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    render(null, host);
+    host.remove();
+    localStorage.clear();
+  });
+
+  function storeWith(impl: typeof putImage) {
+    putImage = impl;
+    const real = currentStorage.value;
+    vi.spyOn(currentStorage, "value", "get").mockReturnValue(
+      Object.assign(Object.create(Object.getPrototypeOf(real)), real, {
+        putImage,
+      }) as never,
+    );
+  }
+
+  it("shows progress while it uploads and keeps the reference", async () => {
+    let finish: (ref: string) => void = () => {};
+    storeWith(
+      vi.fn(
+        (_blob: Blob, options?: { onProgress?: (p: number) => void }) =>
+          new Promise<string>((resolve) => {
+            options?.onProgress?.(0.4);
+            finish = resolve;
+          }),
+      ),
+    );
+    const dialog = await openDraft();
+    attach(dialog);
+    const bar = await vi.waitFor(() => {
+      const found = dialog.querySelector('[role="progressbar"]');
+      expect(found?.getAttribute("aria-valuenow")).toBe("40");
+      return found;
+    });
+    expect(bar).toBeTruthy();
+    finish(REF);
+    await vi.waitFor(() =>
+      expect(dialog.querySelector('[role="progressbar"]')).toBeNull(),
+    );
+    await vi.waitFor(() =>
+      expect(dialog.querySelector("img")?.src).toMatch(/^blob:/),
+    );
+    (
+      dialog.querySelector(
+        `button[aria-label="${t("editor.done")}"]`,
+      ) as HTMLElement
+    ).click();
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0]?.images).toEqual([REF]);
+  });
+
+  it("keeps a failed upload marked, and tries again on request", async () => {
+    let attempt = 0;
+    storeWith(
+      vi.fn(async () => {
+        attempt++;
+        if (attempt === 1) throw new Error("offline");
+        return REF;
+      }),
+    );
+    const dialog = await openDraft();
+    attach(dialog);
+    const retry = await vi.waitFor(() => {
+      const button = [...dialog.querySelectorAll("button")].find(
+        (b) => b.textContent === t("editor.retryUpload"),
+      );
+      expect(button).toBeTruthy();
+      return button as HTMLButtonElement;
+    });
+    retry.click();
+    await vi.waitFor(() => expect(attempt).toBe(2));
+    await vi.waitFor(() =>
+      expect(
+        [...dialog.querySelectorAll("button")].some(
+          (b) => b.textContent === t("editor.retryUpload"),
+        ),
+      ).toBe(false),
+    );
+  });
+
+  it("drops an upload that finishes after the composer closed", async () => {
+    let finish: (ref: string) => void = () => {};
+    storeWith(
+      vi.fn(
+        () =>
+          new Promise<string>((resolve) => {
+            finish = resolve;
+          }),
+      ),
+    );
+    const first = await openDraft();
+    attach(first);
+    await vi.waitFor(() => expect(putImage).toHaveBeenCalled());
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="dialog"]')).toBeNull(),
+    );
+    finish(REF);
+    await new Promise((r) => setTimeout(r, 50));
+    const second = await openDraft();
+    expect(second.querySelector("img")).toBeNull();
+    expect(notes.value).toHaveLength(0);
+  });
+
+  it("offers Draw beside Add image, and attaches the drawing like any image", async () => {
+    storeWith(vi.fn(async () => REF));
+    const dialog = await openDraft();
+    const draw = dialog.querySelector<HTMLElement>(
+      `button[aria-label="${t("editor.draw")}"]`,
+    );
+    expect(draw).not.toBeNull();
+    draw?.click();
+    await vi.waitFor(() => expect(drawingRequest.value).not.toBeNull());
+
+    // The pad's part is tested with the pad; here it hands over its picture.
+    drawingRequest.value?.onDone(
+      new File([PNG], "drawing.png", { type: "image/png" }),
+    );
+    await vi.waitFor(() => expect(putImage).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(dialog.querySelector("img")?.src).toMatch(/^blob:/),
+    );
+  });
+
+  it("puts a drawing made over an image in that image's place", async () => {
+    const OTHER = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAW";
+    const REDRAWN = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAX";
+    storeWith(
+      vi
+        .fn()
+        .mockResolvedValueOnce(REF)
+        .mockResolvedValueOnce(OTHER)
+        .mockResolvedValueOnce(REDRAWN),
+    );
+    const dialog = await openDraft();
+    const editButtons = () =>
+      dialog.querySelectorAll<HTMLElement>(
+        `button[aria-label="${t("editor.drawOnImage")}"]`,
+      );
+    attach(dialog);
+    await vi.waitFor(() => expect(editButtons()).toHaveLength(1));
+    attach(dialog);
+    await vi.waitFor(() => expect(editButtons()).toHaveLength(2));
+    editButtons()[0]?.click();
+    await vi.waitFor(() => expect(drawingRequest.value?.base).toBe(REF));
+    drawingRequest.value?.onDone(
+      new File([PNG], "drawing.png", { type: "image/png" }),
+    );
+    drawingRequest.value = null;
+    await vi.waitFor(() => expect(putImage).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() =>
+      expect(dialog.querySelector('[role="progressbar"]')).toBeNull(),
+    );
+
+    (
+      dialog.querySelector(
+        `button[aria-label="${t("editor.done")}"]`,
+      ) as HTMLElement
+    ).click();
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0]?.images).toEqual([REDRAWN, OTHER]);
+  });
+
+  it("takes the pad down with the editor it was opened from", async () => {
+    storeWith(vi.fn(async () => REF));
+    await openDraft();
+    drawingRequest.value = { onDone: () => {} };
+    render(null, host);
+    expect(drawingRequest.value).toBeNull();
+    render(<NoteInput />, host);
+  });
+});

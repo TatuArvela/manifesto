@@ -15,7 +15,7 @@ import {
   type SortMode,
   sortMode,
   viewMode,
-} from "../state/index.js";
+} from "../state/prefs.js";
 import { Dropdown } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
 

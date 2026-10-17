@@ -18,7 +18,7 @@ import {
   stickyTopBar,
   type ThemeMode,
   theme,
-} from "../../state/index.js";
+} from "../../state/prefs.js";
 import { Switch, ThreeWayToggle } from "../ToggleSwitch.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
 import {

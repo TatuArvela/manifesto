@@ -14,7 +14,7 @@ import {
 } from "@manifesto/shared";
 import { newId } from "../lib/ulid.js";
 import {
-  ct,
+  ciphertext,
   opened,
   plain,
   sealedCreate,
@@ -27,7 +27,7 @@ import { keyedToken } from "./keyedTokens.js";
  * before it leaves the browser and opens what comes back, so a test that
  * speaks of a note's title in plain words is speaking as the app's user does:
  * this stands where the app's own sealing would, with values that are only
- * shaped as ciphertext (`ct`), since the server never opens one.
+ * shaped as ciphertext (`ciphertext`), since the server never opens one.
  *
  * An image is uploaded sealed, under an address made from its bytes, and
  * made the owner's of the note about to name it, as the app does both.
@@ -81,8 +81,8 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
       id: newId(),
       keyVersion: 1,
       ...rest,
-      title: typeof title === "string" ? ct(title) : title,
-      content: typeof content === "string" ? ct(content) : content,
+      title: typeof title === "string" ? ciphertext(title) : title,
+      content: typeof content === "string" ? ciphertext(content) : content,
     };
   }
   const comment = /^\/api\/notes\/[^/]+\/comments(\/[^/]+)?$/.exec(path);
@@ -97,7 +97,7 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
     return {
       ...(method === "POST" && { id: newId() }),
       keyVersion: 1,
-      body: ct(text),
+      body: ciphertext(text),
     };
   }
   if (method === "PATCH" && path === "/api/auth/me/prefs") {
@@ -106,7 +106,7 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
       prefs: Object.fromEntries(
         Object.entries(body.prefs).map(([key, value]) => [
           key,
-          value === null ? null : ct(JSON.stringify(value)),
+          value === null ? null : ciphertext(JSON.stringify(value)),
         ]),
       ),
     };
@@ -342,7 +342,7 @@ export function sealingClient(send: Fetch): Fetch {
         const body = JSON.parse(init.body) as Record<string, unknown>;
         if (!("sealedLinkKey" in body)) {
           const extra: Record<string, unknown> = {
-            sealedLinkKey: ct("link key"),
+            sealedLinkKey: ciphertext("link key"),
           };
           if (body.mode === "snapshot") {
             const got = await send(`/api/notes/${published[1]}`, {
@@ -364,7 +364,7 @@ export function sealingClient(send: Fetch): Fetch {
               };
             }
           } else if (body.mode === "live") {
-            extra.wrappedKey = ct("note key for the link");
+            extra.wrappedKey = ciphertext("note key for the link");
           }
           next = { ...init, body: JSON.stringify({ ...body, ...extra }) };
           madeLink = true;
@@ -395,7 +395,7 @@ export function sealingClient(send: Fetch): Fetch {
       next = {
         ...init,
         headers: withJson,
-        body: JSON.stringify({ key: ct("held key"), keyVersion }),
+        body: JSON.stringify({ key: ciphertext("held key"), keyVersion }),
       };
     }
     if (typeof init?.body === "string" && madeSecret === null && !madeLink) {

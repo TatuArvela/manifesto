@@ -19,7 +19,7 @@ in the page; `sw.ts` holds its own copy of the reminder list in IndexedDB and fi
 `periodicSync` (falling back to a poll) so a reminder still arrives with the tab closed. The page
 pushes the list down with `sync-reminders` and the worker reports back with `reminder-fired`, which
 `serviceWorker.ts` turns into the `lastFiredAt` / next-occurrence write. Dedupe is a 60s window;
-catch-up for a missed fire is one hour. `reminderTime.ts` in `@manifesto/shared` (re-exported by `state/reminderTime.ts`) owns recurrence maths
+catch-up for a missed fire is one hour. `reminderTime.ts` in `@manifesto/shared` owns recurrence maths
 (`nextOccurrence`, `snapToFuture`) and is deliberately pure so it tests in the Node project. A reminder
 moves only through its `advanceReminder`, `snapReminderToFuture`, `reminderAt` or `pickedReminder`,
 never by setting `time` alone: those carry `NoteReminder.day`, without which a month clamped to the

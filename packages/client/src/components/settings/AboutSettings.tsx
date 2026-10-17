@@ -12,9 +12,9 @@ import {
 } from "../../config.js";
 import { t } from "../../i18n/index.js";
 import { forceUpdateApp } from "../../serviceWorker.js";
+import { currentUser } from "../../state/account/auth.js";
 import { availableUpdate } from "../../state/admin.js";
-import { currentUser } from "../../state/auth.js";
-import { showShortcuts, showWelcome } from "../../state/index.js";
+import { showShortcuts, showWelcome } from "../../state/ui.js";
 import { BrandLogo } from "../BrandLogo.js";
 import { OrgCredit } from "../OrgCredit.js";
 import { StorageMode } from "../WelcomeDialog.js";

@@ -4,14 +4,10 @@ import { useEscapeStack } from "../../hooks/useEscapeStack.js";
 import { useFocusTrap } from "../../hooks/useFocusTrap.js";
 import { usePresence } from "../../hooks/usePresence.js";
 import { t } from "../../i18n/index.js";
+import { currentUser, isServerMode } from "../../state/account/auth.js";
+import { twoFactorStatus } from "../../state/account/twoFactor.js";
 import { availableUpdate } from "../../state/admin.js";
-import { currentUser, isServerMode } from "../../state/auth.js";
-import {
-  type SettingsTab,
-  settingsTab,
-  showSettings,
-} from "../../state/index.js";
-import { twoFactorStatus } from "../../state/twoFactor.js";
+import { type SettingsTab, settingsTab, showSettings } from "../../state/ui.js";
 import { Backdrop } from "../Backdrop.js";
 import { AboutSettings } from "./AboutSettings.js";
 import { AccountSettings, hasOwnPassword } from "./AccountSettings.js";

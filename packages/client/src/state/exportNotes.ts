@@ -5,7 +5,7 @@ import { t } from "../i18n/index.js";
 import { storage } from "../storage/index.js";
 import { sealer } from "../storage/sealing.js";
 import { writeZip } from "../utils/zip.js";
-import { saveFile } from "./accountExport.js";
+import { saveFile } from "./account/accountExport.js";
 import { inlineImages, inlinePreviewImages } from "./attachments.js";
 import { ensureImages, notes } from "./notesStore.js";
 import { prefsSnapshot } from "./prefs.js";

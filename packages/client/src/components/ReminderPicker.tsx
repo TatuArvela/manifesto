@@ -9,7 +9,7 @@ import {
 } from "lucide-preact";
 import { useMemo, useState } from "preact/hooks";
 import { t } from "../i18n/index.js";
-import { isServerMode } from "../state/auth.js";
+import { isServerMode } from "../state/account/auth.js";
 import { ensurePushSubscription } from "../state/pushSubscription.js";
 import {
   currentTimezone,

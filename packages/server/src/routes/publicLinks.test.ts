@@ -7,7 +7,7 @@ import type {
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nowIso } from "../lib/time.js";
-import { ct } from "../storage/contracts/claimed.js";
+import { ciphertext } from "../storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
@@ -119,28 +119,28 @@ describe("public links", () => {
       ).json()) as PublicNoteResponse;
 
     const live = await raw((await publish(note.id)).token);
-    expect(live.wrappedKey).toBe(ct("note key for the link"));
+    expect(live.wrappedKey).toBe(ciphertext("note key for the link"));
     expect(live.note).toMatchObject({ id: note.id, keyVersion: 1 });
     expect(JSON.stringify(live)).not.toContain("Recipe");
-    expect(live.note.title).toBe(ct("Recipe"));
+    expect(live.note.title).toBe(ciphertext("Recipe"));
 
     const copy = await raw(
       (await publish(note.id, { mode: "snapshot" })).token,
     );
     expect(copy.wrappedKey).toBeNull();
-    expect(copy.note.title).toBe(ct("Recipe"));
+    expect(copy.note.title).toBe(ciphertext("Recipe"));
   });
 
   it("wants the key a link's kind carries, and a snapshot's pictures to be the note's", async () => {
     const note = await createNote({ images: [await upload(PNG)] });
     const stray = await upload(GIF);
-    const sealedLinkKey = ct("link key");
+    const sealedLinkKey = ciphertext("link key");
     const snapshot = {
-      title: ct("t"),
-      content: ct("c"),
-      font: ct("default"),
-      images: ct("[]"),
-      linkPreviews: ct("[]"),
+      title: ciphertext("t"),
+      content: ciphertext("c"),
+      font: ciphertext("default"),
+      images: ciphertext("[]"),
+      linkPreviews: ciphertext("[]"),
       refs: [] as string[],
     };
     const post = (body: object) =>

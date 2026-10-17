@@ -6,7 +6,7 @@ import {
   boardInkColor,
   rerollBoardInk,
   resolvedBoardInk,
-} from "../../state/index.js";
+} from "../../state/prefs.js";
 import { INK_COLORS, type InkColor } from "../../utils/boardTextures.js";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";

@@ -18,8 +18,8 @@ const LOCAL: CapabilitiesResponse["auth"] = {
 };
 let auth = LOCAL;
 
-vi.mock("../../state/auth.js", async (original) => {
-  const actual = await original<typeof import("../../state/auth.js")>();
+vi.mock("../../state/account/auth.js", async (original) => {
+  const actual = await original<typeof import("../../state/account/auth.js")>();
   return {
     ...actual,
     fetchCapabilities: async () => ({ auth }),

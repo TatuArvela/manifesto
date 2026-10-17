@@ -4,12 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n/index.js";
 import { clearDraft, flushDraft, loadDraft } from "../state/composerDraft.js";
 import { incomingShare } from "../state/incomingShare.js";
-import {
-  activeView,
-  newNoteRequested,
-  noteQuips,
-  notes,
-} from "../state/index.js";
+import { notes } from "../state/notesStore.js";
+import { noteQuips } from "../state/prefs.js";
+import { activeView, newNoteRequested } from "../state/ui.js";
 import { LocalStorageAdapter } from "../storage/index.js";
 import { NoteInput } from "./NoteInput.js";
 

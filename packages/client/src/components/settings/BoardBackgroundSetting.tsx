@@ -21,7 +21,7 @@ import {
   rerollBoardTexture,
   resolvedBoardColor,
   resolvedBoardTexture,
-} from "../../state/index.js";
+} from "../../state/prefs.js";
 import { BoardGradientPicker } from "./BoardGradientPicker.js";
 import { BoardInkPicker } from "./BoardInkPicker.js";
 import { BoardOpacitySlider } from "./BoardOpacitySlider.js";

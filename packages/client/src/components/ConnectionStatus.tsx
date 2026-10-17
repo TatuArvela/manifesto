@@ -2,7 +2,7 @@ import { CloudOff } from "lucide-preact";
 import { t } from "../i18n/index.js";
 import { connectionStatus } from "../realtime/appSocket.js";
 import { connectionOutage } from "../realtime/connectionOutage.js";
-import { isServerMode } from "../state/auth.js";
+import { isServerMode } from "../state/account/auth.js";
 
 /**
  * Tiny banner shown at the bottom of the viewport once the realtime

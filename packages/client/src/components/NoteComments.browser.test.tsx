@@ -8,7 +8,7 @@ import {
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { plural, t } from "../i18n/index.js";
-import { currentUser } from "../state/auth.js";
+import { currentUser } from "../state/account/auth.js";
 import {
   commentLoadsFailed,
   forgetComment,

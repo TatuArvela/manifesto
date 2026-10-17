@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver, StoredPublicLink } from "../types.js";
-import { claimed, ct } from "./claimed.js";
+import { ciphertext, claimed } from "./claimed.js";
 
 /**
  * Public links, the same in both drivers: a view is counted only while the
@@ -28,8 +28,8 @@ function link(overrides: Partial<StoredPublicLink> = {}): StoredPublicLink {
     viewCount: 0,
     lastViewedAt: null,
     createdAt: T0,
-    wrappedKey: ct("the note key, for the link"),
-    sealedLinkKey: ct("the link key, for its owner"),
+    wrappedKey: ciphertext("the note key, for the link"),
+    sealedLinkKey: ciphertext("the link key, for its owner"),
     ...overrides,
   };
 }
@@ -85,11 +85,11 @@ export function describePublicLinksContract(
         mode: "snapshot",
         wrappedKey: null,
         snapshot: {
-          title: ct("t"),
-          content: ct("c"),
-          font: ct("default"),
-          images: ct("[]"),
-          linkPreviews: ct("[]"),
+          title: ciphertext("t"),
+          content: ciphertext("c"),
+          font: ciphertext("default"),
+          images: ciphertext("[]"),
+          linkPreviews: ciphertext("[]"),
           refs: [],
           updatedAt: T0,
         },
@@ -131,14 +131,14 @@ export function describePublicLinksContract(
         (await storage.notes.getById("n1", "owner"))?.rekeyDue === true;
       const rekeyed = (keyVersion: number) => ({
         keyVersion,
-        key: ct(`key ${keyVersion}`),
-        previousKeys: ct("before"),
-        title: ct("t"),
-        content: ct("c"),
-        excerpt: ct("c"),
-        font: ct("default"),
-        images: ct("[]"),
-        linkPreviews: ct("[]"),
+        key: ciphertext(`key ${keyVersion}`),
+        previousKeys: ciphertext("before"),
+        title: ciphertext("t"),
+        content: ciphertext("c"),
+        excerpt: ciphertext("c"),
+        font: ciphertext("default"),
+        images: ciphertext("[]"),
+        linkPreviews: ciphertext("[]"),
       });
 
       // A snapshot holds no key of the note's.
@@ -158,8 +158,8 @@ export function describePublicLinksContract(
       const read =
         (await storage.notes.getById("n1", "owner"))?.updatedAt ?? "";
       const rewrapped = [
-        { token: "stays", wrappedKey: ct("again") },
-        { token: "nope", wrappedKey: ct("x") },
+        { token: "stays", wrappedKey: ciphertext("again") },
+        { token: "nope", wrappedKey: ciphertext("x") },
       ];
       const rekey = (owner: string, to: number, from: number, at = read) =>
         storage.notes.rekey("n1", owner, rekeyed(to), from, T1, at, rewrapped);
@@ -171,21 +171,21 @@ export function describePublicLinksContract(
       expect((await storage.notes.getById("n1", "owner"))?.keyVersion).toBe(1);
       // A refused move leaves the links on the key they had.
       expect((await storage.publicLinks.get("stays"))?.wrappedKey).not.toBe(
-        ct("again"),
+        ciphertext("again"),
       );
       expect(await rekey("owner", 2, 1)).toBe(true);
       expect(await storage.notes.getById("n1", "owner")).toMatchObject({
         keyVersion: 2,
-        key: ct("key 2"),
-        previousKeys: ct("before"),
-        title: ct("t"),
+        key: ciphertext("key 2"),
+        previousKeys: ciphertext("before"),
+        title: ciphertext("t"),
         updatedAt: T1,
       });
       expect(await due()).toBe(false);
       // The live link moved with the note; the one named that is not there
       // was passed over.
       expect((await storage.publicLinks.get("stays"))?.wrappedKey).toBe(
-        ct("again"),
+        ciphertext("again"),
       );
       expect(await storage.publicLinks.get("nope")).toBeNull();
 
@@ -212,7 +212,7 @@ export function describePublicLinksContract(
       await storage.shares.delete("n1", "bob");
       expect(await due()).toBe(false);
       await storage.shares.accept("n1", "alice", T0, {
-        key: ct("held"),
+        key: ciphertext("held"),
         keyVersion: 2,
       });
       // Not the recipient's to be told.
@@ -237,11 +237,11 @@ export function describePublicLinksContract(
           // What the copy shows is sealed; the references are what the
           // sweep reads.
           snapshot: {
-            title: ct(""),
-            content: ct(""),
-            font: ct("default"),
-            images: ct("sealed list"),
-            linkPreviews: ct("[]"),
+            title: ciphertext(""),
+            content: ciphertext(""),
+            font: ciphertext("default"),
+            images: ciphertext("sealed list"),
+            linkPreviews: ciphertext("[]"),
             refs: [`attachment:${IMAGE_ID}`],
             updatedAt: T0,
           },

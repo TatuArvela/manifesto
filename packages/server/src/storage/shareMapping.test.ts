@@ -4,7 +4,7 @@ import {
   type SealedNoteUpdate,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { ct } from "./contracts/claimed.js";
+import { ciphertext } from "./contracts/claimed.js";
 import {
   attachSharing,
   forbiddenFields,
@@ -53,23 +53,23 @@ const WHERE: Record<
 };
 
 const sample: Required<SealedNoteUpdate> = {
-  key: ct("key"),
+  key: ciphertext("key"),
   keyVersion: 2,
-  title: ct("t"),
-  content: ct("c"),
-  excerpt: ct("c"),
-  font: ct("default"),
-  images: ct("[]"),
+  title: ciphertext("t"),
+  content: ciphertext("c"),
+  excerpt: ciphertext("c"),
+  font: ciphertext("default"),
+  images: ciphertext("[]"),
   imageRefs: [],
-  linkPreviews: ct("[]"),
+  linkPreviews: ciphertext("[]"),
   previewRefs: [],
-  color: ct("blue"),
+  color: ciphertext("blue"),
   pinned: true,
   archived: false,
   trashed: false,
   trashedAt: null,
   position: 5,
-  tags: ct('["x"]'),
+  tags: ciphertext('["x"]'),
   reminder: null,
   reminderKey: "",
   readonly: true,
@@ -127,7 +127,10 @@ describe("splitChanges", () => {
 describe("forbiddenFields", () => {
   it("lets an editor write shared and personal fields", () => {
     expect(
-      forbiddenFields("edit", splitChanges({ title: ct("a"), pinned: true })),
+      forbiddenFields(
+        "edit",
+        splitChanges({ title: ciphertext("a"), pinned: true }),
+      ),
     ).toEqual([]);
   });
 
@@ -135,20 +138,23 @@ describe("forbiddenFields", () => {
     expect(
       forbiddenFields(
         "view",
-        splitChanges({ pinned: true, tags: ct('["a"]') }),
+        splitChanges({ pinned: true, tags: ciphertext('["a"]') }),
       ),
     ).toEqual([]);
     expect(
       forbiddenFields(
         "view",
-        splitChanges({ pinned: true, content: ct("x"), imageRefs: [] }),
+        splitChanges({ pinned: true, content: ciphertext("x"), imageRefs: [] }),
       ).sort(),
     ).toEqual(["content", "imageRefs"]);
   });
 
   it("keeps the note key to its owner", () => {
     expect(
-      forbiddenFields("edit", splitChanges({ key: ct("k"), keyVersion: 2 })),
+      forbiddenFields(
+        "edit",
+        splitChanges({ key: ciphertext("k"), keyVersion: 2 }),
+      ),
     ).toEqual(["key", "keyVersion"]);
   });
 
@@ -180,19 +186,19 @@ function row(overrides: Partial<ViewRow> = {}): ViewRow {
   return {
     id: "n1",
     user_id: "owner",
-    title: ct("Title"),
-    content: ct("Body"),
-    color: ct("blue"),
-    font: ct("default"),
-    wrapped_key: ct("owner's key"),
+    title: ciphertext("Title"),
+    content: ciphertext("Body"),
+    color: ciphertext("blue"),
+    font: ciphertext("default"),
+    wrapped_key: ciphertext("owner's key"),
     pinned: 1,
     archived: 0,
     trashed: 0,
     trashed_at: null,
     position: 10,
-    tags: ct('["owner-tag"]'),
+    tags: ciphertext('["owner-tag"]'),
     images: "[]",
-    link_previews: ct("[]"),
+    link_previews: ciphertext("[]"),
     reminder: null,
     readonly: 0,
     source: null,
@@ -206,10 +212,10 @@ describe("rowToViewNote", () => {
   it("shows the owner their own row", () => {
     const note = rowToViewNote(row());
     expect(note).toMatchObject({
-      key: ct("owner's key"),
-      color: ct("blue"),
+      key: ciphertext("owner's key"),
+      color: ciphertext("blue"),
       pinned: true,
-      tags: ct('["owner-tag"]'),
+      tags: ciphertext('["owner-tag"]'),
       position: 10,
     });
   });
@@ -226,15 +232,15 @@ describe("rowToViewNote", () => {
         s_color: "default",
         s_tags: "[]",
         s_reminder: null,
-        s_wrapped_key: ct("recipient's key"),
+        s_wrapped_key: ciphertext("recipient's key"),
         s_wrapped_key_version: 1,
       }),
     );
     expect(note).toMatchObject({
-      title: ct("Title"),
-      content: ct("Body"),
+      title: ciphertext("Title"),
+      content: ciphertext("Body"),
       // Their own copy of the key, and nothing of the owner's colour or tags.
-      key: ct("recipient's key"),
+      key: ciphertext("recipient's key"),
       color: "",
       pinned: false,
       archived: true,
@@ -250,7 +256,7 @@ describe("rowToViewNote", () => {
     const offered = {
       keyVersion: 2,
       ephemeral: "B".repeat(87),
-      wrapped: ct("the new key"),
+      wrapped: ciphertext("the new key"),
       signer: "owner",
       signature: "sig",
     };
@@ -258,7 +264,7 @@ describe("rowToViewNote", () => {
       row({
         key_version: 2,
         s_role: "edit",
-        s_wrapped_key: ct("the old key"),
+        s_wrapped_key: ciphertext("the old key"),
         s_wrapped_key_version: 1,
         s_offered_key: JSON.stringify(offered),
       }),

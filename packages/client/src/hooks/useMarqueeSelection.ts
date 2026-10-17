@@ -1,11 +1,8 @@
 import type { RefObject } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import {
-  exitSelectMode,
-  selectedNotes,
-  selectMode,
-  sortedNotes,
-} from "../state/index.js";
+import { exitSelectMode } from "../state/selection.js";
+import { selectedNotes, selectMode } from "../state/ui.js";
+import { sortedNotes } from "../state/views.js";
 import {
   type Box,
   boxesIntersect,

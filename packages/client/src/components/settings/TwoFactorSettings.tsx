@@ -1,8 +1,7 @@
 import type { TwoFactorStatusResponse } from "@manifesto/shared";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { type MessageKey, t } from "../../i18n/index.js";
-import { currentUser } from "../../state/auth.js";
-import { serverFeature } from "../../state/serverFeatures.js";
+import { currentUser } from "../../state/account/auth.js";
 import {
   beginTwoFactor,
   disableTwoFactor,
@@ -10,7 +9,8 @@ import {
   groupSecret,
   otpauthLink,
   twoFactorStatus,
-} from "../../state/twoFactor.js";
+} from "../../state/account/twoFactor.js";
+import { serverFeature } from "../../state/serverFeatures.js";
 import { showSuccess } from "../../state/ui.js";
 import { buttonClass } from "../buttonClasses.js";
 import { QrCode } from "../QrCode.js";

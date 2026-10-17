@@ -1,0 +1,335 @@
+import {
+  hasUnloadedImages,
+  type Note,
+  type NoteColor,
+} from "@manifesto/shared";
+import {
+  ArrowLeft,
+  EllipsisVertical,
+  Palette,
+  Pin,
+  PinOff,
+  RefreshCw,
+  Sparkles,
+  X,
+} from "lucide-preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { plugins } from "../../autoNotes/registry.js";
+import { noteColorMap, noteFontFamilies } from "../../colors.js";
+import { useEscapeStack } from "../../hooks/useEscapeStack.js";
+import { usePresence } from "../../hooks/usePresence.js";
+import { getColorPickerColors, t } from "../../i18n/index.js";
+import { addTag, togglePin } from "../../state/actions.js";
+import { drawnWithoutImages, refreshAutoNotes } from "../../state/autoNotes.js";
+import { ensureImages, updateNote } from "../../state/notesStore.js";
+import { renderMarkdown } from "../../utils/remarkRenderer.js";
+import { withoutImages } from "../../utils/stripImages.js";
+import { Dropdown } from "../Dropdown.js";
+import { editorButtonClass, editorIconClass } from "../editor/editorButtons.js";
+import { ImageGallery } from "../ImageGallery.js";
+import { LinkPreviewList } from "../LinkPreviewList.js";
+import { NoteComments } from "../NoteComments.js";
+import { CARD_POPOVER_EXIT_MS, CardPopover } from "../Popover.js";
+import { ReminderChip } from "../ReminderChip.js";
+import { ReminderPicker, ReminderPickerPanel } from "../ReminderPicker.js";
+import { SharedPeople } from "../sharing/SharedAvatars.js";
+import { TagChip } from "../TagChip.js";
+import { TagPickerButton } from "../TagPicker.js";
+import { Tooltip } from "../Tooltip.js";
+import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
+
+/**
+ * A note that can be looked at and organized but not written: an automatic
+ * note, which its plugin rewrites, or a note shared with this user to view.
+ * Pin, color, tags and the reminder are the reader's own either way.
+ */
+export function NoteReadonlyView({
+  note,
+  onClose,
+}: {
+  note: Note;
+  onClose: () => void;
+}) {
+  const colors = noteColorMap[note.color];
+  const pickerColors = getColorPickerColors();
+  const pluginLabel =
+    note.source?.kind === "auto-note"
+      ? (plugins.value.find((p) => p.id === note.source?.pluginId)?.name ??
+        note.source.pluginId)
+      : null;
+
+  const sharedBy =
+    note.sharing && note.sharing.role !== "owner" ? note.sharing.owner : null;
+
+  // A listing leaves the attachments behind; an automatic note has none.
+  const unloadedImages = hasUnloadedImages(note);
+  useEffect(() => {
+    if (unloadedImages) void ensureImages(note.id);
+  }, [note.id, unloadedImages]);
+
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showReminderChipPicker, setShowReminderChipPicker] = useState(false);
+  const reminderChipPicker = usePresence(
+    showReminderChipPicker || null,
+    CARD_POPOVER_EXIT_MS,
+  );
+  const reminderChipRef = useRef<HTMLButtonElement>(null);
+
+  useEscapeStack(true, onClose);
+
+  const rendered = renderMarkdown(note.content);
+  // A plugin that reads notes is drawn without images, here as on its card.
+  const html = drawnWithoutImages(note) ? withoutImages(rendered) : rendered;
+
+  return (
+    <article
+      class={`${colors.bg} ${colors.border} relative z-10 sm:border sm:shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col`}
+    >
+      {/* Top bar: back (mobile only) + pin. On desktop, pin floats absolute
+          top-right; on mobile, this is a flex row above the title. */}
+      <div class="note-sheet-top max-sm:flex max-sm:items-center max-sm:justify-between max-sm:px-2.5">
+        <div class="sm:hidden">
+          <button
+            type="button"
+            class={editorButtonClass}
+            onClick={onClose}
+            aria-label={t("editor.back")}
+          >
+            <ArrowLeft class="w-5 h-5 max-sm:w-6 max-sm:h-6" />
+          </button>
+        </div>
+        <div class="sm:absolute sm:top-2 sm:right-2 flex items-center gap-0.5">
+          <Tooltip
+            label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
+          >
+            <button
+              type="button"
+              class={editorButtonClass}
+              onClick={() => togglePin(note.id)}
+              aria-label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
+            >
+              {note.pinned ? (
+                <PinOff class={editorIconClass} />
+              ) : (
+                <Pin class={editorIconClass} />
+              )}
+            </button>
+          </Tooltip>
+        </div>
+      </div>
+
+      <div class="p-4 max-sm:px-4 max-sm:pt-2 text-sm max-sm:flex-1 max-sm:flex max-sm:flex-col">
+        {note.title && (
+          <h2
+            class="font-medium text-base mb-2 sm:pr-12"
+            style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
+          >
+            {note.title}
+          </h2>
+        )}
+        <div
+          class="prose prose-sm dark:prose-invert max-w-none text-neutral-700 dark:text-neutral-200"
+          style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+        {note.images.length > 0 && (
+          <div class="mt-3 -mx-4">
+            <ImageGallery images={note.images} alts={note.imageAlts} />
+          </div>
+        )}
+        {note.linkPreviews.length > 0 && (
+          <div class="mt-3">
+            <LinkPreviewList previews={note.linkPreviews} variant="card" />
+          </div>
+        )}
+        {(note.tags.length > 0 || note.reminder) && (
+          <div class="flex flex-wrap gap-1 mt-2 items-center">
+            {note.tags.map((tag) => (
+              <TagChip key={tag} tag={tag}>
+                <button
+                  type="button"
+                  class="hover:text-red-500 cursor-pointer"
+                  onClick={() =>
+                    updateNote(note.id, {
+                      tags: note.tags.filter((x) => x !== tag),
+                    })
+                  }
+                  aria-label={t("editor.removeTag", { tag })}
+                >
+                  ×
+                </button>
+              </TagChip>
+            ))}
+            {note.reminder && (
+              <span class="relative">
+                <ReminderChip
+                  reminder={note.reminder}
+                  anchorRef={reminderChipRef}
+                  onClick={() =>
+                    setShowReminderChipPicker(!showReminderChipPicker)
+                  }
+                  expanded={showReminderChipPicker}
+                  onClear={() => updateNote(note.id, { reminder: null })}
+                />
+                {reminderChipPicker.shown && (
+                  <CardPopover
+                    anchorRef={reminderChipRef}
+                    onClose={() => setShowReminderChipPicker(false)}
+                    leaving={reminderChipPicker.leaving}
+                  >
+                    <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 w-72">
+                      <ReminderPickerPanel
+                        reminder={note.reminder}
+                        onChange={(reminder) =>
+                          updateNote(note.id, { reminder })
+                        }
+                        onDone={() => setShowReminderChipPicker(false)}
+                      />
+                    </div>
+                  </CardPopover>
+                )}
+              </span>
+            )}
+          </div>
+        )}
+
+        {sharedBy && (
+          <SharedPeople
+            note={note}
+            label={t("sharing.viewOnly", {
+              name: sharedBy.displayName || sharedBy.username,
+            })}
+          />
+        )}
+
+        <NoteComments note={note} />
+
+        {pluginLabel && (
+          <div class="mt-4 pt-2 border-t border-black/10 dark:border-white/10 text-xs text-black/40 dark:text-white/40 whitespace-pre-line">
+            {t("autoNotes.generatedBy", { name: pluginLabel })}
+          </div>
+        )}
+      </div>
+
+      <div class="note-sheet-bottom px-3 pt-1.5 sm:pb-2 flex items-center gap-0.5">
+        {note.source?.kind === "auto-note" && (
+          <>
+            <Tooltip
+              label={t("autoNotes.generatedBy", { name: pluginLabel ?? "" })}
+            >
+              <span
+                class="p-1.5 max-sm:p-3 opacity-60"
+                role="img"
+                aria-label={t("autoNotes.badge")}
+              >
+                <Sparkles class={editorIconClass} />
+              </span>
+            </Tooltip>
+            <Tooltip label={t("autoNotes.refresh")}>
+              <button
+                type="button"
+                class={editorButtonClass}
+                onClick={() => refreshAutoNotes()}
+                aria-label={t("autoNotes.refresh")}
+              >
+                <RefreshCw class={editorIconClass} />
+              </button>
+            </Tooltip>
+          </>
+        )}
+
+        <Dropdown
+          open={showColorPicker}
+          onClose={() => setShowColorPicker(false)}
+          trigger={
+            <Tooltip label={t("editor.color")}>
+              <button
+                type="button"
+                class={editorButtonClass}
+                onClick={() => {
+                  setShowColorPicker(!showColorPicker);
+                  setShowMenu(false);
+                }}
+                aria-label={t("editor.changeColor")}
+              >
+                <Palette class={editorIconClass} />
+              </button>
+            </Tooltip>
+          }
+          placement="bottom-start"
+          panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
+        >
+          {pickerColors.map((c) => (
+            <Tooltip key={c.value} label={c.label}>
+              <button
+                type="button"
+                class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${note.color === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                onClick={() => {
+                  void updateNote(note.id, { color: c.value as NoteColor });
+                  setShowColorPicker(false);
+                }}
+                aria-label={c.label}
+              />
+            </Tooltip>
+          ))}
+        </Dropdown>
+
+        <ReminderPicker
+          reminder={note.reminder ?? null}
+          onChange={(reminder) => updateNote(note.id, { reminder })}
+          triggerClass={editorButtonClass}
+          iconClass={editorIconClass}
+        />
+
+        <TagPickerButton
+          tags={note.tags}
+          onAddTag={(tag) => addTag(note.id, tag)}
+          triggerClass={editorButtonClass}
+          iconClass={editorIconClass}
+        />
+
+        <Dropdown
+          open={showMenu}
+          onClose={() => setShowMenu(false)}
+          trigger={
+            <Tooltip label={t("noteMenu.more")}>
+              <button
+                type="button"
+                class={editorButtonClass}
+                onClick={() => {
+                  setShowMenu(!showMenu);
+                  setShowColorPicker(false);
+                }}
+                aria-label={t("noteMenu.moreOptions")}
+              >
+                <EllipsisVertical class={editorIconClass} />
+              </button>
+            </Tooltip>
+          }
+          placement="bottom-start"
+          panelClass={menuPanelClass}
+        >
+          <NoteMenu
+            items={noteMenuItems(note, { onDismiss: onClose })}
+            onClose={() => setShowMenu(false)}
+            open={showMenu}
+          />
+        </Dropdown>
+
+        <div class="flex-1" />
+
+        <Tooltip label={t("noteCard.close")}>
+          <button
+            type="button"
+            class={editorButtonClass}
+            onClick={onClose}
+            aria-label={t("noteCard.close")}
+          >
+            <X class={editorIconClass} />
+          </button>
+        </Tooltip>
+      </div>
+    </article>
+  );
+}

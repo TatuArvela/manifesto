@@ -4,6 +4,7 @@ paths:
   - "packages/client/src/hooks/useTouchGesture.ts"
   - "packages/client/src/components/NoteGrid.tsx"
   - "packages/client/src/components/ReorderableGrid.tsx"
+  - "packages/client/src/hooks/useReorderDrag.ts"
   - "packages/client/src/components/NoteSheet.tsx"
   - "packages/client/src/state/ordering.ts"
   - "packages/client/src/splash.ts"
@@ -36,7 +37,7 @@ about fifty halvings before `renumberFrom` spreads everything out again. The nei
 on the whole number line, archived and trashed notes included: they share it, and a slot chosen
 among the visible notes alone can land on a hidden one. Ties in the manual sort break on `id`.
 
-While a card is dragged, `ReorderableGrid` previews the new order: the card takes the place of the
+While a card is dragged, `ReorderableGrid` previews the new order (`hooks/useReorderDrag.ts`): the card takes the place of the
 card under the pointer, found by hit-testing where cards are drawn, and the others slide (FLIP)
 to make room. The order is shown through each card's CSS `order`, never by moving DOM nodes,
 because moving a node drops the pointer capture a touch drag holds. The dragged card keeps its

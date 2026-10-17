@@ -1,19 +1,17 @@
 import {
   type AccountKeys,
   type AccountKeysSetupRequest,
-  bytesToBase64url,
-  deriveMacKey,
-  type ImageKeySource,
-  type RecoveryKeyWrap,
-} from "@manifesto/shared";
-import {
   associatedData,
+  bytesToBase64url,
   derivable,
   deriveBytes,
   deriveKey,
+  deriveMacKey,
+  type ImageKeySource,
+  type RecoveryKeyWrap,
   seal,
   unseal,
-} from "./seal.js";
+} from "@manifesto/shared";
 import { newUserKey } from "./userKey.js";
 
 /**

@@ -1,9 +1,11 @@
-import type { Note, NoteColor, NoteFont } from "@manifesto/shared";
+import type { NoteColor } from "@manifesto/shared";
 import { Plus } from "lucide-preact";
+import type { RefObject } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
 import { noteColorMap } from "../colors.js";
-import { useDraftLinkPreviews } from "../hooks/useDraftLinkPreviews.js";
+import { useColumnWidth } from "../hooks/useColumnWidth.js";
+import { useComposerFields } from "../hooks/useComposerFields.js";
 import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { holdFocus, useFocusTrap } from "../hooks/useFocusTrap.js";
 import { type MessageKey, t } from "../i18n/index.js";
@@ -17,20 +19,17 @@ import {
 } from "../state/composerDraft.js";
 import { type IncomingShare, incomingShare } from "../state/incomingShare.js";
 import {
-  activeView,
   animations,
   defaultNoteColor,
   defaultNoteFont,
-  newNoteRequested,
   noteQuips,
   noteSize,
   pickDefaultColor,
   pickDefaultFont,
-  showError,
   viewMode,
-} from "../state/index.js";
+} from "../state/prefs.js";
+import { activeView, newNoteRequested, showError } from "../state/ui.js";
 import { queueNote } from "../state/unsentNotes.js";
-import { placedImageAlts, placeImages } from "../utils/drawing.js";
 import { extractUrls } from "../utils/linkPreview.js";
 import {
   isMorphSource,
@@ -43,9 +42,9 @@ import {
   downloadNoteAsMarkdown,
 } from "../utils/noteDownload.js";
 import { Backdrop } from "./Backdrop.js";
+import { checklistSubmenu, downloadSubmenu } from "./card/NoteMenu.js";
+import { useEditor } from "./editor/lazyEditor.js";
 import { gridColumns } from "./gridColumns.js";
-import { useEditor } from "./lazyEditor.js";
-import { checklistSubmenu, downloadSubmenu } from "./NoteMenu.js";
 import { NoteSheet } from "./NoteSheet.js";
 
 const ctaKeys: MessageKey[] = [
@@ -76,29 +75,67 @@ function randomCta(exclude?: string): string {
   return pool[Math.floor(Math.random() * pool.length)] ?? "";
 }
 
-export function NoteInput() {
-  const [expanded, setExpanded] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [color, setColor] = useState<NoteColor>(() => pickDefaultColor());
-  const [stackColor, setStackColor] = useState<NoteColor>(color);
-  const [font, setFont] = useState<NoteFont>(() => pickDefaultFont());
-  const [pinned, setPinned] = useState(false);
-  const [tags, setTags] = useState<string[]>([]);
-  const [images, setImages] = useState<string[]>([]);
-  const [imageAlts, setImageAlts] = useState<string[]>([]);
-  const drafts = useDraftLinkPreviews();
-  const linkPreviews = drafts.previews;
-  const [closing, setClosing] = useState(false);
-  const [lifting, setLifting] = useState(false);
-  const [topCta, setTopCta] = useState(() => randomCta());
-  const [nextCta, setNextCta] = useState(() => randomCta(topCta));
+/**
+ * The lines on the pad's top sheet and the one behind it. `cycle` moves the
+ * next line up and draws a new one behind it.
+ */
+function useQuips(): { top: string; next: string; cycle: () => void } {
+  const [top, setTop] = useState(() => randomCta());
+  const [next, setNext] = useState(() => randomCta(top));
   // The quips are drawn from the rotation only while the preference is on;
   // with it off both sheets read the same plain line, so nothing rotates.
   // Read at render rather than at pick time, so the toggle takes effect on the
   // stack that is already on screen.
-  const topLine = noteQuips.value ? topCta : t("cta.plain");
-  const nextLine = noteQuips.value ? nextCta : t("cta.plain");
+  const plain = noteQuips.value ? null : t("cta.plain");
+  return {
+    top: plain ?? top,
+    next: plain ?? next,
+    cycle: () => {
+      setTop(next);
+      setNext(randomCta(next));
+    },
+  };
+}
+
+/**
+ * Downloads the unsaved composer contents as a note's JSON. The file carries
+ * the image bytes, not references only this browser or server can read.
+ */
+async function downloadDraftAsJson(draft: ComposerDraft): Promise<void> {
+  const inlined = await inlineImages(draft.images);
+  if (!inlined) {
+    showError(t("error.exportFailed"));
+    return;
+  }
+  const { imageAlts, linkPreviews, ...fields } = draft;
+  const now = new Date().toISOString();
+  downloadNoteAsJson({
+    ...fields,
+    id: ulid(),
+    archived: false,
+    trashed: false,
+    trashedAt: null,
+    position: 0,
+    images: inlined,
+    ...(imageAlts.length > 0 && { imageAlts }),
+    linkPreviews: await inlinePreviewImages(linkPreviews),
+    reminder: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+export function NoteInput() {
+  const [expanded, setExpanded] = useState(false);
+  const composer = useComposerFields(pickDefaultColor, pickDefaultFont);
+  const { title, content, color, font, pinned, tags, images, imageAlts } =
+    composer.fields;
+  const drafts = composer.linkPreviews;
+  const linkPreviews = drafts.previews;
+  const [stackColor, setStackColor] = useState<NoteColor>(color);
+  const [closing, setClosing] = useState(false);
+  const [lifting, setLifting] = useState(false);
+  const quips = useQuips();
   const focusCatcherRef = useRef<HTMLInputElement>(null);
   const topSheetRef = useRef<HTMLDivElement>(null);
   const fabRef = useRef<HTMLButtonElement>(null);
@@ -157,100 +194,28 @@ export function NoteInput() {
   const colorSetting = defaultNoteColor.value;
   useEffect(() => {
     const c = pickDefaultColor();
-    setColor(c);
+    composer.update({ color: c });
     setStackColor(c);
-  }, [colorSetting]);
+  }, [colorSetting, composer.update]);
 
   // Re-pick font when the default note font setting changes
   const fontSetting = defaultNoteFont.value;
   useEffect(() => {
-    setFont(pickDefaultFont());
-  }, [fontSetting]);
+    composer.update({ font: pickDefaultFont() });
+  }, [fontSetting, composer.update]);
 
   const isList = viewMode.value === "list";
   const isActiveView = activeView.value === "active";
-  const rulerRef = useRef<HTMLDivElement>(null);
-  const [colWidth, setColWidth] = useState<number | undefined>(undefined);
-
-  // Layout effect, not an effect: the stack has no width of its own until this
-  // runs, so measuring after paint leaves it stretched across the whole column
-  // area for a frame, very visible on leaving the search view, which remounts
-  // this component with the width unknown again. A zero reading is ignored
-  // rather than applied: the ruler measures nothing while this view is not the
-  // active one, and 0px would collapse the stack when it comes back.
-  //
-  // Keyed on the view as well. `App` keeps this mounted in the archive, trash
-  // and reminders views, where it renders nothing and there is no ruler to
-  // measure; mounted in one of those (arriving from tags, say, which unmounts
-  // it), it came back to the notes view with the width never measured and
-  // stretched across the whole column area until the next resize.
-  useLayoutEffect(() => {
-    if (isList || !isActiveView) return;
-    const ruler = rulerRef.current;
-    if (!ruler) return;
-    const cell = ruler.firstElementChild as HTMLElement;
-    if (!cell) return;
-    const measure = () => {
-      const width = cell.getBoundingClientRect().width;
-      if (width > 0) setColWidth(width);
-    };
-    measure();
-    const obs = new ResizeObserver(measure);
-    obs.observe(ruler);
-    // The cell too: switching to small notes changes the column count, which
-    // narrows the cell while the ruler keeps its width.
-    obs.observe(cell);
-    return () => obs.disconnect();
-  }, [isList, isActiveView]);
-
-  /** The unsaved composer contents, shaped as a note for the JSON export. */
-  const draftNote = (): Note => {
-    const now = new Date().toISOString();
-    return {
-      id: ulid(),
-      title,
-      content,
-      color,
-      font,
-      pinned,
-      archived: false,
-      trashed: false,
-      trashedAt: null,
-      position: 0,
-      tags,
-      images,
-      ...(imageAlts.length > 0 && { imageAlts }),
-      linkPreviews,
-      reminder: null,
-      createdAt: now,
-      updatedAt: now,
-    };
-  };
+  const column = useColumnWidth(!isList && isActiveView);
 
   const reset = () => {
     setDraftRead(false);
-    setTitle("");
-    setContent("");
-    setColor(stackColor);
-    setFont(pickDefaultFont());
-    setPinned(false);
-    setTags([]);
-    setImages([]);
-    setImageAlts([]);
-    drafts.clear();
+    composer.reset(stackColor, pickDefaultFont());
   };
 
   /** Puts a kept draft into the editor. */
   const fill = (draft: ComposerDraft) => {
-    setTitle(draft.title);
-    setContent(draft.content);
-    setColor(draft.color);
-    setFont(draft.font);
-    setPinned(draft.pinned);
-    setTags(draft.tags);
-    setImages(draft.images);
-    setImageAlts(draft.imageAlts);
-    drafts.restore(draft.linkPreviews);
+    composer.fill(draft);
     setFilled((n) => n + 1);
   };
 
@@ -267,11 +232,6 @@ export function NoteInput() {
       else if (kept) fill(kept);
       setDraftRead(true);
     });
-  };
-
-  const cycleCta = () => {
-    setTopCta(nextCta);
-    setNextCta(randomCta(nextCta));
   };
 
   /** Opens the editor over `rect`, growing out of it if it can be seen. */
@@ -324,7 +284,7 @@ export function NoteInput() {
     // and sits in exactly the same place, so the top sheet taking over is
     // invisible. Fading it in instead made the sheet behind it, which by then
     // carries a different CTA, ghost through the transparent one.
-    cycleCta();
+    quips.cycle();
     after(CLOSE_MS, () => {
       reset();
       setClosing(false);
@@ -344,16 +304,11 @@ export function NoteInput() {
     // a final Milkdown markdownUpdated (fired on blur) can land after this,
     // and reading the closure-captured state inside the timeout would drop
     // that last edit. Save synchronously now, animate the unmount after.
+    const draft = composer.draft();
     const snap = {
-      title: title.trim(),
-      content: content.trim(),
-      color,
-      font,
-      pinned,
-      tags,
-      images,
-      imageAlts,
-      linkPreviews,
+      ...draft,
+      title: draft.title.trim(),
+      content: draft.content.trim(),
     };
     if (
       keepEmpty ||
@@ -382,10 +337,12 @@ export function NoteInput() {
   const openNew = () =>
     openModal(topSheetRef.current?.getClientRects().length ? "pad" : "button");
   const openShare = (incoming: IncomingShare) => {
-    setTitle(incoming.title);
-    setContent(incoming.content);
-    setImages(incoming.images);
-    setImageAlts([]);
+    composer.update({
+      title: incoming.title,
+      content: incoming.content,
+      images: incoming.images,
+      imageAlts: [],
+    });
     drafts.add(extractUrls(incoming.content));
     readDraft(true);
     // No gesture to grow out of: the app has just been opened for this.
@@ -400,33 +357,10 @@ export function NoteInput() {
   // The draft is kept as it changes, so a page put away loses none of it.
   useEffect(() => {
     if (!expanded || closing || !draftRead) return;
-    const draft: ComposerDraft = {
-      title,
-      content,
-      color,
-      font,
-      pinned,
-      tags,
-      images,
-      imageAlts,
-      linkPreviews,
-    };
+    const draft: ComposerDraft = { ...composer.fields, linkPreviews };
     if (isEmptyDraft(draft)) void clearDraft();
     else saveDraft(draft);
-  }, [
-    expanded,
-    closing,
-    draftRead,
-    title,
-    content,
-    color,
-    font,
-    pinned,
-    tags,
-    images,
-    imageAlts,
-    linkPreviews,
-  ]);
+  }, [expanded, closing, draftRead, composer.fields, linkPreviews]);
 
   // Escape closes the editor, saving as clicking outside does. Anything
   // opened from inside the editor registers later and takes the key first.
@@ -478,57 +412,24 @@ export function NoteInput() {
       {/* Hidden ruler to measure one grid column width */}
       {!isList && (
         <div
-          ref={rulerRef}
+          ref={column.rulerRef}
           class={`grid ${gridColumns()} gap-x-4 h-0 overflow-hidden pointer-events-none`}
           aria-hidden="true"
         >
           <div />
         </div>
       )}
-      {/* Slides in and out as the Notes view comes and goes, rather than
-          fading with the rest (hooks/useViewTransition.ts). */}
-      <div
-        data-view-slide="composer"
-        class={
-          isList
-            ? noteSize.value === "square"
-              ? "max-w-sm mx-auto mb-12 hidden md:block"
-              : "mb-12 hidden md:block"
-            : "mx-auto mb-12 hidden md:block"
-        }
-        style={!isList && colWidth ? { width: `${colWidth}px` } : undefined}
-      >
-        {/* biome-ignore lint/a11y/useSemanticElements: styled card element */}
-        <div
-          class="note-stack cursor-pointer"
-          onClick={() => !expanded && !lifting && openModal("pad")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !expanded && !lifting) openModal("pad");
-          }}
-        >
-          {/* Notes area: top note + next note behind it */}
-          <div class="relative">
-            <div
-              class={`note-stack-next border ${noteColorMap[stackColor].bg} ${noteColorMap[stackColor].border}`}
-            >
-              <div class="px-5 pt-12 pb-4 text-sm text-neutral-500 dark:text-neutral-300">
-                {nextLine}
-              </div>
-            </div>
-            <div
-              ref={topSheetRef}
-              class={`${topNoteClass} border ${noteColorMap[topSheetColor].bg} ${noteColorMap[topSheetColor].border}`}
-            >
-              <div class="px-5 pt-12 pb-4 text-sm text-neutral-500 dark:text-neutral-300">
-                {topLine}
-              </div>
-            </div>
-          </div>
-          <div class={`note-stack-base ${noteColorMap[stackColor].bg}`} />
-        </div>
-      </div>
+      <ComposerPad
+        isList={isList}
+        width={column.width}
+        stackColor={stackColor}
+        topColor={topSheetColor}
+        topClass={topNoteClass}
+        topLine={quips.top}
+        nextLine={quips.next}
+        topSheetRef={topSheetRef}
+        onOpen={() => !expanded && !lifting && openModal("pad")}
+      />
 
       {/* Mobile FAB: opens the same create-note modal as the stack */}
       {!expanded && (
@@ -564,65 +465,32 @@ export function NoteInput() {
           <editor.NoteEditor
             key={filled}
             title={title}
-            onTitleChange={setTitle}
+            onTitleChange={(value) => composer.update({ title: value })}
             content={content}
-            onContentChange={setContent}
+            onContentChange={(value) => composer.update({ content: value })}
             color={color}
-            onColorChange={setColor}
+            onColorChange={(value) => composer.update({ color: value })}
             font={font}
-            onFontChange={setFont}
+            onFontChange={(value) => composer.update({ font: value })}
             images={images}
             imageAlts={imageAlts}
-            onAddImages={(urls, replaces) => {
-              const placed = placeImages(images, urls, replaces);
-              setImages(placed);
-              setImageAlts(
-                placedImageAlts({ images, imageAlts }, placed, urls, replaces),
-              );
-            }}
-            onRemoveImage={(index) => {
-              setImages(images.filter((_, i) => i !== index));
-              setImageAlts(imageAlts.filter((_, i) => i !== index));
-            }}
-            onDescribeImage={(image, alt) => {
-              const index = images.indexOf(image);
-              if (index === -1) return;
-              const alts = images.map((_, i) =>
-                i === index ? alt : (imageAlts[i] ?? ""),
-              );
-              setImageAlts(alts.some((a) => a !== "") ? alts : []);
-            }}
+            onAddImages={composer.addImages}
+            onRemoveImage={composer.removeImage}
+            onDescribeImage={composer.describeImage}
             linkPreviews={linkPreviews}
             onAddLinkPreviews={drafts.add}
             onRemoveLinkPreview={drafts.remove}
             pinned={pinned}
-            onPinToggle={() => setPinned(!pinned)}
+            onPinToggle={() => composer.update({ pinned: !pinned })}
             tags={tags}
-            onAddTag={(tag) =>
-              setTags((current) =>
-                current.includes(tag) ? current : [...current, tag],
-              )
-            }
-            onRemoveTag={(tag) => setTags(tags.filter((t) => t !== tag))}
+            onAddTag={composer.addTag}
+            onRemoveTag={composer.removeTag}
             menuItems={({ checkedItems, datedItems }) => [
               checklistSubmenu({ checkedItems, datedItems }),
               { kind: "divider", id: "send" },
               downloadSubmenu({
                 markdown: () => downloadNoteAsMarkdown({ title, content }),
-                json: async () => {
-                  // The file carries the bytes, not references only
-                  // this browser or server can read.
-                  const inlined = await inlineImages(images);
-                  if (!inlined) {
-                    showError(t("error.exportFailed"));
-                    return;
-                  }
-                  downloadNoteAsJson({
-                    ...draftNote(),
-                    images: inlined,
-                    linkPreviews: await inlinePreviewImages(linkPreviews),
-                  });
-                },
+                json: () => downloadDraftAsJson(composer.draft()),
               }),
             ]}
             onDone={() => closeModal(true)}
@@ -633,5 +501,78 @@ export function NoteInput() {
         </NoteSheet>
       )}
     </>
+  );
+}
+
+/**
+ * The pad of notes the composer opens from on a wide screen: the top sheet,
+ * the one behind it showing the next line, and the stack's base.
+ */
+function ComposerPad({
+  isList,
+  width,
+  stackColor,
+  topColor,
+  topClass,
+  topLine,
+  nextLine,
+  topSheetRef,
+  onOpen,
+}: {
+  isList: boolean;
+  width: number | undefined;
+  stackColor: NoteColor;
+  topColor: NoteColor;
+  topClass: string;
+  topLine: string;
+  nextLine: string;
+  topSheetRef: RefObject<HTMLDivElement | null>;
+  onOpen: () => void;
+}) {
+  return (
+    // Slides in and out as the Notes view comes and goes, rather than fading
+    // with the rest (hooks/useViewTransition.ts).
+    <div
+      data-view-slide="composer"
+      class={
+        isList
+          ? noteSize.value === "square"
+            ? "max-w-sm mx-auto mb-12 hidden md:block"
+            : "mb-12 hidden md:block"
+          : "mx-auto mb-12 hidden md:block"
+      }
+      style={!isList && width ? { width: `${width}px` } : undefined}
+    >
+      {/* biome-ignore lint/a11y/useSemanticElements: styled card element */}
+      <div
+        class="note-stack cursor-pointer"
+        onClick={onOpen}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onOpen();
+        }}
+      >
+        {/* Notes area: top note + next note behind it */}
+        <div class="relative">
+          <div
+            class={`note-stack-next border ${noteColorMap[stackColor].bg} ${noteColorMap[stackColor].border}`}
+          >
+            <div class="px-5 pt-12 pb-4 text-sm text-neutral-500 dark:text-neutral-300">
+              {nextLine}
+            </div>
+          </div>
+          <div
+            ref={topSheetRef}
+            class={`${topClass} border ${noteColorMap[topColor].bg} ${noteColorMap[topColor].border}`}
+          >
+            <div class="px-5 pt-12 pb-4 text-sm text-neutral-500 dark:text-neutral-300">
+              {topLine}
+            </div>
+          </div>
+        </div>
+        <div class={`note-stack-base ${noteColorMap[stackColor].bg}`} />
+      </div>
+    </div>
   );
 }

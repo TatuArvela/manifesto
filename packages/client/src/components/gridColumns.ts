@@ -1,4 +1,4 @@
-import { noteScale } from "../state/index.js";
+import { noteScale } from "../state/prefs.js";
 
 /**
  * The board's column count by viewport width, for big notes (the default).

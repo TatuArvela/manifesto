@@ -1,0 +1,736 @@
+import {
+  type DirectoryUser,
+  type Note,
+  type NoteMember,
+  roleOf,
+  type ShareRole,
+  type ShareUser,
+  type Team,
+  type TeamShare,
+} from "@manifesto/shared";
+import { LogOut, UserPlus, Users, X } from "lucide-preact";
+import { createPortal } from "preact";
+import { useEffect, useState } from "preact/hooks";
+import { useEscapeStack } from "../../hooks/useEscapeStack.js";
+import { useFocusTrap } from "../../hooks/useFocusTrap.js";
+import { t } from "../../i18n/index.js";
+import { currentUser, userLookupMode } from "../../state/account/auth.js";
+import { notes } from "../../state/notesStore.js";
+import { serverFeature } from "../../state/serverFeatures.js";
+import {
+  changedKeys,
+  findUsers,
+  keyStatusOf,
+  leaveNote,
+  removeShare,
+  setShareRole,
+  shareDialog,
+  shareNote,
+  trustKeys,
+} from "../../state/sharing.js";
+import {
+  listMyTeams,
+  listTeamShares,
+  removeTeamShare,
+  setTeamShareRole,
+  shareWithTeam,
+} from "../../state/teams.js";
+import { showError } from "../../state/ui.js";
+import { Avatar } from "../Avatar.js";
+import { Backdrop } from "../Backdrop.js";
+import { buttonClass } from "../buttonClasses.js";
+import { Tooltip } from "../Tooltip.js";
+
+const inputClass =
+  "w-full min-w-0 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+const selectClass =
+  "rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-60";
+
+/** How long the owner has to pause typing before a search goes out. */
+const SEARCH_DELAY_MS = 250;
+
+/**
+ * The one share dialog, mounted by `App` and opened by setting `shareDialog`.
+ * A note that disappears while it is open (its owner took this user off it)
+ * closes it rather than leaving it talking about nothing.
+ */
+export function ShareDialogHost() {
+  const open = shareDialog.value;
+  const note = open ? notes.value.find((n) => n.id === open.noteId) : null;
+
+  useEffect(() => {
+    if (open && !note) shareDialog.value = null;
+  }, [open, note]);
+
+  if (!open || !note) return null;
+  return (
+    <ShareDialog
+      note={note}
+      onClose={() => {
+        shareDialog.value = null;
+      }}
+    />
+  );
+}
+
+function RoleSelect({
+  value,
+  onChange,
+  label,
+  disabled,
+}: {
+  value: ShareRole;
+  onChange: (role: ShareRole) => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <select
+      class={selectClass}
+      value={value}
+      aria-label={label}
+      disabled={disabled}
+      onChange={(e) =>
+        onChange((e.currentTarget as HTMLSelectElement).value as ShareRole)
+      }
+    >
+      <option value="edit">{t("sharing.role.edit")}</option>
+      <option value="view">{t("sharing.role.view")}</option>
+    </select>
+  );
+}
+
+/**
+ * Who has a note. Its owner invites people, sets what each may do and takes
+ * them off it; everyone else sees who is there and may leave.
+ */
+function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
+  const me = currentUser.value;
+  const role = roleOf(note);
+  const isOwner = role === "owner";
+  const [leaving, setLeaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [showKeys, setShowKeys] = useState(false);
+
+  useEscapeStack(true, onClose);
+  const dialogRef = useFocusTrap<HTMLDivElement>(true);
+
+  const owner: ShareUser | null =
+    note.sharing?.owner ??
+    (me
+      ? {
+          id: me.id,
+          username: me.username,
+          displayName: me.displayName,
+          avatarColor: me.avatarColor,
+        }
+      : null);
+  const members = note.sharing?.members ?? [];
+  const title = note.title || t("sharing.untitled");
+
+  const leave = async () => {
+    if (!me || busy) return;
+    setBusy(true);
+    const left = await leaveNote(note.id, me.id);
+    setBusy(false);
+    if (left) onClose();
+  };
+
+  return createPortal(
+    <>
+      <Backdrop onDismiss={onClose} class="layer-nested-backdrop" />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="share-dialog-title"
+        class="fixed inset-0 layer-nested flex items-center justify-center p-4 pointer-events-none animate-scale-in"
+      >
+        <div class="pointer-events-auto w-full max-w-md max-h-full overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-xl border border-neutral-200 dark:border-neutral-700 p-5 sm:p-6 flex flex-col gap-4">
+          <div class="min-w-0">
+            <h2 id="share-dialog-title" class="text-lg font-semibold">
+              {t(isOwner ? "sharing.dialog.title" : "sharing.dialog.people")}
+            </h2>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400 truncate">
+              {title}
+            </p>
+          </div>
+
+          {isOwner && serverFeature("sharing") && (
+            <AddPerson
+              note={note}
+              memberIds={new Set(members.map((m) => m.id))}
+            />
+          )}
+
+          {isOwner && <TeamShares note={note} />}
+
+          <ul class="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-700">
+            {owner && (
+              <PersonRow
+                person={owner}
+                isMe={owner.id === me?.id}
+                showKey={showKeys}
+              >
+                <span class="text-sm text-neutral-500 dark:text-neutral-400">
+                  {t("sharing.role.owner")}
+                </span>
+              </PersonRow>
+            )}
+            {members.map((member) => (
+              <MemberRow
+                key={member.id}
+                note={note}
+                member={member}
+                isMe={member.id === me?.id}
+                canManage={isOwner}
+                showKey={showKeys}
+              />
+            ))}
+          </ul>
+
+          {members.length > 0 && (
+            <div class="flex flex-col gap-1.5">
+              <button
+                type="button"
+                class="self-start text-sm underline text-neutral-600 dark:text-neutral-300 cursor-pointer"
+                aria-expanded={showKeys}
+                onClick={() => setShowKeys((shown) => !shown)}
+              >
+                {t(showKeys ? "sharing.keys.hide" : "sharing.keys.show")}
+              </button>
+              {showKeys && (
+                <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                  {t("sharing.keys.explain")}
+                </p>
+              )}
+            </div>
+          )}
+
+          {isOwner && members.length === 0 && (
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">
+              {t("sharing.dialog.nobody")}
+            </p>
+          )}
+
+          {!isOwner &&
+            (leaving ? (
+              <div class="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600">
+                <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-3">
+                  {t("sharing.leave.confirm", {
+                    name: owner?.displayName ?? "",
+                  })}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class={buttonClass("danger", "sm")}
+                    disabled={busy}
+                    onClick={leave}
+                  >
+                    {t("sharing.leave")}
+                  </button>
+                  <button
+                    type="button"
+                    class={buttonClass("secondary", "sm")}
+                    disabled={busy}
+                    onClick={() => setLeaving(false)}
+                  >
+                    {t("sharing.cancel")}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                class={`${buttonClass("secondary", "sm")} self-start`}
+                onClick={() => setLeaving(true)}
+              >
+                <LogOut class="w-4 h-4" />
+                {t("sharing.leave")}
+              </button>
+            ))}
+
+          <div class="flex justify-end">
+            <button
+              type="button"
+              class={buttonClass("primary", "sm")}
+              onClick={onClose}
+            >
+              {t("sharing.done")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body,
+  );
+}
+
+/**
+ * A person's key: its fingerprint while the dialog is comparing keys, and
+ * always the warning when it is not the key this account remembers for them.
+ */
+function PersonKey({
+  person,
+  showing,
+}: {
+  person: ShareUser;
+  showing: boolean;
+}) {
+  const [status, setStatus] = useState<
+    { fingerprint: string; changed: boolean } | null | undefined
+  >(undefined);
+  const [busy, setBusy] = useState(false);
+  // A key this session met and could not use, because it is not the one
+  // remembered: said whether or not keys are being compared.
+  const changed = changedKeys.value.has(person.id);
+  const wanted = showing || changed;
+
+  useEffect(() => {
+    if (!wanted) return;
+    let cancelled = false;
+    void keyStatusOf(person.id).then((found) => {
+      if (!cancelled) setStatus(found);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Read again once a changed key is trusted.
+  }, [person.id, wanted, changed]);
+
+  if (!wanted || status === undefined) return null;
+  const name = person.displayName || person.username;
+  if (status?.changed) {
+    return (
+      <div role="alert" class="mt-1 text-xs text-red-600 dark:text-red-400">
+        <p>{t("sharing.keys.changed", { name })}</p>
+        <p class="font-mono mt-0.5">
+          {t("sharing.keys.fingerprint", { fingerprint: status.fingerprint })}
+        </p>
+        <button
+          type="button"
+          class="mt-1 underline cursor-pointer disabled:opacity-60"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await trustKeys(person.id);
+            setBusy(false);
+          }}
+        >
+          {t("sharing.keys.trust")}
+        </button>
+      </div>
+    );
+  }
+  if (!showing) return null;
+  return (
+    <p class="mt-0.5 text-xs font-mono text-neutral-500 dark:text-neutral-400">
+      {status
+        ? t("sharing.keys.fingerprint", { fingerprint: status.fingerprint })
+        : t("sharing.keys.none")}
+    </p>
+  );
+}
+
+function PersonRow({
+  person,
+  isMe,
+  secondary,
+  showKey = false,
+  children,
+}: {
+  person: ShareUser;
+  isMe: boolean;
+  secondary?: string | undefined;
+  showKey?: boolean | undefined;
+  children?: preact.ComponentChildren;
+}) {
+  const name = person.displayName || person.username;
+  const details = [
+    name !== person.username ? person.username : null,
+    secondary ?? null,
+  ].filter((part): part is string => part !== null);
+  return (
+    <li class="flex items-center gap-3 py-2.5">
+      <Avatar name={name} color={person.avatarColor} class="w-8 h-8 text-xs" />
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium truncate">
+          {isMe ? t("sharing.you", { name }) : name}
+        </p>
+        {details.length > 0 && (
+          <p class="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+            {details.join(" · ")}
+          </p>
+        )}
+        <PersonKey person={person} showing={showKey} />
+      </div>
+      <div class="flex items-center gap-1 shrink-0">{children}</div>
+    </li>
+  );
+}
+
+function MemberRow({
+  note,
+  member,
+  isMe,
+  canManage,
+  showKey,
+}: {
+  note: Note;
+  member: NoteMember;
+  isMe: boolean;
+  canManage: boolean;
+  showKey: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const name = member.displayName || member.username;
+
+  const act = async (action: () => Promise<boolean>) => {
+    setBusy(true);
+    await action();
+    setBusy(false);
+  };
+
+  return (
+    <PersonRow
+      person={member}
+      isMe={isMe}
+      showKey={showKey}
+      secondary={
+        [
+          member.accepted ? null : t("sharing.invited"),
+          member.team ? t("sharing.viaTeam", { team: member.team.name }) : null,
+        ]
+          .filter((part): part is string => part !== null)
+          .join(" · ") || undefined
+      }
+    >
+      {canManage ? (
+        <>
+          <RoleSelect
+            value={member.role}
+            label={t("sharing.role.label", { name })}
+            // Sharing off on the server: people can be taken off, not changed.
+            disabled={busy || !serverFeature("sharing")}
+            onChange={(role) =>
+              act(() => setShareRole(note.id, member.id, role))
+            }
+          />
+          <Tooltip
+            label={t(member.accepted ? "sharing.remove" : "sharing.withdraw", {
+              name,
+            })}
+          >
+            <button
+              type="button"
+              class="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-60 cursor-pointer"
+              disabled={busy}
+              aria-label={t(
+                member.accepted ? "sharing.remove" : "sharing.withdraw",
+                { name },
+              )}
+              onClick={() => act(() => removeShare(note.id, member.id))}
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </Tooltip>
+        </>
+      ) : (
+        <span class="text-sm text-neutral-500 dark:text-neutral-400">
+          {t(
+            member.role === "edit" ? "sharing.role.edit" : "sharing.role.view",
+          )}
+        </span>
+      )}
+    </PersonRow>
+  );
+}
+
+/**
+ * Find someone and invite them. Where the server searches its accounts the
+ * matches come as the owner types; where it only takes a whole username or
+ * address, they come when the owner asks.
+ */
+function AddPerson({
+  note,
+  memberIds,
+}: {
+  note: Note;
+  memberIds: Set<string>;
+}) {
+  const mode = userLookupMode.value;
+  const [query, setQuery] = useState("");
+  const [role, setRole] = useState<ShareRole>("edit");
+  // Null until something has been looked up, so "nobody matched" is never
+  // said about a query nobody has sent.
+  const [results, setResults] = useState<DirectoryUser[] | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (mode !== "search") return;
+    const q = query.trim();
+    if (q.length === 0) {
+      setResults(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const found = await findUsers(q);
+      if (!cancelled && found !== null) setResults(found);
+    }, SEARCH_DELAY_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, mode]);
+
+  const lookUp = async (event: Event) => {
+    event.preventDefault();
+    if (mode !== "exact" || query.trim().length === 0 || busy) return;
+    setBusy(true);
+    const found = await findUsers(query);
+    setBusy(false);
+    if (found !== null) setResults(found);
+  };
+
+  const invite = async (user: DirectoryUser) => {
+    setBusy(true);
+    const shared = await shareNote(note.id, user.id, role);
+    setBusy(false);
+    if (shared) {
+      setQuery("");
+      setResults(null);
+    }
+  };
+
+  return (
+    <form onSubmit={lookUp} class="flex flex-col gap-2">
+      <label
+        for="share-dialog-query"
+        class="text-sm font-medium text-neutral-700 dark:text-neutral-200"
+      >
+        {t("sharing.add.label")}
+      </label>
+      <div class="flex flex-wrap items-center gap-2">
+        <input
+          id="share-dialog-query"
+          // Spread, not `type={a ? b : c}`: the input types are a union keyed
+          // on `type`, and a union of two of them matches no single member.
+          {...(mode === "search"
+            ? ({ type: "search" } as const)
+            : ({ type: "text" } as const))}
+          autoComplete="off"
+          // biome-ignore lint/a11y/noAutofocus: the dialog was opened to share
+          autoFocus
+          maxLength={254}
+          placeholder={t(
+            mode === "search"
+              ? "sharing.add.searchPlaceholder"
+              : "sharing.add.exactPlaceholder",
+          )}
+          value={query}
+          onInput={(e) => {
+            setQuery((e.currentTarget as HTMLInputElement).value);
+            if (mode === "exact") setResults(null);
+          }}
+          class={`${inputClass} flex-1 basis-48`}
+        />
+        <RoleSelect
+          value={role}
+          onChange={setRole}
+          label={t("sharing.role.newLabel")}
+        />
+        {mode === "exact" && (
+          <button
+            type="submit"
+            class={buttonClass("secondary", "sm")}
+            disabled={busy || query.trim().length === 0}
+          >
+            {t("sharing.add.find")}
+          </button>
+        )}
+      </div>
+
+      {results !== null && results.length === 0 && (
+        <p class="text-sm text-neutral-500 dark:text-neutral-400" role="status">
+          {t(
+            mode === "search" ? "sharing.add.noMatches" : "sharing.add.noExact",
+          )}
+        </p>
+      )}
+
+      {results !== null && results.length > 0 && (
+        <ul class="flex flex-col rounded-lg border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-200 dark:divide-neutral-700">
+          {results.map((user) => {
+            const name = user.displayName || user.username;
+            const already = memberIds.has(user.id);
+            const details = [
+              name !== user.username ? user.username : null,
+              user.email ?? null,
+            ].filter((part): part is string => part !== null);
+            return (
+              <li key={user.id} class="flex items-center gap-3 px-3 py-2">
+                <Avatar
+                  name={name}
+                  color={user.avatarColor}
+                  class="w-7 h-7 text-xs"
+                />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium truncate">{name}</p>
+                  {details.length > 0 && (
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                      {details.join(" · ")}
+                    </p>
+                  )}
+                </div>
+                {already ? (
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400 shrink-0">
+                    {t("sharing.add.already")}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    class={`${buttonClass("primary", "sm")} shrink-0`}
+                    disabled={busy}
+                    onClick={() => invite(user)}
+                    aria-label={t("sharing.add.inviteNamed", { name })}
+                  >
+                    <UserPlus class="w-4 h-4" />
+                    {t("sharing.add.invite")}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </form>
+  );
+}
+
+/**
+ * The teams a note is shared with, for its owner: offered only their own
+ * teams, and shown nothing at all when they are in none. Sharing with a team
+ * invites each member, and later members as they join. With teams off on
+ * the server, only the shares already made, to take them off.
+ */
+function TeamShares({ note }: { note: Note }) {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [shares, setShares] = useState<TeamShare[]>([]);
+  const [picked, setPicked] = useState("");
+  const [role, setRole] = useState<ShareRole>("edit");
+  const [busy, setBusy] = useState(false);
+  const teamsOn = serverFeature("teams");
+
+  useEffect(() => {
+    let cancelled = false;
+    const mine = teamsOn ? listMyTeams() : Promise.resolve([]);
+    void Promise.all([mine, listTeamShares(note.id)]).then(
+      ([mine, current]) => {
+        if (cancelled) return;
+        setTeams(mine ?? []);
+        setShares(current ?? []);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [note.id, teamsOn]);
+
+  const offered = teams.filter((team) =>
+    shares.every((share) => share.teamId !== team.id),
+  );
+  // An owner who has left a team still sees the note's share with it, or
+  // nothing would let them end it.
+  if (teams.length === 0 && shares.length === 0) return null;
+
+  const run = async (action: () => Promise<TeamShare[] | null>) => {
+    setBusy(true);
+    const next = await action();
+    setBusy(false);
+    if (next) setShares(next);
+    else showError(t("sharing.teams.failed"));
+  };
+
+  return (
+    <div class="flex flex-col gap-2">
+      <h3 class="text-sm font-medium">{t("sharing.teams.title")}</h3>
+      {offered.length > 0 && (
+        <div class="flex gap-2">
+          <select
+            class={`${selectClass} flex-1 min-w-0`}
+            value={picked}
+            aria-label={t("sharing.teams.pick")}
+            onChange={(e) =>
+              setPicked((e.currentTarget as HTMLSelectElement).value)
+            }
+          >
+            <option value="">{t("sharing.teams.pick")}</option>
+            {offered.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+          <RoleSelect
+            value={role}
+            onChange={setRole}
+            label={t("sharing.teams.role")}
+          />
+          <button
+            type="button"
+            class={buttonClass("primary", "sm")}
+            disabled={busy || !picked}
+            onClick={() =>
+              run(async () => {
+                const next = await shareWithTeam(note.id, picked, role);
+                if (next) setPicked("");
+                return next;
+              })
+            }
+          >
+            {t("sharing.teams.add")}
+          </button>
+        </div>
+      )}
+      {shares.length > 0 && (
+        <ul class="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-700">
+          {shares.map((share) => (
+            <li key={share.teamId} class="flex items-center gap-3 py-2">
+              <Users class="w-4 h-4 text-neutral-500 shrink-0" />
+              <span class="flex-1 min-w-0 text-sm font-medium truncate">
+                {share.name}
+              </span>
+              <RoleSelect
+                value={share.role}
+                label={t("sharing.role.label", { name: share.name })}
+                disabled={busy || !teamsOn}
+                onChange={(next) =>
+                  run(() => setTeamShareRole(note.id, share.teamId, next))
+                }
+              />
+              <Tooltip label={t("sharing.teams.remove", { team: share.name })}>
+                <button
+                  type="button"
+                  class="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-60 cursor-pointer"
+                  disabled={busy}
+                  aria-label={t("sharing.teams.remove", { team: share.name })}
+                  onClick={() =>
+                    run(async () =>
+                      (await removeTeamShare(note.id, share.teamId))
+                        ? shares.filter((s) => s.teamId !== share.teamId)
+                        : null,
+                    )
+                  }
+                >
+                  <X class="w-4 h-4" />
+                </button>
+              </Tooltip>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

@@ -1,8 +1,11 @@
 import {
+  associatedData,
   isCiphertext,
   MAX_WRAPPED_KEY_LENGTH,
   PUBLIC_KEY_LENGTH,
   RECOVERY_VERIFIER_LENGTH,
+  seal,
+  unseal,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import {
@@ -15,7 +18,6 @@ import {
   replaceSecretKey,
   unlockAccountKey,
 } from "./keyMaterial.js";
-import { associatedData, seal, unseal } from "./seal.js";
 import { newUserKey, parseUserKey } from "./userKey.js";
 
 const USER = "01HZX3KQ0000000000000000AA";

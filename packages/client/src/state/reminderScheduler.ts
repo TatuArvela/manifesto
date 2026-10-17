@@ -1,11 +1,11 @@
 import type { Note, NoteReminder } from "@manifesto/shared";
-import { signal } from "@preact/signals";
-import { t } from "../i18n/index.js";
 import {
   advanceReminder,
   parseLocalISO,
   snapReminderToFuture,
-} from "./reminderTime.js";
+} from "@manifesto/shared";
+import { signal } from "@preact/signals";
+import { t } from "../i18n/index.js";
 import { showError } from "./ui.js";
 
 export {
@@ -15,7 +15,7 @@ export {
   parseLocalISO,
   pickedReminder,
   snapToFuture,
-} from "./reminderTime.js";
+} from "@manifesto/shared";
 
 // --- Public signals ---
 

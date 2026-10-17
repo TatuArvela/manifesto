@@ -2,7 +2,7 @@ import { type Editor, editorViewCtx } from "@milkdown/kit/core";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MilkdownEditor } from "../components/MilkdownEditor.js";
+import { MilkdownEditor } from "../components/editor/MilkdownEditor.js";
 import { t } from "../i18n/index.js";
 import "../styles.css";
 

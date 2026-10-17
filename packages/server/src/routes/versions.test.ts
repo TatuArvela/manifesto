@@ -16,7 +16,7 @@ import {
   wrapNoteKey,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ct } from "../storage/contracts/claimed.js";
+import { ciphertext } from "../storage/contracts/claimed.js";
 import { defined } from "../test/defined.js";
 import { testAccountKeys } from "../test/keyedTokens.js";
 import {
@@ -193,8 +193,8 @@ describe("version routes", () => {
         noteId: note.id,
         authorId: owner.userId,
         keyVersion: 1,
-        title: ct(""),
-        content: ct(String(i)),
+        title: ciphertext(""),
+        content: ciphertext(String(i)),
         createdAt: new Date(Date.now() - (100 - i) * 1000).toISOString(),
       });
     }

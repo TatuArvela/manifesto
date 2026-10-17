@@ -12,7 +12,7 @@ import {
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  ct,
+  ciphertext,
   sealedCreate,
   sealedUpdate,
 } from "../storage/contracts/claimed.js";
@@ -517,13 +517,13 @@ describe("notes routes", () => {
       const held = await sealedNow();
       const copy = {
         id: created.id,
-        title: ct("From a device behind"),
-        content: ct(""),
-        excerpt: ct(""),
-        font: ct("default"),
-        images: ct("[]"),
+        title: ciphertext("From a device behind"),
+        content: ciphertext(""),
+        excerpt: ciphertext(""),
+        font: ciphertext("default"),
+        images: ciphertext("[]"),
         imageRefs: [],
-        linkPreviews: ct("[]"),
+        linkPreviews: ciphertext("[]"),
         previewRefs: [],
         color: "",
         tags: "",
@@ -546,7 +546,7 @@ describe("notes routes", () => {
       // The key before a replacement, and a key of the device's own making.
       for (const [key, version] of [
         [held.key, held.keyVersion + 1],
-        [ct("another key"), held.keyVersion],
+        [ciphertext("another key"), held.keyVersion],
       ] as const) {
         expect(await send(key, version)).toEqual({
           created: 0,
@@ -563,7 +563,7 @@ describe("notes routes", () => {
       expect(await sealedNow()).toMatchObject({
         key: held.key,
         keyVersion: held.keyVersion,
-        title: ct("From a device behind"),
+        title: ciphertext("From a device behind"),
       });
     });
 

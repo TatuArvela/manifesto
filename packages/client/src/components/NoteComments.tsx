@@ -12,7 +12,7 @@ import { useEscapeStack } from "../hooks/useEscapeStack.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { usePresence } from "../hooks/usePresence.js";
 import { formatDateTime, plural, t } from "../i18n/index.js";
-import { currentUser } from "../state/auth.js";
+import { currentUser } from "../state/account/auth.js";
 import {
   addComment,
   commentLoadsFailed,

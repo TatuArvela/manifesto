@@ -14,7 +14,7 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ct, heldKey } from "../storage/contracts/claimed.js";
+import { ciphertext, heldKey } from "../storage/contracts/claimed.js";
 import { openedAnswer } from "../test/sealingClient.js";
 import {
   authHeaders,
@@ -500,7 +500,7 @@ describe("handing a shared note's key on", () => {
   const offer = (signer: string, keyVersion = 1) => ({
     keyVersion,
     ephemeral: `B${"A".repeat(86)}`,
-    wrapped: ct("wrapped for them"),
+    wrapped: ciphertext("wrapped for them"),
     signer,
     signature: "c2lnbmF0dXJl",
   });
@@ -603,14 +603,14 @@ describe("handing a shared note's key on", () => {
 
   const rekeyed = (keyVersion: number, extra: object = {}) => ({
     keyVersion,
-    key: ct(`owner's copy of key ${keyVersion}`),
-    previousKeys: ct("the keys before"),
-    title: ct("Groceries"),
-    content: ct("- [ ] Milk"),
-    excerpt: ct("- [ ] Milk"),
-    font: ct("default"),
-    images: ct("[]"),
-    linkPreviews: ct("[]"),
+    key: ciphertext(`owner's copy of key ${keyVersion}`),
+    previousKeys: ciphertext("the keys before"),
+    title: ciphertext("Groceries"),
+    content: ciphertext("- [ ] Milk"),
+    excerpt: ciphertext("- [ ] Milk"),
+    font: ciphertext("default"),
+    images: ciphertext("[]"),
+    linkPreviews: ciphertext("[]"),
     ...extra,
   });
 
@@ -689,13 +689,13 @@ describe("handing a shared note's key on", () => {
     const edit = await rig.rawRequest(`/api/notes/${id}`, {
       method: "PUT",
       headers: authHeaders(bob.token),
-      body: JSON.stringify({ title: ct("Bob's edit"), keyVersion: 1 }),
+      body: JSON.stringify({ title: ciphertext("Bob's edit"), keyVersion: 1 }),
     });
     expect(edit.status).toBe(200);
     expect((await rekey(owner, id, rekeyed(2), read)).status).toBe(412);
     expect(await sealedAs(owner, id)).toMatchObject({
       keyVersion: 1,
-      title: ct("Bob's edit"),
+      title: ciphertext("Bob's edit"),
     });
 
     const done = await rekey(owner, id, rekeyed(2));
@@ -703,8 +703,8 @@ describe("handing a shared note's key on", () => {
     const mine = ((await done.json()) as { note: SealedNote }).note;
     expect(mine).toMatchObject({
       keyVersion: 2,
-      key: ct("owner's copy of key 2"),
-      previousKeys: ct("the keys before"),
+      key: ciphertext("owner's copy of key 2"),
+      previousKeys: ciphertext("the keys before"),
     });
     expect(mine.rekeyDue).toBeUndefined();
     expect(mine.sharing?.members).toEqual([
@@ -720,7 +720,10 @@ describe("handing a shared note's key on", () => {
     const stale = await rig.rawRequest(`/api/notes/${id}`, {
       method: "PUT",
       headers: authHeaders(bob.token),
-      body: JSON.stringify({ title: ct("Under the old key"), keyVersion: 1 }),
+      body: JSON.stringify({
+        title: ciphertext("Under the old key"),
+        keyVersion: 1,
+      }),
     });
     expect(stale.status).toBe(409);
 
@@ -739,17 +742,23 @@ describe("handing a shared note's key on", () => {
     const kept = await rig.rawRequest(`/api/notes/${id}/held-key`, {
       method: "PUT",
       headers: authHeaders(bob.token),
-      body: JSON.stringify({ key: ct("bob's copy of key 2"), keyVersion: 2 }),
+      body: JSON.stringify({
+        key: ciphertext("bob's copy of key 2"),
+        keyVersion: 2,
+      }),
     });
     expect(kept.status).toBe(200);
     expect(await sealedAs(bob, id)).toMatchObject({
-      key: ct("bob's copy of key 2"),
-      previousKeys: ct("the keys before"),
+      key: ciphertext("bob's copy of key 2"),
+      previousKeys: ciphertext("the keys before"),
     });
     const fresh = await rig.rawRequest(`/api/notes/${id}`, {
       method: "PUT",
       headers: authHeaders(bob.token),
-      body: JSON.stringify({ title: ct("Under the new key"), keyVersion: 2 }),
+      body: JSON.stringify({
+        title: ciphertext("Under the new key"),
+        keyVersion: 2,
+      }),
     });
     expect(fresh.status).toBe(200);
   });
@@ -775,14 +784,16 @@ describe("handing a shared note's key on", () => {
       owner,
       id,
       rekeyed(2, {
-        links: [{ token: stays, wrappedKey: ct("key 2, for the link") }],
+        links: [
+          { token: stays, wrappedKey: ciphertext("key 2, for the link") },
+        ],
       }),
     );
     expect(done.status).toBe(200);
     const shown = (await (
       await rig.rawRequest(`/api/public/${stays}`)
     ).json()) as PublicNoteResponse;
-    expect(shown.wrappedKey).toBe(ct("key 2, for the link"));
+    expect(shown.wrappedKey).toBe(ciphertext("key 2, for the link"));
     expect(shown.note.keyVersion).toBe(2);
   });
 
@@ -797,10 +808,10 @@ describe("handing a shared note's key on", () => {
     const put = (sealed: string) =>
       call(owner, "PUT", `/api/auth/keys/seen/${alice.userId}`, { sealed });
     expect((await put("their keys, readable")).status).toBe(422);
-    expect((await put(ct("first sight"))).status).toBe(204);
-    expect((await put(ct("agreed to since"))).status).toBe(204);
+    expect((await put(ciphertext("first sight"))).status).toBe(204);
+    expect((await put(ciphertext("agreed to since"))).status).toBe(204);
     expect(await seen(owner)).toEqual({
-      [alice.userId]: ct("agreed to since"),
+      [alice.userId]: ciphertext("agreed to since"),
     });
     // Nobody else's list.
     expect(await seen(alice)).toEqual({});
@@ -814,11 +825,14 @@ describe("handing a shared note's key on", () => {
       signing: `B${"y".repeat(86)}`,
     };
     const setup = await call(alice, "PUT", "/api/auth/keys", {
-      wrappedBySecret: ct("a"),
-      wrappedByRecovery: ct("b"),
+      wrappedBySecret: ciphertext("a"),
+      wrappedByRecovery: ciphertext("b"),
       recoveryVerifier: "v".repeat(43),
       publicKeys,
-      wrappedPrivateKeys: { exchange: ct("c"), signing: ct("d") },
+      wrappedPrivateKeys: {
+        exchange: ciphertext("c"),
+        signing: ciphertext("d"),
+      },
     });
     expect(setup.status).toBe(204);
     const res = await call(owner, "GET", `/api/users/${alice.userId}/keys`);

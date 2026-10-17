@@ -10,10 +10,10 @@ import {
   startAgain,
   type UnlockResult,
   unlock,
-} from "../../state/accountKeys.js";
-import { currentUser } from "../../state/auth.js";
-import type { ConfirmationRefusal } from "../../state/passwordConfirmation.js";
-import { signOut } from "../../state/signOut.js";
+} from "../../state/account/accountKeys.js";
+import { currentUser } from "../../state/account/auth.js";
+import type { ConfirmationRefusal } from "../../state/account/passwordConfirmation.js";
+import { signOut } from "../../state/account/signOut.js";
 import { userKeyKindOf } from "../../utils/userKey.js";
 import { BrandLogo } from "../BrandLogo.js";
 import { buttonClass } from "../buttonClasses.js";
