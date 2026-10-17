@@ -57,15 +57,15 @@ export function clearShareHash(): void {
 
 function isValidPayload(value: unknown): value is SharedNotePayload {
   if (typeof value !== "object" || value === null) return false;
-  const obj = value as Record<string, unknown>;
+  const payload = value as Record<string, unknown>;
   return (
-    typeof obj.title === "string" &&
-    typeof obj.content === "string" &&
-    typeof obj.color === "string" &&
-    NOTE_COLORS.has(obj.color) &&
-    typeof obj.font === "string" &&
-    NOTE_FONTS.has(obj.font) &&
-    Array.isArray(obj.tags) &&
-    obj.tags.every((t: unknown) => typeof t === "string")
+    typeof payload.title === "string" &&
+    typeof payload.content === "string" &&
+    typeof payload.color === "string" &&
+    NOTE_COLORS.has(payload.color) &&
+    typeof payload.font === "string" &&
+    NOTE_FONTS.has(payload.font) &&
+    Array.isArray(payload.tags) &&
+    payload.tags.every((t: unknown) => typeof t === "string")
   );
 }

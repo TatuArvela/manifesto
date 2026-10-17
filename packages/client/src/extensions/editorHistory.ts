@@ -25,7 +25,7 @@ const proseHistory: EditorHistory = { undo, redo };
 
 /**
  * The history this editor state was built with: the collaborative one when
- * `editorHistoryPlugin` is installed, ProseMirror's otherwise. Asking the
+ * `editorHistoryPlugins` are installed, ProseMirror's otherwise. Asking the
  * state, rather than whoever built the editor, keeps the toolbar from driving
  * a history plugin that is not there (it then reports nothing to undo, and
  * the buttons stay disabled for good).

@@ -16,7 +16,7 @@ import {
   ConfirmationError,
   ConfirmPasswordField,
 } from "../ConfirmWithPassword.js";
-import { KeepSheetStep } from "../KeySheet.js";
+import { KeepSheetStep } from "../login/KeySheet.js";
 import { QrCode } from "../QrCode.js";
 
 /** What each button asks the password for. */

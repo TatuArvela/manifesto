@@ -203,28 +203,35 @@ export {
   snapshotKey,
   wrapForLink,
 } from "./crypto/linkSeal.js";
-export type {
-  AccountSealKeys,
-  ImageKeys,
-  NoteSealKey,
-  OpenedSharedFields,
-  SharedSealed,
-} from "./crypto/noteSeal.js";
+export type { ImageKeys } from "./crypto/noteChecks.js";
 export {
   checkedImages,
   checkedLinkPreviews,
   checkedTags,
-  excerptOf,
+} from "./crypto/noteChecks.js";
+export type { AccountSealKeys, NoteSealKey } from "./crypto/noteKey.js";
+export {
   MAX_PREVIOUS_KEYS,
   MAX_PREVIOUS_KEYS_LENGTH,
-  NoteLimitError,
   newNoteKey,
   noteSealKey,
-  openComment,
   openNoteKey,
+  openPreviousKeys,
+  openReminderKey,
+  sealPreviousKeys,
+  unwrapImageKey,
+  unwrapNoteKey,
+  wrapForReminders,
+  wrapImageKey,
+  wrapNoteKey,
+} from "./crypto/noteKey.js";
+export type { OpenedSharedFields, SharedSealed } from "./crypto/noteSeal.js";
+export {
+  excerptOf,
+  NoteLimitError,
+  openComment,
   openPersonalFields,
   openPref,
-  openPreviousKeys,
   openSealedNote,
   openSharedFields,
   openSharedFieldsUnder,
@@ -237,18 +244,9 @@ export {
   sealNoteUpdate,
   sealPersonalFields,
   sealPref,
-  sealPreviousKeys,
   sealSharedFields,
   sealVersion,
-  unwrapImageKey,
-  unwrapNoteKey,
-  wrapImageKey,
-  wrapNoteKey,
 } from "./crypto/noteSeal.js";
-export {
-  openReminderKey,
-  wrapForReminders,
-} from "./crypto/reminderKeySeal.js";
 export {
   associatedData,
   cryptoAvailable,
@@ -262,6 +260,7 @@ export {
   sealingKey,
   unseal,
   unsealBytes,
+  unsealText,
 } from "./crypto/seal.js";
 export type { OfferContext, OfferedKey } from "./crypto/shareSeal.js";
 export {

@@ -1,11 +1,10 @@
 import {
   associatedData,
-  fromUtf8,
   type NoteSealKey,
   seal,
   sealBytes,
-  unseal,
   unsealBytes,
+  unsealText,
   utf8,
 } from "@manifesto/shared";
 import {
@@ -323,8 +322,7 @@ export function joinSealedAwareness(options: {
     }
     let held = opened.get(clientId);
     if (held?.sealed !== state.sealed) {
-      const bytes = await unseal(await key.presence(), state.sealed, data);
-      const text = bytes ? fromUtf8(bytes) : null;
+      const text = await unsealText(await key.presence(), state.sealed, data);
       let parsed: unknown = null;
       try {
         parsed = text === null ? null : JSON.parse(text);

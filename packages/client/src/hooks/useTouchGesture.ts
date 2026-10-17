@@ -59,16 +59,16 @@ export function useTouchGesture(opts: TouchGestureOptions) {
   optsRef.current = opts;
 
   const onPointerDown = (e: PointerEvent) => {
-    const o = optsRef.current;
-    if (!o.enabled) return;
+    const options = optsRef.current;
+    if (!options.enabled) return;
     if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
 
     const el = e.currentTarget as HTMLElement;
     const pointerId = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
-    const longPressMs = o.longPressMs ?? 450;
-    const dragThresholdPx = o.dragThresholdPx ?? 8;
+    const longPressMs = options.longPressMs ?? 450;
+    const dragThresholdPx = options.dragThresholdPx ?? 8;
 
     let held = false;
     let dragging = false;

@@ -17,18 +17,23 @@ function loadPlugins(): PluginSource[] {
   }
 }
 
-function isValidPlugin(p: unknown): p is PluginSource {
-  if (!p || typeof p !== "object") return false;
-  const obj = p as Record<string, unknown>;
-  if (typeof obj.id !== "string" || typeof obj.name !== "string") return false;
-  if (typeof obj.enabled !== "boolean") return false;
+function isValidPlugin(value: unknown): value is PluginSource {
+  if (!value || typeof value !== "object") return false;
+  const plugin = value as Record<string, unknown>;
+  if (typeof plugin.id !== "string" || typeof plugin.name !== "string") {
+    return false;
+  }
+  if (typeof plugin.enabled !== "boolean") return false;
   if (
-    obj.reads !== undefined &&
-    !(Array.isArray(obj.reads) && obj.reads.every((t) => typeof t === "string"))
+    plugin.reads !== undefined &&
+    !(
+      Array.isArray(plugin.reads) &&
+      plugin.reads.every((t) => typeof t === "string")
+    )
   ) {
     return false;
   }
-  const origin = obj.origin as Record<string, unknown> | undefined;
+  const origin = plugin.origin as Record<string, unknown> | undefined;
   if (!origin || typeof origin !== "object") return false;
   if (origin.kind === "inline") return typeof origin.source === "string";
   if (origin.kind === "url") {

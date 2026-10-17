@@ -105,20 +105,23 @@ const NOTE_ID = /^[0-9A-Za-z_-]{1,64}$/;
 
 function parseReminder(raw: unknown): NoteReminder | null {
   if (typeof raw !== "object" || raw === null) return null;
-  const r = raw as Record<string, unknown>;
-  if (typeof r.time !== "string") return null;
+  const reminder = raw as Record<string, unknown>;
+  if (typeof reminder.time !== "string") return null;
   return {
-    time: r.time,
+    time: reminder.time,
     recurrence:
-      typeof r.recurrence === "string" && RECURRENCES.has(r.recurrence)
-        ? (r.recurrence as NoteReminder["recurrence"])
+      typeof reminder.recurrence === "string" &&
+      RECURRENCES.has(reminder.recurrence)
+        ? (reminder.recurrence as NoteReminder["recurrence"])
         : "none",
-    ...(Number.isInteger(r.day) && Number(r.day) >= 1 && Number(r.day) <= 31
-      ? { day: Number(r.day) }
+    ...(Number.isInteger(reminder.day) &&
+    Number(reminder.day) >= 1 &&
+    Number(reminder.day) <= 31
+      ? { day: Number(reminder.day) }
       : {}),
-    timezone: typeof r.timezone === "string" ? r.timezone : "UTC",
-    ...(typeof r.lastFiredAt === "string"
-      ? { lastFiredAt: r.lastFiredAt }
+    timezone: typeof reminder.timezone === "string" ? reminder.timezone : "UTC",
+    ...(typeof reminder.lastFiredAt === "string"
+      ? { lastFiredAt: reminder.lastFiredAt }
       : {}),
   };
 }
@@ -200,14 +203,14 @@ function parseImageAlts(raw: unknown, count: number): string[] | undefined {
 
 export function isValidNoteShape(item: unknown): item is Note {
   if (typeof item !== "object" || item === null) return false;
-  const n = item as Record<string, unknown>;
+  const note = item as Record<string, unknown>;
   return (
-    typeof n.id === "string" &&
-    typeof n.title === "string" &&
-    typeof n.content === "string" &&
-    typeof n.createdAt === "string" &&
-    typeof n.updatedAt === "string" &&
-    Array.isArray(n.tags)
+    typeof note.id === "string" &&
+    typeof note.title === "string" &&
+    typeof note.content === "string" &&
+    typeof note.createdAt === "string" &&
+    typeof note.updatedAt === "string" &&
+    Array.isArray(note.tags)
   );
 }
 
@@ -274,12 +277,12 @@ export function parseNoteJson(text: string): ImportResult {
  */
 export function isNoteVersion(value: unknown): value is NoteVersion {
   if (typeof value !== "object" || value === null) return false;
-  const v = value as Record<string, unknown>;
+  const version = value as Record<string, unknown>;
   return (
-    typeof v.noteId === "string" &&
-    typeof v.title === "string" &&
-    typeof v.content === "string" &&
-    typeof v.timestamp === "string" &&
-    !Number.isNaN(Date.parse(v.timestamp))
+    typeof version.noteId === "string" &&
+    typeof version.title === "string" &&
+    typeof version.content === "string" &&
+    typeof version.timestamp === "string" &&
+    !Number.isNaN(Date.parse(version.timestamp))
   );
 }

@@ -39,9 +39,9 @@ paths:
   - "packages/client/src/test/plainSealing.ts"
   - "packages/client/src/test/sealedServer.ts"
   - "packages/client/src/components/UnopenedNotes.tsx"
-  - "packages/client/src/components/KeyScreen.tsx"
-  - "packages/client/src/components/KeySheet.tsx"
-  - "packages/client/src/components/RecoveryForms.tsx"
+  - "packages/client/src/components/login/KeyScreen.tsx"
+  - "packages/client/src/components/login/KeySheet.tsx"
+  - "packages/client/src/components/login/RecoveryForms.tsx"
   - "packages/client/src/components/settings/KeysSettings.tsx"
   - "packages/server/src/auth/accountKeys.ts"
   - "packages/server/src/openapi/keys.ts"
@@ -115,10 +115,12 @@ for any new flow that makes a key someone has to hold.
   `validation/schemas.ts` on the way in, and `sealedColumn` (`storage/noteMapping.ts`) on the way
   out, so a column's readable default is never sent as a value.
 - **What is opened is checked.** It was written by some client and checked by no server, so
-  `shared/src/crypto/noteSeal.ts` holds every opened value to what a note may hold and leaves out
-  one that fails, and refuses to seal one past those limits (`NoteLimitError`), since the server can
-  no longer count inside a field. A link preview's `domain` is among them: `checkedLinkPreviews`
-  always writes the host of its `url`, since the card shows it as where the link goes.
+  `shared/src/crypto/noteSeal.ts` holds every opened value to what a note may hold (the lists through
+  `noteChecks.ts`) and leaves out one that fails, and refuses to seal one past those limits
+  (`NoteLimitError`), since the server can no longer count inside a field. A link preview's `domain`
+  is among them: `checkedLinkPreviews` always writes the host of its `url`, since the card shows it
+  as where the link goes. The note key itself, the keys before it and an upload's key are
+  `noteKey.ts`.
 - **What waits on the device is sealed.** The composer's draft and the notes not sent yet
   (`storage/offlineNotes.ts`) are sealed under the `drafts` subkey, bound to the account, the key
   version, the kind and the record, so the device holds no readable words of them. They outlive a
@@ -338,7 +340,8 @@ since the server opens with them. A note written by a session in a test is only 
 ciphertext, so a token reads what a token wrote; `heldKeyOf` gives a recipient a real copy of a
 shared note's key.
 
-A field added to a note's words is added in `noteSeal.ts` (seal, open, check), `SealedNote`, the
+A field added to a note's words is added in `noteSeal.ts` (seal, open, check; a list's check in
+`noteChecks.ts`), `SealedNote`, the
 sealed schema and `SEALED_SHARED_NOTE_FIELDS` or the personal list, and `shareMapping.test.ts`
 fails until someone has decided which. An image's description (`Note.imageAlts`) is the one that
 is not: it is sealed inside its image's entry in the `images` list (`ImageEntry.alt`), so it has

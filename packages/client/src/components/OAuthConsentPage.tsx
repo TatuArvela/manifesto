@@ -21,7 +21,7 @@ import {
   ConfirmationError,
   ConfirmPasswordField,
 } from "./ConfirmWithPassword.js";
-import { LoginScreen } from "./LoginScreen.js";
+import { LoginScreen } from "./login/LoginScreen.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

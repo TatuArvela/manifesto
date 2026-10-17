@@ -1,5 +1,5 @@
 import { base64urlToBytes, bytesToBase64url, wipe } from "./bytes.js";
-import { type NoteSealKey, noteSealKey } from "./noteSeal.js";
+import { type NoteSealKey, noteSealKey } from "./noteKey.js";
 import {
   associatedData,
   derivable,
