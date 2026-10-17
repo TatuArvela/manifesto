@@ -161,22 +161,14 @@ describe("attaching an image", () => {
     expect(notes.value).toHaveLength(0);
   });
 
-  it("offers Draw in the menu, and attaches the drawing like any image", async () => {
+  it("offers Draw beside Add image, and attaches the drawing like any image", async () => {
     storeWith(vi.fn(async () => REF));
     const dialog = await openDraft();
-    (
-      dialog.querySelector(
-        `button[aria-label="${t("noteMenu.moreOptions")}"]`,
-      ) as HTMLElement
-    ).click();
-    const draw = await vi.waitFor(() => {
-      const row = [...document.querySelectorAll("button")].find(
-        (b) => b.textContent === t("editor.draw"),
-      );
-      expect(row).toBeTruthy();
-      return row as HTMLElement;
-    });
-    draw.click();
+    const draw = dialog.querySelector<HTMLElement>(
+      `button[aria-label="${t("editor.draw")}"]`,
+    );
+    expect(draw).not.toBeNull();
+    draw?.click();
     await vi.waitFor(() => expect(drawingRequest.value).not.toBeNull());
 
     // The pad's part is tested with the pad; here it hands over its picture.

@@ -1,5 +1,6 @@
-import type { Note, NoteColor } from "@manifesto/shared";
-import { getColorPickerColors } from "../i18n/index.js";
+import { type Note, type NoteColor, NoteFont } from "@manifesto/shared";
+import { noteFontFamilies } from "../colors.js";
+import { getColorPickerColors, getFontLabel } from "../i18n/index.js";
 import {
   addTag,
   deleteCheckedItems,
@@ -14,7 +15,7 @@ import { ReminderPickerPanel } from "./ReminderPicker.js";
 import { TagPicker, tagPickerPanelClass } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";
 
-export type CardPopoverKind = "color" | "tags" | "menu" | "reminder";
+export type CardPopoverKind = "color" | "font" | "tags" | "menu" | "reminder";
 
 type Anchor = preact.RefObject<HTMLButtonElement | null>;
 
@@ -52,17 +53,57 @@ function CardColorPicker({
   );
 }
 
-function CardMenu({
+/** The editor's font picker, from the card: the same "Aa" in each font. */
+function CardFontPicker({
   note,
   anchorRef,
   onClose,
-  onOpenReminder,
   leaving,
 }: {
   note: Note;
   anchorRef: Anchor;
   onClose: () => void;
-  onOpenReminder: () => void;
+  leaving: boolean;
+}) {
+  return (
+    <CardPopover anchorRef={anchorRef} onClose={onClose} leaving={leaving}>
+      <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1">
+        {Object.values(NoteFont).map((f) => {
+          const label = getFontLabel(f);
+          return (
+            <Tooltip key={f} label={label}>
+              <button
+                type="button"
+                class={`px-2 py-1 text-sm rounded cursor-pointer ${note.font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+                style={{ fontFamily: noteFontFamilies[f] || undefined }}
+                onClick={() => {
+                  void updateNote(note.id, { font: f });
+                  onClose();
+                }}
+                aria-label={label}
+                aria-pressed={note.font === f}
+              >
+                Aa
+              </button>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </CardPopover>
+  );
+}
+
+function CardMenu({
+  note,
+  anchorRef,
+  onClose,
+  onShowVersions,
+  leaving,
+}: {
+  note: Note;
+  anchorRef: Anchor;
+  onClose: () => void;
+  onShowVersions: (() => void) | undefined;
   leaving: boolean;
 }) {
   return (
@@ -70,7 +111,7 @@ function CardMenu({
       <div class={menuPanelClass}>
         <NoteMenu
           items={noteMenuItems(note, {
-            onOpenReminder,
+            onShowVersions,
             checkedItems: {
               present: hasCheckedItems(note.content),
               remove: () => deleteCheckedItems(note.id),
@@ -97,9 +138,11 @@ export function NoteCardPopovers({
   leaving,
   setOpen,
   colorBtnRef,
+  fontBtnRef,
   tagsBtnRef,
   menuBtnRef,
   reminderAnchorRef,
+  onShowVersions,
 }: {
   note: Note;
   shown: CardPopoverKind | null;
@@ -111,10 +154,13 @@ export function NoteCardPopovers({
       | ((open: CardPopoverKind | null) => CardPopoverKind | null),
   ) => void;
   colorBtnRef: Anchor;
+  fontBtnRef: Anchor;
   tagsBtnRef: Anchor;
   menuBtnRef: Anchor;
-  /** The reminder chip where there is one to anchor on, else the menu button. */
+  /** The reminder chip or the bell, whichever opened the picker. */
   reminderAnchorRef: Anchor;
+  /** Opens the note's editor on its history; left out where it has none. */
+  onShowVersions?: (() => void) | undefined;
 }) {
   const close = () => setOpen(null);
   return (
@@ -123,6 +169,15 @@ export function NoteCardPopovers({
         <CardColorPicker
           note={note}
           anchorRef={colorBtnRef}
+          onClose={close}
+          leaving={leaving}
+        />
+      )}
+
+      {shown === "font" && (
+        <CardFontPicker
+          note={note}
+          anchorRef={fontBtnRef}
           onClose={close}
           leaving={leaving}
         />
@@ -144,11 +199,8 @@ export function NoteCardPopovers({
         <CardMenu
           note={note}
           anchorRef={menuBtnRef}
-          // Only if the menu is still what is open: the menu closes itself
-          // after every item, and "Remind me" has by then handed over to
-          // the reminder picker, which a plain close took down with it.
-          onClose={() => setOpen((open) => (open === "menu" ? null : open))}
-          onOpenReminder={() => setOpen("reminder")}
+          onClose={close}
+          onShowVersions={onShowVersions}
           leaving={leaving}
         />
       )}

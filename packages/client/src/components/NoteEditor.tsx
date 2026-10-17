@@ -59,6 +59,8 @@ interface NoteEditorProps {
   imageAlts?: string[] | undefined;
   /** With `replaces`, in place of that image rather than after the rest. */
   onAddImages: (dataUrls: string[], replaces?: string) => void;
+  /** Pictures to attach as the editor opens, picked or drawn on the card. */
+  initialFiles?: File[] | undefined;
   onRemoveImage: (index: number) => void;
   /** Left out where the images cannot be described. */
   onDescribeImage?: ((image: string, alt: string) => void) | undefined;
@@ -122,6 +124,7 @@ export function NoteEditor({
   images,
   imageAlts,
   onAddImages,
+  initialFiles,
   onRemoveImage,
   onDescribeImage,
   linkPreviews,
@@ -176,6 +179,15 @@ export function NoteEditor({
   // to uploads that are no longer there. A layout effect, as the uploads'
   // own cleanup is: an effect's is put off until after the paint.
   useLayoutEffect(() => closeDrawing, []);
+
+  // Pictures picked or drawn on the card that opened this editor, attached
+  // once as it opens.
+  const initialFilesRef = useRef(initialFiles);
+  useEffect(() => {
+    const files = initialFilesRef.current;
+    initialFilesRef.current = undefined;
+    if (files && files.length > 0) attachFiles(files);
+  }, [attachFiles]);
 
   const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return;

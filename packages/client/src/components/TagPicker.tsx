@@ -138,7 +138,7 @@ export function SelectionTagPicker({
 }
 
 /**
- * A note's tag button: the tag icon, opening the picker above it. It stays
+ * A note's tag button: the tag icon, opening the picker below it. It stays
  * open after a tag is added, since a note often takes several at once, and the
  * one just added drops out of the suggestions.
  */
@@ -147,7 +147,7 @@ export function TagPickerButton({
   onAddTag,
   triggerClass,
   iconClass = "w-4 h-4",
-  placement = "top-start",
+  placement = "bottom-start",
 }: {
   tags: string[];
   /** Called with a normalized tag the note does not have yet. */

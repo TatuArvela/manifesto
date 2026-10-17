@@ -18,6 +18,7 @@ import {
 } from "../realtime/contentAgreement.js";
 import { useNoteYDoc } from "../realtime/yjsProvider.js";
 import { forceUpdateApp } from "../serviceWorker.js";
+import { takeEditorIntent } from "../state/editorIntent.js";
 import {
   addLinkPreviews,
   addTag,
@@ -59,6 +60,8 @@ export function NoteCardEditor({
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
+  // What the card asked for as it opened this editor, if anything.
+  const [intent] = useState(() => takeEditorIntent(note.id));
   const { ydoc, awareness, synced, outdated, unreadable } = useNoteYDoc(
     note.id,
   );
@@ -88,6 +91,13 @@ export function NoteCardEditor({
   const versionsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+
+  // Opened a render after the editor, not with it: the history's Escape has
+  // to register after the editor's, or one press would close the editor
+  // under it (see `useEscapeStack`).
+  useEffect(() => {
+    if (intent?.kind === "versions") setShowVersions(true);
+  }, [intent]);
 
   const closeVersions = () => {
     setVersionsClosing(true);
@@ -334,6 +344,7 @@ export function NoteCardEditor({
         onFontChange={(font) => updateNote(note.id, { font })}
         images={note.images}
         imageAlts={note.imageAlts}
+        initialFiles={intent?.kind === "attach" ? intent.files : undefined}
         onAddImages={async (urls, replaces) => {
           const images = await currentImages();
           if (images === null) return;

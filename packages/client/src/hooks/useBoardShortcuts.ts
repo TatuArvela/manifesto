@@ -5,6 +5,7 @@ import {
   activeView,
   archiveNote,
   moveNoteBy,
+  type NoteMoveStep,
   newNoteRequested,
   showShortcuts,
   trashNote,
@@ -58,9 +59,9 @@ function focusSearch() {
  * put back on the card's open button wherever it was focused before, since
  * the move takes its element out of the page and back.
  */
-export async function moveCard(id: string, delta: -1 | 1): Promise<void> {
+export async function moveCard(id: string, step: NoteMoveStep): Promise<void> {
   const hadFocus = focusedNoteId() === id;
-  const moved = await moveNoteBy(id, delta);
+  const moved = await moveNoteBy(id, step);
   if (!moved) return;
   boardAnnouncement.value = t("noteGrid.moved", {
     position: moved.position,

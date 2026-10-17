@@ -1,11 +1,17 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "../styles.css";
 import { t } from "../i18n/index.js";
 import { editingNoteId, notes } from "../state/index.js";
 import { NoteCard } from "./NoteCard.js";
 import { NoteCardEditor } from "./NoteCardEditor.js";
-import { NoteMenu, type NoteMenuItem, noteMenuItems } from "./NoteMenu.js";
+import {
+  arrangeMenu,
+  NoteMenu,
+  type NoteMenuItem,
+  noteMenuItems,
+} from "./NoteMenu.js";
 import { NoteReadonlyView } from "./NoteReadonlyView.js";
 
 /**
@@ -55,6 +61,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   render(null, host);
   host.remove();
   notes.value = [];
@@ -101,12 +108,14 @@ async function openKebab(root: ParentNode = host) {
   });
 }
 
-/** The rows every surface shows, in the order they share. */
+/**
+ * The rows every surface shows at the top level, in the order they share. In
+ * open mode "Share" holds one row, so that row stands in its place.
+ */
 const sharedRows = [
   t("noteMenu.shareLink"),
+  t("noteMenu.download"),
   t("noteMenu.duplicate"),
-  t("noteMenu.exportMarkdown"),
-  t("noteMenu.exportJson"),
   t("noteMenu.archive"),
 ];
 
@@ -120,8 +129,9 @@ describe("the note menu across its three surfaces", () => {
     expect(menuRows().filter((row) => sharedRows.includes(row))).toEqual(
       sharedRows,
     );
-    // The card is the only surface with a reminder picker to open from here.
-    expect(menuRows()).toContain(t("noteMenu.reminder"));
+    // The bell is on the card's toolbar, as on the editor's, not in here.
+    expect(menuRows()).not.toContain(t("reminder.set"));
+    expect(menuRows()).toContain(t("noteMenu.versionHistory"));
     expect(menuRows()).toContain(t("noteMenu.delete"));
   });
 
@@ -180,8 +190,13 @@ describe("a note shared with the user", () => {
   });
   const checkedItems = { present: true, remove: () => {} };
   const datedItems = { present: true, sort: () => {} };
+  /** Every row's id, those inside a submenu included. */
   const ids = (note: Note) =>
-    noteMenuItems(note, { checkedItems, datedItems }).map((item) => item.id);
+    noteMenuItems(note, { checkedItems, datedItems }).flatMap((item) =>
+      item.kind === "submenu"
+        ? [item.id, ...item.items.map((row) => row.id)]
+        : [item.id],
+    );
 
   it("offers the recipient's own trash, as for a note of their own", () => {
     expect(ids(makeNote({ sharing: sharing("view") }))).toContain("trash");
@@ -204,9 +219,11 @@ describe("a note shared with the user", () => {
       "sort-by-date",
     );
     expect(
-      noteMenuItems(makeNote(), {
-        datedItems: { present: false, sort: () => {} },
-      }).map((item) => item.id),
+      arrangeMenu(
+        noteMenuItems(makeNote(), {
+          datedItems: { present: false, sort: () => {} },
+        }),
+      ).map((item) => item.id),
     ).not.toContain("sort-by-date");
   });
 
@@ -310,5 +327,189 @@ describe("NoteMenu dividers", () => {
         row("b"),
       ]),
     ).toBe(1);
+  });
+});
+
+describe("submenus", () => {
+  const row = (id: string, fullLabel?: string): NoteMenuItem => ({
+    id,
+    icon: <span />,
+    label: id,
+    ...(fullLabel ? { fullLabel } : {}),
+    onSelect: () => {},
+  });
+  const sub = (items: NoteMenuItem[]): NoteMenuItem => ({
+    kind: "submenu",
+    id: "group",
+    icon: <span />,
+    label: "group",
+    items: items.filter((item) => item.kind !== "submenu"),
+  });
+
+  it("keeps a submenu of two rows", () => {
+    expect(arrangeMenu([sub([row("a"), row("b")])])).toMatchObject([
+      { kind: "submenu", id: "group" },
+    ]);
+  });
+
+  it("puts a submenu's only row in its place, under its full label", () => {
+    expect(arrangeMenu([sub([row("later", "Move later")])])).toMatchObject([
+      { id: "later", label: "Move later" },
+    ]);
+  });
+
+  it("drops an empty submenu, and the rule it leaves stranded", () => {
+    expect(
+      arrangeMenu([
+        row("a"),
+        { kind: "divider", id: "d" },
+        sub([{ kind: "divider", id: "inner" }]),
+      ]).map((item) => item.id),
+    ).toEqual(["a"]);
+  });
+});
+
+/**
+ * Says whether the pointer can hover, which decides where a submenu opens:
+ * beside the menu for a mouse, in its place for a finger.
+ */
+function pointerCanHover(can: boolean) {
+  const real = window.matchMedia.bind(window);
+  vi.spyOn(window, "matchMedia").mockImplementation((query) =>
+    query.includes("hover: hover")
+      ? ({
+          matches: can,
+          media: query,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        } as unknown as MediaQueryList)
+      : real(query),
+  );
+}
+
+function pressKey(key: string) {
+  (document.activeElement ?? document).dispatchEvent(
+    new KeyboardEvent("keydown", { key, bubbles: true }),
+  );
+}
+
+describe("a submenu on a touch screen", () => {
+  beforeEach(() => pointerCanHover(false));
+
+  it("opens in place and comes back", async () => {
+    const note = makeNote();
+    storeNote(note);
+    render(<NoteCard note={note} />, host);
+    await openKebab();
+
+    clickRow(t("noteMenu.download"));
+    await vi.waitFor(() => {
+      expect(menuRows()).toEqual([
+        t("noteMenu.download"),
+        t("noteMenu.markdownFile"),
+        t("noteMenu.jsonFile"),
+      ]);
+    });
+    // Focus follows into the submenu, or a keyboard is left on nothing.
+    expect(document.activeElement?.textContent?.trim()).toBe(
+      t("noteMenu.markdownFile"),
+    );
+
+    clickRow(t("noteMenu.download"));
+    await vi.waitFor(() => {
+      expect(menuRows()).toContain(t("noteMenu.archive"));
+    });
+    expect(document.activeElement?.textContent?.trim()).toBe(
+      t("noteMenu.download"),
+    );
+  });
+
+  it("takes Escape back out before closing the menu", async () => {
+    const note = makeNote();
+    storeNote(note);
+    render(<NoteCard note={note} />, host);
+    await openKebab();
+
+    clickRow(t("noteMenu.download"));
+    await vi.waitFor(() => {
+      expect(menuRows()).toContain(t("noteMenu.jsonFile"));
+    });
+    pressKey("Escape");
+
+    await vi.waitFor(() => {
+      expect(menuRows()).toContain(t("noteMenu.archive"));
+    });
+  });
+});
+
+describe("a submenu with a mouse", () => {
+  beforeEach(() => pointerCanHover(true));
+
+  it("opens beside the menu, which keeps its rows", async () => {
+    const note = makeNote();
+    storeNote(note);
+    render(<NoteCard note={note} />, host);
+    await openKebab();
+
+    clickRow(t("noteMenu.download"));
+    const flyout = await vi.waitFor(() => {
+      const el = openMenuPanel().querySelector<HTMLElement>(".menu-flyout");
+      if (!el) throw new Error("no flyout");
+      return el;
+    });
+    expect(menuRows()).toContain(t("noteMenu.archive"));
+    expect(flyout.textContent).toContain(t("noteMenu.jsonFile"));
+    // Beside the panel, lapping 10px over its edge.
+    const panel = openMenuPanel().getBoundingClientRect();
+    await vi.waitFor(() => {
+      const box = flyout.getBoundingClientRect();
+      const overlap =
+        flyout.dataset.side === "left"
+          ? box.right - panel.left
+          : panel.right - box.left;
+      expect(overlap).toBeCloseTo(10, 0);
+    });
+    expect(document.activeElement?.textContent?.trim()).toBe(
+      t("noteMenu.markdownFile"),
+    );
+  });
+
+  it("goes with the left arrow, handing focus back to its row", async () => {
+    const note = makeNote();
+    storeNote(note);
+    render(<NoteCard note={note} />, host);
+    await openKebab();
+
+    clickRow(t("noteMenu.download"));
+    await vi.waitFor(() => {
+      expect(document.activeElement?.textContent?.trim()).toBe(
+        t("noteMenu.markdownFile"),
+      );
+    });
+    pressKey("ArrowLeft");
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".menu-flyout")).toBeNull();
+    });
+    expect(document.activeElement?.textContent?.trim()).toBe(
+      t("noteMenu.download"),
+    );
+  });
+
+  it("opens from its row with the right arrow", async () => {
+    const note = makeNote();
+    storeNote(note);
+    render(<NoteCard note={note} />, host);
+    await openKebab();
+
+    const row = [...openMenuPanel().querySelectorAll("button")].find(
+      (el) => el.textContent?.trim() === t("noteMenu.download"),
+    );
+    row?.focus();
+    pressKey("ArrowRight");
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".menu-flyout")).not.toBeNull();
+    });
   });
 });

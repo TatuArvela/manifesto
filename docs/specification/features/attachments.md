@@ -18,7 +18,7 @@ carries a few dozen bytes per image. `StoredImage` draws either kind through a `
 
 ## Drawings
 
-**Draw** in an open note's menu opens a drawing pad: a sheet of white paper to draw on with a finger, a
+**Draw**, the pen beside the add-image button in an open note's toolbar, opens a drawing pad: a sheet of white paper to draw on with a finger, a
 pen or a mouse. Done puts the drawing on the note as a PNG image, through the same path as an attached
 picture, so it is stored, shown, shared and exported like one, and takes one of the note's image slots.
 

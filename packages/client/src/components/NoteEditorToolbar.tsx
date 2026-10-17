@@ -92,19 +92,81 @@ export function NoteEditorToolbar({
     setShowMenu(false);
   };
 
-  // Rendered in one of two places, see below.
-  const imageButton = (
-    <Tooltip label={t("editor.addImage")}>
+  // Rendered in one of two places, see below. Drawing sits beside the
+  // picture it makes, rather than in the menu where it was found by nobody
+  // looking for a way to add one.
+  const imageButtons = (
+    <>
+      <Tooltip label={t("editor.addImage")}>
+        <button
+          type="button"
+          class={editorBtnClass}
+          onClick={() => fileInputRef.current?.click()}
+          aria-label={t("editor.addImage")}
+          disabled={disabled}
+        >
+          <ImageIcon class={editorIconClass} />
+        </button>
+      </Tooltip>
+      {onDraw && (
+        <Tooltip label={t("editor.draw")}>
+          <button
+            type="button"
+            class={editorBtnClass}
+            onClick={() => {
+              closeAllMenus();
+              onDraw();
+            }}
+            aria-label={t("editor.draw")}
+            disabled={disabled}
+          >
+            <PenLine class={editorIconClass} />
+          </button>
+        </Tooltip>
+      )}
+    </>
+  );
+
+  // The font and raw-mode controls the phone's bar has no room for, above
+  // the menu's own rows and gone with them while a submenu is open.
+  const phoneRows = (
+    <>
+      <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
+        {t("editor.font")}
+      </div>
+      <div class="sm:hidden flex gap-1 px-3 pb-2">
+        {Object.values(NoteFont).map((f) => {
+          const label = getFontLabel(f);
+          return (
+            <button
+              key={f}
+              type="button"
+              class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+              style={{ fontFamily: noteFontFamilies[f] || undefined }}
+              onClick={() => onFontChange(f)}
+              aria-label={label}
+            >
+              Aa
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Raw / Normal mode toggle (mobile only) */}
       <button
         type="button"
-        class={editorBtnClass}
-        onClick={() => fileInputRef.current?.click()}
-        aria-label={t("editor.addImage")}
-        disabled={disabled}
+        class={`sm:hidden ${menuItemClass}`}
+        onClick={() => {
+          onToggleRawMode();
+          closeAllMenus();
+        }}
       >
-        <ImageIcon class={editorIconClass} />
+        {rawMode ? <Eye class="w-4 h-4" /> : <Code class="w-4 h-4" />}
+        {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
       </button>
-    </Tooltip>
+
+      <div class={`sm:hidden ${menuDividerClass}`} />
+    </>
   );
 
   return (
@@ -129,7 +191,7 @@ export function NoteEditorToolbar({
               </button>
             </Tooltip>
           }
-          placement="top-start"
+          placement="bottom-start"
           panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
         >
           {pickerColors.map((c) => (
@@ -166,7 +228,7 @@ export function NoteEditorToolbar({
                 </button>
               </Tooltip>
             }
-            placement="top-start"
+            placement="bottom-start"
             panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
           >
             {Object.values(NoteFont).map((f) => {
@@ -192,7 +254,7 @@ export function NoteEditorToolbar({
         </div>
 
         {/* The second tool on a phone. A new note has no reminder, so there
-            the image button takes its place. */}
+            the image buttons take its place. */}
         {onReminderChange ? (
           <ReminderPicker
             reminder={reminder ?? null}
@@ -201,14 +263,14 @@ export function NoteEditorToolbar({
             iconClass={editorIconClass}
           />
         ) : (
-          imageButton
+          imageButtons
         )}
       </div>
 
       {/* `grow` so that on a row of its own it still spans the bar. It does
           not wrap inside itself, so it only ever moves as a whole. */}
       <div class="grow flex items-center gap-0.5">
-        {onReminderChange && imageButton}
+        {onReminderChange && imageButtons}
         <input
           ref={fileInputRef}
           type="file"
@@ -248,66 +310,15 @@ export function NoteEditorToolbar({
               </button>
             </Tooltip>
           }
-          placement="top-start"
+          placement="bottom-start"
           panelClass={menuPanelClass}
         >
-          <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
-            {t("editor.font")}
-          </div>
-          <div class="sm:hidden flex gap-1 px-3 pb-2">
-            {Object.values(NoteFont).map((f) => {
-              const label = getFontLabel(f);
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  class={`px-2 py-1 text-sm rounded cursor-pointer ${font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                  style={{ fontFamily: noteFontFamilies[f] || undefined }}
-                  onClick={() => onFontChange(f)}
-                  aria-label={label}
-                >
-                  Aa
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Raw / Normal mode toggle (mobile only) */}
-          <button
-            type="button"
-            class={`sm:hidden ${menuItemClass}`}
-            onClick={() => {
-              onToggleRawMode();
-              closeAllMenus();
-            }}
-          >
-            {rawMode ? <Eye class="w-4 h-4" /> : <Code class="w-4 h-4" />}
-            {rawMode ? t("editor.normalMode") : t("editor.rawMode")}
-          </button>
-
-          <div class={`sm:hidden ${menuDividerClass}`} />
-
-          {/* In the menu rather than on the bar: a phone's bar has no room
-              for another tool, and a drawing is made far less often than a
-              picture is attached. */}
-          {onDraw && !disabled && (
-            <>
-              <button
-                type="button"
-                class={menuItemClass}
-                onClick={() => {
-                  onDraw();
-                  closeAllMenus();
-                }}
-              >
-                <PenLine class="w-4 h-4" />
-                {t("editor.draw")}
-              </button>
-              <div class={menuDividerClass} />
-            </>
-          )}
-
-          <NoteMenu items={menuItems} onClose={() => setShowMenu(false)} />
+          <NoteMenu
+            items={menuItems}
+            onClose={() => setShowMenu(false)}
+            open={showMenu}
+            before={phoneRows}
+          />
         </Dropdown>
 
         {/* Normal / Raw mode toggle (desktop only; on mobile, lives in the kebab menu) */}

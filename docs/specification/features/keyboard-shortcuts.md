@@ -20,8 +20,9 @@ card leaves the board (`e`, `#`), focus moves to its neighbour so the next press
 Moving a card is the keyboard's way of doing what dragging does, so it works where dragging does
 (`canReorder`: the notes or auto-notes view in manual order, with no search) and keeps the card within
 its section, pinned or not. Focus stays on the moved card, and a screen reader hears where it landed
-("Moved to 3 of 10"). The card menu offers the same as "Move earlier" and "Move later", for anyone who
-uses neither a pointer that can drag nor these keys.
+("Moved to 3 of 10"). The card menu offers the same under "Move", along with "To the start" and "To
+the end" of the section, for anyone who uses neither a pointer that can drag nor these keys. Where
+the card can go only one way, that one row stands in the menu itself.
 
 ## When shortcuts are off
 

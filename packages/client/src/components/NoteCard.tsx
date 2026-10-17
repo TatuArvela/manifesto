@@ -9,6 +9,8 @@ import { useNoteImages } from "../hooks/useNoteImages.js";
 import { usePresence } from "../hooks/usePresence.js";
 import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
 import { formatDate, t } from "../i18n/index.js";
+import { requestDrawing } from "../state/drawing.js";
+import { openNoteWith } from "../state/editorIntent.js";
 import {
   activeView,
   editingNoteId,
@@ -101,9 +103,18 @@ export const NoteCard = memo(function NoteCard({
   const togglePopover = (kind: CardPopoverKind) =>
     setOpenPopover(openPopover === kind ? null : kind);
   const colorBtnRef = useRef<HTMLButtonElement>(null);
+  const fontBtnRef = useRef<HTMLButtonElement>(null);
   const tagsBtnRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
+  const reminderBtnRef = useRef<HTMLButtonElement>(null);
+  // The reminder picker hangs from whichever opened it: the bell on the
+  // toolbar or the reminder's own chip on the card.
+  const [reminderFromChip, setReminderFromChip] = useState(false);
+  const toggleReminder = (fromChip: boolean) => {
+    setReminderFromChip(fromChip);
+    togglePopover("reminder");
+  };
   const baseColors = noteColorMap[note.color];
   const autoColors = autoNoteColorMap[note.color];
   const colors = note.readonly
@@ -148,6 +159,17 @@ export const NoteCard = memo(function NoteCard({
   // focus trap with nothing to hand focus back to on close. Reopening while
   // already editing is `handleClick`'s guard, not this one's.
   const cardActivates = isSelectMode || !isTrashView;
+
+  // Whether pressing the card opens the editor, rather than the read-only
+  // view or nothing. The card's picture, drawing and version history rows
+  // hand over to the editor, so they are offered only where there is one.
+  const opensEditor = !isTrashView && !note.readonly && !viewOnly;
+  const attachFromCard = (files: File[]) =>
+    openNoteWith(note.id, { kind: "attach", files });
+  const drawFromCard = () =>
+    requestDrawing((file) =>
+      openNoteWith(note.id, { kind: "attach", files: [file] }),
+    );
   const cardLabel = cardName(note) || t("noteCard.untitled");
 
   const handleSelectClick = (e: Event) => {
@@ -203,6 +225,10 @@ export const NoteCard = memo(function NoteCard({
             "w-full max-w-sm mx-auto",
         )}
         data-leaving={leaving}
+        // A card with one of its menus open keeps the look of a hovered one.
+        // The menu's backdrop covers the card, so the pointer is no longer
+        // over it, and its buttons faded out from under the menu they opened.
+        data-popover-open={openPopover !== null || undefined}
         data-note-id={note.id}
         onAnimationEnd={(e) => {
           if (e.target === e.currentTarget) setPinSettling(false);
@@ -244,7 +270,7 @@ export const NoteCard = memo(function NoteCard({
               : !isTrashView
                 ? "p-4 pb-2"
                 : "p-4",
-            "shadow-sm group-hover:shadow-lg",
+            "shadow-sm group-hover:shadow-lg group-data-popover-open:shadow-lg",
             // Gone while it morphs into the editor, since the editor is it;
             // a ghost of it otherwise, to show where the note lives.
             open && !closing && (morphing ? "opacity-0" : "opacity-20"),
@@ -324,7 +350,7 @@ export const NoteCard = memo(function NoteCard({
             viewOnly={viewOnly}
             reminderChipRef={reminderChipRef}
             reminderOpen={openPopover === "reminder"}
-            onToggleReminder={() => togglePopover("reminder")}
+            onToggleReminder={() => toggleReminder(true)}
           />
 
           <CardActions
@@ -333,12 +359,20 @@ export const NoteCard = memo(function NoteCard({
             isSelectMode={isSelectMode}
             overlay={overlayControls}
             colorBtnRef={colorBtnRef}
+            fontBtnRef={fontBtnRef}
+            reminderBtnRef={reminderBtnRef}
             tagsBtnRef={tagsBtnRef}
             menuBtnRef={menuBtnRef}
             openPopover={openPopover}
             onToggleColorPicker={() => togglePopover("color")}
+            onToggleFontPicker={
+              opensEditor ? () => togglePopover("font") : undefined
+            }
+            onToggleReminder={() => toggleReminder(false)}
             onToggleTags={() => togglePopover("tags")}
             onToggleMenu={() => togglePopover("menu")}
+            onAttach={opensEditor ? attachFromCard : undefined}
+            onDraw={opensEditor ? drawFromCard : undefined}
           />
 
           {isTrashView && note.trashedAt && (
@@ -354,10 +388,18 @@ export const NoteCard = memo(function NoteCard({
           leaving={popoverLeaving}
           setOpen={setOpenPopover}
           colorBtnRef={colorBtnRef}
+          fontBtnRef={fontBtnRef}
           tagsBtnRef={tagsBtnRef}
           menuBtnRef={menuBtnRef}
           reminderAnchorRef={
-            note.reminder && !isLinkOnly ? reminderChipRef : menuBtnRef
+            reminderFromChip && note.reminder && !isLinkOnly
+              ? reminderChipRef
+              : reminderBtnRef
+          }
+          onShowVersions={
+            opensEditor
+              ? () => openNoteWith(note.id, { kind: "versions" })
+              : undefined
           }
         />
       </div>

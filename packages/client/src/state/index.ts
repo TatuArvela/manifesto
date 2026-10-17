@@ -17,6 +17,7 @@ export {
   type LeaveStyle,
   leavingNotes,
   moveNoteBy,
+  type NoteMoveStep,
   noteMoveTarget,
   permanentlyDeleteNote,
   recentlyPinned,

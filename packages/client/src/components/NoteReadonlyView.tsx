@@ -256,7 +256,7 @@ export function NoteReadonlyView({
               </button>
             </Tooltip>
           }
-          placement="top-start"
+          placement="bottom-start"
           panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1"
         >
           {pickerColors.map((c) => (
@@ -306,12 +306,13 @@ export function NoteReadonlyView({
               </button>
             </Tooltip>
           }
-          placement="top-start"
+          placement="bottom-start"
           panelClass={menuPanelClass}
         >
           <NoteMenu
             items={noteMenuItems(note, { onDismiss: onClose })}
             onClose={() => setShowMenu(false)}
+            open={showMenu}
           />
         </Dropdown>
 

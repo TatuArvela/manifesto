@@ -2,17 +2,22 @@ import type { Note } from "@manifesto/shared";
 import clsx from "clsx";
 import {
   Archive,
+  Bell,
   EllipsisVertical,
+  Image as ImageIcon,
   Palette,
+  PenLine,
   Pin,
   PinOff,
   RefreshCw,
   Sparkles,
   Tag,
   Trash2,
+  Type,
   Undo2,
   X,
 } from "lucide-preact";
+import { useRef } from "preact/hooks";
 import { plugins } from "../autoNotes/registry.js";
 import { t } from "../i18n/index.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
@@ -46,7 +51,7 @@ export function CardSelectButton({
         // focus ring on something invisible leaves nothing to look at.
         isSelectMode || isSelected
           ? "opacity-100"
-          : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100",
+          : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100",
         "transition-opacity duration-200",
       )}
     >
@@ -105,7 +110,7 @@ export function CardStatusBar({
         // shadow of their own rather than joining the neutral ramp.
         overlay
           ? "text-white [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.7))]"
-          : "text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
+          : "text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-data-popover-open:text-neutral-800 dark:group-data-popover-open:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
         // Faded rather than switched, both ways. Visibility is in the
         // transition so it waits for the fade out, and still hides the
         // buttons from Tab once it has finished.
@@ -117,7 +122,7 @@ export function CardStatusBar({
         <Tooltip label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}>
           <button
             type="button"
-            class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100"} transition-opacity`}
+            class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100"} transition-opacity`}
             onClick={() => togglePin(note.id)}
             aria-label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
           >
@@ -151,7 +156,8 @@ export function CardStatusBar({
   );
 }
 
-/** The row of buttons along a card's foot: colour, tags and the menu, or
+/** The row of buttons along a card's foot, in the editor toolbar's order:
+ * colour, font, reminder, pictures, tags and the menu; or
  * restore and delete in the trash. */
 export function CardActions({
   note,
@@ -159,26 +165,45 @@ export function CardActions({
   isSelectMode,
   overlay,
   colorBtnRef,
+  fontBtnRef,
+  reminderBtnRef,
   tagsBtnRef,
   menuBtnRef,
   openPopover,
   onToggleColorPicker,
+  onToggleFontPicker,
+  onToggleReminder,
   onToggleTags,
   onToggleMenu,
+  onAttach,
+  onDraw,
 }: {
   note: Note;
   isTrashView: boolean;
   isSelectMode: boolean;
   overlay?: boolean;
   colorBtnRef: preact.Ref<HTMLButtonElement>;
+  fontBtnRef: preact.Ref<HTMLButtonElement>;
+  reminderBtnRef: preact.Ref<HTMLButtonElement>;
   tagsBtnRef: preact.Ref<HTMLButtonElement>;
   menuBtnRef: preact.Ref<HTMLButtonElement>;
   /** Which of the card's panels is open, for its button's `aria-expanded`. */
   openPopover: CardPopoverKind | null;
   onToggleColorPicker: () => void;
+  /** Left out where the note's font is not this reader's to change. */
+  onToggleFontPicker?: (() => void) | undefined;
+  onToggleReminder: () => void;
   onToggleTags: () => void;
   onToggleMenu: () => void;
+  /**
+   * Adds the pictures and the drawing buttons, which open the editor with
+   * what was picked or drawn on its way in. Left out where the note cannot
+   * take images.
+   */
+  onAttach?: ((files: File[]) => void) | undefined;
+  onDraw?: (() => void) | undefined;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions: event stop container */
     /* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */
@@ -190,7 +215,7 @@ export function CardActions({
           : "mt-auto pt-3 -ml-1.5",
         isSelectMode
           ? "invisible opacity-0"
-          : "opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100",
+          : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100",
       )}
       onClick={(e) => {
         if (e.target !== e.currentTarget) e.stopPropagation();
@@ -271,6 +296,78 @@ export function CardActions({
               <Palette class="w-4 h-4" />
             </button>
           </Tooltip>
+          {onToggleFontPicker && (
+            <Tooltip label={t("editor.font")}>
+              <button
+                ref={fontBtnRef}
+                type="button"
+                class={iconBtnClass}
+                onClick={onToggleFontPicker}
+                aria-label={t("editor.changeFont")}
+                aria-expanded={openPopover === "font"}
+              >
+                <Type class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          )}
+          {/* In the editor's order: colour, font, reminder, pictures. */}
+          <Tooltip
+            label={note.reminder ? t("reminder.edit") : t("reminder.set")}
+          >
+            <button
+              ref={reminderBtnRef}
+              type="button"
+              class={iconBtnClass}
+              onClick={onToggleReminder}
+              aria-label={
+                note.reminder ? t("reminder.edit") : t("reminder.set")
+              }
+              aria-expanded={openPopover === "reminder"}
+            >
+              <Bell class="w-4 h-4" />
+            </button>
+          </Tooltip>
+          {onAttach && (
+            <>
+              <Tooltip label={t("editor.addImage")}>
+                <button
+                  type="button"
+                  class={iconBtnClass}
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label={t("editor.addImage")}
+                >
+                  <ImageIcon class="w-4 h-4" />
+                </button>
+              </Tooltip>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                class="hidden"
+                onChange={(e) => {
+                  const input = e.currentTarget;
+                  const files = [...(input.files ?? [])].filter((f) =>
+                    f.type.startsWith("image/"),
+                  );
+                  input.value = "";
+                  if (files.length > 0) onAttach(files);
+                }}
+              />
+            </>
+          )}
+          {onDraw && (
+            <Tooltip label={t("editor.draw")}>
+              <button
+                type="button"
+                class={iconBtnClass}
+                onClick={onDraw}
+                aria-label={t("editor.draw")}
+              >
+                <PenLine class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          )}
           <Tooltip label={t("noteMenu.tags")}>
             <button
               ref={tagsBtnRef}
