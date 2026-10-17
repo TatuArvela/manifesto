@@ -3,6 +3,7 @@ paths:
   - "packages/client/src/state/**"
   - "packages/client/src/storage/**"
   - "packages/client/src/components/NoteInput.tsx"
+  - "packages/client/src/hooks/useComposerFields.ts"
   - "packages/client/src/components/UnsentNotes.tsx"
 ---
 
