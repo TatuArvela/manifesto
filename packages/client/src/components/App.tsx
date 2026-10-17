@@ -2,6 +2,7 @@ import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useBoardShortcuts } from "../hooks/useBoardShortcuts.js";
+import { useFileDropImport } from "../hooks/useFileDropImport.js";
 import { useLazyModule } from "../hooks/useLazyModule.js";
 import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -12,7 +13,7 @@ import {
   usePaneSlide,
   useViewTransition,
 } from "../hooks/useViewTransition.js";
-import { plural, t } from "../i18n/index.js";
+import { t } from "../i18n/index.js";
 import { startAppSocket } from "../realtime/appSocket.js";
 import { revealApp } from "../splash.js";
 import {
@@ -35,13 +36,7 @@ import { initAutoNotes } from "../state/autoNotes.js";
 import { initBoardBackground } from "../state/board.js";
 import { closeDrawing, drawingRequest } from "../state/drawing.js";
 import { takeIncomingShare } from "../state/incomingShare.js";
-import {
-  createNote,
-  importNotes,
-  loadNotes,
-  notes,
-  updateNote,
-} from "../state/notesStore.js";
+import { loadNotes, notes, updateNote } from "../state/notesStore.js";
 import { animations, stickyTopBar, viewMode } from "../state/prefs.js";
 import { startPrefsSync } from "../state/prefsSync.js";
 import { publicLinksDialog } from "../state/publicLinks.js";
@@ -56,12 +51,9 @@ import {
   showError,
   showSettings,
   showShortcuts,
-  showSuccess,
   showWelcome,
 } from "../state/ui.js";
-import { restoreVersions } from "../state/versions.js";
 import { welcomeIfNew } from "../state/welcome.js";
-import { importFiles, isImportableFile } from "../utils/importExport.js";
 import {
   decodeShareFromHash,
   type SharedNotePayload,
@@ -157,7 +149,7 @@ function useOidcRedirectOnce(blockUntilDone: boolean): boolean {
 
 function MainApp() {
   const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
-  const [dragActive, setDragActive] = useState(false);
+  const dragActive = useFileDropImport();
   const mainRef = useRef<HTMLElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<HTMLElement>(null);
@@ -233,70 +225,6 @@ function MainApp() {
       window.removeEventListener("reminder:open-note", openHandler);
       stopAutoNotes();
       stopBoardBackground();
-    };
-  }, []);
-
-  useEffect(() => {
-    let dragDepth = 0;
-    const hasFiles = (e: DragEvent) =>
-      Array.from(e.dataTransfer?.types ?? []).includes("Files");
-
-    const onDragEnter = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      dragDepth++;
-      setDragActive(true);
-    };
-    const onDragOver = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
-    };
-    const onDragLeave = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      dragDepth = Math.max(0, dragDepth - 1);
-      if (dragDepth === 0) setDragActive(false);
-    };
-    const onDrop = async (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      dragDepth = 0;
-      setDragActive(false);
-      const files = [...(e.dataTransfer?.files ?? [])].filter(isImportableFile);
-      if (files.length === 0) {
-        showError(t("settings.data.importFailed"));
-        return;
-      }
-      const summary = await importFiles(files, {
-        createNote: (input) => createNote(input),
-        importBulk: (n) => importNotes(n),
-        importVersions: (versions) => restoreVersions(versions),
-      });
-      if (summary.bulkCount > 0) {
-        showSuccess(plural("settings.data.importedCount", summary.bulkCount));
-      } else if (summary.singleCount === 1) {
-        showSuccess(t("settings.data.importedSingle"));
-      } else if (summary.singleCount > 1) {
-        showSuccess(plural("settings.data.importedCount", summary.singleCount));
-      }
-      if (
-        summary.failedCount > 0 &&
-        summary.bulkCount + summary.singleCount === 0
-      ) {
-        showError(t("settings.data.importFailed"));
-      }
-    };
-
-    window.addEventListener("dragenter", onDragEnter);
-    window.addEventListener("dragover", onDragOver);
-    window.addEventListener("dragleave", onDragLeave);
-    window.addEventListener("drop", onDrop);
-    return () => {
-      window.removeEventListener("dragenter", onDragEnter);
-      window.removeEventListener("dragover", onDragOver);
-      window.removeEventListener("dragleave", onDragLeave);
-      window.removeEventListener("drop", onDrop);
     };
   }, []);
 
