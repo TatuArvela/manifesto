@@ -1,11 +1,13 @@
-import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { useAccountCheck } from "#/hooks/useAccountCheck.ts";
+import { useAppServices } from "#/hooks/useAppServices.ts";
 import { useBoardShortcuts } from "#/hooks/useBoardShortcuts.ts";
 import { useFileDropImport } from "#/hooks/useFileDropImport.ts";
 import { useLazyModule } from "#/hooks/useLazyModule.ts";
 import { useMarqueeSelection } from "#/hooks/useMarqueeSelection.ts";
 import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
+import { useNoteFromReminder } from "#/hooks/useNoteFromReminder.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { useScrollAwayBar } from "#/hooks/useScrollAwayBar.ts";
 import {
@@ -14,46 +16,30 @@ import {
   useViewTransition,
 } from "#/hooks/useViewTransition.ts";
 import { t } from "#/i18n/index.ts";
-import { startAppSocket } from "#/realtime/appSocket.ts";
 import { revealApp } from "#/splash.ts";
 import {
   keyState,
   takeSecretKeyFromAddress,
 } from "#/state/account/accountKeys.ts";
-import { startAccountLocaleReport } from "#/state/account/accountLocale.ts";
 import {
   authToken,
   consumeOidcRedirect,
-  currentUser,
-  fetchCapabilities,
   isServerMode,
-  refreshCurrentUser,
   takeSignInLinkToken,
 } from "#/state/account/auth.ts";
 import { takeConsentPage } from "#/state/account/oauth.ts";
-import { checkForUpdate } from "#/state/admin.ts";
-import { initAutoNotes } from "#/state/autoNotes.ts";
-import { initBoardBackground } from "#/state/board.ts";
 import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
-import { takeIncomingShare } from "#/state/incomingShare.ts";
-import { loadNotes, notes, updateNote } from "#/state/notesStore.ts";
 import { animations, stickyTopBar, viewMode } from "#/state/prefs.ts";
-import { startPrefsSync } from "#/state/prefsSync.ts";
 import { publicLinksDialog } from "#/state/publicLinks.ts";
-import { ensurePushSubscription } from "#/state/pushSubscription.ts";
-import { initReminderScheduler } from "#/state/reminderScheduler.ts";
-import { initRouter } from "#/state/router.ts";
-import { loadInvitations, shareDialog } from "#/state/sharing.ts";
+import { shareDialog } from "#/state/sharing.ts";
 import {
   activeView,
-  editingNoteId,
   selectMode,
   showError,
   showSettings,
   showShortcuts,
   showWelcome,
 } from "#/state/ui.ts";
-import { welcomeIfNew } from "#/state/welcome.ts";
 import {
   decodeShareFromHash,
   type SharedNotePayload,
@@ -169,73 +155,15 @@ function MainApp() {
   useEffect(() => {
     void loadEditor();
   }, []);
-  // Whether the saved user has been checked against the server. Admin rights
-  // can change while signed out, so the `/admin` route waits for the answer
-  // before deciding someone does not belong on it.
-  const [userChecked, setUserChecked] = useState(!isServerMode);
-
+  useAppServices();
+  useNoteFromReminder();
+  // A note sent as a link travels in the fragment; it opens in a dialog.
   useEffect(() => {
-    initRouter();
-    startAppSocket();
-    if (isServerMode) startPrefsSync();
-    // The board is empty until the notes are in, so that, not this render,
-    // is when the loading screen can go. A failed load is ready too: its
-    // toast is what there is to see.
-    void loadNotes().then(revealApp);
-    const stopAutoNotes = initAutoNotes(() => notes.value);
-    const stopBoardBackground = initBoardBackground();
-    initReminderScheduler({
-      notes: () => notes.value,
-      subscribe: (listener) => effect(() => listener(notes.value)),
-      updateNote: (id, changes) => {
-        void updateNote(id, changes);
-      },
-    });
-    const openHandler = (event: Event) => {
-      const detail = (event as CustomEvent<{ noteId: string }>).detail;
-      if (detail?.noteId) editingNoteId.value = detail.noteId;
-    };
-    window.addEventListener("reminder:open-note", openHandler);
-    // A notification tapped with no window open starts the app on
-    // `?note=<id>` (sw.ts). Taken once and removed, so a reload does not open
-    // the note again.
-    const launchUrl = new URL(window.location.href);
-    const launchNoteId = launchUrl.searchParams.get("note");
-    if (launchNoteId) {
-      editingNoteId.value = launchNoteId;
-      launchUrl.searchParams.delete("note");
-      history.replaceState(history.state, "", launchUrl.href);
-    }
-    void takeIncomingShare();
     const payload = decodeShareFromHash(window.location.hash);
     if (payload) setSharedNote(payload);
-    welcomeIfNew();
-    if (isServerMode) {
-      void refreshCurrentUser().finally(() => setUserChecked(true));
-      // After the capabilities, which say whether sharing is on at all.
-      void fetchCapabilities().then(() => {
-        void loadInvitations();
-        // A browser that already allows notifications takes up, or renews,
-        // its push subscription; one that does not is asked when a reminder
-        // is first saved, not here.
-        void ensurePushSubscription();
-      });
-    }
-    const stopLocaleReport = startAccountLocaleReport();
-    return () => {
-      stopLocaleReport();
-      window.removeEventListener("reminder:open-note", openHandler);
-      stopAutoNotes();
-      stopBoardBackground();
-    };
   }, []);
-
-  const isAdmin = isServerMode && currentUser.value?.isAdmin === true;
+  const { isAdmin } = useAccountCheck();
   const isAdminView = activeView.value === "admin";
-
-  useEffect(() => {
-    if (isAdminView && userChecked && !isAdmin) activeView.value = "active";
-  }, [isAdminView, userChecked, isAdmin]);
 
   const AdminView = useLazyModule(loadAdminView, isAdminView && isAdmin, () => {
     activeView.value = "active";
@@ -273,11 +201,6 @@ function MainApp() {
       showError(t("error.viewUnavailable"));
     },
   );
-
-  // An admin hears about a newer release in the account menu.
-  useEffect(() => {
-    if (userChecked && isAdmin) void checkForUpdate();
-  }, [userChecked, isAdmin]);
 
   const isTagsView = activeView.value === "tags";
   const isSearchView = activeView.value === "search";
