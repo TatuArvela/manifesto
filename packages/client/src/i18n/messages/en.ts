@@ -992,6 +992,8 @@ export const en = {
   "storage.quotaExceeded":
     "Browser storage is full. Some changes may not be saved until you free up space.",
   "dropZone.title": "Drop to import",
+  "dropZone.imagesTitle": "Drop to start a note",
+  "dropZone.imagesHint": "The pictures go on a new note",
   "dropZone.hint": "Markdown, JSON, Evernote, Joplin or HTML files",
 
   // Deployment misconfiguration, shown instead of the app at startup

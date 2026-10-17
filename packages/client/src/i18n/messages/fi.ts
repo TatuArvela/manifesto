@@ -1011,6 +1011,8 @@ export const fi: Messages = {
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",
+  "dropZone.imagesTitle": "Pudota aloittaaksesi muistiinpanon",
+  "dropZone.imagesHint": "Kuvat liitetään uuteen muistiinpanoon",
   "dropZone.hint": "Markdown-, JSON-, Evernote-, Joplin- tai HTML-tiedostoja",
 
   // Käyttöönoton virheasetus, näytetään sovelluksen sijaan käynnistyksessä

@@ -8,6 +8,13 @@ A persistent "Take a note..." input bar sits at the top of the note grid. On foc
 
 The draft is kept on the device as it is written, and comes back the next time the pad is opened, so a reload, a closed tab or a phone putting the app away loses nothing. Saving or discarding the note clears it. One draft is kept a device: two tabs writing at once keep whichever wrote last. A note shared to the installed app opens in the pad in its place, and a draft already kept is then saved as a note of its own.
 
+A note can also be started from the board without opening the pad first:
+
+- **Pasting** with nothing focused to type in and no note, dialog or menu open opens the pad with the clipboard in it: its text as the note's text (its links become preview cards as they would in the pad) and its pictures attached. A paste into a field or an open note is that field's.
+- **Dropping pictures** anywhere on the window, with no note open, opens the pad with them attached; the drop zone says so while they are dragged over. Dropping anything else imports it, as before ([Export / Import](export-import.md)).
+
+Either goes to the notes view if another is showing, and keeps a tag being looked at there. Pictures are shrunk and checked as an attached one is ([Attachments](attachments.md)).
+
 In connected mode a new note is queued on the device before it is sent, so one written while the server cannot be reached is not lost. It is sent as soon as there is reason to think the server is back (the browser going online, the app reconnecting, the account being unlocked), under the id it was given when queued, so a note whose answer was lost is found rather than made twice. A note sent at once never shows as waiting; one that is not is listed above the board as waiting to be sent, where it can be taken back into the pad to be changed, or discarded. One the server refuses as it is (too long, say) is not sent again, and says so. These notes are not on the board until they land, since they are stored nowhere else yet.
 
 Opening the pad peels its top sheet off first, and only once the sheet is free does the editor grow out of it. On a phone, where the pad is a floating + button, the editor grows out of the button.
