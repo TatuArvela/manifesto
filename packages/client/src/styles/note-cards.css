@@ -274,13 +274,42 @@
    arriving, and the grid closes the gap once it is gone. `forwards` keeps it
    invisible through a slow server response, and `leavingNotes` in
    state/actions.ts clears the attribute if the change fails, which brings the
-   card back. The duration is `LEAVE_MS` there.
+   card back. Each duration is `LEAVE_MS` there.
 
-   Trashed or deleted, the card drops a little and shrinks away. */
+   Trashed or deleted, the card is crumpled into a ball and tossed: squeezed
+   and twisted where it stands, then thrown up and over in an arc, still
+   spinning. The card itself rounds off and darkens into the ball while its
+   wrapper carries the throw. */
 @keyframes note-leave {
-  to {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  30% {
+    transform: scale(0.6, 0.55) rotate(-14deg);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(0.38) rotate(-32deg);
+  }
+  75% {
+    transform: translate(40px, -70px) scale(0.22) rotate(140deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(80px, -20px) scale(0.12) rotate(280deg);
     opacity: 0;
-    transform: translateY(10px) scale(0.92);
+  }
+}
+
+@keyframes note-crumple-surface {
+  45%,
+  100% {
+    border-radius: 45%;
+    box-shadow:
+      inset 6px 8px 14px rgb(0 0 0 / 0.18),
+      inset -6px -4px 10px rgb(255 255 255 / 0.25);
+    filter: brightness(0.94);
   }
 }
 
@@ -292,8 +321,31 @@
   }
 }
 
-/* Undeleted or unarchived, it swells a touch as it fades: going back to the
-   notes rather than away from them. */
+/* Undeleted, it is smoothed out flat again, the way a note taken back out of
+   the bin is pressed open, and rises away to the notes. */
+@keyframes note-leave-undelete {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  25% {
+    transform: scale(0.92, 0.96) skewX(-3deg);
+  }
+  50% {
+    transform: scale(1.04, 0.98) skewX(2deg);
+  }
+  70% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-12px) scale(1.06);
+    opacity: 0;
+  }
+}
+
+/* Unarchived, it swells a touch as it fades: going back to the notes rather
+   than away from them. */
 @keyframes note-leave-restore {
   to {
     opacity: 0;
@@ -302,8 +354,20 @@
 }
 
 .note-leaving {
-  animation: note-leave 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: note-leave-archive 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
   pointer-events: none;
+}
+
+.note-leaving[data-leaving="discard"] {
+  animation: note-leave 0.48s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+
+.note-leaving[data-leaving="discard"] .note-surface {
+  animation: note-crumple-surface 0.48s ease-in forwards;
+}
+
+.note-leaving[data-leaving="undelete"] {
+  animation: note-leave-undelete 0.42s cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
 
 .note-leaving[data-leaving="archive"] {

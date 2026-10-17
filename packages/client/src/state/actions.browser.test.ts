@@ -209,7 +209,8 @@ describe("state actions", () => {
       await trashNote(trashed.id);
       activeView.value = "trash";
       const restoring = restoreNote(trashed.id);
-      expect(leavingNotes.value.get(trashed.id)).toBe("restore");
+      // Smoothed out of the bin, where the archive's is the plain swell.
+      expect(leavingNotes.value.get(trashed.id)).toBe("undelete");
       await restoring;
 
       const archived = await createNoteOrFail({ title: "Unarchive me" });
