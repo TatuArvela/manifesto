@@ -243,6 +243,64 @@
   }
 }
 
+/* A line above and below the caret's row, gutter to gutter, while the text is
+   being edited. Drawn on the row's own line, its first paragraph, so an item
+   with items under it is marked by its line and not the whole branch. The
+   lines sit in the half gaps between rows and take no room of their own. */
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child {
+  position: relative;
+}
+
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child::before,
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child::after {
+  content: "";
+  position: absolute;
+  /* Back past the checkbox, its gap and the handle; out over the X. */
+  left: calc(-1 * (1rem + 0.4em + var(--task-handle-gutter)));
+  right: calc(-1 * var(--task-delete-gutter));
+  height: 1px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  pointer-events: none;
+}
+
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child::before {
+  top: -0.25rem;
+}
+
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child::after {
+  bottom: -0.25rem;
+}
+
 /* The date picker's input under the bar's date button, never seen: it is
    there for the browser to open its calendar from (extensions/checklistBar.ts). */
 .checklist-bar-picker {
