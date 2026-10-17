@@ -26,6 +26,13 @@ afterEach(() => clearDraft());
 
 let host: HTMLDivElement;
 
+/**
+ * How long opening the composer may take. The first open in a file fetches
+ * the editor's chunk, which on a CI runner has taken from 0.8 s to past the
+ * 1 s `waitFor` allows by default.
+ */
+const OPENING = { timeout: 3000 };
+
 /** The two sheets of the stack: the top one and the one showing behind it. */
 function stackLines(): string[] {
   return [...host.querySelectorAll(".note-stack > div > div > div")].map(
@@ -97,7 +104,7 @@ describe("NoteInput with an empty draft", () => {
       );
       expect(done).toBeTruthy();
       return done as HTMLElement;
-    });
+    }, OPENING);
   }
 
   it("adds an empty note when Done is pressed", async () => {
@@ -146,7 +153,7 @@ describe("NoteInput keeps its draft", () => {
       );
       expect(title).toBeTruthy();
       return title as HTMLInputElement;
-    });
+    }, OPENING);
   }
 
   function type(field: HTMLInputElement, text: string) {
