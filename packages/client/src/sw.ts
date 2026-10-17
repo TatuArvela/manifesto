@@ -1,12 +1,5 @@
 /// <reference lib="webworker" />
-import {
-  advanceReminder,
-  MAX_IMAGES_PER_NOTE,
-  parseLocalISO,
-  REMINDER_RECURRENCES,
-  type ReminderRecurrence,
-  snapReminderToFuture,
-} from "@manifesto/shared";
+import { MAX_IMAGES_PER_NOTE } from "@manifesto/shared";
 import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import { StaleWhileRevalidate } from "workbox-strategies";
@@ -20,6 +13,13 @@ import {
 } from "./shareTarget.ts";
 import { loadDeviceKeys } from "./storage/deviceKeys.ts";
 import { afterPush, readReminderPush, wordedPush } from "./swPush.ts";
+import {
+  afterFiring,
+  isValidStoredReminder,
+  POLL_INTERVAL_MS,
+  type StoredReminder,
+  stepFor,
+} from "./swReminders.ts";
 
 declare const self: ServiceWorkerGlobalScope & {
   registration: ServiceWorkerRegistration & {
@@ -116,61 +116,9 @@ registerRoute(
   new StaleWhileRevalidate({ cacheName: "brand-marks" }),
 );
 
-interface StoredReminder {
-  noteId: string;
-  time: string;
-  recurrence: ReminderRecurrence;
-  /** The day a monthly or yearly reminder repeats on, when `time` shows
-   * another (`NoteReminder.day`). */
-  day?: number;
-  title: string;
-  body: string;
-  lastFiredAt: string | null;
-}
-
-const VALID_RECURRENCES = new Set<string>(REMINDER_RECURRENCES);
-
-function isValidStoredReminder(value: unknown): value is StoredReminder {
-  if (!value || typeof value !== "object") return false;
-  const reminder = value as Record<string, unknown>;
-  if (typeof reminder.noteId !== "string" || !reminder.noteId) return false;
-  if (typeof reminder.time !== "string") return false;
-  if (Number.isNaN(new Date(reminder.time).getTime())) return false;
-  if (
-    typeof reminder.recurrence !== "string" ||
-    !VALID_RECURRENCES.has(reminder.recurrence)
-  ) {
-    return false;
-  }
-  if (
-    reminder.day !== undefined &&
-    !(
-      Number.isInteger(reminder.day) &&
-      Number(reminder.day) >= 1 &&
-      Number(reminder.day) <= 31
-    )
-  ) {
-    return false;
-  }
-  if (typeof reminder.title !== "string") return false;
-  if (typeof reminder.body !== "string") return false;
-  if (
-    reminder.lastFiredAt !== null &&
-    typeof reminder.lastFiredAt !== "string"
-  ) {
-    return false;
-  }
-  return true;
-}
-
 const DB_NAME = "manifesto-reminders";
 const STORE = "reminders";
 const PERIODIC_TAG = "check-reminders";
-const DEDUPE_WINDOW_MS = 60_000;
-const POLL_INTERVAL_MS = 60_000;
-// Matches reminderScheduler.ts: an occurrence more than an hour stale is not
-// worth surfacing, it is only worth skipping past.
-const CATCHUP_WINDOW_MS = 60 * 60_000;
 
 // --- IndexedDB helpers ---
 
@@ -233,32 +181,9 @@ async function fireDue(): Promise<void> {
   const items = await getAll();
   const now = Date.now();
   for (const item of items) {
-    // A non-recurring reminder fires exactly once. `nextOccurrence` returns null
-    // for it, so its `time` stays in the past forever, and because
-    // DEDUPE_WINDOW_MS equals POLL_INTERVAL_MS, the dedupe check below can never
-    // suppress the *next* poll. Without this guard a dismissed reminder came
-    // back every 60s indefinitely. Mirrors reminderScheduler.ts.
-    if (item.recurrence === "none" && item.lastFiredAt) continue;
-
-    const dueMs = parseLocalISO(item.time).getTime() - now;
-    if (dueMs > 0) continue;
-
-    // Long absence (device asleep, tab closed for days): advance a recurring
-    // reminder past every missed occurrence silently, rather than replaying them
-    // one per poll. A stale one-shot reminder is simply dropped, as on the client.
-    if (dueMs < -CATCHUP_WINDOW_MS) {
-      if (item.recurrence !== "none") {
-        await putOne(snapReminderToFuture(item));
-      }
-      continue;
-    }
-
-    if (
-      item.lastFiredAt &&
-      now - new Date(item.lastFiredAt).getTime() < DEDUPE_WINDOW_MS
-    ) {
-      continue;
-    }
+    const step = stepFor(item, now);
+    if (step.kind === "skip") await putOne(step.next);
+    if (step.kind !== "fire") continue;
     try {
       await self.registration.showNotification(item.title, {
         body: item.body,
@@ -269,18 +194,9 @@ async function fireDue(): Promise<void> {
       // Browser may reject if permission isn't actually granted; skip silently.
       continue;
     }
-    const nowIso = new Date().toISOString();
-    const next = advanceReminder(item);
-    if (next) {
-      await putOne({ ...next, lastFiredAt: nowIso });
-    } else {
-      await putOne({ ...item, lastFiredAt: nowIso });
-    }
-    broadcast({
-      type: "reminder-fired",
-      noteId: item.noteId,
-      nextTime: next?.time ?? null,
-    });
+    const { stored, nextTime } = afterFiring(item, new Date().toISOString());
+    await putOne(stored);
+    broadcast({ type: "reminder-fired", noteId: item.noteId, nextTime });
   }
 }
 
