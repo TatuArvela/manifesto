@@ -11,7 +11,7 @@ export { checkImportSize, MAX_IMPORT_BYTES } from "./importer.js";
 
 /**
  * Every other app's format this one reads, beside its own export, Markdown
- * and Google Keep (`importExport.ts`, `keepImport.ts`). A new format is an
+ * and Google Keep (`importExport.ts`, `keep.ts`). A new format is an
  * `Importer` added here, and nothing else changes.
  */
 export const IMPORTERS: readonly Importer[] = [
