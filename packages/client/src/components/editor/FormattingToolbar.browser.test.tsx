@@ -3,7 +3,7 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import { createRef, render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
-import { t } from "../i18n/index.js";
+import { t } from "../../i18n/index.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 

@@ -41,9 +41,9 @@ import {
   downloadNoteAsMarkdown,
 } from "../utils/noteDownload.js";
 import { Backdrop } from "./Backdrop.js";
+import { checklistSubmenu, downloadSubmenu } from "./card/NoteMenu.js";
+import { useEditor } from "./editor/lazyEditor.js";
 import { gridColumns } from "./gridColumns.js";
-import { useEditor } from "./lazyEditor.js";
-import { checklistSubmenu, downloadSubmenu } from "./NoteMenu.js";
 import { NoteSheet } from "./NoteSheet.js";
 
 const ctaKeys: MessageKey[] = [

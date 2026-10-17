@@ -9,7 +9,7 @@ paths:
   - "packages/client/src/state/exportNotes.ts"
   - "packages/client/src/state/accountExport.ts"
   - "packages/client/src/state/publicLinks.ts"
-  - "packages/client/src/components/SharedNoteDialog.tsx"
+  - "packages/client/src/components/sharing/SharedNoteDialog.tsx"
   - "packages/client/src/components/PublicNotePage.tsx"
   - "packages/server/src/routes/publicLinks.ts"
   - "packages/server/src/export/**"

@@ -66,18 +66,18 @@ import {
 import { AutoNotesView } from "./AutoNotesView.js";
 import { ConfirmDialogHost } from "./ConfirmDialog.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";
+import { loadEditor } from "./editor/lazyEditor.js";
 import { Header } from "./Header.js";
-import { InvitationList } from "./InvitationList.js";
-import { loadEditor } from "./lazyEditor.js";
 import { KeyScreen } from "./login/KeyScreen.js";
 import { LoginScreen } from "./login/LoginScreen.js";
 import { NoteGrid } from "./NoteGrid.js";
 import { NoteInput } from "./NoteInput.js";
 import { ReminderBanner } from "./ReminderBanner.js";
 import { SearchView } from "./SearchView.js";
-import { SharedNoteDialog } from "./SharedNoteDialog.js";
 import { ShortcutsDialog } from "./ShortcutsDialog.js";
 import { MobileNav, Sidebar } from "./Sidebar.js";
+import { InvitationList } from "./sharing/InvitationList.js";
+import { SharedNoteDialog } from "./sharing/SharedNoteDialog.js";
 import { TagsView } from "./TagsView.js";
 import { Toasts } from "./Toast.js";
 import { UnopenedNotes } from "./UnopenedNotes.js";
@@ -90,9 +90,9 @@ const loadSettingsDialog = () =>
 const loadAdminView = () =>
   import("./admin/AdminView.js").then((m) => m.AdminView);
 const loadShareDialog = () =>
-  import("./ShareDialog.js").then((m) => m.ShareDialogHost);
+  import("./sharing/ShareDialog.js").then((m) => m.ShareDialogHost);
 const loadPublicLinksDialog = () =>
-  import("./PublicLinksDialog.js").then((m) => m.PublicLinksDialogHost);
+  import("./sharing/PublicLinksDialog.js").then((m) => m.PublicLinksDialogHost);
 const loadDrawingPad = () =>
   import("./DrawingPad.js").then((m) => m.DrawingPad);
 

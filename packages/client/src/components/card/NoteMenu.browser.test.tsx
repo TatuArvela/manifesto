@@ -1,12 +1,12 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import "../styles.css";
-import { t } from "../i18n/index.js";
-import { notes } from "../state/notesStore.js";
-import { editingNoteId } from "../state/ui.js";
+import "../../styles.css";
+import { t } from "../../i18n/index.js";
+import { notes } from "../../state/notesStore.js";
+import { editingNoteId } from "../../state/ui.js";
+import { NoteCardEditor } from "../editor/NoteCardEditor.js";
 import { NoteCard } from "./NoteCard.js";
-import { NoteCardEditor } from "./NoteCardEditor.js";
 import {
   arrangeMenu,
   NoteMenu,

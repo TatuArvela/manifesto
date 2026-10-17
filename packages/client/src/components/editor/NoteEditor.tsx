@@ -9,41 +9,41 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import { ArrowLeft, Pin, PinOff } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "../colors.js";
-import { editorHistory } from "../extensions/editorHistory.js";
+import { noteColorMap, noteFontFamilies } from "../../colors.js";
+import { editorHistory } from "../../extensions/editorHistory.js";
 import {
   docHasDatedItems,
   sortItemsByDateIn,
-} from "../extensions/itemDates.js";
+} from "../../extensions/itemDates.js";
 import {
   deleteCheckedItemsIn,
   docHasCheckedItems,
-} from "../extensions/taskListStructure.js";
-import { useImageUploads } from "../hooks/useImageUploads.js";
-import { usePresence } from "../hooks/usePresence.js";
-import { t } from "../i18n/index.js";
-import { closeDrawing, requestDrawing } from "../state/drawing.js";
-import { defaultEditMode, formattingToolbar } from "../state/prefs.js";
-import { hasDatedItems, sortChecklistByDate } from "../utils/itemDate.js";
-import { extractUrls } from "../utils/linkPreview.js";
+} from "../../extensions/taskListStructure.js";
+import { useImageUploads } from "../../hooks/useImageUploads.js";
+import { usePresence } from "../../hooks/usePresence.js";
+import { t } from "../../i18n/index.js";
+import { closeDrawing, requestDrawing } from "../../state/drawing.js";
+import { defaultEditMode, formattingToolbar } from "../../state/prefs.js";
+import { hasDatedItems, sortChecklistByDate } from "../../utils/itemDate.js";
+import { extractUrls } from "../../utils/linkPreview.js";
 import {
   removeCheckedItems,
   hasCheckedItems as textHasCheckedItems,
-} from "../utils/markdown.js";
-import { applyTextEdit } from "../utils/rawFormatting.js";
+} from "../../utils/markdown.js";
+import { applyTextEdit } from "../../utils/rawFormatting.js";
+import type { NoteMenuItem } from "../card/NoteMenu.js";
+import { ImageGallery } from "../ImageGallery.js";
+import { LinkPreviewList } from "../LinkPreviewList.js";
+import { PendingUploads } from "../PendingUploads.js";
+import { CARD_POPOVER_EXIT_MS, CardPopover } from "../Popover.js";
+import { ReminderChip } from "../ReminderChip.js";
+import { ReminderPickerPanel } from "../ReminderPicker.js";
+import { TagChip } from "../TagChip.js";
+import { Tooltip } from "../Tooltip.js";
 import { editorButtonClass, editorIconClass } from "./editorButtons.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
-import { ImageGallery } from "./ImageGallery.js";
-import { LinkPreviewList } from "./LinkPreviewList.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 import { NoteEditorToolbar } from "./NoteEditorToolbar.js";
-import type { NoteMenuItem } from "./NoteMenu.js";
-import { PendingUploads } from "./PendingUploads.js";
-import { CARD_POPOVER_EXIT_MS, CardPopover } from "./Popover.js";
-import { ReminderChip } from "./ReminderChip.js";
-import { ReminderPickerPanel } from "./ReminderPicker.js";
-import { TagChip } from "./TagChip.js";
-import { Tooltip } from "./Tooltip.js";
 
 interface NoteEditorProps {
   title: string;

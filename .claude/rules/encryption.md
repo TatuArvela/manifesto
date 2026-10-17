@@ -14,7 +14,7 @@ paths:
   - "packages/client/src/state/sharing.ts"
   - "packages/client/src/state/comments.ts"
   - "packages/client/src/state/publicLinks.ts"
-  - "packages/client/src/components/ShareDialog.tsx"
+  - "packages/client/src/components/sharing/ShareDialog.tsx"
   - "packages/server/src/routes/publicLinks.ts"
   - "packages/client/src/realtime/sealedDocument.ts"
   - "packages/client/src/realtime/yjsSession.ts"

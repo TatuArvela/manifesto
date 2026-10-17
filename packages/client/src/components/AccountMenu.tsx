@@ -7,8 +7,12 @@ import { signOut } from "../state/signOut.js";
 import { openSettings } from "../state/ui.js";
 import { unsentNotes } from "../state/unsentNotes.js";
 import { Avatar } from "./Avatar.js";
+import {
+  menuDividerClass,
+  menuItemClass,
+  menuPanelClass,
+} from "./card/NoteMenu.js";
 import { Dropdown } from "./Dropdown.js";
-import { menuDividerClass, menuItemClass, menuPanelClass } from "./NoteMenu.js";
 import { Tooltip } from "./Tooltip.js";
 
 /**

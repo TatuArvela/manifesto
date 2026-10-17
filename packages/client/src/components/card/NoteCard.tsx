@@ -3,28 +3,30 @@ import { useComputed } from "@preact/signals";
 import clsx from "clsx";
 import { memo } from "preact/compat";
 import { useRef, useState } from "preact/hooks";
-import { autoNoteColorMap, noteColorMap } from "../colors.js";
-import { CARD_FADE_MS, useCardModal } from "../hooks/useCardModal.js";
-import { useNoteImages } from "../hooks/useNoteImages.js";
-import { usePresence } from "../hooks/usePresence.js";
-import { useIsTouch, useTouchGesture } from "../hooks/useTouchGesture.js";
-import { formatDate, t } from "../i18n/index.js";
-import { leavingNotes, recentlyPinned } from "../state/actions.js";
-import { requestDrawing } from "../state/drawing.js";
-import { openNoteWith } from "../state/editorIntent.js";
-import { noteSize, viewMode } from "../state/prefs.js";
-import { enterSelectMode, toggleSelectNote } from "../state/selection.js";
+import { autoNoteColorMap, noteColorMap } from "../../colors.js";
+import { CARD_FADE_MS, useCardModal } from "../../hooks/useCardModal.js";
+import { useNoteImages } from "../../hooks/useNoteImages.js";
+import { usePresence } from "../../hooks/usePresence.js";
+import { useIsTouch, useTouchGesture } from "../../hooks/useTouchGesture.js";
+import { formatDate, t } from "../../i18n/index.js";
+import { leavingNotes, recentlyPinned } from "../../state/actions.js";
+import { requestDrawing } from "../../state/drawing.js";
+import { openNoteWith } from "../../state/editorIntent.js";
+import { noteSize, viewMode } from "../../state/prefs.js";
+import { enterSelectMode, toggleSelectNote } from "../../state/selection.js";
 import {
   activeView,
   editingNoteId,
   selectedNotes,
   selectMode,
   showError,
-} from "../state/ui.js";
-import { cardName } from "../utils/cardName.js";
-import { contentIsOnlyPreviewUrls } from "../utils/linkPreview.js";
-import { MORPH_MS } from "../utils/morph.js";
-import { useEditor } from "./lazyEditor.js";
+} from "../../state/ui.js";
+import { cardName } from "../../utils/cardName.js";
+import { contentIsOnlyPreviewUrls } from "../../utils/linkPreview.js";
+import { MORPH_MS } from "../../utils/morph.js";
+import { useEditor } from "../editor/lazyEditor.js";
+import { NoteSheet } from "../NoteSheet.js";
+import { CARD_POPOVER_EXIT_MS } from "../Popover.js";
 import { NoteCardBody } from "./NoteCardBody.js";
 import {
   CardActions,
@@ -33,8 +35,6 @@ import {
 } from "./NoteCardControls.js";
 import { type CardPopoverKind, NoteCardPopovers } from "./NoteCardPopovers.js";
 import { NoteReadonlyView } from "./NoteReadonlyView.js";
-import { NoteSheet } from "./NoteSheet.js";
-import { CARD_POPOVER_EXIT_MS } from "./Popover.js";
 
 /**
  * One card on the board. Memoized, and it derives the three board-wide

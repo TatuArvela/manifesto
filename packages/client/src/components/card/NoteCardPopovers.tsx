@@ -1,19 +1,19 @@
 import { type Note, type NoteColor, NoteFont } from "@manifesto/shared";
-import { noteFontFamilies } from "../colors.js";
-import { getColorPickerColors, getFontLabel } from "../i18n/index.js";
+import { noteFontFamilies } from "../../colors.js";
+import { getColorPickerColors, getFontLabel } from "../../i18n/index.js";
 import {
   addTag,
   deleteCheckedItems,
   sortItemsByDate,
-} from "../state/actions.js";
-import { updateNote } from "../state/notesStore.js";
-import { hasDatedItems } from "../utils/itemDate.js";
-import { hasCheckedItems } from "../utils/markdown.js";
+} from "../../state/actions.js";
+import { updateNote } from "../../state/notesStore.js";
+import { hasDatedItems } from "../../utils/itemDate.js";
+import { hasCheckedItems } from "../../utils/markdown.js";
+import { CardPopover } from "../Popover.js";
+import { ReminderPickerPanel } from "../ReminderPicker.js";
+import { TagPicker, tagPickerPanelClass } from "../TagPicker.js";
+import { Tooltip } from "../Tooltip.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
-import { CardPopover } from "./Popover.js";
-import { ReminderPickerPanel } from "./ReminderPicker.js";
-import { TagPicker, tagPickerPanelClass } from "./TagPicker.js";
-import { Tooltip } from "./Tooltip.js";
 
 export type CardPopoverKind = "color" | "font" | "tags" | "menu" | "reminder";
 

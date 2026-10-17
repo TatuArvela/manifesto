@@ -27,31 +27,31 @@ import {
 } from "lucide-preact";
 import type { ComponentChildren, VNode } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { moveCard } from "../hooks/useBoardShortcuts.js";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { useMediaQuery } from "../hooks/useMediaQuery.js";
-import { t } from "../i18n/index.js";
+import { moveCard } from "../../hooks/useBoardShortcuts.js";
+import { useEscapeStack } from "../../hooks/useEscapeStack.js";
+import { useMediaQuery } from "../../hooks/useMediaQuery.js";
+import { t } from "../../i18n/index.js";
 import {
   archiveNote,
   noteMoveTarget,
   restoreNote,
   trashNote,
   unarchiveNote,
-} from "../state/actions.js";
-import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
-import { isServerMode } from "../state/auth.js";
-import { drawnWithoutImages } from "../state/autoNotes.js";
-import { confirmDeletion } from "../state/confirm.js";
-import { createNote, ensureImages } from "../state/notesStore.js";
-import { publicLinksDialog } from "../state/publicLinks.js";
-import { serverFeature } from "../state/serverFeatures.js";
-import { shareDialog } from "../state/sharing.js";
-import { showError, showSuccess } from "../state/ui.js";
+} from "../../state/actions.js";
+import { inlineImages, inlinePreviewImages } from "../../state/attachments.js";
+import { isServerMode } from "../../state/auth.js";
+import { drawnWithoutImages } from "../../state/autoNotes.js";
+import { confirmDeletion } from "../../state/confirm.js";
+import { createNote, ensureImages } from "../../state/notesStore.js";
+import { publicLinksDialog } from "../../state/publicLinks.js";
+import { serverFeature } from "../../state/serverFeatures.js";
+import { shareDialog } from "../../state/sharing.js";
+import { showError, showSuccess } from "../../state/ui.js";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
-} from "../utils/noteDownload.js";
-import { buildShareUrl } from "../utils/shareLink.js";
+} from "../../utils/noteDownload.js";
+import { buildShareUrl } from "../../utils/shareLink.js";
 
 /**
  * The panel a kebab menu draws itself on. `Dropdown` takes it as `panelClass`;

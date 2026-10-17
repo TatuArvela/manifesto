@@ -3,7 +3,7 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { NoteEditor } from "./NoteEditor.js";
-import "../styles.css";
+import "../../styles.css";
 
 /**
  * On a phone the editor fills the screen and its middle scrolls. What sits

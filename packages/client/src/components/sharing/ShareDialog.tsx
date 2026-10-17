@@ -11,12 +11,12 @@ import {
 import { LogOut, UserPlus, Users, X } from "lucide-preact";
 import { createPortal } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { useFocusTrap } from "../hooks/useFocusTrap.js";
-import { t } from "../i18n/index.js";
-import { currentUser, userLookupMode } from "../state/auth.js";
-import { notes } from "../state/notesStore.js";
-import { serverFeature } from "../state/serverFeatures.js";
+import { useEscapeStack } from "../../hooks/useEscapeStack.js";
+import { useFocusTrap } from "../../hooks/useFocusTrap.js";
+import { t } from "../../i18n/index.js";
+import { currentUser, userLookupMode } from "../../state/auth.js";
+import { notes } from "../../state/notesStore.js";
+import { serverFeature } from "../../state/serverFeatures.js";
 import {
   changedKeys,
   findUsers,
@@ -27,19 +27,19 @@ import {
   shareDialog,
   shareNote,
   trustKeys,
-} from "../state/sharing.js";
+} from "../../state/sharing.js";
 import {
   listMyTeams,
   listTeamShares,
   removeTeamShare,
   setTeamShareRole,
   shareWithTeam,
-} from "../state/teams.js";
-import { showError } from "../state/ui.js";
-import { Avatar } from "./Avatar.js";
-import { Backdrop } from "./Backdrop.js";
-import { buttonClass } from "./buttonClasses.js";
-import { Tooltip } from "./Tooltip.js";
+} from "../../state/teams.js";
+import { showError } from "../../state/ui.js";
+import { Avatar } from "../Avatar.js";
+import { Backdrop } from "../Backdrop.js";
+import { buttonClass } from "../buttonClasses.js";
+import { Tooltip } from "../Tooltip.js";
 
 const inputClass =
   "w-full min-w-0 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

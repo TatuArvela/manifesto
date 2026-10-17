@@ -3,9 +3,9 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
-import { DEFAULT_FRAGMENT_NAME } from "../extensions/yjsCollab.js";
-import { sharedAgreement } from "../realtime/contentAgreement.js";
-import type { NoteYDoc } from "../realtime/yjsProvider.js";
+import { DEFAULT_FRAGMENT_NAME } from "../../extensions/yjsCollab.js";
+import { sharedAgreement } from "../../realtime/contentAgreement.js";
+import type { NoteYDoc } from "../../realtime/yjsProvider.js";
 
 /**
  * The gate: `NoteCardEditor` must withhold `collab` from the editor until the
@@ -23,12 +23,12 @@ import type { NoteYDoc } from "../realtime/yjsProvider.js";
 
 const provided = { current: null as NoteYDoc | null };
 
-vi.mock("../realtime/yjsProvider.js", () => ({
+vi.mock("../../realtime/yjsProvider.js", () => ({
   useNoteYDoc: () => provided.current,
 }));
 
 const { NoteCardEditor } = await import("./NoteCardEditor.js");
-const { notes } = await import("../state/notesStore.js");
+const { notes } = await import("../../state/notesStore.js");
 
 const NOTE_ID = "01JQZK8V0000000000000NOTE";
 

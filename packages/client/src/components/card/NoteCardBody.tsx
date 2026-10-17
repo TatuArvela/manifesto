@@ -1,17 +1,17 @@
 import type { Note } from "@manifesto/shared";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { noteFontFamilies } from "../colors.js";
-import { toggleCheckbox } from "../state/actions.js";
-import { drawnWithoutImages } from "../state/autoNotes.js";
-import { updateNote } from "../state/notesStore.js";
-import { ContentPreview } from "./ContentPreview.js";
-import { ImageGallery } from "./ImageGallery.js";
-import { LinkPreviewHero } from "./LinkPreviewHero.js";
-import { LinkPreviewList } from "./LinkPreviewList.js";
-import { ReminderChip } from "./ReminderChip.js";
-import { SharedAvatars } from "./SharedAvatars.js";
-import { TagChip } from "./TagChip.js";
+import { noteFontFamilies } from "../../colors.js";
+import { toggleCheckbox } from "../../state/actions.js";
+import { drawnWithoutImages } from "../../state/autoNotes.js";
+import { updateNote } from "../../state/notesStore.js";
+import { ContentPreview } from "../ContentPreview.js";
+import { ImageGallery } from "../ImageGallery.js";
+import { LinkPreviewHero } from "../LinkPreviewHero.js";
+import { LinkPreviewList } from "../LinkPreviewList.js";
+import { ReminderChip } from "../ReminderChip.js";
+import { SharedAvatars } from "../sharing/SharedAvatars.js";
+import { TagChip } from "../TagChip.js";
 
 /**
  * What a card shows of its note: the pictures, then either a link hero (for a

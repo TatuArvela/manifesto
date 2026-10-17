@@ -34,23 +34,23 @@ import {
   applyFormat,
   emptyFormats,
   getActiveFormats,
-} from "../extensions/richFormatting.js";
+} from "../../extensions/richFormatting.js";
 import {
   applyTableAction,
   availableTableActions,
   type TableAction,
-} from "../extensions/tableActions.js";
-import { t } from "../i18n/index.js";
-import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
+} from "../../extensions/tableActions.js";
+import { t } from "../../i18n/index.js";
+import type { ActiveFormats, FormatType } from "../../utils/formatTypes.js";
 import {
   applyRawFormat,
   applyRawLink,
   applyTextEdit,
   getRawActiveFormats,
   removeRawLink,
-} from "../utils/rawFormatting.js";
-import { Dropdown } from "./Dropdown.js";
-import { Tooltip } from "./Tooltip.js";
+} from "../../utils/rawFormatting.js";
+import { Dropdown } from "../Dropdown.js";
+import { Tooltip } from "../Tooltip.js";
 
 interface FormattingToolbarProps {
   editor: Editor;

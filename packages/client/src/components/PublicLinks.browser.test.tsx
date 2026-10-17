@@ -28,8 +28,8 @@ import {
 } from "../state/publicLinks.js";
 import { toasts } from "../state/ui.js";
 import { storageConnection } from "../storage/index.js";
-import { PublicLinksDialogHost } from "./PublicLinksDialog.js";
 import { PublicNotePage } from "./PublicNotePage.js";
+import { PublicLinksDialogHost } from "./sharing/PublicLinksDialog.js";
 
 const SERVER = "http://server.test";
 const TOKEN = "AbCdEfGhIjKlMnOpQrStUv";

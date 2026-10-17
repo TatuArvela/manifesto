@@ -9,8 +9,8 @@ import {
 import { useMasonryGrid } from "../hooks/useMasonryGrid.js";
 import { animations, noteSize, viewMode } from "../state/prefs.js";
 import { edgeScroll, scrollParent } from "../utils/edgeScroll.js";
+import { NoteCard } from "./card/NoteCard.js";
 import { gridColumns } from "./gridColumns.js";
-import { NoteCard } from "./NoteCard.js";
 
 /** How far the pointer must travel after the order changes before it may change again. */
 const REORDER_SETTLE_PX = 8;

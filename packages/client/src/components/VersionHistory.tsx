@@ -4,7 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 import { noteColorMap } from "../colors.js";
 import { formatDateTime, t } from "../i18n/index.js";
 import { loadVersions } from "../state/versions.js";
-import { iconButtonClass } from "./editorButtons.js";
+import { iconButtonClass } from "./editor/editorButtons.js";
 import { Tooltip } from "./Tooltip.js";
 
 function truncate(text: string, max: number): string {
