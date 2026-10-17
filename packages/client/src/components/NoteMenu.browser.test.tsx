@@ -1,6 +1,7 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "../styles.css";
 import { t } from "../i18n/index.js";
 import { editingNoteId, notes } from "../state/index.js";
 import { NoteCard } from "./NoteCard.js";
