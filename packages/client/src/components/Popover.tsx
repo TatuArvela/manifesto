@@ -10,10 +10,8 @@ import { hideAllTooltips } from "./Tooltip.js";
  * Renders children in a fixed-position portal next to the anchor button.
  *
  * Placement goes through the same geometry as `Dropdown`, so the panel flips
- * to the other side of its trigger and stays inside the viewport. It used to
- * be pinned above the anchor with a hardcoded `translateY(-100%)`, which put
- * the menu of any card near the top of the page over the header and off the
- * screen.
+ * to the other side of its trigger and stays inside the viewport, even for a
+ * card at the top of the page.
  */
 /** How long a card popover takes to leave; `card-popover-out` in styles.css. */
 export const CARD_POPOVER_EXIT_MS = 140;

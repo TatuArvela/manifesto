@@ -7,30 +7,11 @@ import type {
   PluginNote,
 } from "./types.js";
 
-// Sandbox architecture notes:
-//
-// The sandbox lives in a static HTML file served from our own origin
-// (public/autonotes-sandbox.html) that we load via `iframe.src`; the frame
-// itself gets an opaque origin, see below. It *cannot* be a `srcdoc` iframe, because srcdoc
-// iframes inherit the parent's CSP, and our main app pins `script-src 'self'`.
-// An iframe loaded from a real URL gets its own CSP (from its own meta tag),
-// so the sandbox can use `unsafe-inline` + `unsafe-eval` without relaxing the
-// host page's policy.
-//
-// The sandbox attribute is `allow-scripts` (no `allow-same-origin`), giving
-// the iframe an opaque origin: no access to host storage, cookies, or DOM.
-//
-// Inside the frame, the plugin itself runs in a blob Worker, which is what
-// makes the timeout below mean anything: a plugin that never returns occupies
-// only the worker's thread, so this timer still fires and tearing down the
-// iframe takes the worker with it. When the frame runs a plugin on its own
-// thread instead (an engine that refuses a worker at an opaque origin), a
-// `while (true)` blocks the host too and the timeout cannot be enforced,
-// hence the warning on that path.
-//
-// Whatever the plugin returns is JSON on the wire and validated here, in
-// `results.ts`. The frame deliberately checks nothing: a plugin that has
-// subverted it would pass its own checks.
+// Why the sandbox is a frame from a real URL with the plugin in a worker
+// inside it is in `docs/specification/features/auto-notes.md` ("Execution
+// and Sandboxing"). The timeout below holds only while the plugin runs in
+// that worker. Whatever a plugin returns is validated here, in `results.ts`,
+// never in the frame: a plugin that subverted it would pass its own checks.
 //
 // Flow:
 //   1. Host listens for `message`, then sets `iframe.src`. There is no `load`

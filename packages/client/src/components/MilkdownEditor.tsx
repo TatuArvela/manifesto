@@ -379,8 +379,8 @@ export function MilkdownEditor({
   //   saved is the text as typed, not the serializer's rewrite of it.
   //
   // A layout effect, so entering happens in the same task as the commit that
-  // lifts the textarea's `readOnly`. As a passive effect it ran a frame later,
-  // and a keystroke in that frame was not pushed (raw mode was not on yet) and
+  // lifts the textarea's `readOnly`. A passive effect runs a frame later, and
+  // a keystroke in that frame is not pushed (raw mode is not on yet) and is
   // then overwritten by entering, which reads the text out of the editor.
   useLayoutEffect(() => {
     if (!editor) return;

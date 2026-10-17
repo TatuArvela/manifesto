@@ -11,8 +11,8 @@ import type * as Y from "yjs";
  * tab that has not reached this one, or offline typing whose saves failed),
  * and wrong when the row was written by something that never touches the
  * document: an assistant's `update_note`, a script on the REST API, a
- * restored version. The editor then showed the old text, and its next save
- * wrote that back over the change.
+ * restored version. The editor would show the old text, and its next save
+ * would write that back over the change.
  *
  * The document keeps two records to decide which it is:
  * - **claims**: a hash of each text an editor sent to the row, made *before*

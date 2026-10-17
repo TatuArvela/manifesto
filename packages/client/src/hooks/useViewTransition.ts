@@ -37,23 +37,11 @@ interface Before {
  * board fades in. Everything else (the composer, the search filters, a
  * section's heading) cross-fades.
  *
- * The board before is gone by the time the new one renders, so when the view
- * changes, which is before Preact renders (it renders on a later microtask),
- * the hook notes where every card is and lays a copy of the content over the
- * board to fade out. The copy is only a picture: inert, hidden from assistive
- * technology and without ids. Once the new board is laid out, the copy's cards
- * that are on it too are hidden, since those cards move instead.
- *
- * The new-note pad (`data-view-slide`) is not faded: it slides down from under
- * the board's top edge as it arrives and back up under it as it leaves, and the
- * cards below move out of its way or into its place as any others do. The new
- * content is animated where it stands, never remounted, so the masonry grid
- * keeps its measurements. Nothing plays on the first render, which the splash
- * covers.
- *
- * `App` calls this after `usePaneSlide`, so a sidebar that opens in the same
- * change has started from closed before the cards are measured: they are
- * measured where its first frame draws them.
+ * How the board before is kept to fade out, the new-note pad's slide, and
+ * why `App` calls this after `usePaneSlide`, are in `.claude/rules/routing.md`.
+ * The copy laid over the board is only a picture: inert, hidden from
+ * assistive technology and without ids. Nothing plays on the first render,
+ * which the splash covers.
  */
 export function useViewTransition(
   boardRef: RefObject<HTMLElement | null>,
