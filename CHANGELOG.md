@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.6.0](https://github.com/TatuArvela/manifesto/compare/v0.5.0...v0.6.0) (2026-10-17)
+
+
+### Features
+
+* a new note survives a reload, and one written offline is sent later ([#133](https://github.com/TatuArvela/manifesto/issues/133)) ([551c58f](https://github.com/TatuArvela/manifesto/commit/551c58f7bec417a82e4977c615d70154f16119f7))
+* a pattern opacity slider, preferences a server sets for new accounts, and unbroken waves ([#141](https://github.com/TatuArvela/manifesto/issues/141)) ([d9cbc38](https://github.com/TatuArvela/manifesto/commit/d9cbc389cc3ea86dd6410f9c3bbe884bd21e2639))
+* **client:** a checklist item takes a date, shown as a chip and sortable ([#85](https://github.com/TatuArvela/manifesto/issues/85)) ([57f2ced](https://github.com/TatuArvela/manifesto/commit/57f2ced447091bd8b037cbd3e3be8484800b51c4))
+* **client:** a light shade beside the dark one, both in the board's colours ([#135](https://github.com/TatuArvela/manifesto/issues/135)) ([4bff5e6](https://github.com/TatuArvela/manifesto/commit/4bff5e6c7763016b278a15c5437701b979dbb593))
+* **client:** a Sawtooth pattern, the logo in rows turned 45° ([#137](https://github.com/TatuArvela/manifesto/issues/137)) ([a87317d](https://github.com/TatuArvela/manifesto/commit/a87317d042e10f713f90f0d8e9b0c4b72039fb89))
+* **client:** a selection's tags can be taken off, and its tag panel shows what it carries ([#84](https://github.com/TatuArvela/manifesto/issues/84)) ([8ebe42e](https://github.com/TatuArvela/manifesto/commit/8ebe42e4771c6bf366937243c5fd413aa8797636))
+* **client:** a tag can be given a colour, kept per user ([#87](https://github.com/TatuArvela/manifesto/issues/87)) ([16becc9](https://github.com/TatuArvela/manifesto/commit/16becc9018dc60f1be97598cca227a3dbf463850))
+* **client:** an auto-note plugin can read the notes of tags the user allows ([#96](https://github.com/TatuArvela/manifesto/issues/96)) ([0b9178c](https://github.com/TatuArvela/manifesto/commit/0b9178c72ffe00d6c29e9a67bd5848a4fa17a086))
+* **client:** date a checklist item from a picker, and checklist drag fixed on desktop and phones ([#140](https://github.com/TatuArvela/manifesto/issues/140)) ([b01af21](https://github.com/TatuArvela/manifesto/commit/b01af21a5693b947f4738d8bedc7c99e1233baa8))
+* **client:** draw on a note, and draw over any image already on it ([#97](https://github.com/TatuArvela/manifesto/issues/97)) ([dad8b4b](https://github.com/TatuArvela/manifesto/commit/dad8b4b7c48b84e494428b846c5d95a4b8f6e13b))
+* **client:** more toolbar buttons in a floating bar, tables, and keyboard fixes in the editor ([#139](https://github.com/TatuArvela/manifesto/issues/139)) ([60623a0](https://github.com/TatuArvela/manifesto/commit/60623a02f570635f1a7af09d3d785c43264cf1c6))
+* **client:** notes travel between pages, and board panels sit on a card ([#136](https://github.com/TatuArvela/manifesto/issues/136)) ([88dbe94](https://github.com/TatuArvela/manifesto/commit/88dbe947435c0be30a0dcc3780478b65056b67fe))
+* **client:** search finds every word, ignores accents, titles first ([#80](https://github.com/TatuArvela/manifesto/issues/80)) ([d571037](https://github.com/TatuArvela/manifesto/commit/d571037aaa1e882587af65ff5d97d3904a09359f))
+* **client:** the board fades between two colours, with new presets and patterns ([#134](https://github.com/TatuArvela/manifesto/issues/134)) ([bf8ff97](https://github.com/TatuArvela/manifesto/commit/bf8ff97cbfebb17ba0b565110f2fa6153e78907a))
+* **client:** the note menu in groups with submenus, and cards with the editor's tools ([#138](https://github.com/TatuArvela/manifesto/issues/138)) ([8c3774f](https://github.com/TatuArvela/manifesto/commit/8c3774fe2c10dffc5df4a77c5bdb64362f44e241))
+* delete your own account, and email addresses private by default ([#125](https://github.com/TatuArvela/manifesto/issues/125)) ([bacfbdf](https://github.com/TatuArvela/manifesto/commit/bacfbdf3e68a84b6875beb6e3689b5998b857dbb))
+* describe images, reorder cards by keyboard, and screen reader fixes across the board ([#127](https://github.com/TatuArvela/manifesto/issues/127)) ([3d7cb07](https://github.com/TatuArvela/manifesto/commit/3d7cb077950b3404649d7893c000b307b47d3d17))
+* notes are sealed in the browser, under keys the server never holds ([#113](https://github.com/TatuArvela/manifesto/issues/113)) ([2b384d2](https://github.com/TatuArvela/manifesto/commit/2b384d2f76d2fae8e7e37b966124d0315d6b2354))
+* reminders arrive as push notifications while the app is closed ([#95](https://github.com/TatuArvela/manifesto/issues/95)) ([dc0fe49](https://github.com/TatuArvela/manifesto/commit/dc0fe499023d6bf537a55f46d69adb410523a8cf))
+* **server:** generate typed API clients from the OpenAPI document ([#94](https://github.com/TatuArvela/manifesto/issues/94)) ([524c6c0](https://github.com/TatuArvela/manifesto/commit/524c6c02f7e5e9e9a5c903be0eb216c5d6d37180))
+* setup checks in the admin overview, and a full guide to running from a clone ([#78](https://github.com/TatuArvela/manifesto/issues/78)) ([a819cce](https://github.com/TatuArvela/manifesto/commit/a819cce4d60f4d427e460cf35c9cfc736746d150))
+* sign-in from a mailed link, and a reset no longer blocked by a failed mail ([#90](https://github.com/TatuArvela/manifesto/issues/90)) ([773249c](https://github.com/TatuArvela/manifesto/commit/773249c97d2affc73233d4e62d43fd7acfd5f817))
+* tags nest with a slash, and the Tags view opens them as a tree ([#88](https://github.com/TatuArvela/manifesto/issues/88)) ([bf4f743](https://github.com/TatuArvela/manifesto/commit/bf4f7437f8eea9936098a1681eace40fc9ea22dc))
+* the people on a shared note can comment beside it ([#91](https://github.com/TatuArvela/manifesto/issues/91)) ([a8fcb90](https://github.com/TatuArvela/manifesto/commit/a8fcb90bb961e22daf686e1071bf75f5a3a72bbd))
+
+
+### Bug Fixes
+
+* a lost Postgres connection no longer ends the server, and thirteen smaller audit findings ([#110](https://github.com/TatuArvela/manifesto/issues/110)) ([12475b1](https://github.com/TatuArvela/manifesto/commit/12475b1e7b884b0da7c270172f824e06bb4d6041))
+* **client:** a confirmation hidden behind its dialog, and accessibility fixes from a UI review ([#122](https://github.com/TatuArvela/manifesto/issues/122)) ([2e532f3](https://github.com/TatuArvela/manifesto/commit/2e532f3272a9afef9dc4a9edd21f689ab33173f1))
+* **client:** a long line scrolls inside the editor instead of out of it ([#132](https://github.com/TatuArvela/manifesto/issues/132)) ([87381e8](https://github.com/TatuArvela/manifesto/commit/87381e85384e3311c026e57bfece49480b462103))
+* **client:** a note can no longer dress itself as the app, and smaller fixes from a review ([#120](https://github.com/TatuArvela/manifesto/issues/120)) ([f973040](https://github.com/TatuArvela/manifesto/commit/f9730405281c139b7a53c8793640cca6cb387506))
+* **client:** ten findings from reviewing sealed notes, an export missing notes among them ([#119](https://github.com/TatuArvela/manifesto/issues/119)) ([a9bc1f0](https://github.com/TatuArvela/manifesto/commit/a9bc1f0ea4c224ed18f5149be0218c6b4e2c5694))
+* **client:** the button that removes a link preview is always shown ([#124](https://github.com/TatuArvela/manifesto/issues/124)) ([5e07bdb](https://github.com/TatuArvela/manifesto/commit/5e07bdb1223dba9fe4d7b9cc688062f4c37843cb))
+* **client:** the dev server's page stays in step with its settings ([#131](https://github.com/TatuArvela/manifesto/issues/131)) ([2af4804](https://github.com/TatuArvela/manifesto/commit/2af480437f55253774e8df23adaf41ec63a211b9))
+* **client:** undo and redo work in a note edited on a server ([#123](https://github.com/TatuArvela/manifesto/issues/123)) ([bf94caf](https://github.com/TatuArvela/manifesto/commit/bf94cafafdcf4e2a27866986ad159a518935ab2f))
+* nine weaknesses a security audit found, in sign-in, sockets and mail ([#109](https://github.com/TatuArvela/manifesto/issues/109)) ([f0a7be0](https://github.com/TatuArvela/manifesto/commit/f0a7be0de15323e46a82778456b693f77970400a))
+* **server:** images upload from a client on another origin ([#118](https://github.com/TatuArvela/manifesto/issues/118)) ([ae8ad15](https://github.com/TatuArvela/manifesto/commit/ae8ad15e68a07646d20c882e2253c35428935623))
+
+
+### Performance Improvements
+
+* **client:** the board shows sooner, with the editor, rare dialogs and Finnish loaded apart ([#126](https://github.com/TatuArvela/manifesto/issues/126)) ([973dd19](https://github.com/TatuArvela/manifesto/commit/973dd1933a2c9e4273a6560fcc40a637063f77b1))
+
 ## [0.5.0](https://github.com/TatuArvela/manifesto/compare/v0.4.0...v0.5.0) (2026-09-29)
 
 
