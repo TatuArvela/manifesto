@@ -42,7 +42,7 @@ import {
   downloadNoteAsMarkdown,
 } from "#/utils/noteDownload.ts";
 import { Backdrop } from "./Backdrop.tsx";
-import { checklistSubmenu, downloadSubmenu } from "./card/NoteMenu.tsx";
+import { checklistSubmenu, downloadSubmenu } from "./card/noteMenuItems.tsx";
 import { useEditor } from "./editor/lazyEditor.ts";
 import { gridColumns } from "./gridColumns.ts";
 import { NoteSheet } from "./NoteSheet.tsx";

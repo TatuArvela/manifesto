@@ -13,7 +13,8 @@ import {
 import { updateNote } from "#/state/notesStore.ts";
 import { hasDatedItems } from "#/utils/itemDate.ts";
 import { hasCheckedItems } from "#/utils/markdown.ts";
-import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.tsx";
+import { menuPanelClass, NoteMenu } from "./NoteMenu.tsx";
+import { noteMenuItems } from "./noteMenuItems.tsx";
 
 export type CardPopoverKind = "color" | "font" | "tags" | "menu" | "reminder";
 
