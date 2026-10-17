@@ -1,5 +1,6 @@
 import type { Editor } from "@milkdown/kit/core";
-import { editorStateCtx } from "@milkdown/kit/core";
+import { editorStateCtx, editorViewCtx } from "@milkdown/kit/core";
+import { Selection } from "@milkdown/kit/prose/state";
 import { render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
@@ -297,12 +298,22 @@ describe("MilkdownEditor undo with a shared document", () => {
         return editorHistory(state).undo(state);
       }) ?? false;
 
+    const caretToEnd = () =>
+      editor?.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        view.focus();
+        view.dispatch(
+          view.state.tr.setSelection(Selection.atEnd(view.state.doc)),
+        );
+      });
+
     await vi.waitFor(() => expect(editorText()).toContain("Shared start"));
     expect(canUndo()).toBe(false);
 
-    const surface = document.querySelector<HTMLElement>(".ProseMirror");
-    surface?.focus();
-    await userEvent.keyboard("{ControlOrMeta>}{End}{/ControlOrMeta} and mine");
+    // The caret goes to the end directly: the key for it differs by platform
+    // (Ctrl+End, but Cmd+Down on a Mac), and the keys are not what this tests.
+    caretToEnd();
+    await userEvent.keyboard(" and mine");
     await vi.waitFor(() =>
       expect(fragmentText(ydoc)).toContain("Shared start and mine"),
     );
