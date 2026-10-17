@@ -2,7 +2,7 @@ import { h, render } from "preact";
 import { useState } from "preact/hooks";
 import { describe, expect, it } from "vitest";
 import "#/styles.css";
-import { Dropdown } from "./Dropdown.js";
+import { Dropdown } from "./Dropdown.tsx";
 
 describe("trigger", () => {
   /** A dropdown whose trigger toggles it, the way every caller wires one. */

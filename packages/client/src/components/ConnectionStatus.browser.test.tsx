@@ -17,12 +17,12 @@ const connectionStatus = signal<"idle" | "connecting" | "open" | "closed">(
 );
 const connectionOutage = signal(false);
 
-vi.mock("#/realtime/appSocket.js", () => ({ connectionStatus }));
-vi.mock("#/realtime/connectionOutage.js", () => ({ connectionOutage }));
-vi.mock("#/state/account/auth.js", () => ({ isServerMode: true }));
+vi.mock("#/realtime/appSocket.ts", () => ({ connectionStatus }));
+vi.mock("#/realtime/connectionOutage.ts", () => ({ connectionOutage }));
+vi.mock("#/state/account/auth.ts", () => ({ isServerMode: true }));
 
-const { ConnectionStatus } = await import("./ConnectionStatus.js");
-const { t } = await import("#/i18n/index.js");
+const { ConnectionStatus } = await import("./ConnectionStatus.tsx");
+const { t } = await import("#/i18n/index.ts");
 
 let host: HTMLDivElement;
 

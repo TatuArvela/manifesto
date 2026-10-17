@@ -1,6 +1,6 @@
-import type { MailConfig } from "#/config.js";
-import { logger } from "#/lib/logger.js";
-import { nowIso } from "#/lib/time.js";
+import type { MailConfig } from "#/config.ts";
+import { logger } from "#/lib/logger.ts";
+import { nowIso } from "#/lib/time.ts";
 
 export interface MailMessage {
   to: string;

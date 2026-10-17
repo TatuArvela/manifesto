@@ -3,7 +3,7 @@ import {
   MAX_SHARED_TEXT,
   sharedTextFromForm,
   sharedTextToDraft,
-} from "./shareTarget.js";
+} from "./shareTarget.ts";
 
 describe("sharedTextToDraft", () => {
   it("keeps a page title and puts an Android-style URL in the content", () => {

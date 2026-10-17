@@ -1,7 +1,7 @@
-import { WELCOME_ENABLED } from "#/config.js";
-import { hasStoredNotes } from "#/storage/LocalStorageAdapter.js";
-import { isServerMode } from "./account/auth.js";
-import { showWelcome } from "./ui.js";
+import { WELCOME_ENABLED } from "#/config.ts";
+import { hasStoredNotes } from "#/storage/LocalStorageAdapter.ts";
+import { isServerMode } from "./account/auth.ts";
+import { showWelcome } from "./ui.ts";
 
 const WELCOMED_KEY = "manifesto:welcomed";
 

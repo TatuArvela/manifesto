@@ -17,8 +17,8 @@ import {
   replaceRecoveryKey,
   replaceSecretKey,
   unlockAccountKey,
-} from "./keyMaterial.js";
-import { newUserKey, parseUserKey } from "./userKey.js";
+} from "./keyMaterial.ts";
+import { newUserKey, parseUserKey } from "./userKey.ts";
 
 const USER = "01HZX3KQ0000000000000000AA";
 const data = associatedData({ id: "n1", field: "title", version: 1 });

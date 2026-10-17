@@ -2,9 +2,9 @@ import {
   COMMENT_COLUMNS,
   type CommentRow,
   rowToComment,
-} from "#/storage/commentMapping.js";
-import type { CommentsRepo } from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/commentMapping.ts";
+import type { CommentsRepo } from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqliteCommentsRepo(db: SqliteDB): CommentsRepo {
   const byNoteStmt = db.prepare(

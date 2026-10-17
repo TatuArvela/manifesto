@@ -13,13 +13,13 @@ import {
   X,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import {
   getColorLabel,
   getColorPickerColors,
   plural,
   t,
-} from "#/i18n/index.js";
+} from "#/i18n/index.ts";
 import {
   clearSearchFilters,
   exitSearch,
@@ -33,9 +33,9 @@ import {
   toggleSearchLocation,
   toggleSearchType,
   typeSearch,
-} from "#/state/ui.js";
-import { sortedNotes } from "#/state/views.js";
-import { boardCard } from "./boardCard.js";
+} from "#/state/ui.ts";
+import { sortedNotes } from "#/state/views.ts";
+import { boardCard } from "./boardCard.ts";
 
 const TYPE_META: {
   key: SearchType;

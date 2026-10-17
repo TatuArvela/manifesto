@@ -6,7 +6,7 @@ import { keymap } from "@milkdown/kit/prose/keymap";
 import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
 import { type Command, TextSelection } from "@milkdown/kit/prose/state";
 import { goToNextCell, isInTable } from "@milkdown/kit/prose/tables";
-import { addBodyRowAfter } from "./tableActions.js";
+import { addBodyRowAfter } from "./tableActions.ts";
 
 // Where the presets' own key bindings do the wrong thing, and what does the
 // right one instead.

@@ -1,23 +1,23 @@
 import type { Webhook } from "@manifesto/shared";
 import { Copy, Send, Trash2 } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { buttonClass } from "#/components/buttonClasses.js";
+import { buttonClass } from "#/components/buttonClasses.ts";
 import {
   ConfirmationError,
   ConfirmPasswordField,
-} from "#/components/ConfirmWithPassword.js";
-import { Switch } from "#/components/ToggleSwitch.js";
-import { formatDateTime, t } from "#/i18n/index.js";
-import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
-import { askConfirmation } from "#/state/confirm.js";
-import { showError, showSuccess } from "#/state/ui.js";
+} from "#/components/ConfirmWithPassword.tsx";
+import { Switch } from "#/components/ToggleSwitch.tsx";
+import { formatDateTime, t } from "#/i18n/index.ts";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
+import { askConfirmation } from "#/state/confirm.ts";
+import { showError, showSuccess } from "#/state/ui.ts";
 import {
   createWebhook,
   deleteWebhook,
   listWebhooks,
   setWebhookActive,
   testWebhook,
-} from "#/state/webhooks.js";
+} from "#/state/webhooks.ts";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

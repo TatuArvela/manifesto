@@ -1,5 +1,5 @@
-import type { ShareUser } from "#/note.js";
-import type { AuthProviderName } from "./auth.js";
+import type { ShareUser } from "#/note.ts";
+import type { AuthProviderName } from "./auth.ts";
 
 /** `GET /api/admin/overview`: what the server holds, and how its
  * background jobs are doing. */

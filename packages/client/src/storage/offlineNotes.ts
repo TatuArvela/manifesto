@@ -1,6 +1,6 @@
 import { associatedData, seal, unsealText, utf8 } from "@manifesto/shared";
-import { accountSubkey } from "#/utils/keyMaterial.js";
-import type { StorageKeys } from "./sealing.js";
+import { accountSubkey } from "#/utils/keyMaterial.ts";
+import type { StorageKeys } from "./sealing.ts";
 
 /**
  * What this device keeps of notes that are not stored yet: the new-note

@@ -2,16 +2,16 @@ import type { Note } from "@manifesto/shared";
 import { render } from "preact";
 import { useRef } from "preact/hooks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { notes } from "#/state/notesStore.js";
+import { notes } from "#/state/notesStore.ts";
 import {
   activeView,
   searchQuery,
   selectedNotes,
   selectMode,
-} from "#/state/ui.js";
-import { defined } from "#/test/defined.js";
-import { createNoteOrFail } from "#/test/testSupport.js";
-import { useMarqueeSelection } from "./useMarqueeSelection.js";
+} from "#/state/ui.ts";
+import { defined } from "#/test/defined.ts";
+import { createNoteOrFail } from "#/test/testSupport.ts";
+import { useMarqueeSelection } from "./useMarqueeSelection.ts";
 
 function Grid({ ids }: { ids: string[] }) {
   const ref = useRef<HTMLElement>(null);

@@ -3,9 +3,9 @@ import {
   attachmentIdOf,
   isAttachmentRef,
 } from "@manifesto/shared";
-import { newId } from "#/lib/ulid.js";
-import { HttpError } from "#/middleware/error.js";
-import type { ClaimedImages, StorageDriver } from "#/storage/types.js";
+import { newId } from "#/lib/ulid.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { ClaimedImages, StorageDriver } from "#/storage/types.ts";
 
 /**
  * Every attachment a note refers to belongs to the note's owner, whose notes

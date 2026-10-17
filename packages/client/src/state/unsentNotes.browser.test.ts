@@ -1,14 +1,14 @@
 import { derivable, type Note, NoteLimitError } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "#/storage/index.js";
-import { dropAllOffline } from "#/storage/offlineNotes.js";
-import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.js";
+import { storageConnection } from "#/storage/index.ts";
+import { dropAllOffline } from "#/storage/offlineNotes.ts";
+import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.ts";
 import {
   LockedError,
   type StorageKeys,
   storageKeys,
-} from "#/storage/sealing.js";
-import { notes } from "./notesStore.js";
+} from "#/storage/sealing.ts";
+import { notes } from "./notesStore.ts";
 import {
   discardUnsent,
   queueNote,
@@ -16,7 +16,7 @@ import {
   sendUnsent,
   settledNoteIds,
   unsentNotes,
-} from "./unsentNotes.js";
+} from "./unsentNotes.ts";
 
 /**
  * The queue of new notes against a server that keeps what it is sent, with

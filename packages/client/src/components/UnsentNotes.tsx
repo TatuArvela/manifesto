@@ -1,8 +1,8 @@
 import clsx from "clsx";
 import { useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "#/colors.js";
-import { plural, t } from "#/i18n/index.js";
-import { confirmDeletion } from "#/state/confirm.js";
+import { noteColorMap, noteFontFamilies } from "#/colors.ts";
+import { plural, t } from "#/i18n/index.ts";
+import { confirmDeletion } from "#/state/confirm.ts";
 import {
   discardUnsent,
   reopenUnsent,
@@ -10,9 +10,9 @@ import {
   settledNoteIds,
   type UnsentNote,
   unsentNotes,
-} from "#/state/unsentNotes.js";
-import { buttonClass } from "./buttonClasses.js";
-import { ContentPreview } from "./ContentPreview.js";
+} from "#/state/unsentNotes.ts";
+import { buttonClass } from "./buttonClasses.ts";
+import { ContentPreview } from "./ContentPreview.tsx";
 
 /**
  * The notes written here that the server has not taken yet: kept on this

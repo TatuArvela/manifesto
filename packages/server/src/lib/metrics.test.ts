@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { bootTestAppWith } from "#/test/setup.js";
+import { bootTestAppWith } from "#/test/setup.ts";
 import {
   countMetric,
   gaugeMetric,
   renderMetrics,
   resetMetrics,
-} from "./metrics.js";
-import { createMetricsApp } from "./metricsServer.js";
+} from "./metrics.ts";
+import { createMetricsApp } from "./metricsServer.ts";
 
 describe("metrics", () => {
   afterEach(() => resetMetrics());

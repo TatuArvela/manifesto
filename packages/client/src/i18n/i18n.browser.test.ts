@@ -1,17 +1,17 @@
 import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { APP_NAME } from "#/config.js";
-import { locale } from "#/state/prefs.js";
-import { detectBrowserLocale } from "./detect.js";
+import { APP_NAME } from "#/config.ts";
+import { locale } from "#/state/prefs.ts";
+import { detectBrowserLocale } from "./detect.ts";
 import {
   formatDate,
   formatDateTime,
   formatFileSize,
   plural,
   t,
-} from "./index.js";
-import { en } from "./messages/en.js";
-import { fi } from "./messages/fi.js";
+} from "./index.ts";
+import { en } from "./messages/en.ts";
+import { fi } from "./messages/fi.ts";
 
 beforeEach(() => {
   locale.value = "en";

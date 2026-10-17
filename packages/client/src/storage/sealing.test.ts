@@ -17,9 +17,9 @@ import {
   unwrapTokenKeys,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { testKeys } from "#/test/sealedServer.js";
-import { accountSubkey, createAccountKeys } from "#/utils/keyMaterial.js";
-import { Sealer, type StorageKeys } from "./sealing.js";
+import { testKeys } from "#/test/sealedServer.ts";
+import { accountSubkey, createAccountKeys } from "#/utils/keyMaterial.ts";
+import { Sealer, type StorageKeys } from "./sealing.ts";
 
 const draft: NoteCreate = {
   title: "Title",

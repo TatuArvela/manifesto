@@ -13,13 +13,13 @@ import {
   NoteFont,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ciphertext } from "#/storage/contracts/claimed.js";
+import { ciphertext } from "#/storage/contracts/claimed.ts";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
+} from "#/test/setup.ts";
 
 const baseNote: NoteCreate = {
   title: "Trip plan",

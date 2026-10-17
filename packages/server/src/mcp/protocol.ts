@@ -1,5 +1,5 @@
-import { logger } from "#/lib/logger.js";
-import type { McpTool, RestCall } from "./tools.js";
+import { logger } from "#/lib/logger.ts";
+import type { McpTool, RestCall } from "./tools.ts";
 
 /**
  * The Model Context Protocol, as much of it as a server of tools needs:

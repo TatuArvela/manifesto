@@ -1,8 +1,8 @@
 import { type Editor, editorViewCtx } from "@milkdown/kit/core";
 import { render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MilkdownEditor } from "#/components/editor/MilkdownEditor.js";
-import { docHasDatedItems, sortItemsByDateIn } from "./itemDates.js";
+import { MilkdownEditor } from "#/components/editor/MilkdownEditor.tsx";
+import { docHasDatedItems, sortItemsByDateIn } from "./itemDates.ts";
 import "#/styles.css";
 
 let host: HTMLDivElement;

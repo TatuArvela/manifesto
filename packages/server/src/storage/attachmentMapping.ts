@@ -1,6 +1,6 @@
 import { attachmentIdOf, isAttachmentRef } from "@manifesto/shared";
-import { parseJson } from "./noteMapping.js";
-import type { AttachmentMeta, StoredAttachment } from "./types.js";
+import { parseJson } from "./noteMapping.ts";
+import type { AttachmentMeta, StoredAttachment } from "./types.ts";
 
 export interface AttachmentRow {
   id: string;

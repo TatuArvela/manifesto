@@ -1,5 +1,5 @@
 import argon2 from "argon2";
-import type { ServerConfig } from "#/config.js";
+import type { ServerConfig } from "#/config.ts";
 
 export async function hashPassword(
   plaintext: string,

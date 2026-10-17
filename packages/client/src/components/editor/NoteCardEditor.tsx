@@ -9,36 +9,36 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { Backdrop } from "#/components/Backdrop.js";
-import { noteMenuItems } from "#/components/card/NoteMenu.js";
-import { NoteComments } from "#/components/NoteComments.js";
-import { NoteSheet } from "#/components/NoteSheet.js";
-import { SharedPeople } from "#/components/sharing/SharedAvatars.js";
-import { VersionHistory } from "#/components/VersionHistory.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useVersionsPanel } from "#/hooks/useVersionsPanel.js";
-import { formatDateTime, t } from "#/i18n/index.js";
+import { Backdrop } from "#/components/Backdrop.tsx";
+import { noteMenuItems } from "#/components/card/NoteMenu.tsx";
+import { NoteComments } from "#/components/NoteComments.tsx";
+import { NoteSheet } from "#/components/NoteSheet.tsx";
+import { SharedPeople } from "#/components/sharing/SharedAvatars.tsx";
+import { VersionHistory } from "#/components/VersionHistory.tsx";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useVersionsPanel } from "#/hooks/useVersionsPanel.ts";
+import { formatDateTime, t } from "#/i18n/index.ts";
 import {
   localAgreement,
   sharedAgreement,
-} from "#/realtime/contentAgreement.js";
-import { useNoteYDoc } from "#/realtime/yjsProvider.js";
-import { forceUpdateApp } from "#/serviceWorker.js";
-import { addTag, describeImage, togglePin } from "#/state/actions.js";
-import { takeEditorIntent } from "#/state/editorIntent.js";
-import { addLinkPreviews } from "#/state/linkPreviews.js";
+} from "#/realtime/contentAgreement.ts";
+import { useNoteYDoc } from "#/realtime/yjsProvider.ts";
+import { forceUpdateApp } from "#/serviceWorker.ts";
+import { addTag, describeImage, togglePin } from "#/state/actions.ts";
+import { takeEditorIntent } from "#/state/editorIntent.ts";
+import { addLinkPreviews } from "#/state/linkPreviews.ts";
 import {
   ensureImages,
   notes,
   updateNote,
   updateStoredNote,
-} from "#/state/notesStore.js";
-import { showError } from "#/state/ui.js";
-import { recordVersion } from "#/state/versions.js";
-import { placedImageAlts, placeImages } from "#/utils/drawing.js";
-import { isPhoneLayout } from "#/utils/phoneSheets.js";
-import { getEditorMarkdown } from "./MilkdownEditor.js";
-import { NoteEditor } from "./NoteEditor.js";
+} from "#/state/notesStore.ts";
+import { showError } from "#/state/ui.ts";
+import { recordVersion } from "#/state/versions.ts";
+import { placedImageAlts, placeImages } from "#/utils/drawing.ts";
+import { isPhoneLayout } from "#/utils/phoneSheets.ts";
+import { getEditorMarkdown } from "./MilkdownEditor.tsx";
+import { NoteEditor } from "./NoteEditor.tsx";
 
 /**
  * How long a changed row waits before it is judged to have come from outside

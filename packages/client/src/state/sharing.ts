@@ -13,11 +13,11 @@ import {
   type UserLookupResponse,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { t } from "#/i18n/index.js";
-import type { MessageKey } from "#/i18n/messages/index.js";
-import { connectionOutage } from "#/realtime/connectionOutage.js";
-import { ApiError, apiJson } from "#/storage/apiRequest.js";
-import { type NoteSealing, sealer } from "#/storage/sealing.js";
+import { t } from "#/i18n/index.ts";
+import type { MessageKey } from "#/i18n/messages/index.ts";
+import { connectionOutage } from "#/realtime/connectionOutage.ts";
+import { ApiError, apiJson } from "#/storage/apiRequest.ts";
+import { type NoteSealing, sealer } from "#/storage/sealing.ts";
 import {
   adoptOfferedKey,
   leaveFeedKey,
@@ -25,10 +25,10 @@ import {
   replaceNoteKey,
   supplyKey,
   trustChangedKeys,
-} from "#/storage/shareKeys.js";
-import { forgetNote, notes, receiveNote, reviseNote } from "./notesStore.js";
-import { serverFeature } from "./serverFeatures.js";
-import { editingNoteId, showError, showSuccess } from "./ui.js";
+} from "#/storage/shareKeys.ts";
+import { forgetNote, notes, receiveNote, reviseNote } from "./notesStore.ts";
+import { serverFeature } from "./serverFeatures.ts";
+import { editingNoteId, showError, showSuccess } from "./ui.ts";
 
 /**
  * Sharing notes with other accounts, in connected mode.
@@ -503,7 +503,7 @@ export async function trustKeys(userId: string): Promise<boolean> {
   return true;
 }
 
-export { changedKeys, keyStatusOf } from "#/storage/shareKeys.js";
+export { changedKeys, keyStatusOf } from "#/storage/shareKeys.ts";
 
 // A note is due a new key once someone who held the old one is gone: the
 // owner's app makes it, whichever of their devices is online first. One

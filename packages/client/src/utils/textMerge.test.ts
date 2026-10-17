@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rebaseEdit } from "./textMerge.js";
+import { rebaseEdit } from "./textMerge.ts";
 
 describe("rebaseEdit", () => {
   const base = "- [ ] milk\n- [ ] bread\n- [ ] eggs";

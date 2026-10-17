@@ -5,7 +5,7 @@
  * for itself, at the pace the marquee selection scrolls at.
  */
 
-import { edgeScrollStep } from "./marquee.js";
+import { edgeScrollStep } from "./marquee.ts";
 
 /** The box that scrolls `el`: the nearest ancestor that can, or the page. */
 export function scrollParent(el: HTMLElement): HTMLElement {

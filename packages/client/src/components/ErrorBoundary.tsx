@@ -1,11 +1,11 @@
 import { LOCAL_IMAGE_REF_PREFIX } from "@manifesto/shared";
 import { Component, type ComponentChildren } from "preact";
-import { APP_FILE_SLUG, APP_NAME } from "#/config.js";
-import { t } from "#/i18n/index.js";
-import { revealApp } from "#/splash.js";
-import { getLocalImage } from "#/storage/localImages.js";
-import { blobToDataUrl } from "#/utils/dataUrl.js";
-import { buttonClass } from "./buttonClasses.js";
+import { APP_FILE_SLUG, APP_NAME } from "#/config.ts";
+import { t } from "#/i18n/index.ts";
+import { revealApp } from "#/splash.ts";
+import { getLocalImage } from "#/storage/localImages.ts";
+import { blobToDataUrl } from "#/utils/dataUrl.ts";
+import { buttonClass } from "./buttonClasses.ts";
 
 const NOTES_KEY = "manifesto:notes";
 

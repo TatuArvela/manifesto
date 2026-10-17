@@ -3,7 +3,7 @@ import {
   MAX_REDIRECT_URI_LENGTH,
   redirectUriMatches,
   redirectUriProblem,
-} from "./redirectUris.js";
+} from "./redirectUris.ts";
 
 describe("redirectUriProblem", () => {
   it("accepts https anywhere, http to this computer, and an app's own scheme", () => {

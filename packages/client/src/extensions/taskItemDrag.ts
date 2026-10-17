@@ -1,14 +1,14 @@
 import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
-import { edgeScroll, scrollParent } from "#/utils/edgeScroll.js";
+import { edgeScroll, scrollParent } from "#/utils/edgeScroll.ts";
 import {
   endOfOuterList,
   getDeletionRange,
   getItemLevel,
   getOuterListPos,
   isTaskItem,
-} from "./taskListStructure.js";
+} from "./taskListStructure.ts";
 
 // Dragging a checklist item by its handle: a pointer-driven drag (not HTML5
 // drag and drop) that moves the item and its subtree, and indents or outdents

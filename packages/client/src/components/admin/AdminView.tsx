@@ -11,18 +11,18 @@ import {
   UserPlus,
 } from "lucide-preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
-import { Avatar } from "#/components/Avatar.js";
-import { boardCard } from "#/components/boardCard.js";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { menuItemClass, menuPanelClass } from "#/components/card/NoteMenu.js";
-import { Dropdown } from "#/components/Dropdown.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { formatDate, plural, t } from "#/i18n/index.js";
+import { Avatar } from "#/components/Avatar.tsx";
+import { boardCard } from "#/components/boardCard.ts";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { menuItemClass, menuPanelClass } from "#/components/card/NoteMenu.tsx";
+import { Dropdown } from "#/components/Dropdown.tsx";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { formatDate, plural, t } from "#/i18n/index.ts";
 import {
   authProviders,
   currentUser,
   fetchCapabilities,
-} from "#/state/account/auth.js";
+} from "#/state/account/auth.ts";
 import {
   adminUsers,
   createAccount,
@@ -33,11 +33,11 @@ import {
   resetAccountPassword,
   setAccountAdmin,
   setAccountEmail,
-} from "#/state/admin.js";
-import { serverFeature } from "#/state/serverFeatures.js";
-import { AdminOverview } from "./AdminOverview.js";
-import { AdminTeams } from "./AdminTeams.js";
-import { AuditLog } from "./AuditLog.js";
+} from "#/state/admin.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
+import { AdminOverview } from "./AdminOverview.tsx";
+import { AdminTeams } from "./AdminTeams.tsx";
+import { AuditLog } from "./AuditLog.tsx";
 
 /**
  * `/admin`: every account on the server, for an admin to create, reset,

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { pageIsIdle } from "./updateReload.js";
+import { pageIsIdle } from "./updateReload.ts";
 
 describe("pageIsIdle", () => {
   afterEach(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "./useEscapeStack.js";
-import { useFocusTrap } from "./useFocusTrap.js";
+import { useEscapeStack } from "./useEscapeStack.ts";
+import { useFocusTrap } from "./useFocusTrap.ts";
 
 /** How long the panel takes to fade out. */
 const CLOSE_MS = 150;

@@ -1,6 +1,6 @@
 import type { Note } from "@manifesto/shared";
-import { checkImportSize, type Importer, importedNote } from "./importer.js";
-import { readTar } from "./tar.js";
+import { checkImportSize, type Importer, importedNote } from "./importer.ts";
+import { readTar } from "./tar.ts";
 
 /** Joplin's item types, as `type_` numbers them. */
 const NOTE = "1";

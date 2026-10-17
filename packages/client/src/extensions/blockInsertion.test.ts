@@ -1,8 +1,8 @@
 import { type Node as ProseNode, Schema } from "@milkdown/kit/prose/model";
 import { EditorState, TextSelection } from "@milkdown/kit/prose/state";
 import { describe, expect, it } from "vitest";
-import { defined } from "#/test/defined.js";
-import { insertBlock } from "./blockInsertion.js";
+import { defined } from "#/test/defined.ts";
+import { insertBlock } from "./blockInsertion.ts";
 
 // Node names as Milkdown's presets give them, which is all `insertBlock` reads.
 const schema = new Schema({

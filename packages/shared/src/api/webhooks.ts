@@ -1,4 +1,4 @@
-import type { Note } from "#/note.js";
+import type { Note } from "#/note.ts";
 
 /** The note events a webhook can be sent. */
 export const WEBHOOK_EVENTS = [

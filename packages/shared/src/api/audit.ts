@@ -1,4 +1,4 @@
-import type { ShareUser } from "#/note.js";
+import type { ShareUser } from "#/note.ts";
 
 /** What the audit log records. */
 export const AUDIT_ACTIONS = [

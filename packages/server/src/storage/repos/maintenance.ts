@@ -1,5 +1,5 @@
 import type { AuditAction } from "@manifesto/shared";
-import type { NoteShare } from "./sharing.js";
+import type { NoteShare } from "./sharing.ts";
 
 // The server's own housekeeping: cleanup, stats and the audit log.
 

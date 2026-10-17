@@ -1,7 +1,7 @@
 import { NOTE_VERSION_MAX_AGE_DAYS, type NoteVersion } from "@manifesto/shared";
-import { storage, storageConnection } from "#/storage/index.js";
-import { deleteVersions, getVersions } from "#/storage/VersionStorage.js";
-import { notes } from "./notesStore.js";
+import { storage, storageConnection } from "#/storage/index.ts";
+import { deleteVersions, getVersions } from "#/storage/VersionStorage.ts";
+import { notes } from "./notesStore.ts";
 
 /**
  * Keeps the text a note had before an editing session, as a version. Reports

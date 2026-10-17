@@ -2,18 +2,18 @@ import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "#/styles.css";
-import { NoteCardEditor } from "#/components/editor/NoteCardEditor.js";
-import { t } from "#/i18n/index.js";
-import { notes } from "#/state/notesStore.js";
-import { editingNoteId } from "#/state/ui.js";
-import { NoteCard } from "./NoteCard.js";
+import { NoteCardEditor } from "#/components/editor/NoteCardEditor.tsx";
+import { t } from "#/i18n/index.ts";
+import { notes } from "#/state/notesStore.ts";
+import { editingNoteId } from "#/state/ui.ts";
+import { NoteCard } from "./NoteCard.tsx";
 import {
   arrangeMenu,
   NoteMenu,
   type NoteMenuItem,
   noteMenuItems,
-} from "./NoteMenu.js";
-import { NoteReadonlyView } from "./NoteReadonlyView.js";
+} from "./NoteMenu.tsx";
+import { NoteReadonlyView } from "./NoteReadonlyView.tsx";
 
 /**
  * Three surfaces used to carry three copies of the same menu, and the copies

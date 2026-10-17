@@ -17,10 +17,10 @@ import {
   snapshotKey,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import { apiFetch } from "#/storage/apiRequest.js";
-import { storageConnection } from "#/storage/index.js";
-import { sealer } from "#/storage/sealing.js";
-import { sealedNote } from "#/storage/shareKeys.js";
+import { apiFetch } from "#/storage/apiRequest.ts";
+import { storageConnection } from "#/storage/index.ts";
+import { sealer } from "#/storage/sealing.ts";
+import { sealedNote } from "#/storage/shareKeys.ts";
 
 /**
  * Public links: a note published to anyone holding its link, from a server

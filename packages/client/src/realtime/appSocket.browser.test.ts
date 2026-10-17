@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isServerEvent } from "./appSocket.js";
+import { isServerEvent } from "./appSocket.ts";
 
 /**
  * The wire is untrusted input like any other. This guard used to accept

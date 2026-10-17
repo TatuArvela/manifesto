@@ -1,9 +1,9 @@
-import type { ServerConfig } from "#/config.js";
-import { createAtRest, useAtRest } from "./atRest.js";
-import { createPostgresStorage } from "./postgres/driver.js";
-import { loadServerKeys } from "./serverKey.js";
-import { createSqliteStorage } from "./sqlite/driver.js";
-import type { StorageDriver } from "./types.js";
+import type { ServerConfig } from "#/config.ts";
+import { createAtRest, useAtRest } from "./atRest.ts";
+import { createPostgresStorage } from "./postgres/driver.ts";
+import { loadServerKeys } from "./serverKey.ts";
+import { createSqliteStorage } from "./sqlite/driver.ts";
+import type { StorageDriver } from "./types.ts";
 
 export async function createStorage(cfg: ServerConfig): Promise<StorageDriver> {
   // Before a driver reads or writes a row: what the server stores for
@@ -27,4 +27,4 @@ export async function createStorage(cfg: ServerConfig): Promise<StorageDriver> {
   }
 }
 
-export type { StorageDriver } from "./types.js";
+export type { StorageDriver } from "./types.ts";

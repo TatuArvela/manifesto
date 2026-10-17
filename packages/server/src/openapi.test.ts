@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { createApp } from "./app.js";
-import { createAuthProvider } from "./auth/index.js";
+import { createApp } from "./app.ts";
+import { createAuthProvider } from "./auth/index.ts";
 import {
   buildOpenApiDocument,
   isPublicSurface,
   OPERATIONS,
   openApiPath,
-} from "./openapi.js";
-import { createStorage } from "./storage/index.js";
-import { defined } from "./test/defined.js";
-import { TEST_CONFIG } from "./test/setup.js";
+} from "./openapi.ts";
+import { createStorage } from "./storage/index.ts";
+import { defined } from "./test/defined.ts";
+import { TEST_CONFIG } from "./test/setup.ts";
 
 /**
  * The document lists operations by hand, so this is what keeps it honest: it

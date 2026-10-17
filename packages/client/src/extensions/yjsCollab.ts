@@ -2,7 +2,7 @@ import { prosePluginsCtx } from "@milkdown/kit/core";
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
-import { editorHistoryPlugins } from "./editorHistory.js";
+import { editorHistoryPlugins } from "./editorHistory.ts";
 
 /**
  * Name of the shared `Y.XmlFragment` the editor binds to. Exported because

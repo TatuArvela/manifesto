@@ -6,9 +6,9 @@ import {
   NoteFont,
   previewImages,
 } from "@manifesto/shared";
-import { storageConnection } from "#/storage/index.js";
-import { type OfflineOwner, openModeOwner } from "#/storage/offlineNotes.js";
-import { sealer, storageKeys } from "#/storage/sealing.js";
+import { storageConnection } from "#/storage/index.ts";
+import { type OfflineOwner, openModeOwner } from "#/storage/offlineNotes.ts";
+import { sealer, storageKeys } from "#/storage/sealing.ts";
 
 /**
  * Whose records `storage/offlineNotes.ts` keeps for at the moment: the

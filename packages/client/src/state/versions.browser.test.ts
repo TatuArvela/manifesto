@@ -1,9 +1,9 @@
 import type { NoteVersion } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { currentStorage, storageConnection } from "#/storage/index.js";
-import { getVersions, saveVersion } from "#/storage/VersionStorage.js";
-import { notes } from "./notesStore.js";
-import { loadVersions, recordVersion, restoreVersions } from "./versions.js";
+import { currentStorage, storageConnection } from "#/storage/index.ts";
+import { getVersions, saveVersion } from "#/storage/VersionStorage.ts";
+import { notes } from "./notesStore.ts";
+import { loadVersions, recordVersion, restoreVersions } from "./versions.ts";
 
 let saved: { noteId: string; timestamp?: string; content: string }[];
 let listVersions: ReturnType<typeof vi.fn>;

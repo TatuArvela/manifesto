@@ -5,7 +5,7 @@ import {
   parseLocalISO,
   showReminderNotification,
   snapToFuture,
-} from "./reminderScheduler.js";
+} from "./reminderScheduler.ts";
 
 describe("showReminderNotification", () => {
   afterEach(() => {

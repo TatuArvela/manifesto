@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { subjectOf } from "./sender.js";
+import { subjectOf } from "./sender.ts";
 
 describe("subjectOf", () => {
   it("names the client's address when it is https", () => {

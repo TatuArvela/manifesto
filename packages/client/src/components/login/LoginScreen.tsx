@@ -1,10 +1,10 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
-import { BrandLogo } from "#/components/BrandLogo.js";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { OrgCredit } from "#/components/OrgCredit.js";
-import { APP_LOGO, APP_NAME, INSTANCE_NAME, PRIVACY_URL } from "#/config.js";
-import { type MessageKey, t } from "#/i18n/index.js";
+import { BrandLogo } from "#/components/BrandLogo.tsx";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { OrgCredit } from "#/components/OrgCredit.tsx";
+import { APP_LOGO, APP_NAME, INSTANCE_NAME, PRIVACY_URL } from "#/config.ts";
+import { type MessageKey, t } from "#/i18n/index.ts";
 import {
   beginOidcSignIn,
   fetchCapabilities,
@@ -14,12 +14,15 @@ import {
   SERVER_ORIGIN,
   takeResetToken,
   takeSignInLinkToken,
-} from "#/state/account/auth.js";
-import { passkeysSupported } from "#/utils/webauthn.js";
-import { LocalLoginForm } from "./LocalLoginForm.js";
-import { ForgotPasswordForm, ResetPasswordForm } from "./PasswordResetForms.js";
-import { RecoveryForm } from "./RecoveryForms.js";
-import { SignInLinkForm, SignInLinkLanding } from "./SignInLinkForms.js";
+} from "#/state/account/auth.ts";
+import { passkeysSupported } from "#/utils/webauthn.ts";
+import { LocalLoginForm } from "./LocalLoginForm.tsx";
+import {
+  ForgotPasswordForm,
+  ResetPasswordForm,
+} from "./PasswordResetForms.tsx";
+import { RecoveryForm } from "./RecoveryForms.tsx";
+import { SignInLinkForm, SignInLinkLanding } from "./SignInLinkForms.tsx";
 
 const OIDC_REFUSAL_MESSAGES: Record<OidcRefusal, MessageKey> = {
   not_in_group: "login.oidcNotInGroup",

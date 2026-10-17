@@ -1,13 +1,13 @@
-import { authenticateBySession } from "#/auth/session.js";
+import { authenticateBySession } from "#/auth/session.ts";
 import type {
   AuthIdentity,
   AuthProvider,
   AuthProviderRouter,
   AuthRouterContext,
-} from "#/auth/types.js";
-import type { ServerConfig } from "#/config.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { createLocalAuthRouter } from "./router.js";
+} from "#/auth/types.ts";
+import type { ServerConfig } from "#/config.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { createLocalAuthRouter } from "./router.ts";
 
 interface LocalAuthProviderDeps {
   storage: StorageDriver;

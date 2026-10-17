@@ -5,12 +5,12 @@ import {
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
+} from "#/test/setup.ts";
 import {
   announceInitialAdmin,
   ensureInitialAdmin,
   INITIAL_ADMIN_USERNAME,
-} from "./initialAdmin.js";
+} from "./initialAdmin.ts";
 
 function signIn(
   rig: TestRig,

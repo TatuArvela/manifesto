@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
-import { openHistoryLayer } from "#/state/sheetHistory.js";
+import { openHistoryLayer } from "#/state/sheetHistory.ts";
 
 /**
  * Makes the browser's back call `onBack` while `active`. A sheet passes its

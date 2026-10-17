@@ -15,15 +15,15 @@ import {
   wrapImageKey,
 } from "@manifesto/shared";
 import { type Context, Hono } from "hono";
-import { adoptImages } from "#/attachments/store.js";
-import { nowIso } from "#/lib/time.js";
-import { newId } from "#/lib/ulid.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { attachmentsClaimSchema } from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import { tokenKeys } from "./noteCodec.js";
+import { adoptImages } from "#/attachments/store.ts";
+import { nowIso } from "#/lib/time.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { attachmentsClaimSchema } from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import { tokenKeys } from "./noteCodec.ts";
 
 type Ctx = Context<{ Variables: { auth: AuthContext } }>;
 

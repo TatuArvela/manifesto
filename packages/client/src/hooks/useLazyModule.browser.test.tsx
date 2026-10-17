@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useLazyModule } from "./useLazyModule.js";
+import { useLazyModule } from "./useLazyModule.ts";
 
 let host: HTMLDivElement;
 let latest: (() => string) | null;

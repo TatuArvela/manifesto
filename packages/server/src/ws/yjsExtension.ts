@@ -4,8 +4,8 @@ import type {
   onStoreDocumentPayload,
 } from "@hocuspocus/server";
 import * as Y from "yjs";
-import { logger } from "#/lib/logger.js";
-import type { YjsStore } from "#/storage/types.js";
+import { logger } from "#/lib/logger.ts";
+import type { YjsStore } from "#/storage/types.ts";
 
 /**
  * The most a note's collaborative state may weigh, and so the largest frame

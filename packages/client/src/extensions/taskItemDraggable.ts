@@ -7,15 +7,15 @@ import {
   DecorationSet,
   type NodeViewConstructor,
 } from "@milkdown/kit/prose/view";
-import { t } from "#/i18n/index.js";
-import { emptyParagraphAroundListKeymap } from "./listParagraphKeymap.js";
-import { endTaskItemDragOf, startTaskItemDrag } from "./taskItemDrag.js";
+import { t } from "#/i18n/index.ts";
+import { emptyParagraphAroundListKeymap } from "./listParagraphKeymap.ts";
+import { endTaskItemDragOf, startTaskItemDrag } from "./taskItemDrag.ts";
 import {
   activeTaskItem,
   getDeletionRange,
   isTaskItem,
   toggleSubtreeChecked,
-} from "./taskListStructure.js";
+} from "./taskListStructure.ts";
 
 /** Gives each item's text an id its checkbox can be named by. */
 let nextItemId = 0;

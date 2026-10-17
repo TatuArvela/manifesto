@@ -1,9 +1,9 @@
-import { formatPercent, t } from "#/i18n/index.js";
-import { boardTextureOpacity, resolvedBoardTexture } from "#/state/prefs.js";
+import { formatPercent, t } from "#/i18n/index.ts";
+import { boardTextureOpacity, resolvedBoardTexture } from "#/state/prefs.ts";
 import {
   MAX_TEXTURE_OPACITY,
   MIN_TEXTURE_OPACITY,
-} from "#/utils/boardTextures.js";
+} from "#/utils/boardTextures.ts";
 
 const legendClass =
   "text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2";

@@ -1,8 +1,8 @@
 import { render } from "preact";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { forgetAttachmentUrls } from "#/state/attachments.js";
-import { currentStorage } from "#/storage/index.js";
-import { LinkPreviewHero } from "./LinkPreviewHero.js";
+import { forgetAttachmentUrls } from "#/state/attachments.ts";
+import { currentStorage } from "#/storage/index.ts";
+import { LinkPreviewHero } from "./LinkPreviewHero.tsx";
 
 const REF = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV";
 const GIF_BYTES = Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (c) =>

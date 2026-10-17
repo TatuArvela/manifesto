@@ -1,8 +1,8 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { nowIso } from "#/lib/time.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { claimed, heldKey } from "./claimed.js";
+import { nowIso } from "#/lib/time.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { claimed, heldKey } from "./claimed.ts";
 
 /**
  * What `GET /api/sync` reads, run against both drivers: which notes count as

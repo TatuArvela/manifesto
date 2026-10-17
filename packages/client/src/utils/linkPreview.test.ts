@@ -11,7 +11,7 @@ import {
   makeStubPreview,
   normalizeDomain,
   parseLinkPreviews,
-} from "./linkPreview.js";
+} from "./linkPreview.ts";
 
 describe("extractUrls", () => {
   it("returns urls from plain text", () => {

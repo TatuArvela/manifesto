@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePanelPosition } from "./Dropdown.js";
+import { computePanelPosition } from "./Dropdown.tsx";
 
 const VIEWPORT = { width: 1000, height: 600 };
 const PANEL = { width: 160, height: 200 };

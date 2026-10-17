@@ -9,40 +9,40 @@ import type {
   AuditLogResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import { auditPage } from "#/audit/auditPage.js";
-import type { SessionRevocations } from "#/auth/revocations.js";
-import { endUserSessions } from "#/auth/session.js";
-import { pickAvatarColor } from "#/auth/users.js";
-import { type ServerConfig, signsInLocally } from "#/config.js";
-import type { UpdateStatus } from "#/jobs/updateCheck.js";
-import { logger } from "#/lib/logger.js";
-import { hashPassword } from "#/lib/password.js";
-import { jobStatuses } from "#/lib/periodic.js";
-import { newTemporaryPassword } from "#/lib/temporaryPassword.js";
-import { nowIso } from "#/lib/time.js";
-import { newId } from "#/lib/ulid.js";
-import type { Mailer, MailStatus } from "#/mail/mailer.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { emailTaken, HttpError } from "#/middleware/error.js";
-import { deleteAccount } from "#/sharing/deleteAccount.js";
-import type { NoteEvents } from "#/sharing/noteEvents.js";
-import type { TeamShares } from "#/sharing/teamShares.js";
+import { audit } from "#/audit/audit.ts";
+import { auditPage } from "#/audit/auditPage.ts";
+import type { SessionRevocations } from "#/auth/revocations.ts";
+import { endUserSessions } from "#/auth/session.ts";
+import { pickAvatarColor } from "#/auth/users.ts";
+import { type ServerConfig, signsInLocally } from "#/config.ts";
+import type { UpdateStatus } from "#/jobs/updateCheck.ts";
+import { logger } from "#/lib/logger.ts";
+import { hashPassword } from "#/lib/password.ts";
+import { jobStatuses } from "#/lib/periodic.ts";
+import { newTemporaryPassword } from "#/lib/temporaryPassword.ts";
+import { nowIso } from "#/lib/time.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { Mailer, MailStatus } from "#/mail/mailer.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { emailTaken, HttpError } from "#/middleware/error.ts";
+import { deleteAccount } from "#/sharing/deleteAccount.ts";
+import type { NoteEvents } from "#/sharing/noteEvents.ts";
+import type { TeamShares } from "#/sharing/teamShares.ts";
 import {
   type AdminGuardedResult,
   EmailTakenError,
   type StorageDriver,
   UsernameTakenError,
   type UserSummary,
-} from "#/storage/types.js";
+} from "#/storage/types.ts";
 import {
   adminCreateUserSchema,
   adminUpdateUserSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import { VERSION } from "#/version.js";
-import { registerAdminCheckRoutes } from "./adminChecks.js";
-import { registerAdminTeamRoutes } from "./teams.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import { VERSION } from "#/version.ts";
+import { registerAdminCheckRoutes } from "./adminChecks.ts";
+import { registerAdminTeamRoutes } from "./teams.ts";
 
 interface AdminDeps {
   cfg: ServerConfig;

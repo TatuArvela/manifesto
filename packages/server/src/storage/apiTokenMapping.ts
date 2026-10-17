@@ -3,7 +3,7 @@ import {
   type ApiTokenKind,
   type ApiTokenScope,
 } from "@manifesto/shared";
-import type { StoredApiToken } from "./types.js";
+import type { StoredApiToken } from "./types.ts";
 
 export interface ApiTokenRow {
   id: string;

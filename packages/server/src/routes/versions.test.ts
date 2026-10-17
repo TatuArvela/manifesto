@@ -16,16 +16,16 @@ import {
   wrapNoteKey,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ciphertext } from "#/storage/contracts/claimed.js";
-import { defined } from "#/test/defined.js";
-import { testAccountKeys } from "#/test/keyedTokens.js";
+import { ciphertext } from "#/storage/contracts/claimed.ts";
+import { defined } from "#/test/defined.ts";
+import { testAccountKeys } from "#/test/keyedTokens.ts";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
-import { versionTimestamp } from "./versions.js";
+} from "#/test/setup.ts";
+import { versionTimestamp } from "./versions.ts";
 
 const baseNote: NoteCreate = {
   title: "Plan",

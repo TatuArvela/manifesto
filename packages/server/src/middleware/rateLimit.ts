@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono";
-import { createExpiringCounter } from "#/lib/expiringCounter.js";
-import { countMetric } from "#/lib/metrics.js";
-import { HttpError } from "./error.js";
+import { createExpiringCounter } from "#/lib/expiringCounter.ts";
+import { countMetric } from "#/lib/metrics.ts";
+import { HttpError } from "./error.ts";
 
 export interface RateLimitOptions {
   /** Maximum requests allowed per key within the window. */

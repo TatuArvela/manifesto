@@ -1,4 +1,4 @@
-import { searchPattern } from "#/storage/noteMapping.js";
+import { searchPattern } from "#/storage/noteMapping.ts";
 import {
   type AdminGuardedResult,
   type CreateUserInput,
@@ -9,8 +9,8 @@ import {
   type UserSearchOptions,
   type UserSummary,
   type UsersRepo,
-} from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 interface UserRow {
   id: string;

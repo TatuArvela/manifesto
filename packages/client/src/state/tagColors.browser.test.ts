@@ -1,10 +1,10 @@
 import { NoteColor } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createNoteOrFail } from "#/test/testSupport.js";
-import { deleteTag, renameTag } from "./actions.js";
-import { notes } from "./notesStore.js";
-import { MAX_TAG_COLORS, tagColors } from "./prefs.js";
-import { setTagColor } from "./views.js";
+import { createNoteOrFail } from "#/test/testSupport.ts";
+import { deleteTag, renameTag } from "./actions.ts";
+import { notes } from "./notesStore.ts";
+import { MAX_TAG_COLORS, tagColors } from "./prefs.ts";
+import { setTagColor } from "./views.ts";
 
 describe("tag colours", () => {
   beforeEach(() => {

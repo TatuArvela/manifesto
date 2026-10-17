@@ -4,8 +4,8 @@ import {
   askConfirmation,
   confirmDeletion,
   confirmRequest,
-} from "./confirm.js";
-import { confirmBeforeDelete } from "./prefs.js";
+} from "./confirm.ts";
+import { confirmBeforeDelete } from "./prefs.ts";
 
 const question = {
   title: "Delete this note?",

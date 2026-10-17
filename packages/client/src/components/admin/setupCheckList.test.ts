@@ -1,6 +1,6 @@
 import type { AdminChecksResponse, ProxyFinding } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { type PageAddress, setupChecks } from "./setupCheckList.js";
+import { type PageAddress, setupChecks } from "./setupCheckList.ts";
 
 const PAGE: PageAddress = {
   protocol: "https:",

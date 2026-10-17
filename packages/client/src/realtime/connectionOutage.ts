@@ -1,5 +1,5 @@
 import { signal } from "@preact/signals";
-import type { ConnectionStatus } from "./appSocket.js";
+import type { ConnectionStatus } from "./appSocket.ts";
 
 /**
  * How long the socket may be away before we call it an outage.

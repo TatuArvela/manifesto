@@ -1,15 +1,15 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { StoredImage } from "#/components/StoredImage.js";
-import { currentStorage, storageConnection } from "#/storage/index.js";
+import { StoredImage } from "#/components/StoredImage.tsx";
+import { currentStorage, storageConnection } from "#/storage/index.ts";
 import {
   attachmentObjectUrl,
   forgetAttachmentUrls,
   inlineImages,
-} from "./attachments.js";
-import { exportNotes } from "./exportNotes.js";
-import { notes } from "./notesStore.js";
+} from "./attachments.ts";
+import { exportNotes } from "./exportNotes.ts";
+import { notes } from "./notesStore.ts";
 
 const REF = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV";
 const GIF_BYTES = Uint8Array.from(atob("R0lGODlhAQABAAAAACw="), (c) =>

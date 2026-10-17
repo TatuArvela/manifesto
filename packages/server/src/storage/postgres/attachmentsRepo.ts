@@ -8,13 +8,13 @@ import {
   rowToAttachmentMeta,
   rowToStoredAttachment,
   sweepAction,
-} from "#/storage/attachmentMapping.js";
+} from "#/storage/attachmentMapping.ts";
 import {
   snapshotReferences,
   usableSnapshotsWhere,
-} from "#/storage/publicLinkMapping.js";
-import type { AttachmentsRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/publicLinkMapping.ts";
+import type { AttachmentsRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 /** See the SQLite copy: the same statements, and the same sweep. */
 export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {

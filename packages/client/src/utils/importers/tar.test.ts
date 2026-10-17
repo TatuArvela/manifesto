@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readTar } from "./tar.js";
+import { readTar } from "./tar.ts";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

@@ -4,7 +4,7 @@ import {
   type SealedNoteUpdate,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { ciphertext } from "./contracts/claimed.js";
+import { ciphertext } from "./contracts/claimed.ts";
 import {
   attachSharing,
   forbiddenFields,
@@ -14,7 +14,7 @@ import {
   rowToViewNote,
   splitChanges,
   type ViewRow,
-} from "./shareMapping.js";
+} from "./shareMapping.ts";
 
 /**
  * Where a recipient's write of each field lands. Keyed on every field of

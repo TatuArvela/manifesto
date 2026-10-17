@@ -1,8 +1,8 @@
 import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { useCallback, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { formatFileSize, t } from "#/i18n/index.js";
-import { attachImage, ImageTooLargeError } from "#/state/attachments.js";
-import { showError } from "#/state/ui.js";
+import { formatFileSize, t } from "#/i18n/index.ts";
+import { attachImage, ImageTooLargeError } from "#/state/attachments.ts";
+import { showError } from "#/state/ui.ts";
 
 export interface PendingUpload {
   key: string;

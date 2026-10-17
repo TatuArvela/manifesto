@@ -17,8 +17,8 @@ import {
   frontmatterList,
   frontmatterString,
   splitFrontmatter,
-} from "./frontmatter.js";
-import { parseLinkPreviews } from "./linkPreview.js";
+} from "./frontmatter.ts";
+import { parseLinkPreviews } from "./linkPreview.ts";
 
 // Turning what a file holds into notes: a Markdown file, this app's JSON (one
 // note or an array), and the versions of an export. Every value is the file's

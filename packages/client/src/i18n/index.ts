@@ -1,25 +1,25 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { colorPickerSwatches } from "#/colors.js";
-import { APP_NAME } from "#/config.js";
-import type { DefaultNoteFont } from "#/state/prefs.js";
-import { locale } from "#/state/prefs.js";
-import { DEFAULT_LOCALE, type Locale } from "./locales.js";
+import { colorPickerSwatches } from "#/colors.ts";
+import { APP_NAME } from "#/config.ts";
+import type { DefaultNoteFont } from "#/state/prefs.ts";
+import { locale } from "#/state/prefs.ts";
+import { DEFAULT_LOCALE, type Locale } from "./locales.ts";
 import {
   catalogues,
   loadCatalogue,
   type MessageKey,
   type PluralEntry,
-} from "./messages/index.js";
+} from "./messages/index.ts";
 
-export { detectBrowserLocale } from "./detect.js";
+export { detectBrowserLocale } from "./detect.ts";
 export {
   DEFAULT_LOCALE,
   isLocale,
   type Locale,
   SUPPORTED_LOCALES,
-} from "./locales.js";
-export { loadCatalogue, type MessageKey } from "./messages/index.js";
+} from "./locales.ts";
+export { loadCatalogue, type MessageKey } from "./messages/index.ts";
 
 type Vars = Record<string, string | number>;
 

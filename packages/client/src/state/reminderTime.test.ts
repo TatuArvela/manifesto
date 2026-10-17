@@ -11,7 +11,7 @@ import {
   snapToFuture,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { defined } from "#/test/defined.js";
+import { defined } from "#/test/defined.ts";
 
 /**
  * The recurrence maths on its own, in the Node project. The scheduler's

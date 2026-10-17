@@ -1,5 +1,5 @@
-import { selectedNotes, selectMode } from "./ui.js";
-import { sortedNotes } from "./views.js";
+import { selectedNotes, selectMode } from "./ui.ts";
+import { sortedNotes } from "./views.ts";
 
 export function enterSelectMode(noteId?: string) {
   selectMode.value = true;

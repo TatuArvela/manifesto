@@ -2,8 +2,8 @@ import type {
   CreateSessionInput,
   Session,
   SessionsRepo,
-} from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 interface SessionRow {
   token: string;

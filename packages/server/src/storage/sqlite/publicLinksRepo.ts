@@ -2,9 +2,9 @@ import {
   PUBLIC_LINK_COLUMNS,
   type PublicLinkRow,
   rowToPublicLink,
-} from "#/storage/publicLinkMapping.js";
-import type { PublicLinksRepo } from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/publicLinkMapping.ts";
+import type { PublicLinksRepo } from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {
   const insertStmt = db.prepare(

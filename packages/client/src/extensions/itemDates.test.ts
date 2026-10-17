@@ -1,7 +1,7 @@
 import { type Node as ProseNode, Schema } from "@milkdown/kit/prose/model";
 import { EditorState, TextSelection } from "@milkdown/kit/prose/state";
 import { describe, expect, it } from "vitest";
-import { setItemDate } from "./itemDates.js";
+import { setItemDate } from "./itemDates.ts";
 
 // The list nodes as Milkdown's presets have them: a task is an item whose
 // `checked` is set. `code` is the inline code mark, which quotes a token.

@@ -4,20 +4,20 @@ import {
   PROXY_PROBE_ADDRESS,
 } from "@manifesto/shared";
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp } from "#/app.js";
-import { createAuthProvider } from "#/auth/index.js";
-import type { ServerConfig } from "#/config.js";
-import { createMemoryMailer, type Mailer } from "#/mail/mailer.js";
-import { createStorage } from "#/storage/index.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { createApp } from "#/app.ts";
+import { createAuthProvider } from "#/auth/index.ts";
+import type { ServerConfig } from "#/config.ts";
+import { createMemoryMailer, type Mailer } from "#/mail/mailer.ts";
+import { createStorage } from "#/storage/index.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   authHeaders,
   bootTestAppWith,
   registerTestUser,
   TEST_CONFIG,
   type TestRig,
-} from "#/test/setup.js";
-import { proxyFinding } from "./adminChecks.js";
+} from "#/test/setup.ts";
+import { proxyFinding } from "./adminChecks.ts";
 
 const MAIL_CONFIG: ServerConfig["mail"] = {
   url: "smtp://mail.example",

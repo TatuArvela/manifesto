@@ -1,8 +1,8 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { currentStorage, storageConnection } from "#/storage/index.js";
-import { exportNotes } from "./exportNotes.js";
-import { ensureImages, notes } from "./notesStore.js";
+import { currentStorage, storageConnection } from "#/storage/index.ts";
+import { exportNotes } from "./exportNotes.ts";
+import { ensureImages, notes } from "./notesStore.ts";
 
 /**
  * A server listing sends `imageCount` and an empty `images`, so a note in the

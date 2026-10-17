@@ -5,8 +5,8 @@ import {
   snapReminderToFuture,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import { t } from "#/i18n/index.js";
-import { showError } from "./ui.js";
+import { t } from "#/i18n/index.ts";
+import { showError } from "./ui.ts";
 
 export {
   currentTimezone,

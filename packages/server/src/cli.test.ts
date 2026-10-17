@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { openApiText, runCli, USAGE } from "./cli.js";
-import { createStorage } from "./storage/index.js";
-import type { StorageDriver } from "./storage/types.js";
-import { TEST_CONFIG } from "./test/setup.js";
+import { openApiText, runCli, USAGE } from "./cli.ts";
+import { createStorage } from "./storage/index.ts";
+import type { StorageDriver } from "./storage/types.ts";
+import { TEST_CONFIG } from "./test/setup.ts";
 
 describe("admin CLI", () => {
   let storage: StorageDriver;

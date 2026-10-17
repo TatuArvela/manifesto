@@ -1,5 +1,5 @@
-import { t } from "#/i18n/index.js";
-import type { ServerSetupProblem } from "#/utils/serverCsp.js";
+import { t } from "#/i18n/index.ts";
+import type { ServerSetupProblem } from "#/utils/serverCsp.ts";
 
 interface Props {
   problem: ServerSetupProblem;

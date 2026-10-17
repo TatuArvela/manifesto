@@ -2,9 +2,9 @@ import {
   COMMENT_COLUMNS,
   type CommentRow,
   rowToComment,
-} from "#/storage/commentMapping.js";
-import type { CommentsRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/commentMapping.ts";
+import type { CommentsRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 export function createPostgresCommentsRepo(pool: PgPool): CommentsRepo {
   return {

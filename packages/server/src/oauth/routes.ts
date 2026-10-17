@@ -5,38 +5,38 @@ import type {
   OAuthClientInfo,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { requireConfirmation } from "#/auth/confirmation.js";
-import type { LoginAttempts } from "#/auth/local/loginAttempts.js";
-import type { SessionRevocations } from "#/auth/revocations.js";
-import { isoPlusDays, nowIso } from "#/lib/time.js";
-import { hashToken, MAX_API_TOKENS_PER_USER } from "#/lib/token.js";
-import { newId } from "#/lib/ulid.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { requireConfirmation } from "#/auth/confirmation.ts";
+import type { LoginAttempts } from "#/auth/local/loginAttempts.ts";
+import type { SessionRevocations } from "#/auth/revocations.ts";
+import { isoPlusDays, nowIso } from "#/lib/time.ts";
+import { hashToken, MAX_API_TOKENS_PER_USER } from "#/lib/token.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   oauthAuthorizeSchema,
   oauthRegisterSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
 import {
   MAX_CLIENT_NAME_LENGTH,
   type ResolvedClient,
   UNNAMED_CLIENT,
-} from "./clients.js";
-import { CODE_TTL_MS, GRANT_TYPES, plusMs, requestedScopes } from "./grants.js";
-import { redirectUriMatches, redirectUriProblem } from "./redirectUris.js";
-import { createTokenEndpoint, oauthError } from "./tokenEndpoint.js";
+} from "./clients.ts";
+import { CODE_TTL_MS, GRANT_TYPES, plusMs, requestedScopes } from "./grants.ts";
+import { redirectUriMatches, redirectUriProblem } from "./redirectUris.ts";
+import { createTokenEndpoint, oauthError } from "./tokenEndpoint.ts";
 
 export {
   MCP_OAUTH_SCOPES,
   requestedScopes,
   UNUSED_CLIENT_DAYS,
-} from "./grants.js";
+} from "./grants.ts";
 export {
   createWellKnownRoutes,
   resourceMetadataChallenge,
-} from "./wellKnown.js";
+} from "./wellKnown.ts";
 
 interface OAuthDeps {
   storage: StorageDriver;

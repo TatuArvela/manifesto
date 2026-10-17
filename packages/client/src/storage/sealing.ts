@@ -55,7 +55,7 @@ import {
   accountImageKeys,
   accountSubkey,
   openPrivateKey,
-} from "#/utils/keyMaterial.js";
+} from "#/utils/keyMaterial.ts";
 import {
   type NewToken,
   newKeyedToken,
@@ -64,12 +64,12 @@ import {
   type SeenKeys,
   sealPrefs,
   sealSeenKeys,
-} from "./accountSealing.js";
+} from "./accountSealing.ts";
 import {
   openPublicLinkKey,
   type SealedPublicLink,
   sealPublicLink,
-} from "./linkSealing.js";
+} from "./linkSealing.ts";
 
 /**
  * Sealing and opening for everything that crosses to the server in connected

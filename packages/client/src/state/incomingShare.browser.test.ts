@@ -5,9 +5,9 @@ import {
   SHARE_IMAGE_KEY_PREFIX,
   SHARE_TARGET_PARAM,
   SHARE_TEXT_KEY,
-} from "#/shareTarget.js";
-import { incomingShare, takeIncomingShare } from "./incomingShare.js";
-import { activeView } from "./ui.js";
+} from "#/shareTarget.ts";
+import { incomingShare, takeIncomingShare } from "./incomingShare.ts";
+import { activeView } from "./ui.ts";
 
 const scope = () => new URL(import.meta.env.BASE_URL, window.location.origin);
 // A 1x1 transparent PNG.

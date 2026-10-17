@@ -1,6 +1,6 @@
 import { keymap } from "@milkdown/kit/prose/keymap";
 import type { Command, Plugin } from "@milkdown/kit/prose/state";
-import { isListNode } from "./taskListStructure.js";
+import { isListNode } from "./taskListStructure.ts";
 
 // Delete and Backspace next to a list: remove an empty paragraph beside it
 // rather than letting the default join strip the first item of its list.

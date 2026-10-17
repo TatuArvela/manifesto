@@ -1,22 +1,22 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 
-vi.mock("#/config.js", async (original) => ({
-  ...(await original<typeof import("#/config.js")>()),
+vi.mock("#/config.ts", async (original) => ({
+  ...(await original<typeof import("#/config.ts")>()),
   resolveServerUrl: () => "https://notes.example",
 }));
 
-import { currentUser } from "#/state/account/auth.js";
+import { currentUser } from "#/state/account/auth.ts";
 import {
   adoptServerFeatures,
   DEFAULT_SERVER_FEATURES,
   type ServerFeatures,
   serverFeatures,
-} from "#/state/serverFeatures.js";
-import { settingsTab, showSettings } from "#/state/ui.js";
-import { storageConnection } from "#/storage/index.js";
-import { SettingsDialog } from "./SettingsDialog.js";
+} from "#/state/serverFeatures.ts";
+import { settingsTab, showSettings } from "#/state/ui.ts";
+import { storageConnection } from "#/storage/index.ts";
+import { SettingsDialog } from "./SettingsDialog.tsx";
 
 let host: HTMLDivElement;
 

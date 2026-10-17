@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver, StoredPushSubscription } from "#/storage/types.js";
+import type { StorageDriver, StoredPushSubscription } from "#/storage/types.ts";
 
 /**
  * Push subscriptions and the server's own secrets, the same in both drivers:

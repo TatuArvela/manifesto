@@ -1,8 +1,8 @@
 import type { ApiTokenScope } from "@manifesto/shared";
 import type { Hono } from "hono";
-import type { Mailer } from "#/mail/mailer.js";
-import type { LoginAttempts } from "./local/loginAttempts.js";
-import type { SessionRevocations } from "./revocations.js";
+import type { Mailer } from "#/mail/mailer.ts";
+import type { LoginAttempts } from "./local/loginAttempts.ts";
+import type { SessionRevocations } from "./revocations.ts";
 
 /**
  * What a bearer token turned out to be: a session from signing in, a

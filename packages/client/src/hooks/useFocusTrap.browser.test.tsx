@@ -2,7 +2,7 @@ import type { ComponentChildren } from "preact";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
-import { holdFocus, useFocusTrap } from "./useFocusTrap.js";
+import { holdFocus, useFocusTrap } from "./useFocusTrap.ts";
 
 /**
  * Real Tab presses through the browser, because the whole behaviour under test

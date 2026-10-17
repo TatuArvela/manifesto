@@ -21,7 +21,7 @@ import {
   WELCOME_ENABLED,
   WINDOW_TITLE,
   windowTitle,
-} from "./config.js";
+} from "./config.ts";
 
 /**
  * Run `fn` with an `application-name` meta tag in the document, the state a

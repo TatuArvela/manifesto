@@ -1,19 +1,19 @@
 import { LogOut, UserCog } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { plural, t } from "#/i18n/index.js";
-import { currentUser, isServerMode } from "#/state/account/auth.js";
-import { signOut } from "#/state/account/signOut.js";
-import { askConfirmation } from "#/state/confirm.js";
-import { openSettings } from "#/state/ui.js";
-import { unsentNotes } from "#/state/unsentNotes.js";
-import { Avatar } from "./Avatar.js";
+import { plural, t } from "#/i18n/index.ts";
+import { currentUser, isServerMode } from "#/state/account/auth.ts";
+import { signOut } from "#/state/account/signOut.ts";
+import { askConfirmation } from "#/state/confirm.ts";
+import { openSettings } from "#/state/ui.ts";
+import { unsentNotes } from "#/state/unsentNotes.ts";
+import { Avatar } from "./Avatar.tsx";
 import {
   menuDividerClass,
   menuItemClass,
   menuPanelClass,
-} from "./card/NoteMenu.js";
-import { Dropdown } from "./Dropdown.js";
-import { Tooltip } from "./Tooltip.js";
+} from "./card/NoteMenu.tsx";
+import { Dropdown } from "./Dropdown.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 /**
  * The signed-in user, at the right end of the header: who you are, the way to

@@ -1,8 +1,8 @@
-import { verifyPassword } from "#/lib/password.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
-import type { LoginAttempts } from "./local/loginAttempts.js";
+import { verifyPassword } from "#/lib/password.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import type { LoginAttempts } from "./local/loginAttempts.ts";
 
 /** How recent a sign-in through an identity provider has to be to stand in
  * for a password the account does not have. */

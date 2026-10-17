@@ -2,9 +2,9 @@ import {
   PASSKEY_COLUMNS,
   type PasskeyRow,
   rowToPasskey,
-} from "#/storage/passkeyMapping.js";
-import type { PasskeysRepo } from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/passkeyMapping.ts";
+import type { PasskeysRepo } from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqlitePasskeysRepo(db: SqliteDB): PasskeysRepo {
   const insertStmt = db.prepare(

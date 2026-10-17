@@ -5,9 +5,9 @@ import {
   TEAM_GROUP,
   TEAM_SELECT,
   type TeamRow,
-} from "#/storage/teamMapping.js";
-import type { TeamsRepo } from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/teamMapping.ts";
+import type { TeamsRepo } from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 function isUniqueViolation(err: unknown): boolean {
   return (

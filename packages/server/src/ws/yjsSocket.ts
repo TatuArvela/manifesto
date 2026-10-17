@@ -8,20 +8,20 @@ import {
 } from "@manifesto/shared";
 import type { RawData, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
-import type { SessionRevocations } from "#/auth/revocations.js";
-import type { AuthProvider } from "#/auth/types.js";
-import type { ServerConfig } from "#/config.js";
-import { logger } from "#/lib/logger.js";
-import { gaugeMetric } from "#/lib/metrics.js";
-import { hashToken } from "#/lib/token.js";
-import type { AccessChanges } from "#/sharing/accessChanges.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { recheckSockets, SOCKET_RECHECK_MS } from "./recheck.js";
+import type { SessionRevocations } from "#/auth/revocations.ts";
+import type { AuthProvider } from "#/auth/types.ts";
+import type { ServerConfig } from "#/config.ts";
+import { logger } from "#/lib/logger.ts";
+import { gaugeMetric } from "#/lib/metrics.ts";
+import { hashToken } from "#/lib/token.ts";
+import type { AccessChanges } from "#/sharing/accessChanges.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { recheckSockets, SOCKET_RECHECK_MS } from "./recheck.ts";
 import {
   MAX_YJS_BYTES,
   type YjsAuthContext,
   YjsPersistenceExtension,
-} from "./yjsExtension.js";
+} from "./yjsExtension.ts";
 
 /**
  * Single endpoint for every note. Hocuspocus multiplexes documents over one

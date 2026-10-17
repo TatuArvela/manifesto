@@ -3,7 +3,7 @@ import {
   SERVER_FEATURES,
   type ServerFeature,
 } from "@manifesto/shared";
-import type { ServerConfig } from "./config.js";
+import type { ServerConfig } from "./config.ts";
 
 /** The features switched by a plain on/off variable; `WEBHOOKS` has modes. */
 export type ToggleFeature = Exclude<ServerFeature, "webhooks">;

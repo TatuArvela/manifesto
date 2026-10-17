@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderInlineMarkdown, renderMarkdown } from "./remarkRenderer.js";
+import { renderInlineMarkdown, renderMarkdown } from "./remarkRenderer.ts";
 
 /**
  * Note content is not trusted input: it arrives from shared links, imported

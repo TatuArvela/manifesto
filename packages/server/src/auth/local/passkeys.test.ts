@@ -9,15 +9,15 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { base32Decode, hotp, totpStep } from "#/auth/totp.js";
-import { defined } from "#/test/defined.js";
+import { base32Decode, hotp, totpStep } from "#/auth/totp.ts";
+import { defined } from "#/test/defined.ts";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
-import { createSoftAuthenticator } from "#/test/softAuthenticator.js";
+} from "#/test/setup.ts";
+import { createSoftAuthenticator } from "#/test/softAuthenticator.ts";
 
 const PASSWORD = "test-pass-12";
 /** In `CORS_ORIGINS` of the test config, so a page there may use passkeys. */

@@ -1,5 +1,5 @@
-import type { FormatType, TextEdit } from "./formatTypes.js";
-import type { InlineFormat } from "./rawInlineFormatting.js";
+import type { FormatType, TextEdit } from "./formatTypes.ts";
+import type { InlineFormat } from "./rawInlineFormatting.ts";
 
 // Raw mode's line formats (headings, quotes, lists, checklists): each line
 // taken apart into its prefixes and put back together. Pure string work; see

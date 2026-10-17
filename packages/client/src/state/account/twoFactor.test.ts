@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupSecret, otpauthLink } from "./twoFactor.js";
+import { groupSecret, otpauthLink } from "./twoFactor.ts";
 
 describe("two-factor setup helpers", () => {
   it("groups the key for typing", () => {

@@ -4,7 +4,7 @@ import {
   boxFromPoints,
   edgeScrollStep,
   marqueeSelection,
-} from "./marquee.js";
+} from "./marquee.ts";
 
 describe("boxFromPoints", () => {
   it("normalises a drag up and to the left", () => {

@@ -1,5 +1,5 @@
-import type { TextEdit } from "./formatTypes.js";
-import { lineRange } from "./rawLineFormatting.js";
+import type { TextEdit } from "./formatTypes.ts";
+import { lineRange } from "./rawLineFormatting.ts";
 
 // Raw mode's whole blocks (a divider, a table, a code block): text on lines
 // of its own. Pure string work; see `rawFormatting.ts`.

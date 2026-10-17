@@ -1,9 +1,9 @@
 import { NoteColor } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createNoteOrFail } from "#/test/testSupport.js";
-import { hasChecklist } from "#/utils/markdown.js";
-import { notes, updateNote } from "./notesStore.js";
-import { sortMode } from "./prefs.js";
+import { createNoteOrFail } from "#/test/testSupport.ts";
+import { hasChecklist } from "#/utils/markdown.ts";
+import { notes, updateNote } from "./notesStore.ts";
+import { sortMode } from "./prefs.ts";
 import {
   activeView,
   clearSearchFilters,
@@ -14,8 +14,8 @@ import {
   toggleSearchColor,
   toggleSearchLocation,
   toggleSearchType,
-} from "./ui.js";
-import { filteredNotes, sortedNotes } from "./views.js";
+} from "./ui.ts";
+import { filteredNotes, sortedNotes } from "./views.ts";
 
 describe("hasChecklist", () => {
   it("detects checklist lines with and without bullets", () => {

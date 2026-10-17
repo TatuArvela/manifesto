@@ -1,16 +1,16 @@
 import type { RefObject } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { exitSelectMode } from "#/state/selection.js";
-import { selectedNotes, selectMode } from "#/state/ui.js";
-import { sortedNotes } from "#/state/views.js";
+import { exitSelectMode } from "#/state/selection.ts";
+import { selectedNotes, selectMode } from "#/state/ui.ts";
+import { sortedNotes } from "#/state/views.ts";
 import {
   type Box,
   boxesIntersect,
   boxFromPoints,
   edgeScrollStep,
   marqueeSelection,
-} from "#/utils/marquee.js";
-import { useEscapeStack } from "./useEscapeStack.js";
+} from "#/utils/marquee.ts";
+import { useEscapeStack } from "./useEscapeStack.ts";
 
 /**
  * Where a press does something of its own, so a drag starting there is not a

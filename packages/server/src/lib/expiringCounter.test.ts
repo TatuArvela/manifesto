@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createExpiringCounter } from "./expiringCounter.js";
+import { createExpiringCounter } from "./expiringCounter.ts";
 
 describe("createExpiringCounter", () => {
   it("adds up hits inside one window and starts a fresh one after it", () => {

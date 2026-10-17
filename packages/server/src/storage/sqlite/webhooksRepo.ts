@@ -1,7 +1,7 @@
-import { AT_REST, atRest } from "#/storage/atRest.js";
-import type { WebhooksRepo } from "#/storage/types.js";
-import { rowToWebhook, type WebhookRow } from "#/storage/webhookMapping.js";
-import type { SqliteDB } from "./database.js";
+import { AT_REST, atRest } from "#/storage/atRest.ts";
+import type { WebhooksRepo } from "#/storage/types.ts";
+import { rowToWebhook, type WebhookRow } from "#/storage/webhookMapping.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqliteWebhooksRepo(db: SqliteDB): WebhooksRepo {
   const insertStmt = db.prepare(

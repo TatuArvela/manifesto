@@ -3,9 +3,9 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import { APP_NAME, INSTANCE_NAME } from "#/config.js";
-import { apiFetch } from "#/storage/apiRequest.js";
-import { currentUser } from "./auth.js";
+import { APP_NAME, INSTANCE_NAME } from "#/config.ts";
+import { apiFetch } from "#/storage/apiRequest.ts";
+import { currentUser } from "./auth.ts";
 
 /**
  * Two-factor sign-in for the signed-in local account. Each call resolves with

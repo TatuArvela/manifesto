@@ -1,12 +1,12 @@
 import { computed, signal } from "@preact/signals";
-import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
-import { RestApiAdapter } from "./RestApiAdapter.js";
-import type { StorageAdapter } from "./StorageAdapter.js";
-import { sealer } from "./sealing.js";
+import { LocalStorageAdapter } from "./LocalStorageAdapter.ts";
+import { RestApiAdapter } from "./RestApiAdapter.ts";
+import type { StorageAdapter } from "./StorageAdapter.ts";
+import { sealer } from "./sealing.ts";
 
-export { LocalStorageAdapter } from "./LocalStorageAdapter.js";
-export { RestApiAdapter } from "./RestApiAdapter.js";
-export type { StorageAdapter } from "./StorageAdapter.js";
+export { LocalStorageAdapter } from "./LocalStorageAdapter.ts";
+export { RestApiAdapter } from "./RestApiAdapter.ts";
+export type { StorageAdapter } from "./StorageAdapter.ts";
 
 /** What it takes to reach a server, if there is one to reach. */
 export interface StorageConnection {

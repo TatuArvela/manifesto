@@ -3,7 +3,7 @@ import {
   MAX_LINK_PREVIEW_IMAGE_DATA_URL_BYTES,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { shrinkPreviewImage } from "./previewImage.js";
+import { shrinkPreviewImage } from "./previewImage.ts";
 
 /** A noisy image, which compresses badly, so size limits are actually tested. */
 function noisyPng(width: number, height: number): string {

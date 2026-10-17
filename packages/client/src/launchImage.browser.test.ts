@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { offerLaunchImage } from "./launchImage.js";
-import { defined } from "./test/defined.js";
+import { offerLaunchImage } from "./launchImage.ts";
+import { defined } from "./test/defined.ts";
 
 // A solid black square, as the stock logo is a solid black shape.
 const LOGO = `data:image/svg+xml,${encodeURIComponent(

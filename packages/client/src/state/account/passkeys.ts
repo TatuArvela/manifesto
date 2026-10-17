@@ -3,8 +3,8 @@ import type {
   PasskeyOptionsResponse,
   PasskeysResponse,
 } from "@manifesto/shared";
-import { apiFetch } from "#/storage/apiRequest.js";
-import { createPasskey } from "#/utils/webauthn.js";
+import { apiFetch } from "#/storage/apiRequest.ts";
+import { createPasskey } from "#/utils/webauthn.ts";
 
 /**
  * The signed-in local account's passkeys. Each call resolves with what

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { buildPath, initRouter, parsePath, stopRouter } from "./router.js";
-import { activeTag, activeView } from "./ui.js";
+import { buildPath, initRouter, parsePath, stopRouter } from "./router.ts";
+import { activeTag, activeView } from "./ui.ts";
 
 function resetUrl() {
   history.replaceState(null, "", "/");

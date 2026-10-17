@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newTemporaryPassword } from "./temporaryPassword.js";
+import { newTemporaryPassword } from "./temporaryPassword.ts";
 
 describe("newTemporaryPassword", () => {
   it("is four groups of four, with nothing that reads as another character", () => {

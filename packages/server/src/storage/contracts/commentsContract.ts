@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver, StoredComment } from "#/storage/types.js";
-import { claimed } from "./claimed.js";
+import type { StorageDriver, StoredComment } from "#/storage/types.ts";
+import { claimed } from "./claimed.ts";
 
 /**
  * Comments, the same in both drivers: kept in the order written, gone with

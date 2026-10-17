@@ -1,4 +1,4 @@
-import type { TextEdit } from "./formatTypes.js";
+import type { TextEdit } from "./formatTypes.ts";
 
 // Raw mode's inline formats (bold, italic, code, strikethrough and the HTML
 // tags): finding the markers around the text and adding or removing them.

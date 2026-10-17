@@ -1,5 +1,5 @@
-import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.js";
-import { type ImageKey, isImageKey } from "./imageSeal.js";
+import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.ts";
+import { type ImageKey, isImageKey } from "./imageSeal.ts";
 import {
   associatedData,
   derivable,
@@ -8,7 +8,7 @@ import {
   sealedLength,
   unseal,
   unsealText,
-} from "./seal.js";
+} from "./seal.ts";
 
 /**
  * A note's keys (`docs/specification/features/encryption.md`, "Keys"): the

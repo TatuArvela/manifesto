@@ -6,21 +6,21 @@ import {
   tagParent,
 } from "@manifesto/shared";
 import { computed } from "@preact/signals";
-import { hasChecklist } from "#/utils/markdown.js";
+import { hasChecklist } from "#/utils/markdown.ts";
 import {
   containsTerms,
   foldForSearch,
   searchTerms,
-} from "#/utils/searchText.js";
-import { allNotes } from "./notesStore.js";
-import { byPosition } from "./ordering.js";
+} from "#/utils/searchText.ts";
+import { allNotes } from "./notesStore.ts";
+import { byPosition } from "./ordering.ts";
 import {
   hiddenTags,
   MAX_TAG_COLORS,
   sortMode,
   type TagColor,
   tagColors,
-} from "./prefs.js";
+} from "./prefs.ts";
 import {
   activeTag,
   activeView,
@@ -32,7 +32,7 @@ import {
   tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
-} from "./ui.js";
+} from "./ui.ts";
 
 /**
  * Whether the current view has room for a note where it lives: active,

@@ -1,6 +1,6 @@
 import { MAX_ACCOUNT_PREFS_BYTES } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { parseDefaultPrefs } from "./config.js";
+import { parseDefaultPrefs } from "./config.ts";
 
 describe("parseDefaultPrefs", () => {
   it("is empty when unset or blank", () => {

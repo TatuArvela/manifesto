@@ -8,7 +8,7 @@ import { userEvent } from "vitest/browser";
 import {
   getEditorMarkdown,
   MilkdownEditor,
-} from "#/components/editor/MilkdownEditor.js";
+} from "#/components/editor/MilkdownEditor.tsx";
 import "#/styles.css";
 
 /**

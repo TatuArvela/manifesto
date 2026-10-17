@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createSessionRevocations,
   type SessionRevocation,
-} from "./revocations.js";
+} from "./revocations.ts";
 
 describe("session revocations", () => {
   it("tells every socket layer of a revocation, as it was given", () => {

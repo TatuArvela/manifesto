@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolvePrivacyUrl } from "./privacyUrl.js";
+import { resolvePrivacyUrl } from "./privacyUrl.ts";
 
 describe("resolvePrivacyUrl()", () => {
   it("is null when the deployment set none", () => {

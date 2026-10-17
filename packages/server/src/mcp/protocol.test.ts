@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { logger } from "#/lib/logger.js";
+import { logger } from "#/lib/logger.ts";
 import {
   handleMessage,
   JSON_RPC_ERRORS,
   type McpContext,
   PROTOCOL_VERSIONS,
-} from "./protocol.js";
-import type { McpTool, RestCall } from "./tools.js";
+} from "./protocol.ts";
+import type { McpTool, RestCall } from "./tools.ts";
 
 const rest: RestCall = async () => {
   throw new Error("no REST call expected");

@@ -1,10 +1,10 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { options, render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { notes } from "#/state/notesStore.js";
-import { noteSize, viewMode } from "#/state/prefs.js";
-import { editingNoteId, selectedNotes, selectMode } from "#/state/ui.js";
-import { defined } from "#/test/defined.js";
+import { notes } from "#/state/notesStore.ts";
+import { noteSize, viewMode } from "#/state/prefs.ts";
+import { editingNoteId, selectedNotes, selectMode } from "#/state/ui.ts";
+import { defined } from "#/test/defined.ts";
 import "#/styles.css";
 
 /**
@@ -33,8 +33,8 @@ vi.stubGlobal("matchMedia", (query: string) => {
   return realMatchMedia(query);
 });
 
-const { ReorderableGrid } = await import("./ReorderableGrid.js");
-const { moveInto } = await import("#/hooks/useReorderDrag.js");
+const { ReorderableGrid } = await import("./ReorderableGrid.tsx");
+const { moveInto } = await import("#/hooks/useReorderDrag.ts");
 
 function makeNote(id: string, title: string, position: number): Note {
   return {

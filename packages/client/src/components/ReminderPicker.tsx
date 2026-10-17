@@ -8,18 +8,18 @@ import {
   Repeat,
 } from "lucide-preact";
 import { useMemo, useState } from "preact/hooks";
-import { t } from "#/i18n/index.js";
-import { isServerMode } from "#/state/account/auth.js";
-import { ensurePushSubscription } from "#/state/pushSubscription.js";
+import { t } from "#/i18n/index.ts";
+import { isServerMode } from "#/state/account/auth.ts";
+import { ensurePushSubscription } from "#/state/pushSubscription.ts";
 import {
   currentTimezone,
   ensureNotificationPermission,
   notifyPermissionDenied,
   parseLocalISO,
   pickedReminder,
-} from "#/state/reminderScheduler.js";
-import { Dropdown } from "./Dropdown.js";
-import { Tooltip } from "./Tooltip.js";
+} from "#/state/reminderScheduler.ts";
+import { Dropdown } from "./Dropdown.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 interface ReminderPickerProps {
   reminder: NoteReminder | null;

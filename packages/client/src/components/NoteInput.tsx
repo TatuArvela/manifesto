@@ -3,21 +3,21 @@ import { Plus } from "lucide-preact";
 import type { RefObject } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
-import { noteColorMap } from "#/colors.js";
-import { useColumnWidth } from "#/hooks/useColumnWidth.js";
-import { useComposerFields } from "#/hooks/useComposerFields.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { holdFocus, useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { type MessageKey, t } from "#/i18n/index.js";
-import { inlineImages, inlinePreviewImages } from "#/state/attachments.js";
+import { noteColorMap } from "#/colors.ts";
+import { useColumnWidth } from "#/hooks/useColumnWidth.ts";
+import { useComposerFields } from "#/hooks/useComposerFields.ts";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { holdFocus, useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { type MessageKey, t } from "#/i18n/index.ts";
+import { inlineImages, inlinePreviewImages } from "#/state/attachments.ts";
 import {
   type ComposerDraft,
   clearDraft,
   isEmptyDraft,
   loadDraft,
   saveDraft,
-} from "#/state/composerDraft.js";
-import { type IncomingShare, incomingShare } from "#/state/incomingShare.js";
+} from "#/state/composerDraft.ts";
+import { type IncomingShare, incomingShare } from "#/state/incomingShare.ts";
 import {
   animations,
   defaultNoteColor,
@@ -27,25 +27,25 @@ import {
   pickDefaultColor,
   pickDefaultFont,
   viewMode,
-} from "#/state/prefs.js";
-import { activeView, newNoteRequested, showError } from "#/state/ui.js";
-import { queueNote } from "#/state/unsentNotes.js";
-import { extractUrls } from "#/utils/linkPreview.js";
+} from "#/state/prefs.ts";
+import { activeView, newNoteRequested, showError } from "#/state/ui.ts";
+import { queueNote } from "#/state/unsentNotes.ts";
+import { extractUrls } from "#/utils/linkPreview.ts";
 import {
   isMorphSource,
   morphIn,
   type RectLike,
   viewportSize,
-} from "#/utils/morph.js";
+} from "#/utils/morph.ts";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
-} from "#/utils/noteDownload.js";
-import { Backdrop } from "./Backdrop.js";
-import { checklistSubmenu, downloadSubmenu } from "./card/NoteMenu.js";
-import { useEditor } from "./editor/lazyEditor.js";
-import { gridColumns } from "./gridColumns.js";
-import { NoteSheet } from "./NoteSheet.js";
+} from "#/utils/noteDownload.ts";
+import { Backdrop } from "./Backdrop.tsx";
+import { checklistSubmenu, downloadSubmenu } from "./card/NoteMenu.tsx";
+import { useEditor } from "./editor/lazyEditor.ts";
+import { gridColumns } from "./gridColumns.ts";
+import { NoteSheet } from "./NoteSheet.tsx";
 
 const ctaKeys: MessageKey[] = [
   "cta.0",

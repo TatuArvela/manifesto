@@ -5,9 +5,9 @@ import {
   type OAuthCodeRow,
   rowToOAuthClient,
   rowToOAuthCode,
-} from "#/storage/oauthMapping.js";
-import type { OAuthRepo } from "#/storage/types.js";
-import type { PgPool } from "./database.js";
+} from "#/storage/oauthMapping.ts";
+import type { OAuthRepo } from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
 
 export function createPostgresOAuthRepo(pool: PgPool): OAuthRepo {
   return {

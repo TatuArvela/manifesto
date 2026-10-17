@@ -1,6 +1,6 @@
 import { effect } from "@preact/signals";
-import { afterHistorySettles } from "./sheetHistory.js";
-import { type AppView, activeTag, activeView } from "./ui.js";
+import { afterHistorySettles } from "./sheetHistory.ts";
+import { type AppView, activeTag, activeView } from "./ui.ts";
 
 export interface Route {
   view: AppView;

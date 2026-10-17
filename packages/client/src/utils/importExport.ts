@@ -8,16 +8,16 @@ import {
   normalizeImportedNote,
   parseMarkdownToNote,
   parseNoteJson,
-} from "./importedNote.js";
+} from "./importedNote.ts";
 import {
   importerForFile,
   MAX_IMPORT_BYTES,
   notesFromForeignJson,
-} from "./importers/index.js";
-import { isKeepNote, keepNoteToNote } from "./importers/keep.js";
-import { isZipFile, readZip, type ZipEntry } from "./zip.js";
+} from "./importers/index.ts";
+import { isKeepNote, keepNoteToNote } from "./importers/keep.ts";
+import { isZipFile, readZip, type ZipEntry } from "./zip.ts";
 
-export type { ImportResult } from "./importedNote.js";
+export type { ImportResult } from "./importedNote.ts";
 
 // Importing files: which files can be, and reading each (a note, an app's
 // export, an archive) into notes for the handlers to store. What the notes are

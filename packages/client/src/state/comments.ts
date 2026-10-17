@@ -5,12 +5,12 @@ import type {
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { ulid } from "ulid";
-import { t } from "#/i18n/index.js";
-import type { MessageKey } from "#/i18n/messages/index.js";
-import { ApiError, apiJson } from "#/storage/apiRequest.js";
-import { sealer } from "#/storage/sealing.js";
-import { sealedNote } from "#/storage/shareKeys.js";
-import { showError } from "./ui.js";
+import { t } from "#/i18n/index.ts";
+import type { MessageKey } from "#/i18n/messages/index.ts";
+import { ApiError, apiJson } from "#/storage/apiRequest.ts";
+import { sealer } from "#/storage/sealing.ts";
+import { sealedNote } from "#/storage/shareKeys.ts";
+import { showError } from "./ui.ts";
 
 /**
  * Comments beside shared notes, in connected mode.

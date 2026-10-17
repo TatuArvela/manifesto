@@ -1,12 +1,12 @@
 import { useState } from "preact/hooks";
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 import {
   confirmPasswordReset,
   requestPasswordReset,
-} from "#/state/account/auth.js";
-import { locale } from "#/state/prefs.js";
-import { showSuccess } from "#/state/ui.js";
-import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
+} from "#/state/account/auth.ts";
+import { locale } from "#/state/prefs.ts";
+import { showSuccess } from "#/state/ui.ts";
+import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
 /** Asks for a reset link by mail; says the same whatever the address. */
 export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {

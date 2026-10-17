@@ -6,7 +6,7 @@ import {
   labelDate,
   localIsoDate,
   sortChecklistByDate,
-} from "./itemDate.js";
+} from "./itemDate.ts";
 
 describe("findItemDate", () => {
   it("finds the token and where it sits", () => {

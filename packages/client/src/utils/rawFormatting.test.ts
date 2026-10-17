@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { FormatType } from "./formatTypes.js";
+import type { FormatType } from "./formatTypes.ts";
 import {
   applyRawFormat,
   applyRawLink,
   getRawActiveFormats,
   removeRawLink,
   type TextEdit,
-} from "./rawFormatting.js";
+} from "./rawFormatting.ts";
 
 // `‹` and `›` mark a selection, `|` a caret, in both the input and the
 // expected output, so a case reads as the textarea would look.

@@ -1,5 +1,5 @@
 import { DataType, newDb } from "pg-mem";
-import type { PgPool } from "./database.js";
+import type { PgPool } from "./database.ts";
 
 /**
  * An in-memory stand-in for Postgres, so the driver's tests need no server.

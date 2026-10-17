@@ -4,24 +4,24 @@ import type {
   TwoFactorRequiredResponse,
 } from "@manifesto/shared";
 import type { Context, Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import { issueSession } from "#/auth/session.js";
-import { toAuthUser } from "#/auth/users.js";
-import type { ServerConfig } from "#/config.js";
-import { nowIso } from "#/lib/time.js";
-import { hashToken } from "#/lib/token.js";
-import type { Mailer } from "#/mail/mailer.js";
-import { signInLinkMail } from "#/mail/templates.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver, User } from "#/storage/types.js";
+import { audit } from "#/audit/audit.ts";
+import { issueSession } from "#/auth/session.ts";
+import { toAuthUser } from "#/auth/users.ts";
+import type { ServerConfig } from "#/config.ts";
+import { nowIso } from "#/lib/time.ts";
+import { hashToken } from "#/lib/token.ts";
+import type { Mailer } from "#/mail/mailer.ts";
+import { signInLinkMail } from "#/mail/templates.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver, User } from "#/storage/types.ts";
 import {
   signInLinkConfirmSchema,
   signInLinkRequestSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
-import type { LoginAttempts } from "./loginAttempts.js";
-import { mailedLinks } from "./mailedLink.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
+import type { LoginAttempts } from "./loginAttempts.ts";
+import { mailedLinks } from "./mailedLink.ts";
 
 /** How long a link works. Shorter than a reset link: it is a way in by
  * itself, where a reset still leaves a password to choose. */

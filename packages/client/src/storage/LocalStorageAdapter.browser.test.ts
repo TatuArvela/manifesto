@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LocalStorageAdapter,
   subscribeToExternalNotes,
-} from "./LocalStorageAdapter.js";
-import { quotaRefusedAt } from "./quota.js";
+} from "./LocalStorageAdapter.ts";
+import { quotaRefusedAt } from "./quota.ts";
 
 const STORAGE_KEY = "manifesto:notes";
 

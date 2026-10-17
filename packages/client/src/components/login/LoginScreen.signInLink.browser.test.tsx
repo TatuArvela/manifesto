@@ -1,8 +1,8 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
-import { LoginScreen } from "./LoginScreen.js";
+import { t } from "#/i18n/index.ts";
+import { LoginScreen } from "./LoginScreen.tsx";
 
 const LOCAL: CapabilitiesResponse["auth"] = {
   providers: ["local"],
@@ -21,8 +21,8 @@ const attempts: { token: string; otp: string | undefined }[] = [];
 /** What the server makes of the link: fine, wanting a code, or spent. */
 let account: "plain" | "twoFactor" | "expired" = "plain";
 
-vi.mock("#/state/account/auth.js", async (original) => {
-  const actual = await original<typeof import("#/state/account/auth.js")>();
+vi.mock("#/state/account/auth.ts", async (original) => {
+  const actual = await original<typeof import("#/state/account/auth.ts")>();
   return {
     ...actual,
     fetchCapabilities: async () => ({ auth }),

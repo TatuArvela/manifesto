@@ -1,5 +1,5 @@
-import type { Locale } from "#/i18n/locales.js";
-import { en } from "./en.js";
+import type { Locale } from "#/i18n/locales.ts";
+import { en } from "./en.ts";
 
 export type PluralEntry = {
   zero?: string;
@@ -30,7 +30,7 @@ export const catalogueLoaders: Record<
   Exclude<Locale, "en">,
   () => Promise<Messages>
 > = {
-  fi: () => import("./fi.js").then((m) => m.fi),
+  fi: () => import("./fi.ts").then((m) => m.fi),
 };
 
 /**

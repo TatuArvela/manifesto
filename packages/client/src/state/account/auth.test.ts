@@ -3,7 +3,7 @@ import {
   AuthRequestError,
   loginErrorKey,
   PasswordChangeRequiredError,
-} from "./auth.js";
+} from "./auth.ts";
 
 /**
  * The login screen used to show the server's `error` text as it came, which

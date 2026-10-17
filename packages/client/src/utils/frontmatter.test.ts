@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildZip } from "#/test/zipTestSupport.js";
+import { buildZip } from "#/test/zipTestSupport.ts";
 import {
   frontmatterDate,
   frontmatterList,
   splitFrontmatter,
-} from "./frontmatter.js";
-import { importFiles } from "./importExport.js";
-import { markdownFileToNote, parseMarkdownToNote } from "./importedNote.js";
+} from "./frontmatter.ts";
+import { importFiles } from "./importExport.ts";
+import { markdownFileToNote, parseMarkdownToNote } from "./importedNote.ts";
 
 describe("splitFrontmatter", () => {
   it("reads scalars, inline lists and block lists", () => {

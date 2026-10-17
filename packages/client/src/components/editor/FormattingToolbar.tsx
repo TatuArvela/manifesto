@@ -22,20 +22,20 @@ import {
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import { Dropdown } from "#/components/Dropdown.js";
-import { Tooltip } from "#/components/Tooltip.js";
+import { Dropdown } from "#/components/Dropdown.tsx";
+import { Tooltip } from "#/components/Tooltip.tsx";
 import {
   applyFormat,
   emptyFormats,
   getActiveFormats,
-} from "#/extensions/richFormatting.js";
-import { t } from "#/i18n/index.js";
-import type { ActiveFormats, FormatType } from "#/utils/formatTypes.js";
+} from "#/extensions/richFormatting.ts";
+import { t } from "#/i18n/index.ts";
+import type { ActiveFormats, FormatType } from "#/utils/formatTypes.ts";
 import {
   applyRawFormat,
   applyTextEdit,
   getRawActiveFormats,
-} from "#/utils/rawFormatting.js";
+} from "#/utils/rawFormatting.ts";
 import {
   FormatButton,
   type FormattingTarget,
@@ -44,7 +44,7 @@ import {
   LinkMenu,
   TableMenu,
   toolbarButtonClass,
-} from "./FormattingMenus.js";
+} from "./FormattingMenus.tsx";
 
 interface FormattingToolbarProps {
   editor: Editor;

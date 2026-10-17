@@ -10,8 +10,8 @@ import {
   MAX_LINK_PREVIEWS_PER_NOTE,
   MAX_TAG_LENGTH,
   MAX_TAGS_PER_NOTE,
-} from "#/note.js";
-import { type ImageKey, isImageKey } from "./imageSeal.js";
+} from "#/note.ts";
+import { type ImageKey, isImageKey } from "./imageSeal.ts";
 
 /**
  * A note's lists as a note may hold them, from whatever was opened. What is

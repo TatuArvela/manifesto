@@ -1,22 +1,22 @@
 import { X } from "lucide-preact";
 import { useEffect } from "preact/hooks";
-import { Backdrop } from "#/components/Backdrop.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { usePresence } from "#/hooks/usePresence.js";
-import { t } from "#/i18n/index.js";
-import { currentUser, isServerMode } from "#/state/account/auth.js";
-import { twoFactorStatus } from "#/state/account/twoFactor.js";
-import { availableUpdate } from "#/state/admin.js";
-import { type SettingsTab, settingsTab, showSettings } from "#/state/ui.js";
-import { AboutSettings } from "./AboutSettings.js";
-import { AccountSettings, hasOwnPassword } from "./AccountSettings.js";
-import { ActivitySettings } from "./ActivitySettings.js";
-import { ApiTokensSettings } from "./ApiTokensSettings.js";
-import { AppearanceSettings } from "./AppearanceSettings.js";
-import { DataSettings } from "./DataSettings.js";
-import { FeaturesSettings } from "./FeaturesSettings.js";
-import { KeysSettings } from "./KeysSettings.js";
+import { Backdrop } from "#/components/Backdrop.tsx";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { usePresence } from "#/hooks/usePresence.ts";
+import { t } from "#/i18n/index.ts";
+import { currentUser, isServerMode } from "#/state/account/auth.ts";
+import { twoFactorStatus } from "#/state/account/twoFactor.ts";
+import { availableUpdate } from "#/state/admin.ts";
+import { type SettingsTab, settingsTab, showSettings } from "#/state/ui.ts";
+import { AboutSettings } from "./AboutSettings.tsx";
+import { AccountSettings, hasOwnPassword } from "./AccountSettings.tsx";
+import { ActivitySettings } from "./ActivitySettings.tsx";
+import { ApiTokensSettings } from "./ApiTokensSettings.tsx";
+import { AppearanceSettings } from "./AppearanceSettings.tsx";
+import { DataSettings } from "./DataSettings.tsx";
+import { FeaturesSettings } from "./FeaturesSettings.tsx";
+import { KeysSettings } from "./KeysSettings.tsx";
 import {
   AccountNavItem,
   accountTabs,
@@ -25,9 +25,9 @@ import {
   NavItem,
   secondFactorOffered,
   TABS,
-} from "./SettingsNav.js";
-import { TwoFactorSettings } from "./TwoFactorSettings.js";
-import { WebhooksSettings } from "./WebhooksSettings.js";
+} from "./SettingsNav.tsx";
+import { TwoFactorSettings } from "./TwoFactorSettings.tsx";
+import { WebhooksSettings } from "./WebhooksSettings.tsx";
 
 /** How long the modal's exit runs; matches the `duration-150` classes below. */
 const CLOSE_MS = 150;

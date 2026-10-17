@@ -4,7 +4,7 @@ import {
   CONFETTI_TILE,
   inkHex,
   pictureTextures,
-} from "./boardTextures.js";
+} from "./boardTextures.ts";
 
 function svgOf(url: string): string {
   const match = /^url\("data:image\/svg\+xml,(.*)"\)$/.exec(url);

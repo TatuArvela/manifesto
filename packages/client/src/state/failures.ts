@@ -1,7 +1,7 @@
 import { effect } from "@preact/signals";
-import { type MessageKey, plural, t } from "#/i18n/index.js";
-import { quotaRefusedAt } from "#/storage/quota.js";
-import { showError } from "./ui.js";
+import { type MessageKey, plural, t } from "#/i18n/index.ts";
+import { quotaRefusedAt } from "#/storage/quota.ts";
+import { showError } from "./ui.ts";
 
 /**
  * How the note actions report what went wrong. An action reports its own

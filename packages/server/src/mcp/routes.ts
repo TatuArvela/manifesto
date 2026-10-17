@@ -1,6 +1,6 @@
 import { hasScope } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
-import { type AuthContext, MCP_FORWARDED } from "#/middleware/authBearer.js";
+import { type AuthContext, MCP_FORWARDED } from "#/middleware/authBearer.ts";
 import {
   errorResponse,
   handleMessage,
@@ -8,8 +8,8 @@ import {
   type JsonRpcResponse,
   type McpContext,
   PROTOCOL_VERSIONS,
-} from "./protocol.js";
-import { MCP_TOOLS, type RestCall } from "./tools.js";
+} from "./protocol.ts";
+import { MCP_TOOLS, type RestCall } from "./tools.ts";
 
 interface McpDeps {
   /** The origins a browser may call from (`CORS_ORIGINS`). */

@@ -6,12 +6,12 @@ import {
   unwrapFeedKey,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import type { ServerConfig } from "#/config.js";
-import { nowIso } from "#/lib/time.js";
-import { CALENDAR_TOKEN_PREFIX, hashToken } from "#/lib/token.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { type CalendarNote, remindersCalendar } from "./ics.js";
+import type { ServerConfig } from "#/config.ts";
+import { nowIso } from "#/lib/time.ts";
+import { CALENDAR_TOKEN_PREFIX, hashToken } from "#/lib/token.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { type CalendarNote, remindersCalendar } from "./ics.ts";
 
 /**
  * `GET /api/calendar/<token>.ics`: a user's reminders, for a calendar app to

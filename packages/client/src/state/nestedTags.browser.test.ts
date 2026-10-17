@@ -1,10 +1,10 @@
 import { NoteColor } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createNoteOrFail } from "#/test/testSupport.js";
-import { deleteTag, renameTag } from "./actions.js";
-import { notes } from "./notesStore.js";
-import { hiddenTags, tagColors } from "./prefs.js";
-import { activeTag, activeView, searchQuery } from "./ui.js";
+import { createNoteOrFail } from "#/test/testSupport.ts";
+import { deleteTag, renameTag } from "./actions.ts";
+import { notes } from "./notesStore.ts";
+import { hiddenTags, tagColors } from "./prefs.ts";
+import { activeTag, activeView, searchQuery } from "./ui.ts";
 import {
   allTags,
   childTags,
@@ -15,7 +15,7 @@ import {
   setTagHidden,
   tagColorOf,
   tagCounts,
-} from "./views.js";
+} from "./views.ts";
 
 function reset() {
   localStorage.clear();

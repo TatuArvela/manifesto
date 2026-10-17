@@ -8,13 +8,13 @@ import {
   type MockedFunction,
   vi,
 } from "vitest";
-import { createApp } from "#/app.js";
-import type { AuthProvider } from "#/auth/types.js";
-import type { OidcConfig, ServerConfig } from "#/config.js";
-import { createSqliteStorage } from "#/storage/sqlite/driver.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { TEST_CONFIG } from "#/test/setup.js";
-import { createOidcAuthProvider } from "./provider.js";
+import { createApp } from "#/app.ts";
+import type { AuthProvider } from "#/auth/types.ts";
+import type { OidcConfig, ServerConfig } from "#/config.ts";
+import { createSqliteStorage } from "#/storage/sqlite/driver.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { TEST_CONFIG } from "#/test/setup.ts";
+import { createOidcAuthProvider } from "./provider.ts";
 
 vi.mock("openid-client", async () => {
   const actual = await vi.importActual<typeof openid>("openid-client");

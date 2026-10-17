@@ -4,7 +4,7 @@ import {
   referencesOf,
   refPattern,
   sweepAction,
-} from "./attachmentMapping.js";
+} from "./attachmentMapping.ts";
 
 const A = "01J8Z3Q4R5S6T7V8W9X0Y1Z2AB";
 const B = "01J8Z3Q4R5S6T7V8W9X0Y1Z2CD";

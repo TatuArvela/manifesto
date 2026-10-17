@@ -1,11 +1,11 @@
 import type { NoteColor, NoteFont } from "@manifesto/shared";
 import { useCallback, useState } from "preact/hooks";
-import type { ComposerDraft } from "#/state/composerDraft.js";
-import { placedImageAlts, placeImages } from "#/utils/drawing.js";
+import type { ComposerDraft } from "#/state/composerDraft.ts";
+import { placedImageAlts, placeImages } from "#/utils/drawing.ts";
 import {
   type DraftLinkPreviews,
   useDraftLinkPreviews,
-} from "./useDraftLinkPreviews.js";
+} from "./useDraftLinkPreviews.ts";
 
 /** What the composer holds apart from its link previews, which load later. */
 export type ComposerFields = Omit<ComposerDraft, "linkPreviews">;

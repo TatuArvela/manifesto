@@ -3,7 +3,7 @@ import {
   connectionOutage,
   OUTAGE_AFTER_MS,
   trackConnection,
-} from "./connectionOutage.js";
+} from "./connectionOutage.ts";
 
 /**
  * The banner is the one thing that tells someone their notes have stopped

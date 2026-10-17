@@ -1,9 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
-import { plural, t } from "#/i18n/index.js";
-import { createNote, importNotes } from "#/state/notesStore.js";
-import { showError, showSuccess } from "#/state/ui.js";
-import { restoreVersions } from "#/state/versions.js";
-import { importFiles, isImportableFile } from "#/utils/importExport.js";
+import { plural, t } from "#/i18n/index.ts";
+import { createNote, importNotes } from "#/state/notesStore.ts";
+import { showError, showSuccess } from "#/state/ui.ts";
+import { restoreVersions } from "#/state/versions.ts";
+import { importFiles, isImportableFile } from "#/utils/importExport.ts";
 
 /**
  * Imports the files dropped anywhere on the window, as Settings' import

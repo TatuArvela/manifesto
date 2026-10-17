@@ -11,19 +11,19 @@ import {
   type SealedNote,
 } from "@manifesto/shared";
 import { type Context, Hono } from "hono";
-import { audit } from "#/audit/audit.js";
-import type { ServerConfig } from "#/config.js";
-import { createExpiringCounter } from "#/lib/expiringCounter.js";
-import { hashPassword, verifyPassword } from "#/lib/password.js";
-import { nowIso } from "#/lib/time.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver, StoredPublicLink } from "#/storage/types.js";
+import { audit } from "#/audit/audit.ts";
+import type { ServerConfig } from "#/config.ts";
+import { createExpiringCounter } from "#/lib/expiringCounter.ts";
+import { hashPassword, verifyPassword } from "#/lib/password.ts";
+import { nowIso } from "#/lib/time.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver, StoredPublicLink } from "#/storage/types.ts";
 import {
   publicLinkCreateSchema,
   publicLinkUnlockSchema,
-} from "#/validation/schemas.js";
-import { validatorHook } from "#/validation/zValidator.js";
+} from "#/validation/schemas.ts";
+import { validatorHook } from "#/validation/zValidator.ts";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 

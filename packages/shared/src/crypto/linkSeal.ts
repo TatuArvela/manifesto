@@ -1,5 +1,5 @@
-import { base64urlToBytes, bytesToBase64url, wipe } from "./bytes.js";
-import { type NoteSealKey, noteSealKey } from "./noteKey.js";
+import { base64urlToBytes, bytesToBase64url, wipe } from "./bytes.ts";
+import { type NoteSealKey, noteSealKey } from "./noteKey.ts";
 import {
   associatedData,
   derivable,
@@ -7,7 +7,7 @@ import {
   deriveKey,
   seal,
   unseal,
-} from "./seal.js";
+} from "./seal.ts";
 
 /**
  * Public links (`docs/specification/features/encryption.md`, "Sharing").

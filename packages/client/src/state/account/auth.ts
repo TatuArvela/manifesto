@@ -11,17 +11,17 @@ import type {
   UserLookupMode,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { resolveServerOrigin, resolveServerUrl } from "#/config.js";
-import type { MessageKey } from "#/i18n/messages/index.js";
-import { defaultPrefsOf, serverDefaultPrefs } from "#/state/serverDefaults.js";
-import { adoptServerFeatures } from "#/state/serverFeatures.js";
-import { storageConnection } from "#/storage/index.js";
-import { getPasskey } from "#/utils/webauthn.js";
-import { markOidcFlow, takeOidcFlow } from "./oidcFlow.js";
+import { resolveServerOrigin, resolveServerUrl } from "#/config.ts";
+import type { MessageKey } from "#/i18n/messages/index.ts";
+import { defaultPrefsOf, serverDefaultPrefs } from "#/state/serverDefaults.ts";
+import { adoptServerFeatures } from "#/state/serverFeatures.ts";
+import { storageConnection } from "#/storage/index.ts";
+import { getPasskey } from "#/utils/webauthn.ts";
+import { markOidcFlow, takeOidcFlow } from "./oidcFlow.ts";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./passwordConfirmation.js";
+} from "./passwordConfirmation.ts";
 
 export interface CurrentUser {
   id: string;

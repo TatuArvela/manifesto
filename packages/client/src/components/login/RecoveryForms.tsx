@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { type MessageKey, t } from "#/i18n/index.js";
+import { type MessageKey, t } from "#/i18n/index.ts";
 import {
   abandonRecovery,
   beginRecovery,
@@ -8,10 +8,10 @@ import {
   completeRecovery,
   type KeySheet,
   type RecoveryResult,
-} from "#/state/account/accountKeys.js";
-import { userKeyKindOf } from "#/utils/userKey.js";
-import { KeepSheetStep } from "./KeySheet.js";
-import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
+} from "#/state/account/accountKeys.ts";
+import { userKeyKindOf } from "#/utils/userKey.ts";
+import { KeepSheetStep } from "./KeySheet.tsx";
+import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
 // Using the recovery key, in both places it can be: on the sign-in screen,
 // with the username, by someone who has lost everything else, and on the

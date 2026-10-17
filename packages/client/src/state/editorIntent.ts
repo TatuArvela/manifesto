@@ -1,4 +1,4 @@
-import { editingNoteId } from "./ui.js";
+import { editingNoteId } from "./ui.ts";
 
 /**
  * What a card asked its editor to do as it opens: show the version history,

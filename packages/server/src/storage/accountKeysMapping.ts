@@ -1,4 +1,4 @@
-import type { StoredAccountKeys } from "./types.js";
+import type { StoredAccountKeys } from "./types.ts";
 
 export const ACCOUNT_KEYS_COLUMNS = `user_id, version, wrapped_by_secret,
   wrapped_by_recovery, recovery_verifier_hash, exchange_public_key,

@@ -1,15 +1,15 @@
 import type { Note, NoteVersion } from "@manifesto/shared";
 import { exportArchiveFiles, hasUnloadedImages } from "@manifesto/shared";
-import { APP_FILE_SLUG } from "#/config.js";
-import { t } from "#/i18n/index.js";
-import { storage } from "#/storage/index.js";
-import { sealer } from "#/storage/sealing.js";
-import { writeZip } from "#/utils/zip.js";
-import { saveFile } from "./account/accountExport.js";
-import { inlineImages, inlinePreviewImages } from "./attachments.js";
-import { ensureImages, notes } from "./notesStore.js";
-import { prefsSnapshot } from "./prefs.js";
-import { showError } from "./ui.js";
+import { APP_FILE_SLUG } from "#/config.ts";
+import { t } from "#/i18n/index.ts";
+import { storage } from "#/storage/index.ts";
+import { sealer } from "#/storage/sealing.ts";
+import { writeZip } from "#/utils/zip.ts";
+import { saveFile } from "./account/accountExport.ts";
+import { inlineImages, inlinePreviewImages } from "./attachments.ts";
+import { ensureImages, notes } from "./notesStore.ts";
+import { prefsSnapshot } from "./prefs.ts";
+import { showError } from "./ui.ts";
 
 /**
  * How many attachment fetches an export has in flight at once. Firing one per

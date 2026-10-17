@@ -1,5 +1,5 @@
 import type { AccountPrefs } from "@manifesto/shared";
-import { parseJson } from "./noteMapping.js";
+import { parseJson } from "./noteMapping.ts";
 
 /** The stored JSON as an object; anything else reads as none stored. */
 export function parsePrefs(raw: string | null | undefined): AccountPrefs {

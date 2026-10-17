@@ -3,15 +3,15 @@ import type {
   TwoFactorSetupResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "#/app.js";
-import { createAuthProvider } from "#/auth/index.js";
-import { base32Decode, hotp, totpStep } from "#/auth/totp.js";
-import { createMemoryMailer } from "#/mail/mailer.js";
-import { createStorage } from "#/storage/index.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { defined } from "#/test/defined.js";
-import { authHeaders, TEST_CONFIG } from "#/test/setup.js";
-import { MAX_LOGIN_FAILURES } from "./loginAttempts.js";
+import { createApp } from "#/app.ts";
+import { createAuthProvider } from "#/auth/index.ts";
+import { base32Decode, hotp, totpStep } from "#/auth/totp.ts";
+import { createMemoryMailer } from "#/mail/mailer.ts";
+import { createStorage } from "#/storage/index.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { defined } from "#/test/defined.ts";
+import { authHeaders, TEST_CONFIG } from "#/test/setup.ts";
+import { MAX_LOGIN_FAILURES } from "./loginAttempts.ts";
 
 const cfg = {
   ...TEST_CONFIG,

@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { isoMinusDays, isoPlusDays, nowIso } from "#/lib/time.js";
-import { hashToken } from "#/lib/token.js";
-import { createSqliteStorage } from "#/storage/sqlite/driver.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { TEST_CONFIG } from "#/test/setup.js";
-import { authenticateBySession, issueSession } from "./session.js";
+import { isoMinusDays, isoPlusDays, nowIso } from "#/lib/time.ts";
+import { hashToken } from "#/lib/token.ts";
+import { createSqliteStorage } from "#/storage/sqlite/driver.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { TEST_CONFIG } from "#/test/setup.ts";
+import { authenticateBySession, issueSession } from "./session.ts";
 
 const CFG = TEST_CONFIG;
 

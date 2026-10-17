@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
-import { openSheet, openSheetCount } from "./phoneSheets.js";
+import { openSheet, openSheetCount } from "./phoneSheets.ts";
 import "#/styles.css";
 
 /**

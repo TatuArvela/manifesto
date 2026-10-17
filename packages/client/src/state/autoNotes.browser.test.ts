@@ -9,9 +9,9 @@ import {
   removePlugin,
   setPluginReads,
   togglePlugin,
-} from "#/autoNotes/registry.js";
-import { resetSandbox } from "#/autoNotes/sandbox.js";
-import { defined } from "#/test/defined.js";
+} from "#/autoNotes/registry.ts";
+import { resetSandbox } from "#/autoNotes/sandbox.ts";
+import { defined } from "#/test/defined.ts";
 import {
   autoNotes,
   drawnWithoutImages,
@@ -21,8 +21,8 @@ import {
   MAX_NOTES_READ,
   notesFor,
   refreshAutoNotes,
-} from "./autoNotes.js";
-import { locale } from "./prefs.js";
+} from "./autoNotes.ts";
+import { locale } from "./prefs.ts";
 
 async function waitFor(pred: () => boolean, timeoutMs = 5000): Promise<void> {
   const start = Date.now();

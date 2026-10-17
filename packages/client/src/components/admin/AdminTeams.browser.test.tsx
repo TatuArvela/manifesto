@@ -1,11 +1,11 @@
 import type { AdminTeam } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
-import { adminUsers } from "#/state/admin.js";
-import { locale } from "#/state/prefs.js";
-import { storageConnection } from "#/storage/index.js";
-import { AdminTeams } from "./AdminTeams.js";
+import { t } from "#/i18n/index.ts";
+import { adminUsers } from "#/state/admin.ts";
+import { locale } from "#/state/prefs.ts";
+import { storageConnection } from "#/storage/index.ts";
+import { AdminTeams } from "./AdminTeams.tsx";
 
 const SERVER = "http://server.test";
 

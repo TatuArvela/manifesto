@@ -5,7 +5,7 @@ import {
   createLinkPreviewFetcher,
   type FetchPolicy,
   sniffImageType,
-} from "./fetchPreview.js";
+} from "./fetchPreview.ts";
 
 // A 1x1 transparent PNG.
 const PNG = Buffer.from(

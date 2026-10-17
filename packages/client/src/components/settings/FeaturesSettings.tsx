@@ -1,8 +1,8 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { Shuffle } from "lucide-preact";
-import { noteFontFamilies } from "#/colors.js";
-import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.js";
-import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.js";
+import { noteFontFamilies } from "#/colors.ts";
+import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.tsx";
+import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
 import {
   confirmBeforeDelete,
   type DecimalSeparator,
@@ -15,14 +15,14 @@ import {
   type EditMode,
   formattingToolbar,
   inlineCalculations,
-} from "#/state/prefs.js";
+} from "#/state/prefs.ts";
 import {
   SettingsGroup,
   type SettingsOption,
   SettingsRow,
   SettingsSelect,
   toggleTrackClass,
-} from "./SettingsControls.js";
+} from "./SettingsControls.tsx";
 
 const decimalSeparators: DecimalSeparator[] = ["auto", ".", ","];
 

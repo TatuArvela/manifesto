@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isoMinusDays, isoPlusDays, nowIso } from "#/lib/time.js";
-import { hashToken } from "#/lib/token.js";
-import { createSqliteStorage } from "#/storage/sqlite/driver.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { startSessionCleanup } from "./sessionCleanup.js";
+import { isoMinusDays, isoPlusDays, nowIso } from "#/lib/time.ts";
+import { hashToken } from "#/lib/token.ts";
+import { createSqliteStorage } from "#/storage/sqlite/driver.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { startSessionCleanup } from "./sessionCleanup.ts";
 
 describe("startSessionCleanup", () => {
   let storage: StorageDriver;

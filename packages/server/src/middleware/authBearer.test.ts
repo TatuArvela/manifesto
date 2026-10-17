@@ -1,9 +1,9 @@
 import type { ApiTokenScope } from "@manifesto/shared";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import type { AuthIdentity, AuthProvider } from "#/auth/types.js";
-import { createAuthMiddleware } from "./authBearer.js";
-import { onError } from "./error.js";
+import type { AuthIdentity, AuthProvider } from "#/auth/types.ts";
+import { createAuthMiddleware } from "./authBearer.ts";
+import { onError } from "./error.ts";
 
 /**
  * A token reaches a route only through the scope `OPERATIONS` names for it,

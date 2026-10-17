@@ -3,7 +3,7 @@ import {
   deleteLocalNoteCopies,
   deleteReadableNoteCopies,
   LOCAL_COPY_PREFIX,
-} from "./localNoteCopies.js";
+} from "./localNoteCopies.ts";
 
 /** Where a copy was kept, readable, before the document was sealed. */
 const READABLE = "manifesto:yjs:";

@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import type { ServerConfig } from "#/config.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { createLocalAuthProvider } from "./local/provider.js";
-import { createOidcAuthProvider } from "./oidc/provider.js";
-import { authenticateBySession } from "./session.js";
-import type { AuthProvider } from "./types.js";
+import type { ServerConfig } from "#/config.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { createLocalAuthProvider } from "./local/provider.ts";
+import { createOidcAuthProvider } from "./oidc/provider.ts";
+import { authenticateBySession } from "./session.ts";
+import type { AuthProvider } from "./types.ts";
 
 function oidcConfigOf(cfg: ServerConfig) {
   if (!cfg.oidc) {
@@ -66,4 +66,4 @@ export function createAuthProvider(
   }
 }
 
-export type { AuthIdentity, AuthProvider } from "./types.js";
+export type { AuthIdentity, AuthProvider } from "./types.ts";

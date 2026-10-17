@@ -5,9 +5,9 @@ import {
   type OAuthCodeRow,
   rowToOAuthClient,
   rowToOAuthCode,
-} from "#/storage/oauthMapping.js";
-import type { OAuthRepo } from "#/storage/types.js";
-import type { SqliteDB } from "./database.js";
+} from "#/storage/oauthMapping.ts";
+import type { OAuthRepo } from "#/storage/types.ts";
+import type { SqliteDB } from "./database.ts";
 
 export function createSqliteOAuthRepo(db: SqliteDB): OAuthRepo {
   const insertClientStmt = db.prepare(

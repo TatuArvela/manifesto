@@ -2,13 +2,13 @@ import type { LinkPreview, NoteCreate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { buildOpenApiDocument, OPERATIONS, operationId } from "./openapi.js";
+import { buildOpenApiDocument, OPERATIONS, operationId } from "./openapi.ts";
 import {
   authHeaders,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "./test/setup.js";
+} from "./test/setup.ts";
 
 /**
  * A client generated from the document is only as right as the document. The

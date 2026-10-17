@@ -1,9 +1,9 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { notes } from "#/state/notesStore.js";
-import { currentStorage } from "#/storage/index.js";
-import { useNoteImages } from "./useNoteImages.js";
+import { notes } from "#/state/notesStore.ts";
+import { currentStorage } from "#/storage/index.ts";
+import { useNoteImages } from "./useNoteImages.ts";
 
 /**
  * The point of leaving attachments out of a listing is only realised if a card

@@ -1,19 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
-import { loadBoardImage } from "#/storage/boardImage.js";
+import { t } from "#/i18n/index.ts";
+import { loadBoardImage } from "#/storage/boardImage.ts";
 import {
   boardImageUrl,
   initBoardBackground,
   removeBoardImage,
   setBoardImage,
-} from "./board.js";
+} from "./board.ts";
 import {
   boardColor,
   boardImageStamp,
   boardTexture,
   boardUsePicture,
-} from "./prefs.js";
-import { toasts } from "./ui.js";
+} from "./prefs.ts";
+import { toasts } from "./ui.ts";
 
 /** A real, decodable picture, larger than the board keeps. */
 async function photo(width: number, height: number): Promise<File> {

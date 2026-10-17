@@ -1,6 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { MAX_NOTES_PER_RUN, toAutoNoteResults } from "./results.js";
+import { MAX_NOTES_PER_RUN, toAutoNoteResults } from "./results.ts";
 
 const NOTE = { title: "t", content: "c" };
 

@@ -1,14 +1,14 @@
 import * as openid from "openid-client";
-import { authenticateBySession } from "#/auth/session.js";
+import { authenticateBySession } from "#/auth/session.ts";
 import type {
   AuthIdentity,
   AuthProvider,
   AuthProviderRouter,
-} from "#/auth/types.js";
-import type { OidcConfig, ServerConfig } from "#/config.js";
-import { logger } from "#/lib/logger.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { createOidcAuthRouter } from "./router.js";
+} from "#/auth/types.ts";
+import type { OidcConfig, ServerConfig } from "#/config.ts";
+import { logger } from "#/lib/logger.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { createOidcAuthRouter } from "./router.ts";
 
 export interface OidcDiscoveryClient {
   getConfig(): Promise<openid.Configuration>;

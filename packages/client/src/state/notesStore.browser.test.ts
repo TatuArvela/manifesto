@@ -1,12 +1,12 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "#/storage/index.js";
+import { storageConnection } from "#/storage/index.ts";
 import {
   notes,
   notesLoaded,
   receiveNote,
   updateStoredNote,
-} from "./notesStore.js";
+} from "./notesStore.ts";
 
 const note: Note = {
   id: "n1",

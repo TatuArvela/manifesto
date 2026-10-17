@@ -1,15 +1,15 @@
-import type { ServerConfig } from "#/config.js";
-import { signsInLocally } from "#/config.js";
-import { hashPassword } from "#/lib/password.js";
-import { newTemporaryPassword } from "#/lib/temporaryPassword.js";
-import { nowIso } from "#/lib/time.js";
-import { newId, newShortSuffix } from "#/lib/ulid.js";
+import type { ServerConfig } from "#/config.ts";
+import { signsInLocally } from "#/config.ts";
+import { hashPassword } from "#/lib/password.ts";
+import { newTemporaryPassword } from "#/lib/temporaryPassword.ts";
+import { nowIso } from "#/lib/time.ts";
+import { newId, newShortSuffix } from "#/lib/ulid.ts";
 import {
   type StorageDriver,
   type User,
   UsernameTakenError,
-} from "#/storage/types.js";
-import { pickAvatarColor } from "./users.js";
+} from "#/storage/types.ts";
+import { pickAvatarColor } from "./users.ts";
 
 export const INITIAL_ADMIN_USERNAME = "admin";
 

@@ -1,8 +1,8 @@
-import { logger } from "#/lib/logger.js";
-import { startPeriodicJob } from "#/lib/periodic.js";
-import { isoMinusDays, nowIso } from "#/lib/time.js";
-import { UNUSED_CLIENT_DAYS } from "#/oauth/grants.js";
-import type { StorageDriver } from "#/storage/types.js";
+import { logger } from "#/lib/logger.ts";
+import { startPeriodicJob } from "#/lib/periodic.ts";
+import { isoMinusDays, nowIso } from "#/lib/time.ts";
+import { UNUSED_CLIENT_DAYS } from "#/oauth/grants.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;

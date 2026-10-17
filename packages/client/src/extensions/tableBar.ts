@@ -2,12 +2,12 @@ import { prosePluginsCtx } from "@milkdown/kit/core";
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
-import { t } from "#/i18n/index.js";
+import { t } from "#/i18n/index.ts";
 import {
   applyTableAction,
   availableTableActions,
   type TableAction,
-} from "./tableActions.js";
+} from "./tableActions.ts";
 
 /**
  * A bar of row and column buttons over the table the caret is in, where the

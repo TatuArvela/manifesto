@@ -1,5 +1,5 @@
-import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.js";
-import type { AccountSealKeys } from "./noteKey.js";
+import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.ts";
+import type { AccountSealKeys } from "./noteKey.ts";
 import {
   associatedData,
   derivable,
@@ -7,7 +7,7 @@ import {
   seal,
   sealingKey,
   unsealText,
-} from "./seal.js";
+} from "./seal.ts";
 
 /**
  * A token that carries a key

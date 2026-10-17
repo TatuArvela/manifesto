@@ -3,7 +3,7 @@
 // without a pointer.
 
 import { carriedImageAlts, type Note } from "@manifesto/shared";
-import { MAX_IMAGE_EDGE } from "./shrinkImage.js";
+import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
 /** The drawing's own size, whatever size it is shown at: 4 by 3. */
 export const DRAWING_WIDTH = 1600;

@@ -1,17 +1,17 @@
 import { fileURLToPath } from "node:url";
-import { audit } from "./audit/audit.js";
-import { createSessionRevocations } from "./auth/revocations.js";
-import { endUserSessions } from "./auth/session.js";
-import { pickAvatarColor } from "./auth/users.js";
-import { loadConfig, type ServerConfig } from "./config.js";
-import { hashPassword } from "./lib/password.js";
-import { newTemporaryPassword } from "./lib/temporaryPassword.js";
-import { nowIso } from "./lib/time.js";
-import { newId } from "./lib/ulid.js";
-import { buildOpenApiDocument } from "./openapi.js";
-import { createStorage } from "./storage/index.js";
-import { type StorageDriver, UsernameTakenError } from "./storage/types.js";
-import { VERSION } from "./version.js";
+import { audit } from "./audit/audit.ts";
+import { createSessionRevocations } from "./auth/revocations.ts";
+import { endUserSessions } from "./auth/session.ts";
+import { pickAvatarColor } from "./auth/users.ts";
+import { loadConfig, type ServerConfig } from "./config.ts";
+import { hashPassword } from "./lib/password.ts";
+import { newTemporaryPassword } from "./lib/temporaryPassword.ts";
+import { nowIso } from "./lib/time.ts";
+import { newId } from "./lib/ulid.ts";
+import { buildOpenApiDocument } from "./openapi.ts";
+import { createStorage } from "./storage/index.ts";
+import { type StorageDriver, UsernameTakenError } from "./storage/types.ts";
+import { VERSION } from "./version.ts";
 
 /**
  * Lockout recovery from a shell on the server, for when no admin can sign in:

@@ -2,7 +2,7 @@ import { createServer, type RequestListener, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import zlib from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
-import { FetchRefused, type SafeFetchOptions, safeFetch } from "./safeFetch.js";
+import { FetchRefused, type SafeFetchOptions, safeFetch } from "./safeFetch.ts";
 
 let server: Server | null = null;
 

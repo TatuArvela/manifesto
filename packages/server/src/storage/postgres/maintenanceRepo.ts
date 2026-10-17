@@ -3,15 +3,15 @@ import {
   membersChangedAt,
   rowToShare,
   type ShareRow,
-} from "#/storage/shareMapping.js";
-import { composeStats } from "#/storage/statsMapping.js";
+} from "#/storage/shareMapping.ts";
+import { composeStats } from "#/storage/statsMapping.ts";
 import type {
   ExpiredTrashedNote,
   MaintenanceRepo,
   NoteShare,
-} from "#/storage/types.js";
-import type { PgPool } from "./database.js";
-import { inTransaction } from "./sharesRepo.js";
+} from "#/storage/types.ts";
+import type { PgPool } from "./database.ts";
+import { inTransaction } from "./sharesRepo.ts";
 
 interface ExpiredRow {
   id: string;

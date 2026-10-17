@@ -1,15 +1,15 @@
 import { useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "#/colors.js";
-import { Backdrop } from "#/components/Backdrop.js";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { t } from "#/i18n/index.js";
-import { createNote } from "#/state/notesStore.js";
-import { showSuccess } from "#/state/ui.js";
-import { renderMarkdown } from "#/utils/remarkRenderer.js";
-import type { SharedNotePayload } from "#/utils/shareLink.js";
-import { clearShareHash } from "#/utils/shareLink.js";
+import { noteColorMap, noteFontFamilies } from "#/colors.ts";
+import { Backdrop } from "#/components/Backdrop.tsx";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { t } from "#/i18n/index.ts";
+import { createNote } from "#/state/notesStore.ts";
+import { showSuccess } from "#/state/ui.ts";
+import { renderMarkdown } from "#/utils/remarkRenderer.ts";
+import type { SharedNotePayload } from "#/utils/shareLink.ts";
+import { clearShareHash } from "#/utils/shareLink.ts";
 
 export function SharedNoteDialog({
   payload,

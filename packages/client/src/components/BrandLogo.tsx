@@ -1,4 +1,4 @@
-import type { Logo } from "#/config.js";
+import type { Logo } from "#/config.ts";
 
 /**
  * One of the branding logos, as the current theme wants it: its dark variant

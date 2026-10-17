@@ -1,7 +1,7 @@
 import type { Note, NoteCreate } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { authHeaders, bootTestApp, type TestRig } from "./test/setup.js";
+import { authHeaders, bootTestApp, type TestRig } from "./test/setup.ts";
 
 const baseNote: NoteCreate = {
   title: "",

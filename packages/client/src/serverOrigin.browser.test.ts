@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { resolveServerOrigin } from "./config.js";
+import { resolveServerOrigin } from "./config.ts";
 
 /**
  * A relative server base is right for `fetch` and useless to a WebSocket, so

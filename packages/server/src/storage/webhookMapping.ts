@@ -1,7 +1,7 @@
 import { WEBHOOK_EVENTS, type WebhookEventName } from "@manifesto/shared";
-import { AT_REST, atRest } from "./atRest.js";
-import { parseJson } from "./noteMapping.js";
-import type { StoredWebhook } from "./types.js";
+import { AT_REST, atRest } from "./atRest.ts";
+import { parseJson } from "./noteMapping.ts";
+import type { StoredWebhook } from "./types.ts";
 
 export interface WebhookRow {
   id: string;

@@ -6,10 +6,10 @@ import {
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
-import { createAccessChanges } from "./accessChanges.js";
-import { emptyAccount } from "./emptyAccount.js";
-import { createNoteEvents } from "./noteEvents.js";
+} from "#/test/setup.ts";
+import { createAccessChanges } from "./accessChanges.ts";
+import { emptyAccount } from "./emptyAccount.ts";
+import { createNoteEvents } from "./noteEvents.ts";
 
 const baseNote: NoteCreate = {
   title: "",

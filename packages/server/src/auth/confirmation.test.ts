@@ -1,19 +1,19 @@
 import type { ErrorResponse } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { StorageDriver } from "#/storage/types.js";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 import {
   authHeaders,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
-import { RECENT_SIGN_IN_MS, requireConfirmation } from "./confirmation.js";
+} from "#/test/setup.ts";
+import { RECENT_SIGN_IN_MS, requireConfirmation } from "./confirmation.ts";
 import {
   createLoginAttempts,
   MAX_LOGIN_FAILURES,
-} from "./local/loginAttempts.js";
+} from "./local/loginAttempts.ts";
 
 const PASSWORD = "test-pass-12";
 

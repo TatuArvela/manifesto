@@ -1,7 +1,7 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { notes } from "./notesStore.js";
-import { hiddenTags, sortMode } from "./prefs.js";
+import { notes } from "./notesStore.ts";
+import { hiddenTags, sortMode } from "./prefs.ts";
 import {
   activeTag,
   activeView,
@@ -11,7 +11,7 @@ import {
   tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
-} from "./ui.js";
+} from "./ui.ts";
 import {
   allTags,
   canReorder,
@@ -24,7 +24,7 @@ import {
   sortedNotes,
   tagCounts,
   unpinnedNotes,
-} from "./views.js";
+} from "./views.ts";
 
 let seq = 0;
 

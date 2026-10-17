@@ -1,5 +1,5 @@
 import type { ErrorResponse } from "@manifesto/shared";
-import { storageConnection } from "./index.js";
+import { storageConnection } from "./index.ts";
 
 /**
  * Signed-in requests to the server's `/api`, for the account-level modules

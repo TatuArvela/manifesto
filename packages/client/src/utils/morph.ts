@@ -6,7 +6,7 @@
  * clip and opacity only, so the editor inside is never re-laid out mid-flight.
  */
 
-import { isPhoneLayout } from "./phoneSheets.js";
+import { isPhoneLayout } from "./phoneSheets.ts";
 
 export interface RectLike {
   left: number;

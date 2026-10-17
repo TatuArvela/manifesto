@@ -1,10 +1,10 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { claimed, claimedUpdate, opened } from "#/storage/contracts/claimed.js";
-import type { NotesRepo } from "#/storage/types.js";
-import { openDatabase, type SqliteDB } from "./database.js";
-import { createSqliteNotesRepo } from "./notesRepo.js";
-import { createSqliteUsersRepo } from "./usersRepo.js";
+import { claimed, claimedUpdate, opened } from "#/storage/contracts/claimed.ts";
+import type { NotesRepo } from "#/storage/types.ts";
+import { openDatabase, type SqliteDB } from "./database.ts";
+import { createSqliteNotesRepo } from "./notesRepo.ts";
+import { createSqliteUsersRepo } from "./usersRepo.ts";
 
 /** A page big enough that these fixtures are never split across two. */
 const PAGE = { limit: 50 };

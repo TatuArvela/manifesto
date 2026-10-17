@@ -12,8 +12,8 @@ import {
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
-import { MAX_LOGIN_FAILURES } from "./local/loginAttempts.js";
+} from "#/test/setup.ts";
+import { MAX_LOGIN_FAILURES } from "./local/loginAttempts.ts";
 
 const PASSWORD = "test-pass-12";
 

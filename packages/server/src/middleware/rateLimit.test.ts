@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { onError } from "./error.js";
-import { ipBucketKey, perUserApiRateLimit, rateLimit } from "./rateLimit.js";
+import { onError } from "./error.ts";
+import { ipBucketKey, perUserApiRateLimit, rateLimit } from "./rateLimit.ts";
 
 function buildApp(limit: number, windowMs: number, key = "x") {
   const app = new Hono();

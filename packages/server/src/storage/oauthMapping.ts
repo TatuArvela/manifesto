@@ -1,5 +1,5 @@
-import { parseScopes } from "./apiTokenMapping.js";
-import type { StoredOAuthClient, StoredOAuthCode } from "./types.js";
+import { parseScopes } from "./apiTokenMapping.ts";
+import type { StoredOAuthClient, StoredOAuthCode } from "./types.ts";
 
 export interface OAuthClientRow {
   id: string;

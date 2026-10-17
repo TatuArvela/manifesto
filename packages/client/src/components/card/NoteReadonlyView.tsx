@@ -14,35 +14,35 @@ import {
   X,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { plugins } from "#/autoNotes/registry.js";
-import { noteColorMap, noteFontFamilies } from "#/colors.js";
-import { Dropdown } from "#/components/Dropdown.js";
+import { plugins } from "#/autoNotes/registry.ts";
+import { noteColorMap, noteFontFamilies } from "#/colors.ts";
+import { Dropdown } from "#/components/Dropdown.tsx";
 import {
   editorButtonClass,
   editorIconClass,
-} from "#/components/editor/editorButtons.js";
-import { ImageGallery } from "#/components/ImageGallery.js";
-import { LinkPreviewList } from "#/components/LinkPreviewList.js";
-import { NoteComments } from "#/components/NoteComments.js";
-import { CARD_POPOVER_EXIT_MS, CardPopover } from "#/components/Popover.js";
-import { ReminderChip } from "#/components/ReminderChip.js";
+} from "#/components/editor/editorButtons.ts";
+import { ImageGallery } from "#/components/ImageGallery.tsx";
+import { LinkPreviewList } from "#/components/LinkPreviewList.tsx";
+import { NoteComments } from "#/components/NoteComments.tsx";
+import { CARD_POPOVER_EXIT_MS, CardPopover } from "#/components/Popover.tsx";
+import { ReminderChip } from "#/components/ReminderChip.tsx";
 import {
   ReminderPicker,
   ReminderPickerPanel,
-} from "#/components/ReminderPicker.js";
-import { SharedPeople } from "#/components/sharing/SharedAvatars.js";
-import { TagChip } from "#/components/TagChip.js";
-import { TagPickerButton } from "#/components/TagPicker.js";
-import { Tooltip } from "#/components/Tooltip.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { usePresence } from "#/hooks/usePresence.js";
-import { getColorPickerColors, t } from "#/i18n/index.js";
-import { addTag, togglePin } from "#/state/actions.js";
-import { drawnWithoutImages, refreshAutoNotes } from "#/state/autoNotes.js";
-import { ensureImages, updateNote } from "#/state/notesStore.js";
-import { renderMarkdown } from "#/utils/remarkRenderer.js";
-import { withoutImages } from "#/utils/stripImages.js";
-import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
+} from "#/components/ReminderPicker.tsx";
+import { SharedPeople } from "#/components/sharing/SharedAvatars.tsx";
+import { TagChip } from "#/components/TagChip.tsx";
+import { TagPickerButton } from "#/components/TagPicker.tsx";
+import { Tooltip } from "#/components/Tooltip.tsx";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { usePresence } from "#/hooks/usePresence.ts";
+import { getColorPickerColors, t } from "#/i18n/index.ts";
+import { addTag, togglePin } from "#/state/actions.ts";
+import { drawnWithoutImages, refreshAutoNotes } from "#/state/autoNotes.ts";
+import { ensureImages, updateNote } from "#/state/notesStore.ts";
+import { renderMarkdown } from "#/utils/remarkRenderer.ts";
+import { withoutImages } from "#/utils/stripImages.ts";
+import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.tsx";
 
 /**
  * A note that can be looked at and organized but not written: an automatic

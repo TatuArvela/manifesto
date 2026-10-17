@@ -56,7 +56,7 @@ import type {
   shareCreateSchema,
   shareUpdateSchema,
   webhookCreateSchema,
-} from "./schemas.js";
+} from "./schemas.ts";
 
 /**
  * The request bodies are declared twice: as TypeScript types in

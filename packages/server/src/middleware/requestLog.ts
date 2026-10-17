@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from "hono";
-import { logger } from "#/lib/logger.js";
+import { logger } from "#/lib/logger.ts";
 
 /**
  * Structured access log.

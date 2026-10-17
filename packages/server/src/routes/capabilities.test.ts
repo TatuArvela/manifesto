@@ -1,8 +1,8 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
 import { MAX_IMAGE_SOURCE_BYTES, SERVER_FEATURES } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { bootTestAppWith } from "#/test/setup.js";
-import { VERSION } from "#/version.js";
+import { bootTestAppWith } from "#/test/setup.ts";
+import { VERSION } from "#/version.ts";
 
 describe("GET /api/capabilities", () => {
   async function capabilities(overrides = {}) {

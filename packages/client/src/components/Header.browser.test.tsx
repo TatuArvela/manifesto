@@ -1,11 +1,11 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { plural, t } from "#/i18n/index.js";
-import { notes } from "#/state/notesStore.js";
-import { enterSelectMode, exitSelectMode } from "#/state/selection.js";
-import { selectedNotes, selectMode } from "#/state/ui.js";
-import { createNoteOrFail } from "#/test/testSupport.js";
-import { Header } from "./Header.js";
+import { plural, t } from "#/i18n/index.ts";
+import { notes } from "#/state/notesStore.ts";
+import { enterSelectMode, exitSelectMode } from "#/state/selection.ts";
+import { selectedNotes, selectMode } from "#/state/ui.ts";
+import { createNoteOrFail } from "#/test/testSupport.ts";
+import { Header } from "./Header.tsx";
 import "#/styles.css";
 
 let host: HTMLDivElement;

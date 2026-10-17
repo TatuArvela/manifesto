@@ -4,18 +4,18 @@ import {
   MAX_LINK_PREVIEWS_PER_NOTE,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
-import { LocalStorageAdapter } from "#/storage/index.js";
-import { defined } from "#/test/defined.js";
-import { createNoteOrFail } from "#/test/testSupport.js";
-import { makeStubPreview } from "#/utils/linkPreview.js";
+import { t } from "#/i18n/index.ts";
+import { LocalStorageAdapter } from "#/storage/index.ts";
+import { defined } from "#/test/defined.ts";
+import { createNoteOrFail } from "#/test/testSupport.ts";
+import { makeStubPreview } from "#/utils/linkPreview.ts";
 import {
   addLinkPreviews,
   applyLinkPreviews,
   resolveLinkPreview,
-} from "./linkPreviews.js";
-import { notes, updateNote } from "./notesStore.js";
-import { toasts } from "./ui.js";
+} from "./linkPreviews.ts";
+import { notes, updateNote } from "./notesStore.ts";
+import { toasts } from "./ui.ts";
 
 function tinyPng(): string {
   const canvas = document.createElement("canvas");

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
-import { morphClip, morphIn, morphOut } from "./morph.js";
+import { morphClip, morphIn, morphOut } from "./morph.ts";
 
 let panel: HTMLElement | null = null;
 

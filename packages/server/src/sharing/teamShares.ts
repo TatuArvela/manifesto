@@ -1,8 +1,8 @@
 import type { ShareRole } from "@manifesto/shared";
-import { nowIso } from "#/lib/time.js";
-import type { NoteShare, StorageDriver } from "#/storage/types.js";
-import type { AccessChanges } from "./accessChanges.js";
-import type { NoteEvents } from "./noteEvents.js";
+import { nowIso } from "#/lib/time.ts";
+import type { NoteShare, StorageDriver } from "#/storage/types.ts";
+import type { AccessChanges } from "./accessChanges.ts";
+import type { NoteEvents } from "./noteEvents.ts";
 
 /**
  * What sharing a note with a team means for each of its members.

@@ -10,11 +10,11 @@ import {
   claimed,
   claimedUpdate,
   opened,
-} from "./contracts/claimed.js";
-import { createPostgresStorage } from "./postgres/driver.js";
-import { newTestPool } from "./postgres/testDb.js";
-import { createSqliteStorage } from "./sqlite/driver.js";
-import type { StorageDriver } from "./types.js";
+} from "./contracts/claimed.ts";
+import { createPostgresStorage } from "./postgres/driver.ts";
+import { newTestPool } from "./postgres/testDb.ts";
+import { createSqliteStorage } from "./sqlite/driver.ts";
+import type { StorageDriver } from "./types.ts";
 
 /**
  * The two drivers store a note in different column types (SQLite has no

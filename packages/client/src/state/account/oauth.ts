@@ -4,12 +4,12 @@ import type {
   OAuthAuthorizeResponse,
   OAuthClientInfo,
 } from "@manifesto/shared";
-import { apiFetch } from "#/storage/apiRequest.js";
-import { sealer } from "#/storage/sealing.js";
+import { apiFetch } from "#/storage/apiRequest.ts";
+import { sealer } from "#/storage/sealing.ts";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,
-} from "./passwordConfirmation.js";
+} from "./passwordConfirmation.ts";
 
 /**
  * The consent page an AI assistant sends the browser to when it signs in to

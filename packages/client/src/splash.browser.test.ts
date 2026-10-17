@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { revealApp } from "./splash.js";
+import { revealApp } from "./splash.ts";
 
 afterEach(() => {
   document.getElementById("splash")?.remove();

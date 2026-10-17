@@ -8,7 +8,7 @@ import type {
   TeamSharesResponse,
   TeamsResponse,
 } from "@manifesto/shared";
-import { apiFetch } from "#/storage/apiRequest.js";
+import { apiFetch } from "#/storage/apiRequest.ts";
 
 /**
  * Teams: the signed-in user's own, to share a note with, and every team for

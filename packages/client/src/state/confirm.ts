@@ -1,5 +1,5 @@
 import { signal } from "@preact/signals";
-import { confirmBeforeDelete } from "./prefs.js";
+import { confirmBeforeDelete } from "./prefs.ts";
 
 export interface ConfirmRequest {
   title: string;

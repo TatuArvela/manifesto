@@ -167,6 +167,10 @@ code is enough. Read one by hand when planning a change before touching its file
   its folder. In server and shared the map sends `#/` to `dist/` unless the `manifesto-source`
   condition is set, which `tsconfig.base.json`, both Vite configs and `pnpm dev` set and a built
   server run with plain `node` does not.
+- An import names the file as it is (`./RestApiAdapter.ts`, `#/components/Note.tsx`), which
+  `useImportExtensions` holds. `rewriteRelativeImportExtensions` turns a `./` one into `.js` in what
+  `tsc` emits, and it leaves `#/` alone, so server and shared map `#/*.ts` onto `dist/*.js`. The
+  client, which Vite bundles, turns the rewrite off, since `tsc` refuses `#/x.ts` under it.
 - TypeScript strict mode in all packages
 - `type: "module"` (ESM) throughout
 - No em dashes (—) anywhere: docs, comments, UI strings, test names, commit messages and PR

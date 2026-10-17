@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { usePresence } from "./usePresence.js";
+import { usePresence } from "./usePresence.ts";
 
 let host: HTMLDivElement;
 let latest: { shown: string | null; leaving: boolean };

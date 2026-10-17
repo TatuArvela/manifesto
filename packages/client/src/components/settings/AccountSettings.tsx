@@ -1,21 +1,21 @@
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { Avatar } from "#/components/Avatar.js";
-import { buttonClass } from "#/components/buttonClasses.js";
+import { Avatar } from "#/components/Avatar.tsx";
+import { buttonClass } from "#/components/buttonClasses.ts";
 import {
   ConfirmationError,
   ConfirmPasswordField,
-} from "#/components/ConfirmWithPassword.js";
-import { t } from "#/i18n/index.js";
+} from "#/components/ConfirmWithPassword.tsx";
+import { t } from "#/i18n/index.ts";
 import {
   authProviderName,
   changePassword,
   currentUser,
   updateEmail,
-} from "#/state/account/auth.js";
-import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
-import { deleteOwnAccount } from "#/state/account/signOut.js";
-import { showSuccess } from "#/state/ui.js";
+} from "#/state/account/auth.ts";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
+import { deleteOwnAccount } from "#/state/account/signOut.ts";
+import { showSuccess } from "#/state/ui.ts";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-neutral-100 dark:read-only:bg-neutral-800 read-only:text-neutral-600 dark:read-only:text-neutral-300";

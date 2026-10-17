@@ -10,7 +10,7 @@ import {
   joinSealedAwareness,
   joinSealedDocument,
   type SealedDocument,
-} from "./sealedDocument.js";
+} from "./sealedDocument.ts";
 
 /**
  * Two editors and the server between them. The server here is what the real

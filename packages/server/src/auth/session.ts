@@ -1,15 +1,15 @@
-import type { ServerConfig } from "#/config.js";
-import { isFeatureOn, TOKEN_FEATURES, type ToggleFeature } from "#/features.js";
-import { isoPlusDays, nowIso } from "#/lib/time.js";
+import type { ServerConfig } from "#/config.ts";
+import { isFeatureOn, TOKEN_FEATURES, type ToggleFeature } from "#/features.ts";
+import { isoPlusDays, nowIso } from "#/lib/time.ts";
 import {
   API_TOKEN_PREFIX,
   hashToken,
   MCP_TOKEN_PREFIX,
   newSessionToken,
-} from "#/lib/token.js";
-import type { Session, StorageDriver } from "#/storage/types.js";
-import type { SessionRevocations } from "./revocations.js";
-import type { AuthIdentity } from "./types.js";
+} from "#/lib/token.ts";
+import type { Session, StorageDriver } from "#/storage/types.ts";
+import type { SessionRevocations } from "./revocations.ts";
+import type { AuthIdentity } from "./types.ts";
 
 // Sessions are stored hashed at rest. The repo doesn't know this; it just
 // indexes whatever string we hand it. The wrapping in `auth/session.ts`

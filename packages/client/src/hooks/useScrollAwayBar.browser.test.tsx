@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { useRef } from "preact/hooks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useScrollAwayBar } from "./useScrollAwayBar.js";
+import { useScrollAwayBar } from "./useScrollAwayBar.ts";
 
 let host: HTMLDivElement;
 let spacer = 0;

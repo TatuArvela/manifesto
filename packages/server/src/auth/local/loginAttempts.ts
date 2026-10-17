@@ -1,4 +1,4 @@
-import { createExpiringCounter } from "#/lib/expiringCounter.js";
+import { createExpiringCounter } from "#/lib/expiringCounter.ts";
 
 /** Failed sign-ins one name may collect before it stops being asked. */
 export const MAX_LOGIN_FAILURES = 10;

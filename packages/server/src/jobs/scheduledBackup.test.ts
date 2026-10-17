@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createSqliteStorage,
   type SqliteStorageDriver,
-} from "#/storage/sqlite/driver.js";
-import { defined } from "#/test/defined.js";
+} from "#/storage/sqlite/driver.ts";
+import { defined } from "#/test/defined.ts";
 import {
   BACKUP_FREE_RESERVE_BYTES,
   type BackupEnvironment,
@@ -15,7 +15,7 @@ import {
   backupTime,
   fileSystemEnvironment,
   takeBackup,
-} from "./scheduledBackup.js";
+} from "./scheduledBackup.ts";
 
 const at = (hour: number) => new Date(Date.UTC(2026, 8, 23, hour));
 const plenty: BackupEnvironment = {

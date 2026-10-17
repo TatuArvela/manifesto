@@ -8,8 +8,8 @@ import {
   penScale,
   placedImageAlts,
   placeImages,
-} from "./drawing.js";
-import { MAX_IMAGE_EDGE } from "./shrinkImage.js";
+} from "./drawing.ts";
+import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
 describe("drawingPoint", () => {
   // The paper shown at a quarter of its size, away from the corner.

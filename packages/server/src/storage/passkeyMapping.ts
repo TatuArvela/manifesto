@@ -1,5 +1,5 @@
 import type { Passkey } from "@manifesto/shared";
-import type { StoredPasskey } from "./types.js";
+import type { StoredPasskey } from "./types.ts";
 
 export interface PasskeyRow {
   id: string;

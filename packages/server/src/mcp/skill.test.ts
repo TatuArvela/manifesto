@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { NoteColor } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { MCP_TOOLS } from "./tools.js";
+import { MCP_TOOLS } from "./tools.ts";
 
 /**
  * The agent skill in `skills/manifesto/` teaches an assistant these tools, so

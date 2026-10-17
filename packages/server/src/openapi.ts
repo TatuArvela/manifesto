@@ -1,18 +1,18 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { z } from "zod";
-import { ACCOUNT_OPERATIONS } from "./openapi/account.js";
-import { ADMIN_OPERATIONS } from "./openapi/admin.js";
-import { AUTH_OPERATIONS } from "./openapi/auth.js";
-import { AUTH_FACTOR_OPERATIONS } from "./openapi/authFactors.js";
-import { KEY_OPERATIONS } from "./openapi/keys.js";
-import { MCP_OPERATIONS } from "./openapi/mcp.js";
-import { NOTE_OPERATIONS } from "./openapi/notes.js";
-import { isPublicSurface, type Operation } from "./openapi/operation.js";
-import { SERVER_OPERATIONS } from "./openapi/server.js";
-import { SHARING_OPERATIONS } from "./openapi/sharing.js";
-import { noteCreateSchema } from "./validation/schemas.js";
+import { ACCOUNT_OPERATIONS } from "./openapi/account.ts";
+import { ADMIN_OPERATIONS } from "./openapi/admin.ts";
+import { AUTH_OPERATIONS } from "./openapi/auth.ts";
+import { AUTH_FACTOR_OPERATIONS } from "./openapi/authFactors.ts";
+import { KEY_OPERATIONS } from "./openapi/keys.ts";
+import { MCP_OPERATIONS } from "./openapi/mcp.ts";
+import { NOTE_OPERATIONS } from "./openapi/notes.ts";
+import { isPublicSurface, type Operation } from "./openapi/operation.ts";
+import { SERVER_OPERATIONS } from "./openapi/server.ts";
+import { SHARING_OPERATIONS } from "./openapi/sharing.ts";
+import { noteCreateSchema } from "./validation/schemas.ts";
 
-export { isPublicSurface, type Operation } from "./openapi/operation.js";
+export { isPublicSurface, type Operation } from "./openapi/operation.ts";
 
 /**
  * The API as an OpenAPI 3.1 document, served at `GET /api/openapi.json`.

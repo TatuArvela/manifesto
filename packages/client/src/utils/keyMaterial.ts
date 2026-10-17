@@ -12,7 +12,7 @@ import {
   seal,
   unseal,
 } from "@manifesto/shared";
-import { newUserKey } from "./userKey.js";
+import { newUserKey } from "./userKey.ts";
 
 /**
  * An account's keys, made and wrapped in the browser

@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { CreateUserInput, StorageDriver } from "#/storage/types.js";
-import { claimed } from "./claimed.js";
+import type { CreateUserInput, StorageDriver } from "#/storage/types.ts";
+import { claimed } from "./claimed.ts";
 
 /**
  * What both drivers must do for account administration, run against each.

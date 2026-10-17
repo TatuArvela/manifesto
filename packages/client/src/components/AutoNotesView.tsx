@@ -19,17 +19,17 @@ import {
   setPluginError,
   setPluginReads,
   togglePlugin,
-} from "#/autoNotes/registry.js";
-import type { PluginSource } from "#/autoNotes/types.js";
-import { t } from "#/i18n/index.js";
-import { reorderNotes } from "#/state/actions.js";
-import { viewMode } from "#/state/prefs.js";
-import { canReorder, sortedNotes } from "#/state/views.js";
-import { boardCard } from "./boardCard.js";
-import { buttonClass } from "./buttonClasses.js";
-import { gridColumns } from "./gridColumns.js";
-import { ReorderableGrid } from "./ReorderableGrid.js";
-import { Switch } from "./ToggleSwitch.js";
+} from "#/autoNotes/registry.ts";
+import type { PluginSource } from "#/autoNotes/types.ts";
+import { t } from "#/i18n/index.ts";
+import { reorderNotes } from "#/state/actions.ts";
+import { viewMode } from "#/state/prefs.ts";
+import { canReorder, sortedNotes } from "#/state/views.ts";
+import { boardCard } from "./boardCard.ts";
+import { buttonClass } from "./buttonClasses.ts";
+import { gridColumns } from "./gridColumns.ts";
+import { ReorderableGrid } from "./ReorderableGrid.tsx";
+import { Switch } from "./ToggleSwitch.tsx";
 
 type AddMode = "inline" | "url" | null;
 

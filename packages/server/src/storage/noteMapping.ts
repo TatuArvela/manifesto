@@ -5,7 +5,7 @@ import type {
   SealedNoteUpdate,
 } from "@manifesto/shared";
 import { CIPHERTEXT_PREFIX, NoteColor, NoteFont } from "@manifesto/shared";
-import { AT_REST, atRest } from "./atRest.js";
+import { AT_REST, atRest } from "./atRest.ts";
 
 /**
  * The `notes` row as either driver returns it, and the mapping between it and

@@ -6,10 +6,10 @@ import {
   wrapTokenKeys,
 } from "@manifesto/shared";
 import type { Context } from "hono";
-import { audit } from "#/audit/audit.js";
-import type { SessionRevocations } from "#/auth/revocations.js";
-import { revokeApiToken } from "#/auth/session.js";
-import { nowIso } from "#/lib/time.js";
+import { audit } from "#/audit/audit.ts";
+import type { SessionRevocations } from "#/auth/revocations.ts";
+import { revokeApiToken } from "#/auth/session.ts";
+import { nowIso } from "#/lib/time.ts";
 import {
   hashToken,
   MCP_TOKEN_PREFIX,
@@ -17,11 +17,11 @@ import {
   REFRESH_TOKEN_PREFIX,
   SHOWN_PREFIX_LENGTH,
   safeEqual,
-} from "#/lib/token.js";
-import { newId } from "#/lib/ulid.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { isMetadataDocumentId } from "./clients.js";
-import { ACCESS_TOKEN_SECONDS, earlier, namesMcp, plusMs } from "./grants.js";
+} from "#/lib/token.ts";
+import { newId } from "#/lib/ulid.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { isMetadataDocumentId } from "./clients.ts";
+import { ACCESS_TOKEN_SECONDS, earlier, namesMcp, plusMs } from "./grants.ts";
 
 /** An error in the shape RFC 6749 gives a token endpoint. */
 export const oauthError = (

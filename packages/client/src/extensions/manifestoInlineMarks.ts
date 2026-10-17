@@ -11,7 +11,7 @@ import {
   type AnyNode,
   type InlineTag,
   pairChildren,
-} from "./pairInlineTags.js";
+} from "./pairInlineTags.ts";
 
 const remarkManifestoInlineMarks: Plugin<[], AnyNode> = () => {
   return (tree) => {

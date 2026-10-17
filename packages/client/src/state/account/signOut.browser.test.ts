@@ -1,10 +1,10 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { effect } from "@preact/signals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LOCAL_COPY_PREFIX } from "#/realtime/localNoteCopies.js";
-import { notes } from "#/state/notesStore.js";
-import { authToken, currentUser } from "./auth.js";
-import { deleteOwnAccount, signOut } from "./signOut.js";
+import { LOCAL_COPY_PREFIX } from "#/realtime/localNoteCopies.ts";
+import { notes } from "#/state/notesStore.ts";
+import { authToken, currentUser } from "./auth.ts";
+import { deleteOwnAccount, signOut } from "./signOut.ts";
 
 /**
  * Signing out must leave none of the account's notes in this browser. The

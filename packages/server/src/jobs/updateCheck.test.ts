@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isNewer, releaseCore, startUpdateCheck } from "./updateCheck.js";
+import { isNewer, releaseCore, startUpdateCheck } from "./updateCheck.ts";
 
 describe("isNewer", () => {
   it("compares releases by number, not by text", () => {

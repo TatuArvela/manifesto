@@ -1,7 +1,7 @@
 import type { ErrorCode, ErrorResponse } from "@manifesto/shared";
 import type { Context, ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { logger } from "#/lib/logger.js";
+import { logger } from "#/lib/logger.ts";
 
 export class HttpError extends Error {
   constructor(

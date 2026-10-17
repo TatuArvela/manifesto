@@ -1,6 +1,6 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { foldIncoming, foldIncomingList, sameValue } from "./incomingNote.js";
+import { foldIncoming, foldIncomingList, sameValue } from "./incomingNote.ts";
 
 function makeNote(overrides: Partial<Note> = {}): Note {
   return {

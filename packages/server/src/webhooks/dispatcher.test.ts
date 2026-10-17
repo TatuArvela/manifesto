@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { signDelivery } from "./dispatcher.js";
+import { signDelivery } from "./dispatcher.ts";
 
 /**
  * The signature is public surface: every receiver recomputes it from the

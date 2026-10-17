@@ -1,7 +1,7 @@
 import { type Node as ProseNode, Schema } from "@milkdown/kit/prose/model";
 import { EditorState, TextSelection } from "@milkdown/kit/prose/state";
 import { describe, expect, it } from "vitest";
-import { toggleCodeBlock } from "./codeBlockToggle.js";
+import { toggleCodeBlock } from "./codeBlockToggle.ts";
 
 const schema = new Schema({
   nodes: {

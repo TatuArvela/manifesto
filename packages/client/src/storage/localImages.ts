@@ -1,5 +1,5 @@
 import { LOCAL_IMAGE_REF_PREFIX } from "@manifesto/shared";
-import { isQuotaError, reportQuotaRefusal } from "./quota.js";
+import { isQuotaError, reportQuotaRefusal } from "./quota.ts";
 
 /**
  * Open mode's images, in IndexedDB rather than inside the notes in

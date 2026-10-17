@@ -1,10 +1,10 @@
 import type { ApiTokenScope, OAuthClientInfo } from "@manifesto/shared";
 import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { APP_NAME } from "#/config.js";
-import { t } from "#/i18n/index.js";
-import { revealApp } from "#/splash.js";
-import { authToken, currentUser, isServerMode } from "#/state/account/auth.js";
+import { APP_NAME } from "#/config.ts";
+import { t } from "#/i18n/index.ts";
+import { revealApp } from "#/splash.ts";
+import { authToken, currentUser, isServerMode } from "#/state/account/auth.ts";
 import {
   type AuthorizeRequest,
   allowClient,
@@ -14,14 +14,14 @@ import {
   parseAuthorizeRequest,
   rememberConsentPage,
   returnTarget,
-} from "#/state/account/oauth.js";
-import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
-import { buttonClass } from "./buttonClasses.js";
+} from "#/state/account/oauth.ts";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
+import { buttonClass } from "./buttonClasses.ts";
 import {
   ConfirmationError,
   ConfirmPasswordField,
-} from "./ConfirmWithPassword.js";
-import { LoginScreen } from "./login/LoginScreen.js";
+} from "./ConfirmWithPassword.tsx";
+import { LoginScreen } from "./login/LoginScreen.tsx";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { describeAdminContract } from "#/storage/contracts/adminContract.js";
-import { UsernameTakenError, type UsersRepo } from "#/storage/types.js";
-import { openDatabase, type SqliteDB } from "./database.js";
-import { createSqliteStorage } from "./driver.js";
-import { createSqliteUsersRepo } from "./usersRepo.js";
+import { describeAdminContract } from "#/storage/contracts/adminContract.ts";
+import { UsernameTakenError, type UsersRepo } from "#/storage/types.ts";
+import { openDatabase, type SqliteDB } from "./database.ts";
+import { createSqliteStorage } from "./driver.ts";
+import { createSqliteUsersRepo } from "./usersRepo.ts";
 
 describeAdminContract("sqlite", async () =>
   createSqliteStorage({ dbPath: ":memory:" }),

@@ -1,9 +1,9 @@
 import type { Note } from "@manifesto/shared";
-import { useMasonryGrid } from "#/hooks/useMasonryGrid.js";
-import { useReorderDrag } from "#/hooks/useReorderDrag.js";
-import { noteSize, viewMode } from "#/state/prefs.js";
-import { NoteCard } from "./card/NoteCard.js";
-import { gridColumns } from "./gridColumns.js";
+import { useMasonryGrid } from "#/hooks/useMasonryGrid.ts";
+import { useReorderDrag } from "#/hooks/useReorderDrag.ts";
+import { noteSize, viewMode } from "#/state/prefs.ts";
+import { NoteCard } from "./card/NoteCard.tsx";
+import { gridColumns } from "./gridColumns.ts";
 
 /**
  * One masonry section of note cards, reorderable by mouse drag and by touch.

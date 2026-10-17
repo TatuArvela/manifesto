@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver, StoredPasskey } from "#/storage/types.js";
+import type { StorageDriver, StoredPasskey } from "#/storage/types.ts";
 
 /**
  * Passkeys, the same in both drivers: a counter past 2^31 comes back as a

@@ -1,5 +1,5 @@
-import { base64urlToBytes, bytesToBase64url, wipe } from "./bytes.js";
-import { associatedData, sealBytes, sealingKey, unsealBytes } from "./seal.js";
+import { base64urlToBytes, bytesToBase64url, wipe } from "./bytes.ts";
+import { associatedData, sealBytes, sealingKey, unsealBytes } from "./seal.ts";
 
 /**
  * A note's images, sealed (`docs/specification/features/encryption.md`,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { StorageDriver } from "#/storage/types.js";
+import type { StorageDriver } from "#/storage/types.ts";
 
 const T = "2026-04-01T00:00:00.000Z";
 

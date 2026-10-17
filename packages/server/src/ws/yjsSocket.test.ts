@@ -17,21 +17,21 @@ import {
   encodeAwarenessUpdate,
 } from "y-protocols/awareness";
 import * as Y from "yjs";
-import { createApp } from "#/app.js";
-import { createAuthProvider } from "#/auth/index.js";
-import { hashToken } from "#/lib/token.js";
-import { heldKey, sealedCreate } from "#/storage/contracts/claimed.js";
-import type { SqliteStorageDriver } from "#/storage/sqlite/driver.js";
-import { createSqliteStorage } from "#/storage/sqlite/driver.js";
-import { TEST_CONFIG } from "#/test/setup.js";
-import { attachAppSocket } from "./appSocket.js";
-import { MAX_YJS_BYTES } from "./yjsExtension.js";
+import { createApp } from "#/app.ts";
+import { createAuthProvider } from "#/auth/index.ts";
+import { hashToken } from "#/lib/token.ts";
+import { heldKey, sealedCreate } from "#/storage/contracts/claimed.ts";
+import type { SqliteStorageDriver } from "#/storage/sqlite/driver.ts";
+import { createSqliteStorage } from "#/storage/sqlite/driver.ts";
+import { TEST_CONFIG } from "#/test/setup.ts";
+import { attachAppSocket } from "./appSocket.ts";
+import { MAX_YJS_BYTES } from "./yjsExtension.ts";
 import {
   attachYjsSocket,
   editorIsCurrent,
   YJS_PATH,
   type YjsSocket,
-} from "./yjsSocket.js";
+} from "./yjsSocket.ts";
 
 interface Rig {
   storage: SqliteStorageDriver;

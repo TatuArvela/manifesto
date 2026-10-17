@@ -5,14 +5,14 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { defined } from "#/test/defined.js";
-import { reminderKeyOf } from "#/test/keyedTokens.js";
+import { defined } from "#/test/defined.ts";
+import { reminderKeyOf } from "#/test/keyedTokens.ts";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "#/test/setup.js";
+} from "#/test/setup.ts";
 
 const baseNote: NoteCreate = {
   title: "Dentist",

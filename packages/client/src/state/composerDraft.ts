@@ -2,14 +2,14 @@ import {
   dropOffline,
   keepOffline,
   readOffline,
-} from "#/storage/offlineNotes.js";
+} from "#/storage/offlineNotes.ts";
 import {
   imageKeysOf,
   type KeptFields,
   keptFields,
   offlineOwner,
   restoreImageKeys,
-} from "./offlineOwner.js";
+} from "./offlineOwner.ts";
 
 /**
  * The new-note composer's draft, kept on the device while it is being

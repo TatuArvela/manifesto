@@ -5,7 +5,7 @@ import {
   type Transaction,
 } from "@milkdown/kit/prose/state";
 import { describe, expect, it } from "vitest";
-import { type ListKind, toggleList } from "./listToggle.js";
+import { type ListKind, toggleList } from "./listToggle.ts";
 
 // The list nodes as Milkdown's presets have them: an item knows its own
 // `listType` and `label`, and a task is an item whose `checked` is set.

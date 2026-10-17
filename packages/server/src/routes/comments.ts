@@ -6,22 +6,22 @@ import {
   type ShareUser,
 } from "@manifesto/shared";
 import type { Context, Hono } from "hono";
-import { nowIso } from "#/lib/time.js";
-import type { AuthContext } from "#/middleware/authBearer.js";
-import { HttpError } from "#/middleware/error.js";
-import type { NoteEvents } from "#/sharing/noteEvents.js";
+import { nowIso } from "#/lib/time.ts";
+import type { AuthContext } from "#/middleware/authBearer.ts";
+import { HttpError } from "#/middleware/error.ts";
+import type { NoteEvents } from "#/sharing/noteEvents.ts";
 import type {
   NoteAudience,
   StorageDriver,
   StoredComment,
-} from "#/storage/types.js";
+} from "#/storage/types.ts";
 import {
   commentBody,
   commentOut,
   type NoteRing,
   noteRing,
   tokenKeys,
-} from "./noteCodec.js";
+} from "./noteCodec.ts";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 type Ctx = Context<{ Variables: { auth: AuthContext } }>;

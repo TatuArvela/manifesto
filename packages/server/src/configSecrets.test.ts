@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveFileSecrets } from "./config.js";
+import { resolveFileSecrets } from "./config.ts";
 
 describe("resolveFileSecrets", () => {
   const files: Record<string, string> = {

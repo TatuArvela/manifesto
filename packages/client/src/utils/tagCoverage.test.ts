@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tagCoverage } from "./tagCoverage.js";
+import { tagCoverage } from "./tagCoverage.ts";
 
 describe("tagCoverage", () => {
   it("says whether all, some or none of the selection carry each tag", () => {

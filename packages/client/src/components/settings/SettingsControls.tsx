@@ -1,8 +1,8 @@
 import { ChevronDown } from "lucide-preact";
 import type { ComponentChildren, CSSProperties, JSX } from "preact";
 import { useContext, useId, useState } from "preact/hooks";
-import { ControlLabelId } from "#/components/controlLabel.js";
-import { Dropdown } from "#/components/Dropdown.js";
+import { ControlLabelId } from "#/components/controlLabel.ts";
+import { Dropdown } from "#/components/Dropdown.tsx";
 
 /** A three-way toggle's track, dark enough to read on a group's tinted panel. */
 export const toggleTrackClass = "bg-neutral-200/80 dark:bg-neutral-700";

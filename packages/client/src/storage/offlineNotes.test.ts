@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { testKeys } from "#/test/sealedServer.js";
+import { testKeys } from "#/test/sealedServer.ts";
 import {
   type OfflineOwner,
   openModeOwner,
   openOffline,
   sealOffline,
-} from "./offlineNotes.js";
+} from "./offlineNotes.ts";
 
 /**
  * What a device keeps of notes not stored yet is sealed in connected mode,

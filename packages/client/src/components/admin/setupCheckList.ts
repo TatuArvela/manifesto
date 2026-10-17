@@ -1,5 +1,5 @@
 import type { AdminChecksResponse } from "@manifesto/shared";
-import type { MessageKey } from "#/i18n/index.js";
+import type { MessageKey } from "#/i18n/index.ts";
 
 export type SetupCheckStatus = "ok" | "info" | "warn";
 

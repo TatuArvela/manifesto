@@ -1,6 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { detectBrowserLocale } from "#/i18n/detect.js";
-import { isLocale, type Locale } from "#/i18n/locales.js";
+import { detectBrowserLocale } from "#/i18n/detect.ts";
+import { isLocale, type Locale } from "#/i18n/locales.ts";
 import {
   DEFAULT_TEXTURE_OPACITY,
   INK_COLORS,
@@ -8,7 +8,7 @@ import {
   MAX_TEXTURE_OPACITY,
   MIN_TEXTURE_OPACITY,
   type PickedInkChoice,
-} from "#/utils/boardTextures.js";
+} from "#/utils/boardTextures.ts";
 
 // What each preference may hold and how a stored value is read back: the
 // types, the lists of choices, and `PREF_PARSERS`, the one table that loading,

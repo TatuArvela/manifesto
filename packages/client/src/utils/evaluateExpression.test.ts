@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateExpression, formatResult } from "./evaluateExpression.js";
+import { evaluateExpression, formatResult } from "./evaluateExpression.ts";
 
 describe("evaluateExpression with a dot decimal", () => {
   const ev = (s: string) => evaluateExpression(s, ".");

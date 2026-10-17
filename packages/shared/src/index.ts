@@ -138,7 +138,7 @@ export type {
   WebSocketClientEvent,
   WebSocketEvent,
   WrappedPrivateKeys,
-} from "./api.js";
+} from "./api.ts";
 export {
   API_TOKEN_KINDS,
   API_TOKEN_SCOPES,
@@ -171,20 +171,20 @@ export {
   SERVER_FEATURES,
   TEAM_SOURCES,
   WEBHOOK_EVENTS,
-} from "./api.js";
+} from "./api.ts";
 export {
   base64urlToBytes,
   bytesToBase64url,
   fromUtf8,
   utf8,
   wipe,
-} from "./crypto/bytes.js";
+} from "./crypto/bytes.ts";
 export type {
   ImageKey,
   ImageKeySource,
   ImageMediaType,
   SealedImage,
-} from "./crypto/imageSeal.js";
+} from "./crypto/imageSeal.ts";
 export {
   IMAGE_ADDRESS_PATTERN,
   IMAGE_MEDIA_TYPES,
@@ -195,21 +195,21 @@ export {
   sealImage,
   sealImageAtRandom,
   sniffImageType,
-} from "./crypto/imageSeal.js";
+} from "./crypto/imageSeal.ts";
 export {
   LINK_KEY_PATTERN,
   newLinkKey,
   openLinkedKey,
   snapshotKey,
   wrapForLink,
-} from "./crypto/linkSeal.js";
-export type { ImageKeys } from "./crypto/noteChecks.js";
+} from "./crypto/linkSeal.ts";
+export type { ImageKeys } from "./crypto/noteChecks.ts";
 export {
   checkedImages,
   checkedLinkPreviews,
   checkedTags,
-} from "./crypto/noteChecks.js";
-export type { AccountSealKeys, NoteSealKey } from "./crypto/noteKey.js";
+} from "./crypto/noteChecks.ts";
+export type { AccountSealKeys, NoteSealKey } from "./crypto/noteKey.ts";
 export {
   MAX_PREVIOUS_KEYS,
   MAX_PREVIOUS_KEYS_LENGTH,
@@ -224,8 +224,8 @@ export {
   wrapForReminders,
   wrapImageKey,
   wrapNoteKey,
-} from "./crypto/noteKey.js";
-export type { OpenedSharedFields, SharedSealed } from "./crypto/noteSeal.js";
+} from "./crypto/noteKey.ts";
+export type { OpenedSharedFields, SharedSealed } from "./crypto/noteSeal.ts";
 export {
   excerptOf,
   NoteLimitError,
@@ -246,7 +246,7 @@ export {
   sealPref,
   sealSharedFields,
   sealVersion,
-} from "./crypto/noteSeal.js";
+} from "./crypto/noteSeal.ts";
 export {
   associatedData,
   cryptoAvailable,
@@ -261,16 +261,16 @@ export {
   unseal,
   unsealBytes,
   unsealText,
-} from "./crypto/seal.js";
-export type { OfferContext, OfferedKey } from "./crypto/shareSeal.js";
+} from "./crypto/seal.ts";
+export type { OfferContext, OfferedKey } from "./crypto/shareSeal.ts";
 export {
   keyFingerprint,
   OFFERED_KEY_MAX,
   offerNoteKey,
   openOfferedKey,
   verifyOfferedKey,
-} from "./crypto/shareSeal.js";
-export type { TokenKeyMaterial } from "./crypto/tokenSeal.js";
+} from "./crypto/shareSeal.ts";
+export type { TokenKeyMaterial } from "./crypto/tokenSeal.ts";
 export {
   MAX_TOKEN_KEYS_LENGTH,
   newTokenSecret,
@@ -280,14 +280,14 @@ export {
   unwrapTokenKeys,
   wrapFeedKey,
   wrapTokenKeys,
-} from "./crypto/tokenSeal.js";
+} from "./crypto/tokenSeal.ts";
 export {
   EXPORT_NOTES_FILE,
   EXPORT_PREFERENCES_FILE,
   EXPORT_VERSIONS_FILE,
   exportArchiveFiles,
   noteToMarkdownFile,
-} from "./exportArchive.js";
+} from "./exportArchive.ts";
 export type {
   AutoNoteSource,
   LinkPreview,
@@ -303,7 +303,7 @@ export type {
   ShareRole,
   ShareUser,
   TeamRef,
-} from "./note.js";
+} from "./note.ts";
 export {
   ATTACHMENT_REF_PATTERN,
   ATTACHMENT_REF_PREFIX,
@@ -345,7 +345,7 @@ export {
   SHARE_ROLES,
   SHARED_NOTE_FIELDS,
   TRASH_RETENTION_DAYS,
-} from "./note.js";
+} from "./note.ts";
 export {
   advanceReminder,
   currentTimezone,
@@ -358,7 +358,7 @@ export {
   repeatDay,
   snapReminderToFuture,
   snapToFuture,
-} from "./reminderTime.js";
+} from "./reminderTime.ts";
 export {
   isTagWithin,
   normalizeTag,
@@ -366,4 +366,4 @@ export {
   tagLeaf,
   tagLineage,
   tagParent,
-} from "./tags.js";
+} from "./tags.ts";

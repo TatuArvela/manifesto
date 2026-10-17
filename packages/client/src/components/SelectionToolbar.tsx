@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { getColorPickerColors, plural, t } from "#/i18n/index.js";
+import { getColorPickerColors, plural, t } from "#/i18n/index.ts";
 import {
   bulkArchive,
   bulkDelete,
@@ -19,15 +19,15 @@ import {
   bulkSetColor,
   bulkSetTag,
   bulkTrash,
-} from "#/state/actions.js";
-import { askConfirmation } from "#/state/confirm.js";
-import { notes } from "#/state/notesStore.js";
-import { exitSelectMode, selectAllVisible } from "#/state/selection.js";
-import { activeView, selectedNotes } from "#/state/ui.js";
-import { sortedNotes } from "#/state/views.js";
-import { Dropdown } from "./Dropdown.js";
-import { SelectionTagPicker, tagPickerPanelClass } from "./TagPicker.js";
-import { Tooltip } from "./Tooltip.js";
+} from "#/state/actions.ts";
+import { askConfirmation } from "#/state/confirm.ts";
+import { notes } from "#/state/notesStore.ts";
+import { exitSelectMode, selectAllVisible } from "#/state/selection.ts";
+import { activeView, selectedNotes } from "#/state/ui.ts";
+import { sortedNotes } from "#/state/views.ts";
+import { Dropdown } from "./Dropdown.tsx";
+import { SelectionTagPicker, tagPickerPanelClass } from "./TagPicker.tsx";
+import { Tooltip } from "./Tooltip.tsx";
 
 const selToolbarBtnClass = "p-2 rounded-lg hover:bg-white/10 transition-colors";
 

@@ -1,30 +1,30 @@
-import type { ServerConfig } from "#/config.js";
-import type { StorageDriver } from "#/storage/types.js";
-import { createSqliteAccountKeysRepo } from "./accountKeysRepo.js";
-import { createSqliteApiTokensRepo } from "./apiTokensRepo.js";
-import { createSqliteAttachmentsRepo } from "./attachmentsRepo.js";
-import { createSqliteAuditRepo } from "./auditRepo.js";
-import { createSqliteCommentsRepo } from "./commentsRepo.js";
-import { openDatabase, type SqliteDB } from "./database.js";
-import { createSqliteMailedLinksRepo } from "./mailedLinksRepo.js";
-import { createSqliteMaintenanceRepo } from "./maintenanceRepo.js";
-import { createSqliteNotesRepo } from "./notesRepo.js";
-import { createSqliteOAuthRepo } from "./oauthRepo.js";
-import { createSqlitePasskeysRepo } from "./passkeysRepo.js";
-import { createSqlitePrefsRepo } from "./prefsRepo.js";
-import { createSqlitePublicLinksRepo } from "./publicLinksRepo.js";
+import type { ServerConfig } from "#/config.ts";
+import type { StorageDriver } from "#/storage/types.ts";
+import { createSqliteAccountKeysRepo } from "./accountKeysRepo.ts";
+import { createSqliteApiTokensRepo } from "./apiTokensRepo.ts";
+import { createSqliteAttachmentsRepo } from "./attachmentsRepo.ts";
+import { createSqliteAuditRepo } from "./auditRepo.ts";
+import { createSqliteCommentsRepo } from "./commentsRepo.ts";
+import { openDatabase, type SqliteDB } from "./database.ts";
+import { createSqliteMailedLinksRepo } from "./mailedLinksRepo.ts";
+import { createSqliteMaintenanceRepo } from "./maintenanceRepo.ts";
+import { createSqliteNotesRepo } from "./notesRepo.ts";
+import { createSqliteOAuthRepo } from "./oauthRepo.ts";
+import { createSqlitePasskeysRepo } from "./passkeysRepo.ts";
+import { createSqlitePrefsRepo } from "./prefsRepo.ts";
+import { createSqlitePublicLinksRepo } from "./publicLinksRepo.ts";
 import {
   createSqlitePushSubscriptionsRepo,
   createSqliteServerSecretsRepo,
-} from "./pushRepo.js";
-import { createSqliteSessionsRepo } from "./sessionsRepo.js";
-import { createSqliteSharesRepo } from "./sharesRepo.js";
-import { createSqliteTeamsRepo } from "./teamsRepo.js";
-import { createSqliteTwoFactorRepo } from "./twoFactorRepo.js";
-import { createSqliteUsersRepo } from "./usersRepo.js";
-import { createSqliteVersionsRepo } from "./versionsRepo.js";
-import { createSqliteWebhooksRepo } from "./webhooksRepo.js";
-import { createSqliteYjsStore } from "./yjsStore.js";
+} from "./pushRepo.ts";
+import { createSqliteSessionsRepo } from "./sessionsRepo.ts";
+import { createSqliteSharesRepo } from "./sharesRepo.ts";
+import { createSqliteTeamsRepo } from "./teamsRepo.ts";
+import { createSqliteTwoFactorRepo } from "./twoFactorRepo.ts";
+import { createSqliteUsersRepo } from "./usersRepo.ts";
+import { createSqliteVersionsRepo } from "./versionsRepo.ts";
+import { createSqliteWebhooksRepo } from "./webhooksRepo.ts";
+import { createSqliteYjsStore } from "./yjsStore.ts";
 
 export interface SqliteStorageDriver extends StorageDriver {
   // Exposed for tests that need direct DB access (e.g. asserting persisted

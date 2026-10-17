@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "#/storage/index.js";
+import { storageConnection } from "#/storage/index.ts";
 import {
   isOAuthConsentPath,
   lookUpClient,
   parseAuthorizeRequest,
   returnTarget,
-} from "./oauth.js";
+} from "./oauth.ts";
 
 const CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
 

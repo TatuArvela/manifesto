@@ -1,12 +1,12 @@
 import { Download, Trash2, Upload } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { Bookmarklet } from "#/components/Bookmarklet.js";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { type MessageKey, plural, t } from "#/i18n/index.js";
-import { downloadExport } from "#/state/exportNotes.js";
-import { createNote, deleteAllNotes, importNotes } from "#/state/notesStore.js";
-import { restoreVersions } from "#/state/versions.js";
-import { importFiles } from "#/utils/importExport.js";
+import { Bookmarklet } from "#/components/Bookmarklet.tsx";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { type MessageKey, plural, t } from "#/i18n/index.ts";
+import { downloadExport } from "#/state/exportNotes.ts";
+import { createNote, deleteAllNotes, importNotes } from "#/state/notesStore.ts";
+import { restoreVersions } from "#/state/versions.ts";
+import { importFiles } from "#/utils/importExport.ts";
 
 /** What Import reads, as a name and a line about it, for the Data page. */
 const IMPORT_FORMATS: [MessageKey, MessageKey][] = [

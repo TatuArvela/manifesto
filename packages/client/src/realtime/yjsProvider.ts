@@ -2,18 +2,18 @@ import { EDITOR_OUTDATED_REASON } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
-import { loadYjsCollab } from "#/extensions/yjsCollab.js";
+import { loadYjsCollab } from "#/extensions/yjsCollab.ts";
 import {
   authToken,
   currentUser,
   isServerMode,
   WS_ORIGIN,
-} from "#/state/account/auth.js";
-import { sealer } from "#/storage/sealing.js";
-import { sealedNote } from "#/storage/shareKeys.js";
-import type { YjsConnectionStatus, YjsSession } from "./yjsSession.js";
+} from "#/state/account/auth.ts";
+import { sealer } from "#/storage/sealing.ts";
+import { sealedNote } from "#/storage/shareKeys.ts";
+import type { YjsConnectionStatus, YjsSession } from "./yjsSession.ts";
 
-export type { YjsConnectionStatus } from "./yjsSession.js";
+export type { YjsConnectionStatus } from "./yjsSession.ts";
 
 export interface NoteYDoc {
   ydoc: Y.Doc | null;
@@ -105,7 +105,7 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
       ? sealing.documentKey(noteId, sealedNote(noteId))
       : Promise.reject(new Error("locked"));
 
-    Promise.all([import("./yjsSession.js"), documentKey]).then(
+    Promise.all([import("./yjsSession.ts"), documentKey]).then(
       ([{ createYjsSession }, ring]) => {
         if (cancelled) return;
         session = createYjsSession({

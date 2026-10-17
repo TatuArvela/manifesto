@@ -4,17 +4,17 @@ import {
   type Migration,
   MigrationRefusedError,
   pendingMigrations,
-} from "./migrations.js";
-import type { PgPool } from "./postgres/database.js";
+} from "./migrations.ts";
+import type { PgPool } from "./postgres/database.ts";
 import {
   MIGRATIONS as PG_MIGRATIONS,
   runMigrations as runPgMigrations,
-} from "./postgres/migrations.js";
-import { newTestPool } from "./postgres/testDb.js";
+} from "./postgres/migrations.ts";
+import { newTestPool } from "./postgres/testDb.ts";
 import {
   runMigrations as runSqliteMigrations,
   MIGRATIONS as SQLITE_MIGRATIONS,
-} from "./sqlite/migrations.js";
+} from "./sqlite/migrations.ts";
 
 /**
  * The bug this closes is a silent one: both drivers used to run a single blob

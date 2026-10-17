@@ -4,8 +4,8 @@ import {
   MAX_IMAGES_PER_NOTE,
   type Note,
 } from "@manifesto/shared";
-import { htmlToMarkdown } from "./htmlToMarkdown.js";
-import { checkImportSize, type Importer, importedNote } from "./importer.js";
+import { htmlToMarkdown } from "./htmlToMarkdown.ts";
+import { checkImportSize, type Importer, importedNote } from "./importer.ts";
 
 const IMAGE_SUBTYPES = new Set<string>(IMAGE_DATA_URL_SUBTYPES);
 

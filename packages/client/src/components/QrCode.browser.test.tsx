@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { encode } from "uqr";
 import { afterEach, describe, expect, it } from "vitest";
-import { QrCode, qrPath } from "./QrCode.js";
+import { QrCode, qrPath } from "./QrCode.tsx";
 
 const LINK =
   "otpauth://totp/Manifesto:alice?secret=JBSWY3DPEHPK3PXP&issuer=Manifesto&algorithm=SHA1&digits=6&period=30";

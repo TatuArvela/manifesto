@@ -11,16 +11,16 @@ import {
 import { LogOut, UserPlus, Users, X } from "lucide-preact";
 import { createPortal } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import { Avatar } from "#/components/Avatar.js";
-import { Backdrop } from "#/components/Backdrop.js";
-import { buttonClass } from "#/components/buttonClasses.js";
-import { Tooltip } from "#/components/Tooltip.js";
-import { useEscapeStack } from "#/hooks/useEscapeStack.js";
-import { useFocusTrap } from "#/hooks/useFocusTrap.js";
-import { t } from "#/i18n/index.js";
-import { currentUser, userLookupMode } from "#/state/account/auth.js";
-import { notes } from "#/state/notesStore.js";
-import { serverFeature } from "#/state/serverFeatures.js";
+import { Avatar } from "#/components/Avatar.tsx";
+import { Backdrop } from "#/components/Backdrop.tsx";
+import { buttonClass } from "#/components/buttonClasses.ts";
+import { Tooltip } from "#/components/Tooltip.tsx";
+import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { t } from "#/i18n/index.ts";
+import { currentUser, userLookupMode } from "#/state/account/auth.ts";
+import { notes } from "#/state/notesStore.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
 import {
   changedKeys,
   findUsers,
@@ -31,15 +31,15 @@ import {
   shareDialog,
   shareNote,
   trustKeys,
-} from "#/state/sharing.js";
+} from "#/state/sharing.ts";
 import {
   listMyTeams,
   listTeamShares,
   removeTeamShare,
   setTeamShareRole,
   shareWithTeam,
-} from "#/state/teams.js";
-import { showError } from "#/state/ui.js";
+} from "#/state/teams.ts";
+import { showError } from "#/state/ui.ts";
 
 const inputClass =
   "w-full min-w-0 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

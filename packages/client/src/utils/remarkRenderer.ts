@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
-import { findItemDate, itemDateClass, localIsoDate } from "./itemDate.js";
+import { findItemDate, itemDateClass, localIsoDate } from "./itemDate.ts";
 
 /**
  * What a rendered note is allowed to contain. Everything markdown produces,

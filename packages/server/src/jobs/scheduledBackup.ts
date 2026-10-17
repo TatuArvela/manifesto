@@ -8,10 +8,10 @@ import {
   statfs,
 } from "node:fs/promises";
 import { join } from "node:path";
-import type { BackupConfig } from "#/config.js";
-import { logger } from "#/lib/logger.js";
-import { startPeriodicJob } from "#/lib/periodic.js";
-import type { StorageDriver } from "#/storage/types.js";
+import type { BackupConfig } from "#/config.ts";
+import { logger } from "#/lib/logger.ts";
+import { startPeriodicJob } from "#/lib/periodic.ts";
+import type { StorageDriver } from "#/storage/types.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
 const NAME = /^manifesto-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.db$/;

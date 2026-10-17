@@ -14,20 +14,20 @@ import {
   X,
 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { noteFontFamilies } from "#/colors.js";
+import { noteFontFamilies } from "#/colors.ts";
 import {
   menuDividerClass,
   menuItemClass,
   menuPanelClass,
   NoteMenu,
   type NoteMenuItem,
-} from "#/components/card/NoteMenu.js";
-import { Dropdown } from "#/components/Dropdown.js";
-import { ReminderPicker } from "#/components/ReminderPicker.js";
-import { TagPickerButton } from "#/components/TagPicker.js";
-import { Tooltip } from "#/components/Tooltip.js";
-import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.js";
-import { editorButtonClass, editorIconClass } from "./editorButtons.js";
+} from "#/components/card/NoteMenu.tsx";
+import { Dropdown } from "#/components/Dropdown.tsx";
+import { ReminderPicker } from "#/components/ReminderPicker.tsx";
+import { TagPickerButton } from "#/components/TagPicker.tsx";
+import { Tooltip } from "#/components/Tooltip.tsx";
+import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
+import { editorButtonClass, editorIconClass } from "./editorButtons.ts";
 
 /**
  * The open note's bottom toolbar. Two groups that wrap as units: the first

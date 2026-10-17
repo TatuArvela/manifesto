@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "#/i18n/index.js";
-import { storageConnection } from "#/storage/index.js";
-import { quotaRefusedAt } from "#/storage/quota.js";
-import { defined } from "#/test/defined.js";
-import { createNoteOrFail } from "#/test/testSupport.js";
-import { hasCheckedItems, hasChecklist } from "#/utils/markdown.js";
+import { t } from "#/i18n/index.ts";
+import { storageConnection } from "#/storage/index.ts";
+import { quotaRefusedAt } from "#/storage/quota.ts";
+import { defined } from "#/test/defined.ts";
+import { createNoteOrFail } from "#/test/testSupport.ts";
+import { hasCheckedItems, hasChecklist } from "#/utils/markdown.ts";
 import {
   archiveNote,
   deleteCheckedItems,
@@ -19,7 +19,7 @@ import {
   togglePin,
   trashNote,
   unarchiveNote,
-} from "./actions.js";
+} from "./actions.ts";
 import {
   expireTrash,
   loadNotes,
@@ -28,10 +28,10 @@ import {
   receiveNote,
   updateNote,
   upsertById,
-} from "./notesStore.js";
-import { animations, sortMode } from "./prefs.js";
-import { activeView, searchLocations, searchQuery, toasts } from "./ui.js";
-import { filteredNotes, sortedNotes } from "./views.js";
+} from "./notesStore.ts";
+import { animations, sortMode } from "./prefs.ts";
+import { activeView, searchLocations, searchQuery, toasts } from "./ui.ts";
+import { filteredNotes, sortedNotes } from "./views.ts";
 
 describe("state actions", () => {
   beforeEach(() => {

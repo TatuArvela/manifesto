@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defined } from "#/test/defined.js";
+import { defined } from "#/test/defined.ts";
 import {
   activeView,
   dismissToast,
@@ -17,7 +17,7 @@ import {
   showSuccess,
   toasts,
   typeSearch,
-} from "./ui.js";
+} from "./ui.ts";
 
 describe("error notifications", () => {
   beforeEach(() => {

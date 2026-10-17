@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isMorphSource, morphTransform } from "./morph.js";
+import { isMorphSource, morphTransform } from "./morph.ts";
 
 describe("morphTransform", () => {
   it("moves and scales a laid-out rectangle onto the source", () => {

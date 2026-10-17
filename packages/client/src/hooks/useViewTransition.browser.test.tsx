@@ -2,10 +2,10 @@ import { render } from "preact";
 import { useRef } from "preact/hooks";
 import { act } from "preact/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { animations } from "#/state/prefs.js";
-import { activeTag, activeView } from "#/state/ui.js";
-import { defined } from "#/test/defined.js";
-import { usePaneSlide, useViewTransition } from "./useViewTransition.js";
+import { animations } from "#/state/prefs.ts";
+import { activeTag, activeView } from "#/state/ui.ts";
+import { defined } from "#/test/defined.ts";
+import { usePaneSlide, useViewTransition } from "./useViewTransition.ts";
 
 let host: HTMLDivElement;
 
