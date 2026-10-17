@@ -10,6 +10,7 @@ import {
   reorderNotes,
   unpinnedNotes,
 } from "../state/index.js";
+import { boardCard } from "./boardCard.js";
 import { ReorderableGrid } from "./ReorderableGrid.js";
 
 export function NoteGrid() {
@@ -28,7 +29,9 @@ export function NoteGrid() {
     // busy texture, and not selectable: it is a message, not content.
     return (
       <div class="flex justify-center py-16">
-        <div class="flex flex-col items-center text-center select-none rounded-2xl px-10 py-8 bg-white/85 dark:bg-neutral-800/85 backdrop-blur-sm border border-neutral-200 dark:border-neutral-700 shadow-sm text-neutral-500 dark:text-neutral-400">
+        <div
+          class={`flex flex-col items-center text-center select-none px-10 py-8 ${boardCard} text-neutral-500 dark:text-neutral-400`}
+        >
           {isSearch ? (
             <Search class="w-12 h-12 mb-4" />
           ) : (

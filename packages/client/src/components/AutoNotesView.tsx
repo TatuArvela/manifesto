@@ -28,6 +28,7 @@ import {
   sortedNotes,
   viewMode,
 } from "../state/index.js";
+import { boardCard } from "./boardCard.js";
 import { buttonClass } from "./buttonClasses.js";
 import { gridColumns } from "./gridColumns.js";
 import { ReorderableGrid } from "./ReorderableGrid.js";
@@ -284,7 +285,7 @@ export function AutoNotesView() {
       )}
       {list.length === 0 && addMode === null && (
         <div
-          class={`flex flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300 ${column}`}
+          class={`flex flex-col gap-3 p-5 text-sm text-neutral-600 dark:text-neutral-300 ${boardCard} ${column}`}
         >
           <div class="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
             <Wand2 class="w-5 h-5 shrink-0 text-blue-600 dark:text-blue-400" />

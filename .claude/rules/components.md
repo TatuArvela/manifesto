@@ -51,6 +51,9 @@ paths:
   clearing the signal; `NoteCard`'s `useCardModal` plays the animation and takes the modal down.
 - **Text buttons** take their classes from `buttonClass(tone, size)` in `buttonClasses.ts`, never a
   class string of their own, or the variants drift apart again (they had reached a dozen).
+- **On the board itself**, anything that is not a note (the empty board's message, the Auto-notes
+  introduction, the search filters, the admin view) sits on `boardCard` from `boardCard.ts`, so it
+  stays legible over a board picture or a busy texture and the four look alike.
 - **Keyboard focus** is one ring for the whole app, `:focus-visible` in `styles/setup.css`. A
   control that draws its own uses `outline-none` with a `ring`, which wins because the default sits
   in the base layer; one that removes the outline and draws nothing leaves no focus to see.

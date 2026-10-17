@@ -490,7 +490,10 @@ export function NoteInput() {
           <div />
         </div>
       )}
+      {/* Slides in and out as the Notes view comes and goes, rather than
+          fading with the rest (hooks/useViewTransition.ts). */}
       <div
+        data-view-slide="composer"
         class={
           isList
             ? noteSize.value === "square"
