@@ -151,7 +151,7 @@ Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM p
 Custom ProseMirror behavior lives in `packages/client/src/extensions/`:
 
 - **`manifestoInlineMarks`**: adds underline / subscript / superscript marks that round-trip through markdown as `<u>`/`<sub>`/`<sup>` tags.
-- **`taskItemDraggable`**: drag-and-drop reordering and indent/outdent for checklist items (the drag itself in `taskItemDrag.ts`, list structure in `taskListStructure.ts`).
+- **`taskItemDraggable`**: drag-and-drop reordering and indent/outdent for checklist items (the drag itself in `taskItemDrag.ts`, where a drop lands in `taskItemDropTarget.ts`, list structure in `taskListStructure.ts`).
 - **`richFormatting`**: which formats the selection has and applying one, for the formatting toolbar; `utils/rawFormatting.ts` does the same for raw mode's textarea.
 
 Read-only previews (inside `NoteCard` and shared-note dialogs) are rendered by `utils/remarkRenderer.ts`, a `unified` pipeline of `remark-parse` → `remark-gfm` → `remark-breaks` → `remark-rehype` → `rehype-stringify`, with output sanitized via DOMPurify before being inserted.
