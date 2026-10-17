@@ -17,7 +17,7 @@ import {
   itemDateClass,
   localIsoDate,
   UNDATED,
-} from "../utils/itemDate.js";
+} from "#/utils/itemDate.js";
 import { activeTaskItem, isListNode, isTaskItem } from "./taskListStructure.js";
 
 // Dates on checklist items in the editor (see `utils/itemDate.ts`). The token

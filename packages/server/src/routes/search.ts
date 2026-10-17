@@ -5,11 +5,11 @@ import {
   openSealedNote,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import { encodeCursor } from "../storage/noteMapping.js";
-import type { StorageDriver } from "../storage/types.js";
-import { readPageParams } from "../validation/pageParams.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import { encodeCursor } from "#/storage/noteMapping.js";
+import type { StorageDriver } from "#/storage/types.js";
+import { readPageParams } from "#/validation/pageParams.js";
 import { tokenKeys } from "./noteCodec.js";
 
 /**

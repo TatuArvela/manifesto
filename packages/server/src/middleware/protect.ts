@@ -1,9 +1,9 @@
 import type { Context, MiddlewareHandler } from "hono";
-import type { AuthProvider } from "../auth/types.js";
-import type { ServerConfig } from "../config.js";
-import { isFeatureOn } from "../features.js";
-import { OPERATIONS, type Operation } from "../openapi.js";
-import type { StorageDriver } from "../storage/types.js";
+import type { AuthProvider } from "#/auth/types.js";
+import type { ServerConfig } from "#/config.js";
+import { isFeatureOn } from "#/features.js";
+import { OPERATIONS, type Operation } from "#/openapi.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { type AuthContext, createAuthMiddleware } from "./authBearer.js";
 import { HttpError } from "./error.js";
 import { perUserApiRateLimit, rateLimit } from "./rateLimit.js";

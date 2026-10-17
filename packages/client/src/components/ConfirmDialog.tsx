@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { useFocusTrap } from "../hooks/useFocusTrap.js";
-import { t } from "../i18n/index.js";
-import { answerConfirmation, confirmRequest } from "../state/confirm.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { useFocusTrap } from "#/hooks/useFocusTrap.js";
+import { t } from "#/i18n/index.js";
+import { answerConfirmation, confirmRequest } from "#/state/confirm.js";
 import { Backdrop } from "./Backdrop.js";
 import { buttonClass } from "./buttonClasses.js";
 

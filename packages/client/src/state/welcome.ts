@@ -1,5 +1,5 @@
-import { WELCOME_ENABLED } from "../config.js";
-import { hasStoredNotes } from "../storage/LocalStorageAdapter.js";
+import { WELCOME_ENABLED } from "#/config.js";
+import { hasStoredNotes } from "#/storage/LocalStorageAdapter.js";
 import { isServerMode } from "./account/auth.js";
 import { showWelcome } from "./ui.js";
 

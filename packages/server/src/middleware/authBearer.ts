@@ -5,8 +5,8 @@ import {
   unwrapTokenKeys,
 } from "@manifesto/shared";
 import type { Context, MiddlewareHandler } from "hono";
-import type { AuthProvider, CredentialKind } from "../auth/types.js";
-import { OPERATIONS } from "../openapi.js";
+import type { AuthProvider, CredentialKind } from "#/auth/types.js";
+import { OPERATIONS } from "#/openapi.js";
 import { HttpError } from "./error.js";
 
 export interface AuthContext {

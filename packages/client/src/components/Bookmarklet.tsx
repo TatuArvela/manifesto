@@ -1,8 +1,8 @@
 import { Bookmark } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { APP_NAME } from "../config.js";
-import { t } from "../i18n/index.js";
-import { bookmarkletHref } from "../shareTarget.js";
+import { APP_NAME } from "#/config.js";
+import { t } from "#/i18n/index.js";
+import { bookmarkletHref } from "#/shareTarget.js";
 
 /**
  * The link to drag to the bookmarks bar: clicked on any page, it opens a new

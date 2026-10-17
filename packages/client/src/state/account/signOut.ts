@@ -1,10 +1,10 @@
-import { deleteLocalNoteCopies } from "../../realtime/localNoteCopies.js";
-import { dropAllOffline } from "../../storage/offlineNotes.js";
-import { notes } from "../notesStore.js";
+import { deleteLocalNoteCopies } from "#/realtime/localNoteCopies.js";
+import { notes } from "#/state/notesStore.js";
 import {
   dropBrowserPushSubscription,
   removePushSubscription,
-} from "../pushSubscription.js";
+} from "#/state/pushSubscription.js";
+import { dropAllOffline } from "#/storage/offlineNotes.js";
 import {
   clearAuthLocal,
   currentUser,

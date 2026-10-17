@@ -1,6 +1,6 @@
-import { AT_REST, atRest } from "../atRest.js";
-import type { WebhooksRepo } from "../types.js";
-import { rowToWebhook, type WebhookRow } from "../webhookMapping.js";
+import { AT_REST, atRest } from "#/storage/atRest.js";
+import type { WebhooksRepo } from "#/storage/types.js";
+import { rowToWebhook, type WebhookRow } from "#/storage/webhookMapping.js";
 import type { PgPool } from "./database.js";
 
 /** See the SQLite copy. The failure count is read, then written, rather than

@@ -1,9 +1,9 @@
 import type { NoteReminder } from "@manifesto/shared";
 import { Bell, X } from "lucide-preact";
 import type { Ref } from "preact";
-import { t } from "../i18n/index.js";
-import { locale } from "../state/prefs.js";
-import { parseLocalISO } from "../state/reminderScheduler.js";
+import { t } from "#/i18n/index.js";
+import { locale } from "#/state/prefs.js";
+import { parseLocalISO } from "#/state/reminderScheduler.js";
 
 function formatLocalDateTime(iso: string): string {
   const d = parseLocalISO(iso);

@@ -5,14 +5,14 @@ import type {
   AuthMeResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { issueSession } from "../auth/session.js";
+import { issueSession } from "#/auth/session.js";
 import {
   authHeaders,
   bootTestApp,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 
 async function signIn(
   rig: TestRig,

@@ -1,6 +1,6 @@
 import { hasScope } from "@manifesto/shared";
 import { Hono, type MiddlewareHandler } from "hono";
-import { type AuthContext, MCP_FORWARDED } from "../middleware/authBearer.js";
+import { type AuthContext, MCP_FORWARDED } from "#/middleware/authBearer.js";
 import {
   errorResponse,
   handleMessage,

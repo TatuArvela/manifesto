@@ -2,7 +2,7 @@ import {
   dropOffline,
   keepOffline,
   readOffline,
-} from "../storage/offlineNotes.js";
+} from "#/storage/offlineNotes.js";
 import {
   imageKeysOf,
   type KeptFields,

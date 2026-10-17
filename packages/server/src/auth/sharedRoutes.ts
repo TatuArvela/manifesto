@@ -7,24 +7,24 @@ import {
   type SealedAccountPrefsResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { audit } from "../audit/audit.js";
-import { auditPage } from "../audit/auditPage.js";
-import type { ServerConfig } from "../config.js";
-import { logger } from "../lib/logger.js";
-import { nowIso } from "../lib/time.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { emailTaken, HttpError } from "../middleware/error.js";
-import { deleteAccount } from "../sharing/deleteAccount.js";
-import type { NoteEvents } from "../sharing/noteEvents.js";
-import type { StorageDriver } from "../storage/types.js";
+import { audit } from "#/audit/audit.js";
+import { auditPage } from "#/audit/auditPage.js";
+import type { ServerConfig } from "#/config.js";
+import { logger } from "#/lib/logger.js";
+import { nowIso } from "#/lib/time.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { emailTaken, HttpError } from "#/middleware/error.js";
+import { deleteAccount } from "#/sharing/deleteAccount.js";
+import type { NoteEvents } from "#/sharing/noteEvents.js";
+import type { StorageDriver } from "#/storage/types.js";
 import {
   accountPrefsUpdateSchema,
   authLocaleSchema,
   authMeDeleteSchema,
   authMeUpdateSchema,
-} from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
-import type { Broadcaster } from "../ws/broadcaster.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
+import type { Broadcaster } from "#/ws/broadcaster.js";
 import { registerAccountKeyRoutes } from "./accountKeys.js";
 import { requireConfirmation } from "./confirmation.js";
 import type { LoginAttempts } from "./local/loginAttempts.js";

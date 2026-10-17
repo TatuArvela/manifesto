@@ -3,7 +3,7 @@ import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { keymap } from "@milkdown/kit/prose/keymap";
 import { type EditorState, Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
-import { t } from "../i18n/index.js";
+import { t } from "#/i18n/index.js";
 
 /**
  * Links in the editor. A click places the caret, as it does on any other text,

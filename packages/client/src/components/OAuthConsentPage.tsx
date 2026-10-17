@@ -1,10 +1,10 @@
 import type { ApiTokenScope, OAuthClientInfo } from "@manifesto/shared";
 import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { APP_NAME } from "../config.js";
-import { t } from "../i18n/index.js";
-import { revealApp } from "../splash.js";
-import { authToken, currentUser, isServerMode } from "../state/account/auth.js";
+import { APP_NAME } from "#/config.js";
+import { t } from "#/i18n/index.js";
+import { revealApp } from "#/splash.js";
+import { authToken, currentUser, isServerMode } from "#/state/account/auth.js";
 import {
   type AuthorizeRequest,
   allowClient,
@@ -14,8 +14,8 @@ import {
   parseAuthorizeRequest,
   rememberConsentPage,
   returnTarget,
-} from "../state/account/oauth.js";
-import type { ConfirmationRefusal } from "../state/account/passwordConfirmation.js";
+} from "#/state/account/oauth.js";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
 import { buttonClass } from "./buttonClasses.js";
 import {
   ConfirmationError,

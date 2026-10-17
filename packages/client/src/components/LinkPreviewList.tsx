@@ -1,6 +1,6 @@
 import type { LinkPreview } from "@manifesto/shared";
 import { Link as LinkIcon, X } from "lucide-preact";
-import { t } from "../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import { StoredImage } from "./StoredImage.js";
 
 interface LinkPreviewListProps {

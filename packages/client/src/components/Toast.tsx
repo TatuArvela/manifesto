@@ -1,6 +1,6 @@
 import { X } from "lucide-preact";
-import { t } from "../i18n/index.js";
-import { dismissToast, holdToasts, toasts } from "../state/ui.js";
+import { t } from "#/i18n/index.js";
+import { dismissToast, holdToasts, toasts } from "#/state/ui.js";
 
 /**
  * The toast stack. The region is on the page even while empty, since a

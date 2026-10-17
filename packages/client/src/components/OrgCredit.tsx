@@ -1,4 +1,4 @@
-import { ORG_LOGO, ORG_NAME } from "../config.js";
+import { ORG_LOGO, ORG_NAME } from "#/config.js";
 import { BrandLogo } from "./BrandLogo.js";
 
 /**

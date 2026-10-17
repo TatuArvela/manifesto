@@ -1,8 +1,8 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { plural } from "../i18n/index.js";
-import { defined } from "../test/defined.js";
-import { createNoteOrFail } from "../test/testSupport.js";
+import { plural } from "#/i18n/index.js";
+import { defined } from "#/test/defined.js";
+import { createNoteOrFail } from "#/test/testSupport.js";
 import {
   addTagToNotes,
   bulkArchive,

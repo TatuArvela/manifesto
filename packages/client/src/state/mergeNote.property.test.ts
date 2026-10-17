@@ -6,7 +6,7 @@ import {
   type NoteUpdate,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { type Random, SEEDS, seeded } from "../test/testRandom.js";
+import { type Random, SEEDS, seeded } from "#/test/testRandom.js";
 import { mergeNoteUpdate } from "./mergeNote.js";
 
 /**

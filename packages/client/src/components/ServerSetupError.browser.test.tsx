@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { ServerSetupProblem } from "../utils/serverCsp.js";
+import type { ServerSetupProblem } from "#/utils/serverCsp.js";
 import { ServerSetupError } from "./ServerSetupError.js";
 
 let host: HTMLDivElement;

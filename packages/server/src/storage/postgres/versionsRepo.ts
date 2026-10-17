@@ -2,8 +2,11 @@ import {
   MAX_NOTE_VERSIONS,
   NOTE_VERSION_MAX_AGE_DAYS,
 } from "@manifesto/shared";
-import { rowToVersion, VERSION_COLUMNS } from "../sqlite/versionsRepo.js";
-import type { VersionsRepo } from "../types.js";
+import {
+  rowToVersion,
+  VERSION_COLUMNS,
+} from "#/storage/sqlite/versionsRepo.js";
+import type { VersionsRepo } from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

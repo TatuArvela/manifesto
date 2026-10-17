@@ -1,8 +1,8 @@
 import type { AdminChecksResponse } from "@manifesto/shared";
 import { AlertTriangle, CircleCheck, Info, Mail } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { formatDateTime, t } from "../../i18n/index.js";
-import { loadSetupChecks, sendTestMail } from "../../state/admin.js";
+import { formatDateTime, t } from "#/i18n/index.js";
+import { loadSetupChecks, sendTestMail } from "#/state/admin.js";
 import { type SetupCheckStatus, setupChecks } from "./setupCheckList.js";
 
 const STATUS_ICON: Record<SetupCheckStatus, typeof Info> = {

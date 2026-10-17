@@ -1,4 +1,4 @@
-import type { AccountPublicKeys } from "../api/keys.js";
+import type { AccountPublicKeys } from "#/api/keys.js";
 import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.js";
 import { associatedData, derivable, deriveKey, seal, unseal } from "./seal.js";
 

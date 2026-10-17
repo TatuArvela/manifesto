@@ -1,13 +1,13 @@
 import type { Note, NoteCreate, SyncResponse } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { nowIso } from "../lib/time.js";
+import { nowIso } from "#/lib/time.js";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 import { decodeCheckpoint, encodeCheckpoint, SYNC_OVERLAP_MS } from "./sync.js";
 
 const baseNote: NoteCreate = {

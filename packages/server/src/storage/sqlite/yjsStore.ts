@@ -1,4 +1,4 @@
-import type { YjsStore } from "../types.js";
+import type { YjsStore } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 interface YjsStateRow {

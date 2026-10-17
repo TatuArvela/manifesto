@@ -1,8 +1,8 @@
 import { effect } from "@preact/signals";
 import type { RefObject } from "preact";
 import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
-import { animations } from "../state/prefs.js";
-import { activeTag, activeView } from "../state/ui.js";
+import { animations } from "#/state/prefs.js";
+import { activeTag, activeView } from "#/state/ui.js";
 
 /** The view before is gone a little before the new one is all there, so the
  *  two never read as one muddled board. */

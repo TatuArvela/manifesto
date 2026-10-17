@@ -1,9 +1,9 @@
 import type { NoteColor, NoteVersion } from "@manifesto/shared";
 import { ArrowLeft, RotateCcw } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
-import { noteColorMap } from "../colors.js";
-import { formatDateTime, t } from "../i18n/index.js";
-import { loadVersions } from "../state/versions.js";
+import { noteColorMap } from "#/colors.js";
+import { formatDateTime, t } from "#/i18n/index.js";
+import { loadVersions } from "#/state/versions.js";
 import { iconButtonClass } from "./editor/editorButtons.js";
 import { Tooltip } from "./Tooltip.js";
 

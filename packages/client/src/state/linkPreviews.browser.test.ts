@@ -4,11 +4,11 @@ import {
   MAX_LINK_PREVIEWS_PER_NOTE,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../i18n/index.js";
-import { LocalStorageAdapter } from "../storage/index.js";
-import { defined } from "../test/defined.js";
-import { createNoteOrFail } from "../test/testSupport.js";
-import { makeStubPreview } from "../utils/linkPreview.js";
+import { t } from "#/i18n/index.js";
+import { LocalStorageAdapter } from "#/storage/index.js";
+import { defined } from "#/test/defined.js";
+import { createNoteOrFail } from "#/test/testSupport.js";
+import { makeStubPreview } from "#/utils/linkPreview.js";
 import {
   addLinkPreviews,
   applyLinkPreviews,

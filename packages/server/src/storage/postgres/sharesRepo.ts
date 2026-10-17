@@ -6,14 +6,14 @@ import {
   rowToInvitation,
   rowToShare,
   type ShareRow,
-} from "../shareMapping.js";
+} from "#/storage/shareMapping.js";
 import type {
   CreateShareInput,
   HeldKey,
   NoteAudience,
   NoteShare,
   SharesRepo,
-} from "../types.js";
+} from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 /** See the SQLite copy: same queries, same reasons. */

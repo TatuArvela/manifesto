@@ -7,23 +7,23 @@ import {
   type ShareRole,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { audit } from "../audit/audit.js";
-import { createExpiringCounter } from "../lib/expiringCounter.js";
-import { nowIso } from "../lib/time.js";
-import type { Mailer } from "../mail/mailer.js";
-import { mailLocale, shareInvitationMail } from "../mail/templates.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { AccessChanges } from "../sharing/accessChanges.js";
-import type { NoteEvents } from "../sharing/noteEvents.js";
-import type { StorageDriver } from "../storage/types.js";
+import { audit } from "#/audit/audit.js";
+import { createExpiringCounter } from "#/lib/expiringCounter.js";
+import { nowIso } from "#/lib/time.js";
+import type { Mailer } from "#/mail/mailer.js";
+import { mailLocale, shareInvitationMail } from "#/mail/templates.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { AccessChanges } from "#/sharing/accessChanges.js";
+import type { NoteEvents } from "#/sharing/noteEvents.js";
+import type { StorageDriver } from "#/storage/types.js";
 import {
   heldKeySchema,
   offeredKeySchema,
   shareCreateSchema,
   shareUpdateSchema,
-} from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 
 export interface ShareRoutesDeps {
   /** Sends the invitation by mail too, when the server has mail and the

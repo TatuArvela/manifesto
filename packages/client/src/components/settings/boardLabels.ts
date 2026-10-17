@@ -1,5 +1,5 @@
-import { t } from "../../i18n/index.js";
-import type { BoardColorChoice } from "../../state/prefs.js";
+import { t } from "#/i18n/index.js";
+import type { BoardColorChoice } from "#/state/prefs.js";
 
 /**
  * A board colour's name. The coloured presets share their names with the

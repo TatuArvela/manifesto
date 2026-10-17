@@ -3,7 +3,7 @@ import {
   adminTeamCreateSchema,
   adminTeamUpdateSchema,
   adminUpdateUserSchema,
-} from "../validation/schemas.js";
+} from "#/validation/schemas.js";
 import { noContent, notFound, type Operation, ok } from "./operation.js";
 
 /** The admin API: accounts, teams, the audit log, the update check and the

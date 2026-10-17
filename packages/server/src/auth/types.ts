@@ -1,6 +1,6 @@
 import type { ApiTokenScope } from "@manifesto/shared";
 import type { Hono } from "hono";
-import type { Mailer } from "../mail/mailer.js";
+import type { Mailer } from "#/mail/mailer.js";
 import type { LoginAttempts } from "./local/loginAttempts.js";
 import type { SessionRevocations } from "./revocations.js";
 

@@ -1,6 +1,6 @@
 import { hasUnloadedImages, imageCountOf, type Note } from "@manifesto/shared";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { ensureImages } from "../state/notesStore.js";
+import { ensureImages } from "#/state/notesStore.js";
 
 /**
  * A note's attachments, fetched when the card carrying them comes into view.

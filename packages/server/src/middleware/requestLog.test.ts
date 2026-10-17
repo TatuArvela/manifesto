@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defined } from "../test/defined.js";
+import { defined } from "#/test/defined.js";
 import { requestLog } from "./requestLog.js";
 
 function buildApp() {

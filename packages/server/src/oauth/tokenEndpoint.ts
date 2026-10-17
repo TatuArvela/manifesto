@@ -6,10 +6,10 @@ import {
   wrapTokenKeys,
 } from "@manifesto/shared";
 import type { Context } from "hono";
-import { audit } from "../audit/audit.js";
-import type { SessionRevocations } from "../auth/revocations.js";
-import { revokeApiToken } from "../auth/session.js";
-import { nowIso } from "../lib/time.js";
+import { audit } from "#/audit/audit.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import { revokeApiToken } from "#/auth/session.js";
+import { nowIso } from "#/lib/time.js";
 import {
   hashToken,
   MCP_TOKEN_PREFIX,
@@ -17,9 +17,9 @@ import {
   REFRESH_TOKEN_PREFIX,
   SHOWN_PREFIX_LENGTH,
   safeEqual,
-} from "../lib/token.js";
-import { newId } from "../lib/ulid.js";
-import type { StorageDriver } from "../storage/types.js";
+} from "#/lib/token.js";
+import { newId } from "#/lib/ulid.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { isMetadataDocumentId } from "./clients.js";
 import { ACCESS_TOKEN_SECONDS, earlier, namesMcp, plusMs } from "./grants.js";
 

@@ -3,21 +3,21 @@ import { Plus } from "lucide-preact";
 import type { RefObject } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
-import { noteColorMap } from "../colors.js";
-import { useColumnWidth } from "../hooks/useColumnWidth.js";
-import { useComposerFields } from "../hooks/useComposerFields.js";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { holdFocus, useFocusTrap } from "../hooks/useFocusTrap.js";
-import { type MessageKey, t } from "../i18n/index.js";
-import { inlineImages, inlinePreviewImages } from "../state/attachments.js";
+import { noteColorMap } from "#/colors.js";
+import { useColumnWidth } from "#/hooks/useColumnWidth.js";
+import { useComposerFields } from "#/hooks/useComposerFields.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { holdFocus, useFocusTrap } from "#/hooks/useFocusTrap.js";
+import { type MessageKey, t } from "#/i18n/index.js";
+import { inlineImages, inlinePreviewImages } from "#/state/attachments.js";
 import {
   type ComposerDraft,
   clearDraft,
   isEmptyDraft,
   loadDraft,
   saveDraft,
-} from "../state/composerDraft.js";
-import { type IncomingShare, incomingShare } from "../state/incomingShare.js";
+} from "#/state/composerDraft.js";
+import { type IncomingShare, incomingShare } from "#/state/incomingShare.js";
 import {
   animations,
   defaultNoteColor,
@@ -27,20 +27,20 @@ import {
   pickDefaultColor,
   pickDefaultFont,
   viewMode,
-} from "../state/prefs.js";
-import { activeView, newNoteRequested, showError } from "../state/ui.js";
-import { queueNote } from "../state/unsentNotes.js";
-import { extractUrls } from "../utils/linkPreview.js";
+} from "#/state/prefs.js";
+import { activeView, newNoteRequested, showError } from "#/state/ui.js";
+import { queueNote } from "#/state/unsentNotes.js";
+import { extractUrls } from "#/utils/linkPreview.js";
 import {
   isMorphSource,
   morphIn,
   type RectLike,
   viewportSize,
-} from "../utils/morph.js";
+} from "#/utils/morph.js";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,
-} from "../utils/noteDownload.js";
+} from "#/utils/noteDownload.js";
 import { Backdrop } from "./Backdrop.js";
 import { checklistSubmenu, downloadSubmenu } from "./card/NoteMenu.js";
 import { useEditor } from "./editor/lazyEditor.js";

@@ -1,12 +1,15 @@
 import type { SealedNote, SealedNoteUpdate } from "@manifesto/shared";
-import { type ReferringRow, referencesOf } from "../attachmentMapping.js";
+import {
+  type ReferringRow,
+  referencesOf,
+} from "#/storage/attachmentMapping.js";
 import {
   decodeCursor,
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
   splitPage,
-} from "../noteMapping.js";
+} from "#/storage/noteMapping.js";
 import {
   attachSharing,
   forbiddenFields,
@@ -19,7 +22,7 @@ import {
   splitChanges,
   type UserBriefRow,
   type ViewRow,
-} from "../shareMapping.js";
+} from "#/storage/shareMapping.js";
 import {
   type InsertNoteInput,
   type ListNotesOptions,
@@ -27,7 +30,7 @@ import {
   NoteAccessError,
   type NotePage,
   type NotesRepo,
-} from "../types.js";
+} from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 import { inTransaction } from "./sharesRepo.js";
 

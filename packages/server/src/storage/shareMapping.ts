@@ -14,7 +14,7 @@ import {
   SEALED_SHARED_NOTE_FIELDS,
   SHARE_ROLES,
 } from "@manifesto/shared";
-import { nowIso } from "../lib/time.js";
+import { nowIso } from "#/lib/time.js";
 import {
   asBoolean,
   type NoteRow,

@@ -1,6 +1,6 @@
 import { NoteColor } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createNoteOrFail } from "../test/testSupport.js";
+import { createNoteOrFail } from "#/test/testSupport.js";
 import { deleteTag, renameTag } from "./actions.js";
 import { notes } from "./notesStore.js";
 import { hiddenTags, tagColors } from "./prefs.js";

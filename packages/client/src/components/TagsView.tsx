@@ -16,19 +16,19 @@ import {
   Trash2,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { getColorPickerColors, plural, t } from "../i18n/index.js";
-import { deleteTag, renameTag } from "../state/actions.js";
-import { askConfirmation } from "../state/confirm.js";
-import { notesLoaded } from "../state/notesStore.js";
-import { hiddenTags, type TagColor, tagColors } from "../state/prefs.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { getColorPickerColors, plural, t } from "#/i18n/index.js";
+import { deleteTag, renameTag } from "#/state/actions.js";
+import { askConfirmation } from "#/state/confirm.js";
+import { notesLoaded } from "#/state/notesStore.js";
+import { hiddenTags, type TagColor, tagColors } from "#/state/prefs.js";
 import {
   activeTag,
   showError,
   tagsShowActive,
   tagsShowArchived,
   tagsShowTrashed,
-} from "../state/ui.js";
+} from "#/state/ui.js";
 import {
   allTags,
   childTags,
@@ -37,7 +37,7 @@ import {
   setTagHidden,
   tagColorOf,
   tagCounts,
-} from "../state/views.js";
+} from "#/state/views.js";
 import { buttonClass } from "./buttonClasses.js";
 import { Dropdown } from "./Dropdown.js";
 import { tagTint } from "./TagChip.js";

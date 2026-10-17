@@ -4,22 +4,22 @@ import {
   roleOf,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { claimImages } from "../attachments/store.js";
-import type { ServerConfig } from "../config.js";
-import { nowIso } from "../lib/time.js";
-import type { Mailer } from "../mail/mailer.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { AccessChanges } from "../sharing/accessChanges.js";
-import type { NoteEvents } from "../sharing/noteEvents.js";
-import type { TeamShares } from "../sharing/teamShares.js";
+import { claimImages } from "#/attachments/store.js";
+import type { ServerConfig } from "#/config.js";
+import { nowIso } from "#/lib/time.js";
+import type { Mailer } from "#/mail/mailer.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { AccessChanges } from "#/sharing/accessChanges.js";
+import type { NoteEvents } from "#/sharing/noteEvents.js";
+import type { TeamShares } from "#/sharing/teamShares.js";
 import {
   NoteAccessError,
   type StorageDriver,
   type StoredNoteUpdate,
-} from "../storage/types.js";
-import { readPageParams } from "../validation/pageParams.js";
-import { noteRekeySchema } from "../validation/schemas.js";
+} from "#/storage/types.js";
+import { readPageParams } from "#/validation/pageParams.js";
+import { noteRekeySchema } from "#/validation/schemas.js";
 import { registerCommentRoutes } from "./comments.js";
 import {
   bodyOf,

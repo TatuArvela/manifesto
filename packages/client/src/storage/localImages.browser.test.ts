@@ -1,6 +1,6 @@
 import { isLocalImageRef, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defined } from "../test/defined.js";
+import { defined } from "#/test/defined.js";
 import { LocalStorageAdapter } from "./LocalStorageAdapter.js";
 import {
   clearLocalImages,

@@ -11,12 +11,12 @@ import type {
   UserLookupMode,
 } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { resolveServerOrigin, resolveServerUrl } from "../../config.js";
-import type { MessageKey } from "../../i18n/messages/index.js";
-import { storageConnection } from "../../storage/index.js";
-import { getPasskey } from "../../utils/webauthn.js";
-import { defaultPrefsOf, serverDefaultPrefs } from "../serverDefaults.js";
-import { adoptServerFeatures } from "../serverFeatures.js";
+import { resolveServerOrigin, resolveServerUrl } from "#/config.js";
+import type { MessageKey } from "#/i18n/messages/index.js";
+import { defaultPrefsOf, serverDefaultPrefs } from "#/state/serverDefaults.js";
+import { adoptServerFeatures } from "#/state/serverFeatures.js";
+import { storageConnection } from "#/storage/index.js";
+import { getPasskey } from "#/utils/webauthn.js";
 import { markOidcFlow, takeOidcFlow } from "./oidcFlow.js";
 import {
   type ConfirmationRefusal,

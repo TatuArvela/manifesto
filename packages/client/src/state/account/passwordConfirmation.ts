@@ -1,5 +1,5 @@
 import type { ErrorResponse } from "@manifesto/shared";
-import type { MessageKey } from "../../i18n/index.js";
+import type { MessageKey } from "#/i18n/index.js";
 
 /**
  * Why the server would not take an action that asks for the password again

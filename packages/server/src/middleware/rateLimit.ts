@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
-import { createExpiringCounter } from "../lib/expiringCounter.js";
-import { countMetric } from "../lib/metrics.js";
+import { createExpiringCounter } from "#/lib/expiringCounter.js";
+import { countMetric } from "#/lib/metrics.js";
 import { HttpError } from "./error.js";
 
 export interface RateLimitOptions {

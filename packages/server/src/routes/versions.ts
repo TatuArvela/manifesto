@@ -1,9 +1,9 @@
 import { NOTE_VERSION_MAX_AGE_DAYS, roleOf } from "@manifesto/shared";
 import type { Hono } from "hono";
-import { nowIso } from "../lib/time.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { StorageDriver } from "../storage/types.js";
+import { nowIso } from "#/lib/time.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { tokenKeys, versionBody, versionsOut } from "./noteCodec.js";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;

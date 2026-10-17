@@ -1,8 +1,8 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { StoredImage } from "../components/StoredImage.js";
-import { currentStorage, storageConnection } from "../storage/index.js";
+import { StoredImage } from "#/components/StoredImage.js";
+import { currentStorage, storageConnection } from "#/storage/index.js";
 import {
   attachmentObjectUrl,
   forgetAttachmentUrls,

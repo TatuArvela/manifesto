@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
 import { hideAllTooltips } from "./Tooltip.js";
 
 let nextId = 0;

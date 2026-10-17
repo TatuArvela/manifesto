@@ -18,18 +18,18 @@ import {
   X,
 } from "lucide-preact";
 import { useRef } from "preact/hooks";
-import { plugins } from "../../autoNotes/registry.js";
-import { t } from "../../i18n/index.js";
+import { plugins } from "#/autoNotes/registry.js";
+import { iconButtonClass } from "#/components/editor/editorButtons.js";
+import { PresenceAvatars } from "#/components/PresenceAvatars.js";
+import { Tooltip } from "#/components/Tooltip.js";
+import { t } from "#/i18n/index.js";
 import {
   permanentlyDeleteNote,
   restoreNote,
   togglePin,
-} from "../../state/actions.js";
-import { refreshAutoNotes } from "../../state/autoNotes.js";
-import { confirmDeletion } from "../../state/confirm.js";
-import { iconButtonClass } from "../editor/editorButtons.js";
-import { PresenceAvatars } from "../PresenceAvatars.js";
-import { Tooltip } from "../Tooltip.js";
+} from "#/state/actions.js";
+import { refreshAutoNotes } from "#/state/autoNotes.js";
+import { confirmDeletion } from "#/state/confirm.js";
 import type { CardPopoverKind } from "./NoteCardPopovers.js";
 
 /** The round button at a card's top-left corner that selects it. */

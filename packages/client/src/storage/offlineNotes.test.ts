@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { testKeys } from "../test/sealedServer.js";
+import { testKeys } from "#/test/sealedServer.js";
 import {
   type OfflineOwner,
   openModeOwner,

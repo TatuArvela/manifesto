@@ -1,6 +1,12 @@
 import { useEffect, useState } from "preact/hooks";
-import { APP_LOGO, APP_NAME } from "../../config.js";
-import { type MessageKey, t } from "../../i18n/index.js";
+import { BrandLogo } from "#/components/BrandLogo.js";
+import { buttonClass } from "#/components/buttonClasses.js";
+import {
+  ConfirmationError,
+  ConfirmPasswordField,
+} from "#/components/ConfirmWithPassword.js";
+import { APP_LOGO, APP_NAME } from "#/config.js";
+import { type MessageKey, t } from "#/i18n/index.js";
 import {
   checkAccountKeys,
   completeSetup,
@@ -10,17 +16,11 @@ import {
   startAgain,
   type UnlockResult,
   unlock,
-} from "../../state/account/accountKeys.js";
-import { currentUser } from "../../state/account/auth.js";
-import type { ConfirmationRefusal } from "../../state/account/passwordConfirmation.js";
-import { signOut } from "../../state/account/signOut.js";
-import { userKeyKindOf } from "../../utils/userKey.js";
-import { BrandLogo } from "../BrandLogo.js";
-import { buttonClass } from "../buttonClasses.js";
-import {
-  ConfirmationError,
-  ConfirmPasswordField,
-} from "../ConfirmWithPassword.js";
+} from "#/state/account/accountKeys.js";
+import { currentUser } from "#/state/account/auth.js";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
+import { signOut } from "#/state/account/signOut.js";
+import { userKeyKindOf } from "#/utils/userKey.js";
 import { KeepSheetStep } from "./KeySheet.js";
 import { quietClass, submitClass } from "./loginFormClasses.js";
 import { Field, RecoveryForm, UserKeyInput } from "./RecoveryForms.js";

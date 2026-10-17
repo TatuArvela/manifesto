@@ -1,7 +1,7 @@
 import type { NoteVersion } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { currentStorage, storageConnection } from "../storage/index.js";
-import { getVersions, saveVersion } from "../storage/VersionStorage.js";
+import { currentStorage, storageConnection } from "#/storage/index.js";
+import { getVersions, saveVersion } from "#/storage/VersionStorage.js";
 import { notes } from "./notesStore.js";
 import { loadVersions, recordVersion, restoreVersions } from "./versions.js";
 

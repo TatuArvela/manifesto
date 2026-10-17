@@ -1,9 +1,9 @@
 import type { Note, NoteVersion } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { saveVersion } from "../storage/VersionStorage.js";
-import { importFiles } from "../utils/importExport.js";
-import { readZip } from "../utils/zip.js";
+import { saveVersion } from "#/storage/VersionStorage.js";
+import { importFiles } from "#/utils/importExport.js";
+import { readZip } from "#/utils/zip.js";
 import { exportArchive } from "./exportNotes.js";
 import { notes } from "./notesStore.js";
 import { hiddenTags } from "./prefs.js";

@@ -6,22 +6,22 @@ import type {
   WebhookPayload,
   WebSocketEvent,
 } from "@manifesto/shared";
-import type { WebhookMode } from "../config.js";
-import { logger } from "../lib/logger.js";
-import { countMetric } from "../lib/metrics.js";
-import { nowIso } from "../lib/time.js";
-import { newId } from "../lib/ulid.js";
+import type { WebhookMode } from "#/config.js";
+import { logger } from "#/lib/logger.js";
+import { countMetric } from "#/lib/metrics.js";
+import { nowIso } from "#/lib/time.js";
+import { newId } from "#/lib/ulid.js";
 import {
   isLocalNetworkAddress,
   isPublicAddress,
-} from "../linkPreview/addressPolicy.js";
+} from "#/linkPreview/addressPolicy.js";
 import {
   FetchRefused,
   type SafeFetchOptions,
   safeFetch,
-} from "../linkPreview/safeFetch.js";
-import type { StorageDriver, StoredWebhook } from "../storage/types.js";
-import type { Broadcaster } from "../ws/broadcaster.js";
+} from "#/linkPreview/safeFetch.js";
+import type { StorageDriver, StoredWebhook } from "#/storage/types.js";
+import type { Broadcaster } from "#/ws/broadcaster.js";
 
 /** Failures in a row that switch a webhook off. */
 export const WEBHOOK_DISABLE_AFTER = 20;

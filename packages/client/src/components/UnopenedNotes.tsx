@@ -1,5 +1,5 @@
-import { plural } from "../i18n/index.js";
-import { sealer } from "../storage/sealing.js";
+import { plural } from "#/i18n/index.js";
+import { sealer } from "#/storage/sealing.js";
 
 /**
  * Says how many notes the server sent that did not open on this device, so

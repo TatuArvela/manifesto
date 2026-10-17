@@ -5,9 +5,9 @@ import type {
   SealedAccountPrefsResponse,
 } from "@manifesto/shared";
 import { effect, untracked } from "@preact/signals";
-import { apiFetch } from "../storage/apiRequest.js";
-import { storageConnection } from "../storage/index.js";
-import { type NoteSealing, sealer } from "../storage/sealing.js";
+import { apiFetch } from "#/storage/apiRequest.js";
+import { storageConnection } from "#/storage/index.js";
+import { type NoteSealing, sealer } from "#/storage/sealing.js";
 import {
   ACCOUNT_PREF_KEYS,
   accountPrefsSnapshot,

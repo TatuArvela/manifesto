@@ -1,4 +1,4 @@
-import type { Locale } from "../locales.js";
+import type { Locale } from "#/i18n/locales.js";
 import { en } from "./en.js";
 
 export type PluralEntry = {

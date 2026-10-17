@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, describe, expect, it } from "vitest";
-import { TEST_CONFIG } from "../test/setup.js";
+import { TEST_CONFIG } from "#/test/setup.js";
 import {
   AT_REST,
   AT_REST_COLUMNS,

@@ -1,11 +1,11 @@
 import { Download, Printer } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import { APP_FILE_SLUG } from "../../config.js";
-import { t } from "../../i18n/index.js";
-import type { KeySheet } from "../../state/account/accountKeys.js";
-import { downloadFile } from "../../utils/noteDownload.js";
-import { buttonClass } from "../buttonClasses.js";
+import { buttonClass } from "#/components/buttonClasses.js";
+import { APP_FILE_SLUG } from "#/config.js";
+import { t } from "#/i18n/index.js";
+import type { KeySheet } from "#/state/account/accountKeys.js";
+import { downloadFile } from "#/utils/noteDownload.js";
 import { submitClass } from "./loginFormClasses.js";
 
 /** While a sheet is on screen, printing the page prints the sheet alone

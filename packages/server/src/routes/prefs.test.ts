@@ -1,12 +1,12 @@
 import type { WebSocketEvent } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ciphertext } from "../storage/contracts/claimed.js";
+import { ciphertext } from "#/storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 
 describe("account preferences", () => {
   let rig: TestRig;

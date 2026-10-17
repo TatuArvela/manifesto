@@ -6,7 +6,7 @@ import {
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 import { createAccessChanges } from "./accessChanges.js";
 import { emptyAccount } from "./emptyAccount.js";
 import { createNoteEvents } from "./noteEvents.js";

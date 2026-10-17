@@ -161,8 +161,12 @@ code is enough. Read one by hand when planning a change before touching its file
   `prefs.ts` alone `i18n/` may read), `realtime/`, `extensions/`; `hooks/`; `components/`. Server:
   `lib/` knows nothing of notes or accounts, `storage/` imports only `lib/`, and only `app.ts`
   imports `routes/`. Tests are exempt. A new folder needs a line in the list of its layer, or nothing
-  keeps it in place. The patterns match relative specifiers, not resolved paths, so a folder with
-  subfolders lists `../../x/**` beside `../x/**`.
+  keeps it in place. The patterns match specifiers as written, not resolved paths, which is why an
+  import that leaves its folder goes through `#/` (each package's `imports` map onto its own
+  `src/`) and `biome-plugins/noParentImports.grit` refuses a `../` one; a `./` import stays inside
+  its folder. In server and shared the map sends `#/` to `dist/` unless the `manifesto-source`
+  condition is set, which `tsconfig.base.json`, both Vite configs and `pnpm dev` set and a built
+  server run with plain `node` does not.
 - TypeScript strict mode in all packages
 - `type: "module"` (ESM) throughout
 - No em dashes (—) anywhere: docs, comments, UI strings, test names, commit messages and PR

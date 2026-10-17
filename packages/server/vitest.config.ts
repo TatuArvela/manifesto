@@ -17,6 +17,19 @@ export default defineConfig({
       ),
     },
   },
+  // `#/` imports, in this package and in shared, read from source: the import
+  // maps send anyone without this condition to `dist/`. The rest is Vite's
+  // `defaultServerConditions`, which this package has no `vite` to import.
+  ssr: {
+    resolve: {
+      conditions: [
+        "module",
+        "node",
+        "development|production",
+        "manifesto-source",
+      ],
+    },
+  },
   test: {
     include: ["src/**/*.test.ts"],
   },

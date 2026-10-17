@@ -5,8 +5,8 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { animations } from "../state/prefs.js";
-import { editingNoteId } from "../state/ui.js";
+import { animations } from "#/state/prefs.js";
+import { editingNoteId } from "#/state/ui.js";
 import {
   isMorphSource,
   MORPH_MS,
@@ -15,7 +15,7 @@ import {
   type RectLike,
   settle,
   viewportSize,
-} from "../utils/morph.js";
+} from "#/utils/morph.js";
 import { useFocusTrap } from "./useFocusTrap.js";
 
 /**

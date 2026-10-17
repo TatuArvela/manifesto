@@ -6,12 +6,12 @@ import {
   tagParent,
 } from "@manifesto/shared";
 import { computed } from "@preact/signals";
-import { hasChecklist } from "../utils/markdown.js";
+import { hasChecklist } from "#/utils/markdown.js";
 import {
   containsTerms,
   foldForSearch,
   searchTerms,
-} from "../utils/searchText.js";
+} from "#/utils/searchText.js";
 import { allNotes } from "./notesStore.js";
 import { byPosition } from "./ordering.js";
 import {

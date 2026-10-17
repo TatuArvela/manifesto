@@ -1,7 +1,7 @@
 import { type AdminUser, PROXY_PROBE_ADDRESS } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../i18n/index.js";
-import { storageConnection } from "../storage/index.js";
+import { t } from "#/i18n/index.js";
+import { storageConnection } from "#/storage/index.js";
 import {
   adminUsers,
   createAccount,

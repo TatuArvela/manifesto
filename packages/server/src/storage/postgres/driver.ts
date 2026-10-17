@@ -1,5 +1,5 @@
-import type { PostgresConfig } from "../../config.js";
-import type { StorageDriver } from "../types.js";
+import type { PostgresConfig } from "#/config.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { createPostgresAccountKeysRepo } from "./accountKeysRepo.js";
 import { createPostgresApiTokensRepo } from "./apiTokensRepo.js";
 import { createPostgresAttachmentsRepo } from "./attachmentsRepo.js";

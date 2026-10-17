@@ -1,12 +1,12 @@
 import type { ApiTokenCreatedResponse, NotesResponse } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { defined } from "../test/defined.js";
+import { defined } from "#/test/defined.js";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 
 describe("search route", () => {
   let rig: TestRig;

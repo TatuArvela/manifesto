@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { forgetAttachmentUrls } from "../state/attachments.js";
-import { currentStorage } from "../storage/index.js";
+import { forgetAttachmentUrls } from "#/state/attachments.js";
+import { currentStorage } from "#/storage/index.js";
 import { LinkPreviewHero } from "./LinkPreviewHero.js";
 
 const REF = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV";

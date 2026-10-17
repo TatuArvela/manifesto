@@ -1,7 +1,7 @@
-import { verifyPassword } from "../lib/password.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { StorageDriver } from "../storage/types.js";
+import { verifyPassword } from "#/lib/password.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
 import type { LoginAttempts } from "./local/loginAttempts.js";
 
 /** How recent a sign-in through an identity provider has to be to stand in

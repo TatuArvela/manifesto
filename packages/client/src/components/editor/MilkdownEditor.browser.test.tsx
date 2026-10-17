@@ -5,10 +5,10 @@ import { render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Y from "yjs";
-import { editorHistory } from "../../extensions/editorHistory.js";
-import { DEFAULT_FRAGMENT_NAME } from "../../extensions/yjsCollab.js";
-import { t } from "../../i18n/index.js";
-import { inlineCalculations } from "../../state/prefs.js";
+import { editorHistory } from "#/extensions/editorHistory.js";
+import { DEFAULT_FRAGMENT_NAME } from "#/extensions/yjsCollab.js";
+import { t } from "#/i18n/index.js";
+import { inlineCalculations } from "#/state/prefs.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 
 /**

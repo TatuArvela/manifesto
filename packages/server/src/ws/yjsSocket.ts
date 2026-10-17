@@ -8,14 +8,14 @@ import {
 } from "@manifesto/shared";
 import type { RawData, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
-import type { SessionRevocations } from "../auth/revocations.js";
-import type { AuthProvider } from "../auth/types.js";
-import type { ServerConfig } from "../config.js";
-import { logger } from "../lib/logger.js";
-import { gaugeMetric } from "../lib/metrics.js";
-import { hashToken } from "../lib/token.js";
-import type { AccessChanges } from "../sharing/accessChanges.js";
-import type { StorageDriver } from "../storage/types.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import type { AuthProvider } from "#/auth/types.js";
+import type { ServerConfig } from "#/config.js";
+import { logger } from "#/lib/logger.js";
+import { gaugeMetric } from "#/lib/metrics.js";
+import { hashToken } from "#/lib/token.js";
+import type { AccessChanges } from "#/sharing/accessChanges.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { recheckSockets, SOCKET_RECHECK_MS } from "./recheck.js";
 import {
   MAX_YJS_BYTES,

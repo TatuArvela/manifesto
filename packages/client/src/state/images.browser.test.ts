@@ -1,6 +1,6 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { currentStorage, storageConnection } from "../storage/index.js";
+import { currentStorage, storageConnection } from "#/storage/index.js";
 import { exportNotes } from "./exportNotes.js";
 import { ensureImages, notes } from "./notesStore.js";
 

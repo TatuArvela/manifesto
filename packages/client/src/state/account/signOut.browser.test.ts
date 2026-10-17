@@ -1,8 +1,8 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { effect } from "@preact/signals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LOCAL_COPY_PREFIX } from "../../realtime/localNoteCopies.js";
-import { notes } from "../notesStore.js";
+import { LOCAL_COPY_PREFIX } from "#/realtime/localNoteCopies.js";
+import { notes } from "#/state/notesStore.js";
 import { authToken, currentUser } from "./auth.js";
 import { deleteOwnAccount, signOut } from "./signOut.js";
 

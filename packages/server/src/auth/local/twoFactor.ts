@@ -4,18 +4,18 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
-import { audit } from "../../audit/audit.js";
-import { nowIso } from "../../lib/time.js";
-import type { AuthContext } from "../../middleware/authBearer.js";
-import { HttpError } from "../../middleware/error.js";
-import type { StorageDriver } from "../../storage/types.js";
+import { audit } from "#/audit/audit.js";
+import { requireConfirmation } from "#/auth/confirmation.js";
+import { newTotpSecret, verifyTotp } from "#/auth/totp.js";
+import { nowIso } from "#/lib/time.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
 import {
   twoFactorEnableSchema,
   twoFactorPasswordSchema,
-} from "../../validation/schemas.js";
-import { validatorHook } from "../../validation/zValidator.js";
-import { requireConfirmation } from "../confirmation.js";
-import { newTotpSecret, verifyTotp } from "../totp.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 import type { LoginAttempts } from "./loginAttempts.js";
 
 /**

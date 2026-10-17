@@ -4,7 +4,7 @@ import {
   type AuditLogResponse,
   type ShareUser,
 } from "@manifesto/shared";
-import type { StorageDriver } from "../storage/types.js";
+import type { StorageDriver } from "#/storage/types.js";
 
 export interface AuditPageQuery {
   limit?: string | undefined;

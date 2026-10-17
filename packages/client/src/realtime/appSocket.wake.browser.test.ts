@@ -17,7 +17,7 @@ const editingNoteId = signal<string | null>(null);
 const notes = signal<unknown[]>([]);
 const syncNotes = vi.fn(async () => {});
 
-vi.mock("../state/account/auth.js", () => ({
+vi.mock("#/state/account/auth.js", () => ({
   authToken,
   clearAuthLocal: () => {
     authToken.value = null;
@@ -25,29 +25,29 @@ vi.mock("../state/account/auth.js", () => ({
   isServerMode: true,
   WS_ORIGIN: "ws://notes.invalid",
 }));
-vi.mock("../state/comments.js", () => ({
+vi.mock("#/state/comments.js", () => ({
   forgetComment: () => {},
   receiveComment: () => {},
   reloadComments: () => {},
 }));
-vi.mock("../state/notesStore.js", () => ({
+vi.mock("#/state/notesStore.js", () => ({
   forgetNote: () => {},
   notes,
   syncNotes,
   receiveNote: () => {},
 }));
-vi.mock("../state/presence.js", () => ({
+vi.mock("#/state/presence.js", () => ({
   clearPresence: () => {},
   recordPresenceJoin: () => {},
   recordPresenceLeave: () => {},
 }));
-vi.mock("../state/sharing.js", () => ({
+vi.mock("#/state/sharing.js", () => ({
   forgetInvitation: () => {},
   loadInvitations: async () => {},
   receiveInvitation: () => {},
 }));
-vi.mock("../state/ui.js", () => ({ editingNoteId }));
-vi.mock("../state/unsentNotes.js", () => ({ sendUnsent: async () => {} }));
+vi.mock("#/state/ui.js", () => ({ editingNoteId }));
+vi.mock("#/state/unsentNotes.js", () => ({ sendUnsent: async () => {} }));
 
 const dialled: FakeSocket[] = [];
 

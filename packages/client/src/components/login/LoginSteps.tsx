@@ -1,6 +1,6 @@
 import type { PasskeyRequestOptions } from "@manifesto/shared";
-import { t } from "../../i18n/index.js";
-import { passkeysSupported } from "../../utils/webauthn.js";
+import { t } from "#/i18n/index.js";
+import { passkeysSupported } from "#/utils/webauthn.js";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
 
 // The steps a password sign-in can pass through after the password itself.

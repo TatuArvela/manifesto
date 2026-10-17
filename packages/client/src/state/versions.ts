@@ -1,6 +1,6 @@
 import { NOTE_VERSION_MAX_AGE_DAYS, type NoteVersion } from "@manifesto/shared";
-import { storage, storageConnection } from "../storage/index.js";
-import { deleteVersions, getVersions } from "../storage/VersionStorage.js";
+import { storage, storageConnection } from "#/storage/index.js";
+import { deleteVersions, getVersions } from "#/storage/VersionStorage.js";
 import { notes } from "./notesStore.js";
 
 /**

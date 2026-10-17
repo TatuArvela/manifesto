@@ -1,7 +1,7 @@
 import { MAX_IMAGE_SOURCE_BYTES } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { APP_NAME } from "../config.js";
-import { locale } from "../state/prefs.js";
+import { APP_NAME } from "#/config.js";
+import { locale } from "#/state/prefs.js";
 import { detectBrowserLocale } from "./detect.js";
 import {
   formatDate,

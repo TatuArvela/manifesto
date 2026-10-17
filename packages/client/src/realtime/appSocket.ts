@@ -11,35 +11,32 @@ import {
   clearAuthLocal,
   isServerMode,
   WS_ORIGIN,
-} from "../state/account/auth.js";
+} from "#/state/account/auth.js";
 import {
   forgetComment,
   receiveComment,
   reloadComments,
-} from "../state/comments.js";
+} from "#/state/comments.js";
 import {
   forgetNote,
   notes,
   receiveNote,
   syncNotes,
-} from "../state/notesStore.js";
-import {
-  receiveAccountPrefs,
-  refreshAccountPrefs,
-} from "../state/prefsSync.js";
+} from "#/state/notesStore.js";
+import { receiveAccountPrefs, refreshAccountPrefs } from "#/state/prefsSync.js";
 import {
   clearPresence,
   recordPresenceJoin,
   recordPresenceLeave,
-} from "../state/presence.js";
+} from "#/state/presence.js";
 import {
   forgetInvitation,
   loadInvitations,
   receiveInvitation,
-} from "../state/sharing.js";
-import { editingNoteId } from "../state/ui.js";
-import { sendUnsent } from "../state/unsentNotes.js";
-import { sealer } from "../storage/sealing.js";
+} from "#/state/sharing.js";
+import { editingNoteId } from "#/state/ui.js";
+import { sendUnsent } from "#/state/unsentNotes.js";
+import { sealer } from "#/storage/sealing.js";
 import { trackConnection } from "./connectionOutage.js";
 
 const SUBPROTOCOL = "manifesto-session";

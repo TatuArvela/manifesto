@@ -1,4 +1,8 @@
-import type { CreateSessionInput, Session, SessionsRepo } from "../types.js";
+import type {
+  CreateSessionInput,
+  Session,
+  SessionsRepo,
+} from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 interface SessionRow {

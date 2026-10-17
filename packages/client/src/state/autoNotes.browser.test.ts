@@ -9,9 +9,9 @@ import {
   removePlugin,
   setPluginReads,
   togglePlugin,
-} from "../autoNotes/registry.js";
-import { resetSandbox } from "../autoNotes/sandbox.js";
-import { defined } from "../test/defined.js";
+} from "#/autoNotes/registry.js";
+import { resetSandbox } from "#/autoNotes/sandbox.js";
+import { defined } from "#/test/defined.js";
 import {
   autoNotes,
   drawnWithoutImages,

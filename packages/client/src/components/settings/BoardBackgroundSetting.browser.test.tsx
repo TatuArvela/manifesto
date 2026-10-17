@@ -1,14 +1,14 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import "../../styles.css";
-import { t } from "../../i18n/index.js";
+import "#/styles.css";
+import { t } from "#/i18n/index.js";
 import {
   boardColor,
   boardCustomColor,
   boardTexture,
   boardTextureOpacity,
   boardUsePicture,
-} from "../../state/prefs.js";
+} from "#/state/prefs.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
 
 let host: HTMLDivElement;

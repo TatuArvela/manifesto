@@ -5,15 +5,15 @@ import type {
   SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { defined } from "../test/defined.js";
-import { heldKeyOf } from "../test/keyedTokens.js";
+import { defined } from "#/test/defined.js";
+import { heldKeyOf } from "#/test/keyedTokens.js";
 import {
   authHeaders,
   bootTestApp,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 import { MAX_BATCH } from "./routes.js";
 
 interface RpcAnswer {

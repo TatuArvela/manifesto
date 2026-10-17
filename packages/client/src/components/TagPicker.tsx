@@ -1,9 +1,9 @@
 import { normalizeTag } from "@manifesto/shared";
 import { Square, SquareCheck, SquareMinus, Tag } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { t } from "../i18n/index.js";
-import { allTags } from "../state/views.js";
-import { tagCoverage } from "../utils/tagCoverage.js";
+import { t } from "#/i18n/index.js";
+import { allTags } from "#/state/views.js";
+import { tagCoverage } from "#/utils/tagCoverage.js";
 import { Dropdown, type DropdownPlacement } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
 

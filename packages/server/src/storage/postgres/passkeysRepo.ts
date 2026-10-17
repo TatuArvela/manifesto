@@ -2,8 +2,8 @@ import {
   PASSKEY_COLUMNS,
   type PasskeyRow,
   rowToPasskey,
-} from "../passkeyMapping.js";
-import type { PasskeysRepo } from "../types.js";
+} from "#/storage/passkeyMapping.js";
+import type { PasskeysRepo } from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 export function createPostgresPasskeysRepo(pool: PgPool): PasskeysRepo {

@@ -1,13 +1,13 @@
 import { derivable, type Note, NoteLimitError } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "../storage/index.js";
-import { dropAllOffline } from "../storage/offlineNotes.js";
-import { ImageUploadError, RequestError } from "../storage/RestApiAdapter.js";
+import { storageConnection } from "#/storage/index.js";
+import { dropAllOffline } from "#/storage/offlineNotes.js";
+import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.js";
 import {
   LockedError,
   type StorageKeys,
   storageKeys,
-} from "../storage/sealing.js";
+} from "#/storage/sealing.js";
 import { notes } from "./notesStore.js";
 import {
   discardUnsent,

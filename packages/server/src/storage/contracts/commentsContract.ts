@@ -1,6 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver, StoredComment } from "../types.js";
+import type { StorageDriver, StoredComment } from "#/storage/types.js";
 import { claimed } from "./claimed.js";
 
 /**

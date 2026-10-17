@@ -12,7 +12,7 @@ import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
 import type { EditorState, Transaction } from "@milkdown/kit/prose/state";
 import { liftTarget } from "@milkdown/kit/prose/transform";
 import { callCommand } from "@milkdown/kit/utils";
-import type { ActiveFormats, FormatType } from "../utils/formatTypes.js";
+import type { ActiveFormats, FormatType } from "#/utils/formatTypes.js";
 import { insertBlock } from "./blockInsertion.js";
 import { toggleCodeBlock } from "./codeBlockToggle.js";
 import { coveredRange } from "./coveredRange.js";

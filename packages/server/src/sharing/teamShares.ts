@@ -1,6 +1,6 @@
 import type { ShareRole } from "@manifesto/shared";
-import { nowIso } from "../lib/time.js";
-import type { NoteShare, StorageDriver } from "../storage/types.js";
+import { nowIso } from "#/lib/time.js";
+import type { NoteShare, StorageDriver } from "#/storage/types.js";
 import type { AccessChanges } from "./accessChanges.js";
 import type { NoteEvents } from "./noteEvents.js";
 

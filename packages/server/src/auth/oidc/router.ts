@@ -1,23 +1,23 @@
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import * as openid from "openid-client";
-import { audit } from "../../audit/audit.js";
-import type { OidcConfig, ServerConfig } from "../../config.js";
-import { logger } from "../../lib/logger.js";
-import { nowIso } from "../../lib/time.js";
-import { newId, newShortSuffix } from "../../lib/ulid.js";
-import type { AuthContext } from "../../middleware/authBearer.js";
-import { HttpError } from "../../middleware/error.js";
+import { audit } from "#/audit/audit.js";
+import { issueSession, revokeSession } from "#/auth/session.js";
+import type { AuthProviderRouter } from "#/auth/types.js";
+import { pickAvatarColor } from "#/auth/users.js";
+import type { OidcConfig, ServerConfig } from "#/config.js";
+import { logger } from "#/lib/logger.js";
+import { nowIso } from "#/lib/time.js";
+import { newId, newShortSuffix } from "#/lib/ulid.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
 import {
   type CreateUserInput,
   EmailTakenError,
   type StorageDriver,
   UsernameTakenError,
-} from "../../storage/types.js";
-import { emailSchema } from "../../validation/schemas.js";
-import { issueSession, revokeSession } from "../session.js";
-import type { AuthProviderRouter } from "../types.js";
-import { pickAvatarColor } from "../users.js";
+} from "#/storage/types.js";
+import { emailSchema } from "#/validation/schemas.js";
 import type { OidcDiscoveryClient } from "./provider.js";
 
 interface OidcRouterDeps {

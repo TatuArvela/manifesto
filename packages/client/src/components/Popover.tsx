@@ -1,8 +1,8 @@
 import type { ComponentChildren } from "preact";
 import { createPortal } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { tabbableIn } from "../hooks/useFocusTrap.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { tabbableIn } from "#/hooks/useFocusTrap.js";
 import { computePanelPosition, type DropdownPlacement } from "./Dropdown.js";
 import { hideAllTooltips } from "./Tooltip.js";
 

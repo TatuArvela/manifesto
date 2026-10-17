@@ -3,7 +3,13 @@ import path from "node:path";
 import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
 import { playwright } from "@vitest/browser-playwright";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import {
+  defaultClientConditions,
+  defaultServerConditions,
+  defineConfig,
+  loadEnv,
+  type Plugin,
+} from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { resolveBuildVersion } from "../build-version/src/index.ts";
 
@@ -390,6 +396,14 @@ export default defineConfig(({ mode }) => {
           import.meta.dirname,
           "../shared/src/index.ts",
         ),
+      },
+      // Shared's own `#/` imports, read from source for the same reason: its
+      // import map sends anyone without this condition to `dist/`.
+      conditions: [...defaultClientConditions, "manifesto-source"],
+    },
+    ssr: {
+      resolve: {
+        conditions: [...defaultServerConditions, "manifesto-source"],
       },
     },
     plugins: [

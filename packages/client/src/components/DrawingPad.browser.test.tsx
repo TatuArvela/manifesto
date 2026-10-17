@@ -1,13 +1,13 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cdp } from "vitest/browser";
-import { t } from "../i18n/index.js";
-import { answerConfirmation, confirmRequest } from "../state/confirm.js";
-import { drawingRequest, requestDrawing } from "../state/drawing.js";
-import { afterHistorySettles } from "../state/sheetHistory.js";
-import { DRAWING_HEIGHT, DRAWING_WIDTH } from "../utils/drawing.js";
+import { t } from "#/i18n/index.js";
+import { answerConfirmation, confirmRequest } from "#/state/confirm.js";
+import { drawingRequest, requestDrawing } from "#/state/drawing.js";
+import { afterHistorySettles } from "#/state/sheetHistory.js";
+import { DRAWING_HEIGHT, DRAWING_WIDTH } from "#/utils/drawing.js";
 import { DrawingPad } from "./DrawingPad.js";
-import "../styles.css";
+import "#/styles.css";
 
 type Cdp = { send: (method: string, params?: object) => Promise<unknown> };
 const session = () => cdp() as unknown as Cdp;

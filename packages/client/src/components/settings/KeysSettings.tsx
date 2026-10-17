@@ -1,6 +1,13 @@
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { t } from "../../i18n/index.js";
+import { buttonClass } from "#/components/buttonClasses.js";
+import {
+  ConfirmationError,
+  ConfirmPasswordField,
+} from "#/components/ConfirmWithPassword.js";
+import { KeepSheetStep } from "#/components/login/KeySheet.js";
+import { QrCode } from "#/components/QrCode.js";
+import { t } from "#/i18n/index.js";
 import {
   abandonRenewal,
   completeRenewal,
@@ -9,15 +16,8 @@ import {
   revealSecretKey,
   secretKeyAddress,
   sheetFor,
-} from "../../state/account/accountKeys.js";
-import type { ConfirmationRefusal } from "../../state/account/passwordConfirmation.js";
-import { buttonClass } from "../buttonClasses.js";
-import {
-  ConfirmationError,
-  ConfirmPasswordField,
-} from "../ConfirmWithPassword.js";
-import { KeepSheetStep } from "../login/KeySheet.js";
-import { QrCode } from "../QrCode.js";
+} from "#/state/account/accountKeys.js";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
 
 /** What each button asks the password for. */
 type Purpose = "reveal" | "newSecret" | "newRecovery";

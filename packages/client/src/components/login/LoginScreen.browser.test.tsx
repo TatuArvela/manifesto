@@ -1,8 +1,8 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../../i18n/index.js";
-import { defined } from "../../test/defined.js";
+import { t } from "#/i18n/index.js";
+import { defined } from "#/test/defined.js";
 import { LoginScreen } from "./LoginScreen.js";
 
 const calls: { password: string; otp: string | undefined }[] = [];
@@ -18,8 +18,8 @@ const LOCAL: CapabilitiesResponse["auth"] = {
 };
 let auth = LOCAL;
 
-vi.mock("../../state/account/auth.js", async (original) => {
-  const actual = await original<typeof import("../../state/account/auth.js")>();
+vi.mock("#/state/account/auth.js", async (original) => {
+  const actual = await original<typeof import("#/state/account/auth.js")>();
   return {
     ...actual,
     fetchCapabilities: async () => ({ auth }),

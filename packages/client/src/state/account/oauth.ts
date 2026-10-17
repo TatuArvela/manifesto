@@ -4,8 +4,8 @@ import type {
   OAuthAuthorizeResponse,
   OAuthClientInfo,
 } from "@manifesto/shared";
-import { apiFetch } from "../../storage/apiRequest.js";
-import { sealer } from "../../storage/sealing.js";
+import { apiFetch } from "#/storage/apiRequest.js";
+import { sealer } from "#/storage/sealing.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,

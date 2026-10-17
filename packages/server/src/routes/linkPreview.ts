@@ -1,10 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
 import type { LinkPreviewResponse } from "@manifesto/shared";
 import { Hono } from "hono";
-import type { LinkPreviewFetcher } from "../linkPreview/fetchPreview.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { linkPreviewQuerySchema } from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+import type { LinkPreviewFetcher } from "#/linkPreview/fetchPreview.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { linkPreviewQuerySchema } from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 
 interface LinkPreviewDeps {
   fetchPreview: LinkPreviewFetcher;

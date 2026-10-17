@@ -5,6 +5,12 @@
   "license": "MIT",
   "author": "Tatu Arvela",
   "type": "module",
+  "imports": {
+    "#/*": {
+      "manifesto-source": "./src/*",
+      "default": "./dist/*"
+    }
+  },
   "exports": {
     ".": {
       "types": "./src/index.ts",

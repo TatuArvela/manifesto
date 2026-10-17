@@ -7,7 +7,7 @@ import {
   signal,
   untracked,
 } from "@preact/signals";
-import { inkHex, pictureTextures } from "../utils/boardTextures.js";
+import { inkHex, pictureTextures } from "#/utils/boardTextures.js";
 import {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,

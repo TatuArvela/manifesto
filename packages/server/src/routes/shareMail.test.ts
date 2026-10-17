@@ -1,12 +1,12 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "../app.js";
-import { createAuthProvider } from "../auth/index.js";
-import { createMemoryMailer } from "../mail/mailer.js";
-import { createStorage } from "../storage/index.js";
-import type { StorageDriver } from "../storage/types.js";
-import { sealingClient } from "../test/sealingClient.js";
-import { authHeaders, TEST_CONFIG } from "../test/setup.js";
+import { createApp } from "#/app.js";
+import { createAuthProvider } from "#/auth/index.js";
+import { createMemoryMailer } from "#/mail/mailer.js";
+import { createStorage } from "#/storage/index.js";
+import type { StorageDriver } from "#/storage/types.js";
+import { sealingClient } from "#/test/sealingClient.js";
+import { authHeaders, TEST_CONFIG } from "#/test/setup.js";
 import { INVITATION_MAILS_PER_HOUR } from "./shares.js";
 
 const cfg = {

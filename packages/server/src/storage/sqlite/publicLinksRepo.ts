@@ -2,8 +2,8 @@ import {
   PUBLIC_LINK_COLUMNS,
   type PublicLinkRow,
   rowToPublicLink,
-} from "../publicLinkMapping.js";
-import type { PublicLinksRepo } from "../types.js";
+} from "#/storage/publicLinkMapping.js";
+import type { PublicLinksRepo } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {

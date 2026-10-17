@@ -1,7 +1,7 @@
 import type { ApiTokenScope } from "@manifesto/shared";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import type { AuthIdentity, AuthProvider } from "../auth/types.js";
+import type { AuthIdentity, AuthProvider } from "#/auth/types.js";
 import { createAuthMiddleware } from "./authBearer.js";
 import { onError } from "./error.js";
 

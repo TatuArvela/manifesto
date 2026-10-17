@@ -1,22 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { hashPassword, verifyPassword } from "../../lib/password.js";
+import { issueSession } from "#/auth/session.js";
+import { hashPassword, verifyPassword } from "#/lib/password.js";
 import {
   authHeaders,
   bootTestApp,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "../../test/setup.js";
-import { issueSession } from "../session.js";
+} from "#/test/setup.js";
 import { MAX_LOGIN_FAILURES } from "./loginAttempts.js";
 
 // Spied, not replaced: these tests ask how many argon2 operations a request
 // spent, which is the whole of what separates a known username from an
 // unknown one.
-vi.mock("../../lib/password.js", async () => {
-  const actual = await vi.importActual<typeof import("../../lib/password.js")>(
-    "../../lib/password.js",
-  );
+vi.mock("#/lib/password.js", async () => {
+  const actual =
+    await vi.importActual<typeof import("#/lib/password.js")>(
+      "#/lib/password.js",
+    );
   return {
     hashPassword: vi.fn(actual.hashPassword),
     verifyPassword: vi.fn(actual.verifyPassword),

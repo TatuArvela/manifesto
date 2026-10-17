@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "../../app.js";
-import { createMemoryMailer } from "../../mail/mailer.js";
-import { createStorage } from "../../storage/index.js";
-import type { StorageDriver } from "../../storage/types.js";
-import { defined } from "../../test/defined.js";
-import { sealingClient } from "../../test/sealingClient.js";
-import { authHeaders, TEST_CONFIG } from "../../test/setup.js";
-import { createAuthProvider } from "../index.js";
+import { createApp } from "#/app.js";
+import { createAuthProvider } from "#/auth/index.js";
+import { createMemoryMailer } from "#/mail/mailer.js";
+import { createStorage } from "#/storage/index.js";
+import type { StorageDriver } from "#/storage/types.js";
+import { defined } from "#/test/defined.js";
+import { sealingClient } from "#/test/sealingClient.js";
+import { authHeaders, TEST_CONFIG } from "#/test/setup.js";
 
 const cfg = {
   ...TEST_CONFIG,

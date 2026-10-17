@@ -10,7 +10,7 @@ import {
   registerSchema,
   signInLinkConfirmSchema,
   signInLinkRequestSchema,
-} from "../validation/schemas.js";
+} from "#/validation/schemas.js";
 import { noContent, type Operation, ok } from "./operation.js";
 
 /**

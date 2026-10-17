@@ -5,20 +5,20 @@ import type {
   OAuthClientInfo,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { requireConfirmation } from "../auth/confirmation.js";
-import type { LoginAttempts } from "../auth/local/loginAttempts.js";
-import type { SessionRevocations } from "../auth/revocations.js";
-import { isoPlusDays, nowIso } from "../lib/time.js";
-import { hashToken, MAX_API_TOKENS_PER_USER } from "../lib/token.js";
-import { newId } from "../lib/ulid.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { StorageDriver } from "../storage/types.js";
+import { requireConfirmation } from "#/auth/confirmation.js";
+import type { LoginAttempts } from "#/auth/local/loginAttempts.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import { isoPlusDays, nowIso } from "#/lib/time.js";
+import { hashToken, MAX_API_TOKENS_PER_USER } from "#/lib/token.js";
+import { newId } from "#/lib/ulid.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
 import {
   oauthAuthorizeSchema,
   oauthRegisterSchema,
-} from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 import {
   MAX_CLIENT_NAME_LENGTH,
   type ResolvedClient,

@@ -9,22 +9,22 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { type AppHandle, createApp } from "../app.js";
-import { createAuthProvider } from "../auth/index.js";
-import { hashToken } from "../lib/token.js";
-import { PUSH_DROP_AFTER } from "../push/sender.js";
-import { fromB64url } from "../push/webPush.js";
-import { ciphertext, plain } from "../storage/contracts/claimed.js";
-import { createStorage } from "../storage/index.js";
-import type { StorageDriver } from "../storage/types.js";
+import { type AppHandle, createApp } from "#/app.js";
+import { createAuthProvider } from "#/auth/index.js";
+import { hashToken } from "#/lib/token.js";
+import { PUSH_DROP_AFTER } from "#/push/sender.js";
+import { fromB64url } from "#/push/webPush.js";
+import { ciphertext, plain } from "#/storage/contracts/claimed.js";
+import { createStorage } from "#/storage/index.js";
+import type { StorageDriver } from "#/storage/types.js";
 import {
   newTestSubscription,
   startTestPushService,
   type TestPushService,
   type TestSubscription,
-} from "../test/pushReceiver.js";
-import { sealingClient } from "../test/sealingClient.js";
-import { authHeaders, TEST_CONFIG } from "../test/setup.js";
+} from "#/test/pushReceiver.js";
+import { sealingClient } from "#/test/sealingClient.js";
+import { authHeaders, TEST_CONFIG } from "#/test/setup.js";
 import { isDueForPush, pushDueReminders } from "./pushReminders.js";
 
 const NOW = Date.parse("2026-10-03T12:00:00Z");

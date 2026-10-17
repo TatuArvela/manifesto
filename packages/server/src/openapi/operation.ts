@@ -1,6 +1,6 @@
 import type { ApiTokenScope, ServerFeature } from "@manifesto/shared";
 import type { z } from "zod";
-import type { Bucket } from "../middleware/protect.js";
+import type { Bucket } from "#/middleware/protect.js";
 
 type Auth = "none" | "any" | "session" | "mcp" | "admin";
 

@@ -1,7 +1,7 @@
 import { h, render } from "preact";
 import { useState } from "preact/hooks";
 import { describe, expect, it } from "vitest";
-import "../styles.css";
+import "#/styles.css";
 import { Dropdown } from "./Dropdown.js";
 
 describe("trigger", () => {

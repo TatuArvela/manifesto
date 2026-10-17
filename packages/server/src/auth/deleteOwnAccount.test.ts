@@ -5,7 +5,7 @@ import {
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 
 describe("DELETE /api/auth/me", () => {
   let rig: TestRig;

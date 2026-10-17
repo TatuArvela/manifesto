@@ -1,11 +1,11 @@
 import { Ban, ChevronDown, ImagePlus, Shuffle, Trash2 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { t } from "../../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import {
   boardImageUrl,
   removeBoardImage,
   setBoardImage,
-} from "../../state/board.js";
+} from "#/state/board.js";
 import {
   BOARD_COLORS,
   BOARD_NEUTRALS,
@@ -21,7 +21,7 @@ import {
   rerollBoardTexture,
   resolvedBoardColor,
   resolvedBoardTexture,
-} from "../../state/prefs.js";
+} from "#/state/prefs.js";
 import { BoardGradientPicker } from "./BoardGradientPicker.js";
 import { BoardInkPicker } from "./BoardInkPicker.js";
 import { BoardOpacitySlider } from "./BoardOpacitySlider.js";

@@ -17,24 +17,24 @@ import {
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
 import type { Context, Hono } from "hono";
-import { audit } from "../../audit/audit.js";
-import type { ServerConfig } from "../../config.js";
-import { publicOrigin } from "../../lib/origin.js";
-import { nowIso } from "../../lib/time.js";
-import { newId } from "../../lib/ulid.js";
-import type { AuthContext } from "../../middleware/authBearer.js";
-import { HttpError } from "../../middleware/error.js";
-import { listedPasskey } from "../../storage/passkeyMapping.js";
-import type { StorageDriver, StoredPasskey } from "../../storage/types.js";
+import { audit } from "#/audit/audit.js";
+import { requireConfirmation } from "#/auth/confirmation.js";
+import { issueSession } from "#/auth/session.js";
+import { toAuthUser } from "#/auth/users.js";
+import type { ServerConfig } from "#/config.js";
+import { publicOrigin } from "#/lib/origin.js";
+import { nowIso } from "#/lib/time.js";
+import { newId } from "#/lib/ulid.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import { listedPasskey } from "#/storage/passkeyMapping.js";
+import type { StorageDriver, StoredPasskey } from "#/storage/types.js";
 import {
   passkeyAddSchema,
   passkeyLoginSchema,
   twoFactorPasswordSchema,
-} from "../../validation/schemas.js";
-import { validatorHook } from "../../validation/zValidator.js";
-import { requireConfirmation } from "../confirmation.js";
-import { issueSession } from "../session.js";
-import { toAuthUser } from "../users.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 import type { LoginAttempts } from "./loginAttempts.js";
 
 /** Enough for every device and key a person owns, and a bound on a script. */

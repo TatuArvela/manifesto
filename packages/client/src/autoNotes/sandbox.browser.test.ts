@@ -1,7 +1,7 @@
 import type { NoteColor } from "@manifesto/shared";
 import { afterEach, describe, expect, it } from "vitest";
+import { defined } from "#/test/defined.js";
 import openTasksExample from "../../../../docs/examples/open-tasks.js?raw";
-import { defined } from "../test/defined.js";
 import { resetSandbox, runPlugin } from "./sandbox.js";
 import type { ApproxLabels } from "./stdlib.js";
 

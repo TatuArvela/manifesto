@@ -1,12 +1,12 @@
-import type { ServerConfig } from "../../config.js";
-import type { StorageDriver } from "../../storage/types.js";
-import { authenticateBySession } from "../session.js";
+import { authenticateBySession } from "#/auth/session.js";
 import type {
   AuthIdentity,
   AuthProvider,
   AuthProviderRouter,
   AuthRouterContext,
-} from "../types.js";
+} from "#/auth/types.js";
+import type { ServerConfig } from "#/config.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { createLocalAuthRouter } from "./router.js";
 
 interface LocalAuthProviderDeps {

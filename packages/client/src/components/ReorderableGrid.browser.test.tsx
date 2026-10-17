@@ -1,11 +1,11 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { options, render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { notes } from "../state/notesStore.js";
-import { noteSize, viewMode } from "../state/prefs.js";
-import { editingNoteId, selectedNotes, selectMode } from "../state/ui.js";
-import { defined } from "../test/defined.js";
-import "../styles.css";
+import { notes } from "#/state/notesStore.js";
+import { noteSize, viewMode } from "#/state/prefs.js";
+import { editingNoteId, selectedNotes, selectMode } from "#/state/ui.js";
+import { defined } from "#/test/defined.js";
+import "#/styles.css";
 
 /**
  * `NoteGrid` and `AutoNotesView` each had their own masonry pass and their own
@@ -34,7 +34,7 @@ vi.stubGlobal("matchMedia", (query: string) => {
 });
 
 const { ReorderableGrid } = await import("./ReorderableGrid.js");
-const { moveInto } = await import("../hooks/useReorderDrag.js");
+const { moveInto } = await import("#/hooks/useReorderDrag.js");
 
 function makeNote(id: string, title: string, position: number): Note {
   return {

@@ -3,7 +3,7 @@ import {
   MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
   MAX_LINK_PREVIEW_TITLE_LENGTH,
 } from "@manifesto/shared";
-import { logger } from "../lib/logger.js";
+import { logger } from "#/lib/logger.js";
 import { decodeHtml, extractMetadata } from "./parseHtml.js";
 import { type SafeFetchOptions, safeFetch } from "./safeFetch.js";
 

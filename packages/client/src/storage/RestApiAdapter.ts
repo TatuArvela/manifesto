@@ -25,7 +25,7 @@ import {
   previewImages,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
-import { dataUrlToBlob } from "../utils/dataUrl.js";
+import { dataUrlToBlob } from "#/utils/dataUrl.js";
 import type {
   CreateOptions,
   NoteChanges,

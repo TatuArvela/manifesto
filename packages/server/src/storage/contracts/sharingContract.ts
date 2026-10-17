@@ -5,7 +5,7 @@ import {
   EmailTakenError,
   NoteAccessError,
   type StorageDriver,
-} from "../types.js";
+} from "#/storage/types.js";
 import {
   ciphertext,
   claimed,

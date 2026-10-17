@@ -7,8 +7,8 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { animations } from "../state/prefs.js";
-import { edgeScroll, scrollParent } from "../utils/edgeScroll.js";
+import { animations } from "#/state/prefs.js";
+import { edgeScroll, scrollParent } from "#/utils/edgeScroll.js";
 
 /** How far the pointer must travel after the order changes before it may change again. */
 const REORDER_SETTLE_PX = 8;

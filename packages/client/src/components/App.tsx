@@ -1,26 +1,26 @@
 import { effect } from "@preact/signals";
 import { Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useBoardShortcuts } from "../hooks/useBoardShortcuts.js";
-import { useFileDropImport } from "../hooks/useFileDropImport.js";
-import { useLazyModule } from "../hooks/useLazyModule.js";
-import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
-import { useMediaQuery } from "../hooks/useMediaQuery.js";
-import { usePresence } from "../hooks/usePresence.js";
-import { useScrollAwayBar } from "../hooks/useScrollAwayBar.js";
+import { useBoardShortcuts } from "#/hooks/useBoardShortcuts.js";
+import { useFileDropImport } from "#/hooks/useFileDropImport.js";
+import { useLazyModule } from "#/hooks/useLazyModule.js";
+import { useMarqueeSelection } from "#/hooks/useMarqueeSelection.js";
+import { useMediaQuery } from "#/hooks/useMediaQuery.js";
+import { usePresence } from "#/hooks/usePresence.js";
+import { useScrollAwayBar } from "#/hooks/useScrollAwayBar.js";
 import {
   PANE_SLIDE_MS,
   usePaneSlide,
   useViewTransition,
-} from "../hooks/useViewTransition.js";
-import { t } from "../i18n/index.js";
-import { startAppSocket } from "../realtime/appSocket.js";
-import { revealApp } from "../splash.js";
+} from "#/hooks/useViewTransition.js";
+import { t } from "#/i18n/index.js";
+import { startAppSocket } from "#/realtime/appSocket.js";
+import { revealApp } from "#/splash.js";
 import {
   keyState,
   takeSecretKeyFromAddress,
-} from "../state/account/accountKeys.js";
-import { startAccountLocaleReport } from "../state/account/accountLocale.js";
+} from "#/state/account/accountKeys.js";
+import { startAccountLocaleReport } from "#/state/account/accountLocale.js";
 import {
   authToken,
   consumeOidcRedirect,
@@ -29,21 +29,21 @@ import {
   isServerMode,
   refreshCurrentUser,
   takeSignInLinkToken,
-} from "../state/account/auth.js";
-import { takeConsentPage } from "../state/account/oauth.js";
-import { checkForUpdate } from "../state/admin.js";
-import { initAutoNotes } from "../state/autoNotes.js";
-import { initBoardBackground } from "../state/board.js";
-import { closeDrawing, drawingRequest } from "../state/drawing.js";
-import { takeIncomingShare } from "../state/incomingShare.js";
-import { loadNotes, notes, updateNote } from "../state/notesStore.js";
-import { animations, stickyTopBar, viewMode } from "../state/prefs.js";
-import { startPrefsSync } from "../state/prefsSync.js";
-import { publicLinksDialog } from "../state/publicLinks.js";
-import { ensurePushSubscription } from "../state/pushSubscription.js";
-import { initReminderScheduler } from "../state/reminderScheduler.js";
-import { initRouter } from "../state/router.js";
-import { loadInvitations, shareDialog } from "../state/sharing.js";
+} from "#/state/account/auth.js";
+import { takeConsentPage } from "#/state/account/oauth.js";
+import { checkForUpdate } from "#/state/admin.js";
+import { initAutoNotes } from "#/state/autoNotes.js";
+import { initBoardBackground } from "#/state/board.js";
+import { closeDrawing, drawingRequest } from "#/state/drawing.js";
+import { takeIncomingShare } from "#/state/incomingShare.js";
+import { loadNotes, notes, updateNote } from "#/state/notesStore.js";
+import { animations, stickyTopBar, viewMode } from "#/state/prefs.js";
+import { startPrefsSync } from "#/state/prefsSync.js";
+import { publicLinksDialog } from "#/state/publicLinks.js";
+import { ensurePushSubscription } from "#/state/pushSubscription.js";
+import { initReminderScheduler } from "#/state/reminderScheduler.js";
+import { initRouter } from "#/state/router.js";
+import { loadInvitations, shareDialog } from "#/state/sharing.js";
 import {
   activeView,
   editingNoteId,
@@ -52,12 +52,12 @@ import {
   showSettings,
   showShortcuts,
   showWelcome,
-} from "../state/ui.js";
-import { welcomeIfNew } from "../state/welcome.js";
+} from "#/state/ui.js";
+import { welcomeIfNew } from "#/state/welcome.js";
 import {
   decodeShareFromHash,
   type SharedNotePayload,
-} from "../utils/shareLink.js";
+} from "#/utils/shareLink.js";
 import { AutoNotesView } from "./AutoNotesView.js";
 import { ConfirmDialogHost } from "./ConfirmDialog.js";
 import { ConnectionStatus } from "./ConnectionStatus.js";

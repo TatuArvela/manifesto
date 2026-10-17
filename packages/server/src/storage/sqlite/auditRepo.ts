@@ -1,5 +1,9 @@
-import { type AuditRow, auditFilter, rowToAudit } from "../auditMapping.js";
-import type { AuditRecord, AuditRepo } from "../types.js";
+import {
+  type AuditRow,
+  auditFilter,
+  rowToAudit,
+} from "#/storage/auditMapping.js";
+import type { AuditRecord, AuditRepo } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 export function createSqliteAuditRepo(db: SqliteDB): AuditRepo {

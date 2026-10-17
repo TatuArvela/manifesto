@@ -6,15 +6,15 @@ import {
   type ShareUser,
 } from "@manifesto/shared";
 import type { Context, Hono } from "hono";
-import { nowIso } from "../lib/time.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { NoteEvents } from "../sharing/noteEvents.js";
+import { nowIso } from "#/lib/time.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { NoteEvents } from "#/sharing/noteEvents.js";
 import type {
   NoteAudience,
   StorageDriver,
   StoredComment,
-} from "../storage/types.js";
+} from "#/storage/types.js";
 import {
   commentBody,
   commentOut,

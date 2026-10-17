@@ -1,25 +1,25 @@
-import { t } from "../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import {
   archiveNote,
   moveNoteBy,
   type NoteMoveStep,
   trashNote,
   unarchiveNote,
-} from "../state/actions.js";
-import { confirmDeletion } from "../state/confirm.js";
-import { allNotes } from "../state/notesStore.js";
+} from "#/state/actions.js";
+import { confirmDeletion } from "#/state/confirm.js";
+import { allNotes } from "#/state/notesStore.js";
 import {
   activeTag,
   activeView,
   boardAnnouncement,
   newNoteRequested,
   showShortcuts,
-} from "../state/ui.js";
+} from "#/state/ui.js";
 import {
   cardAfterFocused,
   focusedNoteId,
   moveCardFocus,
-} from "../utils/cardFocus.js";
+} from "#/utils/cardFocus.js";
 import { useShortcut } from "./useShortcut.js";
 
 /**

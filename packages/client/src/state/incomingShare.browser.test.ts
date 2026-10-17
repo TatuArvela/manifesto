@@ -5,7 +5,7 @@ import {
   SHARE_IMAGE_KEY_PREFIX,
   SHARE_TARGET_PARAM,
   SHARE_TEXT_KEY,
-} from "../shareTarget.js";
+} from "#/shareTarget.js";
 import { incomingShare, takeIncomingShare } from "./incomingShare.js";
 import { activeView } from "./ui.js";
 

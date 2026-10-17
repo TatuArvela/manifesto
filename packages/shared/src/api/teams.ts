@@ -1,4 +1,4 @@
-import type { ShareRole, ShareUser } from "../note.js";
+import type { ShareRole, ShareUser } from "#/note.js";
 
 /**
  * Where a team's members come from: `local` teams are made and filled by an

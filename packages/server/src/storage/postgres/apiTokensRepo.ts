@@ -3,8 +3,8 @@ import {
   type ApiTokenRow,
   listedToken,
   rowToApiToken,
-} from "../apiTokenMapping.js";
-import type { ApiTokensRepo } from "../types.js";
+} from "#/storage/apiTokenMapping.js";
+import type { ApiTokensRepo } from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 export function createPostgresApiTokensRepo(pool: PgPool): ApiTokensRepo {

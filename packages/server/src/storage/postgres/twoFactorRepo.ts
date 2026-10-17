@@ -1,6 +1,6 @@
-import { AT_REST, atRest } from "../atRest.js";
-import { rowToTotp } from "../sqlite/twoFactorRepo.js";
-import type { TwoFactorRepo } from "../types.js";
+import { AT_REST, atRest } from "#/storage/atRest.js";
+import { rowToTotp } from "#/storage/sqlite/twoFactorRepo.js";
+import type { TwoFactorRepo } from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 /** See the SQLite copy. `begin` reads before it writes rather than using a
