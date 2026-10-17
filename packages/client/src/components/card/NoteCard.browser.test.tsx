@@ -1,12 +1,21 @@
 import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { userEvent } from "vitest/browser";
 import { escapeStackDepth } from "../../hooks/useEscapeStack.js";
 import { t } from "../../i18n/index.js";
 import { notes } from "../../state/notesStore.js";
 import { animations } from "../../state/prefs.js";
 import { activeView, editingNoteId } from "../../state/ui.js";
+import { loadEditor } from "../editor/lazyEditor.js";
 import { NoteCard } from "./NoteCard.js";
 
 /**
@@ -88,6 +97,11 @@ const MODAL_CLOSE_MS = 150;
 /** Waits past the close animation the card runs before it drops the modal. */
 const settle = () =>
   new Promise((resolve) => setTimeout(resolve, MODAL_CLOSE_MS + 50));
+
+// The app fetches the editor as soon as the board is up (`MainApp`), well
+// before a note is usually opened. Fetched here the same way, or the first
+// test to open one also waits out the whole chunk loading.
+beforeAll(() => loadEditor());
 
 beforeEach(() => {
   localStorage.clear();
