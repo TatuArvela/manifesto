@@ -1,14 +1,14 @@
 import { useState } from "preact/hooks";
-import { type MessageKey, t } from "../../i18n/index.js";
+import { type MessageKey, t } from "#/i18n/index.js";
 import {
   AuthRequestError,
   loginErrorKey,
   requestSignInLink,
   signInWithLink,
   TwoFactorRequiredError,
-} from "../../state/account/auth.js";
-import { locale } from "../../state/prefs.js";
-import { getPasskey } from "../../utils/webauthn.js";
+} from "#/state/account/auth.js";
+import { locale } from "#/state/prefs.js";
+import { getPasskey } from "#/utils/webauthn.js";
 import { type SecondFactor, TwoFactorStep } from "./LoginSteps.js";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.js";
 

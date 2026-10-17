@@ -1,7 +1,8 @@
 import { Monitor, Moon, Sun } from "lucide-preact";
-import { detectBrowserLocale } from "../../i18n/detect.js";
-import { t } from "../../i18n/index.js";
-import { type Locale, SUPPORTED_LOCALES } from "../../i18n/locales.js";
+import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.js";
+import { detectBrowserLocale } from "#/i18n/detect.js";
+import { t } from "#/i18n/index.js";
+import { type Locale, SUPPORTED_LOCALES } from "#/i18n/locales.js";
 import {
   animations,
   BOARD_COLORS,
@@ -18,8 +19,7 @@ import {
   stickyTopBar,
   type ThemeMode,
   theme,
-} from "../../state/prefs.js";
-import { Switch, ThreeWayToggle } from "../ToggleSwitch.js";
+} from "#/state/prefs.js";
 import { BoardBackgroundSetting } from "./BoardBackgroundSetting.js";
 import {
   SettingsGroup,

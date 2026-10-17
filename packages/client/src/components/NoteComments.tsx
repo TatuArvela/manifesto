@@ -7,12 +7,12 @@ import {
 import { MessageSquare, Pencil, Trash2, X } from "lucide-preact";
 import { createPortal } from "preact";
 import { useContext, useEffect, useState } from "preact/hooks";
-import { noteColorMap } from "../colors.js";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { useMediaQuery } from "../hooks/useMediaQuery.js";
-import { usePresence } from "../hooks/usePresence.js";
-import { formatDateTime, plural, t } from "../i18n/index.js";
-import { currentUser } from "../state/account/auth.js";
+import { noteColorMap } from "#/colors.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { useMediaQuery } from "#/hooks/useMediaQuery.js";
+import { usePresence } from "#/hooks/usePresence.js";
+import { formatDateTime, plural, t } from "#/i18n/index.js";
+import { currentUser } from "#/state/account/auth.js";
 import {
   addComment,
   commentLoadsFailed,
@@ -21,9 +21,9 @@ import {
   forgetComments,
   loadComments,
   noteComments,
-} from "../state/comments.js";
-import { askConfirmation } from "../state/confirm.js";
-import { serverFeature } from "../state/serverFeatures.js";
+} from "#/state/comments.js";
+import { askConfirmation } from "#/state/confirm.js";
+import { serverFeature } from "#/state/serverFeatures.js";
 import { Avatar } from "./Avatar.js";
 import { buttonClass } from "./buttonClasses.js";
 import {

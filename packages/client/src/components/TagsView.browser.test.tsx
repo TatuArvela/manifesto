@@ -1,13 +1,13 @@
 import { NoteColor } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getColorLabel, plural, t } from "../i18n/index.js";
-import { notes } from "../state/notesStore.js";
-import { hiddenTags, tagColors } from "../state/prefs.js";
-import { activeTag } from "../state/ui.js";
-import { createNoteOrFail } from "../test/testSupport.js";
+import { getColorLabel, plural, t } from "#/i18n/index.js";
+import { notes } from "#/state/notesStore.js";
+import { hiddenTags, tagColors } from "#/state/prefs.js";
+import { activeTag } from "#/state/ui.js";
+import { createNoteOrFail } from "#/test/testSupport.js";
 import { TagsView } from "./TagsView.js";
-import "../styles.css";
+import "#/styles.css";
 
 let host: HTMLDivElement;
 

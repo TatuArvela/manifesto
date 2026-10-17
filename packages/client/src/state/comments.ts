@@ -5,11 +5,11 @@ import type {
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { ulid } from "ulid";
-import { t } from "../i18n/index.js";
-import type { MessageKey } from "../i18n/messages/index.js";
-import { ApiError, apiJson } from "../storage/apiRequest.js";
-import { sealer } from "../storage/sealing.js";
-import { sealedNote } from "../storage/shareKeys.js";
+import { t } from "#/i18n/index.js";
+import type { MessageKey } from "#/i18n/messages/index.js";
+import { ApiError, apiJson } from "#/storage/apiRequest.js";
+import { sealer } from "#/storage/sealing.js";
+import { sealedNote } from "#/storage/shareKeys.js";
 import { showError } from "./ui.js";
 
 /**

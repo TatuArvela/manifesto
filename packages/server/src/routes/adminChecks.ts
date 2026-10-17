@@ -5,13 +5,13 @@ import {
   type ProxyFinding,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
-import type { ServerConfig } from "../config.js";
-import { jobStatuses } from "../lib/periodic.js";
-import type { Mailer, MailStatus } from "../mail/mailer.js";
-import { mailLocale, testMail } from "../mail/templates.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { StorageDriver } from "../storage/types.js";
+import type { ServerConfig } from "#/config.js";
+import { jobStatuses } from "#/lib/periodic.js";
+import type { Mailer, MailStatus } from "#/mail/mailer.js";
+import { mailLocale, testMail } from "#/mail/templates.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 

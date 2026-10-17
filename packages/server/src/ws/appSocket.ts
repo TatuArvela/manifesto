@@ -7,14 +7,14 @@ import {
   type WebSocketEvent,
 } from "@manifesto/shared";
 import type { Hono } from "hono";
-import type { SessionRevocations } from "../auth/revocations.js";
-import type { AuthProvider } from "../auth/types.js";
-import type { ServerConfig } from "../config.js";
-import { logger } from "../lib/logger.js";
-import { gaugeMetric } from "../lib/metrics.js";
-import { hashToken } from "../lib/token.js";
-import type { AccessChanges } from "../sharing/accessChanges.js";
-import type { StorageDriver } from "../storage/types.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import type { AuthProvider } from "#/auth/types.js";
+import type { ServerConfig } from "#/config.js";
+import { logger } from "#/lib/logger.js";
+import { gaugeMetric } from "#/lib/metrics.js";
+import { hashToken } from "#/lib/token.js";
+import type { AccessChanges } from "#/sharing/accessChanges.js";
+import type { StorageDriver } from "#/storage/types.js";
 import type { Broadcaster } from "./broadcaster.js";
 import { recheckSockets, SOCKET_RECHECK_MS } from "./recheck.js";
 

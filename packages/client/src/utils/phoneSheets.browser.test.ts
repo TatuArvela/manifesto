@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
 import { openSheet, openSheetCount } from "./phoneSheets.js";
-import "../styles.css";
+import "#/styles.css";
 
 /**
  * Real CSS in a real viewport: the point is where the browser lays things out

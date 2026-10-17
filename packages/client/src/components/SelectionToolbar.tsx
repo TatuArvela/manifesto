@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { getColorPickerColors, plural, t } from "../i18n/index.js";
+import { getColorPickerColors, plural, t } from "#/i18n/index.js";
 import {
   bulkArchive,
   bulkDelete,
@@ -19,12 +19,12 @@ import {
   bulkSetColor,
   bulkSetTag,
   bulkTrash,
-} from "../state/actions.js";
-import { askConfirmation } from "../state/confirm.js";
-import { notes } from "../state/notesStore.js";
-import { exitSelectMode, selectAllVisible } from "../state/selection.js";
-import { activeView, selectedNotes } from "../state/ui.js";
-import { sortedNotes } from "../state/views.js";
+} from "#/state/actions.js";
+import { askConfirmation } from "#/state/confirm.js";
+import { notes } from "#/state/notesStore.js";
+import { exitSelectMode, selectAllVisible } from "#/state/selection.js";
+import { activeView, selectedNotes } from "#/state/ui.js";
+import { sortedNotes } from "#/state/views.js";
 import { Dropdown } from "./Dropdown.js";
 import { SelectionTagPicker, tagPickerPanelClass } from "./TagPicker.js";
 import { Tooltip } from "./Tooltip.js";

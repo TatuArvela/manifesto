@@ -14,28 +14,34 @@ import {
   X,
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { plugins } from "../../autoNotes/registry.js";
-import { noteColorMap, noteFontFamilies } from "../../colors.js";
-import { useEscapeStack } from "../../hooks/useEscapeStack.js";
-import { usePresence } from "../../hooks/usePresence.js";
-import { getColorPickerColors, t } from "../../i18n/index.js";
-import { addTag, togglePin } from "../../state/actions.js";
-import { drawnWithoutImages, refreshAutoNotes } from "../../state/autoNotes.js";
-import { ensureImages, updateNote } from "../../state/notesStore.js";
-import { renderMarkdown } from "../../utils/remarkRenderer.js";
-import { withoutImages } from "../../utils/stripImages.js";
-import { Dropdown } from "../Dropdown.js";
-import { editorButtonClass, editorIconClass } from "../editor/editorButtons.js";
-import { ImageGallery } from "../ImageGallery.js";
-import { LinkPreviewList } from "../LinkPreviewList.js";
-import { NoteComments } from "../NoteComments.js";
-import { CARD_POPOVER_EXIT_MS, CardPopover } from "../Popover.js";
-import { ReminderChip } from "../ReminderChip.js";
-import { ReminderPicker, ReminderPickerPanel } from "../ReminderPicker.js";
-import { SharedPeople } from "../sharing/SharedAvatars.js";
-import { TagChip } from "../TagChip.js";
-import { TagPickerButton } from "../TagPicker.js";
-import { Tooltip } from "../Tooltip.js";
+import { plugins } from "#/autoNotes/registry.js";
+import { noteColorMap, noteFontFamilies } from "#/colors.js";
+import { Dropdown } from "#/components/Dropdown.js";
+import {
+  editorButtonClass,
+  editorIconClass,
+} from "#/components/editor/editorButtons.js";
+import { ImageGallery } from "#/components/ImageGallery.js";
+import { LinkPreviewList } from "#/components/LinkPreviewList.js";
+import { NoteComments } from "#/components/NoteComments.js";
+import { CARD_POPOVER_EXIT_MS, CardPopover } from "#/components/Popover.js";
+import { ReminderChip } from "#/components/ReminderChip.js";
+import {
+  ReminderPicker,
+  ReminderPickerPanel,
+} from "#/components/ReminderPicker.js";
+import { SharedPeople } from "#/components/sharing/SharedAvatars.js";
+import { TagChip } from "#/components/TagChip.js";
+import { TagPickerButton } from "#/components/TagPicker.js";
+import { Tooltip } from "#/components/Tooltip.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { usePresence } from "#/hooks/usePresence.js";
+import { getColorPickerColors, t } from "#/i18n/index.js";
+import { addTag, togglePin } from "#/state/actions.js";
+import { drawnWithoutImages, refreshAutoNotes } from "#/state/autoNotes.js";
+import { ensureImages, updateNote } from "#/state/notesStore.js";
+import { renderMarkdown } from "#/utils/remarkRenderer.js";
+import { withoutImages } from "#/utils/stripImages.js";
 import { menuPanelClass, NoteMenu, noteMenuItems } from "./NoteMenu.js";
 
 /**

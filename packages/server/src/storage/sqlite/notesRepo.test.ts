@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { claimed, claimedUpdate, opened } from "../contracts/claimed.js";
-import type { NotesRepo } from "../types.js";
+import { claimed, claimedUpdate, opened } from "#/storage/contracts/claimed.js";
+import type { NotesRepo } from "#/storage/types.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteNotesRepo } from "./notesRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";

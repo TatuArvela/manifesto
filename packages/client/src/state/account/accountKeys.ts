@@ -7,14 +7,14 @@ import type {
 } from "@manifesto/shared";
 import { cryptoAvailable } from "@manifesto/shared";
 import { computed, effect, signal, untracked } from "@preact/signals";
-import { apiFetch } from "../../storage/apiRequest.js";
+import { apiFetch } from "#/storage/apiRequest.js";
 import {
   clearDeviceKeys,
   type DeviceKeys,
   loadDeviceKeys,
   saveDeviceKeys,
-} from "../../storage/deviceKeys.js";
-import { storageKeys } from "../../storage/sealing.js";
+} from "#/storage/deviceKeys.js";
+import { storageKeys } from "#/storage/sealing.js";
 import {
   createAccountKeys,
   type NewAccountKeys,
@@ -26,8 +26,8 @@ import {
   replaceRecoveryKey,
   replaceSecretKey,
   unlockAccountKey,
-} from "../../utils/keyMaterial.js";
-import { parseUserKey } from "../../utils/userKey.js";
+} from "#/utils/keyMaterial.js";
+import { parseUserKey } from "#/utils/userKey.js";
 import {
   adoptSession,
   authToken,

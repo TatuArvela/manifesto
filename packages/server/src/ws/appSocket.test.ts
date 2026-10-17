@@ -4,14 +4,14 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import type { Note } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
-import { createApp } from "../app.js";
-import { createAuthProvider } from "../auth/index.js";
-import { hashToken } from "../lib/token.js";
-import { ciphertext } from "../storage/contracts/claimed.js";
-import { createStorage } from "../storage/index.js";
-import type { StorageDriver } from "../storage/types.js";
-import { sealingClient } from "../test/sealingClient.js";
-import { TEST_CONFIG } from "../test/setup.js";
+import { createApp } from "#/app.js";
+import { createAuthProvider } from "#/auth/index.js";
+import { hashToken } from "#/lib/token.js";
+import { ciphertext } from "#/storage/contracts/claimed.js";
+import { createStorage } from "#/storage/index.js";
+import type { StorageDriver } from "#/storage/types.js";
+import { sealingClient } from "#/test/sealingClient.js";
+import { TEST_CONFIG } from "#/test/setup.js";
 import {
   APP_SOCKET_MAX_PAYLOAD,
   attachAppSocket,

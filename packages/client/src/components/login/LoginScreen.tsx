@@ -1,12 +1,10 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
-import {
-  APP_LOGO,
-  APP_NAME,
-  INSTANCE_NAME,
-  PRIVACY_URL,
-} from "../../config.js";
-import { type MessageKey, t } from "../../i18n/index.js";
+import { BrandLogo } from "#/components/BrandLogo.js";
+import { buttonClass } from "#/components/buttonClasses.js";
+import { OrgCredit } from "#/components/OrgCredit.js";
+import { APP_LOGO, APP_NAME, INSTANCE_NAME, PRIVACY_URL } from "#/config.js";
+import { type MessageKey, t } from "#/i18n/index.js";
 import {
   beginOidcSignIn,
   fetchCapabilities,
@@ -16,11 +14,8 @@ import {
   SERVER_ORIGIN,
   takeResetToken,
   takeSignInLinkToken,
-} from "../../state/account/auth.js";
-import { passkeysSupported } from "../../utils/webauthn.js";
-import { BrandLogo } from "../BrandLogo.js";
-import { buttonClass } from "../buttonClasses.js";
-import { OrgCredit } from "../OrgCredit.js";
+} from "#/state/account/auth.js";
+import { passkeysSupported } from "#/utils/webauthn.js";
 import { LocalLoginForm } from "./LocalLoginForm.js";
 import { ForgotPasswordForm, ResetPasswordForm } from "./PasswordResetForms.js";
 import { RecoveryForm } from "./RecoveryForms.js";

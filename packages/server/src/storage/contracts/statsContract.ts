@@ -1,6 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import type { StorageDriver } from "../types.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { claimed } from "./claimed.js";
 
 /** The admin overview's counts, the same from both drivers. */

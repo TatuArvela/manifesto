@@ -8,7 +8,7 @@ import {
   recoverySignInOpenSchema,
   secretKeyReplaceSchema,
   seenKeySchema,
-} from "../validation/schemas.js";
+} from "#/validation/schemas.js";
 import { noContent, type Operation, ok } from "./operation.js";
 
 const refused = {

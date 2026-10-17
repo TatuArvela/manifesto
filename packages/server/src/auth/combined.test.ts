@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { ServerConfig } from "../config.js";
-import { bootTestAppWith, type TestRig } from "../test/setup.js";
+import type { ServerConfig } from "#/config.js";
+import { bootTestAppWith, type TestRig } from "#/test/setup.js";
 
 const both: Partial<ServerConfig> = {
   authProvider: "both",

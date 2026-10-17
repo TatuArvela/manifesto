@@ -8,17 +8,17 @@ import {
   TRASH_RETENTION_DAYS,
 } from "@manifesto/shared";
 import { batch, computed, effect, signal } from "@preact/signals";
-import type { MessageKey } from "../i18n/index.js";
+import type { MessageKey } from "#/i18n/index.js";
 import {
   currentStorage,
   LocalStorageAdapter,
   storage,
   storageConnection,
-} from "../storage/index.js";
-import { subscribeToExternalNotes } from "../storage/LocalStorageAdapter.js";
-import { NoteConflictError } from "../storage/RestApiAdapter.js";
-import { type StorageKeys, storageKeys } from "../storage/sealing.js";
-import { deleteVersions } from "../storage/VersionStorage.js";
+} from "#/storage/index.js";
+import { subscribeToExternalNotes } from "#/storage/LocalStorageAdapter.js";
+import { NoteConflictError } from "#/storage/RestApiAdapter.js";
+import { type StorageKeys, storageKeys } from "#/storage/sealing.js";
+import { deleteVersions } from "#/storage/VersionStorage.js";
 import {
   clearAutoNoteOverride,
   isGeneratedNoteId,

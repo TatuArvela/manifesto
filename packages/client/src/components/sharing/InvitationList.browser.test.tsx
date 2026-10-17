@@ -1,8 +1,8 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { noteColorMap } from "../../colors.js";
-import { type Invitation, invitations } from "../../state/sharing.js";
+import { noteColorMap } from "#/colors.js";
+import { type Invitation, invitations } from "#/state/sharing.js";
 import { InvitationList } from "./InvitationList.js";
 
 const invitation: Invitation = {

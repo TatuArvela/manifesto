@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { bootTestAppWith, type TestRig } from "../test/setup.js";
+import { bootTestAppWith, type TestRig } from "#/test/setup.js";
 
 describe("serving the client", () => {
   let rig: TestRig;

@@ -1,5 +1,5 @@
-import type { ServerConfig } from "../../config.js";
-import type { StorageDriver } from "../types.js";
+import type { ServerConfig } from "#/config.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { createSqliteAccountKeysRepo } from "./accountKeysRepo.js";
 import { createSqliteApiTokensRepo } from "./apiTokensRepo.js";
 import { createSqliteAttachmentsRepo } from "./attachmentsRepo.js";

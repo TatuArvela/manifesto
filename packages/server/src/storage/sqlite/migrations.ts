@@ -5,7 +5,7 @@ import {
   type Migration,
   MigrationRefusedError,
   pendingMigrations,
-} from "../migrations.js";
+} from "#/storage/migrations.js";
 
 const INITIAL_SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (

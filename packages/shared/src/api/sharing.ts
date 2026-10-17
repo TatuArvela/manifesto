@@ -1,5 +1,5 @@
-import type { OfferedKey } from "../crypto/shareSeal.js";
-import type { ShareRole, ShareUser, TeamRef } from "../note.js";
+import type { OfferedKey } from "#/crypto/shareSeal.js";
+import type { ShareRole, ShareUser, TeamRef } from "#/note.js";
 import type { AccountPublicKeys } from "./keys.js";
 
 /** `GET /api/users?q=`: accounts to share a note with. */

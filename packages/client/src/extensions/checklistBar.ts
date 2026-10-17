@@ -2,7 +2,7 @@ import { prosePluginsCtx } from "@milkdown/kit/core";
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
-import { t } from "../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import { itemDateOf, setItemDate } from "./itemDates.js";
 import { activeTaskItem } from "./taskListStructure.js";
 

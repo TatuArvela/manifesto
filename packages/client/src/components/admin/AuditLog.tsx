@@ -4,9 +4,9 @@ import type {
   ShareUser,
 } from "@manifesto/shared";
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { formatDateTime, type MessageKey, t } from "../../i18n/index.js";
-import { loadAuditLog } from "../../state/admin.js";
-import { buttonClass } from "../buttonClasses.js";
+import { buttonClass } from "#/components/buttonClasses.js";
+import { formatDateTime, type MessageKey, t } from "#/i18n/index.js";
+import { loadAuditLog } from "#/state/admin.js";
 
 function nameOf(user: ShareUser | null): string {
   if (!user) return t("audit.nobody");

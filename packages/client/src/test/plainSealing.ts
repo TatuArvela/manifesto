@@ -6,7 +6,7 @@ import type {
   SealedNoteVersionCreateRequest,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import type { NoteSealing } from "../storage/sealing.js";
+import type { NoteSealing } from "#/storage/sealing.js";
 
 /**
  * Sealing that seals nothing, for tests of what sits above the storage

@@ -6,7 +6,7 @@ import {
 } from "@milkdown/kit/prose/state";
 import { tableNodes } from "@milkdown/kit/prose/tables";
 import { describe, expect, it } from "vitest";
-import { defined } from "../test/defined.js";
+import { defined } from "#/test/defined.js";
 import {
   applyTableAction,
   availableTableActions,

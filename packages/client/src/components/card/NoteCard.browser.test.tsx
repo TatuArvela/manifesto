@@ -10,12 +10,12 @@ import {
   vi,
 } from "vitest";
 import { userEvent } from "vitest/browser";
-import { escapeStackDepth } from "../../hooks/useEscapeStack.js";
-import { t } from "../../i18n/index.js";
-import { notes } from "../../state/notesStore.js";
-import { animations } from "../../state/prefs.js";
-import { activeView, editingNoteId } from "../../state/ui.js";
-import { loadEditor } from "../editor/lazyEditor.js";
+import { loadEditor } from "#/components/editor/lazyEditor.js";
+import { escapeStackDepth } from "#/hooks/useEscapeStack.js";
+import { t } from "#/i18n/index.js";
+import { notes } from "#/state/notesStore.js";
+import { animations } from "#/state/prefs.js";
+import { activeView, editingNoteId } from "#/state/ui.js";
 import { NoteCard } from "./NoteCard.js";
 
 /**

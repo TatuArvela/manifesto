@@ -1,4 +1,4 @@
-import type { ShareUser } from "../note.js";
+import type { ShareUser } from "#/note.js";
 
 /** The longest a comment may be, in characters. */
 export const MAX_COMMENT_LENGTH = 2000;

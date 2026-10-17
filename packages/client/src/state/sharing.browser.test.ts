@@ -6,7 +6,7 @@ import {
   type ShareInvitation,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storageConnection } from "../storage/index.js";
+import { storageConnection } from "#/storage/index.js";
 import { exportNotes } from "./exportNotes.js";
 import { notes, updateNote } from "./notesStore.js";
 import { locale } from "./prefs.js";

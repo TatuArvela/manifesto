@@ -7,20 +7,20 @@ import { callCommand } from "@milkdown/kit/utils";
 import { ChevronDown, Heading, Link, Table } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { Dropdown } from "#/components/Dropdown.js";
+import { Tooltip } from "#/components/Tooltip.js";
 import {
   applyTableAction,
   availableTableActions,
   type TableAction,
-} from "../../extensions/tableActions.js";
-import { t } from "../../i18n/index.js";
-import type { FormatType } from "../../utils/formatTypes.js";
+} from "#/extensions/tableActions.js";
+import { t } from "#/i18n/index.js";
+import type { FormatType } from "#/utils/formatTypes.js";
 import {
   applyRawLink,
   applyTextEdit,
   removeRawLink,
-} from "../../utils/rawFormatting.js";
-import { Dropdown } from "../Dropdown.js";
-import { Tooltip } from "../Tooltip.js";
+} from "#/utils/rawFormatting.js";
 
 /** Where the toolbar's changes go, and whether it may make any. */
 export interface FormattingTarget {

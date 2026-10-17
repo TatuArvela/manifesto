@@ -12,7 +12,7 @@ import {
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 import { MAX_LOGIN_FAILURES } from "./local/loginAttempts.js";
 
 const PASSWORD = "test-pass-12";

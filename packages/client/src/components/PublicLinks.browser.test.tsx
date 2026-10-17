@@ -18,16 +18,16 @@ import {
   it,
   vi,
 } from "vitest";
-import { answerConfirmation } from "../state/confirm.js";
-import { notes } from "../state/notesStore.js";
-import { locale } from "../state/prefs.js";
+import { answerConfirmation } from "#/state/confirm.js";
+import { notes } from "#/state/notesStore.js";
+import { locale } from "#/state/prefs.js";
 import {
   publicLinksDialog,
   publicLinkToken,
   publicLinkUrl,
-} from "../state/publicLinks.js";
-import { toasts } from "../state/ui.js";
-import { storageConnection } from "../storage/index.js";
+} from "#/state/publicLinks.js";
+import { toasts } from "#/state/ui.js";
+import { storageConnection } from "#/storage/index.js";
 import { PublicNotePage } from "./PublicNotePage.js";
 import { PublicLinksDialogHost } from "./sharing/PublicLinksDialog.js";
 

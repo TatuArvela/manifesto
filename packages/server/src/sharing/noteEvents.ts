@@ -3,8 +3,8 @@ import type {
   NoteAudience,
   NoteShare,
   StorageDriver,
-} from "../storage/types.js";
-import type { Broadcaster } from "../ws/broadcaster.js";
+} from "#/storage/types.js";
+import type { Broadcaster } from "#/ws/broadcaster.js";
 import type { AccessChanges } from "./accessChanges.js";
 
 /**

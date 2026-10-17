@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { ServerConfig } from "../config.js";
+import type { ServerConfig } from "#/config.js";
 import { renderMetrics } from "./metrics.js";
 import { safeEqual } from "./token.js";
 

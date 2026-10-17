@@ -1,7 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { afterHistorySettles } from "../state/sheetHistory.js";
+import { afterHistorySettles } from "#/state/sheetHistory.js";
 import { useBackToClose } from "./useBackToClose.js";
 
 /**

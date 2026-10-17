@@ -6,14 +6,14 @@ import {
   DEFAULT_API_TOKEN_SCOPES,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { audit } from "../audit/audit.js";
-import { requireConfirmation } from "../auth/confirmation.js";
-import type { LoginAttempts } from "../auth/local/loginAttempts.js";
-import type { SessionRevocations } from "../auth/revocations.js";
-import { revokeApiToken } from "../auth/session.js";
-import type { ServerConfig } from "../config.js";
-import { isFeatureOn, TOKEN_FEATURES } from "../features.js";
-import { isoPlusDays, nowIso } from "../lib/time.js";
+import { audit } from "#/audit/audit.js";
+import { requireConfirmation } from "#/auth/confirmation.js";
+import type { LoginAttempts } from "#/auth/local/loginAttempts.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import { revokeApiToken } from "#/auth/session.js";
+import type { ServerConfig } from "#/config.js";
+import { isFeatureOn, TOKEN_FEATURES } from "#/features.js";
+import { isoPlusDays, nowIso } from "#/lib/time.js";
 import {
   API_TOKEN_PREFIX,
   CALENDAR_TOKEN_PREFIX,
@@ -22,13 +22,13 @@ import {
   MCP_TOKEN_PREFIX,
   newApiToken,
   SHOWN_PREFIX_LENGTH,
-} from "../lib/token.js";
-import { newId } from "../lib/ulid.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { StorageDriver } from "../storage/types.js";
-import { apiTokenCreateSchema } from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+} from "#/lib/token.js";
+import { newId } from "#/lib/ulid.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
+import { apiTokenCreateSchema } from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 
 interface TokenDeps {
   storage: StorageDriver;

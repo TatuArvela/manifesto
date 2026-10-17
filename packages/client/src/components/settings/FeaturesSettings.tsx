@@ -1,7 +1,8 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { Shuffle } from "lucide-preact";
-import { noteFontFamilies } from "../../colors.js";
-import { getColorPickerColors, getFontLabel, t } from "../../i18n/index.js";
+import { noteFontFamilies } from "#/colors.js";
+import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.js";
+import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.js";
 import {
   confirmBeforeDelete,
   type DecimalSeparator,
@@ -14,8 +15,7 @@ import {
   type EditMode,
   formattingToolbar,
   inlineCalculations,
-} from "../../state/prefs.js";
-import { Switch, ThreeWayToggle } from "../ToggleSwitch.js";
+} from "#/state/prefs.js";
 import {
   SettingsGroup,
   type SettingsOption,

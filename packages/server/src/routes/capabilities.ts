@@ -13,17 +13,17 @@ import {
   NOTE_VERSION_MAX_AGE_DAYS,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { MAX_PASSKEYS_PER_USER } from "../auth/local/passkeys.js";
+import { MAX_PASSKEYS_PER_USER } from "#/auth/local/passkeys.js";
 import {
   offersMcpSignIn,
   type ServerConfig,
   signsInLocally,
   signsInWithOidc,
-} from "../config.js";
-import { featureStates, isFeatureOn } from "../features.js";
-import { MAX_REQUEST_BYTES } from "../lib/requestLimits.js";
-import { MAX_API_TOKENS_PER_USER } from "../lib/token.js";
-import { VERSION } from "../version.js";
+} from "#/config.js";
+import { featureStates, isFeatureOn } from "#/features.js";
+import { MAX_REQUEST_BYTES } from "#/lib/requestLimits.js";
+import { MAX_API_TOKENS_PER_USER } from "#/lib/token.js";
+import { VERSION } from "#/version.js";
 import { MAX_WEBHOOKS_PER_USER } from "./webhooks.js";
 
 /**

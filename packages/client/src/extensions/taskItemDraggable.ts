@@ -7,7 +7,7 @@ import {
   DecorationSet,
   type NodeViewConstructor,
 } from "@milkdown/kit/prose/view";
-import { t } from "../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import { emptyParagraphAroundListKeymap } from "./listParagraphKeymap.js";
 import { endTaskItemDragOf, startTaskItemDrag } from "./taskItemDrag.js";
 import {

@@ -2,15 +2,15 @@ import { EDITOR_OUTDATED_REASON } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
-import { loadYjsCollab } from "../extensions/yjsCollab.js";
+import { loadYjsCollab } from "#/extensions/yjsCollab.js";
 import {
   authToken,
   currentUser,
   isServerMode,
   WS_ORIGIN,
-} from "../state/account/auth.js";
-import { sealer } from "../storage/sealing.js";
-import { sealedNote } from "../storage/shareKeys.js";
+} from "#/state/account/auth.js";
+import { sealer } from "#/storage/sealing.js";
+import { sealedNote } from "#/storage/shareKeys.js";
 import type { YjsConnectionStatus, YjsSession } from "./yjsSession.js";
 
 export type { YjsConnectionStatus } from "./yjsSession.js";

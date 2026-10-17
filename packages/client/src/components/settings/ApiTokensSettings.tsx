@@ -7,26 +7,23 @@ import {
 } from "@manifesto/shared";
 import { Copy, Trash2 } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { APP_FILE_SLUG } from "../../config.js";
-import { formatDateTime, type MessageKey, t } from "../../i18n/index.js";
+import { buttonClass } from "#/components/buttonClasses.js";
+import {
+  ConfirmationError,
+  ConfirmPasswordField,
+} from "#/components/ConfirmWithPassword.js";
+import { APP_FILE_SLUG } from "#/config.js";
+import { formatDateTime, type MessageKey, t } from "#/i18n/index.js";
 import {
   createApiToken,
   listApiTokens,
   revokeApiToken,
-} from "../../state/account/apiTokens.js";
-import { SERVER_ORIGIN } from "../../state/account/auth.js";
-import type { ConfirmationRefusal } from "../../state/account/passwordConfirmation.js";
-import { askConfirmation } from "../../state/confirm.js";
-import {
-  offeredTokenKinds,
-  serverFeature,
-} from "../../state/serverFeatures.js";
-import { showError, showSuccess } from "../../state/ui.js";
-import { buttonClass } from "../buttonClasses.js";
-import {
-  ConfirmationError,
-  ConfirmPasswordField,
-} from "../ConfirmWithPassword.js";
+} from "#/state/account/apiTokens.js";
+import { SERVER_ORIGIN } from "#/state/account/auth.js";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.js";
+import { askConfirmation } from "#/state/confirm.js";
+import { offeredTokenKinds, serverFeature } from "#/state/serverFeatures.js";
+import { showError, showSuccess } from "#/state/ui.js";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

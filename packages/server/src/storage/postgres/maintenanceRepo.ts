@@ -3,13 +3,13 @@ import {
   membersChangedAt,
   rowToShare,
   type ShareRow,
-} from "../shareMapping.js";
-import { composeStats } from "../statsMapping.js";
+} from "#/storage/shareMapping.js";
+import { composeStats } from "#/storage/statsMapping.js";
 import type {
   ExpiredTrashedNote,
   MaintenanceRepo,
   NoteShare,
-} from "../types.js";
+} from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 import { inTransaction } from "./sharesRepo.js";
 

@@ -1,5 +1,5 @@
-import { safeFetch } from "../linkPreview/safeFetch.js";
-import type { StorageDriver } from "../storage/types.js";
+import { safeFetch } from "#/linkPreview/safeFetch.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { redirectUriProblem } from "./redirectUris.js";
 
 /** An OAuth client as the consent page and the token endpoint need it. */

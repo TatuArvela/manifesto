@@ -1,13 +1,13 @@
 import type { LinkPreview } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../i18n/index.js";
-import { clearDraft, flushDraft, loadDraft } from "../state/composerDraft.js";
-import { incomingShare } from "../state/incomingShare.js";
-import { notes } from "../state/notesStore.js";
-import { noteQuips } from "../state/prefs.js";
-import { activeView, newNoteRequested } from "../state/ui.js";
-import { LocalStorageAdapter } from "../storage/index.js";
+import { t } from "#/i18n/index.js";
+import { clearDraft, flushDraft, loadDraft } from "#/state/composerDraft.js";
+import { incomingShare } from "#/state/incomingShare.js";
+import { notes } from "#/state/notesStore.js";
+import { noteQuips } from "#/state/prefs.js";
+import { activeView, newNoteRequested } from "#/state/ui.js";
+import { LocalStorageAdapter } from "#/storage/index.js";
 import { NoteInput } from "./NoteInput.js";
 
 // The composer keeps its draft on the device, which outlives a test: one

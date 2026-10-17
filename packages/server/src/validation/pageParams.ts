@@ -2,9 +2,9 @@ import {
   DEFAULT_NOTES_PAGE_SIZE,
   MAX_NOTES_PAGE_SIZE,
 } from "@manifesto/shared";
-import { HttpError } from "../middleware/error.js";
-import { decodeCursor } from "../storage/noteMapping.js";
-import type { ListNotesOptions } from "../storage/types.js";
+import { HttpError } from "#/middleware/error.js";
+import { decodeCursor } from "#/storage/noteMapping.js";
+import type { ListNotesOptions } from "#/storage/types.js";
 
 /**
  * `?limit=&cursor=` for the two list endpoints.

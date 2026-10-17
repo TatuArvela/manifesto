@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { bootTestAppWith } from "../test/setup.js";
+import { bootTestAppWith } from "#/test/setup.js";
 import {
   countMetric,
   gaugeMetric,

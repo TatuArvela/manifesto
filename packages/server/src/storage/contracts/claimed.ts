@@ -15,12 +15,12 @@ import {
   type SealedNoteUpdate,
   utf8,
 } from "@manifesto/shared";
-import { newId } from "../../lib/ulid.js";
+import { newId } from "#/lib/ulid.js";
 import type {
   ClaimedImages,
   StoredNoteCreate,
   StoredNoteUpdate,
-} from "../types.js";
+} from "#/storage/types.js";
 
 // What the server's tests write notes with. The server never opens a note:
 // it checks that a sealed field is shaped as a ciphertext and stores it. So a

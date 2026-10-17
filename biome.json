@@ -115,23 +115,19 @@
                 "patterns": [
                   {
                     "group": [
-                      "../state/**",
-                      "../storage/**",
-                      "../realtime/**",
-                      "../hooks/**",
-                      "../components/**",
-                      "../extensions/**",
-                      "../autoNotes/**",
-                      "../i18n/**"
+                      "#/state/**",
+                      "#/storage/**",
+                      "#/realtime/**",
+                      "#/hooks/**",
+                      "#/components/**",
+                      "#/extensions/**",
+                      "#/autoNotes/**",
+                      "#/i18n/**"
                     ],
                     "message": "utils/ is the bottom of the client: it imports packages and other utils, never the folders built on it."
                   },
                   {
-                    "group": [
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -156,22 +152,18 @@
                 "patterns": [
                   {
                     "group": [
-                      "../state/**",
-                      "../realtime/**",
-                      "../hooks/**",
-                      "../components/**",
-                      "../extensions/**",
-                      "../autoNotes/**",
-                      "../i18n/**"
+                      "#/state/**",
+                      "#/realtime/**",
+                      "#/hooks/**",
+                      "#/components/**",
+                      "#/extensions/**",
+                      "#/autoNotes/**",
+                      "#/i18n/**"
                     ],
                     "message": "storage/ sits under state/: it may import utils/, never what calls it."
                   },
                   {
-                    "group": [
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -196,22 +188,18 @@
                 "patterns": [
                   {
                     "group": [
-                      "../state/**",
-                      "../storage/**",
-                      "../realtime/**",
-                      "../hooks/**",
-                      "../components/**",
-                      "../extensions/**",
-                      "../i18n/**"
+                      "#/state/**",
+                      "#/storage/**",
+                      "#/realtime/**",
+                      "#/hooks/**",
+                      "#/components/**",
+                      "#/extensions/**",
+                      "#/i18n/**"
                     ],
                     "message": "autoNotes/ sits under state/: it may import utils/, never what calls it."
                   },
                   {
-                    "group": [
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -236,33 +224,20 @@
                 "patterns": [
                   {
                     "group": [
-                      "../storage/**",
-                      "../../storage/**",
-                      "../realtime/**",
-                      "../../realtime/**",
-                      "../hooks/**",
-                      "../../hooks/**",
-                      "../components/**",
-                      "../../components/**",
-                      "../extensions/**",
-                      "../../extensions/**",
-                      "../autoNotes/**",
-                      "../../autoNotes/**",
-                      "../utils/**",
-                      "../../utils/**",
-                      "../state/**",
-                      "!../state/prefs.js",
-                      "../../state/**",
-                      "!../../state/prefs.js"
+                      "#/storage/**",
+                      "#/realtime/**",
+                      "#/hooks/**",
+                      "#/components/**",
+                      "#/extensions/**",
+                      "#/autoNotes/**",
+                      "#/utils/**",
+                      "#/state/**",
+                      "!#/state/prefs.js"
                     ],
                     "message": "i18n/ may read only the locale preference (state/prefs.ts), which imports nothing from i18n/ but locales.ts."
                   },
                   {
-                    "group": [
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -288,20 +263,11 @@
               "options": {
                 "patterns": [
                   {
-                    "group": [
-                      "../hooks/**",
-                      "../../hooks/**",
-                      "../components/**",
-                      "../../components/**"
-                    ],
+                    "group": ["#/hooks/**", "#/components/**"],
                     "message": "Hooks and components are UI, built on state/, realtime/ and extensions/: move what they share down, as state/sheetHistory.ts did."
                   },
                   {
-                    "group": [
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -325,15 +291,11 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["../components/**"],
+                    "group": ["#/components/**"],
                     "message": "hooks/ are used by components/, never the reverse: move what they share down."
                   },
                   {
-                    "group": [
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -358,34 +320,30 @@
                 "patterns": [
                   {
                     "group": [
-                      "../attachments/**",
-                      "../audit/**",
-                      "../auth/**",
-                      "../client/**",
-                      "../export/**",
-                      "../jobs/**",
-                      "../linkPreview/**",
-                      "../mail/**",
-                      "../mcp/**",
-                      "../oauth/**",
-                      "../middleware/**",
-                      "../routes/**",
-                      "../sharing/**",
-                      "../storage/**",
-                      "../test/**",
-                      "../validation/**",
-                      "../webhooks/**",
-                      "../ws/**",
-                      "../openapi/**"
+                      "#/attachments/**",
+                      "#/audit/**",
+                      "#/auth/**",
+                      "#/client/**",
+                      "#/export/**",
+                      "#/jobs/**",
+                      "#/linkPreview/**",
+                      "#/mail/**",
+                      "#/mcp/**",
+                      "#/oauth/**",
+                      "#/middleware/**",
+                      "#/routes/**",
+                      "#/sharing/**",
+                      "#/storage/**",
+                      "#/test/**",
+                      "#/validation/**",
+                      "#/webhooks/**",
+                      "#/ws/**",
+                      "#/openapi/**"
                     ],
                     "message": "lib/ holds plumbing that knows nothing of notes, accounts or sockets: code that does belongs in the folder for its subject (a background job goes in jobs/)."
                   },
                   {
-                    "group": [
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -410,51 +368,29 @@
                 "patterns": [
                   {
                     "group": [
-                      "../attachments/**",
-                      "../../attachments/**",
-                      "../audit/**",
-                      "../../audit/**",
-                      "../auth/**",
-                      "../../auth/**",
-                      "../client/**",
-                      "../../client/**",
-                      "../export/**",
-                      "../../export/**",
-                      "../jobs/**",
-                      "../../jobs/**",
-                      "../linkPreview/**",
-                      "../../linkPreview/**",
-                      "../mail/**",
-                      "../../mail/**",
-                      "../mcp/**",
-                      "../middleware/**",
-                      "../../mcp/**",
-                      "../oauth/**",
-                      "../../oauth/**",
-                      "../../middleware/**",
-                      "../routes/**",
-                      "../../routes/**",
-                      "../sharing/**",
-                      "../../sharing/**",
-                      "../test/**",
-                      "../../test/**",
-                      "../validation/**",
-                      "../../validation/**",
-                      "../webhooks/**",
-                      "../../webhooks/**",
-                      "../ws/**",
-                      "../../ws/**",
-                      "../openapi/**",
-                      "../../openapi/**"
+                      "#/attachments/**",
+                      "#/audit/**",
+                      "#/auth/**",
+                      "#/client/**",
+                      "#/export/**",
+                      "#/jobs/**",
+                      "#/linkPreview/**",
+                      "#/mail/**",
+                      "#/mcp/**",
+                      "#/middleware/**",
+                      "#/oauth/**",
+                      "#/routes/**",
+                      "#/sharing/**",
+                      "#/test/**",
+                      "#/validation/**",
+                      "#/webhooks/**",
+                      "#/ws/**",
+                      "#/openapi/**"
                     ],
                     "message": "storage/ is under everything but lib/: a rule both drivers must keep belongs in the repos, and anything else in the caller."
                   },
                   {
-                    "group": [
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -494,7 +430,7 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["../routes/**", "../../routes/**"],
+                    "group": ["#/routes/**"],
                     "message": "Only app.ts mounts routes/: move what the route and this file share out of routes/."
                   }
                 ]
@@ -547,12 +483,7 @@
               "options": {
                 "patterns": [
                   {
-                    "group": [
-                      "./test/**",
-                      "../test/**",
-                      "../../test/**",
-                      "../../../test/**"
-                    ],
+                    "group": ["./test/**", "#/test/**"],
                     "message": "src/test/ holds helpers for tests only: what source needs belongs in a layer."
                   }
                 ]
@@ -656,6 +587,15 @@
         "!**/*.test.tsx"
       ],
       "plugins": ["./biome-plugins/noteEvents.grit"]
+    },
+    {
+      "includes": [
+        "packages/client/src/**",
+        "packages/server/src/**",
+        "packages/shared/src/**",
+        "!packages/client/src/autoNotes/sandbox.browser.test.ts"
+      ],
+      "plugins": ["./biome-plugins/noParentImports.grit"]
     }
   ]
 }

@@ -1,5 +1,5 @@
-import { AT_REST, atRest } from "../atRest.js";
-import type { TotpState, TwoFactorRepo } from "../types.js";
+import { AT_REST, atRest } from "#/storage/atRest.js";
+import type { TotpState, TwoFactorRepo } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 interface TotpRow {

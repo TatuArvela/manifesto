@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../i18n/index.js";
-import { loadBoardImage } from "../storage/boardImage.js";
+import { t } from "#/i18n/index.js";
+import { loadBoardImage } from "#/storage/boardImage.js";
 import {
   boardImageUrl,
   initBoardBackground,

@@ -3,8 +3,8 @@ import {
   type AccountKeysRow,
   accountKeysValues,
   rowToAccountKeys,
-} from "../accountKeysMapping.js";
-import type { AccountKeysRepo } from "../types.js";
+} from "#/storage/accountKeysMapping.js";
+import type { AccountKeysRepo } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 export function createSqliteAccountKeysRepo(db: SqliteDB): AccountKeysRepo {

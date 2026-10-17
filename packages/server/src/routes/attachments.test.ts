@@ -7,15 +7,15 @@ import {
   SEALED_IMAGE_OVERHEAD,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { opened, sealedCreate } from "../storage/contracts/claimed.js";
-import { defined } from "../test/defined.js";
-import { heldKeyOf } from "../test/keyedTokens.js";
+import { opened, sealedCreate } from "#/storage/contracts/claimed.js";
+import { defined } from "#/test/defined.js";
+import { heldKeyOf } from "#/test/keyedTokens.js";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 
 const PNG = `data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`;
 const GIF = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";

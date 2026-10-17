@@ -1,5 +1,5 @@
 import type { PushKeyResponse } from "@manifesto/shared";
-import { apiFetch, apiJson } from "../storage/apiRequest.js";
+import { apiFetch, apiJson } from "#/storage/apiRequest.js";
 import { serverFeature } from "./serverFeatures.js";
 
 /**

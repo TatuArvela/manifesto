@@ -8,12 +8,12 @@ import {
   rowToAttachmentMeta,
   rowToStoredAttachment,
   sweepAction,
-} from "../attachmentMapping.js";
+} from "#/storage/attachmentMapping.js";
 import {
   snapshotReferences,
   usableSnapshotsWhere,
-} from "../publicLinkMapping.js";
-import type { AttachmentsRepo } from "../types.js";
+} from "#/storage/publicLinkMapping.js";
+import type { AttachmentsRepo } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {

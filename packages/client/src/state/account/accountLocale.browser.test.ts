@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../config.js", async (original) => ({
-  ...(await original<typeof import("../../config.js")>()),
+vi.mock("#/config.js", async (original) => ({
+  ...(await original<typeof import("#/config.js")>()),
   resolveServerUrl: () => "https://notes.example",
 }));
 
 const { authToken, currentUser } = await import("./auth.js");
-const { locale } = await import("../prefs.js");
+const { locale } = await import("#/state/prefs.js");
 const { startAccountLocaleReport } = await import("./accountLocale.js");
 
 const user = {

@@ -1,5 +1,5 @@
-import { mergePrefs, parsePrefs } from "../prefsMapping.js";
-import type { PrefsRepo } from "../types.js";
+import { mergePrefs, parsePrefs } from "#/storage/prefsMapping.js";
+import type { PrefsRepo } from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 /**

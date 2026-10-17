@@ -1,5 +1,5 @@
 import type { AuditLogResponse } from "@manifesto/shared";
-import { apiFetch } from "../../storage/apiRequest.js";
+import { apiFetch } from "#/storage/apiRequest.js";
 
 /**
  * The signed-in user's own lines of the audit log: what an admin can see

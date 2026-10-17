@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import { type Context, Hono } from "hono";
-import type { ServerConfig } from "../config.js";
-import { publicOrigin } from "../lib/origin.js";
+import type { ServerConfig } from "#/config.js";
+import { publicOrigin } from "#/lib/origin.js";
 import { GRANT_TYPES, MCP_OAUTH_SCOPES } from "./grants.js";
 
 type WellKnownConfig = Pick<ServerConfig, "appUrl" | "trustProxy">;

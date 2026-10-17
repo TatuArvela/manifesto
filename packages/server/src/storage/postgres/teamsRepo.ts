@@ -5,8 +5,8 @@ import {
   TEAM_GROUP,
   TEAM_SELECT,
   type TeamRow,
-} from "../teamMapping.js";
-import type { TeamsRepo } from "../types.js";
+} from "#/storage/teamMapping.js";
+import type { TeamsRepo } from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 /** SQLSTATE 23505, as `usersRepo` reads it. */

@@ -7,9 +7,9 @@ import {
   type SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defined } from "../test/defined.js";
-import { SealedServer, testKeys } from "../test/sealedServer.js";
-import { createAccountKeys } from "../utils/keyMaterial.js";
+import { defined } from "#/test/defined.js";
+import { SealedServer, testKeys } from "#/test/sealedServer.js";
+import { createAccountKeys } from "#/utils/keyMaterial.js";
 import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.js";
 import {
   ImageKindError,

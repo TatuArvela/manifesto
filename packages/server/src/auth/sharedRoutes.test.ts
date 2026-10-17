@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { bootTestApp, registerTestUser, type TestRig } from "../test/setup.js";
+import { bootTestApp, registerTestUser, type TestRig } from "#/test/setup.js";
 
 describe("auth shared routes", () => {
   let rig: TestRig;

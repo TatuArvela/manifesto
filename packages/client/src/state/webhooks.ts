@@ -3,7 +3,7 @@ import type {
   WebhookCreatedResponse,
   WebhooksResponse,
 } from "@manifesto/shared";
-import { apiFetch } from "../storage/apiRequest.js";
+import { apiFetch } from "#/storage/apiRequest.js";
 import {
   type ConfirmationRefusal,
   confirmationRefusal,

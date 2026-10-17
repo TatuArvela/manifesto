@@ -1,10 +1,10 @@
 import type { Note } from "@manifesto/shared";
-import { parseChecklistLine, segmentContent } from "../utils/markdown.js";
+import { parseChecklistLine, segmentContent } from "#/utils/markdown.js";
 import {
   renderInlineMarkdown,
   renderMarkdown,
-} from "../utils/remarkRenderer.js";
-import { withoutImages } from "../utils/stripImages.js";
+} from "#/utils/remarkRenderer.js";
+import { withoutImages } from "#/utils/stripImages.js";
 
 /**
  * Renders note content as a read-only preview with interactive checkboxes.

@@ -1,13 +1,13 @@
 import { Shuffle } from "lucide-preact";
-import { t } from "../../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import {
   type BoardInk,
   boardInk,
   boardInkColor,
   rerollBoardInk,
   resolvedBoardInk,
-} from "../../state/prefs.js";
-import { INK_COLORS, type InkColor } from "../../utils/boardTextures.js";
+} from "#/state/prefs.js";
+import { INK_COLORS, type InkColor } from "#/utils/boardTextures.js";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { logger } from "../lib/logger.js";
+import { logger } from "#/lib/logger.js";
 import {
   handleMessage,
   JSON_RPC_ERRORS,

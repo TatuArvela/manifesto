@@ -7,19 +7,19 @@ import {
 } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { plural, t } from "../i18n/index.js";
-import { currentUser } from "../state/account/auth.js";
+import { plural, t } from "#/i18n/index.js";
+import { currentUser } from "#/state/account/auth.js";
 import {
   commentLoadsFailed,
   forgetComment,
   noteComments,
   receiveComment,
   reloadComments,
-} from "../state/comments.js";
-import { answerConfirmation, confirmRequest } from "../state/confirm.js";
-import { locale } from "../state/prefs.js";
-import { toasts } from "../state/ui.js";
-import { storageConnection } from "../storage/index.js";
+} from "#/state/comments.js";
+import { answerConfirmation, confirmRequest } from "#/state/confirm.js";
+import { locale } from "#/state/prefs.js";
+import { toasts } from "#/state/ui.js";
+import { storageConnection } from "#/storage/index.js";
 import { NoteComments } from "./NoteComments.js";
 import { SheetAside } from "./NoteSheet.js";
 

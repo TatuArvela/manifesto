@@ -1,12 +1,12 @@
-import { MAX_COMMENT_LENGTH } from "../api/comments.js";
-import { MAX_ACCOUNT_PREFS_BYTES } from "../api/prefs.js";
+import { MAX_COMMENT_LENGTH } from "#/api/comments.js";
+import { MAX_ACCOUNT_PREFS_BYTES } from "#/api/prefs.js";
 import type {
   SealedNote,
   SealedNoteCreate,
   SealedNoteRefs,
   SealedNoteUpdate,
   SealedNoteVersion,
-} from "../api/sealed.js";
+} from "#/api/sealed.js";
 import {
   ATTACHMENT_REF_PREFIX,
   attachmentIdOf,
@@ -25,7 +25,7 @@ import {
   NoteFont,
   type NoteUpdate,
   type NoteVersion,
-} from "../note.js";
+} from "#/note.js";
 import { utf8, wipe } from "./bytes.js";
 import type { ImageKey } from "./imageSeal.js";
 import {

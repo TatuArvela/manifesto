@@ -4,10 +4,10 @@ import type {
   UserLookupResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import type { ServerConfig } from "../config.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { StorageDriver, User } from "../storage/types.js";
+import type { ServerConfig } from "#/config.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver, User } from "#/storage/types.js";
 
 interface UsersDeps {
   cfg: ServerConfig;

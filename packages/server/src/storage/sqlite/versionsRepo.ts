@@ -3,7 +3,7 @@ import {
   NOTE_VERSION_MAX_AGE_DAYS,
   type SealedNoteVersion,
 } from "@manifesto/shared";
-import type { VersionsRepo } from "../types.js";
+import type { VersionsRepo } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import type { ServerConfig } from "../config.js";
-import type { StorageDriver } from "../storage/types.js";
+import type { ServerConfig } from "#/config.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { createLocalAuthProvider } from "./local/provider.js";
 import { createOidcAuthProvider } from "./oidc/provider.js";
 import { authenticateBySession } from "./session.js";

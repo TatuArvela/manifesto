@@ -14,19 +14,19 @@ import {
   X,
 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { noteFontFamilies } from "../../colors.js";
-import { getColorPickerColors, getFontLabel, t } from "../../i18n/index.js";
+import { noteFontFamilies } from "#/colors.js";
 import {
   menuDividerClass,
   menuItemClass,
   menuPanelClass,
   NoteMenu,
   type NoteMenuItem,
-} from "../card/NoteMenu.js";
-import { Dropdown } from "../Dropdown.js";
-import { ReminderPicker } from "../ReminderPicker.js";
-import { TagPickerButton } from "../TagPicker.js";
-import { Tooltip } from "../Tooltip.js";
+} from "#/components/card/NoteMenu.js";
+import { Dropdown } from "#/components/Dropdown.js";
+import { ReminderPicker } from "#/components/ReminderPicker.js";
+import { TagPickerButton } from "#/components/TagPicker.js";
+import { Tooltip } from "#/components/Tooltip.js";
+import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.js";
 import { editorButtonClass, editorIconClass } from "./editorButtons.js";
 
 /**

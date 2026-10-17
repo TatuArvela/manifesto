@@ -1,0 +1,21 @@
+language js
+
+// The layer rules in biome.json match import specifiers as written, and they
+// are written for `#/` (each package's import map onto its own `src/`). A
+// `../` import would reach the same file without matching any of them, so
+// one that climbs out of its folder goes through `#/` instead.
+or {
+  `import $_ from $source`,
+  `import $source`,
+  `export { $_ } from $source`,
+  `export type { $_ } from $source`,
+  `export * from $source`,
+  `export * as $_ from $source`,
+  `import($source)`
+} where {
+  $source <: r"[\"']\.\./.*",
+  register_diagnostic(
+    span=$source,
+    message="Import from another folder through #/ (the package's src/): the layer rules in biome.json match #/ specifiers, not ../ ones."
+  )
+}

@@ -11,9 +11,9 @@ import {
   PROXY_PROBE_ADDRESS,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import { t } from "../i18n/index.js";
-import type { MessageKey } from "../i18n/messages/index.js";
-import { ApiError, apiJson } from "../storage/apiRequest.js";
+import { t } from "#/i18n/index.js";
+import type { MessageKey } from "#/i18n/messages/index.js";
+import { ApiError, apiJson } from "#/storage/apiRequest.js";
 import { refreshCurrentUser } from "./account/auth.js";
 import { activeView, showError, showSuccess } from "./ui.js";
 

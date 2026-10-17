@@ -1,15 +1,15 @@
 import type { RefObject } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { exitSelectMode } from "../state/selection.js";
-import { selectedNotes, selectMode } from "../state/ui.js";
-import { sortedNotes } from "../state/views.js";
+import { exitSelectMode } from "#/state/selection.js";
+import { selectedNotes, selectMode } from "#/state/ui.js";
+import { sortedNotes } from "#/state/views.js";
 import {
   type Box,
   boxesIntersect,
   boxFromPoints,
   edgeScrollStep,
   marqueeSelection,
-} from "../utils/marquee.js";
+} from "#/utils/marquee.js";
 import { useEscapeStack } from "./useEscapeStack.js";
 
 /**

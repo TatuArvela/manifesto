@@ -1,10 +1,10 @@
 import type { Note, NoteVersion } from "@manifesto/shared";
 import { exportArchiveFiles, hasUnloadedImages } from "@manifesto/shared";
-import { APP_FILE_SLUG } from "../config.js";
-import { t } from "../i18n/index.js";
-import { storage } from "../storage/index.js";
-import { sealer } from "../storage/sealing.js";
-import { writeZip } from "../utils/zip.js";
+import { APP_FILE_SLUG } from "#/config.js";
+import { t } from "#/i18n/index.js";
+import { storage } from "#/storage/index.js";
+import { sealer } from "#/storage/sealing.js";
+import { writeZip } from "#/utils/zip.js";
 import { saveFile } from "./account/accountExport.js";
 import { inlineImages, inlinePreviewImages } from "./attachments.js";
 import { ensureImages, notes } from "./notesStore.js";

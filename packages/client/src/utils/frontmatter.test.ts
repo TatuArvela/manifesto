@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildZip } from "../test/zipTestSupport.js";
+import { buildZip } from "#/test/zipTestSupport.js";
 import {
   frontmatterDate,
   frontmatterList,

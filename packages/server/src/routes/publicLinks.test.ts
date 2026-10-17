@@ -6,15 +6,15 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { nowIso } from "../lib/time.js";
-import { ciphertext } from "../storage/contracts/claimed.js";
+import { nowIso } from "#/lib/time.js";
+import { ciphertext } from "#/storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 
 const PNG = `data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`;
 const GIF = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";

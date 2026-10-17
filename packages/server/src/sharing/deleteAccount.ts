@@ -1,5 +1,5 @@
-import type { SessionRevocations } from "../auth/revocations.js";
-import type { AdminGuardedResult, StorageDriver } from "../storage/types.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import type { AdminGuardedResult, StorageDriver } from "#/storage/types.js";
 import type { NoteEvents } from "./noteEvents.js";
 
 /**

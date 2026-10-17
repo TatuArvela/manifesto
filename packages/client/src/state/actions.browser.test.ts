@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../i18n/index.js";
-import { storageConnection } from "../storage/index.js";
-import { quotaRefusedAt } from "../storage/quota.js";
-import { defined } from "../test/defined.js";
-import { createNoteOrFail } from "../test/testSupport.js";
-import { hasCheckedItems, hasChecklist } from "../utils/markdown.js";
+import { t } from "#/i18n/index.js";
+import { storageConnection } from "#/storage/index.js";
+import { quotaRefusedAt } from "#/storage/quota.js";
+import { defined } from "#/test/defined.js";
+import { createNoteOrFail } from "#/test/testSupport.js";
+import { hasCheckedItems, hasChecklist } from "#/utils/markdown.js";
 import {
   archiveNote,
   deleteCheckedItems,

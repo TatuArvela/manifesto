@@ -1,18 +1,18 @@
 import type { AdminTeam, AdminUser } from "@manifesto/shared";
 import { Trash2, Users } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
-import { plural, t } from "../../i18n/index.js";
-import { adminUsers } from "../../state/admin.js";
-import { askConfirmation } from "../../state/confirm.js";
+import { buttonClass } from "#/components/buttonClasses.js";
+import { plural, t } from "#/i18n/index.js";
+import { adminUsers } from "#/state/admin.js";
+import { askConfirmation } from "#/state/confirm.js";
 import {
   createTeam,
   deleteTeam,
   listAdminTeams,
   type TeamWriteResult,
   updateTeam,
-} from "../../state/teams.js";
-import { showError } from "../../state/ui.js";
-import { buttonClass } from "../buttonClasses.js";
+} from "#/state/teams.js";
+import { showError } from "#/state/ui.js";
 
 const fieldClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";

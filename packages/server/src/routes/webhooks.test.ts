@@ -8,18 +8,18 @@ import type {
 } from "@manifesto/shared";
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "../app.js";
-import { createAuthProvider } from "../auth/index.js";
-import { createStorage } from "../storage/index.js";
-import type { StorageDriver } from "../storage/types.js";
-import { defined } from "../test/defined.js";
-import { sealingClient } from "../test/sealingClient.js";
-import { authHeaders, TEST_CONFIG } from "../test/setup.js";
+import { createApp } from "#/app.js";
+import { createAuthProvider } from "#/auth/index.js";
+import { createStorage } from "#/storage/index.js";
+import type { StorageDriver } from "#/storage/types.js";
+import { defined } from "#/test/defined.js";
+import { sealingClient } from "#/test/sealingClient.js";
+import { authHeaders, TEST_CONFIG } from "#/test/setup.js";
 import {
   signDelivery,
   WEBHOOK_DISABLE_AFTER,
   type WebhookDispatcher,
-} from "../webhooks/dispatcher.js";
+} from "#/webhooks/dispatcher.js";
 
 interface Received {
   headers: IncomingMessage["headers"];

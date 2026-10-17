@@ -1,8 +1,8 @@
 import type { ComponentChildren, RefObject } from "preact";
 import { createContext, createPortal } from "preact";
 import { useLayoutEffect, useState } from "preact/hooks";
-import { useBackToClose } from "../hooks/useBackToClose.js";
-import { openSheet } from "../utils/phoneSheets.js";
+import { useBackToClose } from "#/hooks/useBackToClose.js";
+import { openSheet } from "#/utils/phoneSheets.js";
 
 interface NoteSheetProps {
   /** The dialog's accessible name. */

@@ -1,4 +1,4 @@
-import type { ShareUser } from "../note.js";
+import type { ShareUser } from "#/note.js";
 import type { AuthProviderName } from "./auth.js";
 
 /** `GET /api/admin/overview`: what the server holds, and how its

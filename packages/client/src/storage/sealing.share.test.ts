@@ -23,7 +23,7 @@ import {
   snapshotKey,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { createAccountKeys } from "../utils/keyMaterial.js";
+import { createAccountKeys } from "#/utils/keyMaterial.js";
 import { Sealer, setOfferHandler } from "./sealing.js";
 
 /**

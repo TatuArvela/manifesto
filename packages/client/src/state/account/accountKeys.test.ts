@@ -4,15 +4,15 @@ import type {
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../config.js", async (original) => ({
-  ...(await original<typeof import("../../config.js")>()),
+vi.mock("#/config.js", async (original) => ({
+  ...(await original<typeof import("#/config.js")>()),
   resolveServerUrl: () => "https://notes.example",
   resolveServerOrigin: () => "https://notes.example",
 }));
 
 const { authToken, currentUser } = await import("./auth.js");
 const keys = await import("./accountKeys.js");
-const { newUserKey, parseUserKey } = await import("../../utils/userKey.js");
+const { newUserKey, parseUserKey } = await import("#/utils/userKey.js");
 
 const USER = {
   id: "01HZX3KQ0000000000000000AA",
@@ -427,6 +427,6 @@ describe("account keys", () => {
 
 /** A set-up as some other device would have made it. */
 async function otherDeviceSetup(): Promise<AccountKeysSetupRequest> {
-  const { createAccountKeys } = await import("../../utils/keyMaterial.js");
+  const { createAccountKeys } = await import("#/utils/keyMaterial.js");
   return (await createAccountKeys(USER.id)).request;
 }

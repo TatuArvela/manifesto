@@ -1,4 +1,4 @@
-import type { MailedLinksRepo, MailedLinksTable } from "../types.js";
+import type { MailedLinksRepo, MailedLinksTable } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 /** `table` is one of two names written here, never anything a caller sent. */

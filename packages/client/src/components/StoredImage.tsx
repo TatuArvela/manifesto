@@ -1,7 +1,7 @@
 import { isStoredImageRef } from "@manifesto/shared";
 import type { PartialImgHTMLAttributes } from "preact";
 import { useEffect, useState } from "preact/hooks";
-import { attachmentObjectUrl } from "../state/attachments.js";
+import { attachmentObjectUrl } from "#/state/attachments.js";
 
 /**
  * An `<img>` for one of a note's images, or a link preview's, whichever way

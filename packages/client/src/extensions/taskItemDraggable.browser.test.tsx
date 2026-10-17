@@ -1,10 +1,10 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cdp, page } from "vitest/browser";
-import { MilkdownEditor } from "../components/editor/MilkdownEditor.js";
-import { t } from "../i18n/index.js";
-import { defined } from "../test/defined.js";
-import "../styles.css";
+import { MilkdownEditor } from "#/components/editor/MilkdownEditor.js";
+import { t } from "#/i18n/index.js";
+import { defined } from "#/test/defined.js";
+import "#/styles.css";
 
 /**
  * A checklist row on a touch screen, where the handle and the X are drawn at

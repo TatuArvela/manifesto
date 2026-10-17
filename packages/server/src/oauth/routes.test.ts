@@ -7,19 +7,19 @@ import {
   unwrapTokenKeys,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "../app.js";
-import { createAuthProvider } from "../auth/index.js";
-import { hashToken } from "../lib/token.js";
-import { createStorage } from "../storage/index.js";
-import { defined } from "../test/defined.js";
-import { wrapTestKeys } from "../test/keyedTokens.js";
+import { createApp } from "#/app.js";
+import { createAuthProvider } from "#/auth/index.js";
+import { hashToken } from "#/lib/token.js";
+import { createStorage } from "#/storage/index.js";
+import { defined } from "#/test/defined.js";
+import { wrapTestKeys } from "#/test/keyedTokens.js";
 import {
   authHeaders,
   bootTestAppWith,
   registerTestUser,
   TEST_CONFIG,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 
 const REDIRECT = "http://localhost:33418/callback";
 const PASSWORD = "test-pass-12";

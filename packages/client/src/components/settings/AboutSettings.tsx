@@ -1,5 +1,8 @@
 import { ArrowUpCircle, RefreshCw } from "lucide-preact";
 import { useState } from "preact/hooks";
+import { BrandLogo } from "#/components/BrandLogo.js";
+import { OrgCredit } from "#/components/OrgCredit.js";
+import { StorageMode } from "#/components/WelcomeDialog.js";
 import {
   APP_LOGO,
   APP_NAME,
@@ -9,15 +12,12 @@ import {
   ORG_NAME,
   PRIVACY_URL,
   WELCOME_ENABLED,
-} from "../../config.js";
-import { t } from "../../i18n/index.js";
-import { forceUpdateApp } from "../../serviceWorker.js";
-import { currentUser } from "../../state/account/auth.js";
-import { availableUpdate } from "../../state/admin.js";
-import { showShortcuts, showWelcome } from "../../state/ui.js";
-import { BrandLogo } from "../BrandLogo.js";
-import { OrgCredit } from "../OrgCredit.js";
-import { StorageMode } from "../WelcomeDialog.js";
+} from "#/config.js";
+import { t } from "#/i18n/index.js";
+import { forceUpdateApp } from "#/serviceWorker.js";
+import { currentUser } from "#/state/account/auth.js";
+import { availableUpdate } from "#/state/admin.js";
+import { showShortcuts, showWelcome } from "#/state/ui.js";
 
 const linkRowClass =
   "flex items-center gap-2 w-full py-2 text-sm text-left text-blue-700 dark:text-blue-300 hover:underline cursor-pointer";

@@ -1,4 +1,4 @@
-import { CIPHERTEXT_PREFIX } from "../api/keys.js";
+import { CIPHERTEXT_PREFIX } from "#/api/keys.js";
 import { base64urlToBytes, bytesToBase64url, fromUtf8, utf8 } from "./bytes.js";
 
 /**

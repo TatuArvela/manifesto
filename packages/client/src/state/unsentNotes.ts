@@ -6,15 +6,15 @@ import {
 } from "@manifesto/shared";
 import { batch, effect, signal, untracked } from "@preact/signals";
 import { ulid } from "ulid";
-import { storage, storageConnection } from "../storage/index.js";
+import { storage, storageConnection } from "#/storage/index.js";
 import {
   dropOffline,
   keepOffline,
   type OfflineOwner,
   readOffline,
-} from "../storage/offlineNotes.js";
-import { ImageUploadError, RequestError } from "../storage/RestApiAdapter.js";
-import { LockedError, storageKeys } from "../storage/sealing.js";
+} from "#/storage/offlineNotes.js";
+import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.js";
+import { LockedError, storageKeys } from "#/storage/sealing.js";
 import {
   type ComposerDraft,
   isEmptyDraft,

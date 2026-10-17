@@ -3,14 +3,14 @@ import type {
   ApiTokensResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { hashToken } from "../lib/token.js";
-import { defined } from "../test/defined.js";
+import { hashToken } from "#/lib/token.js";
+import { defined } from "#/test/defined.js";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 
 const NOTE = {
   title: "",

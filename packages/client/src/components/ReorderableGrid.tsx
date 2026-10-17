@@ -1,7 +1,7 @@
 import type { Note } from "@manifesto/shared";
-import { useMasonryGrid } from "../hooks/useMasonryGrid.js";
-import { useReorderDrag } from "../hooks/useReorderDrag.js";
-import { noteSize, viewMode } from "../state/prefs.js";
+import { useMasonryGrid } from "#/hooks/useMasonryGrid.js";
+import { useReorderDrag } from "#/hooks/useReorderDrag.js";
+import { noteSize, viewMode } from "#/state/prefs.js";
 import { NoteCard } from "./card/NoteCard.js";
 import { gridColumns } from "./gridColumns.js";
 

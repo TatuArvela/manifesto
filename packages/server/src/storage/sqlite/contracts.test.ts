@@ -1,14 +1,14 @@
-import { describeAccountKeysContract } from "../contracts/accountKeysContract.js";
-import { describeAttachmentsContract } from "../contracts/attachmentsContract.js";
-import { describeCommentsContract } from "../contracts/commentsContract.js";
-import { describeOAuthContract } from "../contracts/oauthContract.js";
-import { describePasskeysContract } from "../contracts/passkeysContract.js";
-import { describePrefsContract } from "../contracts/prefsContract.js";
-import { describePublicLinksContract } from "../contracts/publicLinksContract.js";
-import { describePushContract } from "../contracts/pushContract.js";
-import { describeStatsContract } from "../contracts/statsContract.js";
-import { describeSyncContract } from "../contracts/syncContract.js";
-import { describeTeamsContract } from "../contracts/teamsContract.js";
+import { describeAccountKeysContract } from "#/storage/contracts/accountKeysContract.js";
+import { describeAttachmentsContract } from "#/storage/contracts/attachmentsContract.js";
+import { describeCommentsContract } from "#/storage/contracts/commentsContract.js";
+import { describeOAuthContract } from "#/storage/contracts/oauthContract.js";
+import { describePasskeysContract } from "#/storage/contracts/passkeysContract.js";
+import { describePrefsContract } from "#/storage/contracts/prefsContract.js";
+import { describePublicLinksContract } from "#/storage/contracts/publicLinksContract.js";
+import { describePushContract } from "#/storage/contracts/pushContract.js";
+import { describeStatsContract } from "#/storage/contracts/statsContract.js";
+import { describeSyncContract } from "#/storage/contracts/syncContract.js";
+import { describeTeamsContract } from "#/storage/contracts/teamsContract.js";
 import { createSqliteStorage } from "./driver.js";
 
 describeAttachmentsContract("sqlite", async () =>

@@ -1,11 +1,11 @@
 import { effect, signal } from "@preact/signals";
-import { t } from "../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import {
   deleteBoardImage,
   loadBoardImage,
   saveBoardImage,
   shrinkBoardImage,
-} from "../storage/boardImage.js";
+} from "#/storage/boardImage.js";
 import { boardImageStamp, boardUsePicture } from "./prefs.js";
 import { showError } from "./ui.js";
 

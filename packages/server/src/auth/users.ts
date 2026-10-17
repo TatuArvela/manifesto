@@ -1,5 +1,5 @@
 import type { AuthUser } from "@manifesto/shared";
-import type { User } from "../storage/types.js";
+import type { User } from "#/storage/types.js";
 
 const AVATAR_COLORS = [
   "#ef4444",

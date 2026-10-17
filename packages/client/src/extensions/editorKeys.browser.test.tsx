@@ -8,8 +8,8 @@ import { userEvent } from "vitest/browser";
 import {
   getEditorMarkdown,
   MilkdownEditor,
-} from "../components/editor/MilkdownEditor.js";
-import "../styles.css";
+} from "#/components/editor/MilkdownEditor.js";
+import "#/styles.css";
 
 /**
  * The editor's keys, pressed for real: which command a key reaches depends on

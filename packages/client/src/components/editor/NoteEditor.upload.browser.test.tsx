@@ -8,14 +8,14 @@ import {
   it,
   vi,
 } from "vitest";
-import { t } from "../../i18n/index.js";
-import { forgetAttachmentUrls } from "../../state/attachments.js";
-import { clearDraft } from "../../state/composerDraft.js";
-import { drawingRequest } from "../../state/drawing.js";
-import { notes } from "../../state/notesStore.js";
-import { activeView } from "../../state/ui.js";
-import { currentStorage } from "../../storage/index.js";
-import { NoteInput } from "../NoteInput.js";
+import { NoteInput } from "#/components/NoteInput.js";
+import { t } from "#/i18n/index.js";
+import { forgetAttachmentUrls } from "#/state/attachments.js";
+import { clearDraft } from "#/state/composerDraft.js";
+import { drawingRequest } from "#/state/drawing.js";
+import { notes } from "#/state/notesStore.js";
+import { activeView } from "#/state/ui.js";
+import { currentStorage } from "#/storage/index.js";
 import { loadEditor } from "./lazyEditor.js";
 
 // The composer keeps its draft on the device, which outlives a test: one

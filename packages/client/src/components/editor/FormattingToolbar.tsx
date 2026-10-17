@@ -22,20 +22,20 @@ import {
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
+import { Dropdown } from "#/components/Dropdown.js";
+import { Tooltip } from "#/components/Tooltip.js";
 import {
   applyFormat,
   emptyFormats,
   getActiveFormats,
-} from "../../extensions/richFormatting.js";
-import { t } from "../../i18n/index.js";
-import type { ActiveFormats, FormatType } from "../../utils/formatTypes.js";
+} from "#/extensions/richFormatting.js";
+import { t } from "#/i18n/index.js";
+import type { ActiveFormats, FormatType } from "#/utils/formatTypes.js";
 import {
   applyRawFormat,
   applyTextEdit,
   getRawActiveFormats,
-} from "../../utils/rawFormatting.js";
-import { Dropdown } from "../Dropdown.js";
-import { Tooltip } from "../Tooltip.js";
+} from "#/utils/rawFormatting.js";
 import {
   FormatButton,
   type FormattingTarget,

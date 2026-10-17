@@ -6,8 +6,8 @@ import {
   noteToMarkdownFile,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
-import { defined } from "../test/defined.js";
-import { buildZip } from "../test/zipTestSupport.js";
+import { defined } from "#/test/defined.js";
+import { buildZip } from "#/test/zipTestSupport.js";
 import { importFiles } from "./importExport.js";
 import { markdownFileToNote } from "./importedNote.js";
 

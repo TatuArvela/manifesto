@@ -1,17 +1,13 @@
-import type { ServerConfig } from "../config.js";
-import {
-  isFeatureOn,
-  TOKEN_FEATURES,
-  type ToggleFeature,
-} from "../features.js";
-import { isoPlusDays, nowIso } from "../lib/time.js";
+import type { ServerConfig } from "#/config.js";
+import { isFeatureOn, TOKEN_FEATURES, type ToggleFeature } from "#/features.js";
+import { isoPlusDays, nowIso } from "#/lib/time.js";
 import {
   API_TOKEN_PREFIX,
   hashToken,
   MCP_TOKEN_PREFIX,
   newSessionToken,
-} from "../lib/token.js";
-import type { Session, StorageDriver } from "../storage/types.js";
+} from "#/lib/token.js";
+import type { Session, StorageDriver } from "#/storage/types.js";
 import type { SessionRevocations } from "./revocations.js";
 import type { AuthIdentity } from "./types.js";
 

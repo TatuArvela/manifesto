@@ -1,9 +1,9 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { effect, signal } from "@preact/signals";
-import { colorPickerSwatches } from "../colors.js";
-import { APP_NAME } from "../config.js";
-import type { DefaultNoteFont } from "../state/prefs.js";
-import { locale } from "../state/prefs.js";
+import { colorPickerSwatches } from "#/colors.js";
+import { APP_NAME } from "#/config.js";
+import type { DefaultNoteFont } from "#/state/prefs.js";
+import { locale } from "#/state/prefs.js";
 import { DEFAULT_LOCALE, type Locale } from "./locales.js";
 import {
   catalogues,

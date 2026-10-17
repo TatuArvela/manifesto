@@ -8,7 +8,7 @@ import {
   type SealedNoteVersion,
   type SealedNoteVersionCreateRequest,
 } from "@manifesto/shared";
-import type { StorageKeys } from "../storage/sealing.js";
+import type { StorageKeys } from "#/storage/sealing.js";
 
 /**
  * A server as the client meets it in connected mode, kept in memory: it

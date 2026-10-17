@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createSqliteStorage,
   type SqliteStorageDriver,
-} from "../storage/sqlite/driver.js";
-import { defined } from "../test/defined.js";
+} from "#/storage/sqlite/driver.js";
+import { defined } from "#/test/defined.js";
 import {
   BACKUP_FREE_RESERVE_BYTES,
   type BackupEnvironment,

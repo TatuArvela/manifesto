@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { SessionsRepo } from "../types.js";
+import type { SessionsRepo } from "#/storage/types.js";
 import { openDatabase, type SqliteDB } from "./database.js";
 import { createSqliteSessionsRepo } from "./sessionsRepo.js";
 import { createSqliteUsersRepo } from "./usersRepo.js";

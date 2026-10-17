@@ -5,8 +5,8 @@ import {
   type NoteColor,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
-import { sortChecklistByDate } from "../utils/itemDate.js";
-import { removeCheckedItems, toggleChecklistItem } from "../utils/markdown.js";
+import { sortChecklistByDate } from "#/utils/itemDate.js";
+import { removeCheckedItems, toggleChecklistItem } from "#/utils/markdown.js";
 import { asBatch, type Batch } from "./failures.js";
 import {
   allNotes,

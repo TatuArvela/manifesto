@@ -10,20 +10,20 @@ import type {
   TeamsResponse,
 } from "@manifesto/shared";
 import { type Context, Hono } from "hono";
-import { audit } from "../audit/audit.js";
-import { nowIso } from "../lib/time.js";
-import { newId } from "../lib/ulid.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { TeamShares } from "../sharing/teamShares.js";
-import type { StorageDriver, StoredTeam } from "../storage/types.js";
+import { audit } from "#/audit/audit.js";
+import { nowIso } from "#/lib/time.js";
+import { newId } from "#/lib/ulid.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { TeamShares } from "#/sharing/teamShares.js";
+import type { StorageDriver, StoredTeam } from "#/storage/types.js";
 import {
   adminTeamCreateSchema,
   adminTeamUpdateSchema,
   shareUpdateSchema,
   teamShareCreateSchema,
-} from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 

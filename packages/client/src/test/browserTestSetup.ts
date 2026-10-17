@@ -1,5 +1,5 @@
-import { setOpenModeOwnerForTests } from "../storage/offlineNotes.js";
-import { setSealingForTests } from "../storage/sealing.js";
+import { setOpenModeOwnerForTests } from "#/storage/offlineNotes.js";
+import { setSealingForTests } from "#/storage/sealing.js";
 import { plainSealing } from "./plainSealing.js";
 
 /**
@@ -65,5 +65,5 @@ setOpenModeOwnerForTests(`open-${crypto.randomUUID()}`);
  * as a user whose catalogue is already here does. Through `messages/`, which
  * imports nothing a test mocks.
  */
-const { loadCatalogue } = await import("../i18n/messages/index.js");
+const { loadCatalogue } = await import("#/i18n/messages/index.js");
 await loadCatalogue("fi");

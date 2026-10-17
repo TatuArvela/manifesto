@@ -1,22 +1,22 @@
 import { zValidator } from "@hono/zod-validator";
 import type { Hono } from "hono";
-import { audit } from "../../audit/audit.js";
-import type { ServerConfig } from "../../config.js";
-import { hashPassword } from "../../lib/password.js";
-import { nowIso } from "../../lib/time.js";
-import { hashToken } from "../../lib/token.js";
-import type { Mailer } from "../../mail/mailer.js";
-import { passwordResetMail } from "../../mail/templates.js";
-import type { AuthContext } from "../../middleware/authBearer.js";
-import { HttpError } from "../../middleware/error.js";
-import type { StorageDriver } from "../../storage/types.js";
+import { audit } from "#/audit/audit.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import { endUserSessions } from "#/auth/session.js";
+import type { ServerConfig } from "#/config.js";
+import { hashPassword } from "#/lib/password.js";
+import { nowIso } from "#/lib/time.js";
+import { hashToken } from "#/lib/token.js";
+import type { Mailer } from "#/mail/mailer.js";
+import { passwordResetMail } from "#/mail/templates.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
 import {
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
-} from "../../validation/schemas.js";
-import { validatorHook } from "../../validation/zValidator.js";
-import type { SessionRevocations } from "../revocations.js";
-import { endUserSessions } from "../session.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 import { mailedLinks } from "./mailedLink.js";
 
 /** How long a link works. */

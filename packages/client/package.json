@@ -5,6 +5,9 @@
   "license": "MIT",
   "author": "Tatu Arvela",
   "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

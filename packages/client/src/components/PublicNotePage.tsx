@@ -1,17 +1,17 @@
 import { NoteColor } from "@manifesto/shared";
 import { useEffect, useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "../colors.js";
-import { APP_NAME } from "../config.js";
-import { t } from "../i18n/index.js";
-import { revealApp } from "../splash.js";
+import { noteColorMap, noteFontFamilies } from "#/colors.js";
+import { APP_NAME } from "#/config.js";
+import { t } from "#/i18n/index.js";
+import { revealApp } from "#/splash.js";
 import {
   loadPublicImage,
   openPublicNote,
   type PublicNoteResult,
   type ShownPublicNote,
   unlockPublicNote,
-} from "../state/publicLinks.js";
-import { renderMarkdown } from "../utils/remarkRenderer.js";
+} from "#/state/publicLinks.js";
+import { renderMarkdown } from "#/utils/remarkRenderer.js";
 import { buttonClass } from "./buttonClasses.js";
 
 /**

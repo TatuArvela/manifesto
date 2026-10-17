@@ -3,8 +3,8 @@ import { useRef, useState } from "preact/hooks";
 import {
   reportPreviewOverflow,
   resolveLinkPreview,
-} from "../state/linkPreviews.js";
-import { appendStubPreviews } from "../utils/linkPreview.js";
+} from "#/state/linkPreviews.js";
+import { appendStubPreviews } from "#/utils/linkPreview.js";
 
 /**
  * The link previews of a note that does not exist yet. The same two steps as

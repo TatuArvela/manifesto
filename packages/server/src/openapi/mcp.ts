@@ -1,7 +1,7 @@
 import {
   oauthAuthorizeSchema,
   oauthRegisterSchema,
-} from "../validation/schemas.js";
+} from "#/validation/schemas.js";
 import { type Operation, ok } from "./operation.js";
 
 /** The MCP endpoint and the OAuth flow that lets an assistant sign in to it. */

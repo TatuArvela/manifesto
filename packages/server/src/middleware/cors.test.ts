@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { bootTestApp, type TestRig } from "../test/setup.js";
+import { bootTestApp, type TestRig } from "#/test/setup.js";
 
 /**
  * A client on its own origin (the deployment the docs describe) reaches the

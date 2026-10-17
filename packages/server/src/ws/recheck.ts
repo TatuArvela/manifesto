@@ -1,6 +1,6 @@
 import { type ApiTokenScope, hasScope } from "@manifesto/shared";
-import type { AuthProvider } from "../auth/types.js";
-import { logger } from "../lib/logger.js";
+import type { AuthProvider } from "#/auth/types.js";
+import { logger } from "#/lib/logger.js";
 
 /**
  * How often an open socket's credential is looked at again.

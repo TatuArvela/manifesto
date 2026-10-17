@@ -1,9 +1,9 @@
 import type { Note, SealedNote, SyncResponse } from "@manifesto/shared";
 import { Hono } from "hono";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import type { StorageDriver } from "../storage/types.js";
-import { readPageParams } from "../validation/pageParams.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
+import { readPageParams } from "#/validation/pageParams.js";
 import { notesOut, tokenKeys } from "./noteCodec.js";
 
 interface SyncDeps {

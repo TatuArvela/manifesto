@@ -1,7 +1,7 @@
 import { Bell, X } from "lucide-preact";
-import { t } from "../i18n/index.js";
-import { reminderBanner } from "../state/reminderScheduler.js";
-import { editingNoteId } from "../state/ui.js";
+import { t } from "#/i18n/index.js";
+import { reminderBanner } from "#/state/reminderScheduler.js";
+import { editingNoteId } from "#/state/ui.js";
 
 export function ReminderBanner() {
   const banner = reminderBanner.value;

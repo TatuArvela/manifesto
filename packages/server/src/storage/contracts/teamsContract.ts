@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver } from "../types.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { claimed } from "./claimed.js";
 
 /**

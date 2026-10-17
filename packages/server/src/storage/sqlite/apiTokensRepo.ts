@@ -3,8 +3,8 @@ import {
   type ApiTokenRow,
   listedToken,
   rowToApiToken,
-} from "../apiTokenMapping.js";
-import type { ApiTokensRepo } from "../types.js";
+} from "#/storage/apiTokenMapping.js";
+import type { ApiTokensRepo } from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 export function createSqliteApiTokensRepo(db: SqliteDB): ApiTokensRepo {

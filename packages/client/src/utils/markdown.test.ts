@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defined } from "../test/defined.js";
+import { defined } from "#/test/defined.js";
 import {
   isChecklistLine,
   markFencedLines,

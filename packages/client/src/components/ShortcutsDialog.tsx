@@ -1,10 +1,10 @@
 import { Fragment } from "preact";
 import { useState } from "preact/hooks";
-import { BOARD_SHORTCUTS } from "../hooks/useBoardShortcuts.js";
-import { useEscapeStack } from "../hooks/useEscapeStack.js";
-import { useFocusTrap } from "../hooks/useFocusTrap.js";
-import { t } from "../i18n/index.js";
-import { showShortcuts } from "../state/ui.js";
+import { BOARD_SHORTCUTS } from "#/hooks/useBoardShortcuts.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { useFocusTrap } from "#/hooks/useFocusTrap.js";
+import { t } from "#/i18n/index.js";
+import { showShortcuts } from "#/state/ui.js";
 import { Backdrop } from "./Backdrop.js";
 import { buttonClass } from "./buttonClasses.js";
 

@@ -5,7 +5,7 @@ import {
   bootTestAppWith,
   registerTestUser,
   type TestRig,
-} from "../test/setup.js";
+} from "#/test/setup.js";
 import {
   announceInitialAdmin,
   ensureInitialAdmin,

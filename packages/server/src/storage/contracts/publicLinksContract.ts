@@ -1,6 +1,6 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { StorageDriver, StoredPublicLink } from "../types.js";
+import type { StorageDriver, StoredPublicLink } from "#/storage/types.js";
 import { ciphertext, claimed } from "./claimed.js";
 
 /**

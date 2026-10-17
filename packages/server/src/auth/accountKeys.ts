@@ -7,20 +7,20 @@ import {
   type SeenKeysResponse,
 } from "@manifesto/shared";
 import type { Context, Hono } from "hono";
-import { audit } from "../audit/audit.js";
-import type { ServerConfig } from "../config.js";
-import { hashPassword } from "../lib/password.js";
-import { isoPlusDays, nowIso } from "../lib/time.js";
-import { hashToken, safeEqual } from "../lib/token.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { HttpError } from "../middleware/error.js";
-import { emptyAccount } from "../sharing/emptyAccount.js";
-import type { NoteEvents } from "../sharing/noteEvents.js";
+import { audit } from "#/audit/audit.js";
+import type { ServerConfig } from "#/config.js";
+import { hashPassword } from "#/lib/password.js";
+import { isoPlusDays, nowIso } from "#/lib/time.js";
+import { hashToken, safeEqual } from "#/lib/token.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { HttpError } from "#/middleware/error.js";
+import { emptyAccount } from "#/sharing/emptyAccount.js";
+import type { NoteEvents } from "#/sharing/noteEvents.js";
 import type {
   StorageDriver,
   StoredAccountKeys,
   User,
-} from "../storage/types.js";
+} from "#/storage/types.js";
 import {
   accountKeysSetupSchema,
   keysConfirmSchema,
@@ -31,8 +31,8 @@ import {
   recoverySignInOpenSchema,
   secretKeyReplaceSchema,
   seenKeySchema,
-} from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 import { requireConfirmation } from "./confirmation.js";
 import type { LoginAttempts } from "./local/loginAttempts.js";
 import type { SessionRevocations } from "./revocations.js";

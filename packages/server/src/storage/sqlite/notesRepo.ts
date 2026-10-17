@@ -1,12 +1,15 @@
 import type { SealedNote, SealedNoteUpdate } from "@manifesto/shared";
-import { type ReferringRow, referencesOf } from "../attachmentMapping.js";
+import {
+  type ReferringRow,
+  referencesOf,
+} from "#/storage/attachmentMapping.js";
 import {
   decodeCursor,
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
   splitPage,
-} from "../noteMapping.js";
+} from "#/storage/noteMapping.js";
 import {
   attachSharing,
   forbiddenFields,
@@ -19,7 +22,7 @@ import {
   splitChanges,
   type UserBriefRow,
   type ViewRow,
-} from "../shareMapping.js";
+} from "#/storage/shareMapping.js";
 import {
   type InsertNoteInput,
   type ListNotesOptions,
@@ -29,7 +32,7 @@ import {
   type NotesRepo,
   type RekeyedNote,
   type RewrappedLink,
-} from "../types.js";
+} from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 /** Everything a reader is sent: the attachment references are the server's

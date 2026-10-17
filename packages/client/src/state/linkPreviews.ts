@@ -2,14 +2,14 @@ import {
   type LinkPreview,
   MAX_LINK_PREVIEWS_PER_NOTE,
 } from "@manifesto/shared";
-import { t } from "../i18n/index.js";
-import { storage } from "../storage/index.js";
-import { dataUrlToBlob } from "../utils/dataUrl.js";
-import { appendStubPreviews, normalizeDomain } from "../utils/linkPreview.js";
+import { t } from "#/i18n/index.js";
+import { storage } from "#/storage/index.js";
+import { dataUrlToBlob } from "#/utils/dataUrl.js";
+import { appendStubPreviews, normalizeDomain } from "#/utils/linkPreview.js";
 import {
   type PreviewImageKind,
   shrinkPreviewImage,
-} from "../utils/previewImage.js";
+} from "#/utils/previewImage.js";
 import { notes, updateNote } from "./notesStore.js";
 import { showError } from "./ui.js";
 

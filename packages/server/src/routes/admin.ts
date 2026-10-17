@@ -9,38 +9,38 @@ import type {
   AuditLogResponse,
 } from "@manifesto/shared";
 import { Hono } from "hono";
-import { audit } from "../audit/audit.js";
-import { auditPage } from "../audit/auditPage.js";
-import type { SessionRevocations } from "../auth/revocations.js";
-import { endUserSessions } from "../auth/session.js";
-import { pickAvatarColor } from "../auth/users.js";
-import { type ServerConfig, signsInLocally } from "../config.js";
-import type { UpdateStatus } from "../jobs/updateCheck.js";
-import { logger } from "../lib/logger.js";
-import { hashPassword } from "../lib/password.js";
-import { jobStatuses } from "../lib/periodic.js";
-import { newTemporaryPassword } from "../lib/temporaryPassword.js";
-import { nowIso } from "../lib/time.js";
-import { newId } from "../lib/ulid.js";
-import type { Mailer, MailStatus } from "../mail/mailer.js";
-import type { AuthContext } from "../middleware/authBearer.js";
-import { emailTaken, HttpError } from "../middleware/error.js";
-import { deleteAccount } from "../sharing/deleteAccount.js";
-import type { NoteEvents } from "../sharing/noteEvents.js";
-import type { TeamShares } from "../sharing/teamShares.js";
+import { audit } from "#/audit/audit.js";
+import { auditPage } from "#/audit/auditPage.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import { endUserSessions } from "#/auth/session.js";
+import { pickAvatarColor } from "#/auth/users.js";
+import { type ServerConfig, signsInLocally } from "#/config.js";
+import type { UpdateStatus } from "#/jobs/updateCheck.js";
+import { logger } from "#/lib/logger.js";
+import { hashPassword } from "#/lib/password.js";
+import { jobStatuses } from "#/lib/periodic.js";
+import { newTemporaryPassword } from "#/lib/temporaryPassword.js";
+import { nowIso } from "#/lib/time.js";
+import { newId } from "#/lib/ulid.js";
+import type { Mailer, MailStatus } from "#/mail/mailer.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { emailTaken, HttpError } from "#/middleware/error.js";
+import { deleteAccount } from "#/sharing/deleteAccount.js";
+import type { NoteEvents } from "#/sharing/noteEvents.js";
+import type { TeamShares } from "#/sharing/teamShares.js";
 import {
   type AdminGuardedResult,
   EmailTakenError,
   type StorageDriver,
   UsernameTakenError,
   type UserSummary,
-} from "../storage/types.js";
+} from "#/storage/types.js";
 import {
   adminCreateUserSchema,
   adminUpdateUserSchema,
-} from "../validation/schemas.js";
-import { validatorHook } from "../validation/zValidator.js";
-import { VERSION } from "../version.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
+import { VERSION } from "#/version.js";
 import { registerAdminCheckRoutes } from "./adminChecks.js";
 import { registerAdminTeamRoutes } from "./teams.js";
 

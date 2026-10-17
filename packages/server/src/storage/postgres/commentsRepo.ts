@@ -2,8 +2,8 @@ import {
   COMMENT_COLUMNS,
   type CommentRow,
   rowToComment,
-} from "../commentMapping.js";
-import type { CommentsRepo } from "../types.js";
+} from "#/storage/commentMapping.js";
+import type { CommentsRepo } from "#/storage/types.js";
 import type { PgPool } from "./database.js";
 
 export function createPostgresCommentsRepo(pool: PgPool): CommentsRepo {

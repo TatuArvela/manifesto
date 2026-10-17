@@ -3,12 +3,12 @@ import { TextSelection } from "@milkdown/kit/prose/state";
 import { createRef, render } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
-import { t } from "../../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { MilkdownEditor } from "./MilkdownEditor.js";
 // The real stylesheet: unstyled, a tooltip is a popover in the middle of the
 // page that takes the click meant for the button under it.
-import "../../styles.css";
+import "#/styles.css";
 
 const hosts: HTMLDivElement[] = [];
 

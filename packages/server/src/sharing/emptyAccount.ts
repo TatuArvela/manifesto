@@ -1,5 +1,5 @@
 import { MAX_NOTES_PAGE_SIZE, roleOf } from "@manifesto/shared";
-import type { StorageDriver } from "../storage/types.js";
+import type { StorageDriver } from "#/storage/types.js";
 import type { NoteEvents } from "./noteEvents.js";
 
 /**

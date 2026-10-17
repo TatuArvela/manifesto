@@ -1,6 +1,6 @@
 import { effect } from "@preact/signals";
-import { type MessageKey, plural, t } from "../i18n/index.js";
-import { quotaRefusedAt } from "../storage/quota.js";
+import { type MessageKey, plural, t } from "#/i18n/index.js";
+import { quotaRefusedAt } from "#/storage/quota.js";
 import { showError } from "./ui.js";
 
 /**

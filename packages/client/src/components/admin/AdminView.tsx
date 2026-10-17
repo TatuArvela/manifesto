@@ -11,13 +11,18 @@ import {
   UserPlus,
 } from "lucide-preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
-import { useEscapeStack } from "../../hooks/useEscapeStack.js";
-import { formatDate, plural, t } from "../../i18n/index.js";
+import { Avatar } from "#/components/Avatar.js";
+import { boardCard } from "#/components/boardCard.js";
+import { buttonClass } from "#/components/buttonClasses.js";
+import { menuItemClass, menuPanelClass } from "#/components/card/NoteMenu.js";
+import { Dropdown } from "#/components/Dropdown.js";
+import { useEscapeStack } from "#/hooks/useEscapeStack.js";
+import { formatDate, plural, t } from "#/i18n/index.js";
 import {
   authProviders,
   currentUser,
   fetchCapabilities,
-} from "../../state/account/auth.js";
+} from "#/state/account/auth.js";
 import {
   adminUsers,
   createAccount,
@@ -28,13 +33,8 @@ import {
   resetAccountPassword,
   setAccountAdmin,
   setAccountEmail,
-} from "../../state/admin.js";
-import { serverFeature } from "../../state/serverFeatures.js";
-import { Avatar } from "../Avatar.js";
-import { boardCard } from "../boardCard.js";
-import { buttonClass } from "../buttonClasses.js";
-import { menuItemClass, menuPanelClass } from "../card/NoteMenu.js";
-import { Dropdown } from "../Dropdown.js";
+} from "#/state/admin.js";
+import { serverFeature } from "#/state/serverFeatures.js";
 import { AdminOverview } from "./AdminOverview.js";
 import { AdminTeams } from "./AdminTeams.js";
 import { AuditLog } from "./AuditLog.js";

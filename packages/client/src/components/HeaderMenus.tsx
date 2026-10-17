@@ -8,14 +8,14 @@ import {
   StretchHorizontal,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { t } from "../i18n/index.js";
+import { t } from "#/i18n/index.js";
 import {
   noteScale,
   noteSize,
   type SortMode,
   sortMode,
   viewMode,
-} from "../state/prefs.js";
+} from "#/state/prefs.js";
 import { Dropdown } from "./Dropdown.js";
 import { Tooltip } from "./Tooltip.js";
 

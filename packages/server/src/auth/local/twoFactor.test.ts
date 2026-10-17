@@ -3,13 +3,13 @@ import type {
   TwoFactorStatusResponse,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { base32Decode, hotp, totpStep } from "#/auth/totp.js";
 import {
   authHeaders,
   bootTestApp,
   registerTestUser,
   type TestRig,
-} from "../../test/setup.js";
-import { base32Decode, hotp, totpStep } from "../totp.js";
+} from "#/test/setup.js";
 
 const PASSWORD = "test-pass-12";
 

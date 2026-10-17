@@ -1,12 +1,9 @@
-import type { ServerConfig } from "../config.js";
-import { logger } from "../lib/logger.js";
-import { countMetric } from "../lib/metrics.js";
-import { nowIso } from "../lib/time.js";
-import { FetchRefused, safeFetch } from "../linkPreview/safeFetch.js";
-import type {
-  StorageDriver,
-  StoredPushSubscription,
-} from "../storage/types.js";
+import type { ServerConfig } from "#/config.js";
+import { logger } from "#/lib/logger.js";
+import { countMetric } from "#/lib/metrics.js";
+import { nowIso } from "#/lib/time.js";
+import { FetchRefused, safeFetch } from "#/linkPreview/safeFetch.js";
+import type { StorageDriver, StoredPushSubscription } from "#/storage/types.js";
 import {
   encryptPayload,
   generateVapidKeys,

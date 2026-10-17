@@ -6,14 +6,14 @@ import {
   rowToInvitation,
   rowToShare,
   type ShareRow,
-} from "../shareMapping.js";
+} from "#/storage/shareMapping.js";
 import type {
   CreateShareInput,
   HeldKey,
   NoteAudience,
   NoteShare,
   SharesRepo,
-} from "../types.js";
+} from "#/storage/types.js";
 import type { SqliteDB } from "./database.js";
 
 const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team,

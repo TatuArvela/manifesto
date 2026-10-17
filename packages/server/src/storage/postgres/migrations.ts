@@ -4,7 +4,7 @@ import {
   type Migration,
   MigrationRefusedError,
   pendingMigrations,
-} from "../migrations.js";
+} from "#/storage/migrations.js";
 import type { PgClient, PgPool } from "./database.js";
 
 const INITIAL_SCHEMA = `

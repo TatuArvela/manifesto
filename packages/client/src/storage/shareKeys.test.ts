@@ -6,8 +6,8 @@ import {
   type SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { testKeys } from "../test/sealedServer.js";
-import { createAccountKeys } from "../utils/keyMaterial.js";
+import { testKeys } from "#/test/sealedServer.js";
+import { createAccountKeys } from "#/utils/keyMaterial.js";
 import { storageConnection } from "./index.js";
 import { sealer, storageKeys } from "./sealing.js";
 import {

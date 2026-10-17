@@ -55,7 +55,7 @@ import {
   accountImageKeys,
   accountSubkey,
   openPrivateKey,
-} from "../utils/keyMaterial.js";
+} from "#/utils/keyMaterial.js";
 import {
   type NewToken,
   newKeyedToken,

@@ -1,7 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { nowIso } from "../../lib/time.js";
-import type { StorageDriver } from "../types.js";
+import { nowIso } from "#/lib/time.js";
+import type { StorageDriver } from "#/storage/types.js";
 import { claimed, heldKey } from "./claimed.js";
 
 /**

@@ -1,8 +1,8 @@
 import clsx from "clsx";
 import { useState } from "preact/hooks";
-import { noteColorMap, noteFontFamilies } from "../colors.js";
-import { plural, t } from "../i18n/index.js";
-import { confirmDeletion } from "../state/confirm.js";
+import { noteColorMap, noteFontFamilies } from "#/colors.js";
+import { plural, t } from "#/i18n/index.js";
+import { confirmDeletion } from "#/state/confirm.js";
 import {
   discardUnsent,
   reopenUnsent,
@@ -10,7 +10,7 @@ import {
   settledNoteIds,
   type UnsentNote,
   unsentNotes,
-} from "../state/unsentNotes.js";
+} from "#/state/unsentNotes.js";
 import { buttonClass } from "./buttonClasses.js";
 import { ContentPreview } from "./ContentPreview.js";
 

@@ -3,27 +3,31 @@ import { zValidator } from "@hono/zod-validator";
 import type { AuthSuccessResponse } from "@manifesto/shared";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { Hono } from "hono";
-import { audit } from "../../audit/audit.js";
-import type { ServerConfig } from "../../config.js";
-import { hashPassword, verifyPassword } from "../../lib/password.js";
-import { nowIso } from "../../lib/time.js";
-import { newId } from "../../lib/ulid.js";
-import type { Mailer } from "../../mail/mailer.js";
-import type { AuthContext } from "../../middleware/authBearer.js";
-import { emailTaken, HttpError } from "../../middleware/error.js";
-import type { StorageDriver } from "../../storage/types.js";
-import { EmailTakenError } from "../../storage/types.js";
+import { audit } from "#/audit/audit.js";
+import { registerRecoverySignInRoutes } from "#/auth/accountKeys.js";
+import type { SessionRevocations } from "#/auth/revocations.js";
+import {
+  endUserSessions,
+  issueSession,
+  revokeSession,
+} from "#/auth/session.js";
+import type { AuthProviderRouter } from "#/auth/types.js";
+import { pickAvatarColor, toAuthUser } from "#/auth/users.js";
+import type { ServerConfig } from "#/config.js";
+import { hashPassword, verifyPassword } from "#/lib/password.js";
+import { nowIso } from "#/lib/time.js";
+import { newId } from "#/lib/ulid.js";
+import type { Mailer } from "#/mail/mailer.js";
+import type { AuthContext } from "#/middleware/authBearer.js";
+import { emailTaken, HttpError } from "#/middleware/error.js";
+import type { StorageDriver } from "#/storage/types.js";
+import { EmailTakenError } from "#/storage/types.js";
 import {
   loginSchema,
   passwordChangeSchema,
   registerSchema,
-} from "../../validation/schemas.js";
-import { validatorHook } from "../../validation/zValidator.js";
-import { registerRecoverySignInRoutes } from "../accountKeys.js";
-import type { SessionRevocations } from "../revocations.js";
-import { endUserSessions, issueSession, revokeSession } from "../session.js";
-import type { AuthProviderRouter } from "../types.js";
-import { pickAvatarColor, toAuthUser } from "../users.js";
+} from "#/validation/schemas.js";
+import { validatorHook } from "#/validation/zValidator.js";
 import { createLoginAttempts, type LoginAttempts } from "./loginAttempts.js";
 import {
   createPasskeyChallenges,
