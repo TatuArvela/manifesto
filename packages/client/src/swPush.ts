@@ -17,35 +17,47 @@ import {
  */
 export function readReminderPush(payload: unknown): ReminderPush | null {
   if (!payload || typeof payload !== "object") return null;
-  const p = payload as Record<string, unknown>;
-  if (p.type !== "reminder") return null;
-  if (typeof p.noteId !== "string" || !p.noteId) return null;
-  if (typeof p.title !== "string" || typeof p.body !== "string") return null;
-  if (typeof p.firedAt !== "string") return null;
+  const push = payload as Record<string, unknown>;
+  if (push.type !== "reminder") return null;
+  if (typeof push.noteId !== "string" || !push.noteId) return null;
+  if (typeof push.title !== "string" || typeof push.body !== "string") {
+    return null;
+  }
+  if (typeof push.firedAt !== "string") return null;
   let next: ReminderPush["next"] = null;
-  if (p.next !== null) {
-    if (!p.next || typeof p.next !== "object") return null;
-    const n = p.next as Record<string, unknown>;
-    if (typeof n.time !== "string" || Number.isNaN(Date.parse(n.time))) {
-      return null;
-    }
+  if (push.next !== null) {
+    if (!push.next || typeof push.next !== "object") return null;
+    const rawNext = push.next as Record<string, unknown>;
     if (
-      n.day !== undefined &&
-      !(Number.isInteger(n.day) && Number(n.day) >= 1 && Number(n.day) <= 31)
+      typeof rawNext.time !== "string" ||
+      Number.isNaN(Date.parse(rawNext.time))
     ) {
       return null;
     }
-    next = { time: n.time, ...(n.day !== undefined && { day: Number(n.day) }) };
+    if (
+      rawNext.day !== undefined &&
+      !(
+        Number.isInteger(rawNext.day) &&
+        Number(rawNext.day) >= 1 &&
+        Number(rawNext.day) <= 31
+      )
+    ) {
+      return null;
+    }
+    next = {
+      time: rawNext.time,
+      ...(rawNext.day !== undefined && { day: Number(rawNext.day) }),
+    };
   }
-  const sealed = readSealed(p.sealed);
+  const sealed = readSealed(push.sealed);
   return {
     type: "reminder",
-    noteId: p.noteId,
-    title: p.title,
-    body: p.body,
+    noteId: push.noteId,
+    title: push.title,
+    body: push.body,
     ...(sealed && { sealed }),
     next,
-    firedAt: p.firedAt,
+    firedAt: push.firedAt,
   };
 }
 
@@ -53,16 +65,18 @@ export function readReminderPush(payload: unknown): ReminderPush | null {
  * the message is then shown as a device without a key shows it. */
 function readSealed(value: unknown): SealedReminder | null {
   if (!value || typeof value !== "object") return null;
-  const s = value as Record<string, unknown>;
-  if (!Number.isInteger(s.keyVersion) || Number(s.keyVersion) < 1) return null;
-  if (!isCiphertext(s.key, 1024)) return null;
-  if (!isCiphertext(s.title, 8192)) return null;
-  if (s.excerpt !== "" && !isCiphertext(s.excerpt, 8192)) return null;
+  const sealed = value as Record<string, unknown>;
+  if (!Number.isInteger(sealed.keyVersion) || Number(sealed.keyVersion) < 1) {
+    return null;
+  }
+  if (!isCiphertext(sealed.key, 1024)) return null;
+  if (!isCiphertext(sealed.title, 8192)) return null;
+  if (sealed.excerpt !== "" && !isCiphertext(sealed.excerpt, 8192)) return null;
   return {
-    keyVersion: Number(s.keyVersion),
-    key: s.key as string,
-    title: s.title as string,
-    excerpt: s.excerpt as string,
+    keyVersion: Number(sealed.keyVersion),
+    key: sealed.key as string,
+    title: sealed.title as string,
+    excerpt: sealed.excerpt as string,
   };
 }
 

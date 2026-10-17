@@ -38,11 +38,11 @@ export function isKeepNote(data: unknown): boolean {
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     return false;
   }
-  const d = data as Record<string, unknown>;
+  const note = data as Record<string, unknown>;
   return (
-    typeof d.userEditedTimestampUsec === "number" &&
-    typeof d.isTrashed === "boolean" &&
-    (typeof d.textContent === "string" || Array.isArray(d.listContent))
+    typeof note.userEditedTimestampUsec === "number" &&
+    typeof note.isTrashed === "boolean" &&
+    (typeof note.textContent === "string" || Array.isArray(note.listContent))
   );
 }
 
@@ -69,10 +69,12 @@ function listToMarkdown(items: unknown[]): string {
   const lines: string[] = [];
   for (const item of items) {
     if (typeof item !== "object" || item === null) continue;
-    const i = item as Record<string, unknown>;
+    const entry = item as Record<string, unknown>;
     const text =
-      typeof i.text === "string" ? i.text.replace(/\s*\r?\n\s*/g, " ") : "";
-    lines.push(`- [${i.isChecked === true ? "x" : " "}] ${text}`.trimEnd());
+      typeof entry.text === "string"
+        ? entry.text.replace(/\s*\r?\n\s*/g, " ")
+        : "";
+    lines.push(`- [${entry.isChecked === true ? "x" : " "}] ${text}`.trimEnd());
   }
   return lines.join("\n");
 }
@@ -95,16 +97,19 @@ async function attachmentsToImages(
   for (const item of raw) {
     if (images.length >= MAX_IMAGES_PER_NOTE) break;
     if (typeof item !== "object" || item === null) continue;
-    const a = item as Record<string, unknown>;
-    if (typeof a.filePath !== "string" || typeof a.mimetype !== "string") {
+    const attachment = item as Record<string, unknown>;
+    if (
+      typeof attachment.filePath !== "string" ||
+      typeof attachment.mimetype !== "string"
+    ) {
       continue;
     }
     // Keep also attaches voice recordings (audio/3gp); only images have a
     // place on a note.
-    const match = /^image\/([a-z0-9+.-]+)$/i.exec(a.mimetype);
+    const match = /^image\/([a-z0-9+.-]+)$/i.exec(attachment.mimetype);
     const subtype = match?.[1]?.toLowerCase();
     if (!subtype || !IMAGE_SUBTYPES.has(subtype)) continue;
-    const bytes = await lookup(a.filePath);
+    const bytes = await lookup(attachment.filePath);
     if (!bytes || bytes.length === 0 || bytes.length > MAX_IMAGE_SOURCE_BYTES) {
       continue;
     }

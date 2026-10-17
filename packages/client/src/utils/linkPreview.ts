@@ -126,21 +126,22 @@ export function parseLinkPreviews(raw: unknown): LinkPreview[] {
   for (const item of raw) {
     if (previews.length >= MAX_LINK_PREVIEWS_PER_NOTE) break;
     if (typeof item !== "object" || item === null) continue;
-    const p = item as Record<string, unknown>;
-    if (typeof p.url !== "string" || !isPreviewableUrl(p.url)) continue;
-    if (seen.has(p.url)) continue;
-    seen.add(p.url);
+    const preview = item as Record<string, unknown>;
+    if (typeof preview.url !== "string" || !isPreviewableUrl(preview.url))
+      continue;
+    if (seen.has(preview.url)) continue;
+    seen.add(preview.url);
     previews.push({
-      url: p.url,
-      title: typeof p.title === "string" ? p.title : p.url,
-      ...(typeof p.description === "string" && {
-        description: p.description,
+      url: preview.url,
+      title: typeof preview.title === "string" ? preview.title : preview.url,
+      ...(typeof preview.description === "string" && {
+        description: preview.description,
       }),
-      ...(isPreviewImage(p.image) && { image: p.image }),
-      ...(isPreviewImage(p.favicon) && { favicon: p.favicon }),
+      ...(isPreviewImage(preview.image) && { image: preview.image }),
+      ...(isPreviewImage(preview.favicon) && { favicon: preview.favicon }),
       // Never the file's own `domain`: a card would then name one site and
       // open another.
-      domain: normalizeDomain(p.url),
+      domain: normalizeDomain(preview.url),
     });
   }
   return previews;

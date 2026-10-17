@@ -132,22 +132,36 @@ interface StoredReminder {
 
 const VALID_RECURRENCES = new Set<string>(REMINDER_RECURRENCES);
 
-function isValidStoredReminder(v: unknown): v is StoredReminder {
-  if (!v || typeof v !== "object") return false;
-  const r = v as Record<string, unknown>;
-  if (typeof r.noteId !== "string" || !r.noteId) return false;
-  if (typeof r.time !== "string") return false;
-  if (Number.isNaN(new Date(r.time).getTime())) return false;
-  if (typeof r.recurrence !== "string" || !VALID_RECURRENCES.has(r.recurrence))
-    return false;
+function isValidStoredReminder(value: unknown): value is StoredReminder {
+  if (!value || typeof value !== "object") return false;
+  const reminder = value as Record<string, unknown>;
+  if (typeof reminder.noteId !== "string" || !reminder.noteId) return false;
+  if (typeof reminder.time !== "string") return false;
+  if (Number.isNaN(new Date(reminder.time).getTime())) return false;
   if (
-    r.day !== undefined &&
-    !(Number.isInteger(r.day) && Number(r.day) >= 1 && Number(r.day) <= 31)
-  )
+    typeof reminder.recurrence !== "string" ||
+    !VALID_RECURRENCES.has(reminder.recurrence)
+  ) {
     return false;
-  if (typeof r.title !== "string") return false;
-  if (typeof r.body !== "string") return false;
-  if (r.lastFiredAt !== null && typeof r.lastFiredAt !== "string") return false;
+  }
+  if (
+    reminder.day !== undefined &&
+    !(
+      Number.isInteger(reminder.day) &&
+      Number(reminder.day) >= 1 &&
+      Number(reminder.day) <= 31
+    )
+  ) {
+    return false;
+  }
+  if (typeof reminder.title !== "string") return false;
+  if (typeof reminder.body !== "string") return false;
+  if (
+    reminder.lastFiredAt !== null &&
+    typeof reminder.lastFiredAt !== "string"
+  ) {
+    return false;
+  }
   return true;
 }
 

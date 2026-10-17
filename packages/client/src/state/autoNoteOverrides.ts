@@ -48,28 +48,45 @@ export function overrideFrom(changes: NoteUpdate): AutoNoteOverride {
 
 const STORAGE_KEY = "manifesto:auto-note-overrides";
 
-function isValidOverride(v: unknown): v is AutoNoteOverride {
-  if (!v || typeof v !== "object") return false;
-  const o = v as Record<string, unknown>;
-  if (o.pinned !== undefined && typeof o.pinned !== "boolean") return false;
-  if (o.color !== undefined && typeof o.color !== "string") return false;
-  if (o.archived !== undefined && typeof o.archived !== "boolean") return false;
-  if (o.trashed !== undefined && typeof o.trashed !== "boolean") return false;
-  if (
-    o.trashedAt !== undefined &&
-    o.trashedAt !== null &&
-    typeof o.trashedAt !== "string"
-  )
+function isValidOverride(value: unknown): value is AutoNoteOverride {
+  if (!value || typeof value !== "object") return false;
+  const override = value as Record<string, unknown>;
+  if (override.pinned !== undefined && typeof override.pinned !== "boolean") {
     return false;
-  if (o.position !== undefined && typeof o.position !== "number") return false;
-  if (o.tags !== undefined) {
-    if (!Array.isArray(o.tags)) return false;
-    if (!o.tags.every((t) => typeof t === "string")) return false;
   }
-  if (o.reminder !== undefined && o.reminder !== null) {
-    if (typeof o.reminder !== "object") return false;
-    const r = o.reminder as Record<string, unknown>;
-    if (typeof r.time !== "string") return false;
+  if (override.color !== undefined && typeof override.color !== "string") {
+    return false;
+  }
+  if (
+    override.archived !== undefined &&
+    typeof override.archived !== "boolean"
+  ) {
+    return false;
+  }
+  if (override.trashed !== undefined && typeof override.trashed !== "boolean") {
+    return false;
+  }
+  if (
+    override.trashedAt !== undefined &&
+    override.trashedAt !== null &&
+    typeof override.trashedAt !== "string"
+  ) {
+    return false;
+  }
+  if (
+    override.position !== undefined &&
+    typeof override.position !== "number"
+  ) {
+    return false;
+  }
+  if (override.tags !== undefined) {
+    if (!Array.isArray(override.tags)) return false;
+    if (!override.tags.every((t) => typeof t === "string")) return false;
+  }
+  if (override.reminder !== undefined && override.reminder !== null) {
+    if (typeof override.reminder !== "object") return false;
+    const reminder = override.reminder as Record<string, unknown>;
+    if (typeof reminder.time !== "string") return false;
   }
   return true;
 }
