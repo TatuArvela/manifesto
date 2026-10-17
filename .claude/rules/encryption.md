@@ -17,6 +17,7 @@ paths:
   - "packages/client/src/state/comments.ts"
   - "packages/client/src/state/publicLinks.ts"
   - "packages/client/src/components/sharing/ShareDialog.tsx"
+  - "packages/client/src/components/sharing/ShareMembers.tsx"
   - "packages/server/src/routes/publicLinks.ts"
   - "packages/client/src/realtime/sealedDocument.ts"
   - "packages/client/src/realtime/yjsSession.ts"
@@ -215,7 +216,7 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   remembered key, and then retries what waited on it. A key counts as remembered only once the
   server has kept it (`remember`): a first key it does not keep is not trusted, and a changed key
   it does not take leaves the remembered one in place, since an account with no entry is met as
-  new and its key would be trusted unasked next session. A list that could not be read trusts nobody. `PersonKey` asks for a key's status only while keys are being compared or one is
+  new and its key would be trusted unasked next session. A list that could not be read trusts nobody. `PersonKey` (`ShareMembers.tsx`) asks for a key's status only while keys are being compared or one is
   marked changed, so opening the dialog costs no request.
 - **Replacing a note's key.** Both drivers mark a note `rekey_due` inside `shares.delete` (when
   the share ever held a key, `heldKey`), `maintenance.cleanupTrashedSharesBefore` (a share expired
