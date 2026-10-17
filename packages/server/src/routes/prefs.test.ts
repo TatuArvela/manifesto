@@ -1,6 +1,6 @@
 import type { WebSocketEvent } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ct } from "../storage/contracts/claimed.js";
+import { ciphertext } from "../storage/contracts/claimed.js";
 import {
   authHeaders,
   bootTestApp,
@@ -50,7 +50,10 @@ describe("account preferences", () => {
     expect(heard).toEqual([
       [
         alice.userId,
-        { type: "prefs:updated", prefs: { theme: ct(JSON.stringify("dark")) } },
+        {
+          type: "prefs:updated",
+          prefs: { theme: ciphertext(JSON.stringify("dark")) },
+        },
       ],
     ]);
     const bobs = await rig.request("/api/auth/me/prefs", {

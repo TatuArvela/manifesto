@@ -25,7 +25,7 @@ import { ensureImages, updateNote } from "../state/notesStore.js";
 import { renderMarkdown } from "../utils/remarkRenderer.js";
 import { withoutImages } from "../utils/stripImages.js";
 import { Dropdown } from "./Dropdown.js";
-import { editorBtnClass, editorIconClass } from "./editorButtons.js";
+import { editorButtonClass, editorIconClass } from "./editorButtons.js";
 import { ImageGallery } from "./ImageGallery.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
 import { NoteComments } from "./NoteComments.js";
@@ -92,7 +92,7 @@ export function NoteReadonlyView({
         <div class="sm:hidden">
           <button
             type="button"
-            class={editorBtnClass}
+            class={editorButtonClass}
             onClick={onClose}
             aria-label={t("editor.back")}
           >
@@ -105,7 +105,7 @@ export function NoteReadonlyView({
           >
             <button
               type="button"
-              class={editorBtnClass}
+              class={editorButtonClass}
               onClick={() => togglePin(note.id)}
               aria-label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
             >
@@ -229,7 +229,7 @@ export function NoteReadonlyView({
             <Tooltip label={t("autoNotes.refresh")}>
               <button
                 type="button"
-                class={editorBtnClass}
+                class={editorButtonClass}
                 onClick={() => refreshAutoNotes()}
                 aria-label={t("autoNotes.refresh")}
               >
@@ -246,7 +246,7 @@ export function NoteReadonlyView({
             <Tooltip label={t("editor.color")}>
               <button
                 type="button"
-                class={editorBtnClass}
+                class={editorButtonClass}
                 onClick={() => {
                   setShowColorPicker(!showColorPicker);
                   setShowMenu(false);
@@ -278,14 +278,14 @@ export function NoteReadonlyView({
         <ReminderPicker
           reminder={note.reminder ?? null}
           onChange={(reminder) => updateNote(note.id, { reminder })}
-          triggerClass={editorBtnClass}
+          triggerClass={editorButtonClass}
           iconClass={editorIconClass}
         />
 
         <TagPickerButton
           tags={note.tags}
           onAddTag={(tag) => addTag(note.id, tag)}
-          triggerClass={editorBtnClass}
+          triggerClass={editorButtonClass}
           iconClass={editorIconClass}
         />
 
@@ -296,7 +296,7 @@ export function NoteReadonlyView({
             <Tooltip label={t("noteMenu.more")}>
               <button
                 type="button"
-                class={editorBtnClass}
+                class={editorButtonClass}
                 onClick={() => {
                   setShowMenu(!showMenu);
                   setShowColorPicker(false);
@@ -322,7 +322,7 @@ export function NoteReadonlyView({
         <Tooltip label={t("noteCard.close")}>
           <button
             type="button"
-            class={editorBtnClass}
+            class={editorButtonClass}
             onClick={onClose}
             aria-label={t("noteCard.close")}
           >

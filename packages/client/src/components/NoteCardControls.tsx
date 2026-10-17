@@ -27,7 +27,7 @@ import {
 } from "../state/actions.js";
 import { refreshAutoNotes } from "../state/autoNotes.js";
 import { confirmDeletion } from "../state/confirm.js";
-import { iconBtnClass } from "./editorButtons.js";
+import { iconButtonClass } from "./editorButtons.js";
 import type { CardPopoverKind } from "./NoteCardPopovers.js";
 import { PresenceAvatars } from "./PresenceAvatars.js";
 import { Tooltip } from "./Tooltip.js";
@@ -122,7 +122,7 @@ export function CardStatusBar({
         <Tooltip label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}>
           <button
             type="button"
-            class={`${iconBtnClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100"} transition-opacity`}
+            class={`${iconButtonClass} ${note.pinned ? "opacity-100 group/pin" : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100"} transition-opacity`}
             onClick={() => togglePin(note.id)}
             aria-label={note.pinned ? t("noteCard.unpin") : t("noteCard.pin")}
           >
@@ -226,7 +226,7 @@ export function CardActions({
           <Tooltip label={t("noteCard.restore")}>
             <button
               type="button"
-              class={iconBtnClass}
+              class={iconButtonClass}
               onClick={() => restoreNote(note.id)}
               aria-label={t("noteCard.restoreNote")}
             >
@@ -236,7 +236,7 @@ export function CardActions({
           <Tooltip label={t("noteCard.deletePermanently")}>
             <button
               type="button"
-              class={iconBtnClass}
+              class={iconButtonClass}
               onClick={async () => {
                 const ok = await confirmDeletion({
                   title: t("confirm.delete.title"),
@@ -275,7 +275,7 @@ export function CardActions({
               <Tooltip label={t("autoNotes.refresh")}>
                 <button
                   type="button"
-                  class={iconBtnClass}
+                  class={iconButtonClass}
                   onClick={() => refreshAutoNotes()}
                   aria-label={t("autoNotes.refresh")}
                 >
@@ -288,7 +288,7 @@ export function CardActions({
             <button
               ref={colorBtnRef}
               type="button"
-              class={iconBtnClass}
+              class={iconButtonClass}
               onClick={onToggleColorPicker}
               aria-label={t("noteCard.changeColor")}
               aria-expanded={openPopover === "color"}
@@ -301,7 +301,7 @@ export function CardActions({
               <button
                 ref={fontBtnRef}
                 type="button"
-                class={iconBtnClass}
+                class={iconButtonClass}
                 onClick={onToggleFontPicker}
                 aria-label={t("editor.changeFont")}
                 aria-expanded={openPopover === "font"}
@@ -317,7 +317,7 @@ export function CardActions({
             <button
               ref={reminderBtnRef}
               type="button"
-              class={iconBtnClass}
+              class={iconButtonClass}
               onClick={onToggleReminder}
               aria-label={
                 note.reminder ? t("reminder.edit") : t("reminder.set")
@@ -332,7 +332,7 @@ export function CardActions({
               <Tooltip label={t("editor.addImage")}>
                 <button
                   type="button"
-                  class={iconBtnClass}
+                  class={iconButtonClass}
                   onClick={() => fileInputRef.current?.click()}
                   aria-label={t("editor.addImage")}
                 >
@@ -360,7 +360,7 @@ export function CardActions({
             <Tooltip label={t("editor.draw")}>
               <button
                 type="button"
-                class={iconBtnClass}
+                class={iconButtonClass}
                 onClick={onDraw}
                 aria-label={t("editor.draw")}
               >
@@ -372,7 +372,7 @@ export function CardActions({
             <button
               ref={tagsBtnRef}
               type="button"
-              class={iconBtnClass}
+              class={iconButtonClass}
               onClick={onToggleTags}
               aria-label={t("noteMenu.tags")}
               aria-expanded={openPopover === "tags"}
@@ -384,7 +384,7 @@ export function CardActions({
             <button
               ref={menuBtnRef}
               type="button"
-              class={iconBtnClass}
+              class={iconButtonClass}
               onClick={onToggleMenu}
               aria-label={t("noteMenu.moreOptions")}
               aria-expanded={openPopover === "menu"}

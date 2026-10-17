@@ -7,7 +7,7 @@ import WebSocket from "ws";
 import { createApp } from "../app.js";
 import { createAuthProvider } from "../auth/index.js";
 import { hashToken } from "../lib/token.js";
-import { ct } from "../storage/contracts/claimed.js";
+import { ciphertext } from "../storage/contracts/claimed.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
 import { sealingClient } from "../test/sealingClient.js";
@@ -245,7 +245,7 @@ describe("application WebSocket /api/ws", () => {
     const parsed = JSON.parse(raw);
     expect(parsed.type).toBe("note:created");
     // Sealed, as the note is stored.
-    expect(parsed.note.title).toBe(ct("WS"));
+    expect(parsed.note.title).toBe(ciphertext("WS"));
 
     ws.close();
   });

@@ -4,7 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 import { noteColorMap } from "../colors.js";
 import { formatDateTime, t } from "../i18n/index.js";
 import { loadVersions } from "../state/versions.js";
-import { iconBtnClass } from "./editorButtons.js";
+import { iconButtonClass } from "./editorButtons.js";
 import { Tooltip } from "./Tooltip.js";
 
 function truncate(text: string, max: number): string {
@@ -60,7 +60,7 @@ export function VersionHistory({
           <Tooltip label={t("versions.backToList")}>
             <button
               type="button"
-              class={iconBtnClass}
+              class={iconButtonClass}
               onClick={() => setSelected(null)}
               aria-label={t("versions.backToList")}
             >
@@ -126,7 +126,7 @@ export function VersionHistory({
         <Tooltip label={t("versions.backToEditor")}>
           <button
             type="button"
-            class={iconBtnClass}
+            class={iconButtonClass}
             onClick={onClose}
             aria-label={t("versions.backToEditor")}
           >

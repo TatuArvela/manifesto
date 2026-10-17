@@ -31,7 +31,7 @@ import {
   hasCheckedItems as textHasCheckedItems,
 } from "../utils/markdown.js";
 import { applyTextEdit } from "../utils/rawFormatting.js";
-import { editorBtnClass, editorIconClass } from "./editorButtons.js";
+import { editorButtonClass, editorIconClass } from "./editorButtons.js";
 import { FormattingToolbar } from "./FormattingToolbar.js";
 import { ImageGallery } from "./ImageGallery.js";
 import { LinkPreviewList } from "./LinkPreviewList.js";
@@ -380,7 +380,7 @@ export function NoteEditor({
         <div class="sm:hidden">
           <button
             type="button"
-            class={editorBtnClass}
+            class={editorButtonClass}
             onClick={onBack ?? onDone}
             aria-label={t("editor.back")}
           >
@@ -391,7 +391,7 @@ export function NoteEditor({
           <Tooltip label={pinned ? t("noteCard.unpin") : t("noteCard.pin")}>
             <button
               type="button"
-              class={`${editorBtnClass} transition-opacity`}
+              class={`${editorButtonClass} transition-opacity`}
               onClick={onPinToggle}
               aria-label={pinned ? t("noteCard.unpin") : t("noteCard.pin")}
               disabled={disabled}

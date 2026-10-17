@@ -14,7 +14,7 @@ import { createAuthProvider } from "../auth/index.js";
 import { hashToken } from "../lib/token.js";
 import { PUSH_DROP_AFTER } from "../push/sender.js";
 import { fromB64url } from "../push/webPush.js";
-import { ct, plain } from "../storage/contracts/claimed.js";
+import { ciphertext, plain } from "../storage/contracts/claimed.js";
 import { createStorage } from "../storage/index.js";
 import type { StorageDriver } from "../storage/types.js";
 import {
@@ -248,7 +248,7 @@ describe("push reminders", () => {
     // A title of its sealed size alone is under the limit; with an
     // excerpt as long as this one, which no real client seals, it is not.
     const stored = await storage.notes.getById(long.id, userId);
-    await rewrite(long.id, { excerpt: ct("ö".repeat(1200)) });
+    await rewrite(long.id, { excerpt: ciphertext("ö".repeat(1200)) });
     await pass();
     const message = JSON.parse(
       browser.decrypt(service.received[0]?.body as Buffer),

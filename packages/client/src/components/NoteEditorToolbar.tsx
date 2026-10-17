@@ -16,7 +16,7 @@ import { useRef, useState } from "preact/hooks";
 import { noteFontFamilies } from "../colors.js";
 import { getColorPickerColors, getFontLabel, t } from "../i18n/index.js";
 import { Dropdown } from "./Dropdown.js";
-import { editorBtnClass, editorIconClass } from "./editorButtons.js";
+import { editorButtonClass, editorIconClass } from "./editorButtons.js";
 import {
   menuDividerClass,
   menuItemClass,
@@ -100,7 +100,7 @@ export function NoteEditorToolbar({
       <Tooltip label={t("editor.addImage")}>
         <button
           type="button"
-          class={editorBtnClass}
+          class={editorButtonClass}
           onClick={() => fileInputRef.current?.click()}
           aria-label={t("editor.addImage")}
           disabled={disabled}
@@ -112,7 +112,7 @@ export function NoteEditorToolbar({
         <Tooltip label={t("editor.draw")}>
           <button
             type="button"
-            class={editorBtnClass}
+            class={editorButtonClass}
             onClick={() => {
               closeAllMenus();
               onDraw();
@@ -179,7 +179,7 @@ export function NoteEditorToolbar({
             <Tooltip label={t("editor.color")}>
               <button
                 type="button"
-                class={editorBtnClass}
+                class={editorButtonClass}
                 onClick={() => {
                   setShowColorPicker(!showColorPicker);
                   setShowMenu(false);
@@ -216,7 +216,7 @@ export function NoteEditorToolbar({
               <Tooltip label={t("editor.font")}>
                 <button
                   type="button"
-                  class={editorBtnClass}
+                  class={editorButtonClass}
                   onClick={() => {
                     setShowFontPicker(!showFontPicker);
                     setShowColorPicker(false);
@@ -259,7 +259,7 @@ export function NoteEditorToolbar({
           <ReminderPicker
             reminder={reminder ?? null}
             onChange={onReminderChange}
-            triggerClass={editorBtnClass}
+            triggerClass={editorButtonClass}
             iconClass={editorIconClass}
           />
         ) : (
@@ -287,7 +287,7 @@ export function NoteEditorToolbar({
         <TagPickerButton
           tags={tags}
           onAddTag={onAddTag}
-          triggerClass={editorBtnClass}
+          triggerClass={editorButtonClass}
           iconClass={editorIconClass}
         />
 
@@ -298,7 +298,7 @@ export function NoteEditorToolbar({
             <Tooltip label={t("noteMenu.more")}>
               <button
                 type="button"
-                class={editorBtnClass}
+                class={editorButtonClass}
                 onClick={() => {
                   setShowMenu(!showMenu);
                   setShowColorPicker(false);
@@ -328,7 +328,7 @@ export function NoteEditorToolbar({
           >
             <button
               type="button"
-              class={editorBtnClass}
+              class={editorButtonClass}
               onClick={onToggleRawMode}
               aria-label={
                 rawMode ? t("editor.normalMode") : t("editor.rawMode")
@@ -350,7 +350,7 @@ export function NoteEditorToolbar({
           <Tooltip label={t("editor.undo")}>
             <button
               type="button"
-              class={`${editorBtnClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
+              class={`${editorButtonClass} ${canUndo ? "" : "opacity-30 cursor-default"}`}
               onClick={onUndo}
               aria-label={t("editor.undo")}
               disabled={!canUndo}
@@ -361,7 +361,7 @@ export function NoteEditorToolbar({
           <Tooltip label={t("editor.redo")}>
             <button
               type="button"
-              class={`${editorBtnClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
+              class={`${editorButtonClass} ${canRedo ? "" : "opacity-30 cursor-default"}`}
               onClick={onRedo}
               aria-label={t("editor.redo")}
               disabled={!canRedo}
@@ -377,7 +377,7 @@ export function NoteEditorToolbar({
           <Tooltip label={deleteLabel}>
             <button
               type="button"
-              class={editorBtnClass}
+              class={editorButtonClass}
               onClick={onDelete}
               aria-label={deleteLabel}
             >
@@ -389,7 +389,7 @@ export function NoteEditorToolbar({
         <Tooltip label={t("editor.done")}>
           <button
             type="button"
-            class={editorBtnClass}
+            class={editorButtonClass}
             onClick={onDone}
             aria-label={t("editor.done")}
           >

@@ -25,21 +25,21 @@ import type {
 // What the server's tests write notes with. The server never opens a note:
 // it checks that a sealed field is shaped as a ciphertext and stores it. So a
 // test does not need a key, only values of that shape that it can read back,
-// which is what `ct` and `plain` are. Real sealing is tested where it is
-// done, in `@manifesto/shared` and the client.
+// which is what `ciphertext` and `plain` are. Real sealing is tested where
+// it is done, in `@manifesto/shared` and the client.
 
 /** The nonce and tag of a real ciphertext, as so many zero bytes. */
 const FILLER_BYTES = 28;
 
 /** `text` in the shape of a ciphertext. */
-export function ct(text: string): string {
+export function ciphertext(text: string): string {
   const body = utf8(text);
   const bytes = new Uint8Array(FILLER_BYTES + body.length);
   bytes.set(body, FILLER_BYTES);
   return CIPHERTEXT_PREFIX + bytesToBase64url(bytes);
 }
 
-/** What `ct` was given; an empty field, which was never set, is empty. */
+/** What `ciphertext` was given; an empty field, never set, is empty. */
 export function plain(sealed: string): string {
   if (sealed === "") return "";
   if (!sealed.startsWith(CIPHERTEXT_PREFIX)) {
@@ -58,7 +58,7 @@ export function claimedImages(images: string[] = []): ClaimedImages {
 }
 
 /** A note key as a recipient keeps it, for a test that accepts a share. */
-export const heldKey = { key: ct("held key"), keyVersion: 1 };
+export const heldKey = { key: ciphertext("held key"), keyVersion: 1 };
 
 /** The changes of an update as the app sends them. */
 export function sealedUpdate(changes: NoteUpdate): SealedNoteUpdate {
@@ -66,24 +66,24 @@ export function sealedUpdate(changes: NoteUpdate): SealedNoteUpdate {
     changes;
   return {
     ...rest,
-    ...(title !== undefined && { title: ct(title) }),
+    ...(title !== undefined && { title: ciphertext(title) }),
     ...(content !== undefined && {
-      content: ct(content),
-      excerpt: ct(content.slice(0, 140)),
+      content: ciphertext(content),
+      excerpt: ciphertext(content.slice(0, 140)),
     }),
-    ...(font !== undefined && { font: ct(font) }),
+    ...(font !== undefined && { font: ciphertext(font) }),
     ...(images !== undefined && {
-      images: ct(JSON.stringify(images)),
+      images: ciphertext(JSON.stringify(images)),
       imageRefs: images,
     }),
     ...(linkPreviews !== undefined && {
-      linkPreviews: ct(JSON.stringify(linkPreviews)),
+      linkPreviews: ciphertext(JSON.stringify(linkPreviews)),
       previewRefs: previewImages(linkPreviews).filter((image) =>
         image.startsWith("attachment:"),
       ),
     }),
-    ...(color !== undefined && { color: ct(color) }),
-    ...(tags !== undefined && { tags: ct(JSON.stringify(tags)) }),
+    ...(color !== undefined && { color: ciphertext(color) }),
+    ...(tags !== undefined && { tags: ciphertext(JSON.stringify(tags)) }),
   };
 }
 
@@ -98,7 +98,7 @@ export function sealedCreate(
       "id" | "key" | "keyVersion"
     >),
     id,
-    key: ct(`key of ${id}`),
+    key: ciphertext(`key of ${id}`),
     keyVersion: 1,
   };
 }

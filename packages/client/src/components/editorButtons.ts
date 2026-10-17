@@ -1,5 +1,5 @@
 /** A card's round icon button. */
-export const iconBtnClass =
+export const iconButtonClass =
   "p-1.5 max-sm:p-2.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
 
 /**
@@ -7,6 +7,6 @@ export const iconBtnClass =
  * where the editor fills the screen and is worked with a thumb: 36px targets
  * become 43px.
  */
-export const editorBtnClass =
+export const editorButtonClass =
   "p-1.5 max-sm:p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer";
 export const editorIconClass = "w-4 h-4 max-sm:w-[1.2rem] max-sm:h-[1.2rem]";

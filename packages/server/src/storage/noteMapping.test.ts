@@ -5,7 +5,12 @@ import {
   type SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { claimed, claimedUpdate, ct, opened } from "./contracts/claimed.js";
+import {
+  ciphertext,
+  claimed,
+  claimedUpdate,
+  opened,
+} from "./contracts/claimed.js";
 import { createPostgresStorage } from "./postgres/driver.js";
 import { newTestPool } from "./postgres/testDb.js";
 import { createSqliteStorage } from "./sqlite/driver.js";
@@ -106,9 +111,9 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
     });
     // What only the sealed note has: its key, and the excerpt beside the text.
     expect(note).toMatchObject({
-      key: ct("key of claimed"),
+      key: ciphertext("key of claimed"),
       keyVersion: 1,
-      excerpt: ct("Milk, eggs"),
+      excerpt: ciphertext("Milk, eggs"),
     });
   });
 
