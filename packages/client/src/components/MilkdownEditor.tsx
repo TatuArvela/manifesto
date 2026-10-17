@@ -24,6 +24,7 @@ import {
   useState,
 } from "preact/hooks";
 import type * as Y from "yjs";
+import { checklistBar } from "../extensions/checklistBar.js";
 import { documentWatcher } from "../extensions/documentWatcher.js";
 import { configureEditorKeys, editorKeys } from "../extensions/editorKeys.js";
 import { inlineCalculationsPlugin } from "../extensions/inlineCalculations.js";
@@ -209,6 +210,7 @@ export function MilkdownEditor({
       .use(itemDatesPlugin)
       .use(linkTooltip)
       .use(tableBar)
+      .use(checklistBar)
       .use(documentWatcher(() => documentChangedRef.current()));
     const collabPlugin = collabFactoryRef.current;
     if (collabRef.current && collabPlugin) {

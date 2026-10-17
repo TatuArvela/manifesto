@@ -11,6 +11,7 @@ import { t } from "../i18n/index.js";
 import { emptyParagraphAroundListKeymap } from "./listParagraphKeymap.js";
 import { endTaskItemDragOf, startTaskItemDrag } from "./taskItemDrag.js";
 import {
+  activeTaskItem,
   getDeletionRange,
   isTaskItem,
   toggleSubtreeChecked,
@@ -215,19 +216,13 @@ const listItemView: NodeViewConstructor = (
 const activeTaskItemKey = new PluginKey("manifestoActiveTaskItem");
 
 function buildActiveTaskItemDecorations(state: EditorState): DecorationSet {
-  const { $from } = state.selection;
-  for (let d = $from.depth; d > 0; d--) {
-    const node = $from.node(d);
-    if (isTaskItem(node)) {
-      const pos = $from.before(d);
-      return DecorationSet.create(state.doc, [
-        Decoration.node(pos, pos + node.nodeSize, {
-          class: "task-item-active",
-        }),
-      ]);
-    }
-  }
-  return DecorationSet.empty;
+  const item = activeTaskItem(state);
+  if (!item) return DecorationSet.empty;
+  return DecorationSet.create(state.doc, [
+    Decoration.node(item.pos, item.pos + item.node.nodeSize, {
+      class: "task-item-active",
+    }),
+  ]);
 }
 
 const activeTaskItemPlugin = new Plugin({

@@ -1,7 +1,12 @@
 import { prosePluginsCtx } from "@milkdown/kit/core";
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import type { Node as ProseNode } from "@milkdown/kit/prose/model";
-import { Plugin, PluginKey } from "@milkdown/kit/prose/state";
+import {
+  type EditorState,
+  Plugin,
+  PluginKey,
+  type Transaction,
+} from "@milkdown/kit/prose/state";
 import {
   Decoration,
   DecorationSet,
@@ -13,7 +18,7 @@ import {
   localIsoDate,
   UNDATED,
 } from "../utils/itemDate.js";
-import { isListNode, isTaskItem } from "./taskListStructure.js";
+import { activeTaskItem, isListNode, isTaskItem } from "./taskListStructure.js";
 
 // Dates on checklist items in the editor (see `utils/itemDate.ts`). The token
 // stays ordinary text in the item, so the schema is untouched; a decoration
@@ -24,7 +29,7 @@ import { isListNode, isTaskItem } from "./taskListStructure.js";
  * position, or null. Text marked as code is quoted, and an item nested in
  * this one answers for itself.
  */
-function itemDateOf(
+export function itemDateOf(
   item: ProseNode,
 ): { date: string; from: number; to: number } | null {
   const label = item.firstChild;
@@ -138,4 +143,40 @@ export function sortItemsByDateIn(view: EditorView): void {
     tr.replaceWith(pos, pos + from.nodeSize, to);
   }
   view.dispatch(tr);
+}
+
+/**
+ * Gives the checklist item around the caret the date `date` (`YYYY-MM-DD`),
+ * in place of any it had. A new token goes at the end of the item's own line,
+ * a space from its text, and carries no mark from beside it: a code mark would
+ * quote it, and it would no longer be a date.
+ */
+export function setItemDate(
+  state: EditorState,
+  date: string,
+  dispatch?: (tr: Transaction) => void,
+): boolean {
+  const item = activeTaskItem(state);
+  const label = item?.node.firstChild;
+  if (!item || label?.type.name !== "paragraph") return false;
+  if (findItemDate(`@${date}`)?.date !== date) return false;
+  if (!dispatch) return true;
+
+  const { tr } = state;
+  const found = itemDateOf(item.node);
+  if (found) {
+    tr.replaceWith(
+      item.pos + found.from,
+      item.pos + found.to,
+      state.schema.text(`@${date}`),
+    );
+  } else {
+    // +1 into the item, +1 into its paragraph.
+    const end = item.pos + 2 + label.content.size;
+    const text = label.textContent;
+    const space = text === "" || /\s$/.test(text) ? "" : " ";
+    tr.insert(end, state.schema.text(`${space}@${date}`));
+  }
+  dispatch(tr.scrollIntoView());
+  return true;
 }

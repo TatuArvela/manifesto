@@ -34,6 +34,18 @@
   margin-bottom: 0.25em;
 }
 
+/* The text scrolls sideways (`.ProseMirror` in editor.css), and a scroller
+   clips what is drawn outside it, so a handle pulled out into the gutter was
+   cut off whole on a desktop, where the list keeps no room of its own for it.
+   The text reaches out over the note's padding by the gutter instead and pads
+   itself back in: the text stays where it was, the handle inside the box. */
+@media (hover: hover) {
+  .milkdown-editor .ProseMirror {
+    margin-left: calc(-1 * var(--task-handle-gutter));
+    padding-left: var(--task-handle-gutter);
+  }
+}
+
 /* Room for the handle, only where it is drawn at all times and so cannot
    borrow the note's padding. A nested list keeps none of it: its items are
    already indented by their parent's checkbox, and indenting again per level
@@ -202,6 +214,105 @@
 
 .milkdown-editor li[data-item-type="task"]:hover > .task-item-drag-handle {
   opacity: 1;
+}
+
+/* A 14px glyph is a small thing to land a pointer on. The target reaches up
+   and down to the row's half gaps, unseen, so a press near the dots takes. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle::before {
+  content: "";
+  position: absolute;
+  inset: -0.35em -0.1em;
+}
+
+/* The caret's own row shows its handle faintly before the pointer arrives,
+   so there is something to aim for. */
+@media (hover: hover) {
+  .milkdown-editor
+    .ProseMirror-focused[contenteditable="true"]
+    li[data-item-type="task"].task-item-active:not(
+      :has(li[data-item-type="task"].task-item-active)
+    )
+    > .task-item-drag-handle {
+    opacity: 0.5;
+  }
+
+  .milkdown-editor
+    li[data-item-type="task"].task-item-active
+    > .task-item-drag-handle:hover {
+    opacity: 1;
+  }
+}
+
+/* A line above and below the caret's row, gutter to gutter, while the text is
+   being edited. Drawn on the row's own line, its first paragraph, so an item
+   with items under it is marked by its line and not the whole branch. The
+   lines sit in the half gaps between rows and take no room of their own. */
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child {
+  position: relative;
+}
+
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child::before,
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child::after {
+  content: "";
+  position: absolute;
+  /* Back past the checkbox, its gap and the handle; out over the X. */
+  left: calc(-1 * (1rem + 0.4em + var(--task-handle-gutter)));
+  right: calc(-1 * var(--task-delete-gutter));
+  height: 1px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  pointer-events: none;
+}
+
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child::before {
+  top: -0.25rem;
+}
+
+.milkdown-editor
+  .ProseMirror-focused[contenteditable="true"]
+  li[data-item-type="task"].task-item-active:not(
+    :has(li[data-item-type="task"].task-item-active)
+  )
+  > .task-item-content
+  > :first-child::after {
+  bottom: -0.25rem;
+}
+
+/* The date picker's input under the bar's date button, never seen: it is
+   there for the browser to open its calendar from (extensions/checklistBar.ts). */
+.checklist-bar-picker {
+  position: absolute;
+  left: 0.25rem;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Nothing hovers on a touch screen, so a handle that waits for a cursor is a

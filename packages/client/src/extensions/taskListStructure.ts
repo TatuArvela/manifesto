@@ -1,4 +1,5 @@
 import type { Node as ProseNode } from "@milkdown/kit/prose/model";
+import type { EditorState } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 
 // How lists and checklist items sit in a ProseMirror document: what is a task
@@ -7,6 +8,18 @@ import type { EditorView } from "@milkdown/kit/prose/view";
 
 export function isTaskItem(node: ProseNode): boolean {
   return node.type.name === "list_item" && node.attrs.checked != null;
+}
+
+/** The innermost checklist item around the caret, or null. */
+export function activeTaskItem(
+  state: EditorState,
+): { node: ProseNode; pos: number } | null {
+  const { $from } = state.selection;
+  for (let depth = $from.depth; depth > 0; depth--) {
+    const node = $from.node(depth);
+    if (isTaskItem(node)) return { node, pos: $from.before(depth) };
+  }
+  return null;
 }
 
 export function isListNode(node: ProseNode): boolean {
