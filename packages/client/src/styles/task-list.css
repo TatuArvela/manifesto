@@ -34,6 +34,18 @@
   margin-bottom: 0.25em;
 }
 
+/* The text scrolls sideways (`.ProseMirror` in editor.css), and a scroller
+   clips what is drawn outside it, so a handle pulled out into the gutter was
+   cut off whole on a desktop, where the list keeps no room of its own for it.
+   The text reaches out over the note's padding by the gutter instead and pads
+   itself back in: the text stays where it was, the handle inside the box. */
+@media (hover: hover) {
+  .milkdown-editor .ProseMirror {
+    margin-left: calc(-1 * var(--task-handle-gutter));
+    padding-left: var(--task-handle-gutter);
+  }
+}
+
 /* Room for the handle, only where it is drawn at all times and so cannot
    borrow the note's padding. A nested list keeps none of it: its items are
    already indented by their parent's checkbox, and indenting again per level
@@ -202,6 +214,33 @@
 
 .milkdown-editor li[data-item-type="task"]:hover > .task-item-drag-handle {
   opacity: 1;
+}
+
+/* A 14px glyph is a small thing to land a pointer on. The target reaches up
+   and down to the row's half gaps, unseen, so a press near the dots takes. */
+.milkdown-editor li[data-item-type="task"] > .task-item-drag-handle::before {
+  content: "";
+  position: absolute;
+  inset: -0.35em -0.1em;
+}
+
+/* The caret's own row shows its handle faintly before the pointer arrives,
+   so there is something to aim for. */
+@media (hover: hover) {
+  .milkdown-editor
+    .ProseMirror-focused[contenteditable="true"]
+    li[data-item-type="task"].task-item-active:not(
+      :has(li[data-item-type="task"].task-item-active)
+    )
+    > .task-item-drag-handle {
+    opacity: 0.5;
+  }
+
+  .milkdown-editor
+    li[data-item-type="task"].task-item-active
+    > .task-item-drag-handle:hover {
+    opacity: 1;
+  }
 }
 
 /* Nothing hovers on a touch screen, so a handle that waits for a cursor is a
