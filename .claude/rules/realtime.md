@@ -6,6 +6,7 @@ paths:
   - "packages/client/src/state/pendingWrites.ts"
   - "packages/client/src/state/incomingNote.ts"
   - "packages/client/src/state/signOut.ts"
+  - "packages/client/src/state/unsentNotes.ts"
   - "packages/client/src/components/ConnectionStatus.tsx"
   - "packages/server/src/ws/**"
   - "packages/server/src/routes/sync*.ts"
@@ -27,6 +28,9 @@ drivers or recipients' devices never hear of it (`storage/contracts/syncContract
 log of the document's edits, not the document (`sealedDocument.ts`; see `encryption.md`). Those copies outlive the session, so the account menu signs out through `signOut`
 (`state/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
 entry stays free of Yjs); the notes list itself empties on any end of a session, a 401 included. Its `synced` flag is a correctness gate, not a spinner; see Collaborative binding in `editor.md`.
+
+A reconnect also sends the new notes queued while the server was out of reach (`sendUnsent`,
+`state/unsentNotes.ts`), and so does the browser's `online` event; see `client-state.md`.
 
 Being resumed is a reason to skip the backoff. A frozen page comes back to a socket the browser
 closed for it, and to a backoff its throttled retries may have grown to the ceiling, so a

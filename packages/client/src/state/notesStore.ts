@@ -285,10 +285,9 @@ export async function ensureImages(id: string): Promise<string[] | null> {
   }
 }
 
-export async function createNote(
-  input: Partial<NoteCreate>,
-): Promise<Note | null> {
-  const noteCreate: NoteCreate = {
+/** A whole new note from what was given, with every default filled in. */
+export function noteCreateFrom(input: Partial<NoteCreate>): NoteCreate {
+  return {
     title: input.title ?? "",
     content: input.content ?? "",
     color: input.color ?? pickDefaultColor(),
@@ -306,6 +305,12 @@ export async function createNote(
     linkPreviews: input.linkPreviews ?? [],
     reminder: input.reminder ?? null,
   };
+}
+
+export async function createNote(
+  input: Partial<NoteCreate>,
+): Promise<Note | null> {
+  const noteCreate = noteCreateFrom(input);
   try {
     const note = await storage.create(noteCreate);
     receiveNote(note);

@@ -2,6 +2,8 @@
 paths:
   - "packages/client/src/state/**"
   - "packages/client/src/storage/**"
+  - "packages/client/src/components/NoteInput.tsx"
+  - "packages/client/src/components/UnsentNotes.tsx"
 ---
 
 # Client State Management
@@ -34,6 +36,23 @@ State lives in `packages/client/src/state/` using @preact/signals:
   reply and as the broadcast), and a reconnect's re-fetch from repainting the board or dropping
   image bytes a card already loaded. Grouped writes start together, each showing its change
   before it awaits anything.
+- **`composerDraft.ts`** and **`unsentNotes.ts`**: what is written in the new-note composer before
+  it is stored, kept on the device (`storage/offlineNotes.ts`, plain IndexedDB, sealed in connected
+  mode under the `drafts` subkey). `NoteInput` saves its draft on a debounce and on `pagehide`,
+  reads it back when it opens and clears it on close or discard; it writes nothing until that read
+  has come back (`draftRead`), or the empty editor clears the draft it is about to show, and it
+  rebuilds the editor around a restored draft, since Milkdown takes its text only when built. Closing
+  the composer calls `queueNote`, never `createNote`: in connected mode the note gets its id there,
+  is kept before it is sent, and is sent again by `sendUnsent` (the `online` event, a socket
+  reconnect, an unlock) until it lands. A send that failed for want of a server waits; a 409 means
+  the note may be this one whose answer was lost, so it is looked up by id before anything else;
+  any other refusal marks it `refused`, never sent again until it is changed. A note in the queue is
+  not in `notes` and so not on the board: `UnsentNotes` lists the ones whose first try has failed
+  (`settledNoteIds`), so a note that lands at once never flashes up. A kept note carries the keys of
+  its images, which the `Sealer` holds only in memory. Signing out deletes both, after asking when
+  the queue is not empty; a 401 keeps them, sealed, for the next unlock. Browser test files share
+  one IndexedDB, so each keeps open mode's records under a name of its own
+  (`setOpenModeOwnerForTests`), and a test that renders the composer clears the draft around itself.
 - **`ui.ts`**: UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
 - **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
   What each may hold and how a stored value is read back (`PREF_PARSERS`, `DEVICE_PREFS`) is `prefParsers.ts`.

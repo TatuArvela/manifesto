@@ -1,6 +1,8 @@
 import { deleteLocalNoteCopies } from "../realtime/localNoteCopies.js";
+import { dropAllOffline } from "../storage/offlineNotes.js";
 import {
   clearAuthLocal,
+  currentUser,
   type DeleteAccountResult,
   logout,
   requestAccountDeletion,
@@ -14,17 +16,20 @@ import {
 /**
  * Sign out and leave none of the account's notes in this browser: the list in
  * memory goes as the session ends (`notesStore.ts`), and this deletes the
- * offline copies of the notes opened for editing. The browser's push
+ * offline copies of the notes opened for editing, the composer's draft and
+ * the notes not sent yet (`storage/offlineNotes.ts`). The browser's push
  * subscription goes first, so the account's reminders stop arriving here. A 401 ends the session
  * without this, since it can arrive with offline edits not yet sent.
  */
 export async function signOut(): Promise<void> {
   // Read before the session ends, which empties the list.
   const ids = notes.value.map((n) => n.id);
+  const userId = currentUser.peek()?.id;
   // While there is still a session to say it with.
   await removePushSubscription();
   await logout();
   await deleteLocalNoteCopies(ids);
+  if (userId !== undefined) await dropAllOffline(userId);
 }
 
 /**
@@ -37,10 +42,12 @@ export async function deleteOwnAccount(
   password: string,
 ): Promise<DeleteAccountResult> {
   const ids = notes.value.map((n) => n.id);
+  const userId = currentUser.peek()?.id;
   const result = await requestAccountDeletion(password);
   if (result !== "ok") return result;
   clearAuthLocal();
   await dropBrowserPushSubscription();
   await deleteLocalNoteCopies(ids);
+  if (userId !== undefined) await dropAllOffline(userId);
   return "ok";
 }

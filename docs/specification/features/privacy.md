@@ -157,11 +157,18 @@ database provides.
   IndexedDB (`manifesto:yjs-sealed:<id>`), so an edit made offline survives a reload. The copy is
   the sealed log of the note's edits, as the server holds it. A browser that kept readable copies
   before notes were sealed (`manifesto:yjs:<id>`) deletes them the next time a note is opened.
+- **Notes not stored yet.** The new-note composer's draft, and new notes written while the server
+  could not be reached, are kept in IndexedDB (`manifesto-offline`) until they are saved and sent.
+  In connected mode each is sealed under a key derived from the account key and bound to the
+  account, so it is as unreadable on the device as the offline copies; in open mode it is kept
+  readable, as the notes are.
 - **Signing out** leaves none of the account's notes behind: the list leaves memory, the reminders
   stop (in the page and in the service worker's copy, which is handed an empty list), and the offline
-  copies are deleted. A session that ends because the server refused it (`401`) empties the list and
-  stops the reminders too, but keeps the offline copies, since it can arrive with edits made offline
-  that have not reached the server yet.
+  copies, the draft and the notes not sent yet are deleted. Signing out with notes not sent asks
+  first, since this device is the only place they are. A session that ends because the server
+  refused it (`401`) empties the list and stops the reminders too, but keeps the offline copies and
+  the notes not sent, since it can arrive with work done offline that has not reached the server
+  yet; they are sent once the account is unlocked here again.
 - **Preferences** (`manifesto:prefs`) stay after sign-out. They hold settings such as the theme, and
   the names of tags hidden from the board; in connected mode most of them are also the account's,
   kept on the server.

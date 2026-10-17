@@ -7,6 +7,7 @@ paths:
   - "packages/client/src/utils/userKey.ts"
   - "packages/client/src/utils/keyMaterial.ts"
   - "packages/client/src/storage/deviceKeys.ts"
+  - "packages/client/src/storage/offlineNotes.ts"
   - "packages/client/src/storage/sealing.ts"
   - "packages/client/src/storage/linkSealing.ts"
   - "packages/client/src/storage/accountSealing.ts"
@@ -118,6 +119,11 @@ for any new flow that makes a key someone has to hold.
   one that fails, and refuses to seal one past those limits (`NoteLimitError`), since the server can
   no longer count inside a field. A link preview's `domain` is among them: `checkedLinkPreviews`
   always writes the host of its `url`, since the card shows it as where the link goes.
+- **What waits on the device is sealed.** The composer's draft and the notes not sent yet
+  (`storage/offlineNotes.ts`) are sealed under the `drafts` subkey, bound to the account, the key
+  version, the kind and the record, so the device holds no readable words of them. They outlive a
+  401 like the offline copies do and open again at the next unlock; signing out deletes them. A
+  replaced account key would leave them unopenable, so step 8 has to seal them again.
 - **A device holds keys only while signed in.** `storage/deviceKeys.ts` keeps them in IndexedDB
   with the day the session ends at the latest (`sessionEndsAt` from `GET /api/auth/keys`), and
   `checkAccountKeys` removes a copy that is another account's or past that day.

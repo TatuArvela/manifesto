@@ -45,6 +45,7 @@ export const plainSealing: NoteSealing = {
     key: null,
   }),
   keepImageKey: () => {},
+  imageKeyOf: () => null,
   sameImage: () => {},
   openDownload: async (_ref, sealed) => sealed,
   open: async (sealed) => sealed as unknown as Note,
@@ -52,7 +53,7 @@ export const plainSealing: NoteSealing = {
   holds: () => true,
   missesOwnNotes: () => false,
   forget: () => {},
-  sealNew: async (_id, note) => note as unknown as SealedNoteCreate,
+  sealNew: async (id, note) => ({ ...note, id }) as unknown as SealedNoteCreate,
   sealUpdate: async (_id, changes) => changes as unknown as SealedNoteUpdate,
   sealOver: async (id, note) =>
     ({ ...note, id }) as unknown as SealedNoteCreate,

@@ -21,6 +21,11 @@ export interface NoteChanges {
   checkpoint: string;
 }
 
+/** What a new note is stored with besides its fields. */
+export interface CreateOptions {
+  id?: string | undefined;
+}
+
 export interface StorageAdapter {
   getAll(): Promise<Note[]>;
   /**
@@ -31,7 +36,13 @@ export interface StorageAdapter {
    */
   changesSince(since: string | null): Promise<NoteChanges | null>;
   get(id: string): Promise<Note | null>;
-  create(note: NoteCreate): Promise<Note>;
+  /**
+   * Stores a new note. `id` is chosen by the caller when it has to be known
+   * before the write lands: a note queued while offline is sent again under
+   * the same one, so a write that arrived but whose answer was lost is found
+   * rather than made twice.
+   */
+  create(note: NoteCreate, options?: CreateOptions): Promise<Note>;
   update(
     id: string,
     changes: NoteUpdate,

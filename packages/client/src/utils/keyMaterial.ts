@@ -36,7 +36,8 @@ export type AccountKeyPurpose =
   | "reminder"
   | "private-keys"
   | "images"
-  | "offline";
+  | "offline"
+  | "drafts";
 
 /** The key derived from the account key for `purpose`. */
 export function accountSubkey(

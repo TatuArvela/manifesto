@@ -1,3 +1,4 @@
+import { setOpenModeOwnerForTests } from "../storage/offlineNotes.js";
 import { setSealingForTests } from "../storage/sealing.js";
 import { plainSealing } from "./plainSealing.js";
 
@@ -54,6 +55,9 @@ window.addEventListener(
  * node project, so here notes pass through as they are.
  */
 setSealingForTests(plainSealing);
+
+// What open mode keeps of drafts lives in the IndexedDB every file shares.
+setOpenModeOwnerForTests(`open-${crypto.randomUUID()}`);
 
 /**
  * Every catalogue is fetched on demand, and the switch to one waits for it.

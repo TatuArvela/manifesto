@@ -18,8 +18,13 @@ import {
   putLocalImage,
   sweepLocalImages,
 } from "./localImages.js";
+import { openModeImageRefs } from "./offlineNotes.js";
 import { isQuotaError, reportQuotaRefusal } from "./quota.js";
-import type { NoteChanges, StorageAdapter } from "./StorageAdapter.js";
+import type {
+  CreateOptions,
+  NoteChanges,
+  StorageAdapter,
+} from "./StorageAdapter.js";
 import { getVersions, saveVersion } from "./VersionStorage.js";
 
 const STORAGE_KEY = "manifesto:notes";
@@ -221,10 +226,15 @@ export class LocalStorageAdapter implements StorageAdapter {
     const current = loadNotes();
     // A list set aside names images too, and nothing can say which.
     if (!hasSetAside()) {
-      void sweepLocalImages(
-        new Set(current.flatMap(imagesOf)),
-        LOCAL_IMAGE_GRACE_MS,
-      ).catch(() => {});
+      // A kept draft names images no note does yet.
+      void openModeImageRefs()
+        .then((kept) =>
+          sweepLocalImages(
+            new Set([...current.flatMap(imagesOf), ...kept]),
+            LOCAL_IMAGE_GRACE_MS,
+          ),
+        )
+        .catch(() => {});
     }
     return current;
   }
@@ -233,13 +243,13 @@ export class LocalStorageAdapter implements StorageAdapter {
     return loadNotes().find((n) => n.id === id) ?? null;
   }
 
-  async create(input: NoteCreate): Promise<Note> {
+  async create(input: NoteCreate, options: CreateOptions = {}): Promise<Note> {
     const images = await storeInline(input.images ?? []);
     const linkPreviews = await storeInlinePreviews(input.linkPreviews ?? []);
     const notes = loadNotes();
     const now = new Date().toISOString();
     const note: Note = {
-      id: ulid(),
+      id: options.id ?? ulid(),
       title: input.title ?? "",
       content: input.content ?? "",
       color: input.color ?? NoteColor.Default,

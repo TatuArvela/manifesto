@@ -385,6 +385,15 @@ export class Sealer {
     if (key) this.imageKeys.set(ref, key);
   }
 
+  /**
+   * What opens the image `ref` names, or null when this device has none: for
+   * what keeps a note on the device before it is sent, since a reference
+   * alone opens nothing after a reload.
+   */
+  imageKeyOf(ref: string): ImageKey | null {
+    return this.imageKeys.get(ref) ?? null;
+  }
+
   /** `to` is the same sealed image as `from`, stored again for a note's
    * owner: the same key opens it. */
   sameImage(from: string, to: string): void {
