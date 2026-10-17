@@ -292,12 +292,31 @@ export function pickDefaultFont(): NoteFont {
  */
 let applyingRemotePrefs = false;
 
+/**
+ * Whether the account's preferences come from the server (`prefsSync.ts`,
+ * while signed in). Every tab then hears each change on its own socket, so
+ * another tab's blob is taken for the device's preferences alone. Taken
+ * whole, it put back a value this tab had just changed: the other tab saves
+ * whenever it adopts the server's copy, and an echo of an earlier change,
+ * heard late there, carries the value from before.
+ */
+let accountPrefsFromServer = false;
+
+export function setAccountPrefsFromServer(on: boolean): void {
+  accountPrefsFromServer = on;
+}
+
+const DEVICE_PREF_KEYS = PREF_KEYS.filter(
+  (key) => !ACCOUNT_PREF_KEYS.includes(key),
+);
+
 /** Adopts a preferences blob written by another tab. */
-export function applyPrefs(next: LoadedPrefs) {
+function applyPrefs(next: LoadedPrefs) {
+  const keys = accountPrefsFromServer ? DEVICE_PREF_KEYS : PREF_KEYS;
   applyingRemotePrefs = true;
   try {
     batch(() => {
-      for (const key of PREF_KEYS) prefSignal(key).value = next[key];
+      for (const key of keys) prefSignal(key).value = next[key];
     });
   } finally {
     applyingRemotePrefs = false;

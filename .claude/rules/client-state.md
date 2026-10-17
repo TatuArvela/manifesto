@@ -61,6 +61,10 @@ State lives in `packages/client/src/state/` using @preact/signals:
   (`/api/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
   added there. Whatever arrives from the server goes through `PREF_PARSERS` like a hand-edited blob,
   and `adoptAccountPrefs` saves it itself, since the save effect skips a change from elsewhere.
+  While signed in, another tab's blob (the `storage` event) is taken for the device's preferences
+  alone (`setAccountPrefsFromServer`): every tab hears the account's on its own socket, and a tab
+  saves whenever it adopts the server's copy, so taking the blob whole let an echo heard late in
+  one tab put back a value just changed in another.
   The host's defaults (`DEFAULT_PREFS`, `defaultPrefs` in `/api/capabilities`) are held in
   `serverDefaults.ts`, a module with no side effects and no imports of state, so `auth.ts` and
   `prefsSync.ts` both set it without loading each other or `prefs.ts`. `prefsSync.ts` gives one
