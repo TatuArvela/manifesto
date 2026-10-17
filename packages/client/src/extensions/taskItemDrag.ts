@@ -18,6 +18,16 @@ import {
 const INDENT_PX = 24;
 const DRAG_THRESHOLD_PX = 4;
 const INDICATOR_HEIGHT_PX = 2;
+/**
+ * How far above a finger a touch drag aims, at most. The finger covers the row
+ * it is on and the line under it, so the item is held up where it can be seen
+ * and the drop goes where the item is drawn, not under the fingertip.
+ *
+ * The lift grows with the finger's travel, at half its pace, rather than
+ * being there from the start: lifted at once, the aim began a row up, and an
+ * item let go where it was picked up moved one slot.
+ */
+const TOUCH_LIFT_PX = 44;
 
 type TaskItemInfo = {
   pos: number;
@@ -26,6 +36,8 @@ type TaskItemInfo = {
   outerListPos: number;
   dom: HTMLElement;
   label: HTMLElement;
+  /** The item's own line, its first paragraph, without the items under it. */
+  line: HTMLElement;
   labelX: number;
 };
 
@@ -47,8 +59,15 @@ type DragState = {
   indicator: HTMLElement;
   /** The item under the finger, drawn at the level it would land on. */
   ghost: HTMLElement | null;
-  /** Where in the item the pointer took hold of it. */
+  /**
+   * The point of the item held at the aim: where the pointer took hold of it,
+   * or for a finger the middle of its line.
+   */
   grabOffsetY: number;
+  /** Whether the pointer is a finger, whose aim is lifted above it. */
+  touch: boolean;
+  /** How far above the pointer the drop is aimed now; it only grows. */
+  lift: number;
   sourceLabelOffsetX: number;
   lastX: number;
   lastY: number;
@@ -72,6 +91,10 @@ function collectTaskItems(view: EditorView): TaskItemInfo[] {
     const label = dom.querySelector(":scope > label");
     if (!(label instanceof HTMLElement)) return;
     const labelRect = label.getBoundingClientRect();
+    const line =
+      dom.querySelector<HTMLElement>(
+        ":scope > .task-item-content > :first-child",
+      ) ?? label;
     items.push({
       pos,
       nodeSize: node.nodeSize,
@@ -79,15 +102,21 @@ function collectTaskItems(view: EditorView): TaskItemInfo[] {
       outerListPos: getOuterListPos(view.state.doc, pos),
       dom,
       label,
+      line,
       labelX: labelRect.left,
     });
   });
   return items;
 }
 
+/**
+ * The slot before the first item whose line's middle is below `y`. Measured
+ * on the whole line, not the checkbox: a box at the top of a long item put the
+ * middle of the item in the slot after it.
+ */
 function findSlot(items: TaskItemInfo[], y: number): number {
   for (const [i, item] of items.entries()) {
-    const rect = item.label.getBoundingClientRect();
+    const rect = item.line.getBoundingClientRect();
     if (y < rect.top + rect.height / 2) return i;
   }
   return items.length;
@@ -236,7 +265,7 @@ function positionGhost(state: DragState) {
   if (!state.ghost) return;
   const x = levelXFor(state.view, state.items, state.targetLevel);
   state.ghost.style.left = `${x - state.sourceLabelOffsetX}px`;
-  state.ghost.style.top = `${state.lastY - state.grabOffsetY}px`;
+  state.ghost.style.top = `${aimY(state) - state.grabOffsetY}px`;
 }
 
 /**
@@ -372,6 +401,7 @@ function onPointerMove(e: PointerEvent) {
 
   dragState.lastX = e.clientX;
   dragState.lastY = e.clientY;
+  updateLift(dragState);
 
   if (!dragState.active) {
     if (Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD_PX) return;
@@ -384,14 +414,26 @@ function onPointerMove(e: PointerEvent) {
   aim(dragState);
 }
 
+/** The height the drop is aimed at: the pointer, or above a finger. */
+function aimY(state: DragState): number {
+  return state.lastY - state.lift;
+}
+
+function updateLift(state: DragState) {
+  if (!state.touch) return;
+  const travel = Math.abs(state.lastY - state.startY);
+  state.lift = Math.max(state.lift, Math.min(TOUCH_LIFT_PX, travel / 2));
+}
+
 /** Works out where the pointer would drop the item, and shows it. */
 function aim(state: DragState) {
-  state.slot = findSlot(state.items, state.lastY);
+  const y = aimY(state);
+  state.slot = findSlot(state.items, y);
   state.atListEnd = computeAtListEnd(
     state.items,
     state.slot,
     state.sourceIdx,
-    state.lastY,
+    y,
   );
   state.targetLevel = computeTargetLevel(
     state.items,
@@ -433,6 +475,8 @@ export function startTaskItemDrag(
   const indicator = createIndicator();
   document.body.appendChild(indicator);
   const sourceRect = listItem.getBoundingClientRect();
+  const touch = e.pointerType === "touch";
+  const lineRect = source.line.getBoundingClientRect();
 
   const onMove = (ev: PointerEvent) => onPointerMove(ev);
   const onUp = (ev: PointerEvent) => {
@@ -469,7 +513,11 @@ export function startTaskItemDrag(
     targetLevel: source.level,
     indicator,
     ghost: null,
-    grabOffsetY: e.clientY - sourceRect.top,
+    grabOffsetY: touch
+      ? (lineRect.top + lineRect.bottom) / 2 - sourceRect.top
+      : e.clientY - sourceRect.top,
+    touch,
+    lift: 0,
     sourceLabelOffsetX: source.labelX - sourceRect.left,
     lastX: e.clientX,
     lastY: e.clientY,
