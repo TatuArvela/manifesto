@@ -243,6 +243,9 @@ export function useReorderDrag({
     setPreview(null);
   };
 
+  /** The frame's padding around a dragged card, `.note-drag-image`'s. */
+  const DRAG_IMAGE_ROOM = 24;
+
   const handleDragStart = (e: DragEvent, id: string) => {
     if (!reorderable) return;
     const target = e.currentTarget as HTMLElement;
@@ -250,22 +253,25 @@ export function useReorderDrag({
       e.dataTransfer.effectAllowed = "move";
       const rect = target.getBoundingClientRect();
       // An off-screen clone, so the ghost is the whole card rather than the
-      // part of it currently on screen (Safari/iOS behaviour).
+      // part of it currently on screen (Safari/iOS behaviour). It sits in a
+      // frame with room around it, since the browser draws only the box it
+      // is given, and the card's lifted shadow falls outside its own.
+      const frame = document.createElement("div");
+      frame.className = "note-drag-image";
+      frame.style.top = "-10000px";
+      frame.style.left = "-10000px";
       const clone = target.cloneNode(true) as HTMLElement;
-      clone.style.position = "fixed";
-      clone.style.top = "-10000px";
-      clone.style.left = "-10000px";
       clone.style.width = `${rect.width}px`;
       clone.style.height = `${rect.height}px`;
-      clone.style.pointerEvents = "none";
       clone.classList.remove("note-dragging");
-      document.body.appendChild(clone);
+      frame.append(clone);
+      document.body.appendChild(frame);
       e.dataTransfer.setDragImage(
-        clone,
-        e.clientX - rect.left,
-        e.clientY - rect.top,
+        frame,
+        e.clientX - rect.left + DRAG_IMAGE_ROOM,
+        e.clientY - rect.top + DRAG_IMAGE_ROOM,
       );
-      setTimeout(() => clone.remove(), 0);
+      setTimeout(() => frame.remove(), 0);
     }
     beginDrag(id);
     requestAnimationFrame(() => target.classList.add("note-dragging"));

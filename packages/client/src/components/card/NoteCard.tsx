@@ -215,7 +215,7 @@ export const NoteCard = memo(function NoteCard({
     <>
       <div
         class={clsx(
-          "relative group note-draggable-wrapper",
+          "relative group note-draggable-wrapper note-curl",
           pinSettling && "note-pin-settle",
           leaving && "note-leaving",
           noteSize.value === "square" &&
