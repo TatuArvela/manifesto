@@ -47,6 +47,8 @@ export function WebhooksSettings() {
   const [password, setPassword] = useState("");
   const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
+  // The form opens on a press, so the page leads with the webhooks there are.
+  const [adding, setAdding] = useState(false);
 
   const reload = useCallback(async () => {
     const listed = await listWebhooks();
@@ -85,7 +87,16 @@ export function WebhooksSettings() {
     setSecret(result.created.secret);
     setUrl("");
     setPassword("");
+    setAdding(false);
     await reload();
+  };
+
+  const cancel = () => {
+    setAdding(false);
+    setUrl("");
+    setPassword("");
+    setError(null);
+    setRefusal(null);
   };
 
   const remove = async (webhook: Webhook) => {
@@ -150,34 +161,64 @@ export function WebhooksSettings() {
         </div>
       )}
 
-      <form onSubmit={submit} class="space-y-3">
-        <label class="block">
-          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
-            {t("webhooks.url")}
-          </span>
-          <input
-            type="url"
-            required
-            maxLength={2048}
-            placeholder="https://"
-            value={url}
-            onInput={(e) => setUrl((e.currentTarget as HTMLInputElement).value)}
-            class={inputClass}
-          />
-        </label>
-        <ConfirmPasswordField value={password} onInput={setPassword} />
-        {refusal && <ConfirmationError refusal={refusal} />}
-        {error && (
-          <p class="text-sm text-red-600 dark:text-red-400" role="alert">
-            {error}
-          </p>
-        )}
+      {!adding ? (
         <div class="flex justify-end">
-          <button type="submit" disabled={busy} class={buttonClass("primary")}>
+          <button
+            type="button"
+            class={buttonClass("primary")}
+            onClick={() => {
+              setSecret(null);
+              setAdding(true);
+            }}
+          >
             {t("webhooks.add")}
           </button>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={submit} class="space-y-3">
+          <label class="block">
+            <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+              {t("webhooks.url")}
+            </span>
+            <input
+              type="url"
+              required
+              maxLength={2048}
+              placeholder="https://"
+              // biome-ignore lint/a11y/noAutofocus: opened by the button for this
+              autoFocus
+              value={url}
+              onInput={(e) =>
+                setUrl((e.currentTarget as HTMLInputElement).value)
+              }
+              class={inputClass}
+            />
+          </label>
+          <ConfirmPasswordField value={password} onInput={setPassword} />
+          {refusal && <ConfirmationError refusal={refusal} />}
+          {error && (
+            <p class="text-sm text-red-600 dark:text-red-400" role="alert">
+              {error}
+            </p>
+          )}
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              class={buttonClass("secondary")}
+              onClick={cancel}
+            >
+              {t("confirm.cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              class={buttonClass("primary")}
+            >
+              {t("webhooks.add")}
+            </button>
+          </div>
+        </form>
+      )}
 
       <div class="border-t border-neutral-200 dark:border-neutral-700 pt-3">
         {webhooks === null ? (

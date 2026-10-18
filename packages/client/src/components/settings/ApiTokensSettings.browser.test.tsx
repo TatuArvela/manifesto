@@ -17,6 +17,19 @@ import { ApiTokensSettings } from "./ApiTokensSettings.tsx";
 
 let host: HTMLDivElement;
 
+/** Presses the button that opens the form for a new token. */
+async function openForm() {
+  const open = await vi.waitFor(() => {
+    const button = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent === t("tokens.create"),
+    );
+    expect(button).toBeDefined();
+    return button as HTMLButtonElement;
+  });
+  open.click();
+  await vi.waitFor(() => expect(host.querySelector("form")).not.toBeNull());
+}
+
 describe("ApiTokensSettings", () => {
   beforeEach(() => {
     storageConnection.value = {
@@ -62,6 +75,7 @@ describe("ApiTokensSettings", () => {
     });
 
     render(<ApiTokensSettings />, host);
+    await openForm();
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("tokens.none")),
     );
@@ -112,6 +126,7 @@ describe("ApiTokensSettings", () => {
     });
 
     render(<ApiTokensSettings />, host);
+    await openForm();
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("tokens.none")),
     );
@@ -180,6 +195,7 @@ describe("ApiTokensSettings", () => {
     });
 
     render(<ApiTokensSettings />, host);
+    await openForm();
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("tokens.none")),
     );
@@ -255,6 +271,7 @@ describe("ApiTokensSettings", () => {
     });
 
     render(<ApiTokensSettings />, host);
+    await openForm();
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("tokens.none")),
     );
@@ -329,6 +346,7 @@ describe("ApiTokensSettings", () => {
     });
 
     render(<ApiTokensSettings />, host);
+    await openForm();
     const field = await vi.waitFor(() => {
       const input = host.querySelector<HTMLInputElement>(
         'input[type="password"]',
@@ -361,6 +379,7 @@ describe("ApiTokensSettings", () => {
     );
 
     render(<ApiTokensSettings />, host);
+    await openForm();
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("tokens.none")),
     );
