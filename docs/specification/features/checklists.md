@@ -32,9 +32,9 @@ An item is given a date by writing it in the item's text as `@` and an ISO date:
 
 An item's date does not notify: a reminder belongs to the note (see [Non-goals](../non-goals.md)).
 
-## Checked Items Last
+## Move Checked Items to the End of a Checklist
 
-With "Checked Items Last" on (Settings, Features; the `checkedItemsLast` preference, off by default),
+With "Move Checked Items to the End of a Checklist" on (Settings, Features; the `checkedItemsLast` preference, off by default),
 ticking an item moves it below the items still to do, and unticking one moves it back up, to the end
 of the ones still to do. Each list is ordered among its siblings, nested items moving with their
 parent, and both groups keep the order they had. The order is written into the Markdown, so it is

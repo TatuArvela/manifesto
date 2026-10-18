@@ -462,7 +462,7 @@ export const fi: Messages = {
   "settings.inlineCalculations": "Laskutoimitukset",
   "settings.formattingToolbar": "Muotoilupalkki",
   "settings.stickyTopBar": "Pidä yläpalkki näkyvissä puhelimella",
-  "settings.checkedItemsLast": "Valitut kohdat loppuun",
+  "settings.checkedItemsLast": "Siirrä tehdyt kohdat tehtävälistan loppuun",
   "settings.openLinksInBrowser": "Avaa linkit selaimessa",
   "settings.confirmBeforeDelete": "Vahvista poistot",
   "settings.decimalSeparator": "Desimaalierotin",

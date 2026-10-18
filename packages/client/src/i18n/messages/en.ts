@@ -455,7 +455,7 @@ export const en = {
   "settings.inlineCalculations": "Inline Calculations",
   "settings.formattingToolbar": "Formatting Toolbar",
   "settings.stickyTopBar": "Keep Top Bar in View on Phones",
-  "settings.checkedItemsLast": "Checked Items Last",
+  "settings.checkedItemsLast": "Move Checked Items to the End of a Checklist",
   "settings.openLinksInBrowser": "Open Links in Browser",
   "settings.confirmBeforeDelete": "Confirm Deletions",
   "settings.decimalSeparator": "Decimal Separator",
