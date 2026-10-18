@@ -1,10 +1,13 @@
 import { ArrowUp, Shuffle } from "lucide-preact";
+import { buttonClass } from "#/components/buttonClasses.ts";
 import { t } from "#/i18n/index.ts";
 import {
   type BoardGradientDirection,
   type BoardGradientDirectionChoice,
   boardGradient,
   boardGradientDirection,
+  boardRerolls,
+  rerollBoardBackground,
   rerollBoardGradientDirection,
   resolvedBoardTexture,
 } from "#/state/prefs.ts";
@@ -99,5 +102,23 @@ export function BoardPreview({
           },
         )}
     </fieldset>
+  );
+}
+
+/**
+ * Picks again for every choice set to "random", shown only while there is
+ * one and the board is composed rather than a picture.
+ */
+export function BoardRerollButton({ composing }: { composing: boolean }) {
+  if (!composing || boardRerolls.value.length === 0) return null;
+  return (
+    <button
+      type="button"
+      class={buttonClass("secondary", "xs")}
+      onClick={() => rerollBoardBackground()}
+    >
+      <Shuffle class="w-3.5 h-3.5 shrink-0" />
+      {t("settings.boardBackground.reroll")}
+    </button>
   );
 }

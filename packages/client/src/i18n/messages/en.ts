@@ -403,6 +403,7 @@ export const en = {
   "settings.animations": "Animations",
   "settings.boardBackground": "Board Background",
   "settings.boardBackground.colors": "Colors",
+  "settings.boardBackground.reroll": "Shuffle Again",
   "settings.boardBackground.color": "Color",
   "settings.boardBackground.none": "None",
   "settings.boardBackground.white": "White",

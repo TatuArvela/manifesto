@@ -27,7 +27,7 @@ import { BoardCard } from "./BoardCard.tsx";
 import { BoardInkPicker } from "./BoardInkPicker.tsx";
 import { BoardOpacitySlider } from "./BoardOpacitySlider.tsx";
 import { BoardPalette } from "./BoardPalette.tsx";
-import { BoardPreview } from "./BoardPreview.tsx";
+import { BoardPreview, BoardRerollButton } from "./BoardPreview.tsx";
 import { boardColorLabel } from "./boardLabels.ts";
 import { SettingsHeading } from "./SettingsControls.tsx";
 
@@ -106,9 +106,13 @@ export function BoardBackgroundSettings() {
       {mode === "compose" ? (
         <div class="space-y-6">
           <section class="space-y-3">
-            <SettingsHeading>
-              {t("settings.boardBackground.colors")}
-            </SettingsHeading>
+            {/* As tall as the button, so it comes and goes without moving the page. */}
+            <div class="flex items-center justify-between gap-2 min-h-7">
+              <SettingsHeading>
+                {t("settings.boardBackground.colors")}
+              </SettingsHeading>
+              <BoardRerollButton composing={composing} />
+            </div>
             <div class="grid grid-cols-2 gap-2 sm:gap-3">
               <BoardPalette
                 legend={t("settings.boardBackground.color")}

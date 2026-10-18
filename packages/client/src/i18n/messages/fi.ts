@@ -410,6 +410,7 @@ export const fi: Messages = {
   "settings.animations": "Animaatiot",
   "settings.boardBackground": "Taulun tausta",
   "settings.boardBackground.colors": "Värit",
+  "settings.boardBackground.reroll": "Sekoita uudelleen",
   "settings.boardBackground.color": "Väri",
   "settings.boardBackground.none": "Ei taustaa",
   "settings.boardBackground.white": "Valkoinen",

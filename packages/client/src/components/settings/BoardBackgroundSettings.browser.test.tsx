@@ -8,6 +8,7 @@ import {
   boardTexture,
   boardTextureOpacity,
   boardUsePicture,
+  resolvedBoardTexture,
 } from "#/state/prefs.ts";
 import { BoardBackgroundSettings } from "./BoardBackgroundSettings.tsx";
 
@@ -120,5 +121,17 @@ describe("board background composer", () => {
 
     expect(boardUsePicture.value).toBe(false);
     expect(boardTexture.value).toBe("grid");
+  });
+
+  it("picks again for every random choice from one button, shown only while there is one", async () => {
+    expect(() => button(t("settings.boardBackground.reroll"))).toThrow();
+
+    boardTexture.value = "random";
+    await nextFrame();
+    const before = resolvedBoardTexture.value;
+    button(t("settings.boardBackground.reroll")).click();
+
+    expect(boardTexture.value).toBe("random");
+    expect(resolvedBoardTexture.value).not.toBe(before);
   });
 });

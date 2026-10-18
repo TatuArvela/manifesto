@@ -261,6 +261,36 @@ export function rerollBoardGradientDirection() {
   );
 }
 
+/**
+ * The board's choices set to "random" that show now, as the reroll of each:
+ * a direction counts only with a gradient to point, a pattern colour only
+ * with a pattern to draw in it. The colour comes before the gradient, which
+ * rolls away from it.
+ */
+export const boardRerolls = computed<readonly (() => void)[]>(() => {
+  const rerolls: (() => void)[] = [];
+  if (boardColor.value === "random") rerolls.push(rerollBoardColor);
+  if (boardGradient.value === "random") rerolls.push(rerollBoardGradient);
+  if (
+    boardGradient.value !== "none" &&
+    boardGradientDirection.value === "random"
+  ) {
+    rerolls.push(rerollBoardGradientDirection);
+  }
+  if (boardTexture.value === "random") rerolls.push(rerollBoardTexture);
+  if (resolvedBoardTexture.value !== "none" && boardInk.value === "random") {
+    rerolls.push(rerollBoardInk);
+  }
+  return rerolls;
+});
+
+/** Picks again for every choice of the board's set to "random". */
+export function rerollBoardBackground() {
+  batch(() => {
+    for (const reroll of boardRerolls.peek()) reroll();
+  });
+}
+
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
 export function resolvedDecimalSeparator(): "." | "," {
   if (decimalSeparator.value !== "auto") return decimalSeparator.value;
