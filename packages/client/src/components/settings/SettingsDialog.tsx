@@ -19,6 +19,7 @@ import { BoardBackgroundSettings } from "./BoardBackgroundSettings.tsx";
 import { DataSettings } from "./DataSettings.tsx";
 import { FeaturesSettings } from "./FeaturesSettings.tsx";
 import { KeysSettings } from "./KeysSettings.tsx";
+import { LanguageSettings } from "./LanguageSettings.tsx";
 import {
   AccountNavItem,
   accountTabs,
@@ -262,6 +263,7 @@ export function SettingsDialog() {
               {tab === "tokens" && <ApiTokensSettings />}
               {tab === "webhooks" && <WebhooksSettings />}
               {tab === "activity" && <ActivitySettings />}
+              {tab === "language" && <LanguageSettings />}
               {tab === "appearance" && <AppearanceSettings />}
               {tab === "board" && <BoardBackgroundSettings />}
               {tab === "features" && <FeaturesSettings />}

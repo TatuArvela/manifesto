@@ -368,7 +368,7 @@ export const en = {
   "settings.group.data": "Data",
   "settings.group.about": "About",
   "settings.group.behavior": "Behavior",
-  "settings.group.theme": "Language and Theme",
+  "settings.group.colors": "Colors",
   "settings.group.notes": "Notes",
   "settings.search": "Search",
   "settings.searchResults": "Settings found",

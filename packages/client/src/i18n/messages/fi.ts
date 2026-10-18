@@ -375,7 +375,7 @@ export const fi: Messages = {
   "settings.group.data": "Tiedot",
   "settings.group.about": "Tietoja",
   "settings.group.behavior": "Käyttäytyminen",
-  "settings.group.theme": "Kieli ja teema",
+  "settings.group.colors": "Värit",
   "settings.group.notes": "Muistiinpanot",
   "settings.search": "Etsi",
   "settings.searchResults": "Löytyneet asetukset",

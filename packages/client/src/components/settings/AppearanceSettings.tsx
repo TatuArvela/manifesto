@@ -1,8 +1,6 @@
 import { Monitor, Moon, Sun } from "lucide-preact";
 import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.tsx";
-import { detectBrowserLocale } from "#/i18n/detect.ts";
 import { t } from "#/i18n/index.ts";
-import { type Locale, SUPPORTED_LOCALES } from "#/i18n/locales.ts";
 import {
   animations,
   BOARD_COLORS,
@@ -13,7 +11,6 @@ import {
   LIGHT_HUES,
   type LightHue,
   lightHue,
-  locale,
   noteCorners,
   noteQuips,
   noteTilt,
@@ -30,14 +27,6 @@ import {
 } from "./SettingsControls.tsx";
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"];
-
-// Endonyms never translate: each language's name is rendered in that language.
-const LOCALE_ENDONYMS: Record<string, string> = {
-  en: "English",
-  fi: "Suomi",
-};
-
-type LanguageOption = "system" | (typeof SUPPORTED_LOCALES)[number];
 
 const swatchClass =
   "w-9 h-5 shrink-0 rounded ring-1 ring-inset ring-black/10 dark:ring-white/15";
@@ -65,28 +54,9 @@ export function AppearanceSettings() {
     ),
   }));
 
-  const languageOptions: SettingsOption<LanguageOption>[] = [
-    { value: "system", label: t("settings.language.system") },
-    ...SUPPORTED_LOCALES.map((l) => ({
-      value: l as LanguageOption,
-      label: LOCALE_ENDONYMS[l] ?? l,
-    })),
-  ];
   return (
     <div class="space-y-6">
-      <SettingsGroup title={t("settings.group.theme")}>
-        <SettingsRow label={t("settings.language")}>
-          <SettingsSelect
-            label={t("settings.language")}
-            value={locale.value as LanguageOption}
-            options={languageOptions}
-            onChange={(next) => {
-              locale.value =
-                next === "system" ? detectBrowserLocale() : (next as Locale);
-            }}
-          />
-        </SettingsRow>
-
+      <SettingsGroup title={t("settings.group.colors")}>
         {/* The theme and its two shades read as one setting, so no line
             parts them. Each shade is dimmed while the theme is pinned to the
             other one, since it would change nothing on screen. */}

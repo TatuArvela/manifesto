@@ -31,6 +31,7 @@ export type SettingsTab =
   | "tokens"
   | "webhooks"
   | "activity"
+  | "language"
   | "appearance"
   | "board"
   | "features"

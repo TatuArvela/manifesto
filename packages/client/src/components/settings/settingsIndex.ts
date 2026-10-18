@@ -15,7 +15,6 @@ export const SETTINGS_INDEX: readonly {
   { tab: "account", label: "account.email" },
   { tab: "account", label: "account.changePassword" },
   { tab: "account", label: "account.delete.title" },
-  { tab: "appearance", label: "settings.language" },
   { tab: "appearance", label: "settings.theme" },
   { tab: "appearance", label: "settings.lightHue" },
   { tab: "appearance", label: "settings.darkHue" },
