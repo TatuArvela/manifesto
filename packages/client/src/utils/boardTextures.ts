@@ -1,7 +1,7 @@
 /**
  * The board textures that are pictures rather than gradients: the paper
- * grain, which is SVG turbulence, and the stars, hearts, confetti and
- * sawtooth. Every texture is a mask over one layer behind the board, which
+ * grain, which is SVG turbulence, and the stars, hearts, confetti, bubbles
+ * and sawtooth. Every texture is a mask over one layer behind the board, which
  * takes the pattern's colour as its background and the pattern's opacity as
  * its own (`.board-frame::before` in preferences.css). So these are drawn
  * once, in opaque black, and handed to the stylesheet as they are: only their
@@ -13,6 +13,7 @@ export type PictureTexture =
   | "stars"
   | "hearts"
   | "confetti"
+  | "bubbles"
   | "sawtooth";
 
 /**
@@ -73,35 +74,6 @@ const NOISE: Record<"paper", Noise> = {
 const GRAIN_SLOPE = 2;
 const GRAIN_OFFSET = -0.5;
 
-const STARS = [
-  "M15.0 9.1 L16.2 13.7 L20.9 14.8 L16.8 17.4 L17.3 22.2 L13.6 19.1 L9.1 21.0 L10.9 16.5 L7.7 12.9 L12.5 13.2Z",
-  "M42.9 35.6 L44.8 38.1 L47.8 37.6 L46.0 40.1 L47.4 42.9 L44.5 42.0 L42.3 44.2 L42.3 41.1 L39.5 39.7 L42.4 38.7Z",
-  "M50.9 7.7 L50.9 9.4 L52.5 10.1 L50.9 10.7 L50.7 12.4 L49.6 11.1 L47.9 11.4 L48.9 10.0 L48.0 8.5 L49.7 8.9Z",
-  "M17.7 45.0 L18.7 46.8 L20.7 46.8 L19.3 48.3 L20.0 50.2 L18.1 49.3 L16.5 50.6 L16.8 48.5 L15.1 47.4 L17.1 47.0Z",
-];
-
-/**
- * One heart, about nineteen units wide at scale 1, placed five times at its
- * own size and tilt. Laid out apart from the stars, so the two patterns do
- * not share an arrangement, and each far enough inside the 60-unit tile that
- * none is cut at an edge.
- */
-const HEART = "M0 7 C-9.33 0.78 -8.56 -7 0 -2.72 C8.56 -7 9.33 0.78 0 7Z";
-const HEARTS = [
-  { x: 42, y: 15, turn: 10, scale: 0.8 },
-  { x: 14, y: 28, turn: -14, scale: 0.55 },
-  { x: 33, y: 47, turn: 6, scale: 0.7 },
-  { x: 52, y: 38, turn: -8, scale: 0.4 },
-  { x: 10, y: 51, turn: 12, scale: 0.35 },
-];
-
-/**
- * The stars and hearts are laid out on a 60-unit tile and drawn half as large
- * again, on a 90px one (`--board-texture-stars-size` in preferences.css).
- */
-const SHAPE_SCALE = 1.5;
-const SHAPE_TILE = 60 * SHAPE_SCALE;
-
 const round = (n: number) => Number(n.toFixed(3));
 
 /** Confetti's tile, in px: wide, so the eye does not find it repeating. */
@@ -153,13 +125,9 @@ function seeded(seed: number): () => number {
   };
 }
 
-/** The shortest way from `b` to `a` along one axis of the tile, signed. */
-function across(a: number, b: number): number {
-  return (
-    ((((a - b + CONFETTI_TILE / 2) % CONFETTI_TILE) + CONFETTI_TILE) %
-      CONFETTI_TILE) -
-    CONFETTI_TILE / 2
-  );
+/** The shortest way from `b` to `a` along one axis of a tile, signed. */
+function across(a: number, b: number, tile = CONFETTI_TILE): number {
+  return ((((a - b + tile / 2) % tile) + tile) % tile) - tile / 2;
 }
 
 /**
@@ -251,6 +219,146 @@ function confetti(): string {
 }
 
 /**
+ * The tile the bubbles, stars and hearts are scattered on, in px: wide for
+ * the same reason as the confetti's.
+ */
+export const SCATTER_TILE = 360;
+
+/** A shape of a scatter: its centre, the radius it reaches, its turn. */
+export interface Scattered {
+  x: number;
+  y: number;
+  r: number;
+  turn: number;
+}
+
+interface ScatterKind {
+  seed: number;
+  count: number;
+  /** The radii the shapes are drawn between, in px. */
+  smallest: number;
+  largest: number;
+  /** The most a shape is turned either way, in degrees. */
+  turn: number;
+}
+
+/** The least clear space between two shapes, in px. */
+const SCATTER_GAP = 4;
+
+/**
+ * Shapes of every size between `smallest` and `largest`, more of them small
+ * than large. They go in largest first, each in the best of many random
+ * spots: the one that leaves it the most clear space to the shapes already
+ * down, measured around the tile's edges, so the small ones settle into the
+ * gaps between the large and no row or column lines up from one tile to the
+ * next. A shape may cross an edge, since it is drawn on both sides; a scatter
+ * kept inside its tile left a band along each seam with no large shape in
+ * it, and on a tile of a handful of shapes the tile itself showed as a grid.
+ */
+function scatter(kind: ScatterKind): Scattered[] {
+  const random = seeded(kind.seed);
+  const spread = kind.largest - kind.smallest;
+  const radii = Array.from(
+    { length: kind.count },
+    () => kind.smallest + spread * random() ** 1.6,
+  ).sort((a, b) => b - a);
+  const placed: Scattered[] = [];
+  for (const r of radii) {
+    let best = { x: 0, y: 0, clear: Number.NEGATIVE_INFINITY };
+    for (let tries = 0; tries < 80; tries++) {
+      const x = random() * SCATTER_TILE;
+      const y = random() * SCATTER_TILE;
+      let clear = Number.POSITIVE_INFINITY;
+      for (const other of placed) {
+        const d = Math.hypot(
+          across(x, other.x, SCATTER_TILE),
+          across(y, other.y, SCATTER_TILE),
+        );
+        clear = Math.min(clear, d - other.r - r);
+      }
+      if (clear > best.clear) best = { x, y, clear };
+    }
+    if (best.clear < SCATTER_GAP) continue;
+    placed.push({
+      x: round(best.x),
+      y: round(best.y),
+      r: round(r),
+      turn: Math.round((random() * 2 - 1) * kind.turn),
+    });
+  }
+  return placed;
+}
+
+/** Exported for their test, which holds each apart and its tile full. */
+export const SCATTERS = {
+  bubbles: scatter({
+    seed: 20261019,
+    count: 100,
+    smallest: 4,
+    largest: 14,
+    turn: 0,
+  }),
+  stars: scatter({
+    seed: 20261020,
+    count: 70,
+    smallest: 3,
+    largest: 11,
+    turn: 36,
+  }),
+  // Of the seeds tried, the one leaving the narrowest bare patch: a heart
+  // fills less of its circle than a bubble, so a gap shows sooner.
+  hearts: scatter({
+    seed: 20261061,
+    count: 90,
+    smallest: 5,
+    largest: 12,
+    turn: 15,
+  }),
+} as const satisfies Record<string, readonly Scattered[]>;
+
+/** A five-pointed star reaching 1 from its centre, its inner points 0.42. */
+const STAR = `M${Array.from({ length: 10 }, (_, i) => {
+  const reach = i % 2 === 0 ? 1 : 0.42;
+  const angle = (i * Math.PI) / 5 - Math.PI / 2;
+  return `${round(reach * Math.cos(angle))} ${round(reach * Math.sin(angle))}`;
+}).join(" L")}Z`;
+
+/** A heart about nineteen units wide, reaching about 9 from its centre. */
+const HEART = "M0 7 C-9.33 0.78 -8.56 -7 0 -2.72 C8.56 -7 9.33 0.78 0 7Z";
+const HEART_REACH = 9;
+
+/** Where a shape is drawn: its place, and again past each edge it crosses. */
+function placesOf({ x, y, r }: Scattered): [number, number][] {
+  const xs = [x];
+  const ys = [y];
+  if (x < r) xs.push(x + SCATTER_TILE);
+  if (x > SCATTER_TILE - r) xs.push(x - SCATTER_TILE);
+  if (y < r) ys.push(y + SCATTER_TILE);
+  if (y > SCATTER_TILE - r) ys.push(y - SCATTER_TILE);
+  return xs.flatMap((px) => ys.map((py): [number, number] => [px, py]));
+}
+
+function scattered(
+  shapes: readonly Scattered[],
+  draw: (shape: Scattered, x: number, y: number) => string,
+): string {
+  const drawn = shapes
+    .flatMap((shape) =>
+      placesOf(shape).map(([x, y]) => draw(shape, round(x), round(y))),
+    )
+    .join("");
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${SCATTER_TILE}' height='${SCATTER_TILE}'>${drawn}</svg>`,
+  );
+}
+
+/** A path drawn at a shape's place, turn and size. */
+function placedPath(d: string, reach: number) {
+  return ({ r, turn }: Scattered, x: number, y: number) =>
+    `<path transform='translate(${x} ${y}) rotate(${turn}) scale(${round(r / reach)})' d='${d}'/>`;
+}
+
+/**
  * Every row that crosses the tile, as one long row drawn once and placed
  * again at each row's offset, all turned together. The rows' reach is the
  * tile's corners measured along and across them, with a tooth and a row to
@@ -296,24 +404,17 @@ function noise(texture: Noise): string {
   );
 }
 
-function shapes(paths: string): string {
-  return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${SHAPE_TILE}' height='${SHAPE_TILE}'><g transform='scale(${SHAPE_SCALE})'>${paths}</g></svg>`,
-  );
-}
-
 /** Every picture texture as a mask, each a CSS `url(...)`. */
 export function pictureTextures(): Record<PictureTexture, string> {
   return {
     paper: noise(NOISE.paper),
-    stars: shapes(STARS.map((d) => `<path d='${d}'/>`).join("")),
-    hearts: shapes(
-      HEARTS.map(
-        ({ x, y, turn, scale }) =>
-          `<path transform='translate(${x} ${y}) rotate(${turn}) scale(${scale})' d='${HEART}'/>`,
-      ).join(""),
-    ),
+    stars: scattered(SCATTERS.stars, placedPath(STAR, 1)),
+    hearts: scattered(SCATTERS.hearts, placedPath(HEART, HEART_REACH)),
     confetti: confetti(),
+    bubbles: scattered(
+      SCATTERS.bubbles,
+      ({ r }, x, y) => `<circle cx='${x}' cy='${y}' r='${r}'/>`,
+    ),
     sawtooth: sawtooth(),
   };
 }
