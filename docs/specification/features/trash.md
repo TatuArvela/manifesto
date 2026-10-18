@@ -5,7 +5,7 @@ Deleting a note is a soft delete: it moves the note to trash rather than permane
 ## Behavior
 
 - Deleting a note sets `trashed: true` and records `trashedAt` (see [Data Model](../data-model.md))
-- The card is crumpled into a ball and tossed away as it goes, and so is one deleted for good from the Trash; a restored one is smoothed out flat again and rises out of the Trash view. Neither plays for a card that the change leaves in the current view, such as a search that covers both places
+- The card is crumpled into a ball and tossed away as it goes, and so is one deleted for good from the Trash; a restored one ascends, glowing as it floats up and out of the Trash view. Neither plays for a card that the change leaves in the current view, such as a search that covers both places
 - Trashed notes are accessible from the Trash view in the sidebar
 - The trash view shows when each note was trashed
 - A trashed note can be restored to its previous state (active or archived)

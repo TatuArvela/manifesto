@@ -321,26 +321,31 @@
   }
 }
 
-/* Undeleted, it is smoothed out flat again, the way a note taken back out of
-   the bin is pressed open, and rises away to the notes. */
+/* Undeleted, it ascends: lit up from within, with a halo about it, it
+   floats straight up out of the Trash, slowly at first, and fades into the
+   light. The wrapper carries the rise and the card the glow. */
 @keyframes note-leave-undelete {
   0% {
     transform: none;
     opacity: 1;
   }
-  25% {
-    transform: scale(0.92, 0.96) skewX(-3deg);
-  }
-  50% {
-    transform: scale(1.04, 0.98) skewX(2deg);
-  }
-  70% {
-    transform: scale(1.02);
+  30% {
+    transform: translateY(-4px) scale(1.02);
     opacity: 1;
   }
   100% {
-    transform: translateY(-12px) scale(1.06);
+    transform: translateY(-90px) scale(1.04);
     opacity: 0;
+  }
+}
+
+@keyframes note-ascend-surface {
+  30%,
+  100% {
+    box-shadow:
+      0 0 18px 6px rgb(255 248 220 / 0.9),
+      0 0 42px 14px rgb(255 240 190 / 0.45);
+    filter: brightness(1.25) saturate(0.85);
   }
 }
 
@@ -367,7 +372,11 @@
 }
 
 .note-leaving[data-leaving="undelete"] {
-  animation: note-leave-undelete 0.42s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  animation: note-leave-undelete 0.6s cubic-bezier(0.5, 0, 0.75, 0.6) forwards;
+}
+
+.note-leaving[data-leaving="undelete"] .note-surface {
+  animation: note-ascend-surface 0.6s ease-out forwards;
 }
 
 .note-leaving[data-leaving="archive"] {

@@ -56,8 +56,8 @@ import {
  *
  * - `discard`: trashed or deleted. It is crumpled into a ball and tossed.
  * - `archive`: put away. It is lifted up and off the board.
- * - `undelete`: back among the notes from the trash. It is smoothed out flat
- *   again, as a note taken back out of the bin is, and rises away.
+ * - `undelete`: back among the notes from the trash. It ascends: it glows,
+ *   and floats up out of the Trash into the light.
  * - `restore`: back among the notes from the archive. It swells slightly as
  *   it fades, rising to meet them.
  */
@@ -74,7 +74,7 @@ export const leavingNotes = signal<ReadonlyMap<string, LeaveStyle>>(new Map());
 const LEAVE_MS: Record<LeaveStyle, number> = {
   discard: 480,
   archive: 200,
-  undelete: 420,
+  undelete: 600,
   restore: 200,
 };
 
