@@ -1,4 +1,5 @@
 import {
+  Bookmark,
   Database,
   History,
   Info,
@@ -35,6 +36,7 @@ export const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
   board: { label: "settings.boardBackground", icon: Wallpaper },
   features: { label: "settings.group.features", icon: Sparkles },
   data: { label: "settings.group.data", icon: Database },
+  clip: { label: "settings.clip.title", icon: Bookmark },
   about: { label: "settings.group.about", icon: Info },
 };
 
@@ -43,6 +45,7 @@ export const GENERAL_TABS: SettingsTab[] = [
   "board",
   "features",
   "data",
+  "clip",
   "about",
 ];
 

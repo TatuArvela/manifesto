@@ -1,6 +1,5 @@
 import { Download, Trash2, Upload } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
-import { Bookmarklet } from "#/components/Bookmarklet.tsx";
 import { buttonClass } from "#/components/buttonClasses.ts";
 import { type MessageKey, plural, t } from "#/i18n/index.ts";
 import { downloadExport } from "#/state/exportNotes.ts";
@@ -165,7 +164,6 @@ export function DataSettings() {
           </p>
         )}
       </div>
-      <Bookmarklet />
     </div>
   );
 }

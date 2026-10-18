@@ -471,7 +471,7 @@ export const fi: Messages = {
   "settings.decimalSeparator.comma": "Pilkku",
   "settings.language": "Kieli",
   "settings.language.system": "Järjestelmän oletus",
-  "settings.clip.title": "Tallenna sivuja selaimesta",
+  "settings.clip.title": "Tallenna selaimesta",
   "settings.clip.explain":
     "Vedä tämä linkki kirjanmerkkipalkkiin. Kun napsautat sitä millä tahansa sivulla, se avaa uuden muistiinpanon sivun otsikolla, osoitteella ja valitsemallasi tekstillä.",
   "settings.clip.link": "Tallenna: {appName}",

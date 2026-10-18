@@ -464,7 +464,7 @@ export const en = {
   "settings.decimalSeparator.comma": "Comma",
   "settings.language": "Language",
   "settings.language.system": "System default",
-  "settings.clip.title": "Save pages from the browser",
+  "settings.clip.title": "Save from Browser",
   "settings.clip.explain":
     "Drag this link to your bookmarks bar. Clicked on any page, it opens a new note with the page's title, address and whatever text you selected.",
   "settings.clip.link": "Save to {appName}",

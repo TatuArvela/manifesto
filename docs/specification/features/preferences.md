@@ -15,7 +15,8 @@ view and lights it for a moment. What can be found is `SETTINGS_INDEX` in
 `components/settings/settingsIndex.ts`: a setting added to a page needs a line there.
 
 The sidebar lists the account's pages first and then the general ones, the two groups set apart by
-a gap rather than headings. Board Background has a page of its own, after Appearance.
+a gap rather than headings. Board Background has a page of its own, after Appearance, and so does
+Save from Browser (the bookmarklet), after Data.
 
 ## Opening links in the browser
 

@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Backdrop } from "#/components/Backdrop.tsx";
+import { Bookmarklet } from "#/components/Bookmarklet.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
@@ -265,6 +266,7 @@ export function SettingsDialog() {
               {tab === "board" && <BoardBackgroundSettings />}
               {tab === "features" && <FeaturesSettings />}
               {tab === "data" && <DataSettings />}
+              {tab === "clip" && <Bookmarklet />}
               {tab === "about" && <AboutSettings onClose={handleClose} />}
             </div>
           </div>
