@@ -205,7 +205,7 @@ export function SettingsDialog() {
                 class="flex sm:flex-col gap-1 sm:gap-0 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto px-3 pb-3 sm:pb-2"
               >
                 {account.length > 0 && (
-                  <NavGroup title={t("account.menu")}>
+                  <NavGroup>
                     <AccountNavItem
                       active={tab === "account"}
                       onSelect={select}
@@ -222,11 +222,7 @@ export function SettingsDialog() {
                       ))}
                   </NavGroup>
                 )}
-                <NavGroup
-                  title={
-                    account.length > 0 ? t("settings.group.general") : undefined
-                  }
-                >
+                <NavGroup>
                   {GENERAL_TABS.map((g) => (
                     <NavItem
                       key={g}

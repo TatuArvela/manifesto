@@ -82,23 +82,9 @@ function navItemState(active: boolean) {
     : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60";
 }
 
-export function NavGroup({
-  title,
-  children,
-}: {
-  title?: string | undefined;
-  children: ComponentChildren;
-}) {
-  return (
-    <div class="contents sm:block sm:space-y-0.5 sm:pb-4">
-      {title && (
-        <p class="hidden sm:block px-3 pb-1 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-          {title}
-        </p>
-      )}
-      {children}
-    </div>
-  );
+/** Pages that belong together, set apart from the next group by a gap alone. */
+export function NavGroup({ children }: { children: ComponentChildren }) {
+  return <div class="contents sm:block sm:space-y-0.5 sm:pb-4">{children}</div>;
 }
 
 export function NavItem({
