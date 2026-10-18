@@ -395,22 +395,6 @@ body.marquee-active {
   visibility: hidden;
 }
 
-/* The frame a mouse's drag image is drawn from (useReorderDrag.ts): off the
-   screen, with room on every side for the lifted shadow, which the browser
-   would otherwise cut at the card's edge. Its padding is `DRAG_IMAGE_ROOM`. */
-.note-drag-image {
-  position: fixed;
-  padding: 24px;
-  pointer-events: none;
-}
-
-.note-drag-image > * {
-  rotate: 0deg;
-  box-shadow:
-    0 14px 28px -8px rgb(0 0 0 / 0.3),
-    0 8px 12px -8px rgb(0 0 0 / 0.22);
-}
-
 /* The copy of a card that follows a finger (ReorderableGrid.tsx), lifted as a
    held card is. */
 .note-drag-ghost {
@@ -443,52 +427,6 @@ body.marquee-active {
 .note-draggable :is(a, img) {
   -webkit-user-drag: none;
   -webkit-touch-callout: none;
-}
-
-/* A curl at a card's foot: a soft shadow under its bottom right corner, as
-   under a sticky note whose corner has lifted off the board. Drawn by the
-   card's wrapper, behind the card, since the card clips what it draws
-   (`overflow: hidden`) and a shadow inside it could not fall on the board.
-   It is `::before` with no `z-index`, so it paints before the card by tree
-   order: a stacking context on the wrapper would trap a held card's
-   `z-index` under its neighbours.
-   The card covers all but the edge of it, so it reads as a corner curling
-   up, and it lifts further while the card is pointed at. */
-.note-curl::before {
-  content: "";
-  position: absolute;
-  right: 6px;
-  bottom: 8px;
-  width: 45%;
-  height: 24px;
-  max-height: 30%;
-  border-radius: 50%;
-  box-shadow: 4px 9px 10px rgb(0 0 0 / 0.16);
-  rotate: 3deg;
-  pointer-events: none;
-  transition:
-    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1),
-    rotate 150ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.dark .note-curl::before {
-  box-shadow: 4px 9px 10px rgb(0 0 0 / 0.4);
-}
-
-.note-curl:is(:hover, [data-popover-open])::before {
-  box-shadow: 6px 13px 14px rgb(0 0 0 / 0.2);
-  rotate: 4deg;
-}
-
-.dark .note-curl:is(:hover, [data-popover-open])::before {
-  box-shadow: 6px 13px 14px rgb(0 0 0 / 0.5);
-}
-
-/* Not under a card that is not on the board: one hidden while dragged, one
-   leaving it. */
-.note-curl:has(.note-dragging)::before,
-.note-curl.note-leaving::before {
-  opacity: 0;
 }
 
 /* A card held under a finger: lifted off the board, waiting to be dragged or

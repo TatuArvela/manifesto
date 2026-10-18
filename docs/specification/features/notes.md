@@ -107,11 +107,6 @@ and two either way, worked out from the note's id, so a note always leans the sa
 device and reload. A card straightens while it is pointed at, focused or held. The list view stays
 level, since its cards are as wide as the board and a degree there is a visible step at the edge.
 
-Every card has a soft shadow under its bottom right corner, as under a sticky note whose corner has
-curled off the board, drawn in CSS behind the card, and it lifts a little further while the card is
-pointed at. A card being dragged to a new place is drawn lifted off the board, with a deeper shadow,
-under a mouse as under a finger.
-
 ## Selecting Notes
 
 Selected notes can be pinned, tagged, recoloured, archived or deleted together from the header, which turns into a selection bar while anything is selected. Its tag panel lists every tag with a box that is checked when all of the selected notes carry the tag, dashed when only some do, and empty when none do: choosing a tag they all carry takes it from them, choosing any other gives it to the ones still missing it, and a new tag can be typed in. The panel and the selection stay as they are after a tag is changed, so several can be changed in a row; the other actions end the selection. The colour panel marks the colour the selected notes share, if they share one.
