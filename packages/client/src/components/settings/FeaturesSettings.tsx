@@ -1,16 +1,14 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { Shuffle } from "lucide-preact";
 import { noteFontFamilies } from "#/colors.ts";
-import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.tsx";
+import { Switch } from "#/components/ToggleSwitch.tsx";
 import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
 import { canOpenInSystemBrowser } from "#/state/externalLinks.ts";
 import {
   checkedItemsLast,
   confirmBeforeDelete,
-  type DecimalSeparator,
   type DefaultNoteColor,
   type DefaultNoteFont,
-  decimalSeparator,
   defaultEditMode,
   defaultNoteColor,
   defaultNoteFont,
@@ -24,10 +22,7 @@ import {
   type SettingsOption,
   SettingsRow,
   SettingsSelect,
-  toggleTrackClass,
 } from "./SettingsControls.tsx";
-
-const decimalSeparators: DecimalSeparator[] = ["auto", ".", ","];
 
 export function FeaturesSettings() {
   return (
@@ -85,34 +80,6 @@ export function FeaturesSettings() {
             label={t("settings.inlineCalculations")}
           />
         </SettingsRow>
-
-        {/* Only relevant while inline calculations are on */}
-        {inlineCalculations.value && (
-          <SettingsRow label={t("settings.decimalSeparator")}>
-            <ThreeWayToggle
-              trackClass={toggleTrackClass}
-              value={decimalSeparators.indexOf(decimalSeparator.value)}
-              onChange={(i) => {
-                decimalSeparator.value =
-                  decimalSeparators[i] ?? decimalSeparator.value;
-              }}
-              options={[
-                {
-                  icon: <span class="text-xs font-semibold">A</span>,
-                  label: t("settings.decimalSeparator.auto"),
-                },
-                {
-                  icon: <span class="text-base leading-none">.</span>,
-                  label: t("settings.decimalSeparator.dot"),
-                },
-                {
-                  icon: <span class="text-base leading-none">,</span>,
-                  label: t("settings.decimalSeparator.comma"),
-                },
-              ]}
-            />
-          </SettingsRow>
-        )}
       </SettingsGroup>
       <DefaultsSection />
     </div>

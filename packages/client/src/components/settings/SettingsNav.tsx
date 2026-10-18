@@ -33,7 +33,7 @@ export const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
   tokens: { label: "tokens.title", icon: KeySquare },
   webhooks: { label: "webhooks.title", icon: Webhook },
   activity: { label: "activity.title", icon: History },
-  language: { label: "settings.language", icon: Languages },
+  language: { label: "settings.group.languageRegion", icon: Languages },
   appearance: { label: "settings.group.appearance", icon: Palette },
   board: { label: "settings.boardBackground", icon: Wallpaper },
   features: { label: "settings.group.features", icon: Sparkles },

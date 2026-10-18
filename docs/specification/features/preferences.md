@@ -15,8 +15,9 @@ view and lights it for a moment. What can be found is `SETTINGS_INDEX` in
 `components/settings/settingsIndex.ts`: a setting added to a page needs a line there.
 
 The sidebar lists the account's pages first and then the general ones, the two groups set apart by
-a gap rather than headings. Language has a page of its own, before Appearance, and so do Board
-Background, after Appearance, and Save from Browser (the bookmarklet), after Data.
+a gap rather than headings. Language and Region has a page of its own, before Appearance, with the
+language and the decimal separator for inline calculations, and so do Board Background, after
+Appearance, and Save from Browser (the bookmarklet), after Data.
 
 ## Opening links in the browser
 

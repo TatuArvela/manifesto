@@ -1,12 +1,18 @@
+import { ThreeWayToggle } from "#/components/ToggleSwitch.tsx";
 import { detectBrowserLocale } from "#/i18n/detect.ts";
 import { t } from "#/i18n/index.ts";
 import { type Locale, SUPPORTED_LOCALES } from "#/i18n/locales.ts";
-import { locale } from "#/state/prefs.ts";
+import {
+  type DecimalSeparator,
+  decimalSeparator,
+  locale,
+} from "#/state/prefs.ts";
 import {
   SettingsGroup,
   type SettingsOption,
   SettingsRow,
   SettingsSelect,
+  toggleTrackClass,
 } from "./SettingsControls.tsx";
 
 // Endonyms never translate: each language's name is rendered in that language.
@@ -17,7 +23,12 @@ const LOCALE_ENDONYMS: Record<string, string> = {
 
 type LanguageOption = "system" | (typeof SUPPORTED_LOCALES)[number];
 
-/** The language the app is shown in, on a page of its own. */
+const decimalSeparators: DecimalSeparator[] = ["auto", ".", ","];
+
+/**
+ * Language and Region: the language the app is shown in, and the decimal
+ * separator inline calculations read and write, which follows it on Auto.
+ */
 export function LanguageSettings() {
   const languageOptions: SettingsOption<LanguageOption>[] = [
     { value: "system", label: t("settings.language.system") },
@@ -37,6 +48,31 @@ export function LanguageSettings() {
             locale.value =
               next === "system" ? detectBrowserLocale() : (next as Locale);
           }}
+        />
+      </SettingsRow>
+
+      <SettingsRow label={t("settings.decimalSeparator")}>
+        <ThreeWayToggle
+          trackClass={toggleTrackClass}
+          value={decimalSeparators.indexOf(decimalSeparator.value)}
+          onChange={(i) => {
+            decimalSeparator.value =
+              decimalSeparators[i] ?? decimalSeparator.value;
+          }}
+          options={[
+            {
+              icon: <span class="text-xs font-semibold">A</span>,
+              label: t("settings.decimalSeparator.auto"),
+            },
+            {
+              icon: <span class="text-base leading-none">.</span>,
+              label: t("settings.decimalSeparator.dot"),
+            },
+            {
+              icon: <span class="text-base leading-none">,</span>,
+              label: t("settings.decimalSeparator.comma"),
+            },
+          ]}
         />
       </SettingsRow>
     </SettingsGroup>
