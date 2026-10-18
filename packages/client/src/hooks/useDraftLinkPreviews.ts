@@ -4,6 +4,7 @@ import {
   reportPreviewOverflow,
   resolveLinkPreview,
 } from "#/state/linkPreviews.ts";
+import { linkPreviewCards } from "#/state/prefs.ts";
 import { appendStubPreviews } from "#/utils/linkPreview.ts";
 
 /**
@@ -41,6 +42,7 @@ export function useDraftLinkPreviews(): DraftLinkPreviews {
   return {
     previews,
     add(urls) {
+      if (!linkPreviewCards.value) return;
       const { previews, added, overflow } = appendStubPreviews(
         latest.current,
         urls,

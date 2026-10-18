@@ -119,6 +119,7 @@ export const noteQuips = pref("noteQuips");
 export const formattingToolbar = pref("formattingToolbar");
 export const checkedItemsLast = pref("checkedItemsLast");
 export const checklistProgress = pref("checklistProgress");
+export const linkPreviewCards = pref("linkPreviewCards");
 export const openLinksInBrowser = pref("openLinksInBrowser");
 export const stickyTopBar = pref("stickyTopBar");
 export const hiddenTags = pref("hiddenTags");

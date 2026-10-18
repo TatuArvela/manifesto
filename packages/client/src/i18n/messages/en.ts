@@ -459,6 +459,7 @@ export const en = {
   "settings.checkedItemsLast": "Move Checked Items to the End of a Checklist",
   "settings.checklistProgress": "Show Checklist Progress Bar",
   "settings.openLinksInBrowser": "Open Links in Browser",
+  "settings.linkPreviewCards": "Link Previews",
   "settings.confirmBeforeDelete": "Confirm Deletions",
   "settings.decimalSeparator": "Decimal Separator",
   "settings.decimalSeparator.auto": "Auto",

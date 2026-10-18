@@ -466,6 +466,7 @@ export const fi: Messages = {
   "settings.checkedItemsLast": "Siirrä tehdyt kohdat tehtävälistan loppuun",
   "settings.checklistProgress": "Näytä tehtävälistan edistymispalkki",
   "settings.openLinksInBrowser": "Avaa linkit selaimessa",
+  "settings.linkPreviewCards": "Linkkien esikatselut",
   "settings.confirmBeforeDelete": "Vahvista poistot",
   "settings.decimalSeparator": "Desimaalierotin",
   "settings.decimalSeparator.auto": "Automaattinen",

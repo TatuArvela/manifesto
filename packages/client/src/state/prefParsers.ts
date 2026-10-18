@@ -390,6 +390,8 @@ export const PREF_PARSERS = {
   checkedItemsLast: flag(false),
   /** Whether a card with a checklist shows how much of it is ticked. */
   checklistProgress: flag(true),
+  /** Whether a link pasted or inserted into a note gets a preview card. */
+  linkPreviewCards: flag(true),
   /**
    * In the app installed on a phone, whether a link opens in the system's
    * browser rather than the app's own view of it (`state/externalLinks.ts`).

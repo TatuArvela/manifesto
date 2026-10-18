@@ -98,7 +98,7 @@ set:
 | `noteTilt` | `tidy` (default), `messy` |
 | `defaultNoteColor` | `default` (default), `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `brown`, `gray`, `random` |
 | `defaultEditMode` | `normal` (default), `raw` |
-| `confirmBeforeDelete`, `inlineCalculations`, `noteQuips`, `formattingToolbar`, `checkedItemsLast`, `checklistProgress` | `true` or `false` |
+| `confirmBeforeDelete`, `inlineCalculations`, `noteQuips`, `formattingToolbar`, `checkedItemsLast`, `checklistProgress`, `linkPreviewCards` | `true` or `false` |
 | `boardColor`, `boardGradient` | `none` (default), `white`, `gray`, `black`, a board colour, `custom`, `random` |
 | `boardCustomColor`, `boardGradientCustomColor`, `boardInkColor` | a `#rrggbb` colour |
 | `boardGradientDirection` | `top`, `top-right`, `right`, `bottom-right` (default), `bottom`, `bottom-left`, `left`, `top-left`, `random` |

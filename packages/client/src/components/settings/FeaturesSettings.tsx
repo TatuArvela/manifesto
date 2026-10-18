@@ -17,6 +17,7 @@ import {
   type EditMode,
   formattingToolbar,
   inlineCalculations,
+  linkPreviewCards,
   openLinksInBrowser,
 } from "#/state/prefs.ts";
 import {
@@ -57,6 +58,16 @@ export function FeaturesSettings() {
               checklistProgress.value = checked;
             }}
             label={t("settings.checklistProgress")}
+          />
+        </SettingsRow>
+
+        <SettingsRow label={t("settings.linkPreviewCards")}>
+          <Switch
+            checked={linkPreviewCards.value}
+            onChange={(checked) => {
+              linkPreviewCards.value = checked;
+            }}
+            label={t("settings.linkPreviewCards")}
           />
         </SettingsRow>
 
