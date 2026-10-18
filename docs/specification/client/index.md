@@ -219,7 +219,7 @@ Each `NoteColor` enum value maps to Tailwind utility classes for background, hov
 
 ### Dark Mode
 
-Three-way preference (`system`, `light`, or `dark`) stored in `prefs.ts`. A signal `effect` toggles the `dark` class on `<html>`; in system mode it also subscribes to `prefers-color-scheme` changes.
+Three-way preference (`system`, `light`, or `dark`) stored in `prefs.ts`. A signal `effect` toggles the `dark` class on `<html>`; in system mode it also subscribes to `prefers-color-scheme` changes. Settings, Appearance offers the three as sample windows (`ThemePicker`), each drawn in the shade chosen for it, with the light and dark shades' selects under the light and dark samples.
 
 ## Responsive Design
 

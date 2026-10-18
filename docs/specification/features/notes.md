@@ -100,7 +100,8 @@ Search. The drawings are line work in the text colour, so they follow the theme,
 skips them for the words. Notes kept out of the Notes view by a hidden tag are counted instead of
 called none.
 
-**Board Style** (Settings, Appearance, Notes) is **Tidy** by default, every card level. On a **Messy**
+**Board Style** (Settings, Appearance, Notes, chosen from a small sample board of each) is **Tidy**
+by default, every card level. On a **Messy**
 board each card in the grid leans a degree or two, as real sticky notes do: between half a degree
 and two either way, worked out from the note's id, so a note always leans the same way on every
 device and reload. A card straightens while it is pointed at, focused or held. The list view stays

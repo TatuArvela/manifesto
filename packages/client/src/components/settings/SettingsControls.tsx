@@ -7,18 +7,24 @@ import { Dropdown } from "#/components/Dropdown.tsx";
 /** A three-way toggle's track, dark enough to read on a group's tinted panel. */
 export const toggleTrackClass = "bg-neutral-200/80 dark:bg-neutral-700";
 
-/** One labelled setting: name on the left, its control on the right. */
+/**
+ * One labelled setting: name on the left, its control on the right. The name
+ * is centred on a control one line high, and set at the top of a taller one
+ * (`alignTop`), as a heading over samples.
+ */
 export function SettingsRow({
   label,
+  alignTop = false,
   children,
 }: {
   label: string;
+  alignTop?: boolean | undefined;
   children: ComponentChildren;
 }) {
   const labelId = useId();
   return (
     <div
-      class="flex items-center justify-between gap-4 min-h-12 px-3 py-2"
+      class={`flex ${alignTop ? "items-start" : "items-center"} justify-between gap-4 min-h-12 px-3 py-2`}
       data-setting-row
     >
       <h4 id={labelId} class="text-sm text-neutral-700 dark:text-neutral-200">
@@ -112,6 +118,7 @@ export function SettingsSelect<T extends string>({
   onChange,
   label,
   disabled = false,
+  compact = false,
 }: {
   value: T;
   options: SettingsOption<T>[];
@@ -119,6 +126,9 @@ export function SettingsSelect<T extends string>({
   label: string;
   /** Shown as it stands but not opened, for a setting that does not apply now. */
   disabled?: boolean | undefined;
+  /** The trigger shows only the choice's preview, with its name in the menu
+   * and the tooltip, for a select set in a narrow column. */
+  compact?: boolean | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const labelledBy = useContext(ControlLabelId);
@@ -136,8 +146,9 @@ export function SettingsSelect<T extends string>({
       trigger={
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 text-sm rounded-lg cursor-pointer transition-colors bg-white dark:bg-neutral-700 ring-1 ring-inset ring-neutral-200 dark:ring-0 hover:bg-neutral-100 dark:hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-neutral-700"
+          class={`inline-flex items-center gap-1.5 ${compact ? "px-2" : "pl-3 pr-2"} py-1.5 text-sm rounded-lg cursor-pointer transition-colors bg-white dark:bg-neutral-700 ring-1 ring-inset ring-neutral-200 dark:ring-0 hover:bg-neutral-100 dark:hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-neutral-700`}
           onClick={() => setOpen(!open)}
+          title={compact ? current.label : undefined}
           disabled={disabled}
           id={triggerId}
           aria-label={labelledBy ? undefined : label}
@@ -145,7 +156,11 @@ export function SettingsSelect<T extends string>({
           aria-haspopup="menu"
           aria-expanded={open}
         >
-          <OptionContent option={current} />
+          {compact && current.preview ? (
+            current.preview
+          ) : (
+            <OptionContent option={current} />
+          )}
           <ChevronDown
             class={`w-4 h-4 shrink-0 text-neutral-500 dark:text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
           />
@@ -170,5 +185,80 @@ export function SettingsSelect<T extends string>({
         </button>
       ))}
     </Dropdown>
+  );
+}
+
+/** One choice in {@link SettingsTiles}: its name, and a picture of it. */
+export type SettingsTile<T extends string> = {
+  value: T;
+  label: string;
+  sample: JSX.Element;
+};
+
+/**
+ * A choice made by picture, as the system settings of macOS offer one: a
+ * sample of each option side by side, the chosen one ringed and its name in
+ * bold. Native radios underneath, so the arrow keys move between them as in
+ * any radio group, and a settings search lands on the checked one.
+ */
+export function SettingsTiles<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+  class: className = "flex gap-4",
+}: {
+  value: T;
+  options: SettingsTile<T>[];
+  onChange: (value: T) => void;
+  label: string;
+  /** The layout of the tiles, for a caller that lines something up under them. */
+  class?: string | undefined;
+}) {
+  const labelledBy = useContext(ControlLabelId);
+  const name = useId();
+  return (
+    <div
+      role="radiogroup"
+      aria-label={labelledBy ? undefined : label}
+      aria-labelledby={labelledBy}
+      class={className}
+    >
+      {options.map((option) => {
+        const checked = value === option.value;
+        return (
+          <label
+            key={option.value}
+            class="group flex flex-col items-center gap-1.5 cursor-pointer"
+          >
+            <input
+              type="radio"
+              class="peer sr-only"
+              name={name}
+              checked={checked}
+              onChange={() => onChange(option.value)}
+            />
+            <span
+              class={`rounded-[0.6rem] p-0.5 ring-2 transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-600 dark:peer-focus-visible:outline-blue-400 ${
+                checked
+                  ? "ring-blue-500 dark:ring-blue-400"
+                  : "ring-transparent group-hover:ring-neutral-300 dark:group-hover:ring-neutral-600"
+              }`}
+            >
+              {option.sample}
+            </span>
+            <span
+              class={`text-xs whitespace-nowrap ${
+                checked
+                  ? "font-semibold text-neutral-900 dark:text-neutral-100"
+                  : "text-neutral-500 dark:text-neutral-400"
+              }`}
+            >
+              {option.label}
+            </span>
+          </label>
+        );
+      })}
+    </div>
   );
 }
