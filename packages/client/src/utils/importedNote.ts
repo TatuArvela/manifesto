@@ -8,7 +8,6 @@ import {
   MAX_IMAGE_ALT_LENGTH,
   NoteColor,
   NoteFont,
-  NoteInk,
   REMINDER_RECURRENCES,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
@@ -100,7 +99,6 @@ export function markdownFileToNote(
 
 const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
 const NOTE_FONTS = new Set<string>(Object.values(NoteFont));
-const NOTE_INKS = new Set<string>(Object.values(NoteInk));
 const RECURRENCES = new Set<string>(REMINDER_RECURRENCES);
 /** What the server holds an imported note's id to (`notesImportSchema`). */
 const NOTE_ID = /^[0-9A-Za-z_-]{1,64}$/;
@@ -169,9 +167,6 @@ export function normalizeImportedNote(
       typeof raw.font === "string" && NOTE_FONTS.has(raw.font)
         ? (raw.font as NoteFont)
         : NoteFont.Default,
-    ...(typeof raw.ink === "string" &&
-      NOTE_INKS.has(raw.ink) &&
-      raw.ink !== NoteInk.Default && { ink: raw.ink as NoteInk }),
     pinned: raw.pinned === true,
     archived: raw.archived === true,
     trashed,
@@ -236,9 +231,6 @@ export function parseSingleNoteJson(data: unknown): Partial<NoteCreate> {
   }
   if (typeof raw.font === "string" && NOTE_FONTS.has(raw.font)) {
     out.font = raw.font as NoteFont;
-  }
-  if (typeof raw.ink === "string" && NOTE_INKS.has(raw.ink)) {
-    out.ink = raw.ink as NoteInk;
   }
   if (typeof raw.pinned === "boolean") out.pinned = raw.pinned;
   if (typeof raw.archived === "boolean") out.archived = raw.archived;

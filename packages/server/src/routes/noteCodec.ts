@@ -27,7 +27,6 @@ import {
   sealVersion,
   unwrapImageKey,
   wipe,
-  withInkCarried,
 } from "@manifesto/shared";
 import type { Context } from "hono";
 import type { z } from "zod";
@@ -277,13 +276,11 @@ async function sealedChanges(
     throw new HttpError(409, "This token cannot open the note's key");
   }
   // A token cannot describe an image, but its new list of images keeps the
-  // descriptions the app gave them, each with its own image. The font and the
-  // ink are sealed together, so a write of either keeps the other.
-  const inked = withInkCarried(opened.note, plain);
+  // descriptions the app gave them, each with its own image.
   const described =
-    inked.images && opened.note.imageAlts
-      ? { ...inked, imageAlts: carriedImageAlts(opened.note, inked.images) }
-      : inked;
+    plain.images && opened.note.imageAlts
+      ? { ...plain, imageAlts: carriedImageAlts(opened.note, plain.images) }
+      : plain;
   // The images the note already names keep their keys, and one the token
   // uploaded brings the key kept with it; any other has none here, and
   // sealing refuses it.

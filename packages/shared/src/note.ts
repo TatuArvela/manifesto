@@ -21,21 +21,6 @@ export enum NoteFont {
   RougeScript = "rouge-script",
 }
 
-/**
- * The colour a note is written in, whatever paper it is on: "default" is the
- * theme's own text colour. A note's own like its font, which everyone on it
- * sees alike. It has no column or sealed field of its own: it is sealed with
- * the font, in the same value (`noteSeal.ts`), so a write of either carries
- * the other (`withInkCarried`).
- */
-export enum NoteInk {
-  Default = "default",
-  Blue = "blue",
-  Red = "red",
-  Green = "green",
-  Purple = "purple",
-}
-
 export interface LinkPreview {
   url: string;
   title: string;
@@ -310,7 +295,6 @@ export const SHARED_NOTE_FIELDS = [
   "title",
   "content",
   "font",
-  "ink",
   "images",
   "imageAlts",
   "linkPreviews",
@@ -338,11 +322,6 @@ export interface Note {
   content: string;
   color: NoteColor;
   font: NoteFont;
-  /**
-   * The ink the note is written in. Absent on a note in the theme's own
-   * colour, as a note from before inks is.
-   */
-  ink?: NoteInk;
   pinned: boolean;
   archived: boolean;
   trashed: boolean;
@@ -450,28 +429,6 @@ export type NoteCreate = Omit<
 export type NoteUpdate = Partial<
   Omit<Note, "id" | "createdAt" | "imageCount" | "sharing">
 >;
-
-/**
- * `changes` with the font and the ink kept together, since they are sealed as
- * one value: a write of the ink alone takes the note's font with it, and a
- * write of the font alone the note's ink. `base` is the note as it stands.
- */
-export function withInkCarried<T extends Pick<NoteUpdate, "font" | "ink">>(
-  base: Pick<Note, "font" | "ink">,
-  changes: T,
-): T {
-  if (changes.ink !== undefined && changes.font === undefined) {
-    return { ...changes, font: base.font };
-  }
-  if (
-    changes.font !== undefined &&
-    changes.ink === undefined &&
-    base.ink !== undefined
-  ) {
-    return { ...changes, ink: base.ink };
-  }
-  return changes;
-}
 
 /** A note's version history keeps at most this many versions... */
 export const MAX_NOTE_VERSIONS = 50;

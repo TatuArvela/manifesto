@@ -130,7 +130,6 @@ export function NoteReadonlyView({
         {note.title && (
           <h2
             class="font-medium text-base mb-2 sm:pr-12"
-            data-ink={note.ink}
             style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
           >
             {note.title}
@@ -138,7 +137,6 @@ export function NoteReadonlyView({
         )}
         <div
           class="prose prose-sm dark:prose-invert max-w-none text-neutral-700 dark:text-neutral-200"
-          data-ink={note.ink}
           style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
           dangerouslySetInnerHTML={{ __html: html }}
         />

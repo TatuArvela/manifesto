@@ -254,7 +254,6 @@ export class LocalStorageAdapter implements StorageAdapter {
       content: input.content ?? "",
       color: input.color ?? NoteColor.Default,
       font: input.font ?? NoteFont.Default,
-      ...(input.ink !== undefined && { ink: input.ink }),
       pinned: input.pinned ?? false,
       archived: input.archived ?? false,
       trashed: input.trashed ?? false,

@@ -1,11 +1,5 @@
-import {
-  type Note,
-  type NoteColor,
-  NoteFont,
-  NoteInk,
-} from "@manifesto/shared";
+import { type Note, type NoteColor, NoteFont } from "@manifesto/shared";
 import { noteFontFamilies } from "#/colors.ts";
-import { InkPicker } from "#/components/InkPicker.tsx";
 import { CardPopover } from "#/components/Popover.tsx";
 import { ReminderPickerPanel } from "#/components/ReminderPicker.tsx";
 import { TagPicker, tagPickerPanelClass } from "#/components/TagPicker.tsx";
@@ -75,36 +69,27 @@ function CardFontPicker({
 }) {
   return (
     <CardPopover anchorRef={anchorRef} onClose={onClose} leaving={leaving}>
-      <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex flex-col gap-1">
-        <div class="flex gap-1">
-          {Object.values(NoteFont).map((f) => {
-            const label = getFontLabel(f);
-            return (
-              <Tooltip key={f} label={label}>
-                <button
-                  type="button"
-                  class={`px-2 py-1 text-sm rounded cursor-pointer ${note.font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
-                  style={{ fontFamily: noteFontFamilies[f] || undefined }}
-                  onClick={() => {
-                    void updateNote(note.id, { font: f });
-                    onClose();
-                  }}
-                  aria-label={label}
-                  aria-pressed={note.font === f}
-                >
-                  Aa
-                </button>
-              </Tooltip>
-            );
-          })}
-        </div>
-        <InkPicker
-          value={note.ink ?? NoteInk.Default}
-          onChange={(ink) => {
-            void updateNote(note.id, { ink });
-            onClose();
-          }}
-        />
+      <div class="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1">
+        {Object.values(NoteFont).map((f) => {
+          const label = getFontLabel(f);
+          return (
+            <Tooltip key={f} label={label}>
+              <button
+                type="button"
+                class={`px-2 py-1 text-sm rounded cursor-pointer ${note.font === f ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
+                style={{ fontFamily: noteFontFamilies[f] || undefined }}
+                onClick={() => {
+                  void updateNote(note.id, { font: f });
+                  onClose();
+                }}
+                aria-label={label}
+                aria-pressed={note.font === f}
+              >
+                Aa
+              </button>
+            </Tooltip>
+          );
+        })}
       </div>
     </CardPopover>
   );

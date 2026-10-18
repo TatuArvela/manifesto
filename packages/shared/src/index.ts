@@ -338,7 +338,6 @@ export {
   NOTE_VERSION_MAX_AGE_DAYS,
   NoteColor,
   NoteFont,
-  NoteInk,
   PERSONAL_NOTE_FIELDS,
   previewImages,
   REMINDER_RECURRENCES,
@@ -346,7 +345,6 @@ export {
   SHARE_ROLES,
   SHARED_NOTE_FIELDS,
   TRASH_RETENTION_DAYS,
-  withInkCarried,
 } from "./note.ts";
 export {
   advanceReminder,

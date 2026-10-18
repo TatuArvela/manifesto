@@ -4,7 +4,6 @@ import {
   type LinkPreview,
   NoteColor,
   NoteFont,
-  NoteInk,
   previewImages,
 } from "@manifesto/shared";
 import { storageConnection } from "#/storage/index.ts";
@@ -56,7 +55,6 @@ export function restoreImageKeys(keys: unknown): void {
 
 const COLORS = new Set<string>(Object.values(NoteColor));
 const FONTS = new Set<string>(Object.values(NoteFont));
-const INKS = new Set<string>(Object.values(NoteInk));
 
 /** The fields a kept note carries, as they were written, from anything. */
 export interface KeptFields {
@@ -64,7 +62,6 @@ export interface KeptFields {
   content: string;
   color: NoteColor;
   font: NoteFont;
-  ink?: NoteInk;
   pinned: boolean;
   tags: string[];
   images: string[];
@@ -86,7 +83,6 @@ function strings(value: unknown): string[] {
 export function keptFields(raw: Record<string, unknown>): KeptFields {
   const color = raw.color;
   const font = raw.font;
-  const ink = raw.ink;
   return {
     title: typeof raw.title === "string" ? raw.title : "",
     content: typeof raw.content === "string" ? raw.content : "",
@@ -98,9 +94,6 @@ export function keptFields(raw: Record<string, unknown>): KeptFields {
       typeof font === "string" && FONTS.has(font)
         ? (font as NoteFont)
         : NoteFont.Default,
-    ...(typeof ink === "string" &&
-      INKS.has(ink) &&
-      ink !== NoteInk.Default && { ink: ink as NoteInk }),
     pinned: raw.pinned === true,
     tags: strings(raw.tags),
     images: strings(raw.images),

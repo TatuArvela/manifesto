@@ -47,7 +47,6 @@ export async function sealPublicLink(
     | "title"
     | "content"
     | "font"
-    | "ink"
     | "images"
     | "imageAlts"
     | "linkPreviews"
@@ -81,7 +80,6 @@ export async function sealPublicLink(
       title: note.title,
       content: note.content,
       font: note.font,
-      ...(note.ink !== undefined && { ink: note.ink }),
       images: note.images,
       ...(note.imageAlts !== undefined && { imageAlts: note.imageAlts }),
       linkPreviews: note.linkPreviews,

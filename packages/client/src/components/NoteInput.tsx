@@ -1,4 +1,4 @@
-import { type NoteColor, NoteInk } from "@manifesto/shared";
+import type { NoteColor } from "@manifesto/shared";
 import { Plus } from "lucide-preact";
 import type { RefObject } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
@@ -472,8 +472,6 @@ export function NoteInput() {
             onColorChange={(value) => composer.update({ color: value })}
             font={font}
             onFontChange={(value) => composer.update({ font: value })}
-            ink={composer.fields.ink ?? NoteInk.Default}
-            onInkChange={(value) => composer.update({ ink: value })}
             images={images}
             imageAlts={imageAlts}
             onAddImages={composer.addImages}

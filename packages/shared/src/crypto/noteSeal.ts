@@ -23,7 +23,6 @@ import {
   NoteColor,
   type NoteCreate,
   NoteFont,
-  NoteInk,
   type NoteUpdate,
   type NoteVersion,
 } from "#/note.ts";
@@ -106,7 +105,7 @@ export function excerptOf(content: string): string {
 
 type SharedPlain = Pick<
   Note,
-  "title" | "content" | "font" | "ink" | "images" | "imageAlts" | "linkPreviews"
+  "title" | "content" | "font" | "images" | "imageAlts" | "linkPreviews"
 >;
 type PersonalPlain = Pick<Note, "color" | "tags">;
 export type SharedSealed = Pick<
@@ -117,30 +116,6 @@ type PersonalSealed = Pick<SealedNote, "color" | "tags">;
 
 const colors = new Set<string>(Object.values(NoteColor));
 const fonts = new Set<string>(Object.values(NoteFont));
-const inks = new Set<string>(Object.values(NoteInk));
-
-/**
- * The font's sealed text: the font, and the ink after a `|` when there is
- * one, padded together. The ink has no field of its own, as an image's
- * description has none, so a reader that knows no inks reads the font of a
- * note in the theme's colour as it always has.
- */
-function fontText(font: NoteFont, ink: NoteInk | undefined): string {
-  return ink !== undefined && ink !== NoteInk.Default ? `${font}|${ink}` : font;
-}
-
-/** The font and ink in a font's sealed text, each checked. */
-function fontAndInk(text: string | null): {
-  font: NoteFont;
-  ink: NoteInk | undefined;
-} {
-  const [font = "", ink = ""] = (text?.trimEnd() ?? "").split("|", 2);
-  return {
-    font: fonts.has(font) ? (font as NoteFont) : NoteFont.Default,
-    ink:
-      inks.has(ink) && ink !== NoteInk.Default ? (ink as NoteInk) : undefined,
-  };
-}
 
 function parsed(text: string | null): unknown {
   if (text === null) return null;
@@ -180,13 +155,7 @@ export async function sealSharedFields(
     out.excerpt = await put("excerpt", excerptOf(fields.content));
   }
   if (fields.font !== undefined) {
-    out.font = await put(
-      "font",
-      fontText(fields.font, fields.ink).padEnd(PADDED_LENGTH, " "),
-    );
-  } else if (fields.ink !== undefined) {
-    // The ink is sealed with the font, so it is written only with it.
-    throw new NoteLimitError("font");
+    out.font = await put("font", fields.font.padEnd(PADDED_LENGTH, " "));
   }
   if (fields.images !== undefined) {
     // References only: whatever is inline is uploaded before a note is sealed.
@@ -331,7 +300,7 @@ async function openSharedTexts(
 
 function checkedShared(texts: SharedTexts): OpenedSharedFields {
   const { title, content, excerpt } = texts;
-  const { font, ink } = fontAndInk(texts.font);
+  const font = texts.font?.trimEnd() ?? "";
   const imageKeys = new Map<string, ImageKey>();
   const imageAlts: string[] = [];
   const images = checkedImages(parsed(texts.images), imageKeys, imageAlts);
@@ -346,8 +315,7 @@ function checkedShared(texts: SharedTexts): OpenedSharedFields {
       excerpt !== null && excerpt.length <= NOTE_EXCERPT_LENGTH * 2
         ? excerpt
         : "",
-    font,
-    ...(ink !== undefined && { ink }),
+    font: fonts.has(font) ? (font as NoteFont) : NoteFont.Default,
     images,
     ...(imageAlts.some((alt) => alt !== "") && { imageAlts }),
     linkPreviews: checkedLinkPreviews(parsed(texts.linkPreviews), imageKeys),
@@ -431,7 +399,6 @@ export async function sealNewNote(
     title,
     content,
     font,
-    ink,
     images,
     imageAlts,
     linkPreviews,
@@ -449,7 +416,6 @@ export async function sealNewNote(
         title,
         content,
         font,
-        ...(ink !== undefined && { ink }),
         images,
         ...(imageAlts !== undefined && { imageAlts }),
         linkPreviews,
@@ -485,7 +451,6 @@ export async function sealNoteUpdate(
     title,
     content,
     font,
-    ink,
     images,
     imageAlts,
     linkPreviews,
@@ -502,7 +467,6 @@ export async function sealNoteUpdate(
         ...(title !== undefined && { title }),
         ...(content !== undefined && { content }),
         ...(font !== undefined && { font }),
-        ...(ink !== undefined && { ink }),
         ...(images !== undefined && { images }),
         ...(imageAlts !== undefined && { imageAlts }),
         ...(linkPreviews !== undefined && { linkPreviews }),

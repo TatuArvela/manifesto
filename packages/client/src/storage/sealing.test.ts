@@ -4,7 +4,6 @@ import {
   NoteColor,
   type NoteCreate,
   NoteFont,
-  NoteInk,
   NoteLimitError,
   openReminderKey,
   openSealedNote,
@@ -179,36 +178,6 @@ describe("sealing a note", () => {
         { ...draft, images: [first], imageAlts: ["x".repeat(1001)] },
         imageKeys,
       ),
-    ).rejects.toBeInstanceOf(NoteLimitError);
-  });
-
-  it("seals the ink with the font, in one value as long as any other", async () => {
-    const account = await accountOf(await testKeys());
-    const lengths = new Set<number>();
-    for (const font of Object.values(NoteFont)) {
-      for (const ink of Object.values(NoteInk)) {
-        const { sealed, key } = await sealNewNote(account, "n1", {
-          ...draft,
-          font,
-          ink,
-        });
-        lengths.add(sealed.font.length);
-        const opened = await openSealedNote(account, served(sealed), key);
-        expect(opened?.note.font).toBe(font);
-        // The theme's own colour is no ink at all, as on a note from before.
-        if (ink === NoteInk.Default) {
-          expect(opened?.note).not.toHaveProperty("ink");
-        } else {
-          expect(opened?.note.ink).toBe(ink);
-        }
-      }
-    }
-    expect(lengths.size).toBe(1);
-
-    // Written with the font, never on its own.
-    const { key } = await sealNewNote(account, "n2", draft);
-    await expect(
-      sealNoteUpdate(account, key, "n2", { ink: NoteInk.Blue }),
     ).rejects.toBeInstanceOf(NoteLimitError);
   });
 

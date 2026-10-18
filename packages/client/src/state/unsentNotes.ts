@@ -315,7 +315,6 @@ function asDraft(note: NoteCreate): ComposerDraft {
     content: note.content,
     color: note.color,
     font: note.font,
-    ...(note.ink !== undefined && { ink: note.ink }),
     pinned: note.pinned,
     tags: note.tags,
     images: note.images,

@@ -68,38 +68,6 @@ describe("API tokens", () => {
     expect((await call(secret, "GET", "/api/invitations")).status).toBe(403);
   });
 
-  it("keeps a note's ink when a token writes its font, and its font when it writes the ink", async () => {
-    // The two are sealed as one value, so a write of either has to carry the
-    // other over from the note as it stands.
-    const { secret } = await mint();
-    const created = await call(secret, "POST", "/api/notes", {
-      ...NOTE,
-      font: "permanent-marker",
-      ink: "blue",
-    });
-    expect(created.status).toBe(201);
-    const { id } = ((await created.json()) as { note: { id: string } }).note;
-    const read = async () =>
-      (
-        (await (await call(secret, "GET", `/api/notes/${id}`)).json()) as {
-          note: { font: string; ink?: string };
-        }
-      ).note;
-    expect(await read()).toMatchObject({
-      font: "permanent-marker",
-      ink: "blue",
-    });
-
-    await call(secret, "PUT", `/api/notes/${id}`, { font: "serif" });
-    expect(await read()).toMatchObject({ font: "serif", ink: "blue" });
-
-    await call(secret, "PUT", `/api/notes/${id}`, { ink: "red" });
-    expect(await read()).toMatchObject({ font: "serif", ink: "red" });
-
-    await call(secret, "PUT", `/api/notes/${id}`, { ink: "default" });
-    expect(await read()).not.toHaveProperty("ink");
-  });
-
   it("reaches what its scopes name, a write scope including its read", async () => {
     const reader = (await mint({ name: "r", scopes: ["notes:read"] })).secret;
     expect((await call(reader, "GET", "/api/notes")).status).toBe(200);

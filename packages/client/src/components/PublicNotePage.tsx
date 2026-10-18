@@ -150,7 +150,6 @@ function PublicNoteView({
       {note.title && (
         <h1
           class="text-xl sm:text-2xl font-medium leading-snug mb-3 break-words"
-          data-ink={note.ink}
           style={{ fontFamily: font }}
         >
           {note.title}
@@ -159,7 +158,6 @@ function PublicNoteView({
       {contentHtml && (
         <div
           class="prose dark:prose-invert max-w-none break-words"
-          data-ink={note.ink}
           style={{ fontFamily: font }}
           // Sanitized by `renderMarkdown` (DOMPurify), as everywhere else.
           dangerouslySetInnerHTML={{ __html: contentHtml }}
