@@ -35,7 +35,7 @@ same backup twice adds nothing) and one past `NOTE_VERSION_MAX_AGE_DAYS`.
   them into the existing notes. Import also takes Markdown files (one note each) and Google Keep
   notes; see below.
 
-Import is offered from the Settings dialog and by dropping files anywhere on the board. Pictures dropped on their own, with no note open, start a new note instead ([Notes](notes.md#creating-a-note)).
+Import is offered from the Settings dialog and by dropping files anywhere on the board. Settings' Data page lists the apps and formats it reads as chips, each showing which file to bring from it, and says what the export holds beside its button. Pictures dropped on their own, with no note open, start a new note instead ([Notes](notes.md#creating-a-note)).
 
 ## Markdown
 

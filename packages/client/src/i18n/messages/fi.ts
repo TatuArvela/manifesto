@@ -478,10 +478,18 @@ export const fi: Messages = {
   "settings.clip.link": "Tallenna: {appName}",
   "settings.clip.dragHint":
     "Vedä se kirjanmerkkipalkkiin ja napsauta sitä sivulla, jonka haluat tallentaa.",
+  "settings.data.group.import": "Tuonti",
+  "settings.data.importBody":
+    "Tuo muistiinpanoja varmuuskopiosta tai toisesta sovelluksesta. Voit valita useita tiedostoja kerralla tai pudottaa ne taululle.",
+  "settings.data.group.export": "Vienti",
+  "settings.data.exportBody":
+    "Lataa kaikki muistiinpanosi .zip-tiedostona versiohistorioineen, myös arkiston ja roskakorin. Voit tuoda tiedoston takaisin tänne tai toiselle palvelimelle. Muistiinpanot ovat siinä myös Markdown-muodossa, joten muutkin sovellukset osaavat avata ne.",
+  "settings.data.group.delete": "Poisto",
+  "settings.data.deleteBody":
+    "Poistaa kaikki omat muistiinpanosi pysyvästi. Vie ne ensin, jos saatat vielä tarvita niitä.",
   "settings.data.import": "Tuo muistiinpanot",
   "settings.data.exportFailed": "Muistiinpanoja ei saatu vietyä",
-  "settings.data.importHint": "Voit tuoda useita tiedostoja kerralla:",
-  "settings.data.importHint.backup": "{appName}-varmuuskopiot",
+  "settings.data.importHint.backup": "{appName}",
   "settings.data.importHint.backupBody":
     "Vie muistiinpanot -painikkeella tallennettu .zip tai vanhemman version .json.",
   "settings.data.importHint.markdown": "Markdown",
@@ -508,7 +516,7 @@ export const fi: Messages = {
   "settings.data.export": "Vie muistiinpanot",
   "settings.data.deleteAll": "Poista kaikki",
   "settings.data.deleteConfirm":
-    "Tämä poistaa kaikki muistiinpanot pysyvästi. Toimintoa ei voi perua.",
+    "Tämä poistaa kaikki omat muistiinpanosi pysyvästi. Toimintoa ei voi perua.",
   "settings.data.deleteYes": "Kyllä, poista kaikki",
   "settings.data.cancel": "Peruuta",
   "settings.data.exported": "Muistiinpanot viety",

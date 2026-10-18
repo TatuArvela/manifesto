@@ -471,10 +471,18 @@ export const en = {
   "settings.clip.link": "Save to {appName}",
   "settings.clip.dragHint":
     "Drag it to your bookmarks bar, then click it on the page you want to keep.",
+  "settings.data.group.import": "Import",
+  "settings.data.importBody":
+    "Bring in notes from a backup or from another app. You can choose several files at once, or drop them on the board.",
+  "settings.data.group.export": "Export",
+  "settings.data.exportBody":
+    "Downloads all your notes as a .zip with their version history, the archive and trash included. You can import it back here or on another server. The notes are in it as Markdown too, so other apps can open them.",
+  "settings.data.group.delete": "Delete",
+  "settings.data.deleteBody":
+    "Deletes all your notes for good. Export them first if you might want them back.",
   "settings.data.import": "Import Notes",
   "settings.data.exportFailed": "The notes could not be exported",
-  "settings.data.importHint": "You can import several files at once:",
-  "settings.data.importHint.backup": "{appName} backups",
+  "settings.data.importHint.backup": "{appName}",
   "settings.data.importHint.backupBody":
     "the .zip saved with Export Notes, or a .json file from an older version.",
   "settings.data.importHint.markdown": "Markdown",
