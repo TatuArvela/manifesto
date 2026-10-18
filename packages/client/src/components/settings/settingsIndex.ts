@@ -33,6 +33,7 @@ export const SETTINGS_INDEX: readonly {
   { tab: "features", label: "settings.defaultColor" },
   { tab: "features", label: "settings.defaultFont" },
   { tab: "features", label: "settings.defaultEditMode" },
+  { tab: "features", label: "settings.clip.title" },
   { tab: "data", label: "settings.data.import" },
   { tab: "data", label: "settings.data.export" },
   { tab: "data", label: "settings.data.deleteAll" },

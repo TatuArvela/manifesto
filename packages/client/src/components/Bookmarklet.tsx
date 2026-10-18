@@ -5,8 +5,9 @@ import { t } from "#/i18n/index.ts";
 import { bookmarkletHref } from "#/shareTarget.ts";
 
 /**
- * Settings' page of its own for the link to drag to the bookmarks bar: clicked on any page, it opens a new
- * note here with the page's title, address and selected text. The share
+ * The link to drag to the bookmarks bar, a section of Settings' Features
+ * page under its own heading. Clicked on any page, it opens a new note here
+ * with the page's title, address and selected text. The share
  * sheet does the same on a phone with the app installed; this is for the
  * browsers it does not reach.
  *

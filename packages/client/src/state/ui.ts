@@ -36,7 +36,6 @@ export type SettingsTab =
   | "board"
   | "features"
   | "data"
-  | "clip"
   | "about";
 /** The page the settings modal shows, kept between openings. */
 export const settingsTab = signal<SettingsTab>("appearance");

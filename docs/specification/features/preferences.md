@@ -16,8 +16,8 @@ view and lights it for a moment. What can be found is `SETTINGS_INDEX` in
 
 The sidebar lists the account's pages first and then the general ones, the two groups set apart by
 a gap rather than headings. Language and Region has a page of its own, before Appearance, with the
-language and the decimal separator for inline calculations, and so do Board Background, after
-Appearance, and Save from Browser (the bookmarklet), after Data.
+language and the decimal separator for inline calculations, and so does Board Background, after
+Appearance. The bookmarklet is a section of Features, Save from Browser.
 
 ## Opening links in the browser
 

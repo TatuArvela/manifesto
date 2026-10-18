@@ -1,6 +1,7 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { Shuffle } from "lucide-preact";
 import { noteFontFamilies } from "#/colors.ts";
+import { Bookmarklet } from "#/components/Bookmarklet.tsx";
 import { Switch } from "#/components/ToggleSwitch.tsx";
 import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
 import { canOpenInSystemBrowser } from "#/state/externalLinks.ts";
@@ -82,6 +83,11 @@ export function FeaturesSettings() {
         </SettingsRow>
       </SettingsGroup>
       <DefaultsSection />
+      <SettingsGroup title={t("settings.clip.title")}>
+        <div class="px-3 py-2">
+          <Bookmarklet />
+        </div>
+      </SettingsGroup>
     </div>
   );
 }
