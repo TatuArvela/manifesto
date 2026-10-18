@@ -25,17 +25,11 @@ import { BoardGradientPicker } from "./BoardGradientPicker.tsx";
 import { BoardInkPicker } from "./BoardInkPicker.tsx";
 import { BoardOpacitySlider } from "./BoardOpacitySlider.tsx";
 import { boardColorLabel } from "./boardLabels.ts";
+import { SettingsHeading } from "./SettingsControls.tsx";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =
   "outline-2 outline-offset-2 outline-blue-500 dark:outline-blue-400";
-
-/** Between the groups of the composer: each colour, then the pattern. In the
- * shade of the small separators inside the swatch rows. */
-const divider = <hr class="border-neutral-300 dark:border-white/15" />;
-
-const legendClass =
-  "text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2";
 
 function textureLabel(texture: BoardTextureChoice): string {
   return t(`settings.boardBackground.texture.${texture}`);
@@ -96,12 +90,15 @@ export function BoardBackgroundSettings() {
       </div>
 
       {mode === "compose" ? (
-        <>
-          <fieldset>
-            <legend class={legendClass}>
+        <div class="space-y-6">
+          <section class="space-y-3">
+            <SettingsHeading>
               {t("settings.boardBackground.color")}
-            </legend>
-            <div class="flex flex-wrap gap-2 sm:gap-2.5">
+            </SettingsHeading>
+            <fieldset
+              aria-label={t("settings.boardBackground.color")}
+              class="flex flex-wrap gap-2 sm:gap-2.5"
+            >
               {(["none", ...BOARD_NEUTRALS, ...BOARD_COLORS] as const).map(
                 (choice) => (
                   <button
@@ -175,20 +172,19 @@ export function BoardBackgroundSettings() {
                   }
                 />
               </label>
-            </div>
-          </fieldset>
+            </fieldset>
 
-          {divider}
+            <BoardGradientPicker composing={composing} compose={compose} />
+          </section>
 
-          <BoardGradientPicker composing={composing} compose={compose} />
-
-          {divider}
-
-          <fieldset>
-            <legend class={legendClass}>
+          <section class="space-y-4">
+            <SettingsHeading>
               {t("settings.boardBackground.texture")}
-            </legend>
-            <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            </SettingsHeading>
+            <fieldset
+              aria-label={t("settings.boardBackground.texture")}
+              class="grid grid-cols-4 sm:grid-cols-6 gap-2"
+            >
               {[...BOARD_TEXTURES, "random" as const].map((choice) => (
                 <button
                   key={choice}
@@ -226,13 +222,13 @@ export function BoardBackgroundSettings() {
                   {textureLabel(choice)}
                 </button>
               ))}
-            </div>
-          </fieldset>
+            </fieldset>
 
-          <BoardInkPicker composing={composing} compose={compose} />
+            <BoardInkPicker composing={composing} compose={compose} />
 
-          <BoardOpacitySlider compose={compose} />
-        </>
+            <BoardOpacitySlider compose={compose} />
+          </section>
+        </div>
       ) : hasPicture ? (
         <div class="space-y-3">
           <span
