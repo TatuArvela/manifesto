@@ -402,6 +402,7 @@ export const en = {
   "settings.noteCorners": "Rounded Corners",
   "settings.animations": "Animations",
   "settings.boardBackground": "Board Background",
+  "settings.boardBackground.colors": "Colors",
   "settings.boardBackground.color": "Color",
   "settings.boardBackground.none": "None",
   "settings.boardBackground.white": "White",

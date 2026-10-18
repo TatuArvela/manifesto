@@ -409,6 +409,7 @@ export const fi: Messages = {
   "settings.noteCorners": "Pyöristetyt kulmat",
   "settings.animations": "Animaatiot",
   "settings.boardBackground": "Taulun tausta",
+  "settings.boardBackground.colors": "Värit",
   "settings.boardBackground.color": "Väri",
   "settings.boardBackground.none": "Ei taustaa",
   "settings.boardBackground.white": "Valkoinen",

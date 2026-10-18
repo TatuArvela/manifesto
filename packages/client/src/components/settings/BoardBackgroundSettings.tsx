@@ -7,29 +7,43 @@ import {
   setBoardImage,
 } from "#/state/board.ts";
 import {
-  BOARD_COLORS,
-  BOARD_NEUTRALS,
   BOARD_TEXTURES,
   type BoardTextureChoice,
   boardColor,
   boardCustomColor,
+  boardGradient,
+  boardGradientCustomColor,
   boardImageStamp,
   boardTexture,
   boardUsePicture,
   rerollBoardColor,
+  rerollBoardGradient,
   rerollBoardTexture,
   resolvedBoardColor,
+  resolvedBoardGradient,
   resolvedBoardTexture,
 } from "#/state/prefs.ts";
-import { BoardGradientPicker } from "./BoardGradientPicker.tsx";
+import { BoardCard } from "./BoardCard.tsx";
 import { BoardInkPicker } from "./BoardInkPicker.tsx";
 import { BoardOpacitySlider } from "./BoardOpacitySlider.tsx";
+import { BoardPalette } from "./BoardPalette.tsx";
+import { BoardPreview } from "./BoardPreview.tsx";
 import { boardColorLabel } from "./boardLabels.ts";
 import { SettingsHeading } from "./SettingsControls.tsx";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =
   "outline-2 outline-offset-2 outline-blue-500 dark:outline-blue-400";
+
+/**
+ * "none" and "random" first, where they sit in every picker on the page,
+ * then the patterns themselves.
+ */
+const TEXTURE_CHOICES: readonly BoardTextureChoice[] = [
+  "none",
+  "random",
+  ...BOARD_TEXTURES.filter((texture) => texture !== "none"),
+];
 
 function textureLabel(texture: BoardTextureChoice): string {
   return t(`settings.boardBackground.texture.${texture}`);
@@ -93,140 +107,111 @@ export function BoardBackgroundSettings() {
         <div class="space-y-6">
           <section class="space-y-3">
             <SettingsHeading>
-              {t("settings.boardBackground.color")}
+              {t("settings.boardBackground.colors")}
             </SettingsHeading>
-            <fieldset
-              aria-label={t("settings.boardBackground.color")}
-              class="flex flex-wrap gap-2 sm:gap-2.5"
-            >
-              {(["none", ...BOARD_NEUTRALS, ...BOARD_COLORS] as const).map(
-                (choice) => (
-                  <button
-                    key={choice}
-                    type="button"
-                    data-board-swatch={choice}
-                    class={`board-swatch w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer flex items-center justify-center ${ringClass} ${composing && color === choice ? selectedClass : ""}`}
-                    onClick={() =>
-                      compose(() => {
-                        boardColor.value = choice;
-                      })
-                    }
-                    aria-label={boardColorLabel(choice)}
-                    aria-pressed={composing && color === choice}
-                    title={boardColorLabel(choice)}
-                  >
-                    {choice === "none" && (
-                      <Ban class="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
-                    )}
-                  </button>
-                ),
-              )}
-              <button
-                type="button"
-                data-board-swatch={
-                  color === "random" ? resolvedBoardColor.value : "none"
-                }
-                class={`board-swatch w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer flex items-center justify-center ${ringClass} ${composing && color === "random" ? selectedClass : ""}`}
-                onClick={() =>
+            <div class="grid grid-cols-2 gap-2 sm:gap-3">
+              <BoardPalette
+                legend={t("settings.boardBackground.color")}
+                value={color}
+                selected={composing}
+                noneLabel={boardColorLabel("none")}
+                randomShows={resolvedBoardColor.value}
+                customSwatch="custom"
+                customValue={boardCustomColor.value}
+                onPick={(choice) =>
                   compose(() => {
-                    // Picking "random" again is how to ask for another.
-                    if (color === "random") rerollBoardColor();
-                    boardColor.value = "random";
+                    boardColor.value = choice;
                   })
                 }
-                aria-label={boardColorLabel("random")}
-                aria-pressed={composing && color === "random"}
-                title={boardColorLabel("random")}
-              >
-                <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-              </button>
-              <span
-                aria-hidden="true"
-                class="self-center w-px h-5 mx-0.5 bg-neutral-300 dark:bg-white/15"
+                onReroll={rerollBoardColor}
+                onCustom={(hex) =>
+                  compose(() => {
+                    boardCustomColor.value = hex;
+                    boardColor.value = "custom";
+                  })
+                }
               />
-              {/* The native picker, under a swatch that shows what it holds.
-                      The rainbow rim is what says "any colour" before one is set. */}
-              <label
-                class={`relative w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer p-[3px] bg-[conic-gradient(#f87171,#facc15,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500 ${composing && color === "custom" ? selectedClass : ""}`}
-                title={boardColorLabel("custom")}
-              >
-                <span
-                  data-board-swatch="custom"
-                  class="board-swatch block w-full h-full rounded-full"
-                />
-                <input
-                  type="color"
-                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  value={boardCustomColor.value}
-                  aria-label={boardColorLabel("custom")}
-                  onClick={() =>
-                    compose(() => {
-                      boardColor.value = "custom";
-                    })
-                  }
-                  onInput={(e) =>
-                    compose(() => {
-                      boardCustomColor.value = e.currentTarget.value;
-                      boardColor.value = "custom";
-                    })
-                  }
-                />
-              </label>
-            </fieldset>
-
-            <BoardGradientPicker composing={composing} compose={compose} />
+              <BoardPalette
+                legend={t("settings.boardBackground.gradient")}
+                value={boardGradient.value}
+                selected={composing}
+                noneLabel={t("settings.boardBackground.gradient.none")}
+                randomShows={resolvedBoardGradient.value}
+                customSwatch="gradient-custom"
+                customValue={boardGradientCustomColor.value}
+                onPick={(choice) =>
+                  compose(() => {
+                    boardGradient.value = choice;
+                  })
+                }
+                onReroll={rerollBoardGradient}
+                onCustom={(hex) =>
+                  compose(() => {
+                    boardGradientCustomColor.value = hex;
+                    boardGradient.value = "custom";
+                  })
+                }
+              />
+            </div>
+            <BoardPreview composing={composing} compose={compose} />
           </section>
 
-          <section class="space-y-4">
+          <section class="space-y-3">
             <SettingsHeading>
               {t("settings.boardBackground.texture")}
             </SettingsHeading>
-            <fieldset
-              aria-label={t("settings.boardBackground.texture")}
-              class="grid grid-cols-4 sm:grid-cols-6 gap-2"
-            >
-              {[...BOARD_TEXTURES, "random" as const].map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  class="flex flex-col items-stretch gap-1 text-[11px] leading-tight text-neutral-600 dark:text-neutral-300 cursor-pointer"
-                  onClick={() =>
-                    compose(() => {
-                      // Picking "random" again is how to ask for another.
-                      if (choice === "random" && texture === "random") {
-                        rerollBoardTexture();
+            <div class="grid grid-cols-2 gap-2 sm:gap-3 items-start">
+              {/* The tiles have no room for their names beside the colour, so
+                  the card names the one chosen. */}
+              <BoardCard
+                legend={t("settings.boardBackground.texture")}
+                detail={textureLabel(texture)}
+              >
+                <div class="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  {TEXTURE_CHOICES.map((choice) => (
+                    <button
+                      key={choice}
+                      type="button"
+                      data-texture={
+                        choice !== "random"
+                          ? choice
+                          : texture === "random"
+                            ? resolvedBoardTexture.value
+                            : "none"
                       }
-                      boardTexture.value = choice;
-                    })
-                  }
-                  aria-pressed={composing && texture === choice}
-                >
-                  <span
-                    aria-hidden="true"
-                    data-texture={
-                      choice !== "random"
-                        ? choice
-                        : texture === "random"
-                          ? resolvedBoardTexture.value
-                          : "none"
-                    }
-                    class={`board-texture-tile flex items-center justify-center h-10 rounded-md ${ringClass} ${composing && texture === choice ? selectedClass : ""}`}
-                  >
-                    {choice === "none" && (
-                      <Ban class="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
-                    )}
-                    {choice === "random" && (
-                      <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                    )}
-                  </span>
-                  {textureLabel(choice)}
-                </button>
-              ))}
-            </fieldset>
-
-            <BoardInkPicker composing={composing} compose={compose} />
-
-            <BoardOpacitySlider compose={compose} />
+                      class={`board-texture-tile flex items-center justify-center h-9 sm:h-10 rounded-md cursor-pointer ${ringClass} ${composing && texture === choice ? selectedClass : ""}`}
+                      onClick={() =>
+                        compose(() => {
+                          // Picking "random" again is how to ask for another.
+                          if (choice === "random" && texture === "random") {
+                            rerollBoardTexture();
+                          }
+                          boardTexture.value = choice;
+                        })
+                      }
+                      aria-label={textureLabel(choice)}
+                      aria-pressed={composing && texture === choice}
+                      title={textureLabel(choice)}
+                    >
+                      {choice === "none" && (
+                        <Ban class="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                      )}
+                      {choice === "random" && (
+                        <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </BoardCard>
+              <div class="space-y-2 sm:space-y-3 min-w-0">
+                <BoardInkPicker
+                  composing={composing}
+                  compose={compose}
+                  disabled={resolvedBoardTexture.value === "none"}
+                />
+                <BoardOpacitySlider compose={compose} />
+              </div>
+            </div>
           </section>
         </div>
       ) : hasPicture ? (
