@@ -200,7 +200,11 @@ function Consent({ request }: { request: AuthorizeRequest }) {
             ))}
           </select>
         </label>
-        <ConfirmPasswordField value={password} onInput={setPassword} />
+        <ConfirmPasswordField
+          value={password}
+          onInput={setPassword}
+          inputClass={inputClass}
+        />
         {refusal && <ConfirmationError refusal={refusal} />}
         {error && (
           <p class="text-sm text-red-600 dark:text-red-400" role="alert">

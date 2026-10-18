@@ -18,7 +18,7 @@ import { showSuccess } from "#/state/ui.ts";
 import { SettingsHeading } from "./SettingsControls.tsx";
 
 export const inputClass =
-  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-neutral-100 dark:read-only:bg-neutral-800 read-only:text-neutral-600 dark:read-only:text-neutral-300";
+  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-neutral-100 dark:read-only:bg-neutral-800 read-only:text-neutral-600 dark:read-only:text-neutral-300";
 
 /** Something, an `@`, something: the same shape the server checks. */
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+$/;
