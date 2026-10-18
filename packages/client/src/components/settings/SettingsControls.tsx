@@ -32,6 +32,26 @@ export function SettingsRow({
 }
 
 /**
+ * A section's name within a page, the same on every page. It sits flush with
+ * the text under it; a group of rows insets it with `class`.
+ */
+export function SettingsHeading({
+  class: className = "",
+  children,
+}: {
+  class?: string | undefined;
+  children: ComponentChildren;
+}) {
+  return (
+    <h3
+      class={`text-sm font-semibold text-neutral-800 dark:text-neutral-200 ${className}`}
+    >
+      {children}
+    </h3>
+  );
+}
+
+/**
  * Rows that belong together, with a line between each, under a heading when
  * the group needs a name.
  */
@@ -44,11 +64,7 @@ export function SettingsGroup({
 }) {
   return (
     <section>
-      {title && (
-        <h3 class="px-1 pb-2 text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-          {title}
-        </h3>
-      )}
+      {title && <SettingsHeading class="px-1 pb-2">{title}</SettingsHeading>}
       <div class="divide-y divide-neutral-200 dark:divide-white/10">
         {children}
       </div>

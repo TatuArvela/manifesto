@@ -16,6 +16,7 @@ import {
 import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
 import { deleteOwnAccount } from "#/state/account/signOut.ts";
 import { showSuccess } from "#/state/ui.ts";
+import { SettingsHeading } from "./SettingsControls.tsx";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-neutral-100 dark:read-only:bg-neutral-800 read-only:text-neutral-600 dark:read-only:text-neutral-300";
@@ -43,9 +44,7 @@ function Section({
 }) {
   return (
     <section class="space-y-3">
-      <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 pb-1.5 border-b border-neutral-200 dark:border-neutral-700">
-        {title}
-      </h3>
+      <SettingsHeading>{title}</SettingsHeading>
       {children}
     </section>
   );

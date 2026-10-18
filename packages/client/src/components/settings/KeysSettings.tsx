@@ -18,6 +18,7 @@ import {
   sheetFor,
 } from "#/state/account/accountKeys.ts";
 import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
+import { SettingsHeading } from "./SettingsControls.tsx";
 
 /** What each button asks the password for. */
 type Purpose = "reveal" | "newSecret" | "newRecovery";
@@ -43,9 +44,7 @@ function Section({
 }) {
   return (
     <section class="space-y-3">
-      <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 pb-1.5 border-b border-neutral-200 dark:border-neutral-700">
-        {title}
-      </h3>
+      <SettingsHeading>{title}</SettingsHeading>
       {children}
     </section>
   );
