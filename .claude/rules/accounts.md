@@ -105,6 +105,7 @@ request carries `newPassword`. The client never shows a server's `error` text, w
 `loginErrorKey` (`state/account/auth.ts`), `changePassword` and the admin actions (`state/admin.ts`) map
 failures to catalogue messages by status. `AccountMenu` in the header only names the account, opens
 Settings on its page (`openSettings("account")`) and signs out; the account's pages (`AccountSettings`,
-`TwoFactorSettings`, `KeysSettings`, `ApiTokensSettings`, `WebhooksSettings`) are tabs of `SettingsDialog`, which lives in
+`SignInSettings` (the password and `TwoFactorSettings`), `KeysSettings`, `ActivitySettings`, `ApiTokensSettings`,
+`WebhooksSettings`) are tabs of `SettingsDialog`, grouped by `accountGroups` in `SettingsNav.tsx`, which lives in
 `components/settings/` with one file per tab and the rows and selects they share; they are shown only
 when signed in, and a tab that disappears falls back to Appearance.

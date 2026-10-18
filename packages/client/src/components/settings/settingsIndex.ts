@@ -13,7 +13,7 @@ export const SETTINGS_INDEX: readonly {
   label: MessageKey;
 }[] = [
   { tab: "account", label: "account.email" },
-  { tab: "account", label: "account.changePassword" },
+  { tab: "signIn", label: "account.changePassword" },
   { tab: "account", label: "account.delete.title" },
   { tab: "language", label: "settings.language" },
   { tab: "language", label: "settings.decimalSeparator" },

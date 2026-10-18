@@ -9,7 +9,6 @@ import {
 import { t } from "#/i18n/index.ts";
 import {
   authProviderName,
-  changePassword,
   currentUser,
   updateEmail,
 } from "#/state/account/auth.ts";
@@ -18,7 +17,7 @@ import { deleteOwnAccount } from "#/state/account/signOut.ts";
 import { showSuccess } from "#/state/ui.ts";
 import { SettingsHeading } from "./SettingsControls.tsx";
 
-const inputClass =
+export const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-neutral-100 dark:read-only:bg-neutral-800 read-only:text-neutral-600 dark:read-only:text-neutral-300";
 
 /** Something, an `@`, something: the same shape the server checks. */
@@ -35,7 +34,7 @@ export function hasOwnPassword(): boolean {
   return user?.hasPassword ?? authProviderName.value === "local";
 }
 
-function Section({
+export function Section({
   title,
   children,
 }: {
@@ -50,7 +49,7 @@ function Section({
   );
 }
 
-function Field({
+export function Field({
   label,
   children,
 }: {
@@ -68,7 +67,11 @@ function Field({
   );
 }
 
-/** Who you are, and the parts of it you can change here. */
+/**
+ * Who you are, and the parts of it you can change here. The password is on
+ * the Sign-in page with the other ways in, and deleting the account sits
+ * apart at the foot, where nobody reaches it on the way to something else.
+ */
 export function AccountSettings() {
   const user = currentUser.value;
   if (!user) return null;
@@ -93,34 +96,14 @@ export function AccountSettings() {
         </div>
       </div>
 
-      <Section title={t("account.email")}>
-        {ownPassword ? (
-          <EmailForm current={user.email} />
-        ) : (
-          <>
-            <input
-              type="email"
-              readOnly
-              value={user.email ?? ""}
-              aria-label={t("account.email")}
-              class={inputClass}
-            />
-            <p class="text-sm text-neutral-500 dark:text-neutral-400">
-              {t("account.email.managed")}
-            </p>
-          </>
-        )}
-      </Section>
+      <EmailSection current={user.email} editable={ownPassword} />
 
-      {ownPassword && (
-        <Section title={t("account.changePassword")}>
-          <PasswordForm />
-        </Section>
-      )}
-
-      <Section title={t("account.delete.title")}>
+      <section class="space-y-3 pt-6 border-t border-neutral-200 dark:border-neutral-700">
+        <h3 class="text-sm font-semibold text-red-700 dark:text-red-400">
+          {t("account.delete.title")}
+        </h3>
         <DeleteAccountForm />
-      </Section>
+      </section>
     </div>
   );
 }
@@ -167,20 +150,18 @@ function DeleteAccountForm() {
 
   if (!open) {
     return (
-      <>
-        <p class="text-sm text-neutral-500 dark:text-neutral-400">
+      <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+        <p class="flex-1 text-sm text-neutral-500 dark:text-neutral-400">
           {t("account.delete.hint")}
         </p>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            class={buttonClass("danger")}
-            onClick={() => setOpen(true)}
-          >
-            {t("account.delete.start")}
-          </button>
-        </div>
-      </>
+        <button
+          type="button"
+          class={`${buttonClass("secondary", "sm")} self-end sm:self-auto shrink-0`}
+          onClick={() => setOpen(true)}
+        >
+          {t("account.delete.start")}
+        </button>
+      </div>
     );
   }
 
@@ -209,11 +190,60 @@ function DeleteAccountForm() {
 }
 
 /**
+ * The address as it is, with a button to change it under local sign-in.
+ * Under single sign-on the provider owns it, so it is only shown.
+ */
+function EmailSection({
+  current,
+  editable,
+}: {
+  current: string | null;
+  editable: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  return (
+    <Section title={t("account.email")}>
+      {editing ? (
+        <EmailForm current={current} onDone={() => setEditing(false)} />
+      ) : (
+        <>
+          <div class="flex items-center justify-between gap-3">
+            <p
+              class={`min-w-0 truncate text-sm ${current ? "" : "text-neutral-500 dark:text-neutral-400"}`}
+            >
+              {current ?? t("account.email.none")}
+            </p>
+            {editable && (
+              <button
+                type="button"
+                class={`${buttonClass("secondary", "sm")} shrink-0`}
+                onClick={() => setEditing(true)}
+              >
+                {t(current ? "account.email.change" : "account.email.add")}
+              </button>
+            )}
+          </div>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+            {t(editable ? "account.email.hint" : "account.email.managed")}
+          </p>
+        </>
+      )}
+    </Section>
+  );
+}
+
+/**
  * Set or remove your own email address. It is not checked by sending
  * anything: it is how someone sharing a note finds you, so the hint says that
  * rather than promising mail.
  */
-function EmailForm({ current }: { current: string | null }) {
+function EmailForm({
+  current,
+  onDone,
+}: {
+  current: string | null;
+  onDone: () => void;
+}) {
   const [email, setEmail] = useState(current ?? "");
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
@@ -236,7 +266,7 @@ function EmailForm({ current }: { current: string | null }) {
     setBusy(false);
     if (result === "ok") {
       showSuccess(t(next ? "account.email.saved" : "account.email.removed"));
-      setPassword("");
+      onDone();
       return;
     }
     if (
@@ -266,6 +296,8 @@ function EmailForm({ current }: { current: string | null }) {
           type="email"
           autoComplete="email"
           maxLength={254}
+          // biome-ignore lint/a11y/noAutofocus: opened by the button for this
+          autoFocus
           value={email}
           onInput={(e) => setEmail((e.currentTarget as HTMLInputElement).value)}
           class={inputClass}
@@ -283,95 +315,16 @@ function EmailForm({ current }: { current: string | null }) {
           {error}
         </p>
       )}
-      <div class="flex justify-end">
+      <div class="flex justify-end gap-2">
+        <button type="button" class={buttonClass("secondary")} onClick={onDone}>
+          {t("confirm.cancel")}
+        </button>
         <button
           type="submit"
           disabled={busy || unchanged}
           class={buttonClass("primary")}
         >
           {busy ? t("login.submitting") : t("account.email.save")}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-/**
- * Change your own password. Every other session of the account ends and this
- * one carries on. The success message says so, so being signed out on another
- * device comes as no surprise.
- */
-function PasswordForm() {
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (event: Event) => {
-    event.preventDefault();
-    if (busy) return;
-    if (current.length === 0) return setError(t("login.passwordRequired"));
-    if (next.length < 8) return setError(t("login.passwordTooShort"));
-    if (next !== confirm) return setError(t("login.passwordMismatch"));
-    if (next === current) return setError(t("account.samePassword"));
-    setError(null);
-    setBusy(true);
-    const result = await changePassword(current, next);
-    setBusy(false);
-    if (result === "ok") {
-      showSuccess(t("account.passwordChanged"));
-      setCurrent("");
-      setNext("");
-      setConfirm("");
-      return;
-    }
-    setError(
-      t(
-        result === "wrong-password"
-          ? "account.wrongPassword"
-          : result === "same-password"
-            ? "account.samePassword"
-            : "account.changeFailed",
-      ),
-    );
-  };
-
-  const field = (
-    label: string,
-    value: string,
-    set: (value: string) => void,
-    autoComplete: string,
-  ) => (
-    <Field label={label}>
-      <input
-        type="password"
-        autoComplete={autoComplete}
-        value={value}
-        onInput={(e) => set((e.currentTarget as HTMLInputElement).value)}
-        class={inputClass}
-      />
-    </Field>
-  );
-
-  return (
-    <form onSubmit={submit} class="space-y-3">
-      {field(
-        t("account.currentPassword"),
-        current,
-        setCurrent,
-        "current-password",
-      )}
-      {field(t("login.newPassword"), next, setNext, "new-password")}
-      {field(t("login.confirmPassword"), confirm, setConfirm, "new-password")}
-      {error && (
-        <p class="text-sm text-red-600 dark:text-red-400" role="alert">
-          {error}
-        </p>
-      )}
-      <div class="flex justify-end">
-        <button type="submit" disabled={busy} class={buttonClass("primary")}>
-          {busy ? t("login.submitting") : t("account.changePassword")}
         </button>
       </div>
     </form>

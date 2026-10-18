@@ -29,10 +29,10 @@ function failureOf(res: Response | null): Failure {
 const secondFactor = signal<{ userId: string; enabled: boolean } | null>(null);
 
 /**
- * Whether the signed-in account has a second factor. Settings keeps its
- * two-factor page for such an account even when the server has turned both
- * halves off: sign-in still asks for the factor, and that page is the only
- * way to remove it.
+ * Whether the signed-in account has a second factor. Settings keeps the
+ * two-factor section of Sign-in for such an account when the server has
+ * turned both halves off: sign-in still asks for the factor, and that
+ * section is the only way to remove it.
  */
 export function hasSecondFactor(): boolean {
   const known = secondFactor.value;

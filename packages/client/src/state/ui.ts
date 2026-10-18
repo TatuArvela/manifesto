@@ -26,7 +26,7 @@ export const showSettings = signal(false);
 /** The settings modal's pages; the account ones exist only when signed in. */
 export type SettingsTab =
   | "account"
-  | "twoFactor"
+  | "signIn"
   | "keys"
   | "tokens"
   | "webhooks"

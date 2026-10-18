@@ -673,6 +673,7 @@ export const en = {
   "webhooks.tooMany": "You have as many webhooks as allowed; remove one first",
   "webhooks.failed": "Webhooks could not be reached; try again",
   "twoFactor.title": "Two-factor sign-in",
+  "signIn.title": "Sign-in",
   "twoFactor.hint":
     "Signing in asks for a second factor as well as your password: a code from an authenticator app, or a passkey.",
   "twoFactor.loading": "Loading...",
@@ -1293,6 +1294,8 @@ export const en = {
   "account.wrongPassword": "Current password is incorrect",
   "account.samePassword": "Choose a password different from the current one",
   "account.changeFailed": "Could not change the password. Please try again.",
+  "account.password": "Password",
+  "account.password.hint": "Changing it signs you out on your other devices.",
   "account.email": "Email address",
   "account.email.hint":
     "People can find you by it when they share a note with you. Nothing is ever sent to it.",
@@ -1303,6 +1306,9 @@ export const en = {
   "account.email.taken": "Another account already uses that address",
   "account.email.managed": "Your sign-in provider manages this address.",
   "account.email.failed": "Could not save the address. Please try again.",
+  "account.email.none": "No email address",
+  "account.email.add": "Add",
+  "account.email.change": "Change",
   "privacy.notice": "Privacy notice",
   "account.delete.title": "Delete account",
   "account.delete.hint":

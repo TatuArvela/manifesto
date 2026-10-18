@@ -21,19 +21,19 @@ import { KeysSettings } from "./KeysSettings.tsx";
 import { LanguageSettings } from "./LanguageSettings.tsx";
 import {
   AccountNavItem,
-  accountTabs,
+  accountGroups,
   GENERAL_TABS,
   NavGroup,
   NavItem,
   secondFactorOffered,
   TABS,
 } from "./SettingsNav.tsx";
+import { SignInSettings } from "./SignInSettings.tsx";
 import {
   findSettingRow,
   type SettingsHit,
   searchSettings,
 } from "./settingsIndex.ts";
-import { TwoFactorSettings } from "./TwoFactorSettings.tsx";
 import { WebhooksSettings } from "./WebhooksSettings.tsx";
 
 /** How long the modal's exit runs; matches the `duration-150` classes below. */
@@ -82,8 +82,9 @@ export function SettingsDialog() {
   useEscapeStack(isOpen, handleClose);
   const dialogRef = useFocusTrap<HTMLDivElement>(isOpen);
 
-  // With both halves of two-factor off on the server, its page is only for an
-  // account that already has one, and only the server knows whether it does.
+  // With both halves of two-factor off on the server, its section of Sign-in
+  // is only for an account that already has one, and only the server knows
+  // whether it does.
   const askForSecondFactor =
     isOpen &&
     isServerMode &&
@@ -97,7 +98,8 @@ export function SettingsDialog() {
   if (!shown) return null;
 
   const user = currentUser.value;
-  const account = accountTabs();
+  const groups = accountGroups();
+  const account = groups.flat();
   // A page that went away (signed out, webhooks turned off) falls back to the
   // first general one rather than showing nothing.
   const tab = [...account, ...GENERAL_TABS].includes(settingsTab.value)
@@ -205,24 +207,26 @@ export function SettingsDialog() {
                 aria-label={t("settings.title")}
                 class="flex sm:flex-col gap-1 sm:gap-0 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto px-3 pb-3 sm:pb-2"
               >
-                {account.length > 0 && (
-                  <NavGroup>
-                    <AccountNavItem
-                      active={tab === "account"}
-                      onSelect={select}
-                    />
-                    {account
-                      .filter((a) => a !== "account")
-                      .map((a) => (
+                {groups.map((group) => (
+                  <NavGroup key={group[0]}>
+                    {group.map((a) =>
+                      a === "account" ? (
+                        <AccountNavItem
+                          key={a}
+                          active={tab === "account"}
+                          onSelect={select}
+                        />
+                      ) : (
                         <NavItem
                           key={a}
-                          tab={a as Exclude<SettingsTab, "account">}
+                          tab={a}
                           active={tab === a}
                           onSelect={select}
                         />
-                      ))}
+                      ),
+                    )}
                   </NavGroup>
-                )}
+                ))}
                 <NavGroup>
                   {GENERAL_TABS.map((g) => (
                     <NavItem
@@ -257,7 +261,7 @@ export function SettingsDialog() {
               class="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-5"
             >
               {tab === "account" && <AccountSettings />}
-              {tab === "twoFactor" && <TwoFactorSettings />}
+              {tab === "signIn" && <SignInSettings />}
               {tab === "keys" && <KeysSettings />}
               {tab === "tokens" && <ApiTokensSettings />}
               {tab === "webhooks" && <WebhooksSettings />}

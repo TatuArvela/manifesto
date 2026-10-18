@@ -685,6 +685,7 @@ export const fi: Messages = {
   "webhooks.tooMany": "Webhookeja on enimmäismäärä; poista ensin jokin",
   "webhooks.failed": "Webhookeihin ei saatu yhteyttä; yritä uudelleen",
   "twoFactor.title": "Kaksivaiheinen kirjautuminen",
+  "signIn.title": "Kirjautuminen",
   "twoFactor.hint":
     "Kirjautuessa kysytään salasanan lisäksi toinen tunnistautumistapa: todennussovelluksen koodi tai pääsyavain.",
   "twoFactor.loading": "Ladataan...",
@@ -1315,6 +1316,8 @@ export const fi: Messages = {
   "account.wrongPassword": "Nykyinen salasana on väärin",
   "account.samePassword": "Valitse eri salasana kuin nykyinen",
   "account.changeFailed": "Salasanan vaihtaminen epäonnistui. Yritä uudelleen.",
+  "account.password": "Salasana",
+  "account.password.hint": "Vaihtaminen kirjaa sinut ulos muilta laitteiltasi.",
   "account.email": "Sähköpostiosoite",
   "account.email.hint":
     "Muut löytävät sinut sen avulla, kun he jakavat sinulle muistiinpanon. Osoitteeseen ei lähetetä mitään.",
@@ -1326,6 +1329,9 @@ export const fi: Messages = {
   "account.email.managed": "Osoitetta hallitaan kirjautumispalvelussasi.",
   "account.email.failed":
     "Osoitteen tallentaminen epäonnistui. Yritä uudelleen.",
+  "account.email.none": "Ei sähköpostiosoitetta",
+  "account.email.add": "Lisää",
+  "account.email.change": "Vaihda",
   "privacy.notice": "Tietosuojaseloste",
   "account.delete.title": "Poista tili",
   "account.delete.hint":
