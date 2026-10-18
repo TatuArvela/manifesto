@@ -26,7 +26,7 @@ import { offeredTokenKinds, serverFeature } from "#/state/serverFeatures.ts";
 import { showError, showSuccess } from "#/state/ui.ts";
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 
 const KIND_LABELS: Record<ApiTokenKind, MessageKey> = {
   api: "tokens.kindApi",
