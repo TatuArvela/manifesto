@@ -21,7 +21,6 @@ export const SETTINGS_INDEX: readonly {
   { tab: "appearance", label: "settings.darkHue" },
   { tab: "appearance", label: "settings.noteTilt" },
   { tab: "appearance", label: "settings.noteCorners" },
-  { tab: "appearance", label: "settings.boardBackground" },
   { tab: "appearance", label: "settings.stickyTopBar" },
   { tab: "appearance", label: "settings.animations" },
   { tab: "appearance", label: "settings.noteQuips" },
@@ -79,8 +78,7 @@ export function searchSettings(
 
 /**
  * The row on the page in `pane` that shows `label`: a row's heading, a
- * group's title or a button, whose text is the label. A folded group around
- * it is opened.
+ * group's title or a button, whose text is the label.
  */
 export function findSettingRow(
   pane: HTMLElement,
@@ -90,8 +88,5 @@ export function findSettingRow(
     ...pane.querySelectorAll<HTMLElement>("h3, h4, button"),
   ].find((el) => el.textContent?.trim() === label);
   if (!heading) return null;
-  const fold = heading.closest("details");
-  if (fold) fold.open = true;
-  // A row's heading sits in the row; a group's title in its summary.
-  return heading.closest<HTMLElement>("summary, [data-setting-row]") ?? heading;
+  return heading.closest<HTMLElement>("[data-setting-row]") ?? heading;
 }

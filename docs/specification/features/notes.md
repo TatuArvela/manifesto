@@ -45,7 +45,7 @@ Changes are saved on close (or debounced while editing).
 
 ## Board Background
 
-Settings > Appearance > Board Background folds open into a composition for the area behind the notes, applied as it is chosen:
+Settings > Board Background is a page of its own, composing the area behind the notes, applied as it is chosen:
 
 - **Background Color 1**: none (the page's own), white, gray or black (light to dark in either theme: black is a charcoal in the light theme and white a slate in the dark one, so the page's headings still read over them), a preset (red, orange, yellow, green, teal, blue, purple or pink, the hues of the note colours: a clear pastel a step stronger than a note of that colour in the light theme, and a step deeper in the dark), or a custom colour from the system picker. A custom colour is shown as picked in the light theme and mixed deep into the page colour in the dark one. **Random** puts a different preset on the board each visit; choosing it again rolls another.
 - **Background Color 2**: none for a flat board, or a second colour the board fades to from the first, chosen the same way (a random one is never the first colour's preset). A board kept in one of the earlier muted presets (Sand, Sage, Mist, Blush, Lavender, Caramel) is read as the preset nearest it, and one in the earlier Cork, Felt or Linen pattern as Paper. Once one is set, **Direction** offers eight sides and corners on a compass, each drawn as the gradient it would make, with **Random** in its middle. A corner runs corner to corner on a board of any shape.

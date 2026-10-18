@@ -8,6 +8,7 @@ import {
   Palette,
   ShieldCheck,
   Sparkles,
+  Wallpaper,
   Webhook,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
@@ -31,6 +32,7 @@ export const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
   webhooks: { label: "webhooks.title", icon: Webhook },
   activity: { label: "activity.title", icon: History },
   appearance: { label: "settings.group.appearance", icon: Palette },
+  board: { label: "settings.boardBackground", icon: Wallpaper },
   features: { label: "settings.group.features", icon: Sparkles },
   data: { label: "settings.group.data", icon: Database },
   about: { label: "settings.group.about", icon: Info },
@@ -38,6 +40,7 @@ export const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
 
 export const GENERAL_TABS: SettingsTab[] = [
   "appearance",
+  "board",
   "features",
   "data",
   "about",

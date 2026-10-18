@@ -14,6 +14,7 @@ import { AccountSettings, hasOwnPassword } from "./AccountSettings.tsx";
 import { ActivitySettings } from "./ActivitySettings.tsx";
 import { ApiTokensSettings } from "./ApiTokensSettings.tsx";
 import { AppearanceSettings } from "./AppearanceSettings.tsx";
+import { BoardBackgroundSettings } from "./BoardBackgroundSettings.tsx";
 import { DataSettings } from "./DataSettings.tsx";
 import { FeaturesSettings } from "./FeaturesSettings.tsx";
 import { KeysSettings } from "./KeysSettings.tsx";
@@ -265,6 +266,7 @@ export function SettingsDialog() {
               {tab === "webhooks" && <WebhooksSettings />}
               {tab === "activity" && <ActivitySettings />}
               {tab === "appearance" && <AppearanceSettings />}
+              {tab === "board" && <BoardBackgroundSettings />}
               {tab === "features" && <FeaturesSettings />}
               {tab === "data" && <DataSettings />}
               {tab === "about" && <AboutSettings onClose={handleClose} />}

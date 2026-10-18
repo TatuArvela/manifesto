@@ -9,7 +9,7 @@ import {
   boardTextureOpacity,
   boardUsePicture,
 } from "#/state/prefs.ts";
-import { BoardBackgroundSetting } from "./BoardBackgroundSetting.tsx";
+import { BoardBackgroundSettings } from "./BoardBackgroundSettings.tsx";
 
 let host: HTMLDivElement;
 let board: HTMLElement;
@@ -27,7 +27,7 @@ function button(label: string): HTMLButtonElement {
   return found;
 }
 
-beforeEach(async () => {
+beforeEach(() => {
   boardColor.value = "none";
   boardTexture.value = "none";
   boardUsePicture.value = false;
@@ -37,11 +37,7 @@ beforeEach(async () => {
   // The board fades between colours; read where it lands, not the fade.
   board.style.transition = "none";
   document.body.append(host, board);
-  render(<BoardBackgroundSetting />, host);
-  button(
-    `${t("settings.boardBackground")}: ${t("settings.boardBackground.none")}`,
-  ).click();
-  await nextFrame();
+  render(<BoardBackgroundSettings />, host);
 });
 
 afterEach(() => {
@@ -74,11 +70,6 @@ describe("board background composer", () => {
     document.body.appendChild(probe);
     expect(style.backgroundColor).toBe(getComputedStyle(probe).color);
     probe.remove();
-    expect(
-      button(
-        `${t("settings.boardBackground")}: ${t("settings.boardBackground.summary", { color: t("color.green"), texture: t("settings.boardBackground.texture.dots") })}`,
-      ),
-    ).toBeTruthy();
   });
 
   it("changes only the texture layer's opacity with the slider", async () => {

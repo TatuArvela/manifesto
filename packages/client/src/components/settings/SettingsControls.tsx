@@ -31,71 +31,17 @@ export function SettingsRow({
   );
 }
 
-const FOLDS_KEY = "manifesto:settingsFolds";
-
-/** Which folding groups this viewer has opened or closed, by `fold` id. */
-function readFolds(): Record<string, boolean> {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(FOLDS_KEY) ?? "{}");
-    return parsed && typeof parsed === "object"
-      ? (parsed as Record<string, boolean>)
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeFold(id: string, open: boolean) {
-  try {
-    localStorage.setItem(
-      FOLDS_KEY,
-      JSON.stringify({ ...readFolds(), [id]: open }),
-    );
-  } catch {
-    // Not kept: the group opens as it does by default next time.
-  }
-}
-
 /**
  * Rows that belong together, with a line between each, under a heading when
- * the group needs a name. With `fold`, the heading opens and closes the
- * group, and this browser remembers which way it was left (a convenience,
- * so it lives in `localStorage` rather than the preferences).
+ * the group needs a name.
  */
 export function SettingsGroup({
   title,
-  fold,
   children,
 }: {
   title?: string | undefined;
-  /** Makes the group fold under its title: a stable id, and whether it starts open. */
-  fold?: { id: string; open: boolean } | undefined;
   children: ComponentChildren;
 }) {
-  if (fold && title) {
-    const remembered = readFolds()[fold.id];
-    return (
-      <details
-        class="settings-fold group"
-        data-fold={fold.id}
-        open={typeof remembered === "boolean" ? remembered : fold.open}
-        onToggle={(e) =>
-          writeFold(fold.id, (e.currentTarget as HTMLDetailsElement).open)
-        }
-      >
-        <summary class="flex items-center justify-between gap-2 px-1 py-2 rounded-lg cursor-pointer list-none text-sm font-semibold text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700/50">
-          <h3>{title}</h3>
-          <ChevronDown
-            class="w-4 h-4 shrink-0 text-neutral-500 dark:text-neutral-400 transition-transform group-open:rotate-180"
-            aria-hidden="true"
-          />
-        </summary>
-        <div class="pt-1 divide-y divide-neutral-200 dark:divide-white/10">
-          {children}
-        </div>
-      </details>
-    );
-  }
   return (
     <section>
       {title && (

@@ -21,7 +21,6 @@ import {
   type ThemeMode,
   theme,
 } from "#/state/prefs.ts";
-import { BoardBackgroundSetting } from "./BoardBackgroundSetting.tsx";
 import {
   SettingsGroup,
   type SettingsOption,
@@ -74,11 +73,8 @@ export function AppearanceSettings() {
     })),
   ];
   return (
-    <div class="space-y-3">
-      <SettingsGroup
-        title={t("settings.group.theme")}
-        fold={{ id: "theme", open: true }}
-      >
+    <div class="space-y-6">
+      <SettingsGroup title={t("settings.group.theme")}>
         <SettingsRow label={t("settings.language")}>
           <SettingsSelect
             label={t("settings.language")}
@@ -145,10 +141,7 @@ export function AppearanceSettings() {
         </div>
       </SettingsGroup>
 
-      <SettingsGroup
-        title={t("settings.group.notes")}
-        fold={{ id: "notes", open: false }}
-      >
+      <SettingsGroup title={t("settings.group.notes")}>
         <SettingsRow label={t("settings.noteTilt")}>
           <SettingsSelect
             label={t("settings.noteTilt")}
@@ -174,17 +167,7 @@ export function AppearanceSettings() {
         </SettingsRow>
       </SettingsGroup>
 
-      <SettingsGroup
-        title={t("settings.boardBackground")}
-        fold={{ id: "board", open: false }}
-      >
-        <BoardBackgroundSetting />
-      </SettingsGroup>
-
-      <SettingsGroup
-        title={t("settings.group.behavior")}
-        fold={{ id: "behavior", open: false }}
-      >
+      <SettingsGroup title={t("settings.group.behavior")}>
         <SettingsRow label={t("settings.stickyTopBar")}>
           <Switch
             checked={stickyTopBar.value}

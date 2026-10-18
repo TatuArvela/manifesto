@@ -110,12 +110,6 @@ body {
   text-size-adjust: 100%;
 }
 
-/* A folding settings group draws its own chevron; Safari still draws the
-   marker `list-none` takes away elsewhere. */
-.settings-fold > summary::-webkit-details-marker {
-  display: none;
-}
-
 /* The row a settings search jumped to, lit for a moment so the eye finds it. */
 .settings-found {
   border-radius: 0.5rem;

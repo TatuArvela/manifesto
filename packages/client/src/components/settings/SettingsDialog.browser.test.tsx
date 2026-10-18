@@ -131,7 +131,6 @@ describe("searching Settings", () => {
   beforeEach(() => {
     host = document.createElement("div");
     document.body.appendChild(host);
-    localStorage.removeItem("manifesto:settingsFolds");
     settingsTab.value = "features";
     showSettings.value = true;
     render(<SettingsDialog />, host);
@@ -141,7 +140,6 @@ describe("searching Settings", () => {
     render(null, host);
     host.remove();
     showSettings.value = false;
-    localStorage.removeItem("manifesto:settingsFolds");
   });
 
   const field = () =>
@@ -159,7 +157,6 @@ describe("searching Settings", () => {
   ];
 
   it("lists a setting with its page, and takes the reader to it", async () => {
-    // Behavior is folded shut by default on the Appearance page.
     search(t("settings.animations").toLowerCase());
     await vi.waitFor(() => expect(results().length).toBe(1));
     expect(results()[0]?.textContent).toContain(t("settings.group.appearance"));
@@ -169,12 +166,17 @@ describe("searching Settings", () => {
     await vi.waitFor(() => {
       const row = host.querySelector(".settings-found");
       expect(row?.textContent).toContain(t("settings.animations"));
-      expect(row?.closest("details")?.open).toBe(true);
     });
     expect(field()?.value).toBe("");
   });
 
   it("finds a page by its name and says when nothing matches", async () => {
+    search(t("settings.boardBackground"));
+    await vi.waitFor(() =>
+      expect(results().map((b) => b.textContent)).toContain(
+        t("settings.boardBackground"),
+      ),
+    );
     search(t("settings.group.data"));
     await vi.waitFor(() =>
       expect(results().map((b) => b.textContent)).toContain(
@@ -184,24 +186,6 @@ describe("searching Settings", () => {
     search("zzzz");
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("settings.searchNone")),
-    );
-  });
-
-  it("remembers a section folded open", async () => {
-    settingsTab.value = "appearance";
-    const fold = await vi.waitFor(() => {
-      const found = host.querySelector<HTMLDetailsElement>(
-        'details[data-fold="behavior"]',
-      );
-      if (!found) throw new Error("no fold");
-      return found;
-    });
-    expect(fold.open).toBe(false);
-    fold.open = true;
-    await vi.waitFor(() =>
-      expect(localStorage.getItem("manifesto:settingsFolds")).toContain(
-        '"behavior":true',
-      ),
     );
   });
 });

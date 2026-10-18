@@ -32,6 +32,7 @@ export type SettingsTab =
   | "webhooks"
   | "activity"
   | "appearance"
+  | "board"
   | "features"
   | "data"
   | "about";
