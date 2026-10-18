@@ -13,6 +13,7 @@ import { t } from "#/i18n/index.ts";
 import { toggleCheckbox } from "#/state/actions.ts";
 import { drawnWithoutImages } from "#/state/autoNotes.ts";
 import { updateNote } from "#/state/notesStore.ts";
+import { checklistProgress as showChecklistProgress } from "#/state/prefs.ts";
 import { checklistProgress } from "#/utils/markdown.ts";
 
 /**
@@ -173,7 +174,9 @@ export function NoteCardBody({
             />
           </div>
 
-          <ChecklistProgress content={note.content} />
+          {showChecklistProgress.value && (
+            <ChecklistProgress content={note.content} />
+          )}
 
           {hasLinkPreviews && (
             <div class="mt-3">

@@ -388,6 +388,8 @@ export const PREF_PARSERS = {
   formattingToolbar: flag(true),
   /** Whether ticking a checklist item moves it below the ones still to do. */
   checkedItemsLast: flag(false),
+  /** Whether a card with a checklist shows how much of it is ticked. */
+  checklistProgress: flag(true),
   /**
    * In the app installed on a phone, whether a link opens in the system's
    * browser rather than the app's own view of it (`state/externalLinks.ts`).

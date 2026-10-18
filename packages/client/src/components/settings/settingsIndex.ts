@@ -27,6 +27,7 @@ export const SETTINGS_INDEX: readonly {
   { tab: "appearance", label: "settings.noteQuips" },
   { tab: "features", label: "settings.formattingToolbar" },
   { tab: "features", label: "settings.checkedItemsLast" },
+  { tab: "features", label: "settings.checklistProgress" },
   { tab: "features", label: "settings.openLinksInBrowser" },
   { tab: "features", label: "settings.confirmBeforeDelete" },
   { tab: "features", label: "settings.inlineCalculations" },

@@ -7,6 +7,7 @@ import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
 import { canOpenInSystemBrowser } from "#/state/externalLinks.ts";
 import {
   checkedItemsLast,
+  checklistProgress,
   confirmBeforeDelete,
   type DefaultNoteColor,
   type DefaultNoteFont,
@@ -46,6 +47,16 @@ export function FeaturesSettings() {
               checkedItemsLast.value = checked;
             }}
             label={t("settings.checkedItemsLast")}
+          />
+        </SettingsRow>
+
+        <SettingsRow label={t("settings.checklistProgress")}>
+          <Switch
+            checked={checklistProgress.value}
+            onChange={(checked) => {
+              checklistProgress.value = checked;
+            }}
+            label={t("settings.checklistProgress")}
           />
         </SettingsRow>
 

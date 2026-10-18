@@ -51,6 +51,8 @@ item at once, for a packing or shopping list used again. A note shared only to v
 
 A card whose note has two or more checklist items draws a thin bar under its text, filled by the
 share of items ticked, nested ones counted. Its label ("3 of 5 done") is what a screen reader reads.
+"Show Checklist Progress Bar" (Settings, Features; the `checklistProgress` preference, on by
+default) turns the bar off for every card at once.
 
 ## Interaction from the Card View
 
