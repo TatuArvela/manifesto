@@ -102,7 +102,7 @@ set:
 | `boardColor`, `boardGradient` | `none` (default), `white`, `gray`, `black`, a board colour, `custom`, `random` |
 | `boardCustomColor`, `boardGradientCustomColor`, `boardInkColor` | a `#rrggbb` colour |
 | `boardGradientDirection` | `top`, `top-right`, `right`, `bottom-right` (default), `bottom`, `bottom-left`, `left`, `top-left`, `random` |
-| `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `confetti`, `waves`, `stars`, `hearts`, `bubbles`, `stripes`, `sawtooth`, `random` |
+| `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `waves`, `confetti`, `stars`, `hearts`, `bubbles`, `stripes`, `sawtooth`, `random` |
 | `boardInk` | `auto` (default), `white`, `black`, a board colour, `custom`, `random` |
 | `boardTextureOpacity` | a whole percentage from 0 to 100 (default 10) |
 | `noteScale`, `animations`, `stickyTopBar`, `openLinksInBrowser` | the device's own: `big` or `small`, and `true` or `false`; taken only on a first visit |
