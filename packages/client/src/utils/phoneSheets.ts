@@ -21,7 +21,7 @@
  */
 
 /** The breakpoint below which a note opens as a sheet, Tailwind's `max-sm`. */
-const PHONE_QUERY = "(width < 40rem)";
+export const PHONE_QUERY = "(width < 40rem)";
 
 /** Whether the note editor is laid out as a phone's full-screen sheet. */
 export function isPhoneLayout(): boolean {

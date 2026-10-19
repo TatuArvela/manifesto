@@ -20,15 +20,17 @@ import { TagChip } from "#/components/TagChip.tsx";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEditorTicks } from "#/hooks/useEditorTicks.ts";
 import { useImageUploads } from "#/hooks/useImageUploads.ts";
+import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
 import { useNotePaste } from "#/hooks/useNotePaste.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { t } from "#/i18n/index.ts";
 import { closeDrawing, requestDrawing } from "#/state/drawing.ts";
 import { defaultEditMode, formattingToolbar } from "#/state/prefs.ts";
+import { PHONE_QUERY } from "#/utils/phoneSheets.ts";
 import { editorButtonClass, editorIconClass } from "./editorButtons.ts";
 import { FormattingToolbar } from "./FormattingToolbar.tsx";
 import { MilkdownEditor } from "./MilkdownEditor.tsx";
-import { NoteEditorToolbar } from "./NoteEditorToolbar.tsx";
+import { HistoryButtons, NoteEditorToolbar } from "./NoteEditorToolbar.tsx";
 import { textActions } from "./textActions.ts";
 
 interface NoteEditorProps {
@@ -179,6 +181,42 @@ export function NoteEditor({
 
   const colors = noteColorMap[color];
 
+  // On a phone the tools go in the top bar, which stays on screen, rather
+  // than under the note, where the keyboard covers them; see
+  // `NoteEditorToolbar`. Mounted in one place or the other, not both.
+  const phone = useMediaQuery(PHONE_QUERY);
+  const toolbar = (
+    <NoteEditorToolbar
+      atTop={phone}
+      color={color}
+      onColorChange={onColorChange}
+      font={font}
+      onFontChange={onFontChange}
+      tags={tags}
+      onAddTag={onAddTag}
+      reminder={reminder}
+      onReminderChange={onReminderChange}
+      onFilesSelected={handleFilesSelected}
+      onDraw={() => requestDrawing((file) => attachFiles([file]))}
+      rawMode={rawMode}
+      onToggleRawMode={() => setRawMode(!rawMode)}
+      menuItems={
+        menuItems?.({
+          checkedItems: actions.checkedItems,
+          datedItems: actions.datedItems,
+        }) ?? []
+      }
+      canUndo={actions.canUndo}
+      canRedo={actions.canRedo}
+      onUndo={() => actions.runHistory("undo")}
+      onRedo={() => actions.runHistory("redo")}
+      onDelete={onDelete}
+      deleteLabel={deleteLabel}
+      onDone={onDone}
+      disabled={disabled}
+    />
+  );
+
   return (
     <article
       class={`${colors.bg} ${colors.border} note-surface note-color-transition relative z-10 sm:border sm:shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col`}
@@ -188,7 +226,19 @@ export function NoteEditor({
         onPinToggle={onPinToggle}
         onBack={onBack ?? onDone}
         disabled={disabled}
-      />
+        history={
+          phone && (
+            <HistoryButtons
+              canUndo={actions.canUndo}
+              canRedo={actions.canRedo}
+              onUndo={() => actions.runHistory("undo")}
+              onRedo={() => actions.runHistory("redo")}
+            />
+          )
+        }
+      >
+        {phone && toolbar}
+      </EditorTopBar>
 
       {images.length > 0 && (
         <ImageGallery
@@ -302,83 +352,65 @@ export function NoteEditor({
         />
       </div>
 
-      <NoteEditorToolbar
-        color={color}
-        onColorChange={onColorChange}
-        font={font}
-        onFontChange={onFontChange}
-        tags={tags}
-        onAddTag={onAddTag}
-        reminder={reminder}
-        onReminderChange={onReminderChange}
-        onFilesSelected={handleFilesSelected}
-        onDraw={() => requestDrawing((file) => attachFiles([file]))}
-        rawMode={rawMode}
-        onToggleRawMode={() => setRawMode(!rawMode)}
-        menuItems={
-          menuItems?.({
-            checkedItems: actions.checkedItems,
-            datedItems: actions.datedItems,
-          }) ?? []
-        }
-        canUndo={actions.canUndo}
-        canRedo={actions.canRedo}
-        onUndo={() => actions.runHistory("undo")}
-        onRedo={() => actions.runHistory("redo")}
-        onDelete={onDelete}
-        deleteLabel={deleteLabel}
-        onDone={onDone}
-        disabled={disabled}
-      />
+      {!phone && toolbar}
     </article>
   );
 }
 
 /**
  * Back (on a phone only) and the pin. On a wide screen the pin floats at the
- * top right; on a phone this is a row above the title.
+ * top right; on a phone this is a row above the title, with undo and redo
+ * beside the pin and the note's toolbar under it (`children`).
  */
 function EditorTopBar({
   pinned,
   onPinToggle,
   onBack,
   disabled,
+  history,
+  children,
 }: {
   pinned: boolean;
   onPinToggle: () => void;
   onBack: () => void;
   disabled: boolean | undefined;
+  history: ComponentChildren;
+  children: ComponentChildren;
 }) {
   const pinLabel = pinned ? t("noteCard.unpin") : t("noteCard.pin");
   return (
-    <div class="note-sheet-top max-sm:flex max-sm:items-center max-sm:justify-between max-sm:px-2.5">
-      <div class="sm:hidden">
-        <button
-          type="button"
-          class={editorButtonClass}
-          onClick={onBack}
-          aria-label={t("editor.back")}
-        >
-          <ArrowLeft class="w-5 h-5 max-sm:w-6 max-sm:h-6" />
-        </button>
-      </div>
-      <div class="sm:absolute sm:top-2 sm:right-2 flex items-center gap-0.5">
-        <Tooltip label={pinLabel}>
+    <div class="note-sheet-top">
+      <div class="max-sm:flex max-sm:items-center max-sm:justify-between max-sm:px-2.5">
+        <div class="sm:hidden">
           <button
             type="button"
-            class={`${editorButtonClass} transition-opacity`}
-            onClick={onPinToggle}
-            aria-label={pinLabel}
-            disabled={disabled}
+            class={editorButtonClass}
+            onClick={onBack}
+            aria-label={t("editor.back")}
           >
-            {pinned ? (
-              <PinOff class={editorIconClass} />
-            ) : (
-              <Pin class={editorIconClass} />
-            )}
+            <ArrowLeft class="w-5 h-5 max-sm:w-6 max-sm:h-6" />
           </button>
-        </Tooltip>
+        </div>
+        <div class="sm:absolute sm:top-2 sm:right-2 flex items-center gap-0.5">
+          {history}
+          <Tooltip label={pinLabel}>
+            <button
+              type="button"
+              class={`${editorButtonClass} transition-opacity`}
+              onClick={onPinToggle}
+              aria-label={pinLabel}
+              disabled={disabled}
+            >
+              {pinned ? (
+                <PinOff class={editorIconClass} />
+              ) : (
+                <Pin class={editorIconClass} />
+              )}
+            </button>
+          </Tooltip>
+        </div>
       </div>
+      {children}
     </div>
   );
 }
