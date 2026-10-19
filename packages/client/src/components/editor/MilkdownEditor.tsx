@@ -61,6 +61,8 @@ interface MilkdownEditorProps {
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
   autoFocus?: boolean;
   onEditorReady?: (editor: Editor) => void;
+  /** The editor `onEditorReady` handed over has been destroyed. */
+  onEditorGone?: () => void;
   collab?:
     | {
         ydoc: Y.Doc;
@@ -79,6 +81,7 @@ export function MilkdownEditor({
   textareaRef: externalTextareaRef,
   autoFocus,
   onEditorReady,
+  onEditorGone,
   collab,
 }: MilkdownEditorProps) {
   const rawModeRef = useRef(rawMode);
@@ -89,6 +92,8 @@ export function MilkdownEditor({
   onChangeRef.current = onChange;
   const onEditorReadyRef = useRef(onEditorReady);
   onEditorReadyRef.current = onEditorReady;
+  const onEditorGoneRef = useRef(onEditorGone);
+  onEditorGoneRef.current = onEditorGone;
   const initialContentRef = useRef(content);
 
   const [rawContent, setRawContent] = useState(content);
@@ -321,6 +326,15 @@ export function MilkdownEditor({
     if (initial.trim().length === 0) return;
     editor.action(replaceAll(initial));
   }, [editor, collab]);
+
+  // A parent that keeps the editor must let go of it once it is destroyed:
+  // every read of a destroyed editor throws (`Context "editorState" not
+  // found`), and the parent goes on rendering when only this component is
+  // replaced, as on the solo to collab remount.
+  useEffect(() => {
+    if (!editor) return;
+    return () => onEditorGoneRef.current?.();
+  }, [editor]);
 
   useEffect(() => {
     if (!editor) return;
